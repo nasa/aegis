@@ -16,7 +16,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
       res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
   } catch (error) {
-    res.status(500).json({ status: "failure", message: "Failed to find missions." });
+    res.status(500).json({ status: "error", message: "Failed to find missions." });
   }
 }
 
