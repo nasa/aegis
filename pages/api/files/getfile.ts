@@ -45,22 +45,11 @@ async function getfile(username: string, fileId: any) {
   const file = files[0];
 
   const [histories] = await sequelize.query(
-    "SELECT history" +
-      " " +
-      "FROM file_histories" +
-      " " +
-      "WHERE" +
-      " " +
-      (idArray ? "file_id IN (:id)" : "file_id=:id") +
-      " " +
-      "AND time<=:time" +
-      " " +
-      (published ? "AND action_index=4 " : "") +
-      "ORDER BY time DESC" +
-      " " +
-      "FETCH first " +
-      (published ? fileId.length : "1") +
-      " rows only",
+    `SELECT history FROM file_histories WHERE ${
+      idArray ? "file_id IN (:id)" : "file_id=:id"
+    } AND time<=:time ${published ? "AND action_index=4 " : ""}ORDER BY time DESC FETCH first ${
+      published ? fileId.length : "1"
+    } rows only`,
     {
       replacements: {
         id: fileId,
@@ -68,8 +57,6 @@ async function getfile(username: string, fileId: any) {
       },
     }
   );
-
-  console.log("test: " + JSON.stringify(histories));
 
   let bestHistory = [];
   for (let i = 0; i < histories.length; i++) {
@@ -79,18 +66,9 @@ async function getfile(username: string, fileId: any) {
   bestHistoryStr = bestHistoryStr || "NULL";
 
   const [userFeatures] = await sequelize.query(
-    "SELECT " +
-      "id, file_id, level, intent, properties, ST_AsGeoJSON(geom)" +
-      " " +
-      "FROM user_features" +
-      " " +
-      "WHERE" +
-      " " +
-      (idArray ? "file_id IN (:id)" : "file_id=:id") +
-      " " +
-      "AND id IN (" +
-      bestHistory +
-      ")",
+    `SELECT id, file_id, level, intent, properties, ST_AsGeoJSON(geom) FROM user_features WHERE ${
+      idArray ? "file_id IN (:id)" : "file_id=:id"
+    } AND id IN (${bestHistoryStr})`,
     {
       replacements: {
         id: fileId,

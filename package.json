@@ -22,7 +22,8 @@
     "react": "18.1.0",
     "react-dom": "18.1.0",
     "react-leaflet": "^4.0.0",
-    "sequelize": "^6.20.1"
+    "sequelize": "^6.20.1",
+    "uuidv4": "^6.2.13"
   },
   "devDependencies": {
     "@types/leaflet": "^1.7.11",

@@ -2,17 +2,6 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 
 import { ironOptions } from "server/session/config";
-import { User } from "server/db/Users/models/user";
-
-declare module "iron-session" {
-  interface IronSessionData {
-    user?: {
-      username: string;
-      id: number;
-      permission: string;
-    };
-  }
-}
 
 export default withIronSessionApiRoute(handler, ironOptions);
 
