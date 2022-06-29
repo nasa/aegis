@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { bcrypt } from "bcryptjs";
 import { withIronSessionApiRoute } from "iron-session/next";
+import bcrypt from "bcryptjs";
 
 import { ironOptions } from "server/session/config";
 import { User } from "server/db/Users/models/user";
