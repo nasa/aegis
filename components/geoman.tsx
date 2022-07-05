@@ -1,13 +1,17 @@
-import L from "leaflet";
+import L, { Map } from "leaflet";
 import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import styles from "./geoman.module.css";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
+import { useDispatch, useSelector } from "react-redux";
 
 L.Icon.Default.imagePath = "/leaflet/images/";
 import { useEffect, useRef, useState } from "react";
 import { getConfig, getConfigs } from "http-client/internal-api";
+import { setMMGISConfig } from "store/mmgis";
+import { RootState } from "store/index";
+import _ from "lodash";
 
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
@@ -16,12 +20,15 @@ const zoom = 13;
 const layerBaseURL = `http://192.168.0.5:8005/NASA_AEGIS/Missions/Iceland_v001/Layers/`;
 
 const Geoman = () => {
+  const dispatch = useDispatch();
+
   const mapRef = useRef(null);
 
   const [layerList, setLayerList] = useState([]);
 
-  const [configs, setConfigs] = useState<string[]>([]);
-  const [config, setConfig] = useState<MMGISConfig>(null);
+  const [configs, setConfigs] = useState<string[]>(null);
+
+  const config = useSelector((state: RootState) => state.mmgisConfig);
 
   useEffect(() => {
     if (!mapRef.current) {
@@ -115,9 +122,8 @@ const Geoman = () => {
     setLayerList(layers);
 
     return () => {
-      console.log("UseEffect return");
       mapRef.current.pm.removeControls();
-      mapRef.current.pm.setGlobalOptions({ pmIgnore: true });
+      // mapRef.current.pm.setGlobalOptions({ pmIgnore: true });
       mapRef.current.off();
       mapRef.current.remove();
     };
@@ -125,17 +131,18 @@ const Geoman = () => {
 
   useEffect(() => {
     (async () => {
-      const myConfigs = await getConfigs();
-      setConfigs(myConfigs.data);
+      const thisConfigs = await getConfigs();
+      setConfigs(thisConfigs.data);
     })();
   }, []);
 
-  useEffect(() => {
+  const loadPotrillo = () => {
     (async () => {
-      const myConfig = await getConfig("Potrillo_VF_v001");
-      setConfig(myConfig.data);
+      const thisConfig = await getConfig("Potrillo_VF_v001");
+      // setConfig(myConfig.data);
+      dispatch(setMMGISConfig(thisConfig.data));
     })();
-  }, []);
+  };
 
   return (
     <>
@@ -149,13 +156,27 @@ const Geoman = () => {
             <div className={styles.title} style={{ padding: "0" }}>
               Options
             </div>
-            <button id="houstonbutton">Center on Houston</button>
-            <button id="icelandbutton">Center on Iceland</button>
+            <button
+              onClick={() => {
+                mapRef.current.setView(new L.LatLng(29.564491, -95.081471));
+              }}
+            >
+              Houston
+            </button>
+            <button
+              onClick={() => {
+                mapRef.current.setView(new L.LatLng(64.833445, -16.378351));
+              }}
+            >
+              Iceland
+            </button>
           </div>
-          <div className={styles.options}>
+          <div className={styles.options} style={{ marginTop: "10px" }}>
+            <button onClick={loadPotrillo}>Load Potrillo from API</button>
             <div>API response:</div>
-            <div>Configs: {JSON.stringify(configs)}</div>
-            <div>Number of layers in Potrillo_VF_v001: {config?.config?.layers.length}</div>
+            <div>
+              {"Number of layers in Potrillo_VF_v001:" + config.MMGISConfig?.config?.layers.length}
+            </div>
           </div>
         </div>
       </div>
@@ -168,7 +189,7 @@ const Geoman = () => {
     }
     const layers = layerList.map((layer) => {
       return (
-        <div className={styles.layer_container}>
+        <div className={styles.layer_container} key={layer.options.id}>
           <Slider
             className={styles.slider}
             min={0}
