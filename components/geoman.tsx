@@ -17,7 +17,7 @@ import _ from "lodash";
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
 const zoom = 13;
 
-const layerBaseURL = `http://192.168.0.5:8005/NASA_AEGIS/Missions/Iceland_v001/Layers/`;
+const layerBaseURL = `http://192.168.0.5:8005/NASA_AEGIS/Missions/`;
 
 const Geoman = () => {
   const dispatch = useDispatch();
@@ -28,7 +28,7 @@ const Geoman = () => {
 
   const [configs, setConfigs] = useState<string[]>(null);
 
-  const config = useSelector((state: RootState) => state.mmgisConfig);
+  const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig.MMGISConfig);
 
   useEffect(() => {
     if (!mapRef.current) {
@@ -42,37 +42,37 @@ const Geoman = () => {
     const newPane = mapRef.current.createPane("newPane");
     newPane.style.zIndex = "1";
 
-    mapRef.current.addLayer(
-      L.tileLayer(layerBaseURL + "Landsat_TrueColor/{z}/{x}/{y}.png", {
-        tileSize: 256,
-        bounds: [
-          [64.30447800311914, -17.87031300021185],
-          [65.31466820647802, -14.9580710002728],
-        ],
-        tms: true,
-        minZoom: 6,
-        maxZoom: 11,
-        id: "L8_RGB_30m",
-        pane: "newPane",
-      })
-    );
+    // mapRef.current.addLayer(
+    //   L.tileLayer(layerBaseURL + "Iceland_v001/Layers/Landsat_TrueColor/{z}/{x}/{y}.png", {
+    //     tileSize: 256,
+    //     bounds: [
+    //       [64.30447800311914, -17.87031300021185],
+    //       [65.31466820647802, -14.9580710002728],
+    //     ],
+    //     tms: true,
+    //     minZoom: 6,
+    //     maxZoom: 11,
+    //     id: "L8_RGB_30m",
+    //     pane: "newPane",
+    //   })
+    // );
 
-    // Iceland large regional hillslope raster layer
-    mapRef.current.addLayer(
-      L.tileLayer(layerBaseURL + "LargeRegional_5m_Hillslope/{z}/{x}/{y}.png", {
-        tileSize: 256,
-        bounds: [
-          [64.30454312899785, -17.87031300021185],
-          [65.3153669180373, -14.9580710002728],
-        ],
-        tms: true,
-        minZoom: 6,
-        maxZoom: 15,
-        opacity: 0.5,
-        pane: "newPane",
-        id: "hillshade_5m",
-      })
-    );
+    // // Iceland large regional hillslope raster layer
+    // mapRef.current.addLayer(
+    //   L.tileLayer(layerBaseURL + "Iceland_v001/Layers/LargeRegional_5m_Hillslope/{z}/{x}/{y}.png", {
+    //     tileSize: 256,
+    //     bounds: [
+    //       [64.30454312899785, -17.87031300021185],
+    //       [65.3153669180373, -14.9580710002728],
+    //     ],
+    //     tms: true,
+    //     minZoom: 6,
+    //     maxZoom: 15,
+    //     opacity: 0.5,
+    //     pane: "newPane",
+    //     id: "hillshade_5m",
+    //   })
+    // );
 
     mapRef.current.pm.addControls({
       drawMarker: true,
@@ -136,6 +136,26 @@ const Geoman = () => {
     })();
   }, []);
 
+  useEffect(() => {
+    if (!mmgisConfig) return;
+    const testLayer = mmgisConfig.config.layers[5].sublayers[0];
+
+    mapRef.current.addLayer(
+      L.tileLayer(`${layerBaseURL}${mmgisConfig.mission}/${testLayer.url}`, {
+        tileSize: 256,
+        bounds: [
+          [testLayer.boundingBox[1], testLayer.boundingBox[0]],
+          [testLayer.boundingBox[3], testLayer.boundingBox[2]],
+        ],
+        tms: testLayer.tileformat === "tms",
+        minZoom: testLayer.minZoom,
+        maxZoom: testLayer.maxZoom,
+        id: `${mmgisConfig.config.layers[5].name}_${testLayer.name}`,
+        pane: "newPane",
+      })
+    );
+  }, [mmgisConfig]);
+
   const loadPotrillo = () => {
     (async () => {
       const thisConfig = await getConfig("Potrillo_VF_v001");
@@ -165,6 +185,13 @@ const Geoman = () => {
             </button>
             <button
               onClick={() => {
+                mapRef.current.setView(new L.LatLng(31.971944, -106.964722));
+              }}
+            >
+              Kilbourne Hole
+            </button>
+            <button
+              onClick={() => {
                 mapRef.current.setView(new L.LatLng(64.833445, -16.378351));
               }}
             >
@@ -175,7 +202,7 @@ const Geoman = () => {
             <button onClick={loadPotrillo}>Load Potrillo from API</button>
             <div>API response:</div>
             <div>
-              {"Number of layers in Potrillo_VF_v001:" + config.MMGISConfig?.config?.layers.length}
+              {"Number of layers in Potrillo_VF_v001:" + mmgisConfig?.config?.layers.length}
             </div>
           </div>
         </div>
