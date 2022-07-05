@@ -2,11 +2,18 @@ import "../styles/globals.css";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
 import "../styles/fonts.css";
+import { wrapper } from "../store";
 
 import type { AppProps } from "next/app";
 
-function MyApp({ Component, pageProps }: AppProps) {
+// The following import prevents a Font Awesome icon server-side rendering bug,
+// where the icons flash from a very large icon down to a properly sized one:
+import "@fortawesome/fontawesome-svg-core/styles.css";
+import { config } from "@fortawesome/fontawesome-svg-core";
+
+function App({ Component, pageProps }: AppProps) {
+  config.autoAddCss = false; // Tell Font Awesome to skip adding the CSS automatically since we did it manually above.
   return <Component {...pageProps} />;
 }
 
-export default MyApp;
+export default wrapper.withRedux(App);
