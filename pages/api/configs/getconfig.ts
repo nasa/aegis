@@ -6,10 +6,10 @@ export default withIronSessionApiRoute(handler, ironOptions);
 
 import { Config } from "server/db/Config/models/config";
 
-async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
+async function handler(req: NextApiRequest, res: NextApiResponse<WrappedResponse<MMGISConfig>>) {
   try {
     if (req.session.user) {
-      let config;
+      let config: MMGISConfig;
       if (req.query.mission && !req.query.version) {
         config = await getConfig(req.query.mission as string);
       } else if (req.query.mission && req.query.version) {
@@ -18,7 +18,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
           parseInt(req.query.version as string)
         );
       }
-      res.status(200).json(config);
+      res.status(200).json({
+        status: "success",
+        message: "config retrieved: " + req.query.mission,
+        data: config,
+      });
     } else {
       res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
@@ -27,7 +31,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
   }
 }
 
-async function getConfig(mission: string, version?: number) {
+async function getConfig(mission: string, version?: number): Promise<MMGISConfig> {
   let missions;
   if (typeof version === "undefined") {
     missions = await Config.findAll({

@@ -13,7 +13,7 @@ import { getSequelizeConnection } from "server/db/connection";
 
 export default withIronSessionApiRoute(handler, ironOptions);
 
-async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
+async function handler(req: NextApiRequest, res: NextApiResponse<WrappedResponse<Feature>>) {
   try {
     if (req.session.user) {
       const files = await editFeature(req);
@@ -39,7 +39,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
  * }
  */
 
-export async function editFeature(req: any): Promise<EditResponse> {
+export async function editFeature(req: any): Promise<WrappedResponse<Feature>> {
   let time = Math.floor(Date.now());
 
   let groups = [];
@@ -64,7 +64,7 @@ export async function editFeature(req: any): Promise<EditResponse> {
     return {
       status: "failure",
       message: "Failed to access file.",
-      body: {},
+      data: { id: -1, uuid: "", intent: "" },
     };
   }
   const userFeature = await Userfeatures.findOne({
@@ -81,7 +81,7 @@ export async function editFeature(req: any): Promise<EditResponse> {
     return {
       status: "failure",
       message: "Failed to access file.",
-      body: {},
+      data: { id: -1, uuid: "", intent: "" },
     };
   }
 
@@ -129,14 +129,14 @@ export async function editFeature(req: any): Promise<EditResponse> {
           return {
             status: "success",
             message: "Successfully edited feature.",
-            body: { id: createdId, uuid: createdUUID, intent: createdIntent },
+            data: { id: createdId, uuid: createdUUID, intent: createdIntent },
           };
         },
         (err) => {
           return {
             status: "failure",
             message: "Failed to edit feature.",
-            body: {},
+            data: {},
           };
         }
       );
@@ -144,7 +144,7 @@ export async function editFeature(req: any): Promise<EditResponse> {
       return {
         status: "success",
         message: "Successfully edited feature.",
-        body: { id: createdId, uuid: createdUUID, intent: createdIntent },
+        data: { id: createdId, uuid: createdUUID, intent: createdIntent },
       };
     }
   });

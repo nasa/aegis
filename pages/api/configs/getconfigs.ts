@@ -6,12 +6,16 @@ import { Config } from "server/db/Config/models/config";
 
 export default withIronSessionApiRoute(handler, ironOptions);
 
-async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
+async function handler(req: NextApiRequest, res: NextApiResponse<WrappedResponse<string[]>>) {
   try {
     if (req.session.user) {
       const allConfigs = await getConfigs();
 
-      res.status(200).json(allConfigs);
+      res.status(200).json({
+        status: "success",
+        message: "configs retrieved",
+        data: allConfigs,
+      });
     } else {
       res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
@@ -20,7 +24,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
   }
 }
 
-async function getConfigs() {
+async function getConfigs(): Promise<string[]> {
   const configs = await Config.aggregate("mission", "DISTINCT", { plain: false });
   let allConfigs = [];
   for (let i = 0; i < configs.length; i++) allConfigs.push(configs[i].DISTINCT);

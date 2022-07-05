@@ -1,15 +1,5 @@
-declare module "iron-session" {
-  interface IronSessionData {
-    user?: {
-      username: string;
-      id: number;
-      permission: string;
-    };
-  }
-}
-
-export type EditResponse = {
-  status: "success" | "failure";
+interface WrappedResponse<T> {
+  status: "success" | "failure" | "error";
   message: string;
-  body: any;
-};
+  data?: T;
+}
