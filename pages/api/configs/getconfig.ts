@@ -51,5 +51,5 @@ async function getConfig(mission: string, version?: number): Promise<MMGISConfig
       order: [["id", "DESC"]],
     });
   }
-  return missions;
+  return missions[0];
 }

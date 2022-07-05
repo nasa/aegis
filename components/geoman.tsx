@@ -7,6 +7,7 @@ import "rc-slider/assets/index.css";
 
 L.Icon.Default.imagePath = "/leaflet/images/";
 import { useEffect, useRef, useState } from "react";
+import { getConfig, getConfigs } from "http-client/internal-api";
 
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
@@ -18,7 +19,9 @@ const Geoman = () => {
   const mapRef = useRef(null);
 
   const [layerList, setLayerList] = useState([]);
-  const [opacities, setOpacities] = useState({});
+
+  const [configs, setConfigs] = useState<string[]>([]);
+  const [config, setConfig] = useState<MMGISConfig>(null);
 
   useEffect(() => {
     if (!mapRef.current) {
@@ -120,6 +123,20 @@ const Geoman = () => {
     };
   }, []);
 
+  useEffect(() => {
+    (async () => {
+      const myConfigs = await getConfigs();
+      setConfigs(myConfigs.data);
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const myConfig = await getConfig("Potrillo_VF_v001");
+      setConfig(myConfig.data);
+    })();
+  }, []);
+
   return (
     <>
       <div id="map" className={styles.map} ref={mapRef}></div>
@@ -134,6 +151,11 @@ const Geoman = () => {
             </div>
             <button id="houstonbutton">Center on Houston</button>
             <button id="icelandbutton">Center on Iceland</button>
+          </div>
+          <div className={styles.options}>
+            <div>API response:</div>
+            <div>Configs: {JSON.stringify(configs)}</div>
+            <div>Number of layers in Potrillo_VF_v001: {config?.config?.layers.length}</div>
           </div>
         </div>
       </div>
