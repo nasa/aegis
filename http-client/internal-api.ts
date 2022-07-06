@@ -14,7 +14,7 @@ export async function getConfig(mission: string): Promise<WrappedResponse<MMGISC
   return response;
 }
 
-export async function isLoggedIn(mission: string): Promise<WrappedResponse<boolean>> {
+export async function isLoggedIn(): Promise<WrappedResponse<boolean>> {
   const res = await fetch(`/api/users/isLoggedIn`);
   const response: WrappedResponse<boolean> = await res.json();
 
@@ -31,6 +31,13 @@ export async function login(
 
   const res = await fetch(`/api/users/login`, { method: "POST", body: data });
   const response: WrappedResponse<IronSessionData> = await res.json();
+
+  return response;
+}
+
+export async function logout(): Promise<WrappedResponse<boolean>> {
+  const res = await fetch(`/api/users/logout`);
+  const response: WrappedResponse<boolean> = await res.json();
 
   return response;
 }

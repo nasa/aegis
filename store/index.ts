@@ -4,6 +4,7 @@ import { createWrapper } from "next-redux-wrapper";
 import { playheadSlice, initialState as playheadInitialState } from "./playhead";
 import { playheadHoverSlice, initialState as playheadHoverInitialState } from "./playheadHover";
 import { mmgisConfigSlice, initialState as mmgisConfigInitialState } from "./mmgis";
+import { userSlice, initialState as userInitialState } from "./user";
 
 let store;
 
@@ -11,12 +12,14 @@ export const initialState = {
   playhead: playheadInitialState,
   playheadHover: playheadHoverInitialState,
   mmgisConfig: mmgisConfigInitialState,
+  user: userInitialState,
 };
 
 const reducer = combineReducers({
   playhead: playheadSlice.reducer,
   playheadHover: playheadHoverSlice.reducer,
   mmgisConfig: mmgisConfigSlice.reducer,
+  user: userSlice.reducer,
 });
 export type RootState = ReturnType<typeof reducer>;
 

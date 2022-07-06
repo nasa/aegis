@@ -5,12 +5,12 @@ import { ironOptions } from "server/session/config";
 
 export default withIronSessionApiRoute(handler, ironOptions);
 
-async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
+async function handler(req: NextApiRequest, res: NextApiResponse<WrappedResponse<boolean>>) {
   try {
     req.session.destroy();
 
-    res.status(200).json(true);
+    res.status(200).json({ status: "success", message: "Logged out", data: true });
   } catch (error) {
-    res.status(500).json({ status: "error", message: "Unexpected error :" + error });
+    res.status(500).json({ status: "error", message: "Unexpected error :" + error, data: false });
   }
 }

@@ -53,6 +53,7 @@ const Left = () => {
                 "https://wiki.jsc.nasa.gov/exploration/index.php/Artemis_EVA_Geographic_Information_System"
               }
               target={"_blank"}
+              rel="noreferrer"
             >
               About AEGIS
             </a>
@@ -61,6 +62,7 @@ const Left = () => {
             <a
               href={"https://wiki.jsc.nasa.gov/fod/index.php/EVA_Mission_Systems_Software"}
               target={"_blank"}
+              rel="noreferrer"
             >
               About the EMSS effort
             </a>

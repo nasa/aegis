@@ -1,4 +1,4 @@
-import L, { Map } from "leaflet";
+import L from "leaflet";
 import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import styles from "./geoman.module.css";
@@ -25,8 +25,6 @@ const Geoman = () => {
   const mapRef = useRef(null);
 
   const [layerList, setLayerList] = useState([]);
-
-  const [configs, setConfigs] = useState<string[]>(null);
 
   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig.MMGISConfig);
 
@@ -127,13 +125,6 @@ const Geoman = () => {
       mapRef.current.off();
       mapRef.current.remove();
     };
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      const thisConfigs = await getConfigs();
-      setConfigs(thisConfigs.data);
-    })();
   }, []);
 
   useEffect(() => {

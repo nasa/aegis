@@ -20,3 +20,8 @@ interface PlayheadHoverState {
 interface MMGISConfigState {
   MMGISConfig: MMGISConfig;
 }
+
+interface UserState {
+  isLoggedIn: boolean;
+  ironSessionData: IronSessionData | null;
+}

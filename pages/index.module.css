@@ -147,7 +147,7 @@
 }
 
 .login {
-  width: 50%;
+  width: 60%;
 }
 
 .login input {
@@ -171,4 +171,10 @@
   border: 1px solid #ccc;
   border-radius: var(--radius);
   margin-left: auto;
+}
+
+.login .errorMessage {
+  color: rgb(255, 55, 55);
+  font-size: 0.8em;
+  margin-bottom: 10px;
 }

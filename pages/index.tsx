@@ -1,27 +1,43 @@
-import { login } from "http-client/internal-api";
 import type { NextPage } from "next";
+import Image from "next/image";
+import { useDispatch, useSelector } from "react-redux";
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./index.module.css";
+import { login, isLoggedIn, logout } from "http-client/internal-api";
+import type { RootState } from "store";
+import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/user";
 
 const Head = dynamic(import("next/head"), {
   ssr: false,
 });
 
 const Login = () => {
-  const [isLogin, setIsLogin] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const dispatch = useDispatch();
 
   const handleLoginButtonClick = async () => {
-    const isLogin = await login(username, password);
-    console.log(isLogin);
+    const response = await login(username, password);
+    console.log(response);
+    if (response.status === "success") {
+      dispatch(setIsLoggedIn(true));
+      dispatch(setIronSessionData(response.data));
+      setErrorMessage("");
+    } else {
+      dispatch(setIsLoggedIn(false));
+      dispatch(clearIronSessionData());
+      setErrorMessage(response.message);
+    }
   };
 
   return (
     <>
       <div className={styles.title}>Login to AEGIS</div>
       <div className={styles.login}>
+        <div className={styles.errorMessage}>{errorMessage}</div>
         <div className={styles.loginFormField}>
           <label className={styles.loginFormLabel}>Username</label>
           <input
@@ -45,7 +61,12 @@ const Login = () => {
           />
         </div>
         <div className={styles.loginFormField}>
-          <button className={styles.loginFormButton} onClick={handleLoginButtonClick}>
+          <button
+            className={styles.loginFormButton}
+            onClick={() => {
+              handleLoginButtonClick();
+            }}
+          >
             Login
           </button>
         </div>
@@ -54,7 +75,34 @@ const Login = () => {
   );
 };
 
+const Logout = () => {
+  const dispatch = useDispatch();
+
+  const handleLogoutButtonClick = async () => {
+    const response = await logout();
+    if (response.data) {
+      console.log("Logged out");
+      dispatch(setIsLoggedIn(false));
+      dispatch(clearIronSessionData());
+    }
+  };
+
+  return (
+    <>
+      <div className={styles.title}>Logout from AEGIS</div>
+      <div className={styles.login}>
+        <div className={styles.loginFormField}>
+          <button className={styles.loginFormButton} onClick={handleLogoutButtonClick}>
+            Logout
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
+
 const Left = () => {
+  const user = useSelector((state: RootState) => state.user);
   return (
     <div className={styles.left}>
       <div className={styles.leftTop}>
@@ -93,8 +141,7 @@ const Left = () => {
             and JPL.
           </p>
         </div>
-
-        <Login />
+        {user.isLoggedIn ? <Logout /> : <Login />}
       </div>
       <div className={styles.leftBottom}>
         <div className={styles.aboutSection}>
@@ -183,6 +230,22 @@ const Right = () => {
 };
 
 const Home: NextPage = () => {
+  const dispatch = useDispatch();
+
+  // Populate the user store with iron session login state via API call
+  useEffect(() => {
+    (async () => {
+      const response = await isLoggedIn();
+      if (response.status === "success") {
+        dispatch(setIsLoggedIn(true));
+        dispatch(setIronSessionData(response.data));
+      } else {
+        dispatch(setIsLoggedIn(false));
+        dispatch(clearIronSessionData());
+      }
+    })();
+  }, []);
+
   return (
     <>
       <Head>
