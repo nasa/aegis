@@ -1,8 +1,8 @@
 import type { NextPage } from "next";
 import dynamic from "next/dynamic";
-import styles from "./index.module.css";
+import styles from "./draw.module.css";
 
-const Map = dynamic(() => import("../components/map"), { ssr: false });
+const Map = dynamic(() => import("components/map"), { ssr: false });
 
 const Home: NextPage = () => {
   return (

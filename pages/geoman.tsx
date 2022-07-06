@@ -1,6 +1,6 @@
 import type { NextPage } from "next";
 import dynamic from "next/dynamic";
-import styles from "./index.module.css";
+import styles from "./geoman.module.css";
 
 const Geoman = dynamic(() => import("../components/geoman"), { ssr: false });
 

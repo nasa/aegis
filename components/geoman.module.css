@@ -5,12 +5,15 @@
 }
 
 .topright {
+  position: fixed;
   background: #fff;
-  position: absolute;
   top: 10px;
   right: 10px;
   width: 300px;
-  height: 500px;
+  top: 10px;
+  right: 10px;
+  width: 300px;
+  height: 90vh;
   font-family: "Roboto";
   font-size: 1em;
   color: #222;
@@ -21,11 +24,10 @@
 }
 
 .menu {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  width: 300px;
+  height: 100%;
   z-index: 10;
+  overflow-y: scroll;
+  overflow-x: hidden;
 }
 
 .menu .loading {
@@ -73,8 +75,9 @@
 
 .menu .layer_container {
   display: flex;
+  flex-direction: column;
   justify-content: end;
-  align-items: center;
+  align-items: left;
   padding: 5px;
 }
 

@@ -115,11 +115,11 @@ const Geoman = () => {
       console.log(mapRef.current.pm.getGeomanLayers(true).toGeoJSON());
     });
 
-    let layers = [];
-    mapRef.current.eachLayer(function (layer) {
-      layers.push(layer);
-    });
-    setLayerList(layers);
+    // let layers = [];
+    // mapRef.current.eachLayer(function (layer) {
+    //   layers.push(layer);
+    // });
+    // setLayerList(layers);
 
     return () => {
       mapRef.current.pm.removeControls();
@@ -138,28 +138,55 @@ const Geoman = () => {
 
   useEffect(() => {
     if (!mmgisConfig) return;
-    const testLayer = mmgisConfig.config.layers[5].sublayers[0];
 
-    mapRef.current.addLayer(
-      L.tileLayer(`${layerBaseURL}${mmgisConfig.mission}/${testLayer.url}`, {
-        tileSize: 256,
-        bounds: [
-          [testLayer.boundingBox[1], testLayer.boundingBox[0]],
-          [testLayer.boundingBox[3], testLayer.boundingBox[2]],
-        ],
-        tms: testLayer.tileformat === "tms",
-        minZoom: testLayer.minZoom,
-        maxZoom: testLayer.maxZoom,
-        id: `${mmgisConfig.config.layers[5].name}_${testLayer.name}`,
-        pane: "newPane",
-      })
-    );
+    for (const layer of mmgisConfig.config.layers) {
+      for (const sublayer of layer.sublayers) {
+        if (sublayer.type === "tile") {
+          const tileLayer = L.tileLayer(`${layerBaseURL}${mmgisConfig.mission}/${sublayer.url}`, {
+            tileSize: 256,
+            bounds: [
+              [sublayer.boundingBox[1], sublayer.boundingBox[0]],
+              [sublayer.boundingBox[3], sublayer.boundingBox[2]],
+            ],
+            tms: sublayer.tileformat === "tms",
+            minZoom: sublayer.minZoom,
+            maxZoom: sublayer.maxZoom,
+            maxNativeZoom: sublayer.maxNativeZoom,
+            id: `${layer.name}_${sublayer.name}`,
+            pane: "newPane",
+            opacity: 0.5,
+          });
+          mapRef.current.addLayer(tileLayer);
+        }
+      }
+    }
+
+    // mapRef.current.addLayer(
+    //   L.tileLayer(`${layerBaseURL}${mmgisConfig.mission}/${testLayer.url}`, {
+    //     tileSize: 256,
+    //     bounds: [
+    //       [testLayer.boundingBox[1], testLayer.boundingBox[0]],
+    //       [testLayer.boundingBox[3], testLayer.boundingBox[2]],
+    //     ],
+    //     tms: testLayer.tileformat === "tms",
+    //     minZoom: testLayer.minZoom,
+    //     maxZoom: testLayer.maxZoom,
+    //     maxNativeZoom: testLayer.maxNativeZoom,
+    //     id: `${mmgisConfig.config.layers[5].name}_${testLayer.name}`,
+    //     pane: "newPane",
+    //   })
+    // );
+
+    let layers = [];
+    mapRef.current.eachLayer(function (layer) {
+      layers.push(layer);
+    });
+    setLayerList(layers);
   }, [mmgisConfig]);
 
   const loadPotrillo = () => {
     (async () => {
       const thisConfig = await getConfig("Potrillo_VF_v001");
-      // setConfig(myConfig.data);
       dispatch(setMMGISConfig(thisConfig.data));
     })();
   };
@@ -217,6 +244,7 @@ const Geoman = () => {
     const layers = layerList.map((layer) => {
       return (
         <div className={styles.layer_container} key={layer.options.id}>
+          <div>{layer.options.id}</div>
           <Slider
             className={styles.slider}
             min={0}
