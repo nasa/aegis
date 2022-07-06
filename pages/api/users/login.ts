@@ -4,19 +4,23 @@ import bcrypt from "bcryptjs";
 
 import { ironOptions } from "server/session/config";
 import { User } from "server/db/Users/models/user";
+import type { IronSessionData } from "iron-session";
 
 export default withIronSessionApiRoute(handler, ironOptions);
 
-async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
+async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<WrappedResponse<IronSessionData>>
+) {
   try {
-    // if (req.method !== "POST") {
-    //   res.status(405).send({ message: "Only POST requests allowed" });
-    //   return;
-    // }
+    if (req.method !== "POST") {
+      res.status(405).send({ status: "error", message: "Only POST requests allowed" });
+      return;
+    }
 
-    const loginResult = await login(req.query.username as string, req.query.password as string);
+    const loginResult = await login(req.body.username as string, req.body.password as string);
     if (loginResult.status === "success") {
-      req.session.user = loginResult.user;
+      req.session.user = loginResult.data.user;
       await req.session.save();
     } else {
       req.session.destroy();
@@ -27,7 +31,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
   }
 }
 
-async function login(username: string, password: string) {
+async function login(
+  username: string,
+  password: string
+): Promise<WrappedResponse<IronSessionData>> {
   const user = await User.findOne({
     where: {
       username: username,
@@ -35,17 +42,24 @@ async function login(username: string, password: string) {
     attributes: ["id", "username", "email", "password", "permission"],
   });
 
-  const passwordGood = await bcrypt.compare(password, user.password);
-  if (passwordGood) {
-    return {
-      status: "success",
-      user: {
-        username: user.username,
-        id: user.id,
-        permission: user.permission,
-      },
-    };
+  if (!user) {
+    return { status: "failure", message: "No such user." };
   } else {
-    return { status: "failure", message: "Login failed." };
+    const passwordGood = await bcrypt.compare(password, user.password);
+    if (passwordGood) {
+      return {
+        status: "success",
+        message: "login successful",
+        data: {
+          user: {
+            username: user.username,
+            id: user.id,
+            permission: user.permission,
+          },
+        },
+      };
+    } else {
+      return { status: "failure", message: "Incorrect password." };
+    }
   }
 }
