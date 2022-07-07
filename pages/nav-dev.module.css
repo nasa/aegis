@@ -1,0 +1,43 @@
+.page {
+  background-color: black;
+  color: white;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  height: 50px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--dark-grey);
+}
+
+.body {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+}
+
+.leftControl {
+  flex: 0 0 400px;
+  border-right: 1px solid var(--dark-grey);
+  height: 100%;
+}
+
+.mapBody {
+  flex: 1;
+  height: 100%;
+}
+
+.rightControl {
+  flex: 0 0 400px;
+  border-left: 1px solid var(--dark-grey);
+  height: 100%;
+}
+
+.timeline {
+  height: 80px;
+  border-top: 1px solid var(--dark-grey);
+}

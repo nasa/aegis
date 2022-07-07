@@ -91,10 +91,6 @@
   flex-direction: row;
 }
 
-.theTeamSegment {
-  /* align-self: flex-end; */
-}
-
 .aboutSection .aboutSectionTitle {
   font-size: 1.3em;
   color: #eeeeee;
@@ -200,8 +196,8 @@
 }
 
 .table tr:first-child {
-  color: #818181;
-  border-bottom: #818181 1px solid;
+  color: var(--extremely-grey);
+  border-bottom: var(--extremely-grey) 1px solid;
 }
 
 .table td:first-child {

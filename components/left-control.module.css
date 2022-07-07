@@ -1,0 +1,18 @@
+.body {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+}
+
+.iconGutter {
+  display: flex;
+  flex-direction: row;
+  width: 40px;
+  border-right: 1px solid var(--dark-grey);
+}
+
+.icon {
+  width: 40px;
+  height: 40px;
+  padding: 11px;
+}

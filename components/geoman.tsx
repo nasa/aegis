@@ -175,13 +175,6 @@ const Geoman = () => {
     setLayerList(layers);
   }, [mmgisConfig]);
 
-  const loadPotrillo = () => {
-    (async () => {
-      const thisConfig = await getConfig("Potrillo_VF_v001");
-      dispatch(setMMGISConfig(thisConfig.data));
-    })();
-  };
-
   return (
     <>
       <div id="map" className={styles.map} ref={mapRef}></div>
@@ -217,11 +210,8 @@ const Geoman = () => {
             </button>
           </div>
           <div className={styles.options} style={{ marginTop: "10px" }}>
-            <button onClick={loadPotrillo}>Load Potrillo from API</button>
-            <div>API response:</div>
-            <div>
-              {"Number of layers in Potrillo_VF_v001:" + mmgisConfig?.config?.layers.length}
-            </div>
+            <div>MMGISConfig:</div>
+            <div>{"Number of layer categories:" + mmgisConfig?.config?.layers.length}</div>
           </div>
         </div>
       </div>

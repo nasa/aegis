@@ -33,7 +33,7 @@ async function getConfigs(): Promise<MMGISConfigListItem[]> {
   const sequelize = getSequelizeConnection();
 
   const missions = await sequelize.query(
-    `select DISTINCT ON (mission) id, mission, version, createdat from configs ORDER BY mission DESC`,
+    `select DISTINCT ON (mission) id, mission, version, "createdAt" from configs ORDER BY mission DESC`,
     {
       type: sequelize.QueryTypes.SELECT,
     }

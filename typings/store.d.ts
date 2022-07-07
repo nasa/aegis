@@ -19,7 +19,6 @@ interface PlayheadHoverState {
 
 interface MMGISState {
   MMGISConfig: MMGISConfig;
-  MMGISConfigs: MMGISConfigList;
 }
 
 interface UserState {

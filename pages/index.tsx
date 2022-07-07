@@ -2,11 +2,13 @@ import type { NextPage } from "next";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import styles from "./index.module.css";
-import { login, isLoggedIn, logout, getConfigs } from "http-client/internal-api";
+import { login, isLoggedIn, logout, getConfigs, getConfig } from "http-client/internal-api";
 import type { RootState } from "store";
 import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/user";
+import { setMMGISConfig } from "store/mmgis";
 
 const Head = dynamic(import("next/head"), {
   ssr: false,
@@ -77,6 +79,7 @@ const Login = () => {
 
 const MissionSelect = () => {
   const dispatch = useDispatch();
+  const router = useRouter();
 
   const [missions, setmissions] = useState<MMGISConfigListItem[]>([]);
 
@@ -94,6 +97,16 @@ const MissionSelect = () => {
       dispatch(setIsLoggedIn(false));
       dispatch(clearIronSessionData());
     }
+  };
+
+  const handleMissionSelectClick = (mission: string) => {
+    (async () => {
+      const response = await getConfig(mission);
+      if (response.data) {
+        dispatch(setMMGISConfig(response.data));
+      }
+      router.push(`/nav-dev`);
+    })();
   };
 
   return (
@@ -119,7 +132,15 @@ const MissionSelect = () => {
                     {new Date(mission.createdat).toLocaleTimeString()}
                   </td>
                   <td>
-                    <button className={styles.tableButton}>Select</button>
+                    <button
+                      className={styles.tableButton}
+                      onClick={() => {
+                        console.log("yo");
+                        handleMissionSelectClick(mission.mission);
+                      }}
+                    >
+                      Select
+                    </button>
                   </td>
                 </tr>
               );

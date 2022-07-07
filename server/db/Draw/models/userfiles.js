@@ -85,7 +85,7 @@ const options = {
   // don't forget to enable timestamps!
   timestamps: true,
 
-  // I do want createdAt, then true
+  // I do want createdat, then true
   createdAt: "created_on",
 
   // I want updatedAt to actually be called update_on
