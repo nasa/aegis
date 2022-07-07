@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import styles from "./index.module.css";
-import { login, isLoggedIn, logout } from "http-client/internal-api";
+import { login, isLoggedIn, logout, getConfigs } from "http-client/internal-api";
 import type { RootState } from "store";
 import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/user";
 
@@ -75,8 +75,17 @@ const Login = () => {
   );
 };
 
-const Logout = () => {
+const MissionSelect = () => {
   const dispatch = useDispatch();
+
+  const [missions, setmissions] = useState<MMGISConfigListItem[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const response = await getConfigs();
+      setmissions(response.data);
+    })();
+  }, []);
 
   const handleLogoutButtonClick = async () => {
     const response = await logout();
@@ -89,10 +98,38 @@ const Logout = () => {
 
   return (
     <>
-      <div className={styles.title}>Logout from AEGIS</div>
+      <div className={styles.title}>Select a Mission</div>
+      <div>
+        <div className={`${styles.container}`}>
+          <table className={styles.table}>
+            <tr>
+              <td>Project Name</td>
+              <td>Version</td>
+              <td>Last Edited</td>
+              <td></td>
+            </tr>
+
+            {missions.map((mission) => {
+              return (
+                <tr key={mission.id}>
+                  <td>{mission.mission}</td>
+                  <td>{mission.version}</td>
+                  <td>
+                    {new Date(mission.createdat).toLocaleDateString()}{" "}
+                    {new Date(mission.createdat).toLocaleTimeString()}
+                  </td>
+                  <td>
+                    <button className={styles.tableButton}>Select</button>
+                  </td>
+                </tr>
+              );
+            })}
+          </table>
+        </div>
+      </div>
       <div className={styles.login}>
         <div className={styles.loginFormField}>
-          <button className={styles.loginFormButton} onClick={handleLogoutButtonClick}>
+          <button style={{ width: "60px", marginTop: "20px" }} onClick={handleLogoutButtonClick}>
             Logout
           </button>
         </div>
@@ -141,11 +178,13 @@ const Left = () => {
             and JPL.
           </p>
         </div>
-        {user.isLoggedIn ? <Logout /> : <Login />}
+        {user.isLoggedIn ? <MissionSelect /> : <Login />}
       </div>
       <div className={styles.leftBottom}>
         <div className={styles.aboutSection}>
-          <div className={styles.aboutSectionTitle}>Useful Links</div>
+          <div className={styles.aboutSectionTitle} style={{ marginTop: "0" }}>
+            Useful Links
+          </div>
           <ul>
             <li>
               <a
@@ -169,7 +208,9 @@ const Left = () => {
         </div>
         <div className={`${styles.aboutSection} ${styles.theTeam}`}>
           <div className={styles.theTeamSegment}>
-            <div className={styles.aboutSectionTitle}>The Team</div>
+            <div className={styles.aboutSectionTitle} style={{ marginTop: "0" }}>
+              The Team
+            </div>
             <ul className={styles.theTeamUl}>
               <li>
                 <div>
@@ -178,7 +219,7 @@ const Left = () => {
                   </a>
                 </div>
                 <div className={styles.teamTitle}>
-                  Software Architecture Lead,
+                  Software Engineering,
                   <br />
                   <a className={styles.smallText} href={"mailto:benjamin.f.feist@nasa.gov"}>
                     Email for help
@@ -208,6 +249,14 @@ const Left = () => {
                   <br />
                   Concept Design
                 </div>
+              </li>
+              <li>
+                <div className={styles.creditHeading}>
+                  <a className={styles.teamName} href={"mailto:cameron.w.pittman@nasa.gov"}>
+                    Cameron Pittman
+                  </a>
+                </div>
+                <div className={styles.teamTitle}>Software Engineering</div>
               </li>
               <li>
                 <div className={styles.creditHeading}>

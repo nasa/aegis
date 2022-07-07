@@ -92,7 +92,7 @@
 }
 
 .theTeamSegment {
-  align-self: flex-end;
+  /* align-self: flex-end; */
 }
 
 .aboutSection .aboutSectionTitle {
@@ -143,7 +143,7 @@
 
 .title {
   font-size: 1.2em;
-  margin: 20px 0 20px 0;
+  margin: 20px 0 0 0;
 }
 
 .login {
@@ -177,4 +177,45 @@
   color: rgb(255, 55, 55);
   font-size: 0.8em;
   margin-bottom: 10px;
+}
+
+.container > span {
+  display: inline-block;
+}
+
+.table {
+  font-weight: 200;
+  text-align: left;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.table tr {
+  border-bottom: none;
+}
+
+.table td {
+  padding-top: 10px;
+  border-bottom: none;
+}
+
+.table tr:first-child {
+  color: #818181;
+  border-bottom: #818181 1px solid;
+}
+
+.table td:first-child {
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.table td:last-child {
+  text-align: right;
+}
+
+.table .tableButton {
+  padding: 5px;
+  width: 70px;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
 }

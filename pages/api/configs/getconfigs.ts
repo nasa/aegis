@@ -4,17 +4,22 @@ import { ironOptions } from "server/session/config";
 
 import { Config } from "server/db/Config/models/config";
 
+import { getSequelizeConnection } from "server/db/connection";
+
 export default withIronSessionApiRoute(handler, ironOptions);
 
-async function handler(req: NextApiRequest, res: NextApiResponse<WrappedResponse<string[]>>) {
+async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<WrappedResponse<MMGISConfigListItem[]>>
+) {
   try {
     if (req.session.user) {
-      const allConfigs = await getConfigs();
+      const configList = await getConfigs();
 
       res.status(200).json({
         status: "success",
         message: "configs retrieved",
-        data: allConfigs,
+        data: configList,
       });
     } else {
       res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -24,10 +29,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse<WrappedResponse
   }
 }
 
-async function getConfigs(): Promise<string[]> {
-  const configs = await Config.aggregate("mission", "DISTINCT", { plain: false });
-  let allConfigs = [];
-  for (let i = 0; i < configs.length; i++) allConfigs.push(configs[i].DISTINCT);
-  allConfigs.sort();
-  return allConfigs;
+async function getConfigs(): Promise<MMGISConfigListItem[]> {
+  const sequelize = getSequelizeConnection();
+
+  const missions = await sequelize.query(
+    `select DISTINCT ON (mission) id, mission, version, createdat from configs ORDER BY mission DESC`,
+    {
+      type: sequelize.QueryTypes.SELECT,
+    }
+  );
+
+  return missions;
 }

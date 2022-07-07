@@ -1,7 +1,8 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-export const initialState: MMGISConfigState = {
+export const initialState: MMGISState = {
   MMGISConfig: null,
+  MMGISConfigs: null,
 };
 
 export const mmgisConfigSlice = createSlice({
