@@ -115,36 +115,38 @@ const MissionSelect = () => {
       <div>
         <div className={`${styles.container}`}>
           <table className={styles.table}>
-            <tr>
-              <td>Project Name</td>
-              <td>Version</td>
-              <td>Last Edited</td>
-              <td></td>
-            </tr>
+            <tbody>
+              <tr>
+                <td>Project Name</td>
+                <td>Version</td>
+                <td>Last Edited</td>
+                <td></td>
+              </tr>
 
-            {missions.map((mission) => {
-              return (
-                <tr key={mission.id}>
-                  <td>{mission.mission}</td>
-                  <td>{mission.version}</td>
-                  <td>
-                    {new Date(mission.createdat).toLocaleDateString()}{" "}
-                    {new Date(mission.createdat).toLocaleTimeString()}
-                  </td>
-                  <td>
-                    <button
-                      className={styles.tableButton}
-                      onClick={() => {
-                        console.log("yo");
-                        handleMissionSelectClick(mission.mission);
-                      }}
-                    >
-                      Select
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+              {missions.map((mission) => {
+                return (
+                  <tr key={mission.id}>
+                    <td>{mission.mission}</td>
+                    <td>{mission.version}</td>
+                    <td>
+                      {new Date(mission.createdAt).toLocaleDateString()}{" "}
+                      {new Date(mission.createdAt).toLocaleTimeString()}
+                    </td>
+                    <td>
+                      <button
+                        className={styles.tableButton}
+                        onClick={() => {
+                          console.log("yo");
+                          handleMissionSelectClick(mission.mission);
+                        }}
+                      >
+                        Select
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
           </table>
         </div>
       </div>

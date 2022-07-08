@@ -2,6 +2,9 @@
   display: flex;
   flex-direction: row;
   height: 100%;
+  width: 400px;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .iconGutter {
@@ -15,4 +18,31 @@
   width: 40px;
   height: 40px;
   padding: 11px;
+}
+
+.activeComponent {
+  width: 360px;
+}
+
+.layersContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.layerGroup {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.layer {
+  display: flex;
+}
+
+.sublayer {
+  display: flex;
+  margin-left: 20px;
+}
+
+.expandoCaret {
+  width: 12px;
 }

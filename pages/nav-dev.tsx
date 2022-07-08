@@ -1,10 +1,20 @@
 import type { NextPage } from "next";
-import dynamic from "next/dynamic";
 import styles from "./nav-dev.module.css";
-import LeftControlPanel from "components/left-control";
-import RightControlPanel from "components/right-control";
-import MapBody from "components/map-body";
-import Header from "components/header";
+
+import dynamic from "next/dynamic";
+/** Dynamically import the whole framework because nothing likes NextJS */
+const LeftControlPanel = dynamic(import("components/left-control"), {
+  ssr: false,
+});
+const RightControlPanel = dynamic(import("components/right-control"), {
+  ssr: false,
+});
+const MapBody = dynamic(import("components/map-body"), {
+  ssr: false,
+});
+const Header = dynamic(import("components/header"), {
+  ssr: false,
+});
 
 const Home: NextPage = () => {
   return (

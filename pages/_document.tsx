@@ -11,8 +11,6 @@ class MyDocument extends Document {
           <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png" />
           {/* <link rel="manifest" href="/favicon/site.webmanifest" /> */}
           <link rel="mask-icon" href="/favicon/safari-pinned-tab.svg" color="#5bbad5" />
-          {/* <link href="/global.css" rel="stylesheet" /> */}
-          <link href="/fonts.css" rel="stylesheet" />
         </Head>
         <body>
           <Main />

@@ -184,12 +184,12 @@ interface MMGISConfig {
   mission: string;
   config: Config;
   version: number;
-  createdat: Date;
+  createdAt: Date;
 }
 
 interface MMGISConfigListItem {
   id: number;
   mission: string;
   version: number;
-  createdat: Date;
+  createdAt: Date;
 }

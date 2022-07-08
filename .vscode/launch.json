@@ -13,7 +13,7 @@
       "request": "attach",
       "name": "Attach to Chrome",
       "port": 9222,
-      "urlFilter": "http://localhost:3000/*",
+      "urlFilter": "http://localhost:4000/*",
       "webRoot": "${workspaceFolder}"
     }
   ]

@@ -11,7 +11,6 @@ library.add(faBars);
 
 const Header = () => {
   const router = useRouter();
-
   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig);
 
   return (
@@ -36,7 +35,7 @@ const Header = () => {
               style={{ display: "flex", flexDirection: "row" }}
             >
               <div className={styles.headerTitle}>Mission:</div>
-              <div className={styles.headerTextItem}>{mmgisConfig?.MMGISConfig.mission}</div>
+              <div className={styles.headerTextItem}>{mmgisConfig?.MMGISConfig?.mission}</div>
             </div>
           </div>
         </div>
