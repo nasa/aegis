@@ -4,12 +4,10 @@ import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import styles from "./geoman.module.css";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 
 L.Icon.Default.imagePath = "/leaflet/images/";
 import { useEffect, useRef, useState } from "react";
-import { getConfig, getConfigs } from "http-client/internal-api";
-import { setMMGISConfig } from "store/mmgis";
 import { RootState } from "store/index";
 import _ from "lodash";
 
@@ -20,8 +18,6 @@ const zoom = 13;
 const layerBaseURL = `http://192.168.0.5:8005/NASA_AEGIS/Missions/`;
 
 const Geoman = () => {
-  const dispatch = useDispatch();
-
   const mapRef = useRef(null);
 
   const [layerList, setLayerList] = useState([]);

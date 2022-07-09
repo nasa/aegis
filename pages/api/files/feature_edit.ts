@@ -9,8 +9,6 @@ import { Userfeatures } from "server/db/Draw/models/userfeatures";
 import { Filehistories } from "server/db/Draw/models/filehistories";
 import { pushToHistory } from "server/api_utils/files";
 
-import { getSequelizeConnection } from "server/db/connection";
-
 export default withIronSessionApiRoute(handler, ironOptions);
 
 async function handler(req: NextApiRequest, res: NextApiResponse<WrappedResponse<Feature>>) {
@@ -132,7 +130,7 @@ export async function editFeature(req: any): Promise<WrappedResponse<Feature>> {
             data: { id: createdId, uuid: createdUUID, intent: createdIntent },
           };
         },
-        (err) => {
+        () => {
           return {
             status: "failure",
             message: "Failed to edit feature.",

@@ -1,5 +1,4 @@
 import type { NextPage } from "next";
-import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
@@ -123,29 +122,30 @@ const MissionSelect = () => {
                 <td></td>
               </tr>
 
-              {missions.map((mission) => {
-                return (
-                  <tr key={mission.id}>
-                    <td>{mission.mission}</td>
-                    <td>{mission.version}</td>
-                    <td>
-                      {new Date(mission.createdAt).toLocaleDateString()}{" "}
-                      {new Date(mission.createdAt).toLocaleTimeString()}
-                    </td>
-                    <td>
-                      <button
-                        className={styles.tableButton}
-                        onClick={() => {
-                          console.log("yo");
-                          handleMissionSelectClick(mission.mission);
-                        }}
-                      >
-                        Select
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+              {missions &&
+                missions.map((mission) => {
+                  return (
+                    <tr key={mission.id}>
+                      <td>{mission.mission}</td>
+                      <td>{mission.version}</td>
+                      <td>
+                        {new Date(mission.createdAt).toLocaleDateString()}{" "}
+                        {new Date(mission.createdAt).toLocaleTimeString()}
+                      </td>
+                      <td>
+                        <button
+                          className={styles.tableButton}
+                          onClick={() => {
+                            console.log("yo");
+                            handleMissionSelectClick(mission.mission);
+                          }}
+                        >
+                          Select
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>
@@ -316,7 +316,7 @@ const Home: NextPage = () => {
         dispatch(clearIronSessionData());
       }
     })();
-  }, []);
+  }, [dispatch]);
 
   return (
     <>

@@ -23,7 +23,9 @@
       }
     ],
     "no-import-assign": "error",
-    "no-unreachable": "error"
+    "no-unreachable": "error",
+    "@next/next/no-img-element": "off",
+    "react/jsx-no-target-blank": "off"
   },
   "settings": {
     "react": {

@@ -1,15 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import Sequelize from "sequelize";
-import { uuid } from "uuidv4";
 
 import { ironOptions } from "server/session/config";
 import { Userfiles } from "server/db/Draw/models/userfiles";
-import { Userfeatures } from "server/db/Draw/models/userfeatures";
 import { Filehistories } from "server/db/Draw/models/filehistories";
 import { pushToHistory } from "server/api_utils/files";
-
-import { getSequelizeConnection } from "server/db/connection";
 
 export default withIronSessionApiRoute(handler, ironOptions);
 
@@ -60,17 +56,17 @@ async function removeFeature(req: any) {
     };
   }
 
-  const updateResult = await Userfeatures.update(
-    {
-      extant_end: time,
-    },
-    {
-      where: {
-        file_id: req.body.file_id,
-        id: req.body.id,
-      },
-    }
-  );
+  // const updateResult = await Userfeatures.update(
+  //   {
+  //     extant_end: time,
+  //   },
+  //   {
+  //     where: {
+  //       file_id: req.body.file_id,
+  //       id: req.body.id,
+  //     },
+  //   }
+  // );
 
   //Table, file_id, feature_id, feature_idRemove, time, undoToTime, action_index
   pushToHistory(
@@ -88,7 +84,7 @@ async function removeFeature(req: any) {
         body: {},
       };
     },
-    (err) => {
+    () => {
       return {
         status: "failure",
         message: "Failed to remove feature.",

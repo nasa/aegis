@@ -1,0 +1,12 @@
+# docker-compose.yml
+
+version: "3"
+
+services:
+  app:
+    image: "aegiszero"
+    build: .
+    ports:
+      - 4000:4000      
+    
+    

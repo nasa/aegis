@@ -1,5 +1,5 @@
 import styles from "./left-control.module.css";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faLayerGroup, faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
@@ -64,7 +64,7 @@ const LayerSelector = () => {
       }
     });
     dispatch(setLayerControls(controls));
-  }, [mmgisConfig]);
+  }, [mmgisConfig, dispatch]);
 
   const toggleSublayerEnabled = (sublayer: Sublayer) => {
     dispatch(toggleLayerControlEnabled(sublayer.name));

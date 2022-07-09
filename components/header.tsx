@@ -1,6 +1,5 @@
 import styles from "./header.module.css";
-import { useEffect, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { useRouter } from "next/router";
 
 import { library } from "@fortawesome/fontawesome-svg-core";

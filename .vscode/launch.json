@@ -15,6 +15,13 @@
       "port": 9222,
       "urlFilter": "http://localhost:4000/*",
       "webRoot": "${workspaceFolder}"
+    },
+    {
+      "name": "Docker Node.js Launch",
+      "type": "docker",
+      "request": "launch",
+      "preLaunchTask": "docker-run: debug",
+      "platform": "node"
     }
   ]
 }
