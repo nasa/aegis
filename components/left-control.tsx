@@ -63,7 +63,6 @@ const LayerSelector = () => {
         });
       }
     });
-    console.log(controls);
     dispatch(setLayerControls(controls));
   }, [mmgisConfig]);
 
