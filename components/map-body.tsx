@@ -6,9 +6,10 @@ import "rc-slider/assets/index.css";
 import { useSelector } from "react-redux";
 
 L.Icon.Default.imagePath = "/leaflet/images/";
-import { useEffect, useRef } from "react";
+import { MutableRefObject, useEffect, useRef, useState } from "react";
 import { RootState } from "store/index";
 import _ from "lodash";
+import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
 
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
@@ -21,6 +22,8 @@ const MapBody = () => {
 
   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig.MMGISConfig);
   const layerControls = useSelector((state: RootState) => state.user.layerControls);
+
+  const [layersOnMap, setLayersOnMap] = useState([]);
 
   useEffect(() => {
     if (!mapRef.current) {
@@ -60,12 +63,33 @@ const MapBody = () => {
 
         console.log(`object created: ${shape.layer.pm.getShape()}`);
         // console.log(mapRef.current.pm.getGeomanLayers(true).toGeoJSON());
+        if (shape.layer.pm.getShape() === "Line") {
+          let totalLength = 0;
+          for (let i = 0; i < shape.layer.getLatLngs().length - 1; i++) {
+            totalLength += getDistanceBetweenTwoCoordinates(
+              shape.layer.getLatLngs()[i],
+              shape.layer.getLatLngs()[i + 1],
+              parseInt(mmgisConfig.config.msv.radius.major)
+            );
+          }
+          console.log("length of the new line:", totalLength);
+        }
         mapRef.current.pm.getGeomanLayers(true).bindPopup("i am whole").openPopup();
         mapRef.current.pm
           .getGeomanLayers()
           .map((layer, index) => layer.bindPopup(`I am figure N° ${index}`));
         shape.layer.on("pm:edit", () => {
-          console.log(mapRef.current.pm.getGeomanLayers(true).toGeoJSON());
+          if (shape.layer.pm.getShape() === "Line") {
+            let totalLength = 0;
+            for (let i = 0; i < shape.layer.getLatLngs().length - 1; i++) {
+              totalLength += getDistanceBetweenTwoCoordinates(
+                shape.layer.getLatLngs()[i],
+                shape.layer.getLatLngs()[i + 1],
+                parseInt(mmgisConfig.config.msv.radius.major)
+              );
+            }
+            console.log("length of the new line:", totalLength);
+          }
         });
       }
     });
@@ -84,7 +108,7 @@ const MapBody = () => {
         mapRef.current.remove();
       }
     };
-  }, []);
+  }, [mmgisConfig]);
 
   useEffect(() => {
     /**
@@ -101,14 +125,9 @@ const MapBody = () => {
 
   useEffect(() => {
     /**
-     * Add layers to map
+     * Map tile layers display management
      */
     if (!mmgisConfig || !layerControls || !mapRef) return;
-
-    // clear all layers
-    mapRef.current.eachLayer((layer) => {
-      mapRef.current.removeLayer(layer);
-    });
 
     // go through all layers in mission config and add make a list of the ones that are enabled
     const layersToAdd = [];
@@ -122,28 +141,54 @@ const MapBody = () => {
       }
     }
     // reverse the array to add the ones at the bottom of the tree first
-    const layerToAddInOrder = layersToAdd.reverse();
+    const layersToAddInOrder = layersToAdd.reverse();
 
-    //add layers to map
-    layerToAddInOrder.map((configSublayer) => {
-      const tileLayer = L.tileLayer(`${layerBaseURL}${mmgisConfig.mission}/${configSublayer.url}`, {
-        tileSize: 256,
-        bounds: [
-          [configSublayer.boundingBox[1], configSublayer.boundingBox[0]],
-          [configSublayer.boundingBox[3], configSublayer.boundingBox[2]],
-        ],
-        tms: configSublayer.tileformat === "tms",
-        minZoom: configSublayer.minZoom,
-        maxZoom: configSublayer.maxZoom,
-        maxNativeZoom: configSublayer.maxNativeZoom,
-        id: `${configSublayer.name}`,
-        pane: "newPane",
-        opacity: 1,
-      });
+    // if there are no changes to the layers enabled, do nothing
+    if (_.isEqual(layersToAddInOrder, layersOnMap)) {
+      return;
+    } else {
+      setLayersOnMap(layersToAddInOrder);
+    }
 
-      mapRef.current.addLayer(tileLayer);
+    // remove map layers that are not enabled in layerControls
+    mapRef.current.eachLayer((layer) => {
+      if (layer.options.id) {
+        if (!layerControls[layer.options.id].enabled) {
+          mapRef.current.removeLayer(layer);
+        }
+      }
     });
-  }, [mmgisConfig, layerControls, mapRef]);
+
+    // check map layers in order
+    layersToAddInOrder.map((configSublayer) => {
+      // if layer isn't already on the map, add it
+      if (!isLayerOnMapByName(mapRef, configSublayer.name)) {
+        const tileLayer = L.tileLayer(
+          `${layerBaseURL}${mmgisConfig.mission}/${configSublayer.url}`,
+          {
+            tileSize: 256,
+            bounds: [
+              [configSublayer.boundingBox[1], configSublayer.boundingBox[0]],
+              [configSublayer.boundingBox[3], configSublayer.boundingBox[2]],
+            ],
+            tms: configSublayer.tileformat === "tms",
+            minZoom: configSublayer.minZoom,
+            maxZoom: configSublayer.maxZoom,
+            maxNativeZoom: configSublayer.maxNativeZoom,
+            id: `${configSublayer.name}`,
+            pane: "newPane",
+            opacity: 1,
+          }
+        );
+        mapRef.current.addLayer(tileLayer);
+        tileLayer.bringToFront();
+      } else {
+        // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
+        const layer = getLayerByName(mapRef, configSublayer.name);
+        layer.bringToFront();
+      }
+    });
+  }, [mmgisConfig, layerControls, mapRef, layersOnMap]);
 
   return (
     <>
@@ -153,3 +198,20 @@ const MapBody = () => {
 };
 
 export default MapBody;
+
+const isLayerOnMapByName = (mapRef: MutableRefObject<any>, name: string) => {
+  let layerFound = false;
+  mapRef.current.eachLayer((layer) => {
+    if (layer.options.id === name) layerFound = true;
+  });
+  return layerFound;
+};
+
+const getLayerByName = (mapRef: MutableRefObject<any>, name: string) => {
+  let returnVal = null;
+
+  mapRef.current.eachLayer((layer) => {
+    if (layer.options.id === name) returnVal = layer;
+  });
+  return returnVal;
+};
