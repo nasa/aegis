@@ -5,6 +5,7 @@ L.Icon.Default.imagePath = "/leaflet/images/";
 import { useState, useCallback, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "store";
+import styles from "./map-body.module.css";
 
 const layerBaseURL = `http://192.168.0.5:8005/NASA_AEGIS/Missions/`;
 
@@ -92,27 +93,18 @@ export default function Map() {
     : ([0, 0] as [number, number]);
   const zoom = mmgisConfig ? parseInt(mmgisConfig.config.msv.view[2]) : 11;
 
-  const configSublayer = mmgisConfig.config.layers[5].sublayers[0];
-
-  const displayMap = (
-    <>
+  return (
+    <div className={styles.mapContainer}>
       <MapContainer
         center={center}
         zoom={zoom}
         scrollWheelZoom={true}
-        style={{ width: "100%", height: "100vh" }}
+        style={{ width: "100%", height: "100%" }}
         ref={setMap}
       >
         <TileLayers mmgisConfig={mmgisConfig} layerControls={layerControls} />
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" zIndex={1} />
       </MapContainer>
-    </>
-  );
-
-  return (
-    <div>
-      {map ? <DisplayPosition map={map} /> : null}
-      {displayMap}
     </div>
   );
 }
