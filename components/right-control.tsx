@@ -8,11 +8,12 @@ const Info = () => {
   return (
     <div className={styles.info}>
       <div>{config?.msv?.mission} Info:</div>
-      <br />
-      <div>Default position:</div>
-      <div>Lat: {config?.msv?.view[0]}</div>
-      <div>Lon: {config?.msv?.view[1]}</div>
-      <div>Mag: {config?.msv?.view[2]}</div>
+      <div className={styles.infoItem}>
+        <div>Default position:</div>
+        <div>Lat: {config?.msv?.view[0]}</div>
+        <div>Lon: {config?.msv?.view[1]}</div>
+        <div>Mag: {config?.msv?.view[2]}</div>
+      </div>
     </div>
   );
 };

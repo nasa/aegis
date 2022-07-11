@@ -23,6 +23,9 @@ export const userSlice = createSlice({
     setLayerControls: (state, action: { payload: LayerControls }) => {
       state.layerControls = action.payload;
     },
+    setLayerOpacity: (state, action: { payload: { layerName: string; opacity: number } }) => {
+      state.layerControls[action.payload.layerName].opacity = action.payload.opacity;
+    },
     toggleLayerControlExpanded: (state, action: { payload: string }) => {
       state.layerControls[action.payload].expanded = !state.layerControls[action.payload].expanded;
     },
@@ -37,6 +40,7 @@ export const {
   setIronSessionData,
   clearIronSessionData,
   setLayerControls,
+  setLayerOpacity,
   toggleLayerControlExpanded,
   toggleLayerControlEnabled,
 } = userSlice.actions;

@@ -9,6 +9,7 @@ import {
   setLayerControls,
   toggleLayerControlExpanded,
   toggleLayerControlEnabled,
+  setLayerOpacity,
 } from "store/user";
 
 library.add(faLayerGroup, faCaretDown, faCaretRight);
@@ -43,6 +44,9 @@ const LayerSelector = () => {
 
     const controls: LayerControls = {};
 
+    /**
+     * Make configLayer store
+     */
     configLayers.map((configLayer) => {
       const layerControl: LayerControl = {
         name: configLayer.name,
@@ -50,6 +54,7 @@ const LayerSelector = () => {
         type: configLayer.type,
         expanded: false,
         mapLayerRef: null,
+        opacity: 1,
       };
       controls[configLayer.name] = layerControl;
       if (configLayer.sublayers) {
@@ -60,6 +65,7 @@ const LayerSelector = () => {
             type: sublayer.type,
             expanded: false,
             mapLayerRef: null,
+            opacity: 1,
           };
           controls[sublayer.name] = layerControl;
         });
@@ -81,6 +87,11 @@ const LayerSelector = () => {
 
   const toggleLayerExpanded = (layer: Layer) => {
     dispatch(toggleLayerControlExpanded(layer.name));
+  };
+
+  // TODO: remove this
+  const testHalfOpacity = (layer: Sublayer) => {
+    dispatch(setLayerOpacity({ layerName: layer.name, opacity: 0.5 }));
   };
 
   return (
@@ -124,7 +135,11 @@ const LayerSelector = () => {
                                 checked={layerControls[sublayer.name].enabled}
                                 onChange={() => toggleSublayerEnabled(sublayer)}
                               />
-                              <div>
+                              <div
+                                onClick={() => {
+                                  testHalfOpacity(sublayer);
+                                }}
+                              >
                                 {sublayer.name} ({sublayer.type})
                               </div>
                             </div>

@@ -4,6 +4,7 @@ interface LayerControl {
   type: string;
   expanded: boolean;
   mapLayerRef: any;
+  opacity: number;
 }
 
 interface LayerControls {

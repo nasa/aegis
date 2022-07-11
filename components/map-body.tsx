@@ -72,7 +72,7 @@ const MapBody = () => {
               parseInt(mmgisConfig.config.msv.radius.major)
             );
           }
-          console.log("length of the new line:", totalLength);
+          console.log("length of the new line:", totalLength, "m");
         }
         mapRef.current.pm.getGeomanLayers(true).bindPopup("i am whole").openPopup();
         mapRef.current.pm
@@ -88,7 +88,7 @@ const MapBody = () => {
                 parseInt(mmgisConfig.config.msv.radius.major)
               );
             }
-            console.log("length of the new line:", totalLength);
+            console.log("length of the new line:", totalLength, "m");
           }
         });
       }
@@ -160,7 +160,7 @@ const MapBody = () => {
     });
 
     // check map layers in order
-    layersToAddInOrder.map((configSublayer) => {
+    layersToAddInOrder.map((configSublayer, index) => {
       // if layer isn't already on the map, add it
       if (!isLayerOnMapByName(mapRef, configSublayer.name)) {
         const tileLayer = L.tileLayer(
@@ -172,12 +172,14 @@ const MapBody = () => {
               [configSublayer.boundingBox[3], configSublayer.boundingBox[2]],
             ],
             tms: configSublayer.tileformat === "tms",
-            minZoom: configSublayer.minZoom,
+            minZoom: 1,
+            minNativeZoom: configSublayer.minZoom,
             maxZoom: configSublayer.maxZoom,
             maxNativeZoom: configSublayer.maxNativeZoom,
             id: `${configSublayer.name}`,
             pane: "newPane",
             opacity: 1,
+            zIndex: index,
           }
         );
         mapRef.current.addLayer(tileLayer);
