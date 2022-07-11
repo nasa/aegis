@@ -3,6 +3,7 @@ interface LayerControl {
   enabled: boolean;
   type: string;
   expanded: boolean;
+  mapLayerRef: any;
 }
 
 interface LayerControls {

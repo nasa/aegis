@@ -37,27 +37,29 @@ const LayerSelector = () => {
 
   useEffect(() => {
     if (!mmgisConfig) return;
-    const layers = mmgisConfig?.MMGISConfig?.config?.layers;
+    const configLayers = mmgisConfig?.MMGISConfig?.config?.layers;
 
-    if (!layers) return;
+    if (!configLayers) return;
 
     const controls: LayerControls = {};
 
-    layers.map((layer) => {
+    configLayers.map((configLayer) => {
       const layerControl: LayerControl = {
-        name: layer.name,
+        name: configLayer.name,
         enabled: false,
-        type: layer.type,
+        type: configLayer.type,
         expanded: false,
+        mapLayerRef: null,
       };
-      controls[layer.name] = layerControl;
-      if (layer.sublayers) {
-        layer.sublayers.map((sublayer) => {
+      controls[configLayer.name] = layerControl;
+      if (configLayer.sublayers) {
+        configLayer.sublayers.map((sublayer) => {
           const layerControl: LayerControl = {
             name: sublayer.name,
             enabled: false,
             type: sublayer.type,
             expanded: false,
+            mapLayerRef: null,
           };
           controls[sublayer.name] = layerControl;
         });
@@ -85,51 +87,48 @@ const LayerSelector = () => {
     <>
       <div className={styles.layersContainer}>
         {mmgisConfig &&
-          mmgisConfig?.MMGISConfig?.config?.layers?.map((layer: Layer) => {
+          layerControls &&
+          mmgisConfig?.MMGISConfig?.config?.layers?.map((configLayer: Layer) => {
             return (
-              <div className={styles.layerGroup} key={layer.name}>
+              <div className={styles.layerGroup} key={configLayer.name}>
                 <div className={styles.layer}>
-                  <div className={styles.expandoCaret} onClick={() => toggleLayerExpanded(layer)}>
+                  <div
+                    className={styles.expandoCaret}
+                    onClick={() => toggleLayerExpanded(configLayer)}
+                  >
                     {layerControls &&
-                      (layerControls[layer.name].expanded ? (
+                      (layerControls[configLayer.name].expanded ? (
                         <FontAwesomeIcon icon="caret-down" />
                       ) : (
                         <FontAwesomeIcon icon="caret-right" />
                       ))}
                   </div>
-                  {layerControls && (
-                    <input
-                      type="checkbox"
-                      key={layer.name}
-                      checked={layerControls[layer.name].enabled}
-                      onChange={() => toggleLayerEnabled(layer)}
-                    />
-                  )}
-                  <div className={styles.layerName}>{layer.name}</div>
+                  <input
+                    type="checkbox"
+                    key={`checkbox_${configLayer.name}`}
+                    checked={layerControls[configLayer.name].enabled}
+                    onChange={() => toggleLayerEnabled(configLayer)}
+                  />
+                  <div className={styles.layerName}>{configLayer.name}</div>
                 </div>
                 <div className={styles.layerSublayers}>
                   {layerControls &&
-                    layer.sublayers &&
-                    layer.sublayers.map((sublayer: Sublayer) => {
-                      if (layerControls[layer.name].expanded) {
+                    configLayer.sublayers &&
+                    configLayer.sublayers.map((sublayer: Sublayer) => {
+                      if (layerControls[configLayer.name].expanded) {
                         return (
-                          <>
-                            <div className={styles.layerSublayer} key={sublayer.name}>
-                              <div className={styles.sublayer}>
-                                {layerControls && (
-                                  <input
-                                    type="checkbox"
-                                    key={sublayer.name}
-                                    checked={layerControls[sublayer.name].enabled}
-                                    onChange={() => toggleSublayerEnabled(sublayer)}
-                                  />
-                                )}
-                                <div>
-                                  {sublayer.name} ({sublayer.type})
-                                </div>{" "}
+                          <div key={`checkbox_${sublayer.name}`} className={styles.layerSublayer}>
+                            <div className={styles.sublayer}>
+                              <input
+                                type="checkbox"
+                                checked={layerControls[sublayer.name].enabled}
+                                onChange={() => toggleSublayerEnabled(sublayer)}
+                              />
+                              <div>
+                                {sublayer.name} ({sublayer.type})
                               </div>
                             </div>
-                          </>
+                          </div>
                         );
                       } else {
                         return null;

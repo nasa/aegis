@@ -1,5 +1,5 @@
 import type { NextPage } from "next";
-import styles from "./nav-dev.module.css";
+import styles from "./main.module.css";
 
 import dynamic from "next/dynamic";
 /** Dynamically import the whole framework because nothing likes NextJS */
@@ -16,7 +16,7 @@ const Header = dynamic(import("components/header"), {
   ssr: false,
 });
 
-const Home: NextPage = () => {
+const Main: NextPage = () => {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -38,4 +38,4 @@ const Home: NextPage = () => {
   );
 };
 
-export default Home;
+export default Main;

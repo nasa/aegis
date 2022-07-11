@@ -104,7 +104,7 @@ const MissionSelect = () => {
       if (response.data) {
         dispatch(setMMGISConfig(response.data));
       }
-      router.push(`/nav-dev`);
+      router.push(`/main`);
     })();
   };
 
