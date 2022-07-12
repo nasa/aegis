@@ -1,4 +1,4 @@
 interface DrawLayer {
-  id: number;
   latLngsJSON: string;
+  uuid: string;
 }

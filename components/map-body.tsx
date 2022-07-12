@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, FeatureGroup, Polyline } from "react-leaflet";
+import { MapContainer, TileLayer, FeatureGroup, Polyline, useMap } from "react-leaflet";
 import { EditControl } from "react-leaflet-draw";
 import L from "leaflet";
 import "leaflet-draw";
@@ -6,6 +6,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "store";
 import styles from "./map-body.module.css";
 import { addDrawLayer, updateDrawLayer } from "store/map";
+import { useRef } from "react";
+import { v4 as uuidv4 } from "uuid";
 
 L.Icon.Default.imagePath = "/leaflet/images/";
 
@@ -61,22 +63,30 @@ const TileLayers = ({
 
 const EditFeature = () => {
   const dispatch = useDispatch();
+  const editableFeatures = useRef(null);
 
   const _onCreate = (e: any) => {
-    console.log(e);
+    // generate a uuid and add it to the layer object in the map so it can be correlated with state
+    const newUUID = uuidv4();
+    e.layer.uuid = newUUID;
+
+    console.log("onCreate", e);
+
+    // put the new layer into state
     if (e.layerType === "polyline") {
-      const { _leaflet_id }: { _leaflet_id: number } = e.layer;
       const latLngs = e.layer.getLatLngs();
-      dispatch(addDrawLayer({ id: _leaflet_id, latLngsJSON: JSON.stringify(latLngs) }));
+      dispatch(addDrawLayer({ uuid: newUUID, latLngsJSON: JSON.stringify(latLngs) }));
     }
   };
 
   const _onEdit = (e: any) => {
-    console.log(e);
+    console.log("_onEdit", e);
+    console.log("Map object:", e.target);
+
+    // update the layer in state using uuid as key
     e.layers.eachLayer(function (layer) {
-      const { _leaflet_id }: { _leaflet_id: number } = layer;
       const latLngs = layer.getLatLngs();
-      dispatch(updateDrawLayer({ id: _leaflet_id, latLngsJSON: JSON.stringify(latLngs) }));
+      dispatch(updateDrawLayer({ uuid: layer.uuid, latLngsJSON: JSON.stringify(latLngs) }));
     });
   };
 
@@ -85,7 +95,7 @@ const EditFeature = () => {
   };
 
   return (
-    <FeatureGroup>
+    <FeatureGroup ref={editableFeatures}>
       <EditControl
         position="topright"
         onEdited={_onEdit}
@@ -100,25 +110,47 @@ const EditFeature = () => {
           marker: false,
           polygon: false,
         }}
+        edit={{
+          FeatureGroup: editableFeatures.current,
+        }}
       />
+      <PolylinesFromState />
     </FeatureGroup>
   );
 };
 
 const PolylinesFromState = () => {
+  const dispatch = useDispatch();
   const drawLayers = useSelector((state: RootState) => state.map.drawLayers);
   const purpleOptions = { color: "purple" };
 
   const polylines = drawLayers.map((drawLayer) => {
-    const latLngs = JSON.parse(drawLayer.latLngsJSON);
-    return <Polyline key={drawLayer.id} pathOptions={purpleOptions} positions={latLngs} />;
+    // draw any layers in state that don't have a uuid. This means they aren't on the map yet
+    if (!drawLayer.uuid) {
+      const newUuid = uuidv4();
+
+      const latLngs = JSON.parse(drawLayer.latLngsJSON);
+      dispatch(addDrawLayer({ uuid: newUuid, latLngsJSON: JSON.stringify(latLngs) }));
+
+      return (
+        <Polyline
+          // uuid={newUuid}
+          key={drawLayer.uuid}
+          pathOptions={purpleOptions}
+          positions={latLngs}
+        />
+      );
+    }
   });
   return polylines;
 };
 
 export default function Map() {
+  const dispatch = useDispatch();
+  const mapRef = useRef(null);
   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig.MMGISConfig);
   const layerControls = useSelector((state: RootState) => state.map.layerControls);
+  const drawLayers = useSelector((state: RootState) => state.map.drawLayers);
 
   if (!mmgisConfig || !layerControls) return;
 
@@ -132,7 +164,52 @@ export default function Map() {
 
   return (
     <div className={styles.mapContainer}>
+      <button
+        onClick={() => {
+          const map = mapRef.current;
+
+          const searchUuid = drawLayers[0].uuid;
+
+          let searchLayer = null;
+          map.eachLayer(function (layer) {
+            if (layer.uuid === searchUuid) {
+              searchLayer = layer;
+            }
+          });
+
+          console.log(searchLayer);
+
+          searchLayer.editing.enable();
+        }}
+      >
+        Edit
+      </button>
+      <button
+        onClick={() => {
+          const map = mapRef.current;
+
+          const searchUuid = drawLayers[0].uuid;
+
+          let searchLayer = null;
+          map.eachLayer(function (layer) {
+            if (layer.uuid === searchUuid) {
+              searchLayer = layer;
+            }
+          });
+
+          console.log(searchLayer);
+
+          searchLayer.editing.disable();
+          const latLngs = searchLayer.getLatLngs();
+          dispatch(
+            updateDrawLayer({ uuid: searchLayer.uuid, latLngsJSON: JSON.stringify(latLngs) })
+          );
+        }}
+      >
+        Stop Edit
+      </button>
       <MapContainer
+        ref={mapRef}
         center={center}
         zoom={zoom}
         scrollWheelZoom={true}
@@ -142,8 +219,6 @@ export default function Map() {
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" zIndex={1} />
 
         <EditFeature />
-
-        <PolylinesFromState />
       </MapContainer>
     </div>
   );

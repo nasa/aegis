@@ -27,12 +27,15 @@ export const mapSlice = createSlice({
     },
     updateDrawLayer: (state, action: { payload: DrawLayer }) => {
       state.drawLayers = state.drawLayers.map((drawLayer) => {
-        if (drawLayer.id === action.payload.id) {
+        if (drawLayer.uuid === action.payload.uuid) {
           return action.payload;
         }
         return drawLayer;
       });
     },
+    // replaceAllDrawLayers: (state, action: { payload: DrawLayer[] }) => {
+    //   state.drawLayers = action.payload;
+    // },
   },
 });
 
@@ -43,4 +46,5 @@ export const {
   toggleLayerControlEnabled,
   addDrawLayer,
   updateDrawLayer,
+  // replaceAllDrawLayers,
 } = mapSlice.actions;
