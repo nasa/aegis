@@ -9,7 +9,7 @@ const LeftControlPanel = dynamic(import("components/left-control"), {
 const RightControlPanel = dynamic(import("components/right-control"), {
   ssr: false,
 });
-const MapBody = dynamic(import("components/map-body-react"), {
+const MapBody = dynamic(import("components/map-body"), {
   ssr: false,
 });
 const Header = dynamic(import("components/header"), {

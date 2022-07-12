@@ -1,0 +1,46 @@
+import { createSlice } from "@reduxjs/toolkit";
+import { IronSessionData } from "iron-session";
+
+export const initialState: MapState = {
+  layerControls: null,
+  drawLayers: [],
+};
+
+export const mapSlice = createSlice({
+  name: "map",
+  initialState,
+  reducers: {
+    setLayerControls: (state, action: { payload: LayerControls }) => {
+      state.layerControls = action.payload;
+    },
+    setLayerOpacity: (state, action: { payload: { layerName: string; opacity: number } }) => {
+      state.layerControls[action.payload.layerName].opacity = action.payload.opacity;
+    },
+    toggleLayerControlExpanded: (state, action: { payload: string }) => {
+      state.layerControls[action.payload].expanded = !state.layerControls[action.payload].expanded;
+    },
+    toggleLayerControlEnabled: (state, action: { payload: string }) => {
+      state.layerControls[action.payload].enabled = !state.layerControls[action.payload].enabled;
+    },
+    addDrawLayer: (state, action: { payload: DrawLayer }) => {
+      state.drawLayers = [...state.drawLayers, action.payload];
+    },
+    updateDrawLayer: (state, action: { payload: DrawLayer }) => {
+      state.drawLayers = state.drawLayers.map((drawLayer) => {
+        if (drawLayer.id === action.payload.id) {
+          return action.payload;
+        }
+        return drawLayer;
+      });
+    },
+  },
+});
+
+export const {
+  setLayerControls,
+  setLayerOpacity,
+  toggleLayerControlExpanded,
+  toggleLayerControlEnabled,
+  addDrawLayer,
+  updateDrawLayer,
+} = mapSlice.actions;

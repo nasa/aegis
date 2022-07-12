@@ -10,7 +10,7 @@ import {
   toggleLayerControlExpanded,
   toggleLayerControlEnabled,
   setLayerOpacity,
-} from "store/user";
+} from "store/map";
 
 library.add(faLayerGroup, faCaretDown, faCaretRight);
 
@@ -34,7 +34,7 @@ export default LeftControlPanel;
 const LayerSelector = () => {
   const dispatch = useDispatch();
   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig);
-  const layerControls = useSelector((state: RootState) => state.user.layerControls);
+  const layerControls = useSelector((state: RootState) => state.map.layerControls);
 
   useEffect(() => {
     if (!mmgisConfig) return;

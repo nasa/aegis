@@ -1,219 +1,150 @@
+import { MapContainer, TileLayer, FeatureGroup, Polyline } from "react-leaflet";
+import { EditControl } from "react-leaflet-draw";
 import L from "leaflet";
-import "@geoman-io/leaflet-geoman-free";
-import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
+import "leaflet-draw";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "store";
 import styles from "./map-body.module.css";
-import "rc-slider/assets/index.css";
-import { useSelector } from "react-redux";
+import { addDrawLayer, updateDrawLayer } from "store/map";
 
 L.Icon.Default.imagePath = "/leaflet/images/";
-import { MutableRefObject, useEffect, useRef, useState } from "react";
-import { RootState } from "store/index";
-import _ from "lodash";
-import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
-
-// const center = [51.505, -0.09] as L.LatLngExpression; // London
-const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
-const zoom = 13;
 
 const layerBaseURL = `http://192.168.0.5:8005/NASA_AEGIS/Missions/`;
 
-const MapBody = () => {
-  const mapRef = useRef(null);
+const TileLayers = ({
+  mmgisConfig,
+  layerControls,
+}: {
+  mmgisConfig: MMGISConfig;
+  layerControls: LayerControls;
+}) => {
+  if (!mmgisConfig || !layerControls) return;
 
-  const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig.MMGISConfig);
-  const layerControls = useSelector((state: RootState) => state.user.layerControls);
-
-  const [layersOnMap, setLayersOnMap] = useState([]);
-
-  useEffect(() => {
-    if (!mapRef.current) {
-      return;
-    }
-    mapRef.current = L.map("map", {
-      center: center,
-      zoom: zoom,
-    });
-
-    const newPane = mapRef.current.createPane("newPane");
-    newPane.style.zIndex = "1";
-
-    mapRef.current.pm.addControls({
-      drawMarker: true,
-    });
-
-    mapRef.current.on("pm:globaldrawmodetoggled", (e) => {
-      console.log("Global Draw Toggled", e);
-    });
-
-    // listen to vertexes being added to currently drawn layer (called workingLayer)
-    mapRef.current.on("pm:drawstart", ({ workingLayer }) => {
-      console.log("Draw start");
-      workingLayer.on("pm:vertexadded", (e) => {
-        console.log("Vertex added", e);
-      });
-    });
-
-    mapRef.current.on("pm:create", (e) => {
-      if (e.layer && e.layer.pm) {
-        const shape = e;
-        console.log("Create", e);
-
-        // enable editing of circle
-        shape.layer.pm.enable();
-
-        console.log(`object created: ${shape.layer.pm.getShape()}`);
-        // console.log(mapRef.current.pm.getGeomanLayers(true).toGeoJSON());
-        if (shape.layer.pm.getShape() === "Line") {
-          let totalLength = 0;
-          for (let i = 0; i < shape.layer.getLatLngs().length - 1; i++) {
-            totalLength += getDistanceBetweenTwoCoordinates(
-              shape.layer.getLatLngs()[i],
-              shape.layer.getLatLngs()[i + 1],
-              parseInt(mmgisConfig.config.msv.radius.major)
-            );
-          }
-          console.log("length of the new line:", totalLength, "m");
-        }
-        mapRef.current.pm.getGeomanLayers(true).bindPopup("i am whole").openPopup();
-        mapRef.current.pm
-          .getGeomanLayers()
-          .map((layer, index) => layer.bindPopup(`I am figure N° ${index}`));
-        shape.layer.on("pm:edit", () => {
-          if (shape.layer.pm.getShape() === "Line") {
-            let totalLength = 0;
-            for (let i = 0; i < shape.layer.getLatLngs().length - 1; i++) {
-              totalLength += getDistanceBetweenTwoCoordinates(
-                shape.layer.getLatLngs()[i],
-                shape.layer.getLatLngs()[i + 1],
-                parseInt(mmgisConfig.config.msv.radius.major)
-              );
-            }
-            console.log("length of the new line:", totalLength, "m");
-          }
-        });
-      }
-    });
-
-    mapRef.current.on("pm:remove", () => {
-      console.log("object removed");
-      console.log(mapRef.current.pm.getGeomanLayers(true).toGeoJSON());
-    });
-
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.pm.removeControls();
-        mapRef.current.pm.setGlobalOptions({ pmIgnore: true });
-
-        mapRef.current.off();
-        mapRef.current.remove();
-      }
-    };
-  }, [mmgisConfig]);
-
-  useEffect(() => {
-    /**
-     * Set the center of the map to the center of the selected mission (config.msv.view)
-     */
-    if (!mapRef.current || !mmgisConfig) return;
-    const config = mmgisConfig?.config;
-
-    const center = [config?.msv?.view[0], config?.msv?.view[1]];
-    const zoom = config?.msv?.view[2];
-
-    mapRef.current.setView(center, zoom);
-  }, [mmgisConfig, mapRef]);
-
-  useEffect(() => {
-    /**
-     * Map tile layers display management
-     */
-    if (!mmgisConfig || !layerControls || !mapRef) return;
-
-    // go through all layers in mission config and add make a list of the ones that are enabled
-    const layersToAdd = [];
-    for (const configLayer of mmgisConfig.config.layers) {
-      for (const configSublayer of configLayer.sublayers) {
-        if (configSublayer.type === "tile") {
-          if (layerControls[configSublayer.name].enabled) {
-            layersToAdd.push(configSublayer);
-          }
+  const layersToAdd = [];
+  for (const configLayer of mmgisConfig.config.layers) {
+    for (const configSublayer of configLayer.sublayers) {
+      if (configSublayer.type === "tile") {
+        if (layerControls[configSublayer.name].enabled) {
+          layersToAdd.push(configSublayer);
         }
       }
     }
-    // reverse the array to add the ones at the bottom of the tree first
-    const layersToAddInOrder = layersToAdd.reverse();
+  }
+  // reverse the array to add the ones at the bottom of the tree first
+  const layersToAddInOrder = layersToAdd.reverse();
 
-    // if there are no changes to the layers enabled, do nothing
-    if (_.isEqual(layersToAddInOrder, layersOnMap)) {
-      return;
-    } else {
-      setLayersOnMap(layersToAddInOrder);
+  const tileLayers = layersToAddInOrder.map((configSublayer, index) => {
+    console.log(configSublayer.name);
+    return (
+      <TileLayer
+        key={configSublayer.name}
+        url={`${layerBaseURL}${mmgisConfig.mission}/${configSublayer.url}`}
+        tileSize={256}
+        bounds={[
+          [configSublayer.boundingBox[1], configSublayer.boundingBox[0]],
+          [configSublayer.boundingBox[3], configSublayer.boundingBox[2]],
+        ]}
+        tms={configSublayer.tileformat === "tms"}
+        minZoom={1}
+        minNativeZoom={configSublayer.minZoom}
+        maxZoom={configSublayer.maxZoom}
+        maxNativeZoom={configSublayer.maxNativeZoom}
+        id={`${configSublayer.name}`}
+        opacity={layerControls[configSublayer.name].opacity}
+        zIndex={index + 10}
+      />
+    );
+  });
+
+  return <>{tileLayers}</>;
+};
+
+const EditFeature = () => {
+  const dispatch = useDispatch();
+
+  const _onCreate = (e: any) => {
+    console.log(e);
+    if (e.layerType === "polyline") {
+      const { _leaflet_id }: { _leaflet_id: number } = e.layer;
+      const latLngs = e.layer.getLatLngs();
+      dispatch(addDrawLayer({ id: _leaflet_id, latLngsJSON: JSON.stringify(latLngs) }));
     }
+  };
 
-    // remove map layers that are not enabled in layerControls
-    mapRef.current.eachLayer((layer) => {
-      if (layer.options.id) {
-        if (!layerControls[layer.options.id].enabled) {
-          mapRef.current.removeLayer(layer);
-        }
-      }
+  const _onEdit = (e: any) => {
+    console.log(e);
+    e.layers.eachLayer(function (layer) {
+      const { _leaflet_id }: { _leaflet_id: number } = layer;
+      const latLngs = layer.getLatLngs();
+      dispatch(updateDrawLayer({ id: _leaflet_id, latLngsJSON: JSON.stringify(latLngs) }));
     });
+  };
 
-    // check map layers in order
-    layersToAddInOrder.map((configSublayer, index) => {
-      // if layer isn't already on the map, add it
-      if (!isLayerOnMapByName(mapRef, configSublayer.name)) {
-        const tileLayer = L.tileLayer(
-          `${layerBaseURL}${mmgisConfig.mission}/${configSublayer.url}`,
-          {
-            tileSize: 256,
-            bounds: [
-              [configSublayer.boundingBox[1], configSublayer.boundingBox[0]],
-              [configSublayer.boundingBox[3], configSublayer.boundingBox[2]],
-            ],
-            tms: configSublayer.tileformat === "tms",
-            minZoom: 1,
-            minNativeZoom: configSublayer.minZoom,
-            maxZoom: configSublayer.maxZoom,
-            maxNativeZoom: configSublayer.maxNativeZoom,
-            id: `${configSublayer.name}`,
-            pane: "newPane",
-            opacity: 1,
-            zIndex: index,
-          }
-        );
-        mapRef.current.addLayer(tileLayer);
-        tileLayer.bringToFront();
-      } else {
-        // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
-        const layer = getLayerByName(mapRef, configSublayer.name);
-        layer.bringToFront();
-      }
-    });
-  }, [mmgisConfig, layerControls, mapRef, layersOnMap]);
+  const _onDelete = (e: any) => {
+    console.log(e);
+  };
 
   return (
-    <>
-      <div id="map" className={styles.map} ref={mapRef}></div>
-    </>
+    <FeatureGroup>
+      <EditControl
+        position="topright"
+        onEdited={_onEdit}
+        onCreated={_onCreate}
+        onDeleted={_onDelete}
+        draw={{
+          polyline: true,
+
+          rectangle: false,
+          circle: false,
+          circlemarker: false,
+          marker: false,
+          polygon: false,
+        }}
+      />
+    </FeatureGroup>
   );
 };
 
-export default MapBody;
+const PolylinesFromState = () => {
+  const drawLayers = useSelector((state: RootState) => state.map.drawLayers);
+  const purpleOptions = { color: "purple" };
 
-const isLayerOnMapByName = (mapRef: MutableRefObject<any>, name: string) => {
-  let layerFound = false;
-  mapRef.current.eachLayer((layer) => {
-    if (layer.options.id === name) layerFound = true;
+  const polylines = drawLayers.map((drawLayer) => {
+    const latLngs = JSON.parse(drawLayer.latLngsJSON);
+    return <Polyline key={drawLayer.id} pathOptions={purpleOptions} positions={latLngs} />;
   });
-  return layerFound;
+  return polylines;
 };
 
-const getLayerByName = (mapRef: MutableRefObject<any>, name: string) => {
-  let returnVal = null;
+export default function Map() {
+  const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig.MMGISConfig);
+  const layerControls = useSelector((state: RootState) => state.map.layerControls);
 
-  mapRef.current.eachLayer((layer) => {
-    if (layer.options.id === name) returnVal = layer;
-  });
-  return returnVal;
-};
+  if (!mmgisConfig || !layerControls) return;
+
+  const center = mmgisConfig
+    ? ([
+        parseFloat(mmgisConfig.config.msv.view[0]),
+        parseFloat(mmgisConfig?.config?.msv?.view[1]),
+      ] as [number, number])
+    : ([0, 0] as [number, number]);
+  const zoom = mmgisConfig ? parseInt(mmgisConfig.config.msv.view[2]) : 11;
+
+  return (
+    <div className={styles.mapContainer}>
+      <MapContainer
+        center={center}
+        zoom={zoom}
+        scrollWheelZoom={true}
+        style={{ width: "100%", height: "100%" }}
+      >
+        <TileLayers mmgisConfig={mmgisConfig} layerControls={layerControls} />
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" zIndex={1} />
+
+        <EditFeature />
+
+        <PolylinesFromState />
+      </MapContainer>
+    </div>
+  );
+}

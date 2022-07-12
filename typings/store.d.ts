@@ -24,5 +24,9 @@ interface MMGISState {
 interface UserState {
   isLoggedIn: boolean;
   ironSessionData: IronSessionData | null;
+}
+
+interface MapState {
   layerControls: LayerControls | null;
+  drawLayers: DrawLayers;
 }
