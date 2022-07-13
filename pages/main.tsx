@@ -2,6 +2,7 @@ import type { NextPage } from "next";
 import styles from "./main.module.css";
 
 import dynamic from "next/dynamic";
+import NavTimeline from "components/interface/nav-timeline";
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(import("components/interface/left-control"), {
   ssr: false,
@@ -33,7 +34,9 @@ const Main: NextPage = () => {
           <RightControlPanel />
         </div>
       </div>
-      <div className={styles.timeline}>Timeline</div>
+      <div className={styles.timeline}>
+        <NavTimeline />
+      </div>
     </div>
   );
 };

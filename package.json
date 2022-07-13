@@ -24,6 +24,7 @@
     "lodash": "^4.17.21",
     "next": "12.2.0",
     "next-redux-wrapper": "^7.0.5",
+    "paper": "^0.12.15",
     "pg": "^8.7.3",
     "pg-hstore": "^2.3.4",
     "prop-types": "^15.8.1",
