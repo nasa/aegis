@@ -23,10 +23,11 @@ interface MMGISState {
 
 interface UserState {
   isLoggedIn: boolean;
-  ironSessionData: IronSessionData | null;
+  ironSessionData: IronSessionData;
 }
 
 interface MapState {
-  layerControls: LayerControls | null;
+  layerControls: LayerControls;
   drawLayers: DrawLayers;
+  mousePosition: LatLng;
 }

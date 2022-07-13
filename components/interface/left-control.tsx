@@ -42,10 +42,18 @@ export default LeftControlPanel;
 const NavGutter = ({ setSelectedNavItem }) => {
   return (
     <div className={styles.iconGutter}>
-      <div className={styles.icon} onClick={() => setSelectedNavItem("map_layer_selector")}>
+      <div
+        className={styles.icon}
+        title={"Map Layer Selector"}
+        onClick={() => setSelectedNavItem("map_layer_selector")}
+      >
         <FontAwesomeIcon icon="layer-group" />
       </div>
-      <div className={styles.icon} onClick={() => setSelectedNavItem("eva_planner")}>
+      <div
+        className={styles.icon}
+        title={"EVA Planner"}
+        onClick={() => setSelectedNavItem("eva_planner")}
+      >
         <FontAwesomeIcon icon="route" />
       </div>
     </div>

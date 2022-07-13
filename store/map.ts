@@ -1,9 +1,11 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { IronSessionData } from "iron-session";
+import { LatLng } from "leaflet";
 
 export const initialState: MapState = {
   layerControls: null,
   drawLayers: [],
+  mousePosition: null,
 };
 
 export const mapSlice = createSlice({

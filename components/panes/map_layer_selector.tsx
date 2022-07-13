@@ -3,55 +3,12 @@ import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { RootState } from "store";
-import {
-  setLayerControls,
-  toggleLayerControlExpanded,
-  toggleLayerControlEnabled,
-  setLayerOpacity,
-} from "store/map";
+import { toggleLayerControlExpanded, toggleLayerControlEnabled, setLayerOpacity } from "store/map";
 
 const MapLayerSelector = () => {
   const dispatch = useDispatch();
   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig);
   const layerControls = useSelector((state: RootState) => state.map.layerControls);
-
-  useEffect(() => {
-    if (!mmgisConfig) return;
-    const configLayers = mmgisConfig?.MMGISConfig?.config?.layers;
-
-    if (!configLayers) return;
-
-    const controls: LayerControls = {};
-
-    /**
-     * Make configLayer store
-     */
-    configLayers.map((configLayer) => {
-      const layerControl: LayerControl = {
-        name: configLayer.name,
-        enabled: false,
-        type: configLayer.type,
-        expanded: false,
-        mapLayerRef: null,
-        opacity: 1,
-      };
-      controls[configLayer.name] = layerControl;
-      if (configLayer.sublayers) {
-        configLayer.sublayers.map((sublayer) => {
-          const layerControl: LayerControl = {
-            name: sublayer.name,
-            enabled: false,
-            type: sublayer.type,
-            expanded: false,
-            mapLayerRef: null,
-            opacity: 1,
-          };
-          controls[sublayer.name] = layerControl;
-        });
-      }
-    });
-    dispatch(setLayerControls(controls));
-  }, [mmgisConfig, dispatch]);
 
   const toggleSublayerEnabled = (sublayer: Sublayer) => {
     dispatch(toggleLayerControlEnabled(sublayer.name));

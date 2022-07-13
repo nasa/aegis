@@ -60,3 +60,9 @@ body {
   border-radius: 2px;
   border: 1px none #eeeeee10;
 }
+
+/* --- leaflet overrides ---*/
+/* hide attribution */
+.leaflet-control-attribution {
+  display: none !important;
+}
