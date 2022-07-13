@@ -5,7 +5,7 @@ import { Op } from "sequelize";
 import { ironOptions } from "server/session/config";
 import { Userfiles } from "server/db/Draw/models/userfiles";
 
-import { getSequelizeConnection } from "server/db/connection";
+import { getMMGISSequelizeConnection } from "server/db/connection";
 
 export default withIronSessionApiRoute(handler, ironOptions);
 
@@ -23,7 +23,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
 }
 
 async function getfile(username: string, fileId: any) {
-  const sequelize = getSequelizeConnection();
+  const sequelize = getMMGISSequelizeConnection();
 
   let published = false;
 

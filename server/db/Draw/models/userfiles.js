@@ -24,7 +24,7 @@ ALTER TABLE user_files
  * Loading all required dependencies, libraries and packages
  **********************************************************/
 import { Sequelize } from "sequelize";
-import { getSequelizeConnection } from "server/db/connection";
+import { getMMGISSequelizeConnection } from "server/db/connection";
 
 const intents = ["roi", "campaign", "campsite", "trail", "signpost", "all"];
 
@@ -92,7 +92,7 @@ const options = {
   updatedAt: "updated_on",
 };
 
-const sequelize = getSequelizeConnection();
+const sequelize = getMMGISSequelizeConnection();
 
 // setup Userfiles model and its fields.
 export const Userfiles = sequelize.define("user_files", attributes, options);

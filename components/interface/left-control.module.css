@@ -9,7 +9,7 @@
 
 .iconGutter {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   width: 40px;
   border-right: 1px solid var(--dark-grey);
 }
@@ -22,27 +22,4 @@
 
 .activeComponent {
   width: 360px;
-}
-
-.layersContainer {
-  display: flex;
-  flex-direction: column;
-}
-
-.layerGroup {
-  padding-top: 5px;
-  padding-bottom: 5px;
-}
-
-.layer {
-  display: flex;
-}
-
-.sublayer {
-  display: flex;
-  margin-left: 20px;
-}
-
-.expandoCaret {
-  width: 12px;
 }

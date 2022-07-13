@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 
-import { getSequelizeConnection } from "server/db/connection";
+import { getMMGISSequelizeConnection } from "server/db/connection";
 
 export default withIronSessionApiRoute(handler, ironOptions);
 
@@ -28,7 +28,7 @@ async function handler(
 }
 
 async function getConfigs(): Promise<MMGISConfigListItem[]> {
-  const sequelize = getSequelizeConnection();
+  const sequelize = getMMGISSequelizeConnection();
 
   const missions = await sequelize.query(
     `select DISTINCT ON (mission) id, mission, version, "createdAt" from configs ORDER BY mission DESC`,

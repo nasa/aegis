@@ -1,8 +1,6 @@
-import styles from "./left-control.module.css";
+import styles from "./map_layer_selector.module.css";
 import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { faLayerGroup, faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { RootState } from "store";
 import {
@@ -12,26 +10,7 @@ import {
   setLayerOpacity,
 } from "store/map";
 
-library.add(faLayerGroup, faCaretDown, faCaretRight);
-
-const LeftControlPanel = () => {
-  return (
-    <div className={styles.body}>
-      <div className={styles.iconGutter}>
-        <div className={styles.icon}>
-          <FontAwesomeIcon icon="layer-group" />
-        </div>
-      </div>
-      <div className={styles.activeComponent}>
-        <LayerSelector />
-      </div>
-    </div>
-  );
-};
-
-export default LeftControlPanel;
-
-const LayerSelector = () => {
+const MapLayerSelector = () => {
   const dispatch = useDispatch();
   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig);
   const layerControls = useSelector((state: RootState) => state.map.layerControls);
@@ -157,3 +136,5 @@ const LayerSelector = () => {
     </>
   );
 };
+
+export default MapLayerSelector;

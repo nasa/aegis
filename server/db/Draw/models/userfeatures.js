@@ -19,7 +19,7 @@ ALTER TABLE user_files
  * Loading all required dependencies, libraries and packages
  **********************************************************/
 import { Sequelize } from "sequelize";
-import { getSequelizeConnection } from "server/db/connection";
+import { getMMGISSequelizeConnection } from "server/db/connection";
 
 const attributes = {
   file_id: {
@@ -63,6 +63,6 @@ const options = {
   timestamps: false,
 };
 
-const sequelize = getSequelizeConnection();
+const sequelize = getMMGISSequelizeConnection();
 
 export const Userfeatures = sequelize.define("user_features", attributes, options);

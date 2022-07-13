@@ -2,10 +2,10 @@
  * Loading all required dependencies, libraries and packages
  **********************************************************/
 import { Sequelize } from "sequelize";
-import { getSequelizeConnection } from "server/db/connection";
+import { getMMGISSequelizeConnection } from "server/db/connection";
 import { bcrypt } from "bcryptjs";
 
-const sequelize = getSequelizeConnection();
+const sequelize = getMMGISSequelizeConnection();
 
 // setup User model and its fields.
 export const User = sequelize.define(

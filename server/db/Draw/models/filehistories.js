@@ -19,7 +19,7 @@ ALTER TABLE file_histories
  * Loading all required dependencies, libraries and packages
  **********************************************************/
 import { Sequelize } from "sequelize";
-import { getSequelizeConnection } from "server/db/connection";
+import { getMMGISSequelizeConnection } from "server/db/connection";
 
 const attributes = {
   file_id: {
@@ -48,7 +48,7 @@ const options = {
   timestamps: false,
 };
 
-const sequelize = getSequelizeConnection();
+const sequelize = getMMGISSequelizeConnection();
 
 // setup Filehistories model and its fields.
 export const Filehistories = sequelize.define("file_histories", attributes, options);

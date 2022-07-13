@@ -3,16 +3,16 @@ import styles from "./main.module.css";
 
 import dynamic from "next/dynamic";
 /** Dynamically import the whole framework because nothing likes NextJS */
-const LeftControlPanel = dynamic(import("components/left-control"), {
+const LeftControlPanel = dynamic(import("components/interface/left-control"), {
   ssr: false,
 });
-const RightControlPanel = dynamic(import("components/right-control"), {
+const RightControlPanel = dynamic(import("components/interface/right-control"), {
   ssr: false,
 });
-const MapBody = dynamic(import("components/map-body"), {
+const MapBody = dynamic(import("components/interface/map-body"), {
   ssr: false,
 });
-const Header = dynamic(import("components/header"), {
+const Header = dynamic(import("components/interface/header"), {
   ssr: false,
 });
 

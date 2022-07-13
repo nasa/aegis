@@ -164,7 +164,7 @@ export default function Map() {
 
   return (
     <div className={styles.mapContainer}>
-      <button
+      {/* <button
         onClick={() => {
           const map = mapRef.current;
 
@@ -207,7 +207,7 @@ export default function Map() {
         }}
       >
         Stop Edit
-      </button>
+      </button> */}
       <MapContainer
         ref={mapRef}
         center={center}
