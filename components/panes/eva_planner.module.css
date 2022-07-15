@@ -1,0 +1,17 @@
+.evaItems {
+  display: flex;
+  flex-direction: column;
+}
+
+.evaStation {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.evaTraverse {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-left: 20px;
+}

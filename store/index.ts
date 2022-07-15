@@ -6,6 +6,7 @@ import { playheadHoverSlice, initialState as playheadHoverInitialState } from ".
 import { mmgisConfigSlice, initialState as mmgisConfigInitialState } from "./mmgis";
 import { userSlice, initialState as userInitialState } from "./user";
 import { mapSlice, initialState as mapInitialState } from "./map";
+import { evaSlice, initialState as evaInitialState } from "./eva";
 
 let store;
 
@@ -15,6 +16,7 @@ export const initialState = {
   mmgisConfig: mmgisConfigInitialState,
   user: userInitialState,
   map: mapInitialState,
+  eva: evaInitialState,
 };
 
 const reducer = combineReducers({
@@ -23,6 +25,7 @@ const reducer = combineReducers({
   mmgisConfig: mmgisConfigSlice.reducer,
   user: userSlice.reducer,
   map: mapSlice.reducer,
+  eva: evaSlice.reducer,
 });
 export type RootState = ReturnType<typeof reducer>;
 

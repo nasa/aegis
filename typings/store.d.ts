@@ -31,3 +31,7 @@ interface MapState {
   drawLayers: DrawLayers;
   mousePosition: LatLng;
 }
+
+interface EvaState {
+  eva: Eva;
+}

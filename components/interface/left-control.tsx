@@ -15,7 +15,7 @@ import EVA_Planner from "components/panes/eva_planner";
 library.add(faLayerGroup, faCaretDown, faCaretRight, faRoute);
 
 const LeftControlPanel = () => {
-  const [selectedNavItem, setSelectedNavItem] = useState("map_layer_selector");
+  const [selectedNavItem, setSelectedNavItem] = useState("eva_planner");
 
   const showSelectedNavItem = () => {
     switch (selectedNavItem) {

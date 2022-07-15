@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "store";
 import styles from "./map-body.module.css";
 import { addDrawLayer, updateDrawLayer } from "store/map";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 L.Icon.Default.imagePath = "/leaflet/images/";
@@ -61,7 +61,7 @@ const TileLayers = ({
   return <>{tileLayers}</>;
 };
 
-const EditFeature = () => {
+const EditFeature = ({ editControl, setEditControl }) => {
   const dispatch = useDispatch();
   const editableFeatures = useRef(null);
 
@@ -98,17 +98,21 @@ const EditFeature = () => {
     <FeatureGroup ref={editableFeatures}>
       <EditControl
         position="topright"
+        onMounted={(e) => {
+          if (editControl) return;
+          setEditControl(e);
+        }}
         onEdited={_onEdit}
         onCreated={_onCreate}
         onDeleted={_onDelete}
         draw={{
           polyline: true,
+          marker: true,
 
           rectangle: false,
           circle: false,
           circlemarker: false,
-          marker: false,
-          polygon: false,
+          polygon: true,
         }}
         edit={{
           FeatureGroup: editableFeatures.current,
@@ -148,6 +152,7 @@ const PolylinesFromState = () => {
 export default function Map() {
   const dispatch = useDispatch();
   const mapRef = useRef(null);
+  const [editControl, setEditControl] = useState(null);
   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig.MMGISConfig);
   const layerControls = useSelector((state: RootState) => state.map.layerControls);
   const drawLayers = useSelector((state: RootState) => state.map.drawLayers);
@@ -164,7 +169,16 @@ export default function Map() {
 
   return (
     <div className={styles.mapContainer}>
-      {/* <button
+      <button
+        onClick={() => {
+          // editControl._toolbars.draw._modes.polyline.handler.enable();
+          // editControl._toolbars.draw._modes.polygon.handler.enable();
+          mapRef.current.leafletElement.pm.enableDraw("Polyline");
+        }}
+      >
+        Add Station
+      </button>
+      <button
         onClick={() => {
           const map = mapRef.current;
 
@@ -207,7 +221,7 @@ export default function Map() {
         }}
       >
         Stop Edit
-      </button> */}
+      </button>
       <MapContainer
         ref={mapRef}
         center={center}
@@ -218,7 +232,7 @@ export default function Map() {
         <TileLayers mmgisConfig={mmgisConfig} layerControls={layerControls} />
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" zIndex={1} />
 
-        <EditFeature />
+        <EditFeature editControl={editControl} setEditControl={setEditControl} />
       </MapContainer>
     </div>
   );
