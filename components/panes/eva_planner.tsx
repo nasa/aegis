@@ -1,9 +1,11 @@
 import { useEffect } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "store";
 import styles from "./eva_planner.module.css";
+import { toggleEvaItemEditActive } from "store/eva";
 
 const Eva_Planner = () => {
+  const dispatch = useDispatch();
   const evaState = useSelector((state: RootState) => state.eva);
 
   useEffect(() => {
@@ -21,8 +23,14 @@ const Eva_Planner = () => {
                 <div key={item.uuid} className={styles.evaStation}>
                   <div>{item.name}</div>
                   <div className={styles.buttonGroup}>
-                    {item.position && <button className={styles.button}>Edit Position</button>}
-                    {!item.position && <button>Add to Map</button>}
+                    <button
+                      onClick={() => {
+                        dispatch(toggleEvaItemEditActive(item.uuid));
+                      }}
+                    >
+                      {item.latLngJSON && "Edit on Map"}
+                      {!item.latLngJSON && "Add to Map"}
+                    </button>
                   </div>
                 </div>
               );
@@ -31,8 +39,15 @@ const Eva_Planner = () => {
                 <div key={item.uuid} className={styles.evaTraverse}>
                   <div>{item.name}</div>
                   <div className={styles.buttonGroup}>
-                    {item.latLngsJSON && <button className={styles.button}>Edit Position</button>}
-                    {!item.latLngsJSON && <button>Add to Map?</button>}
+                    <button
+                      className={styles.button}
+                      onClick={() => {
+                        dispatch(toggleEvaItemEditActive(item.uuid));
+                      }}
+                    >
+                      {item.latLngsJSON && "Edit on Map"}
+                      {!item.latLngsJSON && "Add to Map"}
+                    </button>
                   </div>
                 </div>
               );

@@ -28,7 +28,6 @@ interface UserState {
 
 interface MapState {
   layerControls: LayerControls;
-  drawLayers: DrawLayers;
   mousePosition: LatLng;
 }
 

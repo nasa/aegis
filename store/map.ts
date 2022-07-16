@@ -4,7 +4,6 @@ import { LatLng } from "leaflet";
 
 export const initialState: MapState = {
   layerControls: null,
-  drawLayers: [],
   mousePosition: null,
 };
 
@@ -24,20 +23,6 @@ export const mapSlice = createSlice({
     toggleLayerControlEnabled: (state, action: { payload: string }) => {
       state.layerControls[action.payload].enabled = !state.layerControls[action.payload].enabled;
     },
-    addDrawLayer: (state, action: { payload: DrawLayer }) => {
-      state.drawLayers = [...state.drawLayers, action.payload];
-    },
-    updateDrawLayer: (state, action: { payload: DrawLayer }) => {
-      state.drawLayers = state.drawLayers.map((drawLayer) => {
-        if (drawLayer.uuid === action.payload.uuid) {
-          return action.payload;
-        }
-        return drawLayer;
-      });
-    },
-    // replaceAllDrawLayers: (state, action: { payload: DrawLayer[] }) => {
-    //   state.drawLayers = action.payload;
-    // },
   },
 });
 
@@ -46,7 +31,5 @@ export const {
   setLayerOpacity,
   toggleLayerControlExpanded,
   toggleLayerControlEnabled,
-  addDrawLayer,
-  updateDrawLayer,
   // replaceAllDrawLayers,
 } = mapSlice.actions;

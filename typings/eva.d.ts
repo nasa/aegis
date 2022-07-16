@@ -1,12 +1,13 @@
 interface Eva {
   name: string;
-  evaItems: (EvaStation | EvaTraverse)[];
+  evaItems: EvaItem[];
 }
 
 interface EvaItem {
   type: "station" | "traverse";
   name: string;
   uuid: string;
-  position?: LatLng;
+  latLngJSON?: string;
   latLngsJSON?: string;
+  editActive: boolean;
 }

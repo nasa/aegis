@@ -16,3 +16,8 @@ interface MapDrawnItem {
   latLngsJSON?: string;
   uuid: string;
 }
+
+type MapMarker = {
+  marker: any; //the MapBox marker reference
+  markerNode: any; //the real DOM id of the marker
+};
