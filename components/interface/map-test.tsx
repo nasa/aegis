@@ -17,6 +17,7 @@ import {
   updateTraverseLatLngsJSON,
 } from "store/eva";
 import _ from "lodash";
+import { layer } from "@fortawesome/fontawesome-svg-core";
 
 const layerBaseURL = `http://192.168.0.5:8005/NASA_AEGIS/Missions/`;
 
@@ -106,7 +107,8 @@ export default function MapBody() {
   const editRef = useRef(null);
 
   const [map, setMap] = useState(null);
-  const [uuidBeingEdited, setUuidBeingEdited] = useState<string>(null);
+
+  const uuidBeingEdited = useRef(null);
 
   /**
    * Set initial map center and zoom
@@ -124,12 +126,13 @@ export default function MapBody() {
     map.setView(center, zoom);
   }, [map, mmgisConfig, layerControls]);
 
-  const _onCreate = (e: any, uuid: string) => {
-    // set the eva item UUID in the map layer
-    e.layer.uuid = uuid;
+  const _onCreate = (e: any) => {
     console.log("_onCreate", e);
+
+    // set the eva item UUID in the map layer
+    const uuid = uuidBeingEdited.current;
+    e.layer.uuid = uuid;
     console.log("uuid being edited: ", uuid);
-    console.log("eva: ", eva);
 
     if (e.layerType === "marker") {
       const latLng = e.layer.getLatLng();
@@ -140,17 +143,27 @@ export default function MapBody() {
       console.log("LatLngs", latLngs);
       dispatch(updateTraverseLatLngsJSON({ uuid, latLngsJSON: JSON.stringify(latLngs) }));
     }
-    // setUuidBeingEdited(null);
+    uuidBeingEdited.current = null;
   };
 
   const _onEdit = (e: any) => {
     console.log("_onEdit", e);
-    console.log("Map object:", e.target);
-
     // update the layer in state using uuid as key
     e.layers.eachLayer(function (layer) {
-      const latLngs = layer.getLatLngs();
-      // dispatch(updateDrawLayer({ uuid: layer.uuid, latLngsJSON: JSON.stringify(latLngs) }));
+      if (layer["uuid"]) {
+        if (layer instanceof L.Marker) {
+          const latLng = layer.getLatLng();
+          dispatch(
+            updateStationLatLngJSON({ uuid: layer["uuid"], latLngJSON: JSON.stringify(latLng) })
+          );
+        } else {
+          const latLngs = layer.getLatLngs();
+          console.log("LatLngs", latLngs);
+          dispatch(
+            updateTraverseLatLngsJSON({ uuid: layer["uuid"], latLngsJSON: JSON.stringify(latLngs) })
+          );
+        }
+      }
     });
   };
 
@@ -177,24 +190,21 @@ export default function MapBody() {
 
       // Set that evaItem edit is underway. This allows the correct item to be updated when the L Draw action is completed
       console.log("setUuidBeingEdited", evaItemWithEditTriggerSet.uuid);
-      setUuidBeingEdited(evaItemWithEditTriggerSet.uuid);
+      uuidBeingEdited.current = evaItemWithEditTriggerSet.uuid;
 
       if (evaItemWithEditTriggerSet.type === "station") {
         // Is the station already on the map?
-        if (evaItemWithEditTriggerSet.position) {
-          console.log("TODO: station already on the map");
+        if (evaItemWithEditTriggerSet.latLngJSON) {
+          editRef.current._toolbars.edit._modes.edit.handler.enable();
         } else {
           editRef.current._toolbars.draw._modes.marker.handler.enable();
         }
       } else {
         // Is the line already on the map?
         if (evaItemWithEditTriggerSet.latLngsJSON) {
-          console.log("TODO: line already on the map");
+          editRef.current._toolbars.edit._modes.edit.handler.enable();
         } else {
-          // mapRef.current.pm.enableDraw("Line", {
-          //   snappable: true,
-          //   snapDistance: 20,
-          // });
+          editRef.current._toolbars.draw._modes.polyline.handler.enable();
         }
       }
     }
@@ -219,10 +229,7 @@ export default function MapBody() {
               editRef.current = e;
             }}
             onEdited={_onEdit}
-            onCreated={(e) => {
-              console.log("hello", uuidBeingEdited);
-              _onCreate(e, uuidBeingEdited);
-            }}
+            onCreated={_onCreate}
             onDeleted={_onDelete}
             draw={{
               polyline: true,

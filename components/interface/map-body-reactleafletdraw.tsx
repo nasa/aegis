@@ -95,7 +95,7 @@ const EditFeature = () => {
           console.log("TODO: station already on the map");
         } else {
           editRef.current._toolbars.draw._modes.marker.handler.enable();
-          debugger;
+          // debugger;
         }
       } else {
         // Is the line already on the map?
