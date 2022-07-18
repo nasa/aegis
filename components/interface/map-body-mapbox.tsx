@@ -6,6 +6,8 @@ import { RootState } from "store/index";
 
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+
+import StaticMode from "@mapbox/mapbox-gl-draw-static-mode";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 
@@ -71,26 +73,72 @@ const MapBody = () => {
       zoom,
       attributionControl: false,
       antialias: true,
+      sources: {
+        divider: {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features: [],
+          },
+        },
+      },
+      layers: [
+        {
+          id: "divider",
+          type: "line",
+          source: "divider",
+        },
+      ],
     });
 
-    thisMap.on("load", () => {
-      thisMap.addControl(new mapboxgl.NavigationControl(), "top-right");
+    thisMap.addControl(new mapboxgl.NavigationControl(), "top-right");
 
-      thisMap.addControl(
-        new MapboxDraw({
-          displayControlsDefault: false,
-          defaultMode: "draw_line_string",
-          controls: {
-            point: true,
-            line_string: true,
-          },
-        }),
-        "top-left"
-      );
+    // Extending Draw modes to include custom modes
+    const modes = MapboxDraw.modes;
+    modes.static = StaticMode;
+
+    var draw = new MapboxDraw({
+      displayControlsDefault: false,
+      defaultMode: "draw_point",
+      controls: {
+        point: true,
+        line_string: true,
+      },
+      modes,
+    });
+
+    thisMap.addControl(draw, "top-left");
+
+    thisMap.on("load", () => {
+      draw.changeMode("static");
 
       setMap(thisMap);
       thisMap.resize();
     });
+
+    // set listeners for map events
+    thisMap.on("draw.create", onMapItemCreated);
+    thisMap.on("draw.update", onMapItemUpdated);
+
+    thisMap.on("draw.selectionchange", (e) => {
+      console.log(draw.selectionchange, e);
+    });
+
+    thisMap.on("draw.modechange", (e) => {
+      console.log(draw.modechange, e);
+      if (e.mode === "simple_select") {
+        draw.changeMode("static");
+      }
+      console.log(draw.getAll());
+    });
+
+    function onMapItemCreated(e) {
+      console.log("onMapItemCreated", e);
+    }
+
+    function onMapItemUpdated(e) {
+      console.log("onMapItemUpdated", e);
+    }
   }
 
   const showMapLayers = () => {
@@ -108,7 +156,8 @@ const MapBody = () => {
       }
     }
     // reverse the array to add the ones at the bottom of the tree first
-    const layersToAddInOrder = layersToAdd.reverse();
+    // const layersToAddInOrder = layersToAdd.reverse();
+    const layersToAddInOrder = layersToAdd;
 
     // if there are no changes to the layers enabled, do nothing
     if (_.isEqual(layersToAddInOrder, layersOnMap)) {
@@ -119,7 +168,7 @@ const MapBody = () => {
 
     // remove map layers and sources that are not enabled in layerControls
     map.getStyle().layers.map((layer) => {
-      if (layerControls[layer.id] !== undefined) {
+      if (layerControls[layer.id] !== undefined && layer.id !== "divider") {
         if (!layerControls[layer.id].enabled) {
           map.removeLayer(layer.id);
           map.removeSource(layer.id + "_source");
@@ -155,13 +204,11 @@ const MapBody = () => {
           minzoom: 0,
           maxzoom: 24,
         });
-
-        map.moveLayer(configSublayer.name); // same as bring to front
-      } else {
-        // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
-        map.moveLayer(configSublayer.name);
       }
+      map.moveLayer(configSublayer.name, "gl-draw-polygon-fill-inactive.cold");
     });
+
+    console.log(map.getStyle().layers);
   };
 
   return <div ref={mapRef} className={styles.map}></div>;
