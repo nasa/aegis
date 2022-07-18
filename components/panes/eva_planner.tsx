@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "store";
 import styles from "./eva_planner.module.css";
-import { toggleEvaItemEditActive } from "store/eva";
+import { setEvaItemTriggerEdit } from "store/eva";
 
 const Eva_Planner = () => {
   const dispatch = useDispatch();
@@ -25,7 +25,7 @@ const Eva_Planner = () => {
                   <div className={styles.buttonGroup}>
                     <button
                       onClick={() => {
-                        dispatch(toggleEvaItemEditActive(item.uuid));
+                        dispatch(setEvaItemTriggerEdit({ uuid: item.uuid, value: true }));
                       }}
                     >
                       {item.latLngJSON && "Edit on Map"}
@@ -42,7 +42,7 @@ const Eva_Planner = () => {
                     <button
                       className={styles.button}
                       onClick={() => {
-                        dispatch(toggleEvaItemEditActive(item.uuid));
+                        dispatch(setEvaItemTriggerEdit({ uuid: item.uuid, value: true }));
                       }}
                     >
                       {item.latLngsJSON && "Edit on Map"}

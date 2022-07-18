@@ -14,7 +14,8 @@ const LeftControlPanel = dynamic(import("components/interface/left-control"), {
 const RightControlPanel = dynamic(import("components/interface/right-control"), {
   ssr: false,
 });
-const MapBody = dynamic(import("components/interface/map-body-mapbox"), {
+// const MapBody = dynamic(import("components/interface/map-body-reactleafletdraw"), {
+const MapBody = dynamic(import("components/interface/map-test"), {
   ssr: false,
 });
 const Header = dynamic(import("components/interface/header"), {
@@ -78,9 +79,7 @@ const Main: NextPage = () => {
           <RightControlPanel />
         </div>
       </div>
-      <div className={styles.timeline}>
-        <NavTimeline />
-      </div>
+      <div className={styles.timeline}>{/* <NavTimeline /> */}</div>
     </div>
   );
 };

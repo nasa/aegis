@@ -1,18 +1,18 @@
 import L from "leaflet";
-import "@geoman-io/leaflet-geoman-free";
-import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
+L.Icon.Default.imagePath = "/leaflet/images/";
+import "leaflet-draw";
+
 import styles from "./map-body.module.css";
 import "rc-slider/assets/index.css";
 import { useSelector, useDispatch } from "react-redux";
-
-L.Icon.Default.imagePath = "/leaflet/images/";
 import { MutableRefObject, useEffect, useRef, useState } from "react";
 import { RootState } from "store/index";
 import _ from "lodash";
-import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
-import { v4 as uuidv4 } from "uuid";
-import { shape } from "prop-types";
-import { updateStationLatLngJSON, updateTraverseLatLngsJSON } from "store/eva";
+import {
+  setEvaItemTriggerEdit,
+  updateStationLatLngJSON,
+  updateTraverseLatLngsJSON,
+} from "store/eva";
 
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
@@ -23,6 +23,8 @@ const layerBaseURL = `http://192.168.0.5:8005/NASA_AEGIS/Missions/`;
 const MapBody = () => {
   const dispatch = useDispatch();
   const mapRef = useRef(null);
+  const map = useRef(null);
+  const drawControlRef = useRef(null);
 
   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig.MMGISConfig);
   const layerControls = useSelector((state: RootState) => state.map.layerControls);
@@ -30,14 +32,10 @@ const MapBody = () => {
 
   const [layersOnMap, setLayersOnMap] = useState([]);
 
-  const getUuidOfEditingLayer = (): string => {
-    let uuid = null;
-    eva.evaItems.map((evaItem) => {
-      if (evaItem.editActive) {
-        uuid = evaItem.uuid;
-      }
-    });
-    return uuid;
+  const [uuidBeingEdited, setUuidBeingEdited] = useState(null);
+
+  const getStateValTest = () => {
+    return uuidBeingEdited;
   };
 
   const showMapLayers = () => {
@@ -121,10 +119,10 @@ const MapBody = () => {
    * Map events management
    */
   useEffect(() => {
-    if (!mapRef.current) {
+    if (!map.current) {
       return;
     }
-    mapRef.current = L.map("map", {
+    map.current = L.map("map", {
       center: center,
       zoom: zoom,
     });
@@ -132,87 +130,94 @@ const MapBody = () => {
     const newPane = mapRef.current.createPane("newPane");
     newPane.style.zIndex = "1";
 
-    mapRef.current.pm.addControls({
-      drawMarker: true,
+    var drawnItems = new L.FeatureGroup();
+
+    map.current.addLayer(drawnItems);
+    drawControlRef.current = new L.Control.Draw({
+      edit: {
+        featureGroup: drawnItems,
+      },
     });
 
-    mapRef.current.on("pm:globaldrawmodetoggled", (e) => {
-      console.log("Global Draw Toggled", e);
-    });
+    map.current.addControl(drawControlRef.current);
 
     // listen to vertexes being added to currently drawn layer (called workingLayer)
-    mapRef.current.on("pm:drawstart", ({ workingLayer }) => {
-      console.log("Draw start");
-      workingLayer.on("pm:vertexadded", (e) => {
-        console.log("Vertex added", e);
+    map.current.on(L.Draw.Event.DRAWSTART, (e) => {
+      console.log("draw:drawstart", getStateValTest(), e);
+      e.workingLayer.on(L.Draw.Event.DRAWVERTEX, (e) => {
+        console.log("draw:drawvertex: Vertex added", e);
       });
     });
 
-    mapRef.current.on("pm:create", (e) => {
-      if (e.layer && e.layer.pm) {
-        const shape = e;
-        console.log("Create", e);
+    // mapRef.current.on("draw:created", (e) => {
+    //   console.log(`draw:created: object type: ${e.layerType}`);
+    //   const layer = e.layer;
 
-        e.layer.uuid = getUuidOfEditingLayer();
+    //   e.layer.uuid = getStateValTest();
 
-        shape.layer.pm.enable();
+    //   console.log("uuid: ", getStateValTest());
 
-        console.log(`object created: ${shape.layer.pm.getShape()}`);
+    //   if (e.layer.pm.getShape() === "Marker") {
+    //     const latLng = e.layer.getLatLngs()[0];
+    //     dispatch(
+    //       updateStationLatLngJSON({ uuid: e.layer.uuid, latLngJSON: JSON.stringify(latLng) })
+    //     );
+    //     mapRef.current.pm.disableDraw("Marker");
 
-        if (shape.layer.pm.getShape() === "Line") {
-          // let totalLength = 0;
-          // for (let i = 0; i < shape.layer.getLatLngs().length - 1; i++) {
-          //   totalLength += getDistanceBetweenTwoCoordinates(
-          //     shape.layer.getLatLngs()[i],
-          //     shape.layer.getLatLngs()[i + 1],
-          //     parseInt(mmgisConfig.config.msv.radius.major)
-          //   );
-          // }
-          // console.log("length of the new line:", totalLength, "m");
+    //     // // set handler to trigger when this shape is ever edited
+    //     // e.layer.on("pm:update", (e) => {
+    //     //   console.log("pm:update", e);
+    //     //   const latLng = e.layer.getLatLng();
+    //     //   dispatch(
+    //     //     updateStationLatLngJSON({
+    //     //       uuid: e.layer.uuid,
+    //     //       latLngJSON: JSON.stringify(latLng),
+    //     //     })
+    //     //   );
+    //     //   // evaItem as no longer being edited, so set the uuidBeingEdited to null
+    //     //   setUuidBeingEdited(null);
+    //     // });
+    //   } else if (e.layer.pm.getShape() === "Line") {
+    //     // let totalLength = 0;
+    //     // for (let i = 0; i < shape.layer.getLatLngs().length - 1; i++) {
+    //     //   totalLength += getDistanceBetweenTwoCoordinates(
+    //     //     shape.layer.getLatLngs()[i],
+    //     //     shape.layer.getLatLngs()[i + 1],
+    //     //     parseInt(mmgisConfig.config.msv.radius.major)
+    //     //   );
+    //     // }
+    //     // console.log("length of the new line:", totalLength, "m");
 
-          // put the new layer into state
-          const latLngs = e.layer.getLatLngs();
-          dispatch(
-            updateTraverseLatLngsJSON({ uuid: e.layer.uuid, latLngsJSON: JSON.stringify(latLngs) })
-          );
+    //     // add event handler for if this layer is edited
+    //     // e.layer.on("pm:update", (e) => {
+    //     //   console.log("Update", e);
+    //     //   const latLngs = e.layer.getLatLngs();
+    //     //   dispatch(
+    //     //     updateTraverseLatLngsJSON({
+    //     //       uuid: e.layer.uuid,
+    //     //       latLngsJSON: JSON.stringify(latLngs),
+    //     //     })
+    //     //   );
+    //     // });
 
-          // add event handler for if this layer is edited
-          shape.layer.on("pm:update", (e) => {
-            console.log("Update", e);
-            const latLngs = e.layer.getLatLngs();
-            dispatch(
-              updateTraverseLatLngsJSON({
-                uuid: e.layer.uuid,
-                latLngsJSON: JSON.stringify(latLngs),
-              })
-            );
-          });
-        } else if (shape.layer.pm.getShape() === "Marker") {
-          const latLng = e.layer.getLatLng();
-          dispatch(
-            updateStationLatLngJSON({ uuid: e.layer.uuid, latLngJSON: JSON.stringify(latLng) })
-          );
-          console.log("Manually disabling draw mode");
-          mapRef.current.pm.disableDraw();
+    //     // put the new layer into state
+    //     const latLngs = e.layer.getLatLngs();
+    //     console.log("LatLngs", latLngs);
+    //     dispatch(
+    //       updateTraverseLatLngsJSON({ uuid: e.layer.uuid, latLngsJSON: JSON.stringify(latLngs) })
+    //     );
+    //   }
+    // });
 
-          shape.layer.on("pm:update", (e) => {
-            console.log("Update", e);
-            const latLng = e.layer.getLatLng();
-            dispatch(
-              updateStationLatLngJSON({
-                uuid: e.layer.uuid,
-                latLngJSON: JSON.stringify(latLng),
-              })
-            );
-          });
-        }
-      }
-    });
+    // mapRef.current.on("pm:created", () => {
+    //   console.log("pm:created");
+    //   console.log(mapRef.current.pm.getGeomanLayers(true).toGeoJSON());
+    // });
 
-    mapRef.current.on("pm:remove", () => {
-      console.log("object removed");
-      console.log(mapRef.current.pm.getGeomanLayers(true).toGeoJSON());
-    });
+    // mapRef.current.on("pm:remove", () => {
+    //   console.log("pm:remove");
+    //   console.log(mapRef.current.pm.getGeomanLayers(true).toGeoJSON());
+    // });
 
     return () => {
       if (mapRef.current) {
@@ -223,7 +228,7 @@ const MapBody = () => {
         mapRef.current.remove();
       }
     };
-  }, [mmgisConfig, mapRef]);
+  }, [mmgisConfig, mapRef, drawControlRef]);
 
   useEffect(() => {
     /**
@@ -244,26 +249,33 @@ const MapBody = () => {
   useEffect(() => {
     if (!eva) return;
 
-    let evaItemBeingEdited = null;
+    let evaItemWithEditTriggerSet = null;
     eva.evaItems.map((evaItem) => {
-      if (evaItem.editActive) {
-        evaItemBeingEdited = evaItem;
+      if (evaItem.triggerEdit) {
+        evaItemWithEditTriggerSet = evaItem;
       }
     });
 
-    if (evaItemBeingEdited) {
-      if (evaItemBeingEdited.type === "station") {
+    if (evaItemWithEditTriggerSet) {
+      // We have captured the edit trigger, so set the edit as active and disable the trigger so we don't catch it again
+      dispatch(setEvaItemTriggerEdit({ uuid: evaItemWithEditTriggerSet.uuid, value: false }));
+
+      // Set that evaItem edit is underway. This allows the correct item to be updated when the L Draw action is completed
+      setUuidBeingEdited(evaItemWithEditTriggerSet.uuid);
+
+      console.log("Item being edited: ", evaItemWithEditTriggerSet);
+      if (evaItemWithEditTriggerSet.type === "station") {
         // Is the station already on the map?
-        if (evaItemBeingEdited.position) {
+        if (evaItemWithEditTriggerSet.position) {
+          console.log("TODO: station already on the map");
         } else {
-          mapRef.current.pm.enableDraw("Marker", {
-            snappable: true,
-            snapDistance: 20,
-          });
+          new L.Draw.Polyline(mapRef.current, drawControlRef.current.options.marker).enable();
         }
       } else {
         // Is the line already on the map?
-        if (evaItemBeingEdited.latLngsJSON) {
+        if (evaItemWithEditTriggerSet.latLngsJSON) {
+          console.log("TODO: line already on the map");
+        } else {
           mapRef.current.pm.enableDraw("Line", {
             snappable: true,
             snapDistance: 20,
