@@ -2,7 +2,8 @@ import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "store";
 import styles from "./eva_planner.module.css";
-import { setEvaItemTriggerEdit } from "store/eva";
+import { setEvaItemTriggerAction } from "store/eva";
+import _ from "lodash";
 
 const Eva_Planner = () => {
   const dispatch = useDispatch();
@@ -18,40 +19,58 @@ const Eva_Planner = () => {
       <div className={styles.evaItems}>
         {evaState &&
           evaState.eva.evaItems.map((item) => {
-            if (item.type === "station") {
-              return (
-                <div key={item.uuid} className={styles.evaStation}>
-                  <div>{item.name}</div>
-                  <div className={styles.buttonGroup}>
+            return (
+              <div
+                key={item.uuid}
+                className={item.type === "station" ? styles.evaStation : styles.evaTraverse}
+              >
+                <div>{item.name}</div>
+                <div className={styles.buttonGroup}>
+                  {item.triggerAction === null && (
                     <button
                       onClick={() => {
-                        dispatch(setEvaItemTriggerEdit({ uuid: item.uuid, value: true }));
+                        if (!item.latLngJSON && !item.latLngsJSON) {
+                          dispatch(setEvaItemTriggerAction({ uuid: item.uuid, value: "create" }));
+                        } else {
+                          dispatch(setEvaItemTriggerAction({ uuid: item.uuid, value: "edit" }));
+                        }
                       }}
                     >
-                      {item.latLngJSON && "Edit on Map"}
-                      {!item.latLngJSON && "Add to Map"}
+                      {_.isNil(item.latLngJSON) && _.isNil(item.latLngsJSON) ? "Create" : "Edit"}
                     </button>
-                  </div>
-                </div>
-              );
-            } else {
-              return (
-                <div key={item.uuid} className={styles.evaTraverse}>
-                  <div>{item.name}</div>
-                  <div className={styles.buttonGroup}>
+                  )}
+                  {item.triggerAction === "create" && (
                     <button
-                      className={styles.button}
                       onClick={() => {
-                        dispatch(setEvaItemTriggerEdit({ uuid: item.uuid, value: true }));
+                        dispatch(
+                          setEvaItemTriggerAction({ uuid: item.uuid, value: "cancelCreate" })
+                        );
                       }}
                     >
-                      {item.latLngsJSON && "Edit on Map"}
-                      {!item.latLngsJSON && "Add to Map"}
+                      Cancel Create
                     </button>
-                  </div>
+                  )}
+                  {item.triggerAction === "edit" && (
+                    <button
+                      onClick={() => {
+                        dispatch(setEvaItemTriggerAction({ uuid: item.uuid, value: "cancelEdit" }));
+                      }}
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
+                  {item.triggerAction === "edit" && (
+                    <button
+                      onClick={() => {
+                        dispatch(setEvaItemTriggerAction({ uuid: item.uuid, value: "saveEdit" }));
+                      }}
+                    >
+                      Save Edit
+                    </button>
+                  )}
                 </div>
-              );
-            }
+              </div>
+            );
           })}
       </div>
     </div>

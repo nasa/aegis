@@ -9,5 +9,5 @@ interface EvaItem {
   uuid: string;
   latLngJSON?: string;
   latLngsJSON?: string;
-  triggerEdit: boolean;
+  triggerAction: string;
 }

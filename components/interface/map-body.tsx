@@ -12,7 +12,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "store";
 import { EditControl } from "react-leaflet-draw";
 import {
-  setEvaItemTriggerEdit,
+  setEvaItemTriggerAction,
   updateStationLatLngJSON,
   updateTraverseLatLngsJSON,
 } from "store/eva";
@@ -116,6 +116,7 @@ export default function MapBody() {
       dispatch(updateTraverseLatLngsJSON({ uuid, latLngsJSON: JSON.stringify(latLngs) }));
     }
     uuidBeingEdited.current = null;
+    dispatch(setEvaItemTriggerAction({ uuid, value: null }));
   };
 
   const _onEdit = (e: any) => {
@@ -135,6 +136,7 @@ export default function MapBody() {
             updateTraverseLatLngsJSON({ uuid: layer["uuid"], latLngsJSON: JSON.stringify(latLngs) })
           );
         }
+        dispatch(setEvaItemTriggerAction({ uuid: layer["uuid"], value: null }));
       }
     });
   };
@@ -151,34 +153,44 @@ export default function MapBody() {
 
     let evaItemWithEditTriggerSet = null;
     eva.evaItems.map((evaItem) => {
-      if (evaItem.triggerEdit) {
+      if (evaItem.triggerAction) {
         evaItemWithEditTriggerSet = evaItem;
       }
     });
 
     if (!_.isNull(evaItemWithEditTriggerSet)) {
       // We have captured the edit trigger, so set the edit as active and disable the trigger so we don't catch it again
-      dispatch(setEvaItemTriggerEdit({ uuid: evaItemWithEditTriggerSet.uuid, value: false }));
+      // dispatch(setEvaItemTriggerAction({ uuid: evaItemWithEditTriggerSet.uuid, value: null }));
 
       // Set that evaItem edit is underway. This allows the correct item to be updated when the L Draw action is completed
       console.log("setUuidBeingEdited", evaItemWithEditTriggerSet.uuid);
       uuidBeingEdited.current = evaItemWithEditTriggerSet.uuid;
 
-      if (evaItemWithEditTriggerSet.type === "station") {
-        // Is the station already on the map?
-        if (evaItemWithEditTriggerSet.latLngJSON) {
-          editRef.current._toolbars.edit._modes.edit.handler.enable();
-        } else {
+      if (evaItemWithEditTriggerSet.triggerAction === "create") {
+        if (evaItemWithEditTriggerSet.type === "station") {
           editRef.current._toolbars.draw._modes.marker.handler.enable();
-        }
-      } else {
-        // Is the line already on the map?
-        if (evaItemWithEditTriggerSet.latLngsJSON) {
-          editRef.current._toolbars.edit._modes.edit.handler.enable();
         } else {
           editRef.current._toolbars.draw._modes.polyline.handler.enable();
         }
+      } else if (evaItemWithEditTriggerSet.triggerAction === "cancelCreate") {
+        editRef.current._toolbars.draw._modes.polyline.handler.disable();
+        editRef.current._toolbars.draw._modes.marker.handler.disable();
+        cancel();
+      } else if (evaItemWithEditTriggerSet.triggerAction === "edit") {
+        editRef.current._toolbars.edit._modes.edit.handler.enable();
+      } else if (evaItemWithEditTriggerSet.triggerAction === "cancelEdit") {
+        // editRef.current._toolbars.edit._modes.edit.handler.disable();
+        map.fire("draw:editcancel");
+        cancel();
+      } else if (evaItemWithEditTriggerSet.triggerAction === "saveEdit") {
+        editRef.current._toolbars.edit._modes.edit.handler.save();
+        editRef.current._toolbars.edit._modes.edit.handler.disable();
       }
+    }
+
+    function cancel() {
+      dispatch(setEvaItemTriggerAction({ uuid: evaItemWithEditTriggerSet.uuid, value: null }));
+      uuidBeingEdited.current = null;
     }
   }, [eva, editRef]);
 

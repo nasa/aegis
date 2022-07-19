@@ -10,21 +10,21 @@ export const initialState: EvaState = {
         name: "Lander",
         uuid: "ca2ad4e2-5bbb-494b-b6a7-641eb91152ad",
         latLngJSON: null,
-        triggerEdit: false,
+        triggerAction: null,
       },
       {
         type: "traverse",
         name: "Traverse 1",
         uuid: "e58f1fae-ea2c-48e4-b205-942c641fa1b2",
         latLngsJSON: null,
-        triggerEdit: false,
+        triggerAction: null,
       },
       {
         type: "station",
         name: "Station 1",
         uuid: "e58f1fae-ea2c-48e4-b205-942c641fa1b3",
         latLngJSON: null,
-        triggerEdit: false,
+        triggerAction: null,
       },
     ],
   },
@@ -56,10 +56,10 @@ export const evaSlice = createSlice({
         return evaItem;
       });
     },
-    setEvaItemTriggerEdit: (state, action: { payload: { uuid: string; value: boolean } }) => {
+    setEvaItemTriggerAction: (state, action: { payload: { uuid: string; value: string } }) => {
       state.eva.evaItems = state.eva.evaItems.map((evaItem) => {
         if (evaItem.uuid === action.payload.uuid) {
-          return { ...evaItem, triggerEdit: action.payload.value };
+          return { ...evaItem, triggerAction: action.payload.value };
         }
         return evaItem;
       });
@@ -71,5 +71,5 @@ export const {
   appendEvaItem,
   updateStationLatLngJSON,
   updateTraverseLatLngsJSON,
-  setEvaItemTriggerEdit,
+  setEvaItemTriggerAction,
 } = evaSlice.actions;
