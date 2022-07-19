@@ -21,34 +21,6 @@ import { layer } from "@fortawesome/fontawesome-svg-core";
 
 const layerBaseURL = `http://192.168.0.5:8005/NASA_AEGIS/Missions/`;
 
-function DisplayPosition({ map }) {
-  const [position, setPosition] = useState(() => map.getCenter());
-
-  const onClick = useCallback(() => {
-    const center = [51.505, -0.09] as L.LatLngExpression;
-    const zoom = 13;
-    map.setView(center, zoom);
-  }, [map]);
-
-  const onMove = useCallback(() => {
-    setPosition(map.getCenter());
-  }, [map]);
-
-  useEffect(() => {
-    map.on("move", onMove);
-    return () => {
-      map.off("move", onMove);
-    };
-  }, [map, onMove]);
-
-  return (
-    <p>
-      latitude: {position.lat.toFixed(4)}, longitude: {position.lng.toFixed(4)}{" "}
-      <button onClick={onClick}>reset</button>
-    </p>
-  );
-}
-
 const TileLayers = ({
   mmgisConfig,
   layerControls,
@@ -219,7 +191,10 @@ export default function MapBody() {
         ref={setMap}
         style={{ width: "100%", height: "100%" }}
       >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        {/* only show the basemap if on Earth */}
+        {mmgisConfig?.config?.msv?.radius?.minor === "6378137" && (
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        )}
         <TileLayers mmgisConfig={mmgisConfig} layerControls={layerControls} />
 
         <FeatureGroup ref={editableFeatures}>
@@ -253,7 +228,6 @@ export default function MapBody() {
 
   return (
     <div className={styles.mapContainer}>
-      {map ? <DisplayPosition map={map} /> : null}
       <div></div>
       {displayMap}
     </div>
