@@ -1,23 +1,26 @@
 import styles from "./map_layer_selector.module.css";
+import paneStyles from "./left_pane_styles.module.css";
 import { useSelector, useDispatch } from "react-redux";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { RootState } from "store";
-import { toggleLayerControlExpanded, toggleLayerControlEnabled, setLayerOpacity } from "store/map";
+import { toggleLayerControlExpanded, toggleLayerControlEnabled } from "store/map";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCaretDown, faCaretRight, faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { useState } from "react";
+
+library.add(faCaretDown, faCaretRight, faEye, faEyeSlash);
 
 const MapLayerSelector = () => {
   const dispatch = useDispatch();
   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig);
   const layerControls = useSelector((state: RootState) => state.map.layerControls);
 
+  const [expandedSections, setExpandedSections] = useState({
+    details: true,
+  });
+
   const toggleSublayerEnabled = (sublayer: Sublayer) => {
     dispatch(toggleLayerControlEnabled(sublayer.name));
-  };
-
-  const toggleLayerEnabled = (layer: Layer) => {
-    dispatch(toggleLayerControlEnabled(layer.name));
-    layer.sublayers.map((sublayer) => {
-      dispatch(toggleLayerControlEnabled(sublayer.name));
-    });
   };
 
   const toggleLayerExpanded = (layer: Layer) => {
@@ -25,72 +28,94 @@ const MapLayerSelector = () => {
   };
 
   // TODO: remove this
-  const testHalfOpacity = (layer: Sublayer) => {
-    dispatch(setLayerOpacity({ layerName: layer.name, opacity: 0.5 }));
-  };
+  // const testHalfOpacity = (layer: Sublayer) => {
+  //   dispatch(setLayerOpacity({ layerName: layer.name, opacity: 0.5 }));
+  // };
 
   return (
-    <>
+    <div className={paneStyles.panelContainer}>
       <div className={styles.layersContainer}>
-        {mmgisConfig &&
-          layerControls &&
-          mmgisConfig?.MMGISConfig?.config?.layers?.map((configLayer: Layer) => {
-            return (
-              <div className={styles.layerGroup} key={configLayer.name}>
-                <div className={styles.layer}>
-                  <div
-                    className={styles.expandoCaret}
-                    onClick={() => toggleLayerExpanded(configLayer)}
-                  >
-                    {layerControls &&
-                      (layerControls[configLayer.name].expanded ? (
-                        <FontAwesomeIcon icon="caret-down" />
-                      ) : (
-                        <FontAwesomeIcon icon="caret-right" />
-                      ))}
+        <div
+          className={styles.layersHeader}
+          onClick={() =>
+            setExpandedSections({ ...expandedSections, details: !expandedSections.details })
+          }
+        >
+          <div className={styles.expandoCaret}>
+            {expandedSections.details ? (
+              <FontAwesomeIcon icon="caret-down" size="sm" />
+            ) : (
+              <FontAwesomeIcon icon="caret-right" size="sm" />
+            )}
+          </div>
+          <div>Map Imagery Detailed Settings</div>
+        </div>
+        <div className={styles.layersBody}>
+          {mmgisConfig &&
+            layerControls &&
+            expandedSections.details &&
+            mmgisConfig?.MMGISConfig?.config?.layers?.map((configLayer: Layer) => {
+              return (
+                <div className={styles.layerGroup} key={configLayer.name}>
+                  <div className={styles.layer}>
+                    <div
+                      className={styles.expandoCaret}
+                      onClick={() => toggleLayerExpanded(configLayer)}
+                    >
+                      {layerControls &&
+                        (layerControls[configLayer.name].expanded ? (
+                          <FontAwesomeIcon icon="caret-down" size="sm" />
+                        ) : (
+                          <FontAwesomeIcon icon="caret-right" size="sm" />
+                        ))}
+                    </div>
+                    <div className={styles.layerName}>{configLayer.name}</div>
                   </div>
-                  <input
-                    type="checkbox"
-                    key={`checkbox_${configLayer.name}`}
-                    checked={layerControls[configLayer.name].enabled}
-                    onChange={() => toggleLayerEnabled(configLayer)}
-                  />
-                  <div className={styles.layerName}>{configLayer.name}</div>
-                </div>
-                <div className={styles.layerSublayers}>
-                  {layerControls &&
-                    configLayer.sublayers &&
-                    configLayer.sublayers.map((sublayer: Sublayer) => {
-                      if (layerControls[configLayer.name].expanded) {
-                        return (
-                          <div key={`checkbox_${sublayer.name}`} className={styles.layerSublayer}>
-                            <div className={styles.sublayer}>
-                              <input
-                                type="checkbox"
-                                checked={layerControls[sublayer.name].enabled}
-                                onChange={() => toggleSublayerEnabled(sublayer)}
-                              />
-                              <div
-                                onClick={() => {
-                                  testHalfOpacity(sublayer);
-                                }}
-                              >
+                  <div className={styles.layerSublayers}>
+                    {layerControls &&
+                      configLayer.sublayers &&
+                      configLayer.sublayers.map((sublayer: Sublayer) => {
+                        if (layerControls[configLayer.name].expanded) {
+                          return (
+                            <div
+                              key={`sub_${sublayer.name}`}
+                              className={styles.sublayer}
+                              onClick={() => toggleSublayerEnabled(sublayer)}
+                            >
+                              <Visibility visible={layerControls[sublayer.name].enabled} />
+                              <div>
                                 {sublayer.name} ({sublayer.type})
                               </div>
                             </div>
-                          </div>
-                        );
-                      } else {
-                        return null;
-                      }
-                    })}
+                          );
+                        } else {
+                          return null;
+                        }
+                      })}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+        </div>
       </div>
-    </>
+    </div>
   );
 };
 
 export default MapLayerSelector;
+
+const Visibility = ({ visible }) => {
+  return (
+    <div className={styles.visibility}>
+      {visible ? (
+        <div className={styles.visible}>
+          <FontAwesomeIcon icon="eye" size="xs" />
+        </div>
+      ) : (
+        <div className={styles.inVisible}>
+          <FontAwesomeIcon icon="eye-slash" size="xs" />
+        </div>
+      )}
+    </div>
+  );
+};

@@ -76,24 +76,19 @@ export default function MapBody() {
   const editRef = useRef(null);
 
   const [map, setMap] = useState(null);
+  // const [centerZoom, setCenterZoom] = useState({ center: [0, 0] as [number, number], zoom: 11 });
 
   const uuidBeingEdited = useRef(null);
 
   /**
    * Set initial map center and zoom
    */
-  useEffect(() => {
-    if (!map || !mmgisConfig || !layerControls) return;
-    const center = mmgisConfig
-      ? ([
-          parseFloat(mmgisConfig.config.msv.view[0]),
-          parseFloat(mmgisConfig?.config?.msv?.view[1]),
-        ] as [number, number])
-      : ([0, 0] as [number, number]);
-    const zoom = mmgisConfig ? parseInt(mmgisConfig.config.msv.view[2]) : 11;
+  // useEffect(() => {
 
-    map.setView(center, zoom);
-  }, [map, mmgisConfig, layerControls]);
+  //   setCenterZoom({ center, zoom });
+
+  //   map.setView(center, zoom);
+  // }, [map, mmgisConfig, layerControls]);
 
   /**
    * Listen for editable evaItems and trigger map draw/edit modes appropriately
@@ -123,26 +118,38 @@ export default function MapBody() {
       } else if (evaItemWithEditTriggerSet.triggerAction === "cancelCreate") {
         editRef.current._toolbars.draw._modes.polyline.handler.disable();
         editRef.current._toolbars.draw._modes.marker.handler.disable();
-        cancel();
+        clearAction();
       } else if (evaItemWithEditTriggerSet.triggerAction === "edit") {
         editRef.current._toolbars.edit._modes.edit.handler.enable();
       } else if (evaItemWithEditTriggerSet.triggerAction === "cancelEdit") {
         // editRef.current._toolbars.edit._modes.edit.handler.disable();
         map.fire("draw:editcancel");
-        cancel();
+        clearAction();
       } else if (evaItemWithEditTriggerSet.triggerAction === "saveEdit") {
         editRef.current._toolbars.edit._modes.edit.handler.save();
         editRef.current._toolbars.edit._modes.edit.handler.disable();
+        clearAction();
       }
     }
 
-    function cancel() {
+    function clearAction() {
       dispatch(setEvaItemTriggerAction({ uuid: evaItemWithEditTriggerSet.uuid, value: null }));
       uuidBeingEdited.current = null;
     }
   }, [eva, editRef, dispatch, map]);
 
+  /**
+   * Map Display and event handlers
+   */
   const displayMap = useMemo(() => {
+    const center = mmgisConfig
+      ? ([
+          parseFloat(mmgisConfig.config.msv.view[0]),
+          parseFloat(mmgisConfig?.config?.msv?.view[1]),
+        ] as [number, number])
+      : ([0, 0] as [number, number]);
+    const zoom = mmgisConfig ? parseInt(mmgisConfig.config.msv.view[2]) : 11;
+
     const _onCreate = (e: any) => {
       console.log("_onCreate", e);
 
@@ -190,13 +197,14 @@ export default function MapBody() {
     };
 
     const _onDelete = (e: any) => {
+      // TODO
       console.log(e);
     };
 
     return (
       <MapContainer
-        center={[0, 0]}
-        zoom={11}
+        center={center}
+        zoom={zoom}
         scrollWheelZoom={true}
         ref={setMap}
         style={{ width: "100%", height: "100%" }}

@@ -3,10 +3,9 @@
 }
 
 .helpMenu {
-  background-color: black;
   width: 40px;
   height: 40px;
-  padding-top: 12px;
+  padding-top: 8px;
   border-radius: var(--radius);
   cursor: pointer;
 }
@@ -18,12 +17,9 @@
   line-height: 40px;
 }
 
-.headerTitle {
-  color: var(--extremely-grey);
-}
-
 .headerTextItem {
   color: white;
+  font-weight: 700;
   font-size: 1.1em;
   margin-left: 10px;
 }

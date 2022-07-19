@@ -3,20 +3,62 @@
   flex-direction: column;
 }
 
+.layersHeader {
+  display: flex;
+  flex-direction: row;
+  font-weight: 700;
+  margin-top: 5px;
+  user-select: none;
+}
+
+.layersBody {
+  margin-top: 5px;
+  margin-left: 15px;
+}
+
 .layerGroup {
-  padding-top: 5px;
-  padding-bottom: 5px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  user-select: none;
 }
 
 .layer {
   display: flex;
 }
 
+.layerSublayers {
+}
+
 .sublayer {
   display: flex;
-  margin-left: 20px;
+  margin-left: 8px;
+  padding-left: 6px;
+  margin-top: 2px;
+  margin-bottom: 2px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-radius: var(--radius);
+  overflow-x: hidden;
+}
+
+.sublayer:hover {
+  background-color: var(--grey1);
+  cursor: pointer;
 }
 
 .expandoCaret {
-  width: 12px;
+  width: 15px;
+}
+
+.visibility {
+  width: 15px;
+  margin-right: 4px;
+}
+
+.visible {
+  color: white;
+}
+
+.inVisible {
+  color: var(--grey3);
 }

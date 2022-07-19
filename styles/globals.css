@@ -7,7 +7,7 @@ div#__next > div {
 }
 * {
   box-sizing: border-box;
-  font-family: Inter, sans-serif;
+  font-family: Roboto, sans-serif;
   font-feature-settings: "tnum";
 }
 
@@ -27,16 +27,19 @@ body {
   --very-dark-grey: #242424;
   --nearly-black: #19181b;
 
-  --ruby: #950b5e;
-  --orange: #ffa800;
-  --mustard-green: #6e831a;
-  --aqua: #12bfbf;
-  --teal: #097597;
-  --purple: #1a1e83;
-  --burnt-orange: #cc5500;
-  --burnt-umber: #6e260e;
+  --grey1: #313440;
+  --grey2: #424653;
+  --grey3: #898989;
+
+  --base: #00f0ff;
+  --map: #54c9e2;
+  --markup: #43be6d;
+  --eva: #e9b93e;
+  --tools: #9966cc;
+  --measure: #d05f8f;
 
   --radius: 3px;
+  --panelRadius: 8px;
 }
 
 /* ===== Scrollbar CSS ===== */

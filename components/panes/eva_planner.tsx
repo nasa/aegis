@@ -5,7 +5,7 @@ import styles from "./eva_planner.module.css";
 import { setEvaItemTriggerAction } from "store/eva";
 import _ from "lodash";
 
-const Eva_Planner = () => {
+const EvaPlanner = () => {
   const dispatch = useDispatch();
   const evaState = useSelector((state: RootState) => state.eva);
 
@@ -77,4 +77,4 @@ const Eva_Planner = () => {
   );
 };
 
-export default Eva_Planner;
+export default EvaPlanner;

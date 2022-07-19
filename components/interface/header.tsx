@@ -23,6 +23,7 @@ const Header = () => {
                 onClick={() => {
                   router.push("/");
                 }}
+                size="lg"
               />
             </div>
           </div>
@@ -33,7 +34,6 @@ const Header = () => {
               className={styles.verticalCenter}
               style={{ display: "flex", flexDirection: "row" }}
             >
-              <div className={styles.headerTitle}>Mission:</div>
               <div className={styles.headerTextItem}>{mmgisConfig?.MMGISConfig?.mission}</div>
             </div>
           </div>

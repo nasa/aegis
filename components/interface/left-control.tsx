@@ -2,60 +2,80 @@ import styles from "./left-control.module.css";
 import { useState } from "react";
 
 import { library } from "@fortawesome/fontawesome-svg-core";
-import {
-  faLayerGroup,
-  faCaretDown,
-  faCaretRight,
-  faRoute,
-} from "@fortawesome/free-solid-svg-icons";
+import { faGlobe, faRoute } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import MapLayerSelector from "components/panes/map_layer_selector";
-import EVA_Planner from "components/panes/eva_planner";
+import EvaPlanner from "components/panes/eva_planner";
+import _ from "lodash";
 
-library.add(faLayerGroup, faCaretDown, faCaretRight, faRoute);
+library.add(faGlobe, faRoute);
+
+const paneTypes: PaneTypes = {
+  map_layer_selector: {
+    title: "Map Imagery",
+    pane: MapLayerSelector,
+    color: "var(--map)",
+    icon: "globe",
+  },
+  eva_planner: {
+    title: "EVA Planner",
+    pane: EvaPlanner,
+    color: "var(--eva)",
+    icon: "route",
+  },
+};
 
 const LeftControlPanel = () => {
-  const [selectedNavItem, setSelectedNavItem] = useState("eva_planner");
+  const [selectedNavItem, setSelectedNavItem] = useState("map_layer_selector");
 
-  const showSelectedNavItem = () => {
-    switch (selectedNavItem) {
-      case "map_layer_selector":
-        return <MapLayerSelector />;
-      case "eva_planner":
-        return <EVA_Planner />;
-
-      default:
-        return <div>No nav match</div>;
-    }
-  };
+  let ActiveComponent = null;
+  let title = null;
+  if (!_.isNil(paneTypes[selectedNavItem])) {
+    ActiveComponent = paneTypes[selectedNavItem].pane;
+    title = paneTypes[selectedNavItem].title;
+  }
 
   return (
     <div className={styles.body}>
-      <NavGutter setSelectedNavItem={setSelectedNavItem} />
-      <div className={styles.activeComponent}>{showSelectedNavItem()}</div>
+      <NavGutter selectedNavItem={selectedNavItem} setSelectedNavItem={setSelectedNavItem} />
+      <div className={styles.activeComponent}>
+        <div
+          className={styles.activeComponentTitle}
+          style={{ color: paneTypes[selectedNavItem].color }}
+        >
+          {title}
+        </div>
+        <ActiveComponent />
+      </div>
     </div>
   );
 };
 
 export default LeftControlPanel;
 
-const NavGutter = ({ setSelectedNavItem }) => {
+const NavGutter = ({ selectedNavItem, setSelectedNavItem }) => {
   return (
     <div className={styles.iconGutter}>
-      <div
-        className={styles.icon}
-        title={"Map Layer Selector"}
-        onClick={() => setSelectedNavItem("map_layer_selector")}
-      >
-        <FontAwesomeIcon icon="layer-group" />
-      </div>
-      <div
-        className={styles.icon}
-        title={"EVA Planner"}
-        onClick={() => setSelectedNavItem("eva_planner")}
-      >
-        <FontAwesomeIcon icon="route" />
-      </div>
+      {/* Loop through all of the paneTypes and draw them on the gutter */}
+      {Object.keys(paneTypes).map((paneType) => {
+        return (
+          <div
+            key={paneType}
+            className={
+              selectedNavItem === paneType ? styles.iconContainerSelected : styles.iconContainer
+            }
+          >
+            <div
+              className={styles.icon}
+              style={{ color: paneTypes[paneType].color }}
+              title={paneTypes[paneType].title}
+              onClick={() => setSelectedNavItem(paneType)}
+            >
+              <FontAwesomeIcon icon={paneTypes[paneType].icon} size="lg" />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };

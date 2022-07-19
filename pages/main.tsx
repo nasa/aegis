@@ -25,6 +25,9 @@ const Main: NextPage = () => {
   const dispatch = useDispatch();
   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig);
 
+  /**
+   * Populate the map layerControls store with the configLayers in the MMGIS config
+   */
   useEffect(() => {
     if (!mmgisConfig) return;
     const configLayers = mmgisConfig?.MMGISConfig?.config?.layers;

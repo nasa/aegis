@@ -11,7 +11,8 @@
   height: 50px;
   padding-top: 6px;
   padding-bottom: 6px;
-  border-bottom: 1px solid var(--dark-grey);
+  background-color: var(--grey2);
+  border-bottom: 2px solid black;
 }
 
 .body {
@@ -21,7 +22,7 @@
 }
 
 .leftControl {
-  flex: 0 0 400px;
+  flex: 0 0 350px;
   border-right: 1px solid var(--dark-grey);
   height: 100%;
 }
@@ -32,7 +33,7 @@
 }
 
 .rightControl {
-  flex: 0 0 400px;
+  flex: 0 0 350px;
   border-left: 1px solid var(--dark-grey);
   height: 100%;
 }
