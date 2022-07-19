@@ -40,7 +40,7 @@ export const evaSlice = createSlice({
     updateStationLatLngJSON: (state, action: { payload: { uuid: string; latLngJSON: string } }) => {
       state.eva.evaItems = state.eva.evaItems.map((evaItem) => {
         if (evaItem.uuid === action.payload.uuid) {
-          return { ...evaItem, latLngJSON: action.payload.latLngJSON, editActive: false };
+          return { ...evaItem, latLngJSON: action.payload.latLngJSON };
         }
         return evaItem;
       });
@@ -51,7 +51,7 @@ export const evaSlice = createSlice({
     ) => {
       state.eva.evaItems = state.eva.evaItems.map((evaItem) => {
         if (evaItem.uuid === action.payload.uuid) {
-          return { ...evaItem, latLngsJSON: action.payload.latLngsJSON, editActive: false };
+          return { ...evaItem, latLngsJSON: action.payload.latLngsJSON };
         }
         return evaItem;
       });
