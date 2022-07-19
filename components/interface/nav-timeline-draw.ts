@@ -1,6 +1,6 @@
 import isNull from "lodash/isNull";
 import paper from "paper";
-import { appSecondsFromDateString, hhmmssFromSeconds } from "utils/formatting";
+import { hhmmssFromSeconds } from "utils/formatting";
 
 export default class DrawNav {
   gTier1Group: paper.Group;
@@ -363,7 +363,7 @@ export default class DrawNav {
   drawTier1() {
     this.gTier1Group.removeChildren();
 
-    const drawingTop = this.gTier1Top + 0.5;
+    // const drawingTop = this.gTier1Top + 0.5;
     const drawingBottom = this.gTier1Top + this.gTier1Height - this.gTierSpacing + 0.5;
     const drawingHeight = this.gTier1Height;
 
@@ -405,7 +405,7 @@ export default class DrawNav {
     const drawingBottom = this.gTier2Top + this.gTier2Height + 0.5;
     const drawingHeight = this.gTier2Height;
 
-    const drawLabels = !this.navigatorCollapsed;
+    // const drawLabels = !this.navigatorCollapsed;
 
     const pixelsPerSecond = this.gTier2PixelsPerSecond;
     const secondsStart = this.gTier2StartSeconds;

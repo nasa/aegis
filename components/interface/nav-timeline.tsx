@@ -1,6 +1,6 @@
 import isNil from "lodash/isNil";
 import paper from "paper";
-import { MutableRefObject, useEffect, useRef } from "react";
+import { MutableRefObject, useCallback, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { changeTime } from "store/playhead";
 import { changeHoverTime } from "store/playheadHover";
@@ -27,7 +27,7 @@ export default function NavTimeline() {
   const evaStartSec = 0;
 
   /** Draw the timeline on the canvas from scratch */
-  const installTimeline = () => {
+  const installTimeline = useCallback(() => {
     if (isNil(paper.project) && typeof window !== "undefined") {
       paper.setup(canvas.current);
     }
@@ -81,7 +81,7 @@ export default function NavTimeline() {
     if (!navReady.current) {
       navReady.current = true;
     }
-  };
+  }, [dispatch, playhead, playheadHover]);
 
   useEffect(() => {
     // only setup the canvas once
@@ -89,14 +89,14 @@ export default function NavTimeline() {
       installTimeline();
     }
     return () => paper.project.remove();
-  }, [playhead.date]);
+  }, [playhead.date, installTimeline]);
 
   useEffect(() => {
     if (paper.project) {
       paper.project.remove();
     }
     installTimeline();
-  }, []);
+  }, [installTimeline]);
 
   useEffect(() => {
     time.current = playhead.seconds;

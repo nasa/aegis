@@ -4,7 +4,7 @@ import styles from "./main.module.css";
 import { setLayerControls } from "store/map";
 
 import dynamic from "next/dynamic";
-import NavTimeline from "components/interface/nav-timeline";
+// import NavTimeline from "components/interface/nav-timeline";
 import { useEffect } from "react";
 import { RootState } from "store";
 /** Dynamically import the whole framework because nothing likes NextJS */

@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import _ from "lodash";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FeatureGroup, MapContainer, TileLayer } from "react-leaflet";
 import L from "leaflet";
 // Marker icon location
 L.Icon.Default.imagePath = "/leaflet/images/";
 
 import styles from "./map-body.module.css";
-
-import { v4 as uuidv4 } from "uuid";
 
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "store";
@@ -16,8 +15,6 @@ import {
   updateStationLatLngJSON,
   updateTraverseLatLngsJSON,
 } from "store/eva";
-import _ from "lodash";
-import { layer } from "@fortawesome/fontawesome-svg-core";
 
 const layerBaseURL = `http://192.168.0.5:8005/NASA_AEGIS/Missions/`;
 
@@ -98,53 +95,6 @@ export default function MapBody() {
     map.setView(center, zoom);
   }, [map, mmgisConfig, layerControls]);
 
-  const _onCreate = (e: any) => {
-    console.log("_onCreate", e);
-
-    // set the eva item UUID in the map layer
-    const uuid = uuidBeingEdited.current;
-    e.layer.uuid = uuid;
-    console.log("uuid being edited: ", uuid);
-
-    if (e.layerType === "marker") {
-      const latLng = e.layer.getLatLng();
-      console.log("LatLng", latLng);
-      dispatch(updateStationLatLngJSON({ uuid, latLngJSON: JSON.stringify(latLng) }));
-    } else {
-      const latLngs = e.layer.getLatLngs();
-      console.log("LatLngs", latLngs);
-      dispatch(updateTraverseLatLngsJSON({ uuid, latLngsJSON: JSON.stringify(latLngs) }));
-    }
-    uuidBeingEdited.current = null;
-    dispatch(setEvaItemTriggerAction({ uuid, value: null }));
-  };
-
-  const _onEdit = (e: any) => {
-    console.log("_onEdit", e);
-    // update the layer in state using uuid as key
-    e.layers.eachLayer(function (layer) {
-      if (layer["uuid"]) {
-        if (layer instanceof L.Marker) {
-          const latLng = layer.getLatLng();
-          dispatch(
-            updateStationLatLngJSON({ uuid: layer["uuid"], latLngJSON: JSON.stringify(latLng) })
-          );
-        } else {
-          const latLngs = layer.getLatLngs();
-          console.log("LatLngs", latLngs);
-          dispatch(
-            updateTraverseLatLngsJSON({ uuid: layer["uuid"], latLngsJSON: JSON.stringify(latLngs) })
-          );
-        }
-        dispatch(setEvaItemTriggerAction({ uuid: layer["uuid"], value: null }));
-      }
-    });
-  };
-
-  const _onDelete = (e: any) => {
-    console.log(e);
-  };
-
   /**
    * Listen for editable evaItems and trigger map draw/edit modes appropriately
    */
@@ -159,13 +109,11 @@ export default function MapBody() {
     });
 
     if (!_.isNull(evaItemWithEditTriggerSet)) {
-      // We have captured the edit trigger, so set the edit as active and disable the trigger so we don't catch it again
-      // dispatch(setEvaItemTriggerAction({ uuid: evaItemWithEditTriggerSet.uuid, value: null }));
-
       // Set that evaItem edit is underway. This allows the correct item to be updated when the L Draw action is completed
       console.log("setUuidBeingEdited", evaItemWithEditTriggerSet.uuid);
       uuidBeingEdited.current = evaItemWithEditTriggerSet.uuid;
 
+      // trigger the map create / edit / cancel event
       if (evaItemWithEditTriggerSet.triggerAction === "create") {
         if (evaItemWithEditTriggerSet.type === "station") {
           editRef.current._toolbars.draw._modes.marker.handler.enable();
@@ -192,10 +140,60 @@ export default function MapBody() {
       dispatch(setEvaItemTriggerAction({ uuid: evaItemWithEditTriggerSet.uuid, value: null }));
       uuidBeingEdited.current = null;
     }
-  }, [eva, editRef]);
+  }, [eva, editRef, dispatch, map]);
 
-  const displayMap = useMemo(
-    () => (
+  const displayMap = useMemo(() => {
+    const _onCreate = (e: any) => {
+      console.log("_onCreate", e);
+
+      // set the eva item UUID in the map layer
+      const uuid = uuidBeingEdited.current;
+      e.layer.uuid = uuid;
+      console.log("uuid being edited: ", uuid);
+
+      if (e.layerType === "marker") {
+        const latLng = e.layer.getLatLng();
+        console.log("LatLng", latLng);
+        dispatch(updateStationLatLngJSON({ uuid, latLngJSON: JSON.stringify(latLng) }));
+      } else {
+        const latLngs = e.layer.getLatLngs();
+        console.log("LatLngs", latLngs);
+        dispatch(updateTraverseLatLngsJSON({ uuid, latLngsJSON: JSON.stringify(latLngs) }));
+      }
+      uuidBeingEdited.current = null;
+      dispatch(setEvaItemTriggerAction({ uuid, value: null }));
+    };
+
+    const _onEdit = (e: any) => {
+      console.log("_onEdit", e);
+      // update the layer in state using uuid as key
+      e.layers.eachLayer(function (layer) {
+        if (layer["uuid"]) {
+          if (layer instanceof L.Marker) {
+            const latLng = layer.getLatLng();
+            dispatch(
+              updateStationLatLngJSON({ uuid: layer["uuid"], latLngJSON: JSON.stringify(latLng) })
+            );
+          } else {
+            const latLngs = layer.getLatLngs();
+            console.log("LatLngs", latLngs);
+            dispatch(
+              updateTraverseLatLngsJSON({
+                uuid: layer["uuid"],
+                latLngsJSON: JSON.stringify(latLngs),
+              })
+            );
+          }
+          dispatch(setEvaItemTriggerAction({ uuid: layer["uuid"], value: null }));
+        }
+      });
+    };
+
+    const _onDelete = (e: any) => {
+      console.log(e);
+    };
+
+    return (
       <MapContainer
         center={[0, 0]}
         zoom={11}
@@ -234,9 +232,8 @@ export default function MapBody() {
           {/* <PolylinesFromState /> */}
         </FeatureGroup>
       </MapContainer>
-    ),
-    [mmgisConfig, layerControls]
-  );
+    );
+  }, [mmgisConfig, layerControls, editableFeatures, dispatch]);
 
   return (
     <div className={styles.mapContainer}>

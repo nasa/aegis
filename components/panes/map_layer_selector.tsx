@@ -1,5 +1,4 @@
 import styles from "./map_layer_selector.module.css";
-import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { RootState } from "store";
