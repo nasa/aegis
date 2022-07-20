@@ -14,8 +14,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "baseUrl": ".",
-    "sourceMap": true
+    "baseUrl": "."
   },
   "paths": {
     "components/*": ["./components/*"]

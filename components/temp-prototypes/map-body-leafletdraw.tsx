@@ -1,312 +1,275 @@
-// import L from "leaflet";
-// L.Icon.Default.imagePath = "/leaflet/images/";
-// import "leaflet-draw";
+import L from "leaflet";
+L.Icon.Default.imagePath = "/leaflet/images/";
+import "leaflet-draw";
 
-// import styles from "./map-body.module.css";
-// import "rc-slider/assets/index.css";
-// import { useSelector, useDispatch } from "react-redux";
-// import { MutableRefObject, useEffect, useRef, useState } from "react";
-// import { RootState } from "store/index";
-// import _ from "lodash";
-// import {
-//   setEvaItemTriggerEdit,
-//   updateStationLatLngJSON,
-//   updateTraverseLatLngsJSON,
-// } from "store/eva";
+import styles from "components/interface/map-body.module.css";
 
-// // const center = [51.505, -0.09] as L.LatLngExpression; // London
-// const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
-// const zoom = 13;
+import { useSelector, useDispatch } from "react-redux";
+import { MutableRefObject, useEffect, useRef, useState } from "react";
+import { RootState } from "store/index";
+import _ from "lodash";
+import {
+  setEvaItemTriggerAction,
+  updateStationLatLngJSON,
+  updateTraverseLatLngsJSON,
+} from "store/eva";
 
-// const layerBaseURL = `http://192.168.0.5:8005/NASA_AEGIS/Missions/`;
+// const center = [51.505, -0.09] as L.LatLngExpression; // London
+const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
+const zoom = 13;
 
-// const MapBody = () => {
-//   const dispatch = useDispatch();
-//   const mapRef = useRef(null);
-//   const map = useRef(null);
-//   const drawControlRef = useRef(null);
+const layerBaseURL = `http://192.168.0.5:8005/NASA_AEGIS/Missions/`;
 
-//   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig.MMGISConfig);
-//   const layerControls = useSelector((state: RootState) => state.map.layerControls);
-//   const eva = useSelector((state: RootState) => state.eva.eva);
+const MapBody = () => {
+  const dispatch = useDispatch();
+  const mapRef = useRef(null);
+  const map = useRef(null);
+  const drawControlRef = useRef(null);
 
-//   const [layersOnMap, setLayersOnMap] = useState([]);
+  const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig.MMGISConfig);
+  const layerControls = useSelector((state: RootState) => state.map.layerControls);
+  const eva = useSelector((state: RootState) => state.eva.eva);
 
-//   const [uuidBeingEdited, setUuidBeingEdited] = useState(null);
+  const [layersOnMap, setLayersOnMap] = useState([]);
 
-//   const getStateValTest = () => {
-//     return uuidBeingEdited;
-//   };
+  // const [uuidBeingEdited, setUuidBeingEdited] = useState(null);
+  const uuidBeingEdited = useRef(null);
 
-//   const showMapLayers = () => {
-//     if (!mmgisConfig || !layerControls || !mapRef) return;
+  const getStateValTest = () => {
+    return uuidBeingEdited;
+  };
 
-//     // go through all layers in mission config and add make a list of the ones that are enabled
-//     const layersToAdd = [];
-//     for (const configLayer of mmgisConfig.config.layers) {
-//       for (const configSublayer of configLayer.sublayers) {
-//         if (configSublayer.type === "tile") {
-//           if (layerControls[configSublayer.name].enabled) {
-//             layersToAdd.push(configSublayer);
-//           }
-//         }
-//       }
-//     }
-//     // reverse the array to add the ones at the bottom of the tree first
-//     const layersToAddInOrder = layersToAdd.reverse();
+  const showMapLayers = () => {
+    if (!mmgisConfig || !layerControls || !map) return;
 
-//     // if there are no changes to the layers enabled, do nothing
-//     if (_.isEqual(layersToAddInOrder, layersOnMap)) {
-//       return;
-//     } else {
-//       setLayersOnMap(layersToAddInOrder);
-//     }
+    // go through all layers in mission config and add make a list of the ones that are enabled
+    const layersToAdd = [];
+    for (const configLayer of mmgisConfig.config.layers) {
+      for (const configSublayer of configLayer.sublayers) {
+        if (configSublayer.type === "tile") {
+          if (layerControls[configSublayer.name].enabled) {
+            layersToAdd.push(configSublayer);
+          }
+        }
+      }
+    }
+    // reverse the array to add the ones at the bottom of the tree first
+    const layersToAddInOrder = layersToAdd.reverse();
 
-//     // remove map layers that are not enabled in layerControls
-//     mapRef.current.eachLayer((layer) => {
-//       if (layer.options.id) {
-//         if (!layerControls[layer.options.id].enabled) {
-//           mapRef.current.removeLayer(layer);
-//         }
-//       }
-//     });
+    // if there are no changes to the layers enabled, do nothing
+    if (_.isEqual(layersToAddInOrder, layersOnMap)) {
+      return;
+    } else {
+      setLayersOnMap(layersToAddInOrder);
+    }
 
-//     // check map layers in order
-//     layersToAddInOrder.map((configSublayer, index) => {
-//       // if layer isn't already on the map, add it
-//       if (!isLayerOnMapByName(mapRef, configSublayer.name)) {
-//         const tileLayer = L.tileLayer(
-//           `${layerBaseURL}${mmgisConfig.mission}/${configSublayer.url}`,
-//           {
-//             tileSize: 256,
-//             bounds: [
-//               [configSublayer.boundingBox[1], configSublayer.boundingBox[0]],
-//               [configSublayer.boundingBox[3], configSublayer.boundingBox[2]],
-//             ],
-//             tms: configSublayer.tileformat === "tms",
-//             minZoom: 1,
-//             minNativeZoom: configSublayer.minZoom,
-//             maxZoom: configSublayer.maxZoom,
-//             maxNativeZoom: configSublayer.maxNativeZoom,
-//             id: `${configSublayer.name}`,
-//             pane: "newPane",
-//             opacity: 1,
-//             zIndex: index,
-//           }
-//         );
-//         mapRef.current.addLayer(tileLayer);
-//         tileLayer.bringToFront();
-//       } else {
-//         // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
-//         const layer = getLayerByName(mapRef, configSublayer.name);
-//         layer.bringToFront();
-//       }
-//     });
-//   };
+    // remove map layers that are not enabled in layerControls
+    map.current.eachLayer((layer) => {
+      if (layer.options.id) {
+        if (!layerControls[layer.options.id].enabled) {
+          map.current.removeLayer(layer);
+        }
+      }
+    });
 
-//   /**
-//    * Map tile layers display management
-//    */
-//   useEffect(() => {
-//     showMapLayers();
-//   }, []);
+    // check map layers in order
+    layersToAddInOrder.map((configSublayer, index) => {
+      // if layer isn't already on the map, add it
+      if (!isLayerOnMapByName(map, configSublayer.name)) {
+        const tileLayer = L.tileLayer(
+          `${layerBaseURL}${mmgisConfig.mission}/${configSublayer.url}`,
+          {
+            tileSize: 256,
+            bounds: [
+              [configSublayer.boundingBox[1], configSublayer.boundingBox[0]],
+              [configSublayer.boundingBox[3], configSublayer.boundingBox[2]],
+            ],
+            tms: configSublayer.tileformat === "tms",
+            minZoom: 1,
+            minNativeZoom: configSublayer.minZoom,
+            maxZoom: configSublayer.maxZoom,
+            maxNativeZoom: configSublayer.maxNativeZoom,
+            id: `${configSublayer.name}`,
+            pane: "newPane",
+            opacity: 1,
+            zIndex: index,
+          }
+        );
+        map.current.addLayer(tileLayer);
+        tileLayer.bringToFront();
+      } else {
+        // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
+        const layer = getLayerByName(map, configSublayer.name);
+        layer.bringToFront();
+      }
+    });
+  };
 
-//   useEffect(() => {
-//     showMapLayers();
-//   }, [mmgisConfig, layerControls, mapRef, layersOnMap]);
+  /**
+   * Map tile layers display management
+   */
+  useEffect(() => {
+    showMapLayers();
+  }, []);
 
-//   /**
-//    * Map events management
-//    */
-//   useEffect(() => {
-//     if (!map.current) {
-//       return;
-//     }
-//     map.current = L.map("map", {
-//       center: center,
-//       zoom: zoom,
-//     });
+  useEffect(() => {
+    showMapLayers();
+  }, [mmgisConfig, layerControls, map, layersOnMap]);
 
-//     const newPane = mapRef.current.createPane("newPane");
-//     newPane.style.zIndex = "1";
+  /**
+   * Map events management
+   */
+  useEffect(() => {
+    if (!mapRef.current) {
+      return;
+    }
 
-//     var drawnItems = new L.FeatureGroup();
+    // Instantiate the map
+    if (!map.current) {
+      map.current = L.map("map", {
+        center: center,
+        zoom: zoom,
+      });
 
-//     map.current.addLayer(drawnItems);
-//     drawControlRef.current = new L.Control.Draw({
-//       edit: {
-//         featureGroup: drawnItems,
-//       },
-//     });
+      console.log("map", map.current);
 
-//     map.current.addControl(drawControlRef.current);
+      var drawnItems = new L.FeatureGroup();
+      map.current.addLayer(drawnItems);
+      drawControlRef.current = new L.Control.Draw({
+        edit: {
+          featureGroup: drawnItems,
+        },
+      });
+      map.current.addControl(drawControlRef.current);
+    }
 
-//     // listen to vertexes being added to currently drawn layer (called workingLayer)
-//     map.current.on(L.Draw.Event.DRAWSTART, (e) => {
-//       console.log("draw:drawstart", getStateValTest(), e);
-//       e.workingLayer.on(L.Draw.Event.DRAWVERTEX, (e) => {
-//         console.log("draw:drawvertex: Vertex added", e);
-//       });
-//     });
+    // listen to vertexes being added to currently drawn layer (called workingLayer)
+    // map.current.on(L.Draw.Event.DRAWSTART, (e) => {
+    //   console.log("draw:drawstart", getStateValTest(), e);
+    //   e.workingLayer.on(L.Draw.Event.DRAWVERTEX, (e) => {
+    //     console.log("draw:drawvertex: Vertex added", e);
+    //   });
+    // });
 
-//     // mapRef.current.on("draw:created", (e) => {
-//     //   console.log(`draw:created: object type: ${e.layerType}`);
-//     //   const layer = e.layer;
+    map.current.on("click", (e) => {
+      console.log("click", e);
+    });
 
-//     //   e.layer.uuid = getStateValTest();
+    map.current.on("draw:drawstart", (e) => {
+      console.log("draw:drawstart", e);
+    });
 
-//     //   console.log("uuid: ", getStateValTest());
+    map.current.on("draw:created", (e) => {
+      console.log(`draw:created: object type: ${e.layerType}`);
+      const layer = e.layer;
 
-//     //   if (e.layer.pm.getShape() === "Marker") {
-//     //     const latLng = e.layer.getLatLngs()[0];
-//     //     dispatch(
-//     //       updateStationLatLngJSON({ uuid: e.layer.uuid, latLngJSON: JSON.stringify(latLng) })
-//     //     );
-//     //     mapRef.current.pm.disableDraw("Marker");
+      const uuid = uuidBeingEdited.current;
+      e.layer.uuid = uuidBeingEdited.current;
 
-//     //     // // set handler to trigger when this shape is ever edited
-//     //     // e.layer.on("pm:update", (e) => {
-//     //     //   console.log("pm:update", e);
-//     //     //   const latLng = e.layer.getLatLng();
-//     //     //   dispatch(
-//     //     //     updateStationLatLngJSON({
-//     //     //       uuid: e.layer.uuid,
-//     //     //       latLngJSON: JSON.stringify(latLng),
-//     //     //     })
-//     //     //   );
-//     //     //   // evaItem as no longer being edited, so set the uuidBeingEdited to null
-//     //     //   setUuidBeingEdited(null);
-//     //     // });
-//     //   } else if (e.layer.pm.getShape() === "Line") {
-//     //     // let totalLength = 0;
-//     //     // for (let i = 0; i < shape.layer.getLatLngs().length - 1; i++) {
-//     //     //   totalLength += getDistanceBetweenTwoCoordinates(
-//     //     //     shape.layer.getLatLngs()[i],
-//     //     //     shape.layer.getLatLngs()[i + 1],
-//     //     //     parseInt(mmgisConfig.config.msv.radius.major)
-//     //     //   );
-//     //     // }
-//     //     // console.log("length of the new line:", totalLength, "m");
+      console.log("uuid: ", uuidBeingEdited.current);
 
-//     //     // add event handler for if this layer is edited
-//     //     // e.layer.on("pm:update", (e) => {
-//     //     //   console.log("Update", e);
-//     //     //   const latLngs = e.layer.getLatLngs();
-//     //     //   dispatch(
-//     //     //     updateTraverseLatLngsJSON({
-//     //     //       uuid: e.layer.uuid,
-//     //     //       latLngsJSON: JSON.stringify(latLngs),
-//     //     //     })
-//     //     //   );
-//     //     // });
+      if (e.layerType === "marker") {
+        const latLng = e.layer.getLatLng();
+        console.log("LatLng", latLng);
+        dispatch(updateStationLatLngJSON({ uuid, latLngJSON: JSON.stringify(latLng) }));
+      } else {
+        const latLngs = e.layer.getLatLngs();
+        console.log("LatLngs", latLngs);
+        dispatch(updateTraverseLatLngsJSON({ uuid, latLngsJSON: JSON.stringify(latLngs) }));
+      }
+      uuidBeingEdited.current = null;
+      dispatch(setEvaItemTriggerAction({ uuid, value: null }));
+    });
 
-//     //     // put the new layer into state
-//     //     const latLngs = e.layer.getLatLngs();
-//     //     console.log("LatLngs", latLngs);
-//     //     dispatch(
-//     //       updateTraverseLatLngsJSON({ uuid: e.layer.uuid, latLngsJSON: JSON.stringify(latLngs) })
-//     //     );
-//     //   }
-//     // });
+    return () => {
+      if (map.current) {
+        map.current.pm.removeControls();
+        map.current.pm.setGlobalOptions({ pmIgnore: true });
 
-//     // mapRef.current.on("pm:created", () => {
-//     //   console.log("pm:created");
-//     //   console.log(mapRef.current.pm.getGeomanLayers(true).toGeoJSON());
-//     // });
+        map.current.off();
+        map.current.remove();
+      }
+    };
+  }, [mmgisConfig, mapRef, drawControlRef]);
 
-//     // mapRef.current.on("pm:remove", () => {
-//     //   console.log("pm:remove");
-//     //   console.log(mapRef.current.pm.getGeomanLayers(true).toGeoJSON());
-//     // });
+  useEffect(() => {
+    /**
+     * Set the center of the map to the center of the selected mission (config.msv.view)
+     */
+    if (!map.current || !mmgisConfig) return;
+    const config = mmgisConfig?.config;
 
-//     return () => {
-//       if (mapRef.current) {
-//         mapRef.current.pm.removeControls();
-//         mapRef.current.pm.setGlobalOptions({ pmIgnore: true });
+    const center = [config?.msv?.view[0], config?.msv?.view[1]];
+    const zoom = config?.msv?.view[2];
 
-//         mapRef.current.off();
-//         mapRef.current.remove();
-//       }
-//     };
-//   }, [mmgisConfig, mapRef, drawControlRef]);
+    map.current.setView(center, zoom);
+  }, [mmgisConfig, map]);
 
-//   useEffect(() => {
-//     /**
-//      * Set the center of the map to the center of the selected mission (config.msv.view)
-//      */
-//     if (!mapRef.current || !mmgisConfig) return;
-//     const config = mmgisConfig?.config;
+  /**
+   * Listen for editable evaItems and trigger map draw/edit modes appropriately
+   */
+  useEffect(() => {
+    if (!eva) return;
 
-//     const center = [config?.msv?.view[0], config?.msv?.view[1]];
-//     const zoom = config?.msv?.view[2];
+    let evaItemWithEditTriggerSet = null;
+    eva.evaItems.map((evaItem) => {
+      if (evaItem.triggerAction === "create") {
+        evaItemWithEditTriggerSet = evaItem;
+      }
+    });
 
-//     mapRef.current.setView(center, zoom);
-//   }, [mmgisConfig, mapRef]);
+    if (evaItemWithEditTriggerSet) {
+      // We have captured the edit trigger, so set the edit as active and disable the trigger so we don't catch it again
+      // dispatch(setEvaItemTriggerEdit({ uuid: evaItemWithEditTriggerSet.uuid, value: false }));
 
-//   /**
-//    * Listen for editable evaItems and trigger map draw/edit modes appropriately
-//    */
-//   useEffect(() => {
-//     if (!eva) return;
+      // Set that evaItem edit is underway. This allows the correct item to be updated when the L Draw action is completed
+      // setUuidBeingEdited(evaItemWithEditTriggerSet.uuid);
+      uuidBeingEdited.current = evaItemWithEditTriggerSet.uuid;
 
-//     let evaItemWithEditTriggerSet = null;
-//     eva.evaItems.map((evaItem) => {
-//       if (evaItem.triggerEdit) {
-//         evaItemWithEditTriggerSet = evaItem;
-//       }
-//     });
+      console.log("Item being edited: ", evaItemWithEditTriggerSet);
+      if (evaItemWithEditTriggerSet.type === "station") {
+        // Is the station already on the map?
+        if (evaItemWithEditTriggerSet.position) {
+          console.log("TODO: station already on the map");
+        } else {
+          new L.Draw.Marker(map.current, drawControlRef.current.options.marker).enable();
+        }
+      } else {
+        // Is the line already on the map?
+        if (evaItemWithEditTriggerSet.latLngsJSON) {
+          console.log("TODO: line already on the map");
+        } else {
+          map.current.pm.enableDraw("Line", {
+            snappable: true,
+            snapDistance: 20,
+          });
+        }
+      }
+    }
+  }, [eva]);
 
-//     if (evaItemWithEditTriggerSet) {
-//       // We have captured the edit trigger, so set the edit as active and disable the trigger so we don't catch it again
-//       dispatch(setEvaItemTriggerEdit({ uuid: evaItemWithEditTriggerSet.uuid, value: false }));
+  return (
+    <>
+      <div id="map" className={styles.map} ref={mapRef}></div>
+    </>
+  );
+};
 
-//       // Set that evaItem edit is underway. This allows the correct item to be updated when the L Draw action is completed
-//       setUuidBeingEdited(evaItemWithEditTriggerSet.uuid);
+export default MapBody;
 
-//       console.log("Item being edited: ", evaItemWithEditTriggerSet);
-//       if (evaItemWithEditTriggerSet.type === "station") {
-//         // Is the station already on the map?
-//         if (evaItemWithEditTriggerSet.position) {
-//           console.log("TODO: station already on the map");
-//         } else {
-//           new L.Draw.Polyline(mapRef.current, drawControlRef.current.options.marker).enable();
-//         }
-//       } else {
-//         // Is the line already on the map?
-//         if (evaItemWithEditTriggerSet.latLngsJSON) {
-//           console.log("TODO: line already on the map");
-//         } else {
-//           mapRef.current.pm.enableDraw("Line", {
-//             snappable: true,
-//             snapDistance: 20,
-//           });
-//         }
-//       }
-//     }
-//   }, [eva]);
+const isLayerOnMapByName = (mapRef: MutableRefObject<any>, name: string) => {
+  let layerFound = false;
+  mapRef.current.eachLayer((layer) => {
+    if (layer.options.id === name) layerFound = true;
+  });
+  return layerFound;
+};
 
-//   return (
-//     <>
-//       <div id="map" className={styles.map} ref={mapRef}></div>
-//     </>
-//   );
-// };
+const getLayerByName = (mapRef: MutableRefObject<any>, name: string) => {
+  let returnVal = null;
 
-// export default MapBody;
-
-// const isLayerOnMapByName = (mapRef: MutableRefObject<any>, name: string) => {
-//   let layerFound = false;
-//   mapRef.current.eachLayer((layer) => {
-//     if (layer.options.id === name) layerFound = true;
-//   });
-//   return layerFound;
-// };
-
-// const getLayerByName = (mapRef: MutableRefObject<any>, name: string) => {
-//   let returnVal = null;
-
-//   mapRef.current.eachLayer((layer) => {
-//     if (layer.options.id === name) returnVal = layer;
-//   });
-//   return returnVal;
-// };
+  mapRef.current.eachLayer((layer) => {
+    if (layer.options.id === name) returnVal = layer;
+  });
+  return returnVal;
+};
