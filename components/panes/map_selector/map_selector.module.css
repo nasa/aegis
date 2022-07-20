@@ -26,11 +26,9 @@
   display: flex;
 }
 
-.layerSublayers {
-}
-
 .sublayer {
   display: flex;
+  flex-direction: row;
   margin-left: 8px;
   padding-left: 6px;
   margin-top: 2px;
@@ -38,12 +36,37 @@
   padding-top: 4px;
   padding-bottom: 4px;
   border-radius: var(--radius);
-  overflow-x: hidden;
+  width: 100%;
 }
 
 .sublayer:hover {
   background-color: var(--grey1);
   cursor: pointer;
+}
+
+.sublayerTitle {
+  flex: 1 1 auto;
+  overflow-x: hidden;
+}
+
+.sublayerToolIcons {
+  display: flex;
+  flex-direction: row;
+  width: 60px;
+  flex: 0 0 60px;
+  padding-left: 10px;
+}
+
+.sublayerToolIcon {
+  color: var(--grey4);
+  width: 20px;
+  margin-left: 1px;
+  margin-right: 1px;
+  cursor: pointer;
+}
+
+.sublayerToolIcon:hover {
+  color: white;
 }
 
 .expandoCaret {
@@ -53,6 +76,7 @@
 .visibility {
   width: 15px;
   margin-right: 4px;
+  flex: 0 0 15px;
 }
 
 .visible {

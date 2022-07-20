@@ -4,7 +4,7 @@ import { useState } from "react";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faGlobe, faRoute } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import MapLayerSelector from "components/panes/map_layer_selector";
+import MapSelector from "components/panes/map_selector/map_selector";
 import EvaPlanner from "components/panes/eva_planner";
 import _ from "lodash";
 
@@ -13,7 +13,7 @@ library.add(faGlobe, faRoute);
 const paneTypes: PaneTypes = {
   map_layer_selector: {
     title: "Map Imagery",
-    pane: MapLayerSelector,
+    pane: MapSelector,
     color: "var(--map)",
     icon: "globe",
   },
