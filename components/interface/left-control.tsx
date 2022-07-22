@@ -26,7 +26,7 @@ const paneTypes: PaneTypes = {
 };
 
 const LeftControlPanel = () => {
-  const [selectedNavItem, setSelectedNavItem] = useState("map_layer_selector");
+  const [selectedNavItem, setSelectedNavItem] = useState("eva_planner");
 
   let ActiveComponent = null;
   let title = null;

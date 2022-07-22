@@ -131,8 +131,6 @@ const MapBody = () => {
         zoom: zoom,
       });
 
-      console.log("map", map.current);
-
       var drawnItems = new L.FeatureGroup();
       map.current.addLayer(drawnItems);
       drawControlRef.current = new L.Control.Draw({
@@ -141,6 +139,8 @@ const MapBody = () => {
         },
       });
       map.current.addControl(drawControlRef.current);
+
+      console.log("map", map.current);
     }
 
     // listen to vertexes being added to currently drawn layer (called workingLayer)
@@ -160,8 +160,9 @@ const MapBody = () => {
     });
 
     map.current.on("draw:created", (e) => {
-      console.log(`draw:created: object type: ${e.layerType}`);
-      const layer = e.layer;
+      console.log(`draw:created:`, e);
+
+      map.current.addLayer(e.layer);
 
       const uuid = uuidBeingEdited.current;
       e.layer.uuid = uuidBeingEdited.current;
@@ -183,9 +184,6 @@ const MapBody = () => {
 
     return () => {
       if (map.current) {
-        map.current.pm.removeControls();
-        map.current.pm.setGlobalOptions({ pmIgnore: true });
-
         map.current.off();
         map.current.remove();
       }
@@ -213,7 +211,7 @@ const MapBody = () => {
 
     let evaItemWithEditTriggerSet = null;
     eva.evaItems.map((evaItem) => {
-      if (evaItem.triggerAction === "create") {
+      if (evaItem.triggerAction) {
         evaItemWithEditTriggerSet = evaItem;
       }
     });
@@ -226,25 +224,57 @@ const MapBody = () => {
       // setUuidBeingEdited(evaItemWithEditTriggerSet.uuid);
       uuidBeingEdited.current = evaItemWithEditTriggerSet.uuid;
 
-      console.log("Item being edited: ", evaItemWithEditTriggerSet);
-      if (evaItemWithEditTriggerSet.type === "station") {
-        // Is the station already on the map?
-        if (evaItemWithEditTriggerSet.position) {
-          console.log("TODO: station already on the map");
+      // console.log("Item being edited: ", evaItemWithEditTriggerSet);
+      // if (evaItemWithEditTriggerSet.type === "station") {
+      //   // Is the station already on the map?
+      //   if (evaItemWithEditTriggerSet.position) {
+      //     console.log("TODO: station already on the map");
+      //   } else {
+      //     new L.Draw.Marker(map.current, drawControlRef.current.options.marker).enable();
+      //   }
+      // } else {
+      //   // Is the line already on the map?
+      //   if (evaItemWithEditTriggerSet.latLngsJSON) {
+      //     console.log("TODO: line already on the map");
+      //   } else {
+      //     new L.Draw.Polyline(map.current, drawControlRef.current.options.polyline).enable();
+      //   }
+      // }
+
+      // trigger the map create / edit / cancel event
+      if (evaItemWithEditTriggerSet.triggerAction === "create") {
+        if (evaItemWithEditTriggerSet.type === "station") {
+          // new L.Draw.Marker(map.current, drawControlRef.current.options.marker).enable();
         } else {
-          new L.Draw.Marker(map.current, drawControlRef.current.options.marker).enable();
+          // new L.Draw.Polyline(map.current, drawControlRef.current.options.polyline).enable();
+          map.current.Draw.Polyline(map.current, drawControlRef.current.options.polyline).enable();
         }
-      } else {
-        // Is the line already on the map?
-        if (evaItemWithEditTriggerSet.latLngsJSON) {
-          console.log("TODO: line already on the map");
-        } else {
-          map.current.pm.enableDraw("Line", {
-            snappable: true,
-            snapDistance: 20,
-          });
-        }
+      } else if (evaItemWithEditTriggerSet.triggerAction === "cancelCreate") {
+        console.log("cancelCreate");
+        map.current.Draw.Polyline(map.current, drawControlRef.current.options.polyline).disable();
+        clearAction();
+        // } else if (evaItemWithEditTriggerSet.triggerAction === "edit") {
+        //   if (evaItemWithEditTriggerSet.type === "station") {
+        //     L.drawLocal.edit.toolbar.actions.cancel.title;
+        //     new L.Draw.ToolBars(map.current, drawControlRef.current.options.marker).disable();
+        //   } else {
+        //     new L.Draw.Polyline(map.current, drawControlRef.current.options.polyline).disable();
+        //   }
+        //   editRef.current._toolbars.edit._modes.edit.handler.enable();
+        // } else if (evaItemWithEditTriggerSet.triggerAction === "cancelEdit") {
+        //   // editRef.current._toolbars.edit._modes.edit.handler.disable();
+        //   map.fire("draw:editcancel");
+        //   clearAction();
+        // } else if (evaItemWithEditTriggerSet.triggerAction === "saveEdit") {
+        //   editRef.current._toolbars.edit._modes.edit.handler.save();
+        //   editRef.current._toolbars.edit._modes.edit.handler.disable();
+        //   clearAction();
       }
+    }
+
+    function clearAction() {
+      dispatch(setEvaItemTriggerAction({ uuid: evaItemWithEditTriggerSet.uuid, value: null }));
+      uuidBeingEdited.current = null;
     }
   }, [eva]);
 
