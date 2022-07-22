@@ -5,7 +5,7 @@ import { library } from "@fortawesome/fontawesome-svg-core";
 import { faGlobe, faRoute } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import MapSelector from "components/panes/map_selector/map_selector";
-import EvaPlanner from "components/panes/eva_planner";
+import EvaPlanner from "components/panes/eva_planner/eva_planner";
 import _ from "lodash";
 
 library.add(faGlobe, faRoute);

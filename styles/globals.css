@@ -70,3 +70,7 @@ body {
 .leaflet-control-attribution {
   display: none !important;
 }
+
+.leaflet-top {
+  display: none !important;
+}

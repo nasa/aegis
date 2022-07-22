@@ -25,6 +25,9 @@ const MapBody = () => {
   const mapRef = useRef(null);
   const map = useRef(null);
   const drawControlRef = useRef(null);
+  const drawHandlerRef = useRef(null);
+  const drawnItemsRef = useRef(null);
+  const displayedItemsRef = useRef(null);
 
   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig.MMGISConfig);
   const layerControls = useSelector((state: RootState) => state.map.layerControls);
@@ -131,11 +134,22 @@ const MapBody = () => {
         zoom: zoom,
       });
 
-      var drawnItems = new L.FeatureGroup();
-      map.current.addLayer(drawnItems);
+      drawnItemsRef.current = new L.FeatureGroup();
+      map.current.addLayer(drawnItemsRef.current);
       drawControlRef.current = new L.Control.Draw({
+        draw: {
+          polygon: false,
+          rectangle: false,
+          circle: false,
+          circlemarker: false,
+        },
         edit: {
-          featureGroup: drawnItems,
+          featureGroup: drawnItemsRef.current,
+          edit: {
+            selectedPathOptions: {
+              opacity: 0.3,
+            },
+          },
         },
       });
       map.current.addControl(drawControlRef.current);
@@ -162,7 +176,7 @@ const MapBody = () => {
     map.current.on("draw:created", (e) => {
       console.log(`draw:created:`, e);
 
-      map.current.addLayer(e.layer);
+      drawnItemsRef.current.addLayer(e.layer);
 
       const uuid = uuidBeingEdited.current;
       e.layer.uuid = uuidBeingEdited.current;
@@ -180,6 +194,31 @@ const MapBody = () => {
       }
       uuidBeingEdited.current = null;
       dispatch(setEvaItemTriggerAction({ uuid, value: null }));
+    });
+
+    map.current.on("draw:edited", (e) => {
+      console.log(`draw:edited:`, e);
+      // update the layer in state using uuid as key
+      e.layers.eachLayer(function (layer) {
+        if (layer["uuid"]) {
+          if (layer instanceof L.Marker) {
+            const latLng = layer.getLatLng();
+            dispatch(
+              updateStationLatLngJSON({ uuid: layer["uuid"], latLngJSON: JSON.stringify(latLng) })
+            );
+          } else {
+            const latLngs = layer.getLatLngs();
+            console.log("LatLngs", latLngs);
+            dispatch(
+              updateTraverseLatLngsJSON({
+                uuid: layer["uuid"],
+                latLngsJSON: JSON.stringify(latLngs),
+              })
+            );
+          }
+          dispatch(setEvaItemTriggerAction({ uuid: layer["uuid"], value: null }));
+        }
+      });
     });
 
     return () => {
@@ -217,58 +256,39 @@ const MapBody = () => {
     });
 
     if (evaItemWithEditTriggerSet) {
-      // We have captured the edit trigger, so set the edit as active and disable the trigger so we don't catch it again
-      // dispatch(setEvaItemTriggerEdit({ uuid: evaItemWithEditTriggerSet.uuid, value: false }));
-
       // Set that evaItem edit is underway. This allows the correct item to be updated when the L Draw action is completed
-      // setUuidBeingEdited(evaItemWithEditTriggerSet.uuid);
       uuidBeingEdited.current = evaItemWithEditTriggerSet.uuid;
-
-      // console.log("Item being edited: ", evaItemWithEditTriggerSet);
-      // if (evaItemWithEditTriggerSet.type === "station") {
-      //   // Is the station already on the map?
-      //   if (evaItemWithEditTriggerSet.position) {
-      //     console.log("TODO: station already on the map");
-      //   } else {
-      //     new L.Draw.Marker(map.current, drawControlRef.current.options.marker).enable();
-      //   }
-      // } else {
-      //   // Is the line already on the map?
-      //   if (evaItemWithEditTriggerSet.latLngsJSON) {
-      //     console.log("TODO: line already on the map");
-      //   } else {
-      //     new L.Draw.Polyline(map.current, drawControlRef.current.options.polyline).enable();
-      //   }
-      // }
 
       // trigger the map create / edit / cancel event
       if (evaItemWithEditTriggerSet.triggerAction === "create") {
         if (evaItemWithEditTriggerSet.type === "station") {
-          // new L.Draw.Marker(map.current, drawControlRef.current.options.marker).enable();
+          drawHandlerRef.current = new L.Draw.Marker(
+            map.current,
+            drawControlRef.current.options.marker
+          );
+          drawHandlerRef.current.enable();
         } else {
-          // new L.Draw.Polyline(map.current, drawControlRef.current.options.polyline).enable();
-          map.current.Draw.Polyline(map.current, drawControlRef.current.options.polyline).enable();
+          new L.Draw.Polyline(map.current, drawControlRef.current.options.polyline).enable();
+
+          for (var drawMode in drawControlRef.current._toolbars.draw._modes) {
+            if (drawControlRef.current._toolbars.draw._modes.hasOwnProperty(drawMode)) {
+              console.log("drawmode:", drawMode);
+            }
+          }
         }
       } else if (evaItemWithEditTriggerSet.triggerAction === "cancelCreate") {
         console.log("cancelCreate");
-        map.current.Draw.Polyline(map.current, drawControlRef.current.options.polyline).disable();
+        drawHandlerRef.current.disable();
         clearAction();
-        // } else if (evaItemWithEditTriggerSet.triggerAction === "edit") {
-        //   if (evaItemWithEditTriggerSet.type === "station") {
-        //     L.drawLocal.edit.toolbar.actions.cancel.title;
-        //     new L.Draw.ToolBars(map.current, drawControlRef.current.options.marker).disable();
-        //   } else {
-        //     new L.Draw.Polyline(map.current, drawControlRef.current.options.polyline).disable();
-        //   }
-        //   editRef.current._toolbars.edit._modes.edit.handler.enable();
-        // } else if (evaItemWithEditTriggerSet.triggerAction === "cancelEdit") {
-        //   // editRef.current._toolbars.edit._modes.edit.handler.disable();
-        //   map.fire("draw:editcancel");
-        //   clearAction();
-        // } else if (evaItemWithEditTriggerSet.triggerAction === "saveEdit") {
-        //   editRef.current._toolbars.edit._modes.edit.handler.save();
-        //   editRef.current._toolbars.edit._modes.edit.handler.disable();
-        //   clearAction();
+      } else if (evaItemWithEditTriggerSet.triggerAction === "edit") {
+        drawControlRef.current._toolbars.edit._modes.edit.handler.enable();
+      } else if (evaItemWithEditTriggerSet.triggerAction === "cancelEdit") {
+        drawControlRef.current._toolbars.edit._modes.edit.handler.disable();
+        clearAction();
+      } else if (evaItemWithEditTriggerSet.triggerAction === "saveEdit") {
+        drawControlRef.current._toolbars.edit._modes.edit.handler.save();
+        drawControlRef.current._toolbars.edit._modes.edit.handler.disable();
+        clearAction();
       }
     }
 

@@ -14,8 +14,7 @@ const LeftControlPanel = dynamic(import("components/interface/left-control"), {
 const RightControlPanel = dynamic(import("components/interface/right-control"), {
   ssr: false,
 });
-// const MapBody = dynamic(import("components/interface/map-body"), {
-const MapBody = dynamic(import("components/temp-prototypes/map-body-leafletdraw"), {
+const MapBody = dynamic(import("components/interface/map-body-leafletdraw"), {
   ssr: false,
 });
 const Header = dynamic(import("components/interface/header"), {
