@@ -1,13 +1,12 @@
+import _ from "lodash";
 import styles from "./left-control.module.css";
 import { useState } from "react";
-
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { faGlobe, faRoute } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import MapSelector from "components/panes/map_selector/map_selector";
 import EvaPlanner from "components/panes/eva_planner/eva_planner";
-import _ from "lodash";
 
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { faGlobe, faRoute } from "@fortawesome/free-solid-svg-icons";
 library.add(faGlobe, faRoute);
 
 const paneTypes: PaneTypes = {
@@ -18,7 +17,7 @@ const paneTypes: PaneTypes = {
     icon: "globe",
   },
   eva_planner: {
-    title: "EVA Planner",
+    title: "EVA Planning",
     pane: EvaPlanner,
     color: "var(--eva)",
     icon: "route",

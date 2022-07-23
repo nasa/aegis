@@ -4,7 +4,7 @@ interface Eva {
 }
 
 interface EvaItem {
-  type: "station" | "traverse";
+  type: "lander" | "station" | "traverse";
   name: string;
   uuid: string;
   latLngJSON?: string;

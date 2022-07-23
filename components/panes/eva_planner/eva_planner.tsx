@@ -2,72 +2,132 @@ import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "store";
 import styles from "./eva_planner.module.css";
+import paneStyles from "../left_pane_styles.module.css";
 import { setEvaItemTriggerAction } from "store/eva";
 import _ from "lodash";
+
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { faChevronDown, faPlus, faGear } from "@fortawesome/free-solid-svg-icons";
+library.add(faChevronDown, faPlus, faGear);
 
 const EvaPlanner = () => {
   const dispatch = useDispatch();
   const evaState = useSelector((state: RootState) => state.eva);
+
+  const newDate = new Date();
+  // check if newDate is today
 
   useEffect(() => {
     // console.log(evaState);
   }, [evaState]);
 
   return (
-    <div>
-      <h1>{evaState && evaState.eva.name}</h1>
+    <div className={paneStyles.panelContainer}>
+      <div className={styles.actionHeader}>
+        <div className={styles.select}>
+          <select>
+            <option value="">EVA 1</option>
+          </select>
+          <div className={styles.selectArrow}>
+            <FontAwesomeIcon icon="chevron-down" size="xs" />
+          </div>
+        </div>
+        <div className={styles.actionButtons}>
+          <div className={styles.actionButton}>
+            <FontAwesomeIcon icon="plus" />
+          </div>
+          <div className={styles.actionButton}>
+            <FontAwesomeIcon icon="gear" />
+          </div>
+        </div>
+      </div>
+
       <div className={styles.evaItems}>
         {evaState &&
           evaState.eva.evaItems.map((item) => {
+            let evaItemIcon = null;
+            if (item.type === "lander") {
+              evaItemIcon = (
+                <div className={styles.evaIndicator}>
+                  <div className={styles.iconLander} />
+                </div>
+              );
+            } else if (item.type === "station") {
+              evaItemIcon = (
+                <div className={styles.evaIndicator}>
+                  <div className={styles.iconStation} />
+                </div>
+              );
+            } else if (item.type === "traverse") {
+              evaItemIcon = (
+                <div className={styles.evaIndicator}>
+                  <div className={styles.iconTraverseContainer}>
+                    <div className={styles.iconTraverse} />
+                  </div>
+                </div>
+              );
+            }
+
             return (
-              <div
-                key={item.uuid}
-                className={item.type === "station" ? styles.evaStation : styles.evaTraverse}
-              >
-                <div>{item.name}</div>
-                <div className={styles.buttonGroup}>
-                  {item.triggerAction === null && (
-                    <button
-                      onClick={() => {
-                        if (!item.latLngJSON && !item.latLngsJSON) {
-                          dispatch(setEvaItemTriggerAction({ uuid: item.uuid, value: "create" }));
-                        } else {
-                          dispatch(setEvaItemTriggerAction({ uuid: item.uuid, value: "edit" }));
-                        }
-                      }}
-                    >
-                      {_.isNil(item.latLngJSON) && _.isNil(item.latLngsJSON) ? "Create" : "Edit"}
-                    </button>
-                  )}
-                  {item.triggerAction === "create" && (
-                    <button
-                      onClick={() => {
-                        dispatch(
-                          setEvaItemTriggerAction({ uuid: item.uuid, value: "cancelCreate" })
-                        );
-                      }}
-                    >
-                      Cancel Create
-                    </button>
-                  )}
-                  {item.triggerAction === "edit" && (
-                    <button
-                      onClick={() => {
-                        dispatch(setEvaItemTriggerAction({ uuid: item.uuid, value: "cancelEdit" }));
-                      }}
-                    >
-                      Cancel Edit
-                    </button>
-                  )}
-                  {item.triggerAction === "edit" && (
-                    <button
-                      onClick={() => {
-                        dispatch(setEvaItemTriggerAction({ uuid: item.uuid, value: "saveEdit" }));
-                      }}
-                    >
-                      Save Edit
-                    </button>
-                  )}
+              <div className={styles.evaItem} key={item.uuid}>
+                {evaItemIcon}
+                <div className={styles.evaItemInfoAndActions}>
+                  <div className={styles.evaItemName}>{item.name}</div>
+                  <div className={styles.evaItemButtons}>
+                    {item.triggerAction === null && (
+                      <button
+                        className={styles.evaItemButton}
+                        onClick={() => {
+                          if (!item.latLngJSON && !item.latLngsJSON) {
+                            dispatch(setEvaItemTriggerAction({ uuid: item.uuid, value: "create" }));
+                          } else {
+                            dispatch(setEvaItemTriggerAction({ uuid: item.uuid, value: "edit" }));
+                          }
+                        }}
+                      >
+                        <span className={styles.evaItemButtonLabel}>
+                          {_.isNil(item.latLngJSON) && _.isNil(item.latLngsJSON)
+                            ? "Create"
+                            : "Edit"}
+                        </span>
+                      </button>
+                    )}
+                    {item.triggerAction === "create" && (
+                      <button
+                        className={styles.evaItemButton}
+                        onClick={() => {
+                          dispatch(
+                            setEvaItemTriggerAction({ uuid: item.uuid, value: "cancelCreate" })
+                          );
+                        }}
+                      >
+                        <span className={styles.evaItemButtonLabel}>Cancel</span>
+                      </button>
+                    )}
+                    {item.triggerAction === "edit" && (
+                      <button
+                        className={styles.evaItemButton}
+                        onClick={() => {
+                          dispatch(
+                            setEvaItemTriggerAction({ uuid: item.uuid, value: "cancelEdit" })
+                          );
+                        }}
+                      >
+                        <span className={styles.evaItemButtonLabel}>Cancel</span>
+                      </button>
+                    )}
+                    {item.triggerAction === "edit" && (
+                      <button
+                        className={styles.evaItemButton}
+                        onClick={() => {
+                          dispatch(setEvaItemTriggerAction({ uuid: item.uuid, value: "saveEdit" }));
+                        }}
+                      >
+                        <span className={styles.evaItemButtonLabel}>Save</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );

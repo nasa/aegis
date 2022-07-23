@@ -6,7 +6,7 @@ export const initialState: EvaState = {
     name: "EVA 1",
     evaItems: [
       {
-        type: "station",
+        type: "lander",
         name: "Lander",
         uuid: "ca2ad4e2-5bbb-494b-b6a7-641eb91152ad",
         latLngJSON: null,
@@ -23,6 +23,34 @@ export const initialState: EvaState = {
         type: "station",
         name: "Station 1",
         uuid: "e58f1fae-ea2c-48e4-b205-942c641fa1b3",
+        latLngJSON: null,
+        triggerAction: null,
+      },
+      {
+        type: "traverse",
+        name: "Traverse 2",
+        uuid: "e58f1fae-ea2c-48e4-b205-942c641fa1b4",
+        latLngsJSON: null,
+        triggerAction: null,
+      },
+      {
+        type: "station",
+        name: "Station 2",
+        uuid: "e58f1fae-ea2c-48e4-b205-942c641fa1b5",
+        latLngJSON: null,
+        triggerAction: null,
+      },
+      {
+        type: "traverse",
+        name: "Traverse 3",
+        uuid: "e58f1fae-ea2c-48e4-b205-942c641fa1b6",
+        latLngsJSON: null,
+        triggerAction: null,
+      },
+      {
+        type: "lander",
+        name: "Lander",
+        uuid: "ca2ad4e2-5bbb-494b-b6a7-641eb91152a7",
         latLngJSON: null,
         triggerAction: null,
       },

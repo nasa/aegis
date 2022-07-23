@@ -38,10 +38,6 @@ const MapBody = () => {
   // const [uuidBeingEdited, setUuidBeingEdited] = useState(null);
   const uuidBeingEdited = useRef(null);
 
-  const getStateValTest = () => {
-    return uuidBeingEdited;
-  };
-
   const showMapLayers = () => {
     if (!mmgisConfig || !layerControls || !map) return;
 
@@ -93,7 +89,6 @@ const MapBody = () => {
             maxZoom: configSublayer.maxZoom,
             maxNativeZoom: configSublayer.maxNativeZoom,
             id: `${configSublayer.name}`,
-            pane: "newPane",
             opacity: 1,
             zIndex: index,
           }
@@ -261,20 +256,17 @@ const MapBody = () => {
 
       // trigger the map create / edit / cancel event
       if (evaItemWithEditTriggerSet.triggerAction === "create") {
-        if (evaItemWithEditTriggerSet.type === "station") {
+        if (evaItemWithEditTriggerSet.type === "traverse") {
+          drawHandlerRef.current = new L.Draw.Polyline(
+            map.current,
+            drawControlRef.current.options.polyline
+          ).enable();
+        } else {
           drawHandlerRef.current = new L.Draw.Marker(
             map.current,
             drawControlRef.current.options.marker
           );
           drawHandlerRef.current.enable();
-        } else {
-          new L.Draw.Polyline(map.current, drawControlRef.current.options.polyline).enable();
-
-          for (var drawMode in drawControlRef.current._toolbars.draw._modes) {
-            if (drawControlRef.current._toolbars.draw._modes.hasOwnProperty(drawMode)) {
-              console.log("drawmode:", drawMode);
-            }
-          }
         }
       } else if (evaItemWithEditTriggerSet.triggerAction === "cancelCreate") {
         console.log("cancelCreate");

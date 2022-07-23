@@ -47,6 +47,8 @@
 .sublayerTitle {
   flex: 1 1 auto;
   overflow-x: hidden;
+  text-overflow: ellipsis;
+  font-weight: 200;
 }
 
 .sublayerToolIcons {

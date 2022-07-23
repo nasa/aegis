@@ -5,7 +5,7 @@ import L from "leaflet";
 // Marker icon location
 L.Icon.Default.imagePath = "/leaflet/images/";
 
-import styles from "./map-body.module.css";
+import styles from "../interface/map-body.module.css";
 
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "store";
