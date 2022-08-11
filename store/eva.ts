@@ -10,49 +10,49 @@ export const initialState: EvaState = {
         name: "Lander",
         uuid: "ca2ad4e2-5bbb-494b-b6a7-641eb91152ad",
         latLngJSON: null,
-        triggerAction: null,
+        mapAction: null,
       },
       {
         type: "traverse",
         name: "Traverse 1",
         uuid: "e58f1fae-ea2c-48e4-b205-942c641fa1b2",
         latLngsJSON: null,
-        triggerAction: null,
+        mapAction: null,
       },
       {
         type: "station",
         name: "Station 1",
         uuid: "e58f1fae-ea2c-48e4-b205-942c641fa1b3",
         latLngJSON: null,
-        triggerAction: null,
+        mapAction: null,
       },
       {
         type: "traverse",
         name: "Traverse 2",
         uuid: "e58f1fae-ea2c-48e4-b205-942c641fa1b4",
         latLngsJSON: null,
-        triggerAction: null,
+        mapAction: null,
       },
       {
         type: "station",
         name: "Station 2",
         uuid: "e58f1fae-ea2c-48e4-b205-942c641fa1b5",
         latLngJSON: null,
-        triggerAction: null,
+        mapAction: null,
       },
       {
         type: "traverse",
         name: "Traverse 3",
         uuid: "e58f1fae-ea2c-48e4-b205-942c641fa1b6",
         latLngsJSON: null,
-        triggerAction: null,
+        mapAction: null,
       },
       {
         type: "lander",
         name: "Lander",
         uuid: "ca2ad4e2-5bbb-494b-b6a7-641eb91152a7",
         latLngJSON: null,
-        triggerAction: null,
+        mapAction: null,
       },
     ],
   },
@@ -84,10 +84,10 @@ export const evaSlice = createSlice({
         return evaItem;
       });
     },
-    setEvaItemTriggerAction: (state, action: { payload: { uuid: string; value: string } }) => {
+    setEvaItemMapAction: (state, action: { payload: { uuid: string; value: string } }) => {
       state.eva.evaItems = state.eva.evaItems.map((evaItem) => {
         if (evaItem.uuid === action.payload.uuid) {
-          return { ...evaItem, triggerAction: action.payload.value };
+          return { ...evaItem, mapAction: action.payload.value };
         }
         return evaItem;
       });
@@ -99,5 +99,5 @@ export const {
   appendEvaItem,
   updateStationLatLngJSON,
   updateTraverseLatLngsJSON,
-  setEvaItemTriggerAction,
+  setEvaItemMapAction,
 } = evaSlice.actions;

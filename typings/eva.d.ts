@@ -9,7 +9,7 @@ interface EvaItem {
   uuid: string;
   latLngJSON?: string;
   latLngsJSON?: string;
-  triggerAction: string;
+  mapAction: string;
 }
 
 interface PaneType {

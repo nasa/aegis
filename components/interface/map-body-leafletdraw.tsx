@@ -8,11 +8,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { MutableRefObject, useEffect, useRef, useState } from "react";
 import { RootState } from "store/index";
 import _ from "lodash";
-import {
-  setEvaItemTriggerAction,
-  updateStationLatLngJSON,
-  updateTraverseLatLngsJSON,
-} from "store/eva";
+import { setEvaItemMapAction, updateStationLatLngJSON, updateTraverseLatLngsJSON } from "store/eva";
 
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
@@ -188,7 +184,7 @@ const MapBody = () => {
         dispatch(updateTraverseLatLngsJSON({ uuid, latLngsJSON: JSON.stringify(latLngs) }));
       }
       uuidBeingEdited.current = null;
-      dispatch(setEvaItemTriggerAction({ uuid, value: null }));
+      dispatch(setEvaItemMapAction({ uuid, value: null }));
     });
 
     map.current.on("draw:edited", (e) => {
@@ -211,7 +207,7 @@ const MapBody = () => {
               })
             );
           }
-          dispatch(setEvaItemTriggerAction({ uuid: layer["uuid"], value: null }));
+          dispatch(setEvaItemMapAction({ uuid: layer["uuid"], value: null }));
         }
       });
     });
@@ -243,20 +239,20 @@ const MapBody = () => {
   useEffect(() => {
     if (!eva) return;
 
-    let evaItemWithEditTriggerSet = null;
+    let evaItemWithMapActionSet = null;
     eva.evaItems.map((evaItem) => {
-      if (evaItem.triggerAction) {
-        evaItemWithEditTriggerSet = evaItem;
+      if (evaItem.mapAction) {
+        evaItemWithMapActionSet = evaItem;
       }
     });
 
-    if (evaItemWithEditTriggerSet) {
+    if (evaItemWithMapActionSet) {
       // Set that evaItem edit is underway. This allows the correct item to be updated when the L Draw action is completed
-      uuidBeingEdited.current = evaItemWithEditTriggerSet.uuid;
+      uuidBeingEdited.current = evaItemWithMapActionSet.uuid;
 
       // trigger the map create / edit / cancel event
-      if (evaItemWithEditTriggerSet.triggerAction === "create") {
-        if (evaItemWithEditTriggerSet.type === "traverse") {
+      if (evaItemWithMapActionSet.triggerAction === "create") {
+        if (evaItemWithMapActionSet.type === "traverse") {
           drawHandlerRef.current = new L.Draw.Polyline(
             map.current,
             drawControlRef.current.options.polyline
@@ -268,16 +264,16 @@ const MapBody = () => {
           );
           drawHandlerRef.current.enable();
         }
-      } else if (evaItemWithEditTriggerSet.triggerAction === "cancelCreate") {
+      } else if (evaItemWithMapActionSet.triggerAction === "cancelCreate") {
         console.log("cancelCreate");
         drawHandlerRef.current.disable();
         clearAction();
-      } else if (evaItemWithEditTriggerSet.triggerAction === "edit") {
+      } else if (evaItemWithMapActionSet.triggerAction === "edit") {
         drawControlRef.current._toolbars.edit._modes.edit.handler.enable();
-      } else if (evaItemWithEditTriggerSet.triggerAction === "cancelEdit") {
+      } else if (evaItemWithMapActionSet.triggerAction === "cancelEdit") {
         drawControlRef.current._toolbars.edit._modes.edit.handler.disable();
         clearAction();
-      } else if (evaItemWithEditTriggerSet.triggerAction === "saveEdit") {
+      } else if (evaItemWithMapActionSet.triggerAction === "saveEdit") {
         drawControlRef.current._toolbars.edit._modes.edit.handler.save();
         drawControlRef.current._toolbars.edit._modes.edit.handler.disable();
         clearAction();
@@ -285,7 +281,7 @@ const MapBody = () => {
     }
 
     function clearAction() {
-      dispatch(setEvaItemTriggerAction({ uuid: evaItemWithEditTriggerSet.uuid, value: null }));
+      dispatch(setEvaItemMapAction({ uuid: evaItemWithMapActionSet.uuid, value: null }));
       uuidBeingEdited.current = null;
     }
   }, [eva]);

@@ -10,11 +10,7 @@ import styles from "../interface/map-body.module.css";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "store";
 import { EditControl } from "react-leaflet-draw";
-import {
-  setEvaItemTriggerAction,
-  updateStationLatLngJSON,
-  updateTraverseLatLngsJSON,
-} from "store/eva";
+import { setEvaItemMapAction, updateStationLatLngJSON, updateTraverseLatLngsJSON } from "store/eva";
 
 const layerBaseURL = `http://192.168.0.5:8005/NASA_AEGIS/Missions/`;
 
@@ -98,7 +94,7 @@ export default function MapBody() {
 
     let evaItemWithEditTriggerSet = null;
     eva.evaItems.map((evaItem) => {
-      if (evaItem.triggerAction) {
+      if (evaItem.mapAction) {
         evaItemWithEditTriggerSet = evaItem;
       }
     });
@@ -133,7 +129,7 @@ export default function MapBody() {
     }
 
     function clearAction() {
-      dispatch(setEvaItemTriggerAction({ uuid: evaItemWithEditTriggerSet.uuid, value: null }));
+      dispatch(setEvaItemMapAction({ uuid: evaItemWithEditTriggerSet.uuid, value: null }));
       uuidBeingEdited.current = null;
     }
   }, [eva, editRef, dispatch, map]);
@@ -168,7 +164,7 @@ export default function MapBody() {
         dispatch(updateTraverseLatLngsJSON({ uuid, latLngsJSON: JSON.stringify(latLngs) }));
       }
       uuidBeingEdited.current = null;
-      dispatch(setEvaItemTriggerAction({ uuid, value: null }));
+      dispatch(setEvaItemMapAction({ uuid, value: null }));
     };
 
     const _onEdit = (e: any) => {
@@ -191,7 +187,7 @@ export default function MapBody() {
               })
             );
           }
-          dispatch(setEvaItemTriggerAction({ uuid: layer["uuid"], value: null }));
+          dispatch(setEvaItemMapAction({ uuid: layer["uuid"], value: null }));
         }
       });
     };

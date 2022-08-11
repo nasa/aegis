@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "store";
 import styles from "./eva_planner.module.css";
 import paneStyles from "../left_pane_styles.module.css";
-import { setEvaItemTriggerAction } from "store/eva";
+import { setEvaItemMapAction } from "store/eva";
 import _ from "lodash";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -75,53 +75,47 @@ const EvaPlanner = () => {
                 <div className={styles.evaItemInfoAndActions}>
                   <div className={styles.evaItemName}>{item.name}</div>
                   <div className={styles.evaItemButtons}>
-                    {item.triggerAction === null && (
+                    {item.mapAction === null && (
                       <button
                         className={styles.evaItemButton}
                         onClick={() => {
                           if (!item.latLngJSON && !item.latLngsJSON) {
-                            dispatch(setEvaItemTriggerAction({ uuid: item.uuid, value: "create" }));
+                            dispatch(setEvaItemMapAction({ uuid: item.uuid, value: "create" }));
                           } else {
-                            dispatch(setEvaItemTriggerAction({ uuid: item.uuid, value: "edit" }));
+                            dispatch(setEvaItemMapAction({ uuid: item.uuid, value: "edit" }));
                           }
                         }}
                       >
                         <span className={styles.evaItemButtonLabel}>
-                          {_.isNil(item.latLngJSON) && _.isNil(item.latLngsJSON)
-                            ? "Create"
-                            : "Edit"}
+                          {_.isNil(item.latLngJSON) && _.isNil(item.latLngsJSON) ? "Draw" : "Edit"}
                         </span>
                       </button>
                     )}
-                    {item.triggerAction === "create" && (
+                    {item.mapAction === "create" && (
                       <button
                         className={styles.evaItemButton}
                         onClick={() => {
-                          dispatch(
-                            setEvaItemTriggerAction({ uuid: item.uuid, value: "cancelCreate" })
-                          );
+                          dispatch(setEvaItemMapAction({ uuid: item.uuid, value: "cancelCreate" }));
                         }}
                       >
                         <span className={styles.evaItemButtonLabel}>Cancel</span>
                       </button>
                     )}
-                    {item.triggerAction === "edit" && (
+                    {item.mapAction === "edit" && (
                       <button
                         className={styles.evaItemButton}
                         onClick={() => {
-                          dispatch(
-                            setEvaItemTriggerAction({ uuid: item.uuid, value: "cancelEdit" })
-                          );
+                          dispatch(setEvaItemMapAction({ uuid: item.uuid, value: "cancelEdit" }));
                         }}
                       >
                         <span className={styles.evaItemButtonLabel}>Cancel</span>
                       </button>
                     )}
-                    {item.triggerAction === "edit" && (
+                    {item.mapAction === "edit" && (
                       <button
                         className={styles.evaItemButton}
                         onClick={() => {
-                          dispatch(setEvaItemTriggerAction({ uuid: item.uuid, value: "saveEdit" }));
+                          dispatch(setEvaItemMapAction({ uuid: item.uuid, value: "saveEdit" }));
                         }}
                       >
                         <span className={styles.evaItemButtonLabel}>Save</span>
