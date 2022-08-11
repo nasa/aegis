@@ -15,7 +15,7 @@ import _ from "lodash";
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
 const zoom = 13;
 
-const layerBaseURL = `http://192.168.0.5:8005/NASA_AEGIS/Missions/`;
+const layerBaseURL = process.env.NEXT_PUBLIC_LAYER_BASE_URL;
 
 const Geoman = () => {
   const mapRef = useRef(null);

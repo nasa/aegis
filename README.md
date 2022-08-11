@@ -2,10 +2,12 @@
 
 ## Getting Started
 
-Run the development server:
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:4000](http://localhost:4000) with your browser.
+1. We're not using docker-compose yet, but will be, so get Docker Desktop. These instructions will manually setup a PostgreSQL database in a container for now.
+2. Run a PostGIS image. We don't actually need PostGIS (just regular Postgres) but MMGIS does and using this minimizes error messages. Make the password anything you like, but make sure it matches what you put in `.env` later:
+   `docker run -p 127.0.0.1:5432:5432/tcp --name aegis-postgres -e POSTGRES_PASSWORD=mysecretpassword -d postgis/postgis:14-3.2-alpine`
+3. Download a baseline SQL file from https://emss-labs.fit.nasa.gov/public/mmgis.sql, and put it in the `.docker` folder in this repo.
+4. Copy SQL file to container: `docker cp ./.docker/mmgis.sql aegis-postgres:/mmgis.sql`
+5. Create MMGIS database and populate it with dump: `docker exec -ti aegis-postgres sh -c "psql -U postgres -c 'create database mmgis;' && psql -U postgres mmgis < /mmgis.sql"`
+6. Create `.env` by copying `.env.example` and making the DB password be whatever you used in step 2.
+6. Start dev server: `npm run dev`
+7. Open [http://localhost:4000](http://localhost:4000) with your browser. In dev, theoretically username and password are both `admin`. In practice that doesn't work.

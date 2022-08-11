@@ -18,7 +18,7 @@
 // const center = new mapboxgl.LngLat(-16.378351, 64.833445); // Iceland
 // const zoom = 11;
 
-// const layerBaseURL = `http://192.168.0.5:8005/NASA_AEGIS/Missions/`;
+// const layerBaseURL = process.env.NEXT_PUBLIC_LAYER_BASE_URL;
 
 // const MapBody = () => {
 //   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig.MMGISConfig);
