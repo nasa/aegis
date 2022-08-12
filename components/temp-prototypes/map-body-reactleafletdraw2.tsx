@@ -12,7 +12,7 @@ import { RootState } from "store";
 import { EditControl } from "react-leaflet-draw";
 import { setEvaItemMapAction, updateStationLatLngJSON, updateTraverseLatLngsJSON } from "store/eva";
 
-const layerBaseURL = `http://192.168.0.5:8005/NASA_AEGIS/Missions/`;
+const layerBaseURL = process.env.NEXT_PUBLIC_LAYER_BASE_URL;
 
 const TileLayers = ({
   mmgisConfig,
