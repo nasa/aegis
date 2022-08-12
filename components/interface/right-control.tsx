@@ -2,9 +2,13 @@ import styles from "./right-control.module.css";
 import { useSelector } from "react-redux";
 import { RootState } from "store";
 
+/* This control sits at the right side of the screen and displays the active pane for that position */
+
 const Info = () => {
   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig);
   const config = mmgisConfig?.MMGISConfig?.config;
+
+  //Placeholder component for info
   return (
     <div className={styles.info}>
       <div>{config?.msv?.mission} Info:</div>
