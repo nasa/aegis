@@ -23,7 +23,7 @@
 
 .leftControl {
   flex: 0 0 350px;
-  border-right: 1px solid var(--dark-grey);
+  border-right: 1px solid var(--grey1);
   height: 100%;
 }
 
@@ -34,11 +34,11 @@
 
 .rightControl {
   flex: 0 0 350px;
-  border-left: 1px solid var(--dark-grey);
+  border-left: 1px solid var(--grey1);
   height: 100%;
 }
 
 .timeline {
   height: 162px;
-  border-top: 1px solid var(--dark-grey);
+  border-top: 1px solid var(--grey1);
 }

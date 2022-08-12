@@ -24,6 +24,8 @@ const paneTypes: PaneTypes = {
   },
 };
 
+/* This control sits at the left side of the screen and loads the selected component based on the NavGutter icon selected */
+
 const LeftControlPanel = () => {
   const [selectedNavItem, setSelectedNavItem] = useState("eva_planner");
 

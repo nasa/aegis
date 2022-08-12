@@ -119,8 +119,8 @@
 
   width: 45px;
   height: 18px;
-  background-color: var(--even-greyer);
-  color: var(--lighter-grey);
+  background-color: var(--grey4);
+  color: var(--grey2);
   border: none;
   border-radius: var(--radius);
   font-size: 11px;

@@ -35,7 +35,7 @@
 }
 
 .description > p {
-  color: var(--even-greyer);
+  color: var(--grey4);
 }
 
 .description .strong {
@@ -114,12 +114,12 @@
 }
 
 .aboutSection a {
-  color: var(--even-greyer);
+  color: var(--grey4);
   text-decoration: none;
 }
 
 .aboutSection .smallText {
-  color: var(--even-greyer);
+  color: var(--grey4);
   font-size: 0.9em;
   text-decoration: underline;
 }
@@ -129,7 +129,7 @@
 }
 
 .aboutSection .teamTitle {
-  color: var(--even-greyer);
+  color: var(--grey4);
   font-size: 0.9em;
 }
 
@@ -196,8 +196,8 @@
 }
 
 .table tr:first-child {
-  color: var(--extremely-grey);
-  border-bottom: var(--extremely-grey) 1px solid;
+  color: var(--grey3);
+  border-bottom: var(--grey3) 1px solid;
 }
 
 .table td:first-child {

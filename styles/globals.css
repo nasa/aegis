@@ -16,17 +16,7 @@ body {
 }
 
 :root {
-  --even-greyer: #abaaae;
-  --extremely-grey: #898989;
-  --lightest-grey: #4a4c57;
-  --light-grey: #4c4e5b;
-  --lighter-grey: #474955;
-  --slightly-lighter-grey: #393641;
-  --grey: #383a45;
-  --dark-grey: #313131;
-  --very-dark-grey: #242424;
-  --nearly-black: #19181b;
-
+  --grey0: #242424;
   --grey1: #313440;
   --grey2: #424653;
   --grey3: #898989;
