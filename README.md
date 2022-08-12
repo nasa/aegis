@@ -9,5 +9,5 @@
 4. Copy SQL file to container: `docker cp ./.docker/mmgis.sql aegis-postgres:/mmgis.sql`
 5. Create MMGIS database and populate it with dump: `docker exec -ti aegis-postgres sh -c "psql -U postgres -c 'create database mmgis;' && psql -U postgres mmgis < /mmgis.sql"`
 6. Create `.env` by copying `.env.example` and making the DB password be whatever you used in step 2.
-6. Start dev server: `npm run dev`
-7. Open [http://localhost:4000](http://localhost:4000) with your browser. In dev, theoretically username and password are both `admin`. In practice that doesn't work.
+7. Start dev server: `npm run dev`
+8. Open [http://localhost:4000](http://localhost:4000) with your browser. In dev, username and password are both `admin`.
