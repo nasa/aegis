@@ -242,7 +242,7 @@ const MapBody = () => {
     let evaItemWithMapActionSet = null;
     eva.evaItems.map((evaItem) => {
       if (evaItem.mapAction) {
-        evaItemWithMapActionSet = evaItem.mapAction;
+        evaItemWithMapActionSet = evaItem;
       }
     });
     console.log("evaItemWithMapActionSet", evaItemWithMapActionSet);
@@ -252,7 +252,7 @@ const MapBody = () => {
       uuidBeingEdited.current = evaItemWithMapActionSet.uuid;
 
       // trigger the map create / edit / cancel event
-      if (evaItemWithMapActionSet.triggerAction === "create") {
+      if (evaItemWithMapActionSet.mapAction === "create") {
         if (evaItemWithMapActionSet.type === "traverse") {
           drawHandlerRef.current = new L.Draw.Polyline(
             map.current,
@@ -262,19 +262,19 @@ const MapBody = () => {
           drawHandlerRef.current = new L.Draw.Marker(
             map.current,
             drawControlRef.current.options.marker
-          ).enable();
+          );
           drawHandlerRef.current.enable();
         }
-      } else if (evaItemWithMapActionSet.triggerAction === "cancelCreate") {
+      } else if (evaItemWithMapActionSet.mapAction === "cancelCreate") {
         console.log("cancelCreate");
         drawHandlerRef.current.disable();
         clearAction();
-      } else if (evaItemWithMapActionSet.triggerAction === "edit") {
+      } else if (evaItemWithMapActionSet.mapAction === "edit") {
         drawControlRef.current._toolbars.edit._modes.edit.handler.enable();
-      } else if (evaItemWithMapActionSet.triggerAction === "cancelEdit") {
+      } else if (evaItemWithMapActionSet.mapAction === "cancelEdit") {
         drawControlRef.current._toolbars.edit._modes.edit.handler.disable();
         clearAction();
-      } else if (evaItemWithMapActionSet.triggerAction === "saveEdit") {
+      } else if (evaItemWithMapActionSet.mapAction === "saveEdit") {
         drawControlRef.current._toolbars.edit._modes.edit.handler.save();
         drawControlRef.current._toolbars.edit._modes.edit.handler.disable();
         clearAction();
