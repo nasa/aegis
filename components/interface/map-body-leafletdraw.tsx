@@ -242,9 +242,10 @@ const MapBody = () => {
     let evaItemWithMapActionSet = null;
     eva.evaItems.map((evaItem) => {
       if (evaItem.mapAction) {
-        evaItemWithMapActionSet = evaItem;
+        evaItemWithMapActionSet = evaItem.mapAction;
       }
     });
+    console.log("evaItemWithMapActionSet", evaItemWithMapActionSet);
 
     if (evaItemWithMapActionSet) {
       // Set that evaItem edit is underway. This allows the correct item to be updated when the L Draw action is completed
@@ -261,7 +262,7 @@ const MapBody = () => {
           drawHandlerRef.current = new L.Draw.Marker(
             map.current,
             drawControlRef.current.options.marker
-          );
+          ).enable();
           drawHandlerRef.current.enable();
         }
       } else if (evaItemWithMapActionSet.triggerAction === "cancelCreate") {
@@ -278,6 +279,7 @@ const MapBody = () => {
         drawControlRef.current._toolbars.edit._modes.edit.handler.disable();
         clearAction();
       }
+      console.log("drawControlRef.current", drawControlRef.current);
     }
 
     function clearAction() {
@@ -295,18 +297,18 @@ const MapBody = () => {
 
 export default MapBody;
 
-const isLayerOnMapByName = (mapRef: MutableRefObject<any>, name: string) => {
+const isLayerOnMapByName = (map: MutableRefObject<any>, name: string) => {
   let layerFound = false;
-  mapRef.current.eachLayer((layer) => {
+  map.current.eachLayer((layer) => {
     if (layer.options.id === name) layerFound = true;
   });
   return layerFound;
 };
 
-const getLayerByName = (mapRef: MutableRefObject<any>, name: string) => {
+const getLayerByName = (map: MutableRefObject<any>, name: string) => {
   let returnVal = null;
 
-  mapRef.current.eachLayer((layer) => {
+  map.current.eachLayer((layer) => {
     if (layer.options.id === name) returnVal = layer;
   });
   return returnVal;
