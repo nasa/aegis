@@ -11,6 +11,7 @@ services:
     hostname: aegis-local.fit.nasa.gov
     ports:
       - "4000:4000"
+      - "9229:9229"
     volumes:
       - ./:/app
     networks:
