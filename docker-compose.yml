@@ -15,24 +15,22 @@ services:
       - ./:/app
     networks:
       - aegis-network
-  postgres:
-    image: postgres:14.4-alpine
-    container_name: aegis_postgres
+  postgis:
+    image: postgis/postgis:14-3.2-alpine
+    container_name: aegis_postgis
     restart: unless-stopped
     tty: true
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: posty
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postagresgetthemess
       POSTGRES_DB: aegis
     volumes:
       - ./:/app
+      - ./.docker/mmgis.sql:/docker-entrypoint-initdb.d/mmgis.sql
     networks:
       - aegis-network
-  postgis:
-    image: postgis/postgis:14-3.2-alpine
-    container_name: aegis_postgis
 
 #Docker Networks
 networks:
