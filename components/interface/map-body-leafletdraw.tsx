@@ -5,7 +5,7 @@ import "leaflet-draw";
 import styles from "components/interface/map-body.module.css";
 
 import { useSelector, useDispatch } from "react-redux";
-import { MutableRefObject, useEffect, useRef, useState } from "react";
+import { MutableRefObject, useEffect, useRef, useState, useCallback } from "react";
 import { RootState } from "store/index";
 import _ from "lodash";
 import { setEvaItemMapAction, updateStationLatLngJSON, updateTraverseLatLngsJSON } from "store/eva";
@@ -23,7 +23,6 @@ const MapBody = () => {
   const drawControlRef = useRef(null);
   const drawHandlerRef = useRef(null);
   const drawnItemsRef = useRef(null);
-  // const displayedItemsRef = useRef(null);
 
   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig.MMGISConfig);
   const layerControls = useSelector((state: RootState) => state.map.layerControls);
@@ -34,7 +33,7 @@ const MapBody = () => {
   // const [uuidBeingEdited, setUuidBeingEdited] = useState(null);
   const uuidBeingEdited = useRef(null);
 
-  const showMapLayers = () => {
+  const showMapLayers = useCallback(() => {
     if (!mmgisConfig || !layerControls || !map) return;
 
     // go through all layers in mission config and add make a list of the ones that are enabled
@@ -97,18 +96,18 @@ const MapBody = () => {
         layer.bringToFront();
       }
     });
-  };
+  }, [layerControls, layersOnMap, mmgisConfig]);
 
   /**
    * Map tile layers display management
    */
   useEffect(() => {
     showMapLayers();
-  }, []);
+  }, [showMapLayers]);
 
   useEffect(() => {
     showMapLayers();
-  }, [mmgisConfig, layerControls, map, layersOnMap]);
+  }, [mmgisConfig, layerControls, map, layersOnMap, showMapLayers]);
 
   /**
    * Map events management
@@ -218,7 +217,7 @@ const MapBody = () => {
         map.current.remove();
       }
     };
-  }, [mmgisConfig, mapRef, drawControlRef]);
+  }, [mmgisConfig, mapRef, drawControlRef, dispatch]);
 
   useEffect(() => {
     /**
@@ -286,7 +285,7 @@ const MapBody = () => {
       dispatch(setEvaItemMapAction({ uuid: evaItemWithMapActionSet.uuid, value: null }));
       uuidBeingEdited.current = null;
     }
-  }, [eva]);
+  }, [eva, dispatch]);
 
   return (
     <>
