@@ -23,7 +23,7 @@ const MapBody = () => {
   const drawControlRef = useRef(null);
   const drawHandlerRef = useRef(null);
   const drawnItemsRef = useRef(null);
-  const displayedItemsRef = useRef(null);
+  // const displayedItemsRef = useRef(null);
 
   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig.MMGISConfig);
   const layerControls = useSelector((state: RootState) => state.map.layerControls);

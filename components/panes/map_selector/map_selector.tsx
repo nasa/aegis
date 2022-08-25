@@ -21,7 +21,7 @@ import { library } from "@fortawesome/fontawesome-svg-core";
 library.add(faCaretDown, faCaretRight, faEye, faEyeSlash, faCircleInfo, faSliders);
 
 export default function MapSelector() {
-  const dispatch = useDispatch();
+  // const dispatch = useDispatch();
   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig);
   const layerControls = useSelector((state: RootState) => state.map.layerControls);
 
