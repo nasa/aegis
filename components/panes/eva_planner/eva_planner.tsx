@@ -15,9 +15,6 @@ const EvaPlanner = () => {
   const dispatch = useDispatch();
   const evaState = useSelector((state: RootState) => state.eva);
 
-  const newDate = new Date();
-  // check if newDate is today
-
   useEffect(() => {
     // console.log(evaState);
   }, [evaState]);

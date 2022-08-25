@@ -7,14 +7,14 @@ import { library } from "@fortawesome/fontawesome-svg-core";
 library.add(faCaretDown, faCaretRight);
 
 export default function UserMapImageryPresets({ expandedSections, setExpandedSections }) {
-  const placeholderPresets = {
-    user1: {
-      name: "My Preset 1",
-    },
-    user2: {
-      name: "My Preset 2",
-    },
-  };
+  // const placeholderPresets = {
+  //   user1: {
+  //     name: "My Preset 1",
+  //   },
+  //   user2: {
+  //     name: "My Preset 2",
+  //   },
+  // };
 
   return (
     <div className={paneStyles.panelContainer}>
