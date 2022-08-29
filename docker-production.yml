@@ -1,5 +1,24 @@
 version: "3"
 services:
+  nginx:
+    image: nginx:1.15
+    container_name: aegis_nginx
+    restart: unless-stopped
+    volumes:
+      - ./.docker/nginx:/etc/nginx/conf.d
+      - /var/www/:/var/www/
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - app-tier
+    links:
+      - php-fpm
+      - node-gyro
+      - node-nutrition
+      - node-tui
+      - node-sva
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
   node:
     image: node:16
     container_name: aegis_node
