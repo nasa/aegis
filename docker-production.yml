@@ -1,46 +1,14 @@
 version: "3"
 services:
-  nginx:
-    image: nginx:1.15
-    container_name: aegis_nginx
-    restart: unless-stopped
-    volumes:
-      - ./.docker/nginx:/etc/nginx/conf.d
-      - /var/www/:/var/www/
-    ports:
-      - "80:80"
-      - "443:443"
-    networks:
-      - app-tier
-    links:
-      - php-fpm
-      - node-gyro
-      - node-nutrition
-      - node-tui
-      - node-sva
-    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
   node:
-    image: node:16
-    container_name: aegis_node
-    tty: true
-    user: "node"
     command: bash -c "npm install && npm run build && npm run start"
     restart: always
-    build: ./
-    working_dir: /app
-    stdin_open: true
-    hostname: aegis-local.fit.nasa.gov
     volumes:
       - ./:/app
     ports:
       - "3000:3000"
-    networks:
-      - aegis-network
   postgis:
-    image: postgis/postgis:14-3.2-alpine
-    container_name: aegis_postgis
     restart: always
-    tty: true
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postagresgetthemess

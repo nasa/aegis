@@ -1,5 +1,18 @@
 version: "3"
 services:
+  nginx:
+    image: nginx:1.23.1-alpine
+    container_name: aegis_web
+    restart: unless-stopped
+    volumes:
+      - ./.docker/nginx:/etc/nginx/conf.d
+      - /var/www/:/var/www/
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - aegis-network
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
   node:
     image: node:16
     container_name: aegis_node
@@ -21,18 +34,11 @@ services:
     container_name: aegis_postgis
     restart: unless-stopped
     tty: true
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postagresgetthemess
-      POSTGRES_DB: aegis
     volumes:
       - ./:/app
       - ./.docker/mmgis.sql:/docker-entrypoint-initdb.d/mmgis.sql
     networks:
       - aegis-network
-
 #Docker Networks
 networks:
   aegis-network:
