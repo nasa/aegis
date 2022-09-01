@@ -197,7 +197,7 @@ const Left = () => {
         <div className={styles.description}>
           <div className={styles.strong}>Artemis EVA Geographic Information System</div>
           <p>
-            Making maps do things we like and other meaningful and useful for EVA. <br />A collaboration between JSC XI, CX, SK
+            Making maps meaningful and useful for EVA. <br />A collaboration between JSC XI, CX, SK
             and JPL.
           </p>
         </div>
