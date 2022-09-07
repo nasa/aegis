@@ -1,13 +1,13 @@
 import type { NextPage } from "next";
-import dynamic from "next/dynamic";
+// import dynamic from "next/dynamic";
 import styles from "./geoman.module.css";
 
-const Geoman = dynamic(() => import("components/temp-prototypes/geoman"), { ssr: false });
+// const Geoman = dynamic(() => import("components/temp-prototypes/geoman"), { ssr: false });
 
 const Home: NextPage = () => {
   return (
     <div className={styles.container}>
-      <Geoman />
+      {/*<Geoman />*/}
     </div>
   );
 };
