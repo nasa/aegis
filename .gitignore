@@ -38,3 +38,6 @@ yarn-error.log*
 
 .docker
 .idea
+
+# Test coverage file
+junit.xml
