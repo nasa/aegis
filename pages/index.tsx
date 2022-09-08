@@ -321,7 +321,7 @@ const Home: NextPage = () => {
   return (
     <>
       <Head>
-        <title>{process.env.NEXT_PUBLIC_TITLE}</title>
+        <title>AEGIS</title>
       </Head>
       <div className={styles.main}>
         <Left />

@@ -10,9 +10,9 @@ services:
   postgis:
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postagresgetthemess
-      POSTGRES_DB: aegis
+      POSTGRES_USER: ${AEGIS_DB_USER}
+      POSTGRES_PASSWORD: ${AEGIS_DB_PASS}
+      POSTGRES_DB: ${AEGIS_DB_NAME}
     volumes:
       - ./:/app
       - ./.docker/mmgis.sql:/docker-entrypoint-initdb.d/mmgis.sql
