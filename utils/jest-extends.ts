@@ -1,3 +1,5 @@
+import { expect } from '@jest/globals';
+
 /**
  * Custom maters for the jest testing framework.
  * see typings/index.d.ts for the TS interface
