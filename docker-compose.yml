@@ -40,7 +40,6 @@ services:
     tty: true
     volumes:
       - ./:/app
-      - ./.docker/mmgis.sql:/docker-entrypoint-initdb.d/mmgis.sql
     networks:
       - aegis-network
 #Docker Networks

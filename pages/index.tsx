@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import styles from "./index.module.css";
-import { login, isLoggedIn, logout, getConfigs, getConfig } from "http-client/internal-api";
+import { login, isLoggedIn, logout, getMissions, getMission } from "http-client/internal-api";
 import type { RootState } from "store";
 import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/user";
 import { setMMGISConfig } from "store/mmgis";
@@ -22,7 +22,6 @@ const Login = () => {
 
   const handleLoginButtonClick = async () => {
     const response = await login(username, password);
-    console.log(response);
     if (response.status === "success") {
       dispatch(setIsLoggedIn(true));
       dispatch(setIronSessionData(response.data));
@@ -84,7 +83,7 @@ const MissionSelect = () => {
 
   useEffect(() => {
     (async () => {
-      const response = await getConfigs();
+      const response = await getMissions();
       setmissions(response.data);
     })();
   }, []);
@@ -98,11 +97,11 @@ const MissionSelect = () => {
     }
   };
 
-  const handleMissionSelectClick = (mission: string) => {
+  const handleMissionSelectClick = (mission: number) => {
     (async () => {
-      const response = await getConfig(mission);
+      const response = await getMission(mission);
       if (response.data) {
-        dispatch(setMMGISConfig(response.data));
+        dispatch(setMMGISConfig(response.data[0]));
       }
       router.push(`/main`);
     })();
@@ -136,8 +135,7 @@ const MissionSelect = () => {
                         <button
                           className={styles.tableButton}
                           onClick={() => {
-                            console.log("yo");
-                            handleMissionSelectClick(mission.mission);
+                            handleMissionSelectClick(mission.id);
                           }}
                         >
                           Select

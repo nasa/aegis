@@ -11,13 +11,24 @@
     "test": "jest",
     "test:all": "npm run lint && npm run tsc && npm run build && npm run test",
     "test:coverage": "jest --coverage --reporters=default --reporters=jest-junit",
-    "postinstall": "sh scripts/postinstall"
+    "postinstall": "sh scripts/postinstall",
+    "seed": "npx mikro-orm seeder:run",
+    "migrate:up": "npx mikro-orm migration:up",
+    "migrate:down": "npx mikro-orm migration:down"
   },
   "dependencies": {
+    "@babel/plugin-proposal-class-properties": "^7.18.6",
+    "@babel/plugin-proposal-private-methods": "^7.18.6",
+    "@babel/plugin-proposal-private-property-in-object": "^7.18.6",
     "@fortawesome/fontawesome-svg-core": "^6.1.1",
     "@fortawesome/free-regular-svg-icons": "^6.1.1",
     "@fortawesome/free-solid-svg-icons": "^6.1.1",
     "@fortawesome/react-fontawesome": "^0.2.0",
+    "@mikro-orm/cli": "5.3.1",
+    "@mikro-orm/core": "5.3.1",
+    "@mikro-orm/migrations": "5.3.1",
+    "@mikro-orm/postgresql": "5.3.1",
+    "@mikro-orm/seeder": "5.3.1",
     "@react-leaflet/core": "^2.0.0",
     "@reduxjs/toolkit": "^1.8.3",
     "bcryptjs": "^2.4.3",
@@ -27,7 +38,6 @@
     "next": "12.2.2",
     "next-redux-wrapper": "^7.0.5",
     "paper": "^0.12.15",
-    "pg": "^8.7.3",
     "pg-hstore": "^2.3.4",
     "prop-types": "^15.8.1",
     "react": "^18.2.0",
@@ -36,17 +46,22 @@
     "react-leaflet-draw": "^0.20.1",
     "react-range": "^1.8.14",
     "react-slider": "^2.0.1",
-    "sequelize": "^6.21.3",
+    "reflect-metadata": "^0.1.13",
+    "sqlite3": "^5.0.11",
+    "ts-node": "^10.9.1",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
-    "@types/jest": "^29.0.0",
+    "@babel/plugin-proposal-decorators": "^7.19.0",
+    "@types/jest": "^29.0.1",
     "@types/leaflet": "^1.7.11",
     "@types/leaflet-draw": "^1.0.5",
     "@types/lodash": "^4.14.182",
-    "@types/node": "18.0.6",
+    "@types/node": "^18.0.6",
     "@types/react": "18.0.15",
     "@types/react-dom": "18.0.6",
+    "@types/validator": "^13.7.6",
+    "@types/webpack-env": "^1.18.0",
     "@typescript-eslint/eslint-plugin": "^5.30.7",
     "eslint": "8.20.0",
     "eslint-config-next": "12.2.2",
@@ -54,5 +69,12 @@
     "jest-junit": "^14.0.1",
     "ts-jest": "^28.0.8",
     "typescript": "4.7.4"
+  },
+  "mikro-orm": {
+    "useTsNode": true,
+    "tsConfigPath": "./tsconfig.orm.json",
+    "configPaths": [
+      "mikro-orm.config.ts"
+    ]
   }
 }

@@ -3,10 +3,12 @@ import { withIronSessionApiRoute } from "iron-session/next";
 import bcrypt from "bcryptjs";
 
 import { ironOptions } from "server/session/config";
-import { User } from "server/db/Users/models/user";
+import { User } from "server/database/models/user.model";
 import type { IronSessionData } from "iron-session";
 
-export default withIronSessionApiRoute(handler, ironOptions);
+import Mikro from "utils/mikro";
+
+export default withIronSessionApiRoute(Mikro.withORM(handler), ironOptions);
 
 async function handler(
   req: NextApiRequest,
@@ -35,13 +37,8 @@ async function login(
   username: string,
   password: string
 ): Promise<WrappedResponse<IronSessionData>> {
-  const user = await User.findOne({
-    where: {
-      username: username,
-    },
-    attributes: ["id", "username", "email", "password", "permission"],
-  });
-
+  const model = Mikro.getEM();
+  const user = await model.findOne(User, { username });
   if (!user) {
     return { status: "failure", message: "No such user." };
   } else {
