@@ -4,18 +4,18 @@ import { User } from "./server/database/models/user.model";
 import path from "path";
 
 const config: Options = {
-    dbName: process.env.AEGIS_DB_NAME,
-    type: "postgresql",
-    password: process.env.AEGIS_DB_PASS,
-    migrations: {
-        path: path.join(__dirname, "./server/database/migrations"), // path to the folder with migrations
-    },
-    seeder: {
-        path: path.join(__dirname, "./server/database/seeds"), // path to the folder with seed files
-    },
-    entitiesTs: [Mission, User],
-    entities: [Mission, User],
-    debug: process.env.DEBUG === "true" || process.env.DEBUG?.includes("db"),
+  dbName: process.env.AEGIS_DB_NAME,
+  type: "postgresql",
+  password: process.env.AEGIS_DB_PASS,
+  migrations: {
+    path: path.join(__dirname, "./server/database/migrations"), // path to the folder with migrations
+  },
+  seeder: {
+    path: path.join(__dirname, "./server/database/seeds"), // path to the folder with seed files
+  },
+  entitiesTs: [Mission, User],
+  entities: [Mission, User],
+  debug: process.env.DEBUG === "true" || process.env.DEBUG?.includes("db"),
 };
 
 export default config;
