@@ -1,12 +1,12 @@
 import { Options } from "@mikro-orm/core";
-import { Mission } from "server/database/models/mission.model";
-import { User } from "server/database/models/user.model";
+import { Mission } from "./server/database/models/mission.model";
+import { User } from "./server/database/models/user.model";
 import path from "path";
 
 const config: Options = {
-    dbName: "aegis",
+    dbName: process.env.AEGIS_DB_NAME,
     type: "postgresql",
-    password: "postagresgetthemess",
+    password: process.env.AEGIS_DB_PASS,
     migrations: {
         path: path.join(__dirname, "./server/database/migrations"), // path to the folder with migrations
     },
