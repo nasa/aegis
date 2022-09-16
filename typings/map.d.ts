@@ -36,7 +36,7 @@ type DrawingFeature = {
 };
 
 /**
- * DrawingFeature for shwoing an area where a hazard is
+ * DrawingFeature for showing an area where a hazard is
  */
 type DrawingHazard = DrawingFeature & {
   featureType: "Hazard";
