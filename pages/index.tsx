@@ -282,6 +282,14 @@ const Left = () => {
               <li>
                 <div className={styles.creditHeading}>
                   <a className={styles.teamName} href={"mailto:cameron.w.pittman@nasa.gov"}>
+                    David Rynearson
+                  </a>
+                </div>
+                <div className={styles.teamTitle}>Software Engineering</div>
+              </li>
+              <li>
+                <div className={styles.creditHeading}>
+                  <a className={styles.teamName} href={"mailto:cameron.w.pittman@nasa.gov"}>
                     Cameron Pittman
                   </a>
                 </div>
