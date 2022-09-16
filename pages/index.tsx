@@ -228,82 +228,84 @@ const Left = () => {
           </ul>
         </div>
         <div className={`${styles.aboutSection} ${styles.theTeam}`}>
-          <div className={styles.theTeamSegment}>
-            <div className={styles.aboutSectionTitle} style={{ marginTop: "0" }}>
-              The Team
-            </div>
-            <ul className={styles.theTeamUl}>
-              <li>
-                <div>
-                  <a className={styles.teamName} href={"mailto:benjamin.f.feist@nasa.gov"}>
-                    Ben Feist
-                  </a>
-                </div>
-                <div className={styles.teamTitle}>
-                  Software Engineering
-                  <br />
-                  <a className={styles.smallText} href={"mailto:benjamin.f.feist@nasa.gov"}>
-                    Email for help
-                  </a>
-                </div>
-              </li>
-              <li>
-                <div className={styles.creditHeading}>
-                  <a className={styles.teamName} href={"mailto:cameron.w.pittman@nasa.gov"}>
-                    Jackie Vu
-                  </a>
-                </div>
-                <div className={styles.teamTitle}>Software Engineering</div>
-              </li>
-              <li>
-                <div className={styles.creditHeading}>
-                  <a className={styles.teamName} href={"mailto:david.w.charney@nasa.gov"}>
-                    David Charney
-                  </a>
-                </div>
-                <div className={styles.teamTitle}>Interaction and Visual Design</div>
-              </li>
-            </ul>
+          <div className={styles.aboutSectionTitle} style={{ marginTop: "0" }}>
+            The Team
           </div>
-          <div className={styles.theTeamSegment}>
-            <ul className={styles.theTeamUl}>
-              <li>
-                <div className={styles.creditHeading}>
-                  <a className={styles.teamName} href={"mailto:matthew.j.miller-1@nasa.gov"}>
-                    Matthew Miller
-                  </a>
-                </div>
-                <div className={styles.teamTitle}>
-                  Project Management,
-                  <br />
-                  Concept Design
-                </div>
-              </li>
-              <li>
-                <div className={styles.creditHeading}>
-                  <a className={styles.teamName} href={"mailto:cameron.w.pittman@nasa.gov"}>
-                    David Rynearson
-                  </a>
-                </div>
-                <div className={styles.teamTitle}>Software Engineering</div>
-              </li>
-              <li>
-                <div className={styles.creditHeading}>
-                  <a className={styles.teamName} href={"mailto:cameron.w.pittman@nasa.gov"}>
-                    Cameron Pittman
-                  </a>
-                </div>
-                <div className={styles.teamTitle}>Software Engineering</div>
-              </li>
-              <li>
-                <div className={styles.creditHeading}>
-                  <a className={styles.teamName} href={"mailto:edwin.j.montalvo@nasa.gov"}>
-                    James Montalvo
-                  </a>
-                </div>
-                <div className={styles.teamTitle}>EMSS Lead</div>
-              </li>
-            </ul>
+          <div className={styles.theTeamMembers}>
+            <div className={styles.theTeamSegment}>
+              <ul className={styles.theTeamUl}>
+                <li>
+                  <div>
+                    <a className={styles.teamName} href={"mailto:benjamin.f.feist@nasa.gov"}>
+                      Ben Feist
+                    </a>
+                  </div>
+                  <div className={styles.teamTitle}>
+                    Software Engineering
+                    <br />
+                    <a className={styles.smallText} href={"mailto:benjamin.f.feist@nasa.gov"}>
+                      Email for help
+                    </a>
+                  </div>
+                </li>
+                <li>
+                  <div className={styles.creditHeading}>
+                    <a className={styles.teamName} href={"mailto:cameron.w.pittman@nasa.gov"}>
+                      Jackie Vu
+                    </a>
+                  </div>
+                  <div className={styles.teamTitle}>Software Engineering</div>
+                </li>
+                <li>
+                  <div className={styles.creditHeading}>
+                    <a className={styles.teamName} href={"mailto:david.w.charney@nasa.gov"}>
+                      David Charney
+                    </a>
+                  </div>
+                  <div className={styles.teamTitle}>Interaction and Visual Design</div>
+                </li>
+              </ul>
+            </div>
+            <div className={styles.theTeamSegment}>
+              <ul className={styles.theTeamUl}>
+                <li>
+                  <div className={styles.creditHeading}>
+                    <a className={styles.teamName} href={"mailto:matthew.j.miller-1@nasa.gov"}>
+                      Matthew Miller
+                    </a>
+                  </div>
+                  <div className={styles.teamTitle}>
+                    Project Management,
+                    <br />
+                    Concept Design
+                  </div>
+                </li>
+                <li>
+                  <div className={styles.creditHeading}>
+                    <a className={styles.teamName} href={"mailto:cameron.w.pittman@nasa.gov"}>
+                      David Rynearson
+                    </a>
+                  </div>
+                  <div className={styles.teamTitle}>Software Engineering</div>
+                </li>
+                <li>
+                  <div className={styles.creditHeading}>
+                    <a className={styles.teamName} href={"mailto:cameron.w.pittman@nasa.gov"}>
+                      Cameron Pittman
+                    </a>
+                  </div>
+                  <div className={styles.teamTitle}>Software Engineering</div>
+                </li>
+                <li>
+                  <div className={styles.creditHeading}>
+                    <a className={styles.teamName} href={"mailto:edwin.j.montalvo@nasa.gov"}>
+                      James Montalvo
+                    </a>
+                  </div>
+                  <div className={styles.teamTitle}>EMSS Lead</div>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
