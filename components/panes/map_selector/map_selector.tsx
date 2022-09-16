@@ -64,11 +64,11 @@ const DetailedSettings = ({
   const dispatch = useDispatch();
   const [layerHover, setLayerHover] = useState<string | null>(null);
 
-  const toggleSublayerEnabled = (sublayer: Sublayer) => {
+  const toggleSublayerEnabled = (sublayer: MMGISSublayer) => {
     dispatch(toggleLayerControlEnabled(sublayer.name));
   };
 
-  const toggleLayerExpanded = (layer: Layer) => {
+  const toggleLayerExpanded = (layer: MMGISLayer) => {
     dispatch(toggleLayerControlExpanded(layer.name));
   };
 
@@ -94,7 +94,7 @@ const DetailedSettings = ({
           {mmgisConfig &&
             layerControls &&
             expandedSections.details &&
-            mmgisConfig?.MMGISConfig?.config?.layers?.map((configLayer: Layer) => {
+            mmgisConfig?.MMGISConfig?.config?.layers?.map((configLayer: MMGISLayer) => {
               return (
                 <div className={styles.layerGroup} key={configLayer.name}>
                   <div className={styles.layer}>
@@ -115,7 +115,7 @@ const DetailedSettings = ({
                     {layerControls &&
                       layerControls[configLayer.name].expanded &&
                       configLayer.sublayers &&
-                      configLayer.sublayers.map((sublayer: Sublayer) => {
+                      configLayer.sublayers.map((sublayer: MMGISSublayer) => {
                         return (
                           <div
                             key={`sub_${sublayer.name}`}

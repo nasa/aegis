@@ -126,7 +126,7 @@ interface Time2 {
   increment: string;
 }
 
-interface Sublayer {
+interface MMGISSublayer {
   name: string;
   kind: string;
   type: string;
@@ -150,7 +150,7 @@ interface Sublayer {
   boundingBox: number[];
 }
 
-interface Layer {
+interface MMGISLayer {
   name: string;
   type: string;
   demparser: string;
@@ -175,7 +175,7 @@ interface Config {
   panels: string[];
   panelSettings: PanelSettings;
   tools: Tool[];
-  layers: Layer[];
+  layers: MMGISLayer[];
   time: Time3;
 }
 
