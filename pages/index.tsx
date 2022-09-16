@@ -240,12 +240,20 @@ const Left = () => {
                   </a>
                 </div>
                 <div className={styles.teamTitle}>
-                  Software Engineering,
+                  Software Engineering
                   <br />
                   <a className={styles.smallText} href={"mailto:benjamin.f.feist@nasa.gov"}>
                     Email for help
                   </a>
                 </div>
+              </li>
+              <li>
+                <div className={styles.creditHeading}>
+                  <a className={styles.teamName} href={"mailto:cameron.w.pittman@nasa.gov"}>
+                    Jackie Vu
+                  </a>
+                </div>
+                <div className={styles.teamTitle}>Software Engineering</div>
               </li>
               <li>
                 <div className={styles.creditHeading}>
