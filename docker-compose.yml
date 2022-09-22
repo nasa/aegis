@@ -1,47 +1,64 @@
-version: "3"
+version: "3.9"
 services:
   nginx:
-    image: nginx:1.23.1-alpine
-    container_name: aegis_web
+    image: ${DOCKER_IMAGE_NGINX}
     restart: unless-stopped
     depends_on:
-      - node
+      - nextjs
     volumes:
-      - ./.docker/nginx:/etc/nginx/conf.d
-      - /var/www/:/var/www/
+      - ${NGINX_STATIC_DIR}:/usr/share/nginx/static:ro
+      - ${DOCKER_SSL_CERTS_DIR}:/etc/pki/tls/certs
+      - ${DOCKER_SSL_PRIVATE_DIR}:/etc/pki/tls/private
     ports:
-      - "80:80"
+      # AEGIS requires launchpad, so must be over HTTPS and not have a port specified in the URL
+      # e.g. https://aegis.fit.nasa.gov not https://aegis.fit.nasa.gov:8000
       - "443:443"
     networks:
       - aegis-network
-    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
-  node:
-    image: node:16
+
+  nextjs:
+    image: ${DOCKER_IMAGE_NEXTJS}
+    restart: unless-stopped
+    environment:
+      # required for docker-entrypoint.sh check for database being up
+      - AEGIS_DB_PORT=${AEGIS_DB_PORT}
     depends_on:
-      - postgis
-    container_name: aegis_node
-    tty: true
-    user: "node"
-    command: bash -c "npm install && npm run dev"
-    working_dir: /app
-    stdin_open: true
-    hostname: aegis-local.fit.nasa.gov
+      database:
+        condition: service_healthy
     ports:
+      # nextjs is hard-coded to run on 4000 in docker, and nginx proxies 4000. Hard-coding this and
+      # not making it configurable keeps docker config simpler.
       - "4000:4000"
+
+      # VS Code debug port. This isn't needed in production, and won't be exposed by FIT servers,
+      # but is simpler config-wise to put here versus in the overrides file
       - "9229:9229"
     volumes:
-      - ./:/app
+      - ./.env:/app/.env
+      - ${NGINX_STATIC_DIR}:/static
     networks:
       - aegis-network
-  postgis:
+
+  database:
     image: postgis/postgis:14-3.2-alpine
-    container_name: ${AEGIS_DB_HOST}
     restart: unless-stopped
-    tty: true
+    environment:
+      POSTGRES_USER: ${AEGIS_DB_USER}
+      POSTGRES_PASSWORD: ${AEGIS_DB_PASS}
+      POSTGRES_DB: ${AEGIS_DB_NAME}
+    healthcheck:
+      test: "pg_isready -U postgres && psql --username=postgres --list && psql --username=postgres ${AEGIS_DB_NAME} -c ''"
+      interval: 30s # how often to check health
+      timeout: 5s # fail if it takes longer than this
+      retries: 6 # max consecutive failures
+      start_period: 15s # db takes about 20 seconds to come up
+    ports:
+      - "${AEGIS_DB_PORT}:5432"
     volumes:
-      - ./:/app
+      - ${DOCKER_DB_DATA_DIR}:/var/lib/postgresql/data
     networks:
       - aegis-network
+
 #Docker Networks
 networks:
   aegis-network:

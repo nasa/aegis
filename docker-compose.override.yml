@@ -1,9 +1,0 @@
-version: "3"
-services:
-  postgis:
-    environment:
-      POSTGRES_USER: ${AEGIS_DB_USER}
-      POSTGRES_PASSWORD: ${AEGIS_DB_PASS}
-      POSTGRES_DB: ${AEGIS_DB_NAME}
-    ports:
-      - "${AEGIS_DB_PORT}:5432"

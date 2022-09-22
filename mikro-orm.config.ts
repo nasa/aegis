@@ -5,6 +5,7 @@ import path from "path";
 
 const config: Options = {
   dbName: process.env.AEGIS_DB_NAME,
+  host: process.env.AEGIS_DB_HOST,
   type: "postgresql",
   password: process.env.AEGIS_DB_PASS,
   migrations: {

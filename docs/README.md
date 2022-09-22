@@ -1,1 +1,0 @@
-At present all of our documentation lives in the main README.md. This file is required to exist in `docs/` to prevent the baseline project check GitLab CI job from erroring. At some point `docs/` may be used for more docs.

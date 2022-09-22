@@ -35,9 +35,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 
-
+# Initially used `.docker` for local database, files, and general storage. Switched to `.local`
 .docker
+.local
+
 .idea
 
 # Test coverage file
 junit.xml
+
+# MS Office temp files
+~$*

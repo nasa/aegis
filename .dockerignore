@@ -20,4 +20,7 @@
 **/obj
 **/secrets.dev.yaml
 **/values.dev.yaml
+.gitlab
+.local
+.next
 README.md
