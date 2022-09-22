@@ -1,0 +1,22 @@
+#
+# DOCKER OVERRIDE FILE:
+# This is an override file. It is intended to be used on top of the base docker-compose.yml file.
+#
+# SUMMARY:
+# Do the exact same thing as the production `docker-compose.yml`, just build locally as a way to
+# quickly preview what a production build would do.
+#
+version: '3.9'
+services:
+  nginx:
+    image: maestro-prod-preview-apiv1:latest
+    build:
+      context: .
+      dockerfile: ./docker/nginx/Dockerfile
+
+  nextjs:
+    image: maestro-prod-preview-nginx:latest
+    build:
+      context: .
+      dockerfile: ./docker/nextjs/Dockerfile
+      target: prod

@@ -33,9 +33,17 @@ cache:
 # also run standard FIT dependency and package checks
 # https://gitlab.fit.nasa.gov/developer-ecosystem/ci-job-templates
 include:
+  # Common jobs that basically all repos should run
   - project: "developer-ecosystem/ci-job-templates"
     ref: 3.3.0
     file: "/rollups/all-projects.gitlab-ci.yml"
+
+  # Docker-in-Docker template for building docker images using docker runners
+  - project: "developer-ecosystem/ci-job-templates"
+    ref: 3.3.0
+    file: "/extends/dind.gitlab-ci.yml"
+
+  # A11y tests. Disabled for now.
   # - template: "Verify/Accessibility.gitlab-ci.yml"
 
 # Overrride some properties on FIT jobs. Unfortunately using a template for these
@@ -106,7 +114,7 @@ dependency-check:
       --suppression /suppressions/fp-cpe-suppression.xml
       --suppression /suppressions/fp-cve-suppression.xml
       --suppression ./.gitlab/dependency-check-suppression.xml
-      
+
   # Allow failure will report a failure, but continue execution of the pipeline
   allow_failure: true
   artifacts:
@@ -208,3 +216,127 @@ build:
     paths:
       - .next
       - dist
+
+.docker_build_template:
+  stage: stageless
+  timeout: 10 minutes
+  retry: 2
+  extends: .dind
+  script:
+    - TAG=${BUILD_IMAGE}
+    - >
+      if [ "${CI_COMMIT_REF_SLUG}" == "prod" ]; then
+        TAG="${TAG}-prod"
+      elif [ "${CI_COMMIT_REF_SLUG}" == "int" ]; then
+        TAG="${TAG}-int"
+      else
+        TAG="${TAG}-dev"
+      fi
+    - IMAGE_NAME="${CI_REGISTRY_IMAGE}:${TAG}"
+    - docker build --pull -t "${IMAGE_NAME}" -f ./docker/${BUILD_IMAGE}/Dockerfile --target ${BUILD_TARGET} .
+    - docker push "${IMAGE_NAME}"
+
+docker:build:nginx:
+  extends: .docker_build_template
+  needs:
+    - build
+    - test
+  variables:
+    BUILD_IMAGE: nginx
+    BUILD_TARGET: base
+
+docker:build:nextjs:
+  extends: .docker_build_template
+  needs:
+    - build
+    - test
+  variables:
+    BUILD_IMAGE: nextjs
+    BUILD_TARGET: prod
+
+make-dotenv:
+  stage: stageless
+  needs:
+    - docker:build:nginx
+    - docker:build:nextjs
+  script:
+    # Baseline .env from CI/CD file-variable
+    - cp "${FIT_DOTENV_FILE_PATH}" ./.env
+
+    # Determine which docker image type (dev, int, or prod) to deploy based on branch
+    - >
+      if [ "${CI_COMMIT_REF_SLUG}" == "prod" ]; then
+        DEPLOY_ENV="prod"
+      elif [ "${CI_COMMIT_REF_SLUG}" == "int" ]; then
+        DEPLOY_ENV="int"
+      else
+        DEPLOY_ENV="dev"
+      fi
+
+    # Append desired docker images (dev, int, or prod) to
+    - echo "" >> ./.env
+    - echo "DOCKER_IMAGE_NGINX=eegitlabregistry.fit.nasa.gov/emss/aegis:nginx-${DEPLOY_ENV}" >> ./.env
+    - echo "DOCKER_IMAGE_NEXTJS=eegitlabregistry.fit.nasa.gov/emss/aegis:nextjs-${DEPLOY_ENV}" >> ./.env
+
+  # All this job does is prepare artifacts to be exported to the deploy jobs
+  artifacts:
+    paths:
+      - .env
+      - .fitdock.yml
+      - docker-compose.yml
+
+.deploy-template:
+  stage: stageless
+  timeout: 10 minutes
+  variables:
+    GIT_STRATEGY: none # Don't checkout the repo, just get artifacts
+
+  script:
+    # Ultimately it'd be good to have as much of the following wrapped up in a job template
+    # that multiple projects could share. One problem may be getting the sudo password session
+    # to be transferrable between before_script (in a template) and script. Then again, the docs
+    # say: "Scripts you specify in before_script are concatenated with any scripts you specify
+    # in the main script. The combined scripts execute together in a single shell."
+
+    - sudo -S touch /tmp/somefile <"${RUNNER_PASS_FILE_PATH}"
+    - rm -rf $(dirname "${RUNNER_PASS_FILE_PATH}")
+
+    # Ultimately get this from .fitdock.yml, but need to write a method to do that
+    - export INSTALL_DIR=/opt/aegis
+
+    - >
+      if ! sudo fitdock --version; then
+        sudo git clone -b fitdock https://gitlab.fit.nasa.gov/fitbox/fitbox.git /opt/fitdock
+        sudo bash /opt/fitdock/src/scripts/setup-ubuntu.sh
+      fi
+
+    - >
+      if [[ "${CI_COMMIT_TITLE}" =~ \[fitdock\] ]] || ! cmp --silent ./.fitdock.yml "${INSTALL_DIR}/.fitdock.yml"; then
+        echo "do deploy";
+        /bin/cp -f ./.fitdock.yml "${INSTALL_DIR}/.fitdock.yml"
+        sudo fitdock "${INSTALL_DIR}/.fitdock.yml"
+      fi
+
+    # Move into place
+    # /bin/cp to avoid aliased version of `cp` which doesn't allow forcing with -f
+    - /bin/cp -f ./.env "${INSTALL_DIR}/.env"
+    - /bin/cp -f ./docker-compose.yml "${INSTALL_DIR}/docker-compose.yml"
+    - rm -f .env
+    - rm -f .fitdock.yml
+    - rm -f docker-compose.yml
+
+    # Take docker-compose down, pull latest, bring it back up
+    - cd "${INSTALL_DIR}"
+    - /usr/bin/docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
+    - /usr/bin/docker compose down --remove-orphans
+    - /usr/bin/docker compose pull
+    - sudo /usr/bin/docker compose up -d
+
+deploy:dev1:
+  tags: ["emss-aegis-dev1"]
+  needs: ["make-dotenv"]
+  environment:
+    name: development1
+    url: https://aegis-dev1.fit.nasa.gov
+  when: manual
+  extends: .deploy-template
