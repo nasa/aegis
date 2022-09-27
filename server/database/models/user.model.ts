@@ -46,9 +46,11 @@ export class User {
         this.updatedAt = new Date();
     }
 
-    constructor(username: string, password: string) {
+    constructor(username: string, password: string, email: string, permission: PermissionRole) {
         this.username = username;
         this.password = password;
+        this.email = email;
+        this.permission = permission;
     }
 }
 

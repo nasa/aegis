@@ -1,6 +1,6 @@
-import { MikroORM, RequestContext} from '@mikro-orm/core';
+import {MikroORM, RequestContext} from '@mikro-orm/core';
 import { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
-import config from 'mikro-orm.config';
+import config from '../mikro-orm.config';
 
 export default class Mikro {
     static getORM = async () => {
@@ -19,8 +19,20 @@ export default class Mikro {
     }
 
     static getEM = () => {
-        const em = RequestContext.getEntityManager();
-        if (!em) throw new Error("Entity manager not found. Are you in a 'withORM'-wrapped Context?");
+        let em = RequestContext.getEntityManager();
+        if (!em) {
+            em = global.__MikroORM__.em;
+            if(!em) {
+                throw new Error('Entity manager not found');
+            }
+        }
         return em;
+    }
+
+    static closeORM = async () => {
+        if (global.__MikroORM__) {
+            await global.__MikroORM__.close();
+            delete global.__MikroORM__;
+        }
     }
 }

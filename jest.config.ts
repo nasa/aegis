@@ -1,9 +1,17 @@
-module.exports = {
+import nextJest from 'next/jest';
+
+const createJestConfig = nextJest({
+    // Your Next.js config
+    dir: './',
+});
+
+const config = {
   preset: "ts-jest/presets/js-with-ts",
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "node"],
+  moduleDirectories: ['node_modules', 'src'],
   moduleNameMapper: {
     "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$":
-      "<rootDir>/__mocks__/fileMock.js",
+        "<rootDir>/tests/__mocks__/fileMock.js",
     "\\.(css|scss)$": "identity-obj-proxy",
     "^__mocks__(.*)$": "<rootDir>/__mocks__$1",
     "^client/(.*)$": "<rootDir>/client/$1",
@@ -15,6 +23,7 @@ module.exports = {
     "^typings$": "<rootDir>/typings/index.d",
     "^typings/(.*)$": "<rootDir>/typings/$1",
     "^utils/(.*)$": "<rootDir>/utils/$1",
+    '^.+\\.(css|sass|scss)$': '<rootDir>/__mocks__/styleMock.js',
   },
   collectCoverageFrom: [
     "**/*.{js,jsx,ts,tsx}",
@@ -27,8 +36,8 @@ module.exports = {
     "!**/out/**",
   ],
   coverageReporters: ["text", "lcov", "cobertura"],
-  globalSetup: "<rootDir>/jest.globalSetup.js",
-  setupFiles: ["<rootDir>/jest.setup.js"],
+  globalSetup: "<rootDir>/jest.globalSetup.ts",
+  setupFiles: ["<rootDir>/jest.setup.ts"],
   setupFilesAfterEnv: ["<rootDir>/utils/jest-extends.ts"],
   testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/", "<rootDir>/out"],
   globals: {
@@ -42,4 +51,7 @@ module.exports = {
   transform: {
     "^.+\\.(ts|tsx)$": "ts-jest",
   },
-};
+  testEnvironment: "node"
+}
+
+export default createJestConfig(config);

@@ -79,7 +79,7 @@ const MissionSelect = () => {
   const dispatch = useDispatch();
   const router = useRouter();
 
-  const [missions, setmissions] = useState<MMGISConfigListItem[]>([]);
+  const [missions, setmissions] = useState<AEGISMission[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -91,7 +91,6 @@ const MissionSelect = () => {
   const handleLogoutButtonClick = async () => {
     const response = await logout();
     if (response.data) {
-      console.log("Logged out");
       dispatch(setIsLoggedIn(false));
       dispatch(clearIronSessionData());
     }

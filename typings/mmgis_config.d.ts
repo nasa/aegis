@@ -187,7 +187,7 @@ interface MMGISConfig {
   createdAt: Date;
 }
 
-interface MMGISConfigListItem {
+interface AEGISMission {
   id: number;
   mission: string;
   version: number;
