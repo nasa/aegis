@@ -9,14 +9,14 @@ This document is broken up into sections by license type. Licenses are in alphab
 - 2 packages: [0BSD](https://opensource.org/licenses/0BSD)
 - 5 packages: [Apache-2.0](https://opensource.org/licenses/Apache-2.0)
 - 4 packages: [BSD-2-Clause](https://opensource.org/licenses/BSD-2-Clause)
-- 8 packages: [BSD-3-Clause](https://opensource.org/licenses/BSD-3-Clause)
+- 14 packages: [BSD-3-Clause](https://opensource.org/licenses/BSD-3-Clause)
 - 1 packages: [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/)
 - 2 packages: [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/) and [MIT](https://opensource.org/licenses/MIT)
 - 2 packages: Hippocratic-2.1
 - 62 packages: [ISC](https://opensource.org/licenses/ISC)
-- 292 packages: [MIT](https://opensource.org/licenses/MIT)
+- 357 packages: [MIT](https://opensource.org/licenses/MIT)
 - 1 packages: [MIT](https://opensource.org/licenses/MIT) and [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/)
-- 1 packages: No License Specified
+- 3 packages: No License Specified
 
 ## Licenses
 
@@ -42,6 +42,12 @@ This document is broken up into sections by license type. Licenses are in alphab
 
 ### BSD-3-Clause
 
+- [@hapi/b64](https://www.npmjs.com/package/@hapi/b64) @ 5.0.0
+- [@hapi/boom](https://www.npmjs.com/package/@hapi/boom) @ 9.1.4
+- [@hapi/bourne](https://www.npmjs.com/package/@hapi/bourne) @ 2.1.0
+- [@hapi/cryptiles](https://www.npmjs.com/package/@hapi/cryptiles) @ 5.1.0
+- [@hapi/hoek](https://www.npmjs.com/package/@hapi/hoek) @ 9.3.0
+- [@hapi/iron](https://www.npmjs.com/package/@hapi/iron) @ 6.0.0
 - [@mapbox/node-pre-gyp](https://www.npmjs.com/package/@mapbox/node-pre-gyp) @ 1.0.10
 - [asn1js](https://www.npmjs.com/package/asn1js) @ 3.0.5
 - [diff](https://www.npmjs.com/package/diff) @ 4.0.2
@@ -204,6 +210,7 @@ This document is broken up into sections by license type. Licenses are in alphab
 - [@types/argparse](https://www.npmjs.com/package/@types/argparse) @ 1.0.38
 - [@types/body-parser](https://www.npmjs.com/package/@types/body-parser) @ 1.19.2
 - [@types/connect](https://www.npmjs.com/package/@types/connect) @ 3.4.35
+- [@types/cookie](https://www.npmjs.com/package/@types/cookie) @ 0.4.1
 - [@types/cookie](https://www.npmjs.com/package/@types/cookie) @ 0.5.1
 - [@types/express-serve-static-core](https://www.npmjs.com/package/@types/express-serve-static-core) @ 4.17.30
 - [@types/express](https://www.npmjs.com/package/@types/express) @ 4.17.13
@@ -229,37 +236,50 @@ This document is broken up into sections by license type. Licenses are in alphab
 - [ansi-styles](https://www.npmjs.com/package/ansi-styles) @ 2.2.1
 - [ansi-styles](https://www.npmjs.com/package/ansi-styles) @ 3.2.1
 - [ansi-styles](https://www.npmjs.com/package/ansi-styles) @ 4.3.0
+- [append-field](https://www.npmjs.com/package/append-field) @ 1.0.0
 - [arg](https://www.npmjs.com/package/arg) @ 4.1.3
 - [argparse](https://www.npmjs.com/package/argparse) @ 1.0.10
 - [array-union](https://www.npmjs.com/package/array-union) @ 2.1.0
+- [array.prototype.flat](https://www.npmjs.com/package/array.prototype.flat) @ 1.3.0
+- [asynckit](https://www.npmjs.com/package/asynckit) @ 0.4.0
+- [axios](https://www.npmjs.com/package/axios) @ 0.27.2
 - [balanced-match](https://www.npmjs.com/package/balanced-match) @ 1.0.2
 - [base64-js](https://www.npmjs.com/package/base64-js) @ 1.5.1
 - [bcryptjs](https://www.npmjs.com/package/bcryptjs) @ 2.4.3
 - [brace-expansion](https://www.npmjs.com/package/brace-expansion) @ 1.1.11
 - [braces](https://www.npmjs.com/package/braces) @ 3.0.2
 - [browserslist](https://www.npmjs.com/package/browserslist) @ 4.21.3
+- [buffer-from](https://www.npmjs.com/package/buffer-from) @ 1.1.2
 - [buffer-writer](https://www.npmjs.com/package/buffer-writer) @ 2.0.0
 - [buffer](https://www.npmjs.com/package/buffer) @ 6.0.3
+- [call-bind](https://www.npmjs.com/package/call-bind) @ 1.0.2
 - [camelcase](https://www.npmjs.com/package/camelcase) @ 5.3.1
 - [chalk](https://www.npmjs.com/package/chalk) @ 1.1.3
 - [chalk](https://www.npmjs.com/package/chalk) @ 2.4.2
 - [clean-stack](https://www.npmjs.com/package/clean-stack) @ 2.2.0
+- [clone](https://www.npmjs.com/package/clone) @ 2.1.2
 - [color-convert](https://www.npmjs.com/package/color-convert) @ 1.9.3
 - [color-convert](https://www.npmjs.com/package/color-convert) @ 2.0.1
 - [color-name](https://www.npmjs.com/package/color-name) @ 1.1.3
 - [color-name](https://www.npmjs.com/package/color-name) @ 1.1.4
 - [colorette](https://www.npmjs.com/package/colorette) @ 2.0.19
 - [colors](https://www.npmjs.com/package/colors) @ 1.2.5
+- [combined-stream](https://www.npmjs.com/package/combined-stream) @ 1.0.8
 - [commander](https://www.npmjs.com/package/commander) @ 9.4.0
 - [concat-map](https://www.npmjs.com/package/concat-map) @ 0.0.1
+- [concat-stream](https://www.npmjs.com/package/concat-stream) @ 1.6.2
 - [convert-source-map](https://www.npmjs.com/package/convert-source-map) @ 1.8.0
+- [cookie](https://www.npmjs.com/package/cookie) @ 0.4.2
 - [cookie](https://www.npmjs.com/package/cookie) @ 0.5.0
+- [core-util-is](https://www.npmjs.com/package/core-util-is) @ 1.0.3
 - [create-require](https://www.npmjs.com/package/create-require) @ 1.1.1
 - [cross-env](https://www.npmjs.com/package/cross-env) @ 7.0.3
 - [cross-spawn](https://www.npmjs.com/package/cross-spawn) @ 7.0.3
 - [csstype](https://www.npmjs.com/package/csstype) @ 3.1.0
 - [debug](https://www.npmjs.com/package/debug) @ 4.3.4
 - [decamelize](https://www.npmjs.com/package/decamelize) @ 1.2.0
+- [define-properties](https://www.npmjs.com/package/define-properties) @ 1.1.4
+- [delayed-stream](https://www.npmjs.com/package/delayed-stream) @ 1.0.0
 - [delegates](https://www.npmjs.com/package/delegates) @ 1.0.0
 - [depd](https://www.npmjs.com/package/depd) @ 1.1.2
 - [dir-glob](https://www.npmjs.com/package/dir-glob) @ 3.0.1
@@ -268,6 +288,9 @@ This document is broken up into sections by license type. Licenses are in alphab
 - [encoding](https://www.npmjs.com/package/encoding) @ 0.1.13
 - [env-paths](https://www.npmjs.com/package/env-paths) @ 2.2.1
 - [err-code](https://www.npmjs.com/package/err-code) @ 2.0.3
+- [es-abstract](https://www.npmjs.com/package/es-abstract) @ 1.20.2
+- [es-shim-unscopables](https://www.npmjs.com/package/es-shim-unscopables) @ 1.0.0
+- [es-to-primitive](https://www.npmjs.com/package/es-to-primitive) @ 1.2.1
 - [escalade](https://www.npmjs.com/package/escalade) @ 3.1.1
 - [escape-string-regexp](https://www.npmjs.com/package/escape-string-regexp) @ 1.0.5
 - [esm](https://www.npmjs.com/package/esm) @ 3.2.25
@@ -276,16 +299,26 @@ This document is broken up into sections by license type. Licenses are in alphab
 - [figlet](https://www.npmjs.com/package/figlet) @ 1.5.2
 - [fill-range](https://www.npmjs.com/package/fill-range) @ 7.0.1
 - [find-up](https://www.npmjs.com/package/find-up) @ 4.1.0
+- [follow-redirects](https://www.npmjs.com/package/follow-redirects) @ 1.15.2
+- [form-data](https://www.npmjs.com/package/form-data) @ 4.0.0
 - [fs-extra](https://www.npmjs.com/package/fs-extra) @ 10.1.0
 - [fs-jetpack](https://www.npmjs.com/package/fs-jetpack) @ 4.3.1
 - [function-bind](https://www.npmjs.com/package/function-bind) @ 1.1.1
+- [function.prototype.name](https://www.npmjs.com/package/function.prototype.name) @ 1.1.5
+- [functions-have-names](https://www.npmjs.com/package/functions-have-names) @ 1.2.3
 - [gensync](https://www.npmjs.com/package/gensync) @ 1.0.0-beta.2
+- [get-intrinsic](https://www.npmjs.com/package/get-intrinsic) @ 1.1.2
 - [get-package-type](https://www.npmjs.com/package/get-package-type) @ 0.1.0
+- [get-symbol-description](https://www.npmjs.com/package/get-symbol-description) @ 1.0.0
 - [getopts](https://www.npmjs.com/package/getopts) @ 2.3.0
 - [globals](https://www.npmjs.com/package/globals) @ 11.12.0
 - [globby](https://www.npmjs.com/package/globby) @ 11.0.4
 - [has-ansi](https://www.npmjs.com/package/has-ansi) @ 2.0.0
+- [has-bigints](https://www.npmjs.com/package/has-bigints) @ 1.0.2
 - [has-flag](https://www.npmjs.com/package/has-flag) @ 3.0.0
+- [has-property-descriptors](https://www.npmjs.com/package/has-property-descriptors) @ 1.0.0
+- [has-symbols](https://www.npmjs.com/package/has-symbols) @ 1.0.3
+- [has-tostringtag](https://www.npmjs.com/package/has-tostringtag) @ 1.0.0
 - [has](https://www.npmjs.com/package/has) @ 1.0.3
 - [http-proxy-agent](https://www.npmjs.com/package/http-proxy-agent) @ 4.0.1
 - [https-proxy-agent](https://www.npmjs.com/package/https-proxy-agent) @ 5.0.1
@@ -295,16 +328,30 @@ This document is broken up into sections by license type. Licenses are in alphab
 - [immer](https://www.npmjs.com/package/immer) @ 9.0.15
 - [imurmurhash](https://www.npmjs.com/package/imurmurhash) @ 0.1.4
 - [indent-string](https://www.npmjs.com/package/indent-string) @ 4.0.0
+- [internal-slot](https://www.npmjs.com/package/internal-slot) @ 1.0.3
 - [interpret](https://www.npmjs.com/package/interpret) @ 2.2.0
 - [ip](https://www.npmjs.com/package/ip) @ 2.0.0
 - [iron-session](https://www.npmjs.com/package/iron-session) @ 6.2.0
+- [iron-store](https://www.npmjs.com/package/iron-store) @ 1.3.5
 - [iron-webcrypto](https://www.npmjs.com/package/iron-webcrypto) @ 0.1.0
+- [is-bigint](https://www.npmjs.com/package/is-bigint) @ 1.0.4
+- [is-boolean-object](https://www.npmjs.com/package/is-boolean-object) @ 1.1.2
+- [is-callable](https://www.npmjs.com/package/is-callable) @ 1.2.4
 - [is-core-module](https://www.npmjs.com/package/is-core-module) @ 2.10.0
+- [is-date-object](https://www.npmjs.com/package/is-date-object) @ 1.0.5
 - [is-extglob](https://www.npmjs.com/package/is-extglob) @ 2.1.1
 - [is-fullwidth-code-point](https://www.npmjs.com/package/is-fullwidth-code-point) @ 3.0.0
 - [is-glob](https://www.npmjs.com/package/is-glob) @ 4.0.3
 - [is-lambda](https://www.npmjs.com/package/is-lambda) @ 1.0.1
+- [is-negative-zero](https://www.npmjs.com/package/is-negative-zero) @ 2.0.2
+- [is-number-object](https://www.npmjs.com/package/is-number-object) @ 1.0.7
 - [is-number](https://www.npmjs.com/package/is-number) @ 7.0.0
+- [is-regex](https://www.npmjs.com/package/is-regex) @ 1.1.4
+- [is-shared-array-buffer](https://www.npmjs.com/package/is-shared-array-buffer) @ 1.0.2
+- [is-string](https://www.npmjs.com/package/is-string) @ 1.0.7
+- [is-symbol](https://www.npmjs.com/package/is-symbol) @ 1.0.4
+- [is-weakref](https://www.npmjs.com/package/is-weakref) @ 1.0.2
+- [isarray](https://www.npmjs.com/package/isarray) @ 1.0.0
 - [js-tokens](https://www.npmjs.com/package/js-tokens) @ 4.0.0
 - [jsesc](https://www.npmjs.com/package/jsesc) @ 2.5.2
 - [json5](https://www.npmjs.com/package/json5) @ 2.2.1
@@ -317,23 +364,34 @@ This document is broken up into sections by license type. Licenses are in alphab
 - [lodash](https://www.npmjs.com/package/lodash) @ 4.17.21
 - [loose-envify](https://www.npmjs.com/package/loose-envify) @ 1.4.0
 - [make-dir](https://www.npmjs.com/package/make-dir) @ 3.1.0
+- [media-typer](https://www.npmjs.com/package/media-typer) @ 0.3.0
 - [merge2](https://www.npmjs.com/package/merge2) @ 1.4.1
 - [micromatch](https://www.npmjs.com/package/micromatch) @ 4.0.5
 - [mikro-orm](https://www.npmjs.com/package/mikro-orm) @ 5.4.0
+- [mime-db](https://www.npmjs.com/package/mime-db) @ 1.52.0
+- [mime-types](https://www.npmjs.com/package/mime-types) @ 2.1.35
 - [minimist](https://www.npmjs.com/package/minimist) @ 1.2.6
 - [minipass-fetch](https://www.npmjs.com/package/minipass-fetch) @ 1.4.1
 - [minizlib](https://www.npmjs.com/package/minizlib) @ 2.1.2
+- [mkdirp](https://www.npmjs.com/package/mkdirp) @ 0.5.6
 - [mkdirp](https://www.npmjs.com/package/mkdirp) @ 1.0.4
 - [ms](https://www.npmjs.com/package/ms) @ 2.1.2
+- [multer](https://www.npmjs.com/package/multer) @ 1.4.5-lts.1
 - [nanoid](https://www.npmjs.com/package/nanoid) @ 3.3.4
 - [negotiator](https://www.npmjs.com/package/negotiator) @ 0.6.3
+- [next-connect](https://www.npmjs.com/package/next-connect) @ 0.13.0
+- [next-iron-session](https://www.npmjs.com/package/next-iron-session) @ 4.2.0
 - [next-redux-wrapper](https://www.npmjs.com/package/next-redux-wrapper) @ 7.0.5
 - [next](https://www.npmjs.com/package/next) @ 12.2.2
 - [node-addon-api](https://www.npmjs.com/package/node-addon-api) @ 4.3.0
 - [node-fetch](https://www.npmjs.com/package/node-fetch) @ 2.6.7
 - [node-gyp](https://www.npmjs.com/package/node-gyp) @ 8.4.1
 - [node-releases](https://www.npmjs.com/package/node-releases) @ 2.0.6
+- [node-stream-zip](https://www.npmjs.com/package/node-stream-zip) @ 1.15.0
 - [object-assign](https://www.npmjs.com/package/object-assign) @ 4.1.1
+- [object-inspect](https://www.npmjs.com/package/object-inspect) @ 1.12.2
+- [object-keys](https://www.npmjs.com/package/object-keys) @ 1.1.1
+- [object.assign](https://www.npmjs.com/package/object.assign) @ 4.1.4
 - [p-limit](https://www.npmjs.com/package/p-limit) @ 2.3.0
 - [p-locate](https://www.npmjs.com/package/p-locate) @ 4.1.0
 - [p-map](https://www.npmjs.com/package/p-map) @ 4.0.0
@@ -358,6 +416,7 @@ This document is broken up into sections by license type. Licenses are in alphab
 - [postgres-bytea](https://www.npmjs.com/package/postgres-bytea) @ 1.0.0
 - [postgres-date](https://www.npmjs.com/package/postgres-date) @ 1.0.7
 - [postgres-interval](https://www.npmjs.com/package/postgres-interval) @ 1.2.0
+- [process-nextick-args](https://www.npmjs.com/package/process-nextick-args) @ 2.0.1
 - [promise-retry](https://www.npmjs.com/package/promise-retry) @ 2.0.1
 - [prop-types](https://www.npmjs.com/package/prop-types) @ 15.8.1
 - [pvtsutils](https://www.npmjs.com/package/pvtsutils) @ 1.3.2
@@ -370,11 +429,14 @@ This document is broken up into sections by license type. Licenses are in alphab
 - [react-redux](https://www.npmjs.com/package/react-redux) @ 8.0.2
 - [react-slider](https://www.npmjs.com/package/react-slider) @ 2.0.3
 - [react](https://www.npmjs.com/package/react) @ 18.2.0
+- [readable-stream](https://www.npmjs.com/package/readable-stream) @ 2.3.7
 - [readable-stream](https://www.npmjs.com/package/readable-stream) @ 3.6.0
 - [rechoir](https://www.npmjs.com/package/rechoir) @ 0.8.0
 - [redux-thunk](https://www.npmjs.com/package/redux-thunk) @ 2.4.1
 - [redux](https://www.npmjs.com/package/redux) @ 4.2.0
 - [regenerator-runtime](https://www.npmjs.com/package/regenerator-runtime) @ 0.13.9
+- [regexp.prototype.flags](https://www.npmjs.com/package/regexp.prototype.flags) @ 1.4.3
+- [regexparam](https://www.npmjs.com/package/regexparam) @ 1.3.0
 - [require-directory](https://www.npmjs.com/package/require-directory) @ 2.1.1
 - [reselect](https://www.npmjs.com/package/reselect) @ 4.1.6
 - [resolve-from](https://www.npmjs.com/package/resolve-from) @ 5.0.0
@@ -388,6 +450,7 @@ This document is broken up into sections by license type. Licenses are in alphab
 - [scheduler](https://www.npmjs.com/package/scheduler) @ 0.23.0
 - [shebang-command](https://www.npmjs.com/package/shebang-command) @ 2.0.0
 - [shebang-regex](https://www.npmjs.com/package/shebang-regex) @ 3.0.0
+- [side-channel](https://www.npmjs.com/package/side-channel) @ 1.0.4
 - [slash](https://www.npmjs.com/package/slash) @ 3.0.0
 - [smart-buffer](https://www.npmjs.com/package/smart-buffer) @ 4.2.0
 - [socks-proxy-agent](https://www.npmjs.com/package/socks-proxy-agent) @ 6.2.1
@@ -395,6 +458,9 @@ This document is broken up into sections by license type. Licenses are in alphab
 - [sqlstring](https://www.npmjs.com/package/sqlstring) @ 2.3.3
 - [string-argv](https://www.npmjs.com/package/string-argv) @ 0.3.1
 - [string-width](https://www.npmjs.com/package/string-width) @ 4.2.3
+- [string.prototype.trimend](https://www.npmjs.com/package/string.prototype.trimend) @ 1.0.5
+- [string.prototype.trimstart](https://www.npmjs.com/package/string.prototype.trimstart) @ 1.0.5
+- [string_decoder](https://www.npmjs.com/package/string_decoder) @ 1.1.1
 - [string_decoder](https://www.npmjs.com/package/string_decoder) @ 1.3.0
 - [strip-ansi](https://www.npmjs.com/package/strip-ansi) @ 3.0.1
 - [strip-ansi](https://www.npmjs.com/package/strip-ansi) @ 6.0.1
@@ -408,9 +474,13 @@ This document is broken up into sections by license type. Licenses are in alphab
 - [to-fast-properties](https://www.npmjs.com/package/to-fast-properties) @ 2.0.0
 - [to-regex-range](https://www.npmjs.com/package/to-regex-range) @ 5.0.1
 - [tr46](https://www.npmjs.com/package/tr46) @ 0.0.3
+- [trouter](https://www.npmjs.com/package/trouter) @ 3.2.0
 - [ts-node](https://www.npmjs.com/package/ts-node) @ 10.9.1
 - [tsconfig-paths](https://www.npmjs.com/package/tsconfig-paths) @ 4.0.0
+- [type-is](https://www.npmjs.com/package/type-is) @ 1.6.18
+- [typedarray](https://www.npmjs.com/package/typedarray) @ 0.0.6
 - [umzug](https://www.npmjs.com/package/umzug) @ 3.1.1
+- [unbox-primitive](https://www.npmjs.com/package/unbox-primitive) @ 1.0.2
 - [underscore](https://www.npmjs.com/package/underscore) @ 1.13.4
 - [universalify](https://www.npmjs.com/package/universalify) @ 2.0.0
 - [update-browserslist-db](https://www.npmjs.com/package/update-browserslist-db) @ 1.0.7
@@ -420,6 +490,7 @@ This document is broken up into sections by license type. Licenses are in alphab
 - [v8-compile-cache-lib](https://www.npmjs.com/package/v8-compile-cache-lib) @ 3.0.1
 - [webcrypto-core](https://www.npmjs.com/package/webcrypto-core) @ 1.7.5
 - [whatwg-url](https://www.npmjs.com/package/whatwg-url) @ 5.0.0
+- [which-boxed-primitive](https://www.npmjs.com/package/which-boxed-primitive) @ 1.0.2
 - [wrap-ansi](https://www.npmjs.com/package/wrap-ansi) @ 6.2.0
 - [xtend](https://www.npmjs.com/package/xtend) @ 4.0.2
 - [yargs](https://www.npmjs.com/package/yargs) @ 15.4.1
@@ -431,4 +502,6 @@ This document is broken up into sections by license type. Licenses are in alphab
 
 ### No License Specified
 
+- [busboy](https://www.npmjs.com/package/busboy) @ 1.6.0
 - [parent-require](https://www.npmjs.com/package/parent-require) @ 1.0.0
+- [streamsearch](https://www.npmjs.com/package/streamsearch) @ 1.1.0

@@ -20,7 +20,7 @@ variables:
   # "Future" might be older if waiting on a newer version to come out
   FUTURE_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images:node-16-alpine"
 
-# Default image unless otherwise specified
+  # Default image unless otherwise specified
 image: "$CURRENT_NODE_VERSION_IMAGE"
 
 # This folder is cached between builds
@@ -139,9 +139,25 @@ npm-audit:
     paths:
       - "./npm-audit-report.json"
 
+postgres:
+  stage: stageless
+  image: postgres:latest
+  services:
+    - postgres
+  variables:
+    POSTGRES_PORT: ${AEGIS_DB_PORT}
+    POSTGRES_HOST: ${AEGIS_DB_HOST}
+    POSTGRES_HOST_AUTH_METHOD: trust
+    POSTGRES_USER: ${AEGIS_DB_USER}
+    POSTGRES_PASSWORD: ${AEGIS_DB_PASS}
+    POSTGRES_DB: ${AEGIS_DB_NAME}
+  script:
+    # official way to provide password to psql: http://www.postgresql.org/docs/9.3/static/libpq-envars.html
+    - export PGPASSWORD=$AEGIS_DB_PASS
+    - psql -h "postgres" -U "$AEGIS_DB_USER" -d "$AEGIS_DB_NAME" -c "SELECT 'OK' AS status;"
+
 install_dependencies:
   stage: stageless
-
   # This could be openshift, but it runs faster in a VM; other jobs rely on it, so get it done ASAP
   tags: ["docker", "linux"]
   script:
@@ -170,10 +186,19 @@ node-sbom:
 
 test:
   stage: stageless
-  needs: ["install_dependencies"]
-  tags: ["openshift"]
+  needs: ["install_dependencies", "postgres"]
+  variables:
+    POSTGRES_PORT: ${AEGIS_DB_PORT}
+    POSTGRES_HOST: ${AEGIS_DB_HOST}
+    POSTGRES_HOST_AUTH_METHOD: trust
+    POSTGRES_USER: ${AEGIS_DB_USER}
+    POSTGRES_PASSWORD: ${AEGIS_DB_PASS}
+    POSTGRES_DB: ${AEGIS_DB_NAME}
+  services:
+    - postgres
+  tags: ["docker", "linux"]
   script:
-    # - sh ./.gitlab/create-fit-dotenv.sh test
+    - npm run migrate:up
     - npm run lint
     - npm run tsc
     - npm run test:coverage
@@ -192,11 +217,20 @@ test:
 test-node-next:
   stage: stageless
   image: "$FUTURE_NODE_VERSION_IMAGE"
-  needs: ["install_dependencies"]
-  tags: ["openshift"]
+  needs: ["install_dependencies", "postgres"]
+  variables:
+    POSTGRES_PORT: ${AEGIS_DB_PORT}
+    POSTGRES_HOST: ${AEGIS_DB_HOST}
+    POSTGRES_HOST_AUTH_METHOD: trust
+    POSTGRES_USER: ${AEGIS_DB_USER}
+    POSTGRES_PASSWORD: ${AEGIS_DB_PASS}
+    POSTGRES_DB: ${AEGIS_DB_NAME}
+  services:
+    - postgres
+  tags: ["docker", "linux"]
   allow_failure: true
   script:
-    # - sh ./.gitlab/create-fit-dotenv.sh test
+    - npm run migrate:up
     - npm run lint
     - npm run tsc
     - npm t
