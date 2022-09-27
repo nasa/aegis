@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { deleteFile, unzip } from "server/file/file";
 import multer from "multer";
-import nextConnect from "next-connect";
+import nextConnect, { RequestHandler } from "next-connect";
 import path from "path";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
@@ -64,7 +64,7 @@ apiRoute.use(async (req, res, next) => {
   if (req.session.user) {
     //upload a single file form field "uploadFile"
     //returns a middleware func to be called with args (req, res, callback)
-    const multerFunc = upload.single("uploadFile");
+    const multerFunc = upload.single("uploadFile") as RequestHandler<unknown, any>;
     multerFunc(req, res, (error) => {
       // try {
       if (error) {
