@@ -139,23 +139,6 @@ npm-audit:
     paths:
       - "./npm-audit-report.json"
 
-postgres:
-  stage: stageless
-  image: postgres:latest
-  services:
-    - postgres
-  variables:
-    POSTGRES_PORT: ${AEGIS_DB_PORT}
-    POSTGRES_HOST: ${AEGIS_DB_HOST}
-    POSTGRES_HOST_AUTH_METHOD: trust
-    POSTGRES_USER: ${AEGIS_DB_USER}
-    POSTGRES_PASSWORD: ${AEGIS_DB_PASS}
-    POSTGRES_DB: ${AEGIS_DB_NAME}
-  script:
-    # official way to provide password to psql: http://www.postgresql.org/docs/9.3/static/libpq-envars.html
-    - export PGPASSWORD=$AEGIS_DB_PASS
-    - psql -h "postgres" -U "$AEGIS_DB_USER" -d "$AEGIS_DB_NAME" -c "SELECT 'OK' AS status;"
-
 install_dependencies:
   stage: stageless
   # This could be openshift, but it runs faster in a VM; other jobs rely on it, so get it done ASAP
@@ -184,9 +167,9 @@ node-sbom:
       - "./bom.json"
       - "./new-bom.md"
 
-test:
+# Template for `test` and `test-node-next` jobs, adding database service, etc.
+.test_template:
   stage: stageless
-  needs: ["install_dependencies", "postgres"]
   variables:
     POSTGRES_PORT: ${AEGIS_DB_PORT}
     POSTGRES_HOST: ${AEGIS_DB_HOST}
@@ -195,8 +178,14 @@ test:
     POSTGRES_PASSWORD: ${AEGIS_DB_PASS}
     POSTGRES_DB: ${AEGIS_DB_NAME}
   services:
-    - postgres
+    # image should match database used in docker-compose.yml
+    - name: postgis/postgis:14-3.2-alpine
+      alias: postgres
   tags: ["docker", "linux"]
+
+test:
+  extends: .test_template
+  needs: ["install_dependencies"]
   script:
     - npm run migrate:up
     - npm run lint
@@ -215,19 +204,9 @@ test:
 
 # test against next version of node that CODA may use, but allow to fail
 test-node-next:
-  stage: stageless
   image: "$FUTURE_NODE_VERSION_IMAGE"
-  needs: ["install_dependencies", "postgres"]
-  variables:
-    POSTGRES_PORT: ${AEGIS_DB_PORT}
-    POSTGRES_HOST: ${AEGIS_DB_HOST}
-    POSTGRES_HOST_AUTH_METHOD: trust
-    POSTGRES_USER: ${AEGIS_DB_USER}
-    POSTGRES_PASSWORD: ${AEGIS_DB_PASS}
-    POSTGRES_DB: ${AEGIS_DB_NAME}
-  services:
-    - postgres
-  tags: ["docker", "linux"]
+  needs: ["install_dependencies"]
+  extends: .test_template
   allow_failure: true
   script:
     - npm run migrate:up
