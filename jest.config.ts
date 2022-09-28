@@ -27,6 +27,8 @@ const config = {
   },
   collectCoverageFrom: [
     "**/*.{js,jsx,ts,tsx}",
+    "!jest.config.ts",
+    "!next.config.js",
     "!**/node_modules/**",
     "!**/.next/**",
     "!**/.cache/**",
@@ -34,7 +36,13 @@ const config = {
     "!**/coverage/**",
     "!**/dist/**",
     "!**/out/**",
+    "!server/database/migrations/*.ts",
+    "!server/database/seeds/*.ts",
   ],
+  // coverageThreshold: {
+  //   global: {
+  //     lines: 90,
+  // }, },
   coverageReporters: ["text", "lcov", "cobertura"],
   globalSetup: "<rootDir>/jest.globalSetup.ts",
   setupFiles: ["<rootDir>/jest.setup.ts"],
@@ -47,11 +55,13 @@ const config = {
       // TODO: turn this on after js->ts conversion is complete
       diagnostics: false,
     },
+    window: {},
+    document: {},
   },
   transform: {
     "^.+\\.(ts|tsx)$": "ts-jest",
   },
-  testEnvironment: "node",
+  testEnvironment: "jsdom",
 };
 
 export default createJestConfig(config);

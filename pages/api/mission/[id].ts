@@ -20,6 +20,7 @@ export async function returnMissionJson(req, res) {
   try {
     if (req.session?.user) {
       const mission = await getMissionById(missionId);
+      await Mikro.closeORM();
       if (mission.length === 1) {
         return res.status(200).json({
           status: "success",
@@ -38,6 +39,7 @@ export async function returnMissionJson(req, res) {
 }
 
 export async function getMissionById(missionId: number): Promise<AEGISMission[]> {
-  const model = Mikro.getEM();
+  await Mikro.getORM();
+  const model = await Mikro.getEM();
   return await model.find(Mission, { id: missionId });
 }
