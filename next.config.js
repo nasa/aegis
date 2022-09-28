@@ -13,4 +13,7 @@ module.exports = {
     return config;
   },
   output: "standalone",
+  eslint: {
+    dirs: ["."],
+  },
 };

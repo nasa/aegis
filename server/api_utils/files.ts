@@ -17,8 +17,6 @@ export const pushToHistory = (
     order: [["history_id", "DESC"]],
   })
     .then((lastHistory) => {
-      let maxHistoryId = -Infinity;
-      let bestI = -1;
       if (lastHistory && lastHistory.length > 0) {
         return {
           historyIndex: lastHistory[0].history_id + 1,
@@ -36,7 +34,7 @@ export const pushToHistory = (
         file_id,
         undoToTime,
         (h) => {
-          let newHistoryEntry = {
+          const newHistoryEntry = {
             file_id: file_id,
             history_id: historyObj.historyIndex,
             time: time,
@@ -45,7 +43,7 @@ export const pushToHistory = (
           };
           // Insert new entry into the history table
           Table.create(newHistoryEntry)
-            .then((created) => {
+            .then((_created) => {
               successCallback();
               return null;
             })
@@ -129,7 +127,7 @@ const getNextHistory = (
  * @return {[]} arr1 without any elements of arr2
  */
 const uniqueAcrossArrays = (arr1, arr2) => {
-  let uniqueArr = Object.assign([], arr1);
+  const uniqueArr = Object.assign([], arr1);
   for (let i = uniqueArr.length - 1; i >= 0; i--) {
     if (arr2.indexOf(arr1[i]) != -1) uniqueArr.splice(i, 1);
   }

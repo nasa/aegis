@@ -5,7 +5,7 @@ import { add } from "store/playhead";
  * Return a zero padded string of a number
  */
 export function padZeros(num: number, size: number): string {
-  let s = num.toString();
+  const s = num.toString();
   return s.padStart(size, "0");
 }
 
@@ -55,7 +55,7 @@ export function hhmmssFromSeconds(secondsParam: number): string {
 export function hhmmssmmmFromSeconds(secondsParam: number): string {
   const hours = Math.abs(Math.trunc(secondsParam / 3600));
   const minutes = (Math.abs(Math.trunc(secondsParam / 60)) % 60) % 60;
-  let seconds = Math.abs(Math.trunc(secondsParam)) % 60;
+  const seconds = Math.abs(Math.trunc(secondsParam)) % 60;
   const milliseconds = (secondsParam - Math.trunc(secondsParam)).toFixed(3);
   var timeStr =
     padZeros(hours, 2) +

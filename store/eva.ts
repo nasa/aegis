@@ -1,5 +1,4 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { LatLng } from "leaflet";
 
 export const initialState: EvaState = {
   eva: {

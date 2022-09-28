@@ -1,17 +1,17 @@
-import nextJest from 'next/jest';
+import nextJest from "next/jest";
 
 const createJestConfig = nextJest({
-    // Your Next.js config
-    dir: './',
+  // Your Next.js config
+  dir: "./",
 });
 
 const config = {
   preset: "ts-jest/presets/js-with-ts",
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "node"],
-  moduleDirectories: ['node_modules', 'src'],
+  moduleDirectories: ["node_modules", "src"],
   moduleNameMapper: {
     "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$":
-        "<rootDir>/tests/__mocks__/fileMock.js",
+      "<rootDir>/tests/__mocks__/fileMock.js",
     "\\.(css|scss)$": "identity-obj-proxy",
     "^__mocks__(.*)$": "<rootDir>/__mocks__$1",
     "^client/(.*)$": "<rootDir>/client/$1",
@@ -23,7 +23,7 @@ const config = {
     "^typings$": "<rootDir>/typings/index.d",
     "^typings/(.*)$": "<rootDir>/typings/$1",
     "^utils/(.*)$": "<rootDir>/utils/$1",
-    '^.+\\.(css|sass|scss)$': '<rootDir>/__mocks__/styleMock.js',
+    "^.+\\.(css|sass|scss)$": "<rootDir>/__mocks__/styleMock.js",
   },
   collectCoverageFrom: [
     "**/*.{js,jsx,ts,tsx}",
@@ -51,7 +51,7 @@ const config = {
   transform: {
     "^.+\\.(ts|tsx)$": "ts-jest",
   },
-  testEnvironment: "node"
-}
+  testEnvironment: "node",
+};
 
 export default createJestConfig(config);
