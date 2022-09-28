@@ -3,7 +3,7 @@ import { Mission } from "./server/database/models/mission.model";
 import { User } from "./server/database/models/user.model";
 import path from "path";
 
-let port = parseInt(process.env.AEGIS_DB_PORT);
+const port = parseInt(process.env.AEGIS_DB_PORT);
 const config: Options = {
   dbName: process.env.AEGIS_DB_NAME,
   host: process.env.AEGIS_DB_HOST,
@@ -19,7 +19,7 @@ const config: Options = {
   entitiesTs: [Mission, User],
   entities: [Mission, User],
   debug: process.env.DEBUG === "true" || process.env.DEBUG?.includes("db"),
-  allowGlobalContext: process.env.NODE_ENV === 'test',
+  allowGlobalContext: process.env.NODE_ENV === "test",
 };
 
 export default config;

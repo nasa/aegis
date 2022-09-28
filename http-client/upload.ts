@@ -8,7 +8,7 @@ export async function uploadFile(
   const config: AxiosRequestConfig = {
     headers: { "content-type": "multipart/form-data" },
     onUploadProgress: progressCallback,
-    validateStatus: (status) => true, //define HTTP code(s) that should throw an error (return false)
+    validateStatus: (_status) => true, //define HTTP code(s) that should throw an error (return false)
     signal: controller.signal, //abort controller for user to cancel upload
   };
 

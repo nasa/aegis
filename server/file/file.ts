@@ -68,7 +68,7 @@ export async function listFiles(): Promise<GISfile[]> {
   try {
     const files = await readdir(destRoot, { withFileTypes: true });
     return files.map((file) => {
-      let f: GISfile = { name: file.name, isDir: file.isDirectory() };
+      const f: GISfile = { name: file.name, isDir: file.isDirectory() };
       return f;
     });
   } catch (e) {

@@ -87,7 +87,7 @@ type Action = {
 
 /**
  * Inventory item needed to perform an action.
- * Inventory management and tracking tbd.
+ * Inventory management and tracking still being defined.
  */
 type InventoryItem = {
   name: string;
