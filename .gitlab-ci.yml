@@ -230,12 +230,13 @@ build:
       - .next
       - dist
 
-.docker_build_template:
+# Sets up `IMAGE_NAME` environment variable to be used by docker build/push jobs
+.docker_tag_template:
   stage: stageless
   timeout: 10 minutes
   retry: 2
   extends: .dind
-  script:
+  before_script:
     - TAG=${BUILD_IMAGE}
     - >
       if [ "${CI_COMMIT_REF_SLUG}" == "prod" ]; then
@@ -246,32 +247,74 @@ build:
         TAG="${TAG}-dev"
       fi
     - IMAGE_NAME="${CI_REGISTRY_IMAGE}:${TAG}"
+
+.docker_build_template:
+  extends: .docker_tag_template
+  script:
     - docker build --pull -t "${IMAGE_NAME}" -f ./docker/${BUILD_IMAGE}/Dockerfile --target ${BUILD_TARGET} .
+    - mkdir builtimages
+    - docker save "${IMAGE_NAME}" > builtimages/image.tar
+  artifacts:
+    paths:
+      - builtimages
+
+.docker_push_template:
+  extends: .docker_tag_template
+  script:
+    - docker info
+    - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+    - docker load -i builtimages/image.tar
     - docker push "${IMAGE_NAME}"
 
+#
+# Build docker images immediately (needs: [], meaning it has not prerequisites)
+# so longer jobs get started soon. Don't push them until the docker:push:* jobs
+# below, which wait for validation (unit testing, etc)
+#
 docker:build:nginx:
   extends: .docker_build_template
-  needs:
-    - build
-    - test
+  needs: []
   variables:
     BUILD_IMAGE: nginx
     BUILD_TARGET: base
 
 docker:build:nextjs:
   extends: .docker_build_template
-  needs:
-    - build
-    - test
+  needs: []
   variables:
     BUILD_IMAGE: nextjs
     BUILD_TARGET: prod
 
+#
+# Push docker images after necessary jobs pass (e.g. unit testing passes)
+#
+docker:push:nginx:
+  extends: .docker_push_template
+  needs:
+    - job: build
+      artifacts: false
+    - job: test
+      artifacts: false
+    - docker:build:nginx
+  variables:
+    BUILD_IMAGE: nginx
+
+docker:push:nextjs:
+  extends: .docker_push_template
+  needs:
+    - job: build
+      artifacts: false
+    - job: test
+      artifacts: false
+    - docker:build:nextjs
+  variables:
+    BUILD_IMAGE: nextjs
+
 make-dotenv:
   stage: stageless
   needs:
-    - docker:build:nginx
-    - docker:build:nextjs
+    - docker:push:nginx
+    - docker:push:nextjs
   script:
     # Baseline .env from CI/CD file-variable
     - cp "${FIT_DOTENV_FILE_PATH}" ./.env
