@@ -5,11 +5,7 @@ import type { NextPage } from "next";
 // const Map = dynamic(() => import("../components/react-leaflet"), { ssr: false });
 
 const Home: NextPage = () => {
-  return (
-    <div /* className={styles.container} */>
-      {/*<Map />*/}
-    </div>
-  );
+  return <div /* className={styles.container} */>{/*<Map />*/}</div>;
 };
 
 export default Home;
