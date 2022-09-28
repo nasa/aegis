@@ -21,9 +21,9 @@ export default class Mikro {
   static getEM = () => {
     let em = RequestContext.getEntityManager();
     if (!em) {
-      em = global.__MikroORM__.em;
+      em = global.__MikroORM__?.em;
       if (!em) {
-        throw new Error("Entity manager not found");
+        throw new Error("Entity Manager not initialized");
       }
     }
     return em;

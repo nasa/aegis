@@ -16,4 +16,5 @@ module.exports = {
   eslint: {
     dirs: ["."],
   },
+  presets: ["next/babel"],
 };
