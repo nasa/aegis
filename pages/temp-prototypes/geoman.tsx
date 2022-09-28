@@ -5,11 +5,7 @@ import styles from "./geoman.module.css";
 // const Geoman = dynamic(() => import("components/temp-prototypes/geoman"), { ssr: false });
 
 const Home: NextPage = () => {
-  return (
-    <div className={styles.container}>
-      {/*<Geoman />*/}
-    </div>
-  );
+  return <div className={styles.container}>{/*<Geoman />*/}</div>;
 };
 
 export default Home;
