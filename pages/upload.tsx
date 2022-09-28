@@ -28,10 +28,10 @@ const Upload: NextPage = () => {
   //call api to get the directory listing
   async function getDirListing() {
     const getListFiles = async () => {
-      let fileList: GISfile[] = await listFiles(); //get files
+      const fileList: GISfile[] = await listFiles(); //get files
       //convert to type fileState and store in state
-      let fileStates: fileState[] = fileList.map((file) => {
-        let filetype: string = file.isDir ? "dir" : "file";
+      const fileStates: fileState[] = fileList.map((file) => {
+        const filetype: string = file.isDir ? "dir" : "file";
         return {
           key: `${filetype}_${file.name}`,
           type: filetype,
@@ -74,7 +74,7 @@ const Upload: NextPage = () => {
 
     //call upload func
     const res = await uploadFile(formData, abort, (event) => {
-      let progress = Math.round((event.loaded * 100) / event.total);
+      const progress = Math.round((event.loaded * 100) / event.total);
       if (progress < 100) {
         setProgressMsg(`Upload progress: ${progress} %`);
       } else {
@@ -83,7 +83,7 @@ const Upload: NextPage = () => {
     });
 
     //update response
-    let message = res.data;
+    const message = res.data;
     setProgressMsg(
       `Upload ${res.status === 200 ? "Success" : "Error"}. Status ${res.status}. ${message}`
     );
@@ -101,8 +101,8 @@ const Upload: NextPage = () => {
 
   //show or hide the rename field
   function showHideRename(key: string) {
-    let newState = [...dirListing];
-    let index = newState.findIndex((file) => {
+    const newState = [...dirListing];
+    const index = newState.findIndex((file) => {
       return file.key === key;
     }); //find this item
     newState[index].showRename = !newState[index].showRename; //toggle value
@@ -111,8 +111,8 @@ const Upload: NextPage = () => {
 
   //on change handler when a new name is typed in the input field
   function renameChangeHandler(key: string, newName: string) {
-    let newState = [...dirListing];
-    let index = newState.findIndex((file) => {
+    const newState = [...dirListing];
+    const index = newState.findIndex((file) => {
       return file.key === key;
     }); //find this item
     newState[index].newName = newName; //toggle value
@@ -121,11 +121,11 @@ const Upload: NextPage = () => {
 
   //save the new renamed file or folder
   async function saveRename(key: string) {
-    let index = dirListing.findIndex((file) => {
+    const index = dirListing.findIndex((file) => {
       return file.key === key;
     }); //find this item
-    let res = await renameFile(dirListing[index].name, dirListing[index].newName);
-    let message = await res.json();
+    const res = await renameFile(dirListing[index].name, dirListing[index].newName);
+    const message = await res.json();
     setProgressMsg(
       `Rename ${res.status === 200 ? "Success" : "Error"}. Status ${res.status}. ${message}`
     );
@@ -134,10 +134,10 @@ const Upload: NextPage = () => {
 
   //delete a file
   async function deleteFileToAPI(filename: string) {
-    let confirmDelete = confirm("Are you sure you want to delete " + filename);
+    const confirmDelete = confirm("Are you sure you want to delete " + filename);
     if (confirmDelete) {
-      let res = await deleteFile(filename);
-      let message = await res.json();
+      const res = await deleteFile(filename);
+      const message = await res.json();
       setProgressMsg(
         `Delete ${res.status === 200 ? "Success" : "Error"}. Status ${res.status}. ${message}`
       );

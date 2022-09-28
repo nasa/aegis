@@ -23,6 +23,58 @@
     "prettier"
   ],
   "rules": {
+    "no-warning-comments": [
+      "error",
+      {
+        "terms": ["fixme", "tbd", "xxx"],
+        "location": "anywhere"
+      }
+    ],
+    "no-implied-eval": "error",
+    "no-bitwise": "error",
+    "no-eval": "error",
+    "no-extend-native": "error",
+    "no-array-constructor": "error",
+    "no-caller": "error",
+    "no-constant-condition": ["error", { "checkLoops": false }],
+    "no-empty": ["error", { "allowEmptyCatch": true }],
+    "no-extra-bind": "error",
+    "no-extra-label": "error",
+    "no-implicit-coercion": [
+      "error",
+      { "string": true, "boolean": false, "number": false }
+    ],
+    "no-implicit-globals": "error",
+    "no-label-var": "error",
+    "no-loop-func": "error",
+    "no-multi-spaces": "error",
+    "no-multi-str": "error",
+    "no-new": "error",
+    "no-new-func": "error",
+    "no-new-object": "error",
+    "no-new-wrappers": "error",
+    "no-octal-escape": "error",
+    "no-proto": "error",
+    "no-prototype-builtins": "error",
+    "no-return-assign": "error",
+    "no-script-url": "error",
+    "no-self-compare": "error",
+    "no-sequences": "error",
+    "no-shadow-restricted-names": "error",
+    "no-throw-literal": "error",
+    "no-unmodified-loop-condition": "error",
+    "no-unneeded-ternary": ["error", { "defaultAssignment": false }],
+    "no-unused-expressions": "error",
+    "no-useless-call": "error",
+    "no-void": "error",
+    "no-with": "error",
+    "prefer-numeric-literals": "error",
+    "unicode-bom": ["error"],
+    "no-misleading-character-class": "error",
+    "no-new-require": "error",
+    "no-useless-computed-key": "error",
+    "prefer-const": "error",
+
     "@typescript-eslint/no-unused-vars": [
       "error",
       {

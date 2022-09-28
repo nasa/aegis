@@ -167,7 +167,7 @@ export default class DrawNav {
   };
 
   getCursorElement = (seconds, color) => {
-    let cursorElementGroup = new paper.Group();
+    const cursorElementGroup = new paper.Group();
 
     // tier1
     let cursorLocX = 0.5 + seconds * this.gTier1PixelsPerSecond + this.gTier1Left;
@@ -195,10 +195,10 @@ export default class DrawNav {
     let timeTextRectHeightNudge = 5;
     let timeTextRectTopNudge = -2;
 
-    let timeTextGroup = new paper.Group();
+    const timeTextGroup = new paper.Group();
     // if this is an EVA day, then show PET in the cursor value
     if (!isNull(this.evaStartSec)) {
-      let petText = new paper.PointText({
+      const petText = new paper.PointText({
         justification: "left",
         fontWeight: "normal",
         fontFamily: this.gNavigatorFontFamilyActivity,
@@ -218,7 +218,7 @@ export default class DrawNav {
       timeTextRectTopNudge = -5;
     }
 
-    let timeText = new paper.PointText({
+    const timeText = new paper.PointText({
       justification: "left",
       fontWeight: "normal",
       fontFamily: timeTextFontFamily,
@@ -230,7 +230,7 @@ export default class DrawNav {
     const cornerSize = new paper.Size(4, 4);
     timeTextGroup.addChild(timeText);
 
-    let timeTextRect = new paper.Rectangle(timeTextGroup.bounds);
+    const timeTextRect = new paper.Rectangle(timeTextGroup.bounds);
     //center rectangle behind text
     timeTextRect.width = timeTextRectWidth;
     timeTextRect.height += timeTextRectHeightNudge;
@@ -241,7 +241,7 @@ export default class DrawNav {
       timeTextGroup.position.x = this.gNavigatorWidth - timeTextGroup.bounds.width / 2;
     }
     timeTextRect.left = timeTextGroup.position.x - timeTextRectWidth / 2;
-    let timeTextRectPath = new paper.Path.Rectangle(timeTextRect, cornerSize);
+    const timeTextRectPath = new paper.Path.Rectangle(timeTextRect, cornerSize);
     timeTextRectPath.fillColor = color;
     timeTextRectPath.opacity = 0.7;
     cursorElementGroup.addChild(timeTextRectPath);
@@ -268,20 +268,20 @@ export default class DrawNav {
         parseInt(hhmmssFromSeconds(i).substring(3, 5)) % (10 * 60) === 0 &&
         hhmmssFromSeconds(i).substring(6, 8) === "00"
       ) {
-        let itemSecondsFromLeft = i - param.secondsStart;
-        let itemLocX = param.leftPx + itemSecondsFromLeft * param.pixelsPerSecond;
+        const itemSecondsFromLeft = i - param.secondsStart;
+        const itemLocX = param.leftPx + itemSecondsFromLeft * param.pixelsPerSecond;
 
         //draw full height faint line
-        let tierTopPoint = new paper.Point(itemLocX, param.tierTop);
-        let tierBottomPoint = new paper.Point(itemLocX, param.tierTop + param.tierTickHeight);
-        let faintLine = new paper.Path.Line(tierTopPoint, tierBottomPoint);
+        const tierTopPoint = new paper.Point(itemLocX, param.tierTop);
+        const tierBottomPoint = new paper.Point(itemLocX, param.tierTop + param.tierTickHeight);
+        const faintLine = new paper.Path.Line(tierTopPoint, tierBottomPoint);
         faintLine.strokeColor = new paper.Color("#505050");
         group.addChild(faintLine);
 
         //draw brighter tick next to hour number
-        let textTopPoint = new paper.Point(itemLocX, param.textTop);
-        let textBottomPoint = new paper.Point(itemLocX, param.textTop + param.textTickHeight);
-        let textLine = new paper.Path.Line(textTopPoint, textBottomPoint);
+        const textTopPoint = new paper.Point(itemLocX, param.textTop);
+        const textBottomPoint = new paper.Point(itemLocX, param.textTop + param.textTickHeight);
+        const textLine = new paper.Path.Line(textTopPoint, textBottomPoint);
         textLine.strokeColor = new paper.Color("#7b7b7b");
         group.addChild(textLine);
 
@@ -316,9 +316,9 @@ export default class DrawNav {
     // if there is an EVA today, show PET marker
     if (!isNull(this.evaStartSec)) {
       const itemLocX = param.leftPx + (param.petTime - param.secondsStart) * param.pixelsPerSecond;
-      let tierTopPoint = new paper.Point(itemLocX, param.tierTop);
-      let tierBottomPoint = new paper.Point(itemLocX, param.tierBottom);
-      let petLine = new paper.Path.Line(tierTopPoint, tierBottomPoint);
+      const tierTopPoint = new paper.Point(itemLocX, param.tierTop);
+      const tierBottomPoint = new paper.Point(itemLocX, param.tierBottom);
+      const petLine = new paper.Path.Line(tierTopPoint, tierBottomPoint);
       petLine.strokeColor = new paper.Color("#ffffff");
       group.addChild(petLine);
 
@@ -341,7 +341,7 @@ export default class DrawNav {
       }
       petText.rotate(-90);
 
-      let textRect = new paper.Rectangle(petText.bounds);
+      const textRect = new paper.Rectangle(petText.bounds);
       textRect.height = param.tierBottom - param.tierTop;
       textRect.top = param.tierTop;
       if (param.largeLabel) {
@@ -350,7 +350,7 @@ export default class DrawNav {
       } else {
         textRect.left += -1;
       }
-      let textRectPath = new paper.Path.Rectangle(textRect);
+      const textRectPath = new paper.Path.Rectangle(textRect);
       textRectPath.fillColor = new paper.Color("black");
       textRectPath.opacity = 0.4;
       group.addChild(textRectPath);
@@ -443,8 +443,8 @@ export default class DrawNav {
   drawNavBox = (seconds) => {
     this.gTier1NavGroup.removeChildren();
 
-    let locX = seconds * this.gTier1PixelsPerSecond + this.gTier1Left;
-    let navBoxWidth = (this.gNavigatorWidth - this.gTier1Left) / this.gNavZoomFactor;
+    const locX = seconds * this.gTier1PixelsPerSecond + this.gTier1Left;
+    const navBoxWidth = (this.gNavigatorWidth - this.gTier1Left) / this.gNavZoomFactor;
     this.gNavBoxLocX = locX - navBoxWidth / 2;
     if (this.gNavBoxLocX < this.gTier1Left) {
       this.gNavBoxLocX = this.gTier1Left;
@@ -455,9 +455,9 @@ export default class DrawNav {
 
     const navBoxTop = this.gTier1Top;
     const navBoxHeight = this.gTier1Height;
-    let navBoxRect = new paper.Rectangle(this.gNavBoxLocX, navBoxTop, navBoxWidth, navBoxHeight);
+    const navBoxRect = new paper.Rectangle(this.gNavBoxLocX, navBoxTop, navBoxWidth, navBoxHeight);
     const cornerSize = new paper.Size(3, 3);
-    let navBoxRectPath = new paper.Path.Rectangle(navBoxRect, cornerSize);
+    const navBoxRectPath = new paper.Path.Rectangle(navBoxRect, cornerSize);
     navBoxRectPath.strokeColor = this.gColorNavBox;
     navBoxRectPath.strokeWidth = 2;
     this.gTier1NavGroup.addChild(navBoxRectPath);
@@ -466,7 +466,7 @@ export default class DrawNav {
     const effectHeight = 20;
     let startPoint = new paper.Point(this.gNavBoxLocX, this.gTier1Top + effectHeight);
     const effectSideWidth = 20;
-    let navBoxEffectLeft = new paper.Path({
+    const navBoxEffectLeft = new paper.Path({
       strokeColor: this.gColorNavBox,
       closed: false,
       fillColor: "#efefef",
@@ -482,7 +482,7 @@ export default class DrawNav {
 
     //right navBoxEffect
     startPoint = new paper.Point(this.gNavBoxLocX + navBoxWidth, this.gTier1Top + effectHeight);
-    let navBoxEffectRight = new paper.Path({
+    const navBoxEffectRight = new paper.Path({
       strokeColor: this.gColorNavBox,
       closed: false,
       fillColor: this.gColorNavBox,
