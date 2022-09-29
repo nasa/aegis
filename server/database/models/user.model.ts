@@ -35,8 +35,8 @@ export class User {
 
   @BeforeCreate()
   async beforeCreate(): Promise<void> {
-    const salt = await bcrypt.genSaltSync();
-    this.password = await bcrypt.hashSync(this.password, salt);
+    const salt = await bcrypt.genSalt();
+    this.password = await bcrypt.hash(this.password, salt);
     this.createdAt = new Date();
     this.updatedAt = new Date();
   }
