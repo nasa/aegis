@@ -113,7 +113,7 @@ describe("Utilities Functions", () => {
   });
   describe("Mikro ORM", () => {
     test("Entity Manager Error", async () => {
-      expect(() => Mikro.getEM()).toThrow("Entity Manager not initialized");
+      expect(() => Mikro.getEM()).toThrow("Run Mikro.getORM() first");
     });
   });
 });

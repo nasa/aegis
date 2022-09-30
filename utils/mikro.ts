@@ -8,16 +8,14 @@ import {
 import { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
 import config from "../mikro-orm.config";
 
+let ormCache: null | MikroORM<IDatabaseDriver<Connection>> = null;
+
 export default class Mikro {
   static getORM = async (): Promise<MikroORM<IDatabaseDriver<Connection>>> => {
-    if (global.__MikroORM__) {
-      return global.__MikroORM__;
+    if (!ormCache) {
+      ormCache = await MikroORM.init(config);
     }
-    const orm = await MikroORM.init(config).then(async (orm) => {
-      return orm;
-    });
-    global.__MikroORM__ = orm;
-    return orm;
+    return ormCache;
   };
 
   static withORM =
@@ -29,8 +27,11 @@ export default class Mikro {
 
   static getEM = (): EntityManager<IDatabaseDriver<Connection>> => {
     let em = RequestContext.getEntityManager();
+    if (!ormCache) {
+      throw new Error("Run Mikro.getORM() first");
+    }
     if (!em) {
-      em = global.__MikroORM__?.em;
+      em = ormCache.em;
       if (!em) {
         throw new Error("Entity Manager not initialized");
       }
@@ -39,9 +40,9 @@ export default class Mikro {
   };
 
   static closeORM = async (): Promise<void> => {
-    if (global.__MikroORM__) {
-      await global.__MikroORM__.close();
-      delete global.__MikroORM__;
+    if (ormCache) {
+      await ormCache.close();
+      ormCache = null;
     }
   };
 }
