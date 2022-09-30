@@ -1,6 +1,10 @@
 import { LatLng } from "leaflet";
 
-export function getDistanceBetweenTwoCoordinates(latLng1: LatLng, latLng2: LatLng, R: number) {
+export function getDistanceBetweenTwoCoordinates(
+  latLng1: LatLng,
+  latLng2: LatLng,
+  R: number
+): number {
   /**
    * Calculate the distance between two coordinates
    * @param {number} lat1

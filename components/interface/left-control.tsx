@@ -1,6 +1,6 @@
 import _ from "lodash";
 import styles from "./left-control.module.css";
-import { useState } from "react";
+import { FunctionComponent, useState } from "react";
 import MapSelector from "components/panes/map_selector/map_selector";
 import EvaPlanner from "components/panes/eva_planner/eva_planner";
 
@@ -26,7 +26,7 @@ const paneTypes: PaneTypes = {
 
 /* This control sits at the left side of the screen and loads the selected component based on the NavGutter icon selected */
 
-const LeftControlPanel = () => {
+const LeftControlPanel: FunctionComponent = () => {
   const [selectedNavItem, setSelectedNavItem] = useState("eva_planner");
 
   let ActiveComponent = null;

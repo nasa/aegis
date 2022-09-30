@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { FunctionComponent, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "store";
 import styles from "./eva_planner.module.css";
@@ -11,7 +11,7 @@ import { library } from "@fortawesome/fontawesome-svg-core";
 import { faChevronDown, faPlus, faGear } from "@fortawesome/free-solid-svg-icons";
 library.add(faChevronDown, faPlus, faGear);
 
-const EvaPlanner = () => {
+const EvaPlanner: FunctionComponent = () => {
   const dispatch = useDispatch();
   const evaState = useSelector((state: RootState) => state.eva);
 

@@ -1,4 +1,5 @@
 import type { IronSessionData } from "iron-session";
+import type { Mission } from "server/database/models/mission.model";
 
 export async function getMissions(): Promise<WrappedResponse<AEGISMission[]>> {
   const res = await fetch(`/api/mission/missions`);
@@ -7,9 +8,9 @@ export async function getMissions(): Promise<WrappedResponse<AEGISMission[]>> {
   return response;
 }
 
-export async function getMission(mission: number): Promise<WrappedResponse<MMGISConfig>> {
+export async function getMission(mission: number): Promise<WrappedResponse<Mission>> {
   const res = await fetch(`/api/mission/${mission}`);
-  const response: WrappedResponse<MMGISConfig> = await res.json();
+  const response: WrappedResponse<Mission> = await res.json();
 
   return response;
 }
