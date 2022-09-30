@@ -53,7 +53,7 @@ export default class DrawNav {
     readonly evaStartSec: number
   ) {}
 
-  initGroups() {
+  initGroups(): void {
     if (typeof this.gTier1Group !== "undefined") {
       this.gTier1Group.removeChildren();
       this.gTier1NavGroup.removeChildren();
@@ -70,7 +70,11 @@ export default class DrawNav {
     }
   }
 
-  handleMouseMove = (event, missionTimeSeconds, cb) => {
+  handleMouseMove = (
+    event: paper.MouseEvent,
+    missionTimeSeconds: number,
+    cb: (mxs: number) => void
+  ): void => {
     // scram if hovering over play pause controls area
     if (event.point.y > this.gTier1Top && event.point.x < this.gTier1Left) {
       return;
@@ -97,7 +101,10 @@ export default class DrawNav {
     cb(mouseXSeconds);
   };
 
-  handleMouseUp = (event, cb: (hh: number, mm: number, ss: number) => void) => {
+  handleMouseUp = (
+    event: paper.MouseEvent,
+    cb: (hh: number, mm: number, ss: number) => void
+  ): void => {
     let seconds = 0;
     if (event.point.y > this.gTier1Top) {
       seconds = Math.round((event.point.x - this.gTier1Left) * this.gTier1SecondsPerPixel);
@@ -117,7 +124,7 @@ export default class DrawNav {
     cb(hh, mm, ss);
   };
 
-  handleMouseLeave = (_event, cb) => {
+  handleMouseLeave = (_event: paper.MouseEvent, cb: () => void): void => {
     // this.navigatorCollapsed = true;
     this.setDynamicWidthVariables();
     this.drawTier1();
@@ -126,7 +133,7 @@ export default class DrawNav {
     cb();
   };
 
-  setDynamicWidthVariables = () => {
+  setDynamicWidthVariables = (): void => {
     this.gNavigatorWidth = paper.view.size.width;
     this.gNavigatorHeight = paper.view.size.height;
 
@@ -156,17 +163,17 @@ export default class DrawNav {
     this.gTier1Top = this.gTier2Top + this.gTier2Height + this.gTierSpacing;
   };
 
-  drawCursor = (seconds) => {
+  drawCursor = (seconds: number): void => {
     this.gCursorGroup.removeChildren();
     this.gCursorGroup.addChild(this.getCursorElement(seconds, this.gColorCursor));
   };
 
-  drawNavCursor = (seconds) => {
+  drawNavCursor = (seconds: number): void => {
     this.gNavCursorGroup.removeChildren();
     this.gNavCursorGroup.addChild(this.getCursorElement(seconds, this.gColorNavCursor));
   };
 
-  getCursorElement = (seconds, color) => {
+  getCursorElement = (seconds: number, color: paper.Color): paper.Group => {
     const cursorElementGroup = new paper.Group();
 
     // tier1
@@ -360,7 +367,7 @@ export default class DrawNav {
     return group;
   };
 
-  drawTier1() {
+  drawTier1(): void {
     this.gTier1Group.removeChildren();
 
     // const drawingTop = this.gTier1Top + 0.5;
@@ -399,7 +406,7 @@ export default class DrawNav {
     );
   }
 
-  drawTier2() {
+  drawTier2(): void {
     this.gTier2Group.removeChildren();
 
     const drawingBottom = this.gTier2Top + this.gTier2Height + 0.5;
@@ -440,7 +447,7 @@ export default class DrawNav {
     );
   }
 
-  drawNavBox = (seconds) => {
+  drawNavBox = (seconds: number): void => {
     this.gTier1NavGroup.removeChildren();
 
     const locX = seconds * this.gTier1PixelsPerSecond + this.gTier1Left;

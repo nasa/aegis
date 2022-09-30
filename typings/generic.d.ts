@@ -35,3 +35,13 @@ interface MapView {
   longitude: number;
   zoom: number;
 }
+
+/**
+ * From MapSelector component
+ */
+type ExpandedSection = {
+  systemPresets: boolean;
+  userPresets: boolean;
+  details: boolean;
+};
+type SetExpandedSectionsFn = (expandedSection: ExpandedSection) => void;

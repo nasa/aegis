@@ -1,10 +1,10 @@
 import { createMocks, createResponse, createRequest, RequestMethod } from "node-mocks-http";
-import { getMissionById, returnMissionJson } from "../pages/api/mission/[id]";
+import { getMissionById, handleMissionJson } from "../pages/api/mission/[id]";
 import { describe, expect, test, afterAll, it, beforeAll } from "@jest/globals";
 import { NextApiRequest, NextApiResponse } from "next";
 import Login from "../pages/api/users/login";
 import Mikro from "utils/mikro";
-import { getAllMissions, returnAllMissionsJson } from "../pages/api/mission/missions";
+import { getAllMissions, handleAllMissionJson } from "../pages/api/mission/missions";
 import { Factory } from "@mikro-orm/seeder";
 import { Mission } from "server/database/models/mission.model";
 import { PermissionRole, User } from "server/database/models/user.model";
@@ -52,7 +52,7 @@ describe("Mission API Endpoint", () => {
     req.body = { username: "testAdmin", password: "superSecretPassword" };
     await Login(req, res);
     req.query = { id: testMission.id.toString() };
-    await returnMissionJson(req, res);
+    await handleMissionJson(req, res);
     await expect(res.statusCode).toBe(200);
     await expect(res.statusMessage).toEqual("OK");
   });
@@ -62,15 +62,15 @@ describe("Mission API Endpoint", () => {
     req.body = { username: "testAdmin", password: "superSecretPassword" };
     await Login(req, res);
     req.query = { id: "99999" };
-    await returnMissionJson(req, res);
-    expect(res.statusCode).toBe(500);
+    await handleMissionJson(req, res);
+    expect(res.statusCode).toBe(404);
     expect(res.statusMessage).toEqual("OK");
   });
 
   test("Mission: Fails to Authorize", async () => {
     const { req, res } = mockRequestResponse();
     req.query = { id: testMission.id.toString() };
-    await returnMissionJson(req, res);
+    await handleMissionJson(req, res);
     expect(res.statusCode).toBe(401);
     expect(res.statusMessage).toEqual("OK");
   });
@@ -85,14 +85,14 @@ describe("Mission API Endpoint", () => {
     const { req, res } = mockRequestResponse();
     req.body = { username: "testAdmin", password: "superSecretPassword" };
     await Login(req, res);
-    await returnAllMissionsJson(req, res);
+    await handleAllMissionJson(req, res);
     expect(res.statusCode).toBe(200);
     expect(res.statusMessage).toEqual("OK");
   });
 
   test("Missions: Returns Auth Failure", async () => {
     const { req, res } = mockRequestResponse();
-    await returnAllMissionsJson(req, res);
+    await handleAllMissionJson(req, res);
     expect(res.statusCode).toBe(401);
     expect(res.statusMessage).toEqual("OK");
   });

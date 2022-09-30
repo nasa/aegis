@@ -1,6 +1,6 @@
 import isNil from "lodash/isNil";
 import paper from "paper";
-import { MutableRefObject, useCallback, useEffect, useRef } from "react";
+import { FunctionComponent, MutableRefObject, useCallback, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { changeTime } from "store/playhead";
 import { changeHoverTime } from "store/playheadHover";
@@ -12,7 +12,7 @@ import styles from "./nav-timeline-draw.module.css";
 /**
  * Renders the navigation timeline presented at the bottom of the CODA window
  */
-export default function NavTimeline() {
+const NavTimeline: FunctionComponent = () => {
   const playhead: PlayheadState = useSelector((state: RootState) => state.playhead);
   const playheadHover: PlayheadHoverState = useSelector((state: RootState) => state.playheadHover);
 
@@ -125,4 +125,6 @@ export default function NavTimeline() {
       </div>
     </>
   );
-}
+};
+
+export default NavTimeline;

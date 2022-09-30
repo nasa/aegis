@@ -96,11 +96,14 @@ const MissionSelect = () => {
     }
   };
 
-  const handleMissionSelectClick = (mission: number) => {
+  const handleMissionSelectClick = (missionId: number) => {
     (async () => {
-      const response = await getMission(mission);
-      if (response.data) {
-        dispatch(setMMGISConfig(response.data[0]));
+      const response = await getMission(missionId);
+      const mission = response.data;
+      if (mission) {
+        dispatch(setMMGISConfig(mission));
+      } else {
+        console.error(new Error("Failed to select mission"));
       }
       router.push(`/main`);
     })();

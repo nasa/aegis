@@ -1,6 +1,6 @@
 import styles from "./map_selector.module.css";
 import paneStyles from "../left_pane_styles.module.css";
-import { useState } from "react";
+import { FunctionComponent, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "store";
 import { toggleLayerControlExpanded, toggleLayerControlEnabled } from "store/map";
@@ -20,7 +20,7 @@ import { library } from "@fortawesome/fontawesome-svg-core";
 
 library.add(faCaretDown, faCaretRight, faEye, faEyeSlash, faCircleInfo, faSliders);
 
-export default function MapSelector() {
+const MapSelector: FunctionComponent = () => {
   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig);
   const layerControls = useSelector((state: RootState) => state.map.layerControls);
 
@@ -53,7 +53,9 @@ export default function MapSelector() {
       />
     </>
   );
-}
+};
+
+export default MapSelector;
 
 const DetailedSettings = ({
   mmgisConfig,

@@ -1,14 +1,14 @@
 import { Entity, PrimaryKey, Property } from "@mikro-orm/core";
 
 @Entity()
-export class Mission {
+export class Mission implements AEGISMission {
   @PrimaryKey({ type: "number" })
   id!: number;
 
   @Property({ type: "string" })
   mission!: string;
   @Property({ type: "json", nullable: true })
-  config!: object;
+  config!: Config;
   @Property({ type: "number" })
   version!: number;
   @Property({ type: "date" })
@@ -17,7 +17,7 @@ export class Mission {
   @Property({ type: "date" })
   updatedAt!: Date;
 
-  constructor(mission: string, config: object, version: number) {
+  constructor(mission: string, config: Config, version: number) {
     this.mission = mission;
     this.config = config;
     this.version = version;

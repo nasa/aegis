@@ -3,10 +3,14 @@ import paneStyles from "../left_pane_styles.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
 import { library } from "@fortawesome/fontawesome-svg-core";
+import { FunctionComponent } from "react";
 
 library.add(faCaretDown, faCaretRight);
 
-export default function SystemMapImageryPresets({ expandedSections, setExpandedSections }) {
+const SystemMapImageryPresets: FunctionComponent<{
+  expandedSections: ExpandedSection;
+  setExpandedSections: SetExpandedSectionsFn;
+}> = ({ expandedSections, setExpandedSections }) => {
   const placeholderPresets = {
     terrain_difficulty: {
       name: "Terrain Difficulty",
@@ -50,4 +54,6 @@ export default function SystemMapImageryPresets({ expandedSections, setExpandedS
       </div>
     </div>
   );
-}
+};
+
+export default SystemMapImageryPresets;

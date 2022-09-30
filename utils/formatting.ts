@@ -100,14 +100,14 @@ export function isoStringFromAnyDateString(dateString: string): string {
   return tempDate.toISOString(); // guaranteed to have an ISO string. safe to string parse it
 }
 
-export function getPlayheadISOString(playheadDate: string, playheadSeconds: number) {
+export function getPlayheadISOString(playheadDate: string, playheadSeconds: number): string {
   const date = new Date(playheadDate);
   const withSeconds = add(date, playheadSeconds * 1000);
   return withSeconds.toISOString();
 }
 
 /** Nicely format an IO collections string for display */
-export function cleanCollectionsString(colStr: string) {
+export function cleanCollectionsString(colStr: string): string {
   const fullTree = colStr.split("|");
   let cleaned = fullTree[fullTree.length - 1];
   cleaned = cleaned.replace(fullTree[1], "");

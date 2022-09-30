@@ -1,6 +1,7 @@
 import styles from "./right-control.module.css";
 import { useSelector } from "react-redux";
 import { RootState } from "store";
+import { FunctionComponent } from "react";
 
 /* This control sits at the right side of the screen and displays the active pane for that position */
 
@@ -22,7 +23,7 @@ const Info = () => {
   );
 };
 
-const RightControlPanel = () => {
+const RightControlPanel: FunctionComponent = () => {
   return (
     <div className={styles.body}>
       <Info />

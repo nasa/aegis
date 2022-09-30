@@ -3,10 +3,14 @@ import paneStyles from "../left_pane_styles.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
 import { library } from "@fortawesome/fontawesome-svg-core";
+import { FunctionComponent } from "react";
 
 library.add(faCaretDown, faCaretRight);
 
-export default function UserMapImageryPresets({ expandedSections, setExpandedSections }) {
+const UserMapImageryPresets: FunctionComponent<{
+  expandedSections: ExpandedSection;
+  setExpandedSections: SetExpandedSectionsFn;
+}> = ({ expandedSections, setExpandedSections }) => {
   // const placeholderPresets = {
   //   user1: {
   //     name: "My Preset 1",
@@ -38,4 +42,6 @@ export default function UserMapImageryPresets({ expandedSections, setExpandedSec
       </div>
     </div>
   );
-}
+};
+
+export default UserMapImageryPresets;

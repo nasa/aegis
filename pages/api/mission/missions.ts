@@ -1,19 +1,13 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 import Mikro from "utils/mikro";
 import { Mission } from "server/database/models/mission.model";
 
-export default withIronSessionApiRoute(Mikro.withORM(handler), ironOptions);
-
-async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<WrappedResponse<AEGISMission[]>>
-): Promise<WrappedResponse<AEGISMission[]>> {
-  return returnAllMissionsJson(req, res);
-}
-
-export async function returnAllMissionsJson(req, res): Promise<WrappedResponse<AEGISMission[]>> {
+export const handleAllMissionJson: NextApiHandler<WrappedResponse<AEGISMission[]>> = async (
+  req,
+  res
+): Promise<unknown> => {
   try {
     if (req.session?.user) {
       const missions = await getAllMissions();
@@ -28,7 +22,9 @@ export async function returnAllMissionsJson(req, res): Promise<WrappedResponse<A
   } catch (error) {
     return res.status(500).json({ status: "error", message: "Failed to find missions." });
   }
-}
+};
+
+export default withIronSessionApiRoute(Mikro.withORM(handleAllMissionJson), ironOptions);
 
 export async function getAllMissions(): Promise<AEGISMission[]> {
   const model = Mikro.getEM();

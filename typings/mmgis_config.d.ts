@@ -21,6 +21,7 @@ interface Projection {
   origin: string[];
   reszoomlevel: string;
   resunitsperpixel: string;
+  globeproj?: "webmercator"; // added because it exists in one place in DatabaseSeeder
 }
 
 interface Look {
@@ -55,6 +56,7 @@ interface Look {
   help: boolean;
   logourl: string;
   helpurl: string;
+  swap?: boolean; // added because it exists in one place in DatabaseSeeder
 }
 
 interface PanelSettings {
@@ -80,6 +82,7 @@ interface Variables {
   models: string[];
   tile_with_DEM: TileWithDEM;
   dem: string;
+  interpolateSeams?: boolean; // added because it exists in one place in DatabaseSeeder
 }
 
 interface Tool {

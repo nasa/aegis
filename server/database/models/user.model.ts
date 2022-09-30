@@ -29,12 +29,12 @@ export class User {
   updatedAt!: Date;
 
   @Property()
-  validPassword(password: string) {
+  validPassword(password: string): boolean {
     return bcrypt.compareSync(password, this.password);
   }
 
   @BeforeCreate()
-  async beforeCreate() {
+  async beforeCreate(): Promise<void> {
     const salt = await bcrypt.genSaltSync();
     this.password = await bcrypt.hashSync(this.password, salt);
     this.createdAt = new Date();
@@ -42,7 +42,7 @@ export class User {
   }
 
   @BeforeUpdate()
-  async beforeUpdate() {
+  async beforeUpdate(): Promise<void> {
     this.updatedAt = new Date();
   }
 

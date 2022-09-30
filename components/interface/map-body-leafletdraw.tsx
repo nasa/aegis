@@ -5,7 +5,14 @@ import "leaflet-draw";
 import styles from "components/interface/map-body.module.css";
 
 import { useSelector, useDispatch } from "react-redux";
-import { MutableRefObject, useEffect, useRef, useState, useCallback } from "react";
+import {
+  MutableRefObject,
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  FunctionComponent,
+} from "react";
 import { RootState } from "store/index";
 import _ from "lodash";
 import { setEvaItemMapAction, updateStationLatLngJSON, updateTraverseLatLngsJSON } from "store/eva";
@@ -16,7 +23,7 @@ const zoom = 13;
 
 const layerBaseURL = process.env.NEXT_PUBLIC_LAYER_BASE_URL;
 
-const MapBody = () => {
+const MapBody: FunctionComponent = () => {
   const dispatch = useDispatch();
   const mapRef = useRef(null);
   const map = useRef(null);

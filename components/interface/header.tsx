@@ -6,9 +6,10 @@ import { library } from "@fortawesome/fontawesome-svg-core";
 import { faBars } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { RootState } from "store";
+import { FunctionComponent } from "react";
 library.add(faBars);
 
-const Header = () => {
+const Header: FunctionComponent = () => {
   const router = useRouter();
   const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig);
 
