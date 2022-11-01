@@ -1,6 +1,6 @@
 import type { NextPage } from "next";
 import { useDispatch, useSelector } from "react-redux";
-import styles from "../main.module.css";
+import styles from "./mission.module.css";
 import { setLayerControls } from "store/map";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
