@@ -3,7 +3,7 @@ import { createWrapper } from "next-redux-wrapper";
 
 import { playheadSlice, initialState as playheadInitialState } from "./playhead";
 import { playheadHoverSlice, initialState as playheadHoverInitialState } from "./playheadHover";
-import { mmgisConfigSlice, initialState as mmgisConfigInitialState } from "./mmgis";
+import { missionSlice, initialState as missionInitialState } from "./mission";
 import { userSlice, initialState as userInitialState } from "./user";
 import { mapSlice, initialState as mapInitialState } from "./map";
 import { evaSlice, initialState as evaInitialState } from "./eva";
@@ -13,16 +13,16 @@ let store;
 export const initialState = {
   playhead: playheadInitialState,
   playheadHover: playheadHoverInitialState,
-  mmgisConfig: mmgisConfigInitialState,
+  missionSlice: missionInitialState,
   user: userInitialState,
   map: mapInitialState,
   eva: evaInitialState,
 };
 
-const reducer = combineReducers({
+export const reducer = combineReducers({
   playhead: playheadSlice.reducer,
   playheadHover: playheadHoverSlice.reducer,
-  mmgisConfig: mmgisConfigSlice.reducer,
+  missionSlice: missionSlice.reducer,
   user: userSlice.reducer,
   map: mapSlice.reducer,
   eva: evaSlice.reducer,

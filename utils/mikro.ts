@@ -31,7 +31,7 @@ export default class Mikro {
       throw new Error("Run Mikro.getORM() first");
     }
     if (!em) {
-      em = ormCache.em;
+      em = ormCache.em.fork();
       if (!em) {
         throw new Error("Entity Manager not initialized");
       }

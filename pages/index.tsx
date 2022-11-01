@@ -4,10 +4,17 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import styles from "./index.module.css";
-import { login, isLoggedIn, logout, getMissions, getMission } from "http-client/internal-api";
+import {
+  login,
+  isLoggedIn,
+  logout,
+  getMissions,
+  getMission,
+  getLayers,
+} from "http-client/internal-api";
 import type { RootState } from "store";
 import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/user";
-import { setMMGISConfig } from "store/mmgis";
+import { setLayers, setMission } from "store/mission";
 
 const Head = dynamic(import("next/head"), {
   ssr: false,
@@ -98,14 +105,18 @@ const MissionSelect = () => {
 
   const handleMissionSelectClick = (missionId: number) => {
     (async () => {
-      const response = await getMission(missionId);
-      const mission = response.data;
+      const missionData = await getMission(missionId);
+      const mission = missionData.data;
+      const layerData = await getLayers(missionId);
+      const layers = layerData.data;
+
       if (mission) {
-        dispatch(setMMGISConfig(mission));
+        await dispatch(setMission(mission));
+        await dispatch(setLayers(layers));
+        router.push(`/mission/${missionId}`);
       } else {
         console.error(new Error("Failed to select mission"));
       }
-      router.push(`/main`);
     })();
   };
 
@@ -127,7 +138,7 @@ const MissionSelect = () => {
                 missions.map((mission) => {
                   return (
                     <tr key={mission.id}>
-                      <td>{mission.mission}</td>
+                      <td>{mission.name}</td>
                       <td>{mission.version}</td>
                       <td>
                         {new Date(mission.createdAt).toLocaleDateString()}{" "}

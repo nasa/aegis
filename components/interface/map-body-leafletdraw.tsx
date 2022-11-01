@@ -31,7 +31,8 @@ const MapBody: FunctionComponent = () => {
   const drawHandlerRef = useRef(null);
   const drawnItemsRef = useRef(null);
 
-  const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig.MMGISConfig);
+  const mission = useSelector((state: RootState) => state.missionSlice.Mission);
+  const missionLayers = useSelector((state: RootState) => state.missionSlice.Layers);
   const layerControls = useSelector((state: RootState) => state.map.layerControls);
   const eva = useSelector((state: RootState) => state.eva.eva);
 
@@ -41,12 +42,12 @@ const MapBody: FunctionComponent = () => {
   const uuidBeingEdited = useRef(null);
 
   const showMapLayers = useCallback(() => {
-    if (!mmgisConfig || !layerControls || !map) return;
+    if (!mission || !layerControls || !map) return;
 
     // go through all layers in mission config and add make a list of the ones that are enabled
     const layersToAdd = [];
-    for (const configLayer of mmgisConfig.config.layers) {
-      for (const configSublayer of configLayer.sublayers) {
+    for (const configLayer of missionLayers) {
+      for (const configSublayer of configLayer.config.sublayers) {
         if (configSublayer.type === "tile") {
           if (layerControls[configSublayer.name].enabled) {
             layersToAdd.push(configSublayer);
@@ -77,24 +78,21 @@ const MapBody: FunctionComponent = () => {
     layersToAddInOrder.map((configSublayer, index) => {
       // if layer isn't already on the map, add it
       if (!isLayerOnMapByName(map, configSublayer.name)) {
-        const tileLayer = L.tileLayer(
-          `${layerBaseURL}${mmgisConfig.mission}/${configSublayer.url}`,
-          {
-            tileSize: 256,
-            bounds: [
-              [configSublayer.boundingBox[1], configSublayer.boundingBox[0]],
-              [configSublayer.boundingBox[3], configSublayer.boundingBox[2]],
-            ],
-            tms: configSublayer.tileformat === "tms",
-            minZoom: 1,
-            minNativeZoom: configSublayer.minZoom,
-            maxZoom: configSublayer.maxZoom,
-            maxNativeZoom: configSublayer.maxNativeZoom,
-            id: `${configSublayer.name}`,
-            opacity: 1,
-            zIndex: index,
-          }
-        );
+        const tileLayer = L.tileLayer(`${layerBaseURL}${mission.name}/${configSublayer.url}`, {
+          tileSize: 256,
+          bounds: [
+            [configSublayer.boundingBox[1], configSublayer.boundingBox[0]],
+            [configSublayer.boundingBox[3], configSublayer.boundingBox[2]],
+          ],
+          tms: configSublayer.tileformat === "tms",
+          minZoom: 1,
+          minNativeZoom: configSublayer.minZoom,
+          maxZoom: configSublayer.maxZoom,
+          maxNativeZoom: configSublayer.maxNativeZoom,
+          id: `${configSublayer.name}`,
+          opacity: 1,
+          zIndex: index,
+        });
         map.current.addLayer(tileLayer);
         tileLayer.bringToFront();
       } else {
@@ -103,7 +101,7 @@ const MapBody: FunctionComponent = () => {
         layer.bringToFront();
       }
     });
-  }, [layerControls, layersOnMap, mmgisConfig]);
+  }, [layerControls, layersOnMap, mission, missionLayers]);
 
   /**
    * Map tile layers display management
@@ -114,7 +112,7 @@ const MapBody: FunctionComponent = () => {
 
   useEffect(() => {
     showMapLayers();
-  }, [mmgisConfig, layerControls, map, layersOnMap, showMapLayers]);
+  }, [mission, layerControls, map, layersOnMap, showMapLayers]);
 
   /**
    * Map events management
@@ -224,20 +222,20 @@ const MapBody: FunctionComponent = () => {
         map.current.remove();
       }
     };
-  }, [mmgisConfig, mapRef, drawControlRef, dispatch]);
+  }, [mission, mapRef, drawControlRef, dispatch]);
 
   useEffect(() => {
     /**
      * Set the center of the map to the center of the selected mission (config.msv.view)
      */
-    if (!map.current || !mmgisConfig) return;
-    const config = mmgisConfig?.config;
+    if (!map.current || !mission) return;
+    const config = mission?.config;
 
     const center = [config?.msv?.view[0], config?.msv?.view[1]];
     const zoom = config?.msv?.view[2];
 
     map.current.setView(center, zoom);
-  }, [mmgisConfig, map]);
+  }, [mission, map]);
 
   /**
    * Listen for editable evaItems and trigger map draw/edit modes appropriately

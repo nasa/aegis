@@ -13,8 +13,8 @@ import {
   isoStringFromAnyDateString,
   padZeros,
   shortdateFromDateString,
-} from "../utils/formatting";
-import Mikro from "../utils/mikro";
+} from "../../utils/formatting";
+import Mikro from "../../utils/mikro";
 
 describe("Utilities Functions", () => {
   const latLng1: LatLng = new LatLng(0, 0);

@@ -151,10 +151,10 @@ const Upload: NextPage = () => {
       if (response.status === "success") {
         getDirListing(); //load directory listing on mount/start
       } else {
-        router.push("/"); //user is not logged in. Redirect to homepage
+        await router.push("/"); //user is not logged in. Redirect to homepage
       }
     })();
-  }, []);
+  }, [router, getDirListing]);
 
   return (
     <div>

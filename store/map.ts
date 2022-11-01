@@ -12,9 +12,9 @@ export const mapSlice = createSlice({
     setLayerControls: (state, action: { payload: LayerControls }) => {
       state.layerControls = action.payload;
     },
-    setLayerOpacity: (state, action: { payload: { layerName: string; opacity: number } }) => {
-      state.layerControls[action.payload.layerName].opacity = action.payload.opacity;
-    },
+    // setLayerOpacity: (state, action: { payload: { layerName: string; opacity: number } }) => {
+    //   state.layerControls[action.payload.layerName].opacity = action.payload.opacity;
+    // },
     toggleLayerControlExpanded: (state, action: { payload: string }) => {
       state.layerControls[action.payload].expanded = !state.layerControls[action.payload].expanded;
     },
@@ -26,8 +26,9 @@ export const mapSlice = createSlice({
 
 export const {
   setLayerControls,
-  setLayerOpacity,
+  // setLayerOpacity,
   toggleLayerControlExpanded,
   toggleLayerControlEnabled,
-  // replaceAllDrawLayers,
 } = mapSlice.actions;
+
+export default mapSlice.reducer;

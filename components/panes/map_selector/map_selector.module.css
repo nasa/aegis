@@ -16,6 +16,16 @@
   margin-left: 15px;
 }
 
+.layerItem {
+  font-style: normal;
+  font-weight: 400;
+  font-size: 16px;
+  margin: 5px 0 10px 0;
+  display: flex;
+  align-items: center;
+  color: #FFFFFF;
+}
+
 .layerGroup {
   padding-top: 6px;
   padding-bottom: 6px;
@@ -87,4 +97,67 @@
 
 .inVisible {
   color: var(--grey3);
+}
+.presetDetail {
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16px;
+  display: block;
+  width: 100%;
+  align-items: center;
+  color: #FFFFFF;
+  opacity: 0.5;
+  white-space: normal;
+}
+
+.presetInsert {
+  display: flex;
+  align-items: center;
+}
+
+.presetName {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0 0 0 4px;
+  gap: 2px;
+  color: white;
+
+  width: 173px;
+  height: 30px;
+
+  background: rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+}
+
+.presetAdd {
+  /* Auto layout */
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  gap: 10px;
+  margin-left: 10px;
+  height: 30px;
+  font-size: 14px;
+  color: #FFFFFF;
+  text-align: center;
+  background: #616574;
+  border-radius: 5px;
+}
+
+.presetHighlight {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding-left: 4px;
+  margin-left: -4px;
+  width: 100%;
+
+  /* AEGIS - Map Imagery */
+  background: #66DEF9;
+  border-radius: 5px;
+  color: black;
 }

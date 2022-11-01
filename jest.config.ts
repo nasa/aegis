@@ -61,7 +61,7 @@ const config = {
   transform: {
     "^.+\\.(ts|tsx)$": "ts-jest",
   },
-  testEnvironment: "jsdom",
+  testEnvironment: "jest-environment-jsdom",
 };
 
 export default createJestConfig(config);

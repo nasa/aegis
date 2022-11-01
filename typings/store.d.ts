@@ -17,13 +17,21 @@ interface PlayheadHoverState {
   seconds: number;
 }
 
-interface MMGISState {
-  MMGISConfig: MMGISConfig;
+interface MissionState {
+  Mission: AEGISMission;
+  Layers: LayerModel[];
+  Presets: Preset[];
+  UserInterface: UserInterface;
 }
 
 interface UserState {
   isLoggedIn: boolean;
   ironSessionData: IronSessionData;
+}
+
+interface UserInterface {
+  navTimelineOpen: boolean;
+  rightDrawerOpen: boolean;
 }
 
 interface MapState {

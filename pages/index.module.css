@@ -216,6 +216,7 @@
 }
 
 .table .tableButton {
+  cursor: pointer;
   padding: 5px;
   width: 70px;
   border: 1px solid #ccc;

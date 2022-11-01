@@ -1,34 +1,17 @@
 import { createMocks, createResponse, createRequest, RequestMethod } from "node-mocks-http";
-import { getMissionById, handleMissionJson } from "../pages/api/mission/[id]";
+import { getMissionById, handleMissionJson } from "../../pages/api/mission/[id]";
 import { describe, expect, test, afterAll, it, beforeAll } from "@jest/globals";
 import { NextApiRequest, NextApiResponse } from "next";
-import Login from "../pages/api/users/login";
+import Login from "../../pages/api/users/login";
 import Mikro from "utils/mikro";
-import { getAllMissions, handleAllMissionJson } from "../pages/api/mission/missions";
-import { Factory } from "@mikro-orm/seeder";
+import { getAllMissions, handleAllMissionJson } from "../../pages/api/mission/missions";
 import { Mission } from "server/database/models/mission.model";
-import { PermissionRole, User } from "server/database/models/user.model";
+import { User } from "server/database/models/user.model";
+import MissionFactory from "../helpers/MissionFactory";
+import UserFactory from "../helpers/UserFactory";
 
 let testMission: Mission;
 let testAdmin: User;
-class MissionFactory extends Factory<Mission> {
-  model = Mission;
-  definition() {
-    return {
-      mission: "Gaia-1",
-      config: {},
-      version: 1,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  }
-}
-class UserFactory extends Factory<User> {
-  model = User;
-  definition() {
-    return new User("testAdmin", "superSecretPassword", "gaia@nasa.gov", PermissionRole.ADMIN);
-  }
-}
 
 beforeAll(async () => {
   await Mikro.getORM();

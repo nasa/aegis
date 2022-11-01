@@ -15,6 +15,13 @@ export async function getMission(mission: number): Promise<WrappedResponse<Missi
   return response;
 }
 
+export async function getLayers(mission: number): Promise<WrappedResponse<LayerModel[]>> {
+  const res = await fetch(`/api/layer/${mission}`);
+  const response: WrappedResponse<LayerModel[]> = await res.json();
+
+  return response;
+}
+
 export async function isLoggedIn(): Promise<WrappedResponse<boolean>> {
   const res = await fetch(`/api/users/isLoggedIn`);
   const response: WrappedResponse<boolean> = await res.json();
