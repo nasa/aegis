@@ -31,7 +31,6 @@ type DrawingFeature = {
   location: Point | Point[];
   categories: string[];
   label: string; // "M-6"
-  showLabel: boolean;
   notes: UserComments;
 };
 

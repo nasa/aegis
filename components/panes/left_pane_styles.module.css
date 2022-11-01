@@ -5,3 +5,10 @@
   border-radius: var(--panelRadius);
   overflow-x: hidden;
 }
+
+.iconButtons {
+  display: flex;
+  gap: 6px;
+  flex-direction: row;
+  padding: 5px 0px 5px 0px;
+}

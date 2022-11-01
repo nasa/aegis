@@ -60,9 +60,9 @@ const SystemMapImageryPresets: FunctionComponent<{
         >
           <div className={styles.expandoCaret}>
             {expandedSections.systemPresets ? (
-              <FontAwesomeIcon icon="caret-down" size="sm" />
+              <FontAwesomeIcon icon={faCaretDown} size="sm" />
             ) : (
-              <FontAwesomeIcon icon="caret-right" size="sm" />
+              <FontAwesomeIcon icon={faCaretRight} size="sm" />
             )}
           </div>
           <div>Mission Presets</div>

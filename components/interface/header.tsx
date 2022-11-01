@@ -2,12 +2,10 @@ import styles from "./header.module.css";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/router";
 
-import { library } from "@fortawesome/fontawesome-svg-core";
 import { faBars } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { RootState } from "store";
 import { FunctionComponent } from "react";
-library.add(faBars);
 
 const Header: FunctionComponent = () => {
   const router = useRouter();
@@ -20,7 +18,7 @@ const Header: FunctionComponent = () => {
           <div className={styles.helpMenu}>
             <div className={styles.verticalCenter}>
               <FontAwesomeIcon
-                icon="bars"
+                icon={faBars}
                 onClick={() => {
                   router.push("/");
                 }}

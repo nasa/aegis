@@ -17,9 +17,6 @@ import {
   faSliders,
   faCircleNotch,
 } from "@fortawesome/free-solid-svg-icons";
-import { library } from "@fortawesome/fontawesome-svg-core";
-
-library.add(faCaretDown, faCaretRight, faEye, faEyeSlash, faCircleInfo, faSliders, faCircleNotch);
 
 const MapSelector: FunctionComponent = () => {
   const aegisState = useSelector((state: RootState) => state.missionSlice);
@@ -75,9 +72,9 @@ const DetailedSettings = ({ aegisState, layerControls, expandedSections, setExpa
         >
           <div className={styles.expandoCaret}>
             {expandedSections.details ? (
-              <FontAwesomeIcon icon="caret-down" size="sm" />
+              <FontAwesomeIcon icon={faCaretDown} size="sm" />
             ) : (
-              <FontAwesomeIcon icon="caret-right" size="sm" />
+              <FontAwesomeIcon icon={faCaretRight} size="sm" />
             )}
           </div>
           <div>Imagery Details & Settings</div>
@@ -93,10 +90,10 @@ const DetailedSettings = ({ aegisState, layerControls, expandedSections, setExpa
                       onClick={() => toggleLayerExpanded(layer.config)}
                     >
                       {layerControls &&
-                        (layerControls[layer.config.name].expanded ? (
-                          <FontAwesomeIcon icon="caret-down" size="sm" />
+                        (layerControls[configLayer.name].expanded ? (
+                          <FontAwesomeIcon icon={faCaretDown} size="sm" />
                         ) : (
-                          <FontAwesomeIcon icon="caret-right" size="sm" />
+                          <FontAwesomeIcon icon={faCaretRight} size="sm" />
                         ))}
                     </div>
                     <div className={styles.layerName}>{layer.config.name}</div>
@@ -125,10 +122,10 @@ const DetailedSettings = ({ aegisState, layerControls, expandedSections, setExpa
                             {layerHover === sublayer.name && (
                               <div className={styles.sublayerToolIcons}>
                                 <div className={styles.sublayerToolIcon}>
-                                  <FontAwesomeIcon icon="sliders" />
+                                  <FontAwesomeIcon icon={faSliders} />
                                 </div>
                                 <div className={styles.sublayerToolIcon}>
-                                  <FontAwesomeIcon icon="circle-info" />
+                                  <FontAwesomeIcon icon={faCircleInfo} />
                                 </div>
                               </div>
                             )}
@@ -156,11 +153,11 @@ const Visibility = ({ visible }) => {
     <div className={styles.visibility}>
       {visible ? (
         <div className={styles.visible}>
-          <FontAwesomeIcon icon="eye" size="xs" />
+          <FontAwesomeIcon icon={faEye} size="xs" />
         </div>
       ) : (
         <div className={styles.inVisible}>
-          <FontAwesomeIcon icon="eye-slash" size="xs" />
+          <FontAwesomeIcon icon={faEyeSlash} size="xs" />
         </div>
       )}
     </div>

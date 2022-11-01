@@ -1,38 +1,30 @@
 import _ from "lodash";
 import styles from "./left-control.module.css";
 import { FunctionComponent, useState } from "react";
-import MapSelector from "components/panes/map_selector/map_selector";
-import EvaPlanner from "components/panes/eva_planner/eva_planner";
+import { useSelector, useDispatch } from "react-redux";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { faGlobe, faRoute } from "@fortawesome/free-solid-svg-icons";
-library.add(faGlobe, faRoute);
+import { RootState } from "store";
+import { setSectionSelected } from "store/interface";
 
-const paneTypes: PaneTypes = {
-  map_layer_selector: {
-    title: "Map Imagery",
-    pane: MapSelector,
-    color: "var(--map)",
-    icon: "globe",
-  },
-  eva_planner: {
-    title: "EVA Planning",
-    pane: EvaPlanner,
-    color: "var(--eva)",
-    icon: "route",
-  },
-};
+import { paneTypes } from "components/interface/_paneTypes";
 
 /* This control sits at the left side of the screen and loads the selected component based on the NavGutter icon selected */
 
 const LeftControlPanel: FunctionComponent = () => {
-  const [selectedNavItem, setSelectedNavItem] = useState("map_layer_selector");
+  const dispatch = useDispatch();
+  const interfaceState = useSelector((state: RootState) => state.interface);
+
+  const selectedNavItem = interfaceState.sectionSelectedLabel;
+
+  const setSelectedNavItem = (itemLabel) => {
+    dispatch(setSectionSelected(itemLabel));
+  };
 
   let ActiveComponent = null;
   let title = null;
   if (!_.isNil(paneTypes[selectedNavItem])) {
-    ActiveComponent = paneTypes[selectedNavItem].pane;
+    ActiveComponent = paneTypes[selectedNavItem].leftPane;
     title = paneTypes[selectedNavItem].title;
   }
 

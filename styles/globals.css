@@ -16,18 +16,17 @@ body {
 }
 
 :root {
-  --grey0: #242424;
   --grey1: #313440;
   --grey2: #424653;
-  --grey3: #898989;
-  --grey4: #a9a9a9;
+  --grey3: #616574;
+  --grey4: #a9a9a9; /* home page only for now */
 
   --base: #00f0ff;
   --map: #54c9e2;
-  --markup: #43be6d;
-  --eva: #e9b93e;
-  --tools: #9966cc;
-  --measure: #d05f8f;
+  --markup: #e861a9;
+  --eva: #86ff4e;
+  --tools: #ffc700;
+  --poi: #28ecf9;
 
   --radius: 3px;
   --panelRadius: 8px;

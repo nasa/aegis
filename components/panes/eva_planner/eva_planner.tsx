@@ -7,11 +7,9 @@ import { setEvaItemMapAction } from "store/eva";
 import _ from "lodash";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { library } from "@fortawesome/fontawesome-svg-core";
 import { faChevronDown, faPlus, faGear } from "@fortawesome/free-solid-svg-icons";
-library.add(faChevronDown, faPlus, faGear);
 
-const EvaPlanner: FunctionComponent = () => {
+const EvaPlannerLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
   const evaState = useSelector((state: RootState) => state.eva);
 
@@ -27,15 +25,15 @@ const EvaPlanner: FunctionComponent = () => {
             <option value="">EVA 1</option>
           </select>
           <div className={styles.selectArrow}>
-            <FontAwesomeIcon icon="chevron-down" size="xs" />
+            <FontAwesomeIcon icon={faChevronDown} size="xs" />
           </div>
         </div>
         <div className={styles.actionButtons}>
           <div className={styles.actionButton}>
-            <FontAwesomeIcon icon="plus" />
+            <FontAwesomeIcon icon={faPlus} />
           </div>
           <div className={styles.actionButton}>
-            <FontAwesomeIcon icon="gear" />
+            <FontAwesomeIcon icon={faGear} />
           </div>
         </div>
       </div>
@@ -128,4 +126,4 @@ const EvaPlanner: FunctionComponent = () => {
   );
 };
 
-export default EvaPlanner;
+export default EvaPlannerLeft;

@@ -42,3 +42,12 @@ interface MapState {
 interface EvaState {
   eva: Eva;
 }
+
+interface PoiState {
+  pois: POI[];
+  selectedPoiUuid: string;
+}
+
+interface InterfaceState {
+  sectionSelectedLabel: "map_layer_selector" | "poi" | "eva_planner";
+}
