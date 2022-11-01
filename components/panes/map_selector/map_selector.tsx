@@ -15,25 +15,20 @@ import {
   faEyeSlash,
   faCircleInfo,
   faSliders,
+  faCircleNotch,
 } from "@fortawesome/free-solid-svg-icons";
 import { library } from "@fortawesome/fontawesome-svg-core";
 
-library.add(faCaretDown, faCaretRight, faEye, faEyeSlash, faCircleInfo, faSliders);
+library.add(faCaretDown, faCaretRight, faEye, faEyeSlash, faCircleInfo, faSliders, faCircleNotch);
 
 const MapSelector: FunctionComponent = () => {
-  const mmgisConfig = useSelector((state: RootState) => state.mmgisConfig);
-  const layerControls = useSelector((state: RootState) => state.map.layerControls);
-
+  const aegisState = useSelector((state: RootState) => state.missionSlice);
+  const layerControls = useSelector((state: RootState) => state.map?.layerControls);
   const [expandedSections, setExpandedSections] = useState({
     systemPresets: true,
     userPresets: false,
-    details: false,
+    details: true,
   });
-
-  // TODO: remove this
-  // const testHalfOpacity = (layer: Sublayer) => {
-  //   dispatch(setLayerOpacity({ layerName: layer.name, opacity: 0.5 }));
-  // };
 
   return (
     <>
@@ -46,7 +41,7 @@ const MapSelector: FunctionComponent = () => {
         setExpandedSections={setExpandedSections}
       />
       <DetailedSettings
-        mmgisConfig={mmgisConfig}
+        aegisState={aegisState}
         layerControls={layerControls}
         expandedSections={expandedSections}
         setExpandedSections={setExpandedSections}
@@ -57,16 +52,11 @@ const MapSelector: FunctionComponent = () => {
 
 export default MapSelector;
 
-const DetailedSettings = ({
-  mmgisConfig,
-  layerControls,
-  expandedSections,
-  setExpandedSections,
-}) => {
+const DetailedSettings = ({ aegisState, layerControls, expandedSections, setExpandedSections }) => {
   const dispatch = useDispatch();
   const [layerHover, setLayerHover] = useState<string | null>(null);
 
-  const toggleSublayerEnabled = (sublayer: MMGISSublayer) => {
+  const toggleSublayerEnabled = (sublayer: Sublayer) => {
     dispatch(toggleLayerControlEnabled(sublayer.name));
   };
 
@@ -90,34 +80,32 @@ const DetailedSettings = ({
               <FontAwesomeIcon icon="caret-right" size="sm" />
             )}
           </div>
-          <div>Map Imagery Detailed Settings</div>
+          <div>Imagery Details & Settings</div>
         </div>
         <div className={styles.layersBody}>
-          {mmgisConfig &&
-            layerControls &&
-            expandedSections.details &&
-            mmgisConfig?.MMGISConfig?.config?.layers?.map((configLayer: MMGISLayer) => {
+          {aegisState && layerControls && expandedSections.details ? (
+            aegisState?.Layers.map((layer: LayerModel) => {
               return (
-                <div className={styles.layerGroup} key={configLayer.name}>
+                <div className={styles.layerGroup} key={layer.config.name}>
                   <div className={styles.layer}>
                     <div
                       className={styles.expandoCaret}
-                      onClick={() => toggleLayerExpanded(configLayer)}
+                      onClick={() => toggleLayerExpanded(layer.config)}
                     >
                       {layerControls &&
-                        (layerControls[configLayer.name].expanded ? (
+                        (layerControls[layer.config.name].expanded ? (
                           <FontAwesomeIcon icon="caret-down" size="sm" />
                         ) : (
                           <FontAwesomeIcon icon="caret-right" size="sm" />
                         ))}
                     </div>
-                    <div className={styles.layerName}>{configLayer.name}</div>
+                    <div className={styles.layerName}>{layer.config.name}</div>
                   </div>
                   <div className={styles.layerSublayers}>
                     {layerControls &&
-                      layerControls[configLayer.name].expanded &&
-                      configLayer.sublayers &&
-                      configLayer.sublayers.map((sublayer: MMGISSublayer) => {
+                      layerControls[layer.config.name].expanded &&
+                      layer.config.sublayers &&
+                      layer.config.sublayers.map((sublayer: Sublayer) => {
                         return (
                           <div
                             key={`sub_${sublayer.name}`}
@@ -150,7 +138,13 @@ const DetailedSettings = ({
                   </div>
                 </div>
               );
-            })}
+            })
+          ) : (
+            <div>
+              <FontAwesomeIcon icon="circle-notch" spin />
+              &nbsp; Loading...
+            </div>
+          )}
         </div>
       </div>
     </div>

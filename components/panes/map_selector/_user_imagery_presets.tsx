@@ -1,7 +1,7 @@
 import styles from "./map_selector.module.css";
 import paneStyles from "../left_pane_styles.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
+import { faCaretDown, faCaretRight, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { FunctionComponent } from "react";
 
@@ -36,9 +36,37 @@ const UserMapImageryPresets: FunctionComponent<{
               <FontAwesomeIcon icon="caret-right" size="sm" />
             )}
           </div>
-          <div>Your Map Imagery Presets</div>
+          <div>My Presets</div>
         </div>
-        <div className={styles.layersBody}></div>
+        <div className={styles.layersBody}>
+          {expandedSections.userPresets ? (
+            <div className={styles.layersList}>
+              <div className={styles.layerItem}>
+                <div className={styles.layerItemName}>My Preset Placeholder</div>
+              </div>
+              <div className={styles.layerItem}>
+                <div className={styles.presetDetail}>
+                  <span className={styles.presetText}>
+                    Adjust imagery details visibility and settings and save current map view as a
+                    preset.
+                  </span>
+                </div>
+              </div>
+              <div className={styles.layerItem}>
+                <div className={styles.presetInsert}>
+                  <input
+                    className={styles.presetName}
+                    type={"text"}
+                    placeholder={"Type Preset Name"}
+                  />
+                  <span className={styles.presetAdd}>
+                    <FontAwesomeIcon icon={faPlusCircle} /> Add Preset{" "}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );

@@ -84,6 +84,8 @@ type LayerGroup = {
  * Map layer data (e.g. tilesets or vectors) NOT drawn things.
  */
 type Layer = {
+  type: string;
+  sublayers: Sublayer[];
   name: string;
   createdOn: Date;
   description: string;

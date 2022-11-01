@@ -3,21 +3,47 @@ import paneStyles from "../left_pane_styles.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
 import { library } from "@fortawesome/fontawesome-svg-core";
-import { FunctionComponent } from "react";
+import { FunctionComponent, useState } from "react";
 
 library.add(faCaretDown, faCaretRight);
+
+const Child = ({ id, isSelected, text }) => {
+  const presetHighlight = isSelected ? styles.presetHighlight : "";
+  return (
+    <div id={id} className={presetHighlight}>
+      {text}
+    </div>
+  );
+};
 
 const SystemMapImageryPresets: FunctionComponent<{
   expandedSections: ExpandedSection;
   setExpandedSections: SetExpandedSectionsFn;
 }> = ({ expandedSections, setExpandedSections }) => {
-  const placeholderPresets = {
-    terrain_difficulty: {
-      name: "Terrain Difficulty",
+  const placeholderPresets = [
+    {
+      name: "terrain_difficulty",
+      text: "Terrain Difficulty",
+      selected: false,
     },
-    visible_light: {
-      name: "Visible Light",
+    {
+      name: "visible_light",
+      text: "Visible Light",
+      selected: false,
     },
+  ];
+
+  const [presets, setPlaceholderPresets] = useState(placeholderPresets);
+
+  const handleMissionPresetClick = async (i) => {
+    setPlaceholderPresets((prevState: any) => {
+      const newState = [...prevState];
+      newState.map((preset) => {
+        preset.selected = false;
+      });
+      newState[i].selected = !newState[i].selected;
+      return newState;
+    });
   };
 
   return (
@@ -39,14 +65,14 @@ const SystemMapImageryPresets: FunctionComponent<{
               <FontAwesomeIcon icon="caret-right" size="sm" />
             )}
           </div>
-          <div>System Map Imagery Presets</div>
+          <div>Mission Presets</div>
         </div>
         <div className={styles.layersBody}>
           {expandedSections.systemPresets &&
-            Object.keys(placeholderPresets).map((presetKey) => (
-              <div className={styles.layerGroup} key={presetKey}>
-                <div className={styles.layer}>
-                  <div className={styles.layerName}>{placeholderPresets[presetKey].name}</div>
+            presets.map((preset, index) => (
+              <div className={styles.layerGroup} key={preset.name}>
+                <div className={styles.layer} onClick={() => handleMissionPresetClick(index)}>
+                  <Child id={preset.name} text={preset.text} isSelected={preset.selected} />
                 </div>
               </div>
             ))}

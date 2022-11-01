@@ -6,7 +6,7 @@ export class Mission implements AEGISMission {
   id!: number;
 
   @Property({ type: "string" })
-  mission!: string;
+  name!: string;
   @Property({ type: "json", nullable: true })
   config!: Config;
   @Property({ type: "number" })
@@ -18,7 +18,7 @@ export class Mission implements AEGISMission {
   updatedAt!: Date;
 
   constructor(mission: string, config: Config, version: number) {
-    this.mission = mission;
+    this.name = mission;
     this.config = config;
     this.version = version;
   }

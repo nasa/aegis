@@ -1,5 +1,5 @@
 .page {
-  background-color: black;
+  background-color: transparent;
   color: white;
   display: flex;
   flex-direction: column;
@@ -25,6 +25,7 @@
   flex: 0 0 350px;
   border-right: 1px solid var(--grey1);
   height: 100%;
+  background: black;
 }
 
 .mapBody {
@@ -32,13 +33,45 @@
   height: 100%;
 }
 
+.drawerSlider {
+  color: white;
+  position: relative;
+  height: 57.56px;
+  left: 2px;
+  top: 50%;
+  margin-top: -40px;
+  background: transparent;
+}
+
+.circle {
+  top: -19px;
+  right: 1px;
+  background: url("/images/drawerNub.svg") no-repeat;
+  width: 13px;
+  height: 64px;
+  z-index: 55;
+  position: absolute;
+  cursor: pointer;
+}
+
+.drawerIcon {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  left: 0;
+  top: 19px;
+  background: transparent;
+}
+
 .rightControl {
-  flex: 0 0 350px;
+  flex: 0 0 480px;
   border-left: 1px solid var(--grey1);
   height: 100%;
+  background: black;
 }
 
 .timeline {
   height: 162px;
   border-top: 1px solid var(--grey1);
+  background: black;
 }

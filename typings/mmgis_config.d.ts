@@ -178,13 +178,13 @@ interface Config {
   panels: string[];
   panelSettings: PanelSettings;
   tools: Tool[];
-  layers: MMGISLayer[];
+  layers: Layer[];
   time: Time3;
 }
 
 interface MMGISConfig {
   id: number;
-  mission: string;
+  name: string;
   config: Config;
   version: number;
   createdAt: Date;
@@ -192,7 +192,109 @@ interface MMGISConfig {
 
 interface AEGISMission {
   id: number;
-  mission: string;
+  name: string;
+  config: Config;
   version: number;
   createdAt: Date;
+}
+
+interface AEGISPreset {
+  uuid: uuid;
+  layer: LayerModel;
+  config: AEGISPresetValue;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface LayerModel {
+  uuid: uuid;
+  mission: AEGISMission;
+  config: LayerConfig;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface AEGISPresetHistory {
+  uuid: uuid;
+  layer: LayerModel;
+  config: AEGISPresetValue;
+  preset_id_fk: Preset;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface AEGISPresetValue {
+  id: number;
+  sublayer: number;
+  opacity: number;
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  blend: string;
+}
+
+interface LayerConfig {
+  name: string;
+  type: string;
+  demparser: string;
+  controlled: boolean;
+  tileformat: string;
+  initialOpacity: number;
+  time: Time;
+  shape: string;
+  sublayers: Sublayer[];
+}
+
+interface Time {
+  enabled: boolean;
+  type: string;
+  isRelative: boolean;
+  current: Date;
+  start: string;
+  end: string;
+  format: string;
+  refresh: string;
+  increment: string;
+}
+
+interface Sublayer {
+  id: number;
+  name: string;
+  kind: string;
+  type: string;
+  url: string;
+  demparser: string;
+  demtileurl?: string;
+  minZoom?: number;
+  maxNativeZoom?: number;
+  maxZoom?: number;
+  boundingBox?: number[];
+  legend: string;
+  tms: boolean;
+  controlled: boolean;
+  tileformat: string;
+  visibility: boolean;
+  initialOpacity: number;
+  togglesWithHeader: boolean;
+  style: SublayerStyle;
+  variables: Sublayer_Variables;
+  radius: number;
+  time: Time;
+  shape: string;
+  visibilitycutoff: number;
+}
+
+interface SublayerStyle {
+  className: string;
+  color: string;
+  fillColor: string;
+  weight: number;
+  fillOpacity?: any;
+  opacity: number;
+}
+
+interface Sublayer_Variables {
+  useKeyAsName: string;
+  chemistry: [string];
+  search: string;
 }
