@@ -90,7 +90,7 @@ const DetailedSettings = ({ aegisState, layerControls, expandedSections, setExpa
                       onClick={() => toggleLayerExpanded(layer.config)}
                     >
                       {layerControls &&
-                        (layerControls[configLayer.name].expanded ? (
+                        (layerControls[layer.config.name].expanded ? (
                           <FontAwesomeIcon icon={faCaretDown} size="sm" />
                         ) : (
                           <FontAwesomeIcon icon={faCaretRight} size="sm" />

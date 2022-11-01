@@ -14,12 +14,18 @@ import { useRouter } from "next/router";
 
 library.add(faChevronRight, faChevronLeft);
 /** Dynamically import the whole framework because nothing likes NextJS */
-const LeftControlPanel = dynamic(import("components/interface/left-control"), {
-  ssr: false,
-});
-const RightControlPanel = dynamic(import("components/interface/right-control"), {
-  ssr: false,
-});
+const LeftControlPanel = dynamic(
+  import("components/interface/side-controls").then((mod) => mod.LeftControlPanel),
+  {
+    ssr: false,
+  }
+);
+const RightControlPanel = dynamic(
+  import("components/interface/side-controls").then((mod) => mod.RightControlPanel),
+  {
+    ssr: false,
+  }
+);
 const MapBody = dynamic(import("components/interface/map-body-leafletdraw"), {
   ssr: false,
 });
