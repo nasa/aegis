@@ -8,7 +8,7 @@ const IconButton: FunctionComponent<{
   label: string;
   icon: IconDefinition;
   disabled?: boolean;
-}> = ({ onClick, label, icon, disabled }) => {
+}> = ({ onClick, label, icon }) => {
   return (
     <div className={styles.iconButton} onClick={onClick}>
       <FontAwesomeIcon icon={icon} />

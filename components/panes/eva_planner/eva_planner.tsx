@@ -2,7 +2,7 @@ import { FunctionComponent, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "store";
 import styles from "./eva_planner.module.css";
-import paneStyles from "../left_pane_styles.module.css";
+import paneStyles from "../global_pane_styles.module.css";
 import { setEvaItemMapAction } from "store/eva";
 import _ from "lodash";
 

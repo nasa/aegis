@@ -1,5 +1,5 @@
 import styles from "./poi_editor.module.css";
-import paneStyles from "../left_pane_styles.module.css";
+import paneStyles from "../global_pane_styles.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCaretDown,
@@ -9,45 +9,15 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent } from "react";
 import IconButton from "components/interface/_global_elements";
+import { useSelector } from "react-redux";
+import { RootState } from "store";
 
 const PoiList: FunctionComponent<{
   expandedSections: ExpandedSection;
   setExpandedSections: SetExpandedSectionsFn;
 }> = ({ expandedSections, setExpandedSections }) => {
-  const placeholderPOIs: POI[] = [
-    {
-      uuid: "1",
-      name: "POI Name 1",
-      color: "#ff0000",
-      description: "POI Description 1",
-      actions: [],
-      tags: [],
-      location: {
-        long: 0,
-        lat: 0,
-      },
-      priorityOverride: 0,
-      radius: 0,
-      owner: "",
-      status: "Candidate",
-    },
-    {
-      uuid: "2",
-      name: "POI Name 2",
-      color: "#00ff00",
-      description: "POI Description 2",
-      actions: [],
-      tags: [],
-      location: {
-        long: 0,
-        lat: 0,
-      },
-      priorityOverride: 0,
-      radius: 0,
-      owner: "",
-      status: "Candidate",
-    },
-  ];
+  // get the list of POIs from the store
+  const pois = useSelector((state: RootState) => state.poi.pois);
 
   return (
     <div className={paneStyles.panelContainer}>
@@ -72,7 +42,7 @@ const PoiList: FunctionComponent<{
         </div>
         <div className={styles.body}>
           {expandedSections.systemPresets &&
-            placeholderPOIs.map((poi) => (
+            pois.map((poi) => (
               <div className={styles.group} key={poi.uuid}>
                 <div className={styles.item}>
                   <div className={styles.itemColor}>

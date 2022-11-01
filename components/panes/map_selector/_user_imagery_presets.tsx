@@ -1,5 +1,5 @@
 import styles from "./map_selector.module.css";
-import paneStyles from "../left_pane_styles.module.css";
+import paneStyles from "../global_pane_styles.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent } from "react";

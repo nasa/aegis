@@ -1,6 +1,6 @@
 import _ from "lodash";
-import styles from "./left-control.module.css";
-import { FunctionComponent, useState } from "react";
+import styles from "./side-controls.module.css";
+import { FunctionComponent } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -10,8 +10,7 @@ import { setSectionSelected } from "store/interface";
 import { paneTypes } from "components/interface/_paneTypes";
 
 /* This control sits at the left side of the screen and loads the selected component based on the NavGutter icon selected */
-
-const LeftControlPanel: FunctionComponent = () => {
+export const LeftControlPanel: FunctionComponent = () => {
   const dispatch = useDispatch();
   const interfaceState = useSelector((state: RootState) => state.interface);
 
@@ -44,7 +43,31 @@ const LeftControlPanel: FunctionComponent = () => {
   );
 };
 
-export default LeftControlPanel;
+/* This control sits at the right side of the screen and displays the active pane for that position */
+export const RightControlPanel: FunctionComponent = () => {
+  const interfaceState = useSelector((state: RootState) => state.interface);
+
+  const selectedNavItem = interfaceState.sectionSelectedLabel;
+
+  let ActiveComponent = null;
+  if (!_.isNil(paneTypes[selectedNavItem])) {
+    ActiveComponent = paneTypes[selectedNavItem].rightPane;
+  }
+
+  return (
+    <div className={styles.body}>
+      <div className={styles.activeComponent}>
+        <div
+          className={styles.activeComponentTitle}
+          style={{ color: paneTypes[selectedNavItem].color }}
+        >
+          {interfaceState.rightSelectionLabel}
+        </div>
+        <ActiveComponent />
+      </div>
+    </div>
+  );
+};
 
 const NavGutter = ({ selectedNavItem, setSelectedNavItem }) => {
   return (

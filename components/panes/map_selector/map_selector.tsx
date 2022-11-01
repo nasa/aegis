@@ -1,5 +1,5 @@
 import styles from "./map_selector.module.css";
-import paneStyles from "../left_pane_styles.module.css";
+import paneStyles from "../global_pane_styles.module.css";
 import { FunctionComponent, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "store";
