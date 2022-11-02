@@ -3,6 +3,8 @@ import { createSlice } from "@reduxjs/toolkit";
 export const initialState: MapState = {
   layerControls: null,
   mousePosition: null,
+  selectedRightNavItem: "information_panel",
+  activeLayerName: null,
 };
 
 export const mapSlice = createSlice({
@@ -12,23 +14,34 @@ export const mapSlice = createSlice({
     setLayerControls: (state, action: { payload: LayerControls }) => {
       state.layerControls = action.payload;
     },
-    // setLayerOpacity: (state, action: { payload: { layerName: string; opacity: number } }) => {
-    //   state.layerControls[action.payload.layerName].opacity = action.payload.opacity;
-    // },
     toggleLayerControlExpanded: (state, action: { payload: string }) => {
       state.layerControls[action.payload].expanded = !state.layerControls[action.payload].expanded;
     },
     toggleLayerControlEnabled: (state, action: { payload: string }) => {
       state.layerControls[action.payload].enabled = !state.layerControls[action.payload].enabled;
     },
+    setLayerControlOpacity: (
+      state,
+      action: { payload: { layerName: string; opacity: number } }
+    ) => {
+      state.layerControls[action.payload.layerName].opacity = action.payload.opacity;
+    },
+    setSelectedRightNavItem: (state, action: { payload: string }) => {
+      state.selectedRightNavItem = action.payload;
+    },
+    setActiveLayerName: (state, action: { payload: string }) => {
+      state.activeLayerName = action.payload;
+    },
   },
 });
 
 export const {
   setLayerControls,
-  // setLayerOpacity,
   toggleLayerControlExpanded,
   toggleLayerControlEnabled,
+  setLayerControlOpacity,
+  setSelectedRightNavItem,
+  setActiveLayerName,
 } = mapSlice.actions;
 
 export default mapSlice.reducer;

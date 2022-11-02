@@ -1,45 +1,52 @@
 import _ from "lodash";
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { library } from "@fortawesome/fontawesome-svg-core";
 import { faCircleInfo, faSliders } from "@fortawesome/free-solid-svg-icons";
 
 import Info_panel from "./_right_info_panel";
 import Settings_panel from "./_right_settings_panel";
 import paneStyles from "../global_pane_styles.module.css";
-library.add(faCircleInfo, faSliders);
+import { RootState } from "store";
+import { setSelectedRightNavItem } from "store/map";
 
 const panelTypes: PanelTypes = {
-  information_window: {
-    title: "Information",
+  information_panel: {
+    title: "Layer Information",
     panel: Info_panel,
     color: "var(--map)",
-    icon: "circle-info",
+    icon: faCircleInfo,
   },
-  information2_window: {
-    title: "Map Imagery",
+  settings_panel: {
+    title: "Layer Settings",
     panel: Settings_panel,
     color: "var(--map)",
-    icon: "sliders",
+    icon: faSliders,
   },
 };
 
-const Info = () => {
-  const [selectedNavItem, setSelectedNavItem] = useState("information_window");
+const RightControlPanel: FunctionComponent = () => {
+  const dispatch = useDispatch();
+  const selectedRightNavItem = useSelector((state: RootState) => state.map.selectedRightNavItem);
+  const activeLayerName = useSelector((state: RootState) => state.map.activeLayerName);
+  // const [selectedNavItem, setSelectedNavItem] = useState("information_window");
   let ActiveComponent = null;
-  if (!_.isNil(panelTypes[selectedNavItem])) {
-    ActiveComponent = panelTypes[selectedNavItem].panel;
+  if (!_.isNil(panelTypes[selectedRightNavItem])) {
+    ActiveComponent = panelTypes[selectedRightNavItem].panel;
   }
 
   return (
     <>
+      <div className={paneStyles.rightTopTitle} style={{ color: "var(--map)" }}>
+        {activeLayerName}
+      </div>
       <div className={paneStyles.rightIconRow}>
         {Object.keys(panelTypes).map((panelType) => {
           return (
             <div
               key={panelType}
               className={
-                selectedNavItem === panelType
+                selectedRightNavItem === panelType
                   ? paneStyles.rightIconContainerSelected
                   : paneStyles.rightIconContainer
               }
@@ -47,10 +54,10 @@ const Info = () => {
               <div
                 className={paneStyles.rightIcon}
                 style={{
-                  color: selectedNavItem === panelType ? panelTypes[panelType].color : "white",
+                  color: selectedRightNavItem === panelType ? panelTypes[panelType].color : "white",
                 }}
                 title={panelTypes[panelType].title}
-                onClick={() => setSelectedNavItem(panelType)}
+                onClick={() => dispatch(setSelectedRightNavItem(panelType))}
               >
                 <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
               </div>
@@ -61,10 +68,6 @@ const Info = () => {
       <ActiveComponent className={paneStyles.rightActiveWindow} />
     </>
   );
-};
-
-const RightControlPanel: FunctionComponent = () => {
-  return <Info />;
 };
 
 export default RightControlPanel;

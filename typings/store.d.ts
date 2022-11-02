@@ -18,10 +18,10 @@ interface PlayheadHoverState {
 }
 
 interface MissionState {
-  Mission: AEGISMission;
-  Layers: LayerModel[];
-  Presets: Preset[];
-  UserInterface: UserInterface;
+  mission: AEGISMission;
+  layers: LayerModel[];
+  presets: Preset[];
+  userInterface: UserInterface;
 }
 
 interface UserState {
@@ -36,7 +36,9 @@ interface UserInterface {
 
 interface MapState {
   layerControls: LayerControls;
+  selectedRightNavItem: string;
   mousePosition: LatLng;
+  activeLayerName: string;
 }
 
 interface EvaState {

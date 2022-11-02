@@ -31,8 +31,8 @@ const MapBody: FunctionComponent = () => {
   const drawHandlerRef = useRef(null);
   const drawnItemsRef = useRef(null);
 
-  const mission = useSelector((state: RootState) => state.missionSlice.Mission);
-  const missionLayers = useSelector((state: RootState) => state.missionSlice.Layers);
+  const mission = useSelector((state: RootState) => state.mission.mission);
+  const missionLayers = useSelector((state: RootState) => state.mission.layers);
   const layerControls = useSelector((state: RootState) => state.map.layerControls);
   const eva = useSelector((state: RootState) => state.eva.eva);
 
@@ -45,7 +45,7 @@ const MapBody: FunctionComponent = () => {
     if (!mission || !layerControls || !map) return;
 
     // go through all layers in mission config and add make a list of the ones that are enabled
-    const layersToAdd = [];
+    const layersToAdd: Sublayer[] = [];
     for (const configLayer of missionLayers) {
       for (const configSublayer of configLayer.config.sublayers) {
         if (configSublayer.type === "tile") {
@@ -90,7 +90,7 @@ const MapBody: FunctionComponent = () => {
           maxZoom: configSublayer.maxZoom,
           maxNativeZoom: configSublayer.maxNativeZoom,
           id: `${configSublayer.name}`,
-          opacity: 1,
+          opacity: layerControls[configSublayer.name].opacity,
           zIndex: index,
         });
         map.current.addLayer(tileLayer);
@@ -113,6 +113,20 @@ const MapBody: FunctionComponent = () => {
   useEffect(() => {
     showMapLayers();
   }, [mission, layerControls, map, layersOnMap, showMapLayers]);
+
+  /**
+   * Update map with opacity value for sublayers as sliders are moved
+   */
+  useEffect(() => {
+    if (!map.current) return;
+    map.current.eachLayer((layer) => {
+      for (const layerControl of Object.values(layerControls)) {
+        if (layer.options.id === layerControl.name) {
+          layer.setOpacity(layerControl.opacity);
+        }
+      }
+    });
+  }, [layerControls, map]);
 
   /**
    * Map events management

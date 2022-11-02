@@ -7,7 +7,7 @@ import reducer, {
 import { setLayers } from "../../store/mission";
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import Mikro from "../../utils/mikro";
-import { getAllLayersfromMission } from "../../pages/api/layer/[id]";
+import { getAllLayersByMission } from "../../pages/api/layer/[id]";
 import UserFactory from "../helpers/UserFactory";
 import MissionFactory from "../helpers/MissionFactory";
 import { Mission } from "../../server/database/models/mission.model";
@@ -48,7 +48,7 @@ describe("Map and MMGIS Reducer: ", () => {
 
   it("Set the State when loading Map layer", async () => {
     // Arrange
-    const layers = await getAllLayersfromMission(testMission.id);
+    const layers = await getAllLayersByMission(testMission.id);
     const configLayers = await setLayers(layers as LayerModel[]);
     const controls: LayerControls = {};
     // Act

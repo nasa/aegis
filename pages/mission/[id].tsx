@@ -8,11 +8,9 @@ import { RootState } from "store";
 import { setLayers, setMission } from "../../store/mission";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronRight, faChevronLeft } from "@fortawesome/free-solid-svg-icons";
-import { library } from "@fortawesome/fontawesome-svg-core";
 import { getLayers, getMission } from "../../http-client/internal-api";
 import { useRouter } from "next/router";
 
-library.add(faChevronRight, faChevronLeft);
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
   import("components/interface/side-controls").then((mod) => mod.LeftControlPanel),
@@ -36,7 +34,7 @@ const Header = dynamic(import("components/interface/header"), {
 const Main: NextPage = () => {
   const dispatch = useDispatch();
   const router = useRouter();
-  const missionPage = useSelector((state: RootState) => state.missionSlice);
+  const missionPage = useSelector((state: RootState) => state.mission);
   const [showRightPanel, setShowRightPanel] = useState(true);
   let layerData;
   /**
@@ -45,7 +43,7 @@ const Main: NextPage = () => {
   useEffect(() => {
     (async () => {
       const { id } = router.query;
-      if (!missionPage.Mission) {
+      if (!missionPage.mission) {
         if (typeof id === "string") {
           const missionData = await getMission(parseInt(id as string));
           if (missionData.data) {
@@ -53,7 +51,7 @@ const Main: NextPage = () => {
           }
         }
       }
-      if (!missionPage.Layers) {
+      if (!missionPage.layers) {
         if (typeof id === "string") {
           const layerData = await getLayers(parseInt(id as string));
           if (layerData.data) {
@@ -61,9 +59,9 @@ const Main: NextPage = () => {
           }
         }
       }
-      if (!layerData && missionPage.Layers !== null && typeof missionPage.Layers !== "undefined") {
+      if (!layerData && missionPage.layers !== null && typeof missionPage.layers !== "undefined") {
         const controls: LayerControls = {};
-        missionPage.Layers.map((configLayer) => {
+        missionPage.layers.map((configLayer) => {
           controls[configLayer.config.name] = {
             name: configLayer.config.name,
             enabled: false,
@@ -100,7 +98,7 @@ const Main: NextPage = () => {
           <LeftControlPanel />
         </div>
         <div className={styles.mapBody}>
-          {missionPage.Mission && missionPage.Layers && <MapBody />}
+          {missionPage.mission && missionPage.layers && <MapBody />}
         </div>
         <div
           className={styles.drawerSlider}

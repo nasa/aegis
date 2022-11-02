@@ -15,7 +15,7 @@ let store;
 export const initialState = {
   playhead: playheadInitialState,
   playheadHover: playheadHoverInitialState,
-  missionSlice: missionInitialState,
+  mission: missionInitialState,
   user: userInitialState,
   map: mapInitialState,
   eva: evaInitialState,
@@ -26,7 +26,7 @@ export const initialState = {
 export const reducer = combineReducers({
   playhead: playheadSlice.reducer,
   playheadHover: playheadHoverSlice.reducer,
-  missionSlice: missionSlice.reducer,
+  mission: missionSlice.reducer,
   user: userSlice.reducer,
   map: mapSlice.reducer,
   eva: evaSlice.reducer,

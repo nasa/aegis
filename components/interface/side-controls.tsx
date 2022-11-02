@@ -57,12 +57,6 @@ export const RightControlPanel: FunctionComponent = () => {
   return (
     <>
       <div className={styles.activeComponentRight}>
-        <div
-          className={styles.activeComponentTitle}
-          style={{ color: paneTypes[selectedNavItem].color }}
-        >
-          {interfaceState.rightSelectionLabel}
-        </div>
         <ActiveComponent />
       </div>
     </>

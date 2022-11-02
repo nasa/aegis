@@ -2,13 +2,26 @@ import { FunctionComponent, useEffect, useState } from "react";
 import styles from "./_right_settings_panel.module.css";
 import paneStyles from "../global_pane_styles.module.css";
 import { Dropdown } from "components/interface/_global_elements";
+import { RootState } from "store";
+import { useSelector, useDispatch } from "react-redux";
+import { setLayerControlOpacity } from "store/map";
 
 const Settings_panel: FunctionComponent = () => {
-  const [opacity, setOpacity] = useState(0);
+  // const [opacity, setOpacity] = useState(0);
   const [contrast, setContrast] = useState(0);
   const [brightness, setBrightness] = useState(0);
   const [saturation, setSaturation] = useState(0);
   const [blend, setBlend] = useState("normal");
+
+  const dispatch = useDispatch();
+  const activeLayerName = useSelector((state: RootState) => state.map.activeLayerName);
+  const opacity = useSelector((state: RootState) =>
+    Math.round(state.map.layerControls[activeLayerName].opacity * 100)
+  );
+
+  const setOpacity = (value: number) => {
+    dispatch(setLayerControlOpacity({ layerName: activeLayerName, opacity: value / 100 }));
+  };
 
   useEffect(() => {});
 

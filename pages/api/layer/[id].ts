@@ -15,7 +15,7 @@ export const handleLayerJson: NextApiHandler = async (
   const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
   try {
     if (req.session?.user) {
-      const layers = await getAllLayersfromMission(intMissionId);
+      const layers = await getAllLayersByMission(intMissionId);
       await Mikro.closeORM();
       if (!layers) {
         return res.status(404).json({ status: "failure", message: "Layers not found" });
@@ -36,7 +36,7 @@ export const handleLayerJson: NextApiHandler = async (
 
 export default withIronSessionApiRoute(Mikro.withORM(handleLayerJson), ironOptions);
 
-export async function getAllLayersfromMission(mission_id: number): Promise<Layer[] | false> {
+export async function getAllLayersByMission(mission_id: number): Promise<Layer[] | false> {
   await Mikro.getORM();
   const model = await Mikro.getEM();
   const mission = await model.find(Mission, mission_id);
