@@ -9,7 +9,7 @@ import { FunctionComponent } from "react";
 
 const Header: FunctionComponent = () => {
   const router = useRouter();
-  const missionPage = useSelector((state: RootState) => state.missionSlice);
+  const missionPage = useSelector((state: RootState) => state.mission);
 
   return (
     <>
@@ -33,7 +33,7 @@ const Header: FunctionComponent = () => {
               className={styles.verticalCenter}
               style={{ display: "flex", flexDirection: "row" }}
             >
-              <div className={styles.headerTextItem}>{missionPage?.Mission?.name}</div>
+              <div className={styles.headerTextItem}>{missionPage?.mission?.name}</div>
             </div>
           </div>
         </div>
