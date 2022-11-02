@@ -20,3 +20,8 @@ interface PanelType {
 interface PanelTypes {
   [key: string]: PanelType;
 }
+
+interface Option {
+  name: string;
+  value: string;
+}

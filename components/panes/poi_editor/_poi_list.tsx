@@ -8,7 +8,7 @@ import {
   faPlusCircle,
 } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent } from "react";
-import IconButton from "components/interface/_global_elements";
+import { IconButton } from "components/interface/_global_elements";
 import { useSelector } from "react-redux";
 import { RootState } from "store";
 

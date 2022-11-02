@@ -15,7 +15,6 @@ import {
   faEyeSlash,
   faCircleInfo,
   faSliders,
-  faCircleNotch,
 } from "@fortawesome/free-solid-svg-icons";
 
 const MapSelector: FunctionComponent = () => {

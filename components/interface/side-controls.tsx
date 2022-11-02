@@ -55,8 +55,8 @@ export const RightControlPanel: FunctionComponent = () => {
   }
 
   return (
-    <div className={styles.body}>
-      <div className={styles.activeComponent}>
+    <>
+      <div className={styles.activeComponentRight}>
         <div
           className={styles.activeComponentTitle}
           style={{ color: paneTypes[selectedNavItem].color }}
@@ -65,7 +65,7 @@ export const RightControlPanel: FunctionComponent = () => {
         </div>
         <ActiveComponent />
       </div>
-    </div>
+    </>
   );
 };
 

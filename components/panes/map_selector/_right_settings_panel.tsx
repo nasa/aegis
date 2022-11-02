@@ -1,8 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
-import styles from "./settings_panel.module.css";
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { faChevronDown, faPlus, faGear } from "@fortawesome/free-solid-svg-icons";
-library.add(faChevronDown, faPlus, faGear);
+import styles from "./_right_settings_panel.module.css";
+import paneStyles from "../global_pane_styles.module.css";
+import { Dropdown } from "components/interface/_global_elements";
 
 const Settings_panel: FunctionComponent = () => {
   const [opacity, setOpacity] = useState(0);
@@ -14,15 +13,15 @@ const Settings_panel: FunctionComponent = () => {
   useEffect(() => {});
 
   return (
-    <div className={styles.panelContainer}>
-      <div className={styles.panelHeader}>
-        <h3 className={styles.panelHeaderText}>Settings</h3>
-      </div>
-      <div className={styles.panelBody}>
-        <h4 className={styles.h4}>Image Adjustments</h4>
+    <div className={paneStyles.rightBody}>
+      <div className={paneStyles.title}>Settings</div>
+      <div className={paneStyles.panelContainer}>
+        <div className={paneStyles.subTitle}>Image Adjustments</div>
         <div className={styles.listItem}>
           <div className={styles.listItemText}>Opacity</div>
+
           <div className={styles.listItemSlider}>
+            <div className={styles.listItemPercentage}>{opacity}%</div>
             <input
               type="range"
               min="0"
@@ -39,6 +38,7 @@ const Settings_panel: FunctionComponent = () => {
         <div className={styles.listItem}>
           <div className={styles.listItemText}>Contrast</div>
           <div className={styles.listItemSlider}>
+            <div className={styles.listItemPercentage}>{contrast}%</div>
             <input
               type="range"
               min="0"
@@ -55,6 +55,7 @@ const Settings_panel: FunctionComponent = () => {
         <div className={styles.listItem}>
           <div className={styles.listItemText}>Brightness</div>
           <div className={styles.listItemSlider}>
+            <div className={styles.listItemPercentage}>{brightness}%</div>
             <input
               type="range"
               min="0"
@@ -71,6 +72,7 @@ const Settings_panel: FunctionComponent = () => {
         <div className={styles.listItem}>
           <div className={styles.listItemText}>Saturation</div>
           <div className={styles.listItemSlider}>
+            <div className={styles.listItemPercentage}>{saturation}%</div>
             <input
               type="range"
               min="0"
@@ -86,33 +88,30 @@ const Settings_panel: FunctionComponent = () => {
         </div>
         <div className={styles.listItem}>
           <div className={styles.listItemText}>Blend</div>
-          <div className={styles.listItemSlider}>
-            <select
-              className={styles.select}
-              defaultValue={blend}
-              name={"blend"}
-              onChange={(e) => {
-                setBlend(e.target.value);
-              }}
-            >
-              <option value="normal">Normal</option>
-              <option value="multiply">Multiply</option>
-              <option value="screen">Screen</option>
-              <option value="overlay">Overlay</option>
-              <option value="darken">Darken</option>
-              <option value="lighten">Lighten</option>
-              <option value="color-dodge">Color Dodge</option>
-              <option value="color-burn">Color Burn</option>
-              <option value="hard-light">Hard Light</option>
-              <option value="soft-light">Soft Light</option>
-              <option value="difference">Difference</option>
-              <option value="exclusion">Exclusion</option>
-              <option value="hue">Hue</option>
-              <option value="saturation">Saturation</option>
-              <option value="color">Color</option>
-              <option value="luminosity">Luminosity</option>
-            </select>
-          </div>
+          <Dropdown
+            options={[
+              { name: "Normal", value: "normal" },
+              { name: "Multiply", value: "multiply" },
+              { name: "Screen", value: "screen" },
+              { name: "Overlay", value: "overlay" },
+              { name: "Darken", value: "darken" },
+              { name: "Lighten", value: "lighten" },
+              { name: "Color Dodge", value: "color-dodge" },
+              { name: "Color Burn", value: "color-burn" },
+              { name: "Hard Light", value: "hard-light" },
+              { name: "Soft Light", value: "soft-light" },
+              { name: "Difference", value: "difference" },
+              { name: "Exclusion", value: "exclusion" },
+              { name: "Hue", value: "hue" },
+              { name: "Saturation", value: "saturation" },
+              { name: "Color", value: "color" },
+              { name: "Luminosity", value: "luminosity" },
+            ]}
+            selected={blend}
+            onChange={(value) => {
+              setBlend(value);
+            }}
+          />
         </div>
       </div>
     </div>

@@ -1,0 +1,52 @@
+.listItem {
+  margin-top: 5px;
+  display: flex;
+  flex: 300px 1;
+}
+.listItemText {
+  color: var(--grey4);
+  font-size: 0.9em;
+  margin-left: 10px;
+  margin-top: 2px;
+  min-width: 100px;
+}
+
+.listItemSlider {
+  display: flex;
+  margin-left: 5px;
+  margin-top: 2px;
+  width: 100%;
+}
+.listItemPercentage {
+  flex: 0 0 35px;
+  color: var(--grey4);
+  font-size: 0.9em;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.slider {
+  flex: 1 1 auto;
+  appearance: none;
+  margin-right: 15px;
+  margin-top: 5px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 5px;
+  background-color: var(--grey3);
+}
+.slider::-webkit-slider-runnable-track {
+  appearance: none;
+  box-shadow: none;
+  border: none;
+  background: transparent;
+}
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  height: 15px;
+  width: 15px;
+  border-radius: 50%;
+  background: white;
+  cursor: ew-resize;
+}

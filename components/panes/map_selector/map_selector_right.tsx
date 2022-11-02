@@ -1,35 +1,70 @@
-import { FunctionComponent, useEffect } from "react";
-import { useSelector } from "react-redux";
-import { RootState } from "store";
+import _ from "lodash";
+import { FunctionComponent, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { faCircleInfo, faSliders } from "@fortawesome/free-solid-svg-icons";
+
+import Info_panel from "./_right_info_panel";
+import Settings_panel from "./_right_settings_panel";
 import paneStyles from "../global_pane_styles.module.css";
+library.add(faCircleInfo, faSliders);
 
-const MapSelectorRight: FunctionComponent = () => {
-  const evaState = useSelector((state: RootState) => state.eva);
+const panelTypes: PanelTypes = {
+  information_window: {
+    title: "Information",
+    panel: Info_panel,
+    color: "var(--map)",
+    icon: "circle-info",
+  },
+  information2_window: {
+    title: "Map Imagery",
+    panel: Settings_panel,
+    color: "var(--map)",
+    icon: "sliders",
+  },
+};
 
-  useEffect(() => {
-    // console.log(evaState);
-  }, [evaState]);
+const Info = () => {
+  const [selectedNavItem, setSelectedNavItem] = useState("information_window");
+  let ActiveComponent = null;
+  if (!_.isNil(panelTypes[selectedNavItem])) {
+    ActiveComponent = panelTypes[selectedNavItem].panel;
+  }
 
   return (
-    <div className={paneStyles.panelContainer}>
-      <div className={paneStyles.panelHeader}>
-        <h3 className={paneStyles.panelHeaderText}>Information</h3>
+    <>
+      <div className={paneStyles.rightIconRow}>
+        {Object.keys(panelTypes).map((panelType) => {
+          return (
+            <div
+              key={panelType}
+              className={
+                selectedNavItem === panelType
+                  ? paneStyles.rightIconContainerSelected
+                  : paneStyles.rightIconContainer
+              }
+            >
+              <div
+                className={paneStyles.rightIcon}
+                style={{
+                  color: selectedNavItem === panelType ? panelTypes[panelType].color : "white",
+                }}
+                title={panelTypes[panelType].title}
+                onClick={() => setSelectedNavItem(panelType)}
+              >
+                <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
+              </div>
+            </div>
+          );
+        })}
       </div>
-      <div className={paneStyles.panelBody}>
-        <p className={paneStyles.panelBodyText}>
-          Terrain Difficulty is a combination of Slope and TRI at 1m/1pixel...lorem ipsum dolor sit
-          amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore
-          magna aliqua.
-          <br />
-          <br />
-          Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
-          commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum
-          dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
-          culpa qui officia deserunt mollit anim id est laborum.
-        </p>
-      </div>
-    </div>
+      <ActiveComponent className={paneStyles.rightActiveWindow} />
+    </>
   );
 };
 
-export default MapSelectorRight;
+const RightControlPanel: FunctionComponent = () => {
+  return <Info />;
+};
+
+export default RightControlPanel;
