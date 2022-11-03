@@ -1,9 +1,14 @@
 import styles from "./map_selector.module.css";
-import paneStyles from "../left_pane_styles.module.css";
-import { FunctionComponent, useState } from "react";
+import paneStyles from "../global_pane_styles.module.css";
+import { FunctionComponent, MouseEventHandler, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "store";
-import { toggleLayerControlExpanded, toggleLayerControlEnabled } from "store/map";
+import {
+  toggleLayerControlExpanded,
+  toggleLayerControlEnabled,
+  setActiveLayerName,
+  setSelectedRightNavItem,
+} from "store/map";
 import SystemMapImageryPresets from "./_system_imagery_presets";
 import UserMapImageryPresets from "./_user_imagery_presets";
 
@@ -15,14 +20,10 @@ import {
   faEyeSlash,
   faCircleInfo,
   faSliders,
-  faCircleNotch,
 } from "@fortawesome/free-solid-svg-icons";
-import { library } from "@fortawesome/fontawesome-svg-core";
-
-library.add(faCaretDown, faCaretRight, faEye, faEyeSlash, faCircleInfo, faSliders, faCircleNotch);
 
 const MapSelector: FunctionComponent = () => {
-  const aegisState = useSelector((state: RootState) => state.missionSlice);
+  const missionState = useSelector((state: RootState) => state.mission);
   const layerControls = useSelector((state: RootState) => state.map?.layerControls);
   const [expandedSections, setExpandedSections] = useState({
     systemPresets: true,
@@ -41,7 +42,7 @@ const MapSelector: FunctionComponent = () => {
         setExpandedSections={setExpandedSections}
       />
       <DetailedSettings
-        aegisState={aegisState}
+        missionState={missionState}
         layerControls={layerControls}
         expandedSections={expandedSections}
         setExpandedSections={setExpandedSections}
@@ -52,17 +53,15 @@ const MapSelector: FunctionComponent = () => {
 
 export default MapSelector;
 
-const DetailedSettings = ({ aegisState, layerControls, expandedSections, setExpandedSections }) => {
+const DetailedSettings: FunctionComponent<{
+  missionState: MissionState;
+  layerControls: LayerControls;
+  expandedSections: ExpandedSection;
+  setExpandedSections: any;
+}> = ({ missionState, layerControls, expandedSections, setExpandedSections }) => {
   const dispatch = useDispatch();
   const [layerHover, setLayerHover] = useState<string | null>(null);
-
-  const toggleSublayerEnabled = (sublayer: Sublayer) => {
-    dispatch(toggleLayerControlEnabled(sublayer.name));
-  };
-
-  const toggleLayerExpanded = (layer: MMGISLayer) => {
-    dispatch(toggleLayerControlExpanded(layer.name));
-  };
+  const activeLayerName = useSelector((state: RootState) => state.map.activeLayerName);
 
   return (
     <div className={paneStyles.panelContainer}>
@@ -75,28 +74,28 @@ const DetailedSettings = ({ aegisState, layerControls, expandedSections, setExpa
         >
           <div className={styles.expandoCaret}>
             {expandedSections.details ? (
-              <FontAwesomeIcon icon="caret-down" size="sm" />
+              <FontAwesomeIcon icon={faCaretDown} size="sm" />
             ) : (
-              <FontAwesomeIcon icon="caret-right" size="sm" />
+              <FontAwesomeIcon icon={faCaretRight} size="sm" />
             )}
           </div>
           <div>Imagery Details & Settings</div>
         </div>
         <div className={styles.layersBody}>
-          {aegisState && layerControls && expandedSections.details ? (
-            aegisState?.Layers.map((layer: LayerModel) => {
+          {missionState && layerControls && expandedSections.details ? (
+            missionState?.layers.map((layer: LayerModel) => {
               return (
                 <div className={styles.layerGroup} key={layer.config.name}>
                   <div className={styles.layer}>
                     <div
                       className={styles.expandoCaret}
-                      onClick={() => toggleLayerExpanded(layer.config)}
+                      onClick={() => dispatch(toggleLayerControlExpanded(layer.config.name))}
                     >
                       {layerControls &&
                         (layerControls[layer.config.name].expanded ? (
-                          <FontAwesomeIcon icon="caret-down" size="sm" />
+                          <FontAwesomeIcon icon={faCaretDown} size="sm" />
                         ) : (
-                          <FontAwesomeIcon icon="caret-right" size="sm" />
+                          <FontAwesomeIcon icon={faCaretRight} size="sm" />
                         ))}
                     </div>
                     <div className={styles.layerName}>{layer.config.name}</div>
@@ -106,11 +105,14 @@ const DetailedSettings = ({ aegisState, layerControls, expandedSections, setExpa
                       layerControls[layer.config.name].expanded &&
                       layer.config.sublayers &&
                       layer.config.sublayers.map((sublayer: Sublayer) => {
+                        const sublayerStyle =
+                          sublayer.name === activeLayerName
+                            ? styles.sublayerSelected
+                            : styles.sublayer;
                         return (
                           <div
                             key={`sub_${sublayer.name}`}
-                            className={styles.sublayer}
-                            onClick={() => toggleSublayerEnabled(sublayer)}
+                            className={sublayerStyle}
                             onMouseOver={() => {
                               setLayerHover(sublayer.name);
                             }}
@@ -118,17 +120,38 @@ const DetailedSettings = ({ aegisState, layerControls, expandedSections, setExpa
                               setLayerHover(null);
                             }}
                           >
-                            <Visibility visible={layerControls[sublayer.name].enabled} />
-                            <div className={styles.sublayerTitle}>
+                            <Visibility
+                              visible={layerControls[sublayer.name].enabled}
+                              onClick={() => dispatch(toggleLayerControlEnabled(sublayer.name))}
+                            />
+                            <div
+                              className={styles.sublayerTitle}
+                              onClick={() => {
+                                dispatch(setActiveLayerName(sublayer.name));
+                                dispatch(setSelectedRightNavItem("settings_panel"));
+                              }}
+                            >
                               {sublayer.name} ({sublayer.type})
                             </div>
                             {layerHover === sublayer.name && (
                               <div className={styles.sublayerToolIcons}>
-                                <div className={styles.sublayerToolIcon}>
-                                  <FontAwesomeIcon icon="sliders" />
+                                <div
+                                  className={styles.sublayerToolIcon}
+                                  onClick={() => {
+                                    dispatch(setActiveLayerName(sublayer.name));
+                                    dispatch(setSelectedRightNavItem("information_panel"));
+                                  }}
+                                >
+                                  <FontAwesomeIcon icon={faCircleInfo} />
                                 </div>
-                                <div className={styles.sublayerToolIcon}>
-                                  <FontAwesomeIcon icon="circle-info" />
+                                <div
+                                  className={styles.sublayerToolIcon}
+                                  onClick={() => {
+                                    dispatch(setActiveLayerName(sublayer.name));
+                                    dispatch(setSelectedRightNavItem("settings_panel"));
+                                  }}
+                                >
+                                  <FontAwesomeIcon icon={faSliders} />
                                 </div>
                               </div>
                             )}
@@ -141,8 +164,8 @@ const DetailedSettings = ({ aegisState, layerControls, expandedSections, setExpa
             })
           ) : (
             <div>
-              <FontAwesomeIcon icon="circle-notch" spin />
-              &nbsp; Loading...
+              {/* <FontAwesomeIcon icon={faCircleNotch} spin />
+              &nbsp; Loading... */}
             </div>
           )}
         </div>
@@ -151,16 +174,19 @@ const DetailedSettings = ({ aegisState, layerControls, expandedSections, setExpa
   );
 };
 
-const Visibility = ({ visible }) => {
+const Visibility: FunctionComponent<{
+  visible: boolean;
+  onClick: MouseEventHandler<HTMLDivElement>;
+}> = ({ visible, onClick }) => {
   return (
-    <div className={styles.visibility}>
+    <div className={styles.visibility} onClick={onClick}>
       {visible ? (
         <div className={styles.visible}>
-          <FontAwesomeIcon icon="eye" size="xs" />
+          <FontAwesomeIcon icon={faEye} size="xs" />
         </div>
       ) : (
         <div className={styles.inVisible}>
-          <FontAwesomeIcon icon="eye-slash" size="xs" />
+          <FontAwesomeIcon icon={faEyeSlash} size="xs" />
         </div>
       )}
     </div>

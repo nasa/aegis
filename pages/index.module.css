@@ -202,8 +202,8 @@
 }
 
 .table tr:first-child {
-  color: var(--grey3);
-  border-bottom: var(--grey3) 1px solid;
+  color: var(--grey4);
+  border-bottom: var(--grey4) 1px solid;
 }
 
 .table td:first-child {

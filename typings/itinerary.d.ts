@@ -18,9 +18,7 @@
 /**
  * A POI is a point of interest that has been placed on the map, and chosen as a possible target to be visited as part of an EVA.
  */
-type POI = DrawingFeature & {
-  featureType: "POI";
-
+type POI = {
   /**
    * The name of the POI, e.g. "M-19"
    */
@@ -50,7 +48,31 @@ type POI = DrawingFeature & {
    * uuid of the POI
    */
   uuid: string;
+
+  owner: string;
+
+  /**
+   * The coordinates or series of coordinates of the POI.
+   */
+  location: Point | Point[];
+
+  /**
+   * The color of this POI
+   */
+  color: string;
+
+  /**
+   * Tags for this POI
+   */
+  tags: string[];
+
+  /**
+   * Status of this POI
+   */
+  status: POIStatus;
 };
+
+type POIStatus = "Archived" | "Candidate" | "In Review" | "Approved";
 
 /**
  * Action to be taken by crew on the surface (photograph, describe, take sample, etc)

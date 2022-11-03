@@ -1,5 +1,5 @@
 import { NextPage } from "next";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { uploadFile, listFiles, deleteFile, renameFile } from "http-client/upload";
 import { useRouter } from "next/router";
 import { isLoggedIn } from "http-client/internal-api";
@@ -26,7 +26,12 @@ const Upload: NextPage = () => {
   };
 
   //call api to get the directory listing
-  async function getDirListing() {
+  /**
+   * BF - Changed to useCallback due to this warning. Not tested:
+   * 29:3  Warning: The 'getDirListing' function makes the dependencies of useEffect Hook (at line 157) change on every render. To fix this, wrap the definition of 'getDirListing' in its own useCallback() Hook.  react-hooks/exhaustive-deps
+   */
+
+  const getDirListing = useCallback(async () => {
     const getListFiles = async () => {
       const fileList: GISfile[] = await listFiles(); //get files
       //convert to type fileState and store in state
@@ -43,7 +48,7 @@ const Upload: NextPage = () => {
       setDirListing(fileStates);
     };
     getListFiles().catch(console.error);
-  }
+  }, []);
 
   //handle change when a new file is selected for upload
   function fileChangeHandler(event) {

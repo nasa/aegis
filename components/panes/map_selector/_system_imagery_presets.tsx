@@ -1,5 +1,5 @@
 import styles from "./map_selector.module.css";
-import paneStyles from "../left_pane_styles.module.css";
+import paneStyles from "../global_pane_styles.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
 import { library } from "@fortawesome/fontawesome-svg-core";
@@ -60,9 +60,9 @@ const SystemMapImageryPresets: FunctionComponent<{
         >
           <div className={styles.expandoCaret}>
             {expandedSections.systemPresets ? (
-              <FontAwesomeIcon icon="caret-down" size="sm" />
+              <FontAwesomeIcon icon={faCaretDown} size="sm" />
             ) : (
-              <FontAwesomeIcon icon="caret-right" size="sm" />
+              <FontAwesomeIcon icon={faCaretRight} size="sm" />
             )}
           </div>
           <div>Mission Presets</div>

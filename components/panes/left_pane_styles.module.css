@@ -1,7 +1,0 @@
-.panelContainer {
-  background-color: var(--grey2);
-  margin: 8px;
-  padding: 6px;
-  border-radius: var(--panelRadius);
-  overflow-x: hidden;
-}

@@ -1,6 +1,7 @@
 interface PaneType {
   title: string;
-  pane: Function;
+  leftPane: Function;
+  rightPane: Function;
   color: string;
   icon: IconProp;
 }
@@ -18,4 +19,9 @@ interface PanelType {
 
 interface PanelTypes {
   [key: string]: PanelType;
+}
+
+interface Option {
+  name: string;
+  value: string;
 }

@@ -4,7 +4,15 @@ interface LayerControl {
   type: string;
   expanded: boolean;
   mapLayerRef: any;
+  style: LayerControlStyle;
+}
+
+interface LayerControlStyle {
   opacity: number;
+  contrast: number;
+  brightness: number;
+  saturation: number;
+  blendMode: string;
 }
 
 interface LayerControls {

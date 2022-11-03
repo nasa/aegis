@@ -2,27 +2,27 @@ import { createSlice } from "@reduxjs/toolkit";
 import { Preset } from "../server/database/models/preset.model";
 
 export const initialState: MissionState = {
-  Mission: null,
-  Layers: null,
-  Presets: null,
-  UserInterface: null,
+  mission: null,
+  layers: null,
+  presets: null,
+  userInterface: null,
 };
 
 export const missionSlice = createSlice({
-  name: "missionSlice",
+  name: "mission",
   initialState,
   reducers: {
     setMission: (state, action: { payload: AEGISMission }) => {
-      state.Mission = action.payload;
+      state.mission = action.payload;
     },
     setLayers: (state, action: { payload: LayerModel[] }) => {
-      state.Layers = action.payload;
+      state.layers = action.payload;
     },
     setPresets: (state, action: { payload: Preset[] }) => {
-      state.Presets = action.payload;
+      state.presets = action.payload;
     },
     setInterface: (state, action: { payload: UserInterface }) => {
-      state.UserInterface = action.payload;
+      state.userInterface = action.payload;
     },
   },
 });

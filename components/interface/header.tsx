@@ -2,16 +2,14 @@ import styles from "./header.module.css";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/router";
 
-import { library } from "@fortawesome/fontawesome-svg-core";
 import { faBars } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { RootState } from "store";
 import { FunctionComponent } from "react";
-library.add(faBars);
 
 const Header: FunctionComponent = () => {
   const router = useRouter();
-  const missionPage = useSelector((state: RootState) => state.missionSlice);
+  const missionPage = useSelector((state: RootState) => state.mission);
 
   return (
     <>
@@ -20,7 +18,7 @@ const Header: FunctionComponent = () => {
           <div className={styles.helpMenu}>
             <div className={styles.verticalCenter}>
               <FontAwesomeIcon
-                icon="bars"
+                icon={faBars}
                 onClick={() => {
                   router.push("/");
                 }}
@@ -35,7 +33,7 @@ const Header: FunctionComponent = () => {
               className={styles.verticalCenter}
               style={{ display: "flex", flexDirection: "row" }}
             >
-              <div className={styles.headerTextItem}>{missionPage?.Mission?.name}</div>
+              <div className={styles.headerTextItem}>{missionPage?.mission?.name}</div>
             </div>
           </div>
         </div>

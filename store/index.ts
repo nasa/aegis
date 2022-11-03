@@ -7,25 +7,31 @@ import { missionSlice, initialState as missionInitialState } from "./mission";
 import { userSlice, initialState as userInitialState } from "./user";
 import { mapSlice, initialState as mapInitialState } from "./map";
 import { evaSlice, initialState as evaInitialState } from "./eva";
+import { poiSlice, initialState as poiInitialState } from "./poi";
+import { interfaceSlice, initialState as interfaceInitialState } from "./interface";
 
 let store;
 
 export const initialState = {
   playhead: playheadInitialState,
   playheadHover: playheadHoverInitialState,
-  missionSlice: missionInitialState,
+  mission: missionInitialState,
   user: userInitialState,
   map: mapInitialState,
   eva: evaInitialState,
+  poi: poiInitialState,
+  interface: interfaceInitialState,
 };
 
 export const reducer = combineReducers({
   playhead: playheadSlice.reducer,
   playheadHover: playheadHoverSlice.reducer,
-  missionSlice: missionSlice.reducer,
+  mission: missionSlice.reducer,
   user: userSlice.reducer,
   map: mapSlice.reducer,
   eva: evaSlice.reducer,
+  poi: poiSlice.reducer,
+  interface: interfaceSlice.reducer,
 });
 export type RootState = ReturnType<typeof reducer>;
 

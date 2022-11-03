@@ -23,7 +23,7 @@
   margin: 5px 0 10px 0;
   display: flex;
   align-items: center;
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
 .layerGroup {
@@ -46,7 +46,6 @@
   padding-top: 4px;
   padding-bottom: 4px;
   border-radius: var(--radius);
-  width: 100%;
 }
 
 .sublayer:hover {
@@ -54,11 +53,29 @@
   cursor: pointer;
 }
 
+.sublayerSelected {
+  display: flex;
+  flex-direction: row;
+  margin-left: 8px;
+  padding-left: 6px;
+  margin-top: 2px;
+  margin-bottom: 2px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-radius: var(--radius);
+
+  background-color: var(--map);
+  color: black;
+  cursor: pointer;
+}
+
 .sublayerTitle {
+  font-size: 0.95em;
   flex: 1 1 auto;
   overflow-x: hidden;
   text-overflow: ellipsis;
   font-weight: 200;
+  white-space: nowrap;
 }
 
 .sublayerToolIcons {
@@ -70,7 +87,7 @@
 }
 
 .sublayerToolIcon {
-  color: var(--grey4);
+  color: var(--grey3);
   width: 20px;
   margin-left: 1px;
   margin-right: 1px;
@@ -106,7 +123,7 @@
   display: block;
   width: 100%;
   align-items: center;
-  color: #FFFFFF;
+  color: #ffffff;
   opacity: 0.5;
   white-space: normal;
 }
@@ -142,7 +159,7 @@
   margin-left: 10px;
   height: 30px;
   font-size: 14px;
-  color: #FFFFFF;
+  color: #ffffff;
   text-align: center;
   background: #616574;
   border-radius: 5px;
@@ -157,7 +174,7 @@
   width: 100%;
 
   /* AEGIS - Map Imagery */
-  background: #66DEF9;
+  background: #66def9;
   border-radius: 5px;
   color: black;
 }

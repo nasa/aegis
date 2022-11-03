@@ -6,7 +6,7 @@ import UserFactory from "../helpers/UserFactory";
 import MissionFactory from "../helpers/MissionFactory";
 import { Mission } from "../../server/database/models/mission.model";
 import { User } from "../../server/database/models/user.model";
-import { getAllLayersfromMission } from "../../pages/api/layer/[id]";
+import { getAllLayersByMission } from "../../pages/api/layer/[id]";
 import LayerFactory from "../helpers/LayerFactory";
 import { Layer } from "../../server/database/models/layer.model";
 
@@ -30,13 +30,13 @@ beforeAll(async () => {
 describe("Preset Controls and API: ", () => {
   // Expect a return of all layers for mission
   test("Expect If Mission Layer is empty to return null", async () => {
-    const layers = await getAllLayersfromMission(99999);
+    const layers = await getAllLayersByMission(99999);
     await Mikro.closeORM();
     expect(layers).toBeNull();
   });
 
   test("Expect If Mission Layer is not empty to return layers", async () => {
-    const layers = await getAllLayersfromMission(testMission.id);
+    const layers = await getAllLayersByMission(testMission.id);
     expect(layers).not.toBeNull();
   });
 });

@@ -1,0 +1,72 @@
+.container {
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  flex-direction: row;
+  font-weight: 700;
+  margin-top: 5px;
+  user-select: none;
+}
+
+.body {
+  margin-top: 5px;
+  margin-left: 5px;
+}
+
+.group {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  user-select: none;
+}
+
+.item {
+  display: flex;
+}
+
+.itemColor {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+
+  margin-right: 5px;
+}
+
+.poiDot {
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  border: 1px solid white;
+}
+
+.name {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.expandoCaret {
+  width: 15px;
+}
+
+.visibility {
+  width: 15px;
+  margin-right: 4px;
+  flex: 0 0 15px;
+}
+
+.visible {
+  color: white;
+}
+
+.inVisible {
+  color: var(--grey3);
+}
+
+.verticalCenter {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
