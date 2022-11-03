@@ -52,5 +52,4 @@ interface PoiState {
 
 interface InterfaceState {
   sectionSelectedLabel: "map_layer_selector" | "poi" | "eva_planner";
-  rightSelectionLabel: string;
 }
