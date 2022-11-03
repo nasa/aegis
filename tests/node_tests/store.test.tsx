@@ -59,7 +59,7 @@ describe("Map and MMGIS Reducer: ", () => {
         type: configLayer.config.type,
         expanded: false,
         mapLayerRef: null,
-        opacity: 1,
+        style: null,
       };
       if (configLayer.config.sublayers) {
         configLayer.config.sublayers.map((sublayer) => {
@@ -69,7 +69,7 @@ describe("Map and MMGIS Reducer: ", () => {
             type: sublayer.type,
             expanded: false,
             mapLayerRef: null,
-            opacity: 1,
+            style: null,
           };
         });
       }
