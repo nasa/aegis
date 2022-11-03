@@ -36,37 +36,40 @@ const RightControlPanel: FunctionComponent = () => {
   }
 
   return (
-    <>
-      <div className={paneStyles.rightTopTitle} style={{ color: "var(--map)" }}>
-        {activeLayerName}
-      </div>
-      <div className={paneStyles.rightIconRow}>
-        {Object.keys(panelTypes).map((panelType) => {
-          return (
-            <div
-              key={panelType}
-              className={
-                selectedRightNavItem === panelType
-                  ? paneStyles.rightIconContainerSelected
-                  : paneStyles.rightIconContainer
-              }
-            >
+    activeLayerName && (
+      <>
+        <div className={paneStyles.rightTopTitle} style={{ color: "var(--map)" }}>
+          {activeLayerName}
+        </div>
+        <div className={paneStyles.rightIconRow}>
+          {Object.keys(panelTypes).map((panelType) => {
+            return (
               <div
-                className={paneStyles.rightIcon}
-                style={{
-                  color: selectedRightNavItem === panelType ? panelTypes[panelType].color : "white",
-                }}
-                title={panelTypes[panelType].title}
-                onClick={() => dispatch(setSelectedRightNavItem(panelType))}
+                key={panelType}
+                className={
+                  selectedRightNavItem === panelType
+                    ? paneStyles.rightIconContainerSelected
+                    : paneStyles.rightIconContainer
+                }
               >
-                <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
+                <div
+                  className={paneStyles.rightIcon}
+                  style={{
+                    color:
+                      selectedRightNavItem === panelType ? panelTypes[panelType].color : "white",
+                  }}
+                  title={panelTypes[panelType].title}
+                  onClick={() => dispatch(setSelectedRightNavItem(panelType))}
+                >
+                  <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-      <ActiveComponent className={paneStyles.rightActiveWindow} />
-    </>
+            );
+          })}
+        </div>
+        <ActiveComponent className={paneStyles.rightActiveWindow} />
+      </>
+    )
   );
 };
 

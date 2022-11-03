@@ -68,7 +68,7 @@ const Main: NextPage = () => {
             type: configLayer.config.type,
             expanded: false,
             mapLayerRef: null,
-            opacity: 1,
+            style: null,
           };
           if (configLayer.config.sublayers) {
             configLayer.config.sublayers.map((sublayer) => {
@@ -78,7 +78,7 @@ const Main: NextPage = () => {
                 type: sublayer.type,
                 expanded: false,
                 mapLayerRef: null,
-                opacity: 1,
+                style: null,
               };
             });
           }

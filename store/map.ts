@@ -20,11 +20,11 @@ export const mapSlice = createSlice({
     toggleLayerControlEnabled: (state, action: { payload: string }) => {
       state.layerControls[action.payload].enabled = !state.layerControls[action.payload].enabled;
     },
-    setLayerControlOpacity: (
+    setLayerControlStyle: (
       state,
-      action: { payload: { layerName: string; opacity: number } }
+      action: { payload: { layerName: string; style: LayerControlStyle } }
     ) => {
-      state.layerControls[action.payload.layerName].opacity = action.payload.opacity;
+      state.layerControls[action.payload.layerName].style = action.payload.style;
     },
     setSelectedRightNavItem: (state, action: { payload: string }) => {
       state.selectedRightNavItem = action.payload;
@@ -39,7 +39,7 @@ export const {
   setLayerControls,
   toggleLayerControlExpanded,
   toggleLayerControlEnabled,
-  setLayerControlOpacity,
+  setLayerControlStyle,
   setSelectedRightNavItem,
   setActiveLayerName,
 } = mapSlice.actions;

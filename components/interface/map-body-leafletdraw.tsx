@@ -1,6 +1,8 @@
 import L from "leaflet";
 L.Icon.Default.imagePath = "/leaflet/images/";
+// Import the plugin libraries so they will modify L
 import "leaflet-draw";
+import "leaflet.tilelayer.colorfilter";
 
 import styles from "components/interface/map-body.module.css";
 
@@ -41,6 +43,35 @@ const MapBody: FunctionComponent = () => {
   // const [uuidBeingEdited, setUuidBeingEdited] = useState(null);
   const uuidBeingEdited = useRef(null);
 
+  // make color filter settings for any sublayer. This is the format of leaflet.tilelayer.colorfilter package
+  const makeLayerColorFilter = useCallback(
+    (sublayerName: string): string[] => {
+      return [
+        `brightness:${
+          layerControls[sublayerName].style?.brightness
+            ? layerControls[sublayerName].style?.brightness * 100
+            : 100
+        }%`,
+        `contrast:${
+          layerControls[sublayerName].style?.contrast
+            ? layerControls[sublayerName].style?.contrast * 100
+            : 100
+        }%`,
+        `opacity:${
+          layerControls[sublayerName].style?.opacity
+            ? layerControls[sublayerName].style?.opacity * 100
+            : 100
+        }%`,
+        `saturate:${
+          layerControls[sublayerName].style?.saturation
+            ? layerControls[sublayerName].style?.saturation * 100
+            : 100
+        }%`,
+      ];
+    },
+    [layerControls]
+  );
+
   const showMapLayers = useCallback(() => {
     if (!mission || !layerControls || !map) return;
 
@@ -78,21 +109,26 @@ const MapBody: FunctionComponent = () => {
     layersToAddInOrder.map((configSublayer, index) => {
       // if layer isn't already on the map, add it
       if (!isLayerOnMapByName(map, configSublayer.name)) {
-        const tileLayer = L.tileLayer(`${layerBaseURL}${mission.name}/${configSublayer.url}`, {
-          tileSize: 256,
-          bounds: [
-            [configSublayer.boundingBox[1], configSublayer.boundingBox[0]],
-            [configSublayer.boundingBox[3], configSublayer.boundingBox[2]],
-          ],
-          tms: configSublayer.tileformat === "tms",
-          minZoom: 1,
-          minNativeZoom: configSublayer.minZoom,
-          maxZoom: configSublayer.maxZoom,
-          maxNativeZoom: configSublayer.maxNativeZoom,
-          id: `${configSublayer.name}`,
-          opacity: layerControls[configSublayer.name].opacity,
-          zIndex: index,
-        });
+        const filter = makeLayerColorFilter(configSublayer.name);
+        const tileLayer = (L.tileLayer as any).colorFilter(
+          `${layerBaseURL}${mission.name}/${configSublayer.url}`,
+          {
+            tileSize: 256,
+            bounds: [
+              [configSublayer.boundingBox[1], configSublayer.boundingBox[0]],
+              [configSublayer.boundingBox[3], configSublayer.boundingBox[2]],
+            ],
+            tms: configSublayer.tileformat === "tms",
+            minZoom: 1,
+            minNativeZoom: configSublayer.minZoom,
+            maxZoom: configSublayer.maxZoom,
+            maxNativeZoom: configSublayer.maxNativeZoom,
+            id: `${configSublayer.name}`,
+            opacity: layerControls[configSublayer.name].style?.opacity,
+            zIndex: index,
+            filter,
+          }
+        );
         map.current.addLayer(tileLayer);
         tileLayer.bringToFront();
       } else {
@@ -101,7 +137,7 @@ const MapBody: FunctionComponent = () => {
         layer.bringToFront();
       }
     });
-  }, [layerControls, layersOnMap, mission, missionLayers]);
+  }, [layerControls, layersOnMap, mission, missionLayers, makeLayerColorFilter]);
 
   /**
    * Map tile layers display management
@@ -122,11 +158,12 @@ const MapBody: FunctionComponent = () => {
     map.current.eachLayer((layer) => {
       for (const layerControl of Object.values(layerControls)) {
         if (layer.options.id === layerControl.name) {
-          layer.setOpacity(layerControl.opacity);
+          // layer.setOpacity(layerControl.style?.opacity);
+          layer.updateFilter(makeLayerColorFilter(layerControl.name));
         }
       }
     });
-  }, [layerControls, map]);
+  }, [layerControls, map, makeLayerColorFilter]);
 
   /**
    * Map events management

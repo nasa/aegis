@@ -46,7 +46,6 @@
   padding-top: 4px;
   padding-bottom: 4px;
   border-radius: var(--radius);
-  width: 100%;
 }
 
 .sublayer:hover {
@@ -64,7 +63,6 @@
   padding-top: 4px;
   padding-bottom: 4px;
   border-radius: var(--radius);
-  width: 100%;
 
   background-color: var(--map);
   color: black;
