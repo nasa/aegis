@@ -225,6 +225,7 @@ interface AEGISPresetHistory {
 
 interface AEGISPresetValue {
   id: number;
+  name: string;
   sublayer: number;
   opacity: number;
   brightness: number;

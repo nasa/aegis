@@ -8,6 +8,7 @@ import {
   toggleLayerControlEnabled,
   setActiveLayerName,
   setSelectedRightNavItem,
+  setActiveLayerUUID,
 } from "store/map";
 import SystemMapImageryPresets from "./_system_imagery_presets";
 import UserMapImageryPresets from "./_user_imagery_presets";
@@ -122,16 +123,20 @@ const DetailedSettings: FunctionComponent<{
                           >
                             <Visibility
                               visible={layerControls[sublayer.name].enabled}
-                              onClick={() => dispatch(toggleLayerControlEnabled(sublayer.name))}
+                              onClick={() => {
+                                dispatch(toggleLayerControlEnabled(sublayer.name));
+                                dispatch(setActiveLayerUUID(layer.uuid));
+                              }}
                             />
                             <div
                               className={styles.sublayerTitle}
                               onClick={() => {
                                 dispatch(setActiveLayerName(sublayer.name));
+                                dispatch(setActiveLayerUUID(layer.uuid));
                                 dispatch(setSelectedRightNavItem("settings_panel"));
                               }}
                             >
-                              {sublayer.name} ({sublayer.type})
+                              {sublayer.name} ({sublayer.type}) {layer.uuid}
                             </div>
                             {layerHover === sublayer.name && (
                               <div className={styles.sublayerToolIcons}>
@@ -139,6 +144,7 @@ const DetailedSettings: FunctionComponent<{
                                   className={styles.sublayerToolIcon}
                                   onClick={() => {
                                     dispatch(setActiveLayerName(sublayer.name));
+                                    dispatch(setActiveLayerUUID(layer.uuid));
                                     dispatch(setSelectedRightNavItem("information_panel"));
                                   }}
                                 >
@@ -148,6 +154,7 @@ const DetailedSettings: FunctionComponent<{
                                   className={styles.sublayerToolIcon}
                                   onClick={() => {
                                     dispatch(setActiveLayerName(sublayer.name));
+                                    dispatch(setActiveLayerUUID(layer.uuid));
                                     dispatch(setSelectedRightNavItem("settings_panel"));
                                   }}
                                 >

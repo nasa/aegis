@@ -39,6 +39,7 @@ interface MapState {
   selectedRightNavItem: string;
   mousePosition: LatLng;
   activeLayerName: string;
+  activeLayerUUID: string;
 }
 
 interface EvaState {
