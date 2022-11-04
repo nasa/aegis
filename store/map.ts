@@ -5,6 +5,7 @@ export const initialState: MapState = {
   mousePosition: null,
   selectedRightNavItem: "information_panel",
   activeLayerName: null,
+  activeLayerUUID: null,
 };
 
 export const mapSlice = createSlice({
@@ -32,6 +33,9 @@ export const mapSlice = createSlice({
     setActiveLayerName: (state, action: { payload: string }) => {
       state.activeLayerName = action.payload;
     },
+    setActiveLayerUUID: (state, action: { payload: string }) => {
+      state.activeLayerUUID = action.payload;
+    },
   },
 });
 
@@ -42,6 +46,7 @@ export const {
   setLayerControlStyle,
   setSelectedRightNavItem,
   setActiveLayerName,
+  setActiveLayerUUID,
 } = mapSlice.actions;
 
 export default mapSlice.reducer;

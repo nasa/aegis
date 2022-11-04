@@ -2,7 +2,9 @@ import styles from "./map_selector.module.css";
 import paneStyles from "../global_pane_styles.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
-import { FunctionComponent } from "react";
+import { FunctionComponent, useState } from "react";
+import { useSelector } from "react-redux";
+import { RootState } from "../../../store";
 
 const UserMapImageryPresets: FunctionComponent<{
   expandedSections: ExpandedSection;
@@ -16,6 +18,22 @@ const UserMapImageryPresets: FunctionComponent<{
   //     name: "My Preset 2",
   //   },
   // };
+  const [presetName, setPresetName] = useState("");
+  const activeLayerUUID = useSelector((state: RootState) => state.map.activeLayerUUID);
+  console.log(activeLayerUUID);
+  console.log(presetName);
+  const addPreset = async () => {
+    fetch("/api/preset/add", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: presetName,
+        uuid: activeLayerUUID,
+      }),
+    });
+  };
 
   return (
     <div className={paneStyles.panelContainer}>
@@ -55,8 +73,10 @@ const UserMapImageryPresets: FunctionComponent<{
                     className={styles.presetName}
                     type={"text"}
                     placeholder={"Type Preset Name"}
+                    value={presetName}
+                    onChange={(e) => setPresetName(e.target.value)}
                   />
-                  <span className={styles.presetAdd}>
+                  <span className={styles.presetAdd} onClick={addPreset}>
                     <FontAwesomeIcon icon={faPlusCircle} /> Add Preset{" "}
                   </span>
                 </div>

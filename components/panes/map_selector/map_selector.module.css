@@ -163,6 +163,7 @@
   text-align: center;
   background: #616574;
   border-radius: 5px;
+  cursor: pointer;
 }
 
 .presetHighlight {
