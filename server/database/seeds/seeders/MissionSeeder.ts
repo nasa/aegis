@@ -1,10 +1,10 @@
 import { Seeder } from "@mikro-orm/seeder";
-import { EntityManager } from "@mikro-orm/core";
+import { Dictionary, EntityManager } from "@mikro-orm/core";
 import { Mission } from "../../models/mission.model";
 
 export class MissionSeeder extends Seeder {
-  async run(em: EntityManager): Promise<void> {
-    em.create(Mission, {
+  async run(em: EntityManager, context: Dictionary): Promise<void> {
+    context.mission = em.create(Mission, {
       name: "Apollo_14",
       config: {
         msv: {

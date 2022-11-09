@@ -119,3 +119,31 @@ npm run dev # note: not docker:dev. Running node locally.
 # NOTE following URL is http (not https) and has port 4000, since not behind nginx proxy
 # VERIFY http://aegis-local.fit.nasa.gov:4000, report slowness compared to "preview"
 ```
+
+## Mikro ORM notes
+
+- [Mikro ORM docs](https://mikro-orm.io/docs/defining-entities/)
+- [Mikro ORM types](https://mikro-orm.io/docs/types/)
+- [Mikro ORM decorators](https://mikro-orm.io/docs/decorators/)
+- [Mikro ORM migrations](https://mikro-orm.io/docs/migrations/)
+- [Mikro ORM CLI](https://mikro-orm.io/docs/cli/)
+- [Mikro ORM CLI commands](https://mikro-orm.io/docs/cli/#commands)
+
+### Helpful Mikro ORM commands
+
+```bash
+# Generate a migration
+npx mikro-orm migration:create <migration-name>
+
+# Run migrations
+npm run migration:up
+
+# Rollback migrations
+npm run migration:down
+
+# Seed the database
+npm run seed
+
+# Fresh start (drop database, run migrations, seed)
+npx mikro-orm migration:fresh --seed
+```
