@@ -5,7 +5,7 @@ import { Layer } from "../../models/layer.model";
 export class LayerSeeder extends Seeder {
   async run(em: EntityManager, context: Dictionary): Promise<void> {
     context.layer1 = em.create(Layer, {
-      mission: 1,
+      mission: context.mission.id,
       config: {
         name: "Traverses",
         type: "header",
@@ -67,7 +67,7 @@ export class LayerSeeder extends Seeder {
       updatedAt: new Date(),
     });
     context.layer2 = em.create(Layer, {
-      mission: 1,
+      mission: context.mission.id,
       config: {
         name: "Sample Stations",
         type: "header",
@@ -129,7 +129,7 @@ export class LayerSeeder extends Seeder {
       updatedAt: new Date(),
     });
     context.layer3 = em.create(Layer, {
-      mission: 1,
+      mission: context.mission.id,
       config: {
         name: "Detrended Roughness",
         type: "header",
@@ -187,7 +187,7 @@ export class LayerSeeder extends Seeder {
       updatedAt: new Date(),
     });
     context.layer4 = em.create(Layer, {
-      mission: 1,
+      mission: context.mission.id,
       config: {
         name: "Confidence Map",
         type: "header",
@@ -244,7 +244,7 @@ export class LayerSeeder extends Seeder {
       updatedAt: new Date(),
     });
     context.layer5 = em.create(Layer, {
-      mission: 1,
+      mission: context.mission.id,
       config: {
         name: "Hillshade",
         type: "header",
@@ -301,7 +301,7 @@ export class LayerSeeder extends Seeder {
       updatedAt: new Date(),
     });
     context.layer6 = em.create(Layer, {
-      mission: 1,
+      mission: context.mission.id,
       config: {
         name: "Basemaps",
         type: "header",
