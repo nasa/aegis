@@ -172,3 +172,10 @@ export const formatEVADisplayTitle = ({
     return pageName; // if neither have number, I think just the page name makes sense
   }
 };
+
+/**
+ * Round Date to nearest second
+ */
+export function roundDateToSecond(date: Date): Date {
+  return new Date(Math.round(date.getTime() / 1000) * 1000);
+}

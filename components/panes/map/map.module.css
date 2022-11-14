@@ -46,6 +46,7 @@
   padding-top: 4px;
   padding-bottom: 4px;
   border-radius: var(--radius);
+  font-size: 0.9em;
 }
 
 .sublayer:hover {
@@ -63,6 +64,7 @@
   padding-top: 4px;
   padding-bottom: 4px;
   border-radius: var(--radius);
+  font-size: 0.9em;
 
   background-color: var(--map);
   color: black;
@@ -74,7 +76,7 @@
   flex: 1 1 auto;
   overflow-x: hidden;
   text-overflow: ellipsis;
-  font-weight: 200;
+
   white-space: nowrap;
 }
 

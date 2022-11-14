@@ -1,0 +1,181 @@
+.panelContainer {
+  background-color: var(--grey2);
+  margin: 8px;
+  padding: 6px;
+  border-radius: var(--panelRadius);
+}
+
+.title {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin-left: 10px;
+  margin-top: 10px;
+}
+
+.subTitle {
+  font-size: 0.95em;
+  font-weight: 600;
+  margin-left: 10px;
+  margin-top: 10px;
+}
+
+.bodyText {
+  font-size: 0.95em;
+  margin-left: 5px;
+}
+
+.iconButtons {
+  display: flex;
+  gap: 6px;
+  flex-direction: row;
+  padding: 5px 0px 5px 0px;
+}
+
+.rightBody {
+  background-color: var(--grey1);
+  height: 100%;
+}
+
+.rightActiveWindow {
+  background: #313440;
+  height: 100%;
+}
+.rightIconRow {
+  margin-top: 10px;
+  display: inline-flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0 0 0 8px;
+}
+.rightIcon {
+  padding: 2px 7px;
+}
+.rightIconContainer {
+  background: black;
+  border-top: 2px solid black;
+  width: 35px;
+  height: 30px;
+}
+.rightIconContainerSelected {
+  background: var(--grey1);
+  border-top: 2px solid #66def9;
+  width: 35px;
+  height: 30px;
+}
+
+.rightTopTitle {
+  display: flex;
+  flex-direction: row;
+  font-size: 1.1em;
+  text-transform: uppercase;
+  font-weight: 400;
+  margin-left: 10px;
+  margin-top: 10px;
+}
+
+.rightTopTitleText {
+  margin: auto;
+}
+
+.saveCancelContainer {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  justify-content: right;
+  margin-right: 3px;
+}
+
+.panelSection {
+  display: flex;
+  flex-direction: column;
+  margin: 5px;
+  margin-bottom: 15px;
+}
+
+.panelSectionRow {
+  display: flex;
+  flex-direction: row;
+}
+
+.verticalCenter {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.panelSection:last-child {
+  margin-bottom: 5px;
+}
+
+.panelSectionTitle {
+  font-size: 0.8em;
+  font-weight: 400;
+  color: var(--grey4);
+  user-select: none;
+}
+
+.panelText {
+  font-size: 0.9em;
+  font-weight: 400;
+  color: white;
+  user-select: none;
+}
+
+.iconButtonLabel {
+  margin-left: 3px;
+}
+
+.iconButton:hover {
+  background-color: var(--grey3);
+}
+
+.inputField {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 3px;
+}
+
+.inputField input {
+  height: 2em;
+  background-color: var(--grey1);
+  color: #ffffff;
+  border: 1px solid var(--grey3);
+  border-radius: var(--radius);
+  font-size: 0.8em;
+  font-weight: 400;
+  padding-left: 8px;
+  cursor: cursor;
+}
+
+.inputFieldUnit {
+  font-size: 0.8em;
+  font-weight: 400;
+  color: white;
+  padding-left: 5px;
+}
+
+.tagsContainer {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--grey1);
+  border: 1px solid var(--grey3);
+  border-radius: var(--radius);
+  padding: 2px;
+  margin-top: 3px;
+}
+
+.notesTextArea {
+  height: 150px;
+  background-color: var(--grey1);
+  color: #ffffff;
+  border: 1px solid var(--grey3);
+  border-radius: var(--radius);
+  font-size: 0.8em;
+  font-weight: 400;
+  padding: 5px;
+  cursor: text;
+  margin-top: 3px;
+  outline: none;
+}

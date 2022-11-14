@@ -7,7 +7,7 @@ import { Mission } from "../../../server/database/models/mission.model";
 
 export const handleLayerJson: NextApiHandler = async (
   req: NextApiRequest,
-  res: NextApiResponse<WrappedArrayResponse<Layer>>
+  res: NextApiResponse<WrappedResponse<Layer[]>>
 ): Promise<unknown> => {
   const {
     query: { id: missionId },

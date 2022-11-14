@@ -16,14 +16,11 @@
   margin-left: 5px;
 }
 
-.group {
-  padding-top: 6px;
-  padding-bottom: 6px;
-  user-select: none;
-}
-
-.item {
+.poiItem {
   display: flex;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  user-select: none;
 }
 
 .itemColor {
@@ -43,8 +40,27 @@
 
 .name {
   display: flex;
-  flex-direction: column;
-  justify-content: space-around;
+  width: 100%;
+  border-radius: var(--radius);
+  font-size: 0.9em;
+  padding: 3px 2px 3px 5px;
+}
+
+.nameSelected {
+  display: flex;
+  width: 100%;
+  border-radius: var(--radius);
+  font-size: 0.9em;
+  padding: 3px 2px 3px 5px;
+
+  background-color: var(--poi);
+  color: black;
+  cursor: pointer;
+}
+
+.name:hover {
+  background-color: var(--grey1);
+  cursor: pointer;
 }
 
 .expandoCaret {

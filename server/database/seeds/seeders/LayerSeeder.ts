@@ -5,7 +5,7 @@ import { Layer } from "../../models/layer.model";
 export class LayerSeeder extends Seeder {
   async run(em: EntityManager, context: Dictionary): Promise<void> {
     context.layer1 = em.create(Layer, {
-      mission: context.mission.id,
+      mission: context.mission1,
       config: {
         name: "Traverses",
         type: "header",
@@ -63,11 +63,9 @@ export class LayerSeeder extends Seeder {
           },
         ],
       },
-      createdAt: new Date(),
-      updatedAt: new Date(),
     });
     context.layer2 = em.create(Layer, {
-      mission: context.mission.id,
+      mission: context.mission1,
       config: {
         name: "Sample Stations",
         type: "header",
@@ -125,11 +123,9 @@ export class LayerSeeder extends Seeder {
           },
         ],
       },
-      createdAt: new Date(),
-      updatedAt: new Date(),
     });
     context.layer3 = em.create(Layer, {
-      mission: context.mission.id,
+      mission: context.mission1,
       config: {
         name: "Detrended Roughness",
         type: "header",
@@ -183,11 +179,9 @@ export class LayerSeeder extends Seeder {
           },
         ],
       },
-      createdAt: new Date(),
-      updatedAt: new Date(),
     });
     context.layer4 = em.create(Layer, {
-      mission: context.mission.id,
+      mission: context.mission1,
       config: {
         name: "Confidence Map",
         type: "header",
@@ -240,11 +234,9 @@ export class LayerSeeder extends Seeder {
           },
         ],
       },
-      createdAt: new Date(),
-      updatedAt: new Date(),
     });
     context.layer5 = em.create(Layer, {
-      mission: context.mission.id,
+      mission: context.mission1,
       config: {
         name: "Hillshade",
         type: "header",
@@ -297,11 +289,9 @@ export class LayerSeeder extends Seeder {
           },
         ],
       },
-      createdAt: new Date(),
-      updatedAt: new Date(),
     });
     context.layer6 = em.create(Layer, {
-      mission: context.mission.id,
+      mission: context.mission1,
       config: {
         name: "Basemaps",
         type: "header",
@@ -383,8 +373,6 @@ export class LayerSeeder extends Seeder {
           },
         ],
       },
-      createdAt: new Date(),
-      updatedAt: new Date(),
     });
   }
 }

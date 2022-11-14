@@ -49,8 +49,9 @@ async function login(
         message: "login successful",
         data: {
           user: {
-            username: user.username,
             id: user.id,
+            username: user.username,
+            email: user.email,
             permission: user.permission,
           },
         },

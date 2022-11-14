@@ -6,6 +6,7 @@ export class PresetSeeder extends Seeder {
   async run(em: EntityManager, context: Dictionary): Promise<void> {
     em.create(Preset, {
       layer: context.layer6.uuid,
+      owner: context.user1.id,
       config: {
         id: 1,
         sublayer: 1,
@@ -15,8 +16,6 @@ export class PresetSeeder extends Seeder {
         saturation: 0,
         blend: "normal",
       },
-      createdAt: new Date(),
-      updatedAt: new Date(),
     });
   }
 }

@@ -1,5 +1,30 @@
 import type { IronSessionData } from "iron-session";
-import type { Mission } from "server/database/models/mission.model";
+
+export async function getPOIs(mission: number): Promise<WrappedResponse<POI[]>> {
+  const res = await fetch(`/api/poi?missionId=${mission}`);
+  const response: WrappedResponse<POI[]> = await res.json();
+  return response;
+}
+
+export async function setPOI(poi: POI): Promise<WrappedResponse<POI>> {
+  const res = await fetch("/api/poi", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(poi),
+  });
+  const response: WrappedResponse<POI> = await res.json();
+  return response;
+}
+
+export async function deletePOI(poiUuid: string): Promise<WrappedResponse<null>> {
+  const res = await fetch(`/api/poi?uuid=${poiUuid}`, {
+    method: "DELETE",
+  });
+  const response: WrappedResponse<null> = await res.json();
+  return response;
+}
 
 export async function getMissions(): Promise<WrappedResponse<AEGISMission[]>> {
   const res = await fetch(`/api/mission/missions`);
@@ -8,16 +33,16 @@ export async function getMissions(): Promise<WrappedResponse<AEGISMission[]>> {
   return response;
 }
 
-export async function getMission(mission: number): Promise<WrappedResponse<Mission>> {
+export async function getMission(mission: number): Promise<WrappedResponse<AEGISMission>> {
   const res = await fetch(`/api/mission/${mission}`);
-  const response: WrappedResponse<Mission> = await res.json();
+  const response: WrappedResponse<AEGISMission> = await res.json();
 
   return response;
 }
 
-export async function getLayers(mission: number): Promise<WrappedResponse<LayerModel[]>> {
+export async function getLayers(mission: number): Promise<WrappedResponse<AEGISLayer[]>> {
   const res = await fetch(`/api/layer/${mission}`);
-  const response: WrappedResponse<LayerModel[]> = await res.json();
+  const response: WrappedResponse<AEGISLayer[]> = await res.json();
 
   return response;
 }

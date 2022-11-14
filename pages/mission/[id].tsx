@@ -8,8 +8,10 @@ import { RootState } from "store";
 import { setLayers, setMission } from "../../store/mission";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronRight, faChevronLeft } from "@fortawesome/free-solid-svg-icons";
-import { getLayers, getMission } from "../../http-client/internal-api";
 import { useRouter } from "next/router";
+import { upsertPois, upsertPoisFromDb } from "store/poi";
+import * as InternalAPI from "../../http-client/internal-api";
+import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/user";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -37,6 +39,27 @@ const Main: NextPage = () => {
   const missionPage = useSelector((state: RootState) => state.mission);
   const [showRightPanel, setShowRightPanel] = useState(true);
   let layerData;
+
+  /**
+   * Check if user is logged in.
+   * If so, populate the user store data.
+   * If not, redirect them to the login page.
+   */
+
+  useEffect(() => {
+    (async () => {
+      const response = await InternalAPI.isLoggedIn();
+      if (response.status === "success") {
+        dispatch(setIsLoggedIn(true));
+        dispatch(setIronSessionData(response.data));
+      } else {
+        dispatch(setIsLoggedIn(false));
+        dispatch(clearIronSessionData());
+        router.push("/");
+      }
+    })();
+  }, [dispatch, router]);
+
   /**
    * Populate the map layerControls store with the configLayers in the MMGIS config
    */
@@ -45,7 +68,7 @@ const Main: NextPage = () => {
       const { id } = router.query;
       if (!missionPage.mission) {
         if (typeof id === "string") {
-          const missionData = await getMission(parseInt(id as string));
+          const missionData = await InternalAPI.getMission(parseInt(id as string));
           if (missionData.data) {
             dispatch(setMission(missionData.data));
           }
@@ -53,7 +76,7 @@ const Main: NextPage = () => {
       }
       if (!missionPage.layers) {
         if (typeof id === "string") {
-          const layerData = await getLayers(parseInt(id as string));
+          const layerData = await InternalAPI.getLayers(parseInt(id as string));
           if (layerData.data) {
             await dispatch(setLayers(layerData.data));
           }
@@ -84,6 +107,22 @@ const Main: NextPage = () => {
           }
         });
         dispatch(setLayerControls(controls));
+      }
+    })();
+  });
+
+  /**
+   * Populate the POI store with the POIs retrieved from the database
+   */
+  useEffect(() => {
+    (async () => {
+      const { id } = router.query;
+      if (typeof id === "string") {
+        const poiData = await InternalAPI.getPOIs(parseInt(id as string));
+        if (poiData.data) {
+          dispatch(upsertPois(poiData.data));
+          dispatch(upsertPoisFromDb(poiData.data));
+        }
       }
     })();
   });

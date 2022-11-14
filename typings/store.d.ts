@@ -19,7 +19,7 @@ interface PlayheadHoverState {
 
 interface MissionState {
   mission: AEGISMission;
-  layers: LayerModel[];
+  layers: AEGISLayer[];
   presets: Preset[];
   userInterface: UserInterface;
 }
@@ -48,7 +48,9 @@ interface EvaState {
 
 interface PoiState {
   pois: POI[];
+  poisFromDb: POI[];
   selectedPoiUuid: string;
+  selectedRightNavItem: string;
 }
 
 interface InterfaceState {

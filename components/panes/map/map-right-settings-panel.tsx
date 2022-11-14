@@ -1,7 +1,7 @@
 import { FunctionComponent, useEffect } from "react";
-import styles from "./_right_settings_panel.module.css";
-import paneStyles from "../global_pane_styles.module.css";
-import { Dropdown } from "components/interface/_global_elements";
+import styles from "./map-right-settings-panel.module.css";
+import paneStyles from "../global-pane-styles.module.css";
+import { Dropdown } from "components/interface/_global-elements";
 import { RootState } from "store";
 import { useSelector, useDispatch } from "react-redux";
 import { setLayerControlStyle } from "store/map";
@@ -145,29 +145,28 @@ const Settings_panel: FunctionComponent = () => {
         <div className={styles.listItem}>
           <div className={styles.listItemText}>Blend</div>
           <Dropdown
-            options={[
-              { name: "Normal", value: "normal" },
-              { name: "Multiply", value: "multiply" },
-              { name: "Screen", value: "screen" },
-              { name: "Overlay", value: "overlay" },
-              { name: "Darken", value: "darken" },
-              { name: "Lighten", value: "lighten" },
-              { name: "Color Dodge", value: "color-dodge" },
-              { name: "Color Burn", value: "color-burn" },
-              { name: "Hard Light", value: "hard-light" },
-              { name: "Soft Light", value: "soft-light" },
-              { name: "Difference", value: "difference" },
-              { name: "Exclusion", value: "exclusion" },
-              { name: "Hue", value: "hue" },
-              { name: "Saturation", value: "saturation" },
-              { name: "Color", value: "color" },
-              { name: "Luminosity", value: "luminosity" },
-            ]}
             selected={layerStyle?.blendMode ? layerStyle?.blendMode : "normal"}
             onChange={(value) => {
               setBlendMode(value);
             }}
-          />
+          >
+            <option value="normal">Normal</option>
+            <option value="multiply">Multiply</option>
+            <option value="screen">Screen</option>
+            <option value="overlay">Overlay</option>
+            <option value="darken">Darken</option>
+            <option value="lighten">Lighten</option>
+            <option value="color-dodge">Color Dodge</option>
+            <option value="color-burn">Color Burn</option>
+            <option value="hard-light">Hard Light</option>
+            <option value="soft-light">Soft Light</option>
+            <option value="difference">Difference</option>
+            <option value="exclusion">Exclusion</option>
+            <option value="hue">Hue</option>
+            <option value="saturation">Saturation</option>
+            <option value="color">Color</option>
+            <option value="luminosity">Luminosity</option>
+          </Dropdown>
         </div>
       </div>
     </div>
