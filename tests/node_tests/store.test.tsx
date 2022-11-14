@@ -49,7 +49,7 @@ describe("Map and MMGIS Reducer: ", () => {
   it("Set the State when loading Map layer", async () => {
     // Arrange
     const layers = await getAllLayersByMission(testMission.id);
-    const configLayers = await setLayers(layers as LayerModel[]);
+    const configLayers = await setLayers(layers as AEGISLayer[]);
     const controls: LayerControls = {};
     // Act
     configLayers.payload.map((configLayer) => {

@@ -1,5 +1,5 @@
 import { FunctionComponent } from "react";
-import paneStyles from "../global_pane_styles.module.css";
+import paneStyles from "../global-pane-styles.module.css";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faChevronDown, faPlus, faGear } from "@fortawesome/free-solid-svg-icons";
 library.add(faChevronDown, faPlus, faGear);

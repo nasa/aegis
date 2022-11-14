@@ -1,5 +1,5 @@
-import styles from "./map_selector.module.css";
-import paneStyles from "../global_pane_styles.module.css";
+import styles from "./map.module.css";
+import paneStyles from "../global-pane-styles.module.css";
 import { FunctionComponent, MouseEventHandler, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "store";
@@ -10,8 +10,8 @@ import {
   setSelectedRightNavItem,
   setActiveLayerUUID,
 } from "store/map";
-import SystemMapImageryPresets from "./_system_imagery_presets";
-import UserMapImageryPresets from "./_user_imagery_presets";
+import SystemMapImageryPresets from "./map-system-imagery-presets";
+import UserMapImageryPresets from "./map-user-imagery-presets";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -84,7 +84,7 @@ const DetailedSettings: FunctionComponent<{
         </div>
         <div className={styles.layersBody}>
           {missionState && layerControls && expandedSections.details ? (
-            missionState?.layers.map((layer: LayerModel) => {
+            missionState?.layers.map((layer: AEGISLayer) => {
               return (
                 <div className={styles.layerGroup} key={layer.config.name}>
                   <div className={styles.layer}>

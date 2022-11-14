@@ -18,7 +18,10 @@
 /**
  * A POI is a point of interest that has been placed on the map, and chosen as a possible target to be visited as part of an EVA.
  */
-type POI = {
+interface POI {
+  id?: number;
+  owner?: number;
+  mission?: number;
   /**
    * The name of the POI, e.g. "M-19"
    */
@@ -49,8 +52,6 @@ type POI = {
    */
   uuid: string;
 
-  owner: string;
-
   /**
    * The coordinates or series of coordinates of the POI.
    */
@@ -59,7 +60,7 @@ type POI = {
   /**
    * The color of this POI
    */
-  color: string;
+  color: POIColor;
 
   /**
    * Tags for this POI
@@ -70,6 +71,13 @@ type POI = {
    * Status of this POI
    */
   status: POIStatus;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+type POIColor = {
+  value: string;
+  label: string;
 };
 
 type POIStatus = "Archived" | "Candidate" | "In Review" | "Approved";

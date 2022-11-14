@@ -1,9 +1,9 @@
-import MapSelector from "components/panes/map_selector/map_selector";
-import MapSelectorRight from "components/panes/map_selector/map_selector_right";
-import PoiEditor from "components/panes/poi_editor/poi_editor";
-import PoiEditorRight from "components/panes/poi_editor/poi_editor_right";
-import EvaPlanner from "components/panes/eva_planner/eva_planner";
-import EvaPlannerRight from "components/panes/eva_planner/eva_planner_right";
+import MapSelector from "components/panes/map/map";
+import MapSelectorRight from "components/panes/map/map-right";
+import PoiEditor from "components/panes/poi/poi";
+import PoiEditorRight from "components/panes/poi/poi-right";
+import EvaPlanner from "components/panes/eva/eva";
+import EvaPlannerRight from "components/panes/eva/eva-right";
 
 import { faGlobe, faRoute } from "@fortawesome/free-solid-svg-icons";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";

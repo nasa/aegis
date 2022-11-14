@@ -63,3 +63,46 @@ body {
 .leaflet-top {
   display: none !important;
 }
+
+/* metatag component styling */
+.rti--container {
+  --rti-bg: var(--grey1) !important;
+  --rti-border: var(--grey1) !important;
+  --rti-main: var(--grey2) !important;
+  --rti-radius: var(--radius) !important;
+  --rti-s: "0.3rem"; /* spacing */
+  --rti-tag: var(--grey3) !important;
+  --rti-tag-remove: "#ff0000" !important;
+  padding: 1px !important;
+}
+
+.rti--container input {
+  height: 2em;
+  background-color: var(--grey1);
+  color: #ffffff;
+  border: 1px solid var(--grey1);
+  border-radius: var(--radius);
+  font-size: 0.8em;
+  font-weight: 400;
+  cursor: cursor;
+  width: 145px;
+}
+
+.rti--tag {
+  font-size: 0.9em;
+  padding-left: 10px !important;
+  padding-bottom: 1px !important;
+
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+}
+
+.rti--tag span {
+  padding-bottom: 1px;
+}
+
+.rti--tag button {
+  color: white;
+  padding-bottom: 1px !important;
+}

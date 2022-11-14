@@ -1,9 +1,19 @@
-import { BeforeCreate, BeforeUpdate, Entity, Enum, PrimaryKey, Property } from "@mikro-orm/core";
+import { BeforeCreate, BeforeUpdate, Entity, PrimaryKey, Property } from "@mikro-orm/core";
 
 import * as bcrypt from "bcryptjs";
 
+type UserModel = {
+  id: number;
+  username: string;
+  password: string;
+  email: string;
+  permission: PermissionRole;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 @Entity()
-export class User {
+export class User implements UserModel {
   @PrimaryKey({ type: "number" })
   id!: number;
 
@@ -16,7 +26,7 @@ export class User {
   @Property({ type: "string" })
   password!: string;
 
-  @Enum({ items: () => PermissionRole, type: "string" })
+  @Property({ type: "string" })
   permission: PermissionRole;
 
   @Property({ length: 2048, nullable: true, type: "string" })
@@ -52,9 +62,4 @@ export class User {
     this.email = email;
     this.permission = permission;
   }
-}
-
-export enum PermissionRole {
-  ADMIN = "admin",
-  USER = "user",
 }

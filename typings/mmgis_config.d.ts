@@ -196,17 +196,19 @@ interface AEGISMission {
   config: Config;
   version: number;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 interface AEGISPreset {
   uuid: uuid;
-  layer: LayerModel;
+  owner: AEGISUser;
+  layer: AEGISLayer;
   config: AEGISPresetValue;
   createdAt: Date;
   updatedAt: Date;
 }
 
-interface LayerModel {
+interface AEGISLayer {
   uuid: uuid;
   mission: AEGISMission;
   config: LayerConfig;
@@ -216,7 +218,7 @@ interface LayerModel {
 
 interface AEGISPresetHistory {
   uuid: uuid;
-  layer: LayerModel;
+  layer: AEGISLayer;
   config: AEGISPresetValue;
   preset_id_fk: Preset;
   createdAt: Date;

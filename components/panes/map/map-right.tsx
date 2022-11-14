@@ -4,9 +4,9 @@ import { useSelector, useDispatch } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleInfo, faSliders } from "@fortawesome/free-solid-svg-icons";
 
-import Info_panel from "./_right_info_panel";
-import Settings_panel from "./_right_settings_panel";
-import paneStyles from "../global_pane_styles.module.css";
+import Info_panel from "./map-right-info-panel";
+import Settings_panel from "./map-right-settings-panel";
+import paneStyles from "../global-pane-styles.module.css";
 import { RootState } from "store";
 import { setSelectedRightNavItem } from "store/map";
 
@@ -29,7 +29,6 @@ const RightControlPanel: FunctionComponent = () => {
   const dispatch = useDispatch();
   const selectedRightNavItem = useSelector((state: RootState) => state.map.selectedRightNavItem);
   const activeLayerName = useSelector((state: RootState) => state.map.activeLayerName);
-  // const [selectedNavItem, setSelectedNavItem] = useState("information_window");
   let ActiveComponent = null;
   if (!_.isNil(panelTypes[selectedRightNavItem])) {
     ActiveComponent = panelTypes[selectedRightNavItem].panel;

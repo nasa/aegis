@@ -10,7 +10,7 @@ import { v4 } from "uuid";
 import { Mission } from "./mission.model";
 
 @Entity()
-export class Layer implements LayerModel {
+export class Layer implements AEGISLayer {
   @PrimaryKey({ type: "string" })
   uuid: string = v4();
 

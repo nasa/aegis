@@ -15,7 +15,7 @@ export const missionSlice = createSlice({
     setMission: (state, action: { payload: AEGISMission }) => {
       state.mission = action.payload;
     },
-    setLayers: (state, action: { payload: LayerModel[] }) => {
+    setLayers: (state, action: { payload: AEGISLayer[] }) => {
       state.layers = action.payload;
     },
     setPresets: (state, action: { payload: Preset[] }) => {

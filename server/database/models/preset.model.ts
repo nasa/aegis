@@ -8,14 +8,19 @@ import {
 } from "@mikro-orm/core";
 import { v4 } from "uuid";
 import { Layer } from "./layer.model";
+import { User } from "./user.model";
 
 @Entity()
 export class Preset implements AEGISPreset {
   @PrimaryKey({ type: "string" })
   uuid: string = v4();
 
+  @ManyToOne(() => User, { unique: false, primary: false })
+  owner!: User;
+
   @ManyToOne(() => Layer, { unique: false, primary: false })
   layer: Layer;
+
   @Property({ type: "json", nullable: true })
   config!: AEGISPresetValue;
 

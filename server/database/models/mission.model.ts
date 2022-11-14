@@ -1,7 +1,16 @@
 import { Entity, PrimaryKey, Property } from "@mikro-orm/core";
 
+type MissionModel = {
+  id: number;
+  name: string;
+  config: Config;
+  version: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 @Entity()
-export class Mission implements AEGISMission {
+export class Mission implements MissionModel {
   @PrimaryKey({ type: "number" })
   id!: number;
 

@@ -4,7 +4,7 @@ import { Mission } from "../../models/mission.model";
 
 export class MissionSeeder extends Seeder {
   async run(em: EntityManager, context: Dictionary): Promise<void> {
-    context.mission = em.create(Mission, {
+    context.mission1 = em.create(Mission, {
       name: "Apollo_14",
       config: {
         msv: {
@@ -121,7 +121,7 @@ export class MissionSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(Mission, {
+    context.mission2 = em.create(Mission, {
       name: "Potrillo_VF_v001",
       config: {
         msv: {
@@ -249,7 +249,7 @@ export class MissionSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(Mission, {
+    context.mission3 = em.create(Mission, {
       name: "Test",
       config: {
         msv: {
