@@ -20,6 +20,8 @@ export class PoiSeeder extends Seeder {
       color: { value: "#ff0000", label: "Red" },
       tags: ["test-tag"],
       status: "Candidate",
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
     em.create(Poi, {
       owner: context.user1.id,
@@ -37,6 +39,8 @@ export class PoiSeeder extends Seeder {
       color: { value: "#00ff00", label: "Green" },
       tags: ["Tag A", "Tag B"],
       status: "Candidate",
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
   }
 }
