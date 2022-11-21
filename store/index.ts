@@ -9,6 +9,7 @@ import { mapSlice, initialState as mapInitialState } from "./map";
 import { evaSlice, initialState as evaInitialState } from "./eva";
 import { poiSlice, initialState as poiInitialState } from "./poi";
 import { interfaceSlice, initialState as interfaceInitialState } from "./interface";
+import { stmSlice, initialState as stmInitialState } from "./stm";
 
 let store;
 
@@ -21,6 +22,7 @@ export const initialState = {
   eva: evaInitialState,
   poi: poiInitialState,
   interface: interfaceInitialState,
+  stm: stmInitialState,
 };
 
 export const reducer = combineReducers({
@@ -32,6 +34,7 @@ export const reducer = combineReducers({
   eva: evaSlice.reducer,
   poi: poiSlice.reducer,
   interface: interfaceSlice.reducer,
+  stm: stmSlice.reducer,
 });
 export type RootState = ReturnType<typeof reducer>;
 
