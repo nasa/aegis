@@ -1,0 +1,23 @@
+.numberingField {
+  width: 3rem;
+}
+.nameField {
+  width: 15rem;
+}
+
+.selectField {
+  width: 15rem;
+}
+.selectLabel {
+  width: 10rem;
+  display: inline-block;
+}
+
+.div_select {
+  display: inline-block;
+  width: 35rem;
+}
+
+.div_add {
+  display: inline-block;
+}

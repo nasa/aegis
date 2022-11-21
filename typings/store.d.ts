@@ -1,3 +1,4 @@
+type LoadingStatus = "LOADING" | "LOADED";
 /**
  * Playhead stores
  */
@@ -55,4 +56,12 @@ interface PoiState {
 
 interface InterfaceState {
   sectionSelectedLabel: "map_layer_selector" | "poi" | "eva_planner";
+}
+
+interface STMState {
+  loadingStatus: LoadingStatus;
+  mission: string;
+  objectives: STMObjective[];
+  goals: STMGoal[];
+  investigations: STMInvestigation[];
 }

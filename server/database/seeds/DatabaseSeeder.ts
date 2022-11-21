@@ -5,8 +5,16 @@ import { MissionSeeder } from "./seeders/MissionSeeder";
 import { LayerSeeder } from "./seeders/LayerSeeder";
 import { PresetSeeder } from "./seeders/PresetSeeder";
 import { PoiSeeder } from "./seeders/PoiSeeder";
+import { STMSeeder } from "./seeders/STMSeeder";
 export class DatabaseSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
-    return this.call(em, [UserSeeder, MissionSeeder, LayerSeeder, PresetSeeder, PoiSeeder]);
+    return this.call(em, [
+      UserSeeder,
+      MissionSeeder,
+      LayerSeeder,
+      PresetSeeder,
+      STMSeeder,
+      PoiSeeder,
+    ]);
   }
 }
