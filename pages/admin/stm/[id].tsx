@@ -354,8 +354,8 @@ const NewObjectiveFields = (props: { missionId: number; reloadSTM: (id: number) 
 
   //add new objective
   async function addNewObjective() {
-    newObjective.mission = props.missionId;
-    await upsertSTM(props.missionId, newObjective, "Objective");
+    const upsertRecord: STMObjective = { ...newObjective, mission: props.missionId };
+    await upsertSTM(props.missionId, upsertRecord, "Objective");
     setNewObjective({
       uuid: uuidv4(),
       name: "",
@@ -416,8 +416,8 @@ const NewGoalFields = (props: {
 
   //add new goal
   async function addNewGoal() {
-    newGoal.objective = props.objectiveUUID;
-    await upsertSTM(props.missionId, newGoal, "Goal");
+    const upsertRecord: STMGoal = { ...newGoal, objective: props.objectiveUUID };
+    await upsertSTM(props.missionId, upsertRecord, "Goal");
     setNewGoal({
       uuid: uuidv4(),
       name: "",
@@ -478,8 +478,8 @@ const NewInvstgFields = (props: {
 
   //add new investigation
   async function addNewInvstg() {
-    newInvstg.goal = props.goalUUID;
-    await upsertSTM(props.missionId, newInvstg, "Investigation");
+    const upsertRecord: STMInvestigation = { ...newInvstg, goal: props.goalUUID };
+    await upsertSTM(props.missionId, upsertRecord, "Investigation");
     setNewInvstg({
       uuid: uuidv4(),
       numbering: "",
