@@ -3,9 +3,9 @@ import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 import Mikro from "utils/mikro";
 import { QueryOrder } from "@mikro-orm/core";
-import { STMObjective as STMObjective_db } from "server/database/models/stmObjective.model";
-import { STMGoal as STMGoal_db } from "server/database/models/stmGoal.model";
-import { STMInvestigation as STMInvestigation_db } from "server/database/models/stmInvestigation.model";
+import { STM_Objective as STMObjective_db } from "server/database/models/stm_objective.model";
+import { STM_Goal as STMGoal_db } from "server/database/models/stm_goal.model";
+import { STM_Investigation as STMInvestigation_db } from "server/database/models/stm_investigation.model";
 import _ from "lodash";
 
 /**

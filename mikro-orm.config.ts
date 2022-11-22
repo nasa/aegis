@@ -4,9 +4,9 @@ import { User } from "./server/database/models/user.model";
 import { Layer } from "./server/database/models/layer.model";
 import { Preset } from "./server/database/models/preset.model";
 import { Preset_History } from "./server/database/models/preset_history.model";
-import { STMObjective } from "./server/database/models/stmObjective.model";
-import { STMGoal } from "./server/database/models/stmGoal.model";
-import { STMInvestigation } from "./server/database/models/stmInvestigation.model";
+import { STM_Objective } from "./server/database/models/stm_objective.model";
+import { STM_Goal } from "./server/database/models/stm_goal.model";
+import { STM_Investigation } from "./server/database/models/stm_investigation.model";
 import { Poi } from "./server/database/models/poi.model";
 import path from "path";
 
@@ -29,9 +29,9 @@ const config: Options = {
     Layer,
     Preset,
     Preset_History,
-    STMObjective,
-    STMGoal,
-    STMInvestigation,
+    STM_Objective,
+    STM_Goal,
+    STM_Investigation,
     Poi,
   ],
   entities: [
@@ -40,9 +40,9 @@ const config: Options = {
     Layer,
     Preset,
     Preset_History,
-    STMObjective,
-    STMGoal,
-    STMInvestigation,
+    STM_Objective,
+    STM_Goal,
+    STM_Investigation,
     Poi,
   ],
   debug: process.env.DEBUG === "true" || process.env.DEBUG?.includes("db"),

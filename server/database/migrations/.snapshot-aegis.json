@@ -217,11 +217,11 @@
           "mappedType": "datetime"
         }
       },
-      "name": "stmobjective",
+      "name": "stm_objective",
       "schema": "public",
       "indexes": [
         {
-          "keyName": "stmobjective_pkey",
+          "keyName": "stm_objective_pkey",
           "columnNames": [
             "uuid"
           ],
@@ -232,12 +232,12 @@
       ],
       "checks": [],
       "foreignKeys": {
-        "stmobjective_mission_id_foreign": {
-          "constraintName": "stmobjective_mission_id_foreign",
+        "stm_objective_mission_id_foreign": {
+          "constraintName": "stm_objective_mission_id_foreign",
           "columnNames": [
             "mission_id"
           ],
-          "localTableName": "public.stmobjective",
+          "localTableName": "public.stm_objective",
           "referencedColumnNames": [
             "id"
           ],
@@ -305,11 +305,11 @@
           "mappedType": "datetime"
         }
       },
-      "name": "stmgoal",
+      "name": "stm_goal",
       "schema": "public",
       "indexes": [
         {
-          "keyName": "stmgoal_pkey",
+          "keyName": "stm_goal_pkey",
           "columnNames": [
             "uuid"
           ],
@@ -320,16 +320,16 @@
       ],
       "checks": [],
       "foreignKeys": {
-        "stmgoal_objective_uuid_foreign": {
-          "constraintName": "stmgoal_objective_uuid_foreign",
+        "stm_goal_objective_uuid_foreign": {
+          "constraintName": "stm_goal_objective_uuid_foreign",
           "columnNames": [
             "objective_uuid"
           ],
-          "localTableName": "public.stmgoal",
+          "localTableName": "public.stm_goal",
           "referencedColumnNames": [
             "uuid"
           ],
-          "referencedTableName": "public.stmobjective",
+          "referencedTableName": "public.stm_objective",
           "updateRule": "cascade"
         }
       }
@@ -393,11 +393,11 @@
           "mappedType": "datetime"
         }
       },
-      "name": "stminvestigation",
+      "name": "stm_investigation",
       "schema": "public",
       "indexes": [
         {
-          "keyName": "stminvestigation_pkey",
+          "keyName": "stm_investigation_pkey",
           "columnNames": [
             "uuid"
           ],
@@ -408,16 +408,16 @@
       ],
       "checks": [],
       "foreignKeys": {
-        "stminvestigation_goal_uuid_foreign": {
-          "constraintName": "stminvestigation_goal_uuid_foreign",
+        "stm_investigation_goal_uuid_foreign": {
+          "constraintName": "stm_investigation_goal_uuid_foreign",
           "columnNames": [
             "goal_uuid"
           ],
-          "localTableName": "public.stminvestigation",
+          "localTableName": "public.stm_investigation",
           "referencedColumnNames": [
             "uuid"
           ],
-          "referencedTableName": "public.stmgoal",
+          "referencedTableName": "public.stm_goal",
           "updateRule": "cascade"
         }
       }
