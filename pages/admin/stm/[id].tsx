@@ -20,23 +20,22 @@ const STM: NextPage = () => {
   const [allGoals, setAllGoals] = useState<STMGoal[]>([]);
   const [allInvestigations, setAllInvestigations] = useState<STMInvestigation[]>([]);
 
-  //make call to the api endpoints to populate the STM
-  async function loadSTMfromDB() {
-    if (missionIdSlug) {
+  async function loadSTMfromDB(missionId: number) {
+    if (missionId) {
       //load objectives
-      const objectives = await getObjectives({ missionId: missionIdSlug });
+      const objectives = await getObjectives({ missionId: missionId });
       if (objectives.data) {
         setAllObjectives(objectives.data);
       }
 
       //load goals
-      const goals = await getGoals({ missionId: missionIdSlug });
+      const goals = await getGoals({ missionId: missionId });
       if (goals.data) {
         setAllGoals(goals.data);
       }
 
       //load investigations
-      const investigations = await getInvestigations({ missionId: missionIdSlug });
+      const investigations = await getInvestigations({ missionId: missionId });
       if (investigations.data) {
         setAllInvestigations(investigations.data);
       }
@@ -64,7 +63,7 @@ const STM: NextPage = () => {
 
   //realod db when mission id changes
   useEffect(() => {
-    loadSTMfromDB();
+    loadSTMfromDB(missionIdSlug);
   }, [missionIdSlug]);
 
   //delete an objective, goal, or investigation
@@ -86,10 +85,14 @@ const STM: NextPage = () => {
       );
       return;
     }
-    setMessage(`Deleting ${stmType}: ${uuid}`);
-    await deleteSTM(missionIdSlug, uuid, stmType);
-    loadSTMfromDB();
-    setMessage(`Delete Complete`);
+    try {
+      setMessage(`Deleting ${stmType}: ${uuid}`);
+      await deleteSTM(missionIdSlug, uuid, stmType);
+      loadSTMfromDB(missionIdSlug);
+      setMessage(`Delete Complete`);
+    } catch {
+      setMessage(`Unknown error deleting ${stmType}: ${uuid}`);
+    }
   }
 
   return (
@@ -168,6 +171,8 @@ const ObjectiveSelect = (props: {
   const [selectedUUID, setSelectedUUID] = useState("0");
   const [disableDelete, setDisableDelete] = useState(true);
 
+  const parentSelectUUID = props.setSelectedObjUUID;
+
   //set default selected uuid
   useEffect(() => {
     if (props.objectives?.length > 0) {
@@ -180,8 +185,8 @@ const ObjectiveSelect = (props: {
 
   //propagate selected uuid up to the parent component
   useEffect(() => {
-    props.setSelectedObjUUID(selectedUUID);
-  }, [selectedUUID]);
+    parentSelectUUID(selectedUUID);
+  }, [selectedUUID, parentSelectUUID]);
 
   return (
     <>
@@ -227,6 +232,8 @@ const GoalSelect = (props: {
   const [selectedUUID, setSelectedUUID] = useState("0");
   const [disableDelete, setDisableDelete] = useState(true);
 
+  const parentSelectUUID = props.setSelectedGoalUUID;
+
   //filter down goals
   useEffect(() => {
     const goals = props.allGoals.filter((goal) => {
@@ -244,8 +251,8 @@ const GoalSelect = (props: {
 
   //propagate selected uuid up to the parent component
   useEffect(() => {
-    props.setSelectedGoalUUID(selectedUUID);
-  }, [selectedUUID]);
+    parentSelectUUID(selectedUUID);
+  }, [selectedUUID, parentSelectUUID]);
 
   return (
     <>
@@ -337,7 +344,7 @@ const InvestigationSelect = (props: {
 };
 
 //Add new objective component
-const NewObjectiveFields = (props: { missionId: number; reloadSTM: () => void }) => {
+const NewObjectiveFields = (props: { missionId: number; reloadSTM: (id: number) => void }) => {
   const [newObjective, setNewObjective] = useState<STMObjective>({
     uuid: uuidv4(),
     name: "",
@@ -355,7 +362,7 @@ const NewObjectiveFields = (props: { missionId: number; reloadSTM: () => void })
       numbering: "",
       mission: null,
     }); //reset to blank new object with new uuid
-    props.reloadSTM();
+    props.reloadSTM(props.missionId);
   }
 
   return (
@@ -398,7 +405,7 @@ const NewObjectiveFields = (props: { missionId: number; reloadSTM: () => void })
 const NewGoalFields = (props: {
   objectiveUUID: string;
   missionId: number;
-  reloadSTM: () => void;
+  reloadSTM: (id: number) => void;
 }) => {
   const [newGoal, setNewGoal] = useState<STMGoal>({
     uuid: uuidv4(),
@@ -417,7 +424,7 @@ const NewGoalFields = (props: {
       numbering: "",
       objective: "",
     }); //reset to blank new object with new uuid
-    props.reloadSTM();
+    props.reloadSTM(props.missionId);
   }
 
   return (
@@ -457,7 +464,11 @@ const NewGoalFields = (props: {
 };
 
 //Add new investigation component
-const NewInvstgFields = (props: { goalUUID: string; missionId: number; reloadSTM: () => void }) => {
+const NewInvstgFields = (props: {
+  goalUUID: string;
+  missionId: number;
+  reloadSTM: (id: number) => void;
+}) => {
   const [newInvstg, setNewInvstg] = useState<STMInvestigation>({
     uuid: uuidv4(),
     name: "",
@@ -475,7 +486,7 @@ const NewInvstgFields = (props: { goalUUID: string; missionId: number; reloadSTM
       name: "",
       goal: "",
     });
-    props.reloadSTM();
+    props.reloadSTM(props.missionId);
   }
 
   return (

@@ -1,12 +1,12 @@
 import { Seeder } from "@mikro-orm/seeder";
 import { EntityManager } from "@mikro-orm/core";
-import { STMObjective } from "../../models/stmObjective.model";
-import { STMGoal } from "../../models/stmGoal.model";
-import { STMInvestigation } from "../../models/stmInvestigation.model";
+import { STM_Objective } from "../../models/stm_objective.model";
+import { STM_Goal } from "../../models/stm_goal.model";
+import { STM_Investigation } from "../../models/stm_investigation.model";
 
 export class STMSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
-    em.create(STMObjective, {
+    em.create(STM_Objective, {
       mission: 1,
       uuid: "uuid-obj1",
       numbering: "1",
@@ -14,7 +14,7 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STMObjective, {
+    em.create(STM_Objective, {
       mission: 1,
       uuid: "uuid-obj2",
       numbering: "2",
@@ -22,7 +22,7 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STMGoal, {
+    em.create(STM_Goal, {
       uuid: "uuid-goal1",
       numbering: "a",
       name: "Formation of the Earth-Moon System",
@@ -30,7 +30,7 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STMGoal, {
+    em.create(STM_Goal, {
       uuid: "uuid-goal2",
       numbering: "b",
       name: "Differentiation: Magma Oceans, Crust, and Mantle",
@@ -38,7 +38,7 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STMGoal, {
+    em.create(STM_Goal, {
       uuid: "uuid-goal3",
       numbering: "f",
       name: "The Moon is a Natural Laboratory for Regolith Processes and Weathering on Anhydrous Bodies",
@@ -46,7 +46,7 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STMGoal, {
+    em.create(STM_Goal, {
       uuid: "uuid-goal4",
       numbering: "a",
       name: "Determine the Compositional state (elemental, isotopic, mineralogic) and compositional distribution (lateral and with depth) of the volatile component",
@@ -54,7 +54,7 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STMGoal, {
+    em.create(STM_Goal, {
       uuid: "uuid-goal5",
       numbering: "b",
       name: "Determine the source(s) for lunar polar volatile deposits",
@@ -62,7 +62,7 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STMInvestigation, {
+    em.create(STM_Investigation, {
       uuid: "uuid-invstg1",
       numbering: "1",
       name: "Establish the mechanisms, timing, and extent of volatile depletion in the Moon",
@@ -70,7 +70,7 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STMInvestigation, {
+    em.create(STM_Investigation, {
       uuid: "uuid-invstg2",
       numbering: "2",
       name: "Constrain the physicochemical conditions and processes that operated at the surface of the lunar magma ocean",
@@ -78,7 +78,7 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STMInvestigation, {
+    em.create(STM_Investigation, {
       uuid: "uuid-invstg3",
       numbering: "3",
       name: "Understand the size, chemical makeup, and timing of core formation",
@@ -86,7 +86,7 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STMInvestigation, {
+    em.create(STM_Investigation, {
       uuid: "uuid-invstg4",
       numbering: "1",
       name: "Determine the extent and composition of the primary feldspathic crust, KREEP layer, and other products of planetary differentiation",
@@ -94,7 +94,7 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STMInvestigation, {
+    em.create(STM_Investigation, {
       uuid: "uuid-invstg5",
       numbering: "2",
       name: "Determine the bulk composition of the crust and mantle",
@@ -102,7 +102,7 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STMInvestigation, {
+    em.create(STM_Investigation, {
       uuid: "uuid-invstg6",
       numbering: "3",
       name: "Inventory, relationships, and ages of nonmare rocks.",
@@ -110,7 +110,7 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STMInvestigation, {
+    em.create(STM_Investigation, {
       uuid: "uuid-invstg7",
       numbering: "1",
       name: "Determine physical properties of regolith at diverse locations of expected human activity",
@@ -118,7 +118,7 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STMInvestigation, {
+    em.create(STM_Investigation, {
       uuid: "uuid-invstg8",
       numbering: "1",
       name: "Identification of surface frost composition",
@@ -126,7 +126,7 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STMInvestigation, {
+    em.create(STM_Investigation, {
       uuid: "uuid-invstg9",
       numbering: "2",
       name: "Identification of surface frost locations in spatial context",
@@ -134,7 +134,7 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STMInvestigation, {
+    em.create(STM_Investigation, {
       uuid: "uuid-invstg10",
       numbering: "3",
       name: "Temporal variability of frost",
@@ -142,7 +142,7 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STMInvestigation, {
+    em.create(STM_Investigation, {
       uuid: "uuid-invstg11",
       numbering: "1",
       name: "Origin of the polar volatiles",
@@ -151,7 +151,7 @@ export class STMSeeder extends Seeder {
       updatedAt: new Date(),
     });
 
-    em.create(STMObjective, {
+    em.create(STM_Objective, {
       mission: 2,
       uuid: "uuid-obj100",
       numbering: "1",
@@ -159,7 +159,7 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STMGoal, {
+    em.create(STM_Goal, {
       uuid: "uuid-goal100",
       numbering: "a",
       name: "Take over the world",
@@ -167,7 +167,7 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STMInvestigation, {
+    em.create(STM_Investigation, {
       uuid: "uuid-invstg100",
       numbering: "1",
       name: "Determine points of vulnerability",
