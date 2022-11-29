@@ -94,7 +94,7 @@ type Action = {
   /**
    * Priority normally inferred by STM relationship, but can be overridden.
    */
-  priorityOverride?: number; // 2.7
+  priorityOverride: number; // 2.7
 
   /**
    * Allow linkage to any part of the STM hierarchy
@@ -123,7 +123,7 @@ type Action = {
   durationUpper?: number; // in minutes
 
   // Inventory of items needed to perform this action.
-  inventoryItems?: InventoryItem[];
+  inventoryItems: InventoryItem[];
 
   status: POIStatus;
   createdAt?: Date;
