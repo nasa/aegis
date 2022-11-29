@@ -106,6 +106,7 @@ export const poiSlice = createSlice({
           durationUpper: null,
           stmUuidRefs: null,
           inventoryItems: null,
+          priorityOverride: null,
         };
         poi.actions.push(blankAction);
       }
