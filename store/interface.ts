@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 export const initialState: InterfaceState = {
-  sectionSelectedLabel: "eva_planner",
+  sectionSelectedLabel: "poi",
 };
 
 export const interfaceSlice = createSlice({

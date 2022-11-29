@@ -19,7 +19,7 @@ export class Migration20221107191723 extends Migration {
       'alter table "user" alter column "permission" type varchar(255) using ("permission"::varchar(255));'
     );
 
-    this.addSql('alter table "preset" add column "owner_id" int not null;');
+    this.addSql('alter table "preset" add column "owner_id" int not null default 1;');
     this.addSql(
       'alter table "preset" add constraint "preset_owner_id_foreign" foreign key ("owner_id") references "user" ("id") on update cascade;'
     );

@@ -64,6 +64,9 @@ export const RightControlPanel: FunctionComponent = () => {
 };
 
 const NavGutter = ({ selectedNavItem, setSelectedNavItem }) => {
+  const pois = useSelector((state: RootState) => state.poi.pois);
+  const poisFromDb = useSelector((state: RootState) => state.poi.poisFromDb);
+
   return (
     <div className={styles.iconGutter}>
       {/* Loop through all of the paneTypes and draw them on the gutter */}
@@ -83,6 +86,11 @@ const NavGutter = ({ selectedNavItem, setSelectedNavItem }) => {
             >
               <FontAwesomeIcon icon={paneTypes[paneType].icon} size="lg" />
             </div>
+            {!_.isEqual(pois, poisFromDb) && paneType === "poi" && (
+              <svg height="6" width="6" style={{ position: "absolute", top: "31", left: "31" }}>
+                <circle cx="3" cy="3" r="3" fill="#ff0000" />
+              </svg>
+            )}
           </div>
         );
       })}

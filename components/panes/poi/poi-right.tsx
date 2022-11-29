@@ -1,6 +1,6 @@
 import paneStyles from "../global-pane-styles.module.css";
 import _ from "lodash";
-import { FunctionComponent } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -10,19 +10,24 @@ import {
   faBan,
   faFloppyDisk,
   faTrashAlt,
+  faEdit,
 } from "@fortawesome/free-solid-svg-icons";
 import { RootState } from "store";
 import {
   deletePoi,
   setSelectedPoiUuid,
   setSelectedRightNavItem,
+  setEditMode,
   upsertPoi,
   upsertPoisFromDb,
+  deleteAllPoisFromDb,
 } from "store/poi";
 import Info_Panel from "./poi-right-info-panel";
-import { IconButton, ModifiedIndicator } from "components/interface/_global-elements";
+import Actions_Panel from "./poi-right-actions-panel";
+import { IconButton, InLineEditInput } from "components/interface/_global-elements";
 import { setPOI } from "http-client/internal-api";
 import * as InternalAPI from "http-client/internal-api";
+import Reports_Panel from "./poi-right-reports-panel";
 
 const panelTypes: PanelTypes = {
   information_panel: {
@@ -31,15 +36,15 @@ const panelTypes: PanelTypes = {
     color: "var(--map)",
     icon: faCircleInfo,
   },
-  activities_panel: {
-    title: "POI Activities",
-    panel: () => {},
+  actions_panel: {
+    title: "POI Actions",
+    panel: Actions_Panel,
     color: "var(--map)",
     icon: faPersonDigging,
   },
   reports_panel: {
-    title: "POI reports",
-    panel: () => {},
+    title: "POI Reports",
+    panel: Reports_Panel,
     color: "var(--map)",
     icon: faMagnifyingGlassChart,
   },
@@ -47,61 +52,82 @@ const panelTypes: PanelTypes = {
 
 const PoiEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
+  const poisFromDb = useSelector((state: RootState) => state.poi.poisFromDb);
   const selectedMissionId = useSelector((state: RootState) => state.mission.mission?.id);
   const selectedRightNavItem = useSelector((state: RootState) => state.poi.selectedRightNavItem);
   const selectedPoiUuid = useSelector((state: RootState) => state.poi.selectedPoiUuid);
   const selectedPoi = useSelector((state: RootState) => state.poi.pois).filter(
     (poi) => poi.uuid === selectedPoiUuid
   )[0];
+  const poisEditing = useSelector((state: RootState) => state.poi.poisEditing);
   const selectedPoiFromDb = useSelector((state: RootState) => state.poi.poisFromDb).filter(
     (poi) => poi.uuid === selectedPoiUuid
   )[0];
 
-  const modified = !_.isEqual(selectedPoiFromDb, selectedPoi);
+  const [modified, setModified] = useState(false);
+
+  useEffect(() => {
+    setModified(!_.isEqual(selectedPoi, selectedPoiFromDb));
+  }, [selectedPoi, selectedPoiFromDb]);
 
   const handleSave = async () => {
-    if (selectedPoi) {
-      // upsert the changed POI to the DB via internal API call
-      const upsertedPOI = await setPOI(selectedPoi);
+    if (selectedPoi && modified) {
+      // find out if the actions in this poi have been modified and need to be persisted
+      const actionsModified = !_.isEqual(selectedPoi.actions, selectedPoiFromDb?.actions);
 
-      if (upsertedPOI.status === "success") {
+      // upsert the changed POI to the DB via internal API call
+      const upsertReponse = await setPOI(selectedPoi, actionsModified);
+
+      if (upsertReponse.status === "success") {
         // upsert the changed POI to the store
-        await dispatch(upsertPoi(upsertedPOI.data));
+        await dispatch(upsertPoi(upsertReponse.data));
         // update the POI in the store from the DB
         // get fresh copy of POIs from DB
         const poiData = await InternalAPI.getPOIs(selectedMissionId);
         if (poiData.data) {
+          await dispatch(deleteAllPoisFromDb());
           await dispatch(upsertPoisFromDb(poiData.data));
         }
       } else {
-        throw new Error("Error upserting POI");
+        throw new Error("Error upserting POI: " + upsertReponse.message);
       }
+      dispatch(setEditMode({ poi: selectedPoi, editMode: false }));
     }
   };
 
   const handleDelete = async () => {
     if (selectedPoi) {
-      // delete the POI from the DB via internal API call
-      const deleteResponse = await InternalAPI.deletePOI(selectedPoi.uuid);
-      if (deleteResponse.status === "success") {
-        // remove the corresponding POI from the store
-        await dispatch(deletePoi(selectedPoi));
-        dispatch(setSelectedPoiUuid(null));
+      // if the selected poi is in poisFromDb then delete it from the db
 
-        // get fresh copy of POIs from DB
-        const poiData = await InternalAPI.getPOIs(selectedMissionId);
-        if (poiData.data) {
-          await dispatch(upsertPoisFromDb(poiData.data));
+      // find the selected POI in poisFromDb
+      const selectedPoiFromDb = poisFromDb.filter((poi) => poi.uuid === selectedPoi.uuid)[0];
+      if (selectedPoiFromDb) {
+        // delete the POI from the DB via internal API call
+        const deleteResponse = await InternalAPI.deletePOI(selectedPoi.uuid);
+        if (deleteResponse.status === "success") {
+          // remove the corresponding POI from the store
+          await dispatch(deletePoi(selectedPoi));
+          dispatch(setSelectedPoiUuid(null));
+
+          // get fresh copy of POIs from DB
+          const poiData = await InternalAPI.getPOIs(selectedMissionId);
+          if (poiData.data) {
+            await dispatch(deleteAllPoisFromDb());
+            await dispatch(upsertPoisFromDb(poiData.data));
+          }
+        } else {
+          console.error("Error deleting POI: " + deleteResponse.message);
         }
       } else {
-        console.error("Error deleting POI: " + deleteResponse.message);
+        // if the selected poi is not in poisFromDb then delete it from the store
+        await dispatch(deletePoi(selectedPoi));
+        dispatch(setSelectedPoiUuid(null));
       }
+      dispatch(setEditMode({ poi: selectedPoi, editMode: false }));
     }
   };
 
   const handleCancel = () => {
-    // replace the selected poi with the one retrieved originally from the db
-
     // if selected poi isn't in the db, delete it from the store
     if (!selectedPoiFromDb) {
       dispatch(deletePoi(selectedPoi));
@@ -110,6 +136,7 @@ const PoiEditorRight: FunctionComponent = () => {
       // if selected poi is in the db, replace it with the one from the db (undoing any changes)
       dispatch(upsertPoi(selectedPoiFromDb));
     }
+    dispatch(setEditMode({ poi: selectedPoi, editMode: false }));
   };
 
   let ActiveComponent = null;
@@ -122,74 +149,105 @@ const PoiEditorRight: FunctionComponent = () => {
       <>
         <div className={paneStyles.rightTopTitle}>
           <div className={paneStyles.rightTopTitleText} style={{ color: "var(--poi)" }}>
-            {selectedPoi.name}
+            <InLineEditInput
+              fieldName="POI"
+              value={selectedPoi.name}
+              editing={poisEditing.includes(selectedPoiUuid)}
+              maxLength={255}
+              style={{ width: "100%", marginRight: "10px", color: "var(--poi)", fontSize: "1em" }}
+              containerStyle={{ paddingLeft: 0 }}
+              onChange={(val) => {
+                dispatch(upsertPoi({ ...selectedPoi, name: val }));
+              }}
+            />
           </div>
-          <ModifiedIndicator
-            obj1={selectedPoi}
-            obj2={selectedPoiFromDb}
-            style={{ width: "15", height: "15", cx: "10", cy: "8", r: "5", fill: "white" }}
-          />
-
+        </div>
+        <div className={paneStyles.rightSubTray}>
+          <div className={paneStyles.rightIconRow}>
+            {Object.keys(panelTypes).map((panelType) => {
+              return (
+                <div
+                  key={panelType}
+                  className={
+                    selectedRightNavItem === panelType
+                      ? paneStyles.rightIconContainerSelected
+                      : paneStyles.rightIconContainer
+                  }
+                >
+                  <div
+                    className={paneStyles.rightIcon}
+                    style={{
+                      color:
+                        selectedRightNavItem === panelType ? panelTypes[panelType].color : "white",
+                    }}
+                    title={panelTypes[panelType].title}
+                    onClick={() => dispatch(setSelectedRightNavItem(panelType))}
+                  >
+                    <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
           <div className={paneStyles.saveCancelContainer}>
             <div className={paneStyles.verticalCenter}>
-              <FontAwesomeIcon
+              <IconButton
                 icon={faTrashAlt}
-                style={{ marginRight: "5px", float: "right" }}
                 onClick={() => {
                   handleDelete();
                 }}
+                label="Delete POI"
+                style={{ width: "95px" }}
               />
             </div>
-            {modified && (
+            {!poisEditing.includes(selectedPoiUuid) && (
+              <div className={paneStyles.verticalCenter}>
+                <IconButton
+                  icon={faEdit}
+                  onClick={() => {
+                    dispatch(setEditMode({ poi: selectedPoi, editMode: true }));
+                  }}
+                  label="Edit"
+                  style={{ width: "65px" }}
+                />
+              </div>
+            )}
+
+            {poisEditing.includes(selectedPoiUuid) && (
               <>
-                <IconButton
-                  onClick={() => {
-                    handleCancel();
-                  }}
-                  icon={faBan}
-                  label="Discard"
-                  style={{ width: "90px", height: "21px" }}
-                />
-                <IconButton
-                  onClick={() => {
-                    handleSave();
-                  }}
-                  icon={faFloppyDisk}
-                  label="Save"
-                  style={{ width: "70px", height: "21px" }}
-                />
+                <div className={paneStyles.verticalCenter}>
+                  <IconButton
+                    onClick={() => {
+                      handleSave();
+                    }}
+                    icon={faFloppyDisk}
+                    label="Save POI"
+                    enabled={modified}
+                    style={{
+                      width: "85px",
+                      backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
+                      color: modified ? "white" : "var(--grey4)",
+                    }}
+                  />
+                </div>
+                <div className={paneStyles.verticalCenter}>
+                  <IconButton
+                    onClick={() => {
+                      handleCancel();
+                    }}
+                    icon={faBan}
+                    label="Cancel"
+                    style={{ width: "75px" }}
+                  />
+                </div>
               </>
             )}
           </div>
         </div>
-
-        <div className={paneStyles.rightIconRow}>
-          {Object.keys(panelTypes).map((panelType) => {
-            return (
-              <div
-                key={panelType}
-                className={
-                  selectedRightNavItem === panelType
-                    ? paneStyles.rightIconContainerSelected
-                    : paneStyles.rightIconContainer
-                }
-              >
-                <div
-                  className={paneStyles.rightIcon}
-                  style={{
-                    color:
-                      selectedRightNavItem === panelType ? panelTypes[panelType].color : "white",
-                  }}
-                  title={panelTypes[panelType].title}
-                  onClick={() => dispatch(setSelectedRightNavItem(panelType))}
-                >
-                  <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <ActiveComponent className={paneStyles.rightActiveWindow} />
+        <ActiveComponent
+          className={paneStyles.rightActiveWindow}
+          editMode={poisEditing.includes(selectedPoiUuid)}
+        />
       </>
     )
   );

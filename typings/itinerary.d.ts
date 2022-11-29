@@ -20,8 +20,8 @@
  */
 interface POI {
   id?: number;
-  owner?: number;
-  mission?: number;
+  owner: number;
+  mission: number;
   /**
    * The name of the POI, e.g. "M-19"
    */
@@ -35,7 +35,7 @@ interface POI {
   /**
    * The actions needed at this POI to achieve the objective.
    */
-  actions: Action[];
+  actions?: Action[];
 
   /**
    * Priority of this POI.
@@ -86,33 +86,48 @@ type POIStatus = "Archived" | "Candidate" | "In Review" | "Approved";
  * Action to be taken by crew on the surface (photograph, describe, take sample, etc)
  */
 type Action = {
+  id?: number;
+  name: string;
+
+  // poi table foreign key
+  poi: number;
   /**
    * Priority normally inferred by STM relationship, but can be overridden.
    */
-  priorityOverride: number; // 2.7
+  priorityOverride?: number; // 2.7
 
   /**
    * Allow linkage to any part of the STM hierarchy
    */
-  STMRefs: STMRef[];
+  stmUuidRefs?: string[];
+
+  /**
+   * uuid of the action
+   */
+  uuid: string;
 
   /**
    * The type of action to be taken
    */
-  type: AMeasurement | AObservation | ASample;
+  type: ActionType;
 
   /**
    * Science explanation of details of the action. e.g. "Photograph contact point between two units."
    */
-  explanation: string;
+  description: string;
 
   /**
    * The duration of the action, in minutes.
    */
-  estimatedDuration: number; // in minutes
+  durationLower: number; // in minutes
+  durationUpper?: number; // in minutes
 
   // Inventory of items needed to perform this action.
-  inventoryItems: InventoryItem[];
+  inventoryItems?: InventoryItem[];
+
+  status: POIStatus;
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 /**
@@ -123,6 +138,8 @@ type InventoryItem = {
   name: string;
   quantity: number;
 };
+
+type ActionType = "measurement" | "observation" | "sample" | "photo" | "other";
 
 type TraverseActivityPrototype = ActivityPrototypeEntity & {
   /**

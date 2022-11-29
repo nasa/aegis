@@ -4,12 +4,11 @@ import { Poi } from "../../models/poi.model";
 
 export class PoiSeeder extends Seeder {
   async run(em: EntityManager, context: Dictionary): Promise<void> {
-    em.create(Poi, {
+    context.poi1 = em.create(Poi, {
       owner: context.user1.id,
       mission: context.mission1.id,
       name: "Test POI 1",
       description: "Test POI description",
-      actions: [],
       priorityOverride: 0,
       radius: 5,
       uuid: "test-uuid",
@@ -23,12 +22,11 @@ export class PoiSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(Poi, {
+    context.poi2 = em.create(Poi, {
       owner: context.user1.id,
       mission: context.mission1.id,
       name: "POI Name 2",
       description: "POI Description 2",
-      actions: [],
       priorityOverride: 0,
       radius: 5,
       uuid: "test-uuid-2",

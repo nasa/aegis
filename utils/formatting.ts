@@ -1,4 +1,4 @@
-import { isNaN } from "lodash";
+import _ from "lodash";
 import { add } from "store/playhead";
 
 /**
@@ -94,7 +94,7 @@ export function shortdateFromDateString(dateString: string): string {
  */
 export function isoStringFromAnyDateString(dateString: string): string {
   const tempDate = new Date(dateString); // works with ISO and UTC date strings
-  if (isNaN(tempDate.valueOf())) {
+  if (_.isNaN(tempDate.valueOf())) {
     throw new Error("The date string couldn't be converted into a Date");
   }
   return tempDate.toISOString(); // guaranteed to have an ISO string. safe to string parse it
@@ -178,4 +178,30 @@ export const formatEVADisplayTitle = ({
  */
 export function roundDateToSecond(date: Date): Date {
   return new Date(Math.round(date.getTime() / 1000) * 1000);
+}
+
+/**
+ * Convert any string to a valid decimal number by stripping out all non-numeric characters
+ */
+export function toDecimal(str: string): number {
+  if (_.isEmpty(str)) return null;
+  const removedChars = str.replace(/[^0-9.]/g, "");
+  // make sure string contains only one decimal point
+  const decimalCount = (removedChars.match(/\./g) || []).length;
+  let result = null;
+  if (decimalCount > 1) {
+    //split string at first decimal point
+    const splitString = removedChars.split(".");
+    //join string back together, but only include the first decimal point
+    let joinedString = splitString[0] + ".";
+    //add the rest of the string back on
+    for (let i = 1; i < splitString.length; i++) {
+      joinedString += splitString[i];
+    }
+    result = parseFloat(joinedString);
+  } else {
+    result = parseFloat(removedChars);
+  }
+
+  return _.isNaN(result) ? null : result;
 }

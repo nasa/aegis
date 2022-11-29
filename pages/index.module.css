@@ -101,7 +101,7 @@
   font-size: 1.3em;
   color: #eeeeee;
   text-align: left;
-  margin-top: 20px;
+  margin-top: 0;
 }
 
 .aboutSection ul {
@@ -173,6 +173,15 @@
   border: 1px solid #ccc;
   border-radius: var(--radius);
   margin-left: auto;
+}
+
+.login .logoutButton {
+  width: 60px;
+  padding: 5px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
 }
 
 .login .errorMessage {

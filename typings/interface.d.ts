@@ -12,7 +12,7 @@ interface PaneTypes {
 
 interface PanelType {
   title: string;
-  panel: Function;
+  panel: FunctionComponent;
   color: string;
   icon: IconProp;
 }

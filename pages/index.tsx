@@ -142,7 +142,7 @@ const MissionSelect = () => {
       </div>
       <div className={styles.login}>
         <div className={styles.loginFormField}>
-          <button style={{ width: "60px", marginTop: "20px" }} onClick={handleLogoutButtonClick}>
+          <button className={styles.logoutButton} onClick={handleLogoutButtonClick}>
             Logout
           </button>
         </div>
@@ -195,9 +195,7 @@ const Left = () => {
       </div>
       <div className={styles.leftBottom}>
         <div className={styles.aboutSection}>
-          <div className={styles.aboutSectionTitle} style={{ marginTop: "0" }}>
-            Useful Links
-          </div>
+          <div className={styles.aboutSectionTitle}>Useful Links</div>
           <ul>
             <li>
               <a
@@ -220,9 +218,7 @@ const Left = () => {
           </ul>
         </div>
         <div className={`${styles.aboutSection} ${styles.theTeam}`}>
-          <div className={styles.aboutSectionTitle} style={{ marginTop: "0" }}>
-            The Team
-          </div>
+          <div className={styles.aboutSectionTitle}>The Team</div>
           <div className={styles.theTeamMembers}>
             <div className={styles.theTeamSegment}>
               <ul className={styles.theTeamUl}>

@@ -48,89 +48,93 @@ const PoiList: FunctionComponent<{
   const user: AEGISUser = useSelector((state: RootState) => state.user.ironSessionData?.user);
   const mission = useSelector((state: RootState) => state.mission.mission);
   return (
-    <div className={paneStyles.panelContainer}>
-      <div className={styles.container}>
-        <div
-          className={styles.header}
-          onClick={() =>
-            setExpandedSections({
-              ...expandedSections,
-              systemPresets: !expandedSections.systemPresets,
-            })
-          }
-        >
-          <div className={styles.expandoCaret}>
-            {expandedSections.systemPresets ? (
-              <FontAwesomeIcon icon={faCaretDown} size="sm" />
-            ) : (
-              <FontAwesomeIcon icon={faCaretRight} size="sm" />
-            )}
+    <>
+      <div className={paneStyles.leftPanelContainer}>
+        <div className={styles.container}>
+          <div
+            className={styles.header}
+            onClick={() =>
+              setExpandedSections({
+                ...expandedSections,
+                systemPresets: !expandedSections.systemPresets,
+              })
+            }
+          >
+            <div className={styles.expandoCaret}>
+              {expandedSections.systemPresets ? (
+                <FontAwesomeIcon icon={faCaretDown} size="sm" />
+              ) : (
+                <FontAwesomeIcon icon={faCaretRight} size="sm" />
+              )}
+            </div>
+            <div>Mission POIs</div>
           </div>
-          <div>Mission POIs</div>
-        </div>
-        <div className={styles.body}>
-          {expandedSections.systemPresets &&
-            pois.map((poi) => {
-              const poiStyle = poi.uuid === selectedPoiUuid ? styles.nameSelected : styles.name;
-              const poiModifiedColor = poi.uuid === selectedPoiUuid ? "black" : "white";
-              const poiFromDb = poisFromDb.filter((poiFromDb) => poiFromDb.uuid === poi.uuid)[0];
-              return (
-                <div
-                  className={styles.poiItem}
-                  key={poi.uuid}
-                  onClick={() => {
-                    if (selectedPoiUuid === poi.uuid) {
-                      dispatch(setSelectedPoiUuid(null));
-                    } else {
-                      dispatch(setSelectedPoiUuid(poi.uuid));
-                      if (!selectedRightNavItem)
-                        dispatch(setSelectedRightNavItem("information_panel"));
-                    }
-                  }}
-                >
-                  <div className={styles.itemColor}>
-                    <div className={styles.poiDot} style={{ backgroundColor: poi.color?.value }} />
+          <div className={styles.body}>
+            {expandedSections.systemPresets &&
+              pois.map((poi) => {
+                const poiSelected = poi.uuid === selectedPoiUuid ? styles.nameSelected : null;
+                const poiFromDb = poisFromDb.filter((poiFromDb) => poiFromDb.uuid === poi.uuid)[0];
+                return (
+                  <div
+                    className={styles.poiItem}
+                    key={poi.uuid}
+                    onClick={() => {
+                      if (selectedPoiUuid === poi.uuid) {
+                        dispatch(setSelectedPoiUuid(null));
+                      } else {
+                        dispatch(setSelectedPoiUuid(poi.uuid));
+                        if (!selectedRightNavItem)
+                          dispatch(setSelectedRightNavItem("information_panel"));
+                      }
+                    }}
+                  >
+                    <div className={styles.itemColor}>
+                      <div
+                        className={styles.poiDot}
+                        style={{ backgroundColor: poi.color?.value }}
+                      />
+                    </div>
+                    <div className={`${styles.name} ${poiSelected}`}>
+                      <div>{poi.name}</div>
+                      <ModifiedIndicator
+                        obj1={poi}
+                        obj2={poiFromDb}
+                        svgStyle={{
+                          width: "15",
+                          height: "12",
+                          cx: "5",
+                          cy: "9",
+                          r: "3",
+                          fill: "#ff0000",
+                        }}
+                      />
+                      <div className={styles.poiRightSpacer}></div>
+                    </div>
                   </div>
-                  <div className={poiStyle}>
-                    <div className={styles.poiName}>{poi.name}</div>
-                    <ModifiedIndicator
-                      obj1={poi}
-                      obj2={poiFromDb}
-                      style={{
-                        width: "15",
-                        height: "12",
-                        cx: "10",
-                        cy: "7",
-                        r: "4",
-                        fill: `${poiModifiedColor}`,
-                      }}
-                    />
-                    <div style={{ flex: 1 }}></div>
-                  </div>
-                </div>
-              );
-            })}
-          <div className={paneStyles.iconButtons}>
-            <IconButton
-              onClick={() => {
-                dispatch(createBlankPoi({ userId: user.id, missionId: mission.id }));
-              }}
-              label="Add"
-              icon={faPlusCircle}
-            ></IconButton>
-            <IconButton
-              onClick={() => {
-                if (selectedPoiUuid !== null) {
-                  dispatch(duplicatePoi(selectedPoi));
-                }
-              }}
-              label="Duplicate"
-              icon={faClone}
-              enabled={selectedPoiUuid !== null}
-            ></IconButton>
+                );
+              })}
           </div>
         </div>
       </div>
-    </div>
+      <div className={paneStyles.iconButtons}>
+        <IconButton
+          onClick={() => {
+            dispatch(createBlankPoi({ userId: user.id, missionId: mission.id }));
+          }}
+          label="Add"
+          icon={faPlusCircle}
+        ></IconButton>
+        <IconButton
+          onClick={() => {
+            if (selectedPoiUuid !== null) {
+              dispatch(duplicatePoi(selectedPoi));
+            }
+          }}
+          label="Duplicate"
+          icon={faClone}
+          enabled={selectedPoiUuid !== null}
+        ></IconButton>
+      </div>
+    </>
   );
 };
