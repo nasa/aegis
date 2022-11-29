@@ -8,6 +8,7 @@ import { STM_Objective } from "./server/database/models/stm_objective.model";
 import { STM_Goal } from "./server/database/models/stm_goal.model";
 import { STM_Investigation } from "./server/database/models/stm_investigation.model";
 import { Poi } from "./server/database/models/poi.model";
+import { Action } from "./server/database/models/action.model";
 import path from "path";
 
 const port = parseInt(process.env.AEGIS_DB_PORT);
@@ -33,6 +34,7 @@ const config: Options = {
     STM_Goal,
     STM_Investigation,
     Poi,
+    Action,
   ],
   entities: [
     Mission,
@@ -44,6 +46,7 @@ const config: Options = {
     STM_Goal,
     STM_Investigation,
     Poi,
+    Action,
   ],
   debug: process.env.DEBUG === "true" || process.env.DEBUG?.includes("db"),
   allowGlobalContext: process.env.NODE_ENV === "test",

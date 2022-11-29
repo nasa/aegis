@@ -94,7 +94,7 @@ type ActivityPrototypeEntity = {
   /**
    * Allow linkage to any part of the STM hierarchy. This is usually inferred from the POIs, but can be overridden here to provide more context.
    */
-  STMRefs: STMRef[];
+  STMInvestigations: STMInvestigation[];
 
   /**
    * Estimated duration of the station in minutes

@@ -27,6 +27,8 @@ body {
   --eva: #86ff4e;
   --tools: #ffc700;
   --poi: #28ecf9;
+  --alert: #cb0000;
+  --alert-disabled: #650000;
 
   --radius: 3px;
   --panelRadius: 8px;

@@ -1,15 +1,16 @@
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
-import { FunctionComponent, Children, cloneElement, useState } from "react";
+import { FunctionComponent, Children, cloneElement, useState, createRef } from "react";
 import styles from "./_global-elements.module.css";
 import _ from "lodash";
+import { TagsInput } from "react-tag-input-component";
+import ContentEditable, { ContentEditableEvent } from "react-contenteditable";
 
 export const IconButton: FunctionComponent<{
   onClick: () => void;
   label: string;
   icon: IconDefinition;
-  disabled?: boolean;
   style?: React.CSSProperties;
   size?: "xs" | "lg";
   enabled?: boolean;
@@ -26,11 +27,20 @@ export const IconButton: FunctionComponent<{
 export const Dropdown: FunctionComponent<{
   children: any;
   selected: string;
+  containerStyle?: React.CSSProperties;
+  selectStyle?: React.CSSProperties;
   onChange: (value: string) => void;
-}> = ({ children, selected, onChange }) => {
+}> = ({ children, selected, containerStyle, selectStyle, onChange }) => {
   return (
-    <div className={styles.select}>
-      <select value={selected} onChange={(e) => onChange(e.target.value)}>
+    <div className={styles.select} style={containerStyle}>
+      <select
+        value={selected}
+        style={selectStyle}
+        onChange={(e) => onChange(e.target.value)}
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+      >
         {Children.map(children, (child) =>
           cloneElement(child as any, {
             selected: child.props.value === selected,
@@ -46,76 +56,97 @@ export const Dropdown: FunctionComponent<{
 
 export const ColorDropdown: FunctionComponent<{
   items: any[];
-
+  editing: boolean;
   selected: { value: string; label: string };
   setSelected: Function;
-}> = ({ items, selected, setSelected }) => {
+}> = ({ items, editing, selected, setSelected }) => {
   const [expanded, setExpanded] = useState(false);
 
-  let selectedItem;
-  if (selected) {
-    selectedItem = (
-      <div className={styles.colorDropdownModalItem}>
-        <div className={styles.itemColor}>
-          <div className={styles.itemDot} style={{ backgroundColor: selected.value }} />
+  if (!editing) {
+    return (
+      <div className={styles.colorDropdownContainer}>
+        <div className={styles.colorDropdownModalItemNotEditing}>
+          <div className={styles.itemColor}>
+            <div className={styles.itemDot} style={{ backgroundColor: selected?.value }} />
+          </div>
+          <div className={styles.colorDropdownModalItemLabel}>{selected?.label}</div>
         </div>
-        <div className={styles.colorDropdownModalItemLabel}>{selected.label}</div>
       </div>
     );
   } else {
-    selectedItem = (
-      <div className={styles.colorDropdownModalItem}>
-        <div className={styles.colorDropdownModalItemLabel}>Select Color...</div>
+    let selectedItem;
+    if (selected) {
+      selectedItem = (
+        <div className={styles.colorDropdownModalItem}>
+          <div className={styles.itemColor}>
+            <div className={styles.itemDot} style={{ backgroundColor: selected?.value }} />
+          </div>
+          <div className={styles.colorDropdownModalItemLabel}>{selected?.label}</div>
+        </div>
+      );
+    } else {
+      selectedItem = (
+        <div className={styles.colorDropdownModalItem}>
+          <div className={styles.colorDropdownModalItemLabel}>Select Color...</div>
+        </div>
+      );
+    }
+
+    return (
+      <div className={styles.colorDropdownContainer} onClick={() => setExpanded(!expanded)}>
+        {selectedItem}
+        <span className={styles.colorSelectArrow}>
+          <FontAwesomeIcon icon={faChevronDown} size="xs" />
+        </span>
+        {expanded && (
+          <div className={styles.colorDropdownModalList}>
+            {items.map((item) => (
+              <div
+                className={styles.colorDropdownModalItem}
+                key={item.value}
+                onClick={() => setSelected(item)}
+              >
+                <div className={styles.itemColor}>
+                  <div className={styles.itemDot} style={{ backgroundColor: item.value }} />
+                </div>
+                <div className={styles.colorDropdownModalItemLabel}>{item.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
-
-  return (
-    <div className={styles.colorDropdownContainer} onClick={() => setExpanded(!expanded)}>
-      {selectedItem}
-      <span className={styles.select_arrow}>
-        <FontAwesomeIcon icon={faChevronDown} size="xs" />
-      </span>
-      {expanded && (
-        <div className={styles.colorDropdownModalList}>
-          {items.map((item) => (
-            <div
-              className={styles.colorDropdownModalItem}
-              key={item.value}
-              onClick={() => setSelected(item)}
-            >
-              <div className={styles.itemColor}>
-                <div className={styles.itemDot} style={{ backgroundColor: item.value }} />
-              </div>
-              <div className={styles.colorDropdownModalItemLabel}>{item.label}</div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 };
 
 export const MultiButton: FunctionComponent<{
   children: React.ReactNode;
+  editing: boolean;
   selected: string;
   handleChange: Function;
-}> = ({ children, selected, handleChange }) => {
+}> = ({ children, editing, selected, handleChange }) => {
   return (
     <div className={styles.multiButtonGroup}>
       {/* Loop through the children and add the multibutton styling to each child depending on its position in the list */}
       {Children.map(children, (child: any, idx) => {
-        const selectedStyle = child.props.children === selected ? styles.multiButtonSelected : "";
+        let buttonStyle = styles.multiButton;
+        let selectedStyle = child.props.children === selected ? styles.multiButtonSelected : "";
+        if (editing) {
+          buttonStyle = styles.multiButtonEditing;
+          selectedStyle =
+            child.props.children === selected ? styles.multiButtonEditingSelected : "";
+        }
+
         let style;
-        if (idx === 0) style = `${styles.multiButton} ${selectedStyle} ${styles.multiButtonStart}`;
+        if (idx === 0) style = `${buttonStyle} ${selectedStyle} ${styles.multiButtonStart}`;
         else if (idx === Children.count(children) - 1)
-          style = `${styles.multiButton} ${selectedStyle} ${styles.multiButtonEnd}`;
-        else style = `${styles.multiButton} ${selectedStyle} ${styles.multiButtonMiddle}`;
+          style = ` ${buttonStyle} ${selectedStyle} ${styles.multiButtonEnd}`;
+        else style = `${buttonStyle} ${selectedStyle} ${styles.multiButtonMiddle}`;
 
         return cloneElement(child as any, {
           className: style,
           onClick: () => {
-            handleChange(child.props.children);
+            if (editing) handleChange(child.props.children);
           },
         });
       })}
@@ -126,17 +157,114 @@ export const MultiButton: FunctionComponent<{
 export const ModifiedIndicator: FunctionComponent<{
   obj1: Object;
   obj2: Object;
-  style: { width: string; height: string; cx: string; cy: string; r: string; fill: string };
-}> = ({ obj1, obj2, style }) => {
+  svgStyle: { width: string; height: string; cx: string; cy: string; r: string; fill: string };
+}> = ({ obj1, obj2, svgStyle }) => {
   if (_.isEqual(obj1, obj2)) {
     return <></>;
   } else {
     return (
-      <span title="unsaved changes" style={{ margin: "auto" }}>
-        <svg height={style.height} width={style.width}>
-          <circle cx={style.cx} cy={style.cy} r={style.r} fill={style.fill} />
+      <span title="Unsaved changes" className={styles.modifiedSpan}>
+        <svg height={svgStyle.height} width={svgStyle.width}>
+          <circle cx={svgStyle.cx} cy={svgStyle.cy} r={svgStyle.r} fill={svgStyle.fill} />
         </svg>
       </span>
     );
   }
+};
+
+export const InLineEditInput: FunctionComponent<{
+  fieldName: string;
+  editing: boolean;
+  style: React.CSSProperties;
+  containerStyle?: React.CSSProperties;
+  maxLength: number;
+  value: string;
+  onChange: Function;
+  onBlur?: Function;
+}> = ({ fieldName, editing, style, containerStyle, maxLength, value, onChange, onBlur }) => {
+  return (
+    <div style={containerStyle}>
+      {editing && (
+        <input
+          className={styles.inLineEditInput}
+          maxLength={maxLength}
+          style={style}
+          aria-label={fieldName}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          onBlur={(event) => {
+            if (onBlur) onBlur(event);
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+        />
+      )}
+      {!editing && (
+        <div className={styles.inLineEditValue} title={fieldName}>
+          {value}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const Tags: FunctionComponent<{
+  value: string[];
+  editing: boolean;
+  onChange: (tags: string[]) => void;
+  name: string;
+  separators: string[];
+  placeHolder: string;
+  onExisting: (tag: string) => void;
+}> = ({ value, editing, onChange, name, separators, placeHolder, onExisting }) => {
+  return (
+    <>
+      {editing && (
+        <div className={styles.tagsContainer}>
+          <TagsInput
+            value={value}
+            onChange={onChange}
+            name={name}
+            separators={separators}
+            placeHolder={placeHolder}
+            onExisting={onExisting}
+          />
+        </div>
+      )}
+      {!editing && (
+        <div className={styles.tagListContainer}>
+          {value.map((tag) => (
+            <div className={styles.tagListItem} key={tag}>
+              {tag}
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+};
+
+export const ContentEditableTextArea: FunctionComponent<{
+  html: string;
+  editing: boolean;
+  onChange: (event: ContentEditableEvent) => void;
+}> = ({ html, editing, onChange }) => {
+  const contentEditable = createRef<HTMLElement>();
+
+  return (
+    <>
+      {editing && (
+        <ContentEditable
+          className={styles.notesTextArea}
+          innerRef={contentEditable}
+          html={html} // innerHTML of the editable div
+          disabled={!editing} // use true to disable editing
+          onChange={onChange}
+          tagName="div" // Use a custom HTML tag (uses a div by default)
+        />
+      )}
+      {!editing && <div className={styles.notesText}>{html}</div>}
+    </>
+  );
 };

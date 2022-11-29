@@ -29,10 +29,7 @@ const Header: FunctionComponent = () => {
         </div>
         <div className={styles.item}>
           <div className={styles.mission}>
-            <div
-              className={styles.verticalCenter}
-              style={{ display: "flex", flexDirection: "row" }}
-            >
+            <div className={styles.verticalCenter}>
               <div className={styles.headerTextItem}>{missionPage?.mission?.name}</div>
             </div>
           </div>

@@ -1,31 +1,36 @@
-import { createRef, FunctionComponent } from "react";
+import { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import { faTableList, faLocationDot, faPen } from "@fortawesome/free-solid-svg-icons";
-import { ColorDropdown, IconButton, MultiButton } from "components/interface/_global-elements";
-import { TagsInput } from "react-tag-input-component";
-import ContentEditable from "react-contenteditable";
+import { faLocationDot, faMapLocationDot } from "@fortawesome/free-solid-svg-icons";
+import {
+  ColorDropdown,
+  ContentEditableTextArea,
+  IconButton,
+  InLineEditInput,
+  MultiButton,
+  Tags,
+} from "components/interface/_global-elements";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useSelector, useDispatch, shallowEqual } from "react-redux";
 import { RootState } from "store";
 import { upsertPoi } from "store/poi";
 
-const Info_Panel: FunctionComponent = () => {
+const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
   const selectedPoiUuid = useSelector(
     (state: RootState) => state.poi.selectedPoiUuid,
     shallowEqual
   );
-  const pois = useSelector((state: RootState) => state.poi.pois, shallowEqual);
+  const pois: POI[] = useSelector((state: RootState) => state.poi.pois, shallowEqual);
   const selectedPoi = pois.find((poi) => poi.uuid === selectedPoiUuid);
-  const contentEditable = createRef<HTMLElement>();
 
   return (
     <div className={paneStyles.rightBody}>
-      <div className={paneStyles.title}>Information</div>
+      <div className={paneStyles.rightBodyTitle}>Information</div>
       <div className={paneStyles.panelContainer}>
         <div className={paneStyles.panelSection}>
           <div className={paneStyles.panelSectionTitle}>Status</div>
           <MultiButton
+            editing={editMode}
             selected={selectedPoi.status}
             handleChange={(newStatus) => {
               console.log(newStatus);
@@ -40,25 +45,27 @@ const Info_Panel: FunctionComponent = () => {
         </div>
         <div className={paneStyles.panelSection}>
           <div className={paneStyles.panelSectionRow}>
-            <div className={paneStyles.panelSubSection} style={{ flex: "0 0 80px" }}>
-              <div className={paneStyles.panelSectionTitle}>Radius</div>
+            <div className={paneStyles.panelSmallField}>
+              <div className={paneStyles.panelSectionTitle}>Radius (m)</div>
               <div className={paneStyles.inputField}>
-                <input
-                  type="text"
-                  maxLength={3}
-                  style={{ width: "40px" }}
-                  value={selectedPoi.radius}
-                  onChange={(e) => {
-                    dispatch(upsertPoi({ ...selectedPoi, radius: e.target.value }));
+                <InLineEditInput
+                  fieldName="Radius"
+                  editing={editMode}
+                  maxLength={4}
+                  style={{ width: "45px" }}
+                  containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                  value={selectedPoi.radius.toString()}
+                  onChange={(val) => {
+                    dispatch(upsertPoi({ ...selectedPoi, radius: val }));
                   }}
                 />
-                <div className={paneStyles.inputFieldUnit}>m</div>
               </div>
             </div>
-            <div className={paneStyles.panelSubSection} style={{ flex: 1 }}>
+            <div className={paneStyles.panelColorDropdownContainer}>
               <div className={paneStyles.panelSectionTitle}>Color</div>
               <ColorDropdown
                 selected={selectedPoi.color}
+                editing={editMode}
                 setSelected={(value) => {
                   dispatch(upsertPoi({ ...selectedPoi, color: value }));
                 }}
@@ -73,52 +80,33 @@ const Info_Panel: FunctionComponent = () => {
           </div>
         </div>
         <div className={paneStyles.panelSection}>
-          <div className={paneStyles.panelSubSection}>
-            <div className={paneStyles.panelSectionTitle}>Metatags</div>
-            <div className={paneStyles.tagsContainer}>
-              <TagsInput
-                value={selectedPoi.tags}
-                onChange={(value) => {
-                  dispatch(upsertPoi({ ...selectedPoi, tags: value }));
-                }}
-                name="tags"
-                separators={["Enter", " "]}
-                placeHolder="type tag and press enter"
-                onExisting={() => {}}
-              />
-            </div>
-          </div>
+          <div className={paneStyles.panelSectionTitle}>Metatags</div>
+          <Tags
+            value={selectedPoi.tags}
+            editing={editMode}
+            onChange={(value) => {
+              dispatch(upsertPoi({ ...selectedPoi, tags: value }));
+            }}
+            name="tags"
+            separators={["Enter", " "]}
+            placeHolder="type tag and press enter"
+            onExisting={() => {}}
+          ></Tags>
         </div>
         <div className={paneStyles.panelSection}>
-          <div className={paneStyles.panelSubSection}>
-            <div className={paneStyles.panelSectionTitle}>Science Tracability</div>
-            <IconButton
-              onClick={() => {}}
-              icon={faTableList}
-              label="Select"
-              style={{ width: "75px" }}
-            />
-          </div>
-        </div>
-        <div className={paneStyles.panelSection}>
-          <div className={paneStyles.panelSubSection}>
-            <div className={paneStyles.panelSectionTitle}>POI Value & Notes</div>
-            <ContentEditable
-              className={paneStyles.notesTextArea}
-              innerRef={contentEditable}
-              html={selectedPoi.description} // innerHTML of the editable div
-              disabled={false} // use true to disable editing
-              onChange={(evt) => {
-                dispatch(
-                  upsertPoi({
-                    ...selectedPoi,
-                    description: evt.target.value,
-                  })
-                );
-              }} // handle innerHTML change
-              tagName="div" // Use a custom HTML tag (uses a div by default)
-            />
-          </div>
+          <div className={paneStyles.panelSectionTitle}>POI Value & Notes</div>
+          <ContentEditableTextArea
+            html={selectedPoi.description} // innerHTML of the editable div
+            editing={editMode}
+            onChange={(evt) => {
+              dispatch(
+                upsertPoi({
+                  ...selectedPoi,
+                  description: evt.target.value,
+                })
+              );
+            }} // handle innerHTML change
+          />
         </div>
         <div className={paneStyles.panelSection}>
           <div className={paneStyles.panelSectionTitle}>Position</div>
@@ -130,7 +118,14 @@ const Info_Panel: FunctionComponent = () => {
             <div className={paneStyles.verticalCenter}>
               <div className={paneStyles.panelText}>0.00000, 0.00000</div>
             </div>
-            <IconButton onClick={() => {}} icon={faPen} label="Edit" style={{ width: "60px" }} />
+            {editMode && (
+              <IconButton
+                onClick={() => {}}
+                icon={faMapLocationDot}
+                label="Edit Location"
+                style={{ width: "110px" }}
+              />
+            )}
           </div>
         </div>
       </div>

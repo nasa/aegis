@@ -13,6 +13,7 @@ import {
   isoStringFromAnyDateString,
   padZeros,
   shortdateFromDateString,
+  toDecimal,
 } from "../../utils/formatting";
 import Mikro from "../../utils/mikro";
 
@@ -110,6 +111,16 @@ describe("Utilities Functions", () => {
     expect(formatEVADisplayTitle(displayTitle3)).toBe("US EVA 55 : The 3rd");
     expect(formatEVADisplayTitle(displayTitle4)).toBe("US EVA");
     expect(formatEVADisplayTitle(displayTitle5)).toBe("US EVA 55 - XXX");
+
+    expect(toDecimal("0")).toBe(0);
+    expect(toDecimal("0.0")).toBe(0);
+    expect(toDecimal("0.00")).toBe(0);
+    expect(toDecimal("5..5")).toBe(5.5);
+    expect(toDecimal("5.5")).toBe(5.5);
+    expect(toDecimal("5.5k")).toBe(5.5);
+    expect(toDecimal("sdfsdf")).toBe(null);
+    expect(toDecimal(null)).toBe(null);
+    expect(toDecimal("")).toBe(null);
   });
   describe("Mikro ORM", () => {
     test("Entity Manager Error", async () => {

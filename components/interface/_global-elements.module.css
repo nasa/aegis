@@ -37,7 +37,6 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  width: 100%;
 }
 
 .select select {
@@ -45,7 +44,6 @@
   cursor: pointer;
   padding-left: 7px;
   padding-right: 25px;
-  width: 100%;
   height: 1.5em;
   border: none;
   border-radius: var(--radius);
@@ -71,7 +69,13 @@
 }
 .select_arrow {
   position: absolute;
-  top: 1px;
+  top: 4px;
+  right: 5px;
+  pointer-events: none;
+}
+.colorSelectArrow {
+  position: absolute;
+  top: 2px;
   right: 5px;
   pointer-events: none;
 }
@@ -82,6 +86,25 @@
 }
 
 .multiButton {
+  flex: 1;
+  height: 2em;
+  background-color: var(--grey2);
+  color: #ffffff;
+  border: none;
+  font-size: 0.9em;
+  font-weight: 400;
+  margin-top: 3px;
+  padding-left: 8px;
+  padding-right: 8px;
+  border-left: 1px solid var(--grey4);
+}
+
+.multiButtonSelected {
+  background-color: var(--grey4);
+  color: black;
+}
+
+.multiButtonEditing {
   flex: 1;
   height: 2em;
   background-color: var(--grey3);
@@ -96,12 +119,12 @@
   cursor: pointer;
 }
 
-.multiButton:hover {
+.multiButtonEditing:hover {
   background-color: white;
   color: black;
 }
 
-.multiButtonSelected {
+.multiButtonEditingSelected {
   background-color: white;
   color: black;
 }
@@ -136,8 +159,13 @@
   font-weight: 400;
   margin-top: 3px;
   margin-left: 2px;
-  cursor: pointer;
   user-select: none;
+}
+
+.notEditable {
+  background-color: var(--grey2);
+  color: var(--grey4);
+  cursor: not-allowed;
 }
 
 .colorDropdownModalList {
@@ -171,6 +199,23 @@
   font-size: 0.9em;
   font-weight: 400;
   cursor: pointer;
+}
+
+.colorDropdownModalItemNotEditing {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+
+  padding-left: 5px;
+  padding-right: 5px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  background-color: var(--grey2);
+  color: #ffffff;
+  border: none;
+  font-size: 0.9em;
+  font-weight: 400;
 }
 
 .colorDropdownModalItem:first-child {
@@ -208,4 +253,94 @@
   width: 14px;
   border-radius: 50%;
   border: 1px solid white;
+}
+
+.inLineEditInput {
+  background-color: transparent;
+  padding: 8px;
+
+  height: 2em;
+  background-color: var(--grey1);
+  color: #ffffff;
+  border: 1px solid var(--grey3);
+  border-radius: var(--radius);
+  cursor: text;
+}
+
+.inLineEditValue {
+  padding: 4px;
+
+  height: 2em;
+  border: 1px solid rgb(0, 0, 0, 0);
+  border-radius: var(--radius);
+  padding-left: 8px;
+  cursor: pointer;
+}
+
+.tagsContainer {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--grey1);
+  border: 1px solid var(--grey3);
+  border-radius: var(--radius);
+  padding: 2px;
+  margin-top: 3px;
+}
+
+.tagListContainer {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  border: 1px solid var(--grey2);
+  border-radius: var(--radius);
+  padding: 4px;
+  margin-top: 3px;
+}
+
+.tagListItem {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9em;
+  background-color: var(--grey3);
+  border-radius: var(--radius);
+  padding: 2px 10px 2px 10px;
+  margin: 2px 4px 2px 0px;
+  cursor: default;
+}
+
+.notesTextArea {
+  height: 150px;
+  background-color: var(--grey1);
+  color: #ffffff;
+  border: 1px solid var(--grey3);
+  border-radius: var(--radius);
+  font-size: 0.8em;
+  font-weight: 400;
+  padding: 5px;
+  cursor: text;
+  margin-top: 3px;
+  outline: none;
+  overflow: auto;
+}
+
+.notesText {
+  display: flex;
+  height: 150px;
+  background-color: var(--grey2);
+  color: #ffffff;
+  border: 1px solid var(--grey2);
+  border-radius: var(--radius);
+  font-size: 0.8em;
+  font-weight: 400;
+  padding: 5px;
+  cursor: default;
+  margin-top: 3px;
+  outline: none;
+  overflow: auto;
+}
+
+.modifiedSpan {
+  margin: auto;
 }

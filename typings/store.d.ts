@@ -52,6 +52,7 @@ interface PoiState {
   poisFromDb: POI[];
   selectedPoiUuid: string;
   selectedRightNavItem: string;
+  poisEditing: string[];
 }
 
 interface InterfaceState {
