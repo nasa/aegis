@@ -396,3 +396,20 @@ deploy:dev1:
     url: https://aegis-dev1.fit.nasa.gov
   when: manual
   extends: .deploy-template
+
+nuke-dev1-db:
+  tags: ["emss-aegis-dev1"]
+  needs: []
+  environment:
+    name: development1
+    url: https://aegis-dev1.fit.nasa.gov
+  when: manual
+  stage: stageless
+  timeout: 10 minutes
+  variables:
+    GIT_STRATEGY: none
+
+  script:
+    - cd /opt/aegis
+    # wipe all tables, run all migrations, run the seeder
+    - docker compose exec nextjs npx mikro-orm migration:fresh --seed
