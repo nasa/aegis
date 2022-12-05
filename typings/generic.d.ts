@@ -39,9 +39,17 @@ interface MapView {
 /**
  * From MapSelector component
  */
-type ExpandedSection = {
+type MapExpandedSections = {
   systemPresets: boolean;
   userPresets: boolean;
   details: boolean;
 };
-type SetExpandedSectionsFn = (expandedSection: ExpandedSection) => void;
+type SetMapExpandedSectionsFn = (mapExpandedSections: MapExpandedSections) => void;
+
+/**
+ * From POISelector component
+ */
+type POIExpandedSections = {
+  pois: boolean;
+};
+type SetPOIExpandedSectionsFn = (poiExpandedSections: POIExpandedSections) => void;

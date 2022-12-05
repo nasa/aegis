@@ -7,8 +7,8 @@ import { useSelector } from "react-redux";
 import { RootState } from "../../../store";
 
 const UserMapImageryPresets: FunctionComponent<{
-  expandedSections: ExpandedSection;
-  setExpandedSections: SetExpandedSectionsFn;
+  expandedSections: MapExpandedSections;
+  setExpandedSections: SetMapExpandedSectionsFn;
 }> = ({ expandedSections, setExpandedSections }) => {
   // const placeholderPresets = {
   //   user1: {

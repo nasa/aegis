@@ -49,6 +49,7 @@
   border-radius: var(--radius);
   font-size: 0.9em;
   padding: 3px 2px 3px 5px;
+  cursor: pointer;
 }
 
 .nameSelected {
@@ -57,9 +58,13 @@
   cursor: pointer;
 }
 
+.nameSelected:hover {
+  background-color: var(--poi) !important;
+  color: black !important;
+}
+
 .name:hover {
   background-color: var(--grey1);
-  cursor: pointer;
 }
 
 .poiRightSpacer {

@@ -26,7 +26,7 @@ import {
 const MapSelector: FunctionComponent = () => {
   const missionState = useSelector((state: RootState) => state.mission);
   const layerControls = useSelector((state: RootState) => state.map?.layerControls);
-  const [expandedSections, setExpandedSections] = useState({
+  const [expandedSections, setExpandedSections] = useState<MapExpandedSections>({
     systemPresets: true,
     userPresets: false,
     details: true,
@@ -57,7 +57,7 @@ export default MapSelector;
 const DetailedSettings: FunctionComponent<{
   missionState: MissionState;
   layerControls: LayerControls;
-  expandedSections: ExpandedSection;
+  expandedSections: MapExpandedSections;
   setExpandedSections: any;
 }> = ({ missionState, layerControls, expandedSections, setExpandedSections }) => {
   const dispatch = useDispatch();

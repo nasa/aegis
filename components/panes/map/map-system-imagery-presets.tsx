@@ -17,8 +17,8 @@ const Child = ({ id, isSelected, text }) => {
 };
 
 const SystemMapImageryPresets: FunctionComponent<{
-  expandedSections: ExpandedSection;
-  setExpandedSections: SetExpandedSectionsFn;
+  expandedSections: MapExpandedSections;
+  setExpandedSections: SetMapExpandedSectionsFn;
 }> = ({ expandedSections, setExpandedSections }) => {
   const placeholderPresets = [
     {

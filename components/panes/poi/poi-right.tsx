@@ -190,16 +190,18 @@ const PoiEditorRight: FunctionComponent = () => {
             })}
           </div>
           <div className={paneStyles.saveCancelContainer}>
-            <div className={paneStyles.verticalCenter}>
-              <IconButton
-                icon={faTrashAlt}
-                onClick={() => {
-                  handleDelete();
-                }}
-                label="Delete POI"
-                style={{ width: "95px" }}
-              />
-            </div>
+            {poisEditing.includes(selectedPoiUuid) && (
+              <div className={paneStyles.verticalCenter}>
+                <IconButton
+                  icon={faTrashAlt}
+                  onClick={() => {
+                    handleDelete();
+                  }}
+                  label="Delete POI"
+                  style={{ width: "95px" }}
+                />
+              </div>
+            )}
             {!poisEditing.includes(selectedPoiUuid) && (
               <div className={paneStyles.verticalCenter}>
                 <IconButton

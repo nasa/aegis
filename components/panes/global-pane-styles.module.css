@@ -84,17 +84,27 @@
 .rightIcon {
   padding: 2px 7px;
 }
+
 .rightIconContainer {
   background: black;
   border-top: 2px solid black;
   width: 35px;
   height: 30px;
+  cursor: pointer;
 }
+.rightIconContainer:hover {
+  background: var(--grey1);
+  border-top: 2px solid var(--grey1);
+  width: 35px;
+  height: 30px;
+}
+
 .rightIconContainerSelected {
   background: var(--grey1);
   border-top: 2px solid #66def9;
   width: 35px;
   height: 30px;
+  cursor: pointer;
 }
 
 .rightTopTitle {
