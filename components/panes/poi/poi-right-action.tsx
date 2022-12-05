@@ -84,15 +84,17 @@ const Action: FunctionComponent<{ editMode: boolean; poi: POI; action: Action }>
           />
         </div>
         <div className={paneStyles.actionHeadingIcons}>
-          <FontAwesomeIcon
-            icon={faTrashAlt}
-            size="sm"
-            onClick={(e) => {
-              dispatch(deleteAction({ poi, poiAction: action }));
-              dispatch(setEditMode({ poi: selectedPoi, editMode: true }));
-              e.stopPropagation();
-            }}
-          />
+          {editMode && (
+            <FontAwesomeIcon
+              icon={faTrashAlt}
+              size="sm"
+              onClick={(e) => {
+                dispatch(deleteAction({ poi, poiAction: action }));
+                dispatch(setEditMode({ poi: selectedPoi, editMode: true }));
+                e.stopPropagation();
+              }}
+            />
+          )}
         </div>
       </div>
       {expanded && (

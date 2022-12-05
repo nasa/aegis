@@ -93,7 +93,14 @@ export const ColorDropdown: FunctionComponent<{
     }
 
     return (
-      <div className={styles.colorDropdownContainer} onClick={() => setExpanded(!expanded)}>
+      <div
+        tabIndex={0}
+        className={styles.colorDropdownContainer}
+        onClick={() => setExpanded(!expanded)}
+        onBlur={() => {
+          setExpanded(false);
+        }}
+      >
         {selectedItem}
         <span className={styles.colorSelectArrow}>
           <FontAwesomeIcon icon={faChevronDown} size="xs" />

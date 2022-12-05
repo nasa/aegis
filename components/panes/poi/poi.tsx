@@ -19,10 +19,8 @@ import {
 } from "store/poi";
 
 const PoiEditorLeft: FunctionComponent = () => {
-  const [expandedSections, setExpandedSections] = useState({
-    systemPresets: true,
-    userPresets: false,
-    details: false,
+  const [expandedSections, setExpandedSections] = useState<POIExpandedSections>({
+    pois: true,
   });
 
   return (
@@ -35,8 +33,8 @@ const PoiEditorLeft: FunctionComponent = () => {
 export default PoiEditorLeft;
 
 const PoiList: FunctionComponent<{
-  expandedSections: ExpandedSection;
-  setExpandedSections: SetExpandedSectionsFn;
+  expandedSections: POIExpandedSections;
+  setExpandedSections: SetPOIExpandedSectionsFn;
 }> = ({ expandedSections, setExpandedSections }) => {
   const dispatch = useDispatch();
   const pois = useSelector((state: RootState) => state.poi.pois);
@@ -56,12 +54,12 @@ const PoiList: FunctionComponent<{
             onClick={() =>
               setExpandedSections({
                 ...expandedSections,
-                systemPresets: !expandedSections.systemPresets,
+                pois: !expandedSections.pois,
               })
             }
           >
             <div className={styles.expandoCaret}>
-              {expandedSections.systemPresets ? (
+              {expandedSections.pois ? (
                 <FontAwesomeIcon icon={faCaretDown} size="sm" />
               ) : (
                 <FontAwesomeIcon icon={faCaretRight} size="sm" />
@@ -70,7 +68,7 @@ const PoiList: FunctionComponent<{
             <div>Mission POIs</div>
           </div>
           <div className={styles.body}>
-            {expandedSections.systemPresets &&
+            {expandedSections.pois &&
               pois.map((poi) => {
                 const poiSelected = poi.uuid === selectedPoiUuid ? styles.nameSelected : null;
                 const poiFromDb = poisFromDb.filter((poiFromDb) => poiFromDb.uuid === poi.uuid)[0];

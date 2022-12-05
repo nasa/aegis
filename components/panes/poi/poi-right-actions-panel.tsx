@@ -26,15 +26,17 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
       </div>
       <div className={paneStyles.rightBodyFooter}>
         <div className={paneStyles.panelSection}>
-          <IconButton
-            icon={faPlusCircle}
-            label="Add Action"
-            style={{ width: "100px" }}
-            onClick={() => {
-              dispatch(createBlankAction(selectedPoi));
-              dispatch(setEditMode({ poi: selectedPoi, editMode: true }));
-            }}
-          />
+          {editMode && (
+            <IconButton
+              icon={faPlusCircle}
+              label="Add Action"
+              style={{ width: "100px" }}
+              onClick={() => {
+                dispatch(createBlankAction(selectedPoi));
+                dispatch(setEditMode({ poi: selectedPoi, editMode: true }));
+              }}
+            />
+          )}
         </div>
       </div>
     </div>
