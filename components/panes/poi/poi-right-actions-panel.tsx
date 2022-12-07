@@ -5,7 +5,7 @@ import { IconButton } from "components/interface/_global-elements";
 import { useSelector, useDispatch, shallowEqual } from "react-redux";
 import { RootState } from "store";
 import { createBlankAction, setEditMode } from "store/poi";
-import Action from "./poi-right-action";
+import POIAction from "./poi-right-action";
 
 const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -21,7 +21,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
       <div className={paneStyles.rightBodyTitle}>Actions</div>
       <div className={paneStyles.rightBodyBody}>
         {selectedPoi.actions?.map((action) => (
-          <Action key={action.uuid} editMode={editMode} poi={selectedPoi} action={action} />
+          <POIAction key={action.uuid} editMode={editMode} poi={selectedPoi} action={action} />
         ))}
       </div>
       <div className={paneStyles.rightBodyFooter}>

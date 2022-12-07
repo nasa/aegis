@@ -19,7 +19,7 @@ import { toDecimal } from "utils/formatting";
 import { useSelector, useDispatch, shallowEqual } from "react-redux";
 import { RootState } from "store";
 
-const Action: FunctionComponent<{ editMode: boolean; poi: POI; action: Action }> = ({
+const RightAction: FunctionComponent<{ editMode: boolean; poi: POI; action: Action }> = ({
   editMode,
   poi,
   action,
@@ -192,4 +192,4 @@ const Action: FunctionComponent<{ editMode: boolean; poi: POI; action: Action }>
   );
 };
 
-export default Action;
+export default RightAction;

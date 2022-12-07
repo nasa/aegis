@@ -39,8 +39,9 @@ interface MapState {
   layerControls: LayerControls;
   selectedRightNavItem: string;
   mousePosition: LatLng;
-  activeLayerName: string;
-  activeLayerUUID: string;
+  activeSelectedName: string;
+  activeSelectedType: string;
+  activeSelectedUUID: string;
 }
 
 interface EvaState {
@@ -53,6 +54,12 @@ interface PoiState {
   selectedPoiUuid: string;
   selectedRightNavItem: string;
   poisEditing: string[];
+}
+
+interface PresetState {
+  presets: Preset[];
+  presetsFromDB: Preset[];
+  selectedPresetUuid: string;
 }
 
 interface InterfaceState {

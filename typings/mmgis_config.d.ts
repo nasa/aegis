@@ -104,67 +104,6 @@ interface Time {
   increment: string;
 }
 
-interface Style {
-  className: string;
-  color: string;
-  fillColor: string;
-  weight: number;
-  fillOpacity?: any;
-  opacity: number;
-}
-
-interface Variables2 {
-  useKeyAsName: string;
-}
-
-interface Time2 {
-  enabled: boolean;
-  type: string;
-  isRelative: boolean;
-  current: Date;
-  start: string;
-  end: string;
-  format: string;
-  refresh: string;
-  increment: string;
-}
-
-interface MMGISSublayer {
-  name: string;
-  kind: string;
-  type: string;
-  url: string;
-  demparser: string;
-  controlled: boolean;
-  tileformat: string;
-  visibility: boolean;
-  initialOpacity: number;
-  togglesWithHeader: boolean;
-  style: Style;
-  variables: Variables2;
-  radius: number;
-  time: Time2;
-  shape: string;
-  demtileurl: string;
-  legend: string;
-  minZoom?: number;
-  maxNativeZoom?: number;
-  maxZoom?: number;
-  boundingBox: number[];
-}
-
-interface MMGISLayer {
-  name: string;
-  type: string;
-  demparser: string;
-  controlled: boolean;
-  tileformat: string;
-  initialOpacity: number;
-  time: Time;
-  shape: string;
-  sublayers: Sublayer[];
-}
-
 interface Time3 {
   enabled: boolean;
   visible: boolean;
@@ -182,28 +121,11 @@ interface Config {
   time: Time3;
 }
 
-interface MMGISConfig {
-  id: number;
-  name: string;
-  config: Config;
-  version: number;
-  createdAt: Date;
-}
-
 interface AEGISMission {
   id: number;
   name: string;
   config: Config;
   version: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface AEGISPreset {
-  uuid: uuid;
-  owner: AEGISUser;
-  layer: AEGISLayer;
-  config: AEGISPresetValue;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -214,26 +136,6 @@ interface AEGISLayer {
   config: LayerConfig;
   createdAt: Date;
   updatedAt: Date;
-}
-
-interface AEGISPresetHistory {
-  uuid: uuid;
-  layer: AEGISLayer;
-  config: AEGISPresetValue;
-  preset_id_fk: Preset;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface AEGISPresetValue {
-  id: number;
-  name: string;
-  sublayer: number;
-  opacity: number;
-  brightness: number;
-  contrast: number;
-  saturation: number;
-  blend: string;
 }
 
 interface LayerConfig {

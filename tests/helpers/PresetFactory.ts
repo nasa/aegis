@@ -8,6 +8,10 @@ export default class PresetFactory extends Factory<Preset> {
     return {
       uuid: v4(),
       layer_id_fk: 1,
+      name: "Test Preset",
+      description: "Test Preset Description",
+      owner: 1,
+      mission: "",
       config: [
         {
           layer_group_name: "unknown",

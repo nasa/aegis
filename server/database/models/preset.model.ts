@@ -1,48 +1,34 @@
-import {
-  BeforeCreate,
-  BeforeUpdate,
-  Entity,
-  ManyToOne,
-  PrimaryKey,
-  Property,
-} from "@mikro-orm/core";
+import { Entity, ManyToOne, PrimaryKey, Property, types as MikroTypes } from "@mikro-orm/core";
 import { v4 } from "uuid";
-import { Layer } from "./layer.model";
 import { User } from "./user.model";
+import { Mission } from "./mission.model";
 
 @Entity()
-export class Preset implements AEGISPreset {
-  @PrimaryKey({ type: "string" })
+export class Preset {
+  @PrimaryKey({ type: MikroTypes.uuid })
   uuid: string = v4();
 
   @ManyToOne(() => User, { unique: false, primary: false })
   owner!: User;
 
-  @ManyToOne(() => Layer, { unique: false, primary: false })
-  layer: Layer;
+  @ManyToOne(() => Mission, { unique: false, primary: false })
+  mission!: Mission;
 
-  @Property({ type: "json", nullable: true })
-  config!: AEGISPresetValue;
+  @Property({ type: MikroTypes.boolean })
+  missionPreset: boolean = false;
 
-  @Property({ type: "date" })
+  @Property({ type: MikroTypes.string })
+  name: string;
+
+  @Property({ type: MikroTypes.string })
+  description: string;
+
+  @Property({ type: MikroTypes.json, nullable: true })
+  config!: LayerControls;
+
+  @Property({ type: MikroTypes.datetime })
   createdAt!: Date;
 
-  @Property({ type: "date" })
+  @Property({ type: MikroTypes.datetime })
   updatedAt!: Date;
-
-  constructor(config: AEGISPresetValue) {
-    this.config = config;
-  }
-
-  @BeforeUpdate()
-  async beforeUpdate(uuid: string): Promise<void> {
-    this.uuid = uuid;
-    this.updatedAt = new Date();
-  }
-
-  @BeforeCreate()
-  async beforeCreate(): Promise<void> {
-    this.createdAt = new Date();
-    this.updatedAt = new Date();
-  }
 }

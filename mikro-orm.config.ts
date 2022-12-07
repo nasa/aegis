@@ -3,7 +3,6 @@ import { Mission } from "./server/database/models/mission.model";
 import { User } from "./server/database/models/user.model";
 import { Layer } from "./server/database/models/layer.model";
 import { Preset } from "./server/database/models/preset.model";
-import { Preset_History } from "./server/database/models/preset_history.model";
 import { STM_Objective } from "./server/database/models/stm_objective.model";
 import { STM_Goal } from "./server/database/models/stm_goal.model";
 import { STM_Investigation } from "./server/database/models/stm_investigation.model";
@@ -29,25 +28,13 @@ const config: Options = {
     User,
     Layer,
     Preset,
-    Preset_History,
     STM_Objective,
     STM_Goal,
     STM_Investigation,
     Poi,
     Action,
   ],
-  entities: [
-    Mission,
-    User,
-    Layer,
-    Preset,
-    Preset_History,
-    STM_Objective,
-    STM_Goal,
-    STM_Investigation,
-    Poi,
-    Action,
-  ],
+  entities: [Mission, User, Layer, Preset, STM_Objective, STM_Goal, STM_Investigation, Poi, Action],
   debug: process.env.DEBUG === "true" || process.env.DEBUG?.includes("db"),
   allowGlobalContext: process.env.NODE_ENV === "test",
 };

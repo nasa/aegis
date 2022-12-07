@@ -1,5 +1,4 @@
 import type { IronSessionData } from "iron-session";
-
 export async function getPOIs(mission: number): Promise<WrappedResponse<POI[]>> {
   const res = await fetch(`/api/poi?missionId=${mission}`);
   const response: WrappedResponse<POI[]> = await res.json();
@@ -45,6 +44,31 @@ export async function getLayers(mission: number): Promise<WrappedResponse<AEGISL
   const response: WrappedResponse<AEGISLayer[]> = await res.json();
 
   return response;
+}
+
+export async function getPresets(mission: number): Promise<WrappedResponse<Preset[]>> {
+  const res = await fetch(`/api/preset?missionID=${mission}`);
+  const response: WrappedResponse<Preset[]> = await res.json();
+
+  return response;
+}
+
+export async function setPreset(preset: Preset): Promise<WrappedResponse<Preset>> {
+  const res = await fetch(`/api/preset`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ preset }),
+  });
+  return await res.json();
+}
+
+export async function deletePreset(presetUuid: string): Promise<WrappedResponse<Preset>> {
+  const res = await fetch(`/api/preset?uuid=${presetUuid}`, {
+    method: "DELETE",
+  });
+  return await res.json();
 }
 
 export async function isLoggedIn(): Promise<WrappedResponse<boolean>> {

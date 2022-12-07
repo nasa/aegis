@@ -8,7 +8,7 @@ import { setLayerControlStyle } from "store/map";
 
 const Settings_panel: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const activeLayerName = useSelector((state: RootState) => state.map.activeLayerName);
+  const activeLayerName = useSelector((state: RootState) => state.map.activeSelectedName);
   const layerStyle = useSelector(
     (state: RootState) => state.map.layerControls[activeLayerName].style
   );

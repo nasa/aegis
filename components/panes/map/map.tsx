@@ -6,12 +6,13 @@ import { RootState } from "store";
 import {
   toggleLayerControlExpanded,
   toggleLayerControlEnabled,
-  setActiveLayerName,
+  setActiveSelectedName,
   setSelectedRightNavItem,
-  setActiveLayerUUID,
+  setActiveSelectedUUID,
+  setActiveSelectedType,
 } from "store/map";
-import SystemMapImageryPresets from "./map-system-imagery-presets";
-import UserMapImageryPresets from "./map-user-imagery-presets";
+import SystemMapImageryPresets from "./map-system-presets";
+import PresetList from "./map-user-presets";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -38,10 +39,7 @@ const MapSelector: FunctionComponent = () => {
         expandedSections={expandedSections}
         setExpandedSections={setExpandedSections}
       />
-      <UserMapImageryPresets
-        expandedSections={expandedSections}
-        setExpandedSections={setExpandedSections}
-      />
+      <PresetList expandedSections={expandedSections} setExpandedSections={setExpandedSections} />
       <DetailedSettings
         missionState={missionState}
         layerControls={layerControls}
@@ -62,7 +60,7 @@ const DetailedSettings: FunctionComponent<{
 }> = ({ missionState, layerControls, expandedSections, setExpandedSections }) => {
   const dispatch = useDispatch();
   const [layerHover, setLayerHover] = useState<string | null>(null);
-  const activeLayerName = useSelector((state: RootState) => state.map.activeLayerName);
+  const activeLayerName = useSelector((state: RootState) => state.map.activeSelectedName);
 
   return (
     <div className={paneStyles.panelContainer}>
@@ -106,14 +104,12 @@ const DetailedSettings: FunctionComponent<{
                       layerControls[layer.config.name].expanded &&
                       layer.config.sublayers &&
                       layer.config.sublayers.map((sublayer: Sublayer) => {
-                        const sublayerStyle =
-                          sublayer.name === activeLayerName
-                            ? styles.sublayerSelected
-                            : styles.sublayer;
+                        const selectedStyle =
+                          sublayer.name === activeLayerName ? styles.selected : styles.normal;
                         return (
                           <div
                             key={`sub_${sublayer.name}`}
-                            className={sublayerStyle}
+                            className={selectedStyle}
                             onMouseOver={() => {
                               setLayerHover(sublayer.name);
                             }}
@@ -125,14 +121,15 @@ const DetailedSettings: FunctionComponent<{
                               visible={layerControls[sublayer.name].enabled}
                               onClick={() => {
                                 dispatch(toggleLayerControlEnabled(sublayer.name));
-                                dispatch(setActiveLayerUUID(layer.uuid));
+                                dispatch(setActiveSelectedUUID(layer.uuid));
                               }}
                             />
                             <div
                               className={styles.sublayerTitle}
                               onClick={() => {
-                                dispatch(setActiveLayerName(sublayer.name));
-                                dispatch(setActiveLayerUUID(layer.uuid));
+                                dispatch(setActiveSelectedName(sublayer.name));
+                                dispatch(setActiveSelectedUUID(layer.uuid));
+                                dispatch(setActiveSelectedType("layer"));
                                 dispatch(setSelectedRightNavItem("settings_panel"));
                               }}
                             >
@@ -143,8 +140,9 @@ const DetailedSettings: FunctionComponent<{
                                 <div
                                   className={styles.sublayerToolIcon}
                                   onClick={() => {
-                                    dispatch(setActiveLayerName(sublayer.name));
-                                    dispatch(setActiveLayerUUID(layer.uuid));
+                                    dispatch(setActiveSelectedName(sublayer.name));
+                                    dispatch(setActiveSelectedUUID(layer.uuid));
+                                    dispatch(setActiveSelectedType("layer"));
                                     dispatch(setSelectedRightNavItem("information_panel"));
                                   }}
                                 >
@@ -153,8 +151,9 @@ const DetailedSettings: FunctionComponent<{
                                 <div
                                   className={styles.sublayerToolIcon}
                                   onClick={() => {
-                                    dispatch(setActiveLayerName(sublayer.name));
-                                    dispatch(setActiveLayerUUID(layer.uuid));
+                                    dispatch(setActiveSelectedName(sublayer.name));
+                                    dispatch(setActiveSelectedUUID(layer.uuid));
+                                    dispatch(setActiveSelectedType("layer"));
                                     dispatch(setSelectedRightNavItem("settings_panel"));
                                   }}
                                 >

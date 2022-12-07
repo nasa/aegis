@@ -1,5 +1,4 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { Preset } from "../server/database/models/preset.model";
 
 export const initialState: MissionState = {
   mission: null,
@@ -27,4 +26,4 @@ export const missionSlice = createSlice({
   },
 });
 
-export const { setMission, setLayers } = missionSlice.actions;
+export const { setMission, setLayers, setPresets } = missionSlice.actions;

@@ -3,9 +3,10 @@ import { createSlice } from "@reduxjs/toolkit";
 export const initialState: MapState = {
   layerControls: null,
   mousePosition: null,
-  selectedRightNavItem: "information_panel",
-  activeLayerName: null,
-  activeLayerUUID: null,
+  selectedRightNavItem: null,
+  activeSelectedName: null,
+  activeSelectedUUID: null,
+  activeSelectedType: null,
 };
 
 export const mapSlice = createSlice({
@@ -30,11 +31,14 @@ export const mapSlice = createSlice({
     setSelectedRightNavItem: (state, action: { payload: string }) => {
       state.selectedRightNavItem = action.payload;
     },
-    setActiveLayerName: (state, action: { payload: string }) => {
-      state.activeLayerName = action.payload;
+    setActiveSelectedType: (state, action: { payload: string }) => {
+      state.activeSelectedType = action.payload;
     },
-    setActiveLayerUUID: (state, action: { payload: string }) => {
-      state.activeLayerUUID = action.payload;
+    setActiveSelectedName: (state, action: { payload: string }) => {
+      state.activeSelectedName = action.payload;
+    },
+    setActiveSelectedUUID: (state, action: { payload: string }) => {
+      state.activeSelectedUUID = action.payload;
     },
   },
 });
@@ -45,8 +49,9 @@ export const {
   toggleLayerControlEnabled,
   setLayerControlStyle,
   setSelectedRightNavItem,
-  setActiveLayerName,
-  setActiveLayerUUID,
+  setActiveSelectedName,
+  setActiveSelectedUUID,
+  setActiveSelectedType,
 } = mapSlice.actions;
 
 export default mapSlice.reducer;
