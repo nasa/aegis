@@ -10,6 +10,7 @@ import { evaSlice, initialState as evaInitialState } from "./eva";
 import { poiSlice, initialState as poiInitialState } from "./poi";
 import { interfaceSlice, initialState as interfaceInitialState } from "./interface";
 import { stmSlice, initialState as stmInitialState } from "./stm";
+import { presetSlice, initialState as presetInitialState } from "./preset";
 
 let store;
 
@@ -23,6 +24,7 @@ export const initialState = {
   poi: poiInitialState,
   interface: interfaceInitialState,
   stm: stmInitialState,
+  preset: presetInitialState,
 };
 
 export const reducer = combineReducers({
@@ -35,6 +37,7 @@ export const reducer = combineReducers({
   poi: poiSlice.reducer,
   interface: interfaceSlice.reducer,
   stm: stmSlice.reducer,
+  preset: presetSlice.reducer,
 });
 export type RootState = ReturnType<typeof reducer>;
 

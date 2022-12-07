@@ -36,7 +36,7 @@
   display: flex;
 }
 
-.sublayer {
+.normal {
   display: flex;
   flex-direction: row;
   margin-left: 8px;
@@ -54,7 +54,7 @@
   cursor: pointer;
 }
 
-.sublayerSelected {
+.selected {
   display: flex;
   flex-direction: row;
   margin-left: 8px;
@@ -180,4 +180,12 @@
   background: #66def9;
   border-radius: 5px;
   color: black;
+}
+
+.message {
+  position: relative;
+  top:-5px;
+  left: 5px;
+  font-size: 11px;
+  color: red;
 }

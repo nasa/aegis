@@ -3,7 +3,11 @@
  */
 // The parameter types here are too restrictive and are only here because of the linting rule enforcing that this
 // can't be a general function accepting any type of object with uuids in it.
-export function upsertByUuid(array: (POI | Action)[], element: POI | Action): (POI | Action)[] {
+
+export function upsertByUuid(
+  array: (POI | Action | Preset)[],
+  element: POI | Action | Preset
+): (POI | Action | Preset)[] {
   // (1)
   const i = array.findIndex((_element) => _element.uuid === element.uuid);
   if (i > -1) array[i] = element;

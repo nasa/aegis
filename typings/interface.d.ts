@@ -15,6 +15,7 @@ interface PanelType {
   panel: FunctionComponent;
   color: string;
   icon: IconProp;
+  panelGroup?: string[];
 }
 
 interface PanelTypes {

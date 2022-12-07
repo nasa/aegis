@@ -7,6 +7,17 @@ type Point = {
   elevation?: number;
 };
 
+type Preset = {
+  uuid: string;
+  name: string;
+  description: string;
+  owner: number;
+  mission: number;
+  config: json;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
 /**
  * "Planets" allowed by this app
  */
