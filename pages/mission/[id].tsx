@@ -11,6 +11,8 @@ import { faChevronRight, faChevronLeft } from "@fortawesome/free-solid-svg-icons
 import { useRouter } from "next/router";
 import { upsertPois, upsertPoisFromDb } from "store/poi";
 import * as InternalAPI from "../../http-client/internal-api";
+import { getMissions } from "http-client/mission";
+import { getLayers } from "http-client/layer";
 import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/user";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
@@ -68,15 +70,15 @@ const Main: NextPage = () => {
       const { id } = router.query;
       if (!missionPage.mission) {
         if (typeof id === "string") {
-          const missionData = await InternalAPI.getMission(parseInt(id as string));
+          const missionData = await getMissions(parseInt(id as string));
           if (missionData.data) {
-            dispatch(setMission(missionData.data));
+            dispatch(setMission(missionData.data[0]));
           }
         }
       }
       if (!missionPage.layers) {
         if (typeof id === "string") {
-          const layerData = await InternalAPI.getLayers(parseInt(id as string));
+          const layerData = await getLayers(parseInt(id as string));
           if (layerData.data) {
             await dispatch(setLayers(layerData.data));
           }
@@ -85,16 +87,16 @@ const Main: NextPage = () => {
       if (!layerData && missionPage.layers !== null && typeof missionPage.layers !== "undefined") {
         const controls: LayerControls = {};
         missionPage.layers.map((configLayer) => {
-          controls[configLayer.config.name] = {
-            name: configLayer.config.name,
+          controls[configLayer.layerConfig.name] = {
+            name: configLayer.layerConfig.name,
             enabled: false,
-            type: configLayer.config.type,
+            type: configLayer.layerConfig.type,
             expanded: false,
             mapLayerRef: null,
             style: null,
           };
-          if (configLayer.config.sublayers) {
-            configLayer.config.sublayers.map((sublayer) => {
+          if (configLayer.layerConfig.sublayers) {
+            configLayer.layerConfig.sublayers.map((sublayer) => {
               controls[sublayer.name] = {
                 name: sublayer.name,
                 enabled: false,

@@ -62,7 +62,7 @@ export async function deleteSTM(
   missionId: number,
   uuid: string,
   stmType: "Objective" | "Goal" | "Investigation"
-): Promise<WrappedResponse<null>> {
+): Promise<WrappedResponse<any>> {
   const stmParam: string = stmType.charAt(0).toLowerCase();
 
   const res = await fetch(
@@ -71,6 +71,6 @@ export async function deleteSTM(
       method: "DELETE",
     }
   );
-  const response: WrappedResponse<null> = await res.json();
+  const response: WrappedResponse<any> = await res.json();
   return response;
 }

@@ -40,7 +40,7 @@ export const presetSlice = createSlice({
         name: action.payload.presetName,
         owner: action.payload.userId,
         mission: action.payload.missionId,
-        config: action.payload.layerControls,
+        layerControls: action.payload.layerControls,
         createdAt: new Date(),
         updatedAt: new Date(),
       };

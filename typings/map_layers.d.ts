@@ -18,3 +18,12 @@ interface LayerControlStyle {
 interface LayerControls {
   [key: string]: LayerControl;
 }
+
+/** Represents the DB structure for the Layer table */
+interface Layer {
+  uuid?: string;
+  mission: number;
+  layerConfig: MMGIS_LayerConfig; //layers from the mmgis config
+  createdAt?: Date;
+  updatedAt?: Date;
+}

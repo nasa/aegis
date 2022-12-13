@@ -7,24 +7,24 @@ import reducer, {
 import { setLayers } from "../../store/mission";
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import Mikro from "../../utils/mikro";
-import { getAllLayersByMission } from "../../pages/api/layer/[id]";
+import { getLayers } from "../../pages/api/layer";
 import UserFactory from "../helpers/UserFactory";
 import MissionFactory from "../helpers/MissionFactory";
-import { Mission } from "../../server/database/models/mission.model";
-import { User } from "../../server/database/models/user.model";
-import { Layer } from "../../server/database/models/layer.model";
+import { Mission as Mission_db } from "../../server/database/models/mission.model";
+import { User as User_db } from "../../server/database/models/user.model";
+import { Layer as Layer_db } from "../../server/database/models/layer.model";
 import LayerFactory from "../helpers/LayerFactory";
 
-let testMission: Mission;
-let testAdmin: User;
-let testLayer: Layer[];
+let testMission: Mission_db;
+let testAdmin: User_db;
+let testLayer: Layer_db[];
 
 beforeAll(async () => {
   await Mikro.getORM();
-  const model = await Mikro.getEM();
-  testAdmin = await new UserFactory(model).createOne();
-  testMission = await new MissionFactory(model).createOne();
-  testLayer = await new LayerFactory(model)
+  const em = Mikro.getEM();
+  testAdmin = await new UserFactory(em).createOne();
+  testMission = await new MissionFactory(em).createOne();
+  testLayer = await new LayerFactory(em)
     .each((layer) => {
       layer.mission = testMission;
     })
@@ -48,21 +48,21 @@ describe("Map and MMGIS Reducer: ", () => {
 
   it("Set the State when loading Map layer", async () => {
     // Arrange
-    const layers = await getAllLayersByMission(testMission.id);
-    const configLayers = await setLayers(layers as AEGISLayer[]);
+    const layers: Layer[] = await getLayers(testMission.id);
+    const configLayers = setLayers(layers);
     const controls: LayerControls = {};
     // Act
     configLayers.payload.map((configLayer) => {
-      controls[configLayer.config.name] = {
-        name: configLayer.config.name,
+      controls[configLayer.layerConfig.name] = {
+        name: configLayer.layerConfig.name,
         enabled: false,
-        type: configLayer.config.type,
+        type: configLayer.layerConfig.type,
         expanded: false,
         mapLayerRef: null,
         style: null,
       };
-      if (configLayer.config.sublayers) {
-        configLayer.config.sublayers.map((sublayer) => {
+      if (configLayer.layerConfig.sublayers) {
+        configLayer.layerConfig.sublayers.map((sublayer) => {
           controls[sublayer.name] = {
             name: sublayer.name,
             enabled: false,
@@ -89,7 +89,7 @@ describe("Map and MMGIS Reducer: ", () => {
       type: "map/toggleLayerControlExpanded",
     };
 
-    const nextLayerControls = await reducer(initialState, setLayerControls(controls));
+    const nextLayerControls = reducer(initialState, setLayerControls(controls));
     expect(setLayerControls(nextLayerControls.layerControls)).toMatchObject(newControls);
     expect(toggleLayerControlEnabled("Basemaps")).toMatchObject(newToggleLayerControlEnabled);
     expect(toggleLayerControlExpanded("Basemaps")).toMatchObject(newToggleLayerControlExpanded);
@@ -100,10 +100,10 @@ describe("Map and MMGIS Reducer: ", () => {
 afterAll(async () => {
   //Cleanup our Database
   await Mikro.getORM();
-  const model = await Mikro.getEM();
-  await model.nativeDelete(Layer, { uuid: testLayer[0].uuid });
-  await model.nativeDelete(Mission, { id: testMission.id });
-  await model.nativeDelete(User, { id: testAdmin.id });
+  const em = Mikro.getEM();
+  await em.nativeDelete(Layer_db, { uuid: testLayer[0].uuid });
+  await em.nativeDelete(Mission_db, { id: testMission.id });
+  await em.nativeDelete(User_db, { id: testAdmin.id });
   // Closing the DB connection allows Jest to exit successfully.
   await Mikro.closeORM();
 });

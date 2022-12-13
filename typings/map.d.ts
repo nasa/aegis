@@ -13,7 +13,7 @@ type Preset = {
   description: string;
   owner: number;
   mission: number;
-  config: json;
+  layerControls: LayerControls;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -80,56 +80,4 @@ type DrawingFeatureGroup = {
   description: string;
   features: DrawingFeature[];
   planet: Planet;
-};
-
-/**
- * Categorized groups of externally loaded map layer data (e.g. tilesets or vectors) NOT drawn things.
- */
-type LayerGroup = {
-  name: string;
-  layers: TileLayer[] | VectorLayer[];
-};
-
-/**
- * Map layer data (e.g. tilesets or vectors) NOT drawn things.
- */
-type Layer = {
-  type: string;
-  sublayers: Sublayer[];
-  name: string;
-  createdOn: Date;
-  description: string;
-  initialOpacity: number;
-  opacity: number;
-  url: string;
-  visible: boolean;
-};
-
-/**
- * A map layer consisting of a tileset.
- */
-type TileLayer = Layer & {
-  type: "TileLayer";
-  tileFormat: "tms" | "wmts";
-  demTileUrl: string;
-  legendUrl: string;
-  minZoom: number;
-  maxNativeZoom: number;
-  maxZoom: number;
-  boundingBox: number[];
-};
-
-/**
- * A map layer consisting of a geoJSON vector data set.
- */
-type VectorLayer = Layer & {
-  type: "VectorLayer";
-  vectorLayerStyle: VectorLayerStyle;
-};
-
-type VectorLayerStyle = {
-  color: string;
-  fillColor: string;
-  weight: number;
-  fillOpacity?: any;
 };

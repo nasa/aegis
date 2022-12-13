@@ -82,28 +82,28 @@ const DetailedSettings: FunctionComponent<{
         </div>
         <div className={styles.layersBody}>
           {missionState && layerControls && expandedSections.details ? (
-            missionState?.layers.map((layer: AEGISLayer) => {
+            missionState?.layers.map((layer: Layer) => {
               return (
-                <div className={styles.layerGroup} key={layer.config.name}>
+                <div className={styles.layerGroup} key={layer.layerConfig.name}>
                   <div className={styles.layer}>
                     <div
                       className={styles.expandoCaret}
-                      onClick={() => dispatch(toggleLayerControlExpanded(layer.config.name))}
+                      onClick={() => dispatch(toggleLayerControlExpanded(layer.layerConfig.name))}
                     >
                       {layerControls &&
-                        (layerControls[layer.config.name].expanded ? (
+                        (layerControls[layer.layerConfig.name].expanded ? (
                           <FontAwesomeIcon icon={faCaretDown} size="sm" />
                         ) : (
                           <FontAwesomeIcon icon={faCaretRight} size="sm" />
                         ))}
                     </div>
-                    <div className={styles.layerName}>{layer.config.name}</div>
+                    <div className={styles.layerName}>{layer.layerConfig.name}</div>
                   </div>
                   <div className={styles.layerSublayers}>
                     {layerControls &&
-                      layerControls[layer.config.name].expanded &&
-                      layer.config.sublayers &&
-                      layer.config.sublayers.map((sublayer: Sublayer) => {
+                      layerControls[layer.layerConfig.name].expanded &&
+                      layer.layerConfig.sublayers &&
+                      layer.layerConfig.sublayers.map((sublayer: MMGIS_Sublayer) => {
                         const selectedStyle =
                           sublayer.name === activeLayerName ? styles.selected : styles.normal;
                         return (

@@ -25,27 +25,6 @@ export async function deletePOI(poiUuid: string): Promise<WrappedResponse<null>>
   return response;
 }
 
-export async function getMissions(): Promise<WrappedResponse<AEGISMission[]>> {
-  const res = await fetch(`/api/mission/missions`);
-  const response: WrappedResponse<AEGISMission[]> = await res.json();
-
-  return response;
-}
-
-export async function getMission(mission: number): Promise<WrappedResponse<AEGISMission>> {
-  const res = await fetch(`/api/mission/${mission}`);
-  const response: WrappedResponse<AEGISMission> = await res.json();
-
-  return response;
-}
-
-export async function getLayers(mission: number): Promise<WrappedResponse<AEGISLayer[]>> {
-  const res = await fetch(`/api/layer/${mission}`);
-  const response: WrappedResponse<AEGISLayer[]> = await res.json();
-
-  return response;
-}
-
 export async function getPresets(mission: number): Promise<WrappedResponse<Preset[]>> {
   const res = await fetch(`/api/preset?missionID=${mission}`);
   const response: WrappedResponse<Preset[]> = await res.json();

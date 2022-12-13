@@ -4,22 +4,22 @@ import "@testing-library/jest-dom";
 import Mikro from "../../utils/mikro";
 import UserFactory from "../helpers/UserFactory";
 import MissionFactory from "../helpers/MissionFactory";
-import { Mission } from "../../server/database/models/mission.model";
-import { User } from "../../server/database/models/user.model";
-import { getAllLayersByMission } from "../../pages/api/layer/[id]";
+import { getLayers } from "../../pages/api/layer";
 import LayerFactory from "../helpers/LayerFactory";
-import { Layer } from "../../server/database/models/layer.model";
+import { Mission as Mission_db } from "../../server/database/models/mission.model";
+import { User as User_db } from "../../server/database/models/user.model";
+import { Layer as Layer_db } from "../../server/database/models/layer.model";
 
-let testMission: Mission;
-let testAdmin: User;
-let testLayer: Layer[];
+let testMission: Mission_db;
+let testAdmin: User_db;
+let testLayer: Layer_db[];
 
 beforeAll(async () => {
   await Mikro.getORM();
-  const model = await Mikro.getEM();
-  testAdmin = await new UserFactory(model).createOne();
-  testMission = await new MissionFactory(model).createOne();
-  testLayer = await new LayerFactory(model)
+  const em = Mikro.getEM();
+  testAdmin = await new UserFactory(em).createOne();
+  testMission = await new MissionFactory(em).createOne();
+  testLayer = await new LayerFactory(em)
     .each((layer) => {
       layer.mission = testMission;
     })
@@ -29,14 +29,14 @@ beforeAll(async () => {
 
 describe("Preset Controls and API: ", () => {
   // Expect a return of all layers for mission
-  test("Expect If Mission Layer is empty to return null", async () => {
-    const layers = await getAllLayersByMission(99999);
+  test("Expect If Mission Layer is empty to return empty", async () => {
+    const layers: Layer[] = await getLayers(99999);
     await Mikro.closeORM();
-    expect(layers).toBeNull();
+    expect(layers.length).toEqual(0);
   });
 
   test("Expect If Mission Layer is not empty to return layers", async () => {
-    const layers = await getAllLayersByMission(testMission.id);
+    const layers: Layer[] = await getLayers(testMission.id);
     expect(layers).not.toBeNull();
   });
 });
@@ -44,10 +44,10 @@ describe("Preset Controls and API: ", () => {
 afterAll(async () => {
   //Cleanup our Database
   await Mikro.getORM();
-  const model = await Mikro.getEM();
-  await model.nativeDelete(Layer, { uuid: testLayer[0].uuid });
-  await model.nativeDelete(Mission, { id: testMission.id });
-  await model.nativeDelete(User, { id: testAdmin.id });
+  const em = Mikro.getEM();
+  await em.nativeDelete(Layer_db, { uuid: testLayer[0].uuid });
+  await em.nativeDelete(Mission_db, { id: testMission.id });
+  await em.nativeDelete(User_db, { id: testAdmin.id });
   // Closing the DB connection allows Jest to exit successfully.
   await Mikro.closeORM();
 });
