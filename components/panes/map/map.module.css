@@ -8,6 +8,7 @@
   flex-direction: row;
   font-weight: 700;
   margin-top: 5px;
+  margin-left: 5px;
   user-select: none;
 }
 
@@ -20,7 +21,7 @@
   font-style: normal;
   font-weight: 400;
   font-size: 16px;
-  margin: 5px 0 10px 0;
+  margin: 5px 0 10px 5px;
   display: flex;
   align-items: center;
   color: #ffffff;
@@ -29,6 +30,7 @@
 .layerGroup {
   padding-top: 6px;
   padding-bottom: 6px;
+  margin-right: 5px;
   user-select: none;
 }
 
@@ -36,10 +38,9 @@
   display: flex;
 }
 
-.normal {
+.presetItem {
   display: flex;
   flex-direction: row;
-  margin-left: 8px;
   padding-left: 6px;
   margin-top: 2px;
   margin-bottom: 2px;
@@ -47,27 +48,17 @@
   padding-bottom: 4px;
   border-radius: var(--radius);
   font-size: 0.9em;
+  height: 24px;
+  cursor: pointer;
+}
+
+.presetItemSelected {
+  background-color: var(--map);
+  color: black;
 }
 
 .sublayer:hover {
   background-color: var(--grey1);
-  cursor: pointer;
-}
-
-.selected {
-  display: flex;
-  flex-direction: row;
-  margin-left: 8px;
-  padding-left: 6px;
-  margin-top: 2px;
-  margin-bottom: 2px;
-  padding-top: 4px;
-  padding-bottom: 4px;
-  border-radius: var(--radius);
-  font-size: 0.9em;
-
-  background-color: var(--map);
-  color: black;
   cursor: pointer;
 }
 
@@ -94,6 +85,7 @@
   margin-left: 1px;
   margin-right: 1px;
   cursor: pointer;
+  height: 100%;
 }
 
 .sublayerToolIcon:hover {
@@ -166,6 +158,7 @@
   background: #616574;
   border-radius: 5px;
   cursor: pointer;
+  user-select: none;
 }
 
 .presetHighlight {
@@ -184,7 +177,7 @@
 
 .message {
   position: relative;
-  top:-5px;
+  top: -5px;
   left: 5px;
   font-size: 11px;
   color: red;

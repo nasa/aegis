@@ -72,6 +72,12 @@ const PresetList: FunctionComponent<{
   };
 
   const handleClick = async (currentPreset: Preset) => {
+    if (currentPreset.uuid === activePresetUUID) {
+      dispatch(setActiveSelectedUUID(null));
+      dispatch(setActiveSelectedName(null));
+      return;
+    }
+
     dispatch(setActiveSelectedUUID(currentPreset.uuid));
     dispatch(setActiveSelectedName(currentPreset.name));
     dispatch(setLayerControls(currentPreset.layerControls));
@@ -123,58 +129,56 @@ const PresetList: FunctionComponent<{
         </div>
         <div className={styles.layersBody}>
           {expandedSections.userPresets ? (
-            <div className={styles.layersList}>
+            <>
               <div className={styles.layerGroup}>
-                <div className={styles.layerSublayers}>
-                  {presets ? (
-                    Object.keys(presets).map((key) => {
-                      const currentPreset = presets[key];
-                      const selectedStyle =
-                        currentPreset.uuid === activePresetUUID ? styles.selected : styles.normal;
-                      return (
+                {presets ? (
+                  Object.keys(presets).map((key) => {
+                    const currentPreset = presets[key];
+                    const selectedStyle =
+                      currentPreset.uuid === activePresetUUID ? styles.presetItemSelected : null;
+                    return (
+                      <div
+                        key={`sub_${currentPreset.name}`}
+                        className={`${styles.presetItem} ${selectedStyle}`}
+                        onMouseOver={() => {
+                          setLayerHover(currentPreset.name);
+                        }}
+                        onMouseOut={() => {
+                          setLayerHover(null);
+                        }}
+                      >
                         <div
-                          key={`sub_${currentPreset.name}`}
-                          className={selectedStyle}
-                          onMouseOver={() => {
-                            setLayerHover(currentPreset.name);
-                          }}
-                          onMouseOut={() => {
-                            setLayerHover(null);
-                          }}
+                          className={styles.sublayerTitle}
+                          onClick={() => handleClick(currentPreset)}
                         >
-                          <div
-                            className={styles.sublayerTitle}
-                            onClick={() => handleClick(currentPreset)}
-                          >
-                            {currentPreset.name}
-                          </div>
-                          {layerHover === currentPreset.name && (
-                            <div className={styles.sublayerToolIcons}>
-                              <div
-                                className={styles.sublayerToolIcon}
-                                onClick={() => {
-                                  handleSave(currentPreset);
-                                }}
-                              >
-                                <FontAwesomeIcon icon={faSave} />
-                              </div>
-                              <div
-                                className={styles.sublayerToolIcon}
-                                onClick={() => {
-                                  handleDelete(currentPreset.uuid);
-                                }}
-                              >
-                                <FontAwesomeIcon icon={faTrashCan} />
-                              </div>
-                            </div>
-                          )}
+                          {currentPreset.name}
                         </div>
-                      );
-                    })
-                  ) : (
-                    <div>No Presets</div>
-                  )}
-                </div>
+                        {layerHover === currentPreset.name && (
+                          <div className={styles.sublayerToolIcons}>
+                            <div
+                              className={styles.sublayerToolIcon}
+                              onClick={() => {
+                                handleSave(currentPreset);
+                              }}
+                            >
+                              <FontAwesomeIcon icon={faSave} size="sm" />
+                            </div>
+                            <div
+                              className={styles.sublayerToolIcon}
+                              onClick={() => {
+                                handleDelete(currentPreset.uuid);
+                              }}
+                            >
+                              <FontAwesomeIcon icon={faTrashCan} size="sm" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div>No Presets</div>
+                )}
               </div>
               <div className={styles.layerItem}>
                 <div className={styles.presetDetail}>
@@ -199,7 +203,7 @@ const PresetList: FunctionComponent<{
                 </div>
               </div>
               {addPresetErrorMessage && <span className={styles.message}>There was an error</span>}
-            </div>
+            </>
           ) : null}
         </div>
       </div>

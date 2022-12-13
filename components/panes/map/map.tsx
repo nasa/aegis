@@ -105,11 +105,11 @@ const DetailedSettings: FunctionComponent<{
                       layer.layerConfig.sublayers &&
                       layer.layerConfig.sublayers.map((sublayer: MMGIS_Sublayer) => {
                         const selectedStyle =
-                          sublayer.name === activeLayerName ? styles.selected : styles.normal;
+                          sublayer.name === activeLayerName ? styles.presetItemSelected : null;
                         return (
                           <div
                             key={`sub_${sublayer.name}`}
-                            className={selectedStyle}
+                            className={`${styles.presetItem} ${selectedStyle}`}
                             onMouseOver={() => {
                               setLayerHover(sublayer.name);
                             }}
@@ -133,7 +133,7 @@ const DetailedSettings: FunctionComponent<{
                                 dispatch(setSelectedRightNavItem("settings_panel"));
                               }}
                             >
-                              {sublayer.name} ({sublayer.type}) {layer.uuid}
+                              {sublayer.name} ({sublayer.type})
                             </div>
                             {layerHover === sublayer.name && (
                               <div className={styles.sublayerToolIcons}>

@@ -33,19 +33,19 @@ const panelTypes: PanelTypes = {
   information_panel: {
     title: "POI Information",
     panel: Info_Panel,
-    color: "var(--map)",
+    color: "var(--poi)",
     icon: faCircleInfo,
   },
   actions_panel: {
     title: "POI Actions",
     panel: Actions_Panel,
-    color: "var(--map)",
+    color: "var(--poi)",
     icon: faPersonDigging,
   },
   reports_panel: {
     title: "POI Reports",
     panel: Reports_Panel,
-    color: "var(--map)",
+    color: "var(--poi)",
     icon: faMagnifyingGlassChart,
   },
 };

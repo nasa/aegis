@@ -62,7 +62,7 @@ const Settings_panel: FunctionComponent = () => {
 
   return (
     <div className={paneStyles.rightBody}>
-      <div className={paneStyles.title}>Settings</div>
+      <div className={paneStyles.rightBodyTitle}>Settings</div>
       <div className={paneStyles.panelContainer}>
         <div className={paneStyles.subTitle}>Image Adjustments</div>
         <div className={styles.listItem}>
