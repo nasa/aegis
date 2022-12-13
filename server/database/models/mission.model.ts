@@ -1,34 +1,19 @@
-import { Entity, PrimaryKey, Property } from "@mikro-orm/core";
-
-type MissionModel = {
-  id: number;
-  name: string;
-  config: Config;
-  version: number;
-  createdAt: Date;
-  updatedAt: Date;
-};
+import { Entity, PrimaryKey, Property, types as MikroTypes } from "@mikro-orm/core";
 
 @Entity()
-export class Mission implements MissionModel {
-  @PrimaryKey({ type: "number" })
+export class Mission {
+  @PrimaryKey({ type: MikroTypes.integer })
   id!: number;
 
-  @Property({ type: "string" })
+  @Property({ type: MikroTypes.string })
   name!: string;
-  @Property({ type: "json", nullable: true })
+  @Property({ type: MikroTypes.json, nullable: true })
   config!: Config;
-  @Property({ type: "number" })
+  @Property({ type: MikroTypes.integer })
   version!: number;
-  @Property({ type: "date" })
+
+  @Property({ type: MikroTypes.datetime })
   createdAt!: Date;
-
-  @Property({ type: "date" })
+  @Property({ type: MikroTypes.datetime })
   updatedAt!: Date;
-
-  constructor(mission: string, config: Config, version: number) {
-    this.name = mission;
-    this.config = config;
-    this.version = version;
-  }
 }

@@ -1,30 +1,46 @@
-interface Radius {
+/**
+ * This file contains typings for the MMGIS Config JSON object.
+ */
+
+//Represents the config object from MMGIS
+interface MMGIS_config {
+  msv: MMGIS_Msv;
+  projection: MMGIS_Projection;
+  look: MMGIS_Look;
+  panels: string[];
+  panelSettings: MMGIS_PanelSettings;
+  tools: MMGIS_Tool[];
+  layers: MMGIS_LayerConfig[];
+  time: MMGIS_Time3;
+}
+
+interface MMGIS_Radius {
   major: string;
   minor: string;
 }
 
-interface Msv {
+interface MMGIS_Msv {
   mission: string;
   site: string;
   masterdb: boolean;
   view: string[];
-  radius: Radius;
+  radius: MMGIS_Radius;
   mapscale: string;
 }
 
-interface Projection {
+interface MMGIS_Projection {
   custom: boolean;
   epsg: string;
   proj: string;
   xmlpath: string;
   bounds: string[];
   origin: string[];
-  reszoomlevel: string;
-  resunitsperpixel: string;
+  reszoomlevel: number;
+  resunitsperpixel: number;
   globeproj?: "webmercator"; // added because it exists in one place in DatabaseSeeder
 }
 
-interface Look {
+interface MMGIS_Look {
   pagename: string;
   minimalist: boolean;
   zoomcontrol: boolean;
@@ -59,40 +75,21 @@ interface Look {
   swap?: boolean; // added because it exists in one place in DatabaseSeeder
 }
 
-interface PanelSettings {
+interface MMGIS_PanelSettings {
   demFallbackPath: string;
-  demFallbackFormat?: any;
-  demFallbackType?: any;
+  demFallbackFormat: string | null;
+  demFallbackType: string | null;
 }
 
-interface Site {
-  name: string;
-  code: string;
-  view: number[];
-}
-
-interface TileWithDEM {
-  url: string;
-  unit: string;
-}
-
-interface Variables {
-  sites: Site[];
-  data: any;
-  models: string[];
-  tile_with_DEM: TileWithDEM;
-  dem: string;
-  interpolateSeams?: boolean; // added because it exists in one place in DatabaseSeeder
-}
-
-interface Tool {
+interface MMGIS_Tool {
   name: string;
   icon: string;
   js: string;
-  variables: Variables;
+  //variables: Variables;
+  variables: JSON;
 }
 
-interface Time {
+interface MMGIS_Time {
   enabled: boolean;
   type: string;
   isRelative: boolean;
@@ -104,92 +101,7 @@ interface Time {
   increment: string;
 }
 
-interface Time3 {
-  enabled: boolean;
-  visible: boolean;
-  format: string;
-}
-
-interface Config {
-  msv: Msv;
-  projection: Projection;
-  look: Look;
-  panels: string[];
-  panelSettings: PanelSettings;
-  tools: Tool[];
-  layers: Layer[];
-  time: Time3;
-}
-
-interface AEGISMission {
-  id: number;
-  name: string;
-  config: Config;
-  version: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface AEGISLayer {
-  uuid: uuid;
-  mission: AEGISMission;
-  config: LayerConfig;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface LayerConfig {
-  name: string;
-  type: string;
-  demparser: string;
-  controlled: boolean;
-  tileformat: string;
-  initialOpacity: number;
-  time: Time;
-  shape: string;
-  sublayers: Sublayer[];
-}
-
-interface Time {
-  enabled: boolean;
-  type: string;
-  isRelative: boolean;
-  current: Date;
-  start: string;
-  end: string;
-  format: string;
-  refresh: string;
-  increment: string;
-}
-
-interface Sublayer {
-  id: number;
-  name: string;
-  kind: string;
-  type: string;
-  url: string;
-  demparser: string;
-  demtileurl?: string;
-  minZoom?: number;
-  maxNativeZoom?: number;
-  maxZoom?: number;
-  boundingBox?: number[];
-  legend: string;
-  tms: boolean;
-  controlled: boolean;
-  tileformat: string;
-  visibility: boolean;
-  initialOpacity: number;
-  togglesWithHeader: boolean;
-  style: SublayerStyle;
-  variables: Sublayer_Variables;
-  radius: number;
-  time: Time;
-  shape: string;
-  visibilitycutoff: number;
-}
-
-interface SublayerStyle {
+interface MMGIS_Style {
   className: string;
   color: string;
   fillColor: string;
@@ -198,8 +110,99 @@ interface SublayerStyle {
   opacity: number;
 }
 
-interface Sublayer_Variables {
+interface MMGIS_Variables2 {
   useKeyAsName: string;
-  chemistry: [string];
-  search: string;
+}
+
+interface MMGIS_Time2 {
+  enabled: boolean;
+  type: string;
+  isRelative: boolean;
+  current: Date;
+  start: string;
+  end: string;
+  format: string;
+  refresh: string;
+  increment: string;
+}
+
+interface MMGIS_Time3 {
+  enabled: boolean;
+  visible: boolean;
+  format: string;
+}
+
+/** Represents the Layer JSON structure from the MMGIS Config */
+interface MMGIS_LayerConfig {
+  name: string;
+  type: string;
+  demparser?: string;
+  controlled?: boolean;
+  tileformat?: string;
+  initialOpacity?: number;
+  time?: MMGIS_Time;
+  shape?: string;
+  sublayers?: MMGIS_Sublayer[];
+}
+
+interface MMGIS_Sublayer {
+  name: string;
+  type: string;
+  id?: number;
+  kind?: string;
+  query?: MMGIS_QueryConfig;
+  url?: string;
+  position?: MMGIS_ModelPosition;
+  rotation?: MMGIS_ModelRotation;
+  scale?: number;
+  tileformat?: "tms" | "wtms" | "wms";
+  demtileurl?: string;
+  demparser?: string;
+  controlled?: boolean;
+  legend?: string;
+  visibility?: boolean;
+  visibilitycutoff?: number;
+  minZoom?: number;
+  maxNativeZoom?: number;
+  maxZoom?: number;
+  initialOpacity?: number;
+  boundingBox?: number[];
+  time?: MMGIS_Time;
+  style?: MMGIS_SublayerStyle;
+  radius?: number;
+  shape?: string;
+  variables?: JSON;
+  togglesWithHeader?: boolean;
+}
+
+interface MMGIS_SublayerStyle {
+  className?: string;
+  color?: string;
+  fillColor?: string;
+  weight?: number;
+  fillOpacity?: any;
+  opacity?: number;
+  vtId?: string; //vector tile
+  vtKey?: string; //vector tile
+  vtLayer?: JSON; //vector tile
+}
+
+/** Used for Query Layers */
+interface MMGIS_QueryConfig {
+  endpoint?: string;
+  type?: "elasticsearch";
+}
+
+/** Used for Model Layers */
+interface MMGIS_ModelPosition {
+  longtitude?: number;
+  latitude?: number;
+  elevation?: number;
+}
+
+/** Used for Model Layers */
+interface MMGIS_ModelRotation {
+  x?: number;
+  y?: number;
+  z?: number;
 }

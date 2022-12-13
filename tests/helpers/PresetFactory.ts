@@ -12,20 +12,22 @@ export default class PresetFactory extends Factory<Preset> {
       description: "Test Preset Description",
       owner: 1,
       mission: "",
-      config: [
-        {
-          layer_group_name: "unknown",
-          preset_name: "something",
-          preset_values: {
-            id: 1,
+      layerControls: {
+        Basemaps: {
+          name: "Basemaps",
+          type: "header",
+          style: {
             opacity: 1,
-            brightness: 1,
             contrast: 1,
+            brightness: 1,
             saturation: 1,
             blend: "normal",
           },
+          enabled: false,
+          expanded: true,
+          mapLayerRef: null,
         },
-      ],
+      },
       version: 1,
       createdAt: new Date(),
       updatedAt: new Date(),

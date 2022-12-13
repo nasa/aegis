@@ -1,12 +1,12 @@
 import { Seeder } from "@mikro-orm/seeder";
 import { Dictionary, EntityManager } from "@mikro-orm/core";
-import { Layer } from "../../models/layer.model";
+import { Layer as Layer_db } from "../../models/layer.model";
 
 export class LayerSeeder extends Seeder {
   async run(em: EntityManager, context: Dictionary): Promise<void> {
-    context.layer1 = em.create(Layer, {
+    context.layer1 = em.create(Layer_db, {
       mission: context.mission1,
-      config: {
+      layerConfig: {
         name: "Traverses",
         type: "header",
         demparser: "",
@@ -63,10 +63,12 @@ export class LayerSeeder extends Seeder {
           },
         ],
       },
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
-    context.layer2 = em.create(Layer, {
+    context.layer2 = em.create(Layer_db, {
       mission: context.mission1,
-      config: {
+      layerConfig: {
         name: "Sample Stations",
         type: "header",
         demparser: "",
@@ -123,10 +125,12 @@ export class LayerSeeder extends Seeder {
           },
         ],
       },
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
-    context.layer3 = em.create(Layer, {
+    context.layer3 = em.create(Layer_db, {
       mission: context.mission1,
-      config: {
+      layerConfig: {
         name: "Detrended Roughness",
         type: "header",
         demparser: "",
@@ -179,10 +183,12 @@ export class LayerSeeder extends Seeder {
           },
         ],
       },
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
-    context.layer4 = em.create(Layer, {
+    context.layer4 = em.create(Layer_db, {
       mission: context.mission1,
-      config: {
+      layerConfig: {
         name: "Confidence Map",
         type: "header",
         demparser: "",
@@ -234,10 +240,12 @@ export class LayerSeeder extends Seeder {
           },
         ],
       },
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
-    context.layer5 = em.create(Layer, {
+    context.layer5 = em.create(Layer_db, {
       mission: context.mission1,
-      config: {
+      layerConfig: {
         name: "Hillshade",
         type: "header",
         demparser: "",
@@ -289,10 +297,12 @@ export class LayerSeeder extends Seeder {
           },
         ],
       },
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
-    context.layer6 = em.create(Layer, {
+    context.layer6 = em.create(Layer_db, {
       mission: context.mission1,
-      config: {
+      layerConfig: {
         name: "Basemaps",
         type: "header",
         demparser: "",
@@ -373,6 +383,8 @@ export class LayerSeeder extends Seeder {
           },
         ],
       },
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
   }
 }

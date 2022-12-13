@@ -1,40 +1,31 @@
 /**
- * Anything that takes comments should allow
+ * The mission object
  */
-type UserComments = Record<string, string>;
-
-/**
- * Some object that we haven't figured out
- */
-type WeDontKnowYet = Record<string, string>;
-
 interface Mission {
-  owner: string;
+  id?: number;
   name: string;
-  version: number;
-  planet: Planet;
-  description: string;
-  layers: LayerGroup[];
-  drawingGroups: DrawingFeatureGroup[];
-  itineraries: Itinerary[];
-  projection: Projection;
-  defaultView: MapView;
+  config: Config;
+  version?: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-interface Projection {
-  epsg: string;
-  proj: string;
-  bounds: string[];
-  origin: string[];
-  reszoomlevel: number;
-  resunitsperpixel: number;
+/** Config JSON object from MMGIS with the exception of Layers */
+interface Config {
+  msv: MMGIS_Msv;
+  projection: MMGIS_Projection;
+  look: MMGIS_Look;
+  panels: string[];
+  panelSettings: MMGIS_PanelSettings;
+  tools: MMGIS_Tool[];
+  //layers: LayerConfig[];
+  time: MMGIS_Time3;
 }
 
-interface MapView {
-  latitude: number;
-  longitude: number;
-  zoom: number;
-}
+type GISfile = {
+  name: string;
+  isDir: boolean;
+};
 
 /**
  * From MapSelector component
@@ -53,3 +44,9 @@ type POIExpandedSections = {
   pois: boolean;
 };
 type SetPOIExpandedSectionsFn = (poiExpandedSections: POIExpandedSections) => void;
+
+interface WrappedResponse<T> {
+  status: "success" | "failure" | "error";
+  message: string;
+  data?: T;
+}

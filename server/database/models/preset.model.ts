@@ -20,11 +20,11 @@ export class Preset {
   @Property({ type: MikroTypes.string })
   name: string;
 
-  @Property({ type: MikroTypes.string })
+  @Property({ type: MikroTypes.string, nullable: true })
   description: string;
 
   @Property({ type: MikroTypes.json, nullable: true })
-  config!: LayerControls;
+  layerControls!: LayerControls;
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;

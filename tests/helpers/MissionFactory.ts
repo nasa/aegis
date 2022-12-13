@@ -1,8 +1,8 @@
 import { Factory } from "@mikro-orm/seeder";
-import { Mission } from "../../server/database/models/mission.model";
+import { Mission as Mission_db } from "../../server/database/models/mission.model";
 
-export default class MissionFactory extends Factory<Mission> {
-  model = Mission;
+export default class MissionFactory extends Factory<Mission_db> {
+  model = Mission_db;
   definition(): Object {
     return {
       name: "Gaia-1",

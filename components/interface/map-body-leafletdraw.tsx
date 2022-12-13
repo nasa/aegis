@@ -76,9 +76,9 @@ const MapBody: FunctionComponent = () => {
     if (!mission || !layerControls || !map) return;
 
     // go through all layers in mission config and add make a list of the ones that are enabled
-    const layersToAdd: Sublayer[] = [];
+    const layersToAdd: MMGIS_Sublayer[] = [];
     for (const configLayer of missionLayers) {
-      for (const configSublayer of configLayer.config.sublayers) {
+      for (const configSublayer of configLayer.layerConfig.sublayers) {
         if (configSublayer.type === "tile") {
           if (layerControls[configSublayer.name].enabled) {
             layersToAdd.push(configSublayer);

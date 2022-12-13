@@ -1,14 +1,14 @@
 import { Factory } from "@mikro-orm/seeder";
 import { v4 } from "uuid";
-import { Layer } from "../../server/database/models/layer.model";
+import { Layer as Layer_db } from "../../server/database/models/layer.model";
 
-export default class LayerFactory extends Factory<Layer> {
-  model = Layer;
+export default class LayerFactory extends Factory<Layer_db> {
+  model = Layer_db;
   definition(): Object {
     return {
       uuid: v4(),
       mission: 1,
-      config: {
+      layerConfig: {
         name: "Basemaps",
         type: "header",
         demparser: "",

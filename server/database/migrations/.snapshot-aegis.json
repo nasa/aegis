@@ -8,7 +8,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "int",
           "unsigned": true,
           "autoincrement": true,
           "primary": true,
@@ -83,12 +83,12 @@
       "columns": {
         "uuid": {
           "name": "uuid",
-          "type": "varchar(255)",
+          "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "mappedType": "string"
+          "mappedType": "uuid"
         },
         "mission_id": {
           "name": "mission_id",
@@ -99,8 +99,8 @@
           "nullable": false,
           "mappedType": "integer"
         },
-        "config": {
-          "name": "config",
+        "layer_config": {
+          "name": "layer_config",
           "type": "jsonb",
           "unsigned": false,
           "autoincrement": false,
@@ -570,11 +570,11 @@
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
+          "nullable": true,
           "mappedType": "string"
         },
-        "config": {
-          "name": "config",
+        "layer_controls": {
+          "name": "layer_controls",
           "type": "jsonb",
           "unsigned": false,
           "autoincrement": false,

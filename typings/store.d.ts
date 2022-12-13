@@ -19,8 +19,8 @@ interface PlayheadHoverState {
 }
 
 interface MissionState {
-  mission: AEGISMission;
-  layers: AEGISLayer[];
+  mission: Mission;
+  layers: Layer[];
   presets: Preset[];
   userInterface: UserInterface;
 }

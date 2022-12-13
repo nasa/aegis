@@ -1,59 +1,39 @@
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
-import { getMission, getMissions, isLoggedIn, login, logout } from "../../http-client/internal-api";
+import { isLoggedIn, login, logout } from "../../http-client/internal-api";
 import Mikro from "../../utils/mikro";
 import UserFactory from "../helpers/UserFactory";
 import MissionFactory from "../helpers/MissionFactory";
-import { Mission } from "../../server/database/models/mission.model";
-import { User } from "../../server/database/models/user.model";
+import { Mission as Mission_db } from "../../server/database/models/mission.model";
+import { getMissions } from "../../http-client/mission";
+import { User as User_db } from "../../server/database/models/user.model";
 import fetchMock from "jest-fetch-mock";
 
 fetchMock.enableMocks();
-let testMission: Mission;
-let testAdmin: User;
-let multipleMissions: Mission[];
+let testMission: Mission_db;
+let testAdmin: User_db;
+let multipleMissions: Mission_db[];
 
 beforeAll(async () => {
   await Mikro.getORM();
   fetchMock.resetMocks();
-  const model = await Mikro.getEM();
-  testAdmin = await new UserFactory(model).createOne();
-  testMission = await new MissionFactory(model).createOne();
-  multipleMissions = await new MissionFactory(model).create(5);
+  const em = Mikro.getEM();
+  testAdmin = await new UserFactory(em).createOne();
+  testMission = await new MissionFactory(em).createOne();
+  multipleMissions = await new MissionFactory(em).create(5);
   await Mikro.closeORM();
 });
 
 describe("Internal API", () => {
-  //Get all missions Test
-  test("Mission: Returns All Missions", async () => {
-    fetchMock.mockResponseOnce(JSON.stringify(multipleMissions));
-    getMissions().then((res: WrappedResponse<Mission[]>) => {
-      // we must convert the string dates to dates
-      for (let i = 0; i < multipleMissions.length; i++) {
-        res[i].createdAt = new Date(res[i].createdAt);
-        res[i].updatedAt = new Date(res[i].updatedAt);
-      }
-
-      expect(res).toEqual(multipleMissions);
-    });
-  });
-
-  //Get Mission Test
-  test("Mission: Returns Mission", async () => {
-    fetchMock.mockResponseOnce(JSON.stringify([testMission]));
-    getMission(testMission.id).then((res) => {
-      expect(res[0].id).toEqual(testMission.id);
-    });
-  });
-
   // IsLoggedIn Test
-  test("Mission: Returns IsLoggedIn", async () => {
+  test("Returns IsLoggedIn", async () => {
     fetchMock.mockResponseOnce(JSON.stringify(true));
     isLoggedIn().then((res) => {
       expect(res).toEqual(true);
     });
   });
+
   // Login Test
-  test("Mission: Returns Login", async () => {
+  test("Returns Login", async () => {
     const username: string = testAdmin.username;
     const password: string = testAdmin.password;
     const mockResponse = {
@@ -73,7 +53,7 @@ describe("Internal API", () => {
     });
   });
 
-  test("Mission: Fails Login", async () => {
+  test("Fails Login", async () => {
     const username: string = "fake_user";
     const password: string = testAdmin.password;
     const mockResponse = {
@@ -85,8 +65,9 @@ describe("Internal API", () => {
       expect(res).toEqual(mockResponse);
     });
   });
+
   // Logout Test
-  test("Mission: Returns Logout", async () => {
+  test("Returns Logout", async () => {
     const mockResponse = {
       status: "success",
       message: "Logged out",
@@ -99,14 +80,36 @@ describe("Internal API", () => {
   });
 });
 
+describe("Mission", () => {
+  test("Mission: Returns All Missions", async () => {
+    fetchMock.mockResponseOnce(JSON.stringify(multipleMissions));
+    getMissions().then((res: WrappedResponse<Mission_db[]>) => {
+      // we must convert the string dates to dates
+      for (let i = 0; i < multipleMissions.length; i++) {
+        res[i].createdAt = new Date(res[i].createdAt);
+        res[i].updatedAt = new Date(res[i].updatedAt);
+      }
+
+      expect(res).toEqual(multipleMissions);
+    });
+  });
+
+  test("Mission: Returns Single Mission", async () => {
+    fetchMock.mockResponseOnce(JSON.stringify([testMission]));
+    getMissions(testMission.id).then((res) => {
+      expect(res[0].id).toEqual(testMission.id);
+    });
+  });
+});
+
 afterAll(async () => {
   //Cleanup our Database
   await Mikro.getORM();
-  const model = await Mikro.getEM();
-  await model.nativeDelete(Mission, { id: testMission.id });
-  await model.nativeDelete(User, { id: testAdmin.id });
+  const em = Mikro.getEM();
+  await em.nativeDelete(Mission_db, { id: testMission.id });
+  await em.nativeDelete(User_db, { id: testAdmin.id });
   for (let i = 0; i < multipleMissions.length; i++) {
-    await model.nativeDelete(Mission, { id: multipleMissions[i].id });
+    await em.nativeDelete(Mission_db, { id: multipleMissions[i].id });
   }
   // Closing the DB connection allows Jest to exit successfully.
   await Mikro.closeORM();

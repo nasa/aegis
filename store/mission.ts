@@ -11,10 +11,10 @@ export const missionSlice = createSlice({
   name: "mission",
   initialState,
   reducers: {
-    setMission: (state, action: { payload: AEGISMission }) => {
+    setMission: (state, action: { payload: Mission }) => {
       state.mission = action.payload;
     },
-    setLayers: (state, action: { payload: AEGISLayer[] }) => {
+    setLayers: (state, action: { payload: Layer[] }) => {
       state.layers = action.payload;
     },
     setPresets: (state, action: { payload: Preset[] }) => {

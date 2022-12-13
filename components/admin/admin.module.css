@@ -1,0 +1,21 @@
+.divIndent {
+  padding-left: 1.5rem;
+}
+
+.editDiv {
+  display: inline-block;
+  vertical-align: top;
+  line-height: 1.5rem;
+  padding-right: 1rem;
+  padding-left: 1rem;
+}
+
+.validation {
+  font-size: 0.75rem;
+  color: red;
+  line-height: 1rem;
+}
+
+.deleteButton {
+  background-color: red;
+}

@@ -4,7 +4,8 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import styles from "./index.module.css";
-import { login, isLoggedIn, logout, getMissions } from "http-client/internal-api";
+import { login, isLoggedIn, logout } from "http-client/internal-api";
+import { getMissions } from "http-client/mission";
 import type { RootState } from "store";
 import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/user";
 
@@ -38,8 +39,11 @@ const Login = () => {
       <div className={styles.login}>
         <div className={styles.errorMessage}>{errorMessage}</div>
         <div className={styles.loginFormField}>
-          <label className={styles.loginFormLabel}>Username</label>
+          <label htmlFor="usernameField" className={styles.loginFormLabel}>
+            Username
+          </label>
           <input
+            id="usernameField"
             className={styles.loginFormInput}
             type="text"
             value={username}
@@ -49,8 +53,11 @@ const Login = () => {
           />
         </div>
         <div className={styles.loginFormField}>
-          <label className={styles.loginFormLabel}>Password</label>
+          <label htmlFor="passwordField" className={styles.loginFormLabel}>
+            Password
+          </label>
           <input
+            id="passwordField"
             className={styles.loginFormInput}
             type="password"
             value={password}
@@ -78,7 +85,7 @@ const MissionSelect = () => {
   const dispatch = useDispatch();
   const router = useRouter();
 
-  const [missions, setmissions] = useState<AEGISMission[]>([]);
+  const [missions, setmissions] = useState<Mission[]>([]);
 
   useEffect(() => {
     (async () => {

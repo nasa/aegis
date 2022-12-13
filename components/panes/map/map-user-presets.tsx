@@ -52,7 +52,7 @@ const PresetList: FunctionComponent<{
         description: "None yet",
         owner: user.id,
         mission: mission.id,
-        config: layerControls,
+        layerControls: layerControls,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -74,7 +74,7 @@ const PresetList: FunctionComponent<{
   const handleClick = async (currentPreset: Preset) => {
     dispatch(setActiveSelectedUUID(currentPreset.uuid));
     dispatch(setActiveSelectedName(currentPreset.name));
-    dispatch(setLayerControls(currentPreset.config));
+    dispatch(setLayerControls(currentPreset.layerControls));
     dispatch(setActiveSelectedType("preset"));
     dispatch(setSelectedRightNavItem("preset_panel"));
   };

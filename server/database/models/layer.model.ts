@@ -1,41 +1,19 @@
-import {
-  BeforeCreate,
-  BeforeUpdate,
-  Entity,
-  ManyToOne,
-  PrimaryKey,
-  Property,
-} from "@mikro-orm/core";
-import { v4 } from "uuid";
+import { Entity, ManyToOne, PrimaryKey, Property, types as MikroTypes } from "@mikro-orm/core";
 import { Mission } from "./mission.model";
+import { v4 } from "uuid";
 
 @Entity()
-export class Layer implements AEGISLayer {
-  @PrimaryKey({ type: "string" })
+export class Layer {
+  @PrimaryKey({ type: MikroTypes.uuid })
   uuid: string = v4();
 
   @ManyToOne(() => Mission, { unique: false, primary: false })
-  mission: Mission;
-  @Property({ type: "json", nullable: true })
-  config!: LayerConfig;
-  @Property({ type: "date" })
+  mission!: Mission;
+  @Property({ type: MikroTypes.json, nullable: true })
+  layerConfig!: MMGIS_LayerConfig;
+
+  @Property({ type: MikroTypes.datetime })
   createdAt!: Date;
-
-  @Property({ type: "date" })
+  @Property({ type: MikroTypes.datetime })
   updatedAt!: Date;
-
-  constructor(config: LayerConfig) {
-    this.config = config;
-  }
-
-  @BeforeUpdate()
-  async beforeUpdate(): Promise<void> {
-    this.updatedAt = new Date();
-  }
-
-  @BeforeCreate()
-  async beforeCreate(): Promise<void> {
-    this.createdAt = new Date();
-    this.updatedAt = new Date();
-  }
 }

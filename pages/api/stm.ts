@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 import Mikro from "utils/mikro";
-import { QueryOrder } from "@mikro-orm/core";
+import { ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/core";
 import { STM_Objective as STMObjective_db } from "server/database/models/stm_objective.model";
 import { STM_Goal as STMGoal_db } from "server/database/models/stm_goal.model";
 import { STM_Investigation as STMInvestigation_db } from "server/database/models/stm_investigation.model";
@@ -12,22 +12,30 @@ import _ from "lodash";
  * /api/stm?missionId=&stmType=
  *
  * Get stm object(s) for a given mission.
- * Required URL parameters are:
- *    missionId=  mission ID number
- *    stmType=o|g|i  type of object returned. Either objective, goal, or investigation
- * Optional URL parameters to further refine the results are:
- *    o=uuid      objective UUID
- *    g=uuid      goal UUID
- *    i=uuid      investigation UUID
  *
  * The request method will determine what action to perform
- *    GET = get all, subset, or single record for a stmType
- *    POST = upsert STM record (defined in POST body) into the DB
- *    DELETE = delete the stmType for a given uuid
+ *    GET = get all, subset, or single record
+ *      Required URL parameters are:
+ *        missionId=  mission ID number
+ *        stmType=o|g|i  type of object returned. Either objective, goal, or investigation
+ *      Optional URL parameters to futher refine results:
+ *        o=uuid      objective UUID
+ *        g=uuid      goal UUID
+ *        i=uuid      investigation UUID
+ *    POST = upsert a STM (defined in POST body) into the DB
+ *      A full STM object (with an uuid for new stm) should be specified in the request body
+ *      Required URL parameters are:
+ *        stmType=o|g|i  type of object to upsert. Either objective, goal, or investigation
+ *    DELETE = delete the mission for a given missionId
+ *      Required URL parameters are:
+ *        stmType=o|g|i  type of object to delete. Either objective, goal, or investigation
+ *        o=uuid      objective UUID
+ *        g=uuid      goal UUID
+ *        i=uuid      investigation UUID
  */
 async function handleSTM(req: NextApiRequest, res: NextApiResponse) {
   try {
-    if (req.session.user) {
+    if (req.session?.user) {
       const { missionId, stmType, o, g, i } = req.query;
 
       //clean url params
@@ -142,27 +150,34 @@ async function handleSTM(req: NextApiRequest, res: NextApiResponse) {
       //delete a STM record
       if (req.method === "DELETE") {
         try {
+          let stmReference;
           if (queryParams.stmType === "o") {
-            deleteSTM(queryParams.o, "Objective");
+            stmReference = deleteSTM(queryParams.o, "Objective");
           } else if (queryParams.stmType === "g") {
-            deleteSTM(queryParams.g, "Goal");
+            stmReference = deleteSTM(queryParams.g, "Goal");
           } else if (queryParams.stmType === "i") {
-            deleteSTM(queryParams.i, "Investigation");
+            stmReference = deleteSTM(queryParams.i, "Investigation");
           } else {
             return res.status(500).json({ status: "error", message: "Invalid type" });
           }
 
-          //how to check successful delete? TODO
           return res.status(200).json({
             status: "Success",
             message: `${urlParamDict[queryParams.stmType]} deleted`,
-            data: null,
+            data: stmReference,
           });
         } catch (e) {
           console.error(e);
-          return res
-            .status(500)
-            .json({ status: "Error", message: "Error processing the DELETE request" });
+          if (e instanceof ForeignKeyConstraintViolationException) {
+            return res.status(500).json({
+              status: "Error",
+              message: "Cannot delete mission. This mission is referenced elsewhere",
+            });
+          } else {
+            return res
+              .status(500)
+              .json({ status: "Error", message: "Error processing the DELETE request" });
+          }
         }
       }
     } else {
@@ -346,6 +361,7 @@ async function deleteSTM(stmUUID: string, stmType: "Objective" | "Goal" | "Inves
   const recordReference = em.getReference(dbModel, stmUUID);
   await em.removeAndFlush(recordReference);
   await Mikro.closeORM();
+  return recordReference;
 }
 
 export default withIronSessionApiRoute(Mikro.withORM(handleSTM), ironOptions);
