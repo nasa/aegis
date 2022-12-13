@@ -1,4 +1,4 @@
-import styles from "./map.module.css";
+import styles from "./preset.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -11,16 +11,15 @@ import {
 import { FunctionComponent, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../../store";
-import { setPresets } from "../../../store/mission";
+import { upsertPreset, upsertPresets } from "../../../store/preset";
 import * as InternalAPI from "../../../http-client/internal-api";
 import { useRouter } from "next/router";
+import { setLayerControls } from "../../../store/map";
 import {
-  setActiveSelectedName,
-  setActiveSelectedType,
-  setActiveSelectedUUID,
-  setLayerControls,
+  setSelectedPresetUuid,
   setSelectedRightNavItem,
-} from "../../../store/map";
+  deletePreset,
+} from "../../../store/preset";
 import { v4 } from "uuid";
 
 const PresetList: FunctionComponent<{
@@ -31,15 +30,15 @@ const PresetList: FunctionComponent<{
   const router = useRouter();
   const [presetName, setPresetName] = useState("");
   const [addPresetErrorMessage, setPresetErrorMessage] = useState("");
-  const presets = useSelector((state: RootState) => state.mission.presets);
+  const presets = useSelector((state: RootState) => state.preset.presets);
   const layerControls = useSelector((state: RootState) => state.map.layerControls);
-  const activePresetUUID = useSelector((state: RootState) => state.map.activeSelectedUUID);
+  const selectedPresetUuid = useSelector((state: RootState) => state.preset.selectedPresetUuid);
   const user: AEGISUser = useSelector((state: RootState) => state.user.ironSessionData?.user);
   const mission = useSelector((state: RootState) => state.mission.mission);
 
   let selectedPreset;
   if (presets !== null) {
-    selectedPreset = presets.filter((preset) => preset.uuid === activePresetUUID)[0];
+    selectedPreset = presets.filter((preset) => preset.uuid === selectedPresetUuid)[0];
   }
   const [layerHover, setLayerHover] = useState<string | null>(null);
 
@@ -63,7 +62,7 @@ const PresetList: FunctionComponent<{
     const newPreset = await InternalAPI.setPreset(preset);
     console.log(newPreset);
     if (newPreset.status === "success") {
-      dispatch(setPresets([...presets, newPreset.data]));
+      dispatch(upsertPreset(newPreset.data));
       setPresetName("");
       setPresetErrorMessage("");
     } else {
@@ -72,17 +71,14 @@ const PresetList: FunctionComponent<{
   };
 
   const handleClick = async (currentPreset: Preset) => {
-    if (currentPreset.uuid === activePresetUUID) {
-      dispatch(setActiveSelectedUUID(null));
-      dispatch(setActiveSelectedName(null));
+    if (currentPreset.uuid === selectedPresetUuid) {
+      dispatch(setSelectedPresetUuid(null));
       return;
     }
 
-    dispatch(setActiveSelectedUUID(currentPreset.uuid));
-    dispatch(setActiveSelectedName(currentPreset.name));
+    dispatch(setSelectedPresetUuid(currentPreset.uuid));
     dispatch(setLayerControls(currentPreset.layerControls));
-    dispatch(setActiveSelectedType("preset"));
-    dispatch(setSelectedRightNavItem("preset_panel"));
+    dispatch(setSelectedRightNavItem("info_panel"));
   };
 
   const handleSave = async (currentPreset: Preset) => {
@@ -90,9 +86,9 @@ const PresetList: FunctionComponent<{
   };
 
   const handleDelete = async (presetUUID: Preset["uuid"]) => {
-    const deletePreset = await InternalAPI.deletePreset(presetUUID);
-    if (deletePreset) {
-      dispatch(setPresets(presets.filter((preset) => preset.uuid !== presetUUID)));
+    const res = await InternalAPI.deletePreset(presetUUID);
+    if (res) {
+      dispatch(deletePreset(presetUUID));
     }
   };
   useEffect(() => {
@@ -100,11 +96,12 @@ const PresetList: FunctionComponent<{
       //If preset doesn't exist, try to get it.
       const { id } = router.query;
       console.log(!presets);
-      if (!presets) {
+
+      if (presets.length === 0 && id) {
         const presetData = await InternalAPI.getPresets(parseInt(id as string));
-        console.log(presetData);
+
         if (presetData.data) {
-          dispatch(setPresets(presetData.data));
+          dispatch(upsertPresets(presetData.data));
         }
       }
     })();
@@ -115,11 +112,11 @@ const PresetList: FunctionComponent<{
         <div
           className={styles.layersHeader}
           onClick={() =>
-            setExpandedSections({ ...expandedSections, userPresets: !expandedSections.userPresets })
+            setExpandedSections({ ...expandedSections, presets: !expandedSections.presets })
           }
         >
           <div className={styles.expandoCaret}>
-            {expandedSections.userPresets ? (
+            {expandedSections.presets ? (
               <FontAwesomeIcon icon={faCaretDown} size="sm" />
             ) : (
               <FontAwesomeIcon icon={faCaretRight} size="sm" />
@@ -128,14 +125,14 @@ const PresetList: FunctionComponent<{
           <div>My Presets</div>
         </div>
         <div className={styles.layersBody}>
-          {expandedSections.userPresets ? (
+          {expandedSections.presets ? (
             <>
               <div className={styles.layerGroup}>
                 {presets ? (
                   Object.keys(presets).map((key) => {
                     const currentPreset = presets[key];
                     const selectedStyle =
-                      currentPreset.uuid === activePresetUUID ? styles.presetItemSelected : null;
+                      currentPreset.uuid === selectedPresetUuid ? styles.presetItemSelected : null;
                     return (
                       <div
                         key={`sub_${currentPreset.name}`}

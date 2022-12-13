@@ -21,7 +21,6 @@ interface PlayheadHoverState {
 interface MissionState {
   mission: Mission;
   layers: Layer[];
-  presets: Preset[];
   userInterface: UserInterface;
 }
 
@@ -37,11 +36,8 @@ interface UserInterface {
 
 interface MapState {
   layerControls: LayerControls;
-  selectedRightNavItem: string;
-  mousePosition: LatLng;
   activeSelectedName: string;
-  activeSelectedType: string;
-  activeSelectedUUID: string;
+  mousePosition: LatLng;
 }
 
 interface EvaState {
@@ -60,6 +56,7 @@ interface PresetState {
   presets: Preset[];
   presetsFromDB: Preset[];
   selectedPresetUuid: string;
+  selectedRightNavItem: string;
 }
 
 interface InterfaceState {

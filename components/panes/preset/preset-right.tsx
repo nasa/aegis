@@ -3,63 +3,40 @@ import { useSelector, useDispatch } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleInfo, faHammer, faSliders } from "@fortawesome/free-solid-svg-icons";
 
-import Info_panel from "./map-right-info-panel";
-import Settings_panel from "./map-right-settings-panel";
-import Preset_panel from "./map-right-preset-panel";
+import Info_panel from "./preset-right-info-panel";
+import Settings_panel from "./preset-right-settings-panel";
+import Preset_panel from "./preset-right-preset-panel";
 import paneStyles from "../global-pane-styles.module.css";
 import { RootState } from "store";
-import { setSelectedRightNavItem } from "store/map";
-
-let panelTypes: PanelTypes;
+import { setSelectedRightNavItem } from "store/preset";
 
 const RightControlPanel: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const selectedRightNavItem = useSelector((state: RootState) => state.map.selectedRightNavItem);
-  const activeLayerName = useSelector((state: RootState) => state.map.activeSelectedName);
-  const activeSelectedType = useSelector((state: RootState) => state.map.activeSelectedType);
+  const selectedRightNavItem = useSelector((state: RootState) => state.preset.selectedRightNavItem);
+  const selectedPresetUuid = useSelector((state: RootState) => state.preset.selectedPresetUuid);
+  const selectedPreset = useSelector((state: RootState) => state.preset.presets).filter(
+    (preset) => preset.uuid === selectedPresetUuid
+  )[0];
   let ActiveComponent = null;
 
-  switch (activeSelectedType) {
-    case "layer": {
-      panelTypes = {
-        information_panel: {
-          title: "Layer Information",
-          panel: Info_panel,
-          color: "var(--map)",
-          icon: faCircleInfo,
-        },
-        settings_panel: {
-          title: "Layer Settings",
-          panel: Settings_panel,
-          color: "var(--map)",
-          icon: faSliders,
-        },
-      };
-      break;
-    }
-    case "preset": {
-      panelTypes = {
-        preset_panel: {
-          title: "Layer Presets",
-          panel: Preset_panel,
-          color: "var(--map)",
-          icon: faHammer,
-        },
-      };
-    }
-    default: {
-      break;
-    }
-  }
+  const panelTypes: PanelTypes = {
+    info_panel: {
+      title: "Preset Information",
+      panel: Info_panel,
+      color: "var(--map)",
+      icon: faHammer,
+    },
+  };
+
   if (selectedRightNavItem !== null) {
     ActiveComponent = panelTypes[selectedRightNavItem].panel;
   }
 
   return (
-    activeLayerName && (
+    selectedPreset && (
       <>
         <div className={paneStyles.rightTopTitle} style={{ color: "var(--map)" }}>
-          {activeLayerName}
+          {selectedPreset.name}
         </div>
         <div className={paneStyles.rightIconRow}>
           {Object.keys(panelTypes).map((panelType) => {

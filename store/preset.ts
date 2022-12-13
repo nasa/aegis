@@ -5,6 +5,7 @@ export const initialState: PresetState = {
   presets: [],
   presetsFromDB: [],
   selectedPresetUuid: null,
+  selectedRightNavItem: null,
 };
 
 export const presetSlice = createSlice({
@@ -20,8 +21,8 @@ export const presetSlice = createSlice({
     upsertPresetsFromDB: (state, action: { payload: Preset[] }) => {
       action.payload.forEach((preset) => upsertByUuid(state.presetsFromDB, preset));
     },
-    deletePreset: (state, action: { payload: Preset }) => {
-      state.presets = state.presets.filter((preset) => preset.uuid !== action.payload.uuid);
+    deletePreset: (state, action: { payload: Preset["uuid"] }) => {
+      state.presets = state.presets.filter((preset) => preset.uuid !== action.payload);
     },
     createBlankPreset: (
       state,
@@ -46,8 +47,21 @@ export const presetSlice = createSlice({
       };
       state.presets.push(blankPreset);
     },
+    setSelectedPresetUuid: (state, action: { payload: string }) => {
+      state.selectedPresetUuid = action.payload;
+    },
+    setSelectedRightNavItem: (state, action: { payload: string }) => {
+      state.selectedRightNavItem = action.payload;
+    },
   },
 });
 
-export const { upsertPreset, upsertPresets, upsertPresetsFromDB, deletePreset, createBlankPreset } =
-  presetSlice.actions;
+export const {
+  upsertPreset,
+  upsertPresets,
+  upsertPresetsFromDB,
+  deletePreset,
+  createBlankPreset,
+  setSelectedPresetUuid,
+  setSelectedRightNavItem,
+} = presetSlice.actions;

@@ -1,5 +1,5 @@
 import { FunctionComponent, useEffect } from "react";
-import styles from "./map-right-settings-panel.module.css";
+import styles from "./preset-right-settings-panel.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { Dropdown } from "components/interface/_global-elements";
 import { RootState } from "store";
