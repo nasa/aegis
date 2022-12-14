@@ -40,7 +40,7 @@ RUN npm run build \
   && rm -f ./.env
 
 # runs on port 4000
-CMD ["/bin/sh", "-c", "npm run migrate:up; npm run start"]
+CMD ["/bin/sh", "-c", "npm run start"]
 
 #
 # IMAGE: dev
