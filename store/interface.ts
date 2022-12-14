@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 export const initialState: InterfaceState = {
-  sectionSelectedLabel: "poi",
+  sectionSelectedLabel: "map_layer_selector",
 };
 
 export const interfaceSlice = createSlice({
