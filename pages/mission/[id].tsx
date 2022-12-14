@@ -91,17 +91,16 @@ const Main: NextPage = () => {
             name: configLayer.layerConfig.name,
             enabled: false,
             type: configLayer.layerConfig.type,
-            expanded: false,
             mapLayerRef: null,
             style: null,
           };
+
           if (configLayer.layerConfig.sublayers) {
             configLayer.layerConfig.sublayers.map((sublayer) => {
               controls[sublayer.name] = {
                 name: sublayer.name,
                 enabled: false,
                 type: sublayer.type,
-                expanded: false,
                 mapLayerRef: null,
                 style: null,
               };

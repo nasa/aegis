@@ -57,11 +57,6 @@
   color: black;
 }
 
-.sublayer:hover {
-  background-color: var(--grey1);
-  cursor: pointer;
-}
-
 .sublayerTitle {
   font-size: 0.95em;
   flex: 1 1 auto;
@@ -96,19 +91,6 @@
   width: 15px;
 }
 
-.visibility {
-  width: 15px;
-  margin-right: 4px;
-  flex: 0 0 15px;
-}
-
-.visible {
-  color: white;
-}
-
-.inVisible {
-  color: var(--grey3);
-}
 .presetDetail {
   font-style: normal;
   font-weight: 400;

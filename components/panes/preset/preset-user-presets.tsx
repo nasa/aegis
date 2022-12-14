@@ -1,25 +1,20 @@
 import styles from "./preset.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faCaretDown,
-  faCaretRight,
-  faTrashCan,
-  faPlusCircle,
-  faSave,
-} from "@fortawesome/free-solid-svg-icons";
+import { faCaretDown, faCaretRight, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../../store";
-import { upsertPreset, upsertPresets } from "../../../store/preset";
+import {
+  setPresetInteractions,
+  upsertPreset,
+  upsertPresets,
+  upsertPresetsFromDB,
+} from "../../../store/preset";
 import * as InternalAPI from "../../../http-client/internal-api";
 import { useRouter } from "next/router";
 import { setLayerControls } from "../../../store/map";
-import {
-  setSelectedPresetUuid,
-  setSelectedRightNavItem,
-  deletePreset,
-} from "../../../store/preset";
+import { setSelectedPresetUuid, setSelectedRightNavItem } from "../../../store/preset";
 import { v4 } from "uuid";
 
 const PresetList: FunctionComponent<{
@@ -33,6 +28,7 @@ const PresetList: FunctionComponent<{
   const presets = useSelector((state: RootState) => state.preset.presets);
   const layerControls = useSelector((state: RootState) => state.map.layerControls);
   const selectedPresetUuid = useSelector((state: RootState) => state.preset.selectedPresetUuid);
+  const selectedRightNavItem = useSelector((state: RootState) => state.preset.selectedRightNavItem);
   const user: AEGISUser = useSelector((state: RootState) => state.user.ironSessionData?.user);
   const mission = useSelector((state: RootState) => state.mission.mission);
 
@@ -40,8 +36,6 @@ const PresetList: FunctionComponent<{
   if (presets !== null) {
     selectedPreset = presets.filter((preset) => preset.uuid === selectedPresetUuid)[0];
   }
-  const [layerHover, setLayerHover] = useState<string | null>(null);
-
   const handleAdd = async () => {
     let preset: Preset = null;
     if (presetName.length > 3) {
@@ -55,6 +49,16 @@ const PresetList: FunctionComponent<{
         createdAt: new Date(),
         updatedAt: new Date(),
       };
+
+      // set default layer control interactions
+      const layerControlInteractions: LayerControlInteractions = {};
+      for (const [key] of Object.entries(layerControls)) {
+        layerControlInteractions[key] = {
+          expanded: true,
+          tabSelected: null,
+        };
+      }
+      dispatch(setPresetInteractions({ presetUuid: preset.uuid, layerControlInteractions }));
     } else {
       preset = selectedPreset;
     }
@@ -70,7 +74,7 @@ const PresetList: FunctionComponent<{
     }
   };
 
-  const handleClick = async (currentPreset: Preset) => {
+  const handleSelectPresetClick = async (currentPreset: Preset) => {
     if (currentPreset.uuid === selectedPresetUuid) {
       dispatch(setSelectedPresetUuid(null));
       return;
@@ -78,19 +82,9 @@ const PresetList: FunctionComponent<{
 
     dispatch(setSelectedPresetUuid(currentPreset.uuid));
     dispatch(setLayerControls(currentPreset.layerControls));
-    dispatch(setSelectedRightNavItem("info_panel"));
+    if (!selectedRightNavItem) dispatch(setSelectedRightNavItem("info_panel"));
   };
 
-  const handleSave = async (currentPreset: Preset) => {
-    await InternalAPI.setPreset(currentPreset);
-  };
-
-  const handleDelete = async (presetUUID: Preset["uuid"]) => {
-    const res = await InternalAPI.deletePreset(presetUUID);
-    if (res) {
-      dispatch(deletePreset(presetUUID));
-    }
-  };
   useEffect(() => {
     (async () => {
       //If preset doesn't exist, try to get it.
@@ -102,6 +96,17 @@ const PresetList: FunctionComponent<{
 
         if (presetData.data) {
           dispatch(upsertPresets(presetData.data));
+          dispatch(upsertPresetsFromDB(presetData.data));
+          presetData.data.forEach((preset) => {
+            const layerControlInteractions: LayerControlInteractions = {};
+            for (const [key] of Object.entries(layerControls)) {
+              layerControlInteractions[key] = {
+                expanded: true,
+                tabSelected: null,
+              };
+            }
+            dispatch(setPresetInteractions({ presetUuid: preset.uuid, layerControlInteractions }));
+          });
         }
       }
     })();
@@ -137,39 +142,13 @@ const PresetList: FunctionComponent<{
                       <div
                         key={`sub_${currentPreset.name}`}
                         className={`${styles.presetItem} ${selectedStyle}`}
-                        onMouseOver={() => {
-                          setLayerHover(currentPreset.name);
-                        }}
-                        onMouseOut={() => {
-                          setLayerHover(null);
-                        }}
                       >
                         <div
                           className={styles.sublayerTitle}
-                          onClick={() => handleClick(currentPreset)}
+                          onClick={() => handleSelectPresetClick(currentPreset)}
                         >
                           {currentPreset.name}
                         </div>
-                        {layerHover === currentPreset.name && (
-                          <div className={styles.sublayerToolIcons}>
-                            <div
-                              className={styles.sublayerToolIcon}
-                              onClick={() => {
-                                handleSave(currentPreset);
-                              }}
-                            >
-                              <FontAwesomeIcon icon={faSave} size="sm" />
-                            </div>
-                            <div
-                              className={styles.sublayerToolIcon}
-                              onClick={() => {
-                                handleDelete(currentPreset.uuid);
-                              }}
-                            >
-                              <FontAwesomeIcon icon={faTrashCan} size="sm" />
-                            </div>
-                          </div>
-                        )}
                       </div>
                     );
                   })

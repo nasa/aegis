@@ -7,7 +7,7 @@ library.add(faChevronDown, faPlus, faGear);
 const Info_Panel: FunctionComponent = () => {
   return (
     <div className={paneStyles.rightBody}>
-      <div className={paneStyles.rightBodyTitle}>Information</div>
+      <div className={paneStyles.rightBodyTitle}>Preset Information</div>
       <div className={paneStyles.panelContainer}>
         <div className={paneStyles.bodyText}>
           <p>

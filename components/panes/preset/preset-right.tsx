@@ -1,11 +1,10 @@
 import { FunctionComponent } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCircleInfo, faHammer, faSliders } from "@fortawesome/free-solid-svg-icons";
+import { faCircleInfo, faLayerGroup } from "@fortawesome/free-solid-svg-icons";
 
 import Info_panel from "./preset-right-info-panel";
-import Settings_panel from "./preset-right-settings-panel";
-import Preset_panel from "./preset-right-preset-panel";
+import Layers_Panel from "./preset-right-layers-panel";
 import paneStyles from "../global-pane-styles.module.css";
 import { RootState } from "store";
 import { setSelectedRightNavItem } from "store/preset";
@@ -24,7 +23,13 @@ const RightControlPanel: FunctionComponent = () => {
       title: "Preset Information",
       panel: Info_panel,
       color: "var(--map)",
-      icon: faHammer,
+      icon: faCircleInfo,
+    },
+    layers_panel: {
+      title: "Preset Layer Configuration",
+      panel: Layers_Panel,
+      color: "var(--map)",
+      icon: faLayerGroup,
     },
   };
 

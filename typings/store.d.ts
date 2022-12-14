@@ -57,6 +57,7 @@ interface PresetState {
   presetsFromDB: Preset[];
   selectedPresetUuid: string;
   selectedRightNavItem: string;
+  presetInteractions: PresetInteractions;
 }
 
 interface InterfaceState {

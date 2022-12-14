@@ -7,17 +7,6 @@ type Point = {
   elevation?: number;
 };
 
-type Preset = {
-  uuid: string;
-  name: string;
-  description: string;
-  owner: number;
-  mission: number;
-  layerControls: LayerControls;
-  createdAt?: Date;
-  updatedAt?: Date;
-};
-
 /**
  * "Planets" allowed by this app
  */

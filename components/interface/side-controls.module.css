@@ -30,7 +30,7 @@
 }
 
 .iconContainer :hover {
-  background-color: var(--grey3);
+  background-color: var(--grey1);
 }
 
 .iconContainerSelected {
