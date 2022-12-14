@@ -50,7 +50,7 @@ const PresetList: FunctionComponent<{
         updatedAt: new Date(),
       };
 
-      // set default layer control interactions
+      // set default layer control interactions for the new preset
       const layerControlInteractions: LayerControlInteractions = {};
       for (const [key] of Object.entries(layerControls)) {
         layerControlInteractions[key] = {
@@ -64,7 +64,6 @@ const PresetList: FunctionComponent<{
     }
 
     const newPreset = await InternalAPI.setPreset(preset);
-    console.log(newPreset);
     if (newPreset.status === "success") {
       dispatch(upsertPreset(newPreset.data));
       setPresetName("");
@@ -89,7 +88,6 @@ const PresetList: FunctionComponent<{
     (async () => {
       //If preset doesn't exist, try to get it.
       const { id } = router.query;
-      console.log(!presets);
 
       if (presets.length === 0 && id) {
         const presetData = await InternalAPI.getPresets(parseInt(id as string));
@@ -99,7 +97,7 @@ const PresetList: FunctionComponent<{
           dispatch(upsertPresetsFromDB(presetData.data));
           presetData.data.forEach((preset) => {
             const layerControlInteractions: LayerControlInteractions = {};
-            for (const [key] of Object.entries(layerControls)) {
+            for (const [key] of Object.entries(preset.layerControls)) {
               layerControlInteractions[key] = {
                 expanded: true,
                 tabSelected: null,

@@ -34,10 +34,8 @@
   background-color: var(--grey1);
   padding-left: 6px;
   margin-top: 2px;
-  margin-bottom: 2px;
   padding-top: 4px;
   padding-bottom: 4px;
-  border-radius: var(--radius);
   font-size: 0.9em;
   height: 24px;
   cursor: pointer;
@@ -55,8 +53,8 @@
 .sublayerToolIcons {
   display: flex;
   flex-direction: row;
-  width: 60px;
-  flex: 0 0 60px;
+  width: 30px;
+  flex: 0 0 30px;
   padding-left: 10px;
 }
 
@@ -67,6 +65,16 @@
   margin-right: 1px;
   cursor: pointer;
   height: 100%;
+}
+
+.sublayerItemContainer {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius);
+}
+
+.sublayerSliders {
+  background-color: var(--grey1);
 }
 
 .expandoCaret {

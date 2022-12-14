@@ -57,7 +57,7 @@ export const presetSlice = createSlice({
       }
       state.presets[presetIndex] = preset;
     },
-    setLayerControlStyle: (
+    setPresetLayerControlStyle: (
       state,
       action: { payload: { presetUuid: string; layerName: string; style: LayerControlStyle } }
     ) => {
@@ -101,6 +101,9 @@ export const presetSlice = createSlice({
       state.presetInteractions[action.payload.presetUuid][action.payload.layerName] =
         action.payload.layerControlInteraction;
     },
+    deletePresetInteractions: (state, action: { payload: { presetUuid: string } }) => {
+      delete state.presetInteractions[action.payload.presetUuid];
+    },
   },
 });
 
@@ -113,8 +116,9 @@ export const {
   setSelectedRightNavItem,
   setPresetLayerControl,
   togglePresetLayerControlEnabled,
-  setLayerControlStyle,
+  setPresetLayerControlStyle,
   togglePresetInteractionLayerExpanded,
   setPresetInteractions,
   setPresetInteraction,
+  deletePresetInteractions,
 } = presetSlice.actions;

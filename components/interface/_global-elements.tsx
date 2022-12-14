@@ -29,8 +29,9 @@ export const Dropdown: FunctionComponent<{
   selected: string;
   containerStyle?: React.CSSProperties;
   selectStyle?: React.CSSProperties;
+  arrowStyle?: React.CSSProperties;
   onChange: (value: string) => void;
-}> = ({ children, selected, containerStyle, selectStyle, onChange }) => {
+}> = ({ children, selected, containerStyle, selectStyle, arrowStyle, onChange }) => {
   return (
     <div className={styles.select} style={containerStyle}>
       <select
@@ -41,13 +42,9 @@ export const Dropdown: FunctionComponent<{
           e.stopPropagation();
         }}
       >
-        {Children.map(children, (child) =>
-          cloneElement(child as any, {
-            selected: child.props.value === selected,
-          })
-        )}
+        {children}
       </select>
-      <div className={styles.select_arrow}>
+      <div className={styles.select_arrow} style={arrowStyle}>
         <FontAwesomeIcon icon={faChevronDown} size="xs" />
       </div>
     </div>
