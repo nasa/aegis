@@ -12,6 +12,10 @@
   user-select: none;
 }
 
+.layerDisabled {
+  color: var(--grey3);
+}
+
 .layersBody {
   margin-top: 5px;
   margin-left: 15px;
@@ -39,6 +43,11 @@
   font-size: 0.9em;
   height: 24px;
   cursor: pointer;
+}
+
+.sublayerDisabled {
+  background-color: var(--grey2);
+  color: var(--grey3);
 }
 
 .sublayerTitle {
@@ -79,6 +88,10 @@
 
 .expandoCaret {
   width: 15px;
+}
+
+.expandoCaretDisabled {
+  color: var(--grey3);
 }
 
 .visibility {

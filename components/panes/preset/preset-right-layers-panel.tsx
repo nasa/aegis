@@ -19,7 +19,7 @@ import {
 } from "store/preset";
 import Settings_subpanel from "./preset-right-settings-subpanel";
 
-const Layers_Panel: FunctionComponent = () => {
+const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
   const missionState = useSelector((state: RootState) => state.mission);
   const selectedPresetUuid = useSelector(
@@ -48,11 +48,20 @@ const Layers_Panel: FunctionComponent = () => {
           <div className={styles.layersBody}>
             {missionState && selectedPreset ? (
               missionState?.layers.map((layer: Layer) => {
+                // Check if any of the sublayers in this label are enabled in this preset
+                let sublayerEnabled = false;
+                layer.layerConfig.sublayers?.forEach((sublayer: MMGIS_Sublayer) => {
+                  if (presetLayerControls[sublayer.name].enabled) sublayerEnabled = true;
+                });
+                // show everything if in edit mode
+                if (editMode) sublayerEnabled = true;
                 return (
                   <div className={styles.layerGroup} key={layer.layerConfig.name}>
                     <div className={styles.layer}>
                       <div
-                        className={styles.expandoCaret}
+                        className={`${styles.expandoCaret} ${
+                          sublayerEnabled ? null : styles.expandoCaretDisabled
+                        }`}
                         onClick={() =>
                           dispatch(
                             togglePresetInteractionLayerExpanded({
@@ -69,7 +78,9 @@ const Layers_Panel: FunctionComponent = () => {
                             <FontAwesomeIcon icon={faCaretRight} size="sm" />
                           ))}
                       </div>
-                      <div>{layer.layerConfig.name}</div>
+                      <div className={sublayerEnabled ? null : styles.layerDisabled}>
+                        {layer.layerConfig.name}
+                      </div>
                     </div>
                     <div>
                       {presetLayerControlInteractions &&
@@ -82,6 +93,7 @@ const Layers_Panel: FunctionComponent = () => {
                               sublayer={sublayer}
                               selectedPreset={selectedPreset}
                               presetLayerControlInteractions={presetLayerControlInteractions}
+                              editMode={editMode}
                             />
                           );
                         })}
@@ -108,34 +120,46 @@ const Sublayer: FunctionComponent<{
   sublayer: MMGIS_Sublayer;
   selectedPreset: Preset;
   presetLayerControlInteractions: LayerControlInteractions;
-}> = ({ sublayer, selectedPreset, presetLayerControlInteractions }) => {
+  editMode: boolean;
+}> = ({ sublayer, selectedPreset, presetLayerControlInteractions, editMode }) => {
   const dispatch = useDispatch();
   const presetLayerControls = selectedPreset?.layerControls;
 
   return (
     <div className={styles.sublayerItemContainer}>
-      <div key={`sub_${sublayer.name}`} className={styles.sublayer}>
-        <div
-          className={styles.visibility}
-          onClick={() => {
-            dispatch(
-              togglePresetLayerControlEnabled({
-                presetUuid: selectedPreset.uuid,
-                layerName: sublayer.name,
-              })
-            );
-          }}
-        >
-          {presetLayerControls[sublayer.name].enabled ? (
-            <div className={styles.visible}>
-              <FontAwesomeIcon icon={faEye} size="xs" />
-            </div>
-          ) : (
-            <div className={styles.inVisible}>
-              <FontAwesomeIcon icon={faEyeSlash} size="xs" />
-            </div>
-          )}
-        </div>
+      <div
+        className={`${styles.sublayer} ${
+          selectedPreset.layerControls[sublayer.name].enabled || editMode
+            ? null
+            : styles.sublayerDisabled
+        }`}
+      >
+        {editMode ? (
+          <div
+            className={styles.visibility}
+            onClick={() => {
+              if (!editMode) return;
+              dispatch(
+                togglePresetLayerControlEnabled({
+                  presetUuid: selectedPreset.uuid,
+                  layerName: sublayer.name,
+                })
+              );
+            }}
+          >
+            {presetLayerControls[sublayer.name].enabled ? (
+              <div className={styles.visible}>
+                <FontAwesomeIcon icon={faEye} size="xs" />
+              </div>
+            ) : (
+              <div className={styles.inVisible}>
+                <FontAwesomeIcon icon={faEyeSlash} size="xs" />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className={styles.visibility}></div>
+        )}
         <div className={styles.sublayerTitle}>
           {sublayer.name} ({sublayer.type})
         </div>
@@ -161,27 +185,30 @@ const Sublayer: FunctionComponent<{
           >
             <FontAwesomeIcon icon={faCircleInfo} />
           </div> */}
-          <div
-            className={styles.sublayerToolIcon}
-            onClick={() => {
-              const tabSelected =
-                presetLayerControlInteractions[sublayer.name].tabSelected === "sliders"
-                  ? null
-                  : "sliders";
-              dispatch(
-                setPresetInteraction({
-                  presetUuid: selectedPreset.uuid,
-                  layerName: sublayer.name,
-                  layerControlInteraction: {
-                    ...presetLayerControlInteractions[sublayer.name],
-                    tabSelected,
-                  },
-                })
-              );
-            }}
-          >
-            <FontAwesomeIcon icon={faSliders} />
-          </div>
+          {editMode && (
+            <div
+              className={styles.sublayerToolIcon}
+              onClick={() => {
+                if (!editMode) return;
+                const tabSelected =
+                  presetLayerControlInteractions[sublayer.name].tabSelected === "sliders"
+                    ? null
+                    : "sliders";
+                dispatch(
+                  setPresetInteraction({
+                    presetUuid: selectedPreset.uuid,
+                    layerName: sublayer.name,
+                    layerControlInteraction: {
+                      ...presetLayerControlInteractions[sublayer.name],
+                      tabSelected,
+                    },
+                  })
+                );
+              }}
+            >
+              <FontAwesomeIcon icon={faSliders} />
+            </div>
+          )}
         </div>
       </div>
 

@@ -10,7 +10,7 @@ import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 
 export const paneTypes: PaneTypes = {
   map_layer_selector: {
-    title: "Map Imagery",
+    title: "Map Display Presets",
     leftPane: MapSelector,
     rightPane: MapSelectorRight,
     color: "var(--map)",

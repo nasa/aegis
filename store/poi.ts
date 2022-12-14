@@ -1,7 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { upsertByUuid } from "utils/store";
-import { v4 } from "uuid";
-import { uniqueNamesGenerator, animals, starWars } from "unique-names-generator";
+import { v4 as uuidv4 } from "uuid";
 
 export const initialState: PoiState = {
   pois: [],
@@ -39,36 +38,11 @@ export const poiSlice = createSlice({
     setSelectedPoiUuid: (state, action: { payload: string }) => {
       state.selectedPoiUuid = action.payload;
     },
-    createBlankPoi: (state, action: { payload: { userId: number; missionId: number } }) => {
-      const randomName: string = uniqueNamesGenerator({
-        dictionaries: [animals],
-        style: "capital",
-      });
 
-      const blankPoi: POI = {
-        owner: action.payload.userId,
-        mission: action.payload.missionId,
-        uuid: v4(),
-        name: "POI " + randomName,
-        description: "",
-        actions: [],
-        priorityOverride: 0,
-        radius: 5,
-        location: null,
-        color: null,
-        tags: [],
-        status: "Candidate",
-      };
-      state.pois.push(blankPoi);
-      // turn on edit mode for the new POI
-      state.poisEditing.push(blankPoi.uuid);
-      // select the newly created POI
-      state.selectedPoiUuid = blankPoi.uuid;
-    },
     duplicatePoi: (state, action: { payload: POI }) => {
       const newPoi: POI = {
         ...action.payload,
-        uuid: v4(),
+        uuid: uuidv4(),
         name: action.payload.name + " (copy)",
       };
       state.pois.push(newPoi);
@@ -87,30 +61,7 @@ export const poiSlice = createSlice({
         upsertByUuid(state.pois, poi);
       }
     },
-    createBlankAction: (state, action: { payload: POI }) => {
-      const randomName: string = uniqueNamesGenerator({
-        dictionaries: [starWars],
-        style: "capital",
-      });
 
-      const poi = state.pois.find((poi) => poi.uuid === action.payload.uuid);
-      if (poi) {
-        const blankAction: Action = {
-          poi: poi.id,
-          uuid: v4(),
-          name: "Action " + randomName,
-          description: "",
-          status: "Candidate",
-          type: "other",
-          durationLower: 5,
-          durationUpper: null,
-          stmUuidRefs: null,
-          inventoryItems: null,
-          priorityOverride: null,
-        };
-        poi.actions.push(blankAction);
-      }
-    },
     deleteAction: (state, action: { payload: { poi: POI; poiAction: Action } }) => {
       const poi = state.pois.find((poi) => poi.uuid === action.payload.poi.uuid);
       if (poi) {
@@ -119,7 +70,7 @@ export const poiSlice = createSlice({
         );
       }
     },
-    setEditMode: (state, action: { payload: { poi: POI; editMode: boolean } }) => {
+    setPoiEditMode: (state, action: { payload: { poi: POI; editMode: boolean } }) => {
       const poi = state.pois.find((poi) => poi.uuid === action.payload.poi.uuid);
       if (poi) {
         if (action.payload.editMode) {
@@ -141,10 +92,8 @@ export const {
   deleteAllPoisFromDb,
   setSelectedRightNavItem,
   setSelectedPoiUuid,
-  createBlankPoi,
   duplicatePoi,
   upsertAction,
-  createBlankAction,
   deleteAction,
-  setEditMode,
+  setPoiEditMode,
 } = poiSlice.actions;

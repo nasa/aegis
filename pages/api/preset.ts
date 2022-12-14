@@ -35,13 +35,11 @@ export const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = 
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
     } catch (error) {
-      console.log(error);
       return res.status(500).json({ status: "error", message: "Failed to find presets." });
     }
     // Creates a new preset
   } else if (req.method === "POST") {
     const presetBody = req.body.preset as Preset;
-    console.log(presetBody);
     if (req.session?.user) {
       try {
         await Mikro.getORM();
@@ -65,7 +63,6 @@ export const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = 
           data: responsePreset,
         });
       } catch (error) {
-        console.log(error);
         return res.status(500).json({ status: "error", message: "Failed to upsert preset." });
       }
     } else {

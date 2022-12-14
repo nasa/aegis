@@ -86,7 +86,7 @@ const NavGutter = ({ selectedNavItem, setSelectedNavItem }) => {
             >
               <FontAwesomeIcon icon={paneTypes[paneType].icon} size="lg" />
             </div>
-            {!_.isEqual(pois, poisFromDb) && paneType === "poi" && (
+            {paneType === "poi" && !_.isEqual(pois, poisFromDb) && (
               <svg height="6" width="6" style={{ position: "absolute", top: "31", left: "31" }}>
                 <circle cx="3" cy="3" r="3" fill="#ff0000" />
               </svg>

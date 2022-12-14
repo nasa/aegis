@@ -54,10 +54,11 @@ interface PoiState {
 
 interface PresetState {
   presets: Preset[];
-  presetsFromDB: Preset[];
+  presetsFromDb: Preset[];
   selectedPresetUuid: string;
   selectedRightNavItem: string;
   presetInteractions: PresetInteractions;
+  presetsEditing: string[];
 }
 
 interface InterfaceState {

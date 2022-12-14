@@ -13,8 +13,8 @@
 }
 
 .layersBody {
-  margin-top: 5px;
-  margin-left: 15px;
+  margin-top: 0;
+  margin-left: 5px;
 }
 
 .layerItem {
@@ -42,7 +42,7 @@
   display: flex;
   flex-direction: row;
   padding-left: 6px;
-  margin-top: 2px;
+  margin-top: 1px;
   margin-bottom: 2px;
   padding-top: 4px;
   padding-bottom: 4px;

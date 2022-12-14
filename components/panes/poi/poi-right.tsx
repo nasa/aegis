@@ -17,7 +17,7 @@ import {
   deletePoi,
   setSelectedPoiUuid,
   setSelectedRightNavItem,
-  setEditMode,
+  setPoiEditMode,
   upsertPoi,
   upsertPoisFromDb,
   deleteAllPoisFromDb,
@@ -65,7 +65,6 @@ const PoiEditorRight: FunctionComponent = () => {
   )[0];
 
   const [modified, setModified] = useState(false);
-
   useEffect(() => {
     setModified(!_.isEqual(selectedPoi, selectedPoiFromDb));
   }, [selectedPoi, selectedPoiFromDb]);
@@ -91,7 +90,7 @@ const PoiEditorRight: FunctionComponent = () => {
       } else {
         throw new Error("Error upserting POI: " + upsertReponse.message);
       }
-      dispatch(setEditMode({ poi: selectedPoi, editMode: false }));
+      dispatch(setPoiEditMode({ poi: selectedPoi, editMode: false }));
     }
   };
 
@@ -123,7 +122,7 @@ const PoiEditorRight: FunctionComponent = () => {
         await dispatch(deletePoi(selectedPoi));
         dispatch(setSelectedPoiUuid(null));
       }
-      dispatch(setEditMode({ poi: selectedPoi, editMode: false }));
+      dispatch(setPoiEditMode({ poi: selectedPoi, editMode: false }));
     }
   };
 
@@ -136,7 +135,7 @@ const PoiEditorRight: FunctionComponent = () => {
       // if selected poi is in the db, replace it with the one from the db (undoing any changes)
       dispatch(upsertPoi(selectedPoiFromDb));
     }
-    dispatch(setEditMode({ poi: selectedPoi, editMode: false }));
+    dispatch(setPoiEditMode({ poi: selectedPoi, editMode: false }));
   };
 
   let ActiveComponent = null;
@@ -207,7 +206,7 @@ const PoiEditorRight: FunctionComponent = () => {
                 <IconButton
                   icon={faEdit}
                   onClick={() => {
-                    dispatch(setEditMode({ poi: selectedPoi, editMode: true }));
+                    dispatch(setPoiEditMode({ poi: selectedPoi, editMode: true }));
                   }}
                   label="Edit"
                   style={{ width: "65px" }}

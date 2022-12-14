@@ -73,7 +73,7 @@ const MapBody: FunctionComponent = () => {
   );
 
   const showMapLayers = useCallback(() => {
-    if (!mission || !layerControls || !map) return;
+    if (!mission || !layerControls || !map.current) return;
 
     // go through all layers in mission config and add make a list of the ones that are enabled
     const layersToAdd: MMGIS_Sublayer[] = [];
