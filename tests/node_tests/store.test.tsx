@@ -2,7 +2,6 @@ import reducer, {
   initialState,
   setLayerControls,
   toggleLayerControlEnabled,
-  toggleLayerControlExpanded,
 } from "../../store/map";
 import { setLayers } from "../../store/mission";
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
@@ -57,7 +56,6 @@ describe("Map and MMGIS Reducer: ", () => {
         name: configLayer.layerConfig.name,
         enabled: false,
         type: configLayer.layerConfig.type,
-        expanded: false,
         mapLayerRef: null,
         style: null,
       };
@@ -67,7 +65,6 @@ describe("Map and MMGIS Reducer: ", () => {
             name: sublayer.name,
             enabled: false,
             type: sublayer.type,
-            expanded: false,
             mapLayerRef: null,
             style: null,
           };
@@ -92,7 +89,6 @@ describe("Map and MMGIS Reducer: ", () => {
     const nextLayerControls = reducer(initialState, setLayerControls(controls));
     expect(setLayerControls(nextLayerControls.layerControls)).toMatchObject(newControls);
     expect(toggleLayerControlEnabled("Basemaps")).toMatchObject(newToggleLayerControlEnabled);
-    expect(toggleLayerControlExpanded("Basemaps")).toMatchObject(newToggleLayerControlExpanded);
     await Mikro.closeORM();
   });
 });
