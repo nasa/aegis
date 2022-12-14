@@ -81,10 +81,6 @@ describe("Map and MMGIS Reducer: ", () => {
       payload: "Basemaps",
       type: "map/toggleLayerControlEnabled",
     };
-    const newToggleLayerControlExpanded = {
-      payload: "Basemaps",
-      type: "map/toggleLayerControlExpanded",
-    };
 
     const nextLayerControls = reducer(initialState, setLayerControls(controls));
     expect(setLayerControls(nextLayerControls.layerControls)).toMatchObject(newControls);
