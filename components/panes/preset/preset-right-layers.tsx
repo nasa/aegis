@@ -45,70 +45,72 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle}>Preset Layer Configuration</div>
-      <div className={paneStyles.panelContainer}>
-        <div className={styles.layersContainer}>
-          <div className={styles.layersBody}>
-            {missionState && selectedPreset ? (
-              missionState?.layers.map((layer: Layer) => {
-                // Check if any of the sublayers in this label are enabled in this preset
-                let sublayerEnabled = false;
-                layer.layerConfig.sublayers?.forEach((sublayer: MMGIS_Sublayer) => {
-                  if (presetLayerControls[sublayer.name].enabled) sublayerEnabled = true;
-                });
-                // show everything if in edit mode
-                if (editMode) sublayerEnabled = true;
-                return (
-                  <div className={styles.layerGroup} key={layer.layerConfig.name}>
-                    <div className={styles.layer}>
-                      <div
-                        className={`${styles.expandoCaret} ${
-                          sublayerEnabled ? null : styles.expandoCaretDisabled
-                        }`}
-                        onClick={() =>
-                          dispatch(
-                            togglePresetInteractionLayerExpanded({
-                              presetUuid: selectedPreset.uuid,
-                              layerName: layer.layerConfig.name,
-                            })
-                          )
-                        }
-                      >
+      <div className={paneStyles.rightBodyBody}>
+        <div className={paneStyles.panelContainer}>
+          <div className={styles.layersContainer}>
+            <div className={styles.layersBody}>
+              {missionState && selectedPreset ? (
+                missionState?.layers.map((layer: Layer) => {
+                  // Check if any of the sublayers in this label are enabled in this preset
+                  let sublayerEnabled = false;
+                  layer.layerConfig.sublayers?.forEach((sublayer: MMGIS_Sublayer) => {
+                    if (presetLayerControls[sublayer.name].enabled) sublayerEnabled = true;
+                  });
+                  // show everything if in edit mode
+                  if (editMode) sublayerEnabled = true;
+                  return (
+                    <div className={styles.layerGroup} key={layer.layerConfig.name}>
+                      <div className={styles.layer}>
+                        <div
+                          className={`${styles.expandoCaret} ${
+                            sublayerEnabled ? null : styles.expandoCaretDisabled
+                          }`}
+                          onClick={() =>
+                            dispatch(
+                              togglePresetInteractionLayerExpanded({
+                                presetUuid: selectedPreset.uuid,
+                                layerName: layer.layerConfig.name,
+                              })
+                            )
+                          }
+                        >
+                          {presetLayerControlInteractions &&
+                            (presetLayerControlInteractions[layer.layerConfig.name].expanded ? (
+                              <FontAwesomeIcon icon={faCaretDown} size="sm" />
+                            ) : (
+                              <FontAwesomeIcon icon={faCaretRight} size="sm" />
+                            ))}
+                        </div>
+                        <div className={sublayerEnabled ? null : styles.layerDisabled}>
+                          {layer.layerConfig.name}
+                        </div>
+                      </div>
+                      <div>
                         {presetLayerControlInteractions &&
-                          (presetLayerControlInteractions[layer.layerConfig.name].expanded ? (
-                            <FontAwesomeIcon icon={faCaretDown} size="sm" />
-                          ) : (
-                            <FontAwesomeIcon icon={faCaretRight} size="sm" />
-                          ))}
-                      </div>
-                      <div className={sublayerEnabled ? null : styles.layerDisabled}>
-                        {layer.layerConfig.name}
+                          presetLayerControlInteractions[layer.layerConfig.name].expanded &&
+                          layer.layerConfig.sublayers &&
+                          layer.layerConfig.sublayers.map((sublayer: MMGIS_Sublayer) => {
+                            return (
+                              <Sublayer
+                                key={`sub_${sublayer.name}`}
+                                sublayer={sublayer}
+                                selectedPreset={selectedPreset}
+                                presetLayerControlInteractions={presetLayerControlInteractions}
+                                editMode={editMode}
+                              />
+                            );
+                          })}
                       </div>
                     </div>
-                    <div>
-                      {presetLayerControlInteractions &&
-                        presetLayerControlInteractions[layer.layerConfig.name].expanded &&
-                        layer.layerConfig.sublayers &&
-                        layer.layerConfig.sublayers.map((sublayer: MMGIS_Sublayer) => {
-                          return (
-                            <Sublayer
-                              key={`sub_${sublayer.name}`}
-                              sublayer={sublayer}
-                              selectedPreset={selectedPreset}
-                              presetLayerControlInteractions={presetLayerControlInteractions}
-                              editMode={editMode}
-                            />
-                          );
-                        })}
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div>
-                {/* <FontAwesomeIcon icon={faCircleNotch} spin />
+                  );
+                })
+              ) : (
+                <div>
+                  {/* <FontAwesomeIcon icon={faCircleNotch} spin />
               &nbsp; Loading... */}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
