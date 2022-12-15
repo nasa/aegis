@@ -25,7 +25,7 @@ import {
   upsertPresetsFromDb,
 } from "store/preset";
 import * as InternalAPI from "http-client/internal-api";
-import { IconButton } from "components/interface/_global-elements";
+import { IconButton, InLineEditInput } from "components/interface/_global-elements";
 
 const PresetEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -142,7 +142,17 @@ const PresetEditorRight: FunctionComponent = () => {
     selectedPreset && (
       <>
         <div className={paneStyles.rightTopTitle} style={{ color: "var(--map)" }}>
-          {selectedPreset.name}
+          <InLineEditInput
+            fieldName="Preset Name"
+            value={selectedPreset.name}
+            editing={presetsEditing.includes(selectedPresetUuid)}
+            maxLength={255}
+            style={{ width: "100%", marginRight: "10px", color: "var(--map)", fontSize: "1em" }}
+            containerStyle={{ paddingLeft: 0 }}
+            onChange={(val) => {
+              dispatch(upsertPreset({ ...selectedPreset, name: val }));
+            }}
+          />
         </div>
         <div className={paneStyles.rightSubTray}>
           <div className={paneStyles.rightIconRow}>

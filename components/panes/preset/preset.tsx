@@ -18,12 +18,13 @@ import { setLayerControls } from "../../../store/map";
 import { setSelectedPresetUuid, setSelectedRightNavItem } from "../../../store/preset";
 import { v4 as uuidv4 } from "uuid";
 import { colors, uniqueNamesGenerator } from "unique-names-generator";
-import { IconButton } from "components/interface/_global-elements";
+import { IconButton, ModifiedIndicator } from "components/interface/_global-elements";
 
 const PresetEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
   const router = useRouter();
   const presets = useSelector((state: RootState) => state.preset.presets);
+  const presetsFromDb = useSelector((state: RootState) => state.preset.presetsFromDb);
   const selectedPresetUuid = useSelector((state: RootState) => state.preset.selectedPresetUuid);
   const selectedRightNavItem = useSelector((state: RootState) => state.preset.selectedRightNavItem);
   const user: AEGISUser = useSelector((state: RootState) => state.user.ironSessionData?.user);
@@ -114,6 +115,10 @@ const PresetEditorLeft: FunctionComponent = () => {
                   const currentPreset = presets[key];
                   const selectedStyle =
                     currentPreset.uuid === selectedPresetUuid ? styles.presetItemSelected : null;
+
+                  const presetFromDb = presetsFromDb.filter(
+                    (preset) => preset.uuid === currentPreset.uuid
+                  )[0];
                   return (
                     <div
                       key={`sub_${currentPreset.name}`}
@@ -124,6 +129,18 @@ const PresetEditorLeft: FunctionComponent = () => {
                         onClick={() => handleSelectPresetClick(currentPreset)}
                       >
                         {currentPreset.name}
+                        <ModifiedIndicator
+                          obj1={currentPreset}
+                          obj2={presetFromDb}
+                          svgStyle={{
+                            width: "15",
+                            height: "12",
+                            cx: "5",
+                            cy: "9",
+                            r: "3",
+                            fill: "#ff0000",
+                          }}
+                        />
                       </div>
                     </div>
                   );

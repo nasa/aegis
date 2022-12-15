@@ -249,3 +249,12 @@
   margin-top: 4px;
   margin-left: 6px;
 }
+
+.check {
+  margin: 0 4px 0 4px;
+}
+
+.checkUneditable {
+  margin: 0 4px 0 4px;
+  color: white;
+}

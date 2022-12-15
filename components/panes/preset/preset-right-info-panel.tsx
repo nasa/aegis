@@ -1,26 +1,68 @@
 import { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { faChevronDown, faPlus, faGear } from "@fortawesome/free-solid-svg-icons";
-library.add(faChevronDown, faPlus, faGear);
+import { useSelector, useDispatch, shallowEqual } from "react-redux";
+import { RootState } from "store";
+import { ContentEditableTextArea } from "components/interface/_global-elements";
+import { upsertPreset } from "store/preset";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCheck } from "@fortawesome/free-solid-svg-icons";
 
-const Info_Panel: FunctionComponent = () => {
+const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
+  const dispatch = useDispatch();
+
+  const selectedPresetUuid = useSelector(
+    (state: RootState) => state.preset.selectedPresetUuid,
+    shallowEqual
+  );
+  const presets = useSelector((state: RootState) => state.preset.presets, shallowEqual);
+  const selectedPreset: Preset = presets.filter((preset) => preset.uuid === selectedPresetUuid)[0];
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle}>Preset Information</div>
       <div className={paneStyles.panelContainer}>
-        <div className={paneStyles.bodyText}>
-          <p>
-            Terrain Difficulty is a combination of Slope and TRI at 1m/1pixel...lorem ipsum dolor
-            sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
-            dolore magna aliqua.
-          </p>
-          <p>
-            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
-            commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum
-            dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
-            culpa qui officia deserunt mollit anim id est laborum.
-          </p>
+        <div className={paneStyles.panelSection}>
+          <div className={paneStyles.panelSectionTitle}>Preset Description</div>
+          <ContentEditableTextArea
+            html={selectedPreset?.description} // innerHTML of the editable div
+            editing={editMode}
+            onChange={(evt) => {
+              dispatch(
+                upsertPreset({
+                  ...selectedPreset,
+                  description: evt.target.value,
+                })
+              );
+            }} // handle innerHTML change
+          />
+        </div>
+
+        <div className={paneStyles.panelSection}>
+          <div className={paneStyles.panelSmallField}>
+            <div className={paneStyles.panelSectionTitle}>
+              {editMode ? (
+                <input
+                  className={paneStyles.check}
+                  type="checkbox"
+                  checked={selectedPreset.missionPreset}
+                  onChange={(evt) => {
+                    if (!editMode) return;
+                    dispatch(
+                      upsertPreset({
+                        ...selectedPreset,
+                        missionPreset: evt.target.checked,
+                      })
+                    );
+                  }}
+                />
+              ) : (
+                <span className={paneStyles.checkUneditable}>
+                  <FontAwesomeIcon icon={faCheck} />
+                </span>
+              )}
+              Preset is available to everyone
+            </div>
+            <div className={paneStyles.inputField}></div>
+          </div>
         </div>
       </div>
     </div>
