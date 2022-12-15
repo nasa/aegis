@@ -12,7 +12,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 import Info_panel from "./preset-right-info-panel";
-import Layers_Panel from "./preset-right-layers-panel";
+import Layers_Panel from "./preset-right-layers";
 import paneStyles from "../global-pane-styles.module.css";
 import { RootState } from "store";
 import {

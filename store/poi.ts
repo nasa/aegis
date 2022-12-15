@@ -6,7 +6,7 @@ export const initialState: PoiState = {
   pois: [],
   poisFromDb: [],
   selectedPoiUuid: null,
-  selectedRightNavItem: "information_panel",
+  selectedRightNavItem: "info_panel",
   poisEditing: [],
 };
 

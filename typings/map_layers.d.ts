@@ -28,6 +28,7 @@ interface Layer {
 }
 
 type Preset = {
+  id?: number;
   uuid: string;
   name: string;
   description: string;

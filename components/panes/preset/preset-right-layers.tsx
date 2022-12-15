@@ -1,9 +1,10 @@
 import { FunctionComponent, useEffect } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import styles from "./preset-right-layers-panel.module.css";
+import styles from "./preset-right-layers.module.css";
 import {
   faCaretDown,
   faCaretRight,
+  faCircleInfo,
   faEye,
   faEyeSlash,
   faSliders,
@@ -17,7 +18,8 @@ import {
   togglePresetInteractionLayerExpanded,
   togglePresetLayerControlEnabled,
 } from "store/preset";
-import Settings_subpanel from "./preset-right-settings-subpanel";
+import Settings_subpanel from "./preset-right-layers-settings";
+import Info_subpanel from "./preset-right-layers-info";
 
 const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -164,8 +166,12 @@ const Sublayer: FunctionComponent<{
           {sublayer.name} ({sublayer.type})
         </div>
         <div className={styles.sublayerToolIcons}>
-          {/* <div
-            className={styles.sublayerToolIcon}
+          <div
+            className={`${styles.sublayerToolIcon} ${
+              selectedPreset.layerControls[sublayer.name].enabled || editMode
+                ? null
+                : styles.sublayerDisabled
+            }`}
             onClick={() => {
               const tabSelected =
                 presetLayerControlInteractions[sublayer.name].tabSelected === "info"
@@ -184,7 +190,7 @@ const Sublayer: FunctionComponent<{
             }}
           >
             <FontAwesomeIcon icon={faCircleInfo} />
-          </div> */}
+          </div>
           {editMode && (
             <div
               className={styles.sublayerToolIcon}
@@ -213,12 +219,18 @@ const Sublayer: FunctionComponent<{
       </div>
 
       {presetLayerControlInteractions[sublayer.name].tabSelected === "info" && (
-        <div className={styles.sublayerInfo}>
-          <p>Info</p>
+        <div
+          className={`${styles.sublayerExpando} ${
+            selectedPreset.layerControls[sublayer.name].enabled || editMode
+              ? null
+              : styles.sublayerDisabled
+          }`}
+        >
+          <Info_subpanel sublayer={sublayer} />
         </div>
       )}
       {presetLayerControlInteractions[sublayer.name].tabSelected === "sliders" && (
-        <div className={styles.sublayerSliders}>
+        <div className={styles.sublayerExpando}>
           <Settings_subpanel sublayer={sublayer} selectedPreset={selectedPreset} />
         </div>
       )}

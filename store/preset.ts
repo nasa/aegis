@@ -5,7 +5,7 @@ export const initialState: PresetState = {
   presets: [],
   presetsFromDb: [],
   selectedPresetUuid: null,
-  selectedRightNavItem: null,
+  selectedRightNavItem: "info_panel",
   presetInteractions: {},
   presetsEditing: [],
 };

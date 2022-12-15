@@ -47,7 +47,7 @@
 
 .sublayerDisabled {
   background-color: var(--grey2);
-  color: var(--grey3);
+  color: var(--grey3) !important;
 }
 
 .sublayerTitle {
@@ -62,8 +62,8 @@
 .sublayerToolIcons {
   display: flex;
   flex-direction: row;
-  width: 30px;
-  flex: 0 0 30px;
+  width: 60px;
+  flex: 0 0 60px;
   padding-left: 10px;
 }
 
@@ -82,7 +82,7 @@
   border-radius: var(--radius);
 }
 
-.sublayerSliders {
+.sublayerExpando {
   background-color: var(--grey1);
 }
 

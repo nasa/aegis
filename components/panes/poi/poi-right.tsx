@@ -30,7 +30,7 @@ import * as InternalAPI from "http-client/internal-api";
 import Reports_Panel from "./poi-right-reports-panel";
 
 const panelTypes: PanelTypes = {
-  information_panel: {
+  info_panel: {
     title: "POI Information",
     panel: Info_Panel,
     color: "var(--poi)",

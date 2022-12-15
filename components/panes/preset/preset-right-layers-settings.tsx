@@ -1,5 +1,5 @@
 import { FunctionComponent } from "react";
-import styles from "./preset-right-settings-subpanel.module.css";
+import styles from "./preset-right-layers-settings.module.css";
 import { Dropdown } from "components/interface/_global-elements";
 import { useDispatch } from "react-redux";
 import { setPresetLayerControlStyle } from "store/preset";

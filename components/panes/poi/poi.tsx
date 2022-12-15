@@ -70,8 +70,7 @@ const PoiEditorLeft: FunctionComponent = () => {
                       dispatch(setSelectedPoiUuid(null));
                     } else {
                       dispatch(setSelectedPoiUuid(poi.uuid));
-                      if (!selectedRightNavItem)
-                        dispatch(setSelectedRightNavItem("information_panel"));
+                      if (!selectedRightNavItem) dispatch(setSelectedRightNavItem("info_panel"));
                     }
                   }}
                 >
