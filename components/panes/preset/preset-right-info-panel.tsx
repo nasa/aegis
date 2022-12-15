@@ -5,7 +5,7 @@ import { RootState } from "store";
 import { ContentEditableTextArea } from "components/interface/_global-elements";
 import { upsertPreset } from "store/preset";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck } from "@fortawesome/free-solid-svg-icons";
+import { faCheck, faXmark } from "@fortawesome/free-solid-svg-icons";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -56,7 +56,11 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 />
               ) : (
                 <span className={paneStyles.checkUneditable}>
-                  <FontAwesomeIcon icon={faCheck} />
+                  {selectedPreset.missionPreset ? (
+                    <FontAwesomeIcon icon={faCheck} />
+                  ) : (
+                    <FontAwesomeIcon icon={faXmark} />
+                  )}
                 </span>
               )}
               Preset is available to everyone
