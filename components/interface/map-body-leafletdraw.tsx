@@ -166,9 +166,7 @@ const MapBody: FunctionComponent = () => {
    * Map events management
    */
   useEffect(() => {
-    if (!mapRef.current) {
-      return;
-    }
+    if (!mapRef.current) return;
 
     // Instantiate the map
     if (!map.current) {
@@ -270,7 +268,7 @@ const MapBody: FunctionComponent = () => {
         map.current.remove();
       }
     };
-  }, [mission, mapRef, drawControlRef, dispatch, showMapLayers]);
+  }, [mission, mapRef, drawControlRef, dispatch]);
 
   useEffect(() => {
     /**

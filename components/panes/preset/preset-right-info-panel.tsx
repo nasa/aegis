@@ -88,7 +88,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 {selectedPreset.missionPreset ? (
                   <>Preset is visible to everyone</>
                 ) : (
-                  <>Preset visible to only you</>
+                  <>Preset is visible to only you</>
                 )}
               </span>
             )}
@@ -108,14 +108,14 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       handleDefaultPresetChange(evt);
                     }}
                   />
-                  <>Mission default preset</>
+                  <>Preset is the mission's default</>
                 </>
               ) : (
                 <span className={paneStyles.checkUneditable}>
                   {selectedPreset.missionPresetDefault ? (
-                    <>This is the mission&apos;s default preset</>
+                    <>Preset is the mission&apos;s default</>
                   ) : (
-                    <>This is not the mission&apos;s default preset</>
+                    <>Preset is not the mission&apos;s default</>
                   )}
                 </span>
               )}
