@@ -108,7 +108,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       handleDefaultPresetChange(evt);
                     }}
                   />
-                  <>Preset is the mission's default</>
+                  <>Preset is the mission&apos;s default</>
                 </>
               ) : (
                 <span className={paneStyles.checkUneditable}>
