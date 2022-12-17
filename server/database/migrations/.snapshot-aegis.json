@@ -564,6 +564,16 @@
           "default": "false",
           "mappedType": "boolean"
         },
+        "mission_preset_default": {
+          "name": "mission_preset_default",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        },
         "name": {
           "name": "name",
           "type": "varchar(255)",

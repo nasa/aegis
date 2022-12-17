@@ -16,8 +16,11 @@ export class Preset {
   @Property({ type: MikroTypes.uuid, unique: true })
   uuid!: string;
 
-  @Property({ type: MikroTypes.boolean })
-  missionPreset: boolean = false;
+  @Property({ type: MikroTypes.boolean, default: false })
+  missionPreset: boolean;
+
+  @Property({ type: MikroTypes.boolean, default: false })
+  missionPresetDefault: boolean;
 
   @Property({ type: MikroTypes.string })
   name: string;

@@ -47,6 +47,7 @@ const PresetEditorLeft: FunctionComponent = () => {
       owner: user.id,
       mission: mission.id,
       missionPreset: false,
+      missionPresetDefault: false,
       layerControls: mapLayerControls,
     };
 
@@ -88,6 +89,14 @@ const PresetEditorLeft: FunctionComponent = () => {
             }
             dispatch(setPresetInteractions({ presetUuid: preset.uuid, layerControlInteractions }));
           });
+          // Set the default preset
+          const defaultPreset = presetData.data.filter(
+            (preset) => preset.missionPresetDefault === true
+          );
+          if (defaultPreset.length > 0) {
+            dispatch(setSelectedPresetUuid(defaultPreset[0].uuid));
+            dispatch(setLayerControls(defaultPreset[0].layerControls));
+          }
         }
       }
     })();
@@ -183,6 +192,9 @@ const PresetList: FunctionComponent<{
               onClick={() => handleSelectPresetClick(currentPreset)}
             >
               {currentPreset.name}
+              <span className={styles.defaultText}>
+                {currentPreset.missionPresetDefault ? "(Default)" : ""}
+              </span>
               <ModifiedIndicator
                 obj1={currentPreset}
                 obj2={presetFromDb}

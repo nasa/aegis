@@ -142,9 +142,6 @@ const MapBody: FunctionComponent = () => {
   /**
    * Map tile layers display management
    */
-  useEffect(() => {
-    showMapLayers();
-  }, [showMapLayers]);
 
   useEffect(() => {
     showMapLayers();
@@ -200,7 +197,7 @@ const MapBody: FunctionComponent = () => {
       });
       map.current.addControl(drawControlRef.current);
 
-      console.log("map", map.current);
+      showMapLayers();
     }
 
     // listen to vertexes being added to currently drawn layer (called workingLayer)
@@ -273,7 +270,7 @@ const MapBody: FunctionComponent = () => {
         map.current.remove();
       }
     };
-  }, [mission, mapRef, drawControlRef, dispatch]);
+  }, [mission, mapRef, drawControlRef, dispatch, showMapLayers]);
 
   useEffect(() => {
     /**
@@ -300,7 +297,6 @@ const MapBody: FunctionComponent = () => {
         evaItemWithMapActionSet = evaItem;
       }
     });
-    console.log("evaItemWithMapActionSet", evaItemWithMapActionSet);
 
     if (evaItemWithMapActionSet) {
       // Set that evaItem edit is underway. This allows the correct item to be updated when the L Draw action is completed

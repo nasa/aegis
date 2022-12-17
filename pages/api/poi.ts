@@ -23,6 +23,7 @@ export const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
     try {
       if (req.session?.user) {
         const pois = await getPOIsByMission(intMissionId);
+        await Mikro.closeORM();
         return res.status(200).json({
           status: "success",
           message: "POIs retrieved",
@@ -32,7 +33,7 @@ export const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
     } catch (error) {
-      return res.status(500).json({ status: "error", message: "Failed to get POIs." });
+      return res.status(500).json({ status: "error", message: "Failed to get POIs. : " + error });
     }
   }
 
@@ -152,6 +153,7 @@ export async function getPOIsByMission(missionId: number): Promise<POI[]> {
   await Mikro.getORM();
   const em = await Mikro.getEM();
   const pois = await em.find(Poi_db, { mission: missionId }, { orderBy: { id: QueryOrder.ASC } });
+  await Mikro.closeORM();
 
   /** transform the Mikro Poi objects into POI objects used in the Store.
    * also transform and populate the actions

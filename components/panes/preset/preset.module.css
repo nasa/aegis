@@ -62,6 +62,12 @@
   white-space: nowrap;
 }
 
+.defaultText {
+  font-size: 0.8em;
+  color: var(--grey4);
+  margin-left: 5px;
+}
+
 .expandoCaret {
   width: 15px;
 }

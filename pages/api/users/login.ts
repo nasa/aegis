@@ -39,6 +39,7 @@ async function login(
 ): Promise<WrappedResponse<IronSessionData>> {
   const model = Mikro.getEM();
   const user = await model.findOne(User, { username });
+  await Mikro.closeORM();
   if (!user) {
     return { status: "failure", message: "No such user." };
   } else {

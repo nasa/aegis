@@ -10,6 +10,8 @@ export class PresetSeeder extends Seeder {
       name: "Terrain Whiteout",
       description: "",
       uuid: "d9f9b0b0-5b1f-11ec-8d3d-0242ac130003",
+      missionPreset: false,
+      missionPresetDefault: false,
       layerControls: {
         Basemaps: {
           name: "Basemaps",

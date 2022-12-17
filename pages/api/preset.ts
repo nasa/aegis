@@ -35,7 +35,9 @@ export const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = 
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
     } catch (error) {
-      return res.status(500).json({ status: "error", message: "Failed to find presets." });
+      return res
+        .status(500)
+        .json({ status: "error", message: "Failed to get presets. : " + error });
     }
     // Upserts a preset
   } else if (req.method === "POST") {
@@ -104,6 +106,7 @@ export async function getAllPresetsForMission(missionId: number): Promise<Preset
   await Mikro.getORM();
   const model = await Mikro.getEM();
   const presets = await model.find(Preset_db, { mission: missionId });
+  await Mikro.closeORM();
 
   /** transform the Mikro Preset_db objects into Preset objects used in the Store.
    */

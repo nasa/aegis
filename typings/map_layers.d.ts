@@ -35,6 +35,7 @@ type Preset = {
   owner: number;
   mission: number;
   missionPreset: boolean;
+  missionPresetDefault: boolean;
   layerControls: LayerControls;
   createdAt?: Date;
   updatedAt?: Date;
