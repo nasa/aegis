@@ -58,11 +58,16 @@
   margin-left: 5px;
 }
 
+.bodyText p {
+  margin: 10px 5px 10px 5px;
+}
+
 .iconButtons {
   display: flex;
   gap: 6px;
   flex-direction: row;
-  padding: 5px 0px 5px 0px;
+  padding: 0 0px 5px 0px;
+  margin-left: 6px;
 }
 
 .rightActiveWindow {
@@ -93,7 +98,7 @@
   cursor: pointer;
 }
 .rightIconContainer:hover {
-  background: var(--grey1);
+  background-color: var(--grey1);
   border-top: 2px solid var(--grey1);
   width: 35px;
   height: 30px;
@@ -101,7 +106,7 @@
 
 .rightIconContainerSelected {
   background: var(--grey1);
-  border-top: 2px solid #66def9;
+  border-top: 2px solid #fff;
   width: 35px;
   height: 30px;
   cursor: pointer;
@@ -243,4 +248,12 @@
   width: 18px;
   margin-top: 4px;
   margin-left: 6px;
+}
+
+.check {
+  margin: 0 4px 0 4px;
+}
+
+.checkUneditable {
+  margin: 0 8px 0 4px;
 }

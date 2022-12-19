@@ -7,8 +7,11 @@ export class PresetSeeder extends Seeder {
     em.create(Preset, {
       owner: context.user1.id,
       mission: context.mission1.id,
-      name: "Terrain Whiteout",
+      name: "Visible Light",
       description: "",
+      uuid: "d9f9b0b0-5b1f-11ec-8d3d-0242ac130003",
+      missionPreset: true,
+      missionPresetDefault: true,
       layerControls: {
         Basemaps: {
           name: "Basemaps",

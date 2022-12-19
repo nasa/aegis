@@ -31,9 +31,7 @@ type GISfile = {
  * From MapSelector component
  */
 type MapExpandedSections = {
-  systemPresets: boolean;
-  userPresets: boolean;
-  details: boolean;
+  presets: boolean;
 };
 type SetMapExpandedSectionsFn = (mapExpandedSections: MapExpandedSections) => void;
 

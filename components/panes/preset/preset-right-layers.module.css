@@ -1,0 +1,109 @@
+.layersContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.layersHeader {
+  display: flex;
+  flex-direction: row;
+  font-weight: 700;
+  margin-top: 5px;
+  margin-left: 5px;
+  user-select: none;
+}
+
+.layerDisabled {
+  color: var(--grey3);
+}
+
+.layersBody {
+  margin-top: 5px;
+  margin-left: 15px;
+}
+
+.layerGroup {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  margin-right: 5px;
+  user-select: none;
+}
+
+.layer {
+  display: flex;
+}
+
+.sublayer {
+  display: flex;
+  flex-direction: row;
+  background-color: var(--grey1);
+  padding-left: 6px;
+  margin-top: 2px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  font-size: 0.9em;
+  height: 24px;
+  cursor: pointer;
+}
+
+.sublayerDisabled {
+  background-color: var(--grey2);
+  color: var(--grey3) !important;
+}
+
+.sublayerTitle {
+  font-size: 0.95em;
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+.sublayerToolIcons {
+  display: flex;
+  flex-direction: row;
+  width: 60px;
+  flex: 0 0 60px;
+  padding-left: 10px;
+}
+
+.sublayerToolIcon {
+  color: white;
+  width: 20px;
+  margin-left: 1px;
+  margin-right: 1px;
+  cursor: pointer;
+  height: 100%;
+}
+
+.sublayerItemContainer {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius);
+}
+
+.sublayerExpando {
+  background-color: var(--grey1);
+}
+
+.expandoCaret {
+  width: 15px;
+}
+
+.expandoCaretDisabled {
+  color: var(--grey3);
+}
+
+.visibility {
+  width: 15px;
+  margin-right: 4px;
+  flex: 0 0 15px;
+}
+
+.visible {
+  color: white;
+}
+
+.inVisible {
+  color: var(--grey3);
+}

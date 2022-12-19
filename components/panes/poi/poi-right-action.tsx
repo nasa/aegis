@@ -14,7 +14,7 @@ import {
 } from "components/interface/_global-elements";
 import { FunctionComponent, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import { deleteAction, setEditMode, upsertAction } from "store/poi";
+import { deleteAction, setPoiEditMode, upsertAction } from "store/poi";
 import { toDecimal } from "utils/formatting";
 import { useSelector, useDispatch, shallowEqual } from "react-redux";
 import { RootState } from "store";
@@ -90,7 +90,7 @@ const RightAction: FunctionComponent<{ editMode: boolean; poi: POI; action: Acti
               size="sm"
               onClick={(e) => {
                 dispatch(deleteAction({ poi, poiAction: action }));
-                dispatch(setEditMode({ poi: selectedPoi, editMode: true }));
+                dispatch(setPoiEditMode({ poi: selectedPoi, editMode: true }));
                 e.stopPropagation();
               }}
             />

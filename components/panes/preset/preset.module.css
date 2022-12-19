@@ -8,115 +8,70 @@
   flex-direction: row;
   font-weight: 700;
   margin-top: 5px;
+  margin-left: 5px;
   user-select: none;
 }
 
 .layersBody {
-  margin-top: 5px;
-  margin-left: 15px;
-}
-
-.layerItem {
-  font-style: normal;
-  font-weight: 400;
-  font-size: 16px;
-  margin: 5px 0 10px 0;
-  display: flex;
-  align-items: center;
-  color: #ffffff;
-}
-
-.layerGroup {
+  margin-top: 0;
+  margin-left: 5px;
   padding-top: 6px;
   padding-bottom: 6px;
+  margin-right: 5px;
   user-select: none;
 }
 
-.layer {
-  display: flex;
-}
-
-.normal {
+.presetItem {
   display: flex;
   flex-direction: row;
-  margin-left: 8px;
   padding-left: 6px;
-  margin-top: 2px;
+  margin-top: 1px;
   margin-bottom: 2px;
   padding-top: 4px;
   padding-bottom: 4px;
   border-radius: var(--radius);
   font-size: 0.9em;
-}
-
-.sublayer:hover {
-  background-color: var(--grey1);
+  height: 24px;
   cursor: pointer;
 }
 
-.selected {
-  display: flex;
-  flex-direction: row;
-  margin-left: 8px;
-  padding-left: 6px;
-  margin-top: 2px;
-  margin-bottom: 2px;
-  padding-top: 4px;
-  padding-bottom: 4px;
-  border-radius: var(--radius);
-  font-size: 0.9em;
-
+.presetItemSelected {
   background-color: var(--map);
   color: black;
-  cursor: pointer;
 }
 
-.sublayerTitle {
-  font-size: 0.95em;
-  flex: 1 1 auto;
-  overflow-x: hidden;
-  text-overflow: ellipsis;
-
-  white-space: nowrap;
-}
-
-.sublayerToolIcons {
-  display: flex;
-  flex-direction: row;
-  width: 60px;
-  flex: 0 0 60px;
-  padding-left: 10px;
-}
-
-.sublayerToolIcon {
+.presetIcon {
   color: var(--grey3);
   width: 20px;
   margin-left: 1px;
   margin-right: 1px;
   cursor: pointer;
+  height: 100%;
+  color: white;
 }
 
-.sublayerToolIcon:hover {
-  color: white;
+.presetIconSelected {
+  color: black !important;
+}
+
+.presetTitle {
+  font-size: 0.95em;
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.defaultText {
+  font-size: 0.8em;
+  color: var(--grey4);
+  margin-left: 5px;
 }
 
 .expandoCaret {
   width: 15px;
 }
 
-.visibility {
-  width: 15px;
-  margin-right: 4px;
-  flex: 0 0 15px;
-}
-
-.visible {
-  color: white;
-}
-
-.inVisible {
-  color: var(--grey3);
-}
 .presetDetail {
   font-style: normal;
   font-weight: 400;
@@ -166,6 +121,7 @@
   background: #616574;
   border-radius: 5px;
   cursor: pointer;
+  user-select: none;
 }
 
 .presetHighlight {
@@ -180,12 +136,4 @@
   background: #66def9;
   border-radius: 5px;
   color: black;
-}
-
-.message {
-  position: relative;
-  top:-5px;
-  left: 5px;
-  font-size: 11px;
-  color: red;
 }

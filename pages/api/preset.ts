@@ -2,7 +2,7 @@ import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 import Mikro from "utils/mikro";
-import { Preset } from "../../server/database/models/preset.model";
+import { Preset as Preset_db } from "../../server/database/models/preset.model";
 import { roundDateToSecond } from "../../utils/formatting";
 
 export const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
@@ -35,13 +35,13 @@ export const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = 
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
     } catch (error) {
-      console.log(error);
-      return res.status(500).json({ status: "error", message: "Failed to find presets." });
+      return res
+        .status(500)
+        .json({ status: "error", message: "Failed to get presets. : " + error });
     }
-    // Creates a new preset
+    // Upserts a preset
   } else if (req.method === "POST") {
     const presetBody = req.body.preset as Preset;
-    console.log(presetBody);
     if (req.session?.user) {
       try {
         await Mikro.getORM();
@@ -51,13 +51,13 @@ export const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = 
           createdAt: presetBody.createdAt || roundDateToSecond(new Date()),
           updatedAt: roundDateToSecond(new Date()),
         };
-        const upsertedPreset = await em.upsert(Preset, presetToUpsert);
+        const upsertedPreset = await em.upsert(Preset_db, presetToUpsert);
         await em.persistAndFlush(upsertedPreset);
         await Mikro.closeORM();
         const responsePreset: Preset = {
           ...upsertedPreset,
-          mission: upsertedPreset.mission,
-          owner: upsertedPreset.owner,
+          mission: upsertedPreset.mission.id,
+          owner: upsertedPreset.owner.id,
         };
         return res.status(200).json({
           status: "success",
@@ -65,7 +65,6 @@ export const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = 
           data: responsePreset,
         });
       } catch (error) {
-        console.log(error);
         return res.status(500).json({ status: "error", message: "Failed to upsert preset." });
       }
     } else {
@@ -80,7 +79,7 @@ export const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = 
       try {
         await Mikro.getORM();
         const em = await Mikro.getEM();
-        const presetToDelete = await em.findOne(Preset, { uuid });
+        const presetToDelete = await em.findOne(Preset_db, { uuid });
         if (!presetToDelete) {
           return res.status(404).json({ status: "failure", message: "Preset not found" });
         }
@@ -106,11 +105,20 @@ export default withIronSessionApiRoute(Mikro.withORM(handlePreset), ironOptions)
 export async function getAllPresetsForMission(missionId: number): Promise<Preset[] | false> {
   await Mikro.getORM();
   const model = await Mikro.getEM();
-  const presets = await model.find(Preset, { mission: missionId });
+  const presets = await model.find(Preset_db, { mission: missionId });
+  await Mikro.closeORM();
 
-  if (presets.length === 0) {
-    return false;
+  /** transform the Mikro Preset_db objects into Preset objects used in the Store.
+   */
+  const transformedPresets: Preset[] = [];
+  for (const presetItem of presets) {
+    const convertedPreset: Preset = {
+      ...presetItem,
+      owner: presetItem.owner.id,
+      mission: presetItem.mission.id,
+    };
+    transformedPresets.push(convertedPreset);
   }
 
-  return presets;
+  return transformedPresets;
 }

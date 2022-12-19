@@ -2,7 +2,6 @@ interface LayerControl {
   name: string;
   enabled: boolean;
   type: string;
-  expanded: boolean;
   mapLayerRef: any;
   style: LayerControlStyle;
 }
@@ -27,3 +26,32 @@ interface Layer {
   createdAt?: Date;
   updatedAt?: Date;
 }
+
+type Preset = {
+  id?: number;
+  uuid: string;
+  name: string;
+  description: string;
+  owner: number;
+  mission: number;
+  missionPreset: boolean;
+  missionPresetDefault: boolean;
+  layerControls: LayerControls;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
+interface PresetInteractions {
+  [key: string]: LayerControlInteractions;
+}
+
+interface LayerControlInteractions {
+  [key: string]: LayerControlInteraction;
+}
+
+interface LayerControlInteraction {
+  expanded: boolean;
+  tabSelected: LayerDetailsTabs;
+}
+
+type LayerDetailsTabs = "info" | "sliders";

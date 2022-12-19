@@ -73,7 +73,7 @@ const MapBody: FunctionComponent = () => {
   );
 
   const showMapLayers = useCallback(() => {
-    if (!mission || !layerControls || !map) return;
+    if (!mission || !layerControls || !map.current) return;
 
     // go through all layers in mission config and add make a list of the ones that are enabled
     const layersToAdd: MMGIS_Sublayer[] = [];
@@ -142,9 +142,6 @@ const MapBody: FunctionComponent = () => {
   /**
    * Map tile layers display management
    */
-  useEffect(() => {
-    showMapLayers();
-  }, [showMapLayers]);
 
   useEffect(() => {
     showMapLayers();
@@ -169,9 +166,7 @@ const MapBody: FunctionComponent = () => {
    * Map events management
    */
   useEffect(() => {
-    if (!mapRef.current) {
-      return;
-    }
+    if (!mapRef.current) return;
 
     // Instantiate the map
     if (!map.current) {
@@ -200,7 +195,7 @@ const MapBody: FunctionComponent = () => {
       });
       map.current.addControl(drawControlRef.current);
 
-      console.log("map", map.current);
+      showMapLayers();
     }
 
     // listen to vertexes being added to currently drawn layer (called workingLayer)
@@ -300,7 +295,6 @@ const MapBody: FunctionComponent = () => {
         evaItemWithMapActionSet = evaItem;
       }
     });
-    console.log("evaItemWithMapActionSet", evaItemWithMapActionSet);
 
     if (evaItemWithMapActionSet) {
       // Set that evaItem edit is underway. This allows the correct item to be updated when the L Draw action is completed
