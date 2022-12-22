@@ -10,11 +10,11 @@ export const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = 
   res
 ): Promise<unknown> => {
   //Gets all Presets for a mission
-  if (req.method === "GET" && req.query.missionID) {
+  if (req.method === "GET" && req.query.missionId) {
     const {
-      query: { missionID },
+      query: { missionId },
     } = req;
-    const intMissionId = parseInt(Array.isArray(missionID) ? missionID[0] : missionID);
+    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
     if (typeof intMissionId !== "number") {
       return res.status(500).json({ status: "error", message: "Mission ID must be integer." });
     }
@@ -46,7 +46,7 @@ export const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = 
       try {
         await Mikro.getORM();
         const em = await Mikro.getEM();
-        const presetToUpsert = {
+        const presetToUpsert: Preset = {
           ...presetBody,
           createdAt: presetBody.createdAt || roundDateToSecond(new Date()),
           updatedAt: roundDateToSecond(new Date()),
