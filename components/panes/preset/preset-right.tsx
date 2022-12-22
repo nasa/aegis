@@ -20,7 +20,7 @@ import {
   deletePreset,
   setPresetEditMode,
   setSelectedPresetUuid,
-  setSelectedRightNavItem,
+  setSelectedPresetRightNavItem,
   upsertPreset,
   upsertPresetsFromDb,
 } from "store/preset";
@@ -173,7 +173,7 @@ const PresetEditorRight: FunctionComponent = () => {
                         selectedRightNavItem === panelType ? panelTypes[panelType].color : "white",
                     }}
                     title={panelTypes[panelType].title}
-                    onClick={() => dispatch(setSelectedRightNavItem(panelType))}
+                    onClick={() => dispatch(setSelectedPresetRightNavItem(panelType))}
                   >
                     <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
                   </div>

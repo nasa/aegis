@@ -44,7 +44,7 @@ export const presetSlice = createSlice({
     setSelectedPresetUuid: (state, action: { payload: string }) => {
       state.selectedPresetUuid = action.payload;
     },
-    setSelectedRightNavItem: (state, action: { payload: string }) => {
+    setSelectedPresetRightNavItem: (state, action: { payload: string }) => {
       state.selectedRightNavItem = action.payload;
     },
     setPresetLayerControl: (
@@ -142,7 +142,7 @@ export const {
   deleteAllPresetsFromDb,
   duplicatePreset,
   setSelectedPresetUuid,
-  setSelectedRightNavItem,
+  setSelectedPresetRightNavItem,
   setPresetLayerControl,
   togglePresetLayerControlEnabled,
   setPresetLayerControlStyle,

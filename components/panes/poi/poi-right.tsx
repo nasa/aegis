@@ -22,12 +22,12 @@ import {
   upsertPoisFromDb,
   deleteAllPoisFromDb,
 } from "store/poi";
-import Info_Panel from "./poi-right-info-panel";
-import Actions_Panel from "./poi-right-actions-panel";
+import Info_Panel from "./poi-right-info";
+import Actions_Panel from "./poi-right-actions";
 import { IconButton, InLineEditInput } from "components/interface/_global-elements";
 import { setPOI } from "http-client/internal-api";
 import * as InternalAPI from "http-client/internal-api";
-import Reports_Panel from "./poi-right-reports-panel";
+import Reports_Panel from "./poi-right-reports";
 
 const panelTypes: PanelTypes = {
   info_panel: {

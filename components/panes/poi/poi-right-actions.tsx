@@ -5,7 +5,7 @@ import { IconButton } from "components/interface/_global-elements";
 import { useSelector, useDispatch, shallowEqual } from "react-redux";
 import { RootState } from "store";
 import { setPoiEditMode, upsertAction } from "store/poi";
-import POIAction from "./poi-right-action";
+import POIAction from "./poi-right-actions-action";
 import { starWars, uniqueNamesGenerator } from "unique-names-generator";
 import { v4 as uuidv4 } from "uuid";
 

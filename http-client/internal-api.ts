@@ -26,7 +26,7 @@ export async function deletePOI(poiUuid: string): Promise<WrappedResponse<null>>
 }
 
 export async function getPresets(mission: number): Promise<WrappedResponse<Preset[]>> {
-  const res = await fetch(`/api/preset?missionID=${mission}`);
+  const res = await fetch(`/api/preset?missionId=${mission}`);
   const response: WrappedResponse<Preset[]> = await res.json();
 
   return response;

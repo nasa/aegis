@@ -16,8 +16,7 @@ import { FunctionComponent, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { deleteAction, setPoiEditMode, upsertAction } from "store/poi";
 import { toDecimal } from "utils/formatting";
-import { useSelector, useDispatch, shallowEqual } from "react-redux";
-import { RootState } from "store";
+import { useDispatch } from "react-redux";
 
 const RightAction: FunctionComponent<{ editMode: boolean; poi: POI; action: Action }> = ({
   editMode,
@@ -25,13 +24,6 @@ const RightAction: FunctionComponent<{ editMode: boolean; poi: POI; action: Acti
   action,
 }) => {
   const dispatch = useDispatch();
-  const selectedPoiUuid = useSelector(
-    (state: RootState) => state.poi.selectedPoiUuid,
-    shallowEqual
-  );
-  const pois: POI[] = useSelector((state: RootState) => state.poi.pois, shallowEqual);
-  const selectedPoi = pois.find((poi) => poi.uuid === selectedPoiUuid);
-
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -90,7 +82,7 @@ const RightAction: FunctionComponent<{ editMode: boolean; poi: POI; action: Acti
               size="sm"
               onClick={(e) => {
                 dispatch(deleteAction({ poi, poiAction: action }));
-                dispatch(setPoiEditMode({ poi: selectedPoi, editMode: true }));
+                dispatch(setPoiEditMode({ poi, editMode: true }));
                 e.stopPropagation();
               }}
             />

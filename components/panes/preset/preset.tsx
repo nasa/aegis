@@ -15,7 +15,7 @@ import {
 import * as InternalAPI from "../../../http-client/internal-api";
 import { useRouter } from "next/router";
 import { setLayerControls } from "../../../store/map";
-import { setSelectedPresetUuid, setSelectedRightNavItem } from "../../../store/preset";
+import { setSelectedPresetUuid, setSelectedPresetRightNavItem } from "../../../store/preset";
 import { v4 as uuidv4 } from "uuid";
 import { colors, uniqueNamesGenerator } from "unique-names-generator";
 import { IconButton, ModifiedIndicator } from "components/interface/_global-elements";
@@ -167,7 +167,7 @@ const PresetList: FunctionComponent<{
 
     dispatch(setSelectedPresetUuid(currentPreset.uuid));
     dispatch(setLayerControls(currentPreset.layerControls));
-    if (!selectedRightNavItem) dispatch(setSelectedRightNavItem("info_panel"));
+    if (!selectedRightNavItem) dispatch(setSelectedPresetRightNavItem("info_panel"));
   };
 
   return (
