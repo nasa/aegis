@@ -1,11 +1,10 @@
 import { Entity, ManyToOne, PrimaryKey, Property, types as MikroTypes } from "@mikro-orm/core";
 import { Mission } from "./mission.model";
-import { v4 } from "uuid";
 
 @Entity()
 export class Layer {
   @PrimaryKey({ type: MikroTypes.uuid })
-  uuid: string = v4();
+  uuid: string;
 
   @ManyToOne(() => Mission, { unique: false, primary: false })
   mission!: Mission;

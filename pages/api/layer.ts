@@ -4,7 +4,8 @@ import { ironOptions } from "server/session/config";
 import Mikro from "utils/mikro";
 import _ from "lodash";
 import { Layer as Layer_db } from "server/database/models/layer.model";
-import { ForeignKeyConstraintViolationException } from "@mikro-orm/core";
+import { ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/core";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * /api/layer
@@ -90,13 +91,21 @@ export async function handleLayer(req: NextApiRequest, res: NextApiResponse): Pr
       if (req.method === "DELETE") {
         try {
           const layerUUID = Array.isArray(uuid) ? uuid[0] : uuid;
-          const reference = await deleteLayer(layerUUID);
+          const deletedUUID = await deleteLayer(layerUUID);
 
-          return res.status(200).json({
-            status: "success",
-            message: "Layer Deleted",
-            data: reference,
-          });
+          if (deletedUUID) {
+            return res.status(200).json({
+              status: "success",
+              message: "Layer Deleted",
+              data: deletedUUID,
+            });
+          } else {
+            return res.status(404).json({
+              status: "failure",
+              message: "Record not found. Nothing deleted",
+              data: null,
+            });
+          }
         } catch (e) {
           console.error(e);
           if (e instanceof ForeignKeyConstraintViolationException) {
@@ -131,9 +140,17 @@ export async function getLayers(missionId: number, layerUUID?: string): Promise<
 
   let layers;
   if (layerUUID) {
-    layers = await em.find(Layer_db, { uuid: layerUUID });
+    layers = await em.find(
+      Layer_db,
+      { uuid: layerUUID },
+      { orderBy: [{ layerConfig: { name: QueryOrder.ASC } }] }
+    );
   } else {
-    layers = await em.find(Layer_db, { mission: { id: missionId } });
+    layers = await em.find(
+      Layer_db,
+      { mission: { id: missionId } },
+      { orderBy: [{ layerConfig: { name: QueryOrder.ASC } }] }
+    );
   }
 
   await Mikro.closeORM();
@@ -149,9 +166,17 @@ export async function upsertLayer(layer: Layer): Promise<Layer> {
   await Mikro.getORM();
   const em = Mikro.getEM();
 
-  layer.updatedAt = new Date();
-  layer.createdAt = layer.createdAt || new Date();
-  const upsertReference = await em.upsert(Layer_db, layer);
+  const updateDate = new Date();
+  const upsertRecord = _.cloneDeep(layer);
+  upsertRecord.layerConfig.time.current = updateDate; //the time property on this config item is the save date
+  upsertRecord.updatedAt = updateDate;
+
+  if (!layer.uuid) {
+    upsertRecord.createdAt = updateDate;
+    upsertRecord.uuid = uuidv4();
+  }
+
+  const upsertReference = await em.upsert(Layer_db, upsertRecord);
 
   await em.persistAndFlush(upsertReference);
   await Mikro.closeORM();
@@ -167,14 +192,20 @@ export async function upsertLayer(layer: Layer): Promise<Layer> {
 /**
  * Deletes a single layer
  * @param uuid layer uuid to delete
+ * @returns the uuid of the deleted layer
  */
-export async function deleteLayer(uuid: string): Promise<Layer_db> {
+export async function deleteLayer(uuid: string): Promise<string | null> {
   await Mikro.getORM();
   const em = Mikro.getEM();
-  const recordReference = em.getReference(Layer_db, uuid);
-  await em.removeAndFlush(recordReference);
+  let returnVal = uuid;
+  const entity = await em.findOne(Layer_db, uuid);
+  if (entity) {
+    await em.removeAndFlush(entity);
+  } else {
+    returnVal = null;
+  }
   await Mikro.closeORM();
-  return recordReference;
+  return returnVal;
 }
 
 export default withIronSessionApiRoute(Mikro.withORM(handleLayer), ironOptions);

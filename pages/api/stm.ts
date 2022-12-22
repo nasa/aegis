@@ -7,6 +7,7 @@ import { STM_Objective as STMObjective_db } from "server/database/models/stm_obj
 import { STM_Goal as STMGoal_db } from "server/database/models/stm_goal.model";
 import { STM_Investigation as STMInvestigation_db } from "server/database/models/stm_investigation.model";
 import _ from "lodash";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * /api/stm?missionId=&stmType=
@@ -126,66 +127,77 @@ async function handleSTM(req: NextApiRequest, res: NextApiResponse) {
           upsertResponse = await upsertSTM(upsertObject, upsertType);
 
           //check response
-          if (!upsertResponse) {
-            return res.status(500).json({
-              status: "Error",
-              message: "Upsert response did not return a value",
-              data: null,
-            });
-          } else {
+          if (upsertResponse) {
             return res.status(200).json({
-              status: "Success",
+              status: "success",
               message: `${urlParamDict[queryParams.stmType]} upserted`,
               data: upsertResponse,
+            });
+          } else {
+            return res.status(500).json({
+              status: "error",
+              message: "Upsert response did not return a value",
+              data: null,
             });
           }
         } catch (e) {
           console.error(e);
           return res
             .status(500)
-            .json({ status: "Error", message: "Error processing the POST request" });
+            .json({ status: "error", message: "Error processing the POST request" });
         }
       }
 
       //delete a STM record
       if (req.method === "DELETE") {
         try {
-          let stmReference;
+          let deletedUUID: string | null;
           if (queryParams.stmType === "o") {
-            stmReference = deleteSTM(queryParams.o, "Objective");
+            deletedUUID = await deleteSTM(queryParams.o, "Objective");
           } else if (queryParams.stmType === "g") {
-            stmReference = deleteSTM(queryParams.g, "Goal");
+            deletedUUID = await deleteSTM(queryParams.g, "Goal");
           } else if (queryParams.stmType === "i") {
-            stmReference = deleteSTM(queryParams.i, "Investigation");
+            deletedUUID = await deleteSTM(queryParams.i, "Investigation");
           } else {
             return res.status(500).json({ status: "error", message: "Invalid type" });
           }
 
-          return res.status(200).json({
-            status: "Success",
-            message: `${urlParamDict[queryParams.stmType]} deleted`,
-            data: stmReference,
-          });
+          if (deletedUUID) {
+            return res.status(200).json({
+              status: "success",
+              message: `${urlParamDict[queryParams.stmType]} deleted`,
+              data: deletedUUID,
+            });
+          } else {
+            return res.status(404).json({
+              status: "failure",
+              message: `Record not found. Nothing deleted`,
+              data: null,
+            });
+          }
         } catch (e) {
           console.error(e);
           if (e instanceof ForeignKeyConstraintViolationException) {
             return res.status(500).json({
-              status: "Error",
+              status: "error",
               message: "Cannot delete mission. This mission is referenced elsewhere",
+              data: null,
             });
           } else {
-            return res
-              .status(500)
-              .json({ status: "Error", message: "Error processing the DELETE request" });
+            return res.status(500).json({
+              status: "error",
+              message: "Error processing the DELETE request",
+              data: null,
+            });
           }
         }
       }
     } else {
-      return res.status(401).json({ status: "Failure", message: "Unauthorized" });
+      return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ status: "Error", message: "Error in query" });
+    return res.status(500).json({ status: "error", message: "Error in query" });
   }
 }
 
@@ -193,7 +205,7 @@ async function handleSTM(req: NextApiRequest, res: NextApiResponse) {
  * get objective(s) from the database.
  * @param missionId the mission id. required
  * @param objectiveUUID optional objective uuid to retrieve. No value will retrieve all objectives for the mission
- * @returns array of stm objectives
+ * @returns array of stm objectives. returns empty array if no records found
  */
 async function getObjectives(missionId: number, objectiveUUID?: string): Promise<STMObjective[]> {
   await Mikro.getORM();
@@ -223,7 +235,7 @@ async function getObjectives(missionId: number, objectiveUUID?: string): Promise
  * @param missionId the mission id. required
  * @param objectiveUUID optional objective uuid. If specified, all goals under this objective are returned
  * @param goalUUID optional goal uuid to retrieve. No value will retrieve all goals for the mission/objective
- * @returns array of stm goals
+ * @returns array of stm goals. returns empty array if no records found
  */
 async function getGoals(
   missionId: number,
@@ -259,7 +271,7 @@ async function getGoals(
  * @param objectiveUUID optional objective uuid. If specified, all investigations under this objective are returned
  * @param goalUUID optional goal uuid. If specified, all investigations under this goal are returned
  * @param investigationUUID optional investigation uuid to retrieve. No value will retrieve all investigations for the mission/objective/goal
- * @returns array of stm investigations
+ * @returns array of stm investigations. returns empty array if no records found
  */
 async function getInvestigations(
   missionId: number,
@@ -313,55 +325,78 @@ async function upsertSTM(
   const em = Mikro.getEM();
 
   //add on additonal fields the db tracks
-  const upsertRecord = {
+  const updateDate = new Date();
+  const upsertRecord: STMObjective | STMGoal | STMInvestigation = {
     ...stmObject,
-    updatedAt: new Date(),
-    createdAt: new Date(), //we are only creating new STM. This will need to be edited if we allow Updates.
+    updatedAt: updateDate,
   };
 
-  //determine the db table we need to upsert into
-  let dbModel;
-  if (stmType === "Objective") dbModel = STMObjective_db;
-  if (stmType === "Goal") dbModel = STMGoal_db;
-  if (stmType === "Investigation") dbModel = STMInvestigation_db;
+  //new object
+  if (!stmObject.uuid) {
+    upsertRecord.uuid = uuidv4();
+    upsertRecord.createdAt = updateDate;
+  }
 
-  //upsert
-  const upsertReference = await em.upsert(dbModel, upsertRecord);
-  await em.persistAndFlush(upsertReference);
-  await Mikro.closeORM();
-
-  //build generic result from the upsert
-  const result = {
-    uuid: upsertReference.uuid,
-    numbering: upsertReference.numbering,
-    name: upsertReference.name,
-  };
-  //add the STM specific foreign key value to the result and return it casted as that STM type
-  if (stmType === "Objective")
-    return { ...result, mission: upsertReference.mission.id } as STMObjective;
-  if (stmType === "Goal")
-    return { ...result, objective: upsertReference.objective.uuid } as STMGoal;
-  if (stmType === "Investigation")
-    return { ...result, goal: upsertReference.goal.uuid } as STMInvestigation;
+  //determine the db table and perform upsert
+  let upsertReference: STMObjective_db | STMGoal_db | STMInvestigation_db;
+  if (stmType === "Objective") {
+    upsertReference = await em.upsert(STMObjective_db, upsertRecord);
+    await em.persistAndFlush(upsertReference);
+    await Mikro.closeORM();
+    return { ...upsertReference, mission: upsertReference.mission.id } as STMObjective;
+  } else if (stmType === "Goal") {
+    upsertReference = await em.upsert(STMGoal_db, upsertRecord);
+    await em.persistAndFlush(upsertReference);
+    await Mikro.closeORM();
+    return { ...upsertReference, objective: upsertReference.objective.uuid } as STMGoal;
+  } else {
+    upsertReference = await em.upsert(STMInvestigation_db, upsertRecord);
+    await em.persistAndFlush(upsertReference);
+    await Mikro.closeORM();
+    return { ...upsertReference, goal: upsertReference.goal.uuid } as STMInvestigation;
+  }
 }
 
 /**
  * Deletes a single objective, goal, or investigation for a given UUID
  * @param stmUUID UUID of the objective, goal, or investigation to delete
  * @param stmType the type of STM object
+ * @return Retruns a promise of a string uuid of the entity deleted, or null if nothing was deleted
  */
-async function deleteSTM(stmUUID: string, stmType: "Objective" | "Goal" | "Investigation") {
-  let dbModel;
-  if (stmType === "Objective") dbModel = STMObjective_db;
-  if (stmType === "Goal") dbModel = STMGoal_db;
-  if (stmType === "Investigation") dbModel = STMInvestigation_db;
+async function deleteSTM(
+  stmUUID: string,
+  stmType: "Objective" | "Goal" | "Investigation"
+): Promise<string | null> {
+  let returnVal = stmUUID;
 
   await Mikro.getORM();
   const em = Mikro.getEM();
-  const recordReference = em.getReference(dbModel, stmUUID);
-  await em.removeAndFlush(recordReference);
+
+  if (stmType === "Objective") {
+    const entity = await em.findOne(STMObjective_db, stmUUID);
+    if (entity) {
+      await em.removeAndFlush(entity);
+    } else {
+      returnVal = null;
+    }
+  } else if (stmType === "Goal") {
+    const entity = await em.findOne(STMGoal_db, stmUUID);
+    if (entity) {
+      await em.removeAndFlush(entity);
+    } else {
+      returnVal = null;
+    }
+  } else {
+    const entity = await em.findOne(STMInvestigation_db, stmUUID);
+    if (entity) {
+      await em.removeAndFlush(entity);
+    } else {
+      returnVal = null;
+    }
+  }
+
   await Mikro.closeORM();
-  return recordReference;
+  return returnVal;
 }
 
 export default withIronSessionApiRoute(Mikro.withORM(handleSTM), ironOptions);

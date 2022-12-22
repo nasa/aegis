@@ -2,7 +2,7 @@ import { Dispatch, FunctionComponent, SetStateAction } from "react";
 import styles from "./admin.module.css";
 
 interface TimeProps {
-  config_time: MMGIS_Time3;
+  config_time: MMGIS_ConfigTime;
   setConfig: Dispatch<SetStateAction<Config>>;
 }
 

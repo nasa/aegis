@@ -6,11 +6,10 @@ export async function getMissions(missionId: number = null): Promise<WrappedResp
     res = await fetch(`/api/mission`);
   }
   const response: WrappedResponse<Mission[]> = await res.json();
-
   return response;
 }
 
-export async function upsertMission(missionObj: Mission): Promise<WrappedResponse<Mission[]>> {
+export async function upsertMission(missionObj: Mission): Promise<WrappedResponse<Mission>> {
   const res = await fetch(`/api/mission`, {
     method: "POST",
     headers: {
@@ -18,16 +17,14 @@ export async function upsertMission(missionObj: Mission): Promise<WrappedRespons
     },
     body: JSON.stringify(missionObj),
   });
-  const response: WrappedResponse<Mission[]> = await res.json();
-
+  const response: WrappedResponse<Mission> = await res.json();
   return response;
 }
 
-export async function deleteMission(missionId: number): Promise<WrappedResponse<any>> {
+export async function deleteMission(missionId: number): Promise<WrappedResponse<number | null>> {
   const res = await fetch(`/api/mission?missionId=${missionId}`, {
     method: "DELETE",
   });
-  const response: WrappedResponse<any> = await res.json();
-
+  const response: WrappedResponse<number | null> = await res.json();
   return response;
 }

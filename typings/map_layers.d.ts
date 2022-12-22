@@ -20,11 +20,11 @@ interface LayerControls {
 
 /** Represents the DB structure for the Layer table */
 interface Layer {
-  uuid?: string;
+  uuid: string;
   mission: number;
   layerConfig: MMGIS_LayerConfig; //layers from the mmgis config
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 type Preset = {

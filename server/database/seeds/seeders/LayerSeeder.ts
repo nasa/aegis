@@ -1,10 +1,12 @@
 import { Seeder } from "@mikro-orm/seeder";
 import { Dictionary, EntityManager } from "@mikro-orm/core";
 import { Layer as Layer_db } from "../../models/layer.model";
+import { v4 } from "uuid";
 
 export class LayerSeeder extends Seeder {
   async run(em: EntityManager, context: Dictionary): Promise<void> {
     context.layer1 = em.create(Layer_db, {
+      uuid: v4(),
       mission: context.mission1,
       layerConfig: {
         name: "Traverses",
@@ -27,7 +29,7 @@ export class LayerSeeder extends Seeder {
         shape: "none",
         sublayers: [
           {
-            id: 1,
+            //id: 1,
             name: "Apollo 14 Traverse",
             kind: "none",
             type: "vector",
@@ -67,6 +69,7 @@ export class LayerSeeder extends Seeder {
       updatedAt: new Date(),
     });
     context.layer2 = em.create(Layer_db, {
+      uuid: v4(),
       mission: context.mission1,
       layerConfig: {
         name: "Sample Stations",
@@ -89,7 +92,7 @@ export class LayerSeeder extends Seeder {
         shape: "none",
         sublayers: [
           {
-            id: 1,
+            //id: 1,
             name: "Apollo 14 Sample Stations",
             kind: "none",
             type: "vector",
@@ -129,6 +132,7 @@ export class LayerSeeder extends Seeder {
       updatedAt: new Date(),
     });
     context.layer3 = em.create(Layer_db, {
+      uuid: v4(),
       mission: context.mission1,
       layerConfig: {
         name: "Detrended Roughness",
@@ -151,7 +155,7 @@ export class LayerSeeder extends Seeder {
         shape: "none",
         sublayers: [
           {
-            id: 1,
+            //id: 1,
             name: "NAC DTM DTR 2m ",
             type: "tile",
             url: "Layers/NAC_DTM_DTR_2m/{z}/{x}/{y}.png",
@@ -187,6 +191,7 @@ export class LayerSeeder extends Seeder {
       updatedAt: new Date(),
     });
     context.layer4 = em.create(Layer_db, {
+      uuid: v4(),
       mission: context.mission1,
       layerConfig: {
         name: "Confidence Map",
@@ -209,7 +214,7 @@ export class LayerSeeder extends Seeder {
         shape: "none",
         sublayers: [
           {
-            id: 1,
+            //id: 1,
             name: "NAC DTM 2m Confidence Map",
             type: "tile",
             url: "Layers/NAC_DTM_2m_confidence_map/{z}/{x}/{y}.png",
@@ -244,6 +249,7 @@ export class LayerSeeder extends Seeder {
       updatedAt: new Date(),
     });
     context.layer5 = em.create(Layer_db, {
+      uuid: v4(),
       mission: context.mission1,
       layerConfig: {
         name: "Hillshade",
@@ -266,7 +272,7 @@ export class LayerSeeder extends Seeder {
         shape: "none",
         sublayers: [
           {
-            id: 1,
+            //id: 1,
             name: "NAC DTM 2m Hillshade",
             type: "tile",
             url: "Layers/NAC_DTM_hillshade/{z}/{x}/{y}.png",
@@ -301,6 +307,7 @@ export class LayerSeeder extends Seeder {
       updatedAt: new Date(),
     });
     context.layer6 = em.create(Layer_db, {
+      uuid: v4(),
       mission: context.mission1,
       layerConfig: {
         name: "Basemaps",
@@ -323,7 +330,7 @@ export class LayerSeeder extends Seeder {
         shape: "none",
         sublayers: [
           {
-            id: 1,
+            //id: 1,
             name: "NAC Ortho 50cm M150639913",
             type: "tile",
             url: "Layers/NAC_ortho_50cm_2/{z}/{x}/{y}.png",
@@ -351,7 +358,7 @@ export class LayerSeeder extends Seeder {
             shape: "none",
           },
           {
-            id: 2,
+            //id: 2,
             name: "NAC Ortho 50cm M150633128",
             type: "tile",
             url: "Layers/NAC_ortho_50cm_1_v4/{z}/{x}/{y}.png",

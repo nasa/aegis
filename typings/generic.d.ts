@@ -19,7 +19,7 @@ interface Config {
   panelSettings: MMGIS_PanelSettings;
   tools: MMGIS_Tool[];
   //layers: LayerConfig[];
-  time: MMGIS_Time3;
+  time: MMGIS_ConfigTime;
 }
 
 type GISfile = {

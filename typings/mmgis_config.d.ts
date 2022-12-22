@@ -11,7 +11,13 @@ interface MMGIS_config {
   panelSettings: MMGIS_PanelSettings;
   tools: MMGIS_Tool[];
   layers: MMGIS_LayerConfig[];
-  time: MMGIS_Time3;
+  time: MMGIS_ConfigTime;
+}
+
+interface MMGIS_ConfigTime {
+  enabled: boolean;
+  visible: boolean;
+  format: string;
 }
 
 interface MMGIS_Radius {
@@ -110,28 +116,6 @@ interface MMGIS_Style {
   opacity: number;
 }
 
-interface MMGIS_Variables2 {
-  useKeyAsName: string;
-}
-
-interface MMGIS_Time2 {
-  enabled: boolean;
-  type: string;
-  isRelative: boolean;
-  current: Date;
-  start: string;
-  end: string;
-  format: string;
-  refresh: string;
-  increment: string;
-}
-
-interface MMGIS_Time3 {
-  enabled: boolean;
-  visible: boolean;
-  format: string;
-}
-
 /** Represents the Layer JSON structure from the MMGIS Config */
 interface MMGIS_LayerConfig {
   name: string;
@@ -145,17 +129,20 @@ interface MMGIS_LayerConfig {
   sublayers?: MMGIS_Sublayer[];
 }
 
+type MMGIS_layerTypes = "header" | "tile" | "vector" | "vectortile" | "query" | "data" | "model";
+type MMGIS_tileFormats = "tms" | "wtms" | "wms";
+
 interface MMGIS_Sublayer {
   name: string;
-  type: string;
-  id?: number;
+  type: MMGIS_layerTypes;
+  //id?: number;
   kind?: string;
   query?: MMGIS_QueryConfig;
   url?: string;
   position?: MMGIS_ModelPosition;
   rotation?: MMGIS_ModelRotation;
   scale?: number;
-  tileformat?: "tms" | "wtms" | "wms";
+  tileformat?: MMGIS_tileFormats;
   demtileurl?: string;
   demparser?: string;
   controlled?: boolean;
@@ -180,7 +167,7 @@ interface MMGIS_SublayerStyle {
   color?: string;
   fillColor?: string;
   weight?: number;
-  fillOpacity?: any;
+  fillOpacity?: number;
   opacity?: number;
   vtId?: string; //vector tile
   vtKey?: string; //vector tile
@@ -190,7 +177,7 @@ interface MMGIS_SublayerStyle {
 /** Used for Query Layers */
 interface MMGIS_QueryConfig {
   endpoint?: string;
-  type?: "elasticsearch";
+  type?: string;
 }
 
 /** Used for Model Layers */
