@@ -80,7 +80,7 @@ describe("Mission API Endpoint Handler", () => {
 });
 
 describe("Mission API Mikro Functions", () => {
-  const newMission: Mission = {
+  let newMission: Mission = {
     name: "Mission Jest Test",
     config: null,
   };
@@ -107,12 +107,11 @@ describe("Mission API Mikro Functions", () => {
     //check if it was added to the db
     await Mikro.getORM();
     const em = Mikro.getEM();
-    const missionReference = em.getReference(Mission_db, upsertedMission.id);
+    const missionReference = await em.findOne(Mission_db, upsertedMission.id);
     expect(missionReference).not.toBeNull();
     await Mikro.closeORM();
 
-    newMission.id = upsertedMission.id;
-    newMission.version = upsertedMission.version;
+    newMission = { ...upsertedMission };
   });
 
   test("Mission upsertMission(): Update a mission", async () => {
@@ -125,7 +124,7 @@ describe("Mission API Mikro Functions", () => {
 
   test("Mission deleteMission(): Delete a mission", async () => {
     const referenceId = await deleteMission(newMission.id);
-    expect(referenceId.id).toEqual(newMission.id);
+    expect(referenceId).toEqual(newMission.id);
   });
 });
 

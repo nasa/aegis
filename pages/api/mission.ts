@@ -89,13 +89,20 @@ export async function handleMission(req: NextApiRequest, res: NextApiResponse): 
       //delete a STM record
       if (req.method === "DELETE") {
         try {
-          const reference = await deleteMission(intMissionId);
-
-          return res.status(200).json({
-            status: "success",
-            message: "Mission Deleted",
-            data: reference,
-          });
+          const deletedMissionId: number = await deleteMission(intMissionId);
+          if (deletedMissionId) {
+            return res.status(200).json({
+              status: "success",
+              message: "Mission Deleted",
+              data: deletedMissionId,
+            });
+          } else {
+            return res.status(404).json({
+              status: "failure",
+              message: "No record found. Nothing deleted",
+              data: null,
+            });
+          }
         } catch (e) {
           console.error(e);
           if (e instanceof ForeignKeyConstraintViolationException) {
@@ -144,39 +151,47 @@ export async function getMissions(missionId: number = null): Promise<Mission[]> 
 export async function upsertMission(mission: Mission): Promise<Mission> {
   await Mikro.getORM();
   const em = Mikro.getEM();
-  let upsertReference;
+
+  const updateDate = new Date();
+  const upsertRecord = _.cloneDeep(mission);
+  upsertRecord.updatedAt = updateDate;
 
   if (mission.id) {
     //update record
-    mission.version++;
-    mission.updatedAt = new Date();
-    upsertReference = await em.upsert(Mission_db, mission);
+    upsertRecord.version++;
+    const upsertReference = await em.upsert(Mission_db, upsertRecord);
+    await em.persistAndFlush(upsertReference);
+    await Mikro.closeORM();
+    return upsertReference as Mission;
   } else {
     //insert record.
     //Can't use "upsert" to insert a new record if there's no other unique column in the table
-    mission.version = 1;
-    mission.createdAt = new Date();
-    mission.updatedAt = new Date();
-    upsertReference = em.create(Mission_db, mission);
+    upsertRecord.version = 1;
+    upsertRecord.createdAt = updateDate;
+    const createRecord = em.create(Mission_db, upsertRecord);
+    await em.persistAndFlush(createRecord);
+    await Mikro.closeORM();
+    return createRecord as Mission;
   }
-
-  await em.persistAndFlush(upsertReference);
-  await Mikro.closeORM();
-
-  return upsertReference as Mission;
 }
 
 /**
  * Deletes a single mission
  * @param missionId mission ID to delete
+ * @returns the id of the deleted mission
  */
-export async function deleteMission(missionId: number): Promise<Mission_db> {
+export async function deleteMission(missionId: number): Promise<number | null> {
   await Mikro.getORM();
   const em = Mikro.getEM();
-  const recordReference = em.getReference(Mission_db, missionId);
-  await em.removeAndFlush(recordReference);
+  let returnVal = missionId;
+  const entity = await em.findOne(Mission_db, missionId);
+  if (entity) {
+    await em.removeAndFlush(entity);
+  } else {
+    returnVal = null;
+  }
   await Mikro.closeORM();
-  return recordReference;
+  return returnVal;
 }
 
 export default withIronSessionApiRoute(Mikro.withORM(handleMission), ironOptions);

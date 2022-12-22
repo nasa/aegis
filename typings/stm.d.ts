@@ -18,16 +18,22 @@ type STMInvestigation = {
   numbering: string; // e.g. "1"
   name: string; // e.g. "Inventory, relationships, and ages of nonmare rocks"
   goal: string; //goal uuid
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 type STMGoal = {
   uuid: string;
   numbering: string; // e.g. "a"
   name: string; // e.g. "Differentiation: Magma Oceans, Crust, and Mantle"
   objective: string; //objective uuid
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 type STMObjective = {
   uuid: string;
   numbering: string; // e.g. "1"
   name: string; // Understanding Planetary Processes
   mission: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 };

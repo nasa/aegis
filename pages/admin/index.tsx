@@ -12,6 +12,7 @@ import Look from "components/admin/look";
 import Panels from "components/admin/panels";
 import Time from "components/admin/time";
 import styles from "components/admin/admin.module.css";
+import { createNewConfig } from "components/admin/helper";
 
 const Index: NextPage = () => {
   const router = useRouter();
@@ -44,6 +45,14 @@ const Index: NextPage = () => {
         refreshMissionList={loadMissionsFromDB}
         setEditMissionId={setEditMissionId}
       />
+      <button
+        type="button"
+        onClick={() => {
+          setEditMissionId(null);
+        }}
+      >
+        Add New Mission (Clear Form)
+      </button>
       <AddEditMission refreshMissionList={loadMissionsFromDB} editMissionId={editMissionId} />
     </div>
   );
@@ -58,14 +67,14 @@ const MissionList = (props: {
   const router = useRouter();
 
   async function delMission(id: number) {
-    if (confirm("Are you usre you want to delete mission " + id)) {
-      const res: WrappedResponse<any> = await deleteMission(id);
-      alert(`Delete ${res.status} - ${res.message}`);
+    if (confirm("Are you sure you want to delete mission " + id)) {
+      const res: WrappedResponse<number> = await deleteMission(id);
+      alert(`Delete ${res.status} - ${res.message} for missionID ${res.data}`);
       props.refreshMissionList(); //reload mission listing in parent component.
     }
   }
 
-  if (props.missions.length > 0) {
+  if (props.missions?.length > 0) {
     return (
       <ul>
         {props.missions.map((mission: Mission) => {
@@ -128,6 +137,8 @@ const AddEditMission = (props: { refreshMissionList: () => {}; editMissionId?: n
   useEffect(() => {
     if (props.editMissionId) {
       loadMission(props.editMissionId);
+    } else {
+      loadMission(null);
     }
   }, [props.editMissionId]);
 
@@ -172,15 +183,6 @@ const AddEditMission = (props: { refreshMissionList: () => {}; editMissionId?: n
       >
         Save Mission
       </button>
-      &nbsp;
-      <button
-        type="button"
-        onClick={() => {
-          loadMission(null);
-        }}
-      >
-        Add New Mission (Clear Form)
-      </button>
       <br />
       <br />
       <div id="missionDiv">
@@ -212,68 +214,4 @@ const AddEditMission = (props: { refreshMissionList: () => {}; editMissionId?: n
   );
 };
 
-/**
- * Creates a new empty config object. Initilizes all booleans to false, strings to empty, and numbers to 0
- * @returns a empty config object
- */
-function createNewConfig(): Config {
-  return {
-    msv: {
-      mission: "",
-      site: "",
-      masterdb: false,
-      view: ["", "", ""],
-      radius: { major: "", minor: "" },
-      mapscale: "",
-    },
-    projection: {
-      custom: false,
-      epsg: "",
-      proj: "",
-      xmlpath: "",
-      bounds: ["", "", "", ""],
-      origin: ["", ""],
-      reszoomlevel: 0,
-      resunitsperpixel: 0,
-    },
-    look: {
-      pagename: "",
-      minimalist: false,
-      zoomcontrol: false,
-      graticule: false,
-      coordll: false,
-      coorden: false,
-      coordrxy: false,
-      coordsite: false,
-      coordelev: false,
-      coordelevurl: "",
-      coordlngoffset: "",
-      coordlatoffset: "",
-      coordeastoffset: "",
-      coordnorthoffset: "",
-      coordeastmult: "",
-      coordnorthmult: "",
-      primarycolor: "",
-      secondarycolor: "",
-      tertiarycolor: "",
-      accentcolor: "",
-      bodycolor: "",
-      topbarcolor: "",
-      toolbarcolor: "",
-      mapcolor: "",
-      highlightcolor: "",
-      copylink: false,
-      screenshot: false,
-      fullscreen: false,
-      help: false,
-      logourl: "",
-      helpurl: "",
-    },
-    panels: [],
-    panelSettings: { demFallbackPath: "", demFallbackFormat: null, demFallbackType: null },
-    tools: [],
-    //layers: [],
-    time: { enabled: false, visible: false, format: "" },
-  };
-}
 export default Index;

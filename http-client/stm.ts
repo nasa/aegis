@@ -43,7 +43,7 @@ export async function upsertSTM(
   mission: number,
   stmObject: STMObjective | STMGoal | STMInvestigation,
   stmType: "Objective" | "Goal" | "Investigation"
-): Promise<WrappedResponse<(STMObjective | STMGoal | STMInvestigation)[]>> {
+): Promise<WrappedResponse<STMObjective | STMGoal | STMInvestigation>> {
   const stmParam: string = stmType.charAt(0).toLowerCase();
 
   const res = await fetch(`/api/stm?stmType=${stmParam}&missionId=${mission}`, {
@@ -53,7 +53,7 @@ export async function upsertSTM(
     },
     body: JSON.stringify(stmObject),
   });
-  const response: WrappedResponse<typeof stmObject[]> = await res.json();
+  const response: WrappedResponse<typeof stmObject> = await res.json();
   return response;
 }
 
@@ -62,7 +62,7 @@ export async function deleteSTM(
   missionId: number,
   uuid: string,
   stmType: "Objective" | "Goal" | "Investigation"
-): Promise<WrappedResponse<any>> {
+): Promise<WrappedResponse<string | null>> {
   const stmParam: string = stmType.charAt(0).toLowerCase();
 
   const res = await fetch(
@@ -71,6 +71,6 @@ export async function deleteSTM(
       method: "DELETE",
     }
   );
-  const response: WrappedResponse<any> = await res.json();
+  const response: WrappedResponse<string | null> = await res.json();
   return response;
 }

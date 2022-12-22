@@ -1,115 +1,80 @@
 import { Dispatch, SetStateAction, FunctionComponent } from "react";
 import styles from "./admin.module.css";
+import { DisplayTime } from "./helper";
 
 interface LayerProps {
-  layerConfig?: MMGIS_LayerConfig;
-  setLayerConfig: Dispatch<SetStateAction<MMGIS_LayerConfig>>;
-  sublayer?: MMGIS_Sublayer;
-  setSublayer: Dispatch<SetStateAction<MMGIS_Sublayer>>;
+  layer: Layer;
+  setLayer: Dispatch<SetStateAction<Layer>>;
 }
 
 /** Render a single Layer record from the DB */
 const LayerEdit: FunctionComponent<LayerProps> = (props: LayerProps) => {
-  // const [viewSettings, setViewSettings] = useState([]);
-
-  return (
-    <>
-      <div id="nameDiv">
-        <div className={styles.editDiv}>
-          <label htmlFor="name">Layer Name</label>
+  if (props.layer?.layerConfig) {
+    return (
+      <>
+        <div id="nameDiv">
+          <div className={styles.editDiv}>
+            <label htmlFor="name">Layer Name</label>
+          </div>
+          <div className={styles.editDiv}>
+            <input
+              id="name"
+              type="text"
+              onChange={(e) => {
+                props.setLayer((prevLayer) => {
+                  return {
+                    ...prevLayer,
+                    layerConfig: { ...prevLayer.layerConfig, name: e.target.value },
+                  };
+                });
+              }}
+              value={props.layer.layerConfig.name}
+            />
+          </div>
         </div>
-        <div className={styles.editDiv}>
-          <input
-            id="name"
-            type="text"
-            onChange={(e) => {
-              console.log(e.target.value);
-            }}
-            value={props.sublayer.name}
-          />
+        <div id="opacityDiv">
+          <div className={styles.editDiv}>
+            <label htmlFor="initialOpacity">Initial Visibility</label>
+          </div>
+          <div className={styles.editDiv}>
+            <select
+              id="initialOpacity"
+              onChange={(e) => {
+                props.setLayer((prevLayer) => {
+                  return {
+                    ...prevLayer,
+                    layerConfig: { ...prevLayer.layerConfig, initialOpacity: +e.target.value },
+                  };
+                });
+              }}
+              value={props.layer.layerConfig.initialOpacity}
+            >
+              <option value="1">True</option>
+              <option value="0">False</option>
+            </select>
+          </div>
         </div>
-      </div>
-      <h5>Style</h5>
-      <h5>Query Config</h5>
-      <h5>Model Position</h5>
-      <h5>ModelRotation</h5>
-    </>
-  );
+        <h4>Other Read-Only Values for Header Layer</h4>
+        <div id="readOnlyDiv" className={styles.divIndent}>
+          DEM Parser: {props.layer.layerConfig.demparser}
+          <br />
+          Controlled: {props.layer.layerConfig.controlled}
+          <br />
+          Tile Format: {props.layer.layerConfig.tileformat}
+          <div className={styles.divIndent}>
+            Time:
+            <DisplayTime time={props.layer.layerConfig.time} />
+          </div>
+          Shape: {props.layer.layerConfig.shape}
+          <br />
+          Number of SubLayers: {props.layer.layerConfig.sublayers?.length}
+          <br />
+        </div>
+      </>
+    );
+  } else {
+    return <div>No Layer Selected</div>;
+  }
 };
-
-/** Sublayer component */
-// const SubLayer = (props: { sublayer: Sublayer }) => {
-//   return (
-//     <>
-//       <div id="nameDiv">
-//         <div className={styles.editDiv}>
-//           <label htmlFor="sublayer_name">SubLayer Name</label>
-//         </div>
-//         <div className={styles.editDiv}>
-//           <input id="sublayer_name" type="text" onChange={(e) => {}} value={props.sublayer.name} />
-//         </div>
-//       </div>
-//     </>
-//   );
-// };
-
-//Layer select component.
-// const LayerSelect = (props: {
-//   layers: Layer[];
-//   setSelectedLayer: (uuid: string) => void;
-//   // delSTM: (uuid: string, stmType: string) => void;
-// }) => {
-//   const [selectedUUID, setSelectedUUID] = useState("0");
-//   const [disableDelete, setDisableDelete] = useState(true);
-
-//   const parentSelectUUID = props.setSelectedLayer;
-
-//   //set default selected uuid
-//   useEffect(() => {
-//     if (props.layers?.length > 0) {
-//       setSelectedUUID(props.layers[0].uuid);
-//       setDisableDelete(false);
-//     } else {
-//       setDisableDelete(true);
-//     }
-//   }, [props.layers]);
-
-//   //propagate selected uuid up to the parent component
-//   useEffect(() => {
-//     parentSelectUUID(selectedUUID);
-//   }, [selectedUUID, parentSelectUUID]);
-
-//   return (
-//     <>
-//       <label htmlFor="layerSelect" className={styles.selectLabel}>
-//         Select Layer
-//       </label>
-//       <select
-//         id="layerSelect"
-//         onChange={(e) => setSelectedUUID(e.target.value)}
-//         value={selectedUUID}
-//         className={styles.selectField}
-//       >
-//         {props.layers.map((layer: Layer) => {
-//           return (
-//             <option key={layer.uuid} value={layer.uuid}>
-//               {`${layer.layerConfig.name}`}
-//             </option>
-//           );
-//         })}
-//       </select>
-//       &nbsp;
-//       <button
-//         type="button"
-//         onClick={() => {
-//           // props.delSTM(selectedUUID, "Objective");
-//         }}
-//         disabled={disableDelete}
-//       >
-//         Delete Layer
-//       </button>
-//     </>
-//   );
-// };
 
 export default LayerEdit;

@@ -1,177 +1,178 @@
 import { Seeder } from "@mikro-orm/seeder";
-import { EntityManager } from "@mikro-orm/core";
+import { Dictionary, EntityManager } from "@mikro-orm/core";
 import { STM_Objective } from "../../models/stm_objective.model";
 import { STM_Goal } from "../../models/stm_goal.model";
 import { STM_Investigation } from "../../models/stm_investigation.model";
+import { v4 as uuidv4 } from "uuid";
 
 export class STMSeeder extends Seeder {
-  async run(em: EntityManager): Promise<void> {
-    em.create(STM_Objective, {
+  async run(em: EntityManager, context: Dictionary): Promise<void> {
+    context.uuid_obj1 = em.create(STM_Objective, {
       mission: 1,
-      uuid: "uuid-obj1",
+      uuid: uuidv4(),
       numbering: "1",
       name: "Understanding Planetary Processes",
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STM_Objective, {
+    context.uuid_obj2 = em.create(STM_Objective, {
       mission: 1,
-      uuid: "uuid-obj2",
+      uuid: uuidv4(),
       numbering: "2",
       name: "Understanding Character and Origin of Lunar Polar Volatiles",
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STM_Goal, {
-      uuid: "uuid-goal1",
+    context.uuid_goal1 = em.create(STM_Goal, {
+      uuid: uuidv4(),
       numbering: "a",
       name: "Formation of the Earth-Moon System",
-      objective: "uuid-obj1",
+      objective: context.uuid_obj1,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STM_Goal, {
-      uuid: "uuid-goal2",
+    context.uuid_goal2 = em.create(STM_Goal, {
+      uuid: uuidv4(),
       numbering: "b",
       name: "Differentiation: Magma Oceans, Crust, and Mantle",
-      objective: "uuid-obj1",
+      objective: context.uuid_obj1,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STM_Goal, {
-      uuid: "uuid-goal3",
+    context.uuid_goal3 = em.create(STM_Goal, {
+      uuid: uuidv4(),
       numbering: "f",
       name: "The Moon is a Natural Laboratory for Regolith Processes and Weathering on Anhydrous Bodies",
-      objective: "uuid-obj1",
+      objective: context.uuid_obj1,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STM_Goal, {
-      uuid: "uuid-goal4",
+    context.uuid_goal4 = em.create(STM_Goal, {
+      uuid: uuidv4(),
       numbering: "a",
       name: "Determine the Compositional state (elemental, isotopic, mineralogic) and compositional distribution (lateral and with depth) of the volatile component",
-      objective: "uuid-obj2",
+      objective: context.uuid_obj2,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STM_Goal, {
-      uuid: "uuid-goal5",
+    context.uuid_goal5 = em.create(STM_Goal, {
+      uuid: uuidv4(),
       numbering: "b",
       name: "Determine the source(s) for lunar polar volatile deposits",
-      objective: "uuid-obj2",
+      objective: context.uuid_obj2,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STM_Investigation, {
-      uuid: "uuid-invstg1",
+    context.uuid_invstg1 = em.create(STM_Investigation, {
+      uuid: uuidv4(),
       numbering: "1",
       name: "Establish the mechanisms, timing, and extent of volatile depletion in the Moon",
-      goal: "uuid-goal1",
+      goal: context.uuid_goal1,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STM_Investigation, {
-      uuid: "uuid-invstg2",
+    context.uuid_invstg2 = em.create(STM_Investigation, {
+      uuid: uuidv4(),
       numbering: "2",
       name: "Constrain the physicochemical conditions and processes that operated at the surface of the lunar magma ocean",
-      goal: "uuid-goal1",
+      goal: context.uuid_goal1,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STM_Investigation, {
-      uuid: "uuid-invstg3",
+    context.uuid_invstg3 = em.create(STM_Investigation, {
+      uuid: uuidv4(),
       numbering: "3",
       name: "Understand the size, chemical makeup, and timing of core formation",
-      goal: "uuid-goal1",
+      goal: context.uuid_goal1,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STM_Investigation, {
-      uuid: "uuid-invstg4",
+    context.uuid_invstg4 = em.create(STM_Investigation, {
+      uuid: uuidv4(),
       numbering: "1",
       name: "Determine the extent and composition of the primary feldspathic crust, KREEP layer, and other products of planetary differentiation",
-      goal: "uuid-goal2",
+      goal: context.uuid_goal2,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STM_Investigation, {
-      uuid: "uuid-invstg5",
+    context.uuid_invstg5 = em.create(STM_Investigation, {
+      uuid: uuidv4(),
       numbering: "2",
       name: "Determine the bulk composition of the crust and mantle",
-      goal: "uuid-goal2",
+      goal: context.uuid_goal2,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STM_Investigation, {
-      uuid: "uuid-invstg6",
+    context.uuid_invstg6 = em.create(STM_Investigation, {
+      uuid: uuidv4(),
       numbering: "3",
       name: "Inventory, relationships, and ages of nonmare rocks.",
-      goal: "uuid-goal2",
+      goal: context.uuid_goal2,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STM_Investigation, {
-      uuid: "uuid-invstg7",
+    context.uuid_invstg7 = em.create(STM_Investigation, {
+      uuid: uuidv4(),
       numbering: "1",
       name: "Determine physical properties of regolith at diverse locations of expected human activity",
-      goal: "uuid-goal3",
+      goal: context.uuid_goal3,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STM_Investigation, {
-      uuid: "uuid-invstg8",
+    context.uuid_invstg8 = em.create(STM_Investigation, {
+      uuid: uuidv4(),
       numbering: "1",
       name: "Identification of surface frost composition",
-      goal: "uuid-goal4",
+      goal: context.uuid_goal4,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STM_Investigation, {
-      uuid: "uuid-invstg9",
+    context.uuid_invstg9 = em.create(STM_Investigation, {
+      uuid: uuidv4(),
       numbering: "2",
       name: "Identification of surface frost locations in spatial context",
-      goal: "uuid-goal4",
+      goal: context.uuid_goal4,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STM_Investigation, {
-      uuid: "uuid-invstg10",
+    context.uuid_invstg10 = em.create(STM_Investigation, {
+      uuid: uuidv4(),
       numbering: "3",
       name: "Temporal variability of frost",
-      goal: "uuid-goal4",
+      goal: context.uuid_goal4,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STM_Investigation, {
-      uuid: "uuid-invstg11",
+    context.uuid_invstg11 = em.create(STM_Investigation, {
+      uuid: uuidv4(),
       numbering: "1",
       name: "Origin of the polar volatiles",
-      goal: "uuid-goal5",
+      goal: context.uuid_goal5,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
 
-    em.create(STM_Objective, {
+    context.uuid_obj100 = em.create(STM_Objective, {
       mission: 2,
-      uuid: "uuid-obj100",
+      uuid: uuidv4(),
       numbering: "1",
       name: "Jackies Secret Mission Objective",
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STM_Goal, {
-      uuid: "uuid-goal100",
+    context.uuid_goal100 = em.create(STM_Goal, {
+      uuid: uuidv4(),
       numbering: "a",
       name: "Take over the world",
-      objective: "uuid-obj100",
+      objective: context.uuid_obj100,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    em.create(STM_Investigation, {
-      uuid: "uuid-invstg100",
+    context.uuid_invstg00 = em.create(STM_Investigation, {
+      uuid: uuidv4(),
       numbering: "1",
       name: "Determine points of vulnerability",
-      goal: "uuid-goal100",
+      goal: context.uuid_goal100,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

@@ -1,6 +1,7 @@
 import { useEffect, useState, Dispatch, SetStateAction, FunctionComponent } from "react";
 import styles from "./admin.module.css";
 import _ from "lodash";
+import { JSONEditor } from "./helper";
 
 //Type used to track extra information about each tool needed to render the components
 type WrappedTool = {
@@ -78,26 +79,13 @@ const Tools: FunctionComponent<ToolProps> = (props: ToolProps) => {
  * @returns
  */
 const EditTool = (props: { tool: WrappedTool; updateConfig: (tools: WrappedTool) => void }) => {
-  const [validMsg, setValidMsg] = useState("");
-  const [jsonValue, setJsonValue] = useState("");
-
-  function updateJSONconfig(value: JSON) {
+  function setJSON(value: JSON) {
     props.updateConfig({
       ...props.tool,
       active: value ? true : props.tool.active,
       tool: { ...props.tool.tool, variables: value },
     });
   }
-
-  useEffect(() => {
-    setValidMsg("");
-    const json = JSON.stringify(props.tool.tool.variables);
-    if (json) {
-      setJsonValue(json);
-    } else {
-      setJsonValue("");
-    }
-  }, [props.tool]);
 
   return (
     <>
@@ -118,32 +106,13 @@ const EditTool = (props: { tool: WrappedTool; updateConfig: (tools: WrappedTool)
         />
       </div>
 
-      <div className={styles.editDiv}>
-        <label htmlFor="json">JSON</label>
-      </div>
-      <div className={styles.editDiv}>
-        <textarea
-          id="json"
-          onChange={(e) => {
-            setJsonValue(e.target.value);
-            setValidMsg("");
-            if (e.target.value === "") {
-              updateJSONconfig(undefined);
-            } else {
-              try {
-                const json = JSON.parse(e.target.value);
-                updateJSONconfig(json);
-              } catch (e) {
-                setValidMsg("Invalid JSON");
-              }
-            }
-          }}
-          value={jsonValue}
-          title={props.tool.name + "  json"}
-        />
-        <br />
-        <span className={styles.validation}>{validMsg}</span>
-      </div>
+      <JSONEditor
+        fieldName={props.tool.tool.name + "JSON"}
+        value={props.tool.tool.variables}
+        onChange={(value) => {
+          setJSON(value);
+        }}
+      />
 
       <div className={styles.editDiv}>
         Icon&nbsp;
