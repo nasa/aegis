@@ -2,6 +2,8 @@ import { Migration } from "@mikro-orm/migrations";
 
 export class Migration20221013203932 extends Migration {
   async up(): Promise<void> {
+    this.addSql("drop extension if exists postgis_topology");
+
     this.addSql(
       'create table "mission" ("id" serial primary key, "name" varchar(255) not null, "config" jsonb null, "version" int not null, "created_at" timestamptz(0) not null, "updated_at" timestamptz(0) not null);'
     );
