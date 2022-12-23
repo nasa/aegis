@@ -2,7 +2,7 @@ import { Entity, ManyToOne, PrimaryKey, Property } from "@mikro-orm/core";
 import { Poi } from "./poi.model";
 
 @Entity()
-export class Action {
+export class Action implements Action_db_type {
   @PrimaryKey({ type: "number" })
   id!: number;
 

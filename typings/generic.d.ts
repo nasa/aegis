@@ -10,6 +10,9 @@ interface Mission {
   updatedAt?: Date;
 }
 
+// No alteration needed to convert this store type to the database type
+type Mission_db_type = Mission;
+
 /** Config JSON object from MMGIS with the exception of Layers */
 interface Config {
   msv: MMGIS_Msv;

@@ -82,6 +82,11 @@ type POIColor = {
 
 type POIStatus = "Archived" | "Candidate" | "In Review" | "Approved";
 
+type Poi_db_type = Omit<POI, "owner" | "mission"> & {
+  owner: User;
+  mission: Mission_db_type;
+};
+
 /**
  * Action to be taken by crew on the surface (photograph, describe, take sample, etc)
  */
@@ -137,6 +142,10 @@ type Action = {
 type InventoryItem = {
   name: string;
   quantity: number;
+};
+
+type Action_db_type = Omit<Action, "poi"> & {
+  poi: Poi_db_type;
 };
 
 type ActionType = "measurement" | "observation" | "sample" | "photo" | "other";

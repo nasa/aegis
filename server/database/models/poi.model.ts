@@ -5,7 +5,7 @@ import { User } from "./user.model";
 import { types as MikroTypes } from "@mikro-orm/core";
 
 @Entity()
-export class Poi {
+export class Poi implements Poi_db_type {
   @PrimaryKey({ type: MikroTypes.integer })
   id!: number;
 

@@ -2,7 +2,7 @@ import { Entity, ManyToOne, PrimaryKey, Property, types as MikroTypes } from "@m
 import { Mission } from "./mission.model";
 
 @Entity()
-export class Layer {
+export class Layer implements Layer_db_type {
   @PrimaryKey({ type: MikroTypes.uuid })
   uuid: string;
 

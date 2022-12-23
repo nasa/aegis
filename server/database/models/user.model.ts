@@ -2,18 +2,8 @@ import { BeforeCreate, BeforeUpdate, Entity, PrimaryKey, Property } from "@mikro
 
 import * as bcrypt from "bcryptjs";
 
-type UserModel = {
-  id: number;
-  username: string;
-  password: string;
-  email: string;
-  permission: PermissionRole;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
 @Entity()
-export class User implements UserModel {
+export class User implements AEGISUser_db_type {
   @PrimaryKey({ type: "number" })
   id!: number;
 

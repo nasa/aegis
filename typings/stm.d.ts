@@ -37,3 +37,15 @@ type STMObjective = {
   createdAt?: Date;
   updatedAt?: Date;
 };
+
+type STMObjective_db_type = Omit<STMObjective, "mission"> & {
+  mission: Mission_db_type;
+};
+
+type STMGoal_db_type = Omit<STMGoal, "objective"> & {
+  objective: STMObjective_db_type;
+};
+
+type STMInvestigation_db_type = Omit<STMInvestigation, "goal"> & {
+  goal: STMGoal_db_type;
+};
