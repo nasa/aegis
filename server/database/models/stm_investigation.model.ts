@@ -2,7 +2,7 @@ import { Entity, PrimaryKey, Property, ManyToOne, types as MikroTypes } from "@m
 import { STM_Goal } from "./stm_goal.model";
 
 @Entity()
-export class STM_Investigation {
+export class STM_Investigation implements STMInvestigation_db_type {
   @PrimaryKey({ type: MikroTypes.string })
   uuid!: string;
 

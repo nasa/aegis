@@ -27,6 +27,10 @@ interface Layer {
   updatedAt: Date;
 }
 
+type Layer_db_type = Omit<Layer, "mission"> & {
+  mission: Mission_db_type;
+};
+
 type Preset = {
   id?: number;
   uuid: string;
@@ -39,6 +43,11 @@ type Preset = {
   layerControls: LayerControls;
   createdAt?: Date;
   updatedAt?: Date;
+};
+
+type Preset_db_type = Omit<Preset, "owner" | "mission"> & {
+  owner: User;
+  mission: Mission_db_type;
 };
 
 interface PresetInteractions {

@@ -11,7 +11,7 @@ import { STM_Investigation } from "./stm_investigation.model";
 import { STM_Objective } from "./stm_objective.model";
 
 @Entity()
-export class STM_Goal {
+export class STM_Goal implements STMGoal_db_type {
   @PrimaryKey({ type: MikroTypes.string })
   uuid!: string;
 

@@ -3,7 +3,7 @@ import { User } from "./user.model";
 import { Mission } from "./mission.model";
 
 @Entity()
-export class Preset {
+export class Preset implements Preset_db_type {
   @PrimaryKey({ type: MikroTypes.integer })
   id!: number;
 
