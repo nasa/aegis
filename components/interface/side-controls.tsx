@@ -1,7 +1,7 @@
 import _ from "lodash";
 import styles from "./side-controls.module.css";
 import { FunctionComponent } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector, useDispatch, shallowEqual } from "react-redux";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { RootState } from "store";
@@ -64,10 +64,25 @@ export const RightControlPanel: FunctionComponent = () => {
 };
 
 const NavGutter = ({ selectedNavItem, setSelectedNavItem }) => {
-  const pois = useSelector((state: RootState) => state.poi.pois);
-  const poisFromDb = useSelector((state: RootState) => state.poi.poisFromDb);
-  const presets = useSelector((state: RootState) => state.preset.presets);
-  const presetsFromDb = useSelector((state: RootState) => state.preset.presetsFromDb);
+  const pois = useSelector((state: RootState) => state.poi.pois, shallowEqual);
+  const poisFromDb = useSelector((state: RootState) => state.poi.poisFromDb, shallowEqual);
+  const presets = useSelector((state: RootState) => state.preset.presets, shallowEqual);
+  const presetsFromDb = useSelector((state: RootState) => state.preset.presetsFromDb, shallowEqual);
+  const stations = useSelector((state: RootState) => state.station.stations, shallowEqual);
+  const stationsFromDb = useSelector(
+    (state: RootState) => state.station.stationsFromDb,
+    shallowEqual
+  );
+
+  //todo
+  // const stationActions = useSelector(
+  //   (state: RootState) => state.action.actions,
+  //   shallowEqual
+  // ).filter((storeAction: Action) => storeAction.stationUuid === selectedStationUuid);
+  // const stationActionsFromDb = useSelector(
+  //   (state: RootState) => state.action.actionsFromDb,
+  //   shallowEqual
+  // ).filter((storeAction: Action) => storeAction.stationUuid === selectedStationUuid);
 
   return (
     <div className={styles.iconGutter}>
@@ -80,6 +95,15 @@ const NavGutter = ({ selectedNavItem, setSelectedNavItem }) => {
             break;
           case "map_layer_selector":
             itemModified = !_.isEqual(presets, presetsFromDb);
+            break;
+          case "station":
+            const stationsEqual = _.isEqual(_.orderBy(stations), _.orderBy(stationsFromDb));
+            // const actionModified = _.isEqual(
+            //   _.orderBy(stationActions),
+            //   _.orderBy(stationActionsFromDb)
+            // );
+            const actionsEqual = true;
+            itemModified = !stationsEqual || !actionsEqual;
             break;
         }
 

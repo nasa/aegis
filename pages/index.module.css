@@ -13,6 +13,7 @@
   flex: 0 0 35%;
   min-width: 500px;
   padding: 30px;
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   display: flex;
   flex-direction: column;

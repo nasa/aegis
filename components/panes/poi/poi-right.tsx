@@ -1,7 +1,7 @@
 import paneStyles from "../global-pane-styles.module.css";
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector, useDispatch, shallowEqual } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCircleInfo,
@@ -52,17 +52,27 @@ const panelTypes: PanelTypes = {
 
 const PoiEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const poisFromDb = useSelector((state: RootState) => state.poi.poisFromDb);
-  const selectedMissionId = useSelector((state: RootState) => state.mission.mission?.id);
-  const selectedRightNavItem = useSelector((state: RootState) => state.poi.selectedRightNavItem);
-  const selectedPoiUuid = useSelector((state: RootState) => state.poi.selectedPoiUuid);
-  const selectedPoi = useSelector((state: RootState) => state.poi.pois).filter(
-    (poi) => poi.uuid === selectedPoiUuid
-  )[0];
-  const poisEditing = useSelector((state: RootState) => state.poi.poisEditing);
-  const selectedPoiFromDb = useSelector((state: RootState) => state.poi.poisFromDb).filter(
-    (poi) => poi.uuid === selectedPoiUuid
-  )[0];
+  //const poisFromDb = useSelector((state: RootState) => state.poi.poisFromDb, shallowEqual);
+  const selectedMissionId = useSelector(
+    (state: RootState) => state.mission.mission?.id,
+    shallowEqual
+  );
+  const selectedRightNavItem = useSelector(
+    (state: RootState) => state.poi.selectedRightNavItem,
+    shallowEqual
+  );
+  const selectedPoiUuid = useSelector(
+    (state: RootState) => state.poi.selectedPoiUuid,
+    shallowEqual
+  );
+  const selectedPoi = useSelector((state: RootState) => state.poi.pois, shallowEqual).find(
+    (poi: POI) => poi.uuid === selectedPoiUuid
+  );
+  const poisEditing = useSelector((state: RootState) => state.poi.poisEditing, shallowEqual);
+  const selectedPoiFromDb = useSelector(
+    (state: RootState) => state.poi.poisFromDb,
+    shallowEqual
+  ).find((poi: POI) => poi.uuid === selectedPoiUuid);
 
   const [modified, setModified] = useState(false);
   useEffect(() => {
@@ -79,13 +89,13 @@ const PoiEditorRight: FunctionComponent = () => {
 
       if (upsertReponse.status === "success") {
         // upsert the changed POI to the store
-        await dispatch(upsertPoi(upsertReponse.data));
+        dispatch(upsertPoi(upsertReponse.data));
         // update the POI in the store from the DB
         // get fresh copy of POIs from DB
         const poiData = await InternalAPI.getPOIs(selectedMissionId);
         if (poiData.data) {
-          await dispatch(deleteAllPoisFromDb());
-          await dispatch(upsertPoisFromDb(poiData.data));
+          dispatch(deleteAllPoisFromDb());
+          dispatch(upsertPoisFromDb(poiData.data));
         }
       } else {
         throw new Error("Error upserting POI: " + upsertReponse.message);
@@ -97,29 +107,26 @@ const PoiEditorRight: FunctionComponent = () => {
   const handleDelete = async () => {
     if (selectedPoi) {
       // if the selected poi is in poisFromDb then delete it from the db
-
-      // find the selected POI in poisFromDb
-      const selectedPoiFromDb = poisFromDb.filter((poi) => poi.uuid === selectedPoi.uuid)[0];
       if (selectedPoiFromDb) {
         // delete the POI from the DB via internal API call
         const deleteResponse = await InternalAPI.deletePOI(selectedPoi.uuid);
         if (deleteResponse.status === "success") {
           // remove the corresponding POI from the store
-          await dispatch(deletePoi(selectedPoi));
+          dispatch(deletePoi(selectedPoi));
           dispatch(setSelectedPoiUuid(null));
 
           // get fresh copy of POIs from DB
           const poiData = await InternalAPI.getPOIs(selectedMissionId);
           if (poiData.data) {
-            await dispatch(deleteAllPoisFromDb());
-            await dispatch(upsertPoisFromDb(poiData.data));
+            dispatch(deleteAllPoisFromDb());
+            dispatch(upsertPoisFromDb(poiData.data));
           }
         } else {
           console.error("Error deleting POI: " + deleteResponse.message);
         }
       } else {
         // if the selected poi is not in poisFromDb then delete it from the store
-        await dispatch(deletePoi(selectedPoi));
+        dispatch(deletePoi(selectedPoi));
         dispatch(setSelectedPoiUuid(null));
       }
       dispatch(setPoiEditMode({ poi: selectedPoi, editMode: false }));

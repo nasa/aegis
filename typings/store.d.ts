@@ -1,4 +1,3 @@
-type LoadingStatus = "LOADING" | "LOADED";
 /**
  * Playhead stores
  */
@@ -62,13 +61,24 @@ interface PresetState {
 }
 
 interface InterfaceState {
-  sectionSelectedLabel: "map_layer_selector" | "poi" | "eva_planner";
+  sectionSelectedLabel: "map_layer_selector" | "poi" | "station" | "eva_planner";
 }
 
 interface STMState {
-  loadingStatus: LoadingStatus;
-  mission: string;
   objectives: STMObjective[];
   goals: STMGoal[];
   investigations: STMInvestigation[];
+}
+
+interface StationState {
+  stations: Station[];
+  stationsFromDb: Station[];
+  selectedStationUuid: string;
+  selectedRightNavItem: string;
+  stationsEditing: string[];
+}
+
+interface ActionState {
+  actions: Action[];
+  actionsFromDb: Action[];
 }

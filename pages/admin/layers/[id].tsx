@@ -216,8 +216,8 @@ const LayerList = (props: {
 
   async function delLayer(uuid: string, name: string) {
     if (confirm("Are you sure you want to delete layer " + name)) {
-      const res: WrappedResponse<string> = await deleteLayer(uuid);
-      alert(`Delete ${res.status} - ${res.message} for uuid ${res.data}`);
+      const res: WrappedResponse<null> = await deleteLayer(uuid);
+      alert(`Delete ${res.status} - ${res.message} for uuid ${uuid}`);
       props.refreshLayerList(props.missionId); //reload layer listing in parent component.
     }
   }

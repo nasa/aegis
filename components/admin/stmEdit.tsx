@@ -117,7 +117,7 @@ const GoalSelect = (props: {
   //filter down goals
   useEffect(() => {
     const goals = props.allGoals.filter((goal) => {
-      return goal.objective === props.objectiveUUID;
+      return goal.objectiveUuid === props.objectiveUUID;
     });
     setFilteredGoals(goals);
     if (goals.length > 0) {
@@ -159,18 +159,18 @@ const NewObjectiveFields = (props: { missionId: number; reloadSTM: (id: number) 
     uuid: null,
     name: "",
     numbering: "",
-    mission: null,
+    missionId: null,
   });
 
   //add new objective
   async function addNewObjective() {
-    const upsertRecord: STMObjective = { ...newObjective, mission: props.missionId };
+    const upsertRecord: STMObjective = { ...newObjective, missionId: props.missionId };
     await upsertSTM(props.missionId, upsertRecord, "Objective");
     setNewObjective({
       uuid: null,
       name: "",
       numbering: "",
-      mission: null,
+      missionId: null,
     }); //reset to blank new object
     props.reloadSTM(props.missionId);
   }
@@ -221,18 +221,18 @@ const NewGoalFields = (props: {
     uuid: null,
     name: "",
     numbering: "",
-    objective: "",
+    objectiveUuid: "",
   });
 
   //add new goal
   async function addNewGoal() {
-    const upsertRecord: STMGoal = { ...newGoal, objective: props.objectiveUUID };
+    const upsertRecord: STMGoal = { ...newGoal, objectiveUuid: props.objectiveUUID };
     await upsertSTM(props.missionId, upsertRecord, "Goal");
     setNewGoal({
       uuid: null,
       name: "",
       numbering: "",
-      objective: "",
+      objectiveUuid: "",
     }); //reset to blank new object with new uuid
     props.reloadSTM(props.missionId);
   }
@@ -285,18 +285,18 @@ const NewInvstgFields = (props: {
     uuid: null,
     name: "",
     numbering: "",
-    goal: "",
+    goalUuid: "",
   });
 
   //add new investigation
   async function addNewInvstg() {
-    const upsertRecord: STMInvestigation = { ...newInvstg, goal: props.goalUUID };
+    const upsertRecord: STMInvestigation = { ...newInvstg, goalUuid: props.goalUUID };
     await upsertSTM(props.missionId, upsertRecord, "Investigation");
     setNewInvstg({
       uuid: null,
       numbering: "",
       name: "",
-      goal: "",
+      goalUuid: "",
     });
     props.reloadSTM(props.missionId);
   }

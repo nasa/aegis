@@ -1,0 +1,32 @@
+export async function getActions(filter: ActionFilterOptions): Promise<WrappedResponse<Action[]>> {
+  let urlParams = "";
+
+  if (filter.missionId) urlParams += `&missionId=${filter.missionId}`;
+  if (filter.actionUuid) urlParams += `&uuid=${filter.actionUuid}`;
+  if (filter.poiUuid) urlParams += `&poiId=${filter.poiUuid}`;
+  if (filter.stationUuid) urlParams += `&stationUuid=${filter.stationUuid}`;
+
+  const res: Response = await fetch(`/api/action?${urlParams}`);
+  const response: WrappedResponse<Action[]> = await res.json();
+  return response;
+}
+
+export async function upsertAction(actionObj: Action): Promise<WrappedResponse<Action>> {
+  const res = await fetch(`/api/action`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(actionObj),
+  });
+  const response: WrappedResponse<Action> = await res.json();
+  return response;
+}
+
+export async function deleteAction(actionUUID: string): Promise<WrappedResponse<number | null>> {
+  const res = await fetch(`/api/action?uuid=${actionUUID}`, {
+    method: "DELETE",
+  });
+  const response: WrappedResponse<number | null> = await res.json();
+  return response;
+}

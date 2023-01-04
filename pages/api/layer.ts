@@ -1,10 +1,10 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 import Mikro from "utils/mikro";
 import _ from "lodash";
 import { Layer as Layer_db } from "server/database/models/layer.model";
-import { ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/core";
+import { ForeignKeyConstraintViolationException, Loaded, QueryOrder } from "@mikro-orm/core";
 import { v4 as uuidv4 } from "uuid";
 
 /**
@@ -16,40 +16,38 @@ import { v4 as uuidv4 } from "uuid";
  *    GET = get all, subset, or single record
  *      Required URL parameters are:
  *        missionId=  mission ID number
+ *      Opitonal URL parameters are:
+ *        uuid= uuid of the layer to retrieve
  *    POST = upsert a layer (defined in POST body) into the DB
  *      A full layer object (with an uuid for new layers) should be specified in the request body
- *    DELETE = delete the mission for a given missionId
+ *    DELETE = delete the layer for a given layer uuid
  *       Required URL parameters are:
  *        uuid=  uuid of the layer to delete
  */
-export async function handleLayer(req: NextApiRequest, res: NextApiResponse): Promise<unknown> {
+export const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
+  req,
+  res
+): Promise<unknown> => {
   try {
     if (req.session?.user) {
       const { missionId, uuid } = req.query;
+      const layerUUID = Array.isArray(uuid) ? uuid[0] : uuid;
+      const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
 
       // retrieve record
       if (req.method === "GET") {
         try {
-          const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
-          if (intMissionId && _.isNaN(intMissionId)) {
+          if (!intMissionId || _.isNaN(intMissionId)) {
             return res.status(500).json({ status: "error", message: "Invalid mission ID" });
           }
 
-          const records: Layer[] = await getLayers(intMissionId);
+          const records: Layer[] = await getLayers(intMissionId, layerUUID);
 
-          if (records.length === 0) {
-            return res.status(404).json({
-              status: "failure",
-              message: "No layers found",
-              data: records,
-            });
-          } else {
-            return res.status(200).json({
-              status: "success",
-              message: "layers retrieved",
-              data: records,
-            });
-          }
+          return res.status(200).json({
+            status: "success",
+            message: "layers retrieved",
+            data: records,
+          });
         } catch (e) {
           console.error(e);
           return res
@@ -90,20 +88,17 @@ export async function handleLayer(req: NextApiRequest, res: NextApiResponse): Pr
       //delete a record
       if (req.method === "DELETE") {
         try {
-          const layerUUID = Array.isArray(uuid) ? uuid[0] : uuid;
           const deletedUUID = await deleteLayer(layerUUID);
 
           if (deletedUUID) {
             return res.status(200).json({
               status: "success",
               message: "Layer Deleted",
-              data: deletedUUID,
             });
           } else {
             return res.status(404).json({
               status: "failure",
               message: "Record not found. Nothing deleted",
-              data: null,
             });
           }
         } catch (e) {
@@ -127,25 +122,28 @@ export async function handleLayer(req: NextApiRequest, res: NextApiResponse): Pr
     console.error(e);
     return res.status(500).json({ status: "error", message: "Error in query" });
   }
-}
+};
 
 /**
  * get layer(s) from the database
- * @param missionId the mission id.
+ * @param missionId required. Mission ID for the layers.
+ * @param layerUUID optional. UUID of the layer to retrieve
  * @returns array of layers
  */
 export async function getLayers(missionId: number, layerUUID?: string): Promise<Layer[]> {
   await Mikro.getORM();
   const em = Mikro.getEM();
 
-  let layers;
+  let layers: Loaded<Layer_db, never>[];
   if (layerUUID) {
+    //find by layer uuid
     layers = await em.find(
       Layer_db,
       { uuid: layerUUID },
       { orderBy: [{ layerConfig: { name: QueryOrder.ASC } }] }
     );
   } else {
+    //find by mission id
     layers = await em.find(
       Layer_db,
       { mission: { id: missionId } },
@@ -154,7 +152,18 @@ export async function getLayers(missionId: number, layerUUID?: string): Promise<
   }
 
   await Mikro.closeORM();
-  return layers;
+
+  if (layers) {
+    //convert fks
+    const convertedLayers = layers.map((layers_db) => {
+      const layer = { ...layers_db, missionId: layers_db.mission.id };
+      delete layer.mission;
+      return layer;
+    });
+    return convertedLayers;
+  } else {
+    return [];
+  }
 }
 
 /**
@@ -166,24 +175,29 @@ export async function upsertLayer(layer: Layer): Promise<Layer> {
   await Mikro.getORM();
   const em = Mikro.getEM();
 
+  const upsertRecord: Layer = _.cloneDeep(layer);
+
   const updateDate = new Date();
-  const upsertRecord = _.cloneDeep(layer);
   upsertRecord.layerConfig.time.current = updateDate; //the time property on this config item is the save date
   upsertRecord.updatedAt = updateDate;
-
+  //we're creating a new record
   if (!layer.uuid) {
     upsertRecord.createdAt = updateDate;
     upsertRecord.uuid = uuidv4();
   }
 
-  const upsertReference = await em.upsert(Layer_db, upsertRecord);
+  //convert fks and upsert
+  const convertedRecord = { ...upsertRecord, mission: upsertRecord.missionId };
+  delete convertedRecord.missionId;
+  const upsertReference = await em.upsert(Layer_db, convertedRecord);
 
   await em.persistAndFlush(upsertReference);
   await Mikro.closeORM();
 
+  //convert fks back
   const result: Layer = {
     ...upsertReference,
-    mission: upsertReference.mission.id,
+    missionId: upsertReference.mission.id,
   };
 
   return result;
@@ -192,7 +206,7 @@ export async function upsertLayer(layer: Layer): Promise<Layer> {
 /**
  * Deletes a single layer
  * @param uuid layer uuid to delete
- * @returns the uuid of the deleted layer
+ * @returns the uuid of the deleted layer, or null if nothing was deleted
  */
 export async function deleteLayer(uuid: string): Promise<string | null> {
   await Mikro.getORM();

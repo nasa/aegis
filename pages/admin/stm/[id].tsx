@@ -76,11 +76,11 @@ const STM: NextPage = () => {
       //check if there are children for this STM item
       let showAlert = false;
       if (stmType === "Objective") {
-        if (allGoals.findIndex((goal) => goal.objective === uuid) >= 0) {
+        if (allGoals.findIndex((goal) => goal.objectiveUuid === uuid) >= 0) {
           showAlert = true;
         }
       } else if (stmType === "Goal") {
-        if (allInvestigations.findIndex((invstg) => invstg.goal === uuid) >= 0) {
+        if (allInvestigations.findIndex((invstg) => invstg.goalUuid === uuid) >= 0) {
           showAlert = true;
         }
       }
@@ -182,7 +182,7 @@ const GoalList = (props: {
     return (
       <ul>
         {props.goals
-          .filter((goal) => goal.objective === props.parentuuid)
+          .filter((goal) => goal.objectiveUuid === props.parentuuid)
           .map((goal: STMGoal) => {
             const goalNumbering = `${props.parentNumbering}${goal.numbering}`;
             return (
@@ -222,7 +222,7 @@ const InvestigationList = (props: {
     return (
       <ul>
         {props.investigations
-          .filter((invstg) => invstg.goal === props.parentuuid)
+          .filter((invstg) => invstg.goalUuid === props.parentuuid)
           .map((invstg: STMInvestigation) => {
             return (
               <li key={invstg.uuid}>

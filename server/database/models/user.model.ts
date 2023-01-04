@@ -1,5 +1,5 @@
 import { BeforeCreate, BeforeUpdate, Entity, PrimaryKey, Property } from "@mikro-orm/core";
-
+import { types as MikroTypes } from "@mikro-orm/core";
 import * as bcrypt from "bcryptjs";
 
 @Entity()
@@ -7,25 +7,25 @@ export class User implements AEGISUser_db_type {
   @PrimaryKey({ type: "number" })
   id!: number;
 
-  @Property({ type: "string" })
+  @Property({ type: MikroTypes.string })
   username!: string;
 
-  @Property({ type: "string" })
+  @Property({ type: MikroTypes.string })
   email: string;
 
-  @Property({ type: "string" })
+  @Property({ type: MikroTypes.string })
   password!: string;
 
-  @Property({ type: "string" })
+  @Property({ type: MikroTypes.string })
   permission: PermissionRole;
 
-  @Property({ length: 2048, nullable: true, type: "string" })
+  @Property({ type: MikroTypes.string, length: 2048, nullable: true })
   token?: string;
 
-  @Property({ type: "date" })
+  @Property({ type: MikroTypes.datetime })
   createdAt!: Date;
 
-  @Property({ type: "date" })
+  @Property({ type: MikroTypes.datetime })
   updatedAt!: Date;
 
   @Property()

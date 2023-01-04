@@ -21,13 +21,13 @@ interface LayerControls {
 /** Represents the DB structure for the Layer table */
 interface Layer {
   uuid: string;
-  mission: number;
+  missionId: number;
   layerConfig: MMGIS_LayerConfig; //layers from the mmgis config
   createdAt: Date;
   updatedAt: Date;
 }
 
-type Layer_db_type = Omit<Layer, "mission"> & {
+type Layer_db_type = Omit<Layer, "missionId"> & {
   mission: Mission_db_type;
 };
 
@@ -36,8 +36,8 @@ type Preset = {
   uuid: string;
   name: string;
   description: string;
-  owner: number;
-  mission: number;
+  ownerId: number;
+  missionId: number;
   missionPreset: boolean;
   missionPresetDefault: boolean;
   layerControls: LayerControls;
@@ -45,7 +45,7 @@ type Preset = {
   updatedAt?: Date;
 };
 
-type Preset_db_type = Omit<Preset, "owner" | "mission"> & {
+type Preset_db_type = Omit<Preset, "ownerId" | "missionId"> & {
   owner: User;
   mission: Mission_db_type;
 };

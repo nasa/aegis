@@ -4,8 +4,10 @@ import PoiEditor from "components/panes/poi/poi";
 import PoiEditorRight from "components/panes/poi/poi-right";
 import EvaPlanner from "components/panes/eva/eva";
 import EvaPlannerRight from "components/panes/eva/eva-right";
+import StationEditor from "components/panes/station/station";
+import StationEditorRight from "components/panes/station/station-right";
 
-import { faGlobe, faRoute } from "@fortawesome/free-solid-svg-icons";
+import { faGlobe, faLocationDot, faRoute } from "@fortawesome/free-solid-svg-icons";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 
 export const paneTypes: PaneTypes = {
@@ -22,6 +24,13 @@ export const paneTypes: PaneTypes = {
     rightPane: PoiEditorRight,
     color: "var(--poi)",
     icon: faCircleDot,
+  },
+  station: {
+    title: "Stations",
+    leftPane: StationEditor,
+    rightPane: StationEditorRight,
+    color: "var(--station)",
+    icon: faLocationDot,
   },
   eva_planner: {
     title: "EVA Planning",

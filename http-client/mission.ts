@@ -1,5 +1,5 @@
 export async function getMissions(missionId: number = null): Promise<WrappedResponse<Mission[]>> {
-  let res;
+  let res: Response;
   if (missionId) {
     res = await fetch(`/api/mission?missionId=${missionId}`);
   } else {

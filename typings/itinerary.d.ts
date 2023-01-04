@@ -15,13 +15,41 @@
  *    1. ...
  */
 
+interface Station {
+  uuid: string;
+
+  ownerId: number;
+  missionId: number;
+  poiUuid?: string[];
+
+  name: string;
+  status: StationStatus;
+  description: string;
+  radius: number;
+  location: Point | Point[];
+
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+type Station_db_type = Omit<Station, "ownerId" | "missionId"> & {
+  owner: User;
+  mission: Mission_db_type;
+};
+
+type StationStatus = "Archived" | "Candidate" | "In Review" | "Approved";
+
 /**
  * A POI is a point of interest that has been placed on the map, and chosen as a possible target to be visited as part of an EVA.
  */
 interface POI {
-  id?: number;
-  owner: number;
-  mission: number;
+  /**
+   * uuid of the POI
+   */
+  uuid: string;
+  ownerId: number;
+  missionId: number;
+
   /**
    * The name of the POI, e.g. "M-19"
    */
@@ -48,11 +76,6 @@ interface POI {
   radius: number;
 
   /**
-   * uuid of the POI
-   */
-  uuid: string;
-
-  /**
    * The coordinates or series of coordinates of the POI.
    */
   location: Point | Point[];
@@ -75,6 +98,11 @@ interface POI {
   updatedAt?: Date;
 }
 
+type Poi_db_type = Omit<POI, "ownerId" | "missionId"> & {
+  owner: User;
+  mission: Mission_db_type;
+};
+
 type POIColor = {
   value: string;
   label: string;
@@ -82,20 +110,19 @@ type POIColor = {
 
 type POIStatus = "Archived" | "Candidate" | "In Review" | "Approved";
 
-type Poi_db_type = Omit<POI, "owner" | "mission"> & {
-  owner: User;
-  mission: Mission_db_type;
-};
-
 /**
  * Action to be taken by crew on the surface (photograph, describe, take sample, etc)
  */
 type Action = {
-  id?: number;
+  /**
+   * uuid of the action
+   */
+  uuid: string;
   name: string;
 
-  // poi table foreign key
-  poi: number;
+  missionId: number;
+  poiUuid?: string;
+  stationUuid?: string;
   /**
    * Priority normally inferred by STM relationship, but can be overridden.
    */
@@ -105,11 +132,6 @@ type Action = {
    * Allow linkage to any part of the STM hierarchy
    */
   stmUuidRefs?: string[];
-
-  /**
-   * uuid of the action
-   */
-  uuid: string;
 
   /**
    * The type of action to be taken
@@ -135,6 +157,19 @@ type Action = {
   updatedAt?: Date;
 };
 
+type Action_db_type = Omit<Action, "missionId" | "poiUuid" | "stationUuid"> & {
+  mission: Mission_db_type;
+  poi: Poi_db_type;
+  station: Station_db_type;
+};
+
+interface ActionFilterOptions {
+  missionId?: number;
+  actionUuid?: string;
+  poiUuid?: string;
+  stationUuid?: string;
+}
+
 /**
  * Inventory item needed to perform an action.
  * Inventory management and tracking still being defined.
@@ -142,10 +177,6 @@ type Action = {
 type InventoryItem = {
   name: string;
   quantity: number;
-};
-
-type Action_db_type = Omit<Action, "poi"> & {
-  poi: Poi_db_type;
 };
 
 type ActionType = "measurement" | "observation" | "sample" | "photo" | "other";

@@ -6,6 +6,7 @@ import { QueryOrder } from "@mikro-orm/core";
 import { roundDateToSecond } from "utils/formatting";
 import { Poi as Poi_db } from "server/database/models/poi.model";
 import { Action as Action_db } from "server/database/models/action.model";
+import { convertActions } from "./action";
 
 export const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
   req,
@@ -23,7 +24,7 @@ export const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
     try {
       if (req.session?.user) {
         const pois = await getPOIsByMission(intMissionId);
-        await Mikro.closeORM();
+        //await Mikro.closeORM();
         return res.status(200).json({
           status: "success",
           message: "POIs retrieved",
@@ -43,48 +44,68 @@ export const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
     if (req.session?.user) {
       try {
         await Mikro.getORM();
-        const em = await Mikro.getEM();
+        const em = Mikro.getEM();
         // strip actions from POI before upserting it
         const { actions, ...validPoiBody } = poi;
 
-        const poiToUpsert = {
+        //build poi to upsert
+        const poiToUpsert: POI = {
           ...validPoiBody,
           createdAt: validPoiBody.createdAt || roundDateToSecond(new Date()),
           updatedAt: roundDateToSecond(new Date()),
         };
-        const poiUpsertReference = await em.upsert(Poi_db, poiToUpsert);
+        //convert fks
+        const convertedPoi = {
+          ...poiToUpsert,
+          mission: poiToUpsert.missionId,
+          owner: poiToUpsert.ownerId,
+        };
+        delete convertedPoi.missionId;
+        delete convertedPoi.ownerId;
+        const poiUpsertReference: Poi_db = await em.upsert(Poi_db, convertedPoi);
         await em.persistAndFlush(poiUpsertReference);
+        //await Mikro.closeORM();
 
         // upsert all action records associated with this POI if updateActions is true and there are actions to update
         let actionsReferences: Action[] = [];
         if (updateActions && actions) {
-          const actionsToUpsert = actions.map((action) => {
-            return {
-              ...action,
+          //upsert
+          //await Mikro.getORM();
+          for (const actionToUpsert of actions) {
+            //const upsertedAction: Action = await upsertAction(actionToUpsert);
+            const convertedAction = {
+              ...actionToUpsert,
+              mission: actionToUpsert.missionId,
+              //poi: actionToUpsert.poiId,
               poi: poiUpsertReference,
-              createdAt: action.createdAt || roundDateToSecond(new Date()),
+              station: actionToUpsert.stationUuid,
+              createdAt: actionToUpsert.createdAt || roundDateToSecond(new Date()),
               updatedAt: roundDateToSecond(new Date()),
             };
-          });
-          for (const actionToUpsert of actionsToUpsert) {
-            const actionUpsertReference = await em.upsert(Action_db, actionToUpsert);
-            await em.persistAndFlush(actionUpsertReference);
-            actionsReferences.push({
-              ...actionUpsertReference,
-              poi: actionUpsertReference.poi.id,
-            });
+            delete convertedAction.missionId;
+            delete convertedAction.poiUuid;
+            delete convertedAction.stationUuid;
+
+            const upsertedAction = await em.upsert(Action_db, convertedAction);
+            await em.persistAndFlush(upsertedAction);
+
+            actionsReferences.push(convertActions(upsertedAction) as Action);
           }
+          //await Mikro.closeORM();
+
           // find actions that are in the database but not in the request body
           const actionsInDb = await em.find(Action_db, { poi: poiUpsertReference });
+          //const actionsInDb: Action[] = await getActions({ poiId: poiUpsertReference.id });
           const actionsToDelete = actionsInDb.filter(
             (actionInDb) =>
-              !actionsToUpsert.some((actionToUpsert) => actionToUpsert.id === actionInDb.id)
+              !actions.some((actionToUpsert) => actionToUpsert.uuid === actionInDb.uuid)
           );
           // delete actions that are in the database but not in the request body
           for (const actionToDelete of actionsToDelete) {
+            //const deleteSuccess = await deleteAction(actionToDelete.uuid);
+            //if (!deleteSuccess) throw new Error("unable to delete action " + actionToDelete.uuid);
             await em.removeAndFlush(actionToDelete);
           }
-          await Mikro.closeORM();
         } else {
           actionsReferences = actions;
         }
@@ -92,8 +113,8 @@ export const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
         const responsePoi: POI = {
           ...poiUpsertReference,
           actions: actionsReferences,
-          mission: poiUpsertReference.mission.id,
-          owner: poiUpsertReference.owner.id,
+          missionId: poiUpsertReference.mission.id,
+          ownerId: poiUpsertReference.owner.id,
         };
 
         return res.status(200).json({
@@ -117,14 +138,18 @@ export const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
     if (req.session?.user) {
       try {
         await Mikro.getORM();
-        const em = await Mikro.getEM();
+        const em = Mikro.getEM();
         const poiToDelete = await em.findOne(Poi_db, { uuid });
         if (poiToDelete) {
           // find actions that are associated with this POI and delete them
+          //const actionsToDelete = await getActions({ poiId: poiToDelete.id });
           const actionsToDelete = await em.find(Action_db, { poi: poiToDelete });
           for (const actionToDelete of actionsToDelete) {
+            // const deleteSuccess = await deleteAction(actionToDelete.uuid);
+            // if (!deleteSuccess) throw new Error("unable to delete action " + actionToDelete.uuid);
             await em.removeAndFlush(actionToDelete);
           }
+
           // delete the POI
           await em.removeAndFlush(poiToDelete);
           await Mikro.closeORM();
@@ -151,26 +176,35 @@ export default withIronSessionApiRoute(Mikro.withORM(handlePOI), ironOptions);
 
 export async function getPOIsByMission(missionId: number): Promise<POI[]> {
   await Mikro.getORM();
-  const em = await Mikro.getEM();
-  const pois = await em.find(Poi_db, { mission: missionId }, { orderBy: { id: QueryOrder.ASC } });
-  await Mikro.closeORM();
+  const em = Mikro.getEM();
+  const pois = await em.find(Poi_db, { mission: missionId }, { orderBy: { name: QueryOrder.ASC } });
 
   /** transform the Mikro Poi objects into POI objects used in the Store.
    * also transform and populate the actions
    */
   const transformedPois: POI[] = [];
   for (const poiItem of pois) {
-    let convertedPoi: POI = { ...poiItem, owner: poiItem.owner.id, mission: poiItem.mission.id };
-
-    const actions = await em.find(Action_db, { poi: poiItem }, { orderBy: { id: QueryOrder.ASC } });
-    const convertedActions: Action[] = actions.map((action) => ({
-      ...action,
-      poi: action.poi.id,
-    }));
+    let convertedPoi: POI = {
+      ...poiItem,
+      ownerId: poiItem.owner.id,
+      missionId: poiItem.mission.id,
+    };
+    //const convertedActions: Action[] = await getActions({ poiId: poiItem.id });
+    const actions = await em.find(
+      Action_db,
+      { poi: poiItem },
+      { orderBy: { name: QueryOrder.ASC } }
+    );
+    // const convertedActions: Action[] = actions.map((action) => ({
+    //   ...action,
+    //   poi: action.poi.id,
+    // }));
+    const convertedActions: Action[] = convertActions(actions) as Action[];
 
     convertedPoi = { ...convertedPoi, actions: convertedActions };
     transformedPois.push(convertedPoi);
   }
 
+  await Mikro.closeORM();
   return transformedPois;
 }

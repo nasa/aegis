@@ -1,8 +1,8 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 import Mikro from "utils/mikro";
-import { ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/core";
+import { ForeignKeyConstraintViolationException, Loaded, QueryOrder } from "@mikro-orm/core";
 import { STM_Objective as STMObjective_db } from "server/database/models/stm_objective.model";
 import { STM_Goal as STMGoal_db } from "server/database/models/stm_goal.model";
 import { STM_Investigation as STMInvestigation_db } from "server/database/models/stm_investigation.model";
@@ -27,14 +27,18 @@ import { v4 as uuidv4 } from "uuid";
  *      A full STM object (with an uuid for new stm) should be specified in the request body
  *      Required URL parameters are:
  *        stmType=o|g|i  type of object to upsert. Either objective, goal, or investigation
- *    DELETE = delete the mission for a given missionId
+ *    DELETE = delete the STM for a given stmUUID and type
  *      Required URL parameters are:
  *        stmType=o|g|i  type of object to delete. Either objective, goal, or investigation
  *        o=uuid      objective UUID
  *        g=uuid      goal UUID
  *        i=uuid      investigation UUID
  */
-async function handleSTM(req: NextApiRequest, res: NextApiResponse) {
+export const handleSTM: NextApiHandler<
+  WrappedResponse<
+    STMObjective[] | STMObjective | STMGoal[] | STMGoal | STMInvestigation[] | STMInvestigation
+  >
+> = async (req, res): Promise<unknown> => {
   try {
     if (req.session?.user) {
       const { missionId, stmType, o, g, i } = req.query;
@@ -54,12 +58,9 @@ async function handleSTM(req: NextApiRequest, res: NextApiResponse) {
         i: Array.isArray(i) ? i[0] : i,
       };
 
-      //validation checks on query params
-      if (!queryParams.missionId || _.isNaN(queryParams.missionId)) {
-        return res.status(500).json({ status: "error", message: "Invalid mission ID" });
-      }
+      //required for all queries. validate.
       if (!queryParams.stmType) {
-        return res.status(500).json({ status: "error", message: "Invalid type" });
+        return res.status(500).json({ status: "error", message: "Invalid stm type" });
       }
 
       const urlParamDict = {
@@ -69,6 +70,11 @@ async function handleSTM(req: NextApiRequest, res: NextApiResponse) {
       };
       // retrieve a STM record. Mission and type are required query prams
       if (req.method === "GET") {
+        //validation check for required mission id
+        if (!queryParams.missionId || _.isNaN(queryParams.missionId)) {
+          return res.status(500).json({ status: "error", message: "Invalid mission ID" });
+        }
+
         try {
           let records: STMObjective[] | STMGoal[] | STMInvestigation[] = [];
 
@@ -84,22 +90,19 @@ async function handleSTM(req: NextApiRequest, res: NextApiResponse) {
               queryParams.i
             );
           } else {
-            return res.status(500).json({ status: "error", message: "Invalid type" });
+            return res.status(500).json({ status: "error", message: "Invalid stm type" });
           }
 
           return res.status(200).json({
-            status: "Success",
-            message:
-              records.length > 0
-                ? `${urlParamDict[queryParams.stmType]} retrieved`
-                : "No records found",
+            status: "success",
+            message: `${urlParamDict[queryParams.stmType]} retrieved`,
             data: records,
           });
         } catch (e) {
           console.error(e);
           return res
             .status(500)
-            .json({ status: "Error", message: "Error processing the GET request" });
+            .json({ status: "error", message: "Error processing the GET request" });
         }
       }
 
@@ -130,7 +133,9 @@ async function handleSTM(req: NextApiRequest, res: NextApiResponse) {
           if (upsertResponse) {
             return res.status(200).json({
               status: "success",
-              message: `${urlParamDict[queryParams.stmType]} upserted`,
+              message: `${urlParamDict[queryParams.stmType]} upserted with uuid ${
+                upsertResponse.uuid
+              }`,
               data: upsertResponse,
             });
           } else {
@@ -150,6 +155,7 @@ async function handleSTM(req: NextApiRequest, res: NextApiResponse) {
 
       //delete a STM record
       if (req.method === "DELETE") {
+        //todo - need to check a valid o, g, and i uuid were supplied
         try {
           let deletedUUID: string | null;
           if (queryParams.stmType === "o") {
@@ -166,13 +172,11 @@ async function handleSTM(req: NextApiRequest, res: NextApiResponse) {
             return res.status(200).json({
               status: "success",
               message: `${urlParamDict[queryParams.stmType]} deleted`,
-              data: deletedUUID,
             });
           } else {
             return res.status(404).json({
               status: "failure",
               message: `Record not found. Nothing deleted`,
-              data: null,
             });
           }
         } catch (e) {
@@ -199,7 +203,7 @@ async function handleSTM(req: NextApiRequest, res: NextApiResponse) {
     console.error(e);
     return res.status(500).json({ status: "error", message: "Error in query" });
   }
-}
+};
 
 /**
  * get objective(s) from the database.
@@ -211,7 +215,7 @@ async function getObjectives(missionId: number, objectiveUUID?: string): Promise
   await Mikro.getORM();
   const em = Mikro.getEM();
 
-  let objectives = [];
+  let objectives: Loaded<STMObjective_db, never>[];
   if (objectiveUUID) {
     objectives = await em.find(
       STMObjective_db,
@@ -227,7 +231,18 @@ async function getObjectives(missionId: number, objectiveUUID?: string): Promise
   }
 
   await Mikro.closeORM();
-  return objectives;
+  if (objectives) {
+    //convert fks
+    const objectivesConverted: STMObjective[] = objectives.map((objectives_db) => {
+      const objective = { ...objectives_db, missionId: objectives_db.mission.id };
+      delete objective.mission;
+      delete objective.goals;
+      return objective;
+    });
+    return objectivesConverted;
+  } else {
+    return [];
+  }
 }
 
 /**
@@ -245,7 +260,6 @@ async function getGoals(
   await Mikro.getORM();
   const em = Mikro.getEM();
 
-  let goals = [];
   //build the "where" options in Mikro ORM syntax
   const objectiveWhereClause: { uuid?: string; mission: { id: number } } = {
     mission: { id: missionId },
@@ -255,14 +269,26 @@ async function getGoals(
   const goalWhereClause: { uuid?: string; objective: {} } = { objective: objectiveWhereClause };
   if (goalUUID) goalWhereClause.uuid = goalUUID;
 
-  goals = await em.find(
+  const goals: Loaded<STMGoal_db, never>[] = await em.find(
     STMGoal_db,
     { ...goalWhereClause },
     { orderBy: [{ objective: { numbering: QueryOrder.ASC } }, { numbering: QueryOrder.ASC }] }
   );
 
   await Mikro.closeORM();
-  return goals;
+
+  if (goals) {
+    //convert fks
+    const goalsConverted: STMGoal[] = goals.map((goal_db) => {
+      const goal = { ...goal_db, objectiveUuid: goal_db.objective.uuid };
+      delete goal.objective;
+      delete goal.investigations;
+      return goal;
+    });
+    return goalsConverted;
+  } else {
+    return [];
+  }
 }
 
 /**
@@ -281,7 +307,6 @@ async function getInvestigations(
 ): Promise<STMInvestigation[]> {
   await Mikro.getORM();
   const em = Mikro.getEM();
-  let invstgs = [];
 
   //build the "where" options in Mikro ORM syntax
   const objectiveWhereClause: { uuid?: string; mission: { id: number } } = {
@@ -295,7 +320,7 @@ async function getInvestigations(
   const invstgWhereClause: { uuid?: string; goal: {} } = { goal: goalWhereClause };
   if (investigationUUID) invstgWhereClause.uuid = investigationUUID;
 
-  invstgs = await em.find(
+  const invstgs: Loaded<STMInvestigation_db, never>[] = await em.find(
     STMInvestigation_db,
     { ...invstgWhereClause },
     {
@@ -308,11 +333,22 @@ async function getInvestigations(
   );
 
   await Mikro.closeORM();
-  return invstgs;
+  if (invstgs) {
+    //convert fks
+    const invstgConverted: STMInvestigation[] = invstgs.map((invstgs_db) => {
+      const invstg = { ...invstgs_db, goalUuid: invstgs_db.goal.uuid };
+      delete invstg.goal;
+      return invstg;
+    });
+    return invstgConverted;
+  } else {
+    return [];
+  }
 }
 
 /**
- * Inserts or Updates either an objective, goal, or investigation into the database
+ * Inserts or Updates either an objective, goal, or investigation into the database.
+ * Takes the object and converts fks to upsert, then converts them back on return
  * @param stmObject the STM objective, goal, or investigation object to upsert
  * @param stmType a string representation of the record type. This is used to type check at runtime since these are custom typescript types
  * @returns a copy of the STM object that was upserted
@@ -330,30 +366,47 @@ async function upsertSTM(
     ...stmObject,
     updatedAt: updateDate,
   };
-
-  //new object
+  //we're creating a new record
   if (!stmObject.uuid) {
     upsertRecord.uuid = uuidv4();
     upsertRecord.createdAt = updateDate;
   }
 
   //determine the db table and perform upsert
-  let upsertReference: STMObjective_db | STMGoal_db | STMInvestigation_db;
+  // let convertedRecord: STMObjective_db_type | STMGoal_db_type | STMInvestigation_db_type
   if (stmType === "Objective") {
-    upsertReference = await em.upsert(STMObjective_db, upsertRecord);
+    const objective = upsertRecord as STMObjective;
+    const convertedRecord = { ...objective, mission: objective.missionId }; //convert fks
+    delete convertedRecord.missionId;
+
+    const upsertReference: STMObjective_db = await em.upsert(STMObjective_db, convertedRecord);
     await em.persistAndFlush(upsertReference);
     await Mikro.closeORM();
-    return { ...upsertReference, mission: upsertReference.mission.id } as STMObjective;
+
+    return { ...upsertReference, missionId: upsertReference.mission.id } as STMObjective;
   } else if (stmType === "Goal") {
-    upsertReference = await em.upsert(STMGoal_db, upsertRecord);
+    const goal = upsertRecord as STMGoal;
+    const convertedGoal = { ...goal, objective: goal.objectiveUuid }; //convert fks
+    delete convertedGoal.objectiveUuid;
+
+    const upsertReference: STMGoal_db = await em.upsert(STMGoal_db, convertedGoal);
     await em.persistAndFlush(upsertReference);
     await Mikro.closeORM();
-    return { ...upsertReference, objective: upsertReference.objective.uuid } as STMGoal;
+
+    return { ...upsertReference, objectiveUuid: upsertReference.objective.uuid } as STMGoal;
   } else {
-    upsertReference = await em.upsert(STMInvestigation_db, upsertRecord);
+    const invstg = upsertRecord as STMInvestigation;
+    const convertedInvstg = { ...invstg, goal: invstg.goalUuid };
+    delete convertedInvstg.goalUuid;
+
+    const upsertReference: STMInvestigation_db = await em.upsert(
+      STMInvestigation_db,
+      convertedInvstg
+    );
     await em.persistAndFlush(upsertReference);
     await Mikro.closeORM();
-    return { ...upsertReference, goal: upsertReference.goal.uuid } as STMInvestigation;
+
+    return { ...upsertReference, goalUuid: upsertReference.goal.uuid } as STMInvestigation;
   }
 }
 
