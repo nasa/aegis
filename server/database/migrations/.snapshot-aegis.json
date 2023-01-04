@@ -518,6 +518,142 @@
     },
     {
       "columns": {
+        "uuid": {
+          "name": "uuid",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "string"
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "integer"
+        },
+        "mission_id": {
+          "name": "mission_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "integer"
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "string"
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "string"
+        },
+        "description": {
+          "name": "description",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "string"
+        },
+        "radius": {
+          "name": "radius",
+          "type": "real",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "float"
+        },
+        "location": {
+          "name": "location",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "json"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "mappedType": "datetime"
+        }
+      },
+      "name": "station",
+      "schema": "public",
+      "indexes": [
+        {
+          "keyName": "station_pkey",
+          "columnNames": [
+            "uuid"
+          ],
+          "composite": false,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "station_owner_id_foreign": {
+          "constraintName": "station_owner_id_foreign",
+          "columnNames": [
+            "owner_id"
+          ],
+          "localTableName": "public.station",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.user",
+          "updateRule": "cascade"
+        },
+        "station_mission_id_foreign": {
+          "constraintName": "station_mission_id_foreign",
+          "columnNames": [
+            "mission_id"
+          ],
+          "localTableName": "public.station",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.mission",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
         "id": {
           "name": "id",
           "type": "int",
@@ -674,14 +810,14 @@
     },
     {
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "int",
-          "unsigned": true,
-          "autoincrement": true,
-          "primary": true,
+        "uuid": {
+          "name": "uuid",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
           "nullable": false,
-          "mappedType": "integer"
+          "mappedType": "string"
         },
         "owner_id": {
           "name": "owner_id",
@@ -736,15 +872,6 @@
           "primary": false,
           "nullable": false,
           "mappedType": "float"
-        },
-        "uuid": {
-          "name": "uuid",
-          "type": "varchar(255)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "string"
         },
         "location": {
           "name": "location",
@@ -807,18 +934,9 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "uuid"
-          ],
-          "composite": false,
-          "keyName": "poi_uuid_unique",
-          "primary": false,
-          "unique": true
-        },
-        {
           "keyName": "poi_pkey",
           "columnNames": [
-            "id"
+            "uuid"
           ],
           "composite": false,
           "primary": true,
@@ -855,14 +973,106 @@
     },
     {
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "unsigned": true,
-          "autoincrement": true,
+        "station_uuid": {
+          "name": "station_uuid",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "string"
+        },
+        "poi_uuid": {
+          "name": "poi_uuid",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "string"
+        }
+      },
+      "name": "station_poi",
+      "schema": "public",
+      "indexes": [
+        {
+          "keyName": "station_poi_pkey",
+          "columnNames": [
+            "station_uuid",
+            "poi_uuid"
+          ],
+          "composite": true,
           "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "station_poi_station_uuid_foreign": {
+          "constraintName": "station_poi_station_uuid_foreign",
+          "columnNames": [
+            "station_uuid"
+          ],
+          "localTableName": "public.station_poi",
+          "referencedColumnNames": [
+            "uuid"
+          ],
+          "referencedTableName": "public.station",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        },
+        "station_poi_poi_uuid_foreign": {
+          "constraintName": "station_poi_poi_uuid_foreign",
+          "columnNames": [
+            "poi_uuid"
+          ],
+          "localTableName": "public.station_poi",
+          "referencedColumnNames": [
+            "uuid"
+          ],
+          "referencedTableName": "public.poi",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "uuid": {
+          "name": "uuid",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "string"
+        },
+        "mission_id": {
+          "name": "mission_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "poi_uuid": {
+          "name": "poi_uuid",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "string"
+        },
+        "station_uuid": {
+          "name": "station_uuid",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "string"
         },
         "name": {
           "name": "name",
@@ -872,15 +1082,6 @@
           "primary": false,
           "nullable": false,
           "mappedType": "string"
-        },
-        "poi_id": {
-          "name": "poi_id",
-          "type": "int",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "integer"
         },
         "priority_override": {
           "name": "priority_override",
@@ -900,15 +1101,6 @@
           "nullable": true,
           "mappedType": "json"
         },
-        "uuid": {
-          "name": "uuid",
-          "type": "varchar(255)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "string"
-        },
         "type": {
           "name": "type",
           "type": "varchar(255)",
@@ -920,12 +1112,12 @@
         },
         "description": {
           "name": "description",
-          "type": "text",
+          "type": "varchar(255)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "mappedType": "text"
+          "mappedType": "string"
         },
         "duration_lower": {
           "name": "duration_lower",
@@ -988,18 +1180,9 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "uuid"
-          ],
-          "composite": false,
-          "keyName": "action_uuid_unique",
-          "primary": false,
-          "unique": true
-        },
-        {
           "keyName": "action_pkey",
           "columnNames": [
-            "id"
+            "uuid"
           ],
           "composite": false,
           "primary": true,
@@ -1008,16 +1191,42 @@
       ],
       "checks": [],
       "foreignKeys": {
-        "action_poi_id_foreign": {
-          "constraintName": "action_poi_id_foreign",
+        "action_mission_id_foreign": {
+          "constraintName": "action_mission_id_foreign",
           "columnNames": [
-            "poi_id"
+            "mission_id"
           ],
           "localTableName": "public.action",
           "referencedColumnNames": [
             "id"
           ],
+          "referencedTableName": "public.mission",
+          "updateRule": "cascade"
+        },
+        "action_poi_uuid_foreign": {
+          "constraintName": "action_poi_uuid_foreign",
+          "columnNames": [
+            "poi_uuid"
+          ],
+          "localTableName": "public.action",
+          "referencedColumnNames": [
+            "uuid"
+          ],
           "referencedTableName": "public.poi",
+          "deleteRule": "set null",
+          "updateRule": "cascade"
+        },
+        "action_station_uuid_foreign": {
+          "constraintName": "action_station_uuid_foreign",
+          "columnNames": [
+            "station_uuid"
+          ],
+          "localTableName": "public.action",
+          "referencedColumnNames": [
+            "uuid"
+          ],
+          "referencedTableName": "public.station",
+          "deleteRule": "set null",
           "updateRule": "cascade"
         }
       }

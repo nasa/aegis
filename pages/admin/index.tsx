@@ -69,7 +69,7 @@ const MissionList = (props: {
   async function delMission(id: number) {
     if (confirm("Are you sure you want to delete mission " + id)) {
       const res: WrappedResponse<number> = await deleteMission(id);
-      alert(`Delete ${res.status} - ${res.message} for missionID ${res.data}`);
+      alert(`Delete ${res.status} - ${res.message} for missionID ${id}`);
       props.refreshMissionList(); //reload mission listing in parent component.
     }
   }

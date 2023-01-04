@@ -18,7 +18,7 @@ export function createNewLayer(missionId?: number): Layer {
   };
   const layer = {
     uuid: null,
-    mission: missionId || null,
+    missionId: missionId || null,
     layerConfig: layerConfig,
     createdAt: null,
     updatedAt: null,

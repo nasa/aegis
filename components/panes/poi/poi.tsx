@@ -3,7 +3,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent } from "react";
 import { IconButton, ModifiedIndicator } from "components/interface/_global-elements";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector, useDispatch, shallowEqual } from "react-redux";
 import { RootState } from "store";
 import {
   duplicatePoi,
@@ -17,14 +17,23 @@ import { v4 as uuidv4 } from "uuid";
 
 const PoiEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const pois = useSelector((state: RootState) => state.poi.pois);
-  const poisFromDb = useSelector((state: RootState) => state.poi.poisFromDb);
-  const selectedRightNavItem = useSelector((state: RootState) => state.poi.selectedRightNavItem);
-  const selectedPoiUuid = useSelector((state: RootState) => state.poi.selectedPoiUuid);
-  const selectedPoi = pois.filter((poi) => poi.uuid === selectedPoiUuid)[0];
+  const pois: POI[] = useSelector((state: RootState) => state.poi.pois, shallowEqual);
+  const poisFromDb: POI[] = useSelector((state: RootState) => state.poi.poisFromDb, shallowEqual);
+  const selectedRightNavItem = useSelector(
+    (state: RootState) => state.poi.selectedRightNavItem,
+    shallowEqual
+  );
+  const selectedPoiUuid = useSelector(
+    (state: RootState) => state.poi.selectedPoiUuid,
+    shallowEqual
+  );
+  const selectedPoi: POI = pois.find((poi: POI) => poi.uuid === selectedPoiUuid);
 
-  const user: AEGISUser = useSelector((state: RootState) => state.user.ironSessionData?.user);
-  const mission = useSelector((state: RootState) => state.mission.mission);
+  const user: AEGISUser = useSelector(
+    (state: RootState) => state.user.ironSessionData?.user,
+    shallowEqual
+  );
+  const mission = useSelector((state: RootState) => state.mission.mission, shallowEqual);
 
   const handleCreatePoi = () => {
     const randomName: string = uniqueNamesGenerator({
@@ -33,8 +42,8 @@ const PoiEditorLeft: FunctionComponent = () => {
     });
 
     const blankPoi: POI = {
-      owner: user.id,
-      mission: mission.id,
+      ownerId: user.id,
+      missionId: mission.id,
       uuid: uuidv4(),
       name: "P-" + randomName,
       description: "",

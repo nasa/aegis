@@ -11,6 +11,8 @@ import { poiSlice, initialState as poiInitialState } from "./poi";
 import { interfaceSlice, initialState as interfaceInitialState } from "./interface";
 import { stmSlice, initialState as stmInitialState } from "./stm";
 import { presetSlice, initialState as presetInitialState } from "./preset";
+import { stationSlice, initialState as stationInitialState } from "./station";
+import { actionSlice, initialState as actionInitialState } from "./action";
 
 let store;
 
@@ -25,6 +27,8 @@ export const initialState = {
   interface: interfaceInitialState,
   stm: stmInitialState,
   preset: presetInitialState,
+  station: stationInitialState,
+  action: actionInitialState,
 };
 
 export const reducer = combineReducers({
@@ -38,6 +42,8 @@ export const reducer = combineReducers({
   interface: interfaceSlice.reducer,
   stm: stmSlice.reducer,
   preset: presetSlice.reducer,
+  station: stationSlice.reducer,
+  action: actionSlice.reducer,
 });
 export type RootState = ReturnType<typeof reducer>;
 

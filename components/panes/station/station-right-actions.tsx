@@ -4,24 +4,24 @@ import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { IconButton } from "components/interface/_global-elements";
 import { useSelector, useDispatch, shallowEqual } from "react-redux";
 import { RootState } from "store";
-import { setPoiEditMode, upsertAction } from "store/poi";
-import POIAction from "./poi-right-actions-action";
+import { setStationEditMode } from "store/station";
+import { upsertAction } from "store/action";
+import StationAction from "./station-right-actions-action";
 import { starWars, uniqueNamesGenerator } from "unique-names-generator";
 import { v4 as uuidv4 } from "uuid";
 
 const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
-  const selectedPoiUuid = useSelector(
-    (state: RootState) => state.poi.selectedPoiUuid,
+  const selectedStationUuid = useSelector(
+    (state: RootState) => state.station.selectedStationUuid,
     shallowEqual
   );
   const selectedMissionId = useSelector(
     (state: RootState) => state.mission.mission?.id,
     shallowEqual
   );
-  const pois: POI[] = useSelector((state: RootState) => state.poi.pois, shallowEqual);
-  const selectedPoi = pois.find((poi) => poi.uuid === selectedPoiUuid);
-
+  const actions: Action[] = useSelector((state: RootState) => state.action.actions, shallowEqual);
+  const stationActions = actions.filter((action) => action.stationUuid === selectedStationUuid);
   const handleCreateAction = () => {
     const randomName: string = uniqueNamesGenerator({
       dictionaries: [starWars],
@@ -30,7 +30,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
 
     const blankAction: Action = {
       missionId: selectedMissionId,
-      poiUuid: selectedPoi.uuid,
+      stationUuid: selectedStationUuid,
       uuid: uuidv4(),
       name: "Action " + randomName,
       description: "",
@@ -43,16 +43,21 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
       priorityOverride: null,
     };
 
-    dispatch(upsertAction({ poi: selectedPoi, poiAction: blankAction }));
-    dispatch(setPoiEditMode({ poi: selectedPoi, editMode: true }));
+    dispatch(upsertAction(blankAction));
+    dispatch(setStationEditMode({ stationUuid: selectedStationUuid, editMode: true }));
   };
 
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle}>Actions</div>
       <div className={paneStyles.rightBodyBody}>
-        {selectedPoi.actions?.map((action) => (
-          <POIAction key={action.uuid} editMode={editMode} poi={selectedPoi} action={action} />
+        {stationActions?.map((action) => (
+          <StationAction
+            key={action.uuid}
+            editMode={editMode}
+            stationUuid={selectedStationUuid}
+            action={action}
+          />
         ))}
       </div>
       <div className={paneStyles.rightBodyFooter}>

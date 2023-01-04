@@ -1,7 +1,7 @@
 import styles from "./preset.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faGlobe, faPlusCircle, faUser } from "@fortawesome/free-solid-svg-icons";
-import { FunctionComponent, useEffect } from "react";
+import { FunctionComponent } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../../store";
 import {
@@ -9,11 +9,7 @@ import {
   setPresetEditMode,
   setPresetInteractions,
   upsertPreset,
-  upsertPresets,
-  upsertPresetsFromDb,
 } from "../../../store/preset";
-import * as InternalAPI from "../../../http-client/internal-api";
-import { useRouter } from "next/router";
 import { setLayerControls } from "../../../store/map";
 import { setSelectedPresetUuid, setSelectedPresetRightNavItem } from "../../../store/preset";
 import { v4 as uuidv4 } from "uuid";
@@ -23,7 +19,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 const PresetEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const router = useRouter();
   const presets = useSelector((state: RootState) => state.preset.presets);
   const selectedPresetUuid = useSelector((state: RootState) => state.preset.selectedPresetUuid);
   const user: AEGISUser = useSelector((state: RootState) => state.user.ironSessionData?.user);
@@ -44,8 +39,8 @@ const PresetEditorLeft: FunctionComponent = () => {
       uuid: uuidv4(),
       name: randomName,
       description: "Enter description here",
-      owner: user.id,
-      mission: mission.id,
+      ownerId: user.id,
+      missionId: mission.id,
       missionPreset: false,
       missionPresetDefault: false,
       layerControls: mapLayerControls,
@@ -67,40 +62,6 @@ const PresetEditorLeft: FunctionComponent = () => {
     }
     dispatch(setPresetInteractions({ presetUuid: blankPreset.uuid, layerControlInteractions }));
   };
-
-  // On initial mount, get the presets from the DB
-  useEffect(() => {
-    (async () => {
-      const { id } = router.query;
-
-      if (presets.length === 0 && id) {
-        const presetData = await InternalAPI.getPresets(parseInt(id as string));
-
-        if (presetData.data) {
-          dispatch(upsertPresets(presetData.data));
-          dispatch(upsertPresetsFromDb(presetData.data));
-          presetData.data.forEach((preset) => {
-            const layerControlInteractions: LayerControlInteractions = {};
-            for (const [key] of Object.entries(preset.layerControls)) {
-              layerControlInteractions[key] = {
-                expanded: true,
-                tabSelected: null,
-              };
-            }
-            dispatch(setPresetInteractions({ presetUuid: preset.uuid, layerControlInteractions }));
-          });
-          // Set the default preset
-          const defaultPreset = presetData.data.filter(
-            (preset) => preset.missionPresetDefault === true
-          );
-          if (defaultPreset.length > 0) {
-            dispatch(setSelectedPresetUuid(defaultPreset[0].uuid));
-            dispatch(setLayerControls(defaultPreset[0].layerControls));
-          }
-        }
-      }
-    })();
-  });
 
   const missionPresets = presets
     .filter((preset) => preset.missionPreset === true)

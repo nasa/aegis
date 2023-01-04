@@ -1,12 +1,21 @@
-import { Collection, Entity, ManyToMany, ManyToOne, PrimaryKey, Property } from "@mikro-orm/core";
+import {
+  Collection,
+  Entity,
+  ManyToMany,
+  ManyToOne,
+  OneToMany,
+  PrimaryKey,
+  Property,
+} from "@mikro-orm/core";
 
 import { Mission } from "./mission.model";
 import { User } from "./user.model";
 import { types as MikroTypes } from "@mikro-orm/core";
-import { Station } from "./station.model";
+import { Poi } from "./poi.model";
+import { Action } from "./action.model";
 
 @Entity()
-export class Poi implements Poi_db_type {
+export class Station {
   @PrimaryKey({ type: MikroTypes.string, unique: true })
   uuid!: string;
 
@@ -14,25 +23,21 @@ export class Poi implements Poi_db_type {
   owner!: User;
   @ManyToOne(() => Mission, { unique: false, primary: false })
   mission!: Mission;
-  @ManyToMany(() => Station, (station) => station.poi) //a poi can belong to many stations
-  station = new Collection<Station>(this);
+  @OneToMany(() => Action, (i) => i.station) //one station has many actions
+  action = new Collection<Action>(this);
+  @ManyToMany(() => Poi, "station", { owner: true }) //many stations can have many pois
+  poi = new Collection<Poi>(this);
 
   @Property({ type: MikroTypes.string })
   name!: string;
-  @Property({ type: MikroTypes.text })
+  @Property({ type: MikroTypes.string })
+  status!: StationStatus;
+  @Property({ type: MikroTypes.string })
   description!: string;
-  @Property({ type: MikroTypes.integer, nullable: true })
-  priorityOverride: number;
   @Property({ type: MikroTypes.float })
   radius!: number;
   @Property({ type: MikroTypes.json, nullable: true })
   location: Point | Point[];
-  @Property({ type: MikroTypes.json, nullable: true })
-  color: POIColor;
-  @Property({ type: MikroTypes.json, nullable: true })
-  tags: string[];
-  @Property({ type: MikroTypes.string })
-  status!: POIStatus;
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;

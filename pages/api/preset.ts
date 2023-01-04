@@ -56,8 +56,8 @@ export const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = 
         await Mikro.closeORM();
         const responsePreset: Preset = {
           ...upsertedPreset,
-          mission: upsertedPreset.mission.id,
-          owner: upsertedPreset.owner.id,
+          missionId: upsertedPreset.mission.id,
+          ownerId: upsertedPreset.owner.id,
         };
         return res.status(200).json({
           status: "success",
@@ -114,8 +114,8 @@ export async function getAllPresetsForMission(missionId: number): Promise<Preset
   for (const presetItem of presets) {
     const convertedPreset: Preset = {
       ...presetItem,
-      owner: presetItem.owner.id,
-      mission: presetItem.mission.id,
+      ownerId: presetItem.owner.id,
+      missionId: presetItem.mission.id,
     };
     transformedPresets.push(convertedPreset);
   }

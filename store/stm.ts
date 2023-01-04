@@ -1,8 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 export const initialState: STMState = {
-  loadingStatus: "LOADING",
-  mission: "",
   objectives: [],
   goals: [],
   investigations: [],
@@ -57,9 +55,6 @@ export const stmSlice = createSlice({
       state.goals = [];
       state.investigations = [];
     },
-    setSTMLoadingStatus: (state, action: { payload: LoadingStatus }) => {
-      state.loadingStatus = action.payload;
-    },
   },
 });
 
@@ -74,5 +69,4 @@ export const {
   addInvestigation,
   delInvestigation,
   clearSTM,
-  setSTMLoadingStatus,
 } = stmSlice.actions;

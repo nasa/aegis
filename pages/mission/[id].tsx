@@ -1,19 +1,33 @@
 import type { NextPage } from "next";
-import { useDispatch, useSelector } from "react-redux";
-import styles from "./mission.module.css";
-import { setLayerControls } from "store/map";
-import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { RootState } from "store";
-import { setLayers, setMission } from "../../store/mission";
+import { useDispatch, useSelector } from "react-redux";
+import dynamic from "next/dynamic";
+import { useRouter } from "next/router";
+
+import styles from "./mission.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronRight, faChevronLeft } from "@fortawesome/free-solid-svg-icons";
-import { useRouter } from "next/router";
-import { upsertPois, upsertPoisFromDb } from "store/poi";
-import * as InternalAPI from "../../http-client/internal-api";
+import * as InternalAPI from "http-client/internal-api";
 import { getMissions } from "http-client/mission";
 import { getLayers } from "http-client/layer";
+import { getStations } from "http-client/station";
+import { getActions } from "http-client/action";
+import { getGoals, getInvestigations, getObjectives } from "http-client/stm";
+
+import { RootState } from "store";
+import { setLayerControls } from "store/map";
+import { upsertPois, upsertPoisFromDb } from "store/poi";
+import {
+  setPresetInteractions,
+  setSelectedPresetUuid,
+  upsertPresets,
+  upsertPresetsFromDb,
+} from "store/preset";
+import { setLayers, setMission } from "store/mission";
 import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/user";
+import { upsertStations, upsertStationsFromDb } from "store/station";
+import { upsertActions, upsertActionsFromDb } from "store/action";
+import { setGoals, setInvestigations, setObjectives } from "store/stm";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -38,9 +52,8 @@ const Header = dynamic(import("components/interface/header"), {
 const Main: NextPage = () => {
   const dispatch = useDispatch();
   const router = useRouter();
-  const missionPage = useSelector((state: RootState) => state.mission);
+  const missionStore = useSelector((state: RootState) => state.mission);
   const [showRightPanel, setShowRightPanel] = useState(true);
-  let layerData;
 
   /**
    * Check if user is logged in.
@@ -63,30 +76,25 @@ const Main: NextPage = () => {
   }, [dispatch, router]);
 
   /**
-   * Populate the map layerControls store with the configLayers in the MMGIS config
+   * Populate the store
    */
   useEffect(() => {
+    const { id } = router.query;
+    if (!id || !dispatch) return;
     (async () => {
-      const { id } = router.query;
-      if (!missionPage.mission) {
-        if (typeof id === "string") {
-          const missionData = await getMissions(parseInt(id as string));
-          if (missionData.data) {
-            dispatch(setMission(missionData.data[0]));
-          }
-        }
+      //populate mission
+      const missionData = await getMissions(parseInt(id as string));
+      if (missionData.data) {
+        dispatch(setMission(missionData.data[0]));
       }
-      if (!missionPage.layers) {
-        if (typeof id === "string") {
-          const layerData = await getLayers(parseInt(id as string));
-          if (layerData.data) {
-            await dispatch(setLayers(layerData.data));
-          }
-        }
-      }
-      if (!layerData && missionPage.layers !== null && typeof missionPage.layers !== "undefined") {
+
+      //populate layers
+      const layerData = await getLayers(parseInt(id as string));
+      if (layerData.data) {
+        dispatch(setLayers(layerData.data));
+        //populate layerControls for the layers loaded
         const controls: LayerControls = {};
-        missionPage.layers.map((configLayer) => {
+        layerData.data.map((configLayer) => {
           controls[configLayer.layerConfig.name] = {
             name: configLayer.layerConfig.name,
             enabled: false,
@@ -109,24 +117,62 @@ const Main: NextPage = () => {
         });
         dispatch(setLayerControls(controls));
       }
-    })();
-  });
 
-  /**
-   * Populate the POI store with the POIs retrieved from the database
-   */
-  useEffect(() => {
-    (async () => {
-      const { id } = router.query;
-      if (typeof id === "string") {
-        const poiData = await InternalAPI.getPOIs(parseInt(id as string));
-        if (poiData.data) {
-          dispatch(upsertPois(poiData.data));
-          dispatch(upsertPoisFromDb(poiData.data));
+      //Populate POIs
+      const poiData = await InternalAPI.getPOIs(parseInt(id as string));
+      if (poiData.data) {
+        dispatch(upsertPois(poiData.data));
+        dispatch(upsertPoisFromDb(poiData.data));
+      }
+
+      //Populate Presets
+      const presetData = await InternalAPI.getPresets(parseInt(id as string));
+      if (presetData.data) {
+        dispatch(upsertPresets(presetData.data));
+        dispatch(upsertPresetsFromDb(presetData.data));
+        presetData.data.forEach((preset) => {
+          const layerControlInteractions: LayerControlInteractions = {};
+          for (const [key] of Object.entries(preset.layerControls)) {
+            layerControlInteractions[key] = {
+              expanded: true,
+              tabSelected: null,
+            };
+          }
+          dispatch(setPresetInteractions({ presetUuid: preset.uuid, layerControlInteractions }));
+        });
+        // Set the default preset
+        const defaultPreset = presetData.data.filter(
+          (preset) => preset.missionPresetDefault === true
+        );
+        if (defaultPreset.length > 0) {
+          dispatch(setSelectedPresetUuid(defaultPreset[0].uuid));
+          dispatch(setLayerControls(defaultPreset[0].layerControls));
         }
       }
+
+      //Populate stations
+      const stationData = await getStations(parseInt(id as string));
+      if (stationData.data) {
+        dispatch(upsertStations(stationData.data));
+        dispatch(upsertStationsFromDb(stationData.data));
+      }
+
+      //Populate actions
+      const actionData = await getActions({ missionId: parseInt(id as string) });
+      if (actionData.data) {
+        dispatch(upsertActions(actionData.data));
+        dispatch(upsertActionsFromDb(actionData.data));
+      }
+
+      //Populate stm
+      const objectiveData = await getObjectives({ missionId: parseInt(id as string) });
+      if (objectiveData.data) dispatch(setObjectives(objectiveData.data));
+      const goalData = await getGoals({ missionId: parseInt(id as string) });
+      if (goalData.data) dispatch(setGoals(goalData.data));
+      const invstgData = await getInvestigations({ missionId: parseInt(id as string) });
+      if (invstgData.data) dispatch(setInvestigations(invstgData.data));
     })();
-  });
+  }, [router, dispatch]);
 
   return (
     <div className={styles.page}>
@@ -138,7 +184,7 @@ const Main: NextPage = () => {
           <LeftControlPanel />
         </div>
         <div className={styles.mapBody}>
-          {missionPage.mission && missionPage.layers && <MapBody />}
+          {missionStore.mission && missionStore.layers && <MapBody />}
         </div>
         <div
           className={styles.drawerSlider}

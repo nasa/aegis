@@ -9,6 +9,7 @@
   font-weight: 700;
   margin-top: 5px;
   margin-left: 5px;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -18,6 +19,7 @@
   padding-top: 6px;
   padding-bottom: 6px;
   margin-right: 5px;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -121,6 +123,7 @@
   background: #616574;
   border-radius: 5px;
   cursor: pointer;
+  -webkit-user-select: none;
   user-select: none;
 }
 

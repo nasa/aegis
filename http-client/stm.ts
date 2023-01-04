@@ -4,6 +4,7 @@ export async function getObjectives(urlParams?: {
   objectiveUUID?: string;
 }): Promise<WrappedResponse<STMObjective[]>> {
   let params = `stmType=o&missionId=${urlParams.missionId}`;
+
   if (urlParams?.objectiveUUID) params += `&o=${urlParams.objectiveUUID}`;
   const res = await fetch(`/api/stm?${params}`);
   const response: WrappedResponse<STMObjective[]> = await res.json();
@@ -18,6 +19,7 @@ export async function getGoals(urlParams?: {
   let params = `stmType=g&missionId=${urlParams.missionId}`;
   if (urlParams?.objectiveUUID) params += `&o=${urlParams.objectiveUUID}`;
   if (urlParams?.goalUUID) params += `&g=${urlParams.goalUUID}`;
+
   const res = await fetch(`/api/stm?${params}`);
   const response: WrappedResponse<STMGoal[]> = await res.json();
   return response;
@@ -33,6 +35,7 @@ export async function getInvestigations(urlParams?: {
   if (urlParams?.objectiveUUID) params += `&o=${urlParams.objectiveUUID}`;
   if (urlParams?.goalUUID) params += `&g=${urlParams.goalUUID}`;
   if (urlParams?.investigationUUID) params += `&i=${urlParams.investigationUUID}`;
+
   const res = await fetch(`/api/stm?${params}`);
   const response: WrappedResponse<STMInvestigation[]> = await res.json();
   return response;

@@ -15,6 +15,7 @@
   padding-left: 8px;
   padding-right: 8px;
   cursor: pointer;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -49,9 +50,9 @@
   border-radius: var(--radius);
   color: white;
   background-color: var(--grey3);
-  appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
+  appearance: none;
   text-overflow: ellipsis;
   outline: 0;
 }
@@ -159,6 +160,7 @@
   font-weight: 400;
   margin-top: 3px;
   margin-left: 2px;
+  -webkit-user-select: none;
   user-select: none;
 }
 

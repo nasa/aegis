@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { upsertByUuid } from "../utils/store";
+import { upsertToArrayByUuid } from "../utils/store";
 import { v4 as uuidv4 } from "uuid";
 export const initialState: PresetState = {
   presets: [],
@@ -15,13 +15,13 @@ export const presetSlice = createSlice({
   initialState,
   reducers: {
     upsertPreset: (state, action: { payload: Preset }) => {
-      upsertByUuid(state.presets, action.payload);
+      upsertToArrayByUuid(state.presets, action.payload);
     },
     upsertPresets: (state, action: { payload: Preset[] }) => {
-      action.payload.forEach((preset) => upsertByUuid(state.presets, preset));
+      action.payload.forEach((preset) => upsertToArrayByUuid(state.presets, preset));
     },
     upsertPresetsFromDb: (state, action: { payload: Preset[] }) => {
-      action.payload.forEach((preset) => upsertByUuid(state.presetsFromDb, preset));
+      action.payload.forEach((preset) => upsertToArrayByUuid(state.presetsFromDb, preset));
     },
     deletePreset: (state, action: { payload: Preset }) => {
       state.presets = state.presets.filter((preset) => preset.uuid !== action.payload.uuid);

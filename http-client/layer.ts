@@ -1,5 +1,8 @@
-export async function getLayers(mission: number): Promise<WrappedResponse<Layer[]>> {
-  const res = await fetch(`/api/layer?missionId=${mission}`);
+export async function getLayers(mission: number, uuid?: string): Promise<WrappedResponse<Layer[]>> {
+  let params = `missionId=${mission}`;
+  if (uuid) params += `&uuid=${uuid}`;
+
+  const res = await fetch(`/api/layer?${params}`);
   const response: WrappedResponse<Layer[]> = await res.json();
   return response;
 }
@@ -12,12 +15,14 @@ export async function upsertLayer(layer: Layer): Promise<WrappedResponse<Layer>>
     },
     body: JSON.stringify(layer),
   });
-  return await res.json();
+  const response: WrappedResponse<Layer> = await res.json();
+  return response;
 }
 
-export async function deleteLayer(layerUuid: string): Promise<WrappedResponse<string | null>> {
+export async function deleteLayer(layerUuid: string): Promise<WrappedResponse<null>> {
   const res = await fetch(`/api/layer?uuid=${layerUuid}`, {
     method: "DELETE",
   });
-  return await res.json();
+  const response: WrappedResponse<null> = await res.json();
+  return response;
 }

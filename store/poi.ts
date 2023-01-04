@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { upsertByUuid } from "utils/store";
+import { upsertToArrayByUuid } from "utils/store";
 import { v4 as uuidv4 } from "uuid";
 
 export const initialState: PoiState = {
@@ -15,13 +15,13 @@ export const poiSlice = createSlice({
   initialState,
   reducers: {
     upsertPoi: (state, action: { payload: POI }) => {
-      upsertByUuid(state.pois, action.payload);
+      upsertToArrayByUuid(state.pois, action.payload);
     },
     upsertPois: (state, action: { payload: POI[] }) => {
-      action.payload.forEach((poi) => upsertByUuid(state.pois, poi));
+      action.payload.forEach((poi) => upsertToArrayByUuid(state.pois, poi));
     },
     upsertPoisFromDb: (state, action: { payload: POI[] }) => {
-      action.payload.forEach((poi) => upsertByUuid(state.poisFromDb, poi));
+      action.payload.forEach((poi) => upsertToArrayByUuid(state.poisFromDb, poi));
     },
     deletePoi: (state, action: { payload: POI }) => {
       state.pois = state.pois.filter((poi) => poi.uuid !== action.payload.uuid);
@@ -55,10 +55,10 @@ export const poiSlice = createSlice({
       const poi = state.pois.find((poi) => poi.uuid === action.payload.poi.uuid);
       if (poi) {
         // upsert the action into the POI
-        upsertByUuid(poi.actions, action.payload.poiAction);
+        upsertToArrayByUuid(poi.actions, action.payload.poiAction);
 
         // upsert the POI into the state
-        upsertByUuid(state.pois, poi);
+        upsertToArrayByUuid(state.pois, poi);
       }
     },
 

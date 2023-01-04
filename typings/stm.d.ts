@@ -17,7 +17,7 @@ type STMInvestigation = {
   uuid: string; //unique identifier
   numbering: string; // e.g. "1"
   name: string; // e.g. "Inventory, relationships, and ages of nonmare rocks"
-  goal: string; //goal uuid
+  goalUuid: string; //goal uuid
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -25,7 +25,7 @@ type STMGoal = {
   uuid: string;
   numbering: string; // e.g. "a"
   name: string; // e.g. "Differentiation: Magma Oceans, Crust, and Mantle"
-  objective: string; //objective uuid
+  objectiveUuid: string; //objective uuid
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -33,19 +33,19 @@ type STMObjective = {
   uuid: string;
   numbering: string; // e.g. "1"
   name: string; // Understanding Planetary Processes
-  mission: number;
+  missionId: number;
   createdAt?: Date;
   updatedAt?: Date;
 };
 
-type STMObjective_db_type = Omit<STMObjective, "mission"> & {
+type STMObjective_db_type = Omit<STMObjective, "missionId"> & {
   mission: Mission_db_type;
 };
 
-type STMGoal_db_type = Omit<STMGoal, "objective"> & {
+type STMGoal_db_type = Omit<STMGoal, "objectiveUuid"> & {
   objective: STMObjective_db_type;
 };
 
-type STMInvestigation_db_type = Omit<STMInvestigation, "goal"> & {
+type STMInvestigation_db_type = Omit<STMInvestigation, "goalUuid"> & {
   goal: STMGoal_db_type;
 };
