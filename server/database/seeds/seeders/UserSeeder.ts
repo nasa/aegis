@@ -9,6 +9,8 @@ export class UserSeeder extends Seeder {
       password: "admin",
       permission: "admin",
       email: "admin@nasa.gov",
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
   }
 }
