@@ -61,10 +61,6 @@ const panelTypes: PanelTypes = {
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
-  // const stationsFromDb = useSelector(
-  //   (state: RootState) => state.station.stationsFromDb,
-  //   shallowEqual
-  // );
   const selectedMissionId = useSelector(
     (state: RootState) => state.mission.mission?.id,
     shallowEqual
@@ -115,8 +111,6 @@ const StationEditorRight: FunctionComponent = () => {
         (storeAction: Action) => storeAction.stationUuid === selectedStationUuid
       );
       setStationActionsFromDb(actions);
-      // console.log("station actions from db updated");
-      // console.log(actions);
     }
   }, [actionsFromDb, selectedStationUuid]);
 
@@ -162,7 +156,7 @@ const StationEditorRight: FunctionComponent = () => {
         // upsert the changed Action (with new updated dates) to the store
         dispatch(upsertActions(upsertedStationActions));
 
-        //remove any deleted actions from the db
+        // remove any deleted actions from the db
         dispatch(deleteActionsFromDb(stationActionsFromDb));
 
         const deletedStationActions: Action[] = stationActionsFromDb.filter((actionDb) => {
@@ -195,7 +189,7 @@ const StationEditorRight: FunctionComponent = () => {
     if (selectedStation) {
       // if the selected station is in stationsFromDb then delete it from the db
       if (selectedStationFromDb) {
-        //delete actions from the db via internal api call
+        // delete actions from the db via internal api call
         for (const actionToDelete of stationActions) {
           const actionDeleteResponse: WrappedResponse<number> =
             await httpClient_action.deleteAction(actionToDelete.uuid);
@@ -203,9 +197,9 @@ const StationEditorRight: FunctionComponent = () => {
             throw new Error("Error deleting actions for station " + actionDeleteResponse.message);
           }
         }
-        //remove corresponding actions from the store
+        // remove corresponding actions from the store
         dispatch(deleteActions(stationActions));
-        //refresh copy of all actions for this mission from the db
+        // refresh copy of all actions for this mission from the db
         const actionData = await httpClient_action.getActions({ missionId: selectedMissionId });
         if (actionData.data) {
           dispatch(deleteAllActionsFromDb());
@@ -243,19 +237,19 @@ const StationEditorRight: FunctionComponent = () => {
 
   const handleCancel = () => {
     if (selectedStationFromDb) {
-      //station is already saved once to the db, replace it with the one from the db (undoing any changes)
+      // station is already saved once to the db, replace it with the one from the db (undoing any changes)
       dispatch(upsertStation(selectedStationFromDb));
       dispatch(upsertActions(stationActionsFromDb));
 
       //delete newly added actions that user doesn't want to save
       const addedActionsToDelete: Action[] = stationActions.filter(
-        //only keep actions that don't exist in the db
+        // only keep actions that don't exist in the db
         (action) =>
           stationActionsFromDb.findIndex((actionDb) => actionDb.uuid === action.uuid) === -1
       );
       dispatch(deleteActions(addedActionsToDelete));
     } else {
-      //station hasn't been saved to the db. delete the station and actions from the store
+      // station hasn't been saved to the db. delete the station and actions from the store
       dispatch(deleteStation(selectedStation));
       dispatch(setSelectedStationUuid(null));
       dispatch(deleteActions(stationActions));

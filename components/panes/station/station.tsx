@@ -9,12 +9,11 @@ import {
   duplicateStation,
   setStationEditMode,
   setSelectedStationUuid,
-  // setSelectedStationRightNavItem,
   upsertStation,
 } from "store/station";
 import { animals, uniqueNamesGenerator } from "unique-names-generator";
 import { v4 as uuidv4 } from "uuid";
-import StationLeft from "./station-station";
+import StationItem from "./station-item";
 
 const StationEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -26,10 +25,6 @@ const StationEditorLeft: FunctionComponent = () => {
     (state: RootState) => state.station.stationsFromDb,
     shallowEqual
   );
-  // const selectedRightNavItem = useSelector(
-  //   (state: RootState) => state.station.selectedRightNavItem,
-  //   shallowEqual
-  // );
   const selectedStationUuid = useSelector(
     (state: RootState) => state.station.selectedStationUuid,
     shallowEqual
@@ -82,7 +77,7 @@ const StationEditorLeft: FunctionComponent = () => {
               );
 
               return (
-                <StationLeft
+                <StationItem
                   key={station.uuid}
                   station={station}
                   stationFromDb={stationFromDb}
@@ -91,61 +86,6 @@ const StationEditorLeft: FunctionComponent = () => {
                   actionsFromDb={actionsFromDb}
                 />
               );
-              // const stationSelected =
-              //   station.uuid === selectedStationUuid ? styles.nameSelected : null;
-              // const stationFromDb = stationsFromDb.find(
-              //   (stationFromDb) => stationFromDb.uuid === station.uuid
-              // );
-              // const stationActions = actions.filter(
-              //   (storeAction) => storeAction.stationUuid === station.uuid
-              // );
-              // const stationActionsFromDb = actionsFromDb.filter(
-              //   (storeAction) => storeAction.stationUuid === station.uuid
-              // );
-              // return (
-              //   <div
-              //     className={styles.stationItem}
-              //     key={station.uuid}
-              //     onClick={() => {
-              //       if (selectedStationUuid === station.uuid) {
-              //         dispatch(setSelectedStationUuid(null));
-              //       } else {
-              //         dispatch(setSelectedStationUuid(station.uuid));
-              //         if (!selectedRightNavItem)
-              //           dispatch(setSelectedStationRightNavItem("info_panel"));
-              //       }
-              //     }}
-              //   >
-              //     <div className={`${styles.name} ${stationSelected}`}>
-              //       <div>{station.name}</div>
-              //       <ModifiedIndicator
-              //         obj1={station}
-              //         obj2={stationFromDb}
-              //         svgStyle={{
-              //           width: "15",
-              //           height: "12",
-              //           cx: "5",
-              //           cy: "9",
-              //           r: "3",
-              //           fill: "#ff0000",
-              //         }}
-              //       />
-              //       <ModifiedIndicator
-              //         obj1={stationActions}
-              //         obj2={stationActionsFromDb}
-              //         svgStyle={{
-              //           width: "15",
-              //           height: "12",
-              //           cx: "5",
-              //           cy: "9",
-              //           r: "3",
-              //           fill: "#ff0000",
-              //         }}
-              //       />
-              //       <div className={styles.stationRightSpacer}></div>
-              //     </div>
-              //   </div>
-              // );
             })}
           </div>
         </div>
