@@ -24,14 +24,12 @@ beforeAll(async () => {
       layer.mission = testMission;
     })
     .create(1);
-  await Mikro.closeORM();
 });
 
 describe("Preset Controls and API: ", () => {
   // Expect a return of all layers for mission
   test("Expect If Mission Layer is empty to return empty", async () => {
     const layers: Layer[] = await getLayers(99999);
-    await Mikro.closeORM();
     expect(layers.length).toEqual(0);
   });
 
@@ -43,7 +41,6 @@ describe("Preset Controls and API: ", () => {
 
 afterAll(async () => {
   //Cleanup our Database
-  await Mikro.getORM();
   const em = Mikro.getEM();
   await em.nativeDelete(Layer_db, { uuid: testLayer[0].uuid });
   await em.nativeDelete(Mission_db, { id: testMission.id });

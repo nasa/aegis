@@ -23,17 +23,19 @@ import Info_subpanel from "./preset-right-layers-info";
 
 const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
-  const missionState = useSelector((state: RootState) => state.mission);
+  const missionState = useSelector((state: RootState) => state.mission, shallowEqual);
   const selectedPresetUuid = useSelector(
     (state: RootState) => state.preset.selectedPresetUuid,
     shallowEqual
   );
   const selectedPreset: Preset = useSelector(
-    (state: RootState) =>
-      state.preset.presets.filter((preset) => preset.uuid === selectedPresetUuid)[0],
+    (state: RootState) => state.preset.presets.find((preset) => preset.uuid === selectedPresetUuid),
     shallowEqual
   );
-  const allPresetInteractions = useSelector((state: RootState) => state.preset.presetInteractions);
+  const allPresetInteractions = useSelector(
+    (state: RootState) => state.preset.presetInteractions,
+    shallowEqual
+  );
 
   const presetLayerControls = selectedPreset?.layerControls;
   const presetLayerControlInteractions = allPresetInteractions[selectedPreset.uuid];

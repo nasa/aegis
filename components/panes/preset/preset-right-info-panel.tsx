@@ -13,12 +13,16 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     shallowEqual
   );
   const presets = useSelector((state: RootState) => state.preset.presets, shallowEqual);
-  const selectedPreset: Preset = presets.filter((preset) => preset.uuid === selectedPresetUuid)[0];
+  const selectedPreset: Preset = presets.find(
+    (preset: Preset) => preset.uuid === selectedPresetUuid
+  );
 
   const handleDefaultPresetChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
     // If the preset is being set as the default, then we need to unset the default flag on all other presets
     if (evt.target.checked) {
-      const otherPresets = presets.filter((preset) => preset.uuid !== selectedPresetUuid);
+      const otherPresets: Preset[] = presets.filter(
+        (preset: Preset) => preset.uuid !== selectedPresetUuid
+      );
       otherPresets.forEach((preset) => {
         if (preset.missionPresetDefault) {
           // add the preset to the edit mode list because we are changing the default and the user will have to save the changes
@@ -38,7 +42,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
         })
       );
     } else {
-      const preset = presets.filter((preset) => preset.uuid === selectedPresetUuid)[0];
+      const preset: Preset = presets.find((preset: Preset) => preset.uuid === selectedPresetUuid);
       dispatch(
         upsertPreset({
           ...preset,

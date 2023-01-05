@@ -2,7 +2,7 @@ import styles from "./preset.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faGlobe, faPlusCircle, faUser } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch, useSelector, shallowEqual } from "react-redux";
 import { RootState } from "../../../store";
 import {
   duplicatePreset,
@@ -19,15 +19,21 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 const PresetEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const presets = useSelector((state: RootState) => state.preset.presets);
-  const selectedPresetUuid = useSelector((state: RootState) => state.preset.selectedPresetUuid);
-  const user: AEGISUser = useSelector((state: RootState) => state.user.ironSessionData?.user);
-  const mission = useSelector((state: RootState) => state.mission.mission);
-  const mapLayerControls = useSelector((state: RootState) => state.map.layerControls);
+  const presets = useSelector((state: RootState) => state.preset.presets, shallowEqual);
+  const selectedPresetUuid = useSelector(
+    (state: RootState) => state.preset.selectedPresetUuid,
+    shallowEqual
+  );
+  const user: AEGISUser = useSelector(
+    (state: RootState) => state.user.ironSessionData?.user,
+    shallowEqual
+  );
+  const mission = useSelector((state: RootState) => state.mission.mission, shallowEqual);
+  const mapLayerControls = useSelector((state: RootState) => state.map.layerControls, shallowEqual);
 
-  let selectedPreset;
+  let selectedPreset: Preset;
   if (presets !== null) {
-    selectedPreset = presets.filter((preset) => preset.uuid === selectedPresetUuid)[0];
+    selectedPreset = presets.find((preset: Preset) => preset.uuid === selectedPresetUuid);
   }
   const handleCreatePreset = async () => {
     const randomName: string = uniqueNamesGenerator({

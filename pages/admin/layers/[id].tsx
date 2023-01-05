@@ -203,22 +203,28 @@ const LayerList = (props: {
   async function delSubLayer(layer: Layer, sublayerIndex: number) {
     if (
       confirm(
-        "Are you usre you want to delete sublayer " +
+        "Are you sure you want to delete sublayer " +
           layer.layerConfig.sublayers[sublayerIndex].name
       )
     ) {
       layer.layerConfig.sublayers.splice(sublayerIndex, 1);
       const res: WrappedResponse<Layer> = await upsertLayer(layer);
-      alert(`Delete ${res.status} - ${res.message}`);
+      alert(`Delete sublayer ${res.status} - ${res.message}`);
       props.refreshLayerList(props.missionId); //reload layer listing in parent component.
     }
   }
 
-  async function delLayer(uuid: string, name: string) {
-    if (confirm("Are you sure you want to delete layer " + name)) {
-      const res: WrappedResponse<null> = await deleteLayer(uuid);
-      alert(`Delete ${res.status} - ${res.message} for uuid ${uuid}`);
-      props.refreshLayerList(props.missionId); //reload layer listing in parent component.
+  async function delLayer(layer: Layer) {
+    if (confirm("Are you sure you want to delete layer " + layer.layerConfig.name)) {
+      if (layer.layerConfig.sublayers?.length > 0) {
+        alert(
+          `Error: Cannot delete layer ${layer.layerConfig.name}. This layer has sublayers. Delete sublayers first`
+        );
+      } else {
+        const res: WrappedResponse<null> = await deleteLayer(layer.uuid);
+        alert(`Delete ${res.status} - ${res.message} for uuid ${layer.uuid}`);
+        props.refreshLayerList(props.missionId); //reload layer listing in parent component.
+      }
     }
   }
 
@@ -242,7 +248,7 @@ const LayerList = (props: {
                 className={adminStyles.deleteButton}
                 type="button"
                 onClick={() => {
-                  delLayer(layer.uuid, layer.layerConfig.name);
+                  delLayer(layer);
                 }}
               >
                 Delete Layer

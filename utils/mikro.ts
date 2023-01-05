@@ -25,6 +25,13 @@ export default class Mikro {
       return RequestContext.createAsync(orm.em, async () => handler(req, res));
     };
 
+  static withORM_Func<TArgument, TResult>(handler: (arg: TArgument) => Promise<TResult>) {
+    return async (arg: TArgument): Promise<TResult> => {
+      const orm = await this.getORM();
+      return RequestContext.createAsync(orm.em, async () => handler(arg));
+    };
+  }
+
   static getEM = (): EntityManager<IDatabaseDriver<Connection>> => {
     let em = RequestContext.getEntityManager();
     if (!ormCache) {

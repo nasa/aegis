@@ -2,7 +2,12 @@ import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 import Mikro from "utils/mikro";
-import { ForeignKeyConstraintViolationException, Loaded, QueryOrder } from "@mikro-orm/core";
+import {
+  EntityData,
+  ForeignKeyConstraintViolationException,
+  Loaded,
+  QueryOrder,
+} from "@mikro-orm/core";
 import { STM_Objective as STMObjective_db } from "server/database/models/stm_objective.model";
 import { STM_Goal as STMGoal_db } from "server/database/models/stm_goal.model";
 import { STM_Investigation as STMInvestigation_db } from "server/database/models/stm_investigation.model";
@@ -34,7 +39,7 @@ import { v4 as uuidv4 } from "uuid";
  *        g=uuid      goal UUID
  *        i=uuid      investigation UUID
  */
-export const handleSTM: NextApiHandler<
+const handleSTM: NextApiHandler<
   WrappedResponse<
     STMObjective[] | STMObjective | STMGoal[] | STMGoal | STMInvestigation[] | STMInvestigation
   >
@@ -155,17 +160,16 @@ export const handleSTM: NextApiHandler<
 
       //delete a STM record
       if (req.method === "DELETE") {
-        //todo - need to check a valid o, g, and i uuid were supplied
         try {
           let deletedUUID: string | null;
-          if (queryParams.stmType === "o") {
+          if (queryParams.stmType === "o" && queryParams.o) {
             deletedUUID = await deleteSTM(queryParams.o, "Objective");
-          } else if (queryParams.stmType === "g") {
+          } else if (queryParams.stmType === "g" && queryParams.g) {
             deletedUUID = await deleteSTM(queryParams.g, "Goal");
-          } else if (queryParams.stmType === "i") {
+          } else if (queryParams.stmType === "i" && queryParams.i) {
             deletedUUID = await deleteSTM(queryParams.i, "Investigation");
           } else {
-            return res.status(500).json({ status: "error", message: "Invalid type" });
+            return res.status(500).json({ status: "error", message: "Invalid url parameters" });
           }
 
           if (deletedUUID) {
@@ -212,7 +216,6 @@ export const handleSTM: NextApiHandler<
  * @returns array of stm objectives. returns empty array if no records found
  */
 async function getObjectives(missionId: number, objectiveUUID?: string): Promise<STMObjective[]> {
-  await Mikro.getORM();
   const em = Mikro.getEM();
 
   let objectives: Loaded<STMObjective_db, never>[];
@@ -230,13 +233,17 @@ async function getObjectives(missionId: number, objectiveUUID?: string): Promise
     );
   }
 
-  await Mikro.closeORM();
   if (objectives) {
     //convert fks
     const objectivesConverted: STMObjective[] = objectives.map((objectives_db) => {
-      const objective = { ...objectives_db, missionId: objectives_db.mission.id };
-      delete objective.mission;
-      delete objective.goals;
+      const objective: STMObjective = {
+        uuid: objectives_db.uuid,
+        numbering: objectives_db.numbering,
+        name: objectives_db.name,
+        missionId: objectives_db.mission.id,
+        createdAt: objectives_db.createdAt,
+        updatedAt: objectives_db.updatedAt,
+      };
       return objective;
     });
     return objectivesConverted;
@@ -257,7 +264,6 @@ async function getGoals(
   objectiveUUID?: string,
   goalUUID?: string
 ): Promise<STMGoal[]> {
-  await Mikro.getORM();
   const em = Mikro.getEM();
 
   //build the "where" options in Mikro ORM syntax
@@ -275,14 +281,17 @@ async function getGoals(
     { orderBy: [{ objective: { numbering: QueryOrder.ASC } }, { numbering: QueryOrder.ASC }] }
   );
 
-  await Mikro.closeORM();
-
   if (goals) {
     //convert fks
     const goalsConverted: STMGoal[] = goals.map((goal_db) => {
-      const goal = { ...goal_db, objectiveUuid: goal_db.objective.uuid };
-      delete goal.objective;
-      delete goal.investigations;
+      const goal: STMGoal = {
+        uuid: goal_db.uuid,
+        numbering: goal_db.numbering,
+        name: goal_db.name,
+        objectiveUuid: goal_db.objective.uuid,
+        createdAt: goal_db.createdAt,
+        updatedAt: goal_db.updatedAt,
+      };
       return goal;
     });
     return goalsConverted;
@@ -305,7 +314,6 @@ async function getInvestigations(
   goalUUID?: string,
   investigationUUID?: string
 ): Promise<STMInvestigation[]> {
-  await Mikro.getORM();
   const em = Mikro.getEM();
 
   //build the "where" options in Mikro ORM syntax
@@ -332,12 +340,17 @@ async function getInvestigations(
     }
   );
 
-  await Mikro.closeORM();
   if (invstgs) {
     //convert fks
     const invstgConverted: STMInvestigation[] = invstgs.map((invstgs_db) => {
-      const invstg = { ...invstgs_db, goalUuid: invstgs_db.goal.uuid };
-      delete invstg.goal;
+      const invstg: STMInvestigation = {
+        uuid: invstgs_db.uuid,
+        numbering: invstgs_db.numbering,
+        name: invstgs_db.name,
+        goalUuid: invstgs_db.goal.uuid,
+        createdAt: invstgs_db.createdAt,
+        updatedAt: invstgs_db.updatedAt,
+      };
       return invstg;
     });
     return invstgConverted;
@@ -357,7 +370,6 @@ async function upsertSTM(
   stmObject: STMObjective | STMGoal | STMInvestigation,
   stmType: "Objective" | "Goal" | "Investigation"
 ): Promise<STMObjective | STMGoal | STMInvestigation> {
-  await Mikro.getORM();
   const em = Mikro.getEM();
 
   //add on additonal fields the db tracks
@@ -373,40 +385,77 @@ async function upsertSTM(
   }
 
   //determine the db table and perform upsert
-  // let convertedRecord: STMObjective_db_type | STMGoal_db_type | STMInvestigation_db_type
   if (stmType === "Objective") {
     const objective = upsertRecord as STMObjective;
-    const convertedRecord = { ...objective, mission: objective.missionId }; //convert fks
-    delete convertedRecord.missionId;
+    const convertedObjective: EntityData<STMObjective_db> = {
+      uuid: objective.uuid,
+      numbering: objective.numbering,
+      name: objective.name,
+      mission: objective.missionId,
+      createdAt: objective.createdAt,
+      updatedAt: objective.updatedAt,
+    }; //convert fks
 
-    const upsertReference: STMObjective_db = await em.upsert(STMObjective_db, convertedRecord);
+    const upsertReference: STMObjective_db = await em.upsert(STMObjective_db, convertedObjective);
     await em.persistAndFlush(upsertReference);
-    await Mikro.closeORM();
 
-    return { ...upsertReference, missionId: upsertReference.mission.id } as STMObjective;
+    const upsertedObjective: STMObjective = {
+      uuid: upsertReference.uuid,
+      numbering: upsertReference.numbering,
+      name: upsertReference.name,
+      missionId: upsertReference.mission.id,
+      createdAt: upsertReference.createdAt,
+      updatedAt: upsertReference.updatedAt,
+    };
+    return upsertedObjective;
   } else if (stmType === "Goal") {
     const goal = upsertRecord as STMGoal;
-    const convertedGoal = { ...goal, objective: goal.objectiveUuid }; //convert fks
-    delete convertedGoal.objectiveUuid;
+    const convertedGoal: EntityData<STMGoal_db> = {
+      uuid: goal.uuid,
+      numbering: goal.numbering,
+      name: goal.name,
+      objective: goal.objectiveUuid,
+      createdAt: goal.createdAt,
+      updatedAt: goal.updatedAt,
+    }; //convert fks
 
     const upsertReference: STMGoal_db = await em.upsert(STMGoal_db, convertedGoal);
     await em.persistAndFlush(upsertReference);
-    await Mikro.closeORM();
 
-    return { ...upsertReference, objectiveUuid: upsertReference.objective.uuid } as STMGoal;
+    const upsertedGoal: STMGoal = {
+      uuid: upsertReference.uuid,
+      numbering: upsertReference.numbering,
+      name: upsertReference.name,
+      objectiveUuid: upsertReference.objective.uuid,
+      createdAt: upsertReference.createdAt,
+      updatedAt: upsertReference.updatedAt,
+    };
+    return upsertedGoal;
   } else {
     const invstg = upsertRecord as STMInvestigation;
-    const convertedInvstg = { ...invstg, goal: invstg.goalUuid };
-    delete convertedInvstg.goalUuid;
-
+    const convertedInvstg: EntityData<STMInvestigation_db> = {
+      uuid: invstg.uuid,
+      numbering: invstg.numbering,
+      name: invstg.name,
+      goal: invstg.goalUuid,
+      createdAt: invstg.createdAt,
+      updatedAt: invstg.updatedAt,
+    };
     const upsertReference: STMInvestigation_db = await em.upsert(
       STMInvestigation_db,
       convertedInvstg
     );
     await em.persistAndFlush(upsertReference);
-    await Mikro.closeORM();
 
-    return { ...upsertReference, goalUuid: upsertReference.goal.uuid } as STMInvestigation;
+    const upsertedInvstg: STMInvestigation = {
+      uuid: upsertReference.uuid,
+      numbering: upsertReference.numbering,
+      name: upsertReference.name,
+      goalUuid: upsertReference.goal.uuid,
+      createdAt: upsertReference.createdAt,
+      updatedAt: upsertReference.updatedAt,
+    };
+    return upsertedInvstg;
   }
 }
 
@@ -422,7 +471,6 @@ async function deleteSTM(
 ): Promise<string | null> {
   let returnVal = stmUUID;
 
-  await Mikro.getORM();
   const em = Mikro.getEM();
 
   if (stmType === "Objective") {
@@ -448,7 +496,6 @@ async function deleteSTM(
     }
   }
 
-  await Mikro.closeORM();
   return returnVal;
 }
 

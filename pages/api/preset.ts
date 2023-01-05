@@ -4,8 +4,9 @@ import { ironOptions } from "server/session/config";
 import Mikro from "utils/mikro";
 import { Preset as Preset_db } from "../../server/database/models/preset.model";
 import { roundDateToSecond } from "../../utils/formatting";
+import { EntityData } from "@mikro-orm/core";
 
-export const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
+const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
   req,
   res
 ): Promise<unknown> => {
@@ -21,7 +22,6 @@ export const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = 
     try {
       if (req.session?.user) {
         const presets = await getAllPresetsForMission(intMissionId);
-        await Mikro.closeORM();
         if (!presets) {
           return res.status(404).json({ status: "failure", message: "Presets not found" });
         }
@@ -44,20 +44,32 @@ export const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = 
     const presetBody = req.body.preset as Preset;
     if (req.session?.user) {
       try {
-        await Mikro.getORM();
-        const em = await Mikro.getEM();
-        const presetToUpsert: Preset = {
-          ...presetBody,
+        const em = Mikro.getEM();
+        const presetToUpsert: EntityData<Preset_db> = {
+          uuid: presetBody.uuid,
+          owner: presetBody.ownerId,
+          mission: presetBody.missionId,
+          name: presetBody.name,
+          description: presetBody.description,
+          missionPreset: presetBody.missionPreset,
+          missionPresetDefault: presetBody.missionPresetDefault,
+          layerControls: presetBody.layerControls,
           createdAt: presetBody.createdAt || roundDateToSecond(new Date()),
           updatedAt: roundDateToSecond(new Date()),
         };
         const upsertedPreset = await em.upsert(Preset_db, presetToUpsert);
         await em.persistAndFlush(upsertedPreset);
-        await Mikro.closeORM();
         const responsePreset: Preset = {
-          ...upsertedPreset,
+          uuid: upsertedPreset.uuid,
           missionId: upsertedPreset.mission.id,
           ownerId: upsertedPreset.owner.id,
+          name: upsertedPreset.name,
+          description: upsertedPreset.description,
+          missionPreset: upsertedPreset.missionPreset,
+          missionPresetDefault: upsertedPreset.missionPresetDefault,
+          layerControls: upsertedPreset.layerControls,
+          createdAt: upsertedPreset.createdAt,
+          updatedAt: upsertedPreset.updatedAt,
         };
         return res.status(200).json({
           status: "success",
@@ -77,14 +89,12 @@ export const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = 
     } = req;
     if (req.session?.user) {
       try {
-        await Mikro.getORM();
-        const em = await Mikro.getEM();
+        const em = Mikro.getEM();
         const presetToDelete = await em.findOne(Preset_db, { uuid });
         if (!presetToDelete) {
           return res.status(404).json({ status: "failure", message: "Preset not found" });
         }
         await em.removeAndFlush(presetToDelete);
-        await Mikro.closeORM();
         return res.status(200).json({
           status: "success",
           message: "Preset deleted",
@@ -100,25 +110,30 @@ export const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = 
   }
 };
 
-export default withIronSessionApiRoute(Mikro.withORM(handlePreset), ironOptions);
-
 export async function getAllPresetsForMission(missionId: number): Promise<Preset[] | false> {
-  await Mikro.getORM();
-  const model = await Mikro.getEM();
-  const presets = await model.find(Preset_db, { mission: missionId });
-  await Mikro.closeORM();
+  const model = Mikro.getEM();
+  const dbPresets = await model.find(Preset_db, { mission: missionId });
 
   /** transform the Mikro Preset_db objects into Preset objects used in the Store.
    */
   const transformedPresets: Preset[] = [];
-  for (const presetItem of presets) {
+  for (const presetItem of dbPresets) {
     const convertedPreset: Preset = {
-      ...presetItem,
+      uuid: presetItem.uuid,
       ownerId: presetItem.owner.id,
       missionId: presetItem.mission.id,
+      name: presetItem.name,
+      description: presetItem.description,
+      missionPreset: presetItem.missionPreset,
+      missionPresetDefault: presetItem.missionPresetDefault,
+      layerControls: presetItem.layerControls,
+      createdAt: presetItem.createdAt,
+      updatedAt: presetItem.updatedAt,
     };
     transformedPresets.push(convertedPreset);
   }
 
   return transformedPresets;
 }
+
+export default withIronSessionApiRoute(Mikro.withORM(handlePreset), ironOptions);

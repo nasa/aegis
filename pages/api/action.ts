@@ -2,12 +2,17 @@ import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 import Mikro from "utils/mikro";
-import { ForeignKeyConstraintViolationException, Loaded, QueryOrder } from "@mikro-orm/core";
+import {
+  EntityData,
+  ForeignKeyConstraintViolationException,
+  Loaded,
+  QueryOrder,
+} from "@mikro-orm/core";
 import { Action as Action_db } from "server/database/models/action.model";
 import _ from "lodash";
 import { roundDateToSecond } from "utils/formatting";
 
-export const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
+const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
   req,
   res
 ): Promise<unknown> => {
@@ -109,7 +114,6 @@ export const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = 
  * @returns array of actions
  */
 export async function getActions(filter: ActionFilterOptions): Promise<Action[]> {
-  await Mikro.getORM();
   const em = Mikro.getEM();
 
   //build filter where clause
@@ -141,7 +145,6 @@ export async function getActions(filter: ActionFilterOptions): Promise<Action[]>
  * @returns a copy of the action object that was upserted
  */
 export async function upsertAction(action: Action): Promise<Action> {
-  await Mikro.getORM();
   const em = Mikro.getEM();
 
   const actionToUpsert = _.cloneDeep(action); //create a copy to manipulate
@@ -150,19 +153,26 @@ export async function upsertAction(action: Action): Promise<Action> {
   actionToUpsert.createdAt = actionToUpsert.createdAt || updateDate;
 
   //convert fks
-  const convertedRecord = {
-    ...actionToUpsert,
+  const convertedRecord: EntityData<Action_db> = {
+    uuid: actionToUpsert.uuid,
+    name: actionToUpsert.name,
     mission: actionToUpsert.missionId,
     poi: actionToUpsert.poiUuid,
     station: actionToUpsert.stationUuid,
+    priorityOverride: actionToUpsert.priorityOverride,
+    stmUuidRefs: actionToUpsert.stmUuidRefs,
+    type: actionToUpsert.type,
+    description: actionToUpsert.description,
+    durationLower: actionToUpsert.durationLower,
+    durationUpper: actionToUpsert.durationUpper,
+    inventoryItems: actionToUpsert.inventoryItems,
+    status: actionToUpsert.status,
+    createdAt: actionToUpsert.createdAt,
+    updatedAt: actionToUpsert.updatedAt,
   };
-  delete convertedRecord.missionId;
-  delete convertedRecord.poiUuid;
-  delete convertedRecord.stationUuid;
 
   const upsertReference: Action_db = await em.upsert(Action_db, convertedRecord);
   await em.persistAndFlush(upsertReference);
-  await Mikro.closeORM();
 
   //convert foreign keys
   const convertedAction = convertActions(upsertReference) as Action;
@@ -175,7 +185,6 @@ export async function upsertAction(action: Action): Promise<Action> {
  * @returns the uuid of the deleted action, or null if nothing was deleted
  */
 export async function deleteAction(actionUuid: string): Promise<string | null> {
-  await Mikro.getORM();
   const em = Mikro.getEM();
   let returnVal = actionUuid;
   const entity = await em.findOne(Action_db, { uuid: actionUuid });
@@ -185,7 +194,6 @@ export async function deleteAction(actionUuid: string): Promise<string | null> {
   } else {
     returnVal = null;
   }
-  await Mikro.closeORM();
   return returnVal;
 }
 
@@ -195,35 +203,32 @@ export async function deleteAction(actionUuid: string): Promise<string | null> {
  * @returns an a converted array of actions or a single action
  */
 export function convertActions(dbactions: Action_db[] | Action_db): Action[] | Action {
-  if (Array.isArray(dbactions)) {
-    const actions: Action[] = [];
-    for (const dbaction of dbactions) {
-      //convert mission and owner ids
-      const convertedAction: any = {
-        ...dbaction,
-        missionId: dbaction.mission.id,
-        poiUuid: dbaction.poi?.uuid,
-        stationUuid: dbaction.station?.uuid,
-      };
-      delete convertedAction.mission;
-      delete convertedAction.poi;
-      delete convertedAction.station;
+  const dbActionArray = [];
+  dbActionArray.push(dbactions); //will create an array of 1 action if function argument is not an array
 
-      actions.push(convertedAction);
-    }
-    return actions;
-  } else {
-    const convertedAction = {
-      ...dbactions,
-      missionId: dbactions.mission.id,
-      poiUuid: dbactions.poi?.uuid,
-      stationUuid: dbactions.station?.uuid,
+  const actions: Action[] = [];
+  for (const dbaction of dbActionArray) {
+    //convert mission and owner ids
+    const convertedAction: Action = {
+      uuid: dbaction.uuid,
+      name: dbaction.name,
+      missionId: dbaction.mission.id,
+      poiUuid: dbaction.poi?.uuid,
+      stationUuid: dbaction.station?.uuid,
+      priorityOverride: dbaction.priorityOverride,
+      stmUuidRefs: dbaction.stmUuidRefs,
+      type: dbaction.type,
+      description: dbaction.description,
+      durationLower: dbaction.durationLower,
+      durationUpper: dbaction.durationUpper,
+      inventoryItems: dbaction.inventoryItems,
+      status: dbaction.status,
+      createdAt: dbaction.createdAt,
+      updatedAt: dbaction.updatedAt,
     };
-    delete convertedAction.mission;
-    delete convertedAction.poi;
-    delete convertedAction.station;
-    return convertedAction;
+    actions.push(convertedAction);
   }
+  return actions.length === 1 ? actions[0] : actions;
 }
 
 export default withIronSessionApiRoute(Mikro.withORM(handleAction), ironOptions);

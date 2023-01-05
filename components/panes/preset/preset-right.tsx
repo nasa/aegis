@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector, useDispatch, shallowEqual } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBan,
@@ -29,17 +29,33 @@ import { IconButton, InLineEditInput } from "components/interface/_global-elemen
 
 const PresetEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const presetsFromDb = useSelector((state: RootState) => state.preset.presetsFromDb);
-  const selectedRightNavItem = useSelector((state: RootState) => state.preset.selectedRightNavItem);
-  const selectedPresetUuid = useSelector((state: RootState) => state.preset.selectedPresetUuid);
-  const selectedPreset = useSelector((state: RootState) => state.preset.presets).filter(
-    (preset) => preset.uuid === selectedPresetUuid
-  )[0];
-  const selectedPresetFromDb = presetsFromDb.filter(
-    (preset) => preset.uuid === selectedPresetUuid
-  )[0];
-  const presetsEditing = useSelector((state: RootState) => state.preset.presetsEditing);
-  const selectedMissionId = useSelector((state: RootState) => state.mission.mission?.id);
+  const presetsFromDb: Preset[] = useSelector(
+    (state: RootState) => state.preset.presetsFromDb,
+    shallowEqual
+  );
+  const selectedRightNavItem: string = useSelector(
+    (state: RootState) => state.preset.selectedRightNavItem,
+    shallowEqual
+  );
+  const selectedPresetUuid: string = useSelector(
+    (state: RootState) => state.preset.selectedPresetUuid,
+    shallowEqual
+  );
+  const selectedPreset: Preset = useSelector(
+    (state: RootState) => state.preset.presets,
+    shallowEqual
+  ).find((preset: Preset) => preset.uuid === selectedPresetUuid);
+  const selectedPresetFromDb = presetsFromDb.find(
+    (preset: Preset) => preset.uuid === selectedPresetUuid
+  );
+  const presetsEditing: string[] = useSelector(
+    (state: RootState) => state.preset.presetsEditing,
+    shallowEqual
+  );
+  const selectedMissionId: number = useSelector(
+    (state: RootState) => state.mission.mission?.id,
+    shallowEqual
+  );
 
   const [modified, setModified] = useState(false);
   useEffect(() => {
@@ -68,13 +84,13 @@ const PresetEditorRight: FunctionComponent = () => {
 
       if (upsertReponse.status === "success") {
         // upsert the changed preset to the store
-        await dispatch(upsertPreset(upsertReponse.data));
+        dispatch(upsertPreset(upsertReponse.data));
         // update the preset in the store from the DB
         // get fresh copy of presets from DB
         const presetData = await InternalAPI.getPresets(selectedMissionId);
         if (presetData.data) {
-          await dispatch(deleteAllPresetsFromDb());
-          await dispatch(upsertPresetsFromDb(presetData.data));
+          dispatch(deleteAllPresetsFromDb());
+          dispatch(upsertPresetsFromDb(presetData.data));
         }
       } else {
         throw new Error("Error upserting Presets: " + upsertReponse.message);
@@ -104,29 +120,29 @@ const PresetEditorRight: FunctionComponent = () => {
       // if the selected preset is in presetsFromDb then delete it from the db
 
       // find the selected Preset in presetsFromDb
-      const selectedPresetFromDb = presetsFromDb.filter(
+      const selectedPresetFromDb = presetsFromDb.find(
         (preset) => preset.uuid === selectedPreset.uuid
-      )[0];
+      );
       if (selectedPresetFromDb) {
         // delete the preset from the DB via internal API call
         const deleteResponse = await InternalAPI.deletePreset(selectedPreset.uuid);
         if (deleteResponse.status === "success") {
           // remove the corresponding preset from the store
-          await dispatch(deletePreset(selectedPreset));
+          dispatch(deletePreset(selectedPreset));
           dispatch(setSelectedPresetUuid(null));
 
           // get fresh copy of presets from DB
           const presetData = await InternalAPI.getPresets(selectedMissionId);
           if (presetData.data) {
-            await dispatch(deleteAllPresetsFromDb());
-            await dispatch(upsertPresetsFromDb(presetData.data));
+            dispatch(deleteAllPresetsFromDb());
+            dispatch(upsertPresetsFromDb(presetData.data));
           }
         } else {
           console.error("Error deleting preset: " + deleteResponse.message);
         }
       } else {
         // if the selected preset is not in presetsFromDb then delete it from the store
-        await dispatch(deletePreset(selectedPreset));
+        dispatch(deletePreset(selectedPreset));
         dispatch(setSelectedPresetUuid(null));
       }
       dispatch(setPresetEditMode({ presetUuid: selectedPresetUuid, editMode: false }));

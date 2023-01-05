@@ -28,7 +28,6 @@ beforeAll(async () => {
       layer.mission = testMission;
     })
     .create(1);
-  await Mikro.closeORM();
 });
 
 describe("Map and MMGIS Reducer: ", () => {
@@ -85,13 +84,11 @@ describe("Map and MMGIS Reducer: ", () => {
     const nextLayerControls = reducer(initialState, setLayerControls(controls));
     expect(setLayerControls(nextLayerControls.layerControls)).toMatchObject(newControls);
     expect(toggleLayerControlEnabled("Basemaps")).toMatchObject(newToggleLayerControlEnabled);
-    await Mikro.closeORM();
   });
 });
 
 afterAll(async () => {
   //Cleanup our Database
-  await Mikro.getORM();
   const em = Mikro.getEM();
   await em.nativeDelete(Layer_db, { uuid: testLayer[0].uuid });
   await em.nativeDelete(Mission_db, { id: testMission.id });
