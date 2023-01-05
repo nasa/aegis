@@ -4,7 +4,8 @@ import { ironOptions } from "server/session/config";
 import Mikro from "utils/mikro";
 import _ from "lodash";
 import { Mission as Mission_db } from "server/database/models/mission.model";
-import { ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/core";
+import { EntityData, ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/core";
+import { roundDateToSecond } from "utils/formatting";
 
 /**
  * /api/mission?missionId=
@@ -21,7 +22,7 @@ import { ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/c
  *       Required URL parameters are:
  *        missionId=  mission ID number
  */
-export const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = async (
+const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = async (
   req,
   res
 ): Promise<unknown> => {
@@ -128,15 +129,12 @@ export const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>>
  * @param missionId the mission id. null will return all missions
  * @returns array of missions
  */
-export async function getMissions(missionId: number = null): Promise<Mission[]> {
-  await Mikro.getORM();
+async function getMissions(missionId: number = null): Promise<Mission[]> {
   const em = Mikro.getEM();
 
   const missions: Mission[] = missionId
     ? await em.find(Mission_db, { id: missionId })
     : await em.find(Mission_db, {}, { orderBy: [{ name: QueryOrder.ASC }] });
-
-  await Mikro.closeORM();
 
   return missions;
 }
@@ -146,12 +144,11 @@ export async function getMissions(missionId: number = null): Promise<Mission[]> 
  * @param mission the mission object to upsert
  * @returns a copy of the mission object that was upserted
  */
-export async function upsertMission(mission: Mission): Promise<Mission> {
-  await Mikro.getORM();
+async function upsertMission(mission: Mission): Promise<Mission> {
   const em = Mikro.getEM();
 
-  const upsertRecord = _.cloneDeep(mission);
-  const updateDate = new Date();
+  const upsertRecord: EntityData<Mission_db> = _.cloneDeep(mission);
+  const updateDate = roundDateToSecond(new Date());
   upsertRecord.updatedAt = updateDate;
 
   if (mission.id) {
@@ -159,7 +156,6 @@ export async function upsertMission(mission: Mission): Promise<Mission> {
     upsertRecord.version++;
     const upsertReference = await em.upsert(Mission_db, upsertRecord);
     await em.persistAndFlush(upsertReference);
-    await Mikro.closeORM();
     return upsertReference as Mission;
   } else {
     //insert record.
@@ -168,7 +164,6 @@ export async function upsertMission(mission: Mission): Promise<Mission> {
     upsertRecord.createdAt = updateDate;
     const createReference = em.create(Mission_db, upsertRecord);
     await em.persistAndFlush(createReference);
-    await Mikro.closeORM();
     return createReference as Mission;
   }
 }
@@ -178,8 +173,7 @@ export async function upsertMission(mission: Mission): Promise<Mission> {
  * @param missionId mission ID to delete
  * @returns the id of the deleted mission or null if nothing was deleted
  */
-export async function deleteMission(missionId: number): Promise<number | null> {
-  await Mikro.getORM();
+async function deleteMission(missionId: number): Promise<number | null> {
   const em = Mikro.getEM();
   let returnVal = missionId;
   const entity = await em.findOne(Mission_db, missionId);
@@ -188,8 +182,13 @@ export async function deleteMission(missionId: number): Promise<number | null> {
   } else {
     returnVal = null;
   }
-  await Mikro.closeORM();
   return returnVal;
 }
 
 export default withIronSessionApiRoute(Mikro.withORM(handleMission), ironOptions);
+
+//export the database functions explicity with no iron session for jest testing
+export const handleMission_NoIronSession = Mikro.withORM(handleMission);
+export const getMissions_NoIronSession = Mikro.withORM_Func<number, Mission[]>(getMissions);
+export const upsertMission_NoIronSession = Mikro.withORM_Func<Mission, Mission>(upsertMission);
+export const deleteMission_NoIronSession = Mikro.withORM_Func<number, number | null>(deleteMission);

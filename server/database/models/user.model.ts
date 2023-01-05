@@ -1,30 +1,25 @@
-import { BeforeCreate, BeforeUpdate, Entity, PrimaryKey, Property } from "@mikro-orm/core";
+import { BeforeCreate, Entity, PrimaryKey, Property } from "@mikro-orm/core";
 import { types as MikroTypes } from "@mikro-orm/core";
 import * as bcrypt from "bcryptjs";
 
 @Entity()
 export class User implements AEGISUser_db_type {
-  @PrimaryKey({ type: "number" })
+  @PrimaryKey({ type: MikroTypes.integer })
   id!: number;
 
   @Property({ type: MikroTypes.string })
   username!: string;
-
   @Property({ type: MikroTypes.string })
   email: string;
-
   @Property({ type: MikroTypes.string })
   password!: string;
-
   @Property({ type: MikroTypes.string })
   permission: PermissionRole;
-
   @Property({ type: MikroTypes.string, length: 2048, nullable: true })
   token?: string;
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;
-
   @Property({ type: MikroTypes.datetime })
   updatedAt!: Date;
 
@@ -37,19 +32,5 @@ export class User implements AEGISUser_db_type {
   async beforeCreate(): Promise<void> {
     const salt = await bcrypt.genSalt();
     this.password = await bcrypt.hash(this.password, salt);
-    this.createdAt = new Date();
-    this.updatedAt = new Date();
-  }
-
-  @BeforeUpdate()
-  async beforeUpdate(): Promise<void> {
-    this.updatedAt = new Date();
-  }
-
-  constructor(username: string, password: string, email: string, permission: PermissionRole) {
-    this.username = username;
-    this.password = password;
-    this.email = email;
-    this.permission = permission;
   }
 }

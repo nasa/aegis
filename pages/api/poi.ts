@@ -2,13 +2,13 @@ import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 import Mikro from "utils/mikro";
-import { QueryOrder } from "@mikro-orm/core";
+import { EntityData, QueryOrder } from "@mikro-orm/core";
 import { roundDateToSecond } from "utils/formatting";
 import { Poi as Poi_db } from "server/database/models/poi.model";
 import { Action as Action_db } from "server/database/models/action.model";
 import { convertActions } from "./action";
 
-export const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
+const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
   req,
   res
 ): Promise<unknown> => {
@@ -24,7 +24,6 @@ export const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
     try {
       if (req.session?.user) {
         const pois = await getPOIsByMission(intMissionId);
-        //await Mikro.closeORM();
         return res.status(200).json({
           status: "success",
           message: "POIs retrieved",
@@ -43,7 +42,6 @@ export const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
     const { poi, updateActions } = <{ poi: POI; updateActions: boolean }>req.body;
     if (req.session?.user) {
       try {
-        await Mikro.getORM();
         const em = Mikro.getEM();
         // strip actions from POI before upserting it
         const { actions, ...validPoiBody } = poi;
@@ -55,43 +53,53 @@ export const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
           updatedAt: roundDateToSecond(new Date()),
         };
         //convert fks
-        const convertedPoi = {
-          ...poiToUpsert,
-          mission: poiToUpsert.missionId,
+        const convertedPoi: EntityData<Poi_db> = {
+          uuid: poiToUpsert.uuid,
           owner: poiToUpsert.ownerId,
+          mission: poiToUpsert.missionId,
+          name: poiToUpsert.name,
+          description: poiToUpsert.description,
+          priorityOverride: poiToUpsert.priorityOverride,
+          radius: poiToUpsert.radius,
+          location: poiToUpsert.location,
+          color: poiToUpsert.color,
+          tags: poiToUpsert.tags,
+          status: poiToUpsert.status,
+          createdAt: poiToUpsert.createdAt,
+          updatedAt: poiToUpsert.updatedAt,
         };
-        delete convertedPoi.missionId;
-        delete convertedPoi.ownerId;
         const poiUpsertReference: Poi_db = await em.upsert(Poi_db, convertedPoi);
         await em.persistAndFlush(poiUpsertReference);
-        //await Mikro.closeORM();
 
         // upsert all action records associated with this POI if updateActions is true and there are actions to update
         let actionsReferences: Action[] = [];
         if (updateActions && actions) {
           //upsert
-          //await Mikro.getORM();
           for (const actionToUpsert of actions) {
             //const upsertedAction: Action = await upsertAction(actionToUpsert);
-            const convertedAction = {
-              ...actionToUpsert,
+            const convertedAction: EntityData<Action_db> = {
+              uuid: actionToUpsert.uuid,
+              name: actionToUpsert.name,
               mission: actionToUpsert.missionId,
-              //poi: actionToUpsert.poiId,
               poi: poiUpsertReference,
               station: actionToUpsert.stationUuid,
+              priorityOverride: actionToUpsert.priorityOverride,
+              stmUuidRefs: actionToUpsert.stmUuidRefs,
+              type: actionToUpsert.type,
+              description: actionToUpsert.description,
+              durationLower: actionToUpsert.durationLower,
+              durationUpper: actionToUpsert.durationUpper,
+              inventoryItems: actionToUpsert.inventoryItems,
+              status: actionToUpsert.status,
               createdAt: actionToUpsert.createdAt || roundDateToSecond(new Date()),
               updatedAt: roundDateToSecond(new Date()),
             };
-            delete convertedAction.missionId;
-            delete convertedAction.poiUuid;
-            delete convertedAction.stationUuid;
 
             const upsertedAction = await em.upsert(Action_db, convertedAction);
             await em.persistAndFlush(upsertedAction);
 
             actionsReferences.push(convertActions(upsertedAction) as Action);
           }
-          //await Mikro.closeORM();
 
           // find actions that are in the database but not in the request body
           const actionsInDb = await em.find(Action_db, { poi: poiUpsertReference });
@@ -111,10 +119,20 @@ export const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
         }
 
         const responsePoi: POI = {
-          ...poiUpsertReference,
-          actions: actionsReferences,
+          uuid: poiUpsertReference.uuid,
           missionId: poiUpsertReference.mission.id,
           ownerId: poiUpsertReference.owner.id,
+          name: poiUpsertReference.name,
+          description: poiUpsertReference.description,
+          actions: actionsReferences,
+          priorityOverride: poiUpsertReference.priorityOverride,
+          radius: poiUpsertReference.radius,
+          location: poiUpsertReference.location,
+          color: poiUpsertReference.color,
+          tags: poiUpsertReference.tags,
+          status: poiUpsertReference.status,
+          createdAt: poiUpsertReference.createdAt,
+          updatedAt: poiUpsertReference.updatedAt,
         };
 
         return res.status(200).json({
@@ -137,7 +155,6 @@ export const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
     } = req;
     if (req.session?.user) {
       try {
-        await Mikro.getORM();
         const em = Mikro.getEM();
         const poiToDelete = await em.findOne(Poi_db, { uuid });
         if (poiToDelete) {
@@ -152,7 +169,6 @@ export const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
 
           // delete the POI
           await em.removeAndFlush(poiToDelete);
-          await Mikro.closeORM();
           return res.status(200).json({
             status: "success",
             message: "POI deleted",
@@ -175,19 +191,32 @@ export const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
 export default withIronSessionApiRoute(Mikro.withORM(handlePOI), ironOptions);
 
 export async function getPOIsByMission(missionId: number): Promise<POI[]> {
-  await Mikro.getORM();
   const em = Mikro.getEM();
-  const pois = await em.find(Poi_db, { mission: missionId }, { orderBy: { name: QueryOrder.ASC } });
+  const dbPois = await em.find(
+    Poi_db,
+    { mission: missionId },
+    { orderBy: { name: QueryOrder.ASC } }
+  );
 
   /** transform the Mikro Poi objects into POI objects used in the Store.
    * also transform and populate the actions
    */
   const transformedPois: POI[] = [];
-  for (const poiItem of pois) {
+  for (const poiItem of dbPois) {
     let convertedPoi: POI = {
-      ...poiItem,
+      uuid: poiItem.uuid,
       ownerId: poiItem.owner.id,
       missionId: poiItem.mission.id,
+      name: poiItem.name,
+      description: poiItem.description,
+      priorityOverride: poiItem.priorityOverride,
+      radius: poiItem.radius,
+      location: poiItem.location,
+      color: poiItem.color,
+      tags: poiItem.tags,
+      status: poiItem.status,
+      createdAt: poiItem.createdAt,
+      updatedAt: poiItem.updatedAt,
     };
     //const convertedActions: Action[] = await getActions({ poiId: poiItem.id });
     const actions = await em.find(
@@ -205,6 +234,5 @@ export async function getPOIsByMission(missionId: number): Promise<POI[]> {
     transformedPois.push(convertedPoi);
   }
 
-  await Mikro.closeORM();
   return transformedPois;
 }

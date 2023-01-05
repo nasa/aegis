@@ -3,7 +3,12 @@ import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { NextApiRequest, NextApiResponse } from "next";
 import Login from "../../pages/api/users/login";
 import Mikro from "utils/mikro";
-import { handleMission, getMissions, upsertMission, deleteMission } from "../../pages/api/mission";
+import {
+  handleMission_NoIronSession,
+  getMissions_NoIronSession,
+  upsertMission_NoIronSession,
+  deleteMission_NoIronSession,
+} from "../../pages/api/mission";
 import { Mission as Mission_db } from "server/database/models/mission.model";
 import { User as User_db } from "server/database/models/user.model";
 import MissionFactory from "../helpers/MissionFactory";
@@ -19,7 +24,6 @@ beforeAll(async () => {
   testAdmin = await new UserFactory(em).createOne();
   testMission = await new MissionFactory(em).createOne();
   multipleMissions = await new MissionFactory(em).create(5);
-  await Mikro.closeORM();
 });
 
 describe("Mission API Endpoint Handler", () => {
@@ -34,14 +38,14 @@ describe("Mission API Endpoint Handler", () => {
   test("Mission: Returns auth failure single mission", async () => {
     const { req, res } = mockRequestResponse("GET");
     req.query = { missionId: testMission.id.toString() };
-    await handleMission(req, res);
+    await handleMission_NoIronSession(req, res);
     expect(res.statusCode).toBe(401);
     expect(res.statusMessage).toEqual("OK");
   });
 
   test("Missions: Returns auth failure all mission", async () => {
     const { req, res } = mockRequestResponse("GET");
-    await handleMission(req, res);
+    await handleMission_NoIronSession(req, res);
     expect(res.statusCode).toBe(401);
     expect(res.statusMessage).toEqual("OK");
   });
@@ -52,7 +56,7 @@ describe("Mission API Endpoint Handler", () => {
     await Login(req, res);
     req.query = { missionId: testMission.id.toString() };
     req.method = "GET";
-    await handleMission(req, res);
+    await handleMission_NoIronSession(req, res);
     expect(res.statusCode).toBe(200);
     expect(res.statusMessage).toEqual("OK");
   });
@@ -62,7 +66,7 @@ describe("Mission API Endpoint Handler", () => {
     req.body = { username: "testAdmin", password: "superSecretPassword" };
     await Login(req, res);
     req.method = "GET";
-    await handleMission(req, res);
+    await handleMission_NoIronSession(req, res);
     expect(res.statusCode).toBe(200);
     expect(res.statusMessage).toEqual("OK");
   });
@@ -73,64 +77,61 @@ describe("Mission API Endpoint Handler", () => {
     await Login(req, res);
     req.query = { missionId: "99999" };
     req.method = "GET";
-    await handleMission(req, res);
+    await handleMission_NoIronSession(req, res);
     expect(res.statusCode).toBe(200);
     expect(res.statusMessage).toEqual("OK");
   });
 });
 
-describe("Mission API Mikro Functions", () => {
+describe("Mission API Database Functions", () => {
   let newMission: Mission = {
     name: "Mission Jest Test",
     config: null,
   };
 
   test("Mission getMissions(): Returns single mission data", async () => {
-    const mission = await getMissions(testMission.id);
+    const mission = await getMissions_NoIronSession(testMission.id);
     expect(mission).not.toBeNull();
     expect(mission.length).toEqual(1);
   });
 
   test("Missions getMissions(): Returns all mission data", async () => {
-    const mission = await getMissions();
+    const mission = await getMissions_NoIronSession(null);
     expect(mission).not.toBeNull();
     expect(mission.length).toBeGreaterThan(1);
   });
 
   //upsert and delete tests must occur in order
   test("Missions upsertMission(): Create new mission", async () => {
-    const upsertedMission = await upsertMission(newMission);
+    const upsertedMission = await upsertMission_NoIronSession(newMission);
     expect(upsertedMission).not.toBeNull();
     expect(upsertedMission.id).not.toBeNull();
     expect(upsertedMission.version).toEqual(1);
 
     //check if it was added to the db
-    await Mikro.getORM();
     const em = Mikro.getEM();
     const missionReference = await em.findOne(Mission_db, upsertedMission.id);
     expect(missionReference).not.toBeNull();
-    await Mikro.closeORM();
 
     newMission = { ...upsertedMission };
   });
 
   test("Mission upsertMission(): Update a mission", async () => {
     newMission.name = "Mission Jest Test Modified";
-    const upsertedMission = await upsertMission(newMission);
+    const upsertedMission = await upsertMission_NoIronSession(newMission);
     expect(upsertedMission).not.toBeNull();
     expect(upsertedMission.version).toEqual(2);
     expect(upsertedMission.name).toEqual("Mission Jest Test Modified");
   });
 
   test("Mission deleteMission(): Delete a mission", async () => {
-    const referenceId = await deleteMission(newMission.id);
+    const referenceId = await deleteMission_NoIronSession(newMission.id);
     expect(referenceId).toEqual(newMission.id);
   });
 });
 
 afterAll(async () => {
   //Cleanup our Database
-  await Mikro.getORM();
   const em = Mikro.getEM();
   await em.nativeDelete(Mission_db, { id: testMission.id });
   await em.nativeDelete(User_db, { id: testAdmin.id });

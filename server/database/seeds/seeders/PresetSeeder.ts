@@ -1,15 +1,16 @@
 import { Seeder } from "@mikro-orm/seeder";
 import { Dictionary, EntityManager } from "@mikro-orm/core";
 import { Preset } from "../../models/preset.model";
+import { v4 as uuidv4 } from "uuid";
 
 export class PresetSeeder extends Seeder {
   async run(em: EntityManager, context: Dictionary): Promise<void> {
     em.create(Preset, {
+      uuid: uuidv4(),
       owner: context.user1.id,
       mission: context.mission1.id,
       name: "Visible Light",
       description: "",
-      uuid: "d9f9b0b0-5b1f-11ec-8d3d-0242ac130003",
       missionPreset: true,
       missionPresetDefault: true,
       layerControls: {

@@ -654,14 +654,14 @@
     },
     {
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "int",
-          "unsigned": true,
-          "autoincrement": true,
-          "primary": true,
+        "uuid": {
+          "name": "uuid",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
           "nullable": false,
-          "mappedType": "integer"
+          "mappedType": "uuid"
         },
         "owner_id": {
           "name": "owner_id",
@@ -680,15 +680,6 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
-        },
-        "uuid": {
-          "name": "uuid",
-          "type": "uuid",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "uuid"
         },
         "mission_preset": {
           "name": "mission_preset",
@@ -762,18 +753,9 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "uuid"
-          ],
-          "composite": false,
-          "keyName": "preset_uuid_unique",
-          "primary": false,
-          "unique": true
-        },
-        {
           "keyName": "preset_pkey",
           "columnNames": [
-            "id"
+            "uuid"
           ],
           "composite": false,
           "primary": true,

@@ -32,12 +32,11 @@ type Layer_db_type = Omit<Layer, "missionId"> & {
 };
 
 type Preset = {
-  id?: number;
   uuid: string;
-  name: string;
-  description: string;
   ownerId: number;
   missionId: number;
+  name: string;
+  description: string;
   missionPreset: boolean;
   missionPresetDefault: boolean;
   layerControls: LayerControls;
