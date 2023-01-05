@@ -6,7 +6,7 @@ import { setSelectedStationRightNavItem, setSelectedStationUuid } from "store/st
 import stationStyles from "./station.module.css";
 import _ from "lodash";
 
-const StationLeft: FunctionComponent<{
+const StationItem: FunctionComponent<{
   station: Station;
   stationFromDb: Station;
   selectedStationUuid: string;
@@ -25,37 +25,24 @@ const StationLeft: FunctionComponent<{
   const [stationActionsFromDb, setStationActionsFromDb] = useState<Action[]>([]);
   useEffect(() => {
     if (actions) {
-      const filteredactions = actions.filter(
-        (storeAction: Action) => storeAction.stationUuid === station.uuid
+      const filteredactions = _.sortBy(
+        actions.filter((storeAction: Action) => storeAction.stationUuid === station.uuid),
+        ["createdAt"]
       );
 
       setStationActions(filteredactions);
-      // console.log(`station ${station.name} actions updated - count ${filteredactions.length}`);
     }
   }, [actions, station.uuid]);
   useEffect(() => {
     if (actionsFromDb) {
-      const filteredactions = actionsFromDb.filter(
-        (storeAction: Action) => storeAction.stationUuid === station.uuid
+      const filteredactions = _.sortBy(
+        actionsFromDb.filter((storeAction: Action) => storeAction.stationUuid === station.uuid),
+        ["createdAt"]
       );
 
       setStationActionsFromDb(filteredactions);
-      // console.log(
-      //   `station ${station.name} actions from db updated - count ${filteredactions.length}`
-      // );
     }
   }, [actionsFromDb, station.uuid]);
-
-  // //track modified
-  // const [modified, setModified] = useState(false);
-  // useEffect(() => {
-  //   const stationEqual = _.isEqual(station, stationFromDb);
-  //   const actionEqual = _.isEqual(stationActions, stationActionsFromDb);
-  //   // console.log("action modified test " + actionEqual);
-  //   // console.log(stationActions);
-  //   // console.log(stationActionsFromDb);
-  //   setModified(!stationEqual || !actionEqual);
-  // }, [station, stationFromDb, stationActions, stationActionsFromDb]);
 
   return (
     <div
@@ -90,4 +77,4 @@ const StationLeft: FunctionComponent<{
   );
 };
 
-export default StationLeft;
+export default StationItem;
