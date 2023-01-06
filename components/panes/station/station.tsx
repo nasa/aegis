@@ -79,9 +79,9 @@ const StationEditorLeft: FunctionComponent = () => {
               return (
                 <StationItem
                   key={station.uuid}
+                  selectedStationUuid={selectedStationUuid}
                   station={station}
                   stationFromDb={stationFromDb}
-                  selectedStationUuid={selectedStationUuid}
                   actions={actions}
                   actionsFromDb={actionsFromDb}
                 />

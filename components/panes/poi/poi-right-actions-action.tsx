@@ -14,13 +14,14 @@ import {
 } from "components/interface/_global-elements";
 import { FunctionComponent, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import { deleteAction, setPoiEditMode, upsertAction } from "store/poi";
+import { setPoiEditMode } from "store/poi";
+import { deleteAction, upsertAction } from "store/action";
 import { toDecimal } from "utils/formatting";
 import { useDispatch } from "react-redux";
 
-const RightAction: FunctionComponent<{ editMode: boolean; poi: POI; action: Action }> = ({
+const RightAction: FunctionComponent<{ editMode: boolean; poiUuid: string; action: Action }> = ({
   editMode,
-  poi,
+  poiUuid,
   action,
 }) => {
   const dispatch = useDispatch();
@@ -51,7 +52,7 @@ const RightAction: FunctionComponent<{ editMode: boolean; poi: POI; action: Acti
           <Dropdown
             selected={action.type}
             onChange={(val) => {
-              dispatch(upsertAction({ poi, poiAction: { ...action, type: val as ActionType } }));
+              dispatch(upsertAction({ ...action, type: val as ActionType }));
             }}
           >
             <option value="measurement">Measurement</option>
@@ -71,7 +72,7 @@ const RightAction: FunctionComponent<{ editMode: boolean; poi: POI; action: Acti
             value={action.name}
             onChange={(val) => {
               const updatedAction: Action = { ...action, name: val };
-              dispatch(upsertAction({ poi, poiAction: updatedAction }));
+              dispatch(upsertAction(updatedAction));
             }}
           />
         </div>
@@ -81,8 +82,8 @@ const RightAction: FunctionComponent<{ editMode: boolean; poi: POI; action: Acti
               icon={faTrashAlt}
               size="sm"
               onClick={(e) => {
-                dispatch(deleteAction({ poi, poiAction: action }));
-                dispatch(setPoiEditMode({ poi, editMode: true }));
+                dispatch(deleteAction(action));
+                dispatch(setPoiEditMode({ poiUuid, editMode: true }));
                 e.stopPropagation();
               }}
             />
@@ -98,7 +99,7 @@ const RightAction: FunctionComponent<{ editMode: boolean; poi: POI; action: Acti
               selected={action.status}
               handleChange={(newStatus) => {
                 const updatedAction: Action = { ...action, status: newStatus };
-                dispatch(upsertAction({ poi, poiAction: updatedAction }));
+                dispatch(upsertAction(updatedAction));
               }}
             >
               <button>Archived</button>
@@ -121,12 +122,12 @@ const RightAction: FunctionComponent<{ editMode: boolean; poi: POI; action: Acti
                     value={action.durationLower.toString()}
                     onChange={(val) => {
                       const updatedAction: Action = { ...action, durationLower: val };
-                      dispatch(upsertAction({ poi, poiAction: updatedAction }));
+                      dispatch(upsertAction(updatedAction));
                     }}
                     onBlur={(e) => {
                       const numericVal = toDecimal(e.target.value);
                       const updatedAction: Action = { ...action, durationLower: numericVal };
-                      dispatch(upsertAction({ poi, poiAction: updatedAction }));
+                      dispatch(upsertAction(updatedAction));
                     }}
                   />
                 </div>
@@ -143,12 +144,12 @@ const RightAction: FunctionComponent<{ editMode: boolean; poi: POI; action: Acti
                     value={action.durationUpper?.toString()}
                     onChange={(val) => {
                       const updatedAction: Action = { ...action, durationUpper: val };
-                      dispatch(upsertAction({ poi, poiAction: updatedAction }));
+                      dispatch(upsertAction(updatedAction));
                     }}
                     onBlur={(e) => {
                       const numericVal = toDecimal(e.target.value);
                       const updatedAction: Action = { ...action, durationUpper: numericVal };
-                      dispatch(upsertAction({ poi, poiAction: updatedAction }));
+                      dispatch(upsertAction(updatedAction));
                     }}
                   />
                 </div>
@@ -174,7 +175,7 @@ const RightAction: FunctionComponent<{ editMode: boolean; poi: POI; action: Acti
               editing={editMode}
               onChange={(evt) => {
                 const updatedAction: Action = { ...action, description: evt.target.value };
-                dispatch(upsertAction({ poi, poiAction: updatedAction }));
+                dispatch(upsertAction(updatedAction));
               }} // handle innerHTML change
             />
           </div>

@@ -61,11 +61,6 @@ interface POI {
   description: string;
 
   /**
-   * The actions needed at this POI to achieve the objective.
-   */
-  actions?: Action[];
-
-  /**
    * Priority of this POI.
    */
   priorityOverride: number;

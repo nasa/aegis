@@ -20,9 +20,6 @@ export const actionSlice = createSlice({
       action.payload.forEach((action) => upsertToArrayByUuid(state.actionsFromDb, action));
     },
     deleteAction: (state, action: { payload: Action }) => {
-      // state.actions = state.actions.filter(
-      //   (stateAction: Action) => stateAction.uuid !== action.payload.uuid
-      // );
       state.actions.splice(
         state.actions.findIndex((stateAction) => stateAction.uuid === action.payload.uuid),
         1

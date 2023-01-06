@@ -2,27 +2,19 @@ import styles from "./poi.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent } from "react";
-import { IconButton, ModifiedIndicator } from "components/interface/_global-elements";
+import { IconButton } from "components/interface/_global-elements";
 import { useSelector, useDispatch, shallowEqual } from "react-redux";
 import { RootState } from "store";
-import {
-  duplicatePoi,
-  setPoiEditMode,
-  setSelectedPoiUuid,
-  setSelectedRightNavItem,
-  upsertPoi,
-} from "store/poi";
+import { duplicatePoi, setPoiEditMode, setSelectedPoiUuid, upsertPoi } from "store/poi";
 import { animals, uniqueNamesGenerator } from "unique-names-generator";
 import { v4 as uuidv4 } from "uuid";
+import PoiItem from "./poi-item";
 
 const PoiEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
   const pois: POI[] = useSelector((state: RootState) => state.poi.pois, shallowEqual);
   const poisFromDb: POI[] = useSelector((state: RootState) => state.poi.poisFromDb, shallowEqual);
-  const selectedRightNavItem = useSelector(
-    (state: RootState) => state.poi.selectedRightNavItem,
-    shallowEqual
-  );
+
   const selectedPoiUuid = useSelector(
     (state: RootState) => state.poi.selectedPoiUuid,
     shallowEqual
@@ -34,6 +26,11 @@ const PoiEditorLeft: FunctionComponent = () => {
     shallowEqual
   );
   const mission = useSelector((state: RootState) => state.mission.mission, shallowEqual);
+  const actions: Action[] = useSelector((state: RootState) => state.action.actions, shallowEqual);
+  const actionsFromDb: Action[] = useSelector(
+    (state: RootState) => state.action.actionsFromDb,
+    shallowEqual
+  );
 
   const handleCreatePoi = () => {
     const randomName: string = uniqueNamesGenerator({
@@ -47,7 +44,6 @@ const PoiEditorLeft: FunctionComponent = () => {
       uuid: uuidv4(),
       name: "P-" + randomName,
       description: "",
-      actions: [],
       priorityOverride: 0,
       radius: 5,
       location: null,
@@ -57,7 +53,7 @@ const PoiEditorLeft: FunctionComponent = () => {
     };
     dispatch(upsertPoi(blankPoi));
     // turn on edit mode for the new POI
-    dispatch(setPoiEditMode({ poi: blankPoi, editMode: true }));
+    dispatch(setPoiEditMode({ poiUuid: blankPoi.uuid, editMode: true }));
     // select the newly created POI
     dispatch(setSelectedPoiUuid(blankPoi.uuid));
   };
@@ -68,41 +64,16 @@ const PoiEditorLeft: FunctionComponent = () => {
         <div className={styles.container}>
           <div className={styles.body}>
             {pois.map((poi) => {
-              const poiSelected = poi.uuid === selectedPoiUuid ? styles.nameSelected : null;
-              const poiFromDb = poisFromDb.filter((poiFromDb) => poiFromDb.uuid === poi.uuid)[0];
+              const poiFromDb = poisFromDb.find((poiFromDb) => poiFromDb.uuid === poi.uuid);
               return (
-                <div
-                  className={styles.poiItem}
+                <PoiItem
                   key={poi.uuid}
-                  onClick={() => {
-                    if (selectedPoiUuid === poi.uuid) {
-                      dispatch(setSelectedPoiUuid(null));
-                    } else {
-                      dispatch(setSelectedPoiUuid(poi.uuid));
-                      if (!selectedRightNavItem) dispatch(setSelectedRightNavItem("info_panel"));
-                    }
-                  }}
-                >
-                  <div className={styles.itemColor}>
-                    <div className={styles.poiDot} style={{ backgroundColor: poi.color?.value }} />
-                  </div>
-                  <div className={`${styles.name} ${poiSelected}`}>
-                    <div>{poi.name}</div>
-                    <ModifiedIndicator
-                      obj1={poi}
-                      obj2={poiFromDb}
-                      svgStyle={{
-                        width: "15",
-                        height: "12",
-                        cx: "5",
-                        cy: "9",
-                        r: "3",
-                        fill: "#ff0000",
-                      }}
-                    />
-                    <div className={styles.poiRightSpacer}></div>
-                  </div>
-                </div>
+                  selectedPoiUuid={selectedPoiUuid}
+                  poi={poi}
+                  poiFromDb={poiFromDb}
+                  actions={actions}
+                  actionsFromDb={actionsFromDb}
+                />
               );
             })}
           </div>

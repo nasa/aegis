@@ -64,25 +64,26 @@ export const RightControlPanel: FunctionComponent = () => {
 };
 
 const NavGutter = ({ selectedNavItem, setSelectedNavItem }) => {
-  const pois = useSelector((state: RootState) => state.poi.pois, shallowEqual);
-  const poisFromDb = useSelector((state: RootState) => state.poi.poisFromDb, shallowEqual);
-  const presets = useSelector((state: RootState) => state.preset.presets, shallowEqual);
-  const presetsFromDb = useSelector((state: RootState) => state.preset.presetsFromDb, shallowEqual);
-  const stations = useSelector((state: RootState) => state.station.stations, shallowEqual);
-  const stationsFromDb = useSelector(
+  const pois: POI[] = useSelector((state: RootState) => state.poi.pois, shallowEqual);
+  const poisFromDb: POI[] = useSelector((state: RootState) => state.poi.poisFromDb, shallowEqual);
+  const presets: Preset[] = useSelector((state: RootState) => state.preset.presets, shallowEqual);
+  const presetsFromDb: Preset[] = useSelector(
+    (state: RootState) => state.preset.presetsFromDb,
+    shallowEqual
+  );
+  const stations: Station[] = useSelector(
+    (state: RootState) => state.station.stations,
+    shallowEqual
+  );
+  const stationsFromDb: Station[] = useSelector(
     (state: RootState) => state.station.stationsFromDb,
     shallowEqual
   );
-
-  //todo
-  // const stationActions = useSelector(
-  //   (state: RootState) => state.action.actions,
-  //   shallowEqual
-  // ).filter((storeAction: Action) => storeAction.stationUuid === selectedStationUuid);
-  // const stationActionsFromDb = useSelector(
-  //   (state: RootState) => state.action.actionsFromDb,
-  //   shallowEqual
-  // ).filter((storeAction: Action) => storeAction.stationUuid === selectedStationUuid);
+  const actions: Action[] = useSelector((state: RootState) => state.action.actions, shallowEqual);
+  const actionsFromDb: Action[] = useSelector(
+    (state: RootState) => state.action.actionsFromDb,
+    shallowEqual
+  );
 
   return (
     <div className={styles.iconGutter}>
@@ -91,19 +92,34 @@ const NavGutter = ({ selectedNavItem, setSelectedNavItem }) => {
         let itemModified = false;
         switch (paneType) {
           case "poi":
-            itemModified = !_.isEqual(pois, poisFromDb);
+            const poiActions = actions.filter((storeAction: Action) => storeAction.poiUuid);
+            const poiActionsFromDb = actionsFromDb.filter(
+              (storeAction: Action) => storeAction.poiUuid
+            );
+            const poiEqual = _.isEqual(_.sortBy(pois, ["uuid"]), _.sortBy(poisFromDb, ["uuid"]));
+            const poiActionEqual = _.isEqual(
+              _.sortBy(poiActions, ["uuid"]),
+              _.sortBy(poiActionsFromDb, ["uuid"])
+            );
+            itemModified = !poiEqual || !poiActionEqual;
             break;
           case "map_layer_selector":
             itemModified = !_.isEqual(presets, presetsFromDb);
             break;
           case "station":
-            const stationsEqual = _.isEqual(_.orderBy(stations), _.orderBy(stationsFromDb));
-            // const actionModified = _.isEqual(
-            //   _.orderBy(stationActions),
-            //   _.orderBy(stationActionsFromDb)
-            // );
-            const actionsEqual = true;
-            itemModified = !stationsEqual || !actionsEqual;
+            const stationActions = actions.filter((storeAction: Action) => storeAction.stationUuid);
+            const stationActionsFromDb = actionsFromDb.filter(
+              (storeAction: Action) => storeAction.stationUuid
+            );
+            const stationsEqual = _.isEqual(
+              _.sortBy(stations, ["uuid"]),
+              _.sortBy(stationsFromDb, ["uuid"])
+            );
+            const stationActionEqual = _.isEqual(
+              _.sortBy(stationActions, ["uuid"]),
+              _.sortBy(stationActionsFromDb, ["uuid"])
+            );
+            itemModified = !stationsEqual || !stationActionEqual;
             break;
         }
 
