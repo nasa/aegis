@@ -7,12 +7,12 @@ import stationStyles from "./station.module.css";
 import _ from "lodash";
 
 const StationItem: FunctionComponent<{
+  selectedStationUuid: string;
   station: Station;
   stationFromDb: Station;
-  selectedStationUuid: string;
   actions: Action[];
   actionsFromDb: Action[];
-}> = ({ station, stationFromDb, selectedStationUuid, actions, actionsFromDb }) => {
+}> = ({ selectedStationUuid, station, stationFromDb, actions, actionsFromDb }) => {
   const dispatch = useDispatch();
   const selectedRightNavItem: string = useSelector(
     (state: RootState) => state.station.selectedRightNavItem,

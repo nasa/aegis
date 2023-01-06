@@ -102,7 +102,6 @@ const StationEditorRight: FunctionComponent = () => {
       setStationActions(
         actions.filter((storeAction: Action) => storeAction.stationUuid === selectedStationUuid)
       );
-      // console.log("station actions updated");
     }
   }, [actions, selectedStationUuid]);
   useEffect(() => {
@@ -118,7 +117,10 @@ const StationEditorRight: FunctionComponent = () => {
   const [modified, setModified] = useState(false);
   useEffect(() => {
     const stationEqual = _.isEqual(selectedStation, selectedStationFromDb);
-    const actionEqual = _.isEqual(stationActions, stationActionsFromDb);
+    const actionEqual = _.isEqual(
+      _.sortBy(stationActions, ["uuid"]),
+      _.sortBy(stationActionsFromDb, ["uuid"])
+    );
     setModified(!stationEqual || !actionEqual);
   }, [selectedStation, selectedStationFromDb, stationActions, stationActionsFromDb]);
 
@@ -143,7 +145,7 @@ const StationEditorRight: FunctionComponent = () => {
       // find out if the actions in this station have been modified and need to be persisted
       const actionsModified = !_.isEqual(stationActions, stationActionsFromDb);
       if (actionsModified) {
-        //upsert Actions
+        //upsert Actions to db
         const upsertedStationActions: Action[] = [];
         for (const actionToUpsert of stationActions) {
           const actionUpsertResponse = await httpClient_action.upsertAction(actionToUpsert);
@@ -158,13 +160,14 @@ const StationEditorRight: FunctionComponent = () => {
 
         // remove any deleted actions from the db
         dispatch(deleteActionsFromDb(stationActionsFromDb));
-
+        // filter out deleted actions using local state
         const deletedStationActions: Action[] = stationActionsFromDb.filter((actionDb) => {
           const found = stationActions.some((stationAction) => {
             return stationAction.uuid === actionDb.uuid;
           });
           return !found;
         });
+        // take array of deleted actions and delete them in the db
         for (const deletedAction of deletedStationActions) {
           const actionDeleteResponse = await httpClient_action.deleteAction(deletedAction.uuid);
           if (actionDeleteResponse.status !== "success") {
@@ -172,7 +175,7 @@ const StationEditorRight: FunctionComponent = () => {
           }
         }
 
-        // update the actions in the "from db" store with a fresh copy from the DB
+        // update the store copy of the db with a fresh copy from the DB
         const actionData = await httpClient_action.getActions({
           stationUuid: selectedStation.uuid,
         });
@@ -197,9 +200,9 @@ const StationEditorRight: FunctionComponent = () => {
             throw new Error("Error deleting actions for station " + actionDeleteResponse.message);
           }
         }
-        // remove corresponding actions from the store
+        // delete actions from the store
         dispatch(deleteActions(stationActions));
-        // refresh copy of all actions for this mission from the db
+        // update store copy of the db with a fresh copy of actions for this mission from the db
         const actionData = await httpClient_action.getActions({ missionId: selectedMissionId });
         if (actionData.data) {
           dispatch(deleteAllActionsFromDb());
@@ -243,7 +246,7 @@ const StationEditorRight: FunctionComponent = () => {
 
       //delete newly added actions that user doesn't want to save
       const addedActionsToDelete: Action[] = stationActions.filter(
-        // only keep actions that don't exist in the db
+        // only delete actions that don't exist in the db
         (action) =>
           stationActionsFromDb.findIndex((actionDb) => actionDb.uuid === action.uuid) === -1
       );

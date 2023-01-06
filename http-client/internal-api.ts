@@ -5,13 +5,13 @@ export async function getPOIs(mission: number): Promise<WrappedResponse<POI[]>> 
   return response;
 }
 
-export async function setPOI(poi: POI, updateActions: boolean): Promise<WrappedResponse<POI>> {
+export async function setPOI(poi: POI): Promise<WrappedResponse<POI>> {
   const res = await fetch("/api/poi", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ poi, updateActions }),
+    body: JSON.stringify(poi),
   });
   const response: WrappedResponse<POI> = await res.json();
   return response;

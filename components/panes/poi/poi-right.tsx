@@ -1,7 +1,7 @@
-import paneStyles from "../global-pane-styles.module.css";
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useSelector, useDispatch, shallowEqual } from "react-redux";
+import paneStyles from "../global-pane-styles.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCircleInfo,
@@ -12,6 +12,8 @@ import {
   faTrashAlt,
   faEdit,
 } from "@fortawesome/free-solid-svg-icons";
+import { IconButton, InLineEditInput } from "components/interface/_global-elements";
+
 import { RootState } from "store";
 import {
   deletePoi,
@@ -22,12 +24,19 @@ import {
   upsertPoisFromDb,
   deleteAllPoisFromDb,
 } from "store/poi";
+import {
+  deleteActions,
+  deleteActionsFromDb,
+  deleteAllActionsFromDb,
+  upsertActions,
+  upsertActionsFromDb,
+} from "store/action";
+
 import Info_Panel from "./poi-right-info";
 import Actions_Panel from "./poi-right-actions";
-import { IconButton, InLineEditInput } from "components/interface/_global-elements";
-import { setPOI } from "http-client/internal-api";
-import * as InternalAPI from "http-client/internal-api";
 import Reports_Panel from "./poi-right-reports";
+import * as InternalAPI from "http-client/internal-api";
+import * as httpClient_action from "http-client/action";
 
 const panelTypes: PanelTypes = {
   info_panel: {
@@ -52,7 +61,6 @@ const panelTypes: PanelTypes = {
 
 const PoiEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
-  //const poisFromDb = useSelector((state: RootState) => state.poi.poisFromDb, shallowEqual);
   const selectedMissionId = useSelector(
     (state: RootState) => state.mission.mission?.id,
     shallowEqual
@@ -65,7 +73,7 @@ const PoiEditorRight: FunctionComponent = () => {
     (state: RootState) => state.poi.selectedPoiUuid,
     shallowEqual
   );
-  const selectedPoi = useSelector((state: RootState) => state.poi.pois, shallowEqual).find(
+  const selectedPoi: POI = useSelector((state: RootState) => state.poi.pois, shallowEqual).find(
     (poi: POI) => poi.uuid === selectedPoiUuid
   );
   const poisEditing = useSelector((state: RootState) => state.poi.poisEditing, shallowEqual);
@@ -73,34 +81,101 @@ const PoiEditorRight: FunctionComponent = () => {
     (state: RootState) => state.poi.poisFromDb,
     shallowEqual
   ).find((poi: POI) => poi.uuid === selectedPoiUuid);
+  const actions: Action[] = useSelector((state: RootState) => state.action.actions, shallowEqual);
+  const actionsFromDb: Action[] = useSelector(
+    (state: RootState) => state.action.actionsFromDb,
+    shallowEqual
+  );
+
+  const [poiActions, setPoiActions] = useState<Action[]>(null);
+  const [poiActionsFromDb, setPoiActionsFromDb] = useState<Action[]>(null);
+  useEffect(() => {
+    if (actions) {
+      setPoiActions(
+        actions.filter((storeAction: Action) => storeAction.poiUuid === selectedPoiUuid)
+      );
+    }
+  }, [actions, selectedPoiUuid]);
+  useEffect(() => {
+    if (actionsFromDb) {
+      const actions = actionsFromDb.filter(
+        (storeAction: Action) => storeAction.poiUuid === selectedPoiUuid
+      );
+      setPoiActionsFromDb(actions);
+    }
+  }, [actionsFromDb, selectedPoiUuid]);
 
   const [modified, setModified] = useState(false);
   useEffect(() => {
-    setModified(!_.isEqual(selectedPoi, selectedPoiFromDb));
-  }, [selectedPoi, selectedPoiFromDb]);
+    const poiEqual = _.isEqual(selectedPoi, selectedPoiFromDb);
+    const actionEqual = _.isEqual(
+      _.sortBy(poiActions, ["uuid"]),
+      _.sortBy(poiActionsFromDb, ["uuid"])
+    );
+    setModified(!poiEqual || !actionEqual);
+  }, [selectedPoi, selectedPoiFromDb, poiActions, poiActionsFromDb]);
 
   const handleSave = async () => {
     if (selectedPoi && modified) {
-      // find out if the actions in this poi have been modified and need to be persisted
-      const actionsModified = !_.isEqual(selectedPoi.actions, selectedPoiFromDb?.actions);
-
       // upsert the changed POI to the DB via internal API call
-      const upsertReponse = await setPOI(selectedPoi, actionsModified);
+      const poiUpsertResponse = await InternalAPI.setPOI(selectedPoi);
 
-      if (upsertReponse.status === "success") {
+      if (poiUpsertResponse.status === "success") {
         // upsert the changed POI to the store
-        dispatch(upsertPoi(upsertReponse.data));
-        // update the POI in the store from the DB
-        // get fresh copy of POIs from DB
+        dispatch(upsertPoi(poiUpsertResponse.data));
+        // update the POI in the store with a  fresh copy of POIs from DB
         const poiData = await InternalAPI.getPOIs(selectedMissionId);
         if (poiData.data) {
           dispatch(deleteAllPoisFromDb());
           dispatch(upsertPoisFromDb(poiData.data));
         }
       } else {
-        throw new Error("Error upserting POI: " + upsertReponse.message);
+        throw new Error("Error upserting POI: " + poiUpsertResponse.message);
       }
-      dispatch(setPoiEditMode({ poi: selectedPoi, editMode: false }));
+
+      // find out if the actions in this poi have been modified and need to be persisted
+      const actionsModified = !_.isEqual(poiActions, poiActionsFromDb);
+      if (actionsModified) {
+        //upsert Actions to db
+        const upsertedPoiActions: Action[] = [];
+        for (const actionToUpsert of poiActions) {
+          const actionUpsertResponse = await httpClient_action.upsertAction(actionToUpsert);
+          if (actionUpsertResponse.status !== "success") {
+            throw new Error("Error upserting poi actions " + actionUpsertResponse.message);
+          } else {
+            upsertedPoiActions.push(actionUpsertResponse.data);
+          }
+        }
+        // upsert the changed Action (with new updated dates) to the store
+        dispatch(upsertActions(upsertedPoiActions));
+
+        // clear the store copy of the db
+        dispatch(deleteActionsFromDb(poiActionsFromDb));
+        // filter out deleted actions using local state
+        const deletedStationActions: Action[] = poiActionsFromDb.filter((actionDb) => {
+          const found = poiActions.some((poiAction) => {
+            return poiAction.uuid === actionDb.uuid;
+          });
+          return !found;
+        });
+        // take array of deleted actions and delete them in the db
+        for (const deletedAction of deletedStationActions) {
+          const actionDeleteResponse = await httpClient_action.deleteAction(deletedAction.uuid);
+          if (actionDeleteResponse.status !== "success") {
+            throw new Error("Error deleting poi actions " + actionDeleteResponse.message);
+          }
+        }
+
+        // update the store copy of the db with a fresh copy from the DB
+        const actionData = await httpClient_action.getActions({
+          poiUuid: selectedPoi.uuid,
+        });
+        if (actionData.data?.length > 0) {
+          dispatch(upsertActionsFromDb(actionData.data));
+        }
+      }
+
+      dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: false }));
     }
   };
 
@@ -108,6 +183,23 @@ const PoiEditorRight: FunctionComponent = () => {
     if (selectedPoi) {
       // if the selected poi is in poisFromDb then delete it from the db
       if (selectedPoiFromDb) {
+        // delete actions from the db via internal api call
+        for (const actionToDelete of poiActions) {
+          const actionDeleteResponse: WrappedResponse<number> =
+            await httpClient_action.deleteAction(actionToDelete.uuid);
+          if (actionDeleteResponse.status !== "success") {
+            throw new Error("Error deleting actions for poi " + actionDeleteResponse.message);
+          }
+        }
+        // delete actions from the store
+        dispatch(deleteActions(poiActions));
+        // update store copy of the db with a fresh copy of actions for this mission from the db
+        const actionData = await httpClient_action.getActions({ missionId: selectedMissionId });
+        if (actionData.data) {
+          dispatch(deleteAllActionsFromDb());
+          dispatch(upsertActionsFromDb(actionData.data));
+        }
+
         // delete the POI from the DB via internal API call
         const deleteResponse = await InternalAPI.deletePOI(selectedPoi.uuid);
         if (deleteResponse.status === "success") {
@@ -128,21 +220,31 @@ const PoiEditorRight: FunctionComponent = () => {
         // if the selected poi is not in poisFromDb then delete it from the store
         dispatch(deletePoi(selectedPoi));
         dispatch(setSelectedPoiUuid(null));
+        dispatch(deleteActions(poiActions));
       }
-      dispatch(setPoiEditMode({ poi: selectedPoi, editMode: false }));
+      dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: false }));
     }
   };
 
   const handleCancel = () => {
-    // if selected poi isn't in the db, delete it from the store
-    if (!selectedPoiFromDb) {
-      dispatch(deletePoi(selectedPoi));
-      dispatch(setSelectedPoiUuid(null));
-    } else {
+    if (selectedPoiFromDb) {
       // if selected poi is in the db, replace it with the one from the db (undoing any changes)
       dispatch(upsertPoi(selectedPoiFromDb));
+      dispatch(upsertActions(poiActionsFromDb));
+
+      //delete newly added actions that user doesn't want to save
+      const addedActionsToDelete: Action[] = poiActions.filter(
+        // only delete actions that don't exist in the db
+        (action) => poiActionsFromDb.findIndex((actionDb) => actionDb.uuid === action.uuid) === -1
+      );
+      dispatch(deleteActions(addedActionsToDelete));
+    } else {
+      // if selected poi isn't in the db, delete it from the store
+      dispatch(deletePoi(selectedPoi));
+      dispatch(setSelectedPoiUuid(null));
+      dispatch(deleteActions(poiActions));
     }
-    dispatch(setPoiEditMode({ poi: selectedPoi, editMode: false }));
+    dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: false }));
   };
 
   let ActiveComponent = null;
@@ -213,7 +315,7 @@ const PoiEditorRight: FunctionComponent = () => {
                 <IconButton
                   icon={faEdit}
                   onClick={() => {
-                    dispatch(setPoiEditMode({ poi: selectedPoi, editMode: true }));
+                    dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: true }));
                   }}
                   label="Edit"
                   style={{ width: "65px" }}

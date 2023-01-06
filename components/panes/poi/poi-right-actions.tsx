@@ -4,7 +4,8 @@ import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { IconButton } from "components/interface/_global-elements";
 import { useSelector, useDispatch, shallowEqual } from "react-redux";
 import { RootState } from "store";
-import { setPoiEditMode, upsertAction } from "store/poi";
+import { setPoiEditMode } from "store/poi";
+import { upsertAction } from "store/action";
 import POIAction from "./poi-right-actions-action";
 import { starWars, uniqueNamesGenerator } from "unique-names-generator";
 import { v4 as uuidv4 } from "uuid";
@@ -19,8 +20,9 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     (state: RootState) => state.mission.mission?.id,
     shallowEqual
   );
-  const pois: POI[] = useSelector((state: RootState) => state.poi.pois, shallowEqual);
-  const selectedPoi = pois.find((poi) => poi.uuid === selectedPoiUuid);
+
+  const actions: Action[] = useSelector((state: RootState) => state.action.actions, shallowEqual);
+  const poiActions = actions.filter((action) => action.poiUuid === selectedPoiUuid);
 
   const handleCreateAction = () => {
     const randomName: string = uniqueNamesGenerator({
@@ -30,7 +32,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
 
     const blankAction: Action = {
       missionId: selectedMissionId,
-      poiUuid: selectedPoi.uuid,
+      poiUuid: selectedPoiUuid,
       uuid: uuidv4(),
       name: "Action " + randomName,
       description: "",
@@ -43,16 +45,21 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
       priorityOverride: null,
     };
 
-    dispatch(upsertAction({ poi: selectedPoi, poiAction: blankAction }));
-    dispatch(setPoiEditMode({ poi: selectedPoi, editMode: true }));
+    dispatch(upsertAction(blankAction));
+    dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: true }));
   };
 
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle}>Actions</div>
       <div className={paneStyles.rightBodyBody}>
-        {selectedPoi.actions?.map((action) => (
-          <POIAction key={action.uuid} editMode={editMode} poi={selectedPoi} action={action} />
+        {poiActions?.map((action) => (
+          <POIAction
+            key={action.uuid}
+            editMode={editMode}
+            poiUuid={selectedPoiUuid}
+            action={action}
+          />
         ))}
       </div>
       <div className={paneStyles.rightBodyFooter}>

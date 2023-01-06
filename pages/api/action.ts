@@ -110,7 +110,7 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
 
 /**
  * get action(s) from the database using filter options.
- * @param filter optional filters: actionUuid, poiId, stationUuid, or missionId. If no filter options are provided, all actions will be returned.
+ * @param filter optional filters: actionUuid, poiUuid, stationUuid, or missionId. If no filter options are provided, all actions will be returned.
  * @returns array of actions
  */
 export async function getActions(filter: ActionFilterOptions): Promise<Action[]> {
@@ -175,7 +175,7 @@ export async function upsertAction(action: Action): Promise<Action> {
   await em.persistAndFlush(upsertReference);
 
   //convert foreign keys
-  const convertedAction = convertActions(upsertReference) as Action;
+  const convertedAction = convertActions([upsertReference])[0];
   return convertedAction;
 }
 
@@ -199,15 +199,12 @@ export async function deleteAction(actionUuid: string): Promise<string | null> {
 
 /**
  * Converts db action fks to their uuid/id arrays
- * @param dbactions an array of actions, or a single action in mikro db format
+ * @param dbactions an array of actions in mikro db format
  * @returns an a converted array of actions or a single action
  */
-export function convertActions(dbactions: Action_db[] | Action_db): Action[] | Action {
-  const dbActionArray = [];
-  dbActionArray.push(dbactions); //will create an array of 1 action if function argument is not an array
-
+export function convertActions(dbactions: Action_db[]): Action[] {
   const actions: Action[] = [];
-  for (const dbaction of dbActionArray) {
+  for (const dbaction of dbactions) {
     //convert mission and owner ids
     const convertedAction: Action = {
       uuid: dbaction.uuid,
@@ -228,7 +225,7 @@ export function convertActions(dbactions: Action_db[] | Action_db): Action[] | A
     };
     actions.push(convertedAction);
   }
-  return actions.length === 1 ? actions[0] : actions;
+  return actions;
 }
 
 export default withIronSessionApiRoute(Mikro.withORM(handleAction), ironOptions);

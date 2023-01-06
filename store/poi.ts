@@ -51,27 +51,9 @@ export const poiSlice = createSlice({
       // select the newly created POI
       state.selectedPoiUuid = newPoi.uuid;
     },
-    upsertAction: (state, action: { payload: { poi: POI; poiAction: Action } }) => {
-      const poi = state.pois.find((poi) => poi.uuid === action.payload.poi.uuid);
-      if (poi) {
-        // upsert the action into the POI
-        upsertToArrayByUuid(poi.actions, action.payload.poiAction);
 
-        // upsert the POI into the state
-        upsertToArrayByUuid(state.pois, poi);
-      }
-    },
-
-    deleteAction: (state, action: { payload: { poi: POI; poiAction: Action } }) => {
-      const poi = state.pois.find((poi) => poi.uuid === action.payload.poi.uuid);
-      if (poi) {
-        poi.actions = poi.actions.filter(
-          (poiAction) => poiAction.uuid !== action.payload.poiAction.uuid
-        );
-      }
-    },
-    setPoiEditMode: (state, action: { payload: { poi: POI; editMode: boolean } }) => {
-      const poi = state.pois.find((poi) => poi.uuid === action.payload.poi.uuid);
+    setPoiEditMode: (state, action: { payload: { poiUuid: string; editMode: boolean } }) => {
+      const poi = state.pois.find((poi) => poi.uuid === action.payload.poiUuid);
       if (poi) {
         if (action.payload.editMode) {
           state.poisEditing.push(poi.uuid);
@@ -93,7 +75,5 @@ export const {
   setSelectedRightNavItem,
   setSelectedPoiUuid,
   duplicatePoi,
-  upsertAction,
-  deleteAction,
   setPoiEditMode,
 } = poiSlice.actions;

@@ -5,8 +5,6 @@ import Mikro from "utils/mikro";
 import { EntityData, QueryOrder } from "@mikro-orm/core";
 import { roundDateToSecond } from "utils/formatting";
 import { Poi as Poi_db } from "server/database/models/poi.model";
-import { Action as Action_db } from "server/database/models/action.model";
-import { convertActions } from "./action";
 
 const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
   req,
@@ -39,13 +37,11 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
 
   // If method is POST then upsert a POI
   if (req.method === "POST") {
-    const { poi, updateActions } = <{ poi: POI; updateActions: boolean }>req.body;
     if (req.session?.user) {
       try {
         const em = Mikro.getEM();
-        // strip actions from POI before upserting it
-        const { actions, ...validPoiBody } = poi;
 
+        const validPoiBody: POI = req.body as POI;
         //build poi to upsert
         const poiToUpsert: POI = {
           ...validPoiBody,
@@ -71,60 +67,12 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
         const poiUpsertReference: Poi_db = await em.upsert(Poi_db, convertedPoi);
         await em.persistAndFlush(poiUpsertReference);
 
-        // upsert all action records associated with this POI if updateActions is true and there are actions to update
-        let actionsReferences: Action[] = [];
-        if (updateActions && actions) {
-          //upsert
-          for (const actionToUpsert of actions) {
-            //const upsertedAction: Action = await upsertAction(actionToUpsert);
-            const convertedAction: EntityData<Action_db> = {
-              uuid: actionToUpsert.uuid,
-              name: actionToUpsert.name,
-              mission: actionToUpsert.missionId,
-              poi: poiUpsertReference,
-              station: actionToUpsert.stationUuid,
-              priorityOverride: actionToUpsert.priorityOverride,
-              stmUuidRefs: actionToUpsert.stmUuidRefs,
-              type: actionToUpsert.type,
-              description: actionToUpsert.description,
-              durationLower: actionToUpsert.durationLower,
-              durationUpper: actionToUpsert.durationUpper,
-              inventoryItems: actionToUpsert.inventoryItems,
-              status: actionToUpsert.status,
-              createdAt: actionToUpsert.createdAt || roundDateToSecond(new Date()),
-              updatedAt: roundDateToSecond(new Date()),
-            };
-
-            const upsertedAction = await em.upsert(Action_db, convertedAction);
-            await em.persistAndFlush(upsertedAction);
-
-            actionsReferences.push(convertActions(upsertedAction) as Action);
-          }
-
-          // find actions that are in the database but not in the request body
-          const actionsInDb = await em.find(Action_db, { poi: poiUpsertReference });
-          //const actionsInDb: Action[] = await getActions({ poiId: poiUpsertReference.id });
-          const actionsToDelete = actionsInDb.filter(
-            (actionInDb) =>
-              !actions.some((actionToUpsert) => actionToUpsert.uuid === actionInDb.uuid)
-          );
-          // delete actions that are in the database but not in the request body
-          for (const actionToDelete of actionsToDelete) {
-            //const deleteSuccess = await deleteAction(actionToDelete.uuid);
-            //if (!deleteSuccess) throw new Error("unable to delete action " + actionToDelete.uuid);
-            await em.removeAndFlush(actionToDelete);
-          }
-        } else {
-          actionsReferences = actions;
-        }
-
         const responsePoi: POI = {
           uuid: poiUpsertReference.uuid,
           missionId: poiUpsertReference.mission.id,
           ownerId: poiUpsertReference.owner.id,
           name: poiUpsertReference.name,
           description: poiUpsertReference.description,
-          actions: actionsReferences,
           priorityOverride: poiUpsertReference.priorityOverride,
           radius: poiUpsertReference.radius,
           location: poiUpsertReference.location,
@@ -158,15 +106,6 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
         const em = Mikro.getEM();
         const poiToDelete = await em.findOne(Poi_db, { uuid });
         if (poiToDelete) {
-          // find actions that are associated with this POI and delete them
-          //const actionsToDelete = await getActions({ poiId: poiToDelete.id });
-          const actionsToDelete = await em.find(Action_db, { poi: poiToDelete });
-          for (const actionToDelete of actionsToDelete) {
-            // const deleteSuccess = await deleteAction(actionToDelete.uuid);
-            // if (!deleteSuccess) throw new Error("unable to delete action " + actionToDelete.uuid);
-            await em.removeAndFlush(actionToDelete);
-          }
-
           // delete the POI
           await em.removeAndFlush(poiToDelete);
           return res.status(200).json({
@@ -198,12 +137,10 @@ export async function getPOIsByMission(missionId: number): Promise<POI[]> {
     { orderBy: { name: QueryOrder.ASC } }
   );
 
-  /** transform the Mikro Poi objects into POI objects used in the Store.
-   * also transform and populate the actions
-   */
+  /** transform the Mikro Poi objects into POI objects used in the Store */
   const transformedPois: POI[] = [];
   for (const poiItem of dbPois) {
-    let convertedPoi: POI = {
+    const convertedPoi: POI = {
       uuid: poiItem.uuid,
       ownerId: poiItem.owner.id,
       missionId: poiItem.mission.id,
@@ -218,19 +155,6 @@ export async function getPOIsByMission(missionId: number): Promise<POI[]> {
       createdAt: poiItem.createdAt,
       updatedAt: poiItem.updatedAt,
     };
-    //const convertedActions: Action[] = await getActions({ poiId: poiItem.id });
-    const actions = await em.find(
-      Action_db,
-      { poi: poiItem },
-      { orderBy: { name: QueryOrder.ASC } }
-    );
-    // const convertedActions: Action[] = actions.map((action) => ({
-    //   ...action,
-    //   poi: action.poi.id,
-    // }));
-    const convertedActions: Action[] = convertActions(actions) as Action[];
-
-    convertedPoi = { ...convertedPoi, actions: convertedActions };
     transformedPois.push(convertedPoi);
   }
 
