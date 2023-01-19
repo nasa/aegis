@@ -9,6 +9,7 @@ import { upsertAction } from "store/action";
 import StationAction from "./station-right-actions-action";
 import { starWars, uniqueNamesGenerator } from "unique-names-generator";
 import { v4 as uuidv4 } from "uuid";
+import _ from "lodash";
 
 const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -20,8 +21,18 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     (state: RootState) => state.mission.mission?.id,
     shallowEqual
   );
+  const selectedStation = useSelector(
+    (state: RootState) =>
+      state.station.stations.find((station) => station.uuid === selectedStationUuid),
+    shallowEqual
+  );
+
   const actions: Action[] = useSelector((state: RootState) => state.action.actions, shallowEqual);
   const stationActions = actions.filter((action) => action.stationUuid === selectedStationUuid);
+
+  const pois: POI[] = useSelector((state: RootState) => state.poi.pois, shallowEqual);
+  const stationPois = pois.filter((poi) => selectedStation?.poiUuids?.includes(poi.uuid));
+
   const handleCreateAction = () => {
     const randomName: string = uniqueNamesGenerator({
       dictionaries: [starWars],
@@ -32,7 +43,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
       missionId: selectedMissionId,
       stationUuid: selectedStationUuid,
       uuid: uuidv4(),
-      name: "Action " + randomName,
+      name: "A-" + randomName,
       description: "",
       status: "Candidate",
       type: "other",
@@ -60,6 +71,20 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
           />
         ))}
       </div>
+      <div className={paneStyles.rightBodyTitle}>Actions in associated POIs</div>
+      <div className={paneStyles.rightBodyBody}>
+        {_.sortBy(stationPois, "name")?.map((poi) => (
+          <div key={poi.uuid}>
+            <div className={paneStyles.rightBodyTitle}>{poi.name}</div>
+            {actions
+              ?.filter((action) => action.poiUuid === poi.uuid)
+              .map((action) => (
+                <div key={action.uuid}>{action.name}</div>
+              ))}
+          </div>
+        ))}
+      </div>
+
       <div className={paneStyles.rightBodyFooter}>
         <div className={paneStyles.panelSection}>
           {editMode && (

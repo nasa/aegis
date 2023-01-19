@@ -1,14 +1,11 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import { faLink } from "@fortawesome/free-solid-svg-icons";
-import { IconButton } from "components/interface/_global-elements";
 import { useSelector, useDispatch, shallowEqual } from "react-redux";
 import { RootState } from "store";
-import { setStationEditMode } from "store/station";
-import { upsertAction } from "store/action";
-import { starWars, uniqueNamesGenerator } from "unique-names-generator";
-import { v4 as uuidv4 } from "uuid";
+import { upsertStation } from "store/station";
 import poiStyles from "../poi/poi.module.css";
+import _ from "lodash";
+import { Checkbox } from "components/interface/_global-elements";
 
 const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -16,80 +13,85 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     (state: RootState) => state.station.selectedStationUuid,
     shallowEqual
   );
-  const selectedMissionId = useSelector(
-    (state: RootState) => state.mission.mission?.id,
-    shallowEqual
-  );
   const stations: Station[] = useSelector(
     (state: RootState) => state.station.stations,
     shallowEqual
   );
   const selectedStation = stations.find((station) => station.uuid === selectedStationUuid);
-  const pois = useSelector((state: RootState) => state.poi.pois, shallowEqual);
+  const pois: POI[] = useSelector((state: RootState) => state.poi.pois, shallowEqual);
 
-  const handleLinkAction = () => {
-    const randomName: string = uniqueNamesGenerator({
-      dictionaries: [starWars],
-      style: "capital",
-    });
+  const [selectedPois, setSelectedPois] = useState<POI[]>([]);
 
-    const blankAction: Action = {
-      missionId: selectedMissionId,
-      stationUuid: selectedStation.uuid,
-      uuid: uuidv4(),
-      name: "Action " + randomName,
-      description: "",
-      status: "Candidate",
-      type: "other",
-      durationLower: 5,
-      durationUpper: null,
-      stmUuidRefs: null,
-      inventoryItems: null,
-      priorityOverride: null,
-    };
-
-    dispatch(upsertAction(blankAction));
-    dispatch(setStationEditMode({ stationUuid: selectedStationUuid, editMode: true }));
-  };
+  // maintain a list of selected POIs for the selected station, so we can display them
+  useEffect(() => {
+    if (selectedStation) {
+      const selectedPois: POI[] = _.sortBy(
+        pois.filter((poi) => selectedStation.poiUuids.includes(poi.uuid)),
+        "name"
+      );
+      setSelectedPois(selectedPois);
+    }
+  }, [selectedStation, pois]);
 
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle}>Station POIs</div>
       <div className={paneStyles.panelContainer}>
         <div className={paneStyles.panelSection}>
-          <div className={paneStyles.panelSectionTitle}>POI Linking</div>
-          {selectedStation?.poiUuid?.length > 0 ? (
-            selectedStation.poiUuid.map((poiUuid) => {
-              const poi: POI = pois.find((storePoi: POI) => storePoi.uuid === poiUuid);
-              return (
-                poi && (
-                  <div className={poiStyles.poiItem} key={poi.uuid}>
-                    <div className={poiStyles.itemColor}>
-                      <div
-                        className={poiStyles.poiDot}
-                        style={{ backgroundColor: poi.color?.value }}
-                      />
+          <div className={paneStyles.panelSectionTitle}>POIs Linked to this Station</div>
+          {!editMode ? (
+            <>
+              {selectedPois.map((poi) => {
+                return (
+                  poi && (
+                    <div className={poiStyles.poiItem} key={poi.uuid}>
+                      <div className={poiStyles.checkboxPlaceholder}></div>
+                      <div className={poiStyles.itemColor}>
+                        {poi.color ? String.fromCodePoint(parseInt(poi.color.value, 16)) : ""}
+                      </div>
+                      <div className={`${poiStyles.name}`}>
+                        <div>{poi.name}</div>
+                        <div className={poiStyles.poiRightSpacer}></div>
+                      </div>
                     </div>
-                    <div className={`${poiStyles.name}`}>
-                      <div>{poi.name}</div>
-                      <div className={poiStyles.poiRightSpacer}></div>
-                    </div>
-                  </div>
-                )
-              );
-            })
+                  )
+                );
+              })}
+            </>
           ) : (
-            <div className={paneStyles.panelText}>0 linked POIs</div>
-          )}
-          {editMode && (
-            <IconButton
-              icon={faLink}
-              label="Link POIs"
-              style={{ width: "100px" }}
-              onClick={() => {
-                handleLinkAction();
-              }}
-            />
+            <>
+              {_.sortBy(pois, "name").map((poi) => {
+                const checked = selectedStation.poiUuids.includes(poi.uuid);
+                return (
+                  poi && (
+                    <div className={poiStyles.poiItem} key={poi.uuid}>
+                      <Checkbox
+                        checked={checked}
+                        onChange={(e) => {
+                          const updatedStation: Station = {
+                            ...selectedStation,
+                            poiUuids: e.target.checked
+                              ? [...selectedStation.poiUuids, poi.uuid]
+                              : selectedStation.poiUuids.filter((uuid) => uuid !== poi.uuid),
+                          };
+                          dispatch(upsertStation(updatedStation));
+                        }}
+                      />
+
+                      {poi.color && (
+                        <div className={poiStyles.itemColor}>
+                          {poi.color ? String.fromCodePoint(parseInt(poi.color.value, 16)) : ""}
+                        </div>
+                      )}
+                      <div className={`${poiStyles.name} ${poiStyles.nohover}`}>
+                        <div>{poi.name}</div>
+                        <div className={poiStyles.poiRightSpacer}></div>
+                      </div>
+                    </div>
+                  )
+                );
+              })}
+            </>
           )}
         </div>
       </div>

@@ -404,7 +404,30 @@ deploy:dev1:
   when: manual
   extends: .deploy-template
 
-nuke-dev1-db:
+dev1-nuke-db:
+  tags: ["emss-aegis-dev1"]
+  needs: []
+  environment:
+    name: development1
+    url: https://aegis-dev1.fit.nasa.gov
+  when: manual
+  stage: stageless
+  timeout: 10 minutes
+  variables:
+    GIT_STRATEGY: none
+
+  script:
+    # init sudo ability
+    - sudo -S touch /tmp/somefile <"${RUNNER_PASS_FILE_PATH}"
+    - rm -rf $(dirname "${RUNNER_PASS_FILE_PATH}")
+
+    - cd /opt/aegis
+    - sudo /usr/bin/docker compose down --remove-orphans
+    - sudo rm -rf /d1/postgres
+    - sudo /usr/bin/docker compose up -d
+    - docker compose exec nextjs npm run migrate:up
+
+dev1-seed-db:
   tags: ["emss-aegis-dev1"]
   needs: []
   environment:
@@ -419,4 +442,4 @@ nuke-dev1-db:
   script:
     - cd /opt/aegis
     # wipe all tables, run all migrations, run the seeder
-    - docker compose exec nextjs npx mikro-orm migration:fresh --seed
+    - docker compose exec nextjs npm run seed

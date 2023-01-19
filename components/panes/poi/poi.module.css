@@ -30,19 +30,17 @@
   user-select: none;
 }
 
+.checkboxPlaceholder {
+  flex: 0 0 20px;
+}
+
 .itemColor {
   display: flex;
   flex-direction: column;
   justify-content: space-around;
 
-  margin-right: 5px;
-}
-
-.poiDot {
-  height: 14px;
-  width: 14px;
-  border-radius: 50%;
-  border: 1px solid white;
+  font-size: 12px;
+  margin: 0 0 3px 3px;
 }
 
 .name {
@@ -67,6 +65,14 @@
 
 .name:hover {
   background-color: var(--grey1);
+}
+
+.name.nohover {
+  cursor: default;
+}
+
+.name.nohover:hover {
+  background-color: transparent;
 }
 
 .poiRightSpacer {

@@ -64,30 +64,6 @@ export const stationSlice = createSlice({
         }
       }
     },
-
-    // insertStationPois: (state, action: { payload: StationPoi[] }) => {
-    //   action.payload.forEach((stationpoi_payload) => {
-    //     //if record doesn't exist, add it.
-    //     if (
-    //       state.stationsPois.findIndex((stationpoi_state) => {
-    //         stationpoi_state.poiUuid === stationpoi_payload.poiUuid &&
-    //           stationpoi_state.stationUuid === stationpoi_state.stationUuid;
-    //       }) === -1
-    //     ) {
-    //       state.stationsPois.push(stationpoi_payload);
-    //     }
-    //   });
-    // },
-    // deleteStationPoi: (state, action: { payload: StationPoi }) => {
-    //   const index = state.stationsPois.findIndex((stationpoi_state) => {
-    //     stationpoi_state.poiUuid === action.payload.poiUuid &&
-    //       stationpoi_state.stationUuid === action.payload.stationUuid;
-    //   });
-    //   if (index >= 0) state.stationsPois.splice(index, 1);
-    // },
-    // deleteAllStationPois: (state) => {
-    //   state.stationsPois = [];
-    // },
   },
 });
 

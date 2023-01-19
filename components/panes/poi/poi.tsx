@@ -9,6 +9,7 @@ import { duplicatePoi, setPoiEditMode, setSelectedPoiUuid, upsertPoi } from "sto
 import { animals, uniqueNamesGenerator } from "unique-names-generator";
 import { v4 as uuidv4 } from "uuid";
 import PoiItem from "./poi-item";
+import _ from "lodash";
 
 const PoiEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -63,7 +64,7 @@ const PoiEditorLeft: FunctionComponent = () => {
       <div className={paneStyles.leftPanelContainer}>
         <div className={styles.container}>
           <div className={styles.body}>
-            {pois.map((poi) => {
+            {_.sortBy(pois, "name").map((poi) => {
               const poiFromDb = poisFromDb.find((poiFromDb) => poiFromDb.uuid === poi.uuid);
               return (
                 <PoiItem
