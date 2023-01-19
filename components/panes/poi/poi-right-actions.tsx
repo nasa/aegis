@@ -34,7 +34,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
       missionId: selectedMissionId,
       poiUuid: selectedPoiUuid,
       uuid: uuidv4(),
-      name: "Action " + randomName,
+      name: "A-" + randomName,
       description: "",
       status: "Candidate",
       type: "other",

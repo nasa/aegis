@@ -20,7 +20,7 @@ interface Station {
 
   ownerId: number;
   missionId: number;
-  poiUuid?: string[];
+  poiUuids?: string[];
 
   name: string;
   status: StationStatus;

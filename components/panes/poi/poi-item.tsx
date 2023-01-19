@@ -43,6 +43,9 @@ const PoiItem: FunctionComponent<{
     }
   }, [actionsFromDb, poi.uuid]);
 
+  const colorCharAsInt = parseInt(poi.color?.value, 16);
+  const unicodeColorEmoji = colorCharAsInt ? String.fromCodePoint(colorCharAsInt) : "";
+
   return (
     <div
       className={poiStyles.poiItem}
@@ -56,9 +59,7 @@ const PoiItem: FunctionComponent<{
         }
       }}
     >
-      <div className={poiStyles.itemColor}>
-        <div className={poiStyles.poiDot} style={{ backgroundColor: poi.color?.value }} />
-      </div>
+      <div className={poiStyles.itemColor}>{unicodeColorEmoji}</div>
       <div className={`${poiStyles.name} ${isPoiSelectedStyle}`}>
         <div>{poi.name}</div>
         <ModifiedIndicator

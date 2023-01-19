@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { faLocationDot, faMapLocationDot } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -22,6 +22,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   );
   const pois: POI[] = useSelector((state: RootState) => state.poi.pois, shallowEqual);
   const selectedPoi = pois.find((poi) => poi.uuid === selectedPoiUuid);
+  const [editLocation, setEditLocation] = useState(false);
 
   return (
     <div className={paneStyles.rightBody}>
@@ -70,10 +71,15 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   dispatch(upsertPoi({ ...selectedPoi, color: value }));
                 }}
                 items={[
-                  { value: "red", label: "Red" },
-                  { value: "blue", label: "Blue" },
-                  { value: "green", label: "Green" },
-                  { value: "yellow", label: "Yellow" },
+                  { label: "Red", value: "1F534" },
+                  { label: "Blue", value: "1F535" },
+                  { label: "Green", value: "1F7E2" },
+                  { label: "Yellow", value: "1F7E1" },
+                  { label: "Purple", value: "1F7E3" },
+                  { label: "Orange", value: "1F7E0" },
+                  { label: "Brown", value: "1F7E4" },
+                  { label: "Black", value: "26AB" },
+                  { label: "White", value: "26AA" },
                 ]}
               ></ColorDropdown>
             </div>
@@ -118,12 +124,32 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             <div className={paneStyles.verticalCenter}>
               <div className={paneStyles.panelText}>0.00000, 0.00000</div>
             </div>
-            {editMode && (
+            {editMode ? (
+              !editLocation ? (
+                <IconButton
+                  onClick={() => {
+                    setEditLocation(true);
+                  }}
+                  icon={faMapLocationDot}
+                  label="Edit Location"
+                  style={{ width: "110px" }}
+                />
+              ) : (
+                <IconButton
+                  onClick={() => {
+                    setEditLocation(false);
+                  }}
+                  icon={faMapLocationDot}
+                  label="Cancel Edit Location"
+                  style={{ width: "150px" }}
+                />
+              )
+            ) : (
               <IconButton
                 onClick={() => {}}
                 icon={faMapLocationDot}
-                label="Edit Location"
-                style={{ width: "110px" }}
+                label="Show on Map"
+                style={{ width: "120px" }}
               />
             )}
           </div>

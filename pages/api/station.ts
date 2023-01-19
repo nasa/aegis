@@ -174,8 +174,8 @@ export async function upsertStation(station: Station): Promise<Station> {
   //remove all pois
   stationRefFromDb.poi.removeAll();
   //add back pois
-  if (stationToUpsert.poiUuid) {
-    for (const uuid of stationToUpsert.poiUuid) {
+  if (stationToUpsert.poiUuids) {
+    for (const uuid of stationToUpsert.poiUuids) {
       const poiReference = em.getReference(Poi_db, uuid);
       stationRefFromDb.poi.add(poiReference);
     }
@@ -231,10 +231,10 @@ function convertStations(dbstations: Station_db[]): Station[] {
       updatedAt: dbstation.updatedAt,
     };
     //convert collection of poi's to just an array of poi uuids
-    convertedStation.poiUuid = [];
+    convertedStation.poiUuids = [];
     if (dbstation.poi.length > 0) {
       for (const poi of dbstation.poi) {
-        convertedStation.poiUuid.push(poi.uuid);
+        convertedStation.poiUuids.push(poi.uuid);
       }
     }
 

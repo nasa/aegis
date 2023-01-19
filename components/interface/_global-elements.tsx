@@ -59,13 +59,14 @@ export const ColorDropdown: FunctionComponent<{
 }> = ({ items, editing, selected, setSelected }) => {
   const [expanded, setExpanded] = useState(false);
 
+  const colorCharAsInt = parseInt(selected?.value, 16);
+  const unicodeColorEmoji = colorCharAsInt ? String.fromCodePoint(colorCharAsInt) : "";
+
   if (!editing) {
     return (
       <div className={styles.colorDropdownContainer}>
         <div className={styles.colorDropdownModalItemNotEditing}>
-          <div className={styles.itemColor}>
-            <div className={styles.itemDot} style={{ backgroundColor: selected?.value }} />
-          </div>
+          <div className={styles.itemColor}>{unicodeColorEmoji}</div>
           <div className={styles.colorDropdownModalItemLabel}>{selected?.label}</div>
         </div>
       </div>
@@ -75,9 +76,7 @@ export const ColorDropdown: FunctionComponent<{
     if (selected) {
       selectedItem = (
         <div className={styles.colorDropdownModalItem}>
-          <div className={styles.itemColor}>
-            <div className={styles.itemDot} style={{ backgroundColor: selected?.value }} />
-          </div>
+          <div className={styles.itemColor}>{unicodeColorEmoji}</div>
           <div className={styles.colorDropdownModalItemLabel}>{selected?.label}</div>
         </div>
       );
@@ -111,7 +110,7 @@ export const ColorDropdown: FunctionComponent<{
                 onClick={() => setSelected(item)}
               >
                 <div className={styles.itemColor}>
-                  <div className={styles.itemDot} style={{ backgroundColor: item.value }} />
+                  {String.fromCodePoint(parseInt(item.value, 16))}
                 </div>
                 <div className={styles.colorDropdownModalItemLabel}>{item.label}</div>
               </div>
@@ -163,7 +162,7 @@ export const ModifiedIndicator: FunctionComponent<{
   obj2: Object;
   svgStyle: { width: string; height: string; cx: string; cy: string; r: string; fill: string };
 }> = ({ obj1, obj2, svgStyle }) => {
-  if (_.isEqual(obj1, obj2)) {
+  if (_.isEqual(_.sortBy(obj1, ["uuid"]), _.sortBy(obj2, ["uuid"]))) {
     return <></>;
   } else {
     return (
@@ -270,5 +269,21 @@ export const ContentEditableTextArea: FunctionComponent<{
       )}
       {!editing && <div className={styles.notesText}>{html}</div>}
     </>
+  );
+};
+
+export const Checkbox: FunctionComponent<{
+  checked: boolean;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+}> = ({ checked, onChange }) => {
+  return (
+    <div className={styles.checkboxContainer}>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        className={checked ? styles.checkboxChecked : ""}
+      />
+    </div>
   );
 };

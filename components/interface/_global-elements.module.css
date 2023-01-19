@@ -205,8 +205,7 @@
 
 .colorDropdownModalItemNotEditing {
   display: flex;
-  flex-direction: row;
-  justify-content: space-between;
+
   width: 100%;
 
   padding-left: 5px;
@@ -247,14 +246,13 @@
   flex-direction: column;
   justify-content: space-around;
 
-  margin-right: 5px;
+  font-size: 11px;
+  margin-right: 2px;
 }
 
 .itemDot {
   height: 14px;
   width: 14px;
-  border-radius: 50%;
-  border: 1px solid white;
 }
 
 .inLineEditInput {
@@ -345,4 +343,29 @@
 
 .modifiedSpan {
   margin: auto;
+}
+
+.checkboxContainer input[type="checkbox"] {
+  margin-top: 4px;
+  appearance: none;
+  width: 1.2em;
+  height: 1.2em;
+  background-color: var(--grey2);
+  border: 1px solid var(--grey4);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.checkboxChecked {
+  background-color: #007a7e;
+  position: relative;
+}
+
+.checkboxChecked::before {
+  content: "\2714";
+  font-size: 1.2em;
+  color: #fff;
+  position: absolute;
+  right: 1px;
+  top: -5px;
 }
