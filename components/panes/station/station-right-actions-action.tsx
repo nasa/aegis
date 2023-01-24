@@ -1,9 +1,11 @@
 import {
   faCaretDown,
   faCaretRight,
+  faGripVertical,
   faTableList,
   faTrashAlt,
 } from "@fortawesome/free-solid-svg-icons";
+import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   ContentEditableTextArea,
@@ -14,28 +16,73 @@ import {
 } from "components/interface/_global-elements";
 import { FunctionComponent, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
+import stationStyles from "./station.module.css";
 import { setStationEditMode } from "store/station";
 import { deleteAction, upsertAction } from "store/action";
 import { toDecimal } from "utils/formatting";
-import { useDispatch } from "react-redux";
+import { useSelector, useDispatch, shallowEqual } from "react-redux";
+import { RootState } from "store";
+import { Tooltip } from "react-tooltip";
+import ReactDOMServer from "react-dom/server";
 
 const RightAction: FunctionComponent<{
   editMode: boolean;
   stationUuid: string;
   action: Action;
-}> = ({ editMode, stationUuid, action }) => {
+  highlight: boolean;
+}> = ({ editMode, stationUuid, action, highlight }) => {
+  const actions: Action[] = useSelector((state: RootState) => state.action.actions, shallowEqual);
+  const pois: POI[] = useSelector((state: RootState) => state.poi.pois, shallowEqual);
+
   const dispatch = useDispatch();
   const [expanded, setExpanded] = useState(false);
 
+  function buildActionTooltip() {
+    if (!action.parentActionUuid) return <></>;
+    const parentAction = actions.find(
+      (storeAction) => storeAction.uuid === action.parentActionUuid
+    );
+    const parentPoi = pois.find((storePoi) => storePoi.uuid === parentAction.poiUuid);
+    if (parentAction && parentPoi) {
+      const copyDate: Date = new Date(action.parentCopyDate);
+      const dateString = `${
+        copyDate.getUTCMonth() + 1
+      }/${copyDate.getUTCDate()}/${copyDate.getUTCFullYear()} @ ${copyDate.getUTCHours()}:${copyDate.getUTCMinutes()} UTC`;
+      return (
+        <>
+          Copied from {parentPoi.name} - {parentAction.name}
+          <br />
+          on {dateString}
+        </>
+      );
+    } else {
+      return <></>;
+    }
+  }
+
   return (
-    <div className={paneStyles.panelContainer}>
+    <div className={`${paneStyles.panelContainer} ${stationStyles.stationPanelContainer}`}>
       <div
-        className={paneStyles.actionsHeading}
+        className={`${paneStyles.actionsHeading} ${highlight && stationStyles.highlightAction}`}
         onClick={() => {
           setExpanded(!expanded);
         }}
       >
-        <div className={paneStyles.actionsHeadingCaret}>
+        {editMode && (
+          <a>
+            <FontAwesomeIcon
+              icon={faGripVertical}
+              className={stationStyles.reorderIcon}
+              size="sm"
+            />
+          </a>
+        )}
+
+        <div
+          className={`${paneStyles.actionsHeadingCaret} ${
+            editMode && stationStyles.actionsHeadingCaret_stationEdit
+          } `}
+        >
           {expanded ? (
             <FontAwesomeIcon icon={faCaretDown} size="sm" />
           ) : (
@@ -47,7 +94,9 @@ const RightAction: FunctionComponent<{
           )}
         </div>
         {!editMode ? (
-          <div className={paneStyles.actionsHeadingTitle}>{action.type}</div>
+          <div className={`${paneStyles.actionsHeadingTitle} ${stationStyles.stationColor}`}>
+            {action.type}
+          </div>
         ) : (
           <Dropdown
             selected={action.type}
@@ -62,12 +111,13 @@ const RightAction: FunctionComponent<{
             <option value="other">Other</option>
           </Dropdown>
         )}
+
         <div className={paneStyles.actionsHeadingSubTitle}>
           <InLineEditInput
             fieldName="Action Title"
             editing={editMode}
             maxLength={255}
-            style={{ width: "100%" }}
+            styleInput={{ width: "100%" }}
             containerStyle={{ fontSize: "0.9em", fontWeight: 400 }}
             value={action.name}
             onChange={(val) => {
@@ -76,8 +126,8 @@ const RightAction: FunctionComponent<{
             }}
           />
         </div>
-        <div className={paneStyles.actionHeadingIcons}>
-          {editMode && (
+        {editMode ? (
+          <div className={paneStyles.actionHeadingIcons}>
             <FontAwesomeIcon
               icon={faTrashAlt}
               size="sm"
@@ -87,8 +137,25 @@ const RightAction: FunctionComponent<{
                 e.stopPropagation();
               }}
             />
-          )}
-        </div>
+          </div>
+        ) : (
+          action.parentActionUuid &&
+          actions && (
+            <div className={paneStyles.actionHeadingIcons}>
+              <FontAwesomeIcon
+                id={`${action.uuid}-${action.parentActionUuid}`}
+                icon={faCircleDot}
+                size="sm"
+                className={stationStyles.iconFaded}
+              />
+              <Tooltip
+                anchorId={`${action.uuid}-${action.parentActionUuid}`}
+                className={stationStyles.stationToolTip}
+                html={ReactDOMServer.renderToString(buildActionTooltip())}
+              />
+            </div>
+          )
+        )}
       </div>
       {expanded && (
         <>
@@ -117,7 +184,7 @@ const RightAction: FunctionComponent<{
                     fieldName="Minimum Time in minutes"
                     editing={editMode}
                     maxLength={4}
-                    style={{ width: "45px" }}
+                    styleInput={{ width: "45px" }}
                     containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
                     value={action.durationLower.toString()}
                     onChange={(val: number) => {
@@ -139,7 +206,7 @@ const RightAction: FunctionComponent<{
                     fieldName="Maximum Time in minutes"
                     editing={editMode}
                     maxLength={4}
-                    style={{ width: "45px" }}
+                    styleInput={{ width: "45px" }}
                     containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
                     value={action.durationUpper?.toString()}
                     onChange={(val: number) => {

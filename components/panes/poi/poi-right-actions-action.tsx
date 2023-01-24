@@ -14,6 +14,7 @@ import {
 } from "components/interface/_global-elements";
 import { FunctionComponent, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
+import poiStyles from "./poi.module.css";
 import { setPoiEditMode } from "store/poi";
 import { deleteAction, upsertAction } from "store/action";
 import { toDecimal } from "utils/formatting";
@@ -47,7 +48,9 @@ const RightAction: FunctionComponent<{ editMode: boolean; poiUuid: string; actio
           )}
         </div>
         {!editMode ? (
-          <div className={paneStyles.actionsHeadingTitle}>{action.type}</div>
+          <div className={`${paneStyles.actionsHeadingTitle} ${poiStyles.poiColor} `}>
+            {action.type}
+          </div>
         ) : (
           <Dropdown
             selected={action.type}
@@ -67,7 +70,7 @@ const RightAction: FunctionComponent<{ editMode: boolean; poiUuid: string; actio
             fieldName="Action Title"
             editing={editMode}
             maxLength={255}
-            style={{ width: "100%" }}
+            styleInput={{ width: "100%" }}
             containerStyle={{ fontSize: "0.9em", fontWeight: 400 }}
             value={action.name}
             onChange={(val) => {
@@ -117,7 +120,7 @@ const RightAction: FunctionComponent<{ editMode: boolean; poiUuid: string; actio
                     fieldName="Minimum Time in minutes"
                     editing={editMode}
                     maxLength={4}
-                    style={{ width: "45px" }}
+                    styleInput={{ width: "45px" }}
                     containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
                     value={action.durationLower.toString()}
                     onChange={(val) => {
@@ -139,7 +142,7 @@ const RightAction: FunctionComponent<{ editMode: boolean; poiUuid: string; actio
                     fieldName="Maximum Time in minutes"
                     editing={editMode}
                     maxLength={4}
-                    style={{ width: "45px" }}
+                    styleInput={{ width: "45px" }}
                     containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
                     value={action.durationUpper?.toString()}
                     onChange={(val) => {

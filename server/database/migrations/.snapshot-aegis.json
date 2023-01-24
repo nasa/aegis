@@ -426,7 +426,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "int",
           "unsigned": true,
           "autoincrement": true,
           "primary": true,
@@ -590,6 +590,15 @@
           "nullable": true,
           "mappedType": "json"
         },
+        "action_order_uuids": {
+          "name": "action_order_uuids",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "json"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamptz(0)",
@@ -681,6 +690,24 @@
           "nullable": false,
           "mappedType": "integer"
         },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "string"
+        },
+        "description": {
+          "name": "description",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "string"
+        },
         "mission_preset": {
           "name": "mission_preset",
           "type": "boolean",
@@ -700,24 +727,6 @@
           "nullable": false,
           "default": "false",
           "mappedType": "boolean"
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(255)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "string"
-        },
-        "description": {
-          "name": "description",
-          "type": "varchar(255)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "mappedType": "string"
         },
         "layer_controls": {
           "name": "layer_controls",
@@ -891,6 +900,15 @@
           "nullable": false,
           "mappedType": "string"
         },
+        "action_order_uuids": {
+          "name": "action_order_uuids",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "json"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamptz(0)",
@@ -1056,6 +1074,25 @@
           "nullable": true,
           "mappedType": "string"
         },
+        "parent_action_uuid": {
+          "name": "parent_action_uuid",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "string"
+        },
+        "parent_copy_date": {
+          "name": "parent_copy_date",
+          "type": "timestamptz(0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        },
         "name": {
           "name": "name",
           "type": "varchar(255)",
@@ -1208,6 +1245,19 @@
             "uuid"
           ],
           "referencedTableName": "public.station",
+          "deleteRule": "set null",
+          "updateRule": "cascade"
+        },
+        "action_parent_action_uuid_foreign": {
+          "constraintName": "action_parent_action_uuid_foreign",
+          "columnNames": [
+            "parent_action_uuid"
+          ],
+          "localTableName": "public.action",
+          "referencedColumnNames": [
+            "uuid"
+          ],
+          "referencedTableName": "public.action",
           "deleteRule": "set null",
           "updateRule": "cascade"
         }

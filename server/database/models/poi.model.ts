@@ -33,6 +33,8 @@ export class Poi implements Poi_db_type {
   tags: string[];
   @Property({ type: MikroTypes.string })
   status!: POIStatus;
+  @Property({ type: MikroTypes.json, nullable: true })
+  actionOrderUuids: string[];
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;

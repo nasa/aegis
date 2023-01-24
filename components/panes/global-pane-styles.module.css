@@ -78,7 +78,7 @@
   flex-direction: row;
 }
 .rightIconRow {
-  margin-top: 10px;
+  margin-top: 5px;
   display: inline-flex;
   flex-flow: row nowrap;
   justify-content: flex-start;
@@ -86,28 +86,28 @@
   padding: 0 0 0 8px;
 }
 .rightIcon {
-  padding: 2px 7px;
+  padding: 5px 7px;
 }
 
 .rightIconContainer {
   background: black;
   border-top: 2px solid black;
   width: 35px;
-  height: 30px;
+  height: 32px;
   cursor: pointer;
 }
 .rightIconContainer:hover {
   background-color: var(--grey1);
   border-top: 2px solid var(--grey1);
   width: 35px;
-  height: 30px;
+  height: 32px;
 }
 
 .rightIconContainerSelected {
   background: var(--grey1);
   border-top: 2px solid #fff;
   width: 35px;
-  height: 30px;
+  height: 32px;
   cursor: pointer;
 }
 
@@ -220,7 +220,6 @@
 }
 
 .actionsHeadingTitle {
-  color: var(--poi);
   font-size: 0.9em;
   font-weight: 400;
   width: 115px;
@@ -245,10 +244,8 @@
 }
 
 .actionHeadingIcons {
-  display: flex;
   width: 18px;
   margin-top: 4px;
-  margin-left: 6px;
 }
 
 .check {

@@ -262,7 +262,12 @@ const PoiEditorRight: FunctionComponent = () => {
               value={selectedPoi.name}
               editing={poisEditing.includes(selectedPoiUuid)}
               maxLength={255}
-              style={{ width: "100%", marginRight: "10px", color: "var(--poi)", fontSize: "1em" }}
+              styleInput={{
+                width: "100%",
+                marginRight: "10px",
+                color: "var(--poi)",
+                fontSize: "1em",
+              }}
               containerStyle={{ paddingLeft: 0 }}
               onChange={(val) => {
                 dispatch(upsertPoi({ ...selectedPoi, name: val }));

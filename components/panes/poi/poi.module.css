@@ -102,3 +102,7 @@
   flex-direction: column;
   justify-content: space-around;
 }
+
+.poiColor {
+  color: var(--poi);
+}

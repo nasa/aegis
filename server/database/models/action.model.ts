@@ -17,6 +17,11 @@ export class Action implements Action_db_type {
   @ManyToOne(() => Station, { unique: false, primary: false, nullable: true })
   station: Station;
 
+  @ManyToOne(() => Action, { unique: false, primary: false, nullable: true })
+  parentAction: Action;
+  @Property({ type: MikroTypes.datetime, nullable: true })
+  parentCopyDate: Date;
+
   @Property({ type: MikroTypes.string })
   name!: string;
   @Property({ type: MikroTypes.integer, nullable: true })
