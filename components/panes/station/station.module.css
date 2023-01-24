@@ -44,6 +44,131 @@
   background-color: var(--grey1);
 }
 
+.stationPanelContainer {
+  margin: 0px;
+  padding: 0px;
+}
+
 .stationRightSpacer {
   flex: 1;
+}
+
+.stationRightBodySubItem {
+  padding-left: 20px;
+  padding-top: 10px;
+}
+
+.stationRightBodyItem {
+  padding-left: 8px;
+}
+
+.stationRightBodyItemIcon {
+  display: inline-block;
+  width: 1.25em;
+}
+
+.stmItem {
+  display: inline-block;
+}
+
+.stationColor {
+  color: var(--station);
+}
+
+.stationPanelContainer .stationToolTip,
+.stmItem .stationToolTip {
+  z-index: 900;
+  background-color: white;
+  color: black;
+  max-width: 400px;
+  opacity: 100%;
+}
+
+.highlightAction {
+  background-color: #356b6c;
+  border-radius: var(--panelRadius);
+}
+
+.actionlist {
+  list-style-type: none;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  padding: 0;
+}
+
+.actionlistitem {
+  border-color: var(--grey1);
+  border-width: 4px 8px;
+  border-style: solid;
+}
+
+.reorderIcon {
+  display: flex;
+  margin-top: 5px;
+  margin-left: 3px;
+  transform: scaleX(0.8);
+  cursor: pointer;
+}
+
+.poiIcon {
+  font-size: 12px;
+  vertical-align: top;
+}
+
+.copyIcon {
+  padding-top: 7px;
+  width: 18px;
+  cursor: pointer;
+}
+
+.iconFaded {
+  color: var(--grey4);
+}
+
+.actionsHeadingCaret_stationEdit {
+  margin-left: 0px;
+}
+
+.stationPoiSection {
+  padding: 0px 5px 5px 5px;
+}
+
+.stationPoiTitle {
+  font-size: 1.1em;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.stationPoiHeading {
+  display: flex;
+  gap: 8px;
+  padding: 5px;
+}
+
+.stationPoiSubheading {
+  font-size: 0.9em;
+  font-weight: 400;
+}
+
+.stationPoiActions {
+  padding-left: 20px;
+}
+
+.stationPoiActionItems {
+  background-color: var(--grey3);
+  margin: 4px;
+  border-radius: var(--radius);
+  flex-grow: 1;
+}
+
+.stationActionsHeadingTitle {
+  margin-top: 0px;
+}
+
+.actionsHeading {
+  display: flex;
+}
+
+.actionHeadingFaded {
+  opacity: 0.2;
 }

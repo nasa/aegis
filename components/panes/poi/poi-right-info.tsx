@@ -53,7 +53,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   fieldName="Radius"
                   editing={editMode}
                   maxLength={4}
-                  style={{ width: "45px" }}
+                  styleInput={{ width: "45px" }}
                   containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
                   value={selectedPoi.radius.toString()}
                   onChange={(val) => {

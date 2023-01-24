@@ -1,5 +1,8 @@
 import { createSlice } from "@reduxjs/toolkit";
+import _ from "lodash";
+import { roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
+import { v4 as uuidv4 } from "uuid";
 
 export const initialState: ActionState = {
   actions: [],
@@ -47,6 +50,18 @@ export const actionSlice = createSlice({
     deleteAllActionsFromDb: (state) => {
       state.actionsFromDb = [];
     },
+    duplicateAction: (
+      state,
+      action: { payload: { action: Action; stationUuid?: string; poiUuid?: string } }
+    ) => {
+      const newAction: Action = _.cloneDeep(action.payload.action);
+      newAction.uuid = uuidv4();
+      newAction.parentActionUuid = action.payload.action.uuid;
+      newAction.parentCopyDate = roundDateToSecond(new Date());
+      newAction.stationUuid = action.payload.stationUuid;
+      newAction.poiUuid = action.payload.poiUuid;
+      state.actions.push(newAction);
+    },
   },
 });
 
@@ -59,4 +74,5 @@ export const {
   deleteActionsFromDb,
   deleteAllActions,
   deleteAllActionsFromDb,
+  duplicateAction,
 } = actionSlice.actions;

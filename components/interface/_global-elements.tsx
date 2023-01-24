@@ -178,20 +178,31 @@ export const ModifiedIndicator: FunctionComponent<{
 export const InLineEditInput: FunctionComponent<{
   fieldName: string;
   editing: boolean;
-  style: React.CSSProperties;
+  styleInput: React.CSSProperties;
+  styleValue?: React.CSSProperties;
   containerStyle?: React.CSSProperties;
   maxLength: number;
   value: string;
   onChange: Function;
   onBlur?: Function;
-}> = ({ fieldName, editing, style, containerStyle, maxLength, value, onChange, onBlur }) => {
+}> = ({
+  fieldName,
+  editing,
+  styleInput,
+  styleValue,
+  containerStyle,
+  maxLength,
+  value,
+  onChange,
+  onBlur,
+}) => {
   return (
     <div style={containerStyle}>
       {editing && (
         <input
           className={styles.inLineEditInput}
           maxLength={maxLength}
-          style={style}
+          style={styleInput}
           aria-label={fieldName}
           value={value}
           onChange={(event) => onChange(event.target.value)}
@@ -204,7 +215,7 @@ export const InLineEditInput: FunctionComponent<{
         />
       )}
       {!editing && (
-        <div className={styles.inLineEditValue} title={fieldName}>
+        <div className={styles.inLineEditValue} style={styleValue} title={fieldName}>
           {value}
         </div>
       )}

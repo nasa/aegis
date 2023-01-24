@@ -21,6 +21,7 @@ interface Station {
   ownerId: number;
   missionId: number;
   poiUuids?: string[];
+  actionOrderUuids?: string[];
 
   name: string;
   status: StationStatus;
@@ -49,6 +50,7 @@ interface POI {
   uuid: string;
   ownerId: number;
   missionId: number;
+  actionOrderUuids?: string[];
 
   /**
    * The name of the POI, e.g. "M-19"
@@ -89,6 +91,7 @@ interface POI {
    * Status of this POI
    */
   status: POIStatus;
+
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -118,6 +121,9 @@ type Action = {
   missionId: number;
   poiUuid?: string;
   stationUuid?: string;
+
+  parentActionUuid?: string;
+  parentCopyDate?: Date;
   /**
    * Priority normally inferred by STM relationship, but can be overridden.
    */
@@ -156,6 +162,7 @@ type Action_db_type = Omit<Action, "missionId" | "poiUuid" | "stationUuid"> & {
   mission: Mission_db_type;
   poi: Poi_db_type;
   station: Station_db_type;
+  parentAction: Action_db_type;
 };
 
 interface ActionFilterOptions {

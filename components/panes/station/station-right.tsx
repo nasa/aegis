@@ -33,8 +33,8 @@ import {
 } from "store/action";
 
 import Info_Panel from "./station-right-info";
-import Actions_Panel from "./station-right-actions";
 import Poi_Panel from "./station-right-poi";
+import Actions_Panel from "./station-right-actions";
 import * as httpClient_station from "http-client/station";
 import * as httpClient_action from "http-client/action";
 
@@ -275,12 +275,13 @@ const StationEditorRight: FunctionComponent = () => {
               value={selectedStation.name}
               editing={stationsEditing.includes(selectedStationUuid)}
               maxLength={255}
-              style={{
+              styleInput={{
                 width: "100%",
                 marginRight: "10px",
                 color: "var(--station)",
                 fontSize: "1em",
               }}
+              styleValue={{ padding: 0, height: "auto" }}
               containerStyle={{ paddingLeft: 0 }}
               onChange={(val) => {
                 dispatch(upsertStation({ ...selectedStation, name: val }));

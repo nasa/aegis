@@ -15,7 +15,7 @@ import { Poi } from "./poi.model";
 import { Action } from "./action.model";
 
 @Entity()
-export class Station {
+export class Station implements Station_db_type {
   @PrimaryKey({ type: MikroTypes.string, unique: true })
   uuid!: string;
 
@@ -38,6 +38,8 @@ export class Station {
   radius!: number;
   @Property({ type: MikroTypes.json, nullable: true })
   location: Point | Point[];
+  @Property({ type: MikroTypes.json, nullable: true })
+  actionOrderUuids: string[];
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;

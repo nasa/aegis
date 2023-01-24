@@ -163,7 +163,12 @@ const PresetEditorRight: FunctionComponent = () => {
             value={selectedPreset.name}
             editing={presetsEditing.includes(selectedPresetUuid)}
             maxLength={255}
-            style={{ width: "100%", marginRight: "10px", color: "var(--map)", fontSize: "1em" }}
+            styleInput={{
+              width: "100%",
+              marginRight: "10px",
+              color: "var(--map)",
+              fontSize: "1em",
+            }}
             containerStyle={{ paddingLeft: 0 }}
             onChange={(val) => {
               dispatch(upsertPreset({ ...selectedPreset, name: val }));
