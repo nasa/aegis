@@ -147,3 +147,10 @@ npm run seed
 # Fresh start (drop database, run migrations, seed)
 npx mikro-orm migration:fresh --seed
 ```
+
+### In case of migration squash please do the following on production [This could be automated in the future]
+ * Backup Current Table Structure and Data
+ * Delete Table Structure
+ * Delete Migration Files and Snapshot.json
+ * Run fresh migration with new file
+ * Import backedup data into database.

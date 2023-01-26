@@ -5,32 +5,47 @@ import reducer, {
 } from "../../store/map";
 import { setLayers } from "../../store/mission";
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
-import Mikro from "../../utils/mikro";
-import { getLayers } from "../../pages/api/layer";
-import UserFactory from "../helpers/UserFactory";
-import MissionFactory from "../helpers/MissionFactory";
+import { getORM, getEM, closeORM } from "utils/mikro";
+import handleLayer from "../../pages/api/layer";
+import Login from "../../pages/api/users/login";
+
+import UserFactory from "../factories/UserFactory";
+import MissionFactory from "../factories/MissionFactory";
 import { Mission as Mission_db } from "../../server/database/models/mission.model";
 import { User as User_db } from "../../server/database/models/user.model";
-import { Layer as Layer_db } from "../../server/database/models/layer.model";
-import LayerFactory from "../helpers/LayerFactory";
+import {
+  createMocks,
+  createRequest,
+  createResponse,
+  RequestOptions,
+  ResponseOptions,
+} from "node-mocks-http";
+import { NextApiRequest, NextApiResponse } from "next";
+import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
 
 let testMission: Mission_db;
 let testAdmin: User_db;
-let testLayer: Layer_db[];
 
 beforeAll(async () => {
-  await Mikro.getORM();
-  const em = Mikro.getEM();
+  await getORM();
+  const em = getEM();
   testAdmin = await new UserFactory(em).createOne();
   testMission = await new MissionFactory(em).createOne();
-  testLayer = await new LayerFactory(em)
-    .each((layer) => {
-      layer.mission = testMission;
-    })
-    .create(1);
 });
 
 describe("Map and MMGIS Reducer: ", () => {
+  type ApiRequest = NextApiRequest & ReturnType<typeof createRequest>;
+  type ApiResponse = NextApiResponse & ReturnType<typeof createResponse>;
+
+  let loginCookie: string;
+
+  function mockRequestResponse(reqOptions: RequestOptions, resOptions?: ResponseOptions) {
+    const { req, res }: { req: ApiRequest; res: ApiResponse } = createMocks(reqOptions, resOptions);
+    return { req, res };
+  }
+
   it("should return the initial state on first run", () => {
     // Arrange
     const nextState = initialState;
@@ -44,11 +59,36 @@ describe("Map and MMGIS Reducer: ", () => {
     expect(result).toEqual(nextState);
   });
 
+  test("Returns login session", async () => {
+    const loginReqRes = mockRequestResponse({
+      method: "POST",
+      body: { username: "testAdmin", password: "superSecretPassword" },
+    });
+    await Login(loginReqRes.req, loginReqRes.res);
+    expect(loginReqRes.res.statusCode).toBe(200); //check response from login
+    loginCookie = loginReqRes.res._getHeaders()["set-cookie"][0];
+  });
+
   it("Set the State when loading Map layer", async () => {
+    // Get layers
+    const reqOptions: RequestOptions = {
+      method: "GET",
+      headers: { cookie: loginCookie },
+      query: { missionId: testMission.id.toString() },
+    };
+    const { req, res } = mockRequestResponse(reqOptions);
+    await handleLayer(req, res);
+    expect(res.statusCode).toBe(200);
+    expect(res.statusMessage).toEqual("OK");
+
+    const wrappedResponse = res._getJSONData();
+    expect(wrappedResponse.status).toBe("success");
+    const layers: Layer[] = wrappedResponse.data;
+
     // Arrange
-    const layers: Layer[] = await getLayers(testMission.id);
     const configLayers = setLayers(layers);
     const controls: LayerControls = {};
+
     // Act
     configLayers.payload.map((configLayer) => {
       controls[configLayer.layerConfig.name] = {
@@ -89,10 +129,9 @@ describe("Map and MMGIS Reducer: ", () => {
 
 afterAll(async () => {
   //Cleanup our Database
-  const em = Mikro.getEM();
-  await em.nativeDelete(Layer_db, { uuid: testLayer[0].uuid });
+  const em = getEM();
   await em.nativeDelete(Mission_db, { id: testMission.id });
   await em.nativeDelete(User_db, { id: testAdmin.id });
   // Closing the DB connection allows Jest to exit successfully.
-  await Mikro.closeORM();
+  await closeORM();
 });

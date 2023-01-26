@@ -1,13 +1,14 @@
+import { EntityData } from "@mikro-orm/core";
 import { Factory } from "@mikro-orm/seeder";
 import { v4 } from "uuid";
 import { Layer as Layer_db } from "../../server/database/models/layer.model";
 
 export default class LayerFactory extends Factory<Layer_db> {
   model = Layer_db;
-  definition(): Object {
+  definition(): EntityData<Layer_db> {
     return {
       uuid: v4(),
-      mission: 1,
+      mission: null,
       layerConfig: {
         name: "Basemaps",
         type: "header",
@@ -28,7 +29,6 @@ export default class LayerFactory extends Factory<Layer_db> {
         },
         shape: "none",
       },
-      version: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

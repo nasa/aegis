@@ -9,35 +9,51 @@ import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { NextApiRequest, NextApiResponse } from "next";
 import Login from "../../pages/api/users/login";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import handleMission from "../../pages/api/mission";
-import { Mission as Mission_db } from "server/database/models/mission.model";
-import MissionFactory from "../factories/MissionFactory";
+import handleStation from "../../pages/api/station";
 import { User as User_db } from "server/database/models/user.model";
 import UserFactory from "../factories/UserFactory";
+import { Station as Station_db } from "../../server/database/models/station.model";
+import StationFactory from "../factories/StationFactory";
+import { Mission as Mission_db } from "../../server/database/models/mission.model";
+import MissionFactory from "../factories/MissionFactory";
 import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
-let testMissions: Mission_db[];
 let testAdmin: User_db;
+let testMission: Mission_db;
+let testStations: Station_db[];
 
 beforeAll(async () => {
   await getORM();
   const em = getEM();
   testAdmin = await new UserFactory(em).createOne();
-  testMissions = await new MissionFactory(em).create(5);
+  testMission = await new MissionFactory(em).createOne();
+  testStations = await new StationFactory(em)
+    .each((station) => {
+      station.mission = testMission;
+      station.owner = testAdmin;
+    })
+    .create(5);
 });
 
-describe("Mission API Endpoint", () => {
+describe("Station API Endpoint", () => {
   type ApiRequest = NextApiRequest & ReturnType<typeof createRequest>;
   type ApiResponse = NextApiResponse & ReturnType<typeof createResponse>;
 
   let loginCookie: string;
-  let newMission: Mission = {
-    name: "Mission Jest Test",
-    config: null,
+  let newStation: Station = {
+    uuid: null,
+    ownerId: null,
+    missionId: null,
+    name: "Jest Station-1",
+    status: "Candidate",
+    description: "",
+    radius: 0,
+    location: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
-
   function mockRequestResponse(reqOptions: RequestOptions, resOptions?: ResponseOptions) {
     const { req, res }: { req: ApiRequest; res: ApiResponse } = createMocks(reqOptions, resOptions);
     return { req, res };
@@ -45,7 +61,7 @@ describe("Mission API Endpoint", () => {
 
   test("Returns auth failure", async () => {
     const { req, res } = mockRequestResponse({ method: "GET" });
-    await handleMission(req, res);
+    await handleStation(req, res);
     expect(res.statusCode).toBe(401);
     expect(res.statusMessage).toEqual("OK");
   });
@@ -60,14 +76,14 @@ describe("Mission API Endpoint", () => {
     loginCookie = loginReqRes.res._getHeaders()["set-cookie"][0];
   });
 
-  test("Returns single mission Json", async () => {
+  test("Returns single station Json", async () => {
     const reqOptions: RequestOptions = {
       method: "GET",
       headers: { cookie: loginCookie },
-      query: { missionId: testMissions[0].id.toString() },
+      query: { missionId: testMission.id, uuid: testStations[0].uuid },
     };
     const { req, res } = mockRequestResponse(reqOptions);
-    await handleMission(req, res);
+    await handleStation(req, res);
     expect(res.statusCode).toBe(200);
     expect(res.statusMessage).toEqual("OK");
 
@@ -76,13 +92,14 @@ describe("Mission API Endpoint", () => {
     expect(wrappedResponse.data.length).toEqual(1);
   });
 
-  test("Returns all missions Json", async () => {
+  test("Returns all stations Json", async () => {
     const reqOptions: RequestOptions = {
       method: "GET",
       headers: { cookie: loginCookie },
+      query: { missionId: testMission.id },
     };
     const { req, res } = mockRequestResponse(reqOptions);
-    await handleMission(req, res);
+    await handleStation(req, res);
     expect(res.statusCode).toBe(200);
     expect(res.statusMessage).toEqual("OK");
 
@@ -91,14 +108,14 @@ describe("Mission API Endpoint", () => {
     expect(wrappedResponse.data.length).toBeGreaterThan(1);
   });
 
-  test("Fails to find single mission", async () => {
+  test("Fails to find single station", async () => {
     const reqOptions: RequestOptions = {
       method: "GET",
       headers: { cookie: loginCookie },
       query: { missionId: "99999" },
     };
     const { req, res } = mockRequestResponse(reqOptions);
-    await handleMission(req, res);
+    await handleStation(req, res);
     expect(res.statusCode).toBe(200);
     expect(res.statusMessage).toEqual("OK");
 
@@ -108,56 +125,56 @@ describe("Mission API Endpoint", () => {
   });
 
   //upsert and delete tests must occur in order
-  test("Create new mission", async () => {
+  test("Create new station", async () => {
     const reqOptions: RequestOptions = {
       method: "POST",
       headers: { cookie: loginCookie },
-      body: newMission,
+      body: { ...newStation, missionId: testMission.id, ownerId: testAdmin.id },
     };
     const { req, res } = mockRequestResponse(reqOptions);
-    await handleMission(req, res);
+    await handleStation(req, res);
     expect(res.statusCode).toBe(200);
     expect(res.statusMessage).toEqual("OK");
 
     expect(res._getJSONData().data).not.toBeNull();
-    const upsertedMission = res._getJSONData().data;
-    expect(upsertedMission.id).not.toBeNull();
-    expect(upsertedMission.version).toEqual(1);
+    const upsertedStation = res._getJSONData().data;
+    expect(upsertedStation.uuid).not.toBeNull();
+    expect(upsertedStation.createdAt).not.toBeNull();
+    expect(upsertedStation.updatedAt).not.toBeNull();
+    newStation = { ...upsertedStation };
 
     //check if it was added to the db
     const em = getEM();
-    const missionReference = await em.findOne(Mission_db, upsertedMission.id);
-    expect(missionReference).not.toBeNull();
-    newMission = { ...upsertedMission };
+    const stationReference = await em.findOne(Station_db, upsertedStation.uuid);
+    expect(stationReference).not.toBeNull();
   });
 
-  test("Update a mission", async () => {
-    newMission.name = "Mission Jest Test Modified";
+  test("Update a station", async () => {
+    newStation.name = "Jest Test New Station Modified";
     const reqOptions: RequestOptions = {
       method: "POST",
       headers: { cookie: loginCookie },
-      body: newMission,
+      body: newStation,
     };
     const { req, res } = mockRequestResponse(reqOptions);
-    await handleMission(req, res);
+    await handleStation(req, res);
     expect(res.statusCode).toBe(200);
     expect(res.statusMessage).toEqual("OK");
 
     expect(res._getJSONData().data).not.toBeNull();
-    const upsertedMission = res._getJSONData().data;
-    expect(upsertedMission).not.toBeNull();
-    expect(upsertedMission.version).toEqual(2);
-    expect(upsertedMission.name).toEqual("Mission Jest Test Modified");
+    const upsertedStation = res._getJSONData().data;
+    expect(upsertedStation).not.toBeNull();
+    expect(upsertedStation.name).toEqual("Jest Test New Station Modified");
   });
 
-  test("Delete a mission", async () => {
+  test("Delete a station", async () => {
     const reqOptions: RequestOptions = {
       method: "DELETE",
       headers: { cookie: loginCookie },
-      query: { missionId: `${newMission.id}` },
+      query: { uuid: `${newStation.uuid}` },
     };
     const { req, res } = mockRequestResponse(reqOptions);
-    await handleMission(req, res);
+    await handleStation(req, res);
     expect(res.statusCode).toBe(200);
     expect(res.statusMessage).toEqual("OK");
 
@@ -169,10 +186,12 @@ describe("Mission API Endpoint", () => {
 afterAll(async () => {
   //Cleanup our Database
   const em = getEM();
-  await em.nativeDelete(User_db, { id: testAdmin.id });
-  for (let i = 0; i < testMissions.length; i++) {
-    await em.nativeDelete(Mission_db, { id: testMissions[i].id });
+  for (let i = 0; i < testStations.length; i++) {
+    await em.nativeDelete(Station_db, { uuid: testStations[i].uuid });
   }
+  await em.nativeDelete(Mission_db, { id: testMission.id });
+  await em.nativeDelete(User_db, { id: testAdmin.id });
+
   // Closing the DB connection allows Jest to exit successfully.
   closeORM();
 });

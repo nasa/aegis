@@ -1,7 +1,7 @@
 import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
-import Mikro from "utils/mikro";
+import { withORM, getEM } from "utils/mikro";
 import {
   EntityData,
   ForeignKeyConstraintViolationException,
@@ -11,6 +11,7 @@ import {
 import { Action as Action_db } from "server/database/models/action.model";
 import _ from "lodash";
 import { roundDateToSecond } from "utils/formatting";
+import { v4 as uuidv4 } from "uuid";
 
 const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
   req,
@@ -113,8 +114,8 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
  * @param filter optional filters: actionUuid, poiUuid, stationUuid, or missionId. If no filter options are provided, all actions will be returned.
  * @returns array of actions
  */
-export async function getActions(filter: ActionFilterOptions): Promise<Action[]> {
-  const em = Mikro.getEM();
+async function getActions(filter: ActionFilterOptions): Promise<Action[]> {
+  const em = getEM();
 
   //build filter where clause
   const whereClause: {
@@ -144,13 +145,14 @@ export async function getActions(filter: ActionFilterOptions): Promise<Action[]>
  * @param action the action object to upsert
  * @returns a copy of the action object that was upserted
  */
-export async function upsertAction(action: Action): Promise<Action> {
-  const em = Mikro.getEM();
+async function upsertAction(action: Action): Promise<Action> {
+  const em = getEM();
 
   const actionToUpsert = _.cloneDeep(action); //create a copy to manipulate
   const updateDate = roundDateToSecond(new Date()); //db does not store miliseconds
   actionToUpsert.updatedAt = updateDate;
   actionToUpsert.createdAt = actionToUpsert.createdAt || updateDate;
+  actionToUpsert.uuid = actionToUpsert.uuid || uuidv4();
 
   //convert fks
   const convertedRecord: EntityData<Action_db> = {
@@ -186,8 +188,8 @@ export async function upsertAction(action: Action): Promise<Action> {
  * @param actionUuid action uuid to delete
  * @returns the uuid of the deleted action, or null if nothing was deleted
  */
-export async function deleteAction(actionUuid: string): Promise<string | null> {
-  const em = Mikro.getEM();
+async function deleteAction(actionUuid: string): Promise<string | null> {
+  const em = getEM();
   let returnVal = actionUuid;
   const entity = await em.findOne(Action_db, { uuid: actionUuid });
 
@@ -204,7 +206,7 @@ export async function deleteAction(actionUuid: string): Promise<string | null> {
  * @param dbactions an array of actions in mikro db format
  * @returns an a converted array of actions or a single action
  */
-export function convertActions(dbactions: Action_db[]): Action[] {
+function convertActions(dbactions: Action_db[]): Action[] {
   const actions: Action[] = [];
   for (const dbaction of dbactions) {
     //convert mission and owner ids
@@ -232,4 +234,4 @@ export function convertActions(dbactions: Action_db[]): Action[] {
   return actions;
 }
 
-export default withIronSessionApiRoute(Mikro.withORM(handleAction), ironOptions);
+export default withIronSessionApiRoute(withORM(handleAction), ironOptions);

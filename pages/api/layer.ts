@@ -1,7 +1,7 @@
 import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
-import Mikro from "utils/mikro";
+import { withORM, getEM } from "utils/mikro";
 import _ from "lodash";
 import { Layer as Layer_db } from "server/database/models/layer.model";
 import {
@@ -135,8 +135,8 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
  * @param layerUUID optional. UUID of the layer to retrieve
  * @returns array of layers
  */
-export async function getLayers(missionId: number, layerUUID?: string): Promise<Layer[]> {
-  const em = Mikro.getEM();
+async function getLayers(missionId: number, layerUUID?: string): Promise<Layer[]> {
+  const em = getEM();
 
   let layers: Loaded<Layer_db, never>[];
   if (layerUUID) {
@@ -178,8 +178,8 @@ export async function getLayers(missionId: number, layerUUID?: string): Promise<
  * @param layer the layer object to upsert
  * @returns a copy of the layer object that was upserted
  */
-export async function upsertLayer(layer: Layer): Promise<Layer> {
-  const em = Mikro.getEM();
+async function upsertLayer(layer: Layer): Promise<Layer> {
+  const em = getEM();
 
   const upsertRecord: Layer = _.cloneDeep(layer);
 
@@ -221,8 +221,8 @@ export async function upsertLayer(layer: Layer): Promise<Layer> {
  * @param uuid layer uuid to delete
  * @returns the uuid of the deleted layer, or null if nothing was deleted
  */
-export async function deleteLayer(uuid: string): Promise<string | null> {
-  const em = Mikro.getEM();
+async function deleteLayer(uuid: string): Promise<string | null> {
+  const em = getEM();
   let returnVal = uuid;
   const entity = await em.findOne(Layer_db, uuid);
   if (entity) {
@@ -233,4 +233,4 @@ export async function deleteLayer(uuid: string): Promise<string | null> {
   return returnVal;
 }
 
-export default withIronSessionApiRoute(Mikro.withORM(handleLayer), ironOptions);
+export default withIronSessionApiRoute(withORM(handleLayer), ironOptions);
