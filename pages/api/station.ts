@@ -1,7 +1,7 @@
 import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
-import Mikro from "utils/mikro";
+import { withORM, getEM } from "utils/mikro";
 import {
   EntityData,
   ForeignKeyConstraintViolationException,
@@ -12,6 +12,7 @@ import { Station as Station_db } from "server/database/models/station.model";
 import { Poi as Poi_db } from "server/database/models/poi.model";
 import _ from "lodash";
 import { roundDateToSecond } from "utils/formatting";
+import { v4 as uuidv4 } from "uuid";
 
 const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = async (
   req,
@@ -111,8 +112,8 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
  * @param stationUUID optional. UUID of the station to retrieve
  * @returns array of stations
  */
-export async function getStations(missionId: number, stationUUID?: string): Promise<Station[]> {
-  const em = Mikro.getEM();
+async function getStations(missionId: number, stationUUID?: string): Promise<Station[]> {
+  const em = getEM();
 
   //find stations by either mission Id or uuid
   let dbstations: Loaded<Station_db, "poi">[];
@@ -147,15 +148,15 @@ export async function getStations(missionId: number, stationUUID?: string): Prom
  * @param station the station object to upsert
  * @returns a copy of the station object that was upserted
  */
-export async function upsertStation(station: Station): Promise<Station> {
-  const em = Mikro.getEM();
+async function upsertStation(station: Station): Promise<Station> {
+  const em = getEM();
 
   const stationToUpsert = _.cloneDeep(station); //create a copy to manipulate
 
   const updateDate = roundDateToSecond(new Date()); //db does not store miliseconds
 
   const dbStationToUpsert: EntityData<Station_db> = {
-    uuid: stationToUpsert.uuid,
+    uuid: stationToUpsert.uuid || uuidv4(),
     owner: stationToUpsert.ownerId,
     mission: stationToUpsert.missionId,
     actionOrderUuids: stationToUpsert.actionOrderUuids,
@@ -195,8 +196,8 @@ export async function upsertStation(station: Station): Promise<Station> {
  * @param stationUuid station uuid to delete
  * @returns the uuid of the deleted station, or null if nothing was deleted
  */
-export async function deleteStation(stationUuid: string): Promise<string | null> {
-  const em = Mikro.getEM();
+async function deleteStation(stationUuid: string): Promise<string | null> {
+  const em = getEM();
   let returnVal = stationUuid;
   const entity = await em.findOne(Station_db, { uuid: stationUuid }, { populate: ["poi"] });
 
@@ -245,4 +246,4 @@ function convertStations(dbstations: Station_db[]): Station[] {
   return stations;
 }
 
-export default withIronSessionApiRoute(Mikro.withORM(handleStation), ironOptions);
+export default withIronSessionApiRoute(withORM(handleStation), ironOptions);

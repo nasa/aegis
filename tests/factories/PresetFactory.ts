@@ -1,17 +1,17 @@
 import { Factory } from "@mikro-orm/seeder";
-import { Preset } from "../../server/database/models/preset.model";
+import { Preset as Preset_db } from "../../server/database/models/preset.model";
 import { v4 } from "uuid";
+import { EntityData } from "@mikro-orm/core";
 
-export default class PresetFactory extends Factory<Preset> {
-  model = Preset;
-  definition(): Object {
+export default class PresetFactory extends Factory<Preset_db> {
+  model = Preset_db;
+  definition(): EntityData<Preset_db> {
     return {
       uuid: v4(),
-      layer_id_fk: 1,
+      owner: null,
+      mission: null,
       name: "Test Preset",
       description: "Test Preset Description",
-      owner: 1,
-      mission: "",
       layerControls: {
         Basemaps: {
           name: "Basemaps",
@@ -28,7 +28,6 @@ export default class PresetFactory extends Factory<Preset> {
           mapLayerRef: null,
         },
       },
-      version: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

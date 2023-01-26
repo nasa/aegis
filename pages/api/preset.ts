@@ -1,7 +1,7 @@
 import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
-import Mikro from "utils/mikro";
+import { withORM, getEM } from "utils/mikro";
 import { Preset as Preset_db } from "../../server/database/models/preset.model";
 import { roundDateToSecond } from "../../utils/formatting";
 import { EntityData } from "@mikro-orm/core";
@@ -44,7 +44,7 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
     const presetBody = req.body.preset as Preset;
     if (req.session?.user) {
       try {
-        const em = Mikro.getEM();
+        const em = getEM();
         const presetToUpsert: EntityData<Preset_db> = {
           uuid: presetBody.uuid,
           owner: presetBody.ownerId,
@@ -89,7 +89,7 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
     } = req;
     if (req.session?.user) {
       try {
-        const em = Mikro.getEM();
+        const em = getEM();
         const presetToDelete = await em.findOne(Preset_db, { uuid });
         if (!presetToDelete) {
           return res.status(404).json({ status: "failure", message: "Preset not found" });
@@ -110,8 +110,8 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
   }
 };
 
-export async function getAllPresetsForMission(missionId: number): Promise<Preset[] | false> {
-  const model = Mikro.getEM();
+async function getAllPresetsForMission(missionId: number): Promise<Preset[] | false> {
+  const model = getEM();
   const dbPresets = await model.find(Preset_db, { mission: missionId });
 
   /** transform the Mikro Preset_db objects into Preset objects used in the Store.
@@ -136,4 +136,4 @@ export async function getAllPresetsForMission(missionId: number): Promise<Preset
   return transformedPresets;
 }
 
-export default withIronSessionApiRoute(Mikro.withORM(handlePreset), ironOptions);
+export default withIronSessionApiRoute(withORM(handlePreset), ironOptions);

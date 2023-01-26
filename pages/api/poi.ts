@@ -1,50 +1,48 @@
 import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
-import Mikro from "utils/mikro";
+import { withORM, getEM } from "utils/mikro";
 import { EntityData, QueryOrder } from "@mikro-orm/core";
 import { roundDateToSecond } from "utils/formatting";
 import { Poi as Poi_db } from "server/database/models/poi.model";
+import { v4 as uuidv4 } from "uuid";
 
 const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
   req,
   res
 ): Promise<unknown> => {
-  // If method is GET and there is a missionId query parameter, then get POIs by mission ID
-  if (req.method === "GET" && req.query.missionId) {
-    const {
-      query: { missionId },
-    } = req;
-    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
-    if (typeof intMissionId !== "number") {
-      return res.status(500).json({ status: "error", message: "Mission ID must be integer." });
-    }
-    try {
-      if (req.session?.user) {
+  if (req.session?.user) {
+    if (req.method === "GET") {
+      // If method is GET and there is a missionId query parameter, then get POIs by mission ID
+      const {
+        query: { missionId },
+      } = req;
+      const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+      if (isNaN(intMissionId) || typeof intMissionId !== "number") {
+        return res.status(500).json({ status: "error", message: "Mission ID must be integer." });
+      }
+      try {
         const pois = await getPOIsByMission(intMissionId);
         return res.status(200).json({
           status: "success",
           message: "POIs retrieved",
           data: pois,
         });
-      } else {
-        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+      } catch (error) {
+        return res.status(500).json({ status: "error", message: "Failed to get POIs. : " + error });
       }
-    } catch (error) {
-      return res.status(500).json({ status: "error", message: "Failed to get POIs. : " + error });
     }
-  }
 
-  // If method is POST then upsert a POI
-  if (req.method === "POST") {
-    if (req.session?.user) {
+    // If method is POST then upsert a POI
+    if (req.method === "POST") {
       try {
-        const em = Mikro.getEM();
+        const em = getEM();
 
         const validPoiBody: POI = req.body as POI;
         //build poi to upsert
         const poiToUpsert: POI = {
           ...validPoiBody,
+          uuid: validPoiBody.uuid || uuidv4(),
           createdAt: validPoiBody.createdAt || roundDateToSecond(new Date()),
           updatedAt: roundDateToSecond(new Date()),
         };
@@ -93,19 +91,15 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
       } catch (error) {
         return res.status(500).json({ status: "error", message: "Failed to upsert POI: " + error });
       }
-    } else {
-      return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
-  }
 
-  // If method is DELETE then delete a POI
-  if (req.method === "DELETE") {
-    const {
-      query: { uuid },
-    } = req;
-    if (req.session?.user) {
+    // If method is DELETE then delete a POI
+    if (req.method === "DELETE") {
+      const {
+        query: { uuid },
+      } = req;
       try {
-        const em = Mikro.getEM();
+        const em = getEM();
         const poiToDelete = await em.findOne(Poi_db, { uuid });
         if (poiToDelete) {
           // delete the POI
@@ -123,16 +117,16 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
       } catch (error) {
         return res.status(500).json({ status: "error", message: "Failed to delete POI." });
       }
-    } else {
-      return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
+  } else {
+    return res.status(401).json({ status: "failure", message: "Unauthorized" });
   }
 };
 
-export default withIronSessionApiRoute(Mikro.withORM(handlePOI), ironOptions);
+export default withIronSessionApiRoute(withORM(handlePOI), ironOptions);
 
-export async function getPOIsByMission(missionId: number): Promise<POI[]> {
-  const em = Mikro.getEM();
+async function getPOIsByMission(missionId: number): Promise<POI[]> {
+  const em = getEM();
   const dbPois = await em.find(
     Poi_db,
     { mission: missionId },

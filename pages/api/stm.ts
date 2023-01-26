@@ -1,7 +1,7 @@
 import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
-import Mikro from "utils/mikro";
+import { withORM, getEM } from "utils/mikro";
 import {
   EntityData,
   ForeignKeyConstraintViolationException,
@@ -216,7 +216,7 @@ const handleSTM: NextApiHandler<
  * @returns array of stm objectives. returns empty array if no records found
  */
 async function getObjectives(missionId: number, objectiveUUID?: string): Promise<STMObjective[]> {
-  const em = Mikro.getEM();
+  const em = getEM();
 
   let objectives: Loaded<STMObjective_db, never>[];
   if (objectiveUUID) {
@@ -264,7 +264,7 @@ async function getGoals(
   objectiveUUID?: string,
   goalUUID?: string
 ): Promise<STMGoal[]> {
-  const em = Mikro.getEM();
+  const em = getEM();
 
   //build the "where" options in Mikro ORM syntax
   const objectiveWhereClause: { uuid?: string; mission: { id: number } } = {
@@ -314,7 +314,7 @@ async function getInvestigations(
   goalUUID?: string,
   investigationUUID?: string
 ): Promise<STMInvestigation[]> {
-  const em = Mikro.getEM();
+  const em = getEM();
 
   //build the "where" options in Mikro ORM syntax
   const objectiveWhereClause: { uuid?: string; mission: { id: number } } = {
@@ -370,7 +370,7 @@ async function upsertSTM(
   stmObject: STMObjective | STMGoal | STMInvestigation,
   stmType: "Objective" | "Goal" | "Investigation"
 ): Promise<STMObjective | STMGoal | STMInvestigation> {
-  const em = Mikro.getEM();
+  const em = getEM();
 
   //add on additonal fields the db tracks
   const updateDate = new Date();
@@ -471,7 +471,7 @@ async function deleteSTM(
 ): Promise<string | null> {
   let returnVal = stmUUID;
 
-  const em = Mikro.getEM();
+  const em = getEM();
 
   if (stmType === "Objective") {
     const entity = await em.findOne(STMObjective_db, stmUUID);
@@ -499,4 +499,4 @@ async function deleteSTM(
   return returnVal;
 }
 
-export default withIronSessionApiRoute(Mikro.withORM(handleSTM), ironOptions);
+export default withIronSessionApiRoute(withORM(handleSTM), ironOptions);

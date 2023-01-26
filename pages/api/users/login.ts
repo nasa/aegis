@@ -6,9 +6,9 @@ import { ironOptions } from "server/session/config";
 import { User } from "server/database/models/user.model";
 import type { IronSessionData } from "iron-session";
 
-import Mikro from "utils/mikro";
+import { withORM, getEM } from "utils/mikro";
 
-export default withIronSessionApiRoute(Mikro.withORM(handler), ironOptions);
+export default withIronSessionApiRoute(withORM(handler), ironOptions);
 
 async function handler(
   req: NextApiRequest,
@@ -37,9 +37,8 @@ async function login(
   username: string,
   password: string
 ): Promise<WrappedResponse<IronSessionData>> {
-  const model = Mikro.getEM();
+  const model = getEM();
   const user = await model.findOne(User, { username });
-  await Mikro.closeORM();
   if (!user) {
     return { status: "failure", message: "No such user." };
   } else {

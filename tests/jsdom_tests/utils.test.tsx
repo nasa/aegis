@@ -15,7 +15,7 @@ import {
   shortdateFromDateString,
   toDecimal,
 } from "../../utils/formatting";
-import Mikro from "../../utils/mikro";
+import { getEM } from "utils/mikro";
 
 describe("Utilities Functions", () => {
   const latLng1: LatLng = new LatLng(0, 0);
@@ -52,6 +52,7 @@ describe("Utilities Functions", () => {
       expected: "5",
     },
   ];
+
   for (const test of tests) {
     it(`should result in "${test.expected}" when ${test.num} padded with ${test.size} zeros`, () => {
       expect(padZeros(test.num, test.size)).toEqual(test.expected);
@@ -122,9 +123,10 @@ describe("Utilities Functions", () => {
     expect(toDecimal(null)).toBe(null);
     expect(toDecimal("")).toBe(null);
   });
+
   describe("Mikro ORM", () => {
     test("Entity Manager Error", async () => {
-      expect(() => Mikro.getEM()).toThrow("Run Mikro.getORM() first");
+      expect(() => getEM()).toThrow("Run Mikro.getORM() first");
     });
   });
 });

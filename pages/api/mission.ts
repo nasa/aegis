@@ -1,7 +1,8 @@
 import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
-import Mikro from "utils/mikro";
+import { withORM, getEM } from "utils/mikro";
+
 import _ from "lodash";
 import { Mission as Mission_db } from "server/database/models/mission.model";
 import { EntityData, ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/core";
@@ -82,7 +83,7 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
         }
       }
 
-      //delete a STM record
+      //delete a mission record
       if (req.method === "DELETE") {
         if (!intMissionId || _.isNaN(intMissionId)) {
           return res.status(500).json({ status: "error", message: "Invalid mission ID" });
@@ -130,7 +131,7 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
  * @returns array of missions
  */
 async function getMissions(missionId: number = null): Promise<Mission[]> {
-  const em = Mikro.getEM();
+  const em = getEM();
 
   const missions: Mission[] = missionId
     ? await em.find(Mission_db, { id: missionId })
@@ -145,7 +146,7 @@ async function getMissions(missionId: number = null): Promise<Mission[]> {
  * @returns a copy of the mission object that was upserted
  */
 async function upsertMission(mission: Mission): Promise<Mission> {
-  const em = Mikro.getEM();
+  const em = getEM();
 
   const upsertRecord: EntityData<Mission_db> = _.cloneDeep(mission);
   const updateDate = roundDateToSecond(new Date());
@@ -174,7 +175,7 @@ async function upsertMission(mission: Mission): Promise<Mission> {
  * @returns the id of the deleted mission or null if nothing was deleted
  */
 async function deleteMission(missionId: number): Promise<number | null> {
-  const em = Mikro.getEM();
+  const em = getEM();
   let returnVal = missionId;
   const entity = await em.findOne(Mission_db, missionId);
   if (entity) {
@@ -185,10 +186,4 @@ async function deleteMission(missionId: number): Promise<number | null> {
   return returnVal;
 }
 
-export default withIronSessionApiRoute(Mikro.withORM(handleMission), ironOptions);
-
-//export the database functions explicity with no iron session for jest testing
-export const handleMission_NoIronSession = Mikro.withORM(handleMission);
-export const getMissions_NoIronSession = Mikro.withORM_Func<number, Mission[]>(getMissions);
-export const upsertMission_NoIronSession = Mikro.withORM_Func<Mission, Mission>(upsertMission);
-export const deleteMission_NoIronSession = Mikro.withORM_Func<number, number | null>(deleteMission);
+export default withIronSessionApiRoute(withORM(handleMission), ironOptions);
