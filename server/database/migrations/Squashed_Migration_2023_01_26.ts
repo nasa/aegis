@@ -27,7 +27,7 @@ export class Migration20230126192851 extends Migration {
     );
 
     this.addSql(
-      'create table "station" ("uuid" varchar(255) not null, "owner_id" int not null, "mission_id" int not null, "name" varchar(255) not null, "status" varchar(255) not null, "description" varchar(255) not null, "radius" real not null, "location" jsonb null, "created_at" timestamptz(0) not null, "updated_at" timestamptz(0) not null, constraint "station_pkey" primary key ("uuid"));'
+      'create table "station" ("uuid" varchar(255) not null, "owner_id" int not null, "mission_id" int not null, "name" varchar(255) not null, "status" varchar(255) not null, "description" varchar(255) not null, "radius" real not null, "location" jsonb null, "created_at" timestamptz(0) not null, "updated_at" timestamptz(0) not null, "action_order_uuids" jsonb null, constraint "station_pkey" primary key ("uuid"));'
     );
 
     this.addSql(
@@ -35,7 +35,7 @@ export class Migration20230126192851 extends Migration {
     );
 
     this.addSql(
-      'create table "poi" ("uuid" varchar(255) not null, "owner_id" int not null, "mission_id" int not null, "name" varchar(255) not null, "description" text not null, "priority_override" int null, "radius" real not null, "location" jsonb null, "color" jsonb null, "tags" jsonb null, "status" varchar(255) not null, "created_at" timestamptz(0) not null, "updated_at" timestamptz(0) not null, constraint "poi_pkey" primary key ("uuid"));'
+      'create table "poi" ("uuid" varchar(255) not null, "owner_id" int not null, "mission_id" int not null, "name" varchar(255) not null, "description" text not null, "priority_override" int null, "radius" real not null, "location" jsonb null, "color" jsonb null, "tags" jsonb null, "status" varchar(255) not null, "created_at" timestamptz(0) not null, "updated_at" timestamptz(0) not null, "action_order_uuids" jsonb null, constraint "poi_pkey" primary key ("uuid"));'
     );
 
     this.addSql(
@@ -43,7 +43,7 @@ export class Migration20230126192851 extends Migration {
     );
 
     this.addSql(
-      'create table "action" ("uuid" varchar(255) not null, "mission_id" int not null, "poi_uuid" varchar(255) null, "station_uuid" varchar(255) null, "name" varchar(255) not null, "priority_override" int null, "stm_uuid_refs" jsonb null, "type" varchar(255) not null, "description" varchar(255) not null, "duration_lower" double precision not null, "duration_upper" double precision null, "inventory_items" jsonb null, "status" varchar(255) not null, "created_at" timestamptz(0) not null, "updated_at" timestamptz(0) not null, constraint "action_pkey" primary key ("uuid"));'
+      'create table "action" ("uuid" varchar(255) not null, "mission_id" int not null, "poi_uuid" varchar(255) null, "station_uuid" varchar(255) null, "name" varchar(255) not null, "priority_override" int null, "stm_uuid_refs" jsonb null, "type" varchar(255) not null, "description" varchar(255) not null, "duration_lower" double precision not null, "duration_upper" double precision null, "inventory_items" jsonb null, "status" varchar(255) not null, "created_at" timestamptz(0) not null, "updated_at" timestamptz(0) not null, "parent_action_uuid" varchar(255) null, "parent_copy_date" timestamptz(0) null, constraint "action_pkey" primary key ("uuid"));'
     );
 
     this.addSql(
@@ -99,6 +99,9 @@ export class Migration20230126192851 extends Migration {
     this.addSql(
       'alter table "action" add constraint "action_station_uuid_foreign" foreign key ("station_uuid") references "station" ("uuid") on update cascade on delete set null;'
     );
+    this.addSql(
+      'alter table "action" add constraint "action_parent_action_uuid_foreign" foreign key ("parent_action_uuid") references "action" ("uuid") on update cascade on delete set null;'
+    );
 
     this.addSql('drop table if exists "preset_history" cascade;');
   }
@@ -135,6 +138,7 @@ export class Migration20230126192851 extends Migration {
     this.addSql('alter table "station_poi" drop constraint "station_poi_poi_uuid_foreign";');
 
     this.addSql('alter table "action" drop constraint "action_poi_uuid_foreign";');
+    this.addSql('alter table "action" drop constraint "action_parent_action_uuid_foreign";');
 
     this.addSql(
       'create table "preset_history" ("uuid" varchar not null default null, "layer_uuid" varchar not null default null, "config" jsonb null default null, "preset_id_fk_uuid" varchar not null default null, "created_at" timestamptz not null default null, "updated_at" timestamptz not null default null, constraint "preset_history_pkey" primary key ("uuid"));'
