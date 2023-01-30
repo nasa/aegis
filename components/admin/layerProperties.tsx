@@ -1,9 +1,10 @@
 /**
- * Determines the properties for a given layer type
+ * Determines the properties for a given layer type.
+ * Each MMGIS type of layer has a different set of properties.
  * @param layerType the type of layer
  * @returns the set of properties that are used for this layer type
  */
-export function getLayerProperty(layerType: MMGIS_layerTypes): MMGIS_LayerProperties | null {
+export function getLayerProperties(layerType: MMGIS_layerTypes): LayerPropertyListing | null {
   switch (layerType) {
     case "tile":
       return view_tile;
@@ -22,7 +23,7 @@ export function getLayerProperty(layerType: MMGIS_layerTypes): MMGIS_LayerProper
   }
 }
 
-export type MMGIS_LayerProperties = {
+export type LayerPropertyListing = {
   name: boolean;
   type: boolean;
   kind: boolean;
@@ -52,7 +53,7 @@ export type MMGIS_LayerProperties = {
   togglesWithHeader: boolean;
 };
 
-const view_tile: MMGIS_LayerProperties = {
+const view_tile: LayerPropertyListing = {
   name: true,
   type: true,
   kind: false,
@@ -82,7 +83,7 @@ const view_tile: MMGIS_LayerProperties = {
   togglesWithHeader: false,
 };
 
-const view_vector: MMGIS_LayerProperties = {
+const view_vector: LayerPropertyListing = {
   name: true,
   type: true,
   kind: true,
@@ -112,7 +113,7 @@ const view_vector: MMGIS_LayerProperties = {
   togglesWithHeader: false,
 };
 
-const view_vectortile: MMGIS_LayerProperties = {
+const view_vectortile: LayerPropertyListing = {
   name: true,
   type: true,
   kind: true,
@@ -142,7 +143,7 @@ const view_vectortile: MMGIS_LayerProperties = {
   togglesWithHeader: false,
 };
 
-const view_data: MMGIS_LayerProperties = {
+const view_data: LayerPropertyListing = {
   name: true,
   type: true,
   kind: false,
@@ -172,7 +173,7 @@ const view_data: MMGIS_LayerProperties = {
   togglesWithHeader: false,
 };
 
-const view_query: MMGIS_LayerProperties = {
+const view_query: LayerPropertyListing = {
   name: true,
   type: true,
   kind: false,
@@ -202,7 +203,7 @@ const view_query: MMGIS_LayerProperties = {
   togglesWithHeader: false,
 };
 
-const view_model: MMGIS_LayerProperties = {
+const view_model: LayerPropertyListing = {
   name: true,
   type: true,
   kind: false,

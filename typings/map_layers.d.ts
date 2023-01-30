@@ -22,9 +22,19 @@ interface LayerControls {
 interface Layer {
   uuid: string;
   missionId: number;
-  layerConfig: MMGIS_LayerConfig; //layers from the mmgis config
+  layerConfig: LayerConfig;
   createdAt: Date;
   updatedAt: Date;
+}
+
+//custom type based off of MMGIS type
+type LayerConfig = Omit<MMGIS_LayerConfig, "sublayers"> & {
+  sublayers?: Sublayer[];
+};
+
+//add a custom description field to MMGIS sublayers
+interface Sublayer extends MMGIS_Sublayer {
+  description?: string;
 }
 
 type Layer_db_type = Omit<Layer, "missionId"> & {

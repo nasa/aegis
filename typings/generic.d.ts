@@ -13,7 +13,8 @@ interface Mission {
 // No alteration needed to convert this store type to the database type
 type Mission_db_type = Mission;
 
-/** Config JSON object from MMGIS with the exception of Layers */
+/** AEGIS version of Config JSON object from MMGIS.
+ * Contains all the same properties with the exception of Layers */
 interface Config {
   msv: MMGIS_Msv;
   projection: MMGIS_Projection;

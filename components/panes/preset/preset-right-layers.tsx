@@ -91,7 +91,7 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
                         {presetLayerControlInteractions &&
                           presetLayerControlInteractions[layer.layerConfig.name].expanded &&
                           layer.layerConfig.sublayers &&
-                          layer.layerConfig.sublayers.map((sublayer: MMGIS_Sublayer) => {
+                          layer.layerConfig.sublayers.map((sublayer: Sublayer) => {
                             return (
                               <Sublayer
                                 key={`sub_${sublayer.name}`}
@@ -123,7 +123,7 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
 export default Layers_Panel;
 
 const Sublayer: FunctionComponent<{
-  sublayer: MMGIS_Sublayer;
+  sublayer: Sublayer;
   selectedPreset: Preset;
   presetLayerControlInteractions: LayerControlInteractions;
   editMode: boolean;
