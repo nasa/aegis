@@ -1,33 +1,33 @@
 import { Dispatch, SetStateAction, FunctionComponent, useState, useEffect } from "react";
 import styles from "./admin.module.css";
 import { JSONEditor } from "./helper";
-import { MMGIS_LayerProperties, getLayerProperty } from "./layerProperties";
+import { LayerPropertyListing, getLayerProperties } from "./layerProperties";
 
 interface SublayerProps {
   sublayerIndex: number;
-  sublayer: MMGIS_Sublayer;
+  sublayer: Sublayer;
   setLayer: Dispatch<SetStateAction<Layer>>;
 }
 
 /** Render a single Layer record from the DB */
 const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) => {
   const { sublayerIndex, sublayer, setLayer } = props;
-  const [sublayerView, setSublayerview] = useState<MMGIS_LayerProperties>(null);
+  const [sublayerView, setSublayerview] = useState<LayerPropertyListing>(null);
 
   //refresh the fields when the prop changes
   useEffect(() => {
     if (sublayer) {
-      setSublayerview(getLayerProperty(sublayer.type));
+      setSublayerview(getLayerProperties(sublayer.type));
     } else {
-      setSublayerview(getLayerProperty("tile"));
+      setSublayerview(getLayerProperties("tile"));
     }
   }, [sublayer]);
 
-  function saveSublayer(sublayer: MMGIS_Sublayer) {
+  function saveSublayer(sublayer: Sublayer) {
     setLayer((prevLayer) => {
       //replace our new sublayer into the existing sublayer array
-      const newSublayers: MMGIS_Sublayer[] = prevLayer.layerConfig.sublayers.map(
-        (element: MMGIS_Sublayer, index: number) => {
+      const newSublayers: Sublayer[] = prevLayer.layerConfig.sublayers.map(
+        (element: Sublayer, index: number) => {
           return index === sublayerIndex ? sublayer : element;
         }
       );
@@ -52,7 +52,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
   if (sublayerView) {
     return (
       <>
-        {sublayerView?.type && (
+        {sublayerView.type && (
           <div id="typeDiv">
             <div className={styles.editDiv}>
               <label htmlFor="layerType">Layer Type</label>
@@ -77,7 +77,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
           </div>
         )}
 
-        {sublayerView?.name && (
+        {sublayerView.name && (
           <div id="nameDiv">
             <div className={styles.editDiv}>
               <label htmlFor="name">Sublayer Name</label>
@@ -95,7 +95,23 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
           </div>
         )}
 
-        {sublayerView?.type && (
+        <div id="descDiv">
+          <div className={styles.editDiv}>
+            <label htmlFor="desc">Sublayer Description</label>
+          </div>
+          <div className={styles.editDiv}>
+            <input
+              id="desc"
+              type="text"
+              onChange={(e) => {
+                saveSublayer({ ...sublayer, description: e.target.value });
+              }}
+              value={sublayer.description || ""}
+            />
+          </div>
+        </div>
+
+        {sublayerView.type && (
           <div id="kindDiv">
             <div className={styles.editDiv}>
               <label htmlFor="kind">Layer Type</label>
@@ -118,7 +134,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
           </div>
         )}
 
-        {sublayerView?.query && (
+        {sublayerView.query && (
           <div id="queryDiv" className={styles.divIndent}>
             <h4>Query</h4>
             <div id="queryendpointDiv">
@@ -162,7 +178,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
           </div>
         )}
 
-        {sublayerView?.url && (
+        {sublayerView.url && (
           <div id="urlDiv">
             <div className={styles.editDiv}>
               <label htmlFor="url">URL</label>
@@ -180,7 +196,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
           </div>
         )}
 
-        {sublayerView?.position && (
+        {sublayerView.position && (
           <div id="positionDiv" className={styles.divIndent}>
             <h4>Position</h4>
             <div id="longDiv">
@@ -242,7 +258,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
           </div>
         )}
 
-        {sublayerView?.rotation && (
+        {sublayerView.rotation && (
           <div id="rotationDiv" className={styles.divIndent}>
             <h4>Rotation</h4>
             <div id="rotationXDiv">
@@ -305,7 +321,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
         )}
         <br />
 
-        {sublayerView?.scale && (
+        {sublayerView.scale && (
           <div id="scaleDiv">
             <div className={styles.editDiv}>
               <label htmlFor="scale">Scale</label>
@@ -323,7 +339,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
           </div>
         )}
 
-        {sublayerView?.tileformat && (
+        {sublayerView.tileformat && (
           <div id="tileFormatDiv">
             <div className={styles.editDiv}>
               <label htmlFor="tileformat">Tile Format</label>

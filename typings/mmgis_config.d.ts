@@ -2,7 +2,7 @@
  * This file contains typings for the MMGIS Config JSON object.
  */
 
-//Represents the config object from MMGIS
+//Represents the config object from MMGIS.
 interface MMGIS_config {
   msv: MMGIS_Msv;
   projection: MMGIS_Projection;
