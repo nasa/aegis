@@ -265,10 +265,9 @@ const MapBody: FunctionComponent = () => {
     return () => {
       if (map.current) {
         map.current.off();
-        map.current.remove();
       }
     };
-  }, [mission, mapRef, drawControlRef, dispatch]);
+  }, [mission, showMapLayers, mapRef, drawControlRef, dispatch]);
 
   useEffect(() => {
     /**
@@ -279,7 +278,7 @@ const MapBody: FunctionComponent = () => {
 
     const center = [config?.msv?.view[0], config?.msv?.view[1]];
     const zoom = config?.msv?.view[2];
-
+    console.log(map);
     map.current.setView(center, zoom);
   }, [mission, map]);
 
