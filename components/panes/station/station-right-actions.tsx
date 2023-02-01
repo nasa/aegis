@@ -52,7 +52,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   const pois = useSelector((state: RootState) => state.poi.pois, shallowEqual);
 
   const [stationInvstgs, setStationInvstgs] = useState<STMInvestigation[]>(null);
-  const [wrappedStationActions, setWrappedStationActions] = useState<WrappedAction[]>(null); //contains all station actions, and poi actions attached to station
+  const [wrappedStationActions, setWrappedStationActions] = useState<WrappedAction[]>(null); //contains all station actions
   const [stationPois, setStationPois] = useState<POI[]>(null);
   const [poiExpanded, setPoiExpanded] = useState(false);
   const [selectedStation, setSelectedStation] = useState(null);
@@ -256,6 +256,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                   afterShow={() => highlightActions(invstg.uuid)}
                   afterHide={() => highlightActions(null)}
                   delayShow={100}
+                  events={["hover", "click"]}
                 />
               </div>
             );

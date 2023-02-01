@@ -153,6 +153,8 @@ async function upsertAction(action: Action): Promise<Action> {
   actionToUpsert.updatedAt = updateDate;
   actionToUpsert.createdAt = actionToUpsert.createdAt || updateDate;
   actionToUpsert.uuid = actionToUpsert.uuid || uuidv4();
+  if (actionToUpsert.parentActionUuid && !actionToUpsert.parentCopyDate)
+    actionToUpsert.parentCopyDate = updateDate;
 
   //convert fks
   const convertedRecord: EntityData<Action_db> = {

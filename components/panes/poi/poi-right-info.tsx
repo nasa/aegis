@@ -34,172 +34,154 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle}>Information</div>
-      <div className={paneStyles.panelContainer}>
-        <div className={paneStyles.panelSection}>
-          <div className={paneStyles.panelSectionTitle}>Status</div>
-          <MultiButton
-            editing={editMode}
-            selected={selectedPoi.status}
-            handleChange={(newStatus) => {
-              console.log(newStatus);
-              dispatch(upsertPoi({ ...selectedPoi, status: newStatus }));
-            }}
-          >
-            <button type="button">Archived</button>
-            <button type="button">Candidate</button>
-            <button type="button">In Review</button>
-            <button type="button">Approved</button>
-          </MultiButton>
-        </div>
-        <div className={paneStyles.panelSection}>
-          <div className={paneStyles.panelSectionRow}>
-            <div className={paneStyles.panelSmallField}>
-              <div className={paneStyles.panelSectionTitle}>Radius (m)</div>
-              <div className={paneStyles.inputField}>
-                <InLineEditInput
-                  fieldName="Radius"
-                  editing={editMode}
-                  maxLength={4}
-                  styleInput={{ width: "45px" }}
-                  containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
-                  value={selectedPoi.radius.toString()}
-                  onChange={(val) => {
-                    dispatch(upsertPoi({ ...selectedPoi, radius: val }));
-                  }}
-                />
+      <div className={paneStyles.rightBodyBody}>
+        <div className={paneStyles.panelContainer}>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>Status</div>
+            <MultiButton
+              editing={editMode}
+              selected={selectedPoi.status}
+              handleChange={(newStatus) => {
+                console.log(newStatus);
+                dispatch(upsertPoi({ ...selectedPoi, status: newStatus }));
+              }}
+            >
+              <button type="button">Archived</button>
+              <button type="button">Candidate</button>
+              <button type="button">In Review</button>
+              <button type="button">Approved</button>
+            </MultiButton>
+          </div>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.panelSmallField}>
+                <div className={paneStyles.panelSectionTitle}>Radius (m)</div>
+                <div className={paneStyles.inputField}>
+                  <InLineEditInput
+                    fieldName="Radius"
+                    editing={editMode}
+                    maxLength={4}
+                    styleInput={{ width: "45px" }}
+                    containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                    value={selectedPoi.radius.toString()}
+                    onChange={(val) => {
+                      dispatch(upsertPoi({ ...selectedPoi, radius: val }));
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-            <div className={paneStyles.panelColorDropdownContainer}>
-              <div className={paneStyles.panelSectionTitle}>Color</div>
-              <ColorDropdown
-                selected={selectedPoi.color}
-                editing={editMode}
-                setSelected={(value) => {
-                  dispatch(upsertPoi({ ...selectedPoi, color: value }));
-                }}
-                items={[
-                  { label: "Red", value: "1F534" },
-                  { label: "Blue", value: "1F535" },
-                  { label: "Green", value: "1F7E2" },
-                  { label: "Yellow", value: "1F7E1" },
-                  { label: "Purple", value: "1F7E3" },
-                  { label: "Orange", value: "1F7E0" },
-                  { label: "Brown", value: "1F7E4" },
-                  { label: "Black", value: "26AB" },
-                  { label: "White", value: "26AA" },
-                ]}
-              ></ColorDropdown>
+              <div className={paneStyles.panelColorDropdownContainer}>
+                <div className={paneStyles.panelSectionTitle}>Color</div>
+                <ColorDropdown
+                  selected={selectedPoi.color}
+                  editing={editMode}
+                  setSelected={(value) => {
+                    dispatch(upsertPoi({ ...selectedPoi, color: value }));
+                  }}
+                  items={[
+                    { label: "Red", value: "1F534" },
+                    { label: "Blue", value: "1F535" },
+                    { label: "Green", value: "1F7E2" },
+                    { label: "Yellow", value: "1F7E1" },
+                    { label: "Purple", value: "1F7E3" },
+                    { label: "Orange", value: "1F7E0" },
+                    { label: "Brown", value: "1F7E4" },
+                    { label: "Black", value: "26AB" },
+                    { label: "White", value: "26AA" },
+                  ]}
+                ></ColorDropdown>
+              </div>
             </div>
           </div>
-        </div>
-        <div className={paneStyles.panelSection}>
-          <div className={paneStyles.panelSectionTitle}>Metatags</div>
-          <Tags
-            value={selectedPoi.tags}
-            editing={editMode}
-            onChange={(value) => {
-              dispatch(upsertPoi({ ...selectedPoi, tags: value }));
-            }}
-            name="tags"
-            separators={["Enter", " "]}
-            placeHolder="type tag and press enter"
-            onExisting={() => {}}
-          ></Tags>
-        </div>
-        <div className={paneStyles.panelSection}>
-          <div className={paneStyles.panelSectionTitle}>POI Value & Notes</div>
-          <ContentEditableTextArea
-            html={selectedPoi.description} // innerHTML of the editable div
-            editing={editMode}
-            onChange={(evt) => {
-              dispatch(
-                upsertPoi({
-                  ...selectedPoi,
-                  description: evt.target.value,
-                })
-              );
-            }} // handle innerHTML change
-          />
-        </div>
-        <div className={paneStyles.panelSection}>
-          <div className={paneStyles.panelSectionTitle}>Location</div>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>Metatags</div>
+            <Tags
+              value={selectedPoi.tags}
+              editing={editMode}
+              onChange={(value) => {
+                dispatch(upsertPoi({ ...selectedPoi, tags: value }));
+              }}
+              name="tags"
+              separators={["Enter", " "]}
+              placeHolder="type tag and press enter"
+              onExisting={() => {}}
+            ></Tags>
+          </div>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>POI Value & Notes</div>
+            <ContentEditableTextArea
+              html={selectedPoi.description} // innerHTML of the editable div
+              editing={editMode}
+              onChange={(evt) => {
+                dispatch(
+                  upsertPoi({
+                    ...selectedPoi,
+                    description: evt.target.value,
+                  })
+                );
+              }} // handle innerHTML change
+            />
+          </div>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>Location</div>
 
-          <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
-            <>
-              {(selectedPoi.location || editMode) && (
+            <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
+              <>
+                {(selectedPoi.location || editMode) && (
+                  <div className={paneStyles.verticalCenter}>
+                    <FontAwesomeIcon icon={faLocationDot} />
+                  </div>
+                )}
                 <div className={paneStyles.verticalCenter}>
-                  <FontAwesomeIcon icon={faLocationDot} />
+                  <div className={paneStyles.panelText}>
+                    {selectedPoi.location &&
+                      `${selectedPoi.location?.lat.toFixed(8)}, ${selectedPoi.location?.lng.toFixed(
+                        8
+                      )}`}
+                  </div>
                 </div>
-              )}
-              <div className={paneStyles.verticalCenter}>
-                <div className={paneStyles.panelText}>
-                  {selectedPoi.location &&
-                    `${selectedPoi.location?.lat.toFixed(8)}, ${selectedPoi.location?.lng.toFixed(
-                      8
-                    )}`}
-                </div>
-              </div>
-              {editMode && mapAction === null ? (
-                <>
-                  {!selectedPoi.location ? (
-                    <IconButton
-                      onClick={() => {
-                        dispatch(
-                          upsertUserMapObject({
-                            mapItemType: "poi",
-                            mapObject: "marker",
-                            uuid: selectedPoi.uuid,
-                            createdAt: new Date().toISOString(),
-                            mapAction: "create",
-                          })
-                        );
-                      }}
-                      icon={faMapLocationDot}
-                      label="Create Location"
-                      style={{ width: "125px" }}
-                    />
-                  ) : (
-                    <IconButton
-                      onClick={() => {
-                        dispatch(
-                          upsertUserMapObject({
-                            mapItemType: "poi",
-                            mapObject: "marker",
-                            uuid: selectedPoi.uuid,
-                            createdAt: new Date().toISOString(),
-                            mapAction: "edit",
-                          })
-                        );
-                      }}
-                      icon={faMapLocationDot}
-                      label="Edit Location"
-                      style={{ width: "110px" }}
-                    />
-                  )}
-                </>
-              ) : (
-                <div className={paneStyles.buttonPlaceholder}></div>
-              )}
-              {editMode && mapAction === "create" && (
-                <IconButton
-                  onClick={() => {
-                    dispatch(
-                      upsertUserMapObject({
-                        mapItemType: "poi",
-                        mapObject: "marker",
-                        uuid: selectedPoi.uuid,
-                        createdAt: new Date().toISOString(),
-                        mapAction: "cancelCreate",
-                      })
-                    );
-                  }}
-                  icon={faXmark}
-                  label="Cancel"
-                  style={{ width: "70px" }}
-                />
-              )}
-              {editMode && mapAction === "edit" && (
-                <>
+                {editMode && mapAction === null ? (
+                  <>
+                    {!selectedPoi.location ? (
+                      <IconButton
+                        onClick={() => {
+                          dispatch(
+                            upsertUserMapObject({
+                              mapItemType: "poi",
+                              mapObject: "marker",
+                              uuid: selectedPoi.uuid,
+                              createdAt: new Date().toISOString(),
+                              mapAction: "create",
+                            })
+                          );
+                        }}
+                        icon={faMapLocationDot}
+                        label="Create Location"
+                        style={{ width: "125px" }}
+                      />
+                    ) : (
+                      <IconButton
+                        onClick={() => {
+                          dispatch(
+                            upsertUserMapObject({
+                              mapItemType: "poi",
+                              mapObject: "marker",
+                              uuid: selectedPoi.uuid,
+                              createdAt: new Date().toISOString(),
+                              mapAction: "edit",
+                            })
+                          );
+                        }}
+                        icon={faMapLocationDot}
+                        label="Edit Location"
+                        style={{ width: "110px" }}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <div className={paneStyles.buttonPlaceholder}></div>
+                )}
+                {editMode && mapAction === "create" && (
                   <IconButton
                     onClick={() => {
                       dispatch(
@@ -208,7 +190,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           mapObject: "marker",
                           uuid: selectedPoi.uuid,
                           createdAt: new Date().toISOString(),
-                          mapAction: "cancelEdit",
+                          mapAction: "cancelCreate",
                         })
                       );
                     }}
@@ -216,28 +198,48 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     label="Cancel"
                     style={{ width: "70px" }}
                   />
-                  <IconButton
-                    onClick={() => {
-                      dispatch(
-                        upsertUserMapObject({
-                          mapItemType: "poi",
-                          mapObject: "marker",
-                          uuid: selectedPoi.uuid,
-                          createdAt: new Date().toISOString(),
-                          mapAction: "saveEdit",
-                        })
-                      );
-                    }}
-                    icon={faMapLocationDot}
-                    label="Save Location"
-                    style={{ width: "120px", backgroundColor: "var(--alert)" }}
-                  />
-                </>
-              )}
-              {!editMode && !selectedPoi.location && (
-                <div className={paneStyles.panelText}>Location not yet set</div>
-              )}
-            </>
+                )}
+                {editMode && mapAction === "edit" && (
+                  <>
+                    <IconButton
+                      onClick={() => {
+                        dispatch(
+                          upsertUserMapObject({
+                            mapItemType: "poi",
+                            mapObject: "marker",
+                            uuid: selectedPoi.uuid,
+                            createdAt: new Date().toISOString(),
+                            mapAction: "cancelEdit",
+                          })
+                        );
+                      }}
+                      icon={faXmark}
+                      label="Cancel"
+                      style={{ width: "70px" }}
+                    />
+                    <IconButton
+                      onClick={() => {
+                        dispatch(
+                          upsertUserMapObject({
+                            mapItemType: "poi",
+                            mapObject: "marker",
+                            uuid: selectedPoi.uuid,
+                            createdAt: new Date().toISOString(),
+                            mapAction: "saveEdit",
+                          })
+                        );
+                      }}
+                      icon={faMapLocationDot}
+                      label="Save Location"
+                      style={{ width: "120px", backgroundColor: "var(--alert)" }}
+                    />
+                  </>
+                )}
+                {!editMode && !selectedPoi.location && (
+                  <div className={paneStyles.panelText}>Location not yet set</div>
+                )}
+              </>
+            </div>
           </div>
         </div>
       </div>
