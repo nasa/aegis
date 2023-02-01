@@ -1,0 +1,85 @@
+.stm {
+  padding-left: 20px;
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  column-gap: 5px;
+  row-gap: 5px;
+  width: -moz-fit-content;
+  width: fit-content;
+  cursor: default;
+  height: 100%;
+}
+
+.objective {
+  display: flex;
+  flex-direction: row;
+  background-color: var(--grey2);
+  border-radius: var(--radius);
+  padding: 5px;
+  column-gap: 5px;
+  row-gap: 5px;
+}
+
+.objectiveNumbering {
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
+  background-color: white;
+  color: black;
+  width: 1em;
+  text-align: center;
+}
+
+.goalsContainer {
+  display: flex;
+  flex-direction: column;
+  column-gap: 5px;
+  row-gap: 5px;
+}
+.goal {
+  display: flex;
+  flex-direction: row;
+  column-gap: 2px;
+  row-gap: 2px;
+}
+
+.goalNumbering {
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
+  background-color: white;
+  color: black;
+  width: 1em;
+  text-align: center;
+}
+
+.invstgsContainer {
+  display: flex;
+  flex-direction: column;
+  column-gap: 2px;
+  row-gap: 2px;
+}
+.investigation {
+}
+
+.invstgNumbering {
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+  background-color: white;
+  color: black;
+  width: 1em;
+  text-align: center;
+}
+
+.highlight {
+  background-color: #2ad300;
+}
+
+.stm .tooltip {
+  z-index: 900;
+  background-color: white;
+  color: black;
+  max-width: 400px;
+  opacity: 100%;
+}

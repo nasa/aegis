@@ -11,6 +11,7 @@ import {
   faFloppyDisk,
   faTrashAlt,
   faEdit,
+  faTableList,
 } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, InLineEditInput } from "components/interface/_global-elements";
 
@@ -35,29 +36,9 @@ import {
 import Info_Panel from "./station-right-info";
 import Poi_Panel from "./station-right-poi";
 import Actions_Panel from "./station-right-actions";
+import STM_Panel from "../stm";
 import * as httpClient_station from "http-client/station";
 import * as httpClient_action from "http-client/action";
-
-const panelTypes: PanelTypes = {
-  info_panel: {
-    title: "Station Information",
-    panel: Info_Panel,
-    color: "var(--station)",
-    icon: faCircleInfo,
-  },
-  poi_panel: {
-    title: "Station POIs",
-    panel: Poi_Panel,
-    color: "var(--station)",
-    icon: faCircleDot,
-  },
-  actions_panel: {
-    title: "Station Actions",
-    panel: Actions_Panel,
-    color: "var(--station)",
-    icon: faPersonDigging,
-  },
-};
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -77,38 +58,29 @@ const StationEditorRight: FunctionComponent = () => {
     (state: RootState) => state.station.stationsEditing,
     shallowEqual
   );
-  const selectedStation = useSelector(
-    (state: RootState) => state.station.stations,
-    shallowEqual
-  ).find((station) => station.uuid === selectedStationUuid);
-  const selectedStationFromDb = useSelector(
+  const stations = useSelector((state: RootState) => state.station.stations, shallowEqual);
+  const stationsFromDb = useSelector(
     (state: RootState) => state.station.stationsFromDb,
     shallowEqual
-  ).find((station) => station.uuid === selectedStationUuid);
+  );
+  const selectedStation: Station = stations.find(
+    (station: Station) => station.uuid === selectedStationUuid
+  );
+  const selectedStationFromDb: Station = stationsFromDb.find(
+    (station: Station) => station.uuid === selectedStationUuid
+  );
 
-  const actions = useSelector((state: RootState) => state.action.actions, shallowEqual);
-  const actionsFromDb = useSelector((state: RootState) => state.action.actionsFromDb, shallowEqual);
-
-  //store the .filter actions for station in state as opposed to local const variable
-  //if stored in a local const, react hooks sees the variable changing although nothing has happened
-  //this is not an issue with .find
-  const [stationActions, setStationActions] = useState<Action[]>(null);
-  const [stationActionsFromDb, setStationActionsFromDb] = useState<Action[]>(null);
-  useEffect(() => {
-    if (actions) {
-      setStationActions(
-        actions.filter((storeAction: Action) => storeAction.stationUuid === selectedStationUuid)
-      );
-    }
-  }, [actions, selectedStationUuid]);
-  useEffect(() => {
-    if (actionsFromDb) {
-      const actions = actionsFromDb.filter(
-        (storeAction: Action) => storeAction.stationUuid === selectedStationUuid
-      );
-      setStationActionsFromDb(actions);
-    }
-  }, [actionsFromDb, selectedStationUuid]);
+  const actions: Action[] = useSelector((state: RootState) => state.action.actions, shallowEqual);
+  const actionsFromDb: Action[] = useSelector(
+    (state: RootState) => state.action.actionsFromDb,
+    shallowEqual
+  );
+  const stationActions = actions.filter(
+    (storeAction: Action) => storeAction.stationUuid === selectedStationUuid
+  );
+  const stationActionsFromDb = actionsFromDb.filter(
+    (storeAction: Action) => storeAction.stationUuid === selectedStationUuid
+  );
 
   //track modified
   const [modified, setModified] = useState(false);
@@ -257,9 +229,36 @@ const StationEditorRight: FunctionComponent = () => {
     dispatch(setStationEditMode({ stationUuid: selectedStation.uuid, editMode: false }));
   };
 
-  let ActiveComponent = null;
+  const panelTypes: PanelTypes = {
+    info_panel: {
+      title: "Station Information",
+      panel: <Info_Panel editMode={stationsEditing.includes(selectedStationUuid)} />,
+      color: "var(--station)",
+      icon: faCircleInfo,
+    },
+    poi_panel: {
+      title: "Station POIs",
+      panel: <Poi_Panel editMode={stationsEditing.includes(selectedStationUuid)} />,
+      color: "var(--station)",
+      icon: faCircleDot,
+    },
+    actions_panel: {
+      title: "Station Actions",
+      panel: <Actions_Panel editMode={stationsEditing.includes(selectedStationUuid)} />,
+      color: "var(--station)",
+      icon: faPersonDigging,
+    },
+    stm_panel: {
+      title: "Station STM Coverage",
+      panel: <STM_Panel actions={stationActions} />,
+      color: "var(--station)",
+      icon: faTableList,
+    },
+  };
+
+  let activeComponent: FunctionComponent = null;
   if (!_.isNil(panelTypes[selectedRightNavItem])) {
-    ActiveComponent = panelTypes[selectedRightNavItem].panel;
+    activeComponent = panelTypes[selectedRightNavItem].panel;
   }
 
   return (
@@ -288,30 +287,33 @@ const StationEditorRight: FunctionComponent = () => {
         </div>
         <div className={paneStyles.rightSubTray}>
           <div className={paneStyles.rightIconRow}>
-            {Object.keys(panelTypes).map((panelType) => {
-              return (
-                <div
-                  key={panelType}
-                  className={
-                    selectedRightNavItem === panelType
-                      ? paneStyles.rightIconContainerSelected
-                      : paneStyles.rightIconContainer
-                  }
-                >
+            {panelTypes &&
+              Object.keys(panelTypes).map((panelType) => {
+                return (
                   <div
-                    className={paneStyles.rightIcon}
-                    style={{
-                      color:
-                        selectedRightNavItem === panelType ? panelTypes[panelType].color : "white",
-                    }}
-                    title={panelTypes[panelType].title}
-                    onClick={() => dispatch(setSelectedStationRightNavItem(panelType))}
+                    key={panelType}
+                    className={
+                      selectedRightNavItem === panelType
+                        ? paneStyles.rightIconContainerSelected
+                        : paneStyles.rightIconContainer
+                    }
                   >
-                    <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
+                    <div
+                      className={paneStyles.rightIcon}
+                      style={{
+                        color:
+                          selectedRightNavItem === panelType
+                            ? panelTypes[panelType].color
+                            : "white",
+                      }}
+                      title={panelTypes[panelType].title}
+                      onClick={() => dispatch(setSelectedStationRightNavItem(panelType))}
+                    >
+                      <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
           <div className={paneStyles.saveCancelContainer}>
             {stationsEditing.includes(selectedStationUuid) && (
@@ -372,10 +374,7 @@ const StationEditorRight: FunctionComponent = () => {
             )}
           </div>
         </div>
-        <ActiveComponent
-          className={paneStyles.rightActiveWindow}
-          editMode={stationsEditing.includes(selectedStationUuid)}
-        />
+        {activeComponent}
       </>
     )
   );
