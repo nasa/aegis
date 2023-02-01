@@ -18,10 +18,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     (state: RootState) => state.station.selectedStationUuid,
     shallowEqual
   );
-  const stations: Station[] = useSelector(
-    (state: RootState) => state.station.stations,
-    shallowEqual
-  );
+  const stations = useSelector((state: RootState) => state.station.stations, shallowEqual);
   const selectedStation = stations.find((station) => station.uuid === selectedStationUuid);
 
   return (
@@ -80,7 +77,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           />
         </div>
         <div className={paneStyles.panelSection}>
-          <div className={paneStyles.panelSectionTitle}>Position</div>
+          <div className={paneStyles.panelSectionTitle}>Location</div>
 
           <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
             <div className={paneStyles.verticalCenter}>

@@ -18,7 +18,7 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     shallowEqual
   );
   const selectedStation = stations.find((station) => station.uuid === selectedStationUuid);
-  const pois: POI[] = useSelector((state: RootState) => state.poi.pois, shallowEqual);
+  const pois = useSelector((state: RootState) => state.poi.pois, shallowEqual);
 
   const [selectedPois, setSelectedPois] = useState<POI[]>([]);
 

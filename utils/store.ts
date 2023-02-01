@@ -6,12 +6,15 @@
  * @param element The element/object to upsert
  * @returns The modified array with the upserted element.
  */
+
+type ObjectWithUuidAndTimestamp = POI | Action | Preset | Station | UserMapObject;
+
 export function upsertToArrayByUuid(
-  array: (POI | Action | Preset | Station)[],
-  element: POI | Action | Preset | Station
-): (POI | Action | Preset | Station)[] {
+  array: ObjectWithUuidAndTimestamp[],
+  element: ObjectWithUuidAndTimestamp
+): ObjectWithUuidAndTimestamp[] {
   // (1)
-  const i = array.findIndex((_element) => _element.uuid === element.uuid);
+  const i = array?.findIndex((_element) => _element.uuid === element.uuid);
   if (i > -1) array[i] = element;
   // (2)
   else array.push(element);

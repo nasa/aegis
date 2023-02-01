@@ -28,7 +28,7 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
     (state: RootState) => state.preset.selectedPresetUuid,
     shallowEqual
   );
-  const selectedPreset: Preset = useSelector(
+  const selectedPreset = useSelector(
     (state: RootState) => state.preset.presets.find((preset) => preset.uuid === selectedPresetUuid),
     shallowEqual
   );

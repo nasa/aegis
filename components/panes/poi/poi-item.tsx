@@ -14,7 +14,7 @@ const PoiItem: FunctionComponent<{
   actionsFromDb: Action[];
 }> = ({ selectedPoiUuid, poi, poiFromDb, actions, actionsFromDb }) => {
   const dispatch = useDispatch();
-  const selectedRightNavItem: string = useSelector(
+  const selectedRightNavItem = useSelector(
     (state: RootState) => state.station.selectedRightNavItem,
     shallowEqual
   );

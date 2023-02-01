@@ -21,7 +21,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     shallowEqual
   );
 
-  const actions: Action[] = useSelector((state: RootState) => state.action.actions, shallowEqual);
+  const actions = useSelector((state: RootState) => state.action.actions, shallowEqual);
   const poiActions = actions.filter((action) => action.poiUuid === selectedPoiUuid);
 
   const handleCreateAction = () => {

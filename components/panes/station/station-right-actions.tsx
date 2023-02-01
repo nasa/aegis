@@ -48,8 +48,8 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     (state: RootState) => state.stm.investigations,
     shallowEqual
   );
-  const actions: Action[] = useSelector((state: RootState) => state.action.actions, shallowEqual);
-  const pois: POI[] = useSelector((state: RootState) => state.poi.pois, shallowEqual);
+  const actions = useSelector((state: RootState) => state.action.actions, shallowEqual);
+  const pois = useSelector((state: RootState) => state.poi.pois, shallowEqual);
 
   const [stationInvstgs, setStationInvstgs] = useState<STMInvestigation[]>(null);
   const [wrappedStationActions, setWrappedStationActions] = useState<WrappedAction[]>(null); //contains all station actions, and poi actions attached to station

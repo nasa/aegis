@@ -77,20 +77,17 @@ const StationEditorRight: FunctionComponent = () => {
     (state: RootState) => state.station.stationsEditing,
     shallowEqual
   );
-  const selectedStation: Station = useSelector(
+  const selectedStation = useSelector(
     (state: RootState) => state.station.stations,
     shallowEqual
-  ).find((station: Station) => station.uuid === selectedStationUuid);
-  const selectedStationFromDb: Station = useSelector(
+  ).find((station) => station.uuid === selectedStationUuid);
+  const selectedStationFromDb = useSelector(
     (state: RootState) => state.station.stationsFromDb,
     shallowEqual
-  ).find((station: Station) => station.uuid === selectedStationUuid);
+  ).find((station) => station.uuid === selectedStationUuid);
 
-  const actions: Action[] = useSelector((state: RootState) => state.action.actions, shallowEqual);
-  const actionsFromDb: Action[] = useSelector(
-    (state: RootState) => state.action.actionsFromDb,
-    shallowEqual
-  );
+  const actions = useSelector((state: RootState) => state.action.actions, shallowEqual);
+  const actionsFromDb = useSelector((state: RootState) => state.action.actionsFromDb, shallowEqual);
 
   //store the .filter actions for station in state as opposed to local const variable
   //if stored in a local const, react hooks sees the variable changing although nothing has happened

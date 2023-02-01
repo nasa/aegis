@@ -13,10 +13,7 @@ export class StationSeeder extends Seeder {
       status: "Candidate",
       description: "Test station description",
       radius: 5,
-      location: {
-        long: 0,
-        lat: 0,
-      },
+      location: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -28,10 +25,7 @@ export class StationSeeder extends Seeder {
       status: "In Review",
       description: "Test station description",
       radius: 3,
-      location: {
-        long: 0,
-        lat: 0,
-      },
+      location: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

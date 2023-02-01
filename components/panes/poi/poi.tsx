@@ -27,11 +27,8 @@ const PoiEditorLeft: FunctionComponent = () => {
     shallowEqual
   );
   const mission = useSelector((state: RootState) => state.mission.mission, shallowEqual);
-  const actions: Action[] = useSelector((state: RootState) => state.action.actions, shallowEqual);
-  const actionsFromDb: Action[] = useSelector(
-    (state: RootState) => state.action.actionsFromDb,
-    shallowEqual
-  );
+  const actions = useSelector((state: RootState) => state.action.actions, shallowEqual);
+  const actionsFromDb = useSelector((state: RootState) => state.action.actionsFromDb, shallowEqual);
 
   const handleCreatePoi = () => {
     const randomName: string = uniqueNamesGenerator({

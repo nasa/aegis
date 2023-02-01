@@ -13,9 +13,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     shallowEqual
   );
   const presets = useSelector((state: RootState) => state.preset.presets, shallowEqual);
-  const selectedPreset: Preset = presets.find(
-    (preset: Preset) => preset.uuid === selectedPresetUuid
-  );
+  const selectedPreset = presets.find((preset) => preset.uuid === selectedPresetUuid);
 
   const handleDefaultPresetChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
     // If the preset is being set as the default, then we need to unset the default flag on all other presets
