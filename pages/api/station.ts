@@ -164,7 +164,7 @@ async function upsertStation(station: Station): Promise<Station> {
     status: stationToUpsert.status,
     description: stationToUpsert.description,
     radius: stationToUpsert.radius,
-    location: stationToUpsert.location,
+    location: stationToUpsert.location ? JSON.parse(stationToUpsert.location) : null,
     updatedAt: updateDate,
     createdAt: stationToUpsert.createdAt || updateDate,
   };
@@ -229,7 +229,7 @@ function convertStations(dbstations: Station_db[]): Station[] {
       status: dbstation.status,
       description: dbstation.description,
       radius: dbstation.radius,
-      location: dbstation.location,
+      location: dbstation.location ? JSON.stringify(dbstation.location) : null,
       createdAt: dbstation.createdAt,
       updatedAt: dbstation.updatedAt,
     };

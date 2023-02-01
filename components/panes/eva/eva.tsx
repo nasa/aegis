@@ -3,15 +3,16 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "store";
 import styles from "./eva.module.css";
 import paneStyles from "../global-pane-styles.module.css";
-import { setEvaItemMapAction } from "store/eva";
 import _ from "lodash";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown, faPlus, faGear } from "@fortawesome/free-solid-svg-icons";
+import { upsertUserMapObject } from "store/map";
 
 const EvaPlannerLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
   const evaState = useSelector((state: RootState) => state.eva);
+  const map = useSelector((state: RootState) => state.map);
 
   useEffect(() => {
     // console.log(evaState);
@@ -42,6 +43,11 @@ const EvaPlannerLeft: FunctionComponent = () => {
         {evaState &&
           evaState.eva.evaItems.map((item) => {
             let evaItemIcon = null;
+            const userMapObject = map.userMapObjects?.find(
+              (mapObject) => mapObject.uuid === item.uuid
+            );
+            const mapAction = userMapObject ? userMapObject.mapAction : null;
+
             if (item.type === "lander") {
               evaItemIcon = (
                 <div className={styles.evaIndicator}>
@@ -70,47 +76,87 @@ const EvaPlannerLeft: FunctionComponent = () => {
                 <div className={styles.evaItemInfoAndActions}>
                   <div className={styles.evaItemName}>{item.name}</div>
                   <div className={styles.evaItemButtons}>
-                    {item.mapAction === null && (
+                    {mapAction === null && (
                       <button
                         className={styles.evaItemButton}
                         onClick={() => {
-                          if (!item.latLngJSON && !item.latLngsJSON) {
-                            dispatch(setEvaItemMapAction({ uuid: item.uuid, value: "create" }));
+                          if (!item.location) {
+                            dispatch(
+                              upsertUserMapObject({
+                                mapItemType: "evaItem",
+                                mapObject: item.type === "traverse" ? "polyline" : "marker",
+                                uuid: item.uuid,
+                                createdAt: new Date().toISOString(),
+                                mapAction: "create",
+                              })
+                            );
                           } else {
-                            dispatch(setEvaItemMapAction({ uuid: item.uuid, value: "edit" }));
+                            dispatch(
+                              upsertUserMapObject({
+                                mapItemType: "evaItem",
+                                mapObject: item.type === "traverse" ? "polyline" : "marker",
+                                uuid: item.uuid,
+                                createdAt: new Date().toISOString(),
+                                mapAction: "edit",
+                              })
+                            );
                           }
                         }}
                       >
                         <span className={styles.evaItemButtonLabel}>
-                          {_.isNil(item.latLngJSON) && _.isNil(item.latLngsJSON) ? "Draw" : "Edit"}
+                          {!item.location ? "Draw" : "Edit"}
                         </span>
                       </button>
                     )}
-                    {item.mapAction === "create" && (
+                    {mapAction === "create" && (
                       <button
                         className={styles.evaItemButton}
                         onClick={() => {
-                          dispatch(setEvaItemMapAction({ uuid: item.uuid, value: "cancelCreate" }));
+                          dispatch(
+                            upsertUserMapObject({
+                              mapItemType: "evaItem",
+                              mapObject: item.type === "traverse" ? "polyline" : "marker",
+                              uuid: item.uuid,
+                              createdAt: new Date().toISOString(),
+                              mapAction: "cancelCreate",
+                            })
+                          );
                         }}
                       >
                         <span className={styles.evaItemButtonLabel}>Cancel</span>
                       </button>
                     )}
-                    {item.mapAction === "edit" && (
+                    {mapAction === "edit" && (
                       <button
                         className={styles.evaItemButton}
                         onClick={() => {
-                          dispatch(setEvaItemMapAction({ uuid: item.uuid, value: "cancelEdit" }));
+                          dispatch(
+                            upsertUserMapObject({
+                              mapItemType: "evaItem",
+                              mapObject: item.type === "traverse" ? "polyline" : "marker",
+                              uuid: item.uuid,
+                              createdAt: new Date().toISOString(),
+                              mapAction: "cancelEdit",
+                            })
+                          );
                         }}
                       >
                         <span className={styles.evaItemButtonLabel}>Cancel</span>
                       </button>
                     )}
-                    {item.mapAction === "edit" && (
+                    {mapAction === "edit" && (
                       <button
                         className={styles.evaItemButton}
                         onClick={() => {
-                          dispatch(setEvaItemMapAction({ uuid: item.uuid, value: "saveEdit" }));
+                          dispatch(
+                            upsertUserMapObject({
+                              mapItemType: "evaItem",
+                              mapObject: item.type === "traverse" ? "polyline" : "marker",
+                              uuid: item.uuid,
+                              createdAt: new Date().toISOString(),
+                              mapAction: "saveEdit",
+                            })
+                          );
                         }}
                       >
                         <span className={styles.evaItemButtonLabel}>Save</span>

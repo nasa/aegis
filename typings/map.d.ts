@@ -1,10 +1,10 @@
 /**
  * Basic concept of a point
  */
-type Point = {
+type AEGISPoint = {
   lat: number;
-  long: number;
-  elevation?: number;
+  lng: number;
+  alt?: number;
 };
 
 /**
@@ -28,7 +28,7 @@ type DrawingFeature = {
   name: string;
   owner: string;
   description: string;
-  location: Point | Point[];
+  location: AEGISPoint | AEGISPoint[];
   categories: string[];
   label: string; // "M-6"
   notes: UserComments;
@@ -49,7 +49,7 @@ type DrawingHazard = DrawingFeature & {
    * This is just Point[], not Point | Point[] like the base DrawingFeature, since a hazard can't
    * be at just one point. There must be some area to it, even if it's a very small hazard.
    */
-  location: Point[];
+  location: AEGISPoint[];
 };
 
 /**

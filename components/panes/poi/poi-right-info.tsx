@@ -1,6 +1,6 @@
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import { faLocationDot, faMapLocationDot } from "@fortawesome/free-solid-svg-icons";
+import { faLocationDot, faMapLocationDot, faXmark } from "@fortawesome/free-solid-svg-icons";
 import {
   ColorDropdown,
   ContentEditableTextArea,
@@ -13,6 +13,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useSelector, useDispatch, shallowEqual } from "react-redux";
 import { RootState } from "store";
 import { upsertPoi } from "store/poi";
+import { upsertUserMapObject } from "store/map";
+import _ from "lodash";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -20,9 +22,14 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     (state: RootState) => state.poi.selectedPoiUuid,
     shallowEqual
   );
-  const pois: POI[] = useSelector((state: RootState) => state.poi.pois, shallowEqual);
+  const pois = useSelector((state: RootState) => state.poi.pois, shallowEqual);
   const selectedPoi = pois.find((poi) => poi.uuid === selectedPoiUuid);
-  const [editLocation, setEditLocation] = useState(false);
+  const map = useSelector((state: RootState) => state.map, shallowEqual);
+
+  const userMapObject = map.userMapObjects?.find(
+    (mapObject) => mapObject.uuid === selectedPoi.uuid
+  );
+  const mapAction = userMapObject ? userMapObject.mapAction : null;
 
   return (
     <div className={paneStyles.rightBody}>
@@ -115,43 +122,122 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           />
         </div>
         <div className={paneStyles.panelSection}>
-          <div className={paneStyles.panelSectionTitle}>Position</div>
+          <div className={paneStyles.panelSectionTitle}>Location</div>
 
           <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
-            <div className={paneStyles.verticalCenter}>
-              <FontAwesomeIcon icon={faLocationDot} />
-            </div>
-            <div className={paneStyles.verticalCenter}>
-              <div className={paneStyles.panelText}>0.00000, 0.00000</div>
-            </div>
-            {editMode ? (
-              !editLocation ? (
-                <IconButton
-                  onClick={() => {
-                    setEditLocation(true);
-                  }}
-                  icon={faMapLocationDot}
-                  label="Edit Location"
-                  style={{ width: "110px" }}
-                />
+            <>
+              {(selectedPoi.location || editMode) && (
+                <div className={paneStyles.verticalCenter}>
+                  <FontAwesomeIcon icon={faLocationDot} />
+                </div>
+              )}
+              <div className={paneStyles.verticalCenter}>
+                <div className={paneStyles.panelText}>
+                  {selectedPoi.location &&
+                    `${selectedPoi.location?.lat.toFixed(8)}, ${selectedPoi.location?.lng.toFixed(
+                      8
+                    )}`}
+                </div>
+              </div>
+              {editMode && mapAction === null ? (
+                <>
+                  {!selectedPoi.location ? (
+                    <IconButton
+                      onClick={() => {
+                        dispatch(
+                          upsertUserMapObject({
+                            mapItemType: "poi",
+                            mapObject: "marker",
+                            uuid: selectedPoi.uuid,
+                            createdAt: new Date().toISOString(),
+                            mapAction: "create",
+                          })
+                        );
+                      }}
+                      icon={faMapLocationDot}
+                      label="Create Location"
+                      style={{ width: "125px" }}
+                    />
+                  ) : (
+                    <IconButton
+                      onClick={() => {
+                        dispatch(
+                          upsertUserMapObject({
+                            mapItemType: "poi",
+                            mapObject: "marker",
+                            uuid: selectedPoi.uuid,
+                            createdAt: new Date().toISOString(),
+                            mapAction: "edit",
+                          })
+                        );
+                      }}
+                      icon={faMapLocationDot}
+                      label="Edit Location"
+                      style={{ width: "110px" }}
+                    />
+                  )}
+                </>
               ) : (
+                <div className={paneStyles.buttonPlaceholder}></div>
+              )}
+              {editMode && mapAction === "create" && (
                 <IconButton
                   onClick={() => {
-                    setEditLocation(false);
+                    dispatch(
+                      upsertUserMapObject({
+                        mapItemType: "poi",
+                        mapObject: "marker",
+                        uuid: selectedPoi.uuid,
+                        createdAt: new Date().toISOString(),
+                        mapAction: "cancelCreate",
+                      })
+                    );
                   }}
-                  icon={faMapLocationDot}
-                  label="Cancel Edit Location"
-                  style={{ width: "150px" }}
+                  icon={faXmark}
+                  label="Cancel"
+                  style={{ width: "70px" }}
                 />
-              )
-            ) : (
-              <IconButton
-                onClick={() => {}}
-                icon={faMapLocationDot}
-                label="Show on Map"
-                style={{ width: "120px" }}
-              />
-            )}
+              )}
+              {editMode && mapAction === "edit" && (
+                <>
+                  <IconButton
+                    onClick={() => {
+                      dispatch(
+                        upsertUserMapObject({
+                          mapItemType: "poi",
+                          mapObject: "marker",
+                          uuid: selectedPoi.uuid,
+                          createdAt: new Date().toISOString(),
+                          mapAction: "cancelEdit",
+                        })
+                      );
+                    }}
+                    icon={faXmark}
+                    label="Cancel"
+                    style={{ width: "70px" }}
+                  />
+                  <IconButton
+                    onClick={() => {
+                      dispatch(
+                        upsertUserMapObject({
+                          mapItemType: "poi",
+                          mapObject: "marker",
+                          uuid: selectedPoi.uuid,
+                          createdAt: new Date().toISOString(),
+                          mapAction: "saveEdit",
+                        })
+                      );
+                    }}
+                    icon={faMapLocationDot}
+                    label="Save Location"
+                    style={{ width: "120px", backgroundColor: "var(--alert)" }}
+                  />
+                </>
+              )}
+              {!editMode && !selectedPoi.location && (
+                <div className={paneStyles.panelText}>Location not yet set</div>
+              )}
+            </>
           </div>
         </div>
       </div>

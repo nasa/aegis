@@ -67,6 +67,25 @@ body {
   display: none !important;
 }
 
+.leaflet-div-icon {
+  background-color: transparent !important;
+  border: none !important;
+  margin-left: -8px !important;
+  margin-top: -9px !important;
+  outline: none;
+}
+
+.leaflet-editing-icon {
+  background-color: #fff !important;
+  border-radius: 5px;
+  width: 10px !important;
+  height: 10px !important;
+}
+
+.leaflet-aegis-icon {
+  color: rgba(0, 0, 0, 1);
+}
+
 /* metatag component styling */
 .rti--container {
   --rti-bg: var(--grey1) !important;

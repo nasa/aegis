@@ -38,7 +38,6 @@ export const poiSlice = createSlice({
     setSelectedPoiUuid: (state, action: { payload: string }) => {
       state.selectedPoiUuid = action.payload;
     },
-
     duplicatePoi: (state, action: { payload: POI }) => {
       const newPoi: POI = {
         ...action.payload,
@@ -51,7 +50,6 @@ export const poiSlice = createSlice({
       // select the newly created POI
       state.selectedPoiUuid = newPoi.uuid;
     },
-
     setPoiEditMode: (state, action: { payload: { poiUuid: string; editMode: boolean } }) => {
       const poi = state.pois.find((poi) => poi.uuid === action.payload.poiUuid);
       if (poi) {
@@ -61,6 +59,14 @@ export const poiSlice = createSlice({
           state.poisEditing = state.poisEditing.filter((uuid) => uuid !== poi.uuid);
         }
       }
+    },
+    updatePoiLocation: (state, action: { payload: { uuid: string; location: AEGISPoint } }) => {
+      state.pois = state.pois.map((poi) => {
+        if (poi.uuid === action.payload.uuid) {
+          return { ...poi, location: action.payload.location };
+        }
+        return poi;
+      });
     },
   },
 });
@@ -76,4 +82,5 @@ export const {
   setSelectedPoiUuid,
   duplicatePoi,
   setPoiEditMode,
+  updatePoiLocation,
 } = poiSlice.actions;

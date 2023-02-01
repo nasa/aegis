@@ -6,52 +6,45 @@ export const initialState: EvaState = {
     evaItems: [
       {
         type: "lander",
-        name: "Lander",
+        name: "Egress",
         uuid: "ca2ad4e2-5bbb-494b-b6a7-641eb91152ad",
-        latLngJSON: null,
-        mapAction: null,
+        location: null,
       },
       {
         type: "traverse",
-        name: "Traverse 1",
+        name: "T-Snake",
         uuid: "e58f1fae-ea2c-48e4-b205-942c641fa1b2",
-        latLngsJSON: null,
-        mapAction: null,
+        location: null,
       },
       {
         type: "station",
-        name: "Station 1",
+        name: "S-Unicorn",
         uuid: "e58f1fae-ea2c-48e4-b205-942c641fa1b3",
-        latLngJSON: null,
-        mapAction: null,
+        location: null,
       },
       {
         type: "traverse",
-        name: "Traverse 2",
+        name: "T-Frog",
         uuid: "e58f1fae-ea2c-48e4-b205-942c641fa1b4",
-        latLngsJSON: null,
-        mapAction: null,
+        location: null,
       },
       {
         type: "station",
-        name: "Station 2",
+        name: "S-Bear",
         uuid: "e58f1fae-ea2c-48e4-b205-942c641fa1b5",
-        latLngJSON: null,
-        mapAction: null,
+        location: null,
       },
       {
         type: "traverse",
-        name: "Traverse 3",
+        name: "T-Possum",
         uuid: "e58f1fae-ea2c-48e4-b205-942c641fa1b6",
-        latLngsJSON: null,
-        mapAction: null,
+        location: null,
       },
       {
         type: "lander",
-        name: "Lander",
+        name: "Ingress",
         uuid: "ca2ad4e2-5bbb-494b-b6a7-641eb91152a7",
-        latLngJSON: null,
-        mapAction: null,
+        location: null,
       },
     ],
   },
@@ -64,29 +57,13 @@ export const evaSlice = createSlice({
     appendEvaItem: (state, action: { payload: EvaItem }) => {
       state.eva.evaItems = [...state.eva.evaItems, action.payload];
     },
-    updateStationLatLngJSON: (state, action: { payload: { uuid: string; latLngJSON: string } }) => {
-      state.eva.evaItems = state.eva.evaItems.map((evaItem) => {
-        if (evaItem.uuid === action.payload.uuid) {
-          return { ...evaItem, latLngJSON: action.payload.latLngJSON };
-        }
-        return evaItem;
-      });
-    },
-    updateTraverseLatLngsJSON: (
+    updateEvaItemLocation: (
       state,
-      action: { payload: { uuid: string; latLngsJSON: string } }
+      action: { payload: { uuid: string; location: AEGISPoint | AEGISPoint[] } }
     ) => {
       state.eva.evaItems = state.eva.evaItems.map((evaItem) => {
         if (evaItem.uuid === action.payload.uuid) {
-          return { ...evaItem, latLngsJSON: action.payload.latLngsJSON };
-        }
-        return evaItem;
-      });
-    },
-    setEvaItemMapAction: (state, action: { payload: { uuid: string; value: string } }) => {
-      state.eva.evaItems = state.eva.evaItems.map((evaItem) => {
-        if (evaItem.uuid === action.payload.uuid) {
-          return { ...evaItem, mapAction: action.payload.value };
+          return { ...evaItem, location: action.payload.location };
         }
         return evaItem;
       });
@@ -94,9 +71,4 @@ export const evaSlice = createSlice({
   },
 });
 
-export const {
-  appendEvaItem,
-  updateStationLatLngJSON,
-  updateTraverseLatLngsJSON,
-  setEvaItemMapAction,
-} = evaSlice.actions;
+export const { appendEvaItem, updateEvaItemLocation } = evaSlice.actions;

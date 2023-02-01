@@ -13,8 +13,8 @@ import styles from "./nav-timeline-draw.module.css";
  * Renders the navigation timeline presented at the bottom of the CODA window
  */
 const NavTimeline: FunctionComponent = () => {
-  const playhead: PlayheadState = useSelector((state: RootState) => state.playhead);
-  const playheadHover: PlayheadHoverState = useSelector((state: RootState) => state.playheadHover);
+  const playhead = useSelector((state: RootState) => state.playhead);
+  const playheadHover = useSelector((state: RootState) => state.playheadHover);
 
   const dispatch = useDispatch();
 

@@ -182,11 +182,15 @@
 }
 
 .panelText {
-  font-size: 0.9em;
+  font-size: 0.8em;
   font-weight: 400;
   color: white;
   -webkit-user-select: none;
   user-select: none;
+}
+
+.buttonPlaceholder {
+  height: 27px;
 }
 
 .panelSmallField {

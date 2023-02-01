@@ -14,7 +14,7 @@ const StationItem: FunctionComponent<{
   actionsFromDb: Action[];
 }> = ({ selectedStationUuid, station, stationFromDb, actions, actionsFromDb }) => {
   const dispatch = useDispatch();
-  const selectedRightNavItem: string = useSelector(
+  const selectedRightNavItem = useSelector(
     (state: RootState) => state.station.selectedRightNavItem,
     shallowEqual
   );

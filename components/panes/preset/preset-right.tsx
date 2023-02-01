@@ -29,30 +29,24 @@ import { IconButton, InLineEditInput } from "components/interface/_global-elemen
 
 const PresetEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const presetsFromDb: Preset[] = useSelector(
-    (state: RootState) => state.preset.presetsFromDb,
-    shallowEqual
-  );
-  const selectedRightNavItem: string = useSelector(
+  const presetsFromDb = useSelector((state: RootState) => state.preset.presetsFromDb, shallowEqual);
+  const selectedRightNavItem = useSelector(
     (state: RootState) => state.preset.selectedRightNavItem,
     shallowEqual
   );
-  const selectedPresetUuid: string = useSelector(
+  const selectedPresetUuid = useSelector(
     (state: RootState) => state.preset.selectedPresetUuid,
     shallowEqual
   );
-  const selectedPreset: Preset = useSelector(
-    (state: RootState) => state.preset.presets,
-    shallowEqual
-  ).find((preset: Preset) => preset.uuid === selectedPresetUuid);
-  const selectedPresetFromDb = presetsFromDb.find(
-    (preset: Preset) => preset.uuid === selectedPresetUuid
+  const selectedPreset = useSelector((state: RootState) => state.preset.presets, shallowEqual).find(
+    (preset) => preset.uuid === selectedPresetUuid
   );
-  const presetsEditing: string[] = useSelector(
+  const selectedPresetFromDb = presetsFromDb.find((preset) => preset.uuid === selectedPresetUuid);
+  const presetsEditing = useSelector(
     (state: RootState) => state.preset.presetsEditing,
     shallowEqual
   );
-  const selectedMissionId: number = useSelector(
+  const selectedMissionId = useSelector(
     (state: RootState) => state.mission.mission?.id,
     shallowEqual
   );

@@ -85,7 +85,7 @@ code-count:
 dependency-check:
   stage: stageless
   needs: ["install_dependencies"] # dependency-check takes a while, don't wait for "test" job
-  tags: ["docker", "linux"] # can't use openshift yet
+  tags: ["docker", "linux", "current"] # can't use openshift yet. "current" eliminates runner 2 which has been causing problems
   image:
     # Specify the Docker image to be used for the job, which is a customized image for running OWASP
     # dependency-check in a GitLab CI job
@@ -142,7 +142,7 @@ npm-audit:
 install_dependencies:
   stage: stageless
   # This could be openshift, but it runs faster in a VM; other jobs rely on it, so get it done ASAP
-  tags: ["docker", "linux"]
+  tags: ["docker", "linux", "current"]
   script:
     - npm ci
   artifacts:
@@ -156,7 +156,7 @@ install_dependencies:
 node-sbom:
   stage: stageless
   allow_failure: true
-  tags: ["docker", "linux"] # Can't be openshift due to it not pulling latest tag
+  tags: ["docker", "linux", "current"] # Can't be openshift due to it not pulling latest tag
   needs: ["install_dependencies"]
   image: $CI_REGISTRY/emss/docker-images:node-ci-sbom
   script:
@@ -181,7 +181,7 @@ node-sbom:
     # image should match database used in docker-compose.yml
     - name: postgis/postgis:14-3.2-alpine
       alias: postgres
-  tags: ["docker", "linux"]
+  tags: ["docker", "linux", "current"]
 
 test:
   extends: .test_template
@@ -221,7 +221,7 @@ build:
   # Could be openshift, but it runs faster in a VM; Since it's the longest-running job, run in VM.
   # If running with OpenShift, may need to set HOME to `/root` and use a didfferent container image.
   # See CODA and perhaps Maestro.
-  tags: ["docker", "linux"]
+  tags: ["docker", "linux", "current"]
   script:
     # - sh ./.gitlab/create-fit-dotenv.sh fit
     - npm run build

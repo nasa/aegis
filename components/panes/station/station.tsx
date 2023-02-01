@@ -17,11 +17,8 @@ import StationItem from "./station-item";
 
 const StationEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const stations: Station[] = useSelector(
-    (state: RootState) => state.station.stations,
-    shallowEqual
-  );
-  const stationsFromDb: Station[] = useSelector(
+  const stations = useSelector((state: RootState) => state.station.stations, shallowEqual);
+  const stationsFromDb = useSelector(
     (state: RootState) => state.station.stationsFromDb,
     shallowEqual
   );
@@ -29,19 +26,14 @@ const StationEditorLeft: FunctionComponent = () => {
     (state: RootState) => state.station.selectedStationUuid,
     shallowEqual
   );
-  const selectedStation: Station = stations.find(
-    (station: Station) => station.uuid === selectedStationUuid
-  );
+  const selectedStation = stations.find((station: Station) => station.uuid === selectedStationUuid);
   const user: AEGISUser = useSelector(
     (state: RootState) => state.user.ironSessionData?.user,
     shallowEqual
   );
   const mission = useSelector((state: RootState) => state.mission.mission, shallowEqual);
-  const actions: Action[] = useSelector((state: RootState) => state.action.actions, shallowEqual);
-  const actionsFromDb: Action[] = useSelector(
-    (state: RootState) => state.action.actionsFromDb,
-    shallowEqual
-  );
+  const actions = useSelector((state: RootState) => state.action.actions, shallowEqual);
+  const actionsFromDb = useSelector((state: RootState) => state.action.actionsFromDb, shallowEqual);
 
   const handleCreateStation = () => {
     const randomName: string = uniqueNamesGenerator({

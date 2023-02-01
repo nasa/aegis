@@ -27,13 +27,14 @@ interface Station {
   status: StationStatus;
   description: string;
   radius: number;
-  location: Point | Point[];
+  location: string;
 
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-type Station_db_type = Omit<Station, "ownerId" | "missionId"> & {
+type Station_db_type = Omit<Station, "ownerId" | "missionId" | "location"> & {
+  location: AEGISPoint | AEGISPoint[];
   owner: User;
   mission: Mission_db_type;
 };
@@ -75,7 +76,7 @@ interface POI {
   /**
    * The coordinates or series of coordinates of the POI.
    */
-  location: Point | Point[];
+  location: AEGISPoint;
 
   /**
    * The color of this POI
@@ -96,7 +97,8 @@ interface POI {
   updatedAt?: Date;
 }
 
-type Poi_db_type = Omit<POI, "ownerId" | "missionId"> & {
+type Poi_db_type = Omit<POI, "ownerId" | "missionId" | "location"> & {
+  location: AEGISPoint | AEGISPoint[];
   owner: User;
   mission: Mission_db_type;
 };
@@ -194,7 +196,7 @@ type TraverseActivityPrototype = ActivityPrototypeEntity & {
    * at the points? Could even make it `(DrawingNote | DrawingAction)[]` to allow actions to be
    * performed at the points, e.g. "At the crest of the hill, take a panorama".
    */
-  path: Point[]; // or make the point array allow annotations?
+  path: AEGISPoint[]; // or make the point array allow annotations?
 
   /* some method to reference layers/views/hazards/etc */
 };
@@ -212,12 +214,12 @@ type GeologyStationActivityPrototype = ActivityPrototypeEntity & {
   /**
    * Point to be used to traverse to/from
    */
-  centroid: Point;
+  centroid: AEGISPoint;
 
   /**
    * Set of points defining polygon of the station
    */
-  area?: Point[];
+  area?: AEGISPoint[];
 
   /**
    * Set of targets of interest that have been selected for this station

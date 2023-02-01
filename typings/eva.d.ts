@@ -7,7 +7,5 @@ interface EvaItem {
   type: "lander" | "station" | "traverse";
   name: string;
   uuid: string;
-  latLngJSON?: string;
-  latLngsJSON?: string;
-  mapAction: string;
+  location: AEGISPoint | AEGISPoint[];
 }
