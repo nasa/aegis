@@ -54,8 +54,8 @@ describe("Poi API Endpoint", () => {
     color: null,
     tags: null,
     status: "Candidate",
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
   function mockRequestResponse(reqOptions: RequestOptions, resOptions?: ResponseOptions) {
     const { req, res }: { req: ApiRequest; res: ApiResponse } = createMocks(reqOptions, resOptions);

@@ -37,7 +37,7 @@ export class Station implements Station_db_type {
   @Property({ type: MikroTypes.float })
   radius!: number;
   @Property({ type: MikroTypes.json, nullable: true })
-  location: AEGISPoint | AEGISPoint[];
+  location: AEGISPoint;
   @Property({ type: MikroTypes.json, nullable: true })
   actionOrderUuids: string[];
 

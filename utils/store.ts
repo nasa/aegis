@@ -7,12 +7,11 @@
  * @returns The modified array with the upserted element.
  */
 
-type ObjectWithUuidAndTimestamp = POI | Action | Preset | Station | UserMapObject;
-
-export function upsertToArrayByUuid(
-  array: ObjectWithUuidAndTimestamp[],
-  element: ObjectWithUuidAndTimestamp
-): ObjectWithUuidAndTimestamp[] {
+interface MustContain {
+  uuid: string;
+  createdAt?: string;
+}
+export function upsertToArrayByUuid<T extends MustContain>(array: T[], element: T): T[] {
   // (1)
   const i = array?.findIndex((_element) => _element.uuid === element.uuid);
   if (i > -1) array[i] = element;
@@ -21,8 +20,8 @@ export function upsertToArrayByUuid(
 
   // sort by createdAt, then by uuid -- item arrays in every store will be sorted this way for easy array comparison
   array.sort((a, b) => {
-    if (a.createdAt < b.createdAt) return -1;
-    if (a.createdAt > b.createdAt) return 1;
+    if (new Date(a.createdAt) < new Date(b.createdAt)) return -1;
+    if (new Date(a.createdAt) > new Date(b.createdAt)) return 1;
     if (a.uuid < b.uuid) return -1;
     if (a.uuid > b.uuid) return 1;
     return 0;

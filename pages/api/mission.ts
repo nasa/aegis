@@ -133,11 +133,17 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
 async function getMissions(missionId: number = null): Promise<Mission[]> {
   const em = getEM();
 
-  const missions: Mission[] = missionId
+  const missions: Mission_db[] = missionId
     ? await em.find(Mission_db, { id: missionId })
     : await em.find(Mission_db, {}, { orderBy: [{ name: QueryOrder.ASC }] });
 
-  return missions;
+  return missions.map((mission: Mission_db) => {
+    return {
+      ...mission,
+      createdAt: mission.createdAt.toISOString(),
+      updatedAt: mission.updatedAt.toISOString(),
+    } as Mission;
+  });
 }
 
 /**
@@ -148,7 +154,12 @@ async function getMissions(missionId: number = null): Promise<Mission[]> {
 async function upsertMission(mission: Mission): Promise<Mission> {
   const em = getEM();
 
-  const upsertRecord: EntityData<Mission_db> = _.cloneDeep(mission);
+  const missionCopy: Mission = _.cloneDeep(mission);
+  const upsertRecord: EntityData<Mission_db> = {
+    ...missionCopy,
+    updatedAt: new Date(missionCopy.updatedAt),
+    createdAt: new Date(missionCopy.createdAt),
+  };
   const updateDate = roundDateToSecond(new Date());
   upsertRecord.updatedAt = updateDate;
 
@@ -157,7 +168,11 @@ async function upsertMission(mission: Mission): Promise<Mission> {
     upsertRecord.version++;
     const upsertReference = await em.upsert(Mission_db, upsertRecord);
     await em.persistAndFlush(upsertReference);
-    return upsertReference as Mission;
+    return {
+      ...upsertReference,
+      updatedAt: upsertReference.updatedAt.toISOString(),
+      createdAt: upsertReference.createdAt.toISOString(),
+    } as Mission;
   } else {
     //insert record.
     //Can't use "upsert" to insert a new record if there's no other unique column in the table
@@ -165,7 +180,11 @@ async function upsertMission(mission: Mission): Promise<Mission> {
     upsertRecord.createdAt = updateDate;
     const createReference = em.create(Mission_db, upsertRecord);
     await em.persistAndFlush(createReference);
-    return createReference as Mission;
+    return {
+      ...createReference,
+      updatedAt: createReference.updatedAt.toISOString(),
+      createdAt: createReference.createdAt.toISOString(),
+    } as Mission;
   }
 }
 

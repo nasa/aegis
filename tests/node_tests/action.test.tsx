@@ -53,8 +53,8 @@ describe("Action API Endpoint", () => {
     priorityOverride: null,
     inventoryItems: null,
     status: "Candidate",
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
 
   function mockRequestResponse(reqOptions: RequestOptions, resOptions?: ResponseOptions) {

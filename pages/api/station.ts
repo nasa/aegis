@@ -153,9 +153,8 @@ async function upsertStation(station: Station): Promise<Station> {
 
   const stationToUpsert = _.cloneDeep(station); //create a copy to manipulate
 
-  const updateDate = roundDateToSecond(new Date()); //db does not store miliseconds
-
-  const dbStationToUpsert: EntityData<Station_db> = {
+  const updateDateString = roundDateToSecond(new Date()).toISOString();
+  const convertedStation: EntityData<Station_db> = {
     uuid: stationToUpsert.uuid || uuidv4(),
     owner: stationToUpsert.ownerId,
     mission: stationToUpsert.missionId,
@@ -164,13 +163,13 @@ async function upsertStation(station: Station): Promise<Station> {
     status: stationToUpsert.status,
     description: stationToUpsert.description,
     radius: stationToUpsert.radius,
-    location: stationToUpsert.location ? JSON.parse(stationToUpsert.location) : null,
-    updatedAt: updateDate,
-    createdAt: stationToUpsert.createdAt || updateDate,
+    location: stationToUpsert.location,
+    updatedAt: new Date(stationToUpsert.createdAt || updateDateString),
+    createdAt: new Date(updateDateString),
   };
 
   //upsert station
-  const stationRefFromDb: Station_db = await em.upsert(Station_db, dbStationToUpsert);
+  const stationRefFromDb: Station_db = await em.upsert(Station_db, convertedStation);
   await em.populate(stationRefFromDb, ["poi"]); //need to populate pois in order to remove them
 
   //remove all pois
@@ -186,8 +185,7 @@ async function upsertStation(station: Station): Promise<Station> {
   await em.persistAndFlush(stationRefFromDb);
 
   //convert foreign keys
-  const convertedStation: Station = convertStations([stationRefFromDb])[0];
-  return convertedStation;
+  return convertStations([stationRefFromDb])[0];
 }
 
 /**
@@ -229,9 +227,9 @@ function convertStations(dbstations: Station_db[]): Station[] {
       status: dbstation.status,
       description: dbstation.description,
       radius: dbstation.radius,
-      location: dbstation.location ? JSON.stringify(dbstation.location) : null,
-      createdAt: dbstation.createdAt,
-      updatedAt: dbstation.updatedAt,
+      location: dbstation.location,
+      createdAt: dbstation.createdAt.toISOString(),
+      updatedAt: dbstation.updatedAt.toISOString(),
     };
     //convert collection of poi's to just an array of poi uuids
     convertedStation.poiUuids = [];

@@ -51,8 +51,8 @@ describe("Station API Endpoint", () => {
     description: "",
     radius: 0,
     location: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
   function mockRequestResponse(reqOptions: RequestOptions, resOptions?: ResponseOptions) {
     const { req, res }: { req: ApiRequest; res: ApiResponse } = createMocks(reqOptions, resOptions);

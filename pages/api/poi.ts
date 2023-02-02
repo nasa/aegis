@@ -40,28 +40,23 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
 
         const validPoiBody: POI = req.body as POI;
         //build poi to upsert
-        const poiToUpsert: POI = {
-          ...validPoiBody,
-          uuid: validPoiBody.uuid || uuidv4(),
-          createdAt: validPoiBody.createdAt || roundDateToSecond(new Date()),
-          updatedAt: roundDateToSecond(new Date()),
-        };
+        const updateDateString = roundDateToSecond(new Date()).toISOString();
         //convert fks
         const convertedPoi: EntityData<Poi_db> = {
-          uuid: poiToUpsert.uuid,
-          owner: poiToUpsert.ownerId,
-          mission: poiToUpsert.missionId,
-          actionOrderUuids: poiToUpsert.actionOrderUuids,
-          name: poiToUpsert.name,
-          description: poiToUpsert.description,
-          priorityOverride: poiToUpsert.priorityOverride,
-          radius: poiToUpsert.radius,
-          location: poiToUpsert.location,
-          color: poiToUpsert.color,
-          tags: poiToUpsert.tags,
-          status: poiToUpsert.status,
-          createdAt: poiToUpsert.createdAt,
-          updatedAt: poiToUpsert.updatedAt,
+          uuid: validPoiBody.uuid || uuidv4(),
+          owner: validPoiBody.ownerId,
+          mission: validPoiBody.missionId,
+          actionOrderUuids: validPoiBody.actionOrderUuids,
+          name: validPoiBody.name,
+          description: validPoiBody.description,
+          priorityOverride: validPoiBody.priorityOverride,
+          radius: validPoiBody.radius,
+          location: validPoiBody.location,
+          color: validPoiBody.color,
+          tags: validPoiBody.tags,
+          status: validPoiBody.status,
+          createdAt: new Date(validPoiBody.createdAt || updateDateString),
+          updatedAt: new Date(updateDateString),
         };
         const poiUpsertReference: Poi_db = await em.upsert(Poi_db, convertedPoi);
         await em.persistAndFlush(poiUpsertReference);
@@ -79,8 +74,8 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
           color: poiUpsertReference.color,
           tags: poiUpsertReference.tags,
           status: poiUpsertReference.status,
-          createdAt: poiUpsertReference.createdAt,
-          updatedAt: poiUpsertReference.updatedAt,
+          createdAt: poiUpsertReference.createdAt.toISOString(),
+          updatedAt: poiUpsertReference.updatedAt.toISOString(),
         };
 
         return res.status(200).json({
@@ -149,8 +144,8 @@ async function getPOIsByMission(missionId: number): Promise<POI[]> {
       color: poiItem.color,
       tags: poiItem.tags,
       status: poiItem.status,
-      createdAt: poiItem.createdAt,
-      updatedAt: poiItem.updatedAt,
+      createdAt: poiItem.createdAt.toISOString(),
+      updatedAt: poiItem.updatedAt.toISOString(),
     };
     transformedPois.push(convertedPoi);
   }

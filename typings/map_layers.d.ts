@@ -23,9 +23,15 @@ interface Layer {
   uuid: string;
   missionId: number;
   layerConfig: LayerConfig;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
+
+type Layer_db_type = Omit<Layer, "missionId" | "createdAt" | "updatedAt"> & {
+  mission: Mission_db_type;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
 
 //custom type based off of MMGIS type
 type LayerConfig = Omit<MMGIS_LayerConfig, "sublayers"> & {
@@ -37,10 +43,6 @@ interface Sublayer extends MMGIS_Sublayer {
   description?: string;
 }
 
-type Layer_db_type = Omit<Layer, "missionId"> & {
-  mission: Mission_db_type;
-};
-
 type Preset = {
   uuid: string;
   ownerId: number;
@@ -50,13 +52,15 @@ type Preset = {
   missionPreset: boolean;
   missionPresetDefault: boolean;
   layerControls: LayerControls;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
-type Preset_db_type = Omit<Preset, "ownerId" | "missionId"> & {
+type Preset_db_type = Omit<Preset, "ownerId" | "missionId" | "createdAt" | "updatedAt"> & {
   owner: User;
   mission: Mission_db_type;
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 interface PresetInteractions {

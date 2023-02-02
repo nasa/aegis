@@ -13,6 +13,7 @@ import { STM_Goal as STMGoal_db } from "server/database/models/stm_goal.model";
 import { STM_Investigation as STMInvestigation_db } from "server/database/models/stm_investigation.model";
 import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
+import { roundDateToSecond } from "utils/formatting";
 
 /**
  * /api/stm?missionId=&stmType=
@@ -241,8 +242,8 @@ async function getObjectives(missionId: number, objectiveUUID?: string): Promise
         numbering: objectives_db.numbering,
         name: objectives_db.name,
         missionId: objectives_db.mission.id,
-        createdAt: objectives_db.createdAt,
-        updatedAt: objectives_db.updatedAt,
+        createdAt: objectives_db.createdAt.toISOString(),
+        updatedAt: objectives_db.updatedAt.toISOString(),
       };
       return objective;
     });
@@ -289,8 +290,8 @@ async function getGoals(
         numbering: goal_db.numbering,
         name: goal_db.name,
         objectiveUuid: goal_db.objective.uuid,
-        createdAt: goal_db.createdAt,
-        updatedAt: goal_db.updatedAt,
+        createdAt: goal_db.createdAt.toISOString(),
+        updatedAt: goal_db.updatedAt.toISOString(),
       };
       return goal;
     });
@@ -348,8 +349,8 @@ async function getInvestigations(
         numbering: invstgs_db.numbering,
         name: invstgs_db.name,
         goalUuid: invstgs_db.goal.uuid,
-        createdAt: invstgs_db.createdAt,
-        updatedAt: invstgs_db.updatedAt,
+        createdAt: invstgs_db.createdAt.toISOString(),
+        updatedAt: invstgs_db.updatedAt.toISOString(),
       };
       return invstg;
     });
@@ -373,15 +374,15 @@ async function upsertSTM(
   const em = getEM();
 
   //add on additonal fields the db tracks
-  const updateDate = new Date();
+  const updateDateString = roundDateToSecond(new Date()).toISOString();
   const upsertRecord: STMObjective | STMGoal | STMInvestigation = {
     ...stmObject,
-    updatedAt: updateDate,
+    updatedAt: updateDateString,
   };
   //we're creating a new record
   if (!stmObject.uuid) {
     upsertRecord.uuid = uuidv4();
-    upsertRecord.createdAt = updateDate;
+    upsertRecord.createdAt = updateDateString;
   }
 
   //determine the db table and perform upsert
@@ -392,8 +393,8 @@ async function upsertSTM(
       numbering: objective.numbering,
       name: objective.name,
       mission: objective.missionId,
-      createdAt: objective.createdAt,
-      updatedAt: objective.updatedAt,
+      createdAt: new Date(objective.createdAt),
+      updatedAt: new Date(objective.updatedAt),
     }; //convert fks
 
     const upsertReference: STMObjective_db = await em.upsert(STMObjective_db, convertedObjective);
@@ -404,8 +405,8 @@ async function upsertSTM(
       numbering: upsertReference.numbering,
       name: upsertReference.name,
       missionId: upsertReference.mission.id,
-      createdAt: upsertReference.createdAt,
-      updatedAt: upsertReference.updatedAt,
+      createdAt: upsertReference.createdAt.toISOString(),
+      updatedAt: upsertReference.updatedAt.toISOString(),
     };
     return upsertedObjective;
   } else if (stmType === "Goal") {
@@ -415,8 +416,8 @@ async function upsertSTM(
       numbering: goal.numbering,
       name: goal.name,
       objective: goal.objectiveUuid,
-      createdAt: goal.createdAt,
-      updatedAt: goal.updatedAt,
+      createdAt: new Date(goal.createdAt),
+      updatedAt: new Date(goal.updatedAt),
     }; //convert fks
 
     const upsertReference: STMGoal_db = await em.upsert(STMGoal_db, convertedGoal);
@@ -427,8 +428,8 @@ async function upsertSTM(
       numbering: upsertReference.numbering,
       name: upsertReference.name,
       objectiveUuid: upsertReference.objective.uuid,
-      createdAt: upsertReference.createdAt,
-      updatedAt: upsertReference.updatedAt,
+      createdAt: upsertReference.createdAt.toISOString(),
+      updatedAt: upsertReference.updatedAt.toISOString(),
     };
     return upsertedGoal;
   } else {
@@ -438,8 +439,8 @@ async function upsertSTM(
       numbering: invstg.numbering,
       name: invstg.name,
       goal: invstg.goalUuid,
-      createdAt: invstg.createdAt,
-      updatedAt: invstg.updatedAt,
+      createdAt: new Date(invstg.createdAt),
+      updatedAt: new Date(invstg.updatedAt),
     };
     const upsertReference: STMInvestigation_db = await em.upsert(
       STMInvestigation_db,
@@ -452,8 +453,8 @@ async function upsertSTM(
       numbering: upsertReference.numbering,
       name: upsertReference.name,
       goalUuid: upsertReference.goal.uuid,
-      createdAt: upsertReference.createdAt,
-      updatedAt: upsertReference.updatedAt,
+      createdAt: upsertReference.createdAt.toISOString(),
+      updatedAt: upsertReference.updatedAt.toISOString(),
     };
     return upsertedInvstg;
   }
