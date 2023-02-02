@@ -27,16 +27,21 @@ interface Station {
   status: StationStatus;
   description: string;
   radius: number;
-  location: string;
+  location: AEGISPoint;
 
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-type Station_db_type = Omit<Station, "ownerId" | "missionId" | "location"> & {
+type Station_db_type = Omit<
+  Station,
+  "ownerId" | "missionId" | "location" | "createdAt" | "updatedAt"
+> & {
   location: AEGISPoint | AEGISPoint[];
   owner: User;
   mission: Mission_db_type;
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 type StationStatus = "Archived" | "Candidate" | "In Review" | "Approved";
@@ -93,14 +98,16 @@ interface POI {
    */
   status: POIStatus;
 
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-type Poi_db_type = Omit<POI, "ownerId" | "missionId" | "location"> & {
+type Poi_db_type = Omit<POI, "ownerId" | "missionId" | "location" | "createdAt" | "updatedAt"> & {
   location: AEGISPoint | AEGISPoint[];
   owner: User;
   mission: Mission_db_type;
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 type POIColor = {
@@ -125,7 +132,7 @@ type Action = {
   stationUuid?: string;
 
   parentActionUuid?: string;
-  parentCopyDate?: Date;
+  parentCopyDate?: string;
   /**
    * Priority normally inferred by STM relationship, but can be overridden.
    */
@@ -156,15 +163,21 @@ type Action = {
   inventoryItems: InventoryItem[];
 
   status: POIStatus;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
-type Action_db_type = Omit<Action, "missionId" | "poiUuid" | "stationUuid"> & {
+type Action_db_type = Omit<
+  Action,
+  "missionId" | "poiUuid" | "stationUuid" | "createdAt" | "updatedAt" | "parentCopyDate"
+> & {
   mission: Mission_db_type;
   poi: Poi_db_type;
   station: Station_db_type;
   parentAction: Action_db_type;
+  parentCopyDate?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 interface ActionFilterOptions {

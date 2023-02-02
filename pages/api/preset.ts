@@ -45,7 +45,8 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
     if (req.session?.user) {
       try {
         const em = getEM();
-        const presetToUpsert: EntityData<Preset_db> = {
+        const updateDateString = roundDateToSecond(new Date()).toISOString();
+        const convertedPreset: EntityData<Preset_db> = {
           uuid: presetBody.uuid,
           owner: presetBody.ownerId,
           mission: presetBody.missionId,
@@ -54,10 +55,10 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
           missionPreset: presetBody.missionPreset,
           missionPresetDefault: presetBody.missionPresetDefault,
           layerControls: presetBody.layerControls,
-          createdAt: presetBody.createdAt || roundDateToSecond(new Date()),
-          updatedAt: roundDateToSecond(new Date()),
+          createdAt: new Date(presetBody.createdAt || updateDateString),
+          updatedAt: new Date(updateDateString),
         };
-        const upsertedPreset = await em.upsert(Preset_db, presetToUpsert);
+        const upsertedPreset = await em.upsert(Preset_db, convertedPreset);
         await em.persistAndFlush(upsertedPreset);
         const responsePreset: Preset = {
           uuid: upsertedPreset.uuid,
@@ -68,8 +69,8 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
           missionPreset: upsertedPreset.missionPreset,
           missionPresetDefault: upsertedPreset.missionPresetDefault,
           layerControls: upsertedPreset.layerControls,
-          createdAt: upsertedPreset.createdAt,
-          updatedAt: upsertedPreset.updatedAt,
+          createdAt: upsertedPreset.createdAt.toISOString(),
+          updatedAt: upsertedPreset.updatedAt.toISOString(),
         };
         return res.status(200).json({
           status: "success",
@@ -127,8 +128,8 @@ async function getAllPresetsForMission(missionId: number): Promise<Preset[] | fa
       missionPreset: presetItem.missionPreset,
       missionPresetDefault: presetItem.missionPresetDefault,
       layerControls: presetItem.layerControls,
-      createdAt: presetItem.createdAt,
-      updatedAt: presetItem.updatedAt,
+      createdAt: presetItem.createdAt.toISOString(),
+      updatedAt: presetItem.updatedAt.toISOString(),
     };
     transformedPresets.push(convertedPreset);
   }

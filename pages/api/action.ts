@@ -149,22 +149,19 @@ async function upsertAction(action: Action): Promise<Action> {
   const em = getEM();
 
   const actionToUpsert = _.cloneDeep(action); //create a copy to manipulate
-  const updateDate = roundDateToSecond(new Date()); //db does not store miliseconds
-  actionToUpsert.updatedAt = updateDate;
-  actionToUpsert.createdAt = actionToUpsert.createdAt || updateDate;
-  actionToUpsert.uuid = actionToUpsert.uuid || uuidv4();
+  const updateDateString = roundDateToSecond(new Date()).toISOString(); //db does not store miliseconds
   if (actionToUpsert.parentActionUuid && !actionToUpsert.parentCopyDate)
-    actionToUpsert.parentCopyDate = updateDate;
+    actionToUpsert.parentCopyDate = updateDateString;
 
   //convert fks
   const convertedRecord: EntityData<Action_db> = {
-    uuid: actionToUpsert.uuid,
+    uuid: actionToUpsert.uuid || uuidv4(),
     name: actionToUpsert.name,
     mission: actionToUpsert.missionId,
     poi: actionToUpsert.poiUuid,
     station: actionToUpsert.stationUuid,
     parentAction: actionToUpsert.parentActionUuid,
-    parentCopyDate: actionToUpsert.parentCopyDate,
+    parentCopyDate: actionToUpsert.parentCopyDate ? new Date(actionToUpsert.parentCopyDate) : null,
     priorityOverride: actionToUpsert.priorityOverride,
     stmUuidRefs: actionToUpsert.stmUuidRefs,
     type: actionToUpsert.type,
@@ -173,8 +170,8 @@ async function upsertAction(action: Action): Promise<Action> {
     durationUpper: actionToUpsert.durationUpper,
     inventoryItems: actionToUpsert.inventoryItems,
     status: actionToUpsert.status,
-    createdAt: actionToUpsert.createdAt,
-    updatedAt: actionToUpsert.updatedAt,
+    createdAt: new Date(actionToUpsert.createdAt || updateDateString),
+    updatedAt: new Date(updateDateString),
   };
 
   const upsertReference: Action_db = await em.upsert(Action_db, convertedRecord);
@@ -219,7 +216,7 @@ function convertActions(dbactions: Action_db[]): Action[] {
       poiUuid: dbaction.poi?.uuid,
       stationUuid: dbaction.station?.uuid,
       parentActionUuid: dbaction.parentAction?.uuid,
-      parentCopyDate: dbaction.parentCopyDate,
+      parentCopyDate: dbaction.parentCopyDate?.toISOString(),
       priorityOverride: dbaction.priorityOverride,
       stmUuidRefs: dbaction.stmUuidRefs,
       type: dbaction.type,
@@ -228,8 +225,8 @@ function convertActions(dbactions: Action_db[]): Action[] {
       durationUpper: dbaction.durationUpper,
       inventoryItems: dbaction.inventoryItems,
       status: dbaction.status,
-      createdAt: dbaction.createdAt,
-      updatedAt: dbaction.updatedAt,
+      createdAt: dbaction.createdAt?.toISOString(),
+      updatedAt: dbaction.updatedAt?.toISOString(),
     };
     actions.push(convertedAction);
   }

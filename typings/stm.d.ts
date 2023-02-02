@@ -18,34 +18,40 @@ type STMInvestigation = {
   numbering: string; // e.g. "1"
   name: string; // e.g. "Inventory, relationships, and ages of nonmare rocks"
   goalUuid: string; //goal uuid
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: string;
+  updatedAt?: string;
 };
 type STMGoal = {
   uuid: string;
   numbering: string; // e.g. "a"
   name: string; // e.g. "Differentiation: Magma Oceans, Crust, and Mantle"
   objectiveUuid: string; //objective uuid
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: string;
+  updatedAt?: string;
 };
 type STMObjective = {
   uuid: string;
   numbering: string; // e.g. "1"
   name: string; // Understanding Planetary Processes
   missionId: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type STMObjective_db_type = Omit<STMObjective, "missionId" | "createdAt" | "updatedAt"> & {
+  mission: Mission_db_type;
   createdAt?: Date;
   updatedAt?: Date;
 };
 
-type STMObjective_db_type = Omit<STMObjective, "missionId"> & {
-  mission: Mission_db_type;
-};
-
-type STMGoal_db_type = Omit<STMGoal, "objectiveUuid"> & {
+type STMGoal_db_type = Omit<STMGoal, "objectiveUuid" | "createdAt" | "updatedAt"> & {
   objective: STMObjective_db_type;
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
-type STMInvestigation_db_type = Omit<STMInvestigation, "goalUuid"> & {
+type STMInvestigation_db_type = Omit<STMInvestigation, "goalUuid" | "createdAt" | "updatedAt"> & {
   goal: STMGoal_db_type;
+  createdAt?: Date;
+  updatedAt?: Date;
 };

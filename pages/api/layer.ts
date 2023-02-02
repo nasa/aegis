@@ -11,6 +11,7 @@ import {
   QueryOrder,
 } from "@mikro-orm/core";
 import { v4 as uuidv4 } from "uuid";
+import { roundDateToSecond } from "utils/formatting";
 
 /**
  * /api/layer
@@ -162,8 +163,8 @@ async function getLayers(missionId: number, layerUUID?: string): Promise<Layer[]
         uuid: layers_db.uuid,
         missionId: layers_db.mission.id,
         layerConfig: layers_db.layerConfig,
-        createdAt: layers_db.createdAt,
-        updatedAt: layers_db.updatedAt,
+        createdAt: layers_db.createdAt.toISOString(),
+        updatedAt: layers_db.updatedAt.toISOString(),
       };
       return layer;
     });
@@ -183,22 +184,16 @@ async function upsertLayer(layer: Layer): Promise<Layer> {
 
   const upsertRecord: Layer = _.cloneDeep(layer);
 
-  const updateDate = new Date();
-  upsertRecord.layerConfig.time.current = updateDate; //the time property on this config item is the save date
-  upsertRecord.updatedAt = updateDate;
-  //we're creating a new record
-  if (!layer.uuid) {
-    upsertRecord.createdAt = updateDate;
-    upsertRecord.uuid = uuidv4();
-  }
+  const updateDateString = roundDateToSecond(new Date()).toISOString();
+  upsertRecord.layerConfig.time.current = new Date(updateDateString); //the time property on this config item is the save date
 
   //convert fks and upsert
   const convertedRecord: EntityData<Layer_db> = {
-    uuid: upsertRecord.uuid,
+    uuid: upsertRecord.uuid || uuidv4(),
     mission: upsertRecord.missionId,
     layerConfig: upsertRecord.layerConfig,
-    createdAt: upsertRecord.createdAt,
-    updatedAt: upsertRecord.updatedAt,
+    createdAt: new Date(upsertRecord.createdAt || updateDateString),
+    updatedAt: new Date(updateDateString),
   };
   const upsertReference = await em.upsert(Layer_db, convertedRecord);
 
@@ -209,8 +204,8 @@ async function upsertLayer(layer: Layer): Promise<Layer> {
     uuid: upsertReference.uuid,
     missionId: upsertReference.mission.id,
     layerConfig: upsertReference.layerConfig,
-    createdAt: upsertReference.createdAt,
-    updatedAt: upsertReference.updatedAt,
+    createdAt: upsertReference.createdAt.toISOString(),
+    updatedAt: upsertReference.updatedAt.toISOString(),
   };
 
   return result;

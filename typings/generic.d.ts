@@ -6,12 +6,15 @@ interface Mission {
   name: string;
   config: Config;
   version?: number;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // No alteration needed to convert this store type to the database type
-type Mission_db_type = Mission;
+type Mission_db_type = Omit<Mission, "createdAt" | "updatedAt"> & {
+  createdAt?: Date;
+  updatedAt?: Date;
+};
 
 /** AEGIS version of Config JSON object from MMGIS.
  * Contains all the same properties with the exception of Layers */

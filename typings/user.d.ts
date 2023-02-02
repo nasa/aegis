@@ -7,8 +7,11 @@ interface AEGISUser {
   email: string;
   permission: PermissionRole;
   token?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-type AEGISUser_db_type = Omit<AEGISUser, "token">;
+type AEGISUser_db_type = Omit<AEGISUser, "token" | "createdAt" | "updatedAt"> & {
+  createdAt?: Date;
+  updatedAt?: Date;
+};
