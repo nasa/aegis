@@ -3,8 +3,8 @@ import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent } from "react";
 import { IconButton } from "components/interface/_global-elements";
-import { useSelector, useDispatch, shallowEqual } from "react-redux";
-import { RootState } from "store";
+import { useDispatch } from "react-redux";
+import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import {
   duplicateStation,
   setStationEditMode,
@@ -14,26 +14,21 @@ import {
 import { animals, uniqueNamesGenerator } from "unique-names-generator";
 import { v4 as uuidv4 } from "uuid";
 import StationItem from "./station-item";
+import _ from "lodash";
 
 const StationEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const stations = useSelector((state: RootState) => state.station.stations, shallowEqual);
-  const stationsFromDb = useSelector(
-    (state: RootState) => state.station.stationsFromDb,
-    shallowEqual
+  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
+  const stationsFromDb = useAppSelector((state) => state.station.stationsFromDb, shallowEqual);
+  const selectedStationUuid = useAppSelector(
+    (state) => state.station.selectedStationUuid,
+    refEqual
   );
-  const selectedStationUuid = useSelector(
-    (state: RootState) => state.station.selectedStationUuid,
-    shallowEqual
-  );
-  const selectedStation = stations.find((station: Station) => station.uuid === selectedStationUuid);
-  const user: AEGISUser = useSelector(
-    (state: RootState) => state.user.ironSessionData?.user,
-    shallowEqual
-  );
-  const mission = useSelector((state: RootState) => state.mission.mission, shallowEqual);
-  const actions = useSelector((state: RootState) => state.action.actions, shallowEqual);
-  const actionsFromDb = useSelector((state: RootState) => state.action.actionsFromDb, shallowEqual);
+  const selectedStation = stations.find((station) => station.uuid === selectedStationUuid);
+  const user: AEGISUser = useAppSelector((state) => state.user.ironSessionData?.user, shallowEqual);
+  const missionId = useAppSelector((state) => state.mission.mission.id, refEqual);
+  const actions = useAppSelector((state) => state.action.actions, shallowEqual);
+  const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, shallowEqual);
 
   const handleCreateStation = () => {
     const randomName: string = uniqueNamesGenerator({
@@ -43,7 +38,7 @@ const StationEditorLeft: FunctionComponent = () => {
 
     const blankStation: Station = {
       ownerId: user.id,
-      missionId: mission.id,
+      missionId: missionId,
       uuid: uuidv4(),
       name: "S-" + randomName,
       status: "Candidate",
@@ -67,6 +62,12 @@ const StationEditorLeft: FunctionComponent = () => {
               const stationFromDb = stationsFromDb.find(
                 (stationFromDb) => stationFromDb.uuid === station.uuid
               );
+              const stationActions = actions.filter(
+                (action) => action.stationUuid === station.uuid
+              );
+              const stationActionsFromDb = actionsFromDb.filter(
+                (action) => action.stationUuid === station.uuid
+              );
 
               return (
                 <StationItem
@@ -74,8 +75,8 @@ const StationEditorLeft: FunctionComponent = () => {
                   selectedStationUuid={selectedStationUuid}
                   station={station}
                   stationFromDb={stationFromDb}
-                  actions={actions}
-                  actionsFromDb={actionsFromDb}
+                  stationActions={stationActions}
+                  stationActionsFromDb={stationActionsFromDb}
                 />
               );
             })}

@@ -8,10 +8,7 @@ export const interfaceSlice = createSlice({
   name: "poi",
   initialState,
   reducers: {
-    setSectionSelected: (
-      state,
-      action: { payload: "map_layer_selector" | "poi" | "station" | "eva_planner" }
-    ) => {
+    setSectionSelected: (state, action: { payload: InterfaceSection }) => {
       state.sectionSelectedLabel = action.payload;
     },
   },

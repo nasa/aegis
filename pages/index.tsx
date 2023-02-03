@@ -1,12 +1,12 @@
 import type { NextPage } from "next";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+import { useAppSelector, refEqual } from "utils/useAppSelector";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import styles from "./index.module.css";
 import { login, isLoggedIn, logout } from "http-client/internal-api";
 import { getMissions } from "http-client/mission";
-import type { RootState } from "store";
 import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/user";
 
 const Head = dynamic(import("next/head"), {
@@ -159,7 +159,7 @@ const MissionSelect = () => {
 };
 
 const Left = () => {
-  const user = useSelector((state: RootState) => state.user);
+  const userIsLoggedIn = useAppSelector((state) => state.user.isLoggedIn, refEqual);
   return (
     <div className={styles.left}>
       <div className={styles.leftTop}>
@@ -198,7 +198,7 @@ const Left = () => {
             and JPL.
           </p>
         </div>
-        {user.isLoggedIn ? <MissionSelect /> : <Login />}
+        {userIsLoggedIn ? <MissionSelect /> : <Login />}
       </div>
       <div className={styles.leftBottom}>
         <div className={styles.aboutSection}>

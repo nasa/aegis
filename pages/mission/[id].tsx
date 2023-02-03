@@ -1,6 +1,7 @@
 import type { NextPage } from "next";
 import { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 
@@ -13,8 +14,6 @@ import { getLayers } from "http-client/layer";
 import { getStations } from "http-client/station";
 import { getActions } from "http-client/action";
 import { getGoals, getInvestigations, getObjectives } from "http-client/stm";
-
-import { RootState } from "store";
 import { setLayerControls } from "store/map";
 import { upsertPois, upsertPoisFromDb } from "store/poi";
 import {
@@ -52,7 +51,7 @@ const Header = dynamic(import("components/interface/header"), {
 const Main: NextPage = () => {
   const dispatch = useDispatch();
   const router = useRouter();
-  const missionStore = useSelector((state: RootState) => state.mission);
+  const missionStore = useAppSelector((state) => state.mission, shallowEqual);
   const [showRightPanel, setShowRightPanel] = useState(true);
 
   /**

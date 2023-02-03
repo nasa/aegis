@@ -6,7 +6,9 @@ import "leaflet.tilelayer.colorfilter";
 
 import styles from "components/interface/map-body.module.css";
 
-import { useSelector, useDispatch } from "react-redux";
+import { useDispatch } from "react-redux";
+import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+
 import {
   MutableRefObject,
   useEffect,
@@ -15,7 +17,6 @@ import {
   useCallback,
   FunctionComponent,
 } from "react";
-import { RootState } from "store/index";
 import _ from "lodash";
 import { updateEvaItemLocation } from "store/eva";
 import { upsertUserMapObject } from "store/map";
@@ -49,12 +50,13 @@ const MapBody: FunctionComponent = () => {
 
   const drawControlItemsRef = useRef<DrawControlItem[]>([]);
 
-  const mission = useSelector((state: RootState) => state.mission.mission);
-  const missionLayers = useSelector((state: RootState) => state.mission.layers);
-  const layerControls = useSelector((state: RootState) => state.map.layerControls);
-  const eva = useSelector((state: RootState) => state.eva.eva);
-  const mapStore = useSelector((state: RootState) => state.map);
-  const poiStore = useSelector((state: RootState) => state.poi);
+  const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
+  const missionLayers = useAppSelector((state) => state.mission.layers, shallowEqual);
+  const layerControls = useAppSelector((state) => state.map.layerControls, shallowEqual);
+  const eva = useAppSelector((state) => state.eva.eva, shallowEqual);
+  const userMapObjects = useAppSelector((state) => state.map.userMapObjects, shallowEqual);
+  const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
+  const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
 
   const [layersOnMap, setLayersOnMap] = useState([]);
   const [showHightlightOnMap, setShowHighlightOnMap] = useState(false);
@@ -452,9 +454,9 @@ const MapBody: FunctionComponent = () => {
    */
   useEffect(() => {
     if (!eva) return;
-    if (mapStore.userMapObjects === null) return;
+    if (userMapObjects === null) return;
 
-    const activeUserMapObject = mapStore.userMapObjects.find(
+    const activeUserMapObject = userMapObjects.find(
       (userMapObject) => userMapObject.mapAction !== null
     );
 
@@ -469,7 +471,7 @@ const MapBody: FunctionComponent = () => {
         // if a poi is being created, get its emoji and set it as the icon for the marker
         let emoji16BitVal = null;
         if (activeUserMapObject.mapItemType === "poi") {
-          const poi = poiStore.pois.find((poi) => poi.uuid === activeUserMapObject.uuid);
+          const poi = pois.find((poi) => poi.uuid === activeUserMapObject.uuid);
           emoji16BitVal = poi.color ? poi.color?.value : "🚀".codePointAt(0).toString(16);
         } else {
           // if an evaItem is being created, use a default icon
@@ -515,7 +517,7 @@ const MapBody: FunctionComponent = () => {
         // trigger a location refresh since edit was cancelled
         dispatch(
           upsertUserMapObject({
-            ...mapStore.userMapObjects.find((item) => item.uuid === activeUserMapObject?.uuid),
+            ...userMapObjects.find((item) => item.uuid === activeUserMapObject?.uuid),
             mapAction: "refreshLocation",
           })
         );
@@ -535,7 +537,7 @@ const MapBody: FunctionComponent = () => {
           (drawControl) => drawControl.uuid === activeUserMapObject.uuid
         );
         if (drawControlItem.mapItemType === "poi") {
-          const poi = poiStore.pois.find((poi) => poi.uuid === activeUserMapObject.uuid);
+          const poi = pois.find((poi) => poi.uuid === activeUserMapObject.uuid);
           if (poi?.location) {
             const location = poi.location;
             const latLng = new L.LatLng(location.lat, location.lng);
@@ -576,13 +578,13 @@ const MapBody: FunctionComponent = () => {
     function clearAction() {
       dispatch(
         upsertUserMapObject({
-          ...mapStore.userMapObjects.find((item) => item.uuid === activeUserMapObject?.uuid),
+          ...userMapObjects.find((item) => item.uuid === activeUserMapObject?.uuid),
           mapAction: null,
         })
       );
       uuidBeingEdited.current = null;
     }
-  }, [eva, poiStore.pois, mapStore, dispatch, drawItemOnMap]);
+  }, [eva, pois, userMapObjects, dispatch, drawItemOnMap]);
 
   /**
    * When page loads, check for any POI items that have a location and add them to the map
@@ -590,8 +592,8 @@ const MapBody: FunctionComponent = () => {
   useEffect(() => {
     if (!map.current) return;
 
-    if (poiStore.pois) {
-      poiStore.pois.forEach((poi) => {
+    if (pois) {
+      pois.forEach((poi) => {
         if (poi.location) {
           // if the poi isn't already in drawControlItems, add it to the map and drawControlItems
           if (
@@ -621,7 +623,7 @@ const MapBody: FunctionComponent = () => {
         }
       });
     }
-  }, [map, poiStore.pois, drawControlItemsRef, dispatch, saveMarkerEdit, drawItemOnMap]);
+  }, [map, pois, drawControlItemsRef, dispatch, saveMarkerEdit, drawItemOnMap]);
 
   /**
    * Monitor map item highlights and draw highlight layers on the map
@@ -631,7 +633,7 @@ const MapBody: FunctionComponent = () => {
 
     // check if poi icon is on the map
     const selectedDrawControlItem = drawControlItemsRef.current.find(
-      (drawControlItem) => drawControlItem.uuid === poiStore.selectedPoiUuid
+      (drawControlItem) => drawControlItem.uuid === selectedPoiUuid
     );
 
     // remove any existing highlight layers
@@ -645,7 +647,7 @@ const MapBody: FunctionComponent = () => {
     });
 
     if (selectedDrawControlItem) {
-      const poi = poiStore.pois.find((poi) => poi.uuid === poiStore.selectedPoiUuid);
+      const poi = pois.find((poi) => poi.uuid === selectedPoiUuid);
 
       // if the poi has a location, then highlight it on the map
       if (poi.location && showHightlightOnMap) {
@@ -666,16 +668,16 @@ const MapBody: FunctionComponent = () => {
         map.current.addLayer(marker);
       }
     }
-  }, [map, poiStore, mapStore, dispatch, showHightlightOnMap]);
+  }, [map, pois, selectedPoiUuid, userMapObjects, dispatch, showHightlightOnMap]);
 
   /**
    * if selectedPoiUuid changes, then show the highlight on the map
    */
   useEffect(() => {
-    if (poiStore.selectedPoiUuid) {
+    if (selectedPoiUuid) {
       setShowHighlightOnMap(true);
     }
-  }, [poiStore.selectedPoiUuid]);
+  }, [selectedPoiUuid]);
 
   /**
    * Handle the user pressing escape key to get out of draw mode on the map
@@ -690,7 +692,7 @@ const MapBody: FunctionComponent = () => {
         isEscape = evt.keyCode === 27;
       }
       if (isEscape) {
-        const userMapObject = mapStore.userMapObjects.find(
+        const userMapObject = userMapObjects.find(
           (userMapObject) => userMapObject.uuid === uuidBeingEdited.current
         );
         if (!userMapObject) return;
@@ -699,14 +701,14 @@ const MapBody: FunctionComponent = () => {
           userMapObject?.mapAction === "create" ? "cancelCreate" : "cancelEdit";
         dispatch(
           upsertUserMapObject({
-            ...mapStore.userMapObjects.find((item) => item.uuid === uuidBeingEdited.current),
+            ...userMapObjects.find((item) => item.uuid === uuidBeingEdited.current),
             createdAt: new Date().toISOString(),
             mapAction: mapCancelAction,
           })
         );
       }
     },
-    [mapStore.userMapObjects, dispatch]
+    [userMapObjects, dispatch]
   );
   useEffect(() => {
     window.addEventListener("keydown", handleUserKeyPress);
@@ -721,10 +723,10 @@ const MapBody: FunctionComponent = () => {
    */
   useEffect(() => {
     if (!map.current) return;
-    const selectedPoi = poiStore.pois.find((poi) => poi.uuid === poiStore.selectedPoiUuid);
+    const selectedPoi = pois.find((poi) => poi.uuid === selectedPoiUuid);
     if (selectedPoi) {
       const selectedDrawControlItem = drawControlItemsRef.current.find(
-        (drawControlItem) => drawControlItem.uuid === poiStore.selectedPoiUuid
+        (drawControlItem) => drawControlItem.uuid === selectedPoiUuid
       );
       if (selectedDrawControlItem) {
         const html = `<div class="leaflet-aegis-icon">${
@@ -738,7 +740,7 @@ const MapBody: FunctionComponent = () => {
         });
       }
     }
-  }, [poiStore, map]);
+  }, [pois, selectedPoiUuid, map]);
 
   return (
     <>

@@ -56,6 +56,24 @@
     "no-octal-escape": "error",
     "no-proto": "error",
     "no-prototype-builtins": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "react-redux",
+            "importNames": ["useSelector", "shallowEqual"],
+            "message":"Use useAppSelector() instead of useSelector(), and refEqual()/shallowEqual()/deepEqual() from useAppSelector.ts versus other locations. These functions provide better Aegis-specific defaults."
+          },
+          {
+            "name": "assert",
+            "importNames": ["deepEqual"],
+            "message": "Use 'useAppSelector.ts/deepEqual'."
+          }
+        ]
+      }
+    ],
+  
     "no-return-assign": "error",
     "no-script-url": "error",
     "no-self-compare": "error",

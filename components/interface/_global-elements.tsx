@@ -37,6 +37,7 @@ export const Dropdown: FunctionComponent<{
       <select
         value={selected}
         style={selectStyle}
+        title="dropdown"
         onChange={(e) => onChange(e.target.value)}
         onClick={(e) => {
           e.stopPropagation();
@@ -291,6 +292,7 @@ export const Checkbox: FunctionComponent<{
     <div className={styles.checkboxContainer}>
       <input
         type="checkbox"
+        title="checkbox"
         checked={checked}
         onChange={onChange}
         className={checked ? styles.checkboxChecked : ""}

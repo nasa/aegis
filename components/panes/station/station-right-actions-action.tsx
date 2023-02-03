@@ -20,8 +20,8 @@ import stationStyles from "./station.module.css";
 import { setStationEditMode } from "store/station";
 import { deleteAction, upsertAction } from "store/action";
 import { toDecimal } from "utils/formatting";
-import { useSelector, useDispatch, shallowEqual } from "react-redux";
-import { RootState } from "store";
+import { useDispatch } from "react-redux";
+import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { Tooltip } from "react-tooltip";
 import ReactDOMServer from "react-dom/server";
 
@@ -31,18 +31,19 @@ const RightAction: FunctionComponent<{
   action: Action;
   highlight: boolean;
 }> = ({ editMode, stationUuid, action, highlight }) => {
-  const actions: Action[] = useSelector((state: RootState) => state.action.actions, shallowEqual);
-  const pois: POI[] = useSelector((state: RootState) => state.poi.pois, shallowEqual);
-
   const dispatch = useDispatch();
+  const parentAction = useAppSelector(
+    (state) =>
+      state.action.actions.find((storeAction) => storeAction.uuid === action.parentActionUuid),
+    shallowEqual
+  );
+  const parentPoi = useAppSelector(
+    (state) => state.poi.pois.find((storePoi) => storePoi.uuid === parentAction?.poiUuid),
+    shallowEqual
+  );
   const [expanded, setExpanded] = useState(false);
 
   function buildActionTooltip() {
-    if (!action.parentActionUuid) return <></>;
-    const parentAction = actions.find(
-      (storeAction) => storeAction.uuid === action.parentActionUuid
-    );
-    const parentPoi = pois.find((storePoi) => storePoi.uuid === parentAction.poiUuid);
     if (parentAction && parentPoi) {
       const copyDate: Date = new Date(action.parentCopyDate);
       const dateString = `${
@@ -139,8 +140,7 @@ const RightAction: FunctionComponent<{
             />
           </div>
         ) : (
-          action.parentActionUuid &&
-          actions && (
+          action.parentActionUuid && (
             <div className={paneStyles.actionHeadingIcons}>
               <FontAwesomeIcon
                 id={`${action.uuid}-${action.parentActionUuid}`}

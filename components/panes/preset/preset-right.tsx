@@ -1,6 +1,7 @@
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useSelector, useDispatch, shallowEqual } from "react-redux";
+import { useDispatch } from "react-redux";
+import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBan,
@@ -14,7 +15,6 @@ import {
 import Info_panel from "./preset-right-info-panel";
 import Layers_Panel from "./preset-right-layers";
 import paneStyles from "../global-pane-styles.module.css";
-import { RootState } from "store";
 import {
   deleteAllPresetsFromDb,
   deletePreset,
@@ -29,27 +29,21 @@ import { IconButton, InLineEditInput } from "components/interface/_global-elemen
 
 const PresetEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const presetsFromDb = useSelector((state: RootState) => state.preset.presetsFromDb, shallowEqual);
-  const selectedRightNavItem = useSelector(
-    (state: RootState) => state.preset.selectedRightNavItem,
+  const selectedRightNavItem = useAppSelector(
+    (state) => state.preset.selectedRightNavItem,
+    refEqual
+  );
+  const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
+  const selectedPreset = useAppSelector(
+    (state) => state.preset.presets.find((preset) => preset.uuid === selectedPresetUuid),
     shallowEqual
   );
-  const selectedPresetUuid = useSelector(
-    (state: RootState) => state.preset.selectedPresetUuid,
+  const selectedPresetFromDb = useAppSelector(
+    (state) => state.preset.presetsFromDb.find((preset) => preset.uuid === selectedPresetUuid),
     shallowEqual
   );
-  const selectedPreset = useSelector((state: RootState) => state.preset.presets, shallowEqual).find(
-    (preset) => preset.uuid === selectedPresetUuid
-  );
-  const selectedPresetFromDb = presetsFromDb.find((preset) => preset.uuid === selectedPresetUuid);
-  const presetsEditing = useSelector(
-    (state: RootState) => state.preset.presetsEditing,
-    shallowEqual
-  );
-  const selectedMissionId = useSelector(
-    (state: RootState) => state.mission.mission?.id,
-    shallowEqual
-  );
+  const presetsEditing = useAppSelector((state) => state.preset.presetsEditing, shallowEqual);
+  const selectedMissionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
 
   const [modified, setModified] = useState(false);
   useEffect(() => {
@@ -112,11 +106,6 @@ const PresetEditorRight: FunctionComponent = () => {
   const handleDelete = async () => {
     if (selectedPreset) {
       // if the selected preset is in presetsFromDb then delete it from the db
-
-      // find the selected Preset in presetsFromDb
-      const selectedPresetFromDb = presetsFromDb.find(
-        (preset) => preset.uuid === selectedPreset.uuid
-      );
       if (selectedPresetFromDb) {
         // delete the preset from the DB via internal API call
         const deleteResponse = await InternalAPI.deletePreset(selectedPreset.uuid);

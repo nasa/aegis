@@ -77,6 +77,7 @@ const Settings_subpanel: FunctionComponent<{
             min="0"
             max="100"
             name={"opacity"}
+            title="opacity"
             defaultValue={
               presetLayerStyle?.opacity ? Math.round(presetLayerStyle?.opacity * 100) : 100
             }
@@ -98,6 +99,7 @@ const Settings_subpanel: FunctionComponent<{
             min="0"
             max="100"
             name={"contrast"}
+            title="contrast"
             defaultValue={
               presetLayerStyle?.contrast ? Math.round(presetLayerStyle?.contrast * 100) : 100
             }
@@ -119,6 +121,7 @@ const Settings_subpanel: FunctionComponent<{
             min="0"
             max="100"
             name={"brightness"}
+            title="brightness"
             defaultValue={
               presetLayerStyle?.brightness ? Math.round(presetLayerStyle?.brightness * 100) : 100
             }
@@ -140,6 +143,7 @@ const Settings_subpanel: FunctionComponent<{
             min="0"
             max="100"
             name={"saturation"}
+            title="saturation"
             onChange={(e) => {
               setSaturation(parseInt(e.target.value));
             }}

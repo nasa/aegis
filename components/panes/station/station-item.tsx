@@ -1,48 +1,24 @@
 import { ModifiedIndicator } from "components/interface/_global-elements";
-import { FunctionComponent, useEffect, useState } from "react";
-import { RootState } from "store";
-import { useSelector, useDispatch, shallowEqual } from "react-redux";
+import { FunctionComponent } from "react";
+import { useDispatch } from "react-redux";
+import { useAppSelector, refEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, setSelectedStationUuid } from "store/station";
 import stationStyles from "./station.module.css";
-import _ from "lodash";
 
 const StationItem: FunctionComponent<{
   selectedStationUuid: string;
   station: Station;
   stationFromDb: Station;
-  actions: Action[];
-  actionsFromDb: Action[];
-}> = ({ selectedStationUuid, station, stationFromDb, actions, actionsFromDb }) => {
+  stationActions: Action[];
+  stationActionsFromDb: Action[];
+}> = ({ selectedStationUuid, station, stationFromDb, stationActions, stationActionsFromDb }) => {
   const dispatch = useDispatch();
-  const selectedRightNavItem = useSelector(
-    (state: RootState) => state.station.selectedRightNavItem,
-    shallowEqual
+  const selectedRightNavItem = useAppSelector(
+    (state) => state.station.selectedRightNavItem,
+    refEqual
   );
-
   const isStationSelectedStyle =
     station.uuid === selectedStationUuid ? stationStyles.nameSelected : null;
-  const [stationActions, setStationActions] = useState<Action[]>([]);
-  const [stationActionsFromDb, setStationActionsFromDb] = useState<Action[]>([]);
-  useEffect(() => {
-    if (actions) {
-      const filteredactions = _.sortBy(
-        actions.filter((storeAction: Action) => storeAction.stationUuid === station.uuid),
-        ["createdAt"]
-      );
-
-      setStationActions(filteredactions);
-    }
-  }, [actions, station.uuid]);
-  useEffect(() => {
-    if (actionsFromDb) {
-      const filteredactions = _.sortBy(
-        actionsFromDb.filter((storeAction: Action) => storeAction.stationUuid === station.uuid),
-        ["createdAt"]
-      );
-
-      setStationActionsFromDb(filteredactions);
-    }
-  }, [actionsFromDb, station.uuid]);
 
   return (
     <div

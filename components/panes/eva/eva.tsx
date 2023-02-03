@@ -1,6 +1,6 @@
-import { FunctionComponent, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import { RootState } from "store";
+import { FunctionComponent } from "react";
+import { useDispatch } from "react-redux";
+import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import styles from "./eva.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import _ from "lodash";
@@ -11,18 +11,14 @@ import { upsertUserMapObject } from "store/map";
 
 const EvaPlannerLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const evaState = useSelector((state: RootState) => state.eva);
-  const map = useSelector((state: RootState) => state.map);
-
-  useEffect(() => {
-    // console.log(evaState);
-  }, [evaState]);
+  const evaItems = useAppSelector((state) => state.eva.eva.evaItems, shallowEqual);
+  const userMapObjects = useAppSelector((state) => state.map.userMapObjects, shallowEqual);
 
   return (
     <div className={paneStyles.panelContainer}>
       <div className={styles.actionHeader}>
         <div className={styles.select}>
-          <select>
+          <select title="Select EVA">
             <option value="">EVA 1</option>
           </select>
           <div className={styles.selectArrow}>
@@ -40,12 +36,10 @@ const EvaPlannerLeft: FunctionComponent = () => {
       </div>
 
       <div className={styles.evaItems}>
-        {evaState &&
-          evaState.eva.evaItems.map((item) => {
+        {evaItems &&
+          evaItems.map((item) => {
             let evaItemIcon = null;
-            const userMapObject = map.userMapObjects?.find(
-              (mapObject) => mapObject.uuid === item.uuid
-            );
+            const userMapObject = userMapObjects.find((mapObject) => mapObject.uuid === item.uuid);
             const mapAction = userMapObject ? userMapObject.mapAction : null;
 
             if (item.type === "lander") {

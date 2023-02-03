@@ -1,7 +1,8 @@
 import paneStyles from "../global-pane-styles.module.css";
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useSelector, useDispatch, shallowEqual } from "react-redux";
+import { useDispatch } from "react-redux";
+import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -14,8 +15,6 @@ import {
   faTableList,
 } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, InLineEditInput } from "components/interface/_global-elements";
-
-import { RootState } from "store";
 import {
   deleteStation,
   setSelectedStationUuid,
@@ -42,44 +41,35 @@ import * as httpClient_action from "http-client/action";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const selectedMissionId = useSelector(
-    (state: RootState) => state.mission.mission?.id,
+  const selectedMissionId = useAppSelector((state) => state.mission.mission?.id, shallowEqual);
+  const selectedRightNavItem = useAppSelector(
+    (state) => state.station.selectedRightNavItem,
     shallowEqual
   );
-  const selectedRightNavItem = useSelector(
-    (state: RootState) => state.station.selectedRightNavItem,
+  const selectedStationUuid = useAppSelector(
+    (state) => state.station.selectedStationUuid,
     shallowEqual
   );
-  const selectedStationUuid = useSelector(
-    (state: RootState) => state.station.selectedStationUuid,
+  const stationsEditing = useAppSelector((state) => state.station.stationsEditing, shallowEqual);
+  const selectedStation = useAppSelector(
+    (state) => state.station.stations.find((station) => station.uuid === selectedStationUuid),
     shallowEqual
   );
-  const stationsEditing = useSelector(
-    (state: RootState) => state.station.stationsEditing,
+  const selectedStationFromDb = useAppSelector(
+    (state) => state.station.stationsFromDb.find((station) => station.uuid === selectedStationUuid),
     shallowEqual
   );
-  const stations = useSelector((state: RootState) => state.station.stations, shallowEqual);
-  const stationsFromDb = useSelector(
-    (state: RootState) => state.station.stationsFromDb,
+  const stationActions = useAppSelector(
+    (state) =>
+      state.action.actions.filter((storeAction) => storeAction.stationUuid === selectedStationUuid),
     shallowEqual
   );
-  const selectedStation: Station = stations.find(
-    (station: Station) => station.uuid === selectedStationUuid
-  );
-  const selectedStationFromDb: Station = stationsFromDb.find(
-    (station: Station) => station.uuid === selectedStationUuid
-  );
-
-  const actions: Action[] = useSelector((state: RootState) => state.action.actions, shallowEqual);
-  const actionsFromDb: Action[] = useSelector(
-    (state: RootState) => state.action.actionsFromDb,
+  const stationActionsFromDb = useAppSelector(
+    (state) =>
+      state.action.actionsFromDb.filter(
+        (storeAction) => storeAction.stationUuid === selectedStationUuid
+      ),
     shallowEqual
-  );
-  const stationActions = actions.filter(
-    (storeAction: Action) => storeAction.stationUuid === selectedStationUuid
-  );
-  const stationActionsFromDb = actionsFromDb.filter(
-    (storeAction: Action) => storeAction.stationUuid === selectedStationUuid
   );
 
   //track modified

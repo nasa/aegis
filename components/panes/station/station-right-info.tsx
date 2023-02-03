@@ -8,18 +8,20 @@ import {
   MultiButton,
 } from "components/interface/_global-elements";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useSelector, useDispatch, shallowEqual } from "react-redux";
-import { RootState } from "store";
+import { useDispatch } from "react-redux";
+import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { upsertStation } from "store/station";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
-  const selectedStationUuid = useSelector(
-    (state: RootState) => state.station.selectedStationUuid,
+  const selectedStationUuid = useAppSelector(
+    (state) => state.station.selectedStationUuid,
+    refEqual
+  );
+  const selectedStation = useAppSelector(
+    (state) => state.station.stations.find((station) => station.uuid === selectedStationUuid),
     shallowEqual
   );
-  const stations = useSelector((state: RootState) => state.station.stations, shallowEqual);
-  const selectedStation = stations.find((station) => station.uuid === selectedStationUuid);
 
   return (
     <div className={paneStyles.rightBody}>

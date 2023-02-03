@@ -1,39 +1,35 @@
 import _ from "lodash";
 import styles from "./side-controls.module.css";
 import { FunctionComponent } from "react";
-import { useSelector, useDispatch, shallowEqual } from "react-redux";
+import { useDispatch } from "react-redux";
+import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { RootState } from "store";
 import { setSectionSelected } from "store/interface";
 
 import { paneTypes } from "components/interface/_paneTypes";
 
 /* This control sits at the left side of the screen and loads the selected component based on the NavGutter icon selected */
 export const LeftControlPanel: FunctionComponent = () => {
-  const dispatch = useDispatch();
-  const interfaceState = useSelector((state: RootState) => state.interface);
-
-  const selectedNavItem = interfaceState.sectionSelectedLabel;
-
-  const setSelectedNavItem = (itemLabel) => {
-    dispatch(setSectionSelected(itemLabel));
-  };
+  const interfaceStateLabel = useAppSelector(
+    (state) => state.interface.sectionSelectedLabel,
+    refEqual
+  );
 
   let ActiveComponent = null;
   let title = null;
-  if (!_.isNil(paneTypes[selectedNavItem])) {
-    ActiveComponent = paneTypes[selectedNavItem].leftPane;
-    title = paneTypes[selectedNavItem].title;
+  if (!_.isNil(paneTypes[interfaceStateLabel])) {
+    ActiveComponent = paneTypes[interfaceStateLabel].leftPane;
+    title = paneTypes[interfaceStateLabel].title;
   }
 
   return (
     <div className={styles.body}>
-      <NavGutter selectedNavItem={selectedNavItem} setSelectedNavItem={setSelectedNavItem} />
+      <NavGutter selectedNavItem={interfaceStateLabel} />
       <div className={styles.activeComponent}>
         <div
           className={styles.activeComponentTitle}
-          style={{ color: paneTypes[selectedNavItem].color }}
+          style={{ color: paneTypes[interfaceStateLabel].color }}
         >
           {title}
         </div>
@@ -45,13 +41,14 @@ export const LeftControlPanel: FunctionComponent = () => {
 
 /* This control sits at the right side of the screen and displays the active pane for that position */
 export const RightControlPanel: FunctionComponent = () => {
-  const interfaceState = useSelector((state: RootState) => state.interface);
-
-  const selectedNavItem = interfaceState.sectionSelectedLabel;
+  const interfaceStateLabel = useAppSelector(
+    (state) => state.interface.sectionSelectedLabel,
+    refEqual
+  );
 
   let ActiveComponent = null;
-  if (!_.isNil(paneTypes[selectedNavItem])) {
-    ActiveComponent = paneTypes[selectedNavItem].rightPane;
+  if (!_.isNil(paneTypes[interfaceStateLabel])) {
+    ActiveComponent = paneTypes[interfaceStateLabel].rightPane;
   }
 
   return (
@@ -63,39 +60,40 @@ export const RightControlPanel: FunctionComponent = () => {
   );
 };
 
-const NavGutter = ({ selectedNavItem, setSelectedNavItem }) => {
-  const pois: POI[] = useSelector((state: RootState) => state.poi.pois, shallowEqual);
-  const poisFromDb: POI[] = useSelector((state: RootState) => state.poi.poisFromDb, shallowEqual);
-  const presets: Preset[] = useSelector((state: RootState) => state.preset.presets, shallowEqual);
-  const presetsFromDb: Preset[] = useSelector(
-    (state: RootState) => state.preset.presetsFromDb,
+const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
+  selectedNavItem,
+}) => {
+  const dispatch = useDispatch();
+  const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
+  const poisFromDb = useAppSelector((state) => state.poi.poisFromDb, shallowEqual);
+  const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
+  const presetsFromDb = useAppSelector((state) => state.preset.presetsFromDb, shallowEqual);
+  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
+  const stationsFromDb = useAppSelector((state) => state.station.stationsFromDb, shallowEqual);
+  const poiActions = useAppSelector(
+    (state) => state.action.actions.filter((storeAction) => storeAction.poiUuid),
     shallowEqual
   );
-  const stations: Station[] = useSelector(
-    (state: RootState) => state.station.stations,
+  const poiActionsFromDb = useAppSelector(
+    (state) => state.action.actionsFromDb.filter((storeAction) => storeAction.poiUuid),
     shallowEqual
   );
-  const stationsFromDb: Station[] = useSelector(
-    (state: RootState) => state.station.stationsFromDb,
+  const stationActions = useAppSelector(
+    (state) => state.action.actions.filter((storeAction) => storeAction.stationUuid),
     shallowEqual
   );
-  const actions: Action[] = useSelector((state: RootState) => state.action.actions, shallowEqual);
-  const actionsFromDb: Action[] = useSelector(
-    (state: RootState) => state.action.actionsFromDb,
+  const stationActionsFromDb = useAppSelector(
+    (state) => state.action.actionsFromDb.filter((storeAction) => storeAction.stationUuid),
     shallowEqual
   );
 
   return (
     <div className={styles.iconGutter}>
       {/* Loop through all of the paneTypes and draw them on the gutter */}
-      {Object.keys(paneTypes).map((paneType) => {
+      {Object.keys(paneTypes).map((paneType: InterfaceSection) => {
         let itemModified = false;
         switch (paneType) {
           case "poi":
-            const poiActions = actions.filter((storeAction: Action) => storeAction.poiUuid);
-            const poiActionsFromDb = actionsFromDb.filter(
-              (storeAction: Action) => storeAction.poiUuid
-            );
             const poiEqual = _.isEqual(_.sortBy(pois, ["uuid"]), _.sortBy(poisFromDb, ["uuid"]));
             const poiActionEqual = _.isEqual(
               _.sortBy(poiActions, ["uuid"]),
@@ -107,10 +105,6 @@ const NavGutter = ({ selectedNavItem, setSelectedNavItem }) => {
             itemModified = !_.isEqual(presets, presetsFromDb);
             break;
           case "station":
-            const stationActions = actions.filter((storeAction: Action) => storeAction.stationUuid);
-            const stationActionsFromDb = actionsFromDb.filter(
-              (storeAction: Action) => storeAction.stationUuid
-            );
             const stationsEqual = _.isEqual(
               _.sortBy(stations, ["uuid"]),
               _.sortBy(stationsFromDb, ["uuid"])
@@ -134,7 +128,7 @@ const NavGutter = ({ selectedNavItem, setSelectedNavItem }) => {
               className={styles.icon}
               style={{ color: paneTypes[paneType].color }}
               title={paneTypes[paneType].title}
-              onClick={() => setSelectedNavItem(paneType)}
+              onClick={() => dispatch(setSectionSelected(paneType))}
             >
               <FontAwesomeIcon icon={paneTypes[paneType].icon} size="lg" />
             </div>

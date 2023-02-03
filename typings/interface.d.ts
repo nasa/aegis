@@ -7,7 +7,7 @@ interface PaneType {
 }
 
 interface PaneTypes {
-  [key: string]: PaneType;
+  [key: InterfaceSection]: PaneType;
 }
 
 interface PanelType {
