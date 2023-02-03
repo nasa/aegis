@@ -3,8 +3,8 @@ import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent } from "react";
 import { IconButton } from "components/interface/_global-elements";
-import { useSelector, useDispatch, shallowEqual } from "react-redux";
-import { RootState } from "store";
+import { useDispatch } from "react-redux";
+import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { duplicatePoi, setPoiEditMode, setSelectedPoiUuid, upsertPoi } from "store/poi";
 import { animals, uniqueNamesGenerator } from "unique-names-generator";
 import { v4 as uuidv4 } from "uuid";
@@ -13,22 +13,16 @@ import _ from "lodash";
 
 const PoiEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const pois: POI[] = useSelector((state: RootState) => state.poi.pois, shallowEqual);
-  const poisFromDb: POI[] = useSelector((state: RootState) => state.poi.poisFromDb, shallowEqual);
+  const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
+  const poisFromDb = useAppSelector((state) => state.poi.poisFromDb, shallowEqual);
 
-  const selectedPoiUuid = useSelector(
-    (state: RootState) => state.poi.selectedPoiUuid,
-    shallowEqual
-  );
-  const selectedPoi: POI = pois.find((poi: POI) => poi.uuid === selectedPoiUuid);
+  const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
+  const selectedPoi = pois.find((poi) => poi.uuid === selectedPoiUuid);
 
-  const user: AEGISUser = useSelector(
-    (state: RootState) => state.user.ironSessionData?.user,
-    shallowEqual
-  );
-  const mission = useSelector((state: RootState) => state.mission.mission, shallowEqual);
-  const actions = useSelector((state: RootState) => state.action.actions, shallowEqual);
-  const actionsFromDb = useSelector((state: RootState) => state.action.actionsFromDb, shallowEqual);
+  const userId: number = useAppSelector((state) => state.user.ironSessionData?.user.id, refEqual);
+  const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
+  const actions = useAppSelector((state) => state.action.actions, shallowEqual);
+  const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, shallowEqual);
 
   const handleCreatePoi = () => {
     const randomName: string = uniqueNamesGenerator({
@@ -37,7 +31,7 @@ const PoiEditorLeft: FunctionComponent = () => {
     });
 
     const blankPoi: POI = {
-      ownerId: user.id,
+      ownerId: userId,
       missionId: mission.id,
       uuid: uuidv4(),
       name: "P-" + randomName,

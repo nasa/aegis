@@ -2,8 +2,8 @@ import styles from "./preset.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faGlobe, faPlusCircle, faUser } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent } from "react";
-import { useDispatch, useSelector, shallowEqual } from "react-redux";
-import { RootState } from "../../../store";
+import { useDispatch } from "react-redux";
+import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import {
   duplicatePreset,
   setPresetEditMode,
@@ -19,17 +19,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 const PresetEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const presets = useSelector((state: RootState) => state.preset.presets, shallowEqual);
-  const selectedPresetUuid = useSelector(
-    (state: RootState) => state.preset.selectedPresetUuid,
-    shallowEqual
-  );
-  const user: AEGISUser = useSelector(
-    (state: RootState) => state.user.ironSessionData?.user,
-    shallowEqual
-  );
-  const mission = useSelector((state: RootState) => state.mission.mission, shallowEqual);
-  const mapLayerControls = useSelector((state: RootState) => state.map.layerControls, shallowEqual);
+  const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
+  const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
+  const user: AEGISUser = useAppSelector((state) => state.user.ironSessionData?.user, shallowEqual);
+  const missionId = useAppSelector((state) => state.mission.mission.id, refEqual);
+  const mapLayerControls = useAppSelector((state) => state.map.layerControls, shallowEqual);
 
   let selectedPreset: Preset;
   if (presets !== null) {
@@ -46,7 +40,7 @@ const PresetEditorLeft: FunctionComponent = () => {
       name: randomName,
       description: "Enter description here",
       ownerId: user.id,
-      missionId: mission.id,
+      missionId: missionId,
       missionPreset: false,
       missionPresetDefault: false,
       layerControls: mapLayerControls,
@@ -123,8 +117,11 @@ const PresetList: FunctionComponent<{
   selectedPresetUuid: string;
 }> = ({ presets, selectedPresetUuid }) => {
   const dispatch = useDispatch();
-  const presetsFromDb = useSelector((state: RootState) => state.preset.presetsFromDb);
-  const selectedRightNavItem = useSelector((state: RootState) => state.preset.selectedRightNavItem);
+  const presetsFromDb = useAppSelector((state) => state.preset.presetsFromDb, shallowEqual);
+  const selectedRightNavItem = useAppSelector(
+    (state) => state.preset.selectedRightNavItem,
+    refEqual
+  );
 
   const handleSelectPresetClick = async (currentPreset: Preset) => {
     if (currentPreset.uuid === selectedPresetUuid) {

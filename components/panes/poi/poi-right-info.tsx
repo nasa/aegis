@@ -10,24 +10,22 @@ import {
   Tags,
 } from "components/interface/_global-elements";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useSelector, useDispatch, shallowEqual } from "react-redux";
-import { RootState } from "store";
+import { useDispatch } from "react-redux";
+import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { upsertPoi } from "store/poi";
 import { upsertUserMapObject } from "store/map";
 import _ from "lodash";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
-  const selectedPoiUuid = useSelector(
-    (state: RootState) => state.poi.selectedPoiUuid,
+  const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
+  const selectedPoi = useAppSelector(
+    (state) => state.poi.pois.find((poi) => poi.uuid === selectedPoiUuid),
     shallowEqual
   );
-  const pois = useSelector((state: RootState) => state.poi.pois, shallowEqual);
-  const selectedPoi = pois.find((poi) => poi.uuid === selectedPoiUuid);
-  const map = useSelector((state: RootState) => state.map, shallowEqual);
-
-  const userMapObject = map.userMapObjects?.find(
-    (mapObject) => mapObject.uuid === selectedPoi.uuid
+  const userMapObject = useAppSelector(
+    (state) => state.map.userMapObjects.find((mapObject) => mapObject.uuid === selectedPoi.uuid),
+    shallowEqual
   );
   const mapAction = userMapObject ? userMapObject.mapAction : null;
 

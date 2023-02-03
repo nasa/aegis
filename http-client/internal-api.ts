@@ -1,4 +1,5 @@
 import type { IronSessionData } from "iron-session";
+
 export async function getPOIs(mission: number): Promise<WrappedResponse<POI[]>> {
   const res = await fetch(`/api/poi?missionId=${mission}`);
   const response: WrappedResponse<POI[]> = await res.json();

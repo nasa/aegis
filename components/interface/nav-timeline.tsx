@@ -1,20 +1,20 @@
 import isNil from "lodash/isNil";
 import paper from "paper";
 import { FunctionComponent, MutableRefObject, useCallback, useEffect, useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+import { useAppSelector, refEqual } from "utils/useAppSelector";
 import { changeTime } from "store/playhead";
 import { changeHoverTime } from "store/playheadHover";
 
 import DrawNav from "./nav-timeline-draw";
-import { RootState } from "store/index";
 import styles from "./nav-timeline-draw.module.css";
 
 /**
  * Renders the navigation timeline presented at the bottom of the CODA window
  */
 const NavTimeline: FunctionComponent = () => {
-  const playhead = useSelector((state: RootState) => state.playhead);
-  const playheadHover = useSelector((state: RootState) => state.playheadHover);
+  const playhead = useAppSelector((state) => state.playhead, refEqual);
+  const playheadHoverSecs = useAppSelector((state) => state.playheadHover.seconds, refEqual);
 
   const dispatch = useDispatch();
 
@@ -57,7 +57,7 @@ const NavTimeline: FunctionComponent = () => {
         if (!mouseOnNavigator.current) {
           mouseOnNavigator.current = true;
         }
-        if (playheadHover.seconds !== thisHoverSeconds) {
+        if (playheadHoverSecs !== thisHoverSeconds) {
           dispatch(changeHoverTime(thisHoverSeconds));
         }
       });
@@ -81,7 +81,7 @@ const NavTimeline: FunctionComponent = () => {
     if (!navReady.current) {
       navReady.current = true;
     }
-  }, [dispatch, playhead, playheadHover]);
+  }, [dispatch, playhead, playheadHoverSecs]);
 
   useEffect(() => {
     // only setup the canvas once

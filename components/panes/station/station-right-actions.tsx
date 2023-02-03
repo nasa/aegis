@@ -2,8 +2,8 @@ import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
 import { IconButton } from "components/interface/_global-elements";
-import { useSelector, useDispatch, shallowEqual } from "react-redux";
-import { RootState } from "store";
+import { useDispatch } from "react-redux";
+import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { setStationEditMode, upsertStation } from "store/station";
 import { duplicateAction, upsertAction } from "store/action";
 import StationAction from "./station-right-actions-action";
@@ -30,46 +30,26 @@ interface WrappedAction {
 
 const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
-  const stations = useSelector((state: RootState) => state.station.stations, shallowEqual);
-  const selectedStationUuid: string = useSelector(
-    (state: RootState) => state.station.selectedStationUuid,
+  const selectedStationUuid = useAppSelector(
+    (state) => state.station.selectedStationUuid,
+    refEqual
+  );
+  const selectedStation = useAppSelector(
+    (state) => state.station.stations.find((station) => station.uuid === selectedStationUuid),
     shallowEqual
   );
-  const selectedMissionId = useSelector(
-    (state: RootState) => state.mission.mission?.id,
+  const selectedMissionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
+  const allSTMObjectives = useAppSelector((state) => state.stm.objectives, shallowEqual);
+  const allSTMGoals = useAppSelector((state) => state.stm.goals, shallowEqual);
+  const allSTMInvstgs = useAppSelector((state) => state.stm.investigations, shallowEqual);
+  const actions = useAppSelector((state) => state.action.actions, shallowEqual);
+  const stationPois = useAppSelector(
+    (state) => state.poi.pois.filter((poi) => selectedStation?.poiUuids?.includes(poi.uuid)),
     shallowEqual
   );
-  const allSTMObjectives: STMObjective[] = useSelector(
-    (state: RootState) => state.stm.objectives,
-    shallowEqual
-  );
-  const allSTMGoals: STMGoal[] = useSelector((state: RootState) => state.stm.goals, shallowEqual);
-  const allSTMInvstgs: STMInvestigation[] = useSelector(
-    (state: RootState) => state.stm.investigations,
-    shallowEqual
-  );
-  const actions = useSelector((state: RootState) => state.action.actions, shallowEqual);
-  const pois = useSelector((state: RootState) => state.poi.pois, shallowEqual);
-
   const [stationInvstgs, setStationInvstgs] = useState<STMInvestigation[]>(null);
   const [wrappedStationActions, setWrappedStationActions] = useState<WrappedAction[]>(null); //contains all station actions
-  const [stationPois, setStationPois] = useState<POI[]>(null);
   const [poiExpanded, setPoiExpanded] = useState(false);
-  const [selectedStation, setSelectedStation] = useState(null);
-
-  useEffect(() => {
-    setSelectedStation(stations.find((station: Station) => station.uuid === selectedStationUuid));
-  }, [stations, selectedStationUuid]);
-
-  //get all the POIs on this station
-  useEffect(() => {
-    if (pois && stations && selectedStationUuid) {
-      const selectedStation = stations.find(
-        (station: Station) => station.uuid === selectedStationUuid
-      );
-      setStationPois(pois.filter((poi) => selectedStation?.poiUuids?.includes(poi.uuid)));
-    }
-  }, [pois, stations, selectedStationUuid]);
 
   //gather all actions, wrap, then order them
   useEffect(() => {

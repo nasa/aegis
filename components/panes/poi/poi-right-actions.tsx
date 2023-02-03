@@ -2,8 +2,8 @@ import { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { IconButton } from "components/interface/_global-elements";
-import { useSelector, useDispatch, shallowEqual } from "react-redux";
-import { RootState } from "store";
+import { useDispatch } from "react-redux";
+import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { setPoiEditMode } from "store/poi";
 import { upsertAction } from "store/action";
 import POIAction from "./poi-right-actions-action";
@@ -12,17 +12,12 @@ import { v4 as uuidv4 } from "uuid";
 
 const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
-  const selectedPoiUuid = useSelector(
-    (state: RootState) => state.poi.selectedPoiUuid,
+  const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
+  const selectedMissionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
+  const poiActions = useAppSelector(
+    (state) => state.action.actions.filter((action) => action.poiUuid === selectedPoiUuid),
     shallowEqual
   );
-  const selectedMissionId = useSelector(
-    (state: RootState) => state.mission.mission?.id,
-    shallowEqual
-  );
-
-  const actions = useSelector((state: RootState) => state.action.actions, shallowEqual);
-  const poiActions = actions.filter((action) => action.poiUuid === selectedPoiUuid);
 
   const handleCreateAction = () => {
     const randomName: string = uniqueNamesGenerator({

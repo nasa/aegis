@@ -1,6 +1,7 @@
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useSelector, useDispatch, shallowEqual } from "react-redux";
+import { useDispatch } from "react-redux";
+import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -13,8 +14,6 @@ import {
   faEdit,
 } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, InLineEditInput } from "components/interface/_global-elements";
-
-import { RootState } from "store";
 import {
   deletePoi,
   setSelectedPoiUuid,
@@ -62,49 +61,29 @@ const panelTypes: PanelTypes = {
 
 const PoiEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const selectedMissionId = useSelector(
-    (state: RootState) => state.mission.mission?.id,
+  const selectedMissionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
+  const selectedRightNavItem = useAppSelector((state) => state.poi.selectedRightNavItem, refEqual);
+  const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
+  const selectedPoi = useAppSelector(
+    (state) => state.poi.pois.find((poi) => poi.uuid === selectedPoiUuid),
     shallowEqual
   );
-  const selectedRightNavItem = useSelector(
-    (state: RootState) => state.poi.selectedRightNavItem,
+  const poisEditing = useAppSelector((state) => state.poi.poisEditing, shallowEqual);
+  const selectedPoiFromDb = useAppSelector(
+    (state) => state.poi.poisFromDb.find((poi) => poi.uuid === selectedPoiUuid),
     shallowEqual
   );
-  const selectedPoiUuid = useSelector(
-    (state: RootState) => state.poi.selectedPoiUuid,
+  const userMapObjects = useAppSelector((state) => state.map.userMapObjects, shallowEqual);
+  const poiActions = useAppSelector(
+    (state) =>
+      state.action.actions.filter((storeAction: Action) => storeAction.poiUuid === selectedPoiUuid),
     shallowEqual
   );
-  const selectedPoi = useSelector((state: RootState) => state.poi.pois, shallowEqual).find(
-    (poi: POI) => poi.uuid === selectedPoiUuid
-  );
-  const poisEditing = useSelector((state: RootState) => state.poi.poisEditing, shallowEqual);
-  const selectedPoiFromDb = useSelector(
-    (state: RootState) => state.poi.poisFromDb,
+  const poiActionsFromDb = useAppSelector(
+    (state) =>
+      state.action.actionsFromDb.filter((storeAction) => storeAction.poiUuid === selectedPoiUuid),
     shallowEqual
-  ).find((poi: POI) => poi.uuid === selectedPoiUuid);
-  const actions = useSelector((state: RootState) => state.action.actions, shallowEqual);
-  const actionsFromDb = useSelector((state: RootState) => state.action.actionsFromDb, shallowEqual);
-
-  const userMapObjects = useSelector((state: RootState) => state.map.userMapObjects, shallowEqual);
-
-  const [poiActions, setPoiActions] = useState<Action[]>(null);
-  const [poiActionsFromDb, setPoiActionsFromDb] = useState<Action[]>(null);
-
-  useEffect(() => {
-    if (actions) {
-      setPoiActions(
-        actions.filter((storeAction: Action) => storeAction.poiUuid === selectedPoiUuid)
-      );
-    }
-  }, [actions, selectedPoiUuid]);
-  useEffect(() => {
-    if (actionsFromDb) {
-      const actions = actionsFromDb.filter(
-        (storeAction: Action) => storeAction.poiUuid === selectedPoiUuid
-      );
-      setPoiActionsFromDb(actions);
-    }
-  }, [actionsFromDb, selectedPoiUuid]);
+  );
 
   const [modified, setModified] = useState(false);
   useEffect(() => {

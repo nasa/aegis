@@ -1,7 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import { useSelector, useDispatch, shallowEqual } from "react-redux";
-import { RootState } from "store";
+import { useDispatch } from "react-redux";
+import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { upsertStation } from "store/station";
 import poiStyles from "../poi/poi.module.css";
 import _ from "lodash";
@@ -9,16 +9,15 @@ import { Checkbox } from "components/interface/_global-elements";
 
 const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
-  const selectedStationUuid = useSelector(
-    (state: RootState) => state.station.selectedStationUuid,
+  const selectedStationUuid = useAppSelector(
+    (state) => state.station.selectedStationUuid,
+    refEqual
+  );
+  const selectedStation = useAppSelector(
+    (state) => state.station.stations.find((station) => station.uuid === selectedStationUuid),
     shallowEqual
   );
-  const stations: Station[] = useSelector(
-    (state: RootState) => state.station.stations,
-    shallowEqual
-  );
-  const selectedStation = stations.find((station) => station.uuid === selectedStationUuid);
-  const pois = useSelector((state: RootState) => state.poi.pois, shallowEqual);
+  const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
 
   const [selectedPois, setSelectedPois] = useState<POI[]>([]);
 
@@ -26,7 +25,7 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   useEffect(() => {
     if (selectedStation) {
       const selectedPois: POI[] = _.sortBy(
-        pois.filter((poi) => selectedStation.poiUuids.includes(poi.uuid)),
+        pois.filter((poi) => selectedStation.poiUuids?.includes(poi.uuid)),
         "name"
       );
       setSelectedPois(selectedPois);
@@ -61,7 +60,7 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           ) : (
             <>
               {_.sortBy(pois, "name").map((poi) => {
-                const checked = selectedStation.poiUuids.includes(poi.uuid);
+                const checked = selectedStation.poiUuids?.includes(poi.uuid);
                 return (
                   poi && (
                     <div className={poiStyles.poiItem} key={poi.uuid}>

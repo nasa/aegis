@@ -1,52 +1,31 @@
 import { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import { useSelector, useDispatch, shallowEqual } from "react-redux";
-import { RootState } from "store";
+import { useDispatch } from "react-redux";
+import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { ContentEditableTextArea } from "components/interface/_global-elements";
 import { setPresetEditMode, upsertPreset } from "store/preset";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
 
-  const selectedPresetUuid = useSelector(
-    (state: RootState) => state.preset.selectedPresetUuid,
-    shallowEqual
-  );
-  const presets = useSelector((state: RootState) => state.preset.presets, shallowEqual);
+  const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
+  const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
   const selectedPreset = presets.find((preset) => preset.uuid === selectedPresetUuid);
 
   const handleDefaultPresetChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
     // If the preset is being set as the default, then we need to unset the default flag on all other presets
     if (evt.target.checked) {
-      const otherPresets: Preset[] = presets.filter(
-        (preset: Preset) => preset.uuid !== selectedPresetUuid
-      );
+      const otherPresets = presets.filter((preset) => preset.uuid !== selectedPresetUuid);
       otherPresets.forEach((preset) => {
         if (preset.missionPresetDefault) {
           // add the preset to the edit mode list because we are changing the default and the user will have to save the changes
           dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: true }));
         }
-        dispatch(
-          upsertPreset({
-            ...preset,
-            missionPresetDefault: false,
-          })
-        );
+        dispatch(upsertPreset({ ...preset, missionPresetDefault: false }));
       });
-      dispatch(
-        upsertPreset({
-          ...selectedPreset,
-          missionPresetDefault: true,
-        })
-      );
+      dispatch(upsertPreset({ ...selectedPreset, missionPresetDefault: true }));
     } else {
-      const preset: Preset = presets.find((preset: Preset) => preset.uuid === selectedPresetUuid);
-      dispatch(
-        upsertPreset({
-          ...preset,
-          missionPresetDefault: false,
-        })
-      );
+      dispatch(upsertPreset({ ...selectedPreset, missionPresetDefault: false }));
     }
   };
 
@@ -61,16 +40,12 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 <input
                   className={paneStyles.check}
                   type="checkbox"
+                  title="Set preset visibility"
                   checked={selectedPreset.missionPreset}
                   onChange={(evt) => {
                     if (!editMode) return;
                     if (evt.target.checked) {
-                      dispatch(
-                        upsertPreset({
-                          ...selectedPreset,
-                          missionPreset: true,
-                        })
-                      );
+                      dispatch(upsertPreset({ ...selectedPreset, missionPreset: true }));
                     } else {
                       // if the preset is being unset as a mission preset, then we need to also make sure it is not the default preset
                       dispatch(
@@ -104,6 +79,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   <input
                     className={paneStyles.check}
                     type="checkbox"
+                    title="Set default preset"
                     checked={selectedPreset.missionPresetDefault}
                     onChange={(evt) => {
                       if (!editMode) return;
@@ -130,12 +106,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             html={selectedPreset?.description} // innerHTML of the editable div
             editing={editMode}
             onChange={(evt) => {
-              dispatch(
-                upsertPreset({
-                  ...selectedPreset,
-                  description: evt.target.value,
-                })
-              );
+              dispatch(upsertPreset({ ...selectedPreset, description: evt.target.value }));
             }} // handle innerHTML change
           />
         </div>

@@ -1,7 +1,7 @@
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import { FunctionComponent, useEffect, useState } from "react";
-import { RootState } from "store";
-import { useSelector, useDispatch, shallowEqual } from "react-redux";
+import { useDispatch } from "react-redux";
+import { useAppSelector, refEqual } from "utils/useAppSelector";
 import poiStyles from "./poi.module.css";
 import _ from "lodash";
 import { setSelectedPoiUuid, setSelectedRightNavItem } from "store/poi";
@@ -14,10 +14,7 @@ const PoiItem: FunctionComponent<{
   actionsFromDb: Action[];
 }> = ({ selectedPoiUuid, poi, poiFromDb, actions, actionsFromDb }) => {
   const dispatch = useDispatch();
-  const selectedRightNavItem = useSelector(
-    (state: RootState) => state.station.selectedRightNavItem,
-    shallowEqual
-  );
+  const selectedRightNavItem = useAppSelector((state) => state.poi.selectedRightNavItem, refEqual);
 
   const isPoiSelectedStyle = poi.uuid === selectedPoiUuid ? poiStyles.nameSelected : null;
   const [poiActions, setPoiActions] = useState<Action[]>([]);

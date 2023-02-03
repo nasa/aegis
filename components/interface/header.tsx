@@ -1,15 +1,14 @@
 import styles from "./header.module.css";
-import { useSelector } from "react-redux";
+import { useAppSelector, refEqual } from "utils/useAppSelector";
 import { useRouter } from "next/router";
 
 import { faHome } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { RootState } from "store";
 import { FunctionComponent } from "react";
 
 const Header: FunctionComponent = () => {
   const router = useRouter();
-  const missionPage = useSelector((state: RootState) => state.mission);
+  const missionName = useAppSelector((state) => state.mission.mission?.name, refEqual);
 
   return (
     <>
@@ -31,7 +30,7 @@ const Header: FunctionComponent = () => {
         <div className={styles.item}>
           <div className={styles.mission}>
             <div className={styles.verticalCenter}>
-              <div className={styles.headerTextItem}>{missionPage?.mission?.name}</div>
+              <div className={styles.headerTextItem}>{missionName}</div>
             </div>
           </div>
         </div>

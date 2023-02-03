@@ -1,23 +1,16 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import stmStyles from "./stm.module.css";
-import { useSelector, shallowEqual } from "react-redux";
-import { RootState } from "store";
+import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import "react-tooltip/dist/react-tooltip.css";
 import _ from "lodash";
 import { Tooltip } from "react-tooltip";
 import ReactDOMServer from "react-dom/server";
 
 const STM_Panel: FunctionComponent<{ actions: Action[] }> = (props: { actions: Action[] }) => {
-  const allSTMObjectives: STMObjective[] = useSelector(
-    (state: RootState) => state.stm.objectives,
-    shallowEqual
-  );
-  const allSTMGoals: STMGoal[] = useSelector((state: RootState) => state.stm.goals, shallowEqual);
-  const allSTMInvstgs: STMInvestigation[] = useSelector(
-    (state: RootState) => state.stm.investigations,
-    shallowEqual
-  );
+  const allSTMObjectives = useAppSelector((state) => state.stm.objectives, shallowEqual);
+  const allSTMGoals = useAppSelector((state) => state.stm.goals, shallowEqual);
+  const allSTMInvstgs = useAppSelector((state) => state.stm.investigations, shallowEqual);
 
   const [invstgs, setInvstgs] = useState<STMInvestigation[]>(null);
   const [highlightedGoals, setHighlightedGoals] = useState<STMGoal[]>(null);

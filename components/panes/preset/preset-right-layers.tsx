@@ -9,8 +9,8 @@ import {
   faEyeSlash,
   faSliders,
 } from "@fortawesome/free-solid-svg-icons";
-import { useSelector, useDispatch, shallowEqual } from "react-redux";
-import { RootState } from "store";
+import { useDispatch } from "react-redux";
+import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setLayerControls } from "store/map";
 import {
@@ -23,22 +23,19 @@ import Info_subpanel from "./preset-right-layers-info";
 
 const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
-  const missionState = useSelector((state: RootState) => state.mission, shallowEqual);
-  const selectedPresetUuid = useSelector(
-    (state: RootState) => state.preset.selectedPresetUuid,
+  const missionLayers = useAppSelector((state) => state.mission.layers, shallowEqual);
+  const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
+  const selectedPreset = useAppSelector(
+    (state) => state.preset.presets.find((preset) => preset.uuid === selectedPresetUuid),
     shallowEqual
   );
-  const selectedPreset = useSelector(
-    (state: RootState) => state.preset.presets.find((preset) => preset.uuid === selectedPresetUuid),
-    shallowEqual
-  );
-  const allPresetInteractions = useSelector(
-    (state: RootState) => state.preset.presetInteractions,
+  const allPresetInteractions = useAppSelector(
+    (state) => state.preset.presetInteractions,
     shallowEqual
   );
 
   const presetLayerControls = selectedPreset?.layerControls;
-  const presetLayerControlInteractions = allPresetInteractions[selectedPreset.uuid];
+  const presetLayerControlInteractions = allPresetInteractions[selectedPresetUuid];
 
   useEffect(() => {
     dispatch(setLayerControls(presetLayerControls));
@@ -51,8 +48,8 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
         <div className={paneStyles.panelContainer}>
           <div className={styles.layersContainer}>
             <div className={styles.layersBody}>
-              {missionState && selectedPreset ? (
-                missionState?.layers.map((layer: Layer) => {
+              {missionLayers && selectedPreset ? (
+                missionLayers.map((layer: Layer) => {
                   // Check if any of the sublayers in this label are enabled in this preset
                   let sublayerEnabled = false;
                   layer.layerConfig.sublayers?.forEach((sublayer: MMGIS_Sublayer) => {

@@ -79,8 +79,9 @@ interface PresetState {
   presetsEditing: string[];
 }
 
+type InterfaceSection = "map_layer_selector" | "poi" | "station" | "eva_planner";
 interface InterfaceState {
-  sectionSelectedLabel: "map_layer_selector" | "poi" | "station" | "eva_planner";
+  sectionSelectedLabel: InterfaceSection;
 }
 
 interface STMState {
