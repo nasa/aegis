@@ -77,8 +77,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
                           if (!item.location) {
                             dispatch(
                               upsertUserMapObject({
-                                mapItemType: "evaItem",
-                                mapObject: item.type === "traverse" ? "polyline" : "marker",
+                                mapItemType: item.type === "traverse" ? "traverse" : "station",
                                 uuid: item.uuid,
                                 createdAt: new Date().toISOString(),
                                 mapAction: "create",
@@ -87,8 +86,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
                           } else {
                             dispatch(
                               upsertUserMapObject({
-                                mapItemType: "evaItem",
-                                mapObject: item.type === "traverse" ? "polyline" : "marker",
+                                mapItemType: item.type === "traverse" ? "traverse" : "station",
                                 uuid: item.uuid,
                                 createdAt: new Date().toISOString(),
                                 mapAction: "edit",
@@ -108,8 +106,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
                         onClick={() => {
                           dispatch(
                             upsertUserMapObject({
-                              mapItemType: "evaItem",
-                              mapObject: item.type === "traverse" ? "polyline" : "marker",
+                              mapItemType: item.type === "traverse" ? "traverse" : "station",
                               uuid: item.uuid,
                               createdAt: new Date().toISOString(),
                               mapAction: "cancelCreate",
@@ -126,8 +123,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
                         onClick={() => {
                           dispatch(
                             upsertUserMapObject({
-                              mapItemType: "evaItem",
-                              mapObject: item.type === "traverse" ? "polyline" : "marker",
+                              mapItemType: item.type === "traverse" ? "traverse" : "station",
                               uuid: item.uuid,
                               createdAt: new Date().toISOString(),
                               mapAction: "cancelEdit",
@@ -144,8 +140,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
                         onClick={() => {
                           dispatch(
                             upsertUserMapObject({
-                              mapItemType: "evaItem",
-                              mapObject: item.type === "traverse" ? "polyline" : "marker",
+                              mapItemType: item.type === "traverse" ? "traverse" : "station",
                               uuid: item.uuid,
                               createdAt: new Date().toISOString(),
                               mapAction: "saveEdit",

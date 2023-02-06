@@ -11,16 +11,15 @@ import {
 } from "components/interface/_global-elements";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useDispatch } from "react-redux";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { upsertPoi } from "store/poi";
 import { upsertUserMapObject } from "store/map";
 import _ from "lodash";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
-  const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
   const selectedPoi = useAppSelector(
-    (state) => state.poi.pois.find((poi) => poi.uuid === selectedPoiUuid),
+    (state) => state.poi.pois.find((poi) => poi.uuid === state.poi.selectedPoiUuid),
     shallowEqual
   );
   const userMapObject = useAppSelector(
@@ -146,7 +145,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           dispatch(
                             upsertUserMapObject({
                               mapItemType: "poi",
-                              mapObject: "marker",
                               uuid: selectedPoi.uuid,
                               createdAt: new Date().toISOString(),
                               mapAction: "create",
@@ -163,7 +161,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           dispatch(
                             upsertUserMapObject({
                               mapItemType: "poi",
-                              mapObject: "marker",
                               uuid: selectedPoi.uuid,
                               createdAt: new Date().toISOString(),
                               mapAction: "edit",
@@ -185,7 +182,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       dispatch(
                         upsertUserMapObject({
                           mapItemType: "poi",
-                          mapObject: "marker",
                           uuid: selectedPoi.uuid,
                           createdAt: new Date().toISOString(),
                           mapAction: "cancelCreate",
@@ -204,7 +200,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         dispatch(
                           upsertUserMapObject({
                             mapItemType: "poi",
-                            mapObject: "marker",
                             uuid: selectedPoi.uuid,
                             createdAt: new Date().toISOString(),
                             mapAction: "cancelEdit",
@@ -214,22 +209,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       icon={faXmark}
                       label="Cancel"
                       style={{ width: "70px" }}
-                    />
-                    <IconButton
-                      onClick={() => {
-                        dispatch(
-                          upsertUserMapObject({
-                            mapItemType: "poi",
-                            mapObject: "marker",
-                            uuid: selectedPoi.uuid,
-                            createdAt: new Date().toISOString(),
-                            mapAction: "saveEdit",
-                          })
-                        );
-                      }}
-                      icon={faMapLocationDot}
-                      label="Save Location"
-                      style={{ width: "120px", backgroundColor: "var(--alert)" }}
                     />
                   </>
                 )}

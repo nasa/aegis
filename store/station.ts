@@ -64,6 +64,14 @@ export const stationSlice = createSlice({
         }
       }
     },
+    updateStationLocation: (state, action: { payload: { uuid: string; location: AEGISPoint } }) => {
+      state.stations = state.stations.map((station) => {
+        if (station.uuid === action.payload.uuid) {
+          return { ...station, location: action.payload.location };
+        }
+        return station;
+      });
+    },
   },
 });
 
@@ -78,4 +86,5 @@ export const {
   setSelectedStationUuid,
   duplicateStation,
   setStationEditMode,
+  updateStationLocation,
 } = stationSlice.actions;
