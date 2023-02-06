@@ -8,6 +8,7 @@
  *          2. Action B (e.g. M-19B)
  *       b. POI B
  *       c. POI C
+ *       d. Action C (e.g. EVA 1A-C)
  *    2. Traverse A (e.g. EVA 1-2)
  *       a. POI (e.g. M-20
  *         1. Action A (e.g. M-20A)

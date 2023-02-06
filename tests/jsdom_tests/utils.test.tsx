@@ -1,5 +1,5 @@
 import { describe, expect, test, it } from "@jest/globals";
-import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
+import { calcCentroidofCoordinates, getDistanceBetweenTwoCoordinates } from "utils/geoMath";
 import { LatLng } from "leaflet";
 import {
   appSecondsFromDateString,
@@ -60,6 +60,49 @@ describe("Utilities Functions", () => {
   }
   test("GeoMath: Returns 0 distance between two identical coordinates", () => {
     expect(getDistanceBetweenTwoCoordinates(latLng1, latLng2, 0)).toBe(0);
+  });
+
+  test("GeoMath: calcCentroidofCoordinates returns known results for 2 test cases", () => {
+    const sf = [
+      {
+        lat: 37.797749,
+        lng: -122.412147,
+      },
+      {
+        lat: 37.789068,
+        lng: -122.390604,
+      },
+      {
+        lat: 37.785269,
+        lng: -122.421975,
+      },
+    ] as AEGISPoint[];
+    expect(calcCentroidofCoordinates(sf)).toEqual({
+      lat: 37.790696058721714,
+      lng: -122.40824208245043,
+    });
+
+    const globe = [
+      {
+        // Japan
+        lat: 37.928969,
+        lng: 138.979637,
+      },
+      {
+        // Nevada
+        lat: 39.029788,
+        lng: -119.594585,
+      },
+      {
+        // New Zealand
+        lat: -39.298237,
+        lng: 175.717917,
+      },
+    ] as AEGISPoint[];
+    expect(calcCentroidofCoordinates(globe)).toEqual({
+      lat: 19.21417269459288,
+      lng: -176.73031760486452,
+    });
   });
 
   test("Formatting: Calculates Seconds into day", () => {

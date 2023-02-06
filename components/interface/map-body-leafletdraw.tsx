@@ -22,6 +22,7 @@ import { updateEvaItemLocation } from "store/eva";
 import { upsertUserMapObject } from "store/map";
 import { setSelectedPoiUuid, updatePoiLocation } from "store/poi";
 import { setSectionSelected } from "store/interface";
+import { setSelectedStationUuid, updateStationLocation } from "store/station";
 
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
@@ -56,12 +57,22 @@ const MapBody: FunctionComponent = () => {
   const eva = useAppSelector((state) => state.eva.eva, shallowEqual);
   const userMapObjects = useAppSelector((state) => state.map.userMapObjects, shallowEqual);
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
-  const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
+  const selectedPoi = useAppSelector(
+    (state) => state.poi.pois.find((poi) => poi.uuid === state.poi.selectedPoiUuid),
+    refEqual
+  );
+  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
+  const selectedStation = useAppSelector(
+    (state) =>
+      state.station.stations.find((station) => station.uuid === state.station.selectedStationUuid),
+    refEqual
+  );
+  const sectionSelected = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
 
   const [layersOnMap, setLayersOnMap] = useState([]);
   const [showHightlightOnMap, setShowHighlightOnMap] = useState(false);
 
-  const uuidBeingEdited = useRef(null);
+  const uuidOfCurrentlyActiveMapEdit = useRef(null);
 
   // make color filter settings for any sublayer. This is the format of leaflet.tilelayer.colorfilter package
   const makeLayerColorFilter = useCallback(
@@ -188,31 +199,18 @@ const MapBody: FunctionComponent = () => {
 
   // save a leaflet map marker that has been edited via leaflet-draw. Called from the dragend handler set upon marker creation
   const saveMarkerEdit = useCallback(
-    (layer, drawControlItem, uuidBeingEdited) => {
+    (layer, drawControlItem, uuidOfCurrentlyActiveMapEdit) => {
       let location: AEGISPoint | AEGISPoint[] = null;
-      let mapObject: MapObject = null;
-      let mapItemType: MapItemType = drawControlItem.mapItemType;
 
       if (layer instanceof L.Marker) {
         location = convertLeafletLatLngToAegisPoint(layer.getLatLng());
-        mapObject = "marker";
       } else if (layer instanceof L.Polyline) {
         location = convertLeafletLatLngsToAegisPoints(layer.getLatLngs() as L.LatLng[]);
-        mapObject = "polyline";
       }
-      if (mapItemType === "evaItem") {
+      if (drawControlItem.mapItemType === "station") {
+        dispatch(updateStationLocation({ uuid: layer["uuid"], location: location as AEGISPoint }));
+      } else if (drawControlItem.mapItemType === "traverse") {
         dispatch(updateEvaItemLocation({ uuid: layer["uuid"], location }));
-        mapItemType = "evaItem";
-        // reset userMapObject map action to null without referencing what's already in the store (because we can't, see above)
-        dispatch(
-          upsertUserMapObject({
-            mapItemType,
-            mapObject,
-            uuid: uuidBeingEdited,
-            createdAt: null,
-            mapAction: null,
-          })
-        );
       } else {
         // a POI
         const location = convertLeafletLatLngToAegisPoint(layer.getLatLng());
@@ -222,19 +220,19 @@ const MapBody: FunctionComponent = () => {
             location,
           })
         );
-        // reset userMapObject map action to null without referencing what's already in the store (because we can't, see above)
-        dispatch(
-          upsertUserMapObject({
-            mapItemType,
-            mapObject: "marker",
-            uuid: uuidBeingEdited,
-            createdAt: null,
-            mapAction: null,
-          })
-        );
-        // cancel the edit action on the map
-        drawControlItem.drawControl._toolbars.edit._modes.edit.handler.disable();
       }
+      // reset userMapObject map action to null without referencing what's already in the store (because we can't, see above)
+      dispatch(
+        upsertUserMapObject({
+          mapItemType: drawControlItem.mapItemType,
+          uuid: uuidOfCurrentlyActiveMapEdit,
+          createdAt: null,
+          mapAction: null,
+        })
+      );
+      // cancel the edit action on the map
+      drawControlItem.drawControl._toolbars.edit._modes.edit.handler.disable();
+
       setShowHighlightOnMap(true);
     },
     [dispatch]
@@ -244,7 +242,6 @@ const MapBody: FunctionComponent = () => {
     (
       uuid: string,
       mapItemType: MapItemType,
-      mapObject: MapObject,
       emoji16BitVal: string,
       location: AEGISPoint = null,
       drawing: boolean
@@ -278,28 +275,34 @@ const MapBody: FunctionComponent = () => {
       map.current.addControl(drawControl);
 
       let drawHandler;
-      if (mapObject === "polyline") {
+      if (mapItemType === "traverse") {
         drawHandler = new L.Draw.Polyline(map.current, drawControl.options.polyline).enable();
       } else {
         if (drawing) {
+          // drawing interactively via interface - just initiate the draw function, the rest is handled on `draw:created` event
           drawHandler = new L.Draw.Marker(map.current, { icon });
           drawHandler.enable();
         } else {
+          // drawing automatically for example on map load
           const marker = L.marker(location, {
             icon,
           }) as MarkerWithUuid;
           marker.uuid = uuid;
           drawnItemsFeatureGroup.addLayer(marker);
 
-          // POI marker handlers
+          // marker handlers
           marker.on("click", () => {
             console.log("Marker click handler fired: ", uuid);
             setShowHighlightOnMap(true);
-            dispatch(setSectionSelected("poi"));
-            dispatch(setSelectedPoiUuid(drawnItemsFeatureGroup.uuid));
+            dispatch(setSectionSelected(mapItemType === "poi" ? "poi" : "station"));
+            dispatch(
+              mapItemType === "poi"
+                ? setSelectedPoiUuid(drawnItemsFeatureGroup.uuid)
+                : setSelectedStationUuid(drawnItemsFeatureGroup.uuid)
+            );
           });
 
-          // POI dragend handler that causes edit to be saved on mouseup
+          // dragend handler that causes edit to be saved on mouseup
           marker.on("dragend", () => {
             console.log("Marker dragend handler fired: ", uuid);
             saveMarkerEdit(marker, newDrawControlItem, uuid);
@@ -349,36 +352,49 @@ const MapBody: FunctionComponent = () => {
       console.log(`draw:created:`, e);
 
       const drawControlItem = drawControlItemsRef.current.find(
-        (item) => item.uuid === uuidBeingEdited.current
+        (item) => item.uuid === uuidOfCurrentlyActiveMapEdit.current
       );
-      const drawnItemsFeatureGroup = drawControlItem.drawnItemsFeatureGroup;
-      drawnItemsFeatureGroup.addLayer(e.layer);
-
-      e.layer.uuid = uuidBeingEdited.current;
+      drawControlItem.drawnItemsFeatureGroup.addLayer(e.layer);
+      e.layer.uuid = drawControlItem.uuid;
 
       let location: AEGISPoint | AEGISPoint[] = null;
-      let mapObject: MapObject = null;
-      if (drawControlItem.mapItemType === "evaItem") {
-        if (e.layerType === "marker") {
-          location = convertLeafletLatLngToAegisPoint(e.layer.getLatLng());
-          mapObject = "marker";
-        } else {
-          location = convertLeafletLatLngsToAegisPoints(e.layer.getLatLngs());
-          mapObject = "polyline";
-        }
+      if (drawControlItem.mapItemType === "station") {
+        location = convertLeafletLatLngToAegisPoint(e.layer.getLatLng());
+
+        dispatch(
+          updateStationLocation({
+            uuid: uuidOfCurrentlyActiveMapEdit.current,
+            location,
+          })
+        );
+
+        // Station click handler
+        e.layer.on("click", () => {
+          console.log("Newly drawn Station marker clicked: ", e.layer.uuid);
+          dispatch(setSectionSelected("station"));
+          dispatch(setSelectedStationUuid(e.layer.uuid));
+        });
+
+        // Station dragend handler that causes edit to be saved on mouseup
+        e.layer.on("dragend", () => {
+          console.log("Newly drawn Station marker has been dragend-ed: ", e.layer.uuid);
+          saveMarkerEdit(e.layer, drawControlItem, e.layer.uuid);
+        });
+      } else if (drawControlItem.mapItemType === "traverse") {
+        location = convertLeafletLatLngsToAegisPoints(e.layer.getLatLngs());
+
         dispatch(
           updateEvaItemLocation({
-            uuid: uuidBeingEdited.current,
+            uuid: uuidOfCurrentlyActiveMapEdit.current,
             location,
           })
         );
       } else {
         // a POI
         location = convertLeafletLatLngToAegisPoint(e.layer.getLatLng());
-        mapObject = "marker";
         dispatch(
           updatePoiLocation({
-            uuid: uuidBeingEdited.current,
+            uuid: uuidOfCurrentlyActiveMapEdit.current,
             location,
           })
         );
@@ -393,7 +409,6 @@ const MapBody: FunctionComponent = () => {
         // POI dragend handler that causes edit to be saved on mouseup
         e.layer.on("dragend", () => {
           console.log("Newly drawn POI marker has been dragend-ed: ", e.layer.uuid);
-          debugger;
           saveMarkerEdit(e.layer, drawControlItem, e.layer.uuid);
         });
       }
@@ -402,26 +417,25 @@ const MapBody: FunctionComponent = () => {
       dispatch(
         upsertUserMapObject({
           mapItemType: drawControlItem.mapItemType,
-          mapObject,
-          uuid: uuidBeingEdited.current,
+          uuid: uuidOfCurrentlyActiveMapEdit.current,
           createdAt: null,
           mapAction: null,
         })
       );
-      uuidBeingEdited.current = null;
+      uuidOfCurrentlyActiveMapEdit.current = null;
     });
 
     map.current.on("draw:edited", (e) => {
       console.log(`draw:edited:`, e);
 
       const drawControlItem = drawControlItemsRef.current.find(
-        (item) => item.uuid === uuidBeingEdited.current
+        (item) => item.uuid === uuidOfCurrentlyActiveMapEdit.current
       );
 
       // update the layer in state using uuid as key
       e.layers.eachLayer(function (layer) {
         if (layer["uuid"]) {
-          saveMarkerEdit(layer, drawControlItem, uuidBeingEdited.current);
+          saveMarkerEdit(layer, drawControlItem, uuidOfCurrentlyActiveMapEdit.current);
         }
       });
     });
@@ -450,7 +464,7 @@ const MapBody: FunctionComponent = () => {
   }, [mission, map]);
 
   /**
-   * Listen for mapActions for evaItems and pois and trigger map draw/edit modes appropriately
+   * Listen for mapActions for stations and pois and trigger map draw/edit modes appropriately
    */
   useEffect(() => {
     if (!eva) return;
@@ -462,7 +476,7 @@ const MapBody: FunctionComponent = () => {
 
     if (activeUserMapObject) {
       // Set that item edit is underway. This allows the correct item to be updated when the L Draw action is completed
-      uuidBeingEdited.current = activeUserMapObject.uuid;
+      uuidOfCurrentlyActiveMapEdit.current = activeUserMapObject.uuid;
 
       // trigger the map create / edit / cancel event
       if (activeUserMapObject.mapAction === "create") {
@@ -472,16 +486,15 @@ const MapBody: FunctionComponent = () => {
         let emoji16BitVal = null;
         if (activeUserMapObject.mapItemType === "poi") {
           const poi = pois.find((poi) => poi.uuid === activeUserMapObject.uuid);
-          emoji16BitVal = poi.color ? poi.color?.value : "🚀".codePointAt(0).toString(16);
+          emoji16BitVal = poi.color ? poi.color?.value : "⚫".codePointAt(0).toString(16);
         } else {
-          // if an evaItem is being created, use a default icon
+          // if a station is being created, use a default icon
           emoji16BitVal = "🚀".codePointAt(0).toString(16);
         }
 
         drawItemOnMap(
           activeUserMapObject.uuid,
           activeUserMapObject.mapItemType,
-          activeUserMapObject.mapObject,
           emoji16BitVal,
           null,
           true
@@ -536,7 +549,31 @@ const MapBody: FunctionComponent = () => {
         const drawControlItem = drawControlItemsRef.current.find(
           (drawControl) => drawControl.uuid === activeUserMapObject.uuid
         );
-        if (drawControlItem.mapItemType === "poi") {
+        if (drawControlItem.mapItemType === "station") {
+          const station = stations.find((station) => station.uuid === activeUserMapObject.uuid);
+          if (station?.location) {
+            const location = station.location;
+            const latLng = new L.LatLng(location.lat, location.lng);
+            drawControlItem.drawnItemsFeatureGroup.eachLayer((layer) => {
+              if (layer instanceof L.Marker) {
+                layer.setLatLng(latLng);
+              }
+            });
+          } else {
+            // station location is null so delete it from the map
+            drawControlItem.drawnItemsFeatureGroup.eachLayer((layer) => {
+              if (layer instanceof L.Marker) {
+                drawControlItem.drawnItemsFeatureGroup.removeLayer(layer);
+              }
+            });
+            drawControlItemsRef.current = drawControlItemsRef.current.filter(
+              (drawControl) => drawControl.uuid !== activeUserMapObject.uuid
+            );
+          }
+        } else if (drawControlItem.mapItemType === "traverse") {
+          //TODO: handle traverses
+        } else {
+          // POI
           const poi = pois.find((poi) => poi.uuid === activeUserMapObject.uuid);
           if (poi?.location) {
             const location = poi.location;
@@ -582,12 +619,12 @@ const MapBody: FunctionComponent = () => {
           mapAction: null,
         })
       );
-      uuidBeingEdited.current = null;
+      uuidOfCurrentlyActiveMapEdit.current = null;
     }
-  }, [eva, pois, userMapObjects, dispatch, drawItemOnMap]);
+  }, [eva, pois, stations, userMapObjects, dispatch, drawItemOnMap]);
 
   /**
-   * When page loads, check for any POI items that have a location and add them to the map
+   * Draw or update pois on the map when station or pois change. Serves as draw when page loads
    */
   useEffect(() => {
     if (!map.current) return;
@@ -595,16 +632,22 @@ const MapBody: FunctionComponent = () => {
     if (pois) {
       pois.forEach((poi) => {
         if (poi.location) {
-          // if the poi isn't already in drawControlItems, add it to the map and drawControlItems
+          // if the poi is already in drawControlItems, update its location
           if (
-            !drawControlItemsRef.current.find(
-              (drawControlItem) => drawControlItem.uuid === poi.uuid
-            )
+            drawControlItemsRef.current.find((drawControlItem) => drawControlItem.uuid === poi.uuid)
           ) {
+            const drawControlItem = drawControlItemsRef.current.find(
+              (drawControlItem) => drawControlItem.uuid === poi.uuid
+            );
+            drawControlItem.drawnItemsFeatureGroup.eachLayer((layer) => {
+              if (layer instanceof L.Marker) {
+                layer.setLatLng(poi.location);
+              }
+            });
+          } else {
             const userMapObject: UserMapObject = {
               uuid: poi.uuid,
               mapItemType: "poi",
-              mapObject: "marker",
               createdAt: new Date().toISOString(),
               mapAction: null,
             };
@@ -612,7 +655,6 @@ const MapBody: FunctionComponent = () => {
             drawItemOnMap(
               poi.uuid,
               userMapObject.mapItemType,
-              userMapObject.mapObject,
               poi.color?.value,
               poi.location,
               false
@@ -623,18 +665,53 @@ const MapBody: FunctionComponent = () => {
         }
       });
     }
-  }, [map, pois, drawControlItemsRef, dispatch, saveMarkerEdit, drawItemOnMap]);
+  }, [map, pois, drawControlItemsRef, dispatch, drawItemOnMap]);
+
+  /**
+   * Draw or update stations on the map when station or pois change. Serves as draw when page loads
+   */
+  useEffect(() => {
+    if (!map.current) return;
+
+    if (stations) {
+      stations.forEach((station) => {
+        if (station.location) {
+          // if the station is already in drawControlItems, update its location
+          if (
+            drawControlItemsRef.current.find(
+              (drawControlItem) => drawControlItem.uuid === station.uuid
+            )
+          ) {
+            const drawControlItem = drawControlItemsRef.current.find(
+              (drawControlItem) => drawControlItem.uuid === station.uuid
+            );
+            drawControlItem.drawnItemsFeatureGroup.eachLayer((layer) => {
+              if (layer instanceof L.Marker) {
+                layer.setLatLng(station.location);
+              }
+            });
+          } else {
+            const userMapObject: UserMapObject = {
+              uuid: station.uuid,
+              mapItemType: "station",
+              createdAt: new Date().toISOString(),
+              mapAction: null,
+            };
+
+            drawItemOnMap(station.uuid, userMapObject.mapItemType, null, station.location, false);
+
+            dispatch(upsertUserMapObject(userMapObject));
+          }
+        }
+      });
+    }
+  }, [map, stations, drawControlItemsRef, dispatch, drawItemOnMap]);
 
   /**
    * Monitor map item highlights and draw highlight layers on the map
    */
   useEffect(() => {
     if (!map.current) return;
-
-    // check if poi icon is on the map
-    const selectedDrawControlItem = drawControlItemsRef.current.find(
-      (drawControlItem) => drawControlItem.uuid === selectedPoiUuid
-    );
 
     // remove any existing highlight layers
     map.current.eachLayer((layer: CircleMarkerWithUuid) => {
@@ -646,38 +723,59 @@ const MapBody: FunctionComponent = () => {
       }
     });
 
-    if (selectedDrawControlItem) {
-      const poi = pois.find((poi) => poi.uuid === selectedPoiUuid);
+    if (sectionSelected === "poi" && selectedPoi) {
+      // highlight POIs if the poi section is selected
 
-      // if the poi has a location, then highlight it on the map
-      if (poi.location && showHightlightOnMap) {
-        const latLng = new L.LatLng(poi.location.lat, poi.location.lng);
+      // check if poi marker has been added to the map
+      const selectedDrawControlItem = drawControlItemsRef.current.find(
+        (drawControlItem) => drawControlItem.uuid === selectedPoi.uuid
+      );
 
-        const marker = L.circleMarker(latLng, {
-          radius: 12,
-          color: "#ffff00",
-          stroke: false,
-        }) as CircleMarkerWithUuid;
-        marker.uuid = poi.uuid;
-        marker.on("click", () => {
-          console.log("POI marker has been clicked: ", marker.uuid);
-          setShowHighlightOnMap(true);
-          dispatch(setSectionSelected("poi"));
-          dispatch(setSelectedPoiUuid(marker.uuid));
-        });
-        map.current.addLayer(marker);
+      if (selectedDrawControlItem) {
+        // if the poi has a location, then highlight it on the map
+        if (selectedPoi.location && showHightlightOnMap) {
+          const latLng = new L.LatLng(selectedPoi.location.lat, selectedPoi.location.lng);
+
+          const marker = L.circleMarker(latLng, {
+            radius: 12,
+            color: "#ffff00",
+            stroke: false,
+          }) as CircleMarkerWithUuid;
+          marker.uuid = selectedPoi?.uuid;
+          map.current.addLayer(marker);
+        }
+      }
+    } else if (sectionSelected === "station" && selectedStation) {
+      // highlight stations if the station section is selected
+      const selectedDrawControlItem = drawControlItemsRef.current.find(
+        (drawControlItem) => drawControlItem.uuid === selectedStation.uuid
+      );
+
+      if (selectedDrawControlItem) {
+        // if the poi has a location, then highlight it on the map
+        if (selectedStation.location && showHightlightOnMap) {
+          const latLng = new L.LatLng(selectedStation.location.lat, selectedStation.location.lng);
+
+          const marker = L.circleMarker(latLng, {
+            radius: 14,
+            color: "#ff00ff",
+            stroke: false,
+          }) as CircleMarkerWithUuid;
+          marker.uuid = selectedStation?.uuid;
+          map.current.addLayer(marker);
+        }
       }
     }
-  }, [map, pois, selectedPoiUuid, userMapObjects, dispatch, showHightlightOnMap]);
+  }, [map, selectedPoi, selectedStation, dispatch, showHightlightOnMap, sectionSelected]);
 
   /**
-   * if selectedPoiUuid changes, then show the highlight on the map
+   * if selectedPoi changes, then show the highlight on the map
    */
   useEffect(() => {
-    if (selectedPoiUuid) {
+    if (selectedPoi || selectedStation) {
       setShowHighlightOnMap(true);
     }
-  }, [selectedPoiUuid]);
+  }, [selectedPoi, selectedStation]);
 
   /**
    * Handle the user pressing escape key to get out of draw mode on the map
@@ -693,7 +791,7 @@ const MapBody: FunctionComponent = () => {
       }
       if (isEscape) {
         const userMapObject = userMapObjects.find(
-          (userMapObject) => userMapObject.uuid === uuidBeingEdited.current
+          (userMapObject) => userMapObject.uuid === uuidOfCurrentlyActiveMapEdit.current
         );
         if (!userMapObject) return;
 
@@ -701,7 +799,7 @@ const MapBody: FunctionComponent = () => {
           userMapObject?.mapAction === "create" ? "cancelCreate" : "cancelEdit";
         dispatch(
           upsertUserMapObject({
-            ...userMapObjects.find((item) => item.uuid === uuidBeingEdited.current),
+            ...userMapObjects.find((item) => item.uuid === uuidOfCurrentlyActiveMapEdit.current),
             createdAt: new Date().toISOString(),
             mapAction: mapCancelAction,
           })
@@ -723,14 +821,13 @@ const MapBody: FunctionComponent = () => {
    */
   useEffect(() => {
     if (!map.current) return;
-    const selectedPoi = pois.find((poi) => poi.uuid === selectedPoiUuid);
     if (selectedPoi) {
       const selectedDrawControlItem = drawControlItemsRef.current.find(
-        (drawControlItem) => drawControlItem.uuid === selectedPoiUuid
+        (drawControlItem) => drawControlItem.uuid === selectedPoi?.uuid
       );
       if (selectedDrawControlItem) {
         const html = `<div class="leaflet-aegis-icon">${
-          selectedPoi.color ? String.fromCodePoint(parseInt(selectedPoi.color?.value, 16)) : "🚀"
+          selectedPoi.color ? String.fromCodePoint(parseInt(selectedPoi.color?.value, 16)) : "⚫"
         }</div>`;
         const icon = L.divIcon({ html });
         selectedDrawControlItem.drawnItemsFeatureGroup.eachLayer((layer) => {
@@ -740,7 +837,7 @@ const MapBody: FunctionComponent = () => {
         });
       }
     }
-  }, [pois, selectedPoiUuid, map]);
+  }, [selectedPoi, map]);
 
   return (
     <>

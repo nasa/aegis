@@ -33,24 +33,6 @@ interface UserInterface {
   rightDrawerOpen: boolean;
 }
 
-type MapAction =
-  | "cancelCreate"
-  | "cancelEdit"
-  | "create"
-  | "edit"
-  | "saveEdit"
-  | "refreshLocation"
-  | "delete";
-type MapObject = "polyline" | "marker";
-type MapItemType = "poi" | "evaItem";
-interface UserMapObject {
-  uuid: string;
-  mapItemType: MapItemType;
-  mapObject: MapObject;
-  createdAt: string;
-  mapAction: MapAction;
-}
-
 interface MapState {
   layerControls: LayerControls;
   activeSelectedName: string;
