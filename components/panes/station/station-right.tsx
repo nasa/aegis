@@ -35,7 +35,7 @@ import {
 import Info_Panel from "./station-right-info";
 import Poi_Panel from "./station-right-poi";
 import Actions_Panel from "./station-right-actions";
-import STM_Panel from "../stm";
+import STM_Panel from "../stm-coverage";
 import * as httpClient_station from "http-client/station";
 import * as httpClient_action from "http-client/action";
 import { upsertUserMapObject } from "store/map";

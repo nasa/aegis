@@ -1,6 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "./global-pane-styles.module.css";
-import stmStyles from "./stm.module.css";
+import stmStyles from "./stm-coverage.module.css";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import "react-tooltip/dist/react-tooltip.css";
 import _ from "lodash";

@@ -1,14 +1,8 @@
-import {
-  faCaretDown,
-  faCaretRight,
-  faTableList,
-  faTrashAlt,
-} from "@fortawesome/free-solid-svg-icons";
+import { faCaretDown, faCaretRight, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   ContentEditableTextArea,
   Dropdown,
-  IconButton,
   InLineEditInput,
   MultiButton,
 } from "components/interface/_global-elements";
@@ -19,6 +13,7 @@ import { setPoiEditMode } from "store/poi";
 import { deleteAction, upsertAction } from "store/action";
 import { toDecimal } from "utils/formatting";
 import { useDispatch } from "react-redux";
+import STMSelector from "../stm-selector";
 
 const RightAction: FunctionComponent<{ editMode: boolean; poiUuid: string; action: Action }> = ({
   editMode,
@@ -161,15 +156,14 @@ const RightAction: FunctionComponent<{ editMode: boolean; poiUuid: string; actio
           </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle}>Science Tracability</div>
-            {editMode && (
-              <IconButton
-                onClick={() => {}}
-                icon={faTableList}
-                label="Select"
-                style={{ width: "75px" }}
-              />
-            )}
-            {!editMode && <div style={{ height: "26px" }}>...</div>}
+            <STMSelector
+              editMode={editMode}
+              action={action}
+              onSTMChange={(stmUuidRefs: string[]) => {
+                const updatedAction: Action = { ...action, stmUuidRefs: stmUuidRefs };
+                dispatch(upsertAction(updatedAction));
+              }}
+            />
           </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle}>POI Value & Notes</div>
