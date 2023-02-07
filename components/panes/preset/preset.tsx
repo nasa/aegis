@@ -22,7 +22,7 @@ const PresetEditorLeft: FunctionComponent = () => {
   const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const user: AEGISUser = useAppSelector((state) => state.user.ironSessionData?.user, shallowEqual);
-  const missionId = useAppSelector((state) => state.mission.mission.id, refEqual);
+  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
   const mapLayerControls = useAppSelector((state) => state.map.layerControls, shallowEqual);
 
   let selectedPreset: Preset;

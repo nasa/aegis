@@ -1,0 +1,13 @@
+.stmItem {
+  display: inline-block;
+}
+
+.stmText {
+  font-size: 0.8rem;
+  margin-top: 5px;
+  cursor: text;
+}
+
+.highlight {
+  color: #2ad300;
+}
