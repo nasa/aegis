@@ -53,18 +53,17 @@
   flex: 1;
 }
 
-.stationRightBodySubItem {
-  padding-left: 20px;
-  padding-top: 10px;
-}
-
 .stationRightBodyItem {
   padding-left: 8px;
 }
 
-.stationRightBodyItemIcon {
-  display: inline-block;
-  width: 1.25em;
+.stationSTMCoverage {
+  display: flex;
+  flex-direction: row;
+  column-gap: 10px;
+  padding-left: 20px;
+  padding-top: 10px;
+  align-items: center;
 }
 
 .stmItem {

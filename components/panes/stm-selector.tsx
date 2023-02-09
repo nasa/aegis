@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight, faCheckSquare } from "@fortawesome/free-solid-svg-icons";
 import "react-checkbox-tree/lib/react-checkbox-tree.css";
 import { faSquare, faSquareMinus } from "@fortawesome/free-regular-svg-icons";
+import { STM_Coverage } from "./stm-coverage";
 
 const STMSelector: FunctionComponent<{
   editMode: boolean;
@@ -92,15 +93,6 @@ const STMSelector: FunctionComponent<{
     }
   }, [allSTMInvstgs, allSTMGoals, allSTMObjectives]);
 
-  //build the full numbering for an investigation that includes objective and goal
-  function getInvstgNumbering(invstgUUID: string): string {
-    const invstg = allSTMInvstgs.find((eachInvstg) => eachInvstg.uuid === invstgUUID);
-    const goal = allSTMGoals.find((eachGoal) => eachGoal.uuid === invstg.goalUuid);
-    const objective = allSTMObjectives.find((eachObj) => eachObj.uuid === goal.objectiveUuid);
-
-    return `${objective.numbering}${goal.numbering}-${invstg.numbering}`;
-  }
-
   return (
     <>
       {editMode ? (
@@ -130,17 +122,7 @@ const STMSelector: FunctionComponent<{
         </div>
       ) : (
         <div className={stmStyles.stmText}>
-          {action.stmUuidRefs
-            ? action.stmUuidRefs.map((invstgUuid, index, array) => {
-                const numbering = getInvstgNumbering(invstgUuid);
-                return (
-                  <div key={invstgUuid} className={stmStyles.stmItem}>
-                    {numbering}
-                    {index === array.length - 1 ? "" : ","}&nbsp;
-                  </div>
-                );
-              })
-            : "None"}
+          <STM_Coverage actions={[action]} mini={true} horizontal={true} uniqueKey={action.uuid} />
         </div>
       )}
     </>
