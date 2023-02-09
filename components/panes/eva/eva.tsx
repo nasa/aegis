@@ -1,18 +1,18 @@
 import { FunctionComponent } from "react";
-import { useDispatch } from "react-redux";
-import { useAppSelector, shallowEqual } from "utils/useAppSelector";
+// import { useDispatch } from "react-redux";
+// import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import styles from "./eva.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import _ from "lodash";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown, faPlus, faGear } from "@fortawesome/free-solid-svg-icons";
-import { upsertUserMapObject } from "store/map";
+// import { upsertUserMapObject } from "store/map";
 
 const EvaPlannerLeft: FunctionComponent = () => {
-  const dispatch = useDispatch();
-  const evaItems = useAppSelector((state) => state.eva.eva.evaItems, shallowEqual);
-  const userMapObjects = useAppSelector((state) => state.map.userMapObjects, shallowEqual);
+  // const dispatch = useDispatch();
+  // const evaItems = useAppSelector((state) => state.eva.eva.evaItems, shallowEqual);
+  // const userMapObjects = useAppSelector((state) => state.map.userMapObjects, shallowEqual);
 
   return (
     <div className={paneStyles.panelContainer}>
@@ -36,7 +36,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
       </div>
 
       <div className={styles.evaItems}>
-        {evaItems &&
+        {/* {evaItems &&
           evaItems.map((item) => {
             let evaItemIcon = null;
             const userMapObject = userMapObjects.find((mapObject) => mapObject.uuid === item.uuid);
@@ -155,7 +155,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
                 </div>
               </div>
             );
-          })}
+          })} */}
       </div>
     </div>
   );

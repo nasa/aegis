@@ -1,0 +1,21 @@
+import { Factory } from "@mikro-orm/seeder";
+import { Eva as Eva_db } from "../../server/database/models/eva.model";
+import { v4 as uuidv4 } from "uuid";
+import { EntityData } from "@mikro-orm/core";
+
+export default class EvaFactory extends Factory<Eva_db> {
+  model = Eva_db;
+  definition(): EntityData<Eva_db> {
+    return {
+      uuid: uuidv4(),
+      owner: null,
+      mission: null,
+      name: "Jest Eva-1",
+      status: "Candidate",
+      sequence: [],
+      description: "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  }
+}

@@ -8,6 +8,9 @@ import { PoiSeeder } from "./seeders/PoiSeeder";
 import { ActionSeeder } from "./seeders/ActionSeeder";
 import { STMSeeder } from "./seeders/STMSeeder";
 import { StationSeeder } from "./seeders/StationSeeder";
+import { TraverseSeeder } from "./seeders/TraverseSeeder";
+import { EVASeeder } from "./seeders/EVASeeder";
+
 export class DatabaseSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     return this.call(em, [
@@ -19,6 +22,8 @@ export class DatabaseSeeder extends Seeder {
       StationSeeder,
       PoiSeeder,
       ActionSeeder,
+      TraverseSeeder,
+      EVASeeder,
     ]);
   }
 }
