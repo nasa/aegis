@@ -256,7 +256,14 @@ const StationEditorRight: FunctionComponent = () => {
     },
     stm_panel: {
       title: "Station STM Coverage",
-      panel: <STM_Panel actions={stationActions} />,
+      panel: (
+        <STM_Panel
+          actions={stationActions}
+          mini={false}
+          horizontal={true}
+          uniqueKey={selectedStationUuid}
+        />
+      ),
       color: "var(--station)",
       icon: faTableList,
     },

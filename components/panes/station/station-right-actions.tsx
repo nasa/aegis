@@ -9,10 +9,8 @@ import { duplicateAction, upsertAction } from "store/action";
 import StationAction from "./station-right-actions-action";
 import { starWars, uniqueNamesGenerator } from "unique-names-generator";
 import { v4 as uuidv4 } from "uuid";
-import { Tooltip } from "react-tooltip";
 import "react-tooltip/dist/react-tooltip.css";
 import _ from "lodash";
-import ReactDOMServer from "react-dom/server";
 import {
   faCaretDown,
   faCaretRight,
@@ -22,6 +20,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import ReactDragListView from "react-drag-listview";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { STM_Coverage } from "../stm-coverage";
 
 interface WrappedAction {
   action: Action;
@@ -39,15 +38,11 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     shallowEqual
   );
   const selectedMissionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
-  const allSTMObjectives = useAppSelector((state) => state.stm.objectives, shallowEqual);
-  const allSTMGoals = useAppSelector((state) => state.stm.goals, shallowEqual);
-  const allSTMInvstgs = useAppSelector((state) => state.stm.investigations, shallowEqual);
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
   const stationPois = useAppSelector(
     (state) => state.poi.pois.filter((poi) => selectedStation?.poiUuids?.includes(poi.uuid)),
     shallowEqual
   );
-  const [stationInvstgs, setStationInvstgs] = useState<STMInvestigation[]>(null);
   const [wrappedStationActions, setWrappedStationActions] = useState<WrappedAction[]>(null); //contains all station actions
   const [poiExpanded, setPoiExpanded] = useState(false);
 
@@ -94,28 +89,6 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     }
   }, [selectedStationUuid, actions, stationPois, selectedStation]);
 
-  //get all STM investigations
-  useEffect(() => {
-    if (wrappedStationActions && allSTMInvstgs) {
-      const stms: STMInvestigation[] = [];
-      //get all stms for station actions
-      for (const wrappedAction of wrappedStationActions) {
-        const stmUuidRefs = wrappedAction.action.stmUuidRefs;
-        if (!stmUuidRefs || stmUuidRefs.length === 0) {
-          continue; //no referenced uuids. skip to next action
-        } else {
-          //loop through all uuids and find the stm investigation
-          for (const stmUuidRef of stmUuidRefs) {
-            const invstg = allSTMInvstgs.find((investigation) => investigation.uuid === stmUuidRef);
-            if (invstg) stms.push(invstg);
-          }
-        }
-      }
-      //filter unique and sort
-      setStationInvstgs(_.uniqBy(stms, "uuid"));
-    }
-  }, [wrappedStationActions, allSTMInvstgs]);
-
   const handleCreateAction = () => {
     const randomName: string = uniqueNamesGenerator({
       dictionaries: [starWars],
@@ -140,40 +113,6 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     dispatch(upsertAction(blankAction));
     dispatch(setStationEditMode({ stationUuid: selectedStationUuid, editMode: true }));
   };
-
-  //build hover tooltip jsx
-  function buildSTMTooltip(invstgUUID: string) {
-    const invstg = allSTMInvstgs.find((eachInvstg) => eachInvstg.uuid === invstgUUID);
-    const goal = allSTMGoals.find((eachGoal) => eachGoal.uuid === invstg.goalUuid);
-    const objective = allSTMObjectives.find((eachObj) => eachObj.uuid === goal.objectiveUuid);
-
-    return (
-      <div key={"tooltip_" + invstgUUID}>
-        <b>Objective {objective.numbering}</b> - {objective.name}
-        <br />
-        <b>
-          Goal {objective.numbering}
-          {goal.numbering}
-        </b>
-        - {goal.name}
-        <br />
-        <b>
-          Investigation {objective.numbering}
-          {goal.numbering}-{invstg.numbering}
-        </b>
-        - {invstg.name}
-      </div>
-    );
-  }
-
-  //build the full numbering for an investigation that includes objective and goal
-  function getInvstgNumbering(invstgUUID: string): string {
-    const invstg = allSTMInvstgs.find((eachInvstg) => eachInvstg.uuid === invstgUUID);
-    const goal = allSTMGoals.find((eachGoal) => eachGoal.uuid === invstg.goalUuid);
-    const objective = allSTMObjectives.find((eachObj) => eachObj.uuid === goal.objectiveUuid);
-
-    return `${objective.numbering}${goal.numbering}-${invstg.numbering}`;
-  }
 
   //set state of highlight connected actions when the STM is hovered over
   function highlightActions(invstgUUID: string) {
@@ -216,31 +155,15 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
         <div className={`${paneStyles.rightBodyTitle} ${stationStyles.stationColor}`}>
           Station Info
         </div>
-        <div className={stationStyles.stationRightBodySubItem}>
-          <div className={stationStyles.stationRightBodyItemIcon}>
-            <FontAwesomeIcon icon={faTableList} size="sm" />
-          </div>
-          STM Coverage:&nbsp;
-          {stationInvstgs?.map((invstg, index, array) => {
-            const numbering = getInvstgNumbering(invstg.uuid);
-            return (
-              <div key={invstg.uuid} className={stationStyles.stmItem}>
-                <div id={invstg.uuid}>
-                  {numbering}
-                  {index === array.length - 1 ? "" : ","}&nbsp;
-                </div>
-                <Tooltip
-                  anchorId={invstg.uuid}
-                  html={ReactDOMServer.renderToString(buildSTMTooltip(invstg.uuid))}
-                  className={stationStyles.stationToolTip}
-                  afterShow={() => highlightActions(invstg.uuid)}
-                  afterHide={() => highlightActions(null)}
-                  delayShow={100}
-                  events={["hover", "click"]}
-                />
-              </div>
-            );
-          })}
+        <div className={stationStyles.stationSTMCoverage}>
+          <FontAwesomeIcon icon={faTableList} size="sm" title="STM Coverage" />
+          <STM_Coverage
+            actions={actions.filter((action) => action.stationUuid === selectedStationUuid)}
+            mini={true}
+            horizontal={true}
+            onInvstgHover={highlightActions}
+            uniqueKey="stationSummaryInfo"
+          />
         </div>
         <div className={`${paneStyles.rightBodyTitle} ${stationStyles.stationColor}`}>
           Station Actions

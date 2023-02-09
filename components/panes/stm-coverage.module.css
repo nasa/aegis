@@ -1,8 +1,14 @@
+.flexRow {
+  flex-direction: row;
+}
+.flexColumn {
+  flex-direction: column;
+}
+
 .stm {
   padding-left: 20px;
   padding-top: 10px;
   display: flex;
-  flex-direction: column;
   flex-wrap: wrap;
   justify-content: flex-start;
   column-gap: 5px;
@@ -11,19 +17,41 @@
   width: fit-content;
   cursor: default;
   height: 100%;
+  align-items: flex-start;
+  align-content: flex-start;
+}
+.stm_mini {
+  padding: 0px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  column-gap: 5px;
+  row-gap: 5px;
+  width: -moz-fit-content;
+  width: fit-content;
+  cursor: default;
+  height: 100%;
+  align-items: flex-start;
+  align-content: flex-start;
 }
 
 .objective {
   display: flex;
-  flex-direction: row;
   background-color: var(--grey2);
   border-radius: var(--radius);
   padding: 5px;
   column-gap: 5px;
   row-gap: 5px;
 }
-
-.objectiveNumbering {
+.objective_mini {
+  display: flex;
+  background-color: var(--grey2);
+  border-radius: var(--radius);
+  padding: 3px;
+  column-gap: 3px;
+  row-gap: 3px;
+}
+.objectiveNumberingRow {
   border-top-left-radius: var(--radius);
   border-bottom-left-radius: var(--radius);
   background-color: white;
@@ -31,39 +59,59 @@
   width: 1em;
   text-align: center;
 }
+.objectiveNumberingCol {
+  border-top-left-radius: var(--radius);
+  border-top-right-radius: var(--radius);
+  background-color: white;
+  color: black;
+  width: 100%;
+  text-align: center;
+}
+.objectiveNumberingCol_mini {
+  color: white;
+  font-size: 0.7rem;
+  font-family: sans-serif;
+}
 
 .goalsContainer {
   display: flex;
-  flex-direction: column;
   column-gap: 5px;
   row-gap: 5px;
 }
+.goalsContainer_mini {
+  display: flex;
+  column-gap: 4px;
+  row-gap: 4px;
+  align-items: center;
+}
 .goal {
   display: flex;
-  flex-direction: row;
   column-gap: 2px;
   row-gap: 2px;
 }
-
-.goalNumbering {
+.goalNumberingRow {
   border-top-left-radius: var(--radius);
   border-bottom-left-radius: var(--radius);
   background-color: white;
   color: black;
   width: 1em;
+  text-align: center;
+}
+.goalNumberingCol {
+  border-top-left-radius: var(--radius);
+  border-top-right-radius: var(--radius);
+  background-color: white;
+  color: black;
+  width: 100%;
   text-align: center;
 }
 
 .invstgsContainer {
   display: flex;
-  flex-direction: column;
-  column-gap: 2px;
-  row-gap: 2px;
+  column-gap: 1px;
+  row-gap: 1px;
 }
-.investigation {
-}
-
-.invstgNumbering {
+.invstgNumberingCol {
   border-top-right-radius: var(--radius);
   border-bottom-right-radius: var(--radius);
   background-color: white;
@@ -71,15 +119,51 @@
   width: 1em;
   text-align: center;
 }
+.invstgNumberingRow {
+  border-bottom-left-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+  background-color: white;
+  color: black;
+  width: 1em;
+  text-align: center;
+}
+.invstgNumberingRow_mini {
+  background-color: white;
+  color: black;
+  text-align: center;
+  font-size: 0.5rem;
+  width: 0.4rem;
+}
+.invstgNumberingRow_miniStart {
+  border-top-left-radius: 2px;
+  border-bottom-left-radius: 2px;
+}
+.investgNumberingRow_miniEnd {
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
 
 .highlight {
   background-color: #2ad300;
 }
 
-.stm .tooltip {
+.stm .tooltip,
+.stm_mini .tooltip {
   z-index: 900;
   background-color: white;
   color: black;
   max-width: 400px;
   opacity: 100%;
+  font-size: 0.9rem;
+}
+
+.flipSwitch {
+  display: flex;
+  flex-direction: row;
+  padding-top: 10px;
+  padding-left: 10px;
+}
+.flipSwitch svg {
+  font-size: 1.2rem;
+  padding-left: 5px;
 }
