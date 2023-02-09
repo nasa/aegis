@@ -41,7 +41,16 @@ interface MapState {
 }
 
 interface EvaState {
-  eva: Eva;
+  selectedEvaRightNavItem: string;
+  selectedEvaUuid: string;
+  selectedEvaSequenceItemUuid: string;
+  expandedEvaUuids: string[];
+  evas: Eva[];
+  evasFromDb: Eva[];
+  evasEditing: string[];
+  traverses: Traverse[];
+  traversesFromDb: Traverse[];
+  traversesEditing: string[];
 }
 
 interface PoiState {

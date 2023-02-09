@@ -34,11 +34,7 @@ interface Station {
   updatedAt?: string;
 }
 
-type Station_db_type = Omit<
-  Station,
-  "ownerId" | "missionId" | "location" | "createdAt" | "updatedAt"
-> & {
-  location: AEGISPoint | AEGISPoint[];
+type Station_db_type = Omit<Station, "ownerId" | "missionId" | "createdAt" | "updatedAt"> & {
   owner: User;
   mission: Mission_db_type;
   createdAt?: Date;
@@ -103,8 +99,7 @@ interface POI {
   updatedAt?: string;
 }
 
-type Poi_db_type = Omit<POI, "ownerId" | "missionId" | "location" | "createdAt" | "updatedAt"> & {
-  location: AEGISPoint | AEGISPoint[];
+type Poi_db_type = Omit<POI, "ownerId" | "missionId" | "createdAt" | "updatedAt"> & {
   owner: User;
   mission: Mission_db_type;
   createdAt?: Date;

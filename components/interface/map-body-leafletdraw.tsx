@@ -18,7 +18,7 @@ import {
   FunctionComponent,
 } from "react";
 import _ from "lodash";
-import { updateEvaItemLocation } from "store/eva";
+// import { updateEvaItemLocation } from "store/eva";
 import { upsertUserMapObject } from "store/map";
 import { setSelectedPoiUuid, updatePoiLocation } from "store/poi";
 import { setSectionSelected } from "store/interface";
@@ -54,7 +54,7 @@ const MapBody: FunctionComponent = () => {
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
   const missionLayers = useAppSelector((state) => state.mission.layers, shallowEqual);
   const layerControls = useAppSelector((state) => state.map.layerControls, shallowEqual);
-  const eva = useAppSelector((state) => state.eva.eva, shallowEqual);
+  // const eva = useAppSelector((state) => state.eva.eva, shallowEqual);
   const userMapObjects = useAppSelector((state) => state.map.userMapObjects, shallowEqual);
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
   const selectedPoi = useAppSelector(
@@ -210,7 +210,7 @@ const MapBody: FunctionComponent = () => {
       if (drawControlItem.mapItemType === "station") {
         dispatch(updateStationLocation({ uuid: layer["uuid"], location: location as AEGISPoint }));
       } else if (drawControlItem.mapItemType === "traverse") {
-        dispatch(updateEvaItemLocation({ uuid: layer["uuid"], location }));
+        // dispatch(updateEvaItemLocation({ uuid: layer["uuid"], location }));
       } else {
         // a POI
         const location = convertLeafletLatLngToAegisPoint(layer.getLatLng());
@@ -383,12 +383,12 @@ const MapBody: FunctionComponent = () => {
       } else if (drawControlItem.mapItemType === "traverse") {
         location = convertLeafletLatLngsToAegisPoints(e.layer.getLatLngs());
 
-        dispatch(
-          updateEvaItemLocation({
-            uuid: uuidOfCurrentlyActiveMapEdit.current,
-            location,
-          })
-        );
+        // dispatch(
+        //   updateEvaItemLocation({
+        //     uuid: uuidOfCurrentlyActiveMapEdit.current,
+        //     location,
+        //   })
+        // );
       } else {
         // a POI
         location = convertLeafletLatLngToAegisPoint(e.layer.getLatLng());
@@ -467,7 +467,7 @@ const MapBody: FunctionComponent = () => {
    * Listen for mapActions for stations and pois and trigger map draw/edit modes appropriately
    */
   useEffect(() => {
-    if (!eva) return;
+    // if (!eva) return;
     if (userMapObjects === null) return;
 
     const activeUserMapObject = userMapObjects.find(
@@ -621,7 +621,7 @@ const MapBody: FunctionComponent = () => {
       );
       uuidOfCurrentlyActiveMapEdit.current = null;
     }
-  }, [eva, pois, stations, userMapObjects, dispatch, drawItemOnMap]);
+  }, [pois, stations, userMapObjects, dispatch, drawItemOnMap]);
 
   /**
    * Draw or update pois on the map when station or pois change. Serves as draw when page loads
