@@ -1,28 +1,84 @@
-.actionHeader {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  margin-top: 10px;
-  margin-bottom: 10px;
-}
-
-.actionButtons {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  margin-left: 5px;
-}
-
-.actionButton {
+.evasLeftContainer {
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
-  margin-left: 5px;
-  color: var(--grey3);
+  height: 100%;
 }
 
-.actionButton:hover {
-  color: white;
+.evasLeftBody {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--grey1);
+  overflow-y: auto;
+  height: 0;
+}
+
+.evasLeftFooter {
+  flex: 0 0 20px;
+  margin-top: 5px;
+}
+
+.evaPanelContainer {
+  background-color: var(--grey2);
+  margin: 2px 8px 2px 8px;
+  border-radius: var(--panelRadius);
+}
+
+.nameitem {
+  display: flex;
+  padding: 2px 4px 2px 0;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.name {
+  display: flex;
+  width: 100%;
+  border-radius: var(--radius);
+  font-size: 0.9em;
+  font-weight: 500;
+  text-transform: uppercase;
+  padding: 3px 2px 3px 5px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  border: 1px solid var(--grey2);
+}
+
+.nameSelected {
+  background-color: var(--eva);
+  color: black;
+  cursor: pointer;
+}
+
+.nameSelected:hover {
+  background-color: var(--eva) !important;
+  color: black !important;
+}
+
+.nameEmphasized {
+  border: 1px solid var(--eva);
+}
+
+.name:hover {
+  background-color: var(--grey1);
+}
+
+.nameCaret {
+  margin-left: 5px;
+  margin-right: 5px;
+  margin-top: 2px;
+  margin-bottom: 2px;
+  width: 12px;
+}
+
+/* */
+
+.evaContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin-top: 2px;
+  margin-bottom: 2px;
 }
 
 .verticalCenter {
@@ -31,42 +87,15 @@
   justify-content: space-around;
 }
 
-.select {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  flex: 1 1 auto;
+.evaSequenceContainer {
+  margin: 0 0 0 20px;
 }
 
-.select select {
-  font-size: 1em;
-  cursor: pointer;
-  padding-left: 10px;
-  padding-right: 25px;
-  height: 28px;
-  border: 1px solid var(--grey3);
-  border-radius: var(--radius);
-  color: white;
-  background-color: var(--grey2);
-  appearance: none;
-  text-overflow: ellipsis;
-  outline: 0;
+.evaFooterContainer {
+  margin: 0 0 0 10px;
 }
 
-.select select:disabled {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.selectArrow {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  pointer-events: none;
-}
-
-.evaItems {
+.evaSequence {
   display: flex;
   flex-direction: column;
 }
@@ -77,33 +106,39 @@
   justify-content: space-between;
 }
 
-.evaItemInfoAndActions {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-around;
-  border-radius: var(--radius);
-  padding-left: 5px;
-  padding-right: 5px;
-}
-
-.evaItemInfoAndActions:hover {
-  background-color: var(--grey1);
-  cursor: pointer;
-}
-
 .evaItemName {
   flex: 1 1 auto;
+  display: flex;
   overflow-x: hidden;
   text-overflow: ellipsis;
   font-size: 0.9em;
   margin-top: 1px;
   margin-bottom: 1px;
-  padding-top: 4px;
-  padding-bottom: 4px;
+  padding: 4px 5px 4px 5px;
+  margin-right: 4px;
+  border-radius: var(--radius);
+}
+.evaItemName.editMode:hover {
+  background-color: var(--grey2);
+  cursor: default;
 }
 
-.evaItemButtons {
+.evaItemNameSelected {
+  background-color: var(--eva);
+  color: black;
+}
+
+.evaItemNameSelected:hover {
+  background-color: var(--eva) !important;
+  color: black !important;
+}
+
+.evaItemName:hover {
+  background-color: var(--grey1);
+  cursor: pointer;
+}
+
+.evaItemNameButtons {
   display: flex;
   flex-direction: row;
   width: 120px;
@@ -112,28 +147,36 @@
   justify-content: right;
 }
 
-.evaItemButton {
+.evaItemNameButton {
   display: flex;
   flex-direction: column;
   justify-content: space-around;
 
-  width: 45px;
-  height: 18px;
-  background-color: var(--grey4);
-  color: var(--grey2);
+  background-color: var(--grey3);
+  color: #ffffff;
+
+  width: 20px;
+  height: 20px;
   border: none;
   border-radius: var(--radius);
   font-size: 11px;
   font-weight: 600;
-  margin-top: 5px;
   margin-left: 2px;
+  cursor: pointer;
 }
 
-.evaItemButton:hover {
-  background-color: #eeeeee;
+.evaItemNameButton.disabled {
+  background-color: var(--grey3);
+  color: var(--grey2);
+  cursor: default;
 }
 
-.evaItemButtonLabel {
+.evaItemNameButton.disabled:hover {
+  background-color: var(--grey3);
+  color: var(--grey2);
+}
+
+.evaItemNameButtonLabel {
   margin: 0 auto;
 }
 

@@ -21,6 +21,8 @@ export class Eva implements Eva_db_type {
   sequence!: EvaSequenceItem[];
   @Property({ type: MikroTypes.string, nullable: true })
   description!: string;
+  @Property({ type: MikroTypes.double, nullable: true })
+  maxDuration!: number;
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;

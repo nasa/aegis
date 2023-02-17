@@ -118,7 +118,7 @@ const RightAction: FunctionComponent<{
             editing={editMode}
             maxLength={255}
             styleInput={{ width: "100%" }}
-            containerStyle={{ fontSize: "0.9em", fontWeight: 400 }}
+            containerStyle={{ fontSize: "0.8rem", fontWeight: 400 }}
             value={action.name}
             onChange={(val) => {
               const updatedAction: Action = { ...action, name: val };
@@ -206,7 +206,7 @@ const RightAction: FunctionComponent<{
                     editing={editMode}
                     maxLength={4}
                     styleInput={{ width: "45px" }}
-                    containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                    containerStyle={{ fontSize: "0.8rem", fontWeight: 400 }}
                     value={action.durationUpper?.toString()}
                     onChange={(val: number) => {
                       const updatedAction: Action = { ...action, durationUpper: val };

@@ -58,6 +58,7 @@ export const actionSlice = createSlice({
       newAction.parentActionUuid = action.payload.action.uuid;
       newAction.stationUuid = action.payload.stationUuid;
       newAction.poiUuid = action.payload.poiUuid;
+      newAction.name = `${newAction.name} (copy)`;
       state.actions.push(newAction);
     },
   },

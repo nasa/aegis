@@ -10,11 +10,13 @@ export class TraverseSeeder extends Seeder {
       mission: context.mission1.id,
       name: "T-Running",
       location: [
-        { lat: -3.639175208034774, lng: -17.45710372924805 },
         { lat: -3.645421873728663, lng: -17.47186660766602 },
+        { lat: -3.6305197977566683, lng: -17.43161201477051 },
       ],
       description: "Traverse description 1",
-      duration: 30,
+      durationLower: 30,
+      durationUpper: 40,
+      status: "Candidate",
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -23,11 +25,28 @@ export class TraverseSeeder extends Seeder {
       mission: context.mission1.id,
       name: "T-Walking",
       location: [
-        { lat: -3.645421873728663, lng: -17.47186660766602 },
-        { lat: -3.640200248844809, lng: -17.48208045959473 },
+        { lat: -3.6305197977566683, lng: -17.43161201477051 },
+        { lat: -3.638316103462144, lng: -17.462511062622074 },
       ],
       description: "Traverse description 2",
-      duration: 70,
+      durationLower: 20,
+      durationUpper: 25,
+      status: "Candidate",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    context.traverse3 = em.create(Traverse, {
+      uuid: uuidv4(),
+      mission: context.mission1.id,
+      name: "T-Skipping",
+      location: [
+        { lat: -3.638316103462144, lng: -17.462511062622074 },
+        { lat: -3.645421873728663, lng: -17.47186660766602 },
+      ],
+      description: "Traverse description 3",
+      durationLower: 20,
+      durationUpper: 25,
+      status: "Candidate",
       createdAt: new Date(),
       updatedAt: new Date(),
     });

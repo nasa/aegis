@@ -45,12 +45,17 @@ interface EvaState {
   selectedEvaUuid: string;
   selectedEvaSequenceItemUuid: string;
   expandedEvaUuids: string[];
+  selectedLeftNavItem: string;
   evas: Eva[];
   evasFromDb: Eva[];
   evasEditing: string[];
+}
+
+interface TraverseState {
   traverses: Traverse[];
   traversesFromDb: Traverse[];
   traversesEditing: string[];
+  selectedTraverseRightNavItem: string;
 }
 
 interface PoiState {
@@ -70,7 +75,7 @@ interface PresetState {
   presetsEditing: string[];
 }
 
-type InterfaceSection = "map_layer_selector" | "poi" | "station" | "eva_planner";
+type InterfaceSection = "map_layer_selector" | "poi" | "station" | "evas";
 interface InterfaceState {
   sectionSelectedLabel: InterfaceSection;
 }

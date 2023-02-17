@@ -1,163 +1,101 @@
+import _ from "lodash";
 import { FunctionComponent } from "react";
-// import { useDispatch } from "react-redux";
-// import { useAppSelector, shallowEqual } from "utils/useAppSelector";
+
 import styles from "./eva.module.css";
 import paneStyles from "../global-pane-styles.module.css";
-import _ from "lodash";
-
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChevronDown, faPlus, faGear } from "@fortawesome/free-solid-svg-icons";
-// import { upsertUserMapObject } from "store/map";
+import EvaItem from "./eva-item";
+import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { IconButton } from "components/interface/_global-elements";
+import { faClone, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
+import { colors, uniqueNamesGenerator } from "unique-names-generator";
+import { v4 as uuidv4 } from "uuid";
+import {
+  duplicateEva,
+  setEvaEditMode,
+  setExpandedEvaUuids,
+  setSelectedEvaUuid,
+  upsertEva,
+} from "store/eva";
+import { useDispatch } from "react-redux";
+const profanityFilter = require("leo-profanity");
 
 const EvaPlannerLeft: FunctionComponent = () => {
-  // const dispatch = useDispatch();
-  // const evaItems = useAppSelector((state) => state.eva.eva.evaItems, shallowEqual);
-  // const userMapObjects = useAppSelector((state) => state.map.userMapObjects, shallowEqual);
+  const dispatch = useDispatch();
+  const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
+  const expandedEvaUuids = useAppSelector((state) => state.eva.expandedEvaUuids, shallowEqual);
+
+  const selectedEva = useAppSelector(
+    (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
+    shallowEqual
+  );
+  const user: AEGISUser = useAppSelector((state) => state.user.ironSessionData?.user, shallowEqual);
+  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
+
+  const handleCreateEva = () => {
+    let randomName = "";
+    while (randomName === "") {
+      const name = uniqueNamesGenerator({
+        dictionaries: [colors],
+        style: "capital",
+      });
+      const evaWithSameName = evas.find((eva) => eva.name === name);
+      const profanityCheck = profanityFilter.check(name);
+      randomName = evaWithSameName || profanityCheck ? "" : name;
+    }
+
+    const blankEva: Eva = {
+      ownerId: user.id,
+      missionId: missionId,
+      uuid: uuidv4(),
+      name: "E-" + randomName,
+      status: "Candidate",
+      sequence: [],
+      description: "",
+      maxDuration: null,
+    };
+    dispatch(upsertEva(blankEva));
+    // turn on edit mode for the new Eva
+    dispatch(setEvaEditMode({ evaUuid: blankEva.uuid, editMode: true }));
+    // select the new Eva
+    dispatch(setSelectedEvaUuid(blankEva.uuid));
+    // expand the new Eva
+    dispatch(setExpandedEvaUuids([...expandedEvaUuids, blankEva.uuid]));
+  };
 
   return (
-    <div className={paneStyles.panelContainer}>
-      <div className={styles.actionHeader}>
-        <div className={styles.select}>
-          <select title="Select EVA">
-            <option value="">EVA 1</option>
-          </select>
-          <div className={styles.selectArrow}>
-            <FontAwesomeIcon icon={faChevronDown} size="xs" />
-          </div>
+    <>
+      <div className={styles.evasLeftContainer}>
+        <div className={styles.evasLeftBody}>
+          {_.sortBy(evas, ["name"]).map((eva) => (
+            <div className={styles.evaPanelContainer} key={eva.uuid}>
+              <EvaItem eva={eva} key={eva.uuid} />
+            </div>
+          ))}
         </div>
-        <div className={styles.actionButtons}>
-          <div className={styles.actionButton}>
-            <FontAwesomeIcon icon={faPlus} />
-          </div>
-          <div className={styles.actionButton}>
-            <FontAwesomeIcon icon={faGear} />
+
+        <div className={styles.evasLeftFooter}>
+          <div className={paneStyles.iconButtons}>
+            <IconButton
+              onClick={() => {
+                handleCreateEva();
+              }}
+              label="Add EVA"
+              icon={faPlusCircle}
+            ></IconButton>
+            <IconButton
+              onClick={() => {
+                if (selectedEva) {
+                  dispatch(duplicateEva(selectedEva));
+                }
+              }}
+              label="Duplicate EVA"
+              icon={faClone}
+              enabled={!_.isNull(selectedEva)}
+            ></IconButton>
           </div>
         </div>
       </div>
-
-      <div className={styles.evaItems}>
-        {/* {evaItems &&
-          evaItems.map((item) => {
-            let evaItemIcon = null;
-            const userMapObject = userMapObjects.find((mapObject) => mapObject.uuid === item.uuid);
-            const mapAction = userMapObject ? userMapObject.mapAction : null;
-
-            if (item.type === "lander") {
-              evaItemIcon = (
-                <div className={styles.evaIndicator}>
-                  <div className={styles.iconLander} />
-                </div>
-              );
-            } else if (item.type === "station") {
-              evaItemIcon = (
-                <div className={styles.evaIndicator}>
-                  <div className={styles.iconStation} />
-                </div>
-              );
-            } else if (item.type === "traverse") {
-              evaItemIcon = (
-                <div className={styles.evaIndicator}>
-                  <div className={styles.iconTraverseContainer}>
-                    <div className={styles.iconTraverse} />
-                  </div>
-                </div>
-              );
-            }
-
-            return (
-              <div className={styles.evaItem} key={item.uuid}>
-                {evaItemIcon}
-                <div className={styles.evaItemInfoAndActions}>
-                  <div className={styles.evaItemName}>{item.name}</div>
-                  <div className={styles.evaItemButtons}>
-                    {mapAction === null && (
-                      <button
-                        className={styles.evaItemButton}
-                        onClick={() => {
-                          if (!item.location) {
-                            dispatch(
-                              upsertUserMapObject({
-                                mapItemType: item.type === "traverse" ? "traverse" : "station",
-                                uuid: item.uuid,
-                                createdAt: new Date().toISOString(),
-                                mapAction: "create",
-                              })
-                            );
-                          } else {
-                            dispatch(
-                              upsertUserMapObject({
-                                mapItemType: item.type === "traverse" ? "traverse" : "station",
-                                uuid: item.uuid,
-                                createdAt: new Date().toISOString(),
-                                mapAction: "edit",
-                              })
-                            );
-                          }
-                        }}
-                      >
-                        <span className={styles.evaItemButtonLabel}>
-                          {!item.location ? "Draw" : "Edit"}
-                        </span>
-                      </button>
-                    )}
-                    {mapAction === "create" && (
-                      <button
-                        className={styles.evaItemButton}
-                        onClick={() => {
-                          dispatch(
-                            upsertUserMapObject({
-                              mapItemType: item.type === "traverse" ? "traverse" : "station",
-                              uuid: item.uuid,
-                              createdAt: new Date().toISOString(),
-                              mapAction: "cancelCreate",
-                            })
-                          );
-                        }}
-                      >
-                        <span className={styles.evaItemButtonLabel}>Cancel</span>
-                      </button>
-                    )}
-                    {mapAction === "edit" && (
-                      <button
-                        className={styles.evaItemButton}
-                        onClick={() => {
-                          dispatch(
-                            upsertUserMapObject({
-                              mapItemType: item.type === "traverse" ? "traverse" : "station",
-                              uuid: item.uuid,
-                              createdAt: new Date().toISOString(),
-                              mapAction: "cancelEdit",
-                            })
-                          );
-                        }}
-                      >
-                        <span className={styles.evaItemButtonLabel}>Cancel</span>
-                      </button>
-                    )}
-                    {mapAction === "edit" && (
-                      <button
-                        className={styles.evaItemButton}
-                        onClick={() => {
-                          dispatch(
-                            upsertUserMapObject({
-                              mapItemType: item.type === "traverse" ? "traverse" : "station",
-                              uuid: item.uuid,
-                              createdAt: new Date().toISOString(),
-                              mapAction: "saveEdit",
-                            })
-                          );
-                        }}
-                      >
-                        <span className={styles.evaItemButtonLabel}>Save</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })} */}
-      </div>
-    </div>
+    </>
   );
 };
 

@@ -22,7 +22,6 @@
 .iconButtonDisabled {
   background-color: var(--grey3);
   color: var(--grey4);
-  cursor: not-allowed;
 }
 
 .iconButtonLabel {

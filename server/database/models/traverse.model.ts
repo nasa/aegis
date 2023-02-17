@@ -15,9 +15,13 @@ export class Traverse implements Traverse_db_type {
   @Property({ type: MikroTypes.json, nullable: true })
   location: AEGISPoint[];
   @Property({ type: MikroTypes.double, nullable: true })
-  duration: number;
+  durationLower: number;
+  @Property({ type: MikroTypes.double, nullable: true })
+  durationUpper: number;
   @Property({ type: MikroTypes.string, nullable: true })
   description: string;
+  @Property({ type: MikroTypes.string, nullable: true })
+  status: TraverseStatus;
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;

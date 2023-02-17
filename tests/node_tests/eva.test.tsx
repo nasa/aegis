@@ -50,6 +50,7 @@ describe("EVA API Endpoint", () => {
     status: "Candidate",
     sequence: null,
     description: "",
+    maxDuration: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

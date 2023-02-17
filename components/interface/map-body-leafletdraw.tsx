@@ -16,6 +16,7 @@ import {
   useState,
   useCallback,
   FunctionComponent,
+  useLayoutEffect,
 } from "react";
 import _ from "lodash";
 // import { updateEvaItemLocation } from "store/eva";
@@ -23,20 +24,13 @@ import { upsertUserMapObject } from "store/map";
 import { setSelectedPoiUuid, updatePoiLocation } from "store/poi";
 import { setSectionSelected } from "store/interface";
 import { setSelectedStationUuid, updateStationLocation } from "store/station";
+import { upsertTraverse } from "store/traverse";
 
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
 const zoom = 13;
 
 const layerBaseURL = process.env.NEXT_PUBLIC_LAYER_BASE_URL;
-
-type DrawControlItem = {
-  uuid: string;
-  drawControl: any;
-  drawHandler: any;
-  drawnItemsFeatureGroup: any;
-  mapItemType: MapItemType;
-};
 
 const MapBody: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -54,7 +48,7 @@ const MapBody: FunctionComponent = () => {
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
   const missionLayers = useAppSelector((state) => state.mission.layers, shallowEqual);
   const layerControls = useAppSelector((state) => state.map.layerControls, shallowEqual);
-  // const eva = useAppSelector((state) => state.eva.eva, shallowEqual);
+  // const eva = useAppSelector((state) => state.eva.evas[0], shallowEqual); //TODO: support multiple evas
   const userMapObjects = useAppSelector((state) => state.map.userMapObjects, shallowEqual);
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
   const selectedPoi = useAppSelector(
@@ -67,6 +61,20 @@ const MapBody: FunctionComponent = () => {
       state.station.stations.find((station) => station.uuid === state.station.selectedStationUuid),
     refEqual
   );
+
+  const selectedEva = useAppSelector(
+    (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
+    refEqual
+  );
+
+  const selectedEvaSequenceItemUuid = useAppSelector(
+    (state) => state.eva.selectedEvaSequenceItemUuid,
+    refEqual
+  );
+
+  const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
+  const traversesEditing = useAppSelector((state) => state.traverse.traversesEditing, shallowEqual);
+
   const sectionSelected = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
 
   const [layersOnMap, setLayersOnMap] = useState([]);
@@ -75,35 +83,33 @@ const MapBody: FunctionComponent = () => {
   const uuidOfCurrentlyActiveMapEdit = useRef(null);
 
   // make color filter settings for any sublayer. This is the format of leaflet.tilelayer.colorfilter package
-  const makeLayerColorFilter = useCallback(
-    (sublayerName: string): string[] => {
-      return [
-        `brightness:${
-          layerControls[sublayerName].style?.brightness
-            ? layerControls[sublayerName].style?.brightness * 100
-            : 100
-        }%`,
-        `contrast:${
-          layerControls[sublayerName].style?.contrast
-            ? layerControls[sublayerName].style?.contrast * 100
-            : 100
-        }%`,
-        `opacity:${
-          layerControls[sublayerName].style?.opacity
-            ? layerControls[sublayerName].style?.opacity * 100
-            : 100
-        }%`,
-        `saturate:${
-          layerControls[sublayerName].style?.saturation
-            ? layerControls[sublayerName].style?.saturation * 100
-            : 100
-        }%`,
-      ];
-    },
-    [layerControls]
-  );
+  const makeLayerColorFilter = (lControls: LayerControls, sublayerName: string): string[] => {
+    return [
+      `brightness:${
+        lControls[sublayerName].style?.brightness
+          ? lControls[sublayerName].style?.brightness * 100
+          : 100
+      }%`,
+      `contrast:${
+        lControls[sublayerName].style?.contrast
+          ? lControls[sublayerName].style?.contrast * 100
+          : 100
+      }%`,
+      `opacity:${
+        lControls[sublayerName].style?.opacity ? lControls[sublayerName].style?.opacity * 100 : 100
+      }%`,
+      `saturate:${
+        lControls[sublayerName].style?.saturation
+          ? lControls[sublayerName].style?.saturation * 100
+          : 100
+      }%`,
+    ];
+  };
 
-  const showMapLayers = useCallback(() => {
+  /**
+   * Map tile layers display management
+   */
+  useEffect(() => {
     if (!mission || !layerControls || !map.current) return;
 
     // go through all layers in mission config and add make a list of the ones that are enabled
@@ -140,7 +146,7 @@ const MapBody: FunctionComponent = () => {
     layersToAddInOrder.map((configSublayer, index) => {
       // if layer isn't already on the map, add it
       if (!isLayerOnMapByName(map, configSublayer.name)) {
-        const filter = makeLayerColorFilter(configSublayer.name);
+        const filter = makeLayerColorFilter(layerControls, configSublayer.name);
         const tileLayer = (L.tileLayer as any).colorFilter(
           `${layerBaseURL}${mission.name}/${configSublayer.url}`,
           {
@@ -168,30 +174,21 @@ const MapBody: FunctionComponent = () => {
         layer.bringToFront();
       }
     });
-  }, [layerControls, layersOnMap, mission, missionLayers, map, makeLayerColorFilter]);
-
-  /**
-   * Map tile layers display management
-   */
-
-  useEffect(() => {
-    showMapLayers();
-  }, [mission, layerControls, map, layersOnMap, showMapLayers]);
+  }, [mission, layerControls, map, layersOnMap, missionLayers]);
 
   /**
    * Update map with opacity value for sublayers as sliders are moved
    */
   useEffect(() => {
-    if (!map.current) return;
+    if (!map.current || !layerControls) return;
     map.current.eachLayer((layer) => {
       for (const layerControl of Object.values(layerControls)) {
         if (layer.options.id === layerControl.name) {
-          // layer.setOpacity(layerControl.style?.opacity);
-          layer.updateFilter(makeLayerColorFilter(layerControl.name));
+          layer.updateFilter(makeLayerColorFilter(layerControls, layerControl.name));
         }
       }
     });
-  }, [layerControls, map, makeLayerColorFilter]);
+  }, [layerControls, map]);
 
   /**
    * Map events management
@@ -209,9 +206,7 @@ const MapBody: FunctionComponent = () => {
       }
       if (drawControlItem.mapItemType === "station") {
         dispatch(updateStationLocation({ uuid: layer["uuid"], location: location as AEGISPoint }));
-      } else if (drawControlItem.mapItemType === "traverse") {
-        // dispatch(updateEvaItemLocation({ uuid: layer["uuid"], location }));
-      } else {
+      } else if (drawControlItem.mapItemType === "poi") {
         // a POI
         const location = convertLeafletLatLngToAegisPoint(layer.getLatLng());
         dispatch(
@@ -243,7 +238,7 @@ const MapBody: FunctionComponent = () => {
       uuid: string,
       mapItemType: MapItemType,
       emoji16BitVal: string,
-      location: AEGISPoint = null,
+      location: AEGISPoint | AEGISPoint[],
       drawing: boolean
     ) => {
       const html = `<div class="leaflet-aegis-icon">${
@@ -254,8 +249,8 @@ const MapBody: FunctionComponent = () => {
       // add new leaflet draw control to map
       const drawnItemsFeatureGroup = new L.FeatureGroup() as FeatureGroupWithUuid;
       drawnItemsFeatureGroup.uuid = uuid;
-
       map.current.addLayer(drawnItemsFeatureGroup);
+
       const drawControl = new L.Control.Draw({
         draw: {
           polygon: false,
@@ -276,7 +271,34 @@ const MapBody: FunctionComponent = () => {
 
       let drawHandler;
       if (mapItemType === "traverse") {
-        drawHandler = new L.Draw.Polyline(map.current, drawControl.options.polyline).enable();
+        if (drawing) {
+          drawHandler = new L.Draw.Polyline(map.current, drawControl.options.polyline);
+          drawHandler.enable();
+        } else {
+          // if the location isn't the null default, draw it on the map
+          if (
+            !Array.isArray(location) ||
+            !location[0]?.lat ||
+            !location[0]?.lng ||
+            !location[location.length - 1]?.lat ||
+            !location[location.length - 1]?.lng
+          )
+            return;
+
+          const polyline = L.polyline(location as AEGISPoint[], {
+            color: "blue",
+            weight: 3,
+            opacity: 0.5,
+            smoothFactor: 1,
+          }) as PolylineWithUuid;
+          polyline.uuid = uuid;
+          drawnItemsFeatureGroup.addLayer(polyline);
+
+          // polyline handlers
+          polyline.on("click", () => {
+            console.log("Traverse Polyline click handler fired: ", uuid);
+          });
+        }
       } else {
         if (drawing) {
           // drawing interactively via interface - just initiate the draw function, the rest is handled on `draw:created` event
@@ -284,7 +306,7 @@ const MapBody: FunctionComponent = () => {
           drawHandler.enable();
         } else {
           // drawing automatically for example on map load
-          const marker = L.marker(location, {
+          const marker = L.marker(location as AEGISPoint, {
             icon,
           }) as MarkerWithUuid;
           marker.uuid = uuid;
@@ -322,8 +344,9 @@ const MapBody: FunctionComponent = () => {
     [dispatch, saveMarkerEdit]
   );
 
-  // Map instantiation and event listeners
-  useEffect(() => {
+  // Map instantiation and event listeners.
+  // useLayoutEffect runs immediately immediately after the DOM is updated, but before the browser has a chance to paint
+  useLayoutEffect(() => {
     if (!mapRef.current) return;
 
     // Instantiate the map
@@ -335,7 +358,7 @@ const MapBody: FunctionComponent = () => {
     }
 
     /**
-     * NOTE: none of the listeners below can read from Redux since this useEffect is only run at initialization
+     * NOTE: none of the listeners below can read from Redux since this useLayoutEffect is only run at initialization
      * thus all of the store values are fixed at what they were at the time the map was initialized
      */
 
@@ -355,7 +378,6 @@ const MapBody: FunctionComponent = () => {
         (item) => item.uuid === uuidOfCurrentlyActiveMapEdit.current
       );
       drawControlItem.drawnItemsFeatureGroup.addLayer(e.layer);
-      e.layer.uuid = drawControlItem.uuid;
 
       let location: AEGISPoint | AEGISPoint[] = null;
       if (drawControlItem.mapItemType === "station") {
@@ -417,12 +439,11 @@ const MapBody: FunctionComponent = () => {
       dispatch(
         upsertUserMapObject({
           mapItemType: drawControlItem.mapItemType,
-          uuid: uuidOfCurrentlyActiveMapEdit.current,
+          uuid: e.layer.uuid,
           createdAt: null,
           mapAction: null,
         })
       );
-      uuidOfCurrentlyActiveMapEdit.current = null;
     });
 
     map.current.on("draw:edited", (e) => {
@@ -432,16 +453,22 @@ const MapBody: FunctionComponent = () => {
         (item) => item.uuid === uuidOfCurrentlyActiveMapEdit.current
       );
 
-      // update the layer in state using uuid as key
-      e.layers.eachLayer(function (layer) {
-        if (layer["uuid"]) {
-          saveMarkerEdit(layer, drawControlItem, uuidOfCurrentlyActiveMapEdit.current);
-        }
-      });
+      if (drawControlItem.mapItemType !== "traverse") {
+        // update the layer in state using uuid as key
+        e.layers.eachLayer(function (layer) {
+          if (layer["uuid"]) {
+            saveMarkerEdit(layer, drawControlItem, uuidOfCurrentlyActiveMapEdit.current);
+          }
+        });
+      }
     });
 
     map.current.on("draw:editstop", (e) => {
       console.log(`draw:editstop:`, e);
+    });
+
+    map.current.on("draw:editvertex", function (event) {
+      console.log("draw:editvertex", event);
     });
 
     return () => {
@@ -451,10 +478,10 @@ const MapBody: FunctionComponent = () => {
     };
   }, [mission, mapRef, map, dispatch, saveMarkerEdit]);
 
+  /**
+   * Set the center of the map to the center of the selected mission (config.msv.view)
+   */
   useEffect(() => {
-    /**
-     * Set the center of the map to the center of the selected mission (config.msv.view)
-     */
     if (!map.current || !mission) return;
     const config = mission?.config;
 
@@ -462,6 +489,224 @@ const MapBody: FunctionComponent = () => {
     const zoom = config?.msv?.view[2];
     map.current.setView(center, zoom);
   }, [mission, map]);
+
+  /**
+   * if a traverse is removed from the traversesEditing list, and it is currently being edited, stop editing it
+   */
+  useEffect(() => {
+    if (!map.current || !userMapObjects || !traversesEditing) return;
+
+    const userMapObject = userMapObjects.find(
+      (userMapObject) => userMapObject.uuid === uuidOfCurrentlyActiveMapEdit.current
+    );
+    if (
+      userMapObject &&
+      userMapObject.mapItemType === "traverse" &&
+      userMapObject.mapAction === "edit"
+    ) {
+      // if the userMapObject uuid is not in the traversesEditing list, stop the leaflet edit function
+      // this covers the case where a user starts a traverse map path edit, then cancels the overall traverse edit
+      if (!traversesEditing.find((uuid) => uuid === userMapObject.uuid)) {
+        // update userMapObject map action to null
+        dispatch(
+          upsertUserMapObject({
+            mapItemType: userMapObject.mapItemType,
+            uuid: userMapObject.uuid,
+            createdAt: new Date().toISOString(),
+            mapAction: "cancelEdit",
+          })
+        );
+      }
+    }
+  }, [userMapObjects, traversesEditing, dispatch]);
+
+  /**
+   * Draw or POIs on the map when pois change. Serves as draw when page loads
+   */
+  useEffect(() => {
+    if (!map.current || !drawControlItemsRef.current) return;
+
+    if (pois) {
+      pois.forEach((poi) => {
+        if (poi.location) {
+          // if the poi is already in drawControlItems, update its location
+          if (
+            drawControlItemsRef.current.find((drawControlItem) => drawControlItem.uuid === poi.uuid)
+          ) {
+            const drawControlItem = drawControlItemsRef.current.find(
+              (drawControlItem) => drawControlItem.uuid === poi.uuid
+            );
+            drawControlItem.drawnItemsFeatureGroup.eachLayer((layer) => {
+              if (layer instanceof L.Marker) {
+                layer.setLatLng(poi.location);
+              }
+            });
+          } else {
+            const userMapObject: UserMapObject = {
+              uuid: poi.uuid,
+              mapItemType: "poi",
+              createdAt: new Date().toISOString(),
+              mapAction: null,
+            };
+
+            drawItemOnMap(
+              poi.uuid,
+              userMapObject.mapItemType,
+              poi.color?.value,
+              poi.location,
+              false
+            );
+
+            dispatch(upsertUserMapObject(userMapObject));
+          }
+        }
+      });
+    }
+  }, [map, pois, drawControlItemsRef, dispatch, drawItemOnMap]);
+
+  /**
+   * Draw or update stations on the map when station change. Serves as draw when page loads
+   */
+  useEffect(() => {
+    if (!map.current || !drawControlItemsRef.current) return;
+
+    if (stations) {
+      stations.forEach((station) => {
+        if (station.location) {
+          // if the station is already in drawControlItems, update its location
+          if (
+            drawControlItemsRef.current.find(
+              (drawControlItem) => drawControlItem.uuid === station.uuid
+            )
+          ) {
+            const drawControlItem = drawControlItemsRef.current.find(
+              (drawControlItem) => drawControlItem.uuid === station.uuid
+            );
+            drawControlItem.drawnItemsFeatureGroup.eachLayer((layer) => {
+              if (layer instanceof L.Marker) {
+                layer.setLatLng(station.location);
+              }
+            });
+          } else {
+            const userMapObject: UserMapObject = {
+              uuid: station.uuid,
+              mapItemType: "station",
+              createdAt: new Date().toISOString(),
+              mapAction: null,
+            };
+
+            drawItemOnMap(station.uuid, userMapObject.mapItemType, null, station.location, false);
+
+            dispatch(upsertUserMapObject(userMapObject));
+          }
+        }
+      });
+    }
+  }, [map, stations, drawControlItemsRef, dispatch, drawItemOnMap]);
+
+  /**
+   * Remove all traverse drawControlItems from the map
+   */
+  const removeTraverseDrawControlItems = useCallback(() => {
+    if (!map.current || !drawControlItemsRef.current) return;
+
+    drawControlItemsRef.current.forEach((drawControlItem) => {
+      if (drawControlItem.mapItemType === "traverse") {
+        map.current.removeControl(drawControlItem.drawControl);
+        map.current.removeLayer(drawControlItem.drawnItemsFeatureGroup);
+      }
+    });
+    drawControlItemsRef.current = drawControlItemsRef.current.filter(
+      (drawControlItem) => drawControlItem.mapItemType !== "traverse"
+    );
+  }, [map, drawControlItemsRef]);
+
+  /**
+   * Draw or update traverses on the map when traverses or stations change depending on what is selected too. Serves as draw when EVA selected
+   */
+  const drawTraverse = useCallback(
+    (traverse: Traverse) => {
+      if (traverse.location) {
+        const drawControlItem = drawControlItemsRef.current.find(
+          (drawControlItem) => drawControlItem.uuid === traverse.uuid
+        );
+        // if the traverse is already in drawControlItems, update its location
+        if (drawControlItem) {
+          // remove the leaflet draw control from the map
+          map.current.removeControl(drawControlItem.drawControl);
+          map.current.removeLayer(drawControlItem.drawnItemsFeatureGroup);
+          // remove the draw control from the list of draw controls
+          drawControlItemsRef.current = drawControlItemsRef.current.filter(
+            (drawControl) => drawControl.uuid !== traverse.uuid
+          );
+        }
+        // draw a new editable traverse on the map
+        const userMapObject: UserMapObject = {
+          uuid: traverse.uuid,
+          mapItemType: "traverse",
+          createdAt: new Date().toISOString(),
+          mapAction: null,
+        };
+
+        drawItemOnMap(traverse.uuid, userMapObject.mapItemType, null, traverse.location, false);
+
+        dispatch(upsertUserMapObject(userMapObject));
+      }
+    },
+    [drawControlItemsRef, dispatch, drawItemOnMap]
+  );
+  useEffect(() => {
+    if (!map.current || !drawControlItemsRef.current) return;
+
+    if (traverses) {
+      removeTraverseDrawControlItems();
+
+      // draw traverses in the selected EVA on the map
+
+      // if a traverse sequence item is selected, draw only that traverse
+      if (selectedEvaSequenceItemUuid) {
+        const traverse = traverses.find(
+          (traverse) => traverse.uuid === selectedEvaSequenceItemUuid
+        );
+        if (traverse) {
+          drawTraverse(traverse);
+        } else {
+          // the selected sequence item is a station. draw the traverse of the selected eva
+          if (selectedEva) {
+            selectedEva?.sequence.forEach((sequenceItem) => {
+              if (sequenceItem.type === "traverse") {
+                const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
+                if (traverse) {
+                  drawTraverse(traverse);
+                }
+              }
+            });
+          }
+        }
+      } else {
+        // no sequence item is selected. draw all traverses of the selected eva
+        if (selectedEva) {
+          selectedEva?.sequence.forEach((sequenceItem) => {
+            if (sequenceItem.type === "traverse") {
+              const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
+              if (traverse) {
+                drawTraverse(traverse);
+              }
+            }
+          });
+        }
+      }
+    }
+  }, [
+    map,
+    traverses,
+    drawControlItemsRef,
+    selectedEva,
+    selectedEvaSequenceItemUuid,
+    stations,
+    drawTraverse,
+    removeTraverseDrawControlItems,
+  ]);
 
   /**
    * Listen for mapActions for stations and pois and trigger map draw/edit modes appropriately
@@ -520,6 +765,7 @@ const MapBody: FunctionComponent = () => {
           (drawControl) => drawControl.uuid === activeUserMapObject.uuid
         );
         drawControlItem.drawControl._toolbars.edit._modes.edit.handler.enable();
+
         setShowHighlightOnMap(false);
       } else if (activeUserMapObject.mapAction === "cancelEdit") {
         console.log("cancelEdit");
@@ -527,14 +773,30 @@ const MapBody: FunctionComponent = () => {
           (drawControl) => drawControl.uuid === activeUserMapObject.uuid
         );
         drawControlItem.drawControl._toolbars.edit._modes.edit.handler.disable();
-        // trigger a location refresh since edit was cancelled
-        dispatch(
-          upsertUserMapObject({
-            ...userMapObjects.find((item) => item.uuid === activeUserMapObject?.uuid),
-            mapAction: "refreshLocation",
-          })
-        );
-        setShowHighlightOnMap(true);
+
+        if (activeUserMapObject.mapItemType !== "traverse") {
+          // trigger a location refresh since edit was cancelled
+          dispatch(
+            upsertUserMapObject({
+              ...userMapObjects.find((item) => item.uuid === activeUserMapObject?.uuid),
+              mapAction: "refreshLocation",
+            })
+          );
+          setShowHighlightOnMap(true);
+        } else {
+          // if the cancelled edit is on a traverse, delete the traverse from the map entirely and call a refresh
+          // remove the leaflet draw control from the map
+          map.current.removeControl(drawControlItem.drawControl);
+          map.current.removeLayer(drawControlItem.drawnItemsFeatureGroup);
+          // remove the draw control from the list of draw controls
+          drawControlItemsRef.current = drawControlItemsRef.current.filter(
+            (drawControl) => drawControl.uuid !== activeUserMapObject.uuid
+          );
+          // redraw the traverse using coordinates from the store
+          const traverse = traverses.find((traverse) => traverse.uuid === activeUserMapObject.uuid);
+          drawTraverse(traverse);
+        }
+        clearAction();
       } else if (activeUserMapObject.mapAction === "saveEdit") {
         console.log("saveEdit");
         const drawControlItem = drawControlItemsRef.current.find(
@@ -542,8 +804,44 @@ const MapBody: FunctionComponent = () => {
         );
         drawControlItem.drawControl._toolbars.edit._modes.edit.handler.save();
         drawControlItem.drawControl._toolbars.edit._modes.edit.handler.disable();
+
+        if (activeUserMapObject.mapItemType !== "traverse") {
+          setShowHighlightOnMap(true);
+        }
+        // if saved item is a traverse dispatch the new location array to the store
+        if (activeUserMapObject.mapItemType === "traverse") {
+          // harvest the location array from the drawnItemsFeatureGroup
+          const aegisPoints: AEGISPoint[] = [];
+          drawControlItem.drawnItemsFeatureGroup.eachLayer((layer) => {
+            const layerLatLngs = layer.getLatLngs();
+            if (layerLatLngs) {
+              layerLatLngs.forEach((layerLatLng) => {
+                aegisPoints.push({
+                  lat: layerLatLng.lat,
+                  lng: layerLatLng.lng,
+                });
+              });
+            }
+          });
+
+          // delete the entire leaflet draw layer for this traverse because leaflet.
+          // It will get redrawn below in the useEffect that draws or updates traverses on the map when traverses change in the store
+          map.current.removeControl(drawControlItem.drawControl);
+          map.current.removeLayer(drawControlItem.drawnItemsFeatureGroup);
+          drawControlItemsRef.current = drawControlItemsRef.current.filter(
+            (drawControl) => drawControl.uuid !== activeUserMapObject.uuid
+          );
+
+          // dispatch the new location array to the store
+          const traverse = traverses.find((traverse) => traverse.uuid === activeUserMapObject.uuid);
+          dispatch(
+            upsertTraverse({
+              ...traverse,
+              location: aegisPoints,
+            })
+          );
+        }
         clearAction();
-        setShowHighlightOnMap(true);
       } else if (activeUserMapObject.mapAction === "refreshLocation") {
         console.log("refreshLocation");
         const drawControlItem = drawControlItemsRef.current.find(
@@ -571,8 +869,27 @@ const MapBody: FunctionComponent = () => {
             );
           }
         } else if (drawControlItem.mapItemType === "traverse") {
-          //TODO: handle traverses
-        } else {
+          const traverse = traverses.find((traverse) => traverse.uuid === activeUserMapObject.uuid);
+          if (traverse?.location) {
+            const location = traverse.location;
+            const latLngs = location.map((point) => new L.LatLng(point.lat, point.lng));
+            drawControlItem.drawnItemsFeatureGroup.eachLayer((layer) => {
+              if (layer instanceof L.Polyline) {
+                layer.setLatLngs(latLngs);
+              }
+            });
+          } else {
+            // traverse location is null so delete it from the map
+            drawControlItem.drawnItemsFeatureGroup.eachLayer((layer) => {
+              if (layer instanceof L.Polyline) {
+                drawControlItem.drawnItemsFeatureGroup.removeLayer(layer);
+              }
+            });
+            drawControlItemsRef.current = drawControlItemsRef.current.filter(
+              (drawControl) => drawControl.uuid !== activeUserMapObject.uuid
+            );
+          }
+        } else if (drawControlItem.mapItemType === "poi") {
           // POI
           const poi = pois.find((poi) => poi.uuid === activeUserMapObject.uuid);
           if (poi?.location) {
@@ -621,91 +938,7 @@ const MapBody: FunctionComponent = () => {
       );
       uuidOfCurrentlyActiveMapEdit.current = null;
     }
-  }, [pois, stations, userMapObjects, dispatch, drawItemOnMap]);
-
-  /**
-   * Draw or update pois on the map when station or pois change. Serves as draw when page loads
-   */
-  useEffect(() => {
-    if (!map.current) return;
-
-    if (pois) {
-      pois.forEach((poi) => {
-        if (poi.location) {
-          // if the poi is already in drawControlItems, update its location
-          if (
-            drawControlItemsRef.current.find((drawControlItem) => drawControlItem.uuid === poi.uuid)
-          ) {
-            const drawControlItem = drawControlItemsRef.current.find(
-              (drawControlItem) => drawControlItem.uuid === poi.uuid
-            );
-            drawControlItem.drawnItemsFeatureGroup.eachLayer((layer) => {
-              if (layer instanceof L.Marker) {
-                layer.setLatLng(poi.location);
-              }
-            });
-          } else {
-            const userMapObject: UserMapObject = {
-              uuid: poi.uuid,
-              mapItemType: "poi",
-              createdAt: new Date().toISOString(),
-              mapAction: null,
-            };
-
-            drawItemOnMap(
-              poi.uuid,
-              userMapObject.mapItemType,
-              poi.color?.value,
-              poi.location,
-              false
-            );
-
-            dispatch(upsertUserMapObject(userMapObject));
-          }
-        }
-      });
-    }
-  }, [map, pois, drawControlItemsRef, dispatch, drawItemOnMap]);
-
-  /**
-   * Draw or update stations on the map when station or pois change. Serves as draw when page loads
-   */
-  useEffect(() => {
-    if (!map.current) return;
-
-    if (stations) {
-      stations.forEach((station) => {
-        if (station.location) {
-          // if the station is already in drawControlItems, update its location
-          if (
-            drawControlItemsRef.current.find(
-              (drawControlItem) => drawControlItem.uuid === station.uuid
-            )
-          ) {
-            const drawControlItem = drawControlItemsRef.current.find(
-              (drawControlItem) => drawControlItem.uuid === station.uuid
-            );
-            drawControlItem.drawnItemsFeatureGroup.eachLayer((layer) => {
-              if (layer instanceof L.Marker) {
-                layer.setLatLng(station.location);
-              }
-            });
-          } else {
-            const userMapObject: UserMapObject = {
-              uuid: station.uuid,
-              mapItemType: "station",
-              createdAt: new Date().toISOString(),
-              mapAction: null,
-            };
-
-            drawItemOnMap(station.uuid, userMapObject.mapItemType, null, station.location, false);
-
-            dispatch(upsertUserMapObject(userMapObject));
-          }
-        }
-      });
-    }
-  }, [map, stations, drawControlItemsRef, dispatch, drawItemOnMap]);
+  }, [pois, stations, traverses, userMapObjects, dispatch, drawItemOnMap, drawTraverse]);
 
   /**
    * Monitor map item highlights and draw highlight layers on the map
@@ -738,27 +971,27 @@ const MapBody: FunctionComponent = () => {
 
           const marker = L.circleMarker(latLng, {
             radius: 12,
-            color: "#ffff00",
+            color: "#28ecf9", //POI
             stroke: false,
           }) as CircleMarkerWithUuid;
           marker.uuid = selectedPoi?.uuid;
           map.current.addLayer(marker);
         }
       }
-    } else if (sectionSelected === "station" && selectedStation) {
+    } else if ((sectionSelected === "station" || sectionSelected === "evas") && selectedStation) {
       // highlight stations if the station section is selected
       const selectedDrawControlItem = drawControlItemsRef.current.find(
         (drawControlItem) => drawControlItem.uuid === selectedStation.uuid
       );
 
       if (selectedDrawControlItem) {
-        // if the poi has a location, then highlight it on the map
+        // if the station has a location, then highlight it on the map
         if (selectedStation.location && showHightlightOnMap) {
           const latLng = new L.LatLng(selectedStation.location.lat, selectedStation.location.lng);
 
           const marker = L.circleMarker(latLng, {
             radius: 14,
-            color: "#ff00ff",
+            color: "#00ffd1", // Station
             stroke: false,
           }) as CircleMarkerWithUuid;
           marker.uuid = selectedStation?.uuid;
@@ -769,7 +1002,7 @@ const MapBody: FunctionComponent = () => {
   }, [map, selectedPoi, selectedStation, dispatch, showHightlightOnMap, sectionSelected]);
 
   /**
-   * if selectedPoi changes, then show the highlight on the map
+   * if selected Poi or Station changes, then show the highlight on the map
    */
   useEffect(() => {
     if (selectedPoi || selectedStation) {

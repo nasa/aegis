@@ -27,11 +27,23 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       state.map.userMapObjects.find((mapObject) => mapObject.uuid === selectedStation.uuid),
     shallowEqual
   );
+  const evasUsingThisStation = useAppSelector((state) => {
+    const evasUsingThisStation = [];
+    state.eva.evas.forEach((eva) => {
+      eva.sequence.forEach((sequenceItem) => {
+        if (sequenceItem.uuid === selectedStation.uuid) {
+          evasUsingThisStation.push(eva);
+        }
+      });
+    });
+    return evasUsingThisStation;
+  }, shallowEqual);
+
   const mapAction = userMapObject ? userMapObject.mapAction : null;
 
   return (
     <div className={paneStyles.rightBody}>
-      <div className={paneStyles.rightBodyTitle}>Information</div>
+      <div className={paneStyles.rightBodyTitle}>Station Information</div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
@@ -87,6 +99,20 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             />
           </div>
           <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>EVA Compositions Using This Station</div>
+            <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
+              {evasUsingThisStation.map((eva, index) => (
+                <div key={eva.uuid} className={paneStyles.verticalCenter}>
+                  <div className={paneStyles.panelText} style={{ paddingLeft: "8px" }}>
+                    {eva.name}
+                    {index !== 0 && <>,</>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle}>Location</div>
 
             <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
@@ -98,10 +124,13 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 )}
                 <div className={paneStyles.verticalCenter}>
                   <div className={paneStyles.panelText}>
-                    {selectedStation.location &&
-                      `${selectedStation.location?.lat.toFixed(
-                        8
-                      )}, ${selectedStation.location?.lng.toFixed(8)}`}
+                    {selectedStation.location && (
+                      <>
+                        Lat: {`${selectedStation.location?.lat.toFixed(6)}`}
+                        <br />
+                        Lng: {`${selectedStation.location?.lng.toFixed(6)}`}
+                      </>
+                    )}
                   </div>
                 </div>
                 {editMode && mapAction === null ? (
@@ -137,29 +166,39 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           );
                         }}
                         icon={faMapLocationDot}
-                        label="Edit Location"
-                        style={{ width: "110px" }}
+                        label="Edit on Map"
+                        style={{ width: "105px" }}
                       />
                     )}
-                    {selectedStation.poiUuids.length > 0 && (
-                      <IconButton
-                        onClick={() => {
-                          const poiLocs = selectedStation.poiUuids.map((poiUuid) => {
-                            const poi = pois.find((poi) => poi.uuid === poiUuid);
-                            return poi.location;
-                          });
-                          const centroid = calcCentroidofCoordinates(poiLocs);
-                          dispatch(
-                            upsertStation({
-                              ...selectedStation,
-                              location: centroid,
-                            })
-                          );
-                        }}
-                        icon={faMapLocationDot}
-                        label="Centroid of POIs"
-                        style={{ width: "130px" }}
-                      />
+                    {selectedStation.poiUuids?.length > 0 && (
+                      <>
+                        <IconButton
+                          onClick={() => {
+                            const poiLocs = selectedStation.poiUuids.map((poiUuid) => {
+                              const poi = pois.find((poi) => poi.uuid === poiUuid);
+                              return poi.location;
+                            });
+                            const centroid = calcCentroidofCoordinates(poiLocs);
+                            dispatch(
+                              upsertStation({
+                                ...selectedStation,
+                                location: centroid,
+                              })
+                            );
+                          }}
+                          icon={faMapLocationDot}
+                          label="POIs Centroid"
+                          style={{ width: "115px" }}
+                        />
+                        <IconButton
+                          onClick={() => {
+                            alert("Not implemented yet");
+                          }}
+                          icon={faMapLocationDot}
+                          label="Lander"
+                          style={{ width: "70px" }}
+                        />
+                      </>
                     )}
                   </>
                 ) : (

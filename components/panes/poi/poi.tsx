@@ -10,6 +10,7 @@ import { animals, uniqueNamesGenerator } from "unique-names-generator";
 import { v4 as uuidv4 } from "uuid";
 import PoiItem from "./poi-item";
 import _ from "lodash";
+const profanityFilter = require("leo-profanity");
 
 const PoiEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -25,10 +26,16 @@ const PoiEditorLeft: FunctionComponent = () => {
   const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, shallowEqual);
 
   const handleCreatePoi = () => {
-    const randomName: string = uniqueNamesGenerator({
-      dictionaries: [animals],
-      style: "capital",
-    });
+    let randomName = "";
+    while (randomName === "") {
+      const name = uniqueNamesGenerator({
+        dictionaries: [animals],
+        style: "capital",
+      });
+      const poiWithSameName = pois.find((poi) => poi.name === name);
+      const profanityCheck = profanityFilter.check(name);
+      randomName = poiWithSameName || profanityCheck ? "" : name;
+    }
 
     const blankPoi: POI = {
       ownerId: userId,

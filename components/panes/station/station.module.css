@@ -26,13 +26,13 @@
   border-radius: var(--radius);
   font-size: 0.9em;
   padding: 3px 2px 3px 5px;
-  cursor: stationnter;
+  cursor: pointer;
 }
 
 .nameSelected {
   background-color: var(--station);
   color: black;
-  cursor: stationnter;
+  cursor: pointer;
 }
 
 .nameSelected:hover {
@@ -147,6 +147,7 @@
 .stationPoiSubheading {
   font-size: 0.9em;
   font-weight: 400;
+  cursor: pointer;
 }
 
 .stationPoiActions {

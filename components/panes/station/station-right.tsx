@@ -12,7 +12,7 @@ import {
   faFloppyDisk,
   faTrashAlt,
   faEdit,
-  faTableList,
+  faFlask,
 } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, InLineEditInput } from "components/interface/_global-elements";
 import {
@@ -73,6 +73,51 @@ const StationEditorRight: FunctionComponent = () => {
       ),
     shallowEqual
   );
+  const evasUsingThisStation = useAppSelector((state) => {
+    const evasUsingThisStation = [];
+    state.eva.evas.forEach((eva) => {
+      eva.sequence.forEach((sequenceItem) => {
+        if (sequenceItem.uuid === selectedStation?.uuid) {
+          evasUsingThisStation.push(eva);
+        }
+      });
+    });
+    return evasUsingThisStation;
+  }, shallowEqual);
+
+  const panelTypes: PanelTypes = {
+    info_panel: {
+      title: "Station Information",
+      panel: <Info_Panel editMode={stationsEditing.includes(selectedStationUuid)} />,
+      color: "var(--station)",
+      icon: faCircleInfo,
+    },
+    poi_panel: {
+      title: "Station POIs",
+      panel: <Poi_Panel editMode={stationsEditing.includes(selectedStationUuid)} />,
+      color: "var(--station)",
+      icon: faCircleDot,
+    },
+    actions_panel: {
+      title: "Station Actions",
+      panel: <Actions_Panel editMode={stationsEditing.includes(selectedStationUuid)} />,
+      color: "var(--station)",
+      icon: faPersonDigging,
+    },
+    stm_panel: {
+      title: "Station STM Coverage",
+      panel: (
+        <STM_Panel
+          actions={stationActions}
+          mini={false}
+          horizontal={false}
+          uniqueKey={selectedStationUuid}
+        />
+      ),
+      color: "var(--station)",
+      icon: faFlask,
+    },
+  };
 
   //track modified
   const [modified, setModified] = useState(false);
@@ -151,6 +196,11 @@ const StationEditorRight: FunctionComponent = () => {
 
   const handleDelete = async () => {
     if (selectedStation) {
+      if (evasUsingThisStation.length > 0) {
+        alert("Cannot delete a station that is being used by an EVA");
+        return;
+      }
+
       // if the selected station is in stationsFromDb then delete it from the db
       if (selectedStationFromDb) {
         // delete actions from the db via internal api call
@@ -235,40 +285,6 @@ const StationEditorRight: FunctionComponent = () => {
     dispatch(setStationEditMode({ stationUuid: selectedStation.uuid, editMode: false }));
   };
 
-  const panelTypes: PanelTypes = {
-    info_panel: {
-      title: "Station Information",
-      panel: <Info_Panel editMode={stationsEditing.includes(selectedStationUuid)} />,
-      color: "var(--station)",
-      icon: faCircleInfo,
-    },
-    poi_panel: {
-      title: "Station POIs",
-      panel: <Poi_Panel editMode={stationsEditing.includes(selectedStationUuid)} />,
-      color: "var(--station)",
-      icon: faCircleDot,
-    },
-    actions_panel: {
-      title: "Station Actions",
-      panel: <Actions_Panel editMode={stationsEditing.includes(selectedStationUuid)} />,
-      color: "var(--station)",
-      icon: faPersonDigging,
-    },
-    stm_panel: {
-      title: "Station STM Coverage",
-      panel: (
-        <STM_Panel
-          actions={stationActions}
-          mini={false}
-          horizontal={true}
-          uniqueKey={selectedStationUuid}
-        />
-      ),
-      color: "var(--station)",
-      icon: faTableList,
-    },
-  };
-
   let activeComponent: FunctionComponent = null;
   if (!_.isNil(panelTypes[selectedRightNavItem])) {
     activeComponent = panelTypes[selectedRightNavItem].panel;
@@ -350,8 +366,8 @@ const StationEditorRight: FunctionComponent = () => {
                       setStationEditMode({ stationUuid: selectedStation.uuid, editMode: true })
                     );
                   }}
-                  label="Edit"
-                  style={{ width: "75px" }}
+                  label="Edit Station"
+                  style={{ width: "105px" }}
                 />
               </div>
             )}

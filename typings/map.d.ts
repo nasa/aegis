@@ -18,6 +18,7 @@ type MapAction =
   | "saveEdit"
   | "refreshLocation"
   | "delete";
+
 type MapItemType = "poi" | "station" | "traverse";
 interface UserMapObject {
   uuid: string;
@@ -25,3 +26,11 @@ interface UserMapObject {
   createdAt: string;
   mapAction: MapAction;
 }
+
+type DrawControlItem = {
+  uuid: string;
+  drawControl: any;
+  drawHandler: any;
+  drawnItemsFeatureGroup: any;
+  mapItemType: MapItemType;
+};
