@@ -340,8 +340,8 @@ const PoiEditorRight: FunctionComponent = () => {
                   onClick={() => {
                     dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: true }));
                   }}
-                  label="Edit"
-                  style={{ width: "65px" }}
+                  label="Edit POI"
+                  style={{ width: "85px" }}
                 />
               </div>
             )}

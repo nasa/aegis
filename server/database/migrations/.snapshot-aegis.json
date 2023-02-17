@@ -460,8 +460,17 @@
           "nullable": true,
           "mappedType": "json"
         },
-        "duration": {
-          "name": "duration",
+        "duration_lower": {
+          "name": "duration_lower",
+          "type": "double precision",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "double"
+        },
+        "duration_upper": {
+          "name": "duration_upper",
           "type": "double precision",
           "unsigned": false,
           "autoincrement": false,
@@ -471,6 +480,15 @@
         },
         "description": {
           "name": "description",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "string"
+        },
+        "status": {
+          "name": "status",
           "type": "varchar(255)",
           "unsigned": false,
           "autoincrement": false,
@@ -1433,6 +1451,15 @@
           "primary": false,
           "nullable": true,
           "mappedType": "string"
+        },
+        "max_duration": {
+          "name": "max_duration",
+          "type": "double precision",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "double"
         },
         "created_at": {
           "name": "created_at",

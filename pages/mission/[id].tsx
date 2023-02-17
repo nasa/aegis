@@ -27,6 +27,10 @@ import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/u
 import { upsertStations, upsertStationsFromDb } from "store/station";
 import { upsertActions, upsertActionsFromDb } from "store/action";
 import { setGoals, setInvestigations, setObjectives } from "store/stm";
+import { getEvas } from "http-client/eva";
+import { upsertEvas, upsertEvasFromDb } from "store/eva";
+import { upsertTraverses, replaceAllTraversesFromDb } from "store/traverse";
+import { getTraverses } from "http-client/traverse";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -161,6 +165,20 @@ const Main: NextPage = () => {
       if (actionData.data) {
         dispatch(upsertActions(actionData.data));
         dispatch(upsertActionsFromDb(actionData.data));
+      }
+
+      //Populate evas
+      const evaData = await getEvas(parseInt(id as string));
+      if (evaData.data) {
+        dispatch(upsertEvas(evaData.data));
+        dispatch(upsertEvasFromDb(evaData.data));
+      }
+
+      //Populate traverses //TODO: Does this have to load only current user's traverses?
+      const traverseData = await getTraverses(parseInt(id as string));
+      if (traverseData.data) {
+        dispatch(upsertTraverses(traverseData.data));
+        dispatch(replaceAllTraversesFromDb(traverseData.data));
       }
 
       //Populate stm

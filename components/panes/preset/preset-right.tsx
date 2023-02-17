@@ -12,7 +12,7 @@ import {
   faTrashAlt,
 } from "@fortawesome/free-solid-svg-icons";
 
-import Info_panel from "./preset-right-info-panel";
+import Info_panel from "./preset-right-info";
 import Layers_Panel from "./preset-right-layers";
 import paneStyles from "../global-pane-styles.module.css";
 import {
@@ -205,8 +205,8 @@ const PresetEditorRight: FunctionComponent = () => {
                   onClick={() => {
                     handleEdit();
                   }}
-                  label="Edit"
-                  style={{ width: "65px" }}
+                  label="Edit Preset"
+                  style={{ width: "100px" }}
                 />
               </div>
             )}

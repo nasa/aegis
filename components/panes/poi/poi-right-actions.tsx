@@ -9,6 +9,7 @@ import { upsertAction } from "store/action";
 import POIAction from "./poi-right-actions-action";
 import { starWars, uniqueNamesGenerator } from "unique-names-generator";
 import { v4 as uuidv4 } from "uuid";
+const profanityFilter = require("leo-profanity");
 
 const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -20,10 +21,16 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   );
 
   const handleCreateAction = () => {
-    const randomName: string = uniqueNamesGenerator({
-      dictionaries: [starWars],
-      style: "capital",
-    });
+    let randomName = "";
+    while (randomName === "") {
+      const name = uniqueNamesGenerator({
+        dictionaries: [starWars],
+        style: "capital",
+      });
+      const actionWithSameName = poiActions.find((action) => action.name === name);
+      const profanityCheck = profanityFilter.check(name);
+      randomName = actionWithSameName || profanityCheck ? "" : name;
+    }
 
     const blankAction: Action = {
       missionId: selectedMissionId,
@@ -46,7 +53,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
 
   return (
     <div className={paneStyles.rightBody}>
-      <div className={paneStyles.rightBodyTitle}>Actions</div>
+      <div className={paneStyles.rightBodyTitle}>POI Actions</div>
       <div className={paneStyles.rightBodyBody}>
         {poiActions?.map((action) => (
           <POIAction

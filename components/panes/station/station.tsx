@@ -15,6 +15,7 @@ import { animals, uniqueNamesGenerator } from "unique-names-generator";
 import { v4 as uuidv4 } from "uuid";
 import StationItem from "./station-item";
 import _ from "lodash";
+const profanityFilter = require("leo-profanity");
 
 const StationEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -31,10 +32,16 @@ const StationEditorLeft: FunctionComponent = () => {
   const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, shallowEqual);
 
   const handleCreateStation = () => {
-    const randomName: string = uniqueNamesGenerator({
-      dictionaries: [animals],
-      style: "capital",
-    });
+    let randomName = "";
+    while (randomName === "") {
+      const name = uniqueNamesGenerator({
+        dictionaries: [animals],
+        style: "capital",
+      });
+      const stationWithSameName = stations.find((station) => station.name === name);
+      const profanityCheck = profanityFilter.check(name);
+      randomName = stationWithSameName || profanityCheck ? "" : name;
+    }
 
     const blankStation: Station = {
       ownerId: user.id,

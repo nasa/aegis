@@ -21,6 +21,9 @@ import {
 import ReactDragListView from "react-drag-listview";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { STM_Coverage } from "../stm-coverage";
+import { setSelectedPoiUuid } from "store/poi";
+import { setSectionSelected } from "store/interface";
+const profanityFilter = require("leo-profanity");
 
 interface WrappedAction {
   action: Action;
@@ -90,10 +93,16 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   }, [selectedStationUuid, actions, stationPois, selectedStation]);
 
   const handleCreateAction = () => {
-    const randomName: string = uniqueNamesGenerator({
-      dictionaries: [starWars],
-      style: "capital",
-    });
+    let randomName = "";
+    while (randomName === "") {
+      const name = uniqueNamesGenerator({
+        dictionaries: [starWars],
+        style: "capital",
+      });
+      const actionWithSameName = actions.find((action) => action.name === name);
+      const profanityCheck = profanityFilter.check(name);
+      randomName = actionWithSameName || profanityCheck ? "" : name;
+    }
 
     const blankAction: Action = {
       missionId: selectedMissionId,
@@ -153,20 +162,22 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyBody}>
         <div className={`${paneStyles.rightBodyTitle} ${stationStyles.stationColor}`}>
-          Station Info
-        </div>
-        <div className={stationStyles.stationSTMCoverage}>
-          <FontAwesomeIcon icon={faTableList} size="sm" title="STM Coverage" />
-          <STM_Coverage
-            actions={actions.filter((action) => action.stationUuid === selectedStationUuid)}
-            mini={true}
-            horizontal={true}
-            onInvstgHover={highlightActions}
-            uniqueKey="stationSummaryInfo"
-          />
-        </div>
-        <div className={`${paneStyles.rightBodyTitle} ${stationStyles.stationColor}`}>
           Station Actions
+        </div>
+        <div className={paneStyles.panelContainer}>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>Station Actions STM Coverage</div>
+            <div className={stationStyles.stationSTMCoverage}>
+              <FontAwesomeIcon icon={faTableList} size="sm" title="STM Coverage" />
+              <STM_Coverage
+                actions={actions.filter((action) => action.stationUuid === selectedStationUuid)}
+                mini={true}
+                horizontal={true}
+                onInvstgHover={highlightActions}
+                uniqueKey="stationSummaryInfo"
+              />
+            </div>
+          </div>
         </div>
 
         <ReactDragListView onDragEnd={reorder} nodeSelector="li" handleSelector="a">
@@ -226,7 +237,16 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                     <div className={stationStyles.poiIcon}>
                       {poi.color ? String.fromCodePoint(parseInt(poi.color.value, 16)) : ""}
                     </div>
-                    <div className={stationStyles.stationPoiSubheading}> {poi.name}</div>
+                    <div
+                      className={stationStyles.stationPoiSubheading}
+                      onClick={() => {
+                        dispatch(setSelectedPoiUuid(poi.uuid));
+                        // set the active section to the POI section
+                        dispatch(setSectionSelected("poi"));
+                      }}
+                    >
+                      {poi.name}
+                    </div>
                   </div>
                   <div className={stationStyles.stationPoiActions}>
                     {actions

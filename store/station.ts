@@ -55,13 +55,12 @@ export const stationSlice = createSlice({
       state,
       action: { payload: { stationUuid: string; editMode: boolean } }
     ) => {
-      const station = state.stations.find((station) => station.uuid === action.payload.stationUuid);
-      if (station) {
-        if (action.payload.editMode) {
-          state.stationsEditing.push(station.uuid);
-        } else {
-          state.stationsEditing = state.stationsEditing.filter((uuid) => uuid !== station.uuid);
-        }
+      if (action.payload.editMode) {
+        state.stationsEditing.push(action.payload.stationUuid);
+      } else {
+        state.stationsEditing = state.stationsEditing.filter(
+          (uuid) => uuid !== action.payload.stationUuid
+        );
       }
     },
     updateStationLocation: (state, action: { payload: { uuid: string; location: AEGISPoint } }) => {

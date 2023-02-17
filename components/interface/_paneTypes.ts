@@ -32,8 +32,8 @@ export const paneTypes: PaneTypes = {
     color: "var(--station)",
     icon: faLocationDot,
   },
-  eva_planner: {
-    title: "EVA Planning",
+  evas: {
+    title: "EVA Compositions",
     leftPane: EvaPlanner,
     rightPane: EvaPlannerRight,
     color: "var(--eva)",

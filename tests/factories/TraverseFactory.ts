@@ -12,7 +12,9 @@ export default class TraverseFactory extends Factory<Traverse_db> {
       name: "Jest Traverse-1",
       location: [],
       description: "",
-      duration: 0,
+      durationLower: 0,
+      durationUpper: 0,
+      status: "Candidate",
       createdAt: new Date(),
       updatedAt: new Date(),
     };

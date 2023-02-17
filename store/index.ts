@@ -13,6 +13,7 @@ import { stmSlice, initialState as stmInitialState } from "./stm";
 import { presetSlice, initialState as presetInitialState } from "./preset";
 import { stationSlice, initialState as stationInitialState } from "./station";
 import { actionSlice, initialState as actionInitialState } from "./action";
+import { traverseSlice, initialState as traverseInitialState } from "./traverse";
 
 let store;
 
@@ -29,6 +30,7 @@ export const initialState = {
   preset: presetInitialState,
   station: stationInitialState,
   action: actionInitialState,
+  traverse: traverseInitialState,
 };
 
 export const reducer = combineReducers({
@@ -44,6 +46,7 @@ export const reducer = combineReducers({
   preset: presetSlice.reducer,
   station: stationSlice.reducer,
   action: actionSlice.reducer,
+  traverse: traverseSlice.reducer,
 });
 export type RootState = ReturnType<typeof reducer>;
 

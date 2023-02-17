@@ -22,4 +22,4 @@ export const missionSlice = createSlice({
   },
 });
 
-export const { setMission, setLayers } = missionSlice.actions;
+export const { setMission, setLayers, setInterface } = missionSlice.actions;

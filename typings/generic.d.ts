@@ -8,10 +8,12 @@ interface Mission {
   version?: number;
   createdAt?: string;
   updatedAt?: string;
+  landerLocation?: AEGISPoint;
 }
 
 // No alteration needed to convert this store type to the database type
-type Mission_db_type = Omit<Mission, "createdAt" | "updatedAt"> & {
+type Mission_db_type = Omit<Mission, "createdAt" | "updatedAt" | "landerLocation"> & {
+  //TODO: persist landerLocation
   createdAt?: Date;
   updatedAt?: Date;
 };

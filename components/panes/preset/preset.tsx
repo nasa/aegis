@@ -16,6 +16,7 @@ import { v4 as uuidv4 } from "uuid";
 import { colors, uniqueNamesGenerator } from "unique-names-generator";
 import { IconButton, ModifiedIndicator } from "components/interface/_global-elements";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+const profanityFilter = require("leo-profanity");
 
 const PresetEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -30,10 +31,16 @@ const PresetEditorLeft: FunctionComponent = () => {
     selectedPreset = presets.find((preset: Preset) => preset.uuid === selectedPresetUuid);
   }
   const handleCreatePreset = async () => {
-    const randomName: string = uniqueNamesGenerator({
-      dictionaries: [colors],
-      style: "capital",
-    });
+    let randomName = "";
+    while (randomName === "") {
+      const name = uniqueNamesGenerator({
+        dictionaries: [colors],
+        style: "capital",
+      });
+      const presetWithSameName = presets.find((preset) => preset.name === name);
+      const profanityCheck = profanityFilter.check(name);
+      randomName = presetWithSameName || profanityCheck ? "" : name;
+    }
 
     const blankPreset: Preset = {
       uuid: uuidv4(),

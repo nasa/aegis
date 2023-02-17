@@ -86,26 +86,31 @@
   padding: 0 0 0 8px;
 }
 .rightIcon {
-  padding: 5px 7px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-top: 4px;
 }
 
 .rightIconContainer {
   background: black;
-  border-top: 2px solid black;
+  border-top: 3px solid black;
+  border-radius: 4px 4px 0 0;
   width: 35px;
   height: 32px;
   cursor: pointer;
 }
 .rightIconContainer:hover {
   background-color: var(--grey1);
-  border-top: 2px solid var(--grey1);
+  border-top: 3px solid var(--grey1);
   width: 35px;
   height: 32px;
 }
 
 .rightIconContainerSelected {
   background: var(--grey1);
-  border-top: 2px solid #fff;
+  border-top: 3px solid #fff;
+  border-radius: 4px 4px 0 0;
   width: 35px;
   height: 32px;
   cursor: pointer;
@@ -201,6 +206,11 @@
   flex: 0 0 150px;
 }
 
+.panelDisplayVal {
+  font-size: 0.8em;
+  font-weight: 400;
+}
+
 .panelColorDropdownContainer {
   flex: 1;
 }
@@ -224,7 +234,7 @@
 }
 
 .actionsHeadingTitle {
-  font-size: 0.9em;
+  font-size: 0.9rem;
   font-weight: 400;
   width: 115px;
   margin-top: 4px;
@@ -234,8 +244,9 @@
 
 .actionsHeadingSubTitle {
   flex-grow: 1;
-  font-size: 0.9em;
+  font-size: 0.8rem;
   font-weight: 400;
+  margin-top: auto;
 }
 
 .actionsHeadingCaret {

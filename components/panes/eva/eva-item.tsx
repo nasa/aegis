@@ -1,0 +1,190 @@
+import { IconButton, ModifiedIndicator } from "components/interface/_global-elements";
+import { FunctionComponent } from "react";
+import { useDispatch } from "react-redux";
+import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
+import {
+  setSelectedEvaRightNavItem,
+  setExpandedEvaUuids,
+  setSelectedEvaSequenceItemUuid,
+  setSelectedEvaUuid,
+  setEvaSequence,
+} from "store/eva";
+import { upsertTraverse } from "store/traverse";
+import evaStyles from "./eva.module.css";
+import paneStyles from "../global-pane-styles.module.css";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCaretDown, faCaretRight, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
+import { setSelectedStationUuid } from "store/station";
+import { v4 as uuidv4 } from "uuid";
+import { adjectives, uniqueNamesGenerator } from "unique-names-generator";
+import EvaItemSequence from "./eva-item-sequence";
+const profanityFilter = require("leo-profanity");
+
+const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
+  const dispatch = useDispatch();
+  const selectedEva = useAppSelector(
+    (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
+    shallowEqual
+  );
+  const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
+  const editMode = useAppSelector(
+    (state) => state.eva.evasEditing.includes(eva.uuid),
+    shallowEqual
+  );
+  const selectedEvaSequenceItemUuid = useAppSelector(
+    (state) => state.eva.selectedEvaSequenceItemUuid,
+    refEqual
+  );
+  const selectedRightNavItem = useAppSelector(
+    (state) => state.eva.selectedEvaRightNavItem,
+    refEqual
+  );
+  const expandedEvaUuids = useAppSelector((state) => state.eva.expandedEvaUuids, shallowEqual);
+  const missionId = useAppSelector((state) => state.mission.mission.id, shallowEqual);
+
+  const createBlankTraverse = (): Traverse => {
+    let randomName = "";
+    while (randomName === "") {
+      const name = uniqueNamesGenerator({
+        dictionaries: [adjectives],
+        style: "capital",
+      });
+      const traverseWithSameName = traverses.find((traverse) => traverse.name === name);
+      const profanityCheck = profanityFilter.check(name);
+      randomName = traverseWithSameName || profanityCheck ? "" : name;
+    }
+
+    const newTraverse: Traverse = {
+      missionId: missionId,
+      uuid: uuidv4(),
+      name: "T-" + randomName,
+      description: "",
+      durationLower: null,
+      durationUpper: null,
+      location: [],
+      status: null,
+    };
+    return newTraverse;
+  };
+
+  const handleAddStation = () => {
+    const newEvaSequence = [...eva.sequence];
+
+    const newStationSequenceItem: EvaSequenceItem = {
+      type: "station",
+      uuid: "unassigned",
+    };
+    if (newEvaSequence.length === 0) {
+      newEvaSequence.push(newStationSequenceItem);
+    } else {
+      // add a traverse before the station
+      const newTraverse = createBlankTraverse();
+      dispatch(upsertTraverse(newTraverse));
+
+      newEvaSequence.push({
+        type: "traverse",
+        uuid: newTraverse.uuid,
+      });
+      newEvaSequence.push(newStationSequenceItem);
+    }
+    dispatch(setEvaSequence({ evaUuid: eva.uuid, sequence: newEvaSequence }));
+  };
+
+  let evaSelectionStyle = null;
+
+  // if this is the selected eva, highlight or emphasize it
+  if (eva.uuid === selectedEva?.uuid) {
+    evaSelectionStyle = evaStyles.nameSelected;
+    // if there is a selected sequence item and it's in this eva, then only emphasize the eva name rather than highlighting it
+    if (selectedEvaSequenceItemUuid) {
+      const evaSequenceItem = eva.sequence.find(
+        (sequenceItem) => sequenceItem.uuid === selectedEvaSequenceItemUuid
+      );
+      if (evaSequenceItem) {
+        evaSelectionStyle = evaStyles.nameEmphasized;
+      }
+    }
+  }
+
+  return (
+    <div className={evaStyles.evaContainer}>
+      <div className={evaStyles.nameitem} key={eva.uuid}>
+        <div
+          className={evaStyles.nameCaret}
+          onClick={() => {
+            // toggle the expansion of this eva item
+            if (expandedEvaUuids.find((uuid) => uuid === eva.uuid)) {
+              dispatch(setExpandedEvaUuids(expandedEvaUuids.filter((uuid) => uuid !== eva.uuid)));
+            } else {
+              if (!expandedEvaUuids.find((uuid) => uuid === eva.uuid)) {
+                dispatch(setExpandedEvaUuids([...expandedEvaUuids, eva.uuid]));
+              }
+            }
+          }}
+        >
+          {expandedEvaUuids.find((uuid) => uuid === eva.uuid) ? (
+            <FontAwesomeIcon icon={faCaretDown} style={{ color: "var(--grey4)" }} />
+          ) : (
+            <FontAwesomeIcon icon={faCaretRight} style={{ color: "var(--grey4)" }} />
+          )}
+        </div>
+        <div
+          className={`${evaStyles.name} ${evaSelectionStyle}`}
+          onClick={() => {
+            if (selectedEva?.uuid === eva.uuid) {
+              if (selectedEvaSequenceItemUuid === null) {
+                dispatch(setSelectedEvaUuid(null));
+              }
+              dispatch(setSelectedEvaSequenceItemUuid(null));
+            } else {
+              dispatch(setSelectedEvaUuid(eva.uuid));
+              dispatch(setSelectedEvaSequenceItemUuid(null));
+              if (!selectedRightNavItem) dispatch(setSelectedEvaRightNavItem("info_panel"));
+              dispatch(setSelectedStationUuid(null));
+
+              // add this eva uuid to the expanded list if it's not already there
+              if (!expandedEvaUuids.find((uuid) => uuid === eva.uuid)) {
+                dispatch(setExpandedEvaUuids([...expandedEvaUuids, eva.uuid]));
+              }
+            }
+          }}
+        >
+          <div>{eva.name}</div>
+          <ModifiedIndicator
+            obj1={[eva, ...eva.sequence]}
+            obj2={[eva, ...eva.sequence]} //TODO: make eva from DB
+            svgStyle={{
+              width: "15",
+              height: "12",
+              cx: "5",
+              cy: "9",
+              r: "3",
+              fill: "#ff0000",
+            }}
+          />
+          <div className={evaStyles.stationRightSpacer}></div>
+        </div>
+      </div>
+      {expandedEvaUuids.find((uuid) => uuid === eva.uuid) && (
+        <div className={evaStyles.evaSequenceContainer}>
+          <EvaItemSequence evaUuid={eva.uuid} evaSequence={eva.sequence} editMode={editMode} />
+        </div>
+      )}
+      {editMode && (
+        <div className={evaStyles.evaFooterContainer}>
+          <div className={paneStyles.iconButtons}>
+            <IconButton
+              onClick={() => {
+                handleAddStation();
+              }}
+              label="Add Station"
+              icon={faPlusCircle}
+            ></IconButton>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default EvaItem;
