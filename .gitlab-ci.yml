@@ -405,6 +405,31 @@ deploy:dev1:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1
   when: manual
 
+deploy:int:
+  extends: .deploy-template
+  tags: ["emss-aegis-int"]
+  needs: ["make-dotenv"]
+  environment:
+    name: integration
+    url: https://aegis-int.fit.nasa.gov
+  variables:
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT
+  only:
+    - int
+
+deploy:prod:
+  extends: .deploy-template
+  tags: ["emss-aegis-prod"]
+  needs: ["make-dotenv"]
+  environment:
+    name: production
+    url: https://aegis.fit.nasa.gov
+  variables:
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD
+  when: manual
+  only:
+    - prod
+
 dev1-nuke-db:
   tags: ["emss-aegis-dev1"]
   needs: []
