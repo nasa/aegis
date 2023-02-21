@@ -384,10 +384,10 @@ make-dotenv:
 
     # Take docker-compose down, pull latest, bring it back up
     - cd "${INSTALL_DIR}"
-    - echo $CI_JOB_TOKEN | /usr/bin/docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+    - echo $CI_JOB_TOKEN | sudo /usr/bin/docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
 
     # Get the latest of each image
-    - /usr/bin/docker compose pull
+    - sudo /usr/bin/docker compose pull
 
     # Using the new images, re-up Compose. Also remove anything no longer defined in
     # docker-compose.yml via --remove-orphans
