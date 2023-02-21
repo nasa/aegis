@@ -368,7 +368,8 @@ make-dotenv:
     - >
       if [[ "${CI_COMMIT_TITLE}" =~ \[fitdock\] ]] || ! cmp --silent ./.fitdock.yml "${INSTALL_DIR}/.fitdock.yml"; then
         echo "do deploy";
-        mkdir -p "${INSTALL_DIR}"
+        sudo mkdir -p "${INSTALL_DIR}"
+        sudo chown gitlab-runner:gitlab-runner "${INSTALL_DIR}"
         /bin/cp -f ./.fitdock.yml "${INSTALL_DIR}/.fitdock.yml"
         sudo fitdock "${INSTALL_DIR}/.fitdock.yml"
       fi
