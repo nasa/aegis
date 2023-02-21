@@ -354,8 +354,7 @@ make-dotenv:
     # say: "Scripts you specify in before_script are concatenated with any scripts you specify
     # in the main script. The combined scripts execute together in a single shell."
 
-    - sudo -S touch /tmp/somefile <"${RUNNER_PASS_FILE_PATH}"
-    - rm -rf $(dirname "${RUNNER_PASS_FILE_PATH}")
+    - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
 
     # Ultimately get this from .fitdock.yml, but need to write a method to do that
     - export INSTALL_DIR=/opt/aegis
@@ -396,13 +395,15 @@ make-dotenv:
     - sudo /usr/bin/docker image prune -af
 
 deploy:dev1:
+  extends: .deploy-template
   tags: ["emss-aegis-dev1"]
   needs: ["make-dotenv"]
   environment:
     name: development1
     url: https://aegis-dev1.fit.nasa.gov
+  variables:
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1
   when: manual
-  extends: .deploy-template
 
 dev1-nuke-db:
   tags: ["emss-aegis-dev1"]
@@ -415,11 +416,10 @@ dev1-nuke-db:
   timeout: 10 minutes
   variables:
     GIT_STRATEGY: none
-
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1
   script:
     # init sudo ability
-    - sudo -S touch /tmp/somefile <"${RUNNER_PASS_FILE_PATH}"
-    - rm -rf $(dirname "${RUNNER_PASS_FILE_PATH}")
+    - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
 
     - cd /opt/aegis
     - sudo /usr/bin/docker compose down --remove-orphans
