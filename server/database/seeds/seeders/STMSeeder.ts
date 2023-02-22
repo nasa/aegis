@@ -409,30 +409,5 @@ export class STMSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-
-    context.uuid_obj100 = em.create(STM_Objective, {
-      mission: 2,
-      uuid: uuidv4(),
-      numbering: "1",
-      name: "Jackies Secret Mission Objective",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    context.uuid_goal100 = em.create(STM_Goal, {
-      uuid: uuidv4(),
-      numbering: "a",
-      name: "Take over the world",
-      objective: context.uuid_obj100,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    context.uuid_invstg00 = em.create(STM_Investigation, {
-      uuid: uuidv4(),
-      numbering: "1",
-      name: "Determine points of vulnerability",
-      goal: context.uuid_goal100,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
   }
 }
