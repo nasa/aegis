@@ -432,7 +432,75 @@ deploy:prod:
   only:
     - prod
 
-dev1-nuke-db:
+z:db-export:prod:
+  tags: ["emss-aegis-prod"]
+  needs: []
+  # I don't think we want to do this, because I don't think we want GitLab to consider this a
+  # deployment. It's just grabbing some data off of Production.
+  # environment:
+  #   name: production
+  #   url: https://aegis.fit.nasa.gov
+  when: manual
+  stage: stageless
+  timeout: 10 minutes
+  variables:
+    GIT_STRATEGY: none
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD
+  script:
+    # init sudo ability
+    - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
+    - PROJECT_DIR=$(pwd)
+    - cd /opt/aegis
+    - sudo docker compose exec database pg_dump -U postgres aegis > "${PROJECT_DIR}/aegis.sql"
+  artifacts:
+    paths:
+      - aegis.sql
+
+.db-import-template:
+  when: manual
+  stage: stageless
+  timeout: 10 minutes
+  variables:
+    GIT_STRATEGY: none
+  script:
+    # init sudo ability
+    - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
+    - PROJECT_DIR=$(pwd)
+    - cd /opt/aegis
+    - cp "${PROJECT_DIR}/aegis.sql" /d1/db-init/aegis.sql
+
+    # Stop docker compose, then remove database files
+    - sudo /usr/bin/docker compose down --remove-orphans
+    - sudo rm -rf /d1/postgres
+
+    # Bring docker compose back up, which will use the file at /d1/db-init/aegis.sql, then remove it
+    - sudo /usr/bin/docker compose up -d
+    - sudo rm -f /d1/db-init/aegis.sql
+
+    # Run any migrations the dump didn't have in place
+    - docker compose exec nextjs npm run migrate:up
+
+z:db-import:dev1:
+  extends: .db-import-template
+  tags: ["emss-aegis-dev1"]
+  needs: ["z:db-export:prod"]
+  environment:
+    name: development1
+    url: https://aegis-dev1.fit.nasa.gov
+  variables:
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1
+
+z:db-import:int:
+  extends: .db-import-template
+  tags: ["emss-aegis-int"]
+  needs: ["z:db-export:prod"]
+  environment:
+    name: integration
+    url: https://aegis-int.fit.nasa.gov
+  variables:
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT
+
+z:db-nuke:dev1:
   tags: ["emss-aegis-dev1"]
   needs: []
   environment:
@@ -454,7 +522,7 @@ dev1-nuke-db:
     - sudo /usr/bin/docker compose up -d
     - docker compose exec nextjs npm run migrate:up
 
-dev1-seed-db:
+z:db-seed:dev1:
   tags: ["emss-aegis-dev1"]
   needs: []
   environment:
