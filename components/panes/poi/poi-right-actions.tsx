@@ -1,82 +1,72 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
-import { IconButton } from "components/interface/_global-elements";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
-import { setPoiEditMode } from "store/poi";
-import { upsertAction } from "store/action";
-import POIAction from "./poi-right-actions-action";
-import { starWars, uniqueNamesGenerator } from "unique-names-generator";
-import { v4 as uuidv4 } from "uuid";
-const profanityFilter = require("leo-profanity");
+import { setPoiEditMode, upsertPoi } from "store/poi";
+import Actions from "../actions";
 
 const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
-  const selectedMissionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
-  const poiActions = useAppSelector(
-    (state) => state.action.actions.filter((action) => action.poiUuid === selectedPoiUuid),
+  const actions = useAppSelector((state) => state.action.actions, shallowEqual);
+  const selectedPoi = useAppSelector(
+    (state) => state.poi.pois.find((poi) => poi.uuid === selectedPoiUuid),
     shallowEqual
   );
 
-  const handleCreateAction = () => {
-    let randomName = "";
-    while (randomName === "") {
-      const name = uniqueNamesGenerator({
-        dictionaries: [starWars],
-        style: "capital",
-      });
-      const actionWithSameName = poiActions.find((action) => action.name === name);
-      const profanityCheck = profanityFilter.check(name);
-      randomName = actionWithSameName || profanityCheck ? "" : name;
+  const [poiActions, setPoiActions] = useState<Action[]>(null); //contains all station actions
+
+  //gather all actions, then order them
+  useEffect(() => {
+    if (selectedPoiUuid && actions && selectedPoi) {
+      const allPoiActions: Action[] = [];
+
+      //get actions directly attached to this station
+      allPoiActions.push(...actions.filter((action) => action.poiUuid === selectedPoiUuid));
+
+      //check if action ordering is deinfed for this station.
+      //put any unlisted actions at the end. but there shouldn't be any unlisted actions?
+      if (selectedPoi.actionOrderUuids) {
+        allPoiActions.sort((action1: Action, action2: Action) => {
+          const index1 = selectedPoi.actionOrderUuids.indexOf(action1.uuid);
+          const index2 = selectedPoi.actionOrderUuids.indexOf(action2.uuid);
+          return (index1 > -1 ? index1 : Infinity) - (index2 > -1 ? index2 : Infinity);
+        });
+      } else {
+        //no ordering defined. default order by name
+        allPoiActions.sort((action1: Action, action2: Action) => {
+          const name1 = action1.name.toUpperCase(); // ignore upper and lowercase
+          const name2 = action2.name.toUpperCase();
+          if (name1 < name2) {
+            return -1;
+          } else if (name1 > name2) {
+            return 1;
+          } else {
+            return 0;
+          }
+        });
+      }
+
+      setPoiActions(allPoiActions);
     }
-
-    const blankAction: Action = {
-      missionId: selectedMissionId,
-      poiUuid: selectedPoiUuid,
-      uuid: uuidv4(),
-      name: "A-" + randomName,
-      description: "",
-      status: "Candidate",
-      type: "other",
-      durationLower: 5,
-      durationUpper: null,
-      stmUuidRefs: null,
-      inventoryItems: null,
-      priorityOverride: null,
-    };
-
-    dispatch(upsertAction(blankAction));
-    dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: true }));
-  };
+  }, [selectedPoiUuid, actions, selectedPoi]);
 
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle}>POI Actions</div>
       <div className={paneStyles.rightBodyBody}>
-        {poiActions?.map((action) => (
-          <POIAction
-            key={action.uuid}
-            editMode={editMode}
-            poiUuid={selectedPoiUuid}
-            action={action}
-          />
-        ))}
-      </div>
-      <div className={paneStyles.rightBodyFooter}>
-        <div className={paneStyles.panelSection}>
-          {editMode && (
-            <IconButton
-              icon={faPlusCircle}
-              label="Add Action"
-              style={{ width: "100px" }}
-              onClick={() => {
-                handleCreateAction();
-              }}
-            />
-          )}
-        </div>
+        <Actions
+          editMode={editMode}
+          setEditMode={(newEditMode: boolean) => {
+            dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: newEditMode }));
+          }}
+          actions={poiActions}
+          actionColor={{ color: "var(--poi)" }}
+          setActionOrderUuids={(actionOrderUuids) => {
+            dispatch(upsertPoi({ ...selectedPoi, actionOrderUuids: actionOrderUuids }));
+          }}
+          actionParent={{ poiUuid: selectedPoiUuid }}
+        />
       </div>
     </div>
   );

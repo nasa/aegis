@@ -210,7 +210,7 @@ type Action = {
   // Inventory of items needed to perform this action.
   inventoryItems: InventoryItem[];
 
-  status: POIStatus;
+  status: ActionStatus;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -228,11 +228,20 @@ type Action_db_type = Omit<
   updatedAt?: Date;
 };
 
+type ActionStatus = "Archived" | "Candidate" | "In Review" | "Approved";
+
+//Filter options when getting actions from the API endpoint
 interface ActionFilterOptions {
   missionId?: number;
   actionUuid?: string;
   poiUuid?: string;
   stationUuid?: string;
+}
+
+//Action wrapper to track highlighted states in the action panels
+interface WrappedAction {
+  action: Action;
+  highlight: boolean;
 }
 
 /**
