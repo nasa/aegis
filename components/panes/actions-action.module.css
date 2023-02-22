@@ -1,0 +1,34 @@
+.actionPanelContainer {
+  margin: 0px;
+  padding: 0px;
+}
+
+.actionPanelContainer .actionToolTip,
+.stmItem .actionToolTip {
+  z-index: 900;
+  background-color: white;
+  color: black;
+  max-width: 400px;
+  opacity: 100%;
+}
+
+.highlightAction {
+  background-color: #356b6c;
+  border-radius: var(--panelRadius);
+}
+
+.reorderIcon {
+  display: flex;
+  margin-top: 5px;
+  margin-left: 3px;
+  transform: scaleX(0.8);
+  cursor: pointer;
+}
+
+.iconFaded {
+  color: var(--grey4);
+}
+
+.actionsHeadingCaret {
+  margin-left: 0px;
+}

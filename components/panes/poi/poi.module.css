@@ -4,16 +4,6 @@
   height: 100%;
 }
 
-.header {
-  display: flex;
-  flex-direction: row;
-  font-weight: 700;
-  margin-top: 5px;
-  margin-left: 5px;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
 .body {
   margin-top: 5px;
   margin-left: 5px;
@@ -77,32 +67,4 @@
 
 .poiRightSpacer {
   flex: 1;
-}
-
-.expandoCaret {
-  width: 15px;
-}
-
-.visibility {
-  width: 15px;
-  margin-right: 4px;
-  flex: 0 0 15px;
-}
-
-.visible {
-  color: white;
-}
-
-.inVisible {
-  color: var(--grey3);
-}
-
-.verticalCenter {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-}
-
-.poiColor {
-  color: var(--poi);
 }

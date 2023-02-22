@@ -1,4 +1,4 @@
-import styles from "./poi.module.css";
+import poiStyles from "./poi.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent } from "react";
@@ -60,8 +60,8 @@ const PoiEditorLeft: FunctionComponent = () => {
   return (
     <>
       <div className={paneStyles.leftPanelContainer}>
-        <div className={styles.container}>
-          <div className={styles.body}>
+        <div className={poiStyles.container}>
+          <div className={poiStyles.body}>
             {_.sortBy(pois, "name").map((poi) => {
               const poiFromDb = poisFromDb.find((poiFromDb) => poiFromDb.uuid === poi.uuid);
               return (

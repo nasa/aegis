@@ -1,0 +1,25 @@
+.stmCoverage {
+  display: flex;
+  flex-direction: row;
+  column-gap: 10px;
+  padding-left: 20px;
+  padding-top: 10px;
+  align-items: center;
+}
+
+.actionlist {
+  list-style-type: none;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  padding: 0;
+}
+
+.actionlistitem {
+  border-color: var(--grey1);
+  border-width: 4px 8px;
+  border-style: solid;
+}
+
+.rightBodyItem {
+  padding-left: 8px;
+}
