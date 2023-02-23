@@ -1,5 +1,5 @@
 import { IconButton, ModifiedIndicator } from "components/interface/_global-elements";
-import { FunctionComponent } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import {
@@ -16,16 +16,19 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { setSelectedStationUuid } from "store/station";
 import { v4 as uuidv4 } from "uuid";
-import { adjectives, uniqueNamesGenerator } from "unique-names-generator";
 import EvaItemSequence from "./eva-item-sequence";
-const profanityFilter = require("leo-profanity");
+import { generateUniqueName } from "utils/unique-name";
 
 const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
   const dispatch = useDispatch();
-  const selectedEva = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
+
+  const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, shallowEqual);
+
+  const thisEvaFromDb = useAppSelector(
+    (state) => state.eva.evasFromDb.find((evaItem) => evaItem.uuid === eva.uuid),
     shallowEqual
   );
+
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
   const editMode = useAppSelector(
     (state) => state.eva.evasEditing.includes(eva.uuid),
@@ -42,19 +45,16 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
   const expandedEvaUuids = useAppSelector((state) => state.eva.expandedEvaUuids, shallowEqual);
   const missionId = useAppSelector((state) => state.mission.mission.id, shallowEqual);
 
-  const createBlankTraverse = (): Traverse => {
-    let randomName = "";
-    while (randomName === "") {
-      const name = uniqueNamesGenerator({
-        dictionaries: [adjectives],
-        style: "capital",
-      });
-      const traverseWithSameName = traverses.find((traverse) => traverse.name === name);
-      const profanityCheck = profanityFilter.check(name);
-      randomName = traverseWithSameName || profanityCheck ? "" : name;
-    }
+  const [traversesInEva, setTraversesInEva] = useState<Traverse[]>([]);
+  const [traversesInEvaFromDb, setTraversesInEvaFromDb] = useState<Traverse[]>([]);
 
-    const newTraverse: Traverse = {
+  const createBlankTraverse = (): Traverse => {
+    const randomName = generateUniqueName({
+      dictName: "adjectives",
+      existingNames: traverses.map((item) => item.name),
+    });
+
+    return {
       missionId: missionId,
       uuid: uuidv4(),
       name: "T-" + randomName,
@@ -62,9 +62,9 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
       durationLower: null,
       durationUpper: null,
       location: [],
+      distance: null,
       status: null,
     };
-    return newTraverse;
   };
 
   const handleAddStation = () => {
@@ -90,10 +90,30 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
     dispatch(setEvaSequence({ evaUuid: eva.uuid, sequence: newEvaSequence }));
   };
 
+  useEffect(() => {
+    if (eva.sequence) {
+      const traverseUuidInEva = eva.sequence.filter((item) => item.type === "traverse");
+      const traverseSubset = traverses.filter((traverse) =>
+        traverseUuidInEva.find((traverseUuid) => traverseUuid.uuid === traverse.uuid)
+      );
+      setTraversesInEva(traverseSubset);
+    }
+  }, [eva, traverses]);
+
+  useEffect(() => {
+    if (thisEvaFromDb.sequence) {
+      const traverseUuidInEva = thisEvaFromDb.sequence.filter((item) => item.type === "traverse");
+      const traverseSubset = traverses.filter((traverse) =>
+        traverseUuidInEva.find((traverseUuid) => traverseUuid.uuid === traverse.uuid)
+      );
+      setTraversesInEvaFromDb(traverseSubset);
+    }
+  }, [thisEvaFromDb, traverses]);
+
   let evaSelectionStyle = null;
 
-  // if this is the selected eva, highlight or emphasize it
-  if (eva.uuid === selectedEva?.uuid) {
+  // if this is the this eva, highlight or emphasize it
+  if (eva.uuid === selectedEvaUuid) {
     evaSelectionStyle = evaStyles.nameSelected;
     // if there is a selected sequence item and it's in this eva, then only emphasize the eva name rather than highlighting it
     if (selectedEvaSequenceItemUuid) {
@@ -131,7 +151,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
         <div
           className={`${evaStyles.name} ${evaSelectionStyle}`}
           onClick={() => {
-            if (selectedEva?.uuid === eva.uuid) {
+            if (selectedEvaUuid === eva.uuid) {
               if (selectedEvaSequenceItemUuid === null) {
                 dispatch(setSelectedEvaUuid(null));
               }
@@ -139,20 +159,21 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
             } else {
               dispatch(setSelectedEvaUuid(eva.uuid));
               dispatch(setSelectedEvaSequenceItemUuid(null));
+
               if (!selectedRightNavItem) dispatch(setSelectedEvaRightNavItem("info_panel"));
-              dispatch(setSelectedStationUuid(null));
 
               // add this eva uuid to the expanded list if it's not already there
               if (!expandedEvaUuids.find((uuid) => uuid === eva.uuid)) {
                 dispatch(setExpandedEvaUuids([...expandedEvaUuids, eva.uuid]));
               }
             }
+            dispatch(setSelectedStationUuid(null));
           }}
         >
-          <div>{eva.name}</div>
+          <div className={evaStyles.nameText}>{eva.name}</div>
           <ModifiedIndicator
-            obj1={[eva, ...eva.sequence]}
-            obj2={[eva, ...eva.sequence]} //TODO: make eva from DB
+            obj1={[eva, ...traversesInEva]}
+            obj2={[thisEvaFromDb, ...traversesInEvaFromDb]}
             svgStyle={{
               width: "15",
               height: "12",
@@ -162,7 +183,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
               fill: "#ff0000",
             }}
           />
-          <div className={evaStyles.stationRightSpacer}></div>
+          <div className={evaStyles.nameItemRightSpacer}></div>
         </div>
       </div>
       {expandedEvaUuids.find((uuid) => uuid === eva.uuid) && (

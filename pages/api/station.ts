@@ -164,6 +164,8 @@ async function upsertStation(station: Station): Promise<Station> {
     description: stationToUpsert.description,
     radius: stationToUpsert.radius,
     location: stationToUpsert.location,
+    walkbackLocation: stationToUpsert.walkbackLocation,
+    walkbackDistance: stationToUpsert.walkbackDistance,
     updatedAt: new Date(stationToUpsert.createdAt || updateDateString),
     createdAt: new Date(updateDateString),
   };
@@ -228,6 +230,8 @@ function convertStations(dbstations: Station_db[]): Station[] {
       description: dbstation.description,
       radius: dbstation.radius,
       location: dbstation.location,
+      walkbackLocation: dbstation.walkbackLocation,
+      walkbackDistance: dbstation.walkbackDistance,
       createdAt: dbstation.createdAt.toISOString(),
       updatedAt: dbstation.updatedAt.toISOString(),
     };

@@ -14,9 +14,7 @@ const EvaPlannerRight: FunctionComponent = () => {
 
   let rightPanelSetToDisplay = <></>;
 
-  if (selectedEvaUuid) {
-    rightPanelSetToDisplay = <EvaRightEva />;
-  } else if (selectedEvaSequenceItemUuid) {
+  if (selectedEvaSequenceItemUuid) {
     evas.forEach((eva) => {
       eva.sequence.forEach((sequenceItem) => {
         if (sequenceItem.uuid === selectedEvaSequenceItemUuid) {
@@ -28,6 +26,8 @@ const EvaPlannerRight: FunctionComponent = () => {
         }
       });
     });
+  } else if (selectedEvaUuid) {
+    rightPanelSetToDisplay = <EvaRightEva />;
   }
 
   return <>{rightPanelSetToDisplay}</>;

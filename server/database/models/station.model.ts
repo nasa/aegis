@@ -39,6 +39,10 @@ export class Station implements Station_db_type {
   @Property({ type: MikroTypes.json, nullable: true })
   location: AEGISPoint;
   @Property({ type: MikroTypes.json, nullable: true })
+  walkbackLocation: AEGISPoint[];
+  @Property({ type: MikroTypes.double, nullable: true })
+  walkbackDistance: number;
+  @Property({ type: MikroTypes.json, nullable: true })
   actionOrderUuids: string[];
 
   @Property({ type: MikroTypes.datetime })

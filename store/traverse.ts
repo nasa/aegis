@@ -25,14 +25,12 @@ export const traverseSlice = createSlice({
       upsertToArrayByUuid(state.traversesFromDb, action.payload);
     },
 
-    deleteTraverse: (state, action: { payload: { traverseUuid: string } }) => {
-      state.traverses = state.traverses.filter(
-        (traverse) => traverse.uuid !== action.payload.traverseUuid
-      );
+    deleteTraverse: (state, action: { payload: { uuid: string } }) => {
+      state.traverses = state.traverses.filter((traverse) => traverse.uuid !== action.payload.uuid);
     },
-    deleteTraverseFromDb: (state, action: { payload: { traverseUuid: string } }) => {
+    deleteTraverseFromDb: (state, action: { payload: { uuid: string } }) => {
       state.traversesFromDb = state.traversesFromDb.filter(
-        (traverse) => traverse.uuid !== action.payload.traverseUuid
+        (traverse) => traverse.uuid !== action.payload.uuid
       );
     },
     deleteAllTraverses: (state) => {
@@ -41,16 +39,33 @@ export const traverseSlice = createSlice({
     setSelectedTraverseRightNavItem: (state, action: { payload: string }) => {
       state.selectedTraverseRightNavItem = action.payload;
     },
-    setTraverseEditMode: (
-      state,
-      action: { payload: { traverseUuid: string; editMode: boolean } }
-    ) => {
+    setTraverseEditMode: (state, action: { payload: { uuid: string; editMode: boolean } }) => {
       if (action.payload.editMode) {
-        state.traversesEditing.push(action.payload.traverseUuid);
+        state.traversesEditing.push(action.payload.uuid);
       } else {
         state.traversesEditing = state.traversesEditing.filter(
-          (uuid) => uuid !== action.payload.traverseUuid
+          (uuid) => uuid !== action.payload.uuid
         );
+      }
+    },
+    updateTraverseLocationAndDistance: (
+      state,
+      action: { payload: { uuid: string; location: AEGISPoint[]; distance: number } }
+    ) => {
+      const traverse = state.traverses.find((traverse) => traverse.uuid === action.payload.uuid);
+      if (traverse) {
+        traverse.location = action.payload.location;
+        traverse.distance = action.payload.distance;
+      }
+    },
+    revertTraverseLocationAndDistance: (state, action: { payload: { uuid: string } }) => {
+      const traverse = state.traverses.find((traverse) => traverse.uuid === action.payload.uuid);
+      const traverseFromDb = state.traversesFromDb.find(
+        (traverse) => traverse.uuid === action.payload.uuid
+      );
+      if (traverse && traverseFromDb) {
+        traverse.location = traverseFromDb.location;
+        traverse.distance = traverseFromDb.distance;
       }
     },
   },
@@ -66,4 +81,6 @@ export const {
   deleteAllTraverses,
   setSelectedTraverseRightNavItem,
   setTraverseEditMode,
+  updateTraverseLocationAndDistance,
+  revertTraverseLocationAndDistance,
 } = traverseSlice.actions;

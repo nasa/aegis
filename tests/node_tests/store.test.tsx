@@ -1,8 +1,4 @@
-import reducer, {
-  initialState,
-  setLayerControls,
-  toggleLayerControlEnabled,
-} from "../../store/map";
+import reducer, { initialState, setLayerControls } from "../../store/map";
 import { setLayers } from "../../store/mission";
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
@@ -116,14 +112,8 @@ describe("Map and MMGIS Reducer: ", () => {
       type: "map/setLayerControls",
     };
 
-    const newToggleLayerControlEnabled = {
-      payload: "Basemaps",
-      type: "map/toggleLayerControlEnabled",
-    };
-
     const nextLayerControls = reducer(initialState, setLayerControls(controls));
     expect(setLayerControls(nextLayerControls.layerControls)).toMatchObject(newControls);
-    expect(toggleLayerControlEnabled("Basemaps")).toMatchObject(newToggleLayerControlEnabled);
   });
 });
 

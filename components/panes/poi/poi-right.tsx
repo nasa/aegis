@@ -36,7 +36,7 @@ import Actions_Panel from "./poi-right-actions";
 import Reports_Panel from "./poi-right-reports";
 import * as InternalAPI from "http-client/internal-api";
 import * as httpClient_action from "http-client/action";
-import { upsertUserMapObject } from "store/map";
+import { updateMapDirective } from "store/map";
 
 const panelTypes: PanelTypes = {
   info_panel: {
@@ -73,7 +73,9 @@ const PoiEditorRight: FunctionComponent = () => {
     (state) => state.poi.poisFromDb.find((poi) => poi.uuid === selectedPoiUuid),
     shallowEqual
   );
-  const userMapObjects = useAppSelector((state) => state.map.userMapObjects, shallowEqual);
+  const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
+  const thisMapDirective = mapDirective?.uuid === selectedPoi?.uuid ? mapDirective : null;
+
   const poiActions = useAppSelector(
     (state) =>
       state.action.actions.filter((storeAction: Action) => storeAction.poiUuid === selectedPoiUuid),
@@ -203,28 +205,11 @@ const PoiEditorRight: FunctionComponent = () => {
         dispatch(deleteActions(poiActions));
       }
 
-      // find out if this poi is already on the map
-      const existingUserMapObject = userMapObjects.find(
-        (userMapObject) => userMapObject.uuid === selectedPoi.uuid
-      );
-      // if the poi is on the map (is in userMapObjects), delete it
-      if (existingUserMapObject) {
-        dispatch(
-          upsertUserMapObject({
-            ...existingUserMapObject,
-            mapAction: "delete",
-          })
-        );
-      }
       dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: false }));
     }
   };
 
   const handleCancel = () => {
-    // find out if this poi is already on the map
-    const existingUserMapObject = userMapObjects.find(
-      (userMapObject) => userMapObject.uuid === selectedPoi.uuid
-    );
     if (selectedPoiFromDb) {
       // if selected poi is in the db, replace it with the one from the db (undoing any changes)
       dispatch(upsertPoi(selectedPoiFromDb));
@@ -236,33 +221,30 @@ const PoiEditorRight: FunctionComponent = () => {
         (action) => poiActionsFromDb.findIndex((actionDb) => actionDb.uuid === action.uuid) === -1
       );
       dispatch(deleteActions(addedActionsToDelete));
-
-      // if the poi is on the map (is in userMapObjects), update its location
-      if (existingUserMapObject) {
-        dispatch(
-          upsertUserMapObject({
-            ...existingUserMapObject,
-            mapAction: "refreshLocation",
-          })
-        );
-      }
     } else {
       // if selected poi isn't in the db, delete it from the store
       dispatch(deletePoi(selectedPoi));
       dispatch(setSelectedPoiUuid(null));
       dispatch(deleteActions(poiActions));
-
-      // if the poi is on the map (is in userMapObjects), delete it
-      if (existingUserMapObject) {
-        dispatch(
-          upsertUserMapObject({
-            ...existingUserMapObject,
-            mapAction: "delete",
-          })
-        );
-      }
     }
     dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: false }));
+
+    // if there's an active create or edit action, cancel it
+    if (thisMapDirective?.mapAction === "createMarker") {
+      dispatch(
+        updateMapDirective({
+          ...thisMapDirective,
+          mapAction: "cancelCreateMarker",
+        })
+      );
+    } else if (thisMapDirective?.mapAction === "editMarker") {
+      dispatch(
+        updateMapDirective({
+          ...thisMapDirective,
+          mapAction: "cancelEditMarker",
+        })
+      );
+    }
   };
 
   let ActiveComponent = null;

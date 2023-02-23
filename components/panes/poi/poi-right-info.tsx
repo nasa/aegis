@@ -13,8 +13,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { upsertPoi } from "store/poi";
-import { upsertUserMapObject } from "store/map";
-import _ from "lodash";
+import { updateMapDirective } from "store/map";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -22,11 +21,51 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     (state) => state.poi.pois.find((poi) => poi.uuid === state.poi.selectedPoiUuid),
     shallowEqual
   );
-  const userMapObject = useAppSelector(
-    (state) => state.map.userMapObjects.find((mapObject) => mapObject.uuid === selectedPoi.uuid),
-    shallowEqual
-  );
-  const mapAction = userMapObject ? userMapObject.mapAction : null;
+  const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
+  const thisMapDirective = mapDirective?.uuid === selectedPoi?.uuid ? mapDirective : null;
+
+  const dispatchPoiMapAction = (mapAction: MapAction) => {
+    dispatch(
+      updateMapDirective({
+        mapItemType: "poi",
+        uuid: selectedPoi.uuid,
+        mapAction,
+      })
+    );
+  };
+
+  const verifyNoActiveMapAction = (): boolean => {
+    // if another mapAction is underway, fire an alert and return false
+    if (mapDirective && mapDirective.mapAction !== null) {
+      alert(
+        "Another map action is underway. Please cancel or complete that action before creating a new one."
+      );
+      return false;
+    } else {
+      return true;
+    }
+  };
+
+  const handleCreate = () => {
+    if (verifyNoActiveMapAction()) {
+      dispatchPoiMapAction("createMarker");
+    }
+  };
+  const handleCancelCreate = () => {
+    dispatchPoiMapAction("cancelCreateMarker");
+  };
+
+  const handleEdit = () => {
+    if (verifyNoActiveMapAction()) {
+      dispatchPoiMapAction("editMarker");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    dispatchPoiMapAction("cancelEditMarker");
+  };
+
+  const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   return (
     <div className={paneStyles.rightBody}>
@@ -142,14 +181,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     {!selectedPoi.location ? (
                       <IconButton
                         onClick={() => {
-                          dispatch(
-                            upsertUserMapObject({
-                              mapItemType: "poi",
-                              uuid: selectedPoi.uuid,
-                              createdAt: new Date().toISOString(),
-                              mapAction: "create",
-                            })
-                          );
+                          handleCreate();
                         }}
                         icon={faMapLocationDot}
                         label="Create Location"
@@ -158,14 +190,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     ) : (
                       <IconButton
                         onClick={() => {
-                          dispatch(
-                            upsertUserMapObject({
-                              mapItemType: "poi",
-                              uuid: selectedPoi.uuid,
-                              createdAt: new Date().toISOString(),
-                              mapAction: "edit",
-                            })
-                          );
+                          handleEdit();
                         }}
                         icon={faMapLocationDot}
                         label="Edit Location"
@@ -176,35 +201,21 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 ) : (
                   <div className={paneStyles.buttonPlaceholder}></div>
                 )}
-                {editMode && mapAction === "create" && (
+                {editMode && mapAction === "createMarker" && (
                   <IconButton
                     onClick={() => {
-                      dispatch(
-                        upsertUserMapObject({
-                          mapItemType: "poi",
-                          uuid: selectedPoi.uuid,
-                          createdAt: new Date().toISOString(),
-                          mapAction: "cancelCreate",
-                        })
-                      );
+                      handleCancelCreate();
                     }}
                     icon={faXmark}
                     label="Cancel"
                     style={{ width: "70px" }}
                   />
                 )}
-                {editMode && mapAction === "edit" && (
+                {editMode && mapAction === "editMarker" && (
                   <>
                     <IconButton
                       onClick={() => {
-                        dispatch(
-                          upsertUserMapObject({
-                            mapItemType: "poi",
-                            uuid: selectedPoi.uuid,
-                            createdAt: new Date().toISOString(),
-                            mapAction: "cancelEdit",
-                          })
-                        );
+                        handleCancelEdit();
                       }}
                       icon={faXmark}
                       label="Cancel"

@@ -46,7 +46,7 @@ const RightControlPanel = dynamic(
     ssr: false,
   }
 );
-const MapBody = dynamic(import("components/interface/map-body-leafletdraw"), {
+const MapBody = dynamic(import("components/interface/map-body-leaflet"), {
   ssr: false,
 });
 const Header = dynamic(import("components/interface/header"), {

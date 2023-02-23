@@ -24,13 +24,20 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     durationLower: 0,
     durationUpper: 0,
   });
+  const [totalTraverseDistance, setTotalTraverseDistance] = useState(0);
+  const [averageTraverseSpeed, setAverageTraverseSpeed] = useState({
+    speedLower: 0,
+    speedUpper: 0,
+  });
+
   const [actionsCount, setActionsCount] = useState(0);
 
-  const calculateTimeTotals = useCallback(() => {
+  const calculateTotals = useCallback(() => {
     let totalStationTimeLower = 0;
     let totalStationTimeUpper = 0;
     let totalTraverseTimeLower = 0;
     let totalTraverseTimeUpper = 0;
+    let totalTraverseDistance = 0;
     selectedEva.sequence.forEach((sequenceItem) => {
       if (sequenceItem.type === "station") {
         const stationActions = actions.filter((action) => action.stationUuid === sequenceItem.uuid);
@@ -42,6 +49,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
         const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
         totalTraverseTimeLower += traverse?.durationLower;
         totalTraverseTimeUpper += traverse?.durationUpper;
+        totalTraverseDistance += traverse?.distance;
       }
     });
     setTotalStationTime({
@@ -51,6 +59,12 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     setTotalTraverseTime({
       durationLower: totalTraverseTimeLower,
       durationUpper: totalTraverseTimeUpper,
+    });
+    setTotalTraverseDistance(totalTraverseDistance);
+
+    setAverageTraverseSpeed({
+      speedLower: totalTraverseDistance / (totalTraverseTimeUpper * 60),
+      speedUpper: totalTraverseDistance / (totalTraverseTimeLower * 60),
     });
   }, [selectedEva, actions, traverses]);
 
@@ -66,9 +80,9 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
   }, [selectedEva, actions]);
 
   useEffect(() => {
-    calculateTimeTotals();
+    calculateTotals();
     countActions();
-  }, [calculateTimeTotals, countActions]);
+  }, [calculateTotals, countActions]);
 
   const displayStationTime = () => {
     if (totalStationTime.durationLower === totalStationTime.durationUpper) {
@@ -93,6 +107,15 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
       return totalTimeLower;
     } else {
       return `${totalTimeLower} - ${totalTimeUpper}`;
+    }
+  };
+  const displayAverageTraverseSpeed = () => {
+    const averageSpeedLower = averageTraverseSpeed.speedLower.toFixed(2);
+    const averageSpeedUpper = averageTraverseSpeed.speedUpper.toFixed(2);
+    if (averageSpeedLower === averageSpeedUpper) {
+      return averageSpeedLower;
+    } else {
+      return `${averageSpeedLower} - ${averageSpeedUpper}`;
     }
   };
 
@@ -181,7 +204,15 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               </div>
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Total Traverse Distance</div>
-                <div className={paneStyles.panelDisplayVal}>&nbsp;m</div>
+                <div className={paneStyles.panelDisplayVal}>
+                  {totalTraverseDistance.toFixed(2)}&nbsp;m
+                </div>
+              </div>
+              <div className={paneStyles.panelMediumField}>
+                <div className={paneStyles.panelSectionTitle}>Average Traverse Speed</div>
+                <div className={paneStyles.panelDisplayVal}>
+                  <>{displayAverageTraverseSpeed()}</>&nbsp;m/s
+                </div>
               </div>
             </div>
           </div>

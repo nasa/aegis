@@ -7,7 +7,6 @@ import EvaItem from "./eva-item";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { IconButton } from "components/interface/_global-elements";
 import { faClone, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
-import { colors, uniqueNamesGenerator } from "unique-names-generator";
 import { v4 as uuidv4 } from "uuid";
 import {
   duplicateEva,
@@ -17,7 +16,7 @@ import {
   upsertEva,
 } from "store/eva";
 import { useDispatch } from "react-redux";
-const profanityFilter = require("leo-profanity");
+import { generateUniqueName } from "utils/unique-name";
 
 const EvaPlannerLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -32,16 +31,10 @@ const EvaPlannerLeft: FunctionComponent = () => {
   const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
 
   const handleCreateEva = () => {
-    let randomName = "";
-    while (randomName === "") {
-      const name = uniqueNamesGenerator({
-        dictionaries: [colors],
-        style: "capital",
-      });
-      const evaWithSameName = evas.find((eva) => eva.name === name);
-      const profanityCheck = profanityFilter.check(name);
-      randomName = evaWithSameName || profanityCheck ? "" : name;
-    }
+    const randomName = generateUniqueName({
+      dictName: "colors",
+      existingNames: evas.map((item) => item.name),
+    });
 
     const blankEva: Eva = {
       ownerId: user.id,

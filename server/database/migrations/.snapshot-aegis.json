@@ -460,6 +460,15 @@
           "nullable": true,
           "mappedType": "json"
         },
+        "distance": {
+          "name": "distance",
+          "type": "double precision",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "double"
+        },
         "duration_lower": {
           "name": "duration_lower",
           "type": "double precision",
@@ -713,6 +722,24 @@
           "primary": false,
           "nullable": true,
           "mappedType": "json"
+        },
+        "walkback_location": {
+          "name": "walkback_location",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "json"
+        },
+        "walkback_distance": {
+          "name": "walkback_distance",
+          "type": "double precision",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "double"
         },
         "action_order_uuids": {
           "name": "action_order_uuids",

@@ -5,6 +5,7 @@ import { useAppSelector, refEqual } from "utils/useAppSelector";
 import poiStyles from "./poi.module.css";
 import _ from "lodash";
 import { setSelectedPoiUuid, setSelectedRightNavItem } from "store/poi";
+import { setSelectedEvaSequenceItemUuid, setSelectedEvaUuid } from "store/eva";
 
 const PoiItem: FunctionComponent<{
   selectedPoiUuid: string;
@@ -52,6 +53,8 @@ const PoiItem: FunctionComponent<{
           dispatch(setSelectedPoiUuid(null)); //hide poi right panel
         } else {
           dispatch(setSelectedPoiUuid(poi.uuid));
+          dispatch(setSelectedEvaSequenceItemUuid(null));
+          dispatch(setSelectedEvaUuid(null));
           if (!selectedRightNavItem) dispatch(setSelectedRightNavItem("info_panel"));
         }
       }}
