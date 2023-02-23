@@ -1,8 +1,15 @@
 import isNil from "lodash/isNil";
 import paper from "paper";
-import { FunctionComponent, MutableRefObject, useCallback, useEffect, useRef } from "react";
+import {
+  FunctionComponent,
+  MutableRefObject,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from "react";
 import { useDispatch } from "react-redux";
-import { useAppSelector, refEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import { changeTime } from "store/playhead";
 import { changeHoverTime } from "store/playheadHover";
 
@@ -13,7 +20,7 @@ import styles from "./nav-timeline-draw.module.css";
  * Renders the navigation timeline presented at the bottom of the CODA window
  */
 const NavTimeline: FunctionComponent = () => {
-  const playhead = useAppSelector((state) => state.playhead, refEqual);
+  const playhead = useAppSelector((state) => state.playhead, shallowEqual);
   const playheadHoverSecs = useAppSelector((state) => state.playheadHover.seconds, refEqual);
 
   const dispatch = useDispatch();
@@ -41,19 +48,17 @@ const NavTimeline: FunctionComponent = () => {
     drawNav.current.drawTier1();
     drawNav.current.drawNavBox(time.current);
     drawNav.current.drawTier2();
-    // drawNav.current.drawTier1Future();
     drawNav.current.drawCursor(time.current);
 
     paper.view.onResize = function () {
       drawNav.current.setDynamicWidthVariables();
       drawNav.current.drawTier1();
-      // drawNav.current.drawTier1Future();
       drawNav.current.drawNavBox(time.current);
       drawNav.current.drawTier2();
     };
 
     paper.view.onMouseMove = (event) => {
-      drawNav.current.handleMouseMove(event, time.current, (thisHoverSeconds) => {
+      drawNav.current.handleMouseMove(event, time.current, (thisHoverSeconds: number) => {
         if (!mouseOnNavigator.current) {
           mouseOnNavigator.current = true;
         }
@@ -81,10 +86,11 @@ const NavTimeline: FunctionComponent = () => {
     if (!navReady.current) {
       navReady.current = true;
     }
-  }, [dispatch, playhead, playheadHoverSecs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, playhead.date]);
 
-  useEffect(() => {
-    // only setup the canvas once
+  // Initialize the timeline on first render
+  useLayoutEffect(() => {
     if (isNil(paper.project) && typeof window !== "undefined") {
       installTimeline();
     }
@@ -96,7 +102,7 @@ const NavTimeline: FunctionComponent = () => {
       paper.project.remove();
     }
     installTimeline();
-  }, [installTimeline]);
+  }, [installTimeline]); // should contain list of stores with data to be drawn on the timeline. Currently none in placeholder code.
 
   useEffect(() => {
     time.current = playhead.seconds;
@@ -117,9 +123,6 @@ const NavTimeline: FunctionComponent = () => {
 
   return (
     <>
-      {/* {!mouseOnNavigator.current && <div className={styles.collapsedBackground}></div>}
-      {mouseOnNavigator.current && <div className={styles.expandedBackground}></div>} */}
-      <div className={styles.expandedBackground}></div>
       <div className={styles.canvasContainer}>
         <canvas ref={canvas} data-paper-resize />
       </div>
