@@ -41,11 +41,6 @@ export default class DrawNav {
   gColorNavCursor = new paper.Color("#000000");
   gColorNavBox = new paper.Color("#efefef");
   gColorBarBorder = new paper.Color("#2a282e");
-  gColorVideo = new paper.Color("#999999");
-  gColorVideoLOS = new paper.Color("#4e4e4e");
-  gColorSgAudio = new paper.Color("#cc5500"); // Burnt orange
-  gColorPhotoTicks = new paper.Color("#28B463");
-  gColorPhotoTicksFiltered = new paper.Color("#0c331c");
 
   constructor(
     /** Keep track of dates for bookkeeping purposes */
@@ -309,64 +304,6 @@ export default class DrawNav {
     return group;
   }
 
-  drawPETMark = (param: {
-    secondsStart: number;
-    secondsEnd: number;
-    pixelsPerSecond: number;
-    leftPx: number;
-    tierTop: number;
-    tierBottom: number;
-    largeLabel: boolean;
-    petTime: number;
-  }): paper.Group => {
-    const group = new paper.Group();
-    // if there is an EVA today, show PET marker
-    if (!isNull(this.evaStartSec)) {
-      const itemLocX = param.leftPx + (param.petTime - param.secondsStart) * param.pixelsPerSecond;
-      const tierTopPoint = new paper.Point(itemLocX, param.tierTop);
-      const tierBottomPoint = new paper.Point(itemLocX, param.tierBottom);
-      const petLine = new paper.Path.Line(tierTopPoint, tierBottomPoint);
-      petLine.strokeColor = new paper.Color("#ffffff");
-      group.addChild(petLine);
-
-      // add some explanatory text
-      const petText = new paper.PointText({
-        justification: "left",
-        fontFamily: this.gNavigatorFontFamilyActivity,
-        fillColor: "#ffffff",
-        content: "PET Start",
-      });
-      if (param.largeLabel) {
-        const textTop = param.tierBottom - 35;
-        petText.point = new paper.Point(itemLocX - 33, textTop);
-        petText.fontSize = 11;
-      } else {
-        // add some small explanatory text
-        const textTop = param.tierBottom - 23;
-        petText.point = new paper.Point(itemLocX - 25, textTop);
-        petText.fontSize = 9;
-      }
-      petText.rotate(-90);
-
-      const textRect = new paper.Rectangle(petText.bounds);
-      textRect.height = param.tierBottom - param.tierTop;
-      textRect.top = param.tierTop;
-      if (param.largeLabel) {
-        textRect.width += 4;
-        textRect.left += -3;
-      } else {
-        textRect.left += -1;
-      }
-      const textRectPath = new paper.Path.Rectangle(textRect);
-      textRectPath.fillColor = new paper.Color("black");
-      textRectPath.opacity = 0.4;
-      group.addChild(textRectPath);
-      group.addChild(petText);
-    }
-
-    return group;
-  };
-
   drawTier1(): void {
     this.gTier1Group.removeChildren();
 
@@ -389,19 +326,6 @@ export default class DrawNav {
         textTop: drawingBottom - 10,
         tierTickHeight: drawingHeight,
         textTickHeight: 10,
-      })
-    );
-
-    this.gTier1Group.addChild(
-      this.drawPETMark({
-        secondsStart,
-        secondsEnd,
-        pixelsPerSecond,
-        leftPx,
-        tierTop: this.gTier1Top,
-        tierBottom: this.gTier1Top + this.gTier1Height,
-        largeLabel: false,
-        petTime: this.evaStartSec,
       })
     );
   }
@@ -430,19 +354,6 @@ export default class DrawNav {
         textTop: drawingBottom - 12,
         tierTickHeight: drawingHeight,
         textTickHeight: 10,
-      })
-    );
-
-    this.gTier2Group.addChild(
-      this.drawPETMark({
-        secondsStart,
-        secondsEnd,
-        pixelsPerSecond,
-        leftPx,
-        tierTop: this.gTier2Top,
-        tierBottom: this.gTier2Top + this.gTier2Height,
-        largeLabel: true,
-        petTime: this.evaStartSec,
       })
     );
   }

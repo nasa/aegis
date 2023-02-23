@@ -31,6 +31,7 @@ import { getEvas } from "http-client/eva";
 import { upsertEvas, upsertEvasFromDb } from "store/eva";
 import { upsertTraverses, replaceAllTraversesFromDb } from "store/traverse";
 import { getTraverses } from "http-client/traverse";
+import NavTimeline from "components/interface/nav-timeline";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -221,7 +222,7 @@ const Main: NextPage = () => {
           </div>
         )}
       </div>
-      <div className={styles.timeline}>{/* <NavTimeline /> */}</div>
+      <div className={styles.timeline}>{<NavTimeline />}</div>
     </div>
   );
 };
