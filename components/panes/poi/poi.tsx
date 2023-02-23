@@ -6,11 +6,10 @@ import { IconButton } from "components/interface/_global-elements";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { duplicatePoi, setPoiEditMode, setSelectedPoiUuid, upsertPoi } from "store/poi";
-import { animals, uniqueNamesGenerator } from "unique-names-generator";
 import { v4 as uuidv4 } from "uuid";
 import PoiItem from "./poi-item";
 import _ from "lodash";
-const profanityFilter = require("leo-profanity");
+import { generateUniqueName } from "utils/unique-name";
 
 const PoiEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -26,16 +25,10 @@ const PoiEditorLeft: FunctionComponent = () => {
   const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, shallowEqual);
 
   const handleCreatePoi = () => {
-    let randomName = "";
-    while (randomName === "") {
-      const name = uniqueNamesGenerator({
-        dictionaries: [animals],
-        style: "capital",
-      });
-      const poiWithSameName = pois.find((poi) => poi.name === name);
-      const profanityCheck = profanityFilter.check(name);
-      randomName = poiWithSameName || profanityCheck ? "" : name;
-    }
+    const randomName = generateUniqueName({
+      dictName: "animals",
+      existingNames: pois.map((item) => item.name),
+    });
 
     const blankPoi: POI = {
       ownerId: userId,

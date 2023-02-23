@@ -13,10 +13,9 @@ import {
 import { setLayerControls } from "../../../store/map";
 import { setSelectedPresetUuid, setSelectedPresetRightNavItem } from "../../../store/preset";
 import { v4 as uuidv4 } from "uuid";
-import { colors, uniqueNamesGenerator } from "unique-names-generator";
 import { IconButton, ModifiedIndicator } from "components/interface/_global-elements";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-const profanityFilter = require("leo-profanity");
+import { generateUniqueName } from "utils/unique-name";
 
 const PresetEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -31,16 +30,10 @@ const PresetEditorLeft: FunctionComponent = () => {
     selectedPreset = presets.find((preset: Preset) => preset.uuid === selectedPresetUuid);
   }
   const handleCreatePreset = async () => {
-    let randomName = "";
-    while (randomName === "") {
-      const name = uniqueNamesGenerator({
-        dictionaries: [colors],
-        style: "capital",
-      });
-      const presetWithSameName = presets.find((preset) => preset.name === name);
-      const profanityCheck = profanityFilter.check(name);
-      randomName = presetWithSameName || profanityCheck ? "" : name;
-    }
+    const randomName = generateUniqueName({
+      dictName: "colors",
+      existingNames: presets.map((item) => item.name),
+    });
 
     const blankPreset: Preset = {
       uuid: uuidv4(),

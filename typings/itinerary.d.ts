@@ -49,6 +49,7 @@ interface Traverse {
   name: string;
   status: TraverseStatus;
   location: AEGISPoint[];
+  distance: number;
   durationLower: number;
   durationUpper: number;
   description: string;
@@ -81,6 +82,8 @@ interface Station {
   description: string;
   radius: number;
   location: AEGISPoint;
+  walkbackLocation: AEGISPoint[];
+  walkbackDistance: number;
 
   createdAt?: string;
   updatedAt?: string;

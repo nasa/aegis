@@ -30,6 +30,7 @@ import {
   deleteTraverseFromDb,
   upsertTraverse,
   replaceAllTraversesFromDb,
+  setTraverseEditMode,
 } from "store/traverse";
 import * as httpClient_Eva from "http-client/eva";
 import * as httpClient_Traverse from "http-client/traverse";
@@ -53,6 +54,7 @@ const EvaRightEva: FunctionComponent = () => {
   );
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
   const traversesFromDb = useAppSelector((state) => state.traverse.traversesFromDb, shallowEqual);
+
   const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
 
   // all actions from all stations in this eva
@@ -129,13 +131,13 @@ const EvaRightEva: FunctionComponent = () => {
       );
       if (!traversesEqual) {
         // upsert the traverses to the DB via internal API call
-        thisEvasTraverses.forEach(async (traverse) => {
+        for (const traverse of thisEvasTraverses) {
           const traverseUpsertResponse = await httpClient_Traverse.upsertTraverse(traverse);
           if (traverseUpsertResponse.status === "success") {
             // upsert the changed Traverse (with new updated date) to the store
             dispatch(upsertTraverse(traverseUpsertResponse.data));
           }
-        });
+        }
       }
 
       // prune traverses from the db that are no longer in any EVA
@@ -150,7 +152,7 @@ const EvaRightEva: FunctionComponent = () => {
       const traversesToDelete = traversesFromDb.filter((traverse) => {
         return !traverseUuidsInAnyEva.includes(traverse.uuid);
       });
-      traversesToDelete.forEach(async (traverse) => {
+      for (const traverse of traversesToDelete) {
         const deleteResponse: WrappedResponse<number> = await httpClient_Traverse.deleteTraverse(
           traverse.uuid
         );
@@ -159,9 +161,9 @@ const EvaRightEva: FunctionComponent = () => {
           // TODO: investigate why this is needed.
           // The httpClient_Traverse.getTraverses(selectedMissionId) call below includes this deleted item
           // it's as though Mikro is not committing the delete in time to return the correct response for getTraverses.
-          dispatch(deleteTraverseFromDb({ traverseUuid: traverse.uuid }));
+          dispatch(deleteTraverseFromDb({ uuid: traverse.uuid }));
         }
-      });
+      }
 
       // reset the traversesFromDB in the store with a fresh copy from the DB
       const traverseData = await httpClient_Traverse.getTraverses(selectedMissionId);
@@ -185,15 +187,15 @@ const EvaRightEva: FunctionComponent = () => {
       const thisEvasTraversesFromDb = traversesFromDb.filter((traverse) => {
         return traverseUuidsInThisEva.includes(traverse.uuid);
       });
-      thisEvasTraversesFromDb.forEach(async (traverse) => {
+      for (const traverse of thisEvasTraversesFromDb) {
         const deleteResponse: WrappedResponse<number> = await httpClient_Traverse.deleteTraverse(
           traverse.uuid
         );
         if (deleteResponse.status === "success") {
           // remove the corresponding traverse from the traversesFromDb store
-          dispatch(deleteTraverseFromDb({ traverseUuid: traverse.uuid }));
+          dispatch(deleteTraverseFromDb({ uuid: traverse.uuid }));
         }
-      });
+      }
       // get fresh copy of Traverses from DB
       const traverseData = await httpClient_Traverse.getTraverses(selectedMissionId);
       if (traverseData.data) {
@@ -205,7 +207,7 @@ const EvaRightEva: FunctionComponent = () => {
         return traverseUuidsInThisEva.includes(traverse.uuid);
       });
       thisEvasTraverses.forEach((traverse) => {
-        dispatch(deleteTraverse({ traverseUuid: traverse.uuid }));
+        dispatch(deleteTraverse({ uuid: traverse.uuid }));
       });
 
       // delete the eva from the DB or the store
@@ -261,10 +263,10 @@ const EvaRightEva: FunctionComponent = () => {
       );
       // delete the traverses that were added during this edit to this EVA
       traverseUuidsInThisEvaNotInThisEvaFromDb.forEach((traverseUuid) => {
-        dispatch(deleteTraverse({ traverseUuid }));
+        dispatch(deleteTraverse({ uuid: traverseUuid }));
       });
 
-      // revert the traverses used in this eva using copies from traversesFromDb
+      // revert the traverses used in this eva using copies from traversesFromDb and also disable edit mode of each
       const traversesInThisEva = traverses.filter((traverse) => {
         return traverseUuidsInThisEva.includes(traverse.uuid);
       });
@@ -274,6 +276,7 @@ const EvaRightEva: FunctionComponent = () => {
         );
         if (traverseFromDb) {
           dispatch(upsertTraverse(traverseFromDb));
+          dispatch(setTraverseEditMode({ uuid: traverse.uuid, editMode: false }));
         }
       });
 
@@ -287,23 +290,6 @@ const EvaRightEva: FunctionComponent = () => {
 
       // eva is already saved once to the db, replace it with the one from the db (undoing any changes)
       dispatch(upsertEva(selectedEvaFromDb));
-
-      //TODO: handle display of traverses on the map
-
-      // find out if this eva is already on the map
-      // const existingUserMapObject = userMapObjects.find(
-      //   (userMapObject) => userMapObject.uuid === selectedEva.uuid
-      // );
-
-      // if the eva is on the map (is in userMapObjects), update its location
-      // if (existingUserMapObject) {
-      //   dispatch(
-      //     upsertUserMapObject({
-      //       ...existingUserMapObject,
-      //       mapAction: "refreshLocation",
-      //     })
-      //   );
-      // }
     } else {
       // eva hasn't been saved to the db. delete the eva and actions from the store
       dispatch(deleteEva(selectedEva));

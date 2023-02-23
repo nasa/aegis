@@ -38,7 +38,7 @@ import Actions_Panel from "./station-right-actions";
 import STM_Panel from "../stm-coverage";
 import * as httpClient_station from "http-client/station";
 import * as httpClient_action from "http-client/action";
-import { upsertUserMapObject } from "store/map";
+import { updateMapDirective } from "store/map";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -52,7 +52,9 @@ const StationEditorRight: FunctionComponent = () => {
     shallowEqual
   );
   const stationsEditing = useAppSelector((state) => state.station.stationsEditing, shallowEqual);
-  const userMapObjects = useAppSelector((state) => state.map.userMapObjects, shallowEqual);
+  const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
+  const thisMapDirective = mapDirective?.uuid === selectedStationUuid ? mapDirective : null;
+
   const selectedStation = useAppSelector(
     (state) => state.station.stations.find((station) => station.uuid === selectedStationUuid),
     shallowEqual
@@ -130,6 +132,25 @@ const StationEditorRight: FunctionComponent = () => {
     setModified(!stationEqual || !actionEqual);
   }, [selectedStation, selectedStationFromDb, stationActions, stationActionsFromDb]);
 
+  const cancelMarkerMapDirective = () => {
+    // if there's an active create or edit action, cancel it
+    if (thisMapDirective?.mapAction === "createMarker") {
+      dispatch(
+        updateMapDirective({
+          ...thisMapDirective,
+          mapAction: "cancelCreateMarker",
+        })
+      );
+    } else if (thisMapDirective?.mapAction === "editMarker") {
+      dispatch(
+        updateMapDirective({
+          ...thisMapDirective,
+          mapAction: "cancelEditMarker",
+        })
+      );
+    }
+  };
+
   const handleSave = async () => {
     if (selectedStation && modified) {
       // upsert the changed Station to the DB via internal API call
@@ -190,6 +211,17 @@ const StationEditorRight: FunctionComponent = () => {
         }
       }
 
+      // if the walkback is in edit mode, save the walkback
+      if (thisMapDirective?.mapAction === "editPolyline") {
+        // handle walkback edit state
+        dispatch(
+          updateMapDirective({
+            ...thisMapDirective,
+            mapAction: "saveEditPolyline",
+          })
+        );
+      }
+      cancelMarkerMapDirective();
       dispatch(setStationEditMode({ stationUuid: selectedStation.uuid, editMode: false }));
     }
   };
@@ -244,17 +276,15 @@ const StationEditorRight: FunctionComponent = () => {
         dispatch(setSelectedStationUuid(null));
         dispatch(deleteActions(stationActions));
       }
-
+      cancelMarkerMapDirective();
       dispatch(setStationEditMode({ stationUuid: selectedStation.uuid, editMode: false }));
     }
   };
 
   const handleCancel = () => {
+    // find out if this station is already on the map
+
     if (selectedStationFromDb) {
-      // find out if this station is already on the map
-      const existingUserMapObject = userMapObjects.find(
-        (userMapObject) => userMapObject.uuid === selectedStation.uuid
-      );
       // station is already saved once to the db, replace it with the one from the db (undoing any changes)
       dispatch(upsertStation(selectedStationFromDb));
       dispatch(upsertActions(stationActionsFromDb));
@@ -266,22 +296,24 @@ const StationEditorRight: FunctionComponent = () => {
           stationActionsFromDb.findIndex((actionDb) => actionDb.uuid === action.uuid) === -1
       );
       dispatch(deleteActions(addedActionsToDelete));
-
-      // if the station is on the map (is in userMapObjects), update its location
-      if (existingUserMapObject) {
-        dispatch(
-          upsertUserMapObject({
-            ...existingUserMapObject,
-            mapAction: "refreshLocation",
-          })
-        );
-      }
     } else {
       // station hasn't been saved to the db. delete the station and actions from the store
       dispatch(deleteStation(selectedStation));
       dispatch(setSelectedStationUuid(null));
       dispatch(deleteActions(stationActions));
     }
+
+    // if the walkback is in edit mode, save the walkback
+    if (thisMapDirective?.mapAction === "editPolyline") {
+      // handle walkback edit state
+      dispatch(
+        updateMapDirective({
+          ...thisMapDirective,
+          mapAction: "cancelEditPolyline",
+        })
+      );
+    }
+    cancelMarkerMapDirective();
     dispatch(setStationEditMode({ stationUuid: selectedStation.uuid, editMode: false }));
   };
 

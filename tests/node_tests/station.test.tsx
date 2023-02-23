@@ -51,6 +51,9 @@ describe("Station API Endpoint", () => {
     description: "",
     radius: 0,
     location: null,
+    walkbackLocation: null,
+    walkbackDistance: 0,
+
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

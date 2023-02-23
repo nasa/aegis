@@ -34,7 +34,6 @@
 .name {
   display: flex;
   width: 100%;
-  border-radius: var(--radius);
   font-size: 0.9em;
   font-weight: 500;
   text-transform: uppercase;
@@ -61,6 +60,14 @@
 
 .name:hover {
   background-color: var(--grey1);
+}
+
+.nameText {
+  margin-right: 4px;
+}
+
+.nameItemRightSpacer {
+  flex: 1;
 }
 
 .nameCaret {
@@ -117,6 +124,7 @@
   padding: 4px 5px 4px 5px;
   margin-right: 4px;
   border-radius: var(--radius);
+  user-select: none;
 }
 .evaItemName.editMode:hover {
   background-color: var(--grey2);
@@ -136,6 +144,14 @@
 .evaItemName:hover {
   background-color: var(--grey1);
   cursor: pointer;
+}
+
+.evaItemNameText {
+  margin-right: 1px;
+}
+
+.evaItemNameRightSpacer {
+  flex: 1;
 }
 
 .evaItemNameButtons {

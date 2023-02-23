@@ -63,27 +63,24 @@ body {
   display: none !important;
 }
 
-.leaflet-top {
+/* hide zoom controls */
+/* .leaflet-top {
   display: none !important;
-}
+} */
 
+/* hide marker artifacts */
 .leaflet-div-icon {
   background-color: transparent !important;
   border: none !important;
-  margin-left: -8px !important;
-  margin-top: -9px !important;
+  margin-left: -10px !important;
+  margin-top: -10px !important;
   outline: none;
 }
 
-.leaflet-editing-icon {
-  background-color: #fff !important;
-  border-radius: 5px;
-  width: 10px !important;
-  height: 10px !important;
-}
-
+/* emoji icon wrapper */
 .leaflet-aegis-icon {
   color: rgba(0, 0, 0, 1);
+  font-size: 1.2em;
 }
 
 /* metatag component styling */
@@ -106,7 +103,6 @@ body {
   border-radius: var(--radius);
   font-size: 0.8em;
   font-weight: 400;
-  cursor: cursor;
   width: 145px;
 }
 

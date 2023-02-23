@@ -46,6 +46,7 @@ describe("EVA API Endpoint", () => {
     missionId: null,
     name: "Jest Traverse-1",
     location: null,
+    distance: 0,
     durationLower: 0,
     durationUpper: 0,
     status: "Candidate",

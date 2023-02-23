@@ -37,7 +37,7 @@ interface MapState {
   layerControls: LayerControls;
   activeSelectedName: string;
   mousePosition: LatLng;
-  userMapObjects: UserMapObject[];
+  mapDirective: MapDirective;
 }
 
 interface EvaState {

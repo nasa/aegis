@@ -11,19 +11,20 @@ type AEGISPoint = {
  * Communication between the map and the store
  */
 type MapAction =
-  | "cancelCreate"
-  | "cancelEdit"
-  | "create"
-  | "edit"
-  | "saveEdit"
+  | "createMarker"
+  | "cancelCreateMarker"
+  | "editMarker"
+  | "cancelEditMarker"
+  | "editPolyline"
+  | "saveEditPolyline"
+  | "cancelEditPolyline"
   | "refreshLocation"
   | "delete";
 
-type MapItemType = "poi" | "station" | "traverse";
-interface UserMapObject {
+type MapItemType = "poi" | "station" | "traverse" | "antPath" | "walkback";
+interface MapDirective {
   uuid: string;
   mapItemType: MapItemType;
-  createdAt: string;
   mapAction: MapAction;
 }
 

@@ -14,17 +14,17 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     shallowEqual
   );
 
-  const [poiActions, setPoiActions] = useState<Action[]>(null); //contains all station actions
+  const [poiActions, setPoiActions] = useState<Action[]>(null); //contains all POI actions
 
   //gather all actions, then order them
   useEffect(() => {
     if (selectedPoiUuid && actions && selectedPoi) {
       const allPoiActions: Action[] = [];
 
-      //get actions directly attached to this station
+      //get actions directly attached to this POI
       allPoiActions.push(...actions.filter((action) => action.poiUuid === selectedPoiUuid));
 
-      //check if action ordering is deinfed for this station.
+      //check if action ordering is defined for this POI.
       //put any unlisted actions at the end. but there shouldn't be any unlisted actions?
       if (selectedPoi.actionOrderUuids) {
         allPoiActions.sort((action1: Action, action2: Action) => {

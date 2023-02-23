@@ -2,6 +2,7 @@ import {
   faFloppyDisk,
   faLocationDot,
   faMapLocationDot,
+  faRoute,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -14,7 +15,7 @@ import {
 import { FunctionComponent } from "react";
 import { useDispatch } from "react-redux";
 import { upsertTraverse } from "store/traverse";
-import { upsertUserMapObject } from "store/map";
+import { updateMapDirective } from "store/map";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 
@@ -30,15 +31,53 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
     shallowEqual
   );
 
-  const userMapObject = useAppSelector(
-    (state) =>
-      state.map.userMapObjects.find(
-        (userMapObject) => userMapObject.uuid === selectedEvaSequenceItemUuid
-      ),
-    shallowEqual
-  );
+  const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
+  const thisMapDirective = mapDirective?.uuid === selectedTraverse?.uuid ? mapDirective : null;
 
-  const mapAction = userMapObject ? userMapObject.mapAction : null;
+  const verifyNoActiveMapAction = (): boolean => {
+    // if another mapAction is underway, fire an alert and return false
+
+    if (mapDirective && mapDirective.mapAction !== null) {
+      alert(
+        "Another map action is underway. Please cancel or complete that action before creating a new one."
+      );
+      return false;
+    } else {
+      return true;
+    }
+  };
+
+  const handleEdit = () => {
+    if (verifyNoActiveMapAction()) {
+      dispatch(
+        updateMapDirective({
+          uuid: selectedTraverse.uuid,
+          mapItemType: "traverse",
+          mapAction: "editPolyline",
+        })
+      );
+    }
+  };
+
+  const handleSaveEdit = () => {
+    dispatch(
+      updateMapDirective({
+        ...mapDirective,
+        mapAction: "saveEditPolyline",
+      })
+    );
+  };
+
+  const handleCancelEdit = () => {
+    dispatch(
+      updateMapDirective({
+        ...mapDirective,
+        mapAction: "cancelEditPolyline",
+      })
+    );
+  };
+
+  const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   return (
     <div className={paneStyles.rightBody}>
@@ -74,7 +113,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                     containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
                     value={selectedTraverse.durationLower?.toString()}
                     onChange={(val: number) => {
-                      dispatch(upsertTraverse({ ...selectedTraverse, durationUpper: val }));
+                      dispatch(upsertTraverse({ ...selectedTraverse, durationLower: val }));
                     }}
                   />
                 </div>
@@ -88,7 +127,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                     maxLength={3}
                     styleInput={{ width: "55px" }}
                     containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
-                    value={selectedTraverse.durationLower?.toString()}
+                    value={selectedTraverse.durationUpper?.toString()}
                     onChange={(val: number) => {
                       dispatch(upsertTraverse({ ...selectedTraverse, durationUpper: val }));
                     }}
@@ -117,7 +156,9 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
             <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Traverse Distance</div>
-                <div className={paneStyles.panelDisplayVal}>m</div>
+                <div className={paneStyles.panelDisplayVal}>
+                  {selectedTraverse.distance?.toFixed(2)}&nbsp;m
+                </div>
               </div>
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Traverse Total m Climbed</div>
@@ -142,124 +183,51 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                 <div className={paneStyles.verticalCenter}>
                   <div className={paneStyles.panelText}>
                     {selectedTraverse.location && (
-                      <>
-                        {selectedTraverse.location.map((location, index) => {
-                          return (
-                            <div key={index}>
-                              Lat: {`${location?.lat.toFixed(6)}`}
-                              <br />
-                              Lng: {`${location?.lng.toFixed(6)}`}
-                            </div>
-                          );
-                        })}
-                      </>
+                      <>{selectedTraverse.location.length}&nbsp;points</>
                     )}
                   </div>
                 </div>
                 {editMode && mapAction === null ? (
                   <>
-                    {!selectedTraverse.location ? (
-                      <>
-                        <IconButton
-                          onClick={() => {
-                            dispatch(
-                              upsertUserMapObject({
-                                mapItemType: "traverse",
-                                uuid: selectedTraverse.uuid,
-                                createdAt: new Date().toISOString(),
-                                mapAction: "create",
-                              })
-                            );
-                          }}
-                          icon={faMapLocationDot}
-                          label="Create Path on Map"
-                          style={{ width: "130px" }}
-                        />
-                      </>
-                    ) : (
-                      <IconButton
-                        onClick={() => {
-                          dispatch(
-                            upsertUserMapObject({
-                              mapItemType: "traverse",
-                              uuid: selectedTraverse.uuid,
-                              createdAt: new Date().toISOString(),
-                              mapAction: "edit",
-                            })
-                          );
-                        }}
-                        icon={faMapLocationDot}
-                        label="Edit Path on Map"
-                        style={{ width: "135px" }}
-                      />
-                    )}
+                    <IconButton
+                      onClick={() => {
+                        handleEdit();
+                      }}
+                      icon={faRoute}
+                      label="Edit Path on Map"
+                      style={{ width: "135px" }}
+                    />
 
-                    <>
-                      <IconButton
-                        onClick={() => {
-                          alert("Not implemented yet");
-                        }}
-                        icon={faMapLocationDot}
-                        label="Reset Path"
-                        style={{ width: "100px" }}
-                      />
-                    </>
+                    <IconButton
+                      onClick={() => {
+                        alert("Not implemented yet");
+                      }}
+                      icon={faMapLocationDot}
+                      label="Reset Path"
+                      style={{ width: "100px" }}
+                    />
                   </>
                 ) : (
                   <div className={paneStyles.buttonPlaceholder}></div>
                 )}
-                {editMode && mapAction === "edit" && (
+                {editMode && mapAction === "editPolyline" && (
                   <>
                     <IconButton
                       onClick={() => {
-                        dispatch(
-                          upsertUserMapObject({
-                            mapItemType: "traverse",
-                            uuid: selectedTraverse.uuid,
-                            createdAt: new Date().toISOString(),
-                            mapAction: "saveEdit",
-                          })
-                        );
+                        handleSaveEdit();
                       }}
                       icon={faFloppyDisk}
-                      label="Save Edit"
+                      label="Finished"
                       style={{ width: "90px" }}
                     />
-                  </>
-                )}
-                {editMode && mapAction === "create" && (
-                  <IconButton
-                    onClick={() => {
-                      dispatch(
-                        upsertUserMapObject({
-                          mapItemType: "traverse",
-                          uuid: selectedTraverse.uuid,
-                          createdAt: new Date().toISOString(),
-                          mapAction: "cancelCreate",
-                        })
-                      );
-                    }}
-                    icon={faXmark}
-                    label="Cancel Create"
-                    style={{ width: "70px" }}
-                  />
-                )}
-                {editMode && mapAction === "edit" && (
-                  <>
+
                     <IconButton
                       onClick={() => {
-                        dispatch(
-                          upsertUserMapObject({
-                            mapItemType: "traverse",
-                            uuid: selectedTraverse.uuid,
-                            createdAt: new Date().toISOString(),
-                            mapAction: "cancelEdit",
-                          })
-                        );
+                        handleCancelEdit();
                       }}
                       icon={faXmark}
-                      label="Cancel Edit"
-                      style={{ width: "95px" }}
+                      label="Cancel"
+                      style={{ width: "75px" }}
                     />
                   </>
                 )}

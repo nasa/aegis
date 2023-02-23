@@ -14,20 +14,24 @@ import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import Info_Panel from "./eva-right-traverse-info";
 import * as httpClient_Traverse from "http-client/traverse";
+import { updateMapDirective } from "store/map";
 
 const EvaRightTraverse: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const selectedTraverseUuid = useAppSelector(
+  const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
   const selectedTraverse = useAppSelector(
-    (state) => state.traverse.traverses.find((traverse) => traverse.uuid === selectedTraverseUuid),
+    (state) =>
+      state.traverse.traverses.find((traverse) => traverse.uuid === selectedEvaSequenceItemUuid),
     shallowEqual
   );
   const selectedTraverseFromDb = useAppSelector(
     (state) =>
-      state.traverse.traversesFromDb.find((traverse) => traverse.uuid === selectedTraverseUuid),
+      state.traverse.traversesFromDb.find(
+        (traverse) => traverse.uuid === selectedEvaSequenceItemUuid
+      ),
     shallowEqual
   );
   const traversesEditing = useAppSelector((state) => state.traverse.traversesEditing, shallowEqual);
@@ -35,6 +39,9 @@ const EvaRightTraverse: FunctionComponent = () => {
     (state) => state.traverse.selectedTraverseRightNavItem,
     shallowEqual
   );
+
+  const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
+  const thisMapDirective = mapDirective?.uuid === selectedEvaSequenceItemUuid ? mapDirective : null;
 
   const [modified, setModified] = useState(false);
   useEffect(() => {
@@ -44,26 +51,45 @@ const EvaRightTraverse: FunctionComponent = () => {
   const panelTypes: PanelTypes = {
     info_panel: {
       title: "Traverse Information",
-      panel: <Info_Panel editMode={traversesEditing.includes(selectedTraverseUuid)} />,
+      panel: <Info_Panel editMode={traversesEditing.includes(selectedEvaSequenceItemUuid)} />,
       color: "var(--eva)",
       icon: faCircleInfo,
     },
   };
 
   const handleSave = async () => {
-    dispatch(setTraverseEditMode({ traverseUuid: selectedTraverseUuid, editMode: false }));
-    if (selectedTraverse) {
-      // save to db
-      const persistResponse = await httpClient_Traverse.upsertTraverse(selectedTraverse);
-      if (persistResponse) {
-        dispatch(upsertTraverse(persistResponse.data));
-        dispatch(upsertTraverseFromDb(persistResponse.data));
-      }
+    dispatch(setTraverseEditMode({ uuid: selectedEvaSequenceItemUuid, editMode: false }));
+
+    // save to db
+    const persistResponse = await httpClient_Traverse.upsertTraverse(selectedTraverse);
+    if (persistResponse) {
+      dispatch(upsertTraverse(persistResponse.data));
+      dispatch(upsertTraverseFromDb(persistResponse.data));
+    }
+
+    // if there's an active traverse edit action, cancel it
+    if (thisMapDirective?.mapAction === "editPolyline") {
+      dispatch(
+        updateMapDirective({
+          ...thisMapDirective,
+          mapAction: "saveEditPolyline",
+        })
+      );
     }
   };
 
   const handleCancel = async () => {
-    dispatch(setTraverseEditMode({ traverseUuid: selectedTraverseUuid, editMode: false }));
+    dispatch(setTraverseEditMode({ uuid: selectedEvaSequenceItemUuid, editMode: false }));
+
+    // if there's an active traverse edit action, cancel it
+    if (thisMapDirective?.mapAction === "editPolyline") {
+      dispatch(
+        updateMapDirective({
+          ...thisMapDirective,
+          mapAction: "cancelEditPolyline",
+        })
+      );
+    }
     // revert to db version
     if (selectedTraverseFromDb) {
       dispatch(upsertTraverse(selectedTraverseFromDb));
@@ -71,7 +97,7 @@ const EvaRightTraverse: FunctionComponent = () => {
   };
 
   const handleEdit = async () => {
-    dispatch(setTraverseEditMode({ traverseUuid: selectedTraverseUuid, editMode: true }));
+    dispatch(setTraverseEditMode({ uuid: selectedEvaSequenceItemUuid, editMode: true }));
   };
 
   let activeComponent: FunctionComponent = null;
@@ -87,7 +113,7 @@ const EvaRightTraverse: FunctionComponent = () => {
             <InLineEditInput
               fieldName="Traverse Name"
               value={selectedTraverse.name}
-              editing={traversesEditing.includes(selectedTraverseUuid)}
+              editing={traversesEditing.includes(selectedEvaSequenceItemUuid)}
               maxLength={255}
               styleInput={{
                 width: "100%",
@@ -134,7 +160,7 @@ const EvaRightTraverse: FunctionComponent = () => {
               })}
           </div>
           <div className={paneStyles.saveCancelContainer}>
-            {!traversesEditing.includes(selectedTraverseUuid) && (
+            {!traversesEditing.includes(selectedEvaSequenceItemUuid) && (
               <div className={paneStyles.verticalCenter}>
                 <IconButton
                   icon={faEdit}
@@ -147,7 +173,7 @@ const EvaRightTraverse: FunctionComponent = () => {
               </div>
             )}
 
-            {traversesEditing.includes(selectedTraverseUuid) && (
+            {traversesEditing.includes(selectedEvaSequenceItemUuid) && (
               <>
                 <div className={paneStyles.verticalCenter}>
                   <IconButton
