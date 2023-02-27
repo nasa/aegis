@@ -31,7 +31,6 @@ import { getEvas } from "http-client/eva";
 import { upsertEvas, upsertEvasFromDb } from "store/eva";
 import { upsertTraverses, replaceAllTraversesFromDb } from "store/traverse";
 import { getTraverses } from "http-client/traverse";
-import NavTimeline from "components/interface/nav-timeline";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -50,6 +49,10 @@ const MapBody = dynamic(import("components/interface/map-body-leaflet"), {
   ssr: false,
 });
 const Header = dynamic(import("components/interface/header"), {
+  ssr: false,
+});
+
+const NavTimeline = dynamic(import("components/interface/nav-timeline"), {
   ssr: false,
 });
 

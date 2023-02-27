@@ -42,6 +42,24 @@
           "nullable": false,
           "mappedType": "integer"
         },
+        "lander_location": {
+          "name": "lander_location",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "json"
+        },
+        "traverse_speed": {
+          "name": "traverse_speed",
+          "type": "double precision",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "double"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamptz(0)",

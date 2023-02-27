@@ -118,6 +118,8 @@ export class MissionSeeder extends Seeder {
         time: { enabled: false, visible: false, format: "" },
       },
       version: 4,
+      landerLocation: { lat: -3.645421873728663, lng: -17.47186660766602 },
+      traverseSpeed: 3.4,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

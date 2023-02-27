@@ -11,6 +11,10 @@ export class Mission implements Mission_db_type {
   config!: Config;
   @Property({ type: MikroTypes.integer })
   version!: number;
+  @Property({ type: MikroTypes.json, nullable: true })
+  landerLocation: AEGISPoint;
+  @Property({ type: MikroTypes.double, nullable: true })
+  traverseSpeed: number;
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;
