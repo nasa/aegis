@@ -29,6 +29,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       state.station.stations.find((station) => station.uuid === state.station.selectedStationUuid),
     shallowEqual
   );
+  const landerLocation = useAppSelector(
+    (state) => state.mission.mission.landerLocation,
+    shallowEqual
+  );
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = mapDirective?.uuid === selectedStation.uuid ? mapDirective : null;
 
@@ -329,7 +333,16 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         />
                         <IconButton
                           onClick={() => {
-                            alert("Not implemented yet");
+                            if (landerLocation?.lat && landerLocation?.lng) {
+                              dispatch(
+                                upsertStation({
+                                  ...selectedStation,
+                                  location: landerLocation,
+                                })
+                              );
+                            } else {
+                              alert("No lander location specified for this mission");
+                            }
                           }}
                           icon={faMapLocationDot}
                           label="Lander"

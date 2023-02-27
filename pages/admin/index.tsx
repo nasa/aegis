@@ -131,7 +131,12 @@ const MissionList = (props: {
 
 //Add new mission components
 const AddEditMission = (props: { refreshMissionList: () => {}; editMissionId?: number }) => {
-  const [mission, setMission] = useState<Mission>({ name: "", config: null }); //current mission being edited, or a blank mission if we're adding new
+  const [mission, setMission] = useState<Mission>({
+    name: "",
+    config: null,
+    landerLocation: { lat: 0, lng: 0 },
+    traverseSpeed: 0,
+  }); //current mission being edited, or a blank mission if we're adding new
   const [config, setConfig] = useState<Config>(createNewConfig());
 
   useEffect(() => {
@@ -157,7 +162,7 @@ const AddEditMission = (props: { refreshMissionList: () => {}; editMissionId?: n
       setConfig(missions.data[0].config);
     } else {
       //clear all component editors
-      setMission({ name: "", config: null });
+      setMission({ name: "", config: null, landerLocation: { lat: 0, lng: 0 }, traverseSpeed: 0 });
       setConfig(createNewConfig());
     }
   }
@@ -197,6 +202,60 @@ const AddEditMission = (props: { refreshMissionList: () => {}; editMissionId?: n
               setMission({ ...mission, name: e.target.value });
             }}
             value={mission?.name}
+          />
+        </div>
+      </div>
+      <div id="landerLatDiv">
+        <div className={styles.editDiv}>
+          <label htmlFor="landerLat">Lander Location Latitude</label>
+        </div>
+        <div className={styles.editDiv}>
+          <input
+            id="landerLat"
+            type="text"
+            onChange={(e) => {
+              setMission({
+                ...mission,
+                landerLocation: { ...mission.landerLocation, lat: +e.target.value },
+              });
+            }}
+            value={mission?.landerLocation?.lat}
+          />
+        </div>
+      </div>
+      <div id="landerLongDiv">
+        <div className={styles.editDiv}>
+          <label htmlFor="landerLong">Lander Location Longitude</label>
+        </div>
+        <div className={styles.editDiv}>
+          <input
+            id="landerLong"
+            type="text"
+            onChange={(e) => {
+              setMission({
+                ...mission,
+                landerLocation: { ...mission.landerLocation, lng: +e.target.value },
+              });
+            }}
+            value={mission?.landerLocation?.lng}
+          />
+        </div>
+      </div>
+      <div id="traverseDiv">
+        <div className={styles.editDiv}>
+          <label htmlFor="traverse">Default Traverse Speed</label>
+        </div>
+        <div className={styles.editDiv}>
+          <input
+            id="traverse"
+            type="text"
+            onChange={(e) => {
+              setMission({
+                ...mission,
+                traverseSpeed: +e.target.value,
+              });
+            }}
+            value={mission?.traverseSpeed}
           />
         </div>
       </div>
