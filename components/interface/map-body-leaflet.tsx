@@ -1,10 +1,11 @@
-import L from "leaflet";
+import * as L from "leaflet";
 L.Icon.Default.imagePath = "/leaflet/images/";
 // Import the plugin libraries so they will modify L
 import "leaflet.tilelayer.colorfilter";
 import { HighlightablePolyline } from "leaflet-highlightable-layers";
 import DraggableLines from "leaflet-draggable-lines";
 import { antPath } from "leaflet-ant-path";
+import "proj4leaflet";
 
 import styles from "components/interface/map-body.module.css";
 
@@ -36,6 +37,11 @@ import {
   revertTraverseLocationAndDistance,
   updateTraverseLocationAndDistance,
 } from "store/traverse";
+import {
+  convertLeafletLatLngsToAegisPoints,
+  convertLeafletLatLngToAegisPoint,
+  getTotalDistance,
+} from "utils/geoMath";
 // import { upsertTraverse } from "store/traverse";
 // import { setSelectedEvaSequenceItemUuid } from "store/eva";
 
@@ -49,6 +55,7 @@ const MapBody: FunctionComponent = () => {
   const dispatch = useDispatch();
   const mapRef = useRef(null);
   const map = useRef(null);
+  const crs = useRef(null);
   const draggableLines = useRef(null);
 
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
@@ -350,16 +357,59 @@ const MapBody: FunctionComponent = () => {
   /**
    * Map instantiation and event listeners.
    */
-  // useLayoutEffect runs immediately immediately after the DOM is updated, but before the browser has a chance to paint
   useLayoutEffect(() => {
-    if (!mapRef.current || !map) return;
+    if (!mapRef.current || !map || !mission.config) return;
+
+    // instantiate the prog4leaflet crs using the values in the mission config
+    if (mission.config.projection.custom === true) {
+      const baseRes =
+        mission.config.projection.resunitsperpixel *
+        Math.pow(2, mission.config.projection.reszoomlevel);
+
+      const resolutions = [];
+      for (let i = 0; i < 32; i++) {
+        resolutions.push(baseRes / Math.pow(2, i));
+      }
+
+      crs.current = new L.Proj.CRS(
+        Number.isFinite(parseInt(mission.config.projection.epsg[0]))
+          ? `EPSG:${mission.config.projection.epsg}`
+          : mission.config.projection.epsg,
+        mission.config.projection.proj,
+        {
+          origin: [
+            parseFloat(mission.config.projection.origin[0]),
+            parseFloat(mission.config.projection.origin[1]),
+          ],
+          resolutions,
+          bounds: L.bounds(
+            [
+              parseFloat(mission.config.projection.bounds[0]),
+              parseFloat(mission.config.projection.bounds[1]),
+            ],
+            [
+              parseFloat(mission.config.projection.bounds[2]),
+              parseFloat(mission.config.projection.bounds[3]),
+            ]
+          ),
+        }
+      );
+    }
 
     // Instantiate the map
     if (!map.current) {
+      // debugger;
       map.current = L.map(mapRef.current, {
         center: center,
         zoom: zoom,
+        zoomDelta: 0.05,
+        zoomSnap: 0,
+        fadeAnimation: true,
       });
+      if (crs.current) {
+        map.current.options.crs = crs.current;
+      }
+
       const scaleControl = L.control.scale({ metric: true, imperial: false, maxWidth: 200 });
       scaleControl.addTo(map.current);
 
@@ -373,7 +423,7 @@ const MapBody: FunctionComponent = () => {
         map.current = null;
       }
     };
-  }, [mapRef, map, draggableLines]);
+  }, [mapRef, map, draggableLines, mission]);
 
   /**
    * Set the center of the map to the center of the selected mission (config.msv.view)
@@ -474,7 +524,13 @@ const MapBody: FunctionComponent = () => {
           const dispatchLocationAndDistance = (e) => {
             if (e.layer.uuid === mapDirective?.uuid) {
               const location = convertLeafletLatLngsToAegisPoints(e.layer.getLatLngs());
-              const distance = getLeafletPolylineDistance(e.layer);
+              const polylinePoints: AEGISPoint[] = convertLeafletLatLngsToAegisPoints(
+                e.layer.getLatLngs()
+              );
+              const distance = getTotalDistance(
+                polylinePoints,
+                parseFloat(mission.config.msv.radius.minor)
+              );
               if (e.layer.mapItemType === "traverse") {
                 dispatch(
                   updateTraverseLocationAndDistance({
@@ -496,19 +552,13 @@ const MapBody: FunctionComponent = () => {
             }
           };
 
-          draggableLines.current.on(
-            "drag",
-            _.debounce((e) => {
-              dispatchLocationAndDistance(e);
-            }, 50)
-          );
+          draggableLines.current.on("drag", (e) => {
+            dispatchLocationAndDistance(e);
+          });
 
-          draggableLines.current.on(
-            "remove",
-            _.debounce((e) => {
-              dispatchLocationAndDistance(e);
-            }, 50)
-          );
+          draggableLines.current.on("remove", (e) => {
+            dispatchLocationAndDistance(e);
+          });
         }
 
         break;
@@ -559,7 +609,7 @@ const MapBody: FunctionComponent = () => {
         draggableLines.current.off("drag");
       }
     };
-  }, [map, draggableLines, mapDirective, dispatch, getMapItemByUuid]);
+  }, [map, mission, draggableLines, mapDirective, dispatch, getMapItemByUuid]);
 
   /**
    * Draw or update POIs on the map when pois change. Serves as draw when page loads
@@ -817,24 +867,4 @@ const getLayerByName = (map: MutableRefObject<any>, name: string) => {
     if (layer.options.id === name) returnVal = layer;
   });
   return returnVal;
-};
-
-const convertLeafletLatLngToAegisPoint = (latLng: L.LatLng): AEGISPoint => {
-  return {
-    lat: latLng.lat,
-    lng: latLng.lng,
-  };
-};
-
-const convertLeafletLatLngsToAegisPoints = (latLngs: L.LatLng[]): AEGISPoint[] => {
-  return latLngs.map((latLng) => convertLeafletLatLngToAegisPoint(latLng));
-};
-
-const getLeafletPolylineDistance = (polyline: L.Polyline): number => {
-  let distance = 0;
-  polyline.getLatLngs().forEach((latLng, index) => {
-    if (index === 0) return;
-    distance += latLng.distanceTo(polyline.getLatLngs()[index - 1]);
-  });
-  return distance;
 };

@@ -1,5 +1,10 @@
 import { describe, expect, test, it } from "@jest/globals";
-import { calcCentroidofCoordinates, getDistanceBetweenTwoCoordinates } from "utils/geoMath";
+import {
+  calcCentroidofCoordinates,
+  convertLeafletLatLngToAegisPoint,
+  getDistanceBetweenTwoCoordinates,
+  getTotalDistance,
+} from "utils/geoMath";
 import { LatLng } from "leaflet";
 import {
   appSecondsFromDateString,
@@ -60,6 +65,21 @@ describe("Utilities Functions", () => {
   }
   test("GeoMath: Returns 0 distance between two identical coordinates", () => {
     expect(getDistanceBetweenTwoCoordinates(latLng1, latLng2, 0)).toBe(0);
+  });
+  test("GeoMath: Convert leaflet latlng to aegispoint", () => {
+    const latlng = new LatLng(0, 0);
+    const aegispoint = convertLeafletLatLngToAegisPoint(latlng);
+    expect(aegispoint.lat).toBe(0);
+    expect(aegispoint.lng).toBe(0);
+  });
+
+  test("GeoMath: Returns 0 distance between three identical coordinates", () => {
+    const point1 = {
+      lat: 0,
+      lng: 0,
+    } as AEGISPoint;
+    const radiusOfEarth = 6371000;
+    expect(getTotalDistance([point1, point1, point1], radiusOfEarth)).toBe(0);
   });
 
   test("GeoMath: calcCentroidofCoordinates returns known results for 2 test cases", () => {
