@@ -1,24 +1,20 @@
-import { LatLng } from "leaflet";
-
+/**
+ * Calculate the distance between two coordinates
+ * @param {AEGISPoint} point1 - the first coordinate
+ * @param {AEGISPoint} point2 - the second coordinate
+ * @param {number} R - The radius of the planet in question
+ */
 export function getDistanceBetweenTwoCoordinates(
-  latLng1: LatLng,
-  latLng2: LatLng,
+  point1: AEGISPoint,
+  point2: AEGISPoint,
   R: number
 ): number {
-  /**
-   * Calculate the distance between two coordinates
-   * @param {number} lat1
-   * @param {number} lon1
-   * @param {number} lat2
-   * @param {number} lon2
-   * @param {number} R - the radius of the planet in question
-   */
-  var dLat = deg2rad(latLng2.lat - latLng1.lat); // deg2rad below
-  var dLon = deg2rad(latLng2.lng - latLng1.lng);
+  var dLat = deg2rad(point2.lat - point1.lat); // deg2rad below
+  var dLon = deg2rad(point2.lng - point1.lng);
   var a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(deg2rad(latLng1.lat)) *
-      Math.cos(deg2rad(latLng2.lat)) *
+    Math.cos(deg2rad(point1.lat)) *
+      Math.cos(deg2rad(point2.lat)) *
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
   var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
@@ -29,6 +25,21 @@ export function getDistanceBetweenTwoCoordinates(
 function deg2rad(deg) {
   return deg * (Math.PI / 180);
 }
+
+/**
+ * Calculate the total distance of a path (array of points)
+ * @param points AEGISPoint array
+ * @param R The radius of the planet in question
+ * @returns distance in R units
+ */
+export const getTotalDistance = (points: AEGISPoint[], R: number): number => {
+  let distance = 0;
+  points.forEach((latLng, index) => {
+    if (index === 0) return;
+    distance += getDistanceBetweenTwoCoordinates(points[index], points[index - 1], R);
+  });
+  return distance;
+};
 
 /**
  * Calculate the center/average of multiple AEGISPoint coordinates
@@ -66,3 +77,14 @@ export function calcCentroidofCoordinates(coords: AEGISPoint[]): AEGISPoint {
     lng: (centralLongitude * 180) / Math.PI,
   };
 }
+
+export const convertLeafletLatLngToAegisPoint = (latLng: L.LatLng): AEGISPoint => {
+  return {
+    lat: latLng.lat,
+    lng: latLng.lng,
+  };
+};
+
+export const convertLeafletLatLngsToAegisPoints = (latLngs: L.LatLng[]): AEGISPoint[] => {
+  return latLngs.map((latLng) => convertLeafletLatLngToAegisPoint(latLng));
+};
