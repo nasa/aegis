@@ -39,7 +39,7 @@ const StationEditorLeft: FunctionComponent = () => {
       ownerId: user.id,
       missionId: missionId,
       uuid: uuidv4(),
-      name: "S-" + randomName,
+      name: randomName,
       status: "Candidate",
       description: "",
       radius: 5,

@@ -57,7 +57,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
     return {
       missionId: missionId,
       uuid: uuidv4(),
-      name: "T-" + randomName,
+      name: randomName,
       description: "",
       durationLower: null,
       durationUpper: null,
