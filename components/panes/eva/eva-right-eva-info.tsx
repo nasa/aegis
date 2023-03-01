@@ -2,7 +2,6 @@ import {
   ContentEditableTextArea,
   InLineEditInput,
   LastEdited,
-  MultiButton,
 } from "components/interface/_global-elements";
 import { FunctionComponent, useCallback, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
@@ -125,22 +124,6 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
       <div className={paneStyles.rightBodyTitle}>EVA Information</div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Status</div>
-            <MultiButton
-              editing={editMode}
-              selected={selectedEva.status}
-              handleChange={(newStatus) => {
-                console.log(newStatus);
-                dispatch(upsertEva({ ...selectedEva, status: newStatus }));
-              }}
-            >
-              <button type="button">Archived</button>
-              <button type="button">Candidate</button>
-              <button type="button">In Review</button>
-              <button type="button">Approved</button>
-            </MultiButton>
-          </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelMediumField}>
