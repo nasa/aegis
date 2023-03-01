@@ -34,7 +34,7 @@ const PoiEditorLeft: FunctionComponent = () => {
       ownerId: userId,
       missionId: mission.id,
       uuid: uuidv4(),
-      name: "P-" + randomName,
+      name: randomName,
       description: "",
       priorityOverride: 0,
       radius: 5,

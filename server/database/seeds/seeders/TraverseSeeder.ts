@@ -8,7 +8,7 @@ export class TraverseSeeder extends Seeder {
     context.traverse1 = em.create(Traverse, {
       uuid: uuidv4(),
       mission: context.mission1.id,
-      name: "T-Running",
+      name: "Running",
       location: [
         { lat: -3.645421873728663, lng: -17.47186660766602 },
         { lat: -3.6305197977566683, lng: -17.43161201477051 },
@@ -24,7 +24,7 @@ export class TraverseSeeder extends Seeder {
     context.traverse2 = em.create(Traverse, {
       uuid: uuidv4(),
       mission: context.mission1.id,
-      name: "T-Walking",
+      name: "Walking",
       location: [
         { lat: -3.6305197977566683, lng: -17.43161201477051 },
         { lat: -3.638316103462144, lng: -17.462511062622074 },
@@ -40,7 +40,7 @@ export class TraverseSeeder extends Seeder {
     context.traverse3 = em.create(Traverse, {
       uuid: uuidv4(),
       mission: context.mission1.id,
-      name: "T-Skipping",
+      name: "Skipping",
       location: [
         { lat: -3.638316103462144, lng: -17.462511062622074 },
         { lat: -3.645421873728663, lng: -17.47186660766602 },

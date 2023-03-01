@@ -9,7 +9,7 @@ export class EVASeeder extends Seeder {
       uuid: uuidv4(),
       owner: context.user1.id,
       mission: context.mission1.id,
-      name: "E-Complete",
+      name: "Complete",
       status: "Candidate",
       sequence: [
         { type: "station", uuid: context.station1.uuid },
@@ -28,7 +28,7 @@ export class EVASeeder extends Seeder {
       uuid: uuidv4(),
       owner: context.user1.id,
       mission: context.mission1.id,
-      name: "E-Empty",
+      name: "Empty",
       status: "Candidate",
       sequence: [],
       description: "EVA test description 2",
