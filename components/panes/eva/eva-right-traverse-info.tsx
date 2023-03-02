@@ -11,7 +11,6 @@ import {
   IconButton,
   InLineEditInput,
   LastEdited,
-  MultiButton,
 } from "components/interface/_global-elements";
 import { FunctionComponent } from "react";
 import { useDispatch } from "react-redux";
@@ -85,22 +84,6 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
       <div className={paneStyles.rightBodyTitle}>Traverse Information</div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Status</div>
-            <MultiButton
-              editing={editMode}
-              selected={selectedTraverse.status}
-              handleChange={(newStatus) => {
-                console.log(newStatus);
-                dispatch(upsertTraverse({ ...selectedTraverse, status: newStatus }));
-              }}
-            >
-              <button type="button">Archived</button>
-              <button type="button">Candidate</button>
-              <button type="button">In Review</button>
-              <button type="button">Approved</button>
-            </MultiButton>
-          </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelMediumField}>

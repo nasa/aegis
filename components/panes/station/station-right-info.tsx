@@ -12,7 +12,6 @@ import {
   IconButton,
   InLineEditInput,
   LastEdited,
-  MultiButton,
 } from "components/interface/_global-elements";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useDispatch } from "react-redux";
@@ -203,22 +202,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       <div className={paneStyles.rightBodyTitle}>Station Information</div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Status</div>
-            <MultiButton
-              editing={editMode}
-              selected={selectedStation.status}
-              handleChange={(newStatus) => {
-                console.log(newStatus);
-                dispatch(upsertStation({ ...selectedStation, status: newStatus }));
-              }}
-            >
-              <button type="button">Archived</button>
-              <button type="button">Candidate</button>
-              <button type="button">In Review</button>
-              <button type="button">Approved</button>
-            </MultiButton>
-          </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSmallField}>

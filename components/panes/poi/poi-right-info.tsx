@@ -7,8 +7,6 @@ import {
   IconButton,
   InLineEditInput,
   LastEdited,
-  MultiButton,
-  Tags,
 } from "components/interface/_global-elements";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useDispatch } from "react-redux";
@@ -74,22 +72,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Status</div>
-            <MultiButton
-              editing={editMode}
-              selected={selectedPoi.status}
-              handleChange={(newStatus) => {
-                console.log(newStatus);
-                dispatch(upsertPoi({ ...selectedPoi, status: newStatus }));
-              }}
-            >
-              <button type="button">Archived</button>
-              <button type="button">Candidate</button>
-              <button type="button">In Review</button>
-              <button type="button">Approved</button>
-            </MultiButton>
-          </div>
-          <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSmallField}>
                 <div className={paneStyles.panelSectionTitle}>Radius (m)</div>
@@ -130,20 +112,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               </div>
             </div>
           </div>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Metatags</div>
-            <Tags
-              value={selectedPoi.tags}
-              editing={editMode}
-              onChange={(value) => {
-                dispatch(upsertPoi({ ...selectedPoi, tags: value }));
-              }}
-              name="tags"
-              separators={["Enter", " "]}
-              placeHolder="type tag and press enter"
-              onExisting={() => {}}
-            ></Tags>
-          </div>
+
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle}>POI Value & Notes</div>
             <ContentEditableTextArea
