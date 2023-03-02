@@ -1,6 +1,7 @@
 import {
   ContentEditableTextArea,
   InLineEditInput,
+  LastEdited,
   MultiButton,
 } from "components/interface/_global-elements";
 import { FunctionComponent, useCallback, useEffect, useState } from "react";
@@ -213,6 +214,14 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                 <div className={paneStyles.panelDisplayVal}>
                   <>{displayAverageTraverseSpeed()}</>&nbsp;m/s
                 </div>
+              </div>
+            </div>
+          </div>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>Last Edited</div>
+            <div className={paneStyles.verticalCenter}>
+              <div className={paneStyles.panelText}>
+                <LastEdited updatedAt={selectedEva?.updatedAt} />
               </div>
             </div>
           </div>

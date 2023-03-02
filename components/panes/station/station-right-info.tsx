@@ -11,6 +11,7 @@ import {
   ContentEditableTextArea,
   IconButton,
   InLineEditInput,
+  LastEdited,
   MultiButton,
 } from "components/interface/_global-elements";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -457,6 +458,14 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Walk-back Duration</div>
                 <div className={paneStyles.panelText}>TBD</div>
+              </div>
+            </div>
+          </div>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>Last Edited</div>
+            <div className={paneStyles.verticalCenter}>
+              <div className={paneStyles.panelText}>
+                <LastEdited updatedAt={selectedStation?.updatedAt} />
               </div>
             </div>
           </div>

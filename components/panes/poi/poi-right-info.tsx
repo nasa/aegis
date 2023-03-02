@@ -6,6 +6,7 @@ import {
   ContentEditableTextArea,
   IconButton,
   InLineEditInput,
+  LastEdited,
   MultiButton,
   Tags,
 } from "components/interface/_global-elements";
@@ -227,6 +228,14 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   <div className={paneStyles.panelText}>Location not yet set</div>
                 )}
               </>
+            </div>
+          </div>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>Last Edited</div>
+            <div className={paneStyles.verticalCenter}>
+              <div className={paneStyles.panelText}>
+                <LastEdited updatedAt={selectedPoi?.updatedAt} />
+              </div>
             </div>
           </div>
         </div>

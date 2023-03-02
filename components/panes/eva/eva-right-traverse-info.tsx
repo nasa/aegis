@@ -10,6 +10,7 @@ import {
   ContentEditableTextArea,
   IconButton,
   InLineEditInput,
+  LastEdited,
   MultiButton,
 } from "components/interface/_global-elements";
 import { FunctionComponent } from "react";
@@ -236,6 +237,14 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                   <div className={paneStyles.panelText}>Location not yet set</div>
                 )}
               </>
+            </div>
+          </div>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>Last Edited</div>
+            <div className={paneStyles.verticalCenter}>
+              <div className={paneStyles.panelText}>
+                <LastEdited updatedAt={selectedTraverse?.updatedAt} />
+              </div>
             </div>
           </div>
         </div>
