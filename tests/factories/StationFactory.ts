@@ -15,6 +15,11 @@ export default class StationFactory extends Factory<Station_db> {
       description: "",
       radius: 0,
       location: null,
+      walkbackLocation: null,
+      walkbackDistance: 0,
+      durationLower: 0,
+      durationUpper: 0,
+
       createdAt: new Date(),
       updatedAt: new Date(),
     };

@@ -44,6 +44,10 @@ export class Station implements Station_db_type {
   walkbackDistance: number;
   @Property({ type: MikroTypes.json, nullable: true })
   actionOrderUuids: string[];
+  @Property({ type: MikroTypes.double, nullable: true })
+  durationLower!: number;
+  @Property({ type: MikroTypes.double, nullable: true })
+  durationUpper: number;
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;

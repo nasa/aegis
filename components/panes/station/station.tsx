@@ -44,6 +44,8 @@ const StationEditorLeft: FunctionComponent = () => {
       description: "",
       radius: 5,
       location: null,
+      durationLower: 0,
+      durationUpper: 0,
       walkbackLocation: null,
       walkbackDistance: null,
     };

@@ -768,6 +768,24 @@
           "nullable": true,
           "mappedType": "json"
         },
+        "duration_lower": {
+          "name": "duration_lower",
+          "type": "double precision",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "double"
+        },
+        "duration_upper": {
+          "name": "duration_upper",
+          "type": "double precision",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "double"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamptz(0)",
@@ -1313,7 +1331,7 @@
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
+          "nullable": true,
           "mappedType": "double"
         },
         "duration_upper": {
