@@ -75,9 +75,8 @@ export function hhmmssmmmFromSeconds(secondsParam: number): string {
  * Formats any isoString timestamp into yyyy-mm-dd
  */
 export function shortdateFromDateString(dateString: string): string {
-  if (dateString === "") {
-    return "";
-  }
+  if (dateString === "") return "";
+
   dateString = isoStringFromAnyDateString(dateString);
   const tempDate = new Date(dateString);
   return (
@@ -86,6 +85,29 @@ export function shortdateFromDateString(dateString: string): string {
     padZeros(tempDate.getUTCMonth() + 1, 2) +
     "-" +
     padZeros(tempDate.getUTCDate(), 2)
+  );
+}
+
+/**
+ * Formats any isoString timestamp into yyyy-mm-dd hh:mm:ss
+ */
+export function longdateFromDateString(dateString: string): string {
+  if (dateString === "") return "";
+
+  dateString = isoStringFromAnyDateString(dateString);
+  const tempDate = new Date(dateString);
+  return (
+    tempDate.getUTCFullYear() +
+    "-" +
+    padZeros(tempDate.getUTCMonth() + 1, 2) +
+    "-" +
+    padZeros(tempDate.getUTCDate(), 2) +
+    " " +
+    padZeros(tempDate.getUTCHours(), 2) +
+    ":" +
+    padZeros(tempDate.getUTCMinutes(), 2) +
+    ":" +
+    padZeros(tempDate.getUTCSeconds(), 2)
   );
 }
 

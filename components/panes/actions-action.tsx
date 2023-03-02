@@ -16,7 +16,7 @@ import { FunctionComponent, useState } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
 import { deleteAction, upsertAction } from "store/action";
-import { toDecimal } from "utils/formatting";
+import { longdateFromDateString, toDecimal } from "utils/formatting";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { Tooltip } from "react-tooltip";
@@ -44,10 +44,7 @@ const RightAction: FunctionComponent<{
 
   function buildActionTooltip() {
     if (parentAction && parentPoi) {
-      const copyDate: Date = new Date(action.parentCopyDate);
-      const dateString = `${
-        copyDate.getUTCMonth() + 1
-      }/${copyDate.getUTCDate()}/${copyDate.getUTCFullYear()} @ ${copyDate.getUTCHours()}:${copyDate.getUTCMinutes()} UTC`;
+      const dateString = longdateFromDateString(action.parentCopyDate) + "Z";
       return (
         <>
           Copied from {parentPoi.name} - {parentAction.name}

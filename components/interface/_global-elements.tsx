@@ -6,6 +6,7 @@ import styles from "./_global-elements.module.css";
 import _ from "lodash";
 import { TagsInput } from "react-tag-input-component";
 import ContentEditable, { ContentEditableEvent } from "react-contenteditable";
+import { longdateFromDateString } from "utils/formatting";
 
 export const IconButton: FunctionComponent<{
   onClick: () => void;
@@ -299,4 +300,10 @@ export const Checkbox: FunctionComponent<{
       />
     </div>
   );
+};
+
+export const LastEdited: FunctionComponent<{
+  updatedAt: string;
+}> = ({ updatedAt }) => {
+  return <>{updatedAt ? <>{longdateFromDateString(updatedAt)}&nbsp;Z</> : <>N/A</>}&nbsp;&nbsp;</>;
 };
