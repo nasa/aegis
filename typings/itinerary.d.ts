@@ -85,6 +85,12 @@ interface Station {
   walkbackLocation: AEGISPoint[];
   walkbackDistance: number;
 
+  /**
+   * The estimated duration of the action, in minutes.
+   */
+  durationLower: number; // in minutes
+  durationUpper?: number; // in minutes
+
   createdAt?: string;
   updatedAt?: string;
 }

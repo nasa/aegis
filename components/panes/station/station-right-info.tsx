@@ -19,6 +19,7 @@ import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, upsertStation } from "store/station";
 import { updateMapDirective } from "store/map";
 import { calcCentroidofCoordinates } from "utils/geoMath";
+import { toDecimal } from "utils/formatting";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -216,6 +217,56 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     value={selectedStation.radius.toString()}
                     onChange={(val: string) => {
                       dispatch(upsertStation({ ...selectedStation, radius: +val }));
+                    }}
+                  />
+                </div>
+              </div>
+              <div className={paneStyles.panelMediumField}>
+                <div className={paneStyles.panelSectionTitle}>Est Dwell Nominal*</div>
+                <div className={paneStyles.inputField}>
+                  <InLineEditInput
+                    fieldName="Minimum Time in minutes"
+                    editing={editMode}
+                    maxLength={4}
+                    styleInput={{ width: "45px" }}
+                    containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                    value={selectedStation.durationLower?.toString()}
+                    onChange={(val: number) => {
+                      const updatedStation: Station = { ...selectedStation, durationLower: val };
+                      dispatch(upsertStation(updatedStation));
+                    }}
+                    onBlur={(e) => {
+                      const numericVal = toDecimal(e.target.value);
+                      const updatedStation: Station = {
+                        ...selectedStation,
+                        durationLower: numericVal,
+                      };
+                      dispatch(upsertStation(updatedStation));
+                    }}
+                  />
+                </div>
+              </div>
+              <div className={paneStyles.panelMediumField}>
+                <div className={paneStyles.panelSectionTitle}>Est Dwell Max</div>
+                <div className={paneStyles.inputField}>
+                  <InLineEditInput
+                    fieldName="Maximum Time in minutes"
+                    editing={editMode}
+                    maxLength={4}
+                    styleInput={{ width: "45px" }}
+                    containerStyle={{ fontSize: "0.8rem", fontWeight: 400 }}
+                    value={selectedStation.durationUpper?.toString()}
+                    onChange={(val: number) => {
+                      const updatedStation: Station = { ...selectedStation, durationUpper: val };
+                      dispatch(upsertStation(updatedStation));
+                    }}
+                    onBlur={(e) => {
+                      const numericVal = toDecimal(e.target.value);
+                      const updatedStation: Station = {
+                        ...selectedStation,
+                        durationUpper: numericVal,
+                      };
+                      dispatch(upsertStation(updatedStation));
                     }}
                   />
                 </div>

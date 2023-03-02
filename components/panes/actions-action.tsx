@@ -10,7 +10,7 @@ import {
   ContentEditableTextArea,
   Dropdown,
   InLineEditInput,
-  MultiButton,
+  LastEdited,
 } from "components/interface/_global-elements";
 import { FunctionComponent, useState } from "react";
 import paneStyles from "./global-pane-styles.module.css";
@@ -152,22 +152,6 @@ const RightAction: FunctionComponent<{
       {expanded && (
         <>
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Status</div>
-            <MultiButton
-              editing={editMode}
-              selected={action.status}
-              handleChange={(newStatus: ActionStatus) => {
-                const updatedAction: Action = { ...action, status: newStatus };
-                dispatch(upsertAction(updatedAction));
-              }}
-            >
-              <button type="button">Archived</button>
-              <button type="button">Candidate</button>
-              <button type="button">In Review</button>
-              <button type="button">Approved</button>
-            </MultiButton>
-          </div>
-          <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Duration Min*</div>
@@ -236,6 +220,14 @@ const RightAction: FunctionComponent<{
                 dispatch(upsertAction(updatedAction));
               }} // handle innerHTML change
             />
+          </div>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>Last Edited</div>
+            <div className={paneStyles.verticalCenter}>
+              <div className={paneStyles.panelText}>
+                <LastEdited updatedAt={action?.updatedAt} />
+              </div>
+            </div>
           </div>
         </>
       )}

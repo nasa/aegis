@@ -32,7 +32,7 @@ export class Action implements Action_db_type {
   type!: ActionType;
   @Property({ type: MikroTypes.string })
   description!: string;
-  @Property({ type: MikroTypes.double })
+  @Property({ type: MikroTypes.double, nullable: true })
   durationLower!: number;
   @Property({ type: MikroTypes.double, nullable: true })
   durationUpper: number;
