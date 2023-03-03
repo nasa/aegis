@@ -16,6 +16,7 @@ import StationItem from "./station-item";
 import { generateUniqueName } from "utils/unique-name";
 import { duplicateAction } from "store/action";
 import _ from "lodash";
+import { duplicateStationOrPOI } from "utils/duplicate";
 
 const StationEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -65,11 +66,10 @@ const StationEditorLeft: FunctionComponent = () => {
       const newStation: Station = {
         ...station,
         uuid: uuidv4(),
-        name: station.name + " (copy)",
+        name: duplicateStationOrPOI(station, stations),
       };
       dispatch(duplicateStation(newStation));
       const newStationActions = actions.filter((action) => action.stationUuid === station?.uuid);
-      console.log("newStationActions", newStationActions);
       for (const action of newStationActions) {
         dispatch(
           duplicateAction({
