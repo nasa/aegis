@@ -51,6 +51,7 @@ describe("EVA API Endpoint", () => {
     sequence: null,
     description: "",
     maxDuration: null,
+    traverseRate: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

@@ -23,6 +23,8 @@ export class Eva implements Eva_db_type {
   description!: string;
   @Property({ type: MikroTypes.double, nullable: true })
   maxDuration!: number;
+  @Property({ type: MikroTypes.double, nullable: true })
+  traverseRate!: number;
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;

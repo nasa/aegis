@@ -109,7 +109,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 lng: selectedStation.location?.lng - 0.01,
               },
             ],
-            walkbackDistance: 50,
+            walkbackDistance: [50],
           })
         );
       }
@@ -227,8 +227,8 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     styleInput={{ width: "45px" }}
                     containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
                     value={selectedStation.radius.toString()}
-                    onChange={(val: string) => {
-                      dispatch(upsertStation({ ...selectedStation, radius: +val }));
+                    onChange={(val: number) => {
+                      dispatch(upsertStation({ ...selectedStation, radius: val }));
                     }}
                   />
                 </div>
@@ -536,7 +536,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Walk-back Distance</div>
                 <div className={paneStyles.panelText}>
-                  {selectedStation.walkbackDistance?.toFixed(2)}&nbsp;m
+                  {selectedStation.walkbackDistance
+                    ?.reduce((accumulator, currentVal) => accumulator + currentVal, 0)
+                    .toFixed(2)}
+                  &nbsp;m
                 </div>
               </div>
               <div className={paneStyles.panelMediumField}>

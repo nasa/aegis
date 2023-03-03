@@ -312,7 +312,7 @@ const EvaRightEva: FunctionComponent = () => {
         <STM_Panel
           actions={evaActions}
           mini={false}
-          horizontal={true}
+          horizontal={false}
           uniqueKey={selectedEvaUuid}
         />
       ),

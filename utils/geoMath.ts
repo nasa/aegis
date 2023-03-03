@@ -88,3 +88,65 @@ export const convertLeafletLatLngToAegisPoint = (latLng: L.LatLng): AEGISPoint =
 export const convertLeafletLatLngsToAegisPoints = (latLngs: L.LatLng[]): AEGISPoint[] => {
   return latLngs.map((latLng) => convertLeafletLatLngToAegisPoint(latLng));
 };
+
+/**
+ *   
+  // sample implementation:
+  // location is an array of AEGISPoint
+
+  // const numPointsAt10Meters =
+  //   getTotalDistance(location, parseInt(mission.config.msv.radius.minor)) / 10;
+
+  // const newPoints = generateEquidistantPointsAlongPolyline(
+  //   location,
+  //   numPointsAt10Meters,
+  //   parseInt(mission.config.msv.radius.minor)
+  // );
+
+ * @param polyline An array of points
+ * @param n number of new points to add between each segment in the polyline
+ * @param R radius of planet
+ * @returns New array with added points
+ */
+export function generateEquidistantPointsAlongPolyline(
+  polyline: AEGISPoint[],
+  n: number,
+  R: number
+): AEGISPoint[] {
+  const editablePolyline = [...polyline];
+
+  // Calculate total distance
+  const totalDistance = getTotalDistance(editablePolyline, R);
+
+  // Calculate distance between each equidistant point
+  const distanceBetweenPoints = totalDistance / (n - 1);
+
+  // Traverse polyline and add equidistant points to output array
+  let currentDistance = 0;
+  const output = [editablePolyline[0]];
+  for (let i = 1; i < editablePolyline.length; i++) {
+    const segmentDistance = getDistanceBetweenTwoCoordinates(
+      editablePolyline[i - 1],
+      editablePolyline[i],
+      R
+    );
+    if (currentDistance + segmentDistance >= distanceBetweenPoints) {
+      const remainder = distanceBetweenPoints - currentDistance;
+      const ratio = remainder / segmentDistance;
+      const lat =
+        editablePolyline[i - 1].lat +
+        ratio * (editablePolyline[i].lat - editablePolyline[i - 1].lat);
+      const lng =
+        editablePolyline[i - 1].lng +
+        ratio * (editablePolyline[i].lng - editablePolyline[i - 1].lng);
+      output.push({ lat, lng });
+      editablePolyline.splice(i, 0, { lat, lng });
+      currentDistance = remainder;
+    } else {
+      currentDistance += segmentDistance;
+    }
+  }
+  output.push(editablePolyline[editablePolyline.length - 1]);
+
+  return output;
+}

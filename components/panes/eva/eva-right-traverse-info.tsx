@@ -141,7 +141,10 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Traverse Distance</div>
                 <div className={paneStyles.panelDisplayVal}>
-                  {selectedTraverse.distance?.toFixed(2)}&nbsp;m
+                  {selectedTraverse.distance
+                    ?.reduce((accumulator, currentVal) => accumulator + currentVal, 0)
+                    .toFixed(2)}
+                  &nbsp;m
                 </div>
               </div>
               <div className={paneStyles.panelMediumField}>
