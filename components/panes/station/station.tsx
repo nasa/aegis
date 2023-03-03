@@ -14,6 +14,7 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import StationItem from "./station-item";
 import { generateUniqueName } from "utils/unique-name";
+import { duplicateAction } from "store/action";
 import _ from "lodash";
 
 const StationEditorLeft: FunctionComponent = () => {
@@ -59,6 +60,27 @@ const StationEditorLeft: FunctionComponent = () => {
     dispatch(setSelectedStationUuid(blankStation.uuid));
   };
 
+  const handleDuplicateStation = (station: Station) => {
+    if (selectedStationUuid !== null) {
+      const newStation: Station = {
+        ...station,
+        uuid: uuidv4(),
+        name: station.name + " (copy)",
+      };
+      dispatch(duplicateStation(newStation));
+      const newStationActions = actions.filter((action) => action.stationUuid === station?.uuid);
+      console.log("newStationActions", newStationActions);
+      for (const action of newStationActions) {
+        dispatch(
+          duplicateAction({
+            action: action,
+            stationUuid: newStation.uuid,
+          })
+        );
+      }
+    }
+  };
+
   return (
     <>
       <div className={paneStyles.leftPanelContainer}>
@@ -96,17 +118,15 @@ const StationEditorLeft: FunctionComponent = () => {
           }}
           label="Add"
           icon={faPlusCircle}
-        ></IconButton>
+        />
         <IconButton
           onClick={() => {
-            if (selectedStationUuid !== null) {
-              dispatch(duplicateStation(selectedStation));
-            }
+            handleDuplicateStation(selectedStation);
           }}
           label="Duplicate"
           icon={faClone}
           enabled={selectedStationUuid !== null}
-        ></IconButton>
+        />
       </div>
     </>
   );

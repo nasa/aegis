@@ -1,6 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { upsertToArrayByUuid } from "utils/store";
-import { v4 as uuidv4 } from "uuid";
 
 export const initialState: PoiState = {
   pois: [],
@@ -39,16 +38,11 @@ export const poiSlice = createSlice({
       state.selectedPoiUuid = action.payload;
     },
     duplicatePoi: (state, action: { payload: POI }) => {
-      const newPoi: POI = {
-        ...action.payload,
-        uuid: uuidv4(),
-        name: action.payload.name + " (copy)",
-      };
-      state.pois.push(newPoi);
+      state.pois.push(action.payload);
       // turn on edit mode for the new POI
-      state.poisEditing.push(newPoi.uuid);
+      state.poisEditing.push(action.payload.uuid);
       // select the newly created POI
-      state.selectedPoiUuid = newPoi.uuid;
+      state.selectedPoiUuid = action.payload.uuid;
     },
     setPoiEditMode: (state, action: { payload: { poiUuid: string; editMode: boolean } }) => {
       const poi = state.pois.find((poi) => poi.uuid === action.payload.poiUuid);

@@ -5,7 +5,6 @@ import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { duplicateAction } from "store/action";
 import "react-tooltip/dist/react-tooltip.css";
-import _ from "lodash";
 import { faCaretDown, faCaretRight, faClone } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setSelectedPoiUuid } from "store/poi";
@@ -38,10 +37,12 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
 
       //get actions directly attached to this station
       allStationActions.push(
-        ...actions.filter((action) => action.stationUuid === selectedStationUuid)
+        ...actions.filter((action) => {
+          return action.stationUuid === selectedStationUuid;
+        })
       );
 
-      //check if action ordering is deinfed for this station.
+      //check if action ordering is defined for this station.
       //put any unlisted actions at the end. but there shouldn't be any unlisted actions?
       if (selectedStation.actionOrderUuids) {
         allStationActions.sort((action1: Action, action2: Action) => {
