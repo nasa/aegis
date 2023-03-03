@@ -50,7 +50,7 @@ export const traverseSlice = createSlice({
     },
     updateTraverseLocationAndDistance: (
       state,
-      action: { payload: { uuid: string; location: AEGISPoint[]; distance: number } }
+      action: { payload: { uuid: string; location: AEGISPoint[]; distance: number[] } }
     ) => {
       const traverse = state.traverses.find((traverse) => traverse.uuid === action.payload.uuid);
       if (traverse) {

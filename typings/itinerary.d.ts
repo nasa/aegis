@@ -25,7 +25,8 @@ interface Eva {
   status: EVAStatus;
   sequence: EvaSequenceItem[];
   description: string;
-  maxDuration: number;
+  maxDuration: number; // minutes
+  traverseRate: number; // km/hour
 
   createdAt?: string;
   updatedAt?: string;
@@ -49,9 +50,9 @@ interface Traverse {
   name: string;
   status: TraverseStatus;
   location: AEGISPoint[];
-  distance: number;
-  durationLower: number;
-  durationUpper: number;
+  distance: number[]; //meters
+  durationLower: number; //minutes
+  durationUpper: number; //minutes
   description: string;
 
   createdAt?: string;
@@ -83,7 +84,7 @@ interface Station {
   radius: number;
   location: AEGISPoint;
   walkbackLocation: AEGISPoint[];
-  walkbackDistance: number;
+  walkbackDistance: number[]; //meters
   icon: string;
 
   /**

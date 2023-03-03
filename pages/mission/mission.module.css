@@ -70,9 +70,3 @@
   height: 100%;
   background: black;
 }
-
-.timeline {
-  height: 162px;
-  border-top: 1px solid var(--grey1);
-  background: black;
-}

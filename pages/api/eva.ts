@@ -152,6 +152,7 @@ async function upsertEVAs(eva: Eva): Promise<Eva> {
     sequence: evaToUpsert.sequence,
     description: evaToUpsert.description,
     maxDuration: evaToUpsert.maxDuration,
+    traverseRate: evaToUpsert.traverseRate,
     updatedAt: new Date(evaToUpsert.createdAt || updateDateString),
     createdAt: new Date(updateDateString),
   };
@@ -201,6 +202,7 @@ function convertEVAs(dbevas: Eva_db[]): Eva[] {
       sequence: dbeva.sequence,
       description: dbeva.description,
       maxDuration: dbeva.maxDuration,
+      traverseRate: dbeva.traverseRate,
       createdAt: dbeva.createdAt.toISOString(),
       updatedAt: dbeva.updatedAt.toISOString(),
     };

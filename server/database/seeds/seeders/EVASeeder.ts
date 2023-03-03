@@ -21,6 +21,7 @@ export class EVASeeder extends Seeder {
         { type: "station", uuid: context.station4.uuid },
       ],
       description: "EVA test description 1",
+      traverseRate: 3.2,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

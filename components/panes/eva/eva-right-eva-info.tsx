@@ -25,10 +25,6 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     durationUpper: 0,
   });
   const [totalTraverseDistance, setTotalTraverseDistance] = useState(0);
-  const [averageTraverseSpeed, setAverageTraverseSpeed] = useState({
-    speedLower: 0,
-    speedUpper: 0,
-  });
 
   const [actionsCount, setActionsCount] = useState(0);
 
@@ -49,7 +45,10 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
         const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
         totalTraverseTimeLower += traverse?.durationLower;
         totalTraverseTimeUpper += traverse?.durationUpper;
-        totalTraverseDistance += traverse?.distance;
+        totalTraverseDistance += traverse?.distance.reduce(
+          (accumulator, currentVal) => accumulator + currentVal,
+          0
+        );
       }
     });
     setTotalStationTime({
@@ -61,11 +60,6 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
       durationUpper: totalTraverseTimeUpper,
     });
     setTotalTraverseDistance(totalTraverseDistance);
-
-    setAverageTraverseSpeed({
-      speedLower: totalTraverseDistance / (totalTraverseTimeUpper * 60),
-      speedUpper: totalTraverseDistance / (totalTraverseTimeLower * 60),
-    });
   }, [selectedEva, actions, traverses]);
 
   const countActions = useCallback(() => {
@@ -109,15 +103,6 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
       return `${totalTimeLower} - ${totalTimeUpper}`;
     }
   };
-  const displayAverageTraverseSpeed = () => {
-    const averageSpeedLower = averageTraverseSpeed.speedLower.toFixed(2);
-    const averageSpeedUpper = averageTraverseSpeed.speedUpper.toFixed(2);
-    if (averageSpeedLower === averageSpeedUpper) {
-      return averageSpeedLower;
-    } else {
-      return `${averageSpeedLower} - ${averageSpeedUpper}`;
-    }
-  };
 
   return (
     <div className={paneStyles.rightBody}>
@@ -132,12 +117,28 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                   <InLineEditInput
                     fieldName="Total EVA Time"
                     editing={editMode}
-                    maxLength={3}
+                    maxLength={5}
                     styleInput={{ width: "55px" }}
                     containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
                     value={selectedEva.maxDuration?.toString()}
                     onChange={(val: number) => {
                       dispatch(upsertEva({ ...selectedEva, maxDuration: val }));
+                    }}
+                  />
+                </div>
+              </div>
+              <div className={paneStyles.panelMediumField}>
+                <div className={paneStyles.panelSectionTitle}>Traverse Rate (km/hr)</div>
+                <div className={paneStyles.inputField}>
+                  <InLineEditInput
+                    fieldName="Average Traverse Rate"
+                    editing={editMode}
+                    maxLength={4}
+                    styleInput={{ width: "55px" }}
+                    containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                    value={selectedEva.traverseRate?.toString()}
+                    onChange={(val: number) => {
+                      dispatch(upsertEva({ ...selectedEva, traverseRate: val }));
                     }}
                   />
                 </div>
@@ -190,12 +191,6 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                 <div className={paneStyles.panelSectionTitle}>Total Traverse Distance</div>
                 <div className={paneStyles.panelDisplayVal}>
                   {totalTraverseDistance.toFixed(2)}&nbsp;m
-                </div>
-              </div>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Average Traverse Speed</div>
-                <div className={paneStyles.panelDisplayVal}>
-                  <>{displayAverageTraverseSpeed()}</>&nbsp;m/s
                 </div>
               </div>
             </div>

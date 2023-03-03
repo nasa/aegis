@@ -21,8 +21,8 @@ interface MMGIS_ConfigTime {
 }
 
 interface MMGIS_Radius {
-  major: string;
-  minor: string;
+  major: string; //meters
+  minor: string; //meters
 }
 
 interface MMGIS_Msv {

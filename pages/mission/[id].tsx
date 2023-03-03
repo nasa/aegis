@@ -52,7 +52,7 @@ const Header = dynamic(import("components/interface/header"), {
   ssr: false,
 });
 
-const NavTimeline = dynamic(import("components/interface/nav-timeline"), {
+const NavTimeline = dynamic(import("components/interface/timeline"), {
   ssr: false,
 });
 
@@ -225,7 +225,7 @@ const Main: NextPage = () => {
           </div>
         )}
       </div>
-      <div className={styles.timeline}>{<NavTimeline />}</div>
+      <div>{<NavTimeline />}</div>
     </div>
   );
 };

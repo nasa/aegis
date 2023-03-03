@@ -44,6 +44,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
       status: "Candidate",
       sequence: [],
       description: "",
+      traverseRate: null,
       maxDuration: null,
     };
     dispatch(upsertEva(blankEva));

@@ -78,7 +78,7 @@ export const stationSlice = createSlice({
     },
     updateWalkbackLocationAndDistance: (
       state,
-      action: { payload: { uuid: string; location: AEGISPoint[]; distance: number } }
+      action: { payload: { uuid: string; location: AEGISPoint[]; distance: number[] } }
     ) => {
       state.stations = state.stations.map((station) => {
         if (station.uuid === action.payload.uuid) {

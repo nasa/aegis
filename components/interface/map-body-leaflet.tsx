@@ -527,10 +527,15 @@ const MapBody: FunctionComponent = () => {
               const polylinePoints: AEGISPoint[] = convertLeafletLatLngsToAegisPoints(
                 e.layer.getLatLngs()
               );
-              const distance = getTotalDistance(
-                polylinePoints,
-                parseFloat(mission.config.msv.radius.minor)
-              );
+              const distance: number[] = [];
+              for (let i = 1; i < polylinePoints.length; i++) {
+                distance.push(
+                  getTotalDistance(
+                    [polylinePoints[i - 1], polylinePoints[i]],
+                    parseFloat(mission.config.msv.radius.minor)
+                  )
+                );
+              }
               if (e.layer.mapItemType === "traverse") {
                 dispatch(
                   updateTraverseLocationAndDistance({
