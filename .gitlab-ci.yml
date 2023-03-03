@@ -230,91 +230,120 @@ build:
       - .next
       - dist
 
-# Sets up `IMAGE_NAME` environment variable to be used by docker build/push jobs
-.docker_tag_template:
+.kaniko-build-template:
   stage: stageless
-  timeout: 10 minutes
-  retry: 2
-  extends: .dind
-  before_script:
-    - TAG=${BUILD_IMAGE}
-    - >
-      if [ "${CI_COMMIT_REF_SLUG}" == "prod" ]; then
-        TAG="${TAG}-prod"
-      elif [ "${CI_COMMIT_REF_SLUG}" == "int" ]; then
-        TAG="${TAG}-int"
+  image:
+    # Specify the Docker image to be used for the job, which is the latest
+    # official kaniko executor debug image, as the debug image includes the
+    # shell needed for GitLab CI to function
+    name: gcr.io/kaniko-project/executor:debug
+    # Entrypoint is overridden to allow a script to be run
+    entrypoint: [""]
+  needs:
+    - make-dotenv
+  script:
+    # Make the directory where the config file created in the following setup
+    # will reside
+    - mkdir -p /kaniko/.docker
+
+    # Add the GitLab container registry and the registry user credentials to
+    # JSON config file for use by the executor
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" > /kaniko/.docker/config.json
+
+    # Set shell to export all variable definitions, then source .env, then turn off allexport
+    - set -o allexport && source ./.env && set +o allexport
+
+    - TEMP_IMAGE_NAME="${CI_REGISTRY_IMAGE}/${SERVICE_NAME}:preview-${IMAGE_VERSION}"
+    - echo "Temp image name = ${TEMP_IMAGE_NAME}"
+
+    # If present, turn $MAP_ENV_VARS_TO_BUILD_ARGS into a string like:
+    # --build-arg VARNAME=VALUE --build-arg VAR2=VAL2 --build-arg VAR3=VAL3
+    - MORE_BUILD_ARGS=""
+    - |
+      if [ -z "${MAP_ENV_VARS_TO_BUILD_ARGS}" ]; then
+        echo 'No env vars to map to build args'
       else
-        TAG="${TAG}-dev"
+        echo "${MAP_ENV_VARS_TO_BUILD_ARGS}" > args.txt
+        while read VARNAME; do
+          if [ -z "${VARNAME}" ]; then
+            echo "empty varname"
+          else
+            VALUE=$(eval "echo \${${VARNAME}}")
+            NEW_BUILD_ARG="--build-arg ${VARNAME}=${VALUE}"
+            MORE_BUILD_ARGS="${MORE_BUILD_ARGS} ${NEW_BUILD_ARG}"
+            echo "Added new build arg: ${NEW_BUILD_ARG}"
+          fi
+        done <args.txt
       fi
-    - IMAGE_NAME="${CI_REGISTRY_IMAGE}:${TAG}"
 
-.docker_build_template:
-  extends: .docker_tag_template
-  script:
-    - docker build --pull -t "${IMAGE_NAME}" -f ./docker/${BUILD_IMAGE}/Dockerfile --target ${BUILD_TARGET} .
-    - mkdir builtimages
-    - docker save "${IMAGE_NAME}" > builtimages/image.tar
-  artifacts:
-    paths:
-      - builtimages
+    - echo "${MORE_BUILD_ARGS}"
 
-.docker_push_template:
-  extends: .docker_tag_template
-  script:
-    - docker info
-    - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
-    - docker load -i builtimages/image.tar
-    - docker push "${IMAGE_NAME}"
+    - >
+      /kaniko/executor
+      --context "${CI_PROJECT_DIR}"
+      --target "${MULTISTAGE_TARGET}"
+      --build-arg "${BASE_IMAGE_VAR}=${BASE_IMAGE_VALUE}"
+      $(echo ${MORE_BUILD_ARGS})
+      --skip-unused-stages
+      --dockerfile "${CI_PROJECT_DIR}/docker/${SERVICE_NAME}/Dockerfile"
+      --destination "${TEMP_IMAGE_NAME}"
 
 #
-# Build docker images immediately (needs: [], meaning it has not prerequisites)
-# so longer jobs get started soon. Don't push them until the docker:push:* jobs
-# below, which wait for validation (unit testing, etc)
+# Build container images
 #
 docker:build:nginx:
-  extends: .docker_build_template
-  needs: []
+  extends: .kaniko-build-template
   variables:
-    BUILD_IMAGE: nginx
-    BUILD_TARGET: base
+    SERVICE_NAME: nginx
+    MULTISTAGE_TARGET: base
+    BASE_IMAGE_VAR: NGINX_BASE_IMAGE
+    BASE_IMAGE_VALUE: eegitlabregistry.fit.nasa.gov/emss/docker-images/nginx:1.23.0-alpine
 
 docker:build:nextjs:
-  extends: .docker_build_template
-  needs: []
+  extends: .kaniko-build-template
   variables:
-    BUILD_IMAGE: nextjs
-    BUILD_TARGET: prod
+    SERVICE_NAME: nextjs
+    MULTISTAGE_TARGET: prod
+    BASE_IMAGE_VAR: NEXTJS_BASE_IMAGE
+    BASE_IMAGE_VALUE: eegitlabregistry.fit.nasa.gov/emss/docker-images/node:18-alpine
 
 #
 # Push docker images after necessary jobs pass (e.g. unit testing passes)
 #
-docker:push:nginx:
-  extends: .docker_push_template
+docker:push:
+  stage: stageless
+  image: "$CI_REGISTRY/emss/docker-images:skopeo"
+  variables:
+    GIT_STRATEGY: none # Don't checkout the repo, just get artifacts
+  tags: ["docker", "linux"]
   needs:
-    - job: build
-      artifacts: false
+    - make-dotenv
     - job: test
       artifacts: false
-    - docker:build:nginx
-  variables:
-    BUILD_IMAGE: nginx
+    - job: docker:build:nginx
+      artifacts: false
+    - job: docker:build:nextjs
+      artifacts: false
+  script:
+    # Login to registry
+    - echo $CI_JOB_TOKEN | skopeo login -u gitlab-ci-token --password-stdin $CI_REGISTRY
 
-docker:push:nextjs:
-  extends: .docker_push_template
-  needs:
-    - job: build
-      artifacts: false
-    - job: test
-      artifacts: false
-    - docker:build:nextjs
-  variables:
-    BUILD_IMAGE: nextjs
+    # Set shell to export all variable definitions, then source .env, then turn off allexport
+    - set -o allexport && source ./.env && set +o allexport
+
+    - SERVICE=nginx
+    - TEMP_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:preview-${IMAGE_VERSION}"
+    - FINAL_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:${IMAGE_VERSION}"
+    - skopeo copy "docker://${TEMP_IMAGE}" "docker://${FINAL_IMAGE}"
+
+    - SERVICE=nextjs
+    - TEMP_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:preview-${IMAGE_VERSION}"
+    - FINAL_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:${IMAGE_VERSION}"
+    - skopeo copy docker://$TEMP_IMAGE docker://$FINAL_IMAGE
 
 make-dotenv:
   stage: stageless
-  needs:
-    - docker:push:nginx
-    - docker:push:nextjs
+  needs: []
   script:
     # Baseline .env from CI/CD file-variable
     - cp "${FIT_DOTENV_FILE_PATH}" ./.env
@@ -322,17 +351,20 @@ make-dotenv:
     # Determine which docker image type (dev, int, or prod) to deploy based on branch
     - >
       if [ "${CI_COMMIT_REF_SLUG}" == "prod" ]; then
-        DEPLOY_ENV="prod"
+        IMAGE_VERSION="prod"
       elif [ "${CI_COMMIT_REF_SLUG}" == "int" ]; then
-        DEPLOY_ENV="int"
+        IMAGE_VERSION="int"
       else
-        DEPLOY_ENV="dev"
+        IMAGE_VERSION="dev"
       fi
+
+    - export IMAGE_VERSION
 
     # Append desired docker images (dev, int, or prod) to
     - echo "" >> ./.env
-    - echo "DOCKER_IMAGE_NGINX=eegitlabregistry.fit.nasa.gov/emss/aegis:nginx-${DEPLOY_ENV}" >> ./.env
-    - echo "DOCKER_IMAGE_NEXTJS=eegitlabregistry.fit.nasa.gov/emss/aegis:nextjs-${DEPLOY_ENV}" >> ./.env
+    - echo "DOCKER_IMAGE_NGINX=eegitlabregistry.fit.nasa.gov/emss/aegis/nginx:${IMAGE_VERSION}" >> ./.env
+    - echo "DOCKER_IMAGE_NEXTJS=eegitlabregistry.fit.nasa.gov/emss/aegis/nextjs:${IMAGE_VERSION}" >> ./.env
+    - echo "IMAGE_VERSION=${IMAGE_VERSION}" >> ./.env
 
   # All this job does is prepare artifacts to be exported to the deploy jobs
   artifacts:
@@ -399,7 +431,9 @@ make-dotenv:
 deploy:dev1:
   extends: .deploy-template
   tags: ["emss-aegis-dev1"]
-  needs: ["make-dotenv"]
+  needs:
+    - make-dotenv
+    - docker:push
   environment:
     name: development1
     url: https://aegis-dev1.fit.nasa.gov
@@ -410,7 +444,9 @@ deploy:dev1:
 deploy:int:
   extends: .deploy-template
   tags: ["emss-aegis-int"]
-  needs: ["make-dotenv"]
+  needs:
+    - make-dotenv
+    - docker:push
   environment:
     name: integration
     url: https://aegis-int.fit.nasa.gov
@@ -422,7 +458,9 @@ deploy:int:
 deploy:prod:
   extends: .deploy-template
   tags: ["emss-aegis-prod"]
-  needs: ["make-dotenv"]
+  needs:
+    - make-dotenv
+    - docker:push
   environment:
     name: production
     url: https://aegis.fit.nasa.gov
