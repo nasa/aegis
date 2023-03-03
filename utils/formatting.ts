@@ -227,3 +227,13 @@ export function toDecimal(str: string): number {
 
   return _.isNaN(result) ? null : result;
 }
+
+/**
+ * Convert an emoji "unified" string to a multi-byte emoji character
+ */
+export const decodeEmoji = (str: string): string => {
+  return str
+    .split("-")
+    .map((codePoint) => String.fromCodePoint(parseInt(codePoint, 16)))
+    .join("");
+};

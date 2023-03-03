@@ -19,6 +19,7 @@ export class StationSeeder extends Seeder {
         { lat: -3.655421873728663, lng: -17.48186660766602 },
       ],
       walkbackDistance: 0,
+      icon: "1f680",
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -36,6 +37,7 @@ export class StationSeeder extends Seeder {
         { lat: -3.640519797756668, lng: -17.441612014770513 },
       ],
       walkbackDistance: 0,
+      icon: "1f680",
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -53,6 +55,7 @@ export class StationSeeder extends Seeder {
         { lat: -3.648316103462144, lng: -17.472511062622074 },
       ],
       walkbackDistance: 0,
+      icon: "1f680",
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -70,6 +73,7 @@ export class StationSeeder extends Seeder {
         { lat: -3.655421873728663, lng: -17.48186660766602 },
       ],
       walkbackDistance: 0,
+      icon: "1f680",
       createdAt: new Date(),
       updatedAt: new Date(),
     });

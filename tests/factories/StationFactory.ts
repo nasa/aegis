@@ -19,6 +19,7 @@ export default class StationFactory extends Factory<Station_db> {
       walkbackDistance: 0,
       durationLower: 0,
       durationUpper: 0,
+      icon: null,
 
       createdAt: new Date(),
       updatedAt: new Date(),

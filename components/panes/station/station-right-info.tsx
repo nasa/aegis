@@ -1,7 +1,9 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
+import styles from "./station.module.css";
 import {
   faFloppyDisk,
+  faIcons,
   faLocationDot,
   faMapLocationDot,
   faRoute,
@@ -20,6 +22,9 @@ import { setSelectedStationRightNavItem, upsertStation } from "store/station";
 import { updateMapDirective } from "store/map";
 import { calcCentroidofCoordinates } from "utils/geoMath";
 import { toDecimal } from "utils/formatting";
+import emojiPickerData from "@emoji-mart/data";
+import Picker from "@emoji-mart/react";
+import { decodeEmoji } from "utils/formatting";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -54,6 +59,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     durationUpper: 0,
   });
   const [actionCount, setActionCount] = useState(0);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   useEffect(() => {
     let totalDurationLower = 0;
@@ -108,7 +114,13 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
         );
       }
     }
+    // when selectedStation changes, turn off the emoji picker in case it's open
+    setShowEmojiPicker(false);
   }, [selectedStation, dispatch]);
+
+  useEffect(() => {
+    if (!editMode) setShowEmojiPicker(false);
+  }, [editMode]);
 
   const dispatchStationMapAction = (mapAction: MapAction) => {
     dispatch(
@@ -269,6 +281,82 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       dispatch(upsertStation(updatedStation));
                     }}
                   />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
+              <div className={paneStyles.panelSmallField}>
+                <div className={paneStyles.panelSectionTitle}>Icon</div>
+                <div className={styles.iconDisplay}>
+                  <div className={styles.iconDisplayIcon}>{decodeEmoji(selectedStation.icon)}</div>
+                  {editMode && (
+                    <>
+                      <div className={styles.iconDisplayButton}>
+                        <IconButton
+                          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                          icon={faIcons}
+                          label="Pick Icon"
+                          style={{ width: "90px" }}
+                        />
+                      </div>
+                      <div className={styles.iconPickerContainer}>
+                        {showEmojiPicker && (
+                          <div className={styles.iconPicker}>
+                            <Picker
+                              data={emojiPickerData}
+                              emojiButtonSize={30}
+                              emojiSize={20}
+                              perLine={10}
+                              onEmojiSelect={(e) => {
+                                dispatch(upsertStation({ ...selectedStation, icon: e.unified }));
+                                setShowEmojiPicker(false);
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
+              <div className={paneStyles.panelSmallField}>
+                <div className={paneStyles.panelSectionTitle}>Icon</div>
+                <div className={styles.iconDisplay}>
+                  <div className={styles.iconDisplayIcon}>{decodeEmoji(selectedStation.icon)}</div>
+                  {editMode && (
+                    <>
+                      <div className={styles.iconDisplayButton}>
+                        <IconButton
+                          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                          icon={faIcons}
+                          label="Pick Icon"
+                          style={{ width: "90px" }}
+                        />
+                      </div>
+                      <div className={styles.iconPickerContainer}>
+                        {showEmojiPicker && (
+                          <div className={styles.iconPicker}>
+                            <Picker
+                              data={emojiPickerData}
+                              emojiButtonSize={30}
+                              emojiSize={20}
+                              perLine={10}
+                              onEmojiSelect={(e) => {
+                                dispatch(upsertStation({ ...selectedStation, icon: e.unified }));
+                                setShowEmojiPicker(false);
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

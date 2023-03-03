@@ -115,20 +115,18 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
             {poiExpanded &&
               stationPois?.map((poi) => (
                 <div key={poi.uuid}>
-                  <div className={stationStyles.stationPoiHeading}>
+                  <div
+                    className={stationStyles.stationPoiHeading}
+                    onClick={() => {
+                      dispatch(setSelectedPoiUuid(poi.uuid));
+                      // set the active section to the POI section
+                      dispatch(setSectionSelected("poi"));
+                    }}
+                  >
                     <div className={stationStyles.poiIcon}>
-                      {poi.color ? String.fromCodePoint(parseInt(poi.color.value, 16)) : ""}
+                      {String.fromCodePoint(parseInt(poi.icon, 16))}
                     </div>
-                    <div
-                      className={stationStyles.stationPoiSubheading}
-                      onClick={() => {
-                        dispatch(setSelectedPoiUuid(poi.uuid));
-                        // set the active section to the POI section
-                        dispatch(setSectionSelected("poi"));
-                      }}
-                    >
-                      {poi.name}
-                    </div>
+                    <div className={stationStyles.stationPoiSubheading}>{poi.name}</div>
                   </div>
                   <div className={stationStyles.stationPoiActions}>
                     {actions

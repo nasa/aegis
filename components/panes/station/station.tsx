@@ -14,10 +14,12 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import StationItem from "./station-item";
 import { generateUniqueName } from "utils/unique-name";
+import _ from "lodash";
 
 const StationEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
+
   const stationsFromDb = useAppSelector((state) => state.station.stationsFromDb, shallowEqual);
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
@@ -48,6 +50,7 @@ const StationEditorLeft: FunctionComponent = () => {
       durationUpper: 0,
       walkbackLocation: null,
       walkbackDistance: null,
+      icon: null,
     };
     dispatch(upsertStation(blankStation));
     // turn on edit mode for the new Station
@@ -61,7 +64,7 @@ const StationEditorLeft: FunctionComponent = () => {
       <div className={paneStyles.leftPanelContainer}>
         <div className={styles.container}>
           <div className={styles.body}>
-            {stations.map((station) => {
+            {_.sortBy(stations, "name").map((station) => {
               const stationFromDb = stationsFromDb.find(
                 (stationFromDb) => stationFromDb.uuid === station.uuid
               );

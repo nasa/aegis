@@ -6,6 +6,7 @@ import poiStyles from "./poi.module.css";
 import _ from "lodash";
 import { setSelectedPoiUuid, setSelectedRightNavItem } from "store/poi";
 import { setSelectedEvaSequenceItemUuid, setSelectedEvaUuid } from "store/eva";
+import { decodeEmoji } from "utils/formatting";
 
 const PoiItem: FunctionComponent<{
   selectedPoiUuid: string;
@@ -41,9 +42,6 @@ const PoiItem: FunctionComponent<{
     }
   }, [actionsFromDb, poi.uuid]);
 
-  const colorCharAsInt = parseInt(poi.color?.value, 16);
-  const unicodeColorEmoji = colorCharAsInt ? String.fromCodePoint(colorCharAsInt) : "";
-
   return (
     <div
       className={poiStyles.poiItem}
@@ -59,7 +57,7 @@ const PoiItem: FunctionComponent<{
         }
       }}
     >
-      <div className={poiStyles.itemColor}>{unicodeColorEmoji}</div>
+      <div className={poiStyles.itemIcon}>{decodeEmoji(poi.icon)}</div>
       <div className={`${poiStyles.name} ${isPoiSelectedStyle}`}>
         <div>{poi.name}</div>
         <ModifiedIndicator

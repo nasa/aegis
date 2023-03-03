@@ -7,6 +7,7 @@ import _ from "lodash";
 import { TagsInput } from "react-tag-input-component";
 import ContentEditable, { ContentEditableEvent } from "react-contenteditable";
 import { longdateFromDateString } from "utils/formatting";
+import { decodeEmoji } from "utils/formatting";
 
 export const IconButton: FunctionComponent<{
   onClick: () => void;
@@ -53,23 +54,19 @@ export const Dropdown: FunctionComponent<{
   );
 };
 
-export const ColorDropdown: FunctionComponent<{
+export const IconDropdown: FunctionComponent<{
   items: any[];
   editing: boolean;
-  selected: { value: string; label: string };
+  selected: string;
   setSelected: Function;
 }> = ({ items, editing, selected, setSelected }) => {
   const [expanded, setExpanded] = useState(false);
 
-  const colorCharAsInt = parseInt(selected?.value, 16);
-  const unicodeColorEmoji = colorCharAsInt ? String.fromCodePoint(colorCharAsInt) : "";
-
   if (!editing) {
     return (
-      <div className={styles.colorDropdownContainer}>
-        <div className={styles.colorDropdownModalItemNotEditing}>
-          <div className={styles.itemColor}>{unicodeColorEmoji}</div>
-          <div className={styles.colorDropdownModalItemLabel}>{selected?.label}</div>
+      <div className={styles.iconDropdownContainer}>
+        <div className={styles.iconDropdownModalItemNotEditing}>
+          <div className={styles.itemIcon}>{decodeEmoji(selected)}</div>
         </div>
       </div>
     );
@@ -77,15 +74,14 @@ export const ColorDropdown: FunctionComponent<{
     let selectedItem;
     if (selected) {
       selectedItem = (
-        <div className={styles.colorDropdownModalItem}>
-          <div className={styles.itemColor}>{unicodeColorEmoji}</div>
-          <div className={styles.colorDropdownModalItemLabel}>{selected?.label}</div>
+        <div className={styles.iconDropdownModalItem}>
+          <div className={styles.itemIcon}>{decodeEmoji(selected)}</div>
         </div>
       );
     } else {
       selectedItem = (
-        <div className={styles.colorDropdownModalItem}>
-          <div className={styles.colorDropdownModalItemLabel}>Select Color...</div>
+        <div className={styles.iconDropdownModalItem}>
+          <div className={styles.iconDropdownModalItemLabel}>Select Icon...</div>
         </div>
       );
     }
@@ -93,7 +89,7 @@ export const ColorDropdown: FunctionComponent<{
     return (
       <div
         tabIndex={0}
-        className={styles.colorDropdownContainer}
+        className={styles.iconDropdownContainer}
         onClick={() => setExpanded(!expanded)}
         onBlur={() => {
           setExpanded(false);
@@ -104,19 +100,19 @@ export const ColorDropdown: FunctionComponent<{
           <FontAwesomeIcon icon={faChevronDown} size="xs" />
         </span>
         {expanded && (
-          <div className={styles.colorDropdownModalList}>
-            {items.map((item) => (
-              <div
-                className={styles.colorDropdownModalItem}
-                key={item.value}
-                onClick={() => setSelected(item)}
-              >
-                <div className={styles.itemColor}>
-                  {String.fromCodePoint(parseInt(item.value, 16))}
+          <div className={styles.iconDropdownModalList}>
+            {items.map((item, index) => {
+              return (
+                <div
+                  className={styles.iconDropdownModalItem}
+                  key={`${item}_${index}`}
+                  onClick={() => setSelected(item)}
+                >
+                  <div className={styles.itemIcon}>{decodeEmoji(item)}</div>
+                  <div className={styles.iconDropdownModalItemLabel}>{item.label}</div>
                 </div>
-                <div className={styles.colorDropdownModalItemLabel}>{item.label}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

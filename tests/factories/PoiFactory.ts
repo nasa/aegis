@@ -15,7 +15,7 @@ export default class PoiFactory extends Factory<Poi_db> {
       priorityOverride: null,
       radius: 0,
       location: null,
-      color: null,
+      icon: null,
       tags: null,
       status: "Candidate",
       createdAt: new Date(),

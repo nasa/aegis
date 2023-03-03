@@ -20,21 +20,26 @@
   user-select: none;
 }
 
-.checkboxPlaceholder {
-  flex: 0 0 20px;
-}
-
-.itemColor {
+.itemIcon {
   display: flex;
   flex-direction: column;
   justify-content: space-around;
 
-  font-size: 12px;
-  margin: 0 0 3px 3px;
+  align-items: center;
+
+  font-size: 16px;
+  margin: 0 2px 0 2px;
+
+  background-color: white;
+  border-radius: 5px;
+  padding: 1px;
+  width: 28px;
+  height: 28px;
 }
 
 .name {
   display: flex;
+  align-items: center;
   width: 100%;
   border-radius: var(--radius);
   font-size: 0.9em;

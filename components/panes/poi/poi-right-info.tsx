@@ -2,7 +2,7 @@ import { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { faLocationDot, faMapLocationDot, faXmark } from "@fortawesome/free-solid-svg-icons";
 import {
-  ColorDropdown,
+  IconDropdown,
   ContentEditableTextArea,
   IconButton,
   InLineEditInput,
@@ -90,25 +90,25 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 </div>
               </div>
               <div className={paneStyles.panelColorDropdownContainer}>
-                <div className={paneStyles.panelSectionTitle}>Color</div>
-                <ColorDropdown
-                  selected={selectedPoi.color}
+                <div className={paneStyles.panelSectionTitle}>Icon</div>
+                <IconDropdown
+                  selected={selectedPoi.icon}
                   editing={editMode}
                   setSelected={(value) => {
-                    dispatch(upsertPoi({ ...selectedPoi, color: value }));
+                    dispatch(upsertPoi({ ...selectedPoi, icon: value }));
                   }}
                   items={[
-                    { label: "Red", value: "1F534" },
-                    { label: "Blue", value: "1F535" },
-                    { label: "Green", value: "1F7E2" },
-                    { label: "Yellow", value: "1F7E1" },
-                    { label: "Purple", value: "1F7E3" },
-                    { label: "Orange", value: "1F7E0" },
-                    { label: "Brown", value: "1F7E4" },
-                    { label: "Black", value: "26AB" },
-                    { label: "White", value: "26AA" },
+                    "1F534",
+                    "1F535",
+                    "1F7E2",
+                    "1F7E1",
+                    "1F7E3",
+                    "1F7E0",
+                    "1F7E4",
+                    "26AB",
+                    "26AA",
                   ]}
-                ></ColorDropdown>
+                ></IconDropdown>
               </div>
             </div>
           </div>
