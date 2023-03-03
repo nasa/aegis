@@ -470,8 +470,7 @@ deploy:prod:
   only:
     - prod
 
-z:db-export:prod:
-  tags: ["emss-aegis-prod"]
+.db-export-template:
   needs: []
   # I don't think we want to do this, because I don't think we want GitLab to consider this a
   # deployment. It's just grabbing some data off of Production.
@@ -483,7 +482,6 @@ z:db-export:prod:
   timeout: 10 minutes
   variables:
     GIT_STRATEGY: none
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD
   script:
     # init sudo ability
     - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
@@ -493,6 +491,24 @@ z:db-export:prod:
   artifacts:
     paths:
       - aegis.sql
+
+z:db-export:prod:
+  extends: .db-export-template
+  tags: ["emss-aegis-prod"]
+  variables:
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD
+
+z:db-export:int:
+  extends: .db-export-template
+  tags: ["emss-aegis-int"]
+  variables:
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT
+
+z:db-export:dev1:
+  extends: .db-export-template
+  tags: ["emss-aegis-dev1"]
+  variables:
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1
 
 .db-import-template:
   when: manual
