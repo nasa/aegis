@@ -11,6 +11,7 @@ import PoiItem from "./poi-item";
 import _ from "lodash";
 import { generateUniqueName } from "utils/unique-name";
 import { duplicateAction } from "store/action";
+import { duplicateStationOrPOI } from "utils/duplicate";
 
 const PoiEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -56,7 +57,7 @@ const PoiEditorLeft: FunctionComponent = () => {
       const newPoi: POI = {
         ...poi,
         uuid: uuidv4(),
-        name: poi.name + " (copy)",
+        name: duplicateStationOrPOI(poi, pois),
       };
       dispatch(duplicatePoi(newPoi));
       const newStationActions = actions.filter((action) => action.poiUuid === poi?.uuid);
