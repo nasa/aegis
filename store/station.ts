@@ -1,6 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { upsertToArrayByUuid } from "utils/store";
-import { v4 as uuidv4 } from "uuid";
 
 export const initialState: StationState = {
   stations: [],
@@ -40,16 +39,11 @@ export const stationSlice = createSlice({
     },
 
     duplicateStation: (state, action: { payload: Station }) => {
-      const newStation: Station = {
-        ...action.payload,
-        uuid: uuidv4(),
-        name: action.payload.name + " (copy)",
-      };
-      state.stations.push(newStation);
+      state.stations.push(action.payload);
       // turn on edit mode for the new station
-      state.stationsEditing.push(newStation.uuid);
+      state.stationsEditing.push(action.payload.uuid);
       // select the newly created station
-      state.selectedStationUuid = newStation.uuid;
+      state.selectedStationUuid = action.payload.uuid;
     },
     setStationEditMode: (
       state,

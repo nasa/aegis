@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from "uuid";
 import PoiItem from "./poi-item";
 import _ from "lodash";
 import { generateUniqueName } from "utils/unique-name";
+import { duplicateAction } from "store/action";
 
 const PoiEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -50,6 +51,26 @@ const PoiEditorLeft: FunctionComponent = () => {
     dispatch(setSelectedPoiUuid(blankPoi.uuid));
   };
 
+  const handleDuplicatePoi = (poi: POI) => {
+    if (selectedPoiUuid !== null) {
+      const newPoi: POI = {
+        ...poi,
+        uuid: uuidv4(),
+        name: poi.name + " (copy)",
+      };
+      dispatch(duplicatePoi(newPoi));
+      const newStationActions = actions.filter((action) => action.poiUuid === poi?.uuid);
+      for (const action of newStationActions) {
+        dispatch(
+          duplicateAction({
+            action: action,
+            poiUuid: newPoi.uuid,
+          })
+        );
+      }
+    }
+  };
+
   return (
     <>
       <div className={paneStyles.leftPanelContainer}>
@@ -78,17 +99,15 @@ const PoiEditorLeft: FunctionComponent = () => {
           }}
           label="Add"
           icon={faPlusCircle}
-        ></IconButton>
+        />
         <IconButton
           onClick={() => {
-            if (selectedPoiUuid !== null) {
-              dispatch(duplicatePoi(selectedPoi));
-            }
+            handleDuplicatePoi(selectedPoi);
           }}
           label="Duplicate"
           icon={faClone}
           enabled={selectedPoiUuid !== null}
-        ></IconButton>
+        />
       </div>
     </>
   );
