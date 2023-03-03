@@ -323,44 +323,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               </div>
             </div>
           </div>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
-              <div className={paneStyles.panelSmallField}>
-                <div className={paneStyles.panelSectionTitle}>Icon</div>
-                <div className={styles.iconDisplay}>
-                  <div className={styles.iconDisplayIcon}>{decodeEmoji(selectedStation.icon)}</div>
-                  {editMode && (
-                    <>
-                      <div className={styles.iconDisplayButton}>
-                        <IconButton
-                          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                          icon={faIcons}
-                          label="Pick Icon"
-                          style={{ width: "90px" }}
-                        />
-                      </div>
-                      <div className={styles.iconPickerContainer}>
-                        {showEmojiPicker && (
-                          <div className={styles.iconPicker}>
-                            <Picker
-                              data={emojiPickerData}
-                              emojiButtonSize={30}
-                              emojiSize={20}
-                              perLine={10}
-                              onEmojiSelect={(e) => {
-                                dispatch(upsertStation({ ...selectedStation, icon: e.unified }));
-                                setShowEmojiPicker(false);
-                              }}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
 
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle}>Station Value & Notes</div>
