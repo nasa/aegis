@@ -42,6 +42,8 @@ import {
   convertLeafletLatLngToAegisPoint,
   getTotalDistance,
 } from "utils/geoMath";
+import { decodeEmoji } from "utils/formatting";
+
 // import { upsertTraverse } from "store/traverse";
 // import { setSelectedEvaSequenceItemUuid } from "store/eva";
 
@@ -220,22 +222,20 @@ const MapBody: FunctionComponent = () => {
   const drawOrUpdateMarkerOnMap = useCallback(
     ({
       uuid,
-      emoji16BitVal,
+      iconEmoji,
       location,
       mapItemType,
       onClick = () => {},
       onDraggend = () => {},
     }: {
       uuid: string;
-      emoji16BitVal: string;
+      iconEmoji: string;
       location: AEGISPoint;
       mapItemType: "poi" | "station";
       onClick?: Function;
       onDraggend?: Function;
     }) => {
-      const html = `<div class="leaflet-aegis-icon">${
-        emoji16BitVal ? String.fromCodePoint(parseInt(emoji16BitVal, 16)) : "🚀"
-      }</div>`;
+      const html = `<div class="leaflet-aegis-icon">${decodeEmoji(iconEmoji)}</div>`;
       const icon = L.divIcon({ html });
 
       const existingLayer = getMapItemByUuid(uuid, mapItemType) as AEGISMarker;
@@ -630,7 +630,7 @@ const MapBody: FunctionComponent = () => {
         if (poi.location) {
           drawOrUpdateMarkerOnMap({
             uuid: poi.uuid,
-            emoji16BitVal: poi.color?.value ? poi.color.value : "1F3F4",
+            iconEmoji: poi.icon ? poi.icon : "1F3F4",
             mapItemType: "poi",
             location: poi.location,
             onClick: () => {
@@ -667,7 +667,7 @@ const MapBody: FunctionComponent = () => {
         if (station.location) {
           drawOrUpdateMarkerOnMap({
             uuid: station.uuid,
-            emoji16BitVal: null,
+            iconEmoji: station.icon,
             mapItemType: "station",
             location: station.location,
             onClick: () => {

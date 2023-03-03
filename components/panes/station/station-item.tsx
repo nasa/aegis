@@ -5,6 +5,7 @@ import { useAppSelector, refEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, setSelectedStationUuid } from "store/station";
 import stationStyles from "./station.module.css";
 import { setSelectedEvaSequenceItemUuid, setSelectedEvaUuid } from "store/eva";
+import { decodeEmoji } from "utils/formatting";
 
 const StationItem: FunctionComponent<{
   selectedStationUuid: string;
@@ -18,6 +19,7 @@ const StationItem: FunctionComponent<{
     (state) => state.station.selectedRightNavItem,
     refEqual
   );
+
   const isStationSelectedStyle =
     station.uuid === selectedStationUuid ? stationStyles.nameSelected : null;
 
@@ -36,6 +38,7 @@ const StationItem: FunctionComponent<{
         }
       }}
     >
+      <div className={stationStyles.itemIcon}>{decodeEmoji(station.icon)}</div>
       <div className={`${stationStyles.name} ${isStationSelectedStyle}`}>
         <div>{station.name}</div>
         <ModifiedIndicator

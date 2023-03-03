@@ -44,9 +44,8 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 return (
                   poi && (
                     <div className={poiStyles.poiItem} key={poi.uuid}>
-                      <div className={poiStyles.checkboxPlaceholder}></div>
-                      <div className={poiStyles.itemColor}>
-                        {poi.color ? String.fromCodePoint(parseInt(poi.color.value, 16)) : ""}
+                      <div className={poiStyles.itemIcon}>
+                        {String.fromCodePoint(parseInt(poi.icon, 16))}
                       </div>
                       <div className={`${poiStyles.name}`}>
                         <div>{poi.name}</div>
@@ -77,9 +76,9 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         }}
                       />
 
-                      {poi.color && (
-                        <div className={poiStyles.itemColor}>
-                          {poi.color ? String.fromCodePoint(parseInt(poi.color.value, 16)) : ""}
+                      {poi.icon && (
+                        <div className={poiStyles.itemIcon}>
+                          {String.fromCodePoint(parseInt(poi.icon, 16))}
                         </div>
                       )}
                       <div className={`${poiStyles.name} ${poiStyles.nohover}`}>

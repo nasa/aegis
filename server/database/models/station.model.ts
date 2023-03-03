@@ -48,6 +48,8 @@ export class Station implements Station_db_type {
   durationLower!: number;
   @Property({ type: MikroTypes.double, nullable: true })
   durationUpper: number;
+  @Property({ type: MikroTypes.string, nullable: true })
+  icon: string;
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;

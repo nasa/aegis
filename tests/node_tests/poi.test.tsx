@@ -51,7 +51,7 @@ describe("Poi API Endpoint", () => {
     priorityOverride: null,
     radius: 0,
     location: null,
-    color: null,
+    icon: null,
     tags: null,
     status: "Candidate",
     createdAt: new Date().toISOString(),

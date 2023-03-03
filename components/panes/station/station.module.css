@@ -22,6 +22,7 @@
 
 .name {
   display: flex;
+  align-items: center;
   width: 100%;
   border-radius: var(--radius);
   font-size: 0.9em;
@@ -81,12 +82,12 @@
   display: flex;
   gap: 8px;
   padding: 5px;
+  cursor: pointer;
 }
 
 .stationPoiSubheading {
   font-size: 0.9em;
   font-weight: 400;
-  cursor: pointer;
 }
 
 .stationPoiActions {
@@ -110,4 +111,46 @@
 
 .actionHeadingFaded {
   opacity: 0.2;
+}
+
+.itemIcon {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+
+  font-size: 16px;
+  margin: 0 2px 0 2px;
+
+  background-color: white;
+  border-radius: 5px;
+  padding: 1px;
+  width: 28px;
+  height: 28px;
+}
+
+.iconDisplay {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 5px;
+}
+
+.iconDisplayIcon {
+  font-size: 1.2em;
+  padding-right: 5px;
+}
+
+.iconDisplayButton {
+  cursor: pointer;
+}
+
+.iconPickerContainer {
+  position: relative;
+}
+
+.iconPicker {
+  position: absolute;
+  left: -90px;
+  top: 15px;
 }
