@@ -122,11 +122,16 @@ const NavTimeline: FunctionComponent = () => {
           sequenceItemForPaperJS.locations = station.location;
 
           //calculate distance to lander
-          const landerDistance = getDistanceBetweenTwoCoordinates(
-            station.location,
-            landerLocation,
-            parseFloat(planetRadius)
-          );
+          let landerDistance = null;
+          if (landerLocation) {
+            landerDistance = getDistanceBetweenTwoCoordinates(
+              station.location,
+              landerLocation,
+              parseFloat(planetRadius)
+            );
+          } else {
+            landerDistance = 100; // used in case the database doesn't yet have a lander location
+          }
           if (landerDistance > storeRefs.current.maxDistanceFromLander)
             storeRefs.current.maxDistanceFromLander = landerDistance;
           sequenceItemForPaperJS.distanceFromLander = [landerDistance];
@@ -145,12 +150,16 @@ const NavTimeline: FunctionComponent = () => {
           sequenceItemForPaperJS.distanceFromLander = [];
           sequenceItemForPaperJS.durations = [];
           for (let i = 0; i < newTraverse.length; i++) {
-            //calculate distances to lander
-            const landerDistance = getDistanceBetweenTwoCoordinates(
-              newTraverse[i],
-              landerLocation,
-              parseFloat(planetRadius)
-            );
+            let landerDistance = null;
+            if (landerLocation) {
+              landerDistance = getDistanceBetweenTwoCoordinates(
+                newTraverse[i],
+                landerLocation,
+                parseFloat(planetRadius)
+              );
+            } else {
+              landerDistance = 100; // used in case the database doesn't yet have a lander location
+            }
             if (landerDistance > storeRefs.current.maxDistanceFromLander)
               storeRefs.current.maxDistanceFromLander = landerDistance;
             sequenceItemForPaperJS.distanceFromLander.push(landerDistance);
