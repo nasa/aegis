@@ -45,10 +45,14 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
         const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
         totalTraverseTimeLower += traverse?.durationLower;
         totalTraverseTimeUpper += traverse?.durationUpper;
-        totalTraverseDistance += traverse?.distance.reduce(
-          (accumulator, currentVal) => accumulator + currentVal,
-          0
-        );
+        if (Array.isArray(traverse?.distance)) {
+          totalTraverseDistance += traverse?.distance.reduce(
+            (accumulator, currentVal) => accumulator + currentVal,
+            0
+          );
+        } else {
+          totalTraverseDistance = 0;
+        }
       }
     });
     setTotalStationTime({
