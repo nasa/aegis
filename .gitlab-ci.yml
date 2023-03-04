@@ -214,22 +214,6 @@ test-node-next:
     - npm run tsc
     - npm t
 
-build:
-  stage: stageless
-  needs: ["install_dependencies"]
-
-  # Could be openshift, but it runs faster in a VM; Since it's the longest-running job, run in VM.
-  # If running with OpenShift, may need to set HOME to `/root` and use a didfferent container image.
-  # See CODA and perhaps Maestro.
-  tags: ["docker", "linux", "current"]
-  script:
-    # - sh ./.gitlab/create-fit-dotenv.sh fit
-    - npm run build
-  artifacts:
-    paths:
-      - .next
-      - dist
-
 .kaniko-build-template:
   stage: stageless
   image:
