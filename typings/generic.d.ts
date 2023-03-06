@@ -2,7 +2,7 @@
  * The mission object
  */
 interface Mission {
-  id?: number;
+  id: number;
   name: string;
   config: Config;
   version?: number;
