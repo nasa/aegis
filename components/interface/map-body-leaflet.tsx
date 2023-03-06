@@ -40,12 +40,11 @@ import {
 import {
   convertLeafletLatLngsToAegisPoints,
   convertLeafletLatLngToAegisPoint,
+  getDistanceBetweenTwoCoordinates,
   getTotalDistance,
 } from "utils/geoMath";
 import { decodeEmoji } from "utils/formatting";
-
-// import { upsertTraverse } from "store/traverse";
-// import { setSelectedEvaSequenceItemUuid } from "store/eva";
+import { Checkbox } from "./_global-elements";
 
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
@@ -93,6 +92,15 @@ const MapBody: FunctionComponent = () => {
 
   const [layersOnMap, setLayersOnMap] = useState([]);
   const [showHightlightOnMap, setShowHighlightOnMap] = useState(false);
+
+  const [poisToShow, setPoisToShow] = useState<POI[]>([]);
+  const [stationsToShow, setStationsToShow] = useState<Station[]>([]);
+  const [traversesToShow, setTraversesToShow] = useState<Traverse[]>([]);
+  const [showAllPois, setShowAllPois] = useState(true);
+  const [showAllStations, setShowAllStations] = useState(true);
+
+  const [scale, setScale] = useState(0);
+  const [mapZoom, setMapZoom] = useState(0);
 
   // make color filter settings for any sublayer. This is the format of leaflet.tilelayer.colorfilter package
   const makeLayerColorFilter = (lControls: LayerControls, sublayerName: string): string[] => {
@@ -215,6 +223,51 @@ const MapBody: FunctionComponent = () => {
     },
     [map]
   );
+
+  /**
+   * Update scale bar value
+   */
+  useEffect(() => {
+    if (!mission || !map.current) return;
+
+    const center = map.current.getCenter();
+    const pointC = map.current.latLngToContainerPoint(center);
+    const pointX = [pointC.x + 100, pointC.y];
+    const latLngC = map.current.containerPointToLatLng(pointC);
+    const latLngX = map.current.containerPointToLatLng(pointX);
+    const distance = getDistanceBetweenTwoCoordinates(
+      convertLeafletLatLngToAegisPoint(latLngC),
+      convertLeafletLatLngToAegisPoint(latLngX),
+      parseFloat(mission.config.msv.radius.minor)
+    );
+    setScale(distance);
+  }, [mission, map, mapZoom]);
+
+  /**
+   * Draw scale bar div
+   */
+  const drawScaleBarDiv = useCallback(() => {
+    if (!mission || !map.current) return;
+
+    // size scale bar to the nearest 50m, 100m, 500m, 1km, 5km, 10km, 50km, 100km, 500km, 1000km
+    const nearestRoundNum = Math.ceil(scale / 100) * 100;
+    // scale / 100 = nearestRoundNum / x
+    const scaleBarSize = nearestRoundNum / (scale / 100);
+
+    return (
+      <>
+        {scaleBarSize < 500 ? (
+          <div className={styles.scaleValue} style={{ width: scaleBarSize }}>
+            {nearestRoundNum}m
+          </div>
+        ) : (
+          <div className={styles.scaleValue} style={{ width: 100 }}>
+            {scale.toFixed(3)} m
+          </div>
+        )}
+      </>
+    );
+  }, [mission, map, scale]);
 
   /**
    * Draw or update markers on the map
@@ -410,9 +463,6 @@ const MapBody: FunctionComponent = () => {
         map.current.options.crs = crs.current;
       }
 
-      const scaleControl = L.control.scale({ metric: true, imperial: false, maxWidth: 200 });
-      scaleControl.addTo(map.current);
-
       if (!draggableLines.current) {
         draggableLines.current = new DraggableLines(map.current, { allowExtendingLine: false });
       }
@@ -461,6 +511,10 @@ const MapBody: FunctionComponent = () => {
         // set the mouse cursor back to the default
         map.current.getContainer().style.cursor = "grab";
       }
+    });
+
+    map.current.on("zoomend", () => {
+      setMapZoom(map.current.getZoom());
     });
 
     return () => {
@@ -580,6 +634,87 @@ const MapBody: FunctionComponent = () => {
         draggableLines.current.off("drag");
         draggableLines.current.off("remove");
 
+        if (mapDirective.mapItemType === "traverse") {
+          // find the traverse in the eva, and set the end points of the traverse to the station locations on either side of the traverse
+          let stationLocationBefore: AEGISPoint = null;
+          let stationLocationAfter: AEGISPoint = null;
+          selectedEva.sequence.forEach((item, index) => {
+            if (item.type === "traverse" && item.uuid === mapDirective?.uuid) {
+              const stationUuidBefore = selectedEva.sequence[index - 1].uuid;
+              const stationUuidAfter = selectedEva.sequence[index + 1].uuid;
+              stationLocationBefore = stations.find((s) => s.uuid === stationUuidBefore).location;
+              stationLocationAfter = stations.find((s) => s.uuid === stationUuidAfter).location;
+            }
+          });
+          const thisTraverse = traverses.find((t) => t.uuid === mapDirective?.uuid);
+          if (stationLocationBefore) {
+            const newDistance = getDistanceBetweenTwoCoordinates(
+              stationLocationBefore,
+              thisTraverse.location[1],
+              parseFloat(mission.config.msv.radius.minor)
+            );
+            dispatch(
+              updateTraverseLocationAndDistance({
+                uuid: mapDirective?.uuid,
+                location: [stationLocationBefore, ...thisTraverse.location.slice(1)],
+                distance: [newDistance, ...thisTraverse.distance.slice(1)],
+              })
+            );
+          }
+          if (stationLocationAfter) {
+            const newDistance = getDistanceBetweenTwoCoordinates(
+              thisTraverse.location[thisTraverse.location.length - 2],
+              stationLocationAfter,
+              parseFloat(mission.config.msv.radius.minor)
+            );
+            dispatch(
+              updateTraverseLocationAndDistance({
+                uuid: mapDirective?.uuid,
+                location: [...thisTraverse.location.slice(0, -1), stationLocationAfter],
+                distance: [...thisTraverse.distance.slice(0, -1), newDistance],
+              })
+            );
+          }
+        }
+
+        if (mapDirective.mapItemType === "walkback") {
+          // set the start and end points of the walkback to the station location and the mission lander location
+          const missionLanderLocation = mission.landerLocation;
+          const thisStation = stations.find((s) => s.uuid === mapDirective?.uuid);
+
+          // replace first item in walkback location with the station location
+          const newWalkbackLocation = [
+            thisStation.location,
+            ...thisStation.walkbackLocation.slice(1),
+          ];
+          // replace the last item in walkback location with the mission lander location
+          newWalkbackLocation[newWalkbackLocation.length - 1] = missionLanderLocation;
+
+          // replace first item in walkback distance with the new distance
+          const newDistances = [
+            getDistanceBetweenTwoCoordinates(
+              thisStation.location,
+              thisStation.walkbackLocation[1],
+              parseFloat(mission.config.msv.radius.minor)
+            ),
+            ...thisStation.walkbackDistance.slice(1),
+          ];
+
+          newDistances[newDistances.length - 1] = getDistanceBetweenTwoCoordinates(
+            newWalkbackLocation[newWalkbackLocation.length - 2],
+            missionLanderLocation,
+            parseFloat(mission.config.msv.radius.minor)
+          );
+
+          dispatch(
+            updateWalkbackLocationAndDistance({
+              uuid: mapDirective?.uuid,
+              location: newWalkbackLocation,
+              distance: newDistances,
+            })
+          );
+        }
+
         clearAction();
         break;
 
@@ -614,7 +749,75 @@ const MapBody: FunctionComponent = () => {
         draggableLines.current.off("drag");
       }
     };
-  }, [map, mission, draggableLines, mapDirective, dispatch, getMapItemByUuid]);
+  }, [
+    map,
+    mission,
+    draggableLines,
+    mapDirective,
+    dispatch,
+    getMapItemByUuid,
+    selectedEva,
+    traverses,
+    stations,
+  ]);
+
+  /**
+   * Populate stationsToShow when stations or selections change
+   */
+  useEffect(() => {
+    if (!stations) return;
+    if (showAllStations) {
+      setStationsToShow(stations);
+    } else if (selectedStation) {
+      setStationsToShow([selectedStation]);
+    } else if (selectedEva) {
+      const stationSequenceItems = selectedEva.sequence.filter((item) => item.type === "station");
+      const stationsInEva = stations.filter((station) =>
+        stationSequenceItems.find((item) => item.uuid === station.uuid)
+      );
+      setStationsToShow(stationsInEva);
+    } else {
+      setStationsToShow([]);
+    }
+  }, [stations, selectedStation, selectedEva, showAllStations]);
+
+  /**
+   * Populate POIs to show when POIs or selections change
+   */
+  useEffect(() => {
+    if (!pois) return;
+    if (showAllPois) {
+      setPoisToShow(pois);
+    } else if (selectedPoi) {
+      setPoisToShow([selectedPoi]);
+    } else {
+      setPoisToShow([]);
+    }
+  }, [pois, selectedPoi, showAllPois]);
+
+  /**
+   * Populate traverses to show when traverses or selections change
+   */
+  useEffect(() => {
+    if (!traverses) return;
+
+    if (selectedEvaSequenceItemUuid) {
+      const traverse = traverses.find((traverse) => traverse.uuid === selectedEvaSequenceItemUuid);
+      if (traverse) {
+        setTraversesToShow([traverse]);
+      } else {
+        setTraversesToShow([]);
+      }
+    } else if (selectedEva) {
+      const traverseSequenceItems = selectedEva.sequence.filter((item) => item.type === "traverse");
+      const traversesInEva = traverses.filter((traverse) =>
+        traverseSequenceItems.find((item) => item.uuid === traverse.uuid)
+      );
+      setTraversesToShow(traversesInEva);
+    } else {
+      setTraversesToShow([]);
+    }
+  }, [traverses, selectedEvaSequenceItemUuid, selectedEva]);
 
   /**
    * Draw or update POIs on the map when pois change. Serves as draw when page loads
@@ -622,73 +825,80 @@ const MapBody: FunctionComponent = () => {
   useEffect(() => {
     if (!map.current || mapDirective) return;
 
-    if (pois) {
-      // delete all poi in leaflet that are not in the poi store
-      map.current.eachLayer((layer: AEGISMarker | AEGISPolyline) => {
-        if (layer.mapItemType === "poi") {
-          map.current.removeLayer(layer);
-        }
-      });
+    // delete all poi in leaflet that are not in the poi store
+    map.current.eachLayer((layer: AEGISMarker | AEGISPolyline) => {
+      if (layer.mapItemType === "poi") {
+        map.current.removeLayer(layer);
+      }
+    });
 
-      // draw or update all pois
-      pois.forEach((poi) => {
-        if (poi.location) {
-          drawOrUpdateMarkerOnMap({
-            uuid: poi.uuid,
-            iconEmoji: poi.icon ? poi.icon : "1F3F4",
-            mapItemType: "poi",
-            location: poi.location,
-            onClick: () => {
-              setShowHighlightOnMap(true);
-              dispatch(setSectionSelected("poi"));
-              dispatch(setSelectedPoiUuid(poi.uuid));
-            },
-            onDraggend: (marker: AEGISMarker) => {
-              const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
-              saveUpdatedPoiOrStationPosition(poi.uuid, "poi", newLocation);
-              dispatch(updateMapDirective(null));
-            },
-          });
-        }
-      });
-    }
-  }, [map, pois, mapDirective, drawOrUpdateMarkerOnMap, saveUpdatedPoiOrStationPosition, dispatch]);
+    // draw or update all pois
+    poisToShow.forEach((poi) => {
+      if (poi.location) {
+        drawOrUpdateMarkerOnMap({
+          uuid: poi.uuid,
+          iconEmoji: poi.icon ? poi.icon : "1F3F4",
+          mapItemType: "poi",
+          location: poi.location,
+          onClick: () => {
+            setShowHighlightOnMap(true);
+            dispatch(setSectionSelected("poi"));
+            dispatch(setSelectedPoiUuid(poi.uuid));
+          },
+          onDraggend: (marker: AEGISMarker) => {
+            const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
+            saveUpdatedPoiOrStationPosition(poi.uuid, "poi", newLocation);
+            dispatch(updateMapDirective(null));
+          },
+        });
+      }
+    });
+  }, [
+    map,
+    pois,
+    mapDirective,
+    drawOrUpdateMarkerOnMap,
+    saveUpdatedPoiOrStationPosition,
+    dispatch,
+    poisToShow,
+  ]);
 
   /**
-   * Draw or update stations on the map when stations change. Serves as draw when page loads
+   * Draw stationsToShow on the map when stations or selections change. Linked to checkbox at top of map.
    */
   useEffect(() => {
     if (!map.current || mapDirective) return;
-    // delete all stations in leaflet that are not in the station store
+    if (!stationsToShow) return;
+
+    // remove all stations from the map
     map.current.eachLayer((layer: AEGISMarker | AEGISPolyline) => {
       if (layer.mapItemType === "station") {
         map.current.removeLayer(layer);
       }
     });
 
-    // draw or update all stations
-    if (stations) {
-      stations.forEach((station) => {
-        if (station.location) {
-          drawOrUpdateMarkerOnMap({
-            uuid: station.uuid,
-            iconEmoji: station.icon,
-            mapItemType: "station",
-            location: station.location,
-            onClick: () => {
-              setShowHighlightOnMap(true);
-              dispatch(setSectionSelected("station"));
-              dispatch(setSelectedStationUuid(station.uuid));
-            },
-            onDraggend: (marker: AEGISMarker) => {
-              const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
-              saveUpdatedPoiOrStationPosition(station.uuid, "station", newLocation);
-              dispatch(updateMapDirective(null));
-            },
-          });
-        }
-      });
-    }
+    // draw all stations
+
+    stationsToShow.forEach((station) => {
+      if (station.location) {
+        drawOrUpdateMarkerOnMap({
+          uuid: station.uuid,
+          iconEmoji: station.icon,
+          mapItemType: "station",
+          location: station.location,
+          onClick: () => {
+            setShowHighlightOnMap(true);
+            dispatch(setSectionSelected("station"));
+            dispatch(setSelectedStationUuid(station.uuid));
+          },
+          onDraggend: (marker: AEGISMarker) => {
+            const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
+            saveUpdatedPoiOrStationPosition(station.uuid, "station", newLocation);
+            dispatch(updateMapDirective(null));
+          },
+        });
+      }
+    });
   }, [
     map,
     stations,
@@ -696,15 +906,15 @@ const MapBody: FunctionComponent = () => {
     drawOrUpdateMarkerOnMap,
     saveUpdatedPoiOrStationPosition,
     dispatch,
+    stationsToShow,
   ]);
 
   /**
-   * Draw walkback on the map when the selected station changes
+   * Draw station with walkback on the map when the selected station changes
    */
   useEffect(() => {
     if (!map.current || mapDirective) return;
     // remove all walkback traverses from the map
-    // delete all poi in leaflet that are not in the poi store
     map.current.eachLayer((layer: AEGISMarker | AEGISPolyline) => {
       if (layer.mapItemType === "walkback") {
         map.current.removeLayer(layer);
@@ -737,7 +947,7 @@ const MapBody: FunctionComponent = () => {
     // abort if there is an active map action ongoing
     if (mapDirective) return;
 
-    if (traverses) {
+    if (traversesToShow) {
       // delete all traverses from the map
       map.current.eachLayer((layer: AEGISMapLayer) => {
         if (layer.mapItemType === "traverse" || layer.mapItemType === "antPath") {
@@ -745,56 +955,23 @@ const MapBody: FunctionComponent = () => {
         }
       });
 
-      // if a traverse sequence item is selected, draw only that traverse
-      if (selectedEvaSequenceItemUuid) {
-        const traverse = traverses.find(
-          (traverse) => traverse.uuid === selectedEvaSequenceItemUuid
-        );
-        if (traverse) {
-          drawOrUpdatePolylineOnMap({
-            uuid: traverse.uuid,
-            location: traverse.location,
-            onClick: () => {
-              dispatch(setSectionSelected("evas"));
-              dispatch(setSelectedEvaSequenceItemUuid(traverse.uuid));
-            },
-            mapItemType: "traverse",
-            color: "blue",
-            drawAntPath: false,
-          });
-        }
-      } else if (selectedEva) {
-        // draw all traverses in the selectedEva sequence
-        selectedEva.sequence.forEach((sequenceItem) => {
-          if (sequenceItem.type !== "traverse") return;
-
-          const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
-          if (traverse) {
-            drawOrUpdatePolylineOnMap({
-              uuid: traverse.uuid,
-              location: traverse.location,
-              onClick: () => {
-                dispatch(setSectionSelected("evas"));
-                dispatch(setSelectedEvaSequenceItemUuid(traverse.uuid));
-                dispatch(setSelectedEvaRightNavItem("info_panel"));
-              },
-              color: "blue",
-              mapItemType: "traverse",
-              drawAntPath: true,
-            });
-          }
+      // draw all traverses in the selectedEva sequence
+      traversesToShow.forEach((traverse) => {
+        drawOrUpdatePolylineOnMap({
+          uuid: traverse.uuid,
+          location: traverse.location,
+          onClick: () => {
+            dispatch(setSectionSelected("evas"));
+            dispatch(setSelectedEvaSequenceItemUuid(traverse.uuid));
+            dispatch(setSelectedEvaRightNavItem("info_panel"));
+          },
+          color: "blue",
+          mapItemType: "traverse",
+          drawAntPath: traversesToShow.length > 1,
         });
-      }
+      });
     }
-  }, [
-    map,
-    traverses,
-    mapDirective,
-    selectedEvaSequenceItemUuid,
-    selectedEva,
-    drawOrUpdatePolylineOnMap,
-    dispatch,
-  ]);
+  }, [map, traverses, mapDirective, drawOrUpdatePolylineOnMap, dispatch, traversesToShow]);
 
   /**
    * Monitor map item highlights and draw highlight layer on the map
@@ -849,9 +1026,38 @@ const MapBody: FunctionComponent = () => {
   }, [selectedPoi, selectedStation]);
 
   return (
-    <>
+    <div className={styles.mapContainer}>
       <div className={styles.map} ref={mapRef}></div>
-    </>
+
+      <div className={styles.mapDisplayControls}>
+        <div className={styles.controlsContainer}>
+          <div className={styles.control}>
+            <div className={styles.controlCheckbox}>
+              <Checkbox
+                checked={showAllPois}
+                onChange={(e) => {
+                  setShowAllPois(e.target.checked);
+                }}
+              />
+            </div>
+            <div className={styles.controlTitle}>All POIs</div>
+          </div>
+          <div className={styles.control}>
+            <div className={styles.controlCheckbox}>
+              <Checkbox
+                checked={showAllStations}
+                onChange={(e) => {
+                  setShowAllStations(e.target.checked);
+                }}
+              />
+            </div>
+            <div className={styles.controlTitle}>All Stations</div>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.mapScaleDisplay}>{drawScaleBarDiv()}</div>
+    </div>
   );
 };
 

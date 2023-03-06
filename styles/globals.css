@@ -63,11 +63,6 @@ body {
   display: none !important;
 }
 
-/* hide zoom controls */
-/* .leaflet-top {
-  display: none !important;
-} */
-
 /* hide marker artifacts */
 .leaflet-div-icon {
   background-color: transparent !important;
@@ -95,6 +90,22 @@ body {
   padding: 1px !important;
 }
 
+/* zoom control color */
+.leaflet-bar a {
+  background-color: var(--grey2) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--grey3) !important;
+}
+
+/* scale line */
+.leaflet-control-scale-line {
+  background-color: var(--grey2) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--grey3) !important;
+  text-shadow: none !important;
+}
+
+/* --- react-tag-input overrides --- */
 .rti--container input {
   height: 2em;
   background-color: var(--grey1);
