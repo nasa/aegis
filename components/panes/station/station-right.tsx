@@ -39,6 +39,7 @@ import STM_Panel from "../stm-coverage";
 import * as httpClient_station from "http-client/station";
 import * as httpClient_action from "http-client/action";
 import { updateMapDirective } from "store/map";
+import { decodeEmoji } from "utils/formatting";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -326,6 +327,9 @@ const StationEditorRight: FunctionComponent = () => {
     selectedStation && (
       <>
         <div className={paneStyles.rightTopTitle}>
+          {selectedStation.icon && (
+            <div className={paneStyles.rightTopTitleIcon}>{decodeEmoji(selectedStation.icon)}</div>
+          )}
           <div className={paneStyles.rightTopTitleText} style={{ color: "var(--station)" }}>
             <InLineEditInput
               fieldName="Station"
