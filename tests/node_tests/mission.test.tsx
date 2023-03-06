@@ -34,6 +34,7 @@ describe("Mission API Endpoint", () => {
 
   let loginCookie: string;
   let newMission: Mission = {
+    id: null,
     name: "Mission Jest Test",
     config: null,
   };

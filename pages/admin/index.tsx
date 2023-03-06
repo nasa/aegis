@@ -132,6 +132,7 @@ const MissionList = (props: {
 //Add new mission components
 const AddEditMission = (props: { refreshMissionList: () => {}; editMissionId?: number }) => {
   const [mission, setMission] = useState<Mission>({
+    id: null,
     name: "",
     config: null,
     landerLocation: { lat: 0, lng: 0 },
@@ -162,7 +163,13 @@ const AddEditMission = (props: { refreshMissionList: () => {}; editMissionId?: n
       setConfig(missions.data[0].config);
     } else {
       //clear all component editors
-      setMission({ name: "", config: null, landerLocation: { lat: 0, lng: 0 }, traverseSpeed: 0 });
+      setMission({
+        id: null,
+        name: "",
+        config: null,
+        landerLocation: { lat: 0, lng: 0 },
+        traverseSpeed: 0,
+      });
       setConfig(createNewConfig());
     }
   }
