@@ -8,16 +8,16 @@ import {
   RequestOptions,
   ResponseOptions,
 } from "node-mocks-http";
-import Login from "../../pages/api/users/login";
+import Login from "pages/api/users/login";
 
 import { getORM, getEM, closeORM } from "utils/mikro";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
-import handleLayer from "../../pages/api/layer";
+import handleLayer from "pages/api/layer";
 import LayerFactory from "../factories/LayerFactory";
-import { Mission as Mission_db } from "../../server/database/models/mission.model";
-import { User as User_db } from "../../server/database/models/user.model";
-import { Layer as Layer_db } from "../../server/database/models/layer.model";
+import { Mission as Mission_db } from "server/database/models/mission.model";
+import { User as User_db } from "server/database/models/user.model";
+import { Layer as Layer_db } from "server/database/models/layer.model";
 import { createNewLayer } from "components/admin/helper";
 import fetchMock from "jest-fetch-mock";
 import { v4 as uuidv4 } from "uuid";

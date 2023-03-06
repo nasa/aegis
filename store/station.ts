@@ -61,38 +61,38 @@ export const stationSlice = createSlice({
       state.stations = state.stations.map((station) => {
         if (station.uuid === action.payload.uuid) {
           // set the first point of the walkback location to the new station location
-          const walkbackLocation = station.walkbackLocation;
-          if (station.walkbackLocation && station.walkbackLocation.length > 0) {
-            station.walkbackLocation[0] = action.payload.location;
+          const walkbackLocation = station.walkbackPath;
+          if (station.walkbackPath && station.walkbackPath.length > 0) {
+            station.walkbackPath[0] = action.payload.location;
           }
-          return { ...station, location: action.payload.location, walkbackLocation };
+          return { ...station, location: action.payload.location, walkbackPath: walkbackLocation };
         }
         return station;
       });
     },
-    updateWalkbackLocationAndDistance: (
+    updateWalkbackPathAndDistance: (
       state,
-      action: { payload: { uuid: string; location: AEGISPoint[]; distance: number[] } }
+      action: { payload: { uuid: string; path: AEGISPoint[]; distance: number[] } }
     ) => {
       state.stations = state.stations.map((station) => {
         if (station.uuid === action.payload.uuid) {
           return {
             ...station,
-            walkbackLocation: action.payload.location,
-            walkbackDistance: action.payload.distance,
+            walkbackPath: action.payload.path,
+            walkbackPathSegmentDistances: action.payload.distance,
           };
         }
         return station;
       });
     },
-    revertWalkbackLocationAndDistance: (state, action: { payload: { uuid: string } }) => {
+    revertWalkbackPathAndDistance: (state, action: { payload: { uuid: string } }) => {
       const station = state.stations.find((station) => station.uuid === action.payload.uuid);
       const stationFromDb = state.stationsFromDb.find(
         (station) => station.uuid === action.payload.uuid
       );
       if (station && stationFromDb) {
-        station.walkbackLocation = stationFromDb.walkbackLocation;
-        station.walkbackDistance = stationFromDb.walkbackDistance;
+        station.walkbackPath = stationFromDb.walkbackPath;
+        station.walkbackPathSegmentDistances = stationFromDb.walkbackPathSegmentDistances;
       }
     },
   },
@@ -110,6 +110,6 @@ export const {
   duplicateStation,
   setStationEditMode,
   updateStationLocation,
-  updateWalkbackLocationAndDistance,
-  revertWalkbackLocationAndDistance,
+  updateWalkbackPathAndDistance,
+  revertWalkbackPathAndDistance,
 } = stationSlice.actions;

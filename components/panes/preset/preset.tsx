@@ -9,9 +9,9 @@ import {
   setPresetEditMode,
   setPresetInteractions,
   upsertPreset,
-} from "../../../store/preset";
-import { setLayerControls } from "../../../store/map";
-import { setSelectedPresetUuid, setSelectedPresetRightNavItem } from "../../../store/preset";
+} from "store/preset";
+import { setLayerControls } from "store/map";
+import { setSelectedPresetUuid, setSelectedPresetRightNavItem } from "store/preset";
 import { v4 as uuidv4 } from "uuid";
 import { IconButton, ModifiedIndicator } from "components/interface/_global-elements";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";

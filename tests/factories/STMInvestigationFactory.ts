@@ -1,5 +1,5 @@
 import { Factory } from "@mikro-orm/seeder";
-import { STM_Investigation as STM_Investigation_db } from "../../server/database/models/stm_investigation.model";
+import { STM_Investigation as STM_Investigation_db } from "server/database/models/stm_investigation.model";
 import { v4 as uuidv4 } from "uuid";
 import { EntityData } from "@mikro-orm/core";
 

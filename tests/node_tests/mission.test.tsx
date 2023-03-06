@@ -7,9 +7,9 @@ import {
 } from "node-mocks-http";
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { NextApiRequest, NextApiResponse } from "next";
-import Login from "../../pages/api/users/login";
+import Login from "pages/api/users/login";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import handleMission from "../../pages/api/mission";
+import handleMission from "pages/api/mission";
 import { Mission as Mission_db } from "server/database/models/mission.model";
 import MissionFactory from "../factories/MissionFactory";
 import { User as User_db } from "server/database/models/user.model";

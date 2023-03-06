@@ -8,9 +8,9 @@ import {
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { NextApiRequest, NextApiResponse } from "next";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import isLoggedIn from "../../pages/api/users/isLoggedIn";
-import logout from "../../pages/api/users/logout";
-import login from "../../pages/api/users/login";
+import isLoggedIn from "pages/api/users/isLoggedIn";
+import logout from "pages/api/users/logout";
+import login from "pages/api/users/login";
 import { User as User_db } from "server/database/models/user.model";
 import UserFactory from "../factories/UserFactory";
 import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here

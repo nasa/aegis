@@ -1,5 +1,5 @@
 import { Factory } from "@mikro-orm/seeder";
-import { Action as Action_db } from "../../server/database/models/action.model";
+import { Action as Action_db } from "server/database/models/action.model";
 import { v4 as uuidv4 } from "uuid";
 import { EntityData } from "@mikro-orm/core";
 

@@ -14,11 +14,11 @@ export class StationSeeder extends Seeder {
       description: "Egress and activity around lander",
       radius: 5,
       location: { lat: -3.645421873728663, lng: -17.47186660766602 },
-      walkbackLocation: [
+      walkbackPath: [
         { lat: -3.645421873728663, lng: -17.47186660766602 },
         { lat: -3.655421873728663, lng: -17.48186660766602 },
       ],
-      walkbackDistance: [0],
+      walkbackPathSegmentDistances: [0],
       icon: "1f680",
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -32,11 +32,11 @@ export class StationSeeder extends Seeder {
       description: "Test station description",
       radius: 3,
       location: { lat: -3.6305197977566683, lng: -17.43161201477051 },
-      walkbackLocation: [
+      walkbackPath: [
         { lat: -3.6305197977566683, lng: -17.43161201477051 },
         { lat: -3.640519797756668, lng: -17.441612014770513 },
       ],
-      walkbackDistance: [0],
+      walkbackPathSegmentDistances: [0],
       icon: "1f680",
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -50,11 +50,11 @@ export class StationSeeder extends Seeder {
       description: "Test station description",
       radius: 3,
       location: { lat: -3.638316103462144, lng: -17.462511062622074 },
-      walkbackLocation: [
+      walkbackPath: [
         { lat: -3.638316103462144, lng: -17.462511062622074 },
         { lat: -3.648316103462144, lng: -17.472511062622074 },
       ],
-      walkbackDistance: [0],
+      walkbackPathSegmentDistances: [0],
       icon: "1f680",
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -68,11 +68,11 @@ export class StationSeeder extends Seeder {
       description: "Cleanup and ingress",
       radius: 5,
       location: { lat: -3.645421873728663, lng: -17.47186660766602 },
-      walkbackLocation: [
+      walkbackPath: [
         { lat: -3.645421873728663, lng: -17.47186660766602 },
         { lat: -3.655421873728663, lng: -17.48186660766602 },
       ],
-      walkbackDistance: [0],
+      walkbackPathSegmentDistances: [0],
       icon: "1f680",
       createdAt: new Date(),
       updatedAt: new Date(),

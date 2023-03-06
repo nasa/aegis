@@ -9,11 +9,11 @@ export class TraverseSeeder extends Seeder {
       uuid: uuidv4(),
       mission: context.mission1.id,
       name: "Running",
-      location: [
+      path: [
         { lat: -3.645421873728663, lng: -17.47186660766602 },
         { lat: -3.6305197977566683, lng: -17.43161201477051 },
       ],
-      distance: [1299.3051480173328],
+      pathSegmentDistances: [1299.3051480173328],
       description: "Traverse description 1",
       durationLower: 30,
       durationUpper: 40,
@@ -25,11 +25,11 @@ export class TraverseSeeder extends Seeder {
       uuid: uuidv4(),
       mission: context.mission1.id,
       name: "Walking",
-      location: [
+      path: [
         { lat: -3.6305197977566683, lng: -17.43161201477051 },
         { lat: -3.638316103462144, lng: -17.462511062622074 },
       ],
-      distance: [964.500440114797],
+      pathSegmentDistances: [964.500440114797],
       description: "Traverse description 2",
       durationLower: 20,
       durationUpper: 25,
@@ -41,11 +41,11 @@ export class TraverseSeeder extends Seeder {
       uuid: uuidv4(),
       mission: context.mission1.id,
       name: "Skipping",
-      location: [
+      path: [
         { lat: -3.638316103462144, lng: -17.462511062622074 },
         { lat: -3.645421873728663, lng: -17.47186660766602 },
       ],
-      distance: [355.78614116138584],
+      pathSegmentDistances: [355.78614116138584],
       description: "Traverse description 3",
       durationLower: 20,
       durationUpper: 25,

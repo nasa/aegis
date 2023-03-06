@@ -1,14 +1,14 @@
-import reducer, { initialState, setLayerControls } from "../../store/map";
-import { setLayers } from "../../store/mission";
+import reducer, { initialState, setLayerControls } from "store/map";
+import { setLayers } from "store/mission";
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import handleLayer from "../../pages/api/layer";
-import Login from "../../pages/api/users/login";
+import handleLayer from "pages/api/layer";
+import Login from "pages/api/users/login";
 
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
-import { Mission as Mission_db } from "../../server/database/models/mission.model";
-import { User as User_db } from "../../server/database/models/user.model";
+import { Mission as Mission_db } from "server/database/models/mission.model";
+import { User as User_db } from "server/database/models/user.model";
 import {
   createMocks,
   createRequest,

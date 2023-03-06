@@ -7,14 +7,14 @@ import {
 } from "node-mocks-http";
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { NextApiRequest, NextApiResponse } from "next";
-import Login from "../../pages/api/users/login";
+import Login from "pages/api/users/login";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import handleEva from "../../pages/api/eva";
+import handleEva from "pages/api/eva";
 import { User as User_db } from "server/database/models/user.model";
 import UserFactory from "../factories/UserFactory";
-import { Mission as Mission_db } from "../../server/database/models/mission.model";
+import { Mission as Mission_db } from "server/database/models/mission.model";
 import MissionFactory from "../factories/MissionFactory";
-import { Eva as Eva_db } from "../../server/database/models/eva.model";
+import { Eva as Eva_db } from "server/database/models/eva.model";
 import EvaFactory from "../factories/EVAFactory";
 import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
 global.TextEncoder = TextEncoder;

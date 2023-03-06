@@ -93,13 +93,13 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   };
 
   useEffect(() => {
-    if (!selectedStation.walkbackLocation) {
+    if (!selectedStation.walkbackPath) {
       // if there is no walkback, set the walkback to the default
       if (selectedStation.location) {
         dispatch(
           upsertStation({
             ...selectedStation,
-            walkbackLocation: [
+            walkbackPath: [
               {
                 lat: selectedStation.location?.lat,
                 lng: selectedStation.location?.lng,
@@ -109,7 +109,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 lng: selectedStation.location?.lng - 0.01,
               },
             ],
-            walkbackDistance: [50],
+            walkbackPathSegmentDistances: [50],
           })
         );
       }
@@ -482,8 +482,8 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               )}
               <div className={paneStyles.verticalCenter}>
                 <div className={paneStyles.panelText}>
-                  {selectedStation.walkbackLocation && (
-                    <>{selectedStation.walkbackLocation.length}&nbsp;points</>
+                  {selectedStation.walkbackPath && (
+                    <>{selectedStation.walkbackPath.length}&nbsp;points</>
                   )}
                 </div>
               </div>
@@ -537,7 +537,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Walk-back Distance</div>
                 <div className={paneStyles.panelText}>
-                  {selectedStation.walkbackDistance
+                  {selectedStation.walkbackPathSegmentDistances
                     ?.reduce((accumulator, currentVal) => accumulator + currentVal, 0)
                     .toFixed(2)}
                   &nbsp;m
