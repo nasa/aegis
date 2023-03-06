@@ -13,6 +13,7 @@ import evaStyles from "./eva.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowDown, faArrowUp, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { setSelectedStationUuid } from "store/station";
+import { decodeEmoji } from "utils/formatting";
 
 const EvaItemSequence: FunctionComponent<{
   evaUuid: string;
@@ -140,24 +141,14 @@ const EvaItemSequence: FunctionComponent<{
         evaSequence.map((sequenceItem, index) => {
           let evaItemIcon = null;
           if (sequenceItem.type === "station") {
-            if (index === 0 || index === evaSequence.length - 1) {
-              // draw first and last station as lander
-              evaItemIcon = (
-                <div className={evaStyles.evaIndicator}>
-                  <div className={evaStyles.iconLander} />
-                </div>
-              );
-            } else {
-              evaItemIcon = (
-                <div className={evaStyles.evaIndicator}>
-                  <div className={evaStyles.iconStation} />
-                </div>
-              );
-            }
+            const thisStation = stations.find((station) => station.uuid === sequenceItem.uuid);
+            evaItemIcon = (
+              <div className={evaStyles.iconCustom}>{decodeEmoji(thisStation.icon)}</div>
+            );
           } else if (sequenceItem.type === "traverse") {
             evaItemIcon = (
-              <div className={evaStyles.evaIndicator}>
-                <div className={evaStyles.iconTraverseContainer}>
+              <div className={evaStyles.evaTraverseIndicator}>
+                <div className={evaStyles.iconTraverseDotsContainer}>
                   <div className={evaStyles.iconTraverse} />
                 </div>
               </div>

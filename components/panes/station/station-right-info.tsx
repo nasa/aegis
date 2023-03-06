@@ -309,6 +309,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                               emojiButtonSize={30}
                               emojiSize={20}
                               perLine={10}
+                              darkMode={true}
                               onEmojiSelect={(e) => {
                                 dispatch(upsertStation({ ...selectedStation, icon: e.unified }));
                                 setShowEmojiPicker(false);
