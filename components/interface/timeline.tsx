@@ -138,7 +138,7 @@ const NavTimeline: FunctionComponent = () => {
           sequenceItemForPaperJS.distanceFromLander = [landerDistance];
         } else if (sequenceItem.type === "traverse") {
           const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
-          if (traverse?.path.length < 2) continue; //skip traverses with less than 2 points
+          if (!traverse.path || traverse?.path?.length < 2) continue; //skip traverses with less than 2 points
 
           //subdivide seach segmet by 150 meters for greater accuracy
           const numPointsAt150Meters =
