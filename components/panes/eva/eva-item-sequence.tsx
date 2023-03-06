@@ -38,7 +38,7 @@ const EvaItemSequence: FunctionComponent<{
       evaSequence.forEach((item, index) => {
         if (item.type === "traverse") {
           const thisTraverse = traverses.find((traverse) => traverse.uuid === item.uuid);
-          const newTraverseLocation = [...thisTraverse.location];
+          const newTraverseLocation = [...thisTraverse.path];
           if (thisTraverse) {
             if (newTraverseLocation.length === 0) {
               // make blank location array with two points if it is empty

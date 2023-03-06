@@ -48,24 +48,24 @@ export const traverseSlice = createSlice({
         );
       }
     },
-    updateTraverseLocationAndDistance: (
+    updateTraversePathAndDistance: (
       state,
-      action: { payload: { uuid: string; location: AEGISPoint[]; distance: number[] } }
+      action: { payload: { uuid: string; path: AEGISPoint[]; distance: number[] } }
     ) => {
       const traverse = state.traverses.find((traverse) => traverse.uuid === action.payload.uuid);
       if (traverse) {
-        traverse.location = action.payload.location;
-        traverse.distance = action.payload.distance;
+        traverse.path = action.payload.path;
+        traverse.pathSegmentDistances = action.payload.distance;
       }
     },
-    revertTraverseLocationAndDistance: (state, action: { payload: { uuid: string } }) => {
+    revertTraversePathAndDistance: (state, action: { payload: { uuid: string } }) => {
       const traverse = state.traverses.find((traverse) => traverse.uuid === action.payload.uuid);
       const traverseFromDb = state.traversesFromDb.find(
         (traverse) => traverse.uuid === action.payload.uuid
       );
       if (traverse && traverseFromDb) {
-        traverse.location = traverseFromDb.location;
-        traverse.distance = traverseFromDb.distance;
+        traverse.path = traverseFromDb.path;
+        traverse.pathSegmentDistances = traverseFromDb.pathSegmentDistances;
       }
     },
   },
@@ -81,6 +81,6 @@ export const {
   deleteAllTraverses,
   setSelectedTraverseRightNavItem,
   setTraverseEditMode,
-  updateTraverseLocationAndDistance,
-  revertTraverseLocationAndDistance,
+  updateTraversePathAndDistance,
+  revertTraversePathAndDistance,
 } = traverseSlice.actions;

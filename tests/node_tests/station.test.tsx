@@ -7,14 +7,14 @@ import {
 } from "node-mocks-http";
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { NextApiRequest, NextApiResponse } from "next";
-import Login from "../../pages/api/users/login";
+import Login from "pages/api/users/login";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import handleStation from "../../pages/api/station";
+import handleStation from "pages/api/station";
 import { User as User_db } from "server/database/models/user.model";
 import UserFactory from "../factories/UserFactory";
-import { Station as Station_db } from "../../server/database/models/station.model";
+import { Station as Station_db } from "server/database/models/station.model";
 import StationFactory from "../factories/StationFactory";
-import { Mission as Mission_db } from "../../server/database/models/mission.model";
+import { Mission as Mission_db } from "server/database/models/mission.model";
 import MissionFactory from "../factories/MissionFactory";
 import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
 global.TextEncoder = TextEncoder;
@@ -52,8 +52,8 @@ describe("Station API Endpoint", () => {
     radius: 0,
     location: null,
     icon: null,
-    walkbackLocation: null,
-    walkbackDistance: [0],
+    walkbackPath: null,
+    walkbackPathSegmentDistances: [0],
     durationLower: 0,
     durationUpper: 0,
 

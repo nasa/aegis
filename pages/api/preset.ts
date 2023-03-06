@@ -2,8 +2,8 @@ import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 import { withORM, getEM } from "utils/mikro";
-import { Preset as Preset_db } from "../../server/database/models/preset.model";
-import { roundDateToSecond } from "../../utils/formatting";
+import { Preset as Preset_db } from "server/database/models/preset.model";
+import { roundDateToSecond } from "utils/formatting";
 import { EntityData } from "@mikro-orm/core";
 
 const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (

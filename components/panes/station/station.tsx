@@ -50,8 +50,8 @@ const StationEditorLeft: FunctionComponent = () => {
       location: null,
       durationLower: 0,
       durationUpper: 0,
-      walkbackLocation: null,
-      walkbackDistance: null,
+      walkbackPath: null,
+      walkbackPathSegmentDistances: null,
       icon: null,
     };
     dispatch(upsertStation(blankStation));

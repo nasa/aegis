@@ -7,14 +7,14 @@ import {
 } from "node-mocks-http";
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { NextApiRequest, NextApiResponse } from "next";
-import Login from "../../pages/api/users/login";
+import Login from "pages/api/users/login";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import handleTraverse from "../../pages/api/traverse";
+import handleTraverse from "pages/api/traverse";
 import { User as User_db } from "server/database/models/user.model";
 import UserFactory from "../factories/UserFactory";
-import { Mission as Mission_db } from "../../server/database/models/mission.model";
+import { Mission as Mission_db } from "server/database/models/mission.model";
 import MissionFactory from "../factories/MissionFactory";
-import { Traverse as Traverse_db } from "../../server/database/models/traverse.model";
+import { Traverse as Traverse_db } from "server/database/models/traverse.model";
 import TraverseFactory from "../factories/TraverseFactory";
 import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
 global.TextEncoder = TextEncoder;
@@ -45,8 +45,8 @@ describe("EVA API Endpoint", () => {
     uuid: null,
     missionId: null,
     name: "Jest Traverse-1",
-    location: null,
-    distance: [0],
+    path: null,
+    pathSegmentDistances: [0],
     durationLower: 0,
     durationUpper: 0,
     status: "Candidate",

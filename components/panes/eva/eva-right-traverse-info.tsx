@@ -1,6 +1,5 @@
 import {
   faFloppyDisk,
-  faLocationDot,
   faMapLocationDot,
   faRoute,
   faXmark,
@@ -141,7 +140,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Traverse Distance</div>
                 <div className={paneStyles.panelDisplayVal}>
-                  {selectedTraverse.distance
+                  {selectedTraverse.pathSegmentDistances
                     ?.reduce((accumulator, currentVal) => accumulator + currentVal, 0)
                     .toFixed(2)}
                   &nbsp;m
@@ -158,20 +157,18 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
             </div>
           </div>
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Location</div>
+            <div className={paneStyles.panelSectionTitle}>Path</div>
 
             <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
               <>
-                {(selectedTraverse.location || editMode) && (
+                {(selectedTraverse.path || editMode) && (
                   <div className={paneStyles.verticalCenter}>
-                    <FontAwesomeIcon icon={faLocationDot} />
+                    <FontAwesomeIcon icon={faRoute} />
                   </div>
                 )}
                 <div className={paneStyles.verticalCenter}>
                   <div className={paneStyles.panelText}>
-                    {selectedTraverse.location && (
-                      <>{selectedTraverse.location.length}&nbsp;points</>
-                    )}
+                    {selectedTraverse.path && <>{selectedTraverse.path.length}&nbsp;points</>}
                   </div>
                 </div>
                 {editMode && mapAction === null ? (
@@ -219,7 +216,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                   </>
                 )}
 
-                {!editMode && !selectedTraverse.location && (
+                {!editMode && !selectedTraverse.path && (
                   <div className={paneStyles.panelText}>Location not yet set</div>
                 )}
               </>

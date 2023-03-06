@@ -1,5 +1,5 @@
 import { Factory } from "@mikro-orm/seeder";
-import { Station as Station_db } from "../../server/database/models/station.model";
+import { Station as Station_db } from "server/database/models/station.model";
 import { v4 as uuidv4 } from "uuid";
 import { EntityData } from "@mikro-orm/core";
 
@@ -15,8 +15,8 @@ export default class StationFactory extends Factory<Station_db> {
       description: "",
       radius: 0,
       location: null,
-      walkbackLocation: null,
-      walkbackDistance: 0,
+      walkbackPath: null,
+      walkbackPathSegmentDistances: 0,
       durationLower: 0,
       durationUpper: 0,
       icon: null,

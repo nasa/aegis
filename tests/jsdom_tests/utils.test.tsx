@@ -19,7 +19,7 @@ import {
   padZeros,
   shortdateFromDateString,
   toDecimal,
-} from "../../utils/formatting";
+} from "utils/formatting";
 import { getEM } from "utils/mikro";
 
 describe("Utilities Functions", () => {

@@ -1,5 +1,5 @@
 import { Factory } from "@mikro-orm/seeder";
-import { Preset as Preset_db } from "../../server/database/models/preset.model";
+import { Preset as Preset_db } from "server/database/models/preset.model";
 import { v4 } from "uuid";
 import { EntityData } from "@mikro-orm/core";
 

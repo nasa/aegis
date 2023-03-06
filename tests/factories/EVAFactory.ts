@@ -1,5 +1,5 @@
 import { Factory } from "@mikro-orm/seeder";
-import { Eva as Eva_db } from "../../server/database/models/eva.model";
+import { Eva as Eva_db } from "server/database/models/eva.model";
 import { v4 as uuidv4 } from "uuid";
 import { EntityData } from "@mikro-orm/core";
 

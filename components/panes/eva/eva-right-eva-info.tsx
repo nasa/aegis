@@ -45,8 +45,8 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
         const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
         totalTraverseTimeLower += traverse?.durationLower;
         totalTraverseTimeUpper += traverse?.durationUpper;
-        if (Array.isArray(traverse?.distance)) {
-          totalTraverseDistance += traverse?.distance.reduce(
+        if (Array.isArray(traverse?.pathSegmentDistances)) {
+          totalTraverseDistance += traverse?.pathSegmentDistances.reduce(
             (accumulator, currentVal) => accumulator + currentVal,
             0
           );
