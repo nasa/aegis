@@ -131,6 +131,12 @@ export const presetSlice = createSlice({
         }
       }
     },
+    resetAllPresetInteractions: (state, action: { payload: { presetUuid: string } }) => {
+      // set all tabSelected values to null
+      Object.keys(state.presetInteractions[action.payload.presetUuid]).forEach((layerName) => {
+        state.presetInteractions[action.payload.presetUuid][layerName].tabSelected = null;
+      });
+    },
   },
 });
 
@@ -151,4 +157,5 @@ export const {
   setPresetInteraction,
   deletePresetInteractions,
   setPresetEditMode,
+  resetAllPresetInteractions,
 } = presetSlice.actions;

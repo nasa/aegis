@@ -23,6 +23,7 @@ import {
   setSelectedPresetRightNavItem,
   upsertPreset,
   upsertPresetsFromDb,
+  resetAllPresetInteractions,
 } from "store/preset";
 import * as InternalAPI from "http-client/internal-api";
 import { IconButton, InLineEditInput } from "components/interface/_global-elements";
@@ -84,6 +85,7 @@ const PresetEditorRight: FunctionComponent = () => {
         throw new Error("Error upserting Presets: " + upsertReponse.message);
       }
       dispatch(setPresetEditMode({ presetUuid: selectedPreset.uuid, editMode: false }));
+      dispatch(resetAllPresetInteractions({ presetUuid: selectedPreset.uuid }));
     }
   };
 
@@ -97,6 +99,7 @@ const PresetEditorRight: FunctionComponent = () => {
       dispatch(upsertPreset(selectedPresetFromDb));
     }
     dispatch(setPresetEditMode({ presetUuid: selectedPreset.uuid, editMode: false }));
+    dispatch(resetAllPresetInteractions({ presetUuid: selectedPreset.uuid }));
   };
 
   const handleEdit = () => {
