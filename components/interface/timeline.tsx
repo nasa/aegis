@@ -104,6 +104,7 @@ const NavTimeline: FunctionComponent = () => {
         };
         if (sequenceItem.type === "station") {
           const station = stations.find((station) => station.uuid === sequenceItem.uuid);
+          if (!station) continue; //skip if station doesn't exist (happens when station hasn't been selected yet when editing sequence)
 
           //calculate duration from actions assigned to station
           let durationMinutes = 0;
@@ -137,6 +138,7 @@ const NavTimeline: FunctionComponent = () => {
           sequenceItemForPaperJS.distanceFromLander = [landerDistance];
         } else if (sequenceItem.type === "traverse") {
           const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
+          if (traverse?.location.length < 2) continue; //skip traverses with less than 2 points
 
           //subdivide seach segmet by 150 meters for greater accuracy
           const numPointsAt150Meters =

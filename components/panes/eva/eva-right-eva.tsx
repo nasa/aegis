@@ -113,7 +113,7 @@ const EvaRightEva: FunctionComponent = () => {
       }
 
       // find out if the traverses in this eva have been modified and need to be persisted
-      const traverseUuidsInThisEva = [];
+      const traverseUuidsInThisEva: string[] = [];
       selectedEva.sequence.forEach((sequenceItem) => {
         if (sequenceItem.type === "traverse") {
           traverseUuidsInThisEva.push(sequenceItem.uuid);

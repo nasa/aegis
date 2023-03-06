@@ -344,8 +344,12 @@
   margin: auto;
 }
 
+.checkboxContainer {
+  display: flex;
+  align-self: center;
+}
+
 .checkboxContainer input[type="checkbox"] {
-  margin-top: 4px;
   appearance: none;
   width: 1.2em;
   height: 1.2em;
