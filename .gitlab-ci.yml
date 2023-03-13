@@ -576,3 +576,35 @@ z:db-seed:dev1:
     - cd /opt/aegis
     # wipe all tables, run all migrations, run the seeder
     - docker compose exec nextjs npm run seed
+
+.container-logs-template:
+  when: manual
+  needs: []
+  stage: stageless
+  timeout: 10 minutes
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
+    - cd /opt/aegis
+    - sudo docker compose logs nextjs
+    - sudo docker compose logs nginx
+    - sudo docker compose logs database
+
+z:logs:dev1:
+  extends: .container-logs-template
+  tags: ["emss-aegis-dev1"]
+  variables:
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1
+
+z:logs:int:
+  extends: .container-logs-template
+  tags: ["emss-aegis-int"]
+  variables:
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT
+
+z:logs:prod:
+  extends: .container-logs-template
+  tags: ["emss-aegis-prod"]
+  variables:
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD
