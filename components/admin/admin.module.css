@@ -17,5 +17,26 @@
 }
 
 .deleteButton {
-  background-color: red;
+  background-color: #dc3545;
+}
+
+.sectionDiv {
+  border: 1px solid black;
+  padding: 5px;
+  margin: 5px;
+}
+
+.editMissionDiv {
+  padding: 5px;
+  width: "fit-content";
+}
+
+.fileTable {
+  border-collapse: collapse;
+}
+
+.fileTable td,
+.fileTable th {
+  border: 1px solid black;
+  padding: 4px;
 }

@@ -3,7 +3,6 @@ import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { isLoggedIn } from "http-client/internal-api";
 import { getMissions, deleteMission, upsertMission } from "http-client/mission";
-import Link from "next/link";
 import _ from "lodash";
 import MSV from "components/admin/msv";
 import Tools from "components/admin/tools";
@@ -13,11 +12,15 @@ import Panels from "components/admin/panels";
 import Time from "components/admin/time";
 import styles from "components/admin/admin.module.css";
 import { createNewConfig } from "components/admin/helper";
+import FileManager from "components/admin/fileManager";
+import adminStyles from "components/admin/admin.module.css";
+import { deleteFile } from "http-client/file";
 
 const Index: NextPage = () => {
   const router = useRouter();
   const [missions, setMissions] = useState<Mission[]>([]);
   const [editMissionId, setEditMissionId] = useState<number>(); //track mission currently in edit
+  const [mission, setMission] = useState<Mission>(); //current mission being edited
 
   async function loadMissionsFromDB() {
     const missionList = (await getMissions()).data;
@@ -36,10 +39,26 @@ const Index: NextPage = () => {
     })();
   }, [router]);
 
+  useEffect(() => {
+    if (editMissionId) {
+      setMission(missions.find((mission) => mission.id === editMissionId));
+    }
+  }, [editMissionId, missions]);
+
+  function createNewMission() {
+    setMission({
+      id: null,
+      name: "",
+      config: null,
+      landerLocation: { lat: 0, lng: 0 },
+      traverseSpeed: 0,
+    });
+    setEditMissionId(null);
+  }
+
   return (
     <div>
-      <Link href="/admin/upload">Upload Files</Link>
-      <h3>Missions</h3>
+      <h2>Missions</h2>
       <MissionList
         missions={missions}
         refreshMissionList={loadMissionsFromDB}
@@ -48,12 +67,16 @@ const Index: NextPage = () => {
       <button
         type="button"
         onClick={() => {
-          setEditMissionId(null);
+          createNewMission();
         }}
       >
         Add New Mission (Clear Form)
       </button>
-      <AddEditMission refreshMissionList={loadMissionsFromDB} editMissionId={editMissionId} />
+      <AddEditMission
+        refreshMissionList={loadMissionsFromDB}
+        mission={mission}
+        setMission={setMission}
+      />
     </div>
   );
 };
@@ -69,7 +92,12 @@ const MissionList = (props: {
   async function delMission(id: number) {
     if (confirm("Are you sure you want to delete mission " + id)) {
       const res: WrappedResponse<number> = await deleteMission(id);
-      alert(`Delete ${res.status} - ${res.message} for missionID ${id}`);
+      const fileDelete = await deleteFile(`missionFiles/${id.toString()}`);
+      alert(
+        `Delete ${res.status} - ${res.message} for missionID ${id}. File delete ${
+          fileDelete ? "successful" : "failed"
+        }`
+      );
       props.refreshMissionList(); //reload mission listing in parent component.
     }
   }
@@ -130,153 +158,139 @@ const MissionList = (props: {
 };
 
 //Add new mission components
-const AddEditMission = (props: { refreshMissionList: () => {}; editMissionId?: number }) => {
-  const [mission, setMission] = useState<Mission>({
-    id: null,
-    name: "",
-    config: null,
-    landerLocation: { lat: 0, lng: 0 },
-    traverseSpeed: 0,
-  }); //current mission being edited, or a blank mission if we're adding new
+const AddEditMission = (props: {
+  refreshMissionList: () => {};
+  mission: Mission;
+  setMission: Dispatch<SetStateAction<Mission>>;
+}) => {
+  const { refreshMissionList, mission, setMission } = { ...props };
   const [config, setConfig] = useState<Config>(createNewConfig());
 
   useEffect(() => {
-    if (props.editMissionId) {
-      loadMission(props.editMissionId);
-    } else {
-      loadMission(null);
+    if (props.mission) {
+      setConfig(props.mission.config);
     }
-  }, [props.editMissionId]);
-
-  //loads mission data into form for edit
-  async function loadMission(missionId: number) {
-    if (missionId) {
-      //get mission data from DB
-      const missions: WrappedResponse<Mission[]> = await getMissions(missionId);
-      if (!missions.data || missions.data?.length !== 1) {
-        alert(missions.message);
-        return;
-      }
-
-      //load up all the component editors with mission data
-      setMission(missions.data[0]);
-      setConfig(missions.data[0].config);
-    } else {
-      //clear all component editors
-      setMission({
-        id: null,
-        name: "",
-        config: null,
-        landerLocation: { lat: 0, lng: 0 },
-        traverseSpeed: 0,
-      });
-      setConfig(createNewConfig());
-    }
-  }
+  }, [props.mission]);
 
   //save the mission and call and upsert
   async function saveMission() {
     const missionToSave: Mission = { ...mission, config: config };
     const res = await upsertMission(missionToSave);
     if (res.status === "success") {
-      props.refreshMissionList();
+      refreshMissionList();
     }
     alert(`${res.status} - ${res.message}`);
   }
 
   return (
-    <div>
-      <h3>Add/Edit Mission</h3>
-      <button
-        type="button"
-        onClick={() => {
-          saveMission();
-        }}
-      >
-        Save Mission
-      </button>
-      <br />
-      <br />
-      <div id="missionDiv">
-        <div className={styles.editDiv}>
-          <label htmlFor="newName">Mission Name (Parent)</label>
+    mission && (
+      <div className={adminStyles.editMissionDiv}>
+        {mission.id ? <h3>Edit Mission &quot;{mission.name}&quot;</h3> : <h3>Add Mission</h3>}
+        <button
+          type="button"
+          onClick={() => {
+            saveMission();
+          }}
+        >
+          Save Mission
+        </button>
+        <br />
+        <br />
+        <div className={adminStyles.sectionDiv}>
+          Manage files in the /Data folder for this mission
+          <br />
+          <br />
+          {mission.id ? (
+            <>
+              <FileManager path={`missionFiles/${mission.id}/Data`} />
+            </>
+          ) : (
+            <div>A new mission must be saved first before you can upload files</div>
+          )}
         </div>
-        <div className={styles.editDiv}>
-          <input
-            id="newName"
-            type="text"
-            onChange={(e) => {
-              setMission({ ...mission, name: e.target.value });
-            }}
-            value={mission?.name}
-          />
+        <br />
+        <br />
+        <div id="missionDiv">
+          <div className={styles.editDiv}>
+            <label htmlFor="newName">Mission Name (Parent)</label>
+          </div>
+          <div className={styles.editDiv}>
+            <input
+              id="newName"
+              type="text"
+              onChange={(e) => {
+                setMission({ ...mission, name: e.target.value });
+              }}
+              value={mission?.name}
+            />
+          </div>
         </div>
+        <div id="landerLatDiv">
+          <div className={styles.editDiv}>
+            <label htmlFor="landerLat">Lander Location Latitude</label>
+          </div>
+          <div className={styles.editDiv}>
+            <input
+              id="landerLat"
+              type="text"
+              onChange={(e) => {
+                setMission({
+                  ...mission,
+                  landerLocation: { ...mission.landerLocation, lat: +e.target.value },
+                });
+              }}
+              value={mission?.landerLocation?.lat}
+            />
+          </div>
+        </div>
+        <div id="landerLongDiv">
+          <div className={styles.editDiv}>
+            <label htmlFor="landerLong">Lander Location Longitude</label>
+          </div>
+          <div className={styles.editDiv}>
+            <input
+              id="landerLong"
+              type="text"
+              onChange={(e) => {
+                setMission({
+                  ...mission,
+                  landerLocation: { ...mission.landerLocation, lng: +e.target.value },
+                });
+              }}
+              value={mission?.landerLocation?.lng}
+            />
+          </div>
+        </div>
+        <div id="traverseDiv">
+          <div className={styles.editDiv}>
+            <label htmlFor="traverse">Default Traverse Speed</label>
+          </div>
+          <div className={styles.editDiv}>
+            <input
+              id="traverse"
+              type="text"
+              onChange={(e) => {
+                setMission({
+                  ...mission,
+                  traverseSpeed: +e.target.value,
+                });
+              }}
+              value={mission?.traverseSpeed}
+            />
+          </div>
+        </div>
+        <MSV config_msv={config?.msv} setConfig={setConfig} />
+        <Tools config_tools={config?.tools} setConfig={setConfig} />
+        <Projection config_projection={config?.projection} setConfig={setConfig} />
+        <Look config_look={config?.look} setConfig={setConfig} />
+        <Panels
+          config_panels={config?.panels}
+          config_panelSettings={config?.panelSettings}
+          setConfig={setConfig}
+        />
+        <Time config_time={config?.time} setConfig={setConfig} />
       </div>
-      <div id="landerLatDiv">
-        <div className={styles.editDiv}>
-          <label htmlFor="landerLat">Lander Location Latitude</label>
-        </div>
-        <div className={styles.editDiv}>
-          <input
-            id="landerLat"
-            type="text"
-            onChange={(e) => {
-              setMission({
-                ...mission,
-                landerLocation: { ...mission.landerLocation, lat: +e.target.value },
-              });
-            }}
-            value={mission?.landerLocation?.lat}
-          />
-        </div>
-      </div>
-      <div id="landerLongDiv">
-        <div className={styles.editDiv}>
-          <label htmlFor="landerLong">Lander Location Longitude</label>
-        </div>
-        <div className={styles.editDiv}>
-          <input
-            id="landerLong"
-            type="text"
-            onChange={(e) => {
-              setMission({
-                ...mission,
-                landerLocation: { ...mission.landerLocation, lng: +e.target.value },
-              });
-            }}
-            value={mission?.landerLocation?.lng}
-          />
-        </div>
-      </div>
-      <div id="traverseDiv">
-        <div className={styles.editDiv}>
-          <label htmlFor="traverse">Default Traverse Speed</label>
-        </div>
-        <div className={styles.editDiv}>
-          <input
-            id="traverse"
-            type="text"
-            onChange={(e) => {
-              setMission({
-                ...mission,
-                traverseSpeed: +e.target.value,
-              });
-            }}
-            value={mission?.traverseSpeed}
-          />
-        </div>
-      </div>
-      <MSV config_msv={config?.msv} setConfig={setConfig} />
-      <Tools config_tools={config?.tools} setConfig={setConfig} />
-      <Projection config_projection={config?.projection} setConfig={setConfig} />
-      <Look config_look={config?.look} setConfig={setConfig} />
-      <Panels
-        config_panels={config?.panels}
-        config_panelSettings={config?.panelSettings}
-        setConfig={setConfig}
-      />
-      <Time config_time={config?.time} setConfig={setConfig} />
-    </div>
+    )
   );
 };
 

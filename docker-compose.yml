@@ -6,7 +6,7 @@ services:
     depends_on:
       - nextjs
     volumes:
-      - ${NGINX_STATIC_DIR}:/usr/share/nginx/static:ro
+      - ${PUBLIC_STATIC_DIR}:/usr/share/nginx/static:ro
       - ${DOCKER_SSL_CERTS_DIR}:/etc/pki/tls/certs
       - ${DOCKER_SSL_PRIVATE_DIR}:/etc/pki/tls/private
     ports:
@@ -35,7 +35,7 @@ services:
       - "9229:9229"
     volumes:
       - ./.env:/app/.env
-      - ${NGINX_STATIC_DIR}:/static
+      - ${PUBLIC_STATIC_DIR}:/${PUBLIC_STATIC_DIR}
     networks:
       - aegis-network
 

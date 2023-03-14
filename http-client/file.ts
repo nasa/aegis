@@ -13,7 +13,7 @@ export async function uploadFile(
   };
 
   try {
-    const res = await axios.post("api/file/upload", formData, config);
+    const res = await axios.post("/api/file/upload", formData, config);
     return res;
   } catch (e) {
     //axios rejects the promise if the response is an error. Just pass the response data through
@@ -26,31 +26,41 @@ export async function uploadFile(
 
 /**
  * Calls api endpoint to deletes a file or folder recurisvely
- * @param filename filename or folder to delete
+ * @param path path with filename or folder to delete off the root PUBLIC_STATIC_DIR
  * @returns boolean if delete was successful
  */
-export async function deleteFile(filename: string): Promise<Response> {
-  const res: Response = await fetch(`api/file/delete?name=${filename}`);
+export async function deleteFile(path: string): Promise<Response> {
+  const res: Response = await fetch(`/api/file/delete?path=${encodeURIComponent(path)}`);
   return res;
 }
 
 /**
  * Calls api endpoint to rename file or folder
+ * @param path the path directory off the root PUBLIC_STATIC_DIR
  * @param oldName current file name
  * @param newName new file name
  * @returns bool if rename was successful
  */
-export async function renameFile(oldName: string, newName: string): Promise<Response> {
-  const res: Response = await fetch(`api/file/rename?oldname=${oldName}&newname=${newName}`);
+export async function renameFile(
+  path: string,
+  oldName: string,
+  newName: string
+): Promise<Response> {
+  const res: Response = await fetch(
+    `/api/file/rename?path=${encodeURIComponent(path)}&oldname=${encodeURIComponent(
+      oldName
+    )}&newname=${encodeURIComponent(newName)}`
+  );
   return res;
 }
 
 /**
  * Calls the API endpoint to list files
+ * @param path the path directory off the root PUBLIC_STATIC_DIR
  * @returns the json response containing array of file listing
  */
-export async function listFiles(): Promise<GISfile[]> {
-  const res: Response = await fetch("api/file/list");
+export async function listFiles(path: string): Promise<GISfile[]> {
+  const res: Response = await fetch(`/api/file/list?path=${encodeURIComponent(path)}`);
   const jsondata = await res.json();
   return jsondata.data;
 }

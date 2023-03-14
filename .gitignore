@@ -47,3 +47,6 @@ junit.xml
 # MS Office temp files
 ~$*
 temp
+
+# Local static directory for non-docker development
+/public/static/

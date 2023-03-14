@@ -4,17 +4,21 @@ import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 
 /**
- * `/api/file/rename?oldname=&newname=`
+ * `/api/file/rename?path=&oldname=&newname=`
  *
  * rename file
  */
 export default withIronSessionApiRoute(handler, ironOptions);
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { oldname, newname } = req.query as { [key: string]: string };
+  const { path, oldname, newname } = req.query as { [key: string]: string };
   try {
     if (req.session.user) {
-      const success = await renameFile(oldname, newname);
+      const success = await renameFile(
+        decodeURIComponent(path),
+        decodeURIComponent(oldname),
+        decodeURIComponent(newname)
+      );
       if (!success) {
         throw new Error("Unable to rename file. Check server log");
       }

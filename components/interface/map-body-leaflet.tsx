@@ -22,7 +22,6 @@ import {
   useLayoutEffect,
 } from "react";
 import _ from "lodash";
-// import { updateEvaItemLocation } from "store/eva";
 import { updateMapDirective } from "store/map";
 import { setSelectedPoiUuid, updatePoiLocation } from "store/poi";
 import { setSectionSelected } from "store/interface";
@@ -47,7 +46,7 @@ import { Checkbox } from "./_global-elements";
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
 const zoom = 13;
 
-const layerBaseURL = process.env.NEXT_PUBLIC_LAYER_BASE_URL;
+const layerBaseURL = "/static/missionFiles";
 
 const MapBody: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -130,7 +129,7 @@ const MapBody: FunctionComponent = () => {
     if (!mission || !layerControls || !map.current) return;
 
     // go through all layers in mission config and add make a list of the ones that are enabled
-    const layersToAdd: MMGIS_Sublayer[] = [];
+    const layersToAdd: Sublayer[] = [];
     for (const configLayer of missionLayers) {
       for (const configSublayer of configLayer.layerConfig.sublayers) {
         if (configSublayer.type === "tile") {
@@ -165,7 +164,7 @@ const MapBody: FunctionComponent = () => {
       if (!isLayerOnMapByName(map, configSublayer.name)) {
         const filter = makeLayerColorFilter(layerControls, configSublayer.name);
         const tileLayer = (L.tileLayer as any).colorFilter(
-          `${layerBaseURL}${mission.name}/${configSublayer.url}`,
+          `${layerBaseURL}/${mission.id}/Layers/${configSublayer.aegisURL}`,
           {
             tileSize: 256,
             bounds: [

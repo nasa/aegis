@@ -21,6 +21,7 @@ const config: Options = {
   password: process.env.AEGIS_DB_PASS,
   migrations: {
     path: path.join(__dirname, "./server/database/migrations"), // path to the folder with migrations
+    snapshot: false,
   },
   seeder: {
     path: path.join(__dirname, "./server/database/seeds"), // path to the folder with seed files
