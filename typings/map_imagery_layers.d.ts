@@ -41,6 +41,8 @@ type LayerConfig = Omit<MMGIS_LayerConfig, "sublayers"> & {
 //add a custom description field to MMGIS sublayers
 interface Sublayer extends MMGIS_Sublayer {
   description?: string;
+  uuid?: string;
+  aegisURL?: string;
 }
 
 type Preset = {

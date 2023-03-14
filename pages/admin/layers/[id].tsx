@@ -1,5 +1,5 @@
 import { NextPage } from "next";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { isLoggedIn } from "http-client/internal-api";
 import adminStyles from "components/admin/admin.module.css";
@@ -9,18 +9,21 @@ import { deleteLayer, getLayers, upsertLayer } from "http-client/layer";
 import { createNewLayer, createNewSublayer } from "components/admin/helper";
 import { getMissions } from "http-client/mission";
 import _ from "lodash";
+import { v4 as uuidv4 } from "uuid";
+import FileManager from "components/admin/fileManager";
 
 const Layers: NextPage = () => {
   const router = useRouter();
   const [missionIdSlug, setMissionIdSlug] = useState<number>(null);
   const [missionName, setMissionName] = useState<string>("");
-  const [message, setMessage] = useState("");
 
   const [allLayers, setAllLayers] = useState<Layer[]>(null);
   const [editLayer, setEditLayer] = useState<Layer>(null);
 
   const [editSublayerIndex, setEditSublayerIndex] = useState<number>(null);
   const [editSublayerParentUUID, setEditSublayerParentUUID] = useState("0");
+
+  const [fileList, setFileList] = useState<GISfile[]>(null);
 
   async function loadLayersfromDB(missionId: number) {
     if (missionId) {
@@ -45,24 +48,23 @@ const Layers: NextPage = () => {
       const { id } = router.query;
       if (id) {
         setMissionIdSlug(+id);
-        setMessage("Loading mission ID " + id);
 
         //set mission name
         const mission = (await getMissions(+id)).data;
         if (mission[0]) {
           setMissionName(mission[0].name);
         }
-      } else {
-        setMessage("No mission ID");
       }
     })();
   }, [router]);
 
   //realod db when mission id changes
   useEffect(() => {
-    if (missionIdSlug) {
-      loadLayersfromDB(missionIdSlug);
-    }
+    (async () => {
+      if (missionIdSlug) {
+        await loadLayersfromDB(missionIdSlug);
+      }
+    })();
   }, [missionIdSlug]);
 
   //set the current layer and sublayer being edited
@@ -80,23 +82,48 @@ const Layers: NextPage = () => {
       selectedParentLayer.layerConfig.sublayers.push(createNewSublayer("tile")); //default new layer to a tile type
       setEdit(selectedParentLayer, selectedParentLayer.layerConfig.sublayers.length - 1);
     } else {
-      setMessage("Error adding new sublayer");
+      alert("Error adding new sublayer");
     }
   }
 
   //save the current editing layer to db
   async function saveLayer() {
     if (editLayer) {
+      //loop through sublayers and assign UUIDs if they don't already have one
+      for (const sublayer of editLayer.layerConfig.sublayers) {
+        if (!sublayer.uuid) sublayer.uuid = uuidv4();
+      }
+
       const res: WrappedResponse<Layer> = await upsertLayer(editLayer);
-      loadLayersfromDB(missionIdSlug);
+      await loadLayersfromDB(missionIdSlug);
       alert(`${res.status} - ${res.message}`);
     }
   }
 
+  const checkLayerUsesFolder = useCallback(
+    (folderName: string) => {
+      for (const layer of allLayers) {
+        for (const sublayers of layer.layerConfig.sublayers) {
+          if (sublayers.aegisURL?.startsWith(folderName)) {
+            return true;
+          }
+        }
+      }
+    },
+    [allLayers]
+  );
+
   return (
     <div>
-      Status: {message}
       <h2>Mission: {missionName}</h2>
+      <button
+        type="button"
+        onClick={() => {
+          router.push("/admin/");
+        }}
+      >
+        Back to Mission
+      </button>
       <div id="layerList_div">
         <h3>Layers and Sublayers</h3>
         <LayerList
@@ -107,7 +134,6 @@ const Layers: NextPage = () => {
         />
       </div>
       <div id="addLayer_div">
-        <h3>Add Layer / Sublayer</h3>
         <button
           type="button"
           onClick={() => {
@@ -148,35 +174,67 @@ const Layers: NextPage = () => {
           </div>
         )}
       </div>
-      <div id="editLayer_div">
-        <h3>Edit</h3>
-        {editLayer ? (
-          <button
-            type="button"
-            onClick={() => {
-              saveLayer();
-            }}
-          >
-            Save Layer/Sublayer
-          </button>
+      <br />
+      <div className={adminStyles.sectionDiv}>
+        Manage files in the /Layers folder for this mission
+        <br />
+        <br />
+        {missionIdSlug ? (
+          <>
+            <FileManager
+              path={`missionFiles/${missionIdSlug}/Layers`}
+              setFileList={setFileList}
+              isUsed={checkLayerUsesFolder}
+            />
+          </>
         ) : (
-          <div>Please Select a Layer to Edit</div>
+          <div>A new mission must be saved first before you can upload files</div>
         )}
-        <br />
-        <br />
+      </div>
+      <div id="editLayer_div">
         {editLayer && editSublayerIndex === null && (
           <>
-            <h3>Header Layer</h3>
+            {editLayer.uuid ? (
+              <h3>Edit Header Layer &quot;{editLayer.layerConfig.name}&quot;</h3>
+            ) : (
+              <h3>Add Header Layer</h3>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                saveLayer();
+              }}
+            >
+              Save Header Layer
+            </button>
             <LayerEdit layer={editLayer} setLayer={setEditLayer} />
           </>
         )}
         {editSublayerIndex !== null && editLayer && (
           <>
-            <h3>Sublayer</h3>
+            {editLayer.layerConfig.sublayers[editSublayerIndex].name ? (
+              <h3>
+                Edit Sublayer &quot;{editLayer.layerConfig.sublayers[editSublayerIndex].name}&quot;
+              </h3>
+            ) : (
+              <h3>Edit Sublayer</h3>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                saveLayer();
+              }}
+            >
+              Save Sublayer
+            </button>
+            <br />
             <SublayerEdit
               sublayerIndex={editSublayerIndex}
               sublayer={editLayer.layerConfig.sublayers[editSublayerIndex]}
               setLayer={setEditLayer}
+              missionId={missionIdSlug}
+              fileList={fileList}
             />
           </>
         )}

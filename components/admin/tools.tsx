@@ -62,13 +62,15 @@ const Tools: FunctionComponent<ToolProps> = (props: ToolProps) => {
   return (
     <>
       <h4>Tools</h4>
-      {allWrappedTools.map((tool) => {
-        return (
-          <div id={tool.name} key={tool.name}>
-            <EditTool tool={tool} updateConfig={updateConfig} />
-          </div>
-        );
-      })}
+      <div className={styles.sectionDiv}>
+        {allWrappedTools.map((tool) => {
+          return (
+            <div id={tool.name} key={tool.name}>
+              <EditTool tool={tool} updateConfig={updateConfig} />
+            </div>
+          );
+        })}
+      </div>
     </>
   );
 };

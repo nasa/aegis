@@ -105,6 +105,14 @@ const STM: NextPage = () => {
     <div>
       Status: {message}
       <h2>Mission: {missionName}</h2>
+      <button
+        type="button"
+        onClick={() => {
+          router.push("/admin/");
+        }}
+      >
+        Back to Mission
+      </button>
       <h3>Science Tracability Matrix</h3>
       <ObjectiveList
         objectives={allObjectives}

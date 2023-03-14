@@ -11,41 +11,15 @@ import { ironOptions } from "server/session/config";
  *
  * upload file data
  */
-
 let filename = "";
 
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: process.env.GIS_UPLOAD_DIR,
-    filename: (req, file, cb) => {
-      cb(null, file.originalname);
-      filename = file.originalname;
-      req.on("aborted", () => {
-        console.log("Client aborted upload");
-        file.stream.on("end", () => {
-          deleteFile(filename);
-        });
-        file.stream.emit("end");
-      });
-    },
-  }),
-  fileFilter: (req, file, cb) => {
-    //console.log("file filter check!");
-
-    //only accept zip files
-    if (path.extname(file.originalname) === ".zip" && file.mimetype.includes("zip")) {
-      cb(null, true);
-    } else {
-      return cb(new Error("Invalid file type. Only .zip files are allowed"));
-    }
-  },
-  limits: {
-    fileSize: Infinity,
-  },
-});
-
-//use next-connect middleware
+//next connect middleware
 const apiRoute = nextConnect({
+  //handle other http methods not defined
+  onNoMatch(req: NextApiRequest, res: NextApiResponse) {
+    res.status(404).json(`Invalid route`);
+  },
+
   onError(error, req: NextApiRequest, res: NextApiResponse) {
     console.log("nextConnect onError: " + error.message);
     if (error.status === 413) {
@@ -54,19 +28,46 @@ const apiRoute = nextConnect({
       res.status(500).json(`Upload error. ${error.message}`);
     }
   },
-  onNoMatch(req: NextApiRequest, res: NextApiResponse) {
-    res.status(404).json(`Invalid route`); //
-  },
 });
 
+//Adds the multer middleware to next connect
 apiRoute.use(async (req, res, next) => {
-  //console.log("apiroute.use " + req.session.user);
   if (req.session.user) {
+    //a multer instance
+    const upload = multer({
+      storage: multer.diskStorage({
+        destination: process.env.PUBLIC_STATIC_DIR, //all files are uploaded into the root PUBLIC_STATIC_DIR location
+        filename: (req, file, cb) => {
+          cb(null, file.originalname);
+          filename = file.originalname;
+          req.on("aborted", () => {
+            console.log("Client aborted upload");
+            file.stream.on("end", () => {
+              deleteFile(filename);
+            });
+            file.stream.emit("end");
+          });
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        //only accept zip files
+        if (path.extname(file.originalname) === ".zip" && file.mimetype.includes("zip")) {
+          cb(null, true);
+        } else {
+          return cb(new Error("Invalid file type. Only .zip files are allowed"));
+        }
+      },
+      limits: {
+        fileSize: Infinity,
+      },
+    });
+
     //upload a single file form field "uploadFile"
     //returns a middleware func to be called with args (req, res, callback)
     const multerFunc = upload.single("uploadFile") as RequestHandler<unknown, any>;
+
+    //pass in the req/res into the multer middelware
     multerFunc(req, res, (error) => {
-      // try {
       if (error) {
         //handle multer errors (ex: multer file extension check)
         console.log("Multer error: " + error.message);
@@ -89,13 +90,15 @@ apiRoute.use(async (req, res, next) => {
   }
 });
 
+//handle post requests
 apiRoute.post(async (req, res: NextApiResponse) => {
   try {
     if (req.body.uploadFile === "null") {
       res.status(400).json("No file provided in request body");
       return;
     } else {
-      const unzipStatus = await unzip(filename, path.parse(filename).name); //unzip the file
+      //Files are uploaded into the root process.env.PUBLIC_STATIC_DIR directory and then unzipped into their desingated subfolder
+      const unzipStatus = await unzip(filename, req.body.path, req.body.subfolder); //unzip the file
       if (unzipStatus) {
         res.status(200).json("File extracted"); //return success response
       } else {

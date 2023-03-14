@@ -4,17 +4,17 @@ import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 
 /**
- * `/api/file/delete?name=`
+ * `/api/file/delete?path=`
  *
  * delete file or folder recursively
  */
 export default withIronSessionApiRoute(handler, ironOptions);
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { name } = req.query as { [key: string]: string };
+  const { path } = req.query as { [key: string]: string };
   try {
     if (req.session.user) {
-      const success = await deleteFile(name);
+      const success = await deleteFile(decodeURIComponent(path));
       if (!success) {
         throw new Error("Unable to delete file. Check server log");
       }

@@ -2,25 +2,40 @@ import StreamZip from "node-stream-zip";
 import fs, { RmOptions } from "fs";
 import { readdir, mkdir, rm, rename } from "node:fs/promises";
 
-const destRoot = process.env.GIS_UPLOAD_DIR;
+const destRoot = process.env.PUBLIC_STATIC_DIR;
+/**
+ * File structure for the PUBLIC_STATIC_DIR is as follows
+ * [missionId]/
+ *    Data/
+ *    Layers/
+ *        [layerUuid]/
+ */
 
 /**
  * Unzips files into a directory. Deletes original file upon completion.
  * @param filename filename of the .zip file
- * @param outputDir directory the zip file contents should be extracted to
+ * @param outputDir directory off of PUBLIC_STATIC_DIR that the zip file contents should be extracted to
+ * @param subfolder optional subfolder within the outputDir to unzip to. Ex: a UUID folder for layers
  * @returns returns true if successful. False otherwise. Logs messages to console
  */
-export async function unzip(filename: string, outputDir: string): Promise<boolean> {
+export async function unzip(
+  filename: string,
+  outputDir: string,
+  subfolder?: string
+): Promise<boolean> {
+  const unzipDirectory = subfolder
+    ? `${destRoot}/${outputDir}/${subfolder}`
+    : `${destRoot}/${outputDir}`;
   try {
     //make directory if it doesn't exist
-    if (!fs.existsSync(`${destRoot}/${outputDir}`)) {
-      await mkdir(`${destRoot}/${outputDir}`);
+    if (!fs.existsSync(unzipDirectory)) {
+      await mkdir(unzipDirectory, { recursive: true });
     }
 
     //unzip the file. contents will overwrite if they already exist in location
     console.log(`Unzipping with overwrite: ${destRoot}/${filename}`);
     const zip = new StreamZip.async({ file: `${destRoot}/${filename}` });
-    const numFiles = await zip.extract(null, `${destRoot}/${outputDir}`);
+    const numFiles = await zip.extract(null, unzipDirectory);
     await zip.close();
 
     //delete the original file
@@ -30,8 +45,10 @@ export async function unzip(filename: string, outputDir: string): Promise<boolea
     return true;
   } catch (e) {
     //cleanup
-    if (fs.existsSync(`${destRoot}/${outputDir}`)) {
-      deleteFile(outputDir);
+    if (subfolder) {
+      if (fs.existsSync(`${destRoot}/${outputDir}/${subfolder}`)) {
+        deleteFile(`${destRoot}/${outputDir}/${subfolder}`);
+      }
     }
     await deleteFile(filename);
 
@@ -41,18 +58,17 @@ export async function unzip(filename: string, outputDir: string): Promise<boolea
 }
 
 /**
- * Recursive delete of a file or directory
- * @param filename file or directory in destRoot folder
+ * Recursive delete of a file or folder
+ * @param path path to file or folder from the root PUBLIC_STATIC_DIR folder.
  * @returns true successfully deleted, false otherwise
- * TODO Delete doesn't delete until node is stopped?
  */
-export async function deleteFile(filename: string): Promise<boolean> {
+export async function deleteFile(path: string): Promise<boolean> {
   try {
     const options: RmOptions = {
       recursive: true,
     };
-    await rm(`${destRoot}/${filename}`, options); //delete file or folder
-    console.log(`File/directory deleted ${destRoot}/${filename}`);
+    await rm(`${destRoot}/${path}`, options); //delete file or folder
+    console.log(`File/directory deleted ${destRoot}/${path}`);
     return true;
   } catch (e) {
     console.log(`Error in deleteFile: ${e}`);
@@ -61,16 +77,27 @@ export async function deleteFile(filename: string): Promise<boolean> {
 }
 
 /**
- * Lists files in the destRoot folder
+ * Lists files in the PUBLIC_STATIC_DIR folder
+ * @param path the path to directory in the root PUBLIC_STATIC_DIR to list
  * @returns an array of files/folders. Returns null if error
  */
-export async function listFiles(): Promise<GISfile[]> {
+export async function listFiles(path: string): Promise<GISfile[]> {
   try {
-    const files = await readdir(destRoot, { withFileTypes: true });
-    return files.map((file) => {
-      const f: GISfile = { name: file.name, isDir: file.isDirectory() };
-      return f;
-    });
+    if (fs.existsSync(`${destRoot}/${path}`)) {
+      const files = await readdir(`${destRoot}/${path}`, { withFileTypes: true });
+      return await Promise.all(
+        files.map(async (file) => {
+          let fileCount = 1;
+          if (file.isDirectory()) {
+            fileCount = await countFiles(`${path}/${file.name}`);
+          }
+          const f: GISfile = { name: file.name, isDir: file.isDirectory(), fileCount: fileCount };
+          return f;
+        })
+      );
+    } else {
+      return [];
+    }
   } catch (e) {
     console.log(`Error in listfiles: ${e}`);
     return null;
@@ -78,15 +105,34 @@ export async function listFiles(): Promise<GISfile[]> {
 }
 
 /**
- * Renames a file/directory in the destRoot folder
+ * Recursive file count for a directory
+ * @param directory
+ * @returns number of files
+ */
+async function countFiles(directory: string): Promise<number> {
+  let numFiles = 0;
+  const files = await readdir(`${destRoot}/${directory}`, { withFileTypes: true });
+  for (const file of files) {
+    if (file.isDirectory()) {
+      numFiles += await countFiles(`${directory}/${file.name}`);
+    } else {
+      numFiles++;
+    }
+  }
+  return numFiles;
+}
+
+/**
+ * Renames a file/directory in the PUBLIC_STATIC_DIR folder
+ * @param path the path to directory in the root PUBLIC_STATIC_DIR
  * @param oldName old file or folder name
  * @param newName new file or folder name
  * @returns true if rename is sccessful, false otherwise
  */
-export async function renameFile(oldName: string, newName: string): Promise<boolean> {
+export async function renameFile(path: string, oldName: string, newName: string): Promise<boolean> {
   try {
-    await rename(`${destRoot}/${oldName}`, `${destRoot}/${newName}`);
-    console.log(`Path renamed in ${destRoot} from ${oldName} to ${newName}`);
+    await rename(`${destRoot}/${path}/${oldName}`, `${destRoot}/${path}/${newName}`);
+    console.log(`Path renamed in ${destRoot}/${path} from ${oldName} to ${newName}`);
     return true;
   } catch (e) {
     console.log(`Error in renameFile: ${e}`);
