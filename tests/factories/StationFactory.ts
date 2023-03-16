@@ -16,7 +16,7 @@ export default class StationFactory extends Factory<Station_db> {
       radius: 0,
       location: null,
       walkbackPath: null,
-      walkbackPathSegmentDistances: 0,
+      walkbackPathSegmentDistances: [0],
       durationLower: 0,
       durationUpper: 0,
       icon: null,

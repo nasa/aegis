@@ -49,8 +49,8 @@ const Index: NextPage = () => {
     setMission({
       id: null,
       name: "",
-      config: null,
-      landerLocation: { lat: 0, lng: 0 },
+      config: createNewConfig(),
+      landerLocation: null,
       traverseSpeed: 0,
     });
     setEditMissionId(null);
@@ -239,7 +239,7 @@ const AddEditMission = (props: {
                   landerLocation: { ...mission.landerLocation, lat: +e.target.value },
                 });
               }}
-              value={mission?.landerLocation?.lat}
+              value={mission?.landerLocation?.lat || ""}
             />
           </div>
         </div>
@@ -257,7 +257,7 @@ const AddEditMission = (props: {
                   landerLocation: { ...mission.landerLocation, lng: +e.target.value },
                 });
               }}
-              value={mission?.landerLocation?.lng}
+              value={mission?.landerLocation?.lng || ""}
             />
           </div>
         </div>

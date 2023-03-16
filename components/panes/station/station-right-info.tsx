@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, useCallback, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import styles from "./station.module.css";
 import {
@@ -17,7 +17,7 @@ import {
 } from "components/interface/_global-elements";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useDispatch } from "react-redux";
-import { useAppSelector, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, upsertStation } from "store/station";
 import { updateMapDirective } from "store/map";
 import { calcCentroidofCoordinates } from "utils/geoMath";
@@ -25,6 +25,7 @@ import { toDecimal } from "utils/formatting";
 import emojiPickerData from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
 import { decodeEmoji } from "utils/formatting";
+import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -38,6 +39,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const landerLocation = useAppSelector(
     (state) => state.mission.mission.landerLocation,
     shallowEqual
+  );
+  const planetRadius = useAppSelector(
+    (state) => state.mission.mission?.config.msv.radius.minor,
+    refEqual
   );
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = mapDirective?.uuid === selectedStation.uuid ? mapDirective : null;
@@ -91,32 +96,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       return `${totalStationTime.durationLower} - ${totalStationTime.durationUpper}`;
     }
   };
-
-  useEffect(() => {
-    if (!selectedStation.walkbackPath) {
-      // if there is no walkback, set the walkback to the default
-      if (selectedStation.location) {
-        dispatch(
-          upsertStation({
-            ...selectedStation,
-            walkbackPath: [
-              {
-                lat: selectedStation.location?.lat,
-                lng: selectedStation.location?.lng,
-              },
-              {
-                lat: selectedStation.location?.lat - 0.01,
-                lng: selectedStation.location?.lng - 0.01,
-              },
-            ],
-            walkbackPathSegmentDistances: [50],
-          })
-        );
-      }
-    }
-    // when selectedStation changes, turn off the emoji picker in case it's open
-    setShowEmojiPicker(false);
-  }, [selectedStation, dispatch]);
 
   useEffect(() => {
     if (!editMode) setShowEmojiPicker(false);
@@ -208,6 +187,43 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     );
   };
 
+  const handleResetWalkback = useCallback(() => {
+    const walkbackPath = [
+      {
+        lat: selectedStation.location.lat,
+        lng: selectedStation.location.lng,
+      },
+      {
+        lat: landerLocation.lat,
+        lng: landerLocation.lng,
+      },
+    ];
+    dispatch(
+      upsertStation({
+        ...selectedStation,
+        walkbackPath: walkbackPath,
+        walkbackPathSegmentDistances: [
+          getDistanceBetweenTwoCoordinates(
+            walkbackPath[0],
+            walkbackPath[1],
+            parseFloat(planetRadius)
+          ),
+        ],
+      })
+    );
+  }, [dispatch, landerLocation, selectedStation, planetRadius]);
+
+  useEffect(() => {
+    if (!selectedStation.walkbackPath) {
+      // if there is no walkback, set the walkback to the default
+      if (selectedStation.location && landerLocation) {
+        handleResetWalkback();
+      }
+    }
+    // when selectedStation changes, turn off the emoji picker in case it's open
+    setShowEmojiPicker(false);
+  }, [selectedStation, dispatch, handleResetWalkback, landerLocation]);
+
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   return (
@@ -290,7 +306,11 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               <div className={paneStyles.panelSmallField}>
                 <div className={paneStyles.panelSectionTitle}>Icon</div>
                 <div className={styles.iconDisplay}>
-                  <div className={styles.iconDisplayIcon}>{decodeEmoji(selectedStation.icon)}</div>
+                  {selectedStation.icon && (
+                    <div className={styles.iconDisplayIcon}>
+                      {decodeEmoji(selectedStation.icon)}
+                    </div>
+                  )}
                   {editMode && (
                     <>
                       <div className={styles.iconDisplayButton}>
@@ -369,103 +389,101 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             <div className={paneStyles.panelSectionTitle}>Location</div>
 
             <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
-              <>
-                {(selectedStation.location || editMode) && (
-                  <div className={paneStyles.verticalCenter}>
-                    <FontAwesomeIcon icon={faLocationDot} />
-                  </div>
-                )}
-                <div className={paneStyles.panelText}>
-                  {selectedStation.location && (
-                    <>
-                      Lat: {`${selectedStation.location?.lat.toFixed(6)}`}
-                      <br />
-                      Lng: {`${selectedStation.location?.lng.toFixed(6)}`}
-                    </>
-                  )}
+              {(selectedStation.location || editMode) && (
+                <div className={paneStyles.verticalCenter}>
+                  <FontAwesomeIcon icon={faLocationDot} />
                 </div>
-                {editMode && mapAction === null ? (
-                  <>
-                    {!selectedStation.location ? (
-                      <>
-                        <IconButton
-                          onClick={() => {
-                            handleCreate();
-                          }}
-                          icon={faMapLocationDot}
-                          label="Create Location"
-                          style={{ width: "130px" }}
-                        />
-                      </>
-                    ) : (
+              )}
+
+              {selectedStation.location && (
+                <div className={paneStyles.panelText}>
+                  Lat: {`${selectedStation.location?.lat.toFixed(6)}`}
+                  <br />
+                  Lng: {`${selectedStation.location?.lng.toFixed(6)}`}
+                </div>
+              )}
+
+              {editMode && mapAction === null ? (
+                <>
+                  {!selectedStation.location ? (
+                    <>
                       <IconButton
                         onClick={() => {
-                          handleEdit();
+                          handleCreate();
                         }}
                         icon={faMapLocationDot}
-                        label="Edit on Map"
-                        style={{ width: "105px" }}
+                        label="Create Location"
+                        style={{ width: "130px" }}
                       />
-                    )}
-                    {selectedStation.poiUuids?.length > 0 && (
-                      <>
-                        <IconButton
-                          onClick={() => {
-                            handleCalcCentroid();
-                          }}
-                          icon={faMapLocationDot}
-                          label="POIs Centroid"
-                          style={{ width: "115px" }}
-                        />
-                        <IconButton
-                          onClick={() => {
-                            if (landerLocation?.lat && landerLocation?.lng) {
-                              dispatch(
-                                upsertStation({
-                                  ...selectedStation,
-                                  location: landerLocation,
-                                })
-                              );
-                            } else {
-                              alert("No lander location specified for this mission");
-                            }
-                          }}
-                          icon={faMapLocationDot}
-                          label="Lander"
-                          style={{ width: "70px" }}
-                        />
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <div className={paneStyles.buttonPlaceholder}></div>
-                )}
-                {editMode && mapAction === "createMarker" && (
+                    </>
+                  ) : (
+                    <IconButton
+                      onClick={() => {
+                        handleEdit();
+                      }}
+                      icon={faMapLocationDot}
+                      label="Edit on Map"
+                      style={{ width: "105px" }}
+                    />
+                  )}
+                  {selectedStation.poiUuids?.length > 0 && (
+                    <>
+                      <IconButton
+                        onClick={() => {
+                          handleCalcCentroid();
+                        }}
+                        icon={faMapLocationDot}
+                        label="POIs Centroid"
+                        style={{ width: "115px" }}
+                      />
+                      <IconButton
+                        onClick={() => {
+                          if (landerLocation?.lat && landerLocation?.lng) {
+                            dispatch(
+                              upsertStation({
+                                ...selectedStation,
+                                location: landerLocation,
+                              })
+                            );
+                          } else {
+                            alert("No lander location specified for this mission");
+                          }
+                        }}
+                        icon={faMapLocationDot}
+                        label="Lander"
+                        style={{ width: "70px" }}
+                      />
+                    </>
+                  )}
+                </>
+              ) : (
+                <div className={paneStyles.buttonPlaceholder}></div>
+              )}
+              {editMode && mapAction === "createMarker" && (
+                <IconButton
+                  onClick={() => {
+                    handleCancelCreate();
+                  }}
+                  icon={faXmark}
+                  label="Cancel"
+                  style={{ width: "70px" }}
+                />
+              )}
+              {editMode && mapAction === "editMarker" && (
+                <>
                   <IconButton
                     onClick={() => {
-                      handleCancelCreate();
+                      handleCancelEdit();
                     }}
                     icon={faXmark}
                     label="Cancel"
                     style={{ width: "70px" }}
                   />
-                )}
-                {editMode && mapAction === "editMarker" && (
-                  <>
-                    <IconButton
-                      onClick={() => {
-                        handleCancelEdit();
-                      }}
-                      icon={faXmark}
-                      label="Cancel"
-                      style={{ width: "70px" }}
-                    />
-                  </>
-                )}
-                {!editMode && !selectedStation.location && (
-                  <div className={paneStyles.panelText}>Location not yet set</div>
-                )}
-              </>
+                </>
+              )}
+              {!editMode && !selectedStation.location && (
+                <div className={paneStyles.panelText}>Location not yet set</div>
+              )}
             </div>
           </div>
 
@@ -473,64 +491,85 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             <div className={paneStyles.panelSectionTitle}>Walk-back Traverse</div>
             <div
               className={paneStyles.panelSectionRow}
-              style={{ marginTop: "6px", marginBottom: "3px", gap: "5px" }}
+              style={{ marginTop: "3px", marginBottom: "3px", gap: "5px" }}
             >
-              {(selectedStation.location || editMode) && (
-                <div className={paneStyles.verticalCenter}>
-                  <FontAwesomeIcon icon={faLocationDot} />
-                </div>
-              )}
               <div className={paneStyles.verticalCenter}>
-                <div className={paneStyles.panelText}>
-                  {selectedStation.walkbackPath && (
-                    <>{selectedStation.walkbackPath.length}&nbsp;points</>
-                  )}
-                </div>
+                <FontAwesomeIcon icon={faLocationDot} />
               </div>
-
-              {editMode && mapAction === null ? (
+              {selectedStation.location ? (
                 <>
-                  <IconButton
-                    onClick={() => {
-                      handleEditWalkback();
-                    }}
-                    icon={faRoute}
-                    label="Edit Path on Map"
-                    style={{ width: "135px" }}
-                  />
+                  {landerLocation ? (
+                    <>
+                      {selectedStation.walkbackPath ? (
+                        <div className={paneStyles.verticalCenter}>
+                          <div className={paneStyles.panelText}>
+                            {selectedStation.walkbackPath.length}&nbsp;points
+                          </div>
+                        </div>
+                      ) : (
+                        <div className={paneStyles.verticalCenter}>
+                          <div className={paneStyles.panelText}>No Path</div>
+                        </div>
+                      )}
+                      {editMode && mapAction === null ? (
+                        <>
+                          <IconButton
+                            onClick={() => {
+                              handleEditWalkback();
+                            }}
+                            icon={faRoute}
+                            label="Edit Path on Map"
+                            style={{ width: "135px" }}
+                          />
 
-                  <IconButton
-                    onClick={() => {
-                      alert("Not implemented yet");
-                    }}
-                    icon={faMapLocationDot}
-                    label="Reset Path"
-                    style={{ width: "100px" }}
-                  />
+                          <IconButton
+                            onClick={() => {
+                              handleResetWalkback();
+                            }}
+                            icon={faMapLocationDot}
+                            label="Reset Path"
+                            style={{ width: "100px" }}
+                          />
+                        </>
+                      ) : (
+                        <div className={paneStyles.buttonPlaceholder}></div>
+                      )}
+                      {editMode && mapAction === "editPolyline" && (
+                        <>
+                          <IconButton
+                            onClick={() => {
+                              handleSaveEditWalkback();
+                            }}
+                            icon={faFloppyDisk}
+                            label="Finished"
+                            style={{ width: "90px" }}
+                          />
+
+                          <IconButton
+                            onClick={() => {
+                              handleCancelEditWalkback();
+                            }}
+                            icon={faXmark}
+                            label="Cancel"
+                            style={{ width: "75px" }}
+                          />
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <div className={`${paneStyles.verticalCenter} ${paneStyles.buttonPlaceholder}`}>
+                      <div className={paneStyles.panelText}>
+                        N/A - No lander location specified for this mission
+                      </div>
+                    </div>
+                  )}
                 </>
               ) : (
-                <div className={paneStyles.buttonPlaceholder}></div>
-              )}
-              {editMode && mapAction === "editPolyline" && (
-                <>
-                  <IconButton
-                    onClick={() => {
-                      handleSaveEditWalkback();
-                    }}
-                    icon={faFloppyDisk}
-                    label="Finished"
-                    style={{ width: "90px" }}
-                  />
-
-                  <IconButton
-                    onClick={() => {
-                      handleCancelEditWalkback();
-                    }}
-                    icon={faXmark}
-                    label="Cancel"
-                    style={{ width: "75px" }}
-                  />
-                </>
+                <div className={`${paneStyles.verticalCenter} ${paneStyles.buttonPlaceholder}`}>
+                  <div className={paneStyles.panelText}>
+                    N/A - Please create a station location first
+                  </div>
+                </div>
               )}
             </div>
             <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>

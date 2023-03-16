@@ -10,7 +10,7 @@ export class Layer implements Layer_db_type {
   mission!: Mission;
 
   @Property({ type: MikroTypes.json, nullable: true })
-  layerConfig!: MMGIS_LayerConfig;
+  layerConfig!: LayerConfig;
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;

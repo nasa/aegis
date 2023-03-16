@@ -18,39 +18,6 @@ import {
   getTotalDistance,
 } from "utils/geoMath";
 
-interface PaperDrawings {
-  timeMarkers: paper.Group;
-  evaSequence: paper.Group[];
-  landerDistance: paper.Group[];
-  graphBkg: paper.Group;
-  graphAxis: paper.Group;
-  styles: {
-    lineColor: paper.Color;
-    sequenceColor: paper.Color;
-    startEndHighlight: paper.Color;
-    selectedBkgColor: paper.Color;
-    selectedColor: paper.Color;
-    availableBkgColor: paper.Color;
-    regularBkgColor: paper.Color;
-    gNavigatorFontFamilyActivity: string;
-  };
-}
-
-interface StoreData {
-  sequenceItems: EvaSequenceItem_PaperJS[];
-  selectedEvaSequenceItemUuid: string;
-  maxDistanceFromLander: number;
-  evaLength: number; //minutes. user input eva length
-  evaLengthCalculated: number; //minutes. actual eval length from the station actions and traverses
-}
-
-interface EvaSequenceItem_PaperJS extends EvaSequenceItem {
-  durations: number[]; //hours
-  name: string;
-  locations: AEGISPoint | AEGISPoint[];
-  distanceFromLander: number[]; //meters
-}
-
 /**
  * Renders the navigation timeline presented at the bottom of the window
  */
@@ -81,7 +48,7 @@ const NavTimeline: FunctionComponent = () => {
 
   const canvas: MutableRefObject<HTMLCanvasElement> = useRef(null);
   const paperRefs: MutableRefObject<PaperDrawings> = useRef(null);
-  const storeRefs: MutableRefObject<StoreData> = useRef(null);
+  const storeRefs: MutableRefObject<StoreData_PaperJS> = useRef(null);
 
   //populate useRef information with all our store information so paper.js can read it
   const loadUseRefs = useCallback(() => {
@@ -99,12 +66,14 @@ const NavTimeline: FunctionComponent = () => {
           ...sequenceItem,
           durations: null,
           name: null,
-          locations: null,
+          coordinates: null,
           distanceFromLander: null,
         };
         if (sequenceItem.type === "station") {
           const station = stations.find((station) => station.uuid === sequenceItem.uuid);
           if (!station) continue; //skip if station doesn't exist (happens when station hasn't been selected yet when editing sequence)
+          sequenceItemForPaperJS.name = station.name;
+          sequenceItemForPaperJS.coordinates = station.location;
 
           //calculate duration from actions assigned to station
           let durationMinutes = 0;
@@ -119,28 +88,73 @@ const NavTimeline: FunctionComponent = () => {
           }
           sequenceItemForPaperJS.durations = [durationMinutes];
           storeRefs.current.evaLengthCalculated += durationMinutes; //add to sum for total length calculated
-          sequenceItemForPaperJS.name = station.name;
-          sequenceItemForPaperJS.locations = station.location;
 
-          //calculate distance to lander
-          let landerDistance = null;
           if (landerLocation) {
-            landerDistance = getDistanceBetweenTwoCoordinates(
+            //calculate distance to lander
+            const landerDistance = getDistanceBetweenTwoCoordinates(
               station.location,
               landerLocation,
               parseFloat(planetRadius)
             );
-          } else {
-            landerDistance = 100; // used in case the database doesn't yet have a lander location
+
+            if (landerDistance > storeRefs.current.maxDistanceFromLander)
+              storeRefs.current.maxDistanceFromLander = landerDistance;
+            sequenceItemForPaperJS.distanceFromLander = [landerDistance];
+
+            //calculate walkback path.
+            const walkback: Walkback_PaperJS = {
+              path: null,
+              durations: null,
+              distanceFromLander: null,
+            };
+            //subdivide seach segment by 150 meters for greater accuracy
+            const numPointsAt150Meters =
+              getTotalDistance(station.walkbackPath, parseInt(planetRadius)) / 150;
+            const newWalkbackPath: AEGISPoint[] = generateEquidistantPointsAlongPolyline(
+              station.walkbackPath,
+              numPointsAt150Meters,
+              parseInt(planetRadius)
+            );
+            walkback.path = newWalkbackPath;
+
+            walkback.distanceFromLander = [];
+            walkback.durations = [];
+            //loop through new subdivided walkback path
+            for (let i = 0; i < newWalkbackPath.length; i++) {
+              //calculate distance from lander. Track max distance
+              const landerDistance = getDistanceBetweenTwoCoordinates(
+                newWalkbackPath[i],
+                landerLocation,
+                parseFloat(planetRadius)
+              );
+
+              if (landerDistance > storeRefs.current.maxDistanceFromLander)
+                storeRefs.current.maxDistanceFromLander = landerDistance;
+              walkback.distanceFromLander.push(landerDistance);
+
+              //calculate duration. distance is in m, rate is in km/hr, duration is in minutes
+              if (i !== newWalkbackPath.length - 1) {
+                const distanceSegment = getDistanceBetweenTwoCoordinates(
+                  newWalkbackPath[i],
+                  newWalkbackPath[i + 1],
+                  parseFloat(planetRadius)
+                );
+                const duration = isNaN(evaTraverseRate)
+                  ? 0
+                  : (distanceSegment / (+evaTraverseRate * 1000)) * 60;
+                walkback.durations.push(duration);
+              }
+            }
+
+            //set walkback data
+            sequenceItemForPaperJS.walkback = walkback;
           }
-          if (landerDistance > storeRefs.current.maxDistanceFromLander)
-            storeRefs.current.maxDistanceFromLander = landerDistance;
-          sequenceItemForPaperJS.distanceFromLander = [landerDistance];
         } else if (sequenceItem.type === "traverse") {
           const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
           if (!traverse.path || traverse?.path?.length < 2) continue; //skip traverses with less than 2 points
+          sequenceItemForPaperJS.name = traverse.name;
 
-          //subdivide seach segmet by 150 meters for greater accuracy
+          //subdivide seach segment by 150 meters for greater accuracy
           const numPointsAt150Meters =
             getTotalDistance(traverse.path, parseInt(planetRadius)) / 150;
           const newTraverse: AEGISPoint[] = generateEquidistantPointsAlongPolyline(
@@ -148,23 +162,23 @@ const NavTimeline: FunctionComponent = () => {
             numPointsAt150Meters,
             parseInt(planetRadius)
           );
+          sequenceItemForPaperJS.coordinates = newTraverse;
 
           sequenceItemForPaperJS.distanceFromLander = [];
           sequenceItemForPaperJS.durations = [];
+          //loop through new subdivided traverse
           for (let i = 0; i < newTraverse.length; i++) {
-            let landerDistance = null;
             if (landerLocation) {
-              landerDistance = getDistanceBetweenTwoCoordinates(
+              //calculate distance from lander. Track max distance
+              const landerDistance = getDistanceBetweenTwoCoordinates(
                 newTraverse[i],
                 landerLocation,
                 parseFloat(planetRadius)
               );
-            } else {
-              landerDistance = 100; // used in case the database doesn't yet have a lander location
+              if (landerDistance > storeRefs.current.maxDistanceFromLander)
+                storeRefs.current.maxDistanceFromLander = landerDistance;
+              sequenceItemForPaperJS.distanceFromLander.push(landerDistance);
             }
-            if (landerDistance > storeRefs.current.maxDistanceFromLander)
-              storeRefs.current.maxDistanceFromLander = landerDistance;
-            sequenceItemForPaperJS.distanceFromLander.push(landerDistance);
 
             //calculate duration. distance is in m, rate is in km/hr, duration is in minutes
             if (i !== newTraverse.length - 1) {
@@ -180,8 +194,6 @@ const NavTimeline: FunctionComponent = () => {
               storeRefs.current.evaLengthCalculated += duration; //add to sum for total length calculated
             }
           }
-          sequenceItemForPaperJS.name = traverse.name;
-          sequenceItemForPaperJS.locations = newTraverse;
         }
         storeRefs.current.sequenceItems.push(sequenceItemForPaperJS);
       }
@@ -244,7 +256,7 @@ const NavTimeline: FunctionComponent = () => {
     }
   }, [paperRefs]);
 
-  //use effect to handle when highlighting when sequence item changes
+  //use effect to handle when color highlighting when selected sequence item changes
   useEffect(() => {
     storeRefs.current.selectedEvaSequenceItemUuid = selectedEvaSequenceItemUuid;
     highlightSelection();
@@ -257,6 +269,7 @@ const NavTimeline: FunctionComponent = () => {
     paperRefs.current = {
       timeMarkers: new paper.Group(),
       evaSequence: [],
+      walkbacks: [],
       landerDistance: [],
       graphBkg: new paper.Group(),
       graphAxis: new paper.Group(),
@@ -268,6 +281,7 @@ const NavTimeline: FunctionComponent = () => {
         selectedColor: new paper.Color("#ffc700"), //var(--eva)
         availableBkgColor: new paper.Color("#424653"), //var(--grey2)
         regularBkgColor: new paper.Color("#313440"), //var(--grey1)
+        walkbackColor: new paper.Color("#cb0000"), //var(--alert)
         gNavigatorFontFamilyActivity: "Inter",
       },
     };
@@ -366,13 +380,19 @@ const NavTimeline: FunctionComponent = () => {
       }
     }
 
-    //draws the distance from lander line graph
+    //draws the distance from lander line graph, and also the walk back if it's a station
     function drawLanderDistanceGraph() {
       let itemLocX: number = paperVars.graphLeft;
       for (let i = 0; i < storeRefs.current.sequenceItems.length; i++) {
         const sequenceItem = storeRefs.current.sequenceItems[i];
         const distanceGroup = new paper.Group();
         distanceGroup.name = sequenceItem.uuid;
+
+        //draw walkback line if this is a station and it has a location
+        if (sequenceItem.type === "station") {
+          const walkbackGroup = drawWalkback(itemLocX, sequenceItem.walkback);
+          paperRefs.current.walkbacks.push(walkbackGroup);
+        }
 
         //draw a line for each duration segment
         for (let j = 0; j < sequenceItem.durations.length; j++) {
@@ -419,8 +439,8 @@ const NavTimeline: FunctionComponent = () => {
             diamond.rotate(45);
             distanceGroup.addChild(diamond);
           }
-          paperRefs.current.landerDistance.push(distanceGroup);
 
+          paperRefs.current.landerDistance.push(distanceGroup);
           itemLocX += width; //increment x
         }
       }
@@ -541,6 +561,49 @@ const NavTimeline: FunctionComponent = () => {
     }
 
     /**
+     * Draws the walkback path for a given station
+     * @param xLoc x location that the walkback starts
+     * @param walkbackData the walkback data for a station
+     * @param customColor optional color to draw the line with
+     * @returns a papergroup containing the walkback drawing for this station
+     */
+    function drawWalkback(
+      xLoc: number,
+      walkbackData: Walkback_PaperJS,
+      customColor: paper.Color = null
+    ): paper.Group {
+      const walkbackGroup = new paper.Group();
+      const color = customColor || paperRefs.current.styles.walkbackColor;
+      let itemLocX: number = xLoc;
+
+      //draw a line for each duration segment
+      for (let j = 0; j < walkbackData.durations.length; j++) {
+        const width = walkbackData.durations[j] * paperVars.pixelsPerSecond * 60; //duration is in minutes
+        const itemLocYStart =
+          paperVars.distanceGraphTop +
+          paperVars.distanceGraphHeight -
+          walkbackData.distanceFromLander[j] * paperVars.pixelsPerMeter;
+        //on traverses, there's always one more item in distanceFromLander array than the duration array
+        //if we're on a station, just make the End equal to the Start
+        const itemLocYEnd =
+          walkbackData.distanceFromLander.length - 1 > j
+            ? paperVars.distanceGraphTop +
+              paperVars.distanceGraphHeight -
+              walkbackData.distanceFromLander[j + 1] * paperVars.pixelsPerMeter
+            : itemLocYStart;
+        const graphLine = new paper.Path.Line({
+          from: new paper.Point(itemLocX, itemLocYStart),
+          to: new paper.Point(itemLocX + width, itemLocYEnd),
+          strokeColor: color,
+          strokeWidth: 1.5,
+        });
+        walkbackGroup.addChild(graphLine);
+        itemLocX += width;
+      }
+      return walkbackGroup;
+    }
+
+    /**
      * draws the vertical line wtih the rotated time at the bottom.
      * @param xLoc x location of the time marker
      * @param customColor optional color to draw the line with
@@ -600,10 +663,12 @@ const NavTimeline: FunctionComponent = () => {
     drawGraphAxis();
     if (selectedEva) {
       drawSequence();
-      drawLanderDistanceGraph();
+      if (landerLocation) {
+        drawLanderDistanceGraph();
+      }
       highlightSelection();
     }
-  }, [highlightSelection, paperRefs, selectedEva]);
+  }, [highlightSelection, paperRefs, selectedEva, landerLocation]);
 
   // Initialize the timeline on first render
   useLayoutEffect(() => {

@@ -101,7 +101,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
   }, [eva, traverses]);
 
   useEffect(() => {
-    if (thisEvaFromDb.sequence) {
+    if (thisEvaFromDb?.sequence) {
       const traverseUuidInEva = thisEvaFromDb.sequence.filter((item) => item.type === "traverse");
       const traverseSubset = traverses.filter((traverse) =>
         traverseUuidInEva.find((traverseUuid) => traverseUuid.uuid === traverse.uuid)
