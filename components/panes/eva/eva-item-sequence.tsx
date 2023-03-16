@@ -142,9 +142,13 @@ const EvaItemSequence: FunctionComponent<{
           let evaItemIcon = null;
           if (sequenceItem.type === "station") {
             const thisStation = stations.find((station) => station.uuid === sequenceItem.uuid);
-            evaItemIcon = (
-              <div className={evaStyles.iconCustom}>{decodeEmoji(thisStation.icon)}</div>
-            );
+            if (thisStation) {
+              evaItemIcon = (
+                <div className={evaStyles.iconCustom}>{decodeEmoji(thisStation.icon)}</div>
+              );
+            } else {
+              evaItemIcon = <div className={evaStyles.iconCustom}></div>;
+            }
           } else if (sequenceItem.type === "traverse") {
             evaItemIcon = (
               <div className={evaStyles.evaTraverseIndicator}>
@@ -226,7 +230,10 @@ const EvaItemSequence: FunctionComponent<{
                           const stationAlreadyInSequence = evaSequence.find(
                             (sequenceItem) => sequenceItem.uuid === station.uuid
                           );
-                          if (stationAlreadyInSequence && station.uuid !== sequenceItem.uuid)
+                          if (
+                            (stationAlreadyInSequence && station.uuid !== sequenceItem.uuid) ||
+                            !station.location
+                          )
                             return null;
                           return (
                             <option key={station.uuid} value={station.uuid}>

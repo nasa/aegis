@@ -64,11 +64,15 @@ export async function unzip(
  */
 export async function deleteFile(path: string): Promise<boolean> {
   try {
-    const options: RmOptions = {
-      recursive: true,
-    };
-    await rm(`${destRoot}/${path}`, options); //delete file or folder
-    console.log(`File/directory deleted ${destRoot}/${path}`);
+    if (fs.existsSync(`${destRoot}/${path}`)) {
+      const options: RmOptions = {
+        recursive: true,
+      };
+      await rm(`${destRoot}/${path}`, options); //delete file or folder
+      console.log(`File/directory deleted ${destRoot}/${path}`);
+    } else {
+      console.log(`Nothing deleted. File/directory does not exist ${destRoot}/${path}`);
+    }
     return true;
   } catch (e) {
     console.log(`Error in deleteFile: ${e}`);

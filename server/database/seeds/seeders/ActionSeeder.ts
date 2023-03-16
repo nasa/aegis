@@ -109,7 +109,7 @@ export class ActionSeeder extends Seeder {
       uuid: uuidv4(),
       mission: context.mission1.id,
       poi: null,
-      station: context.station2.uuid,
+      station: context.station3.uuid,
       stmUuidRefs: [
         context.uuid_invstg2a1.uuid,
         context.uuid_invstg2a5.uuid,
@@ -129,7 +129,7 @@ export class ActionSeeder extends Seeder {
       uuid: uuidv4(),
       mission: context.mission1.id,
       poi: null,
-      station: context.station2.uuid,
+      station: context.station3.uuid,
       stmUuidRefs: [
         context.uuid_invstg5b1.uuid,
         context.uuid_invstg3a1.uuid,
@@ -145,7 +145,7 @@ export class ActionSeeder extends Seeder {
       updatedAt: new Date(),
     });
     context.action10 = em.create(Action, {
-      name: "Test Action 10",
+      name: "Egress Action",
       uuid: uuidv4(),
       mission: context.mission1.id,
       poi: null,
@@ -157,6 +157,21 @@ export class ActionSeeder extends Seeder {
         context.uuid_invstg3c1.uuid,
       ],
       description: "Test Action at egress",
+      type: "measurement",
+      status: "Approved",
+      durationLower: 2,
+      durationUpper: 6,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    context.action11 = em.create(Action, {
+      name: "Ingress Action",
+      uuid: uuidv4(),
+      mission: context.mission1.id,
+      poi: null,
+      station: context.station4.uuid,
+      stmUuidRefs: [],
+      description: "Test Action at Ingress",
       type: "measurement",
       status: "Approved",
       durationLower: 2,
