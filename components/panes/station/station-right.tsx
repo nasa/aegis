@@ -2,7 +2,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
-import { useAppSelector, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -87,7 +87,10 @@ const StationEditorRight: FunctionComponent = () => {
     });
     return evasUsingThisStation;
   }, shallowEqual);
-
+  const isAdmin = useAppSelector(
+    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
+    refEqual
+  );
   const panelTypes: PanelTypes = {
     info_panel: {
       title: "Station Information",
@@ -393,7 +396,7 @@ const StationEditorRight: FunctionComponent = () => {
                 />
               </div>
             )}
-            {!stationsEditing.includes(selectedStationUuid) && (
+            {!stationsEditing.includes(selectedStationUuid) && isAdmin && (
               <div className={paneStyles.verticalCenter}>
                 <IconButton
                   icon={faEdit}

@@ -58,6 +58,13 @@ export async function isLoggedIn(): Promise<WrappedResponse<boolean>> {
   return response;
 }
 
+export async function isAdmin(): Promise<WrappedResponse<boolean>> {
+  const res = await fetch(`/api/users/isAdmin`);
+  const response: WrappedResponse<boolean> = await res.json();
+
+  return response;
+}
+
 export async function login(
   username: string,
   password: string

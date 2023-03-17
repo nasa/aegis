@@ -59,7 +59,7 @@ type Preset = {
 };
 
 type Preset_db_type = Omit<Preset, "ownerId" | "missionId" | "createdAt" | "updatedAt"> & {
-  owner: User;
+  owner: User_db_type;
   mission: Mission_db_type;
   createdAt?: Date;
   updatedAt?: Date;

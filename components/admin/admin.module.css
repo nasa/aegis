@@ -1,3 +1,92 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  height: 50px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  background-color: var(--grey1);
+  border-bottom: 2px solid black;
+  color: white;
+}
+
+.bodyContent {
+  padding: 20px;
+}
+
+.actionTileContainer {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.actionTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+  width: 260px;
+  padding: 20px 1px;
+  margin: 10px 0;
+  text-align: center;
+  position: relative;
+  cursor: pointer;
+  box-shadow: 0 10px 15px -3px rgba(33,150,243,.4),0 4px 6px -4px rgba(33,150,243,.4);
+  border-radius: 10px;
+  background-color: #6B6ECC;
+  background: linear-gradient(45deg, #04051dea 0%, #2b566e 100%);
+  transition: 1s;
+}
+
+.actionTile:hover {
+  box-shadow: 0 10px 15px -3px rgba(255,0,243,.4),0 4px 6px -4px rgba(33,150,243,.4);
+  background: linear-gradient(45deg, #04051dea 0%, #2b566e 100%);
+}
+
+.content {
+  padding: 20px;
+}
+
+.content .description {
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.content .title {
+  font-weight: 800;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 1);
+  margin-top: 10px;
+  font-size: 25px;
+  letter-spacing: 1px;
+}
+
+.button {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  border: none;
+  outline: none;
+  color: rgb(255 255 255);
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: .75rem;
+  padding: 0.75rem 1.5rem;
+  background-color: rgb(33 150 243);
+  border-radius: 0.5rem;
+  width: 90%;
+  text-shadow: 0px 4px 18px #2c3442;
+  cursor: pointer;
+}
+
+.button:hover {
+  background-color: rgb(33 150 243 / 80%);
+}
+
 .divIndent {
   padding-left: 1.5rem;
 }
@@ -39,4 +128,188 @@
 .fileTable th {
   border: 1px solid black;
   padding: 4px;
+}
+
+.centerHeader {
+  text-align: center;
+}
+
+.backButton svg {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  border: none;
+  padding: 23px 0.5rem 0.5rem 0.5rem;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.missionBack svg {
+  border: none;
+  padding: 23px 0.5rem 0.5rem 0.5rem;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/*Write a bootstrap like alternating color bootstrap style*/
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+.table th {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+.table tr {
+  border: 1px solid #ddd;
+}
+
+.table td {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.table tr:nth-child(even) {
+  background-color: #0B3D91;
+  color: white;
+}
+
+.table tr td.actionList svg {
+  padding: 0.5rem;
+  text-decoration: none;
+}
+
+.formContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.form {
+  width: 300px;
+}
+
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  justify-content: left;
+  align-items: flex-start;
+  width: 100%;
+  height: 100%;
+}
+
+.formGroup label {
+  font-size: 0.75rem;
+  color: #333;
+  line-height: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+.formGroup input {
+  font-size: 0.75rem;
+  color: #333;
+  line-height: 1rem;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 0.25rem;
+  width: 100%;
+}
+
+.formGroup select {
+  font-size: 0.75rem;
+  color: #333;
+  line-height: 1rem;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 0.25rem;
+  width: 100%;
+}
+
+.formGroup button {
+  font-size: 0.75rem;
+  color: white;
+  line-height: 1rem;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 0.25rem;
+  width: 100%;
+  background-color: #0B3D91;
+}
+
+.formGroup button:hover {
+  background-color: white;
+  color: #0B3D91;
+  border: 2px solid black;
+}
+
+.bodyContent {
+  position: relative;
+}
+.addButton {
+  background-color: #0B3D91;
+  color: white;
+  border: 1px solid #ddd;
+  border-radius: 0.25rem;
+  width: 120px;
+  padding: 0.5rem;
+  font-size: 1rem;
+  line-height: 1rem;
+  margin-bottom: 0.5rem;
+  position: absolute;
+  right: 20px;
+  top: 40px;
+  cursor: pointer;
+}
+
+.addButton:hover {
+  background-color: white;
+  color: #0B3D91;
+  border: 2px solid black;
+}
+
+.errorMessage {
+  background-color: #dc3545;
+  color: white;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.successMessage {
+  background-color: #28a745;
+  color: white;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  width: 100%;
+  text-align: center;
+}
+
+.actionList svg {
+  cursor: pointer;
+}
+
+.warningShot {
+  color: #dc3545;
+  font-size: 3.5rem;
+  line-height: 1rem;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  width: 100%;
+  text-align: center;
 }

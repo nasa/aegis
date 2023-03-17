@@ -17,7 +17,7 @@ import MissionFactory from "../factories/MissionFactory";
 import PresetFactory from "../factories/PresetFactory";
 import UserFactory from "../factories/UserFactory";
 import { v4 as uuidv4 } from "uuid";
-import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
+import { TextEncoder, TextDecoder } from "util";
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -62,7 +62,14 @@ describe("Preset API Endpoint", () => {
   }
 
   test("Returns auth failure", async () => {
-    const { req, res } = mockRequestResponse({ method: "GET", query: { missionId: 1 } });
+    const reqOptions: RequestOptions = {
+      method: "GET",
+      headers: {
+        cookie: loginCookie,
+      },
+      query: { missionId: 1 },
+    };
+    const { req, res } = mockRequestResponse(reqOptions);
     await handlePreset(req, res);
     expect(res.statusCode).toBe(401);
     expect(res.statusMessage).toEqual("OK");
@@ -83,6 +90,7 @@ describe("Preset API Endpoint", () => {
       method: "GET",
       headers: { cookie: loginCookie },
       query: { missionId: testMission.id },
+      body: { user: { username: "testAdmin" } },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handlePreset(req, res);
@@ -99,6 +107,7 @@ describe("Preset API Endpoint", () => {
       method: "GET",
       headers: { cookie: loginCookie },
       query: { missionId: "99999" },
+      body: { user: { username: "testAdmin" } },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handlePreset(req, res);
@@ -115,7 +124,10 @@ describe("Preset API Endpoint", () => {
     const reqOptions: RequestOptions = {
       method: "POST",
       headers: { cookie: loginCookie },
-      body: { preset: { ...newPreset, missionId: testMission.id, ownerId: testAdmin.id } },
+      body: {
+        preset: { ...newPreset, missionId: testMission.id, ownerId: testAdmin.id },
+        user: { username: "testAdmin" },
+      },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handlePreset(req, res);
@@ -138,7 +150,7 @@ describe("Preset API Endpoint", () => {
     const reqOptions: RequestOptions = {
       method: "POST",
       headers: { cookie: loginCookie },
-      body: { preset: newPreset },
+      body: { preset: newPreset, user: { username: "testAdmin" } },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handlePreset(req, res);
@@ -156,6 +168,7 @@ describe("Preset API Endpoint", () => {
       method: "DELETE",
       headers: { cookie: loginCookie },
       query: { uuid: `${newPreset.uuid}` },
+      body: { user: { username: "testAdmin" } },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handlePreset(req, res);

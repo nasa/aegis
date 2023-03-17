@@ -45,6 +45,10 @@ const PresetEditorRight: FunctionComponent = () => {
   );
   const presetsEditing = useAppSelector((state) => state.preset.presetsEditing, shallowEqual);
   const selectedMissionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
+  const isAdmin = useAppSelector(
+    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
+    refEqual
+  );
 
   const [modified, setModified] = useState(false);
   useEffect(() => {
@@ -201,7 +205,7 @@ const PresetEditorRight: FunctionComponent = () => {
                 />
               </div>
             )}
-            {!presetsEditing.includes(selectedPresetUuid) && (
+            {!presetsEditing.includes(selectedPresetUuid) && isAdmin && (
               <div className={paneStyles.verticalCenter}>
                 <IconButton
                   icon={faEdit}

@@ -2,7 +2,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
-import { useAppSelector, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCircleInfo,
@@ -56,7 +56,10 @@ const EvaRightEva: FunctionComponent = () => {
   const traversesFromDb = useAppSelector((state) => state.traverse.traversesFromDb, shallowEqual);
 
   const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
-
+  const isAdmin = useAppSelector(
+    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
+    refEqual
+  );
   // all actions from all stations in this eva
   const evaActions = useAppSelector((state) => {
     const stationUuidsInThisEva = [];
@@ -393,7 +396,7 @@ const EvaRightEva: FunctionComponent = () => {
                 />
               </div>
             )}
-            {!evasEditing.includes(selectedEvaUuid) && (
+            {!evasEditing.includes(selectedEvaUuid) && isAdmin && (
               <div className={paneStyles.verticalCenter}>
                 <IconButton
                   icon={faEdit}

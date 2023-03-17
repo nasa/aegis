@@ -21,10 +21,16 @@ const PresetEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
   const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
-  const user: AEGISUser = useAppSelector((state) => state.user.ironSessionData?.user, shallowEqual);
+  const user: User_db_type = useAppSelector(
+    (state) => state.user.ironSessionData?.user,
+    shallowEqual
+  );
   const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
   const mapLayerControls = useAppSelector((state) => state.map.layerControls, shallowEqual);
-
+  const isAdmin = useAppSelector(
+    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
+    refEqual
+  );
   let selectedPreset: Preset;
   if (presets !== null) {
     selectedPreset = presets.find((preset: Preset) => preset.uuid === selectedPresetUuid);
@@ -89,25 +95,27 @@ const PresetEditorLeft: FunctionComponent = () => {
           )}
         </div>
       </div>
-      <div className={paneStyles.iconButtons}>
-        <IconButton
-          onClick={() => {
-            handleCreatePreset();
-          }}
-          label="Add"
-          icon={faPlusCircle}
-        ></IconButton>
-        <IconButton
-          onClick={() => {
-            if (selectedPresetUuid !== null) {
-              dispatch(duplicatePreset(selectedPreset));
-            }
-          }}
-          label="Duplicate"
-          icon={faClone}
-          enabled={selectedPresetUuid !== null}
-        ></IconButton>
-      </div>
+      {isAdmin && (
+        <div className={paneStyles.iconButtons}>
+          <IconButton
+            onClick={() => {
+              handleCreatePreset();
+            }}
+            label="Add"
+            icon={faPlusCircle}
+          />
+          <IconButton
+            onClick={() => {
+              if (selectedPresetUuid !== null) {
+                dispatch(duplicatePreset(selectedPreset));
+              }
+            }}
+            label="Duplicate"
+            icon={faClone}
+            enabled={selectedPresetUuid !== null}
+          />
+        </div>
+      )}
     </>
   );
 };

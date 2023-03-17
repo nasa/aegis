@@ -19,6 +19,7 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
   res
 ): Promise<unknown> => {
   if (req.session?.user) {
+    const isAdmin = req.session.user.permission.includes("admin"); // will evaluate true or false
     const { missionId, uuid } = req.query;
     const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
     const stationUUID = Array.isArray(uuid) ? uuid[0] : uuid;
@@ -47,6 +48,9 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
     // upsert a station
     if (req.method === "POST") {
       try {
+        if (!isAdmin) {
+          return res.status(401).json({ status: "failure", message: "Unauthorized" });
+        }
         const stationToUpsert: Station = req.body as Station;
         const upsertResponse: Station = await upsertStation(stationToUpsert);
 
@@ -75,6 +79,9 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
     // delete a record
     if (req.method === "DELETE") {
       try {
+        if (!isAdmin) {
+          return res.status(401).json({ status: "failure", message: "Unauthorized" });
+        }
         const deletedUUID = await deleteStation(stationUUID);
         if (deletedUUID) {
           return res.status(200).json({

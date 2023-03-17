@@ -18,6 +18,7 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
   res
 ): Promise<unknown> => {
   if (req.session?.user) {
+    const isAdmin = req.session.user.permission.includes("admin"); // will evaluate true or false
     const { missionId, uuid } = req.query;
     const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
     const traverseUuid = Array.isArray(uuid) ? uuid[0] : uuid;
@@ -46,6 +47,9 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
     // upsert a traverse
     if (req.method === "POST") {
       try {
+        if (!isAdmin) {
+          return res.status(401).json({ status: "failure", message: "Unauthorized" });
+        }
         const traverseToUpsert: Traverse = req.body as Traverse;
         const upsertResponse: Traverse = await upsertTraverses(traverseToUpsert);
 
@@ -74,6 +78,9 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
     // delete a record
     if (req.method === "DELETE") {
       try {
+        if (!isAdmin) {
+          return res.status(401).json({ status: "failure", message: "Unauthorized" });
+        }
         const deletedUUID = await deleteTraverse(traverseUuid);
         if (deletedUUID) {
           return res.status(200).json({

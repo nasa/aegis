@@ -36,6 +36,7 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
 ): Promise<unknown> => {
   try {
     if (req.session?.user) {
+      const isAdmin = req.session.user.permission.includes("admin"); // will evaluate true or false
       const { missionId, uuid } = req.query;
       const layerUUID = Array.isArray(uuid) ? uuid[0] : uuid;
       const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
@@ -63,7 +64,7 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
       }
 
       //upsert a record
-      if (req.method === "POST") {
+      if (req.method === "POST" && isAdmin) {
         try {
           //perform the upsert
           const upsertObject: Layer = req.body as Layer;
@@ -92,7 +93,7 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
       }
 
       //delete a record
-      if (req.method === "DELETE") {
+      if (req.method === "DELETE" && isAdmin) {
         try {
           const deletedUUID = await deleteLayer(layerUUID);
 

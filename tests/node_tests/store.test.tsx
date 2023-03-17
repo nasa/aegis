@@ -71,9 +71,11 @@ describe("Map and MMGIS Reducer: ", () => {
       method: "GET",
       headers: { cookie: loginCookie },
       query: { missionId: testMission.id.toString() },
+      body: { user: { username: "testAdmin" } },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handleLayer(req, res);
+
     expect(res.statusCode).toBe(200);
     expect(res.statusMessage).toEqual("OK");
 

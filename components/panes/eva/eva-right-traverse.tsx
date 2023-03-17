@@ -42,7 +42,10 @@ const EvaRightTraverse: FunctionComponent = () => {
 
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = mapDirective?.uuid === selectedEvaSequenceItemUuid ? mapDirective : null;
-
+  const isAdmin = useAppSelector(
+    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
+    refEqual
+  );
   const [modified, setModified] = useState(false);
   useEffect(() => {
     setModified(!_.isEqual(selectedTraverse, selectedTraverseFromDb));
@@ -160,7 +163,7 @@ const EvaRightTraverse: FunctionComponent = () => {
               })}
           </div>
           <div className={paneStyles.saveCancelContainer}>
-            {!traversesEditing.includes(selectedEvaSequenceItemUuid) && (
+            {!traversesEditing.includes(selectedEvaSequenceItemUuid) && isAdmin && (
               <div className={paneStyles.verticalCenter}>
                 <IconButton
                   icon={faEdit}

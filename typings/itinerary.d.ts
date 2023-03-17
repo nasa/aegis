@@ -33,7 +33,7 @@ interface Eva {
 }
 
 type Eva_db_type = Omit<Eva, "ownerId" | "missionId" | "createdAt" | "updatedAt"> & {
-  owner: User;
+  owner: User_db_type;
   mission: Mission_db_type;
   createdAt?: Date;
   updatedAt?: Date;
@@ -98,7 +98,7 @@ interface Station {
 }
 
 type Station_db_type = Omit<Station, "ownerId" | "missionId" | "createdAt" | "updatedAt"> & {
-  owner: User;
+  owner: User_db_type;
   mission: Mission_db_type;
   createdAt?: Date;
   updatedAt?: Date;
@@ -163,7 +163,7 @@ interface POI {
 }
 
 type Poi_db_type = Omit<POI, "ownerId" | "missionId" | "createdAt" | "updatedAt"> & {
-  owner: User;
+  owner: User_db_type;
   mission: Mission_db_type;
   createdAt?: Date;
   updatedAt?: Date;
