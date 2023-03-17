@@ -10,8 +10,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 const User: NextPage = () => {
   const router = useRouter();
-  const [userList, setUserList] = useState<User_db_type[]>([]);
-  const [user, setUser] = useState<User_db_type>();
+  const [userList, setUserList] = useState<User[]>([]);
+  const [user, setUser] = useState<User>();
   const [editMode, setEditMode] = useState<boolean>(false);
   const [infoMessage, setInfoMessage] = useState<string>("");
   const [createMode, setCreateMode] = useState<boolean>(false);

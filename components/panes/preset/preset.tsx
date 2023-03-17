@@ -21,10 +21,7 @@ const PresetEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
   const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
-  const user: User_db_type = useAppSelector(
-    (state) => state.user.ironSessionData?.user,
-    shallowEqual
-  );
+  const user: User = useAppSelector((state) => state.user.ironSessionData?.user, shallowEqual);
   const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
   const mapLayerControls = useAppSelector((state) => state.map.layerControls, shallowEqual);
   const isAdmin = useAppSelector(
