@@ -25,7 +25,10 @@ const PoiEditorLeft: FunctionComponent = () => {
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
   const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, shallowEqual);
-
+  const isAdmin = useAppSelector(
+    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
+    refEqual
+  );
   const handleCreatePoi = () => {
     const randomName = generateUniqueName({
       dictName: "animals",
@@ -93,23 +96,25 @@ const PoiEditorLeft: FunctionComponent = () => {
           </div>
         </div>
       </div>
-      <div className={paneStyles.iconButtons}>
-        <IconButton
-          onClick={() => {
-            handleCreatePoi();
-          }}
-          label="Add"
-          icon={faPlusCircle}
-        />
-        <IconButton
-          onClick={() => {
-            handleDuplicatePoi(selectedPoi);
-          }}
-          label="Duplicate"
-          icon={faClone}
-          enabled={selectedPoiUuid !== null}
-        />
-      </div>
+      {isAdmin && (
+        <div className={paneStyles.iconButtons}>
+          <IconButton
+            onClick={() => {
+              handleCreatePoi();
+            }}
+            label="Add"
+            icon={faPlusCircle}
+          />
+          <IconButton
+            onClick={() => {
+              handleDuplicatePoi(selectedPoi);
+            }}
+            label="Duplicate"
+            icon={faClone}
+            enabled={selectedPoiUuid !== null}
+          />
+        </div>
+      )}
     </>
   );
 };

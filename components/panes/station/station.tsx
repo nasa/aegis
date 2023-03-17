@@ -28,10 +28,17 @@ const StationEditorLeft: FunctionComponent = () => {
     refEqual
   );
   const selectedStation = stations.find((station) => station.uuid === selectedStationUuid);
-  const user: AEGISUser = useAppSelector((state) => state.user.ironSessionData?.user, shallowEqual);
+  const user: User_db_type = useAppSelector(
+    (state) => state.user.ironSessionData?.user,
+    shallowEqual
+  );
   const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
   const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, shallowEqual);
+  const isAdmin = useAppSelector(
+    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
+    refEqual
+  );
 
   const handleCreateStation = () => {
     const randomName = generateUniqueName({
@@ -111,23 +118,25 @@ const StationEditorLeft: FunctionComponent = () => {
           </div>
         </div>
       </div>
-      <div className={paneStyles.iconButtons}>
-        <IconButton
-          onClick={() => {
-            handleCreateStation();
-          }}
-          label="Add"
-          icon={faPlusCircle}
-        />
-        <IconButton
-          onClick={() => {
-            handleDuplicateStation(selectedStation);
-          }}
-          label="Duplicate"
-          icon={faClone}
-          enabled={selectedStationUuid !== null}
-        />
-      </div>
+      {isAdmin && (
+        <div className={paneStyles.iconButtons}>
+          <IconButton
+            onClick={() => {
+              handleCreateStation();
+            }}
+            label="Add"
+            icon={faPlusCircle}
+          />
+          <IconButton
+            onClick={() => {
+              handleDuplicateStation(selectedStation);
+            }}
+            label="Duplicate"
+            icon={faClone}
+            enabled={selectedStationUuid !== null}
+          />
+        </div>
+      )}
     </>
   );
 };

@@ -1,5 +1,6 @@
 export declare module "iron-session" {
   interface IronSessionData {
-    user?: AEGISUser;
+    user?: User;
+    admin?: boolean;
   }
 }

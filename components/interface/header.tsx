@@ -5,7 +5,6 @@ import { useRouter } from "next/router";
 import { faHome } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { FunctionComponent } from "react";
-
 const Header: FunctionComponent = () => {
   const router = useRouter();
   const missionName = useAppSelector((state) => state.mission.mission?.name, refEqual);
@@ -20,7 +19,7 @@ const Header: FunctionComponent = () => {
                 icon={faHome}
                 className={styles.homeIcon}
                 onClick={() => {
-                  router.back();
+                  router.push("/");
                 }}
                 size="lg"
               />

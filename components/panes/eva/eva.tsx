@@ -27,9 +27,15 @@ const EvaPlannerLeft: FunctionComponent = () => {
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
     shallowEqual
   );
-  const user: AEGISUser = useAppSelector((state) => state.user.ironSessionData?.user, shallowEqual);
+  const user: User_db_type = useAppSelector(
+    (state) => state.user.ironSessionData?.user,
+    shallowEqual
+  );
   const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
-
+  const isAdmin = useAppSelector(
+    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
+    refEqual
+  );
   const handleCreateEva = () => {
     const randomName = generateUniqueName({
       dictName: "colors",
@@ -67,27 +73,29 @@ const EvaPlannerLeft: FunctionComponent = () => {
           ))}
         </div>
 
-        <div className={styles.evasLeftFooter}>
-          <div className={paneStyles.iconButtons}>
-            <IconButton
-              onClick={() => {
-                handleCreateEva();
-              }}
-              label="Add EVA"
-              icon={faPlusCircle}
-            ></IconButton>
-            <IconButton
-              onClick={() => {
-                if (selectedEva) {
-                  dispatch(duplicateEva(selectedEva));
-                }
-              }}
-              label="Duplicate EVA"
-              icon={faClone}
-              enabled={!_.isNull(selectedEva)}
-            ></IconButton>
+        {isAdmin && (
+          <div className={styles.evasLeftFooter}>
+            <div className={paneStyles.iconButtons}>
+              <IconButton
+                onClick={() => {
+                  handleCreateEva();
+                }}
+                label="Add EVA"
+                icon={faPlusCircle}
+              />
+              <IconButton
+                onClick={() => {
+                  if (selectedEva) {
+                    dispatch(duplicateEva(selectedEva));
+                  }
+                }}
+                label="Duplicate EVA"
+                icon={faClone}
+                enabled={!_.isNull(selectedEva)}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </>
   );

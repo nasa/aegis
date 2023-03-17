@@ -12,5 +12,13 @@ export class UserSeeder extends Seeder {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+    context.user2 = em.create(User, {
+      username: "guest",
+      password: "guest",
+      permission: "guest",
+      email: "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
   }
 }

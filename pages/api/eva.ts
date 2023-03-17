@@ -18,6 +18,7 @@ const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
   res
 ): Promise<unknown> => {
   if (req.session?.user) {
+    const isAdmin = req.session.user.permission.includes("admin"); // will evaluate true or false
     const { missionId, uuid } = req.query;
     const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
     const evaUuid = Array.isArray(uuid) ? uuid[0] : uuid;
@@ -46,6 +47,9 @@ const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
     // upsert a eva
     if (req.method === "POST") {
       try {
+        if (!isAdmin) {
+          return res.status(401).json({ status: "failure", message: "Unauthorized" });
+        }
         const evaToUpsert: Eva = req.body as Eva;
         const upsertResponse: Eva = await upsertEVAs(evaToUpsert);
 
@@ -74,6 +78,9 @@ const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
     // delete a record
     if (req.method === "DELETE") {
       try {
+        if (!isAdmin) {
+          return res.status(401).json({ status: "failure", message: "Unauthorized" });
+        }
         const deletedUUID = await deleteEVA(evaUuid);
         if (deletedUUID) {
           return res.status(200).json({

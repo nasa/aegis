@@ -42,6 +42,10 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
     // Upserts a preset
   } else if (req.method === "POST") {
     const presetBody = req.body.preset as Preset;
+    const isAdmin = req.session.user.permission.includes("admin"); // will evaluate true or false
+    if (!isAdmin) {
+      return res.status(401).json({ status: "failure", message: "Unauthorized" });
+    }
     if (req.session?.user) {
       try {
         const em = getEM();
@@ -85,6 +89,10 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
     }
     // Deletes a preset
   } else if (req.method === "DELETE") {
+    const isAdmin = req.session.user.permission.includes("admin"); // will evaluate true or false
+    if (!isAdmin) {
+      return res.status(401).json({ status: "failure", message: "Unauthorized" });
+    }
     const {
       query: { uuid },
     } = req;

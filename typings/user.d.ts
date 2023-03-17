@@ -1,6 +1,6 @@
 type PermissionRole = "admin" | "user" | "guest";
 
-interface AEGISUser {
+interface User {
   id: number;
   username: string;
   password?: string;
@@ -11,7 +11,7 @@ interface AEGISUser {
   updatedAt?: string;
 }
 
-type AEGISUser_db_type = Omit<AEGISUser, "token" | "createdAt" | "updatedAt"> & {
+type User_db_type = Omit<User, "createdAt" | "updatedAt"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };

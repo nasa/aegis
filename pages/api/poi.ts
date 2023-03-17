@@ -12,6 +12,7 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
   res
 ): Promise<unknown> => {
   if (req.session?.user) {
+    const isAdmin = req.session.user.permission.includes("admin"); // will evaluate true or false
     if (req.method === "GET") {
       // If method is GET and there is a missionId query parameter, then get POIs by mission ID
       const {
@@ -36,6 +37,9 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
     // If method is POST then upsert a POI
     if (req.method === "POST") {
       try {
+        if (!isAdmin) {
+          return res.status(401).json({ status: "failure", message: "Unauthorized" });
+        }
         const em = getEM();
 
         const validPoiBody: POI = req.body as POI;
@@ -90,6 +94,9 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
 
     // If method is DELETE then delete a POI
     if (req.method === "DELETE") {
+      if (!isAdmin) {
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+      }
       const {
         query: { uuid },
       } = req;

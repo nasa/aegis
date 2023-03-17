@@ -17,7 +17,6 @@ const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-
   const dispatch = useDispatch();
 
   const handleLoginButtonClick = async () => {
@@ -33,8 +32,30 @@ const Login = () => {
     }
   };
 
+  const handleGuestLogin = async () => {
+    const username = "guest";
+    const password = "guest";
+
+    const response = await login(username, password);
+    if (response.status === "success") {
+      dispatch(setIsLoggedIn(true));
+      dispatch(setIronSessionData(response.data));
+      setErrorMessage("");
+    } else {
+      dispatch(setIsLoggedIn(false));
+      dispatch(clearIronSessionData());
+      setErrorMessage(response.message);
+    }
+  };
+
   return (
     <>
+      <input
+        type="button"
+        value={"Login as Guest"}
+        className={styles.guestButton}
+        onClick={handleGuestLogin}
+      />
       <div className={styles.title}>Login to AEGIS</div>
       <div className={styles.login}>
         <div className={styles.errorMessage}>{errorMessage}</div>

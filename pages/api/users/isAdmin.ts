@@ -5,19 +5,18 @@ import { ironOptions } from "server/session/config";
 import { IronSessionData } from "iron-session";
 
 export default withIronSessionApiRoute(handler, ironOptions);
+
 async function handler(
   req: NextApiRequest,
   res: NextApiResponse<WrappedResponse<IronSessionData>>
 ) {
   try {
-    if (req.session.user) {
-      res.status(200).json({
-        status: "success",
-        message: "Login checked",
-        data: { user: req.session.user, admin: req.session.user.permission.includes("admin") },
-      });
+    if (req.session.user && req.session.user.permission.includes("admin")) {
+      res.status(200).json({ status: "success", message: "Admin Verified", data: { admin: true } });
     } else {
-      res.status(200).json({ status: "failure", message: "Not Logged in", data: { user: null } });
+      res
+        .status(200)
+        .json({ status: "failure", message: "Admin Access Restricted", data: { admin: false } });
     }
   } catch (error) {
     res.status(500).json({ status: "error", message: "Unexpected error :" + error });

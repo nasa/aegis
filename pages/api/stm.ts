@@ -47,6 +47,7 @@ const handleSTM: NextApiHandler<
 > = async (req, res): Promise<unknown> => {
   try {
     if (req.session?.user) {
+      const isAdmin = req.session.user.permission.includes("admin"); // will evaluate true or false
       const { missionId, stmType, o, g, i } = req.query;
 
       //clean url params
@@ -115,6 +116,9 @@ const handleSTM: NextApiHandler<
       //upsert a STM record
       if (req.method === "POST") {
         try {
+          if (!isAdmin) {
+            return res.status(401).json({ status: "failure", message: "Unauthorized" });
+          }
           let upsertResponse: STMObjective | STMGoal | STMInvestigation = null;
           let upsertObject: STMObjective | STMGoal | STMInvestigation;
           let upsertType: "Objective" | "Goal" | "Investigation";
@@ -162,6 +166,9 @@ const handleSTM: NextApiHandler<
       //delete a STM record
       if (req.method === "DELETE") {
         try {
+          if (!isAdmin) {
+            return res.status(401).json({ status: "failure", message: "Unauthorized" });
+          }
           let deletedUUID: string | null;
           if (queryParams.stmType === "o" && queryParams.o) {
             deletedUUID = await deleteSTM(queryParams.o, "Objective");

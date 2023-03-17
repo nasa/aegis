@@ -86,6 +86,10 @@ const PoiEditorRight: FunctionComponent = () => {
       state.action.actionsFromDb.filter((storeAction) => storeAction.poiUuid === selectedPoiUuid),
     shallowEqual
   );
+  const isAdmin = useAppSelector(
+    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
+    refEqual
+  );
 
   const [modified, setModified] = useState(false);
   useEffect(() => {
@@ -315,7 +319,7 @@ const PoiEditorRight: FunctionComponent = () => {
                 />
               </div>
             )}
-            {!poisEditing.includes(selectedPoiUuid) && (
+            {!poisEditing.includes(selectedPoiUuid) && isAdmin && (
               <div className={paneStyles.verticalCenter}>
                 <IconButton
                   icon={faEdit}
