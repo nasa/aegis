@@ -28,10 +28,7 @@ const StationEditorLeft: FunctionComponent = () => {
     refEqual
   );
   const selectedStation = stations.find((station) => station.uuid === selectedStationUuid);
-  const user: User_db_type = useAppSelector(
-    (state) => state.user.ironSessionData?.user,
-    shallowEqual
-  );
+  const user: User = useAppSelector((state) => state.user.ironSessionData?.user, shallowEqual);
   const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
   const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, shallowEqual);

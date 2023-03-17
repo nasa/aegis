@@ -1,15 +1,15 @@
-export async function getUsers(userId: number = null): Promise<WrappedResponse<User_db_type[]>> {
+export async function getUsers(userId: number = null): Promise<WrappedResponse<User[]>> {
   let res: Response;
   if (userId) {
     res = await fetch(`/api/users?userId=${userId}`);
   } else {
     res = await fetch(`/api/users`);
   }
-  const response: WrappedResponse<User_db_type[]> = await res.json();
+  const response: WrappedResponse<User[]> = await res.json();
   return response;
 }
 
-export async function upsertUser(userObj: User_db_type): Promise<WrappedResponse<User_db_type>> {
+export async function upsertUser(userObj: User): Promise<WrappedResponse<User>> {
   const res = await fetch(`/api/users`, {
     method: "POST",
     headers: {
@@ -17,14 +17,14 @@ export async function upsertUser(userObj: User_db_type): Promise<WrappedResponse
     },
     body: JSON.stringify(userObj),
   });
-  const response: WrappedResponse<User_db_type> = await res.json();
+  const response: WrappedResponse<User> = await res.json();
   return response;
 }
 
-export async function deleteUser(userId: number): Promise<WrappedResponse<User_db_type>> {
+export async function deleteUser(userId: number): Promise<WrappedResponse<User>> {
   const res = await fetch(`/api/users?userId=${userId}`, {
     method: "DELETE",
   });
-  const response: WrappedResponse<User_db_type> = await res.json();
+  const response: WrappedResponse<User> = await res.json();
   return response;
 }

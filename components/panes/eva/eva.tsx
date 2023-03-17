@@ -27,10 +27,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
     shallowEqual
   );
-  const user: User_db_type = useAppSelector(
-    (state) => state.user.ironSessionData?.user,
-    shallowEqual
-  );
+  const user: User = useAppSelector((state) => state.user.ironSessionData?.user, shallowEqual);
   const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
   const isAdmin = useAppSelector(
     (state) => state.user.ironSessionData?.user.permission.includes("admin"),
