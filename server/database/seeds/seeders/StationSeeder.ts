@@ -38,7 +38,7 @@ export class StationSeeder extends Seeder {
         context.mission1.landerLocation,
       ],
       walkbackPathSegmentDistances: [0],
-      icon: "1f680",
+      icon: "1F40D",
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -57,7 +57,7 @@ export class StationSeeder extends Seeder {
         context.mission1.landerLocation,
       ],
       walkbackPathSegmentDistances: [0],
-      icon: "1f680",
+      icon: "1F42D",
       createdAt: new Date(),
       updatedAt: new Date(),
     });

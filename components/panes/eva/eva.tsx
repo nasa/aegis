@@ -43,11 +43,11 @@ const EvaPlannerLeft: FunctionComponent = () => {
       ownerId: user.id,
       missionId: missionId,
       uuid: uuidv4(),
-      name: "E-" + randomName,
+      name: randomName,
       status: "Candidate",
       sequence: [],
       description: "",
-      traverseRate: null,
+      traverseRate: 3.2, // default to 3.2 km/hr
       maxDuration: null,
     };
     dispatch(upsertEva(blankEva));

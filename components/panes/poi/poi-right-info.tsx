@@ -83,8 +83,8 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     styleInput={{ width: "45px" }}
                     containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
                     value={selectedPoi.radius.toString()}
-                    onChange={(val: number) => {
-                      dispatch(upsertPoi({ ...selectedPoi, radius: val }));
+                    onChange={(val) => {
+                      dispatch(upsertPoi({ ...selectedPoi, radius: parseFloat(val) }));
                     }}
                   />
                 </div>

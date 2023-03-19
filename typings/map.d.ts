@@ -21,7 +21,7 @@ type MapAction =
   | "refreshLocation"
   | "delete";
 
-type MapItemType = "poi" | "station" | "traverse" | "antPath" | "walkback";
+type MapItemType = "poi" | "station" | "traverse" | "antPath" | "walkback" | "lander";
 interface MapDirective {
   uuid: string;
   mapItemType: MapItemType;

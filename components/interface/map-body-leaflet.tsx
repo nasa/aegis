@@ -280,7 +280,7 @@ const MapBody: FunctionComponent = () => {
       uuid: string;
       iconEmoji: string;
       location: AEGISPoint;
-      mapItemType: "poi" | "station";
+      mapItemType: "poi" | "station" | "lander";
       onClick?: Function;
       onDraggend?: Function;
     }) => {
@@ -378,7 +378,7 @@ const MapBody: FunctionComponent = () => {
             weight: 5,
             opacity: 1,
             color: "rgb(0, 0, 0, 0)",
-            pulseColor: "rgb(255, 255, 255, 0.3)",
+            pulseColor: "rgb(255, 255, 255, 1)",
             paused: false,
             reverse: false,
             hardwareAccelerated: true,
@@ -811,6 +811,20 @@ const MapBody: FunctionComponent = () => {
       setTraversesToShow([]);
     }
   }, [traverses, selectedEvaSequenceItemUuid, selectedEva]);
+
+  /**
+   * Draw or update lander
+   */
+  useEffect(() => {
+    if (!map.current || mapDirective || !mission.landerLocation) return;
+
+    drawOrUpdateMarkerOnMap({
+      uuid: mission.id.toString(),
+      iconEmoji: "1F315",
+      mapItemType: "lander",
+      location: mission.landerLocation,
+    });
+  }, [map, mapDirective, mission.landerLocation, drawOrUpdateMarkerOnMap, mission.id]);
 
   /**
    * Draw or update POIs on the map when pois change. Serves as draw when page loads
