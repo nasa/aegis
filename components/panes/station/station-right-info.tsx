@@ -243,8 +243,8 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     styleInput={{ width: "45px" }}
                     containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
                     value={selectedStation.radius.toString()}
-                    onChange={(val: number) => {
-                      dispatch(upsertStation({ ...selectedStation, radius: val }));
+                    onChange={(val) => {
+                      dispatch(upsertStation({ ...selectedStation, radius: parseFloat(val) }));
                     }}
                   />
                 </div>
@@ -259,8 +259,11 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     styleInput={{ width: "45px" }}
                     containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
                     value={selectedStation.durationLower?.toString()}
-                    onChange={(val: number) => {
-                      const updatedStation: Station = { ...selectedStation, durationLower: val };
+                    onChange={(val) => {
+                      const updatedStation: Station = {
+                        ...selectedStation,
+                        durationLower: parseFloat(val),
+                      };
                       dispatch(upsertStation(updatedStation));
                     }}
                     onBlur={(e) => {
@@ -284,8 +287,11 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     styleInput={{ width: "45px" }}
                     containerStyle={{ fontSize: "0.8rem", fontWeight: 400 }}
                     value={selectedStation.durationUpper?.toString()}
-                    onChange={(val: number) => {
-                      const updatedStation: Station = { ...selectedStation, durationUpper: val };
+                    onChange={(val) => {
+                      const updatedStation: Station = {
+                        ...selectedStation,
+                        durationUpper: parseFloat(val),
+                      };
                       dispatch(upsertStation(updatedStation));
                     }}
                     onBlur={(e) => {

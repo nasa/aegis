@@ -7,7 +7,7 @@ type FeatureGroupWithUuid = L.FeatureGroup & {
 
 type AEGISMarker = L.Marker & {
   uuid?: string;
-  mapItemType: "poi" | "station";
+  mapItemType: "poi" | "station" | "lander";
 };
 
 type AEGISPolyline = L.Polyline & {

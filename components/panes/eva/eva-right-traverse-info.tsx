@@ -95,8 +95,10 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                     styleInput={{ width: "55px" }}
                     containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
                     value={selectedTraverse.durationLower?.toString()}
-                    onChange={(val: number) => {
-                      dispatch(upsertTraverse({ ...selectedTraverse, durationLower: val }));
+                    onChange={(val) => {
+                      dispatch(
+                        upsertTraverse({ ...selectedTraverse, durationLower: parseFloat(val) })
+                      );
                     }}
                   />
                 </div>
@@ -111,8 +113,10 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                     styleInput={{ width: "55px" }}
                     containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
                     value={selectedTraverse.durationUpper?.toString()}
-                    onChange={(val: number) => {
-                      dispatch(upsertTraverse({ ...selectedTraverse, durationUpper: val }));
+                    onChange={(val) => {
+                      dispatch(
+                        upsertTraverse({ ...selectedTraverse, durationUpper: parseFloat(val) })
+                      );
                     }}
                   />
                 </div>

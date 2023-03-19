@@ -33,6 +33,7 @@ export class EVASeeder extends Seeder {
       status: "Candidate",
       sequence: [],
       description: "EVA test description 2",
+      traverseRate: 3.2,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

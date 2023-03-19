@@ -14,6 +14,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowDown, faArrowUp, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { setSelectedStationUuid } from "store/station";
 import { decodeEmoji } from "utils/formatting";
+import { getTotalDistance } from "utils/geoMath";
 
 const EvaItemSequence: FunctionComponent<{
   evaUuid: string;
@@ -26,6 +27,7 @@ const EvaItemSequence: FunctionComponent<{
   const stationsFromDb = useAppSelector((state) => state.station.stationsFromDb, shallowEqual);
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
   const traversesFromDb = useAppSelector((state) => state.traverse.traversesFromDb, shallowEqual);
+  const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
 
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
@@ -34,16 +36,16 @@ const EvaItemSequence: FunctionComponent<{
 
   const setTraversesStartEndToStations = useCallback(
     (evaSequence: EvaSequenceItem[]) => {
-      const newTraverses = [];
+      const newTraverses: Traverse[] = [];
       evaSequence.forEach((item, index) => {
         if (item.type === "traverse") {
           const thisTraverse = traverses.find((traverse) => traverse.uuid === item.uuid);
-          const newTraverseLocation = [...thisTraverse.path];
+          const newTraversePath = [...thisTraverse.path];
           if (thisTraverse) {
-            if (newTraverseLocation.length === 0) {
+            if (newTraversePath.length === 0) {
               // make blank location array with two points if it is empty
-              newTraverseLocation.push({ lat: null, lng: null } as AEGISPoint);
-              newTraverseLocation.push({ lat: null, lng: null } as AEGISPoint);
+              newTraversePath.push({ lat: null, lng: null } as AEGISPoint);
+              newTraversePath.push({ lat: null, lng: null } as AEGISPoint);
             }
 
             // if item is a traverse, there is always a previous station
@@ -51,7 +53,7 @@ const EvaItemSequence: FunctionComponent<{
             const previousStation = stations.find((station) => station.uuid === previousItem.uuid);
             if (previousStation) {
               // replace first point with previous station location
-              newTraverseLocation[0] = {
+              newTraversePath[0] = {
                 lat: previousStation.location?.lat,
                 lng: previousStation.location?.lng,
               } as AEGISPoint;
@@ -60,14 +62,27 @@ const EvaItemSequence: FunctionComponent<{
             const nextStation = stations.find((station) => station.uuid === nextItem.uuid);
             if (nextStation) {
               // replace last point with next station location
-              newTraverseLocation[newTraverseLocation.length - 1] = {
+              newTraversePath[newTraversePath.length - 1] = {
                 lat: nextStation.location?.lat,
                 lng: nextStation.location?.lng,
               } as AEGISPoint;
             }
-            const newTraverse = {
+
+            // recalculate traverse path distances
+            const distances: number[] = [];
+            for (let i = 1; i < newTraversePath.length; i++) {
+              distances.push(
+                getTotalDistance(
+                  [newTraversePath[i - 1], newTraversePath[i]],
+                  parseFloat(mission.config.msv.radius.minor)
+                )
+              );
+            }
+
+            const newTraverse: Traverse = {
               ...thisTraverse,
-              location: newTraverseLocation,
+              path: newTraversePath,
+              pathSegmentDistances: distances,
             };
             newTraverses.push(newTraverse);
           }
@@ -75,7 +90,7 @@ const EvaItemSequence: FunctionComponent<{
       });
       dispatch(upsertTraverses(newTraverses));
     },
-    [traverses, stations, dispatch]
+    [traverses, stations, dispatch, mission]
   );
 
   const handleSequenceStationChange = (stationUuid: string, index: number) => {
