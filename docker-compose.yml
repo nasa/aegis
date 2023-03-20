@@ -19,9 +19,12 @@ services:
   nextjs:
     image: ${DOCKER_IMAGE_NEXTJS}
     restart: unless-stopped
+    env_file:
+      - ./.env
     environment:
-      # required for docker-entrypoint.sh check for database being up
-      - AEGIS_DB_PORT=${AEGIS_DB_PORT}
+      # Override what is in .env (which may be "localhost" to support native local dev) such
+      # that it is always "database" in a full Docker-Compose setup.
+      - AEGIS_DB_HOST=database
     depends_on:
       database:
         condition: service_healthy
@@ -34,7 +37,6 @@ services:
       # but is simpler config-wise to put here versus in the overrides file
       - "9229:9229"
     volumes:
-      - ./.env:/app/.env
       - ${PUBLIC_STATIC_DIR}:/${PUBLIC_STATIC_DIR}
     networks:
       - aegis-network
