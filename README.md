@@ -25,12 +25,11 @@ For all install methods, do the following:
 
 Perform "All install methods" instructions above before performing the following.
 
-1. In `.env`, set `AEGIS_DB_HOST` to `database`
-2. Run Docker Compose:
+1. Run Docker Compose:
    1. Dev mode: `npm run docker:dev`
    2. Production preview: `npm run docker:preview`
-3. Seed the database with the `admin` user and some content (e.g. Apollo 14): `docker-compose exec nextjs npm run seed`
-4. Open [https://aegis-local.fit.nasa.gov](https://aegis-local.fit.nasa.gov) with your browser. In dev, username and password are both `admin`.
+2. Seed the database with the `admin` user and some content (e.g. Apollo 14): `docker-compose exec nextjs npm run seed`
+3. Open [https://aegis-local.fit.nasa.gov](https://aegis-local.fit.nasa.gov) with your browser. In dev, username and password are both `admin`.
 
 To stop, run `docker compose down`.
 
@@ -38,12 +37,11 @@ To stop, run `docker compose down`.
 
 Perform "All install methods" instructions above before performing the following.
 
-1. In `.env`, set `AEGIS_DB_HOST` to `localhost`
-2. Run Docker Compose: `docker-compose up -d database` to start only the database.
-3. Setup the database: `npm run migrate:up`
-4. Seed the database with the `admin` user and some content (e.g. Apollo 14): `npm run seed`
-5. Run `npm run dev` to start the frontend.
-6. Open [http://aegis-local.fit.nasa.gov:4000](http://aegis-local.fit.nasa.gov:4000) with your browser (lack of https). In dev, username and password are both `admin`.
+1. Run Docker Compose: `docker-compose up -d database` to start only the database.
+2. Setup the database: `npm run migrate:up`
+3. Seed the database with the `admin` user and some content (e.g. Apollo 14): `npm run seed`
+4. Run `npm run dev` to start the frontend.
+5. Open [http://aegis-local.fit.nasa.gov:4000](http://aegis-local.fit.nasa.gov:4000) with your browser (lack of https). In dev, username and password are both `admin`.
 
 ## Helpful docker commands
 
@@ -97,7 +95,6 @@ docker-compose down --remove-orphans
 rm -rf ./.local/database
 
 # 3. TEST "docker:preview"
-# ENSURE .env AEGIS_DB_HOST set to "database"
 npm run docker:preview:rebuild
 npm run docker:preview
 docker-compose exec nextjs npm run seed
@@ -108,7 +105,6 @@ docker-compose down --remove-orphans
 rm -rf ./.local/database
 
 # 5. TEST "docker:dev"
-# ENSURE .env AEGIS_DB_HOST set to "database"
 npm run docker:dev:rebuild
 npm run docker:dev
 docker-compose exec nextjs npm run seed
@@ -119,7 +115,6 @@ docker-compose down --remove-orphans
 rm -rf ./.local/database
 
 # 7. TEST local node, container database
-# CHANGE .env AEGIS_DB_HOST set to "localhost"
 docker-compose up -d database # just booting database container
 # wait about 30 seconds. Database isn't really ready right away.
 npm run migrate:up # if this fails, wait a little longer then try again (waiting for database)
