@@ -33,8 +33,7 @@ describe("Mission API Endpoint", () => {
   type ApiResponse = NextApiResponse & ReturnType<typeof createResponse>;
 
   let loginCookie: string;
-  let newMission: Mission = {
-    id: null,
+  let newMission: Partial<Mission> = {
     name: "Mission Jest Test",
     config: null,
   };
