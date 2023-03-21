@@ -23,30 +23,6 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
 
       //get actions directly attached to this POI
       allPoiActions.push(...actions.filter((action) => action.poiUuid === selectedPoiUuid));
-
-      //check if action ordering is defined for this POI.
-      //put any unlisted actions at the end. but there shouldn't be any unlisted actions?
-      if (selectedPoi.actionOrderUuids) {
-        allPoiActions.sort((action1: Action, action2: Action) => {
-          const index1 = selectedPoi.actionOrderUuids.indexOf(action1.uuid);
-          const index2 = selectedPoi.actionOrderUuids.indexOf(action2.uuid);
-          return (index1 > -1 ? index1 : Infinity) - (index2 > -1 ? index2 : Infinity);
-        });
-      } else {
-        //no ordering defined. default order by name
-        allPoiActions.sort((action1: Action, action2: Action) => {
-          const name1 = action1.name.toUpperCase(); // ignore upper and lowercase
-          const name2 = action2.name.toUpperCase();
-          if (name1 < name2) {
-            return -1;
-          } else if (name1 > name2) {
-            return 1;
-          } else {
-            return 0;
-          }
-        });
-      }
-
       setPoiActions(allPoiActions);
     }
   }, [selectedPoiUuid, actions, selectedPoi]);
@@ -62,10 +38,11 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
           }}
           actions={poiActions}
           actionColor={{ color: "var(--poi)" }}
+          actionOrderUuids={selectedPoi.actionOrderUuids}
           setActionOrderUuids={(actionOrderUuids) => {
             dispatch(upsertPoi({ ...selectedPoi, actionOrderUuids: actionOrderUuids }));
           }}
-          actionParent={{ poiUuid: selectedPoiUuid }}
+          actionParentUuid={{ poiUuid: selectedPoiUuid }}
         />
       </div>
     </div>

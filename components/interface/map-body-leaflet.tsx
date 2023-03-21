@@ -270,6 +270,7 @@ const MapBody: FunctionComponent = () => {
    */
   const drawOrUpdateMarkerOnMap = useCallback(
     ({
+      name,
       uuid,
       iconEmoji,
       location,
@@ -277,6 +278,7 @@ const MapBody: FunctionComponent = () => {
       onClick = () => {},
       onDraggend = () => {},
     }: {
+      name: string;
       uuid: string;
       iconEmoji: string;
       location: AEGISPoint;
@@ -286,6 +288,16 @@ const MapBody: FunctionComponent = () => {
     }) => {
       const html = `<div class="leaflet-aegis-icon">${decodeEmoji(iconEmoji)}</div>`;
       const icon = L.divIcon({ html });
+
+      let typeName = "";
+      switch (mapItemType) {
+        case "poi":
+          typeName = "POI";
+          break;
+        case "station":
+          typeName = "Station";
+          break;
+      }
 
       const existingLayer = getMapItemByUuid(uuid, mapItemType) as AEGISMarker;
 
@@ -300,9 +312,15 @@ const MapBody: FunctionComponent = () => {
         marker.mapItemType = mapItemType;
 
         // marker handlers
-        marker.on("click", () => {
-          onClick();
-        });
+        marker
+          .bindTooltip(`${name} ${typeName}`, {
+            sticky: true,
+            direction: "top",
+            offset: new L.Point(0, -20),
+          })
+          .on("click", () => {
+            onClick();
+          });
 
         // dragend handler that causes edit to be saved on mouseup
         marker.on("dragend", (e) => {
@@ -321,6 +339,7 @@ const MapBody: FunctionComponent = () => {
    */
   const drawOrUpdatePolylineOnMap = useCallback(
     ({
+      name,
       uuid,
       path,
       mapItemType,
@@ -329,6 +348,7 @@ const MapBody: FunctionComponent = () => {
       onClick,
       drawAntPath,
     }: {
+      name: string;
       uuid: string;
       path: AEGISPoint[];
       onClick?: Function;
@@ -349,6 +369,16 @@ const MapBody: FunctionComponent = () => {
 
       const existingLayer = getMapItemByUuid(uuid, mapItemType) as AEGISPolyline;
 
+      let typeName = "";
+      switch (mapItemType) {
+        case "traverse":
+          typeName = "Traverse";
+          break;
+        case "walkback":
+          typeName = "Walkback";
+          break;
+      }
+
       if (existingLayer && existingLayer.mapItemType === mapItemType) {
         existingLayer.setLatLngs(path);
       } else {
@@ -365,9 +395,15 @@ const MapBody: FunctionComponent = () => {
         polyline.mapItemType = mapItemType;
 
         // polyline handlers
-        polyline.on("click", () => {
-          onClick();
-        });
+        polyline
+          .bindTooltip(`${name} ${typeName}`, {
+            sticky: true,
+            direction: "top",
+            offset: new L.Point(0, -20),
+          })
+          .on("click", () => {
+            onClick();
+          });
 
         map.current.addLayer(polyline);
 
@@ -819,6 +855,7 @@ const MapBody: FunctionComponent = () => {
     if (!map.current || mapDirective || !mission.landerLocation) return;
 
     drawOrUpdateMarkerOnMap({
+      name: "Lander",
       uuid: mission.id.toString(),
       iconEmoji: "1F315",
       mapItemType: "lander",
@@ -843,6 +880,7 @@ const MapBody: FunctionComponent = () => {
     poisToShow.forEach((poi) => {
       if (poi.location) {
         drawOrUpdateMarkerOnMap({
+          name: poi.name,
           uuid: poi.uuid,
           iconEmoji: poi.icon ? poi.icon : "1F3F4",
           mapItemType: "poi",
@@ -889,6 +927,7 @@ const MapBody: FunctionComponent = () => {
     stationsToShow.forEach((station) => {
       if (station.location) {
         drawOrUpdateMarkerOnMap({
+          name: station.name,
           uuid: station.uuid,
           iconEmoji: station.icon,
           mapItemType: "station",
@@ -931,6 +970,7 @@ const MapBody: FunctionComponent = () => {
     // draw the walkback traverse
     if (!mapDirective && selectedStation?.walkbackPath) {
       drawOrUpdatePolylineOnMap({
+        name: selectedStation.name,
         uuid: selectedStation.uuid,
         mapItemType: "walkback",
         path: selectedStation.walkbackPath,
@@ -965,6 +1005,7 @@ const MapBody: FunctionComponent = () => {
       // draw all traverses in the selectedEva sequence
       traversesToShow.forEach((traverse) => {
         drawOrUpdatePolylineOnMap({
+          name: traverse.name,
           uuid: traverse.uuid,
           path: traverse.path,
           onClick: () => {

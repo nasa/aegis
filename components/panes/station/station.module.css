@@ -138,6 +138,7 @@
 .iconDisplayIcon {
   font-size: 1.7em;
   padding-right: 5px;
+  cursor: default;
 }
 
 .iconDisplayButton {

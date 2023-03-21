@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, useEffect, useState, CSSProperties } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions.module.css";
 import { IconButton } from "components/interface/_global-elements";
@@ -16,21 +16,66 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { STM_Coverage } from "./stm-coverage";
 const profanityFilter = require("leo-profanity");
 
+type ActionParentUuid = {
+  poiUuid?: string;
+  stationUuid?: string;
+};
+
 const Actions: FunctionComponent<{
   editMode: boolean;
   setEditMode: (newEditMode: boolean) => void;
   actions: Action[];
-  actionColor: React.CSSProperties;
+  actionColor: CSSProperties;
+  actionOrderUuids: string[];
   setActionOrderUuids: (actionOrderUuids: string[]) => void;
-  actionParent: Object;
-}> = ({ editMode, setEditMode, actions, actionColor, setActionOrderUuids, actionParent }) => {
+  actionParentUuid: ActionParentUuid;
+}> = ({
+  editMode,
+  setEditMode,
+  actions,
+  actionColor,
+  actionOrderUuids,
+  setActionOrderUuids,
+  actionParentUuid,
+}) => {
   const dispatch = useDispatch();
   const selectedMissionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
-  const [wrappedActions, setWrappedActions] = useState<WrappedAction[]>(null); //contains all actions
+  const [wrappedActions, setWrappedActions] = useState<WrappedAction[]>(null); //contains all actions in order
 
-  //gather all actions, wrap, then order them
+  //gather all actions, order, and wrap them
   useEffect(() => {
     if (actions) {
+      //check if action ordering is defined.
+      if (actionOrderUuids && actionOrderUuids.length > 0) {
+        //put any unlisted actions at the end. but there shouldn't be any unlisted actions?
+        actions.sort((action1: Action, action2: Action) => {
+          const index1 = actionOrderUuids.indexOf(action1.uuid);
+          const index2 = actionOrderUuids.indexOf(action2.uuid);
+          return (index1 > -1 ? index1 : Infinity) - (index2 > -1 ? index2 : Infinity);
+        });
+      } else {
+        //no ordering defined. default order by name
+        actions.sort((action1: Action, action2: Action) => {
+          const name1 = action1.name.toUpperCase(); // ignore upper and lowercase
+          const name2 = action2.name.toUpperCase();
+          if (name1 < name2) {
+            return -1;
+          } else if (name1 > name2) {
+            return 1;
+          } else {
+            return 0;
+          }
+        });
+        const actionOrder: string[] = [];
+        //build a new action order
+        for (const action of actions) {
+          actionOrder.push(action.uuid);
+        }
+        if (actionOrder && actionOrder.length > 0) {
+          setActionOrderUuids(actionOrder);
+        }
+      }
+
       //wrap all the actions
       const actions_wrapped: WrappedAction[] = [];
       actions.forEach((action) => {
@@ -38,6 +83,7 @@ const Actions: FunctionComponent<{
       });
       setWrappedActions(actions_wrapped);
     }
+    // eslint-disable-next-line
   }, [actions]);
 
   const handleCreateAction = () => {
@@ -53,10 +99,10 @@ const Actions: FunctionComponent<{
     }
 
     const blankAction: Action = {
-      ...actionParent,
+      ...actionParentUuid,
       missionId: selectedMissionId,
       uuid: uuidv4(),
-      name: "A-" + randomName,
+      name: randomName,
       description: "",
       status: "Candidate",
       type: "other",
@@ -67,7 +113,23 @@ const Actions: FunctionComponent<{
       priorityOverride: null,
     };
 
+    //upsert action order. new action goes on the end.
+    let actionOrder: string[];
+    if (actionOrderUuids && actionOrderUuids.length > 0) {
+      actionOrder = _.cloneDeep(actionOrderUuids);
+    } else {
+      //no order defined. build a new one based on whats already there
+      actionOrder = [];
+      for (const action of actions) {
+        actionOrder.push(action.uuid);
+      }
+    }
+    actionOrder.push(blankAction.uuid);
+    setActionOrderUuids(actionOrder);
+
+    //upsert action
     dispatch(upsertAction(blankAction));
+
     setEditMode(true);
   };
 
@@ -91,7 +153,7 @@ const Actions: FunctionComponent<{
     }
   }
 
-  //reorder actions and save back to state
+  //reorder actions and save back to state.
   function reorder(fromIndex: number, toIndex: number) {
     if (wrappedActions) {
       const actionOrder: string[] = [];

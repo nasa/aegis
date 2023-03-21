@@ -8,6 +8,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setSectionSelected } from "store/interface";
 
 import { paneTypes } from "components/interface/_paneTypes";
+import { setSelectedEvaUuid } from "store/eva";
 
 /* This control sits at the left side of the screen and loads the selected component based on the NavGutter icon selected */
 export const LeftControlPanel: FunctionComponent = () => {
@@ -128,7 +129,10 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
               className={styles.icon}
               style={{ color: paneTypes[paneType].color }}
               title={paneTypes[paneType].title}
-              onClick={() => dispatch(setSectionSelected(paneType))}
+              onClick={() => {
+                dispatch(setSectionSelected(paneType));
+                dispatch(setSelectedEvaUuid(null));
+              }}
             >
               <FontAwesomeIcon icon={paneTypes[paneType].icon} size="lg" />
             </div>

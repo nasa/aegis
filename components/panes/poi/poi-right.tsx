@@ -6,7 +6,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCircleInfo,
-  faMagnifyingGlassChart,
+  // faMagnifyingGlassChart,
   faPersonDigging,
   faBan,
   faFloppyDisk,
@@ -17,7 +17,7 @@ import { IconButton, InLineEditInput } from "components/interface/_global-elemen
 import {
   deletePoi,
   setSelectedPoiUuid,
-  setSelectedRightNavItem,
+  setSelectedPOIRightNavItem,
   setPoiEditMode,
   upsertPoi,
   upsertPoisFromDb,
@@ -33,10 +33,11 @@ import {
 
 import Info_Panel from "./poi-right-info";
 import Actions_Panel from "./poi-right-actions";
-import Reports_Panel from "./poi-right-reports";
+// import Reports_Panel from "./poi-right-reports";
 import * as InternalAPI from "http-client/internal-api";
 import * as httpClient_action from "http-client/action";
 import { updateMapDirective } from "store/map";
+import { decodeEmoji } from "utils/formatting";
 
 const panelTypes: PanelTypes = {
   info_panel: {
@@ -51,12 +52,12 @@ const panelTypes: PanelTypes = {
     color: "var(--poi)",
     icon: faPersonDigging,
   },
-  reports_panel: {
-    title: "POI Reports",
-    panel: Reports_Panel,
-    color: "var(--poi)",
-    icon: faMagnifyingGlassChart,
-  },
+  // reports_panel: {
+  //   title: "POI Reports",
+  //   panel: Reports_Panel,
+  //   color: "var(--poi)",
+  //   icon: faMagnifyingGlassChart,
+  // },
 };
 
 const PoiEditorRight: FunctionComponent = () => {
@@ -260,6 +261,9 @@ const PoiEditorRight: FunctionComponent = () => {
     selectedPoi && (
       <>
         <div className={paneStyles.rightTopTitle}>
+          {selectedPoi.icon && (
+            <div className={paneStyles.rightTopTitleIcon}>{decodeEmoji(selectedPoi.icon)}</div>
+          )}
           <div className={paneStyles.rightTopTitleText} style={{ color: "var(--poi)" }}>
             <InLineEditInput
               fieldName="POI"
@@ -298,7 +302,7 @@ const PoiEditorRight: FunctionComponent = () => {
                         selectedRightNavItem === panelType ? panelTypes[panelType].color : "white",
                     }}
                     title={panelTypes[panelType].title}
-                    onClick={() => dispatch(setSelectedRightNavItem(panelType))}
+                    onClick={() => dispatch(setSelectedPOIRightNavItem(panelType))}
                   >
                     <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
                   </div>

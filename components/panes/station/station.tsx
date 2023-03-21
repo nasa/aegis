@@ -10,6 +10,7 @@ import {
   setStationEditMode,
   setSelectedStationUuid,
   upsertStation,
+  setSelectedStationRightNavItem,
 } from "store/station";
 import { v4 as uuidv4 } from "uuid";
 import StationItem from "./station-item";
@@ -57,12 +58,15 @@ const StationEditorLeft: FunctionComponent = () => {
       walkbackPath: null,
       walkbackPathSegmentDistances: null,
       icon: null,
+      poiUuids: [],
     };
     dispatch(upsertStation(blankStation));
     // turn on edit mode for the new Station
     dispatch(setStationEditMode({ stationUuid: blankStation.uuid, editMode: true }));
     // select the newly created Station
     dispatch(setSelectedStationUuid(blankStation.uuid));
+    // set the selected tab to the info tab
+    dispatch(setSelectedStationRightNavItem("info_panel"));
   };
 
   const handleDuplicateStation = (station: Station) => {

@@ -69,8 +69,8 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           const updatedStation: Station = {
                             ...selectedStation,
                             poiUuids: e.target.checked
-                              ? [...selectedStation.poiUuids, poi.uuid]
-                              : selectedStation.poiUuids.filter((uuid) => uuid !== poi.uuid),
+                              ? [...selectedStation?.poiUuids, poi.uuid]
+                              : selectedStation?.poiUuids.filter((uuid) => uuid !== poi.uuid),
                           };
                           dispatch(upsertStation(updatedStation));
                         }}

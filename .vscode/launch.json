@@ -4,24 +4,17 @@
     {
       "type": "node",
       "request": "attach",
-      "name": "Attach to Node",
+      "name": "Node Attach",
       "skipFiles": ["<node_internals>/**"],
       "port": 9229
     },
     {
       "type": "chrome",
       "request": "attach",
-      "name": "Attach to Chrome",
+      "name": "Chrome Attach",
       "port": 9222,
       "urlFilter": "http://aegis-local.fit.nasa.gov:4000/*",
       "webRoot": "${workspaceFolder}"
-    },
-    {
-      "name": "Docker Node.js Launch",
-      "type": "docker",
-      "request": "launch",
-      "preLaunchTask": "docker-run: debug",
-      "platform": "node"
     }
   ]
 }

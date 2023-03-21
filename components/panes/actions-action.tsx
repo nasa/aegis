@@ -12,7 +12,7 @@ import {
   InLineEditInput,
   LastEdited,
 } from "components/interface/_global-elements";
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent, useState, CSSProperties } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
 import { deleteAction, upsertAction } from "store/action";
@@ -28,7 +28,7 @@ const RightAction: FunctionComponent<{
   setEditMode: (newEditMode: boolean) => void;
   action: Action;
   highlight: boolean;
-  actionColor: React.CSSProperties;
+  actionColor: CSSProperties;
 }> = ({ editMode, setEditMode, action, highlight, actionColor }) => {
   const dispatch = useDispatch();
   const parentAction = useAppSelector(
