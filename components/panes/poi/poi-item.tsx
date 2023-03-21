@@ -4,7 +4,7 @@ import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual } from "utils/useAppSelector";
 import poiStyles from "./poi.module.css";
 import _ from "lodash";
-import { setSelectedPoiUuid, setSelectedRightNavItem } from "store/poi";
+import { setSelectedPoiUuid, setSelectedPOIRightNavItem } from "store/poi";
 import { setSelectedEvaSequenceItemUuid, setSelectedEvaUuid } from "store/eva";
 import { decodeEmoji } from "utils/formatting";
 
@@ -53,7 +53,7 @@ const PoiItem: FunctionComponent<{
           dispatch(setSelectedPoiUuid(poi.uuid));
           dispatch(setSelectedEvaSequenceItemUuid(null));
           dispatch(setSelectedEvaUuid(null));
-          if (!selectedRightNavItem) dispatch(setSelectedRightNavItem("info_panel"));
+          if (!selectedRightNavItem) dispatch(setSelectedPOIRightNavItem("info_panel"));
         }
       }}
     >

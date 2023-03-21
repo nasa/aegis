@@ -1,7 +1,19 @@
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
-import { FunctionComponent, Children, cloneElement, useState, createRef } from "react";
+import {
+  FunctionComponent,
+  Children,
+  cloneElement,
+  useState,
+  createRef,
+  useRef,
+  useLayoutEffect,
+  CSSProperties,
+  ChangeEvent,
+  ReactNode,
+} from "react";
+
 import styles from "./_global-elements.module.css";
 import _ from "lodash";
 import { TagsInput } from "react-tag-input-component";
@@ -13,7 +25,7 @@ export const IconButton: FunctionComponent<{
   onClick: () => void;
   label: string;
   icon: IconDefinition;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
   size?: "xs" | "lg";
   enabled?: boolean;
 }> = ({ onClick, label, icon, style, size, enabled = true }) => {
@@ -29,9 +41,9 @@ export const IconButton: FunctionComponent<{
 export const Dropdown: FunctionComponent<{
   children: any;
   selected: string;
-  containerStyle?: React.CSSProperties;
-  selectStyle?: React.CSSProperties;
-  arrowStyle?: React.CSSProperties;
+  containerStyle?: CSSProperties;
+  selectStyle?: CSSProperties;
+  arrowStyle?: CSSProperties;
   onChange: (value: string) => void;
 }> = ({ children, selected, containerStyle, selectStyle, arrowStyle, onChange }) => {
   return (
@@ -121,7 +133,7 @@ export const IconDropdown: FunctionComponent<{
 };
 
 export const MultiButton: FunctionComponent<{
-  children: React.ReactNode;
+  children: ReactNode;
   editing: boolean;
   selected: string;
   handleChange: Function;
@@ -176,9 +188,9 @@ export const ModifiedIndicator: FunctionComponent<{
 export const InLineEditInput: FunctionComponent<{
   fieldName: string;
   editing: boolean;
-  styleInput: React.CSSProperties;
-  styleValue?: React.CSSProperties;
-  containerStyle?: React.CSSProperties;
+  styleInput: CSSProperties;
+  styleValue?: CSSProperties;
+  containerStyle?: CSSProperties;
   maxLength: number;
   value: string;
   onChange: Function;
@@ -194,6 +206,19 @@ export const InLineEditInput: FunctionComponent<{
   onChange,
   onBlur,
 }) => {
+  const [cursor, setCursor] = useState(null);
+  const ref = useRef(null);
+
+  useLayoutEffect(() => {
+    const input = ref.current;
+    if (input) input.setSelectionRange(cursor, cursor);
+  }, [ref, cursor, value]);
+
+  const handleChange = (e) => {
+    setCursor(e.target.selectionStart);
+    onChange(e.target.value);
+  };
+
   return (
     <div style={containerStyle}>
       {editing && (
@@ -203,13 +228,14 @@ export const InLineEditInput: FunctionComponent<{
           style={styleInput}
           aria-label={fieldName}
           value={value}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => handleChange(event)}
           onBlur={(event) => {
             if (onBlur) onBlur(event);
           }}
           onClick={(e) => {
             e.stopPropagation();
           }}
+          ref={ref}
         />
       )}
       {!editing && (
@@ -276,14 +302,16 @@ export const ContentEditableTextArea: FunctionComponent<{
           tagName="div" // Use a custom HTML tag (uses a div by default)
         />
       )}
-      {!editing && <div className={styles.notesText}>{html}</div>}
+      {!editing && (
+        <div className={styles.notesText} dangerouslySetInnerHTML={{ __html: html }}></div>
+      )}
     </>
   );
 };
 
 export const Checkbox: FunctionComponent<{
   checked: boolean;
-  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
 }> = ({ checked, onChange }) => {
   return (
     <div className={styles.checkboxContainer}>

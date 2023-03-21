@@ -31,7 +31,7 @@ export const poiSlice = createSlice({
     deleteAllPoisFromDb: (state) => {
       state.poisFromDb = [];
     },
-    setSelectedRightNavItem: (state, action: { payload: string }) => {
+    setSelectedPOIRightNavItem: (state, action: { payload: string }) => {
       state.selectedRightNavItem = action.payload;
     },
     setSelectedPoiUuid: (state, action: { payload: string }) => {
@@ -72,7 +72,7 @@ export const {
   upsertPoisFromDb,
   deleteAllPois,
   deleteAllPoisFromDb,
-  setSelectedRightNavItem,
+  setSelectedPOIRightNavItem,
   setSelectedPoiUuid,
   duplicatePoi,
   setPoiEditMode,

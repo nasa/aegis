@@ -323,8 +323,8 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         <IconButton
                           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                           icon={faIcons}
-                          label="Pick Icon"
-                          style={{ width: "90px" }}
+                          label={!showEmojiPicker ? "Pick Icon" : "Close"}
+                          style={!showEmojiPicker ? { width: "90px" } : { width: "70px" }}
                         />
                       </div>
                       <div className={styles.iconPickerContainer}>

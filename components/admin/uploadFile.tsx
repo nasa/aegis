@@ -20,8 +20,8 @@ const UploadFile: FunctionComponent<UploadProps> = (props: UploadProps) => {
     if (event.target.files.length > 0) {
       setSelectedFile(event.target.files[0]); //put into state
       setIsFilePicked(true); //toggle to show file details
-      //client side .zip file check
-      if (event.target.files[0].type === "application/x-zip-compressed") {
+      //client side .zip file check. Don't use file type as it is inconsistent at times
+      if (event.target.files[0].name.slice(-4).toLowerCase() === ".zip") {
         setIsSubmitValid(true);
       } else {
         setIsSubmitValid(false);

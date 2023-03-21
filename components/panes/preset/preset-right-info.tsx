@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, ChangeEvent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
@@ -12,7 +12,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
   const selectedPreset = presets.find((preset) => preset.uuid === selectedPresetUuid);
 
-  const handleDefaultPresetChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDefaultPresetChange = (evt: ChangeEvent<HTMLInputElement>) => {
     // If the preset is being set as the default, then we need to unset the default flag on all other presets
     if (evt.target.checked) {
       const otherPresets = presets.filter((preset) => preset.uuid !== selectedPresetUuid);

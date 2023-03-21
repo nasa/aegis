@@ -5,7 +5,13 @@ import { FunctionComponent } from "react";
 import { IconButton } from "components/interface/_global-elements";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
-import { duplicatePoi, setPoiEditMode, setSelectedPoiUuid, upsertPoi } from "store/poi";
+import {
+  duplicatePoi,
+  setPoiEditMode,
+  setSelectedPoiUuid,
+  setSelectedPOIRightNavItem,
+  upsertPoi,
+} from "store/poi";
 import { v4 as uuidv4 } from "uuid";
 import PoiItem from "./poi-item";
 import _ from "lodash";
@@ -53,6 +59,8 @@ const PoiEditorLeft: FunctionComponent = () => {
     dispatch(setPoiEditMode({ poiUuid: blankPoi.uuid, editMode: true }));
     // select the newly created POI
     dispatch(setSelectedPoiUuid(blankPoi.uuid));
+    // set the selected tab to the POI's info tab
+    dispatch(setSelectedPOIRightNavItem("info_panel"));
   };
 
   const handleDuplicatePoi = (poi: POI) => {

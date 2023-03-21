@@ -42,30 +42,6 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
           return action.stationUuid === selectedStationUuid;
         })
       );
-
-      //check if action ordering is defined for this station.
-      //put any unlisted actions at the end. but there shouldn't be any unlisted actions?
-      if (selectedStation.actionOrderUuids) {
-        allStationActions.sort((action1: Action, action2: Action) => {
-          const index1 = selectedStation.actionOrderUuids.indexOf(action1.uuid);
-          const index2 = selectedStation.actionOrderUuids.indexOf(action2.uuid);
-          return (index1 > -1 ? index1 : Infinity) - (index2 > -1 ? index2 : Infinity);
-        });
-      } else {
-        //no ordering defined. default order by name
-        allStationActions.sort((action1: Action, action2: Action) => {
-          const name1 = action1.name.toUpperCase(); // ignore upper and lowercase
-          const name2 = action2.name.toUpperCase();
-          if (name1 < name2) {
-            return -1;
-          } else if (name1 > name2) {
-            return 1;
-          } else {
-            return 0;
-          }
-        });
-      }
-
       setStationActions(allStationActions);
     }
   }, [selectedStationUuid, actions, stationPois, selectedStation]);
@@ -85,10 +61,11 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
           }}
           actions={stationActions}
           actionColor={{ color: "var(--station)" }}
+          actionOrderUuids={selectedStation.actionOrderUuids}
           setActionOrderUuids={(actionOrderUuids) => {
             dispatch(upsertStation({ ...selectedStation, actionOrderUuids: actionOrderUuids }));
           }}
-          actionParent={{ stationUuid: selectedStationUuid }}
+          actionParentUuid={{ stationUuid: selectedStationUuid }}
         />
 
         <div className={paneStyles.panelContainer}>
