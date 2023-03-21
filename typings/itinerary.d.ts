@@ -51,6 +51,8 @@ interface Traverse {
   status: TraverseStatus;
   path: AEGISPoint[];
   pathSegmentDistances: number[]; //meters
+  pathSegmentElevations: number[][]; //meters
+  elevationResolutionMeters: number;
   durationLower: number; //minutes
   durationUpper: number; //minutes
   description: string;

@@ -6,6 +6,7 @@
 ARG NEXTJS_BASE_IMAGE=node:18-alpine
 
 FROM $NEXTJS_BASE_IMAGE as base
+
 RUN mkdir /app
 WORKDIR /app
 COPY package*.json ./

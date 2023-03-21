@@ -25,6 +25,8 @@ services:
       # Override what is in .env (which may be "localhost" to support native local dev) such
       # that it is always "database" in a full Docker-Compose setup.
       - AEGIS_DB_HOST=database
+      # required for docker-entrypoint.sh check for database being up
+      - AEGIS_DB_PORT=${AEGIS_DB_PORT}
     depends_on:
       database:
         condition: service_healthy
@@ -59,6 +61,18 @@ services:
     volumes:
       - ${DOCKER_DB_DATA_DIR}:/var/lib/postgresql/data
       - ${DOCKER_DB_INIT_DIR}:/docker-entrypoint-initdb.d
+    networks:
+      - aegis-network
+
+  gdal:
+    image: ${DOCKER_IMAGE_GDAL}
+    restart: unless-stopped
+    # depends_on:
+    # - nextjs
+    volumes:
+      - ${PUBLIC_STATIC_DIR}:/static
+    ports:
+      - "${GDAL_PORT}:80"
     networks:
       - aegis-network
 

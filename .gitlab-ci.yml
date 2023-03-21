@@ -299,6 +299,14 @@ docker:build:nextjs:
     BASE_IMAGE_VAR: NEXTJS_BASE_IMAGE
     BASE_IMAGE_VALUE: eegitlabregistry.fit.nasa.gov/emss/docker-images/node:18-alpine
 
+docker:build:gdal:
+  extends: .kaniko-build-template
+  variables:
+    SERVICE_NAME: gdal
+    MULTISTAGE_TARGET: base
+    BASE_IMAGE_VAR: GDAL_BASE_IMAGE
+    BASE_IMAGE_VALUE: python:3.9.16-slim-buster
+
 #
 # Push docker images after necessary jobs pass (e.g. unit testing passes)
 #
@@ -316,6 +324,8 @@ docker:push:
       artifacts: false
     - job: docker:build:nextjs
       artifacts: false
+    - job: docker:build:gdal
+      artifacts: false
   script:
     # Login to registry
     - echo $CI_JOB_TOKEN | skopeo login -u gitlab-ci-token --password-stdin $CI_REGISTRY
@@ -329,6 +339,11 @@ docker:push:
     - skopeo copy "docker://${TEMP_IMAGE}" "docker://${FINAL_IMAGE}"
 
     - SERVICE=nextjs
+    - TEMP_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:preview-${IMAGE_VERSION}"
+    - FINAL_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:${IMAGE_VERSION}"
+    - skopeo copy docker://$TEMP_IMAGE docker://$FINAL_IMAGE
+
+    - SERVICE=gdal
     - TEMP_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:preview-${IMAGE_VERSION}"
     - FINAL_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:${IMAGE_VERSION}"
     - skopeo copy docker://$TEMP_IMAGE docker://$FINAL_IMAGE
@@ -356,6 +371,7 @@ make-dotenv:
     - echo "" >> ./.env
     - echo "DOCKER_IMAGE_NGINX=eegitlabregistry.fit.nasa.gov/emss/aegis/nginx:${IMAGE_VERSION}" >> ./.env
     - echo "DOCKER_IMAGE_NEXTJS=eegitlabregistry.fit.nasa.gov/emss/aegis/nextjs:${IMAGE_VERSION}" >> ./.env
+    - echo "DOCKER_IMAGE_GDAL=eegitlabregistry.fit.nasa.gov/emss/aegis/gdal:${IMAGE_VERSION}" >> ./.env
     - echo "IMAGE_VERSION=${IMAGE_VERSION}" >> ./.env
 
   # All this job does is prepare artifacts to be exported to the deploy jobs
@@ -598,6 +614,7 @@ z:db-seed:dev1:
     - sudo docker compose logs nextjs
     - sudo docker compose logs nginx
     - sudo docker compose logs database
+    - sudo docker compose logs gdal
 
 z:logs:dev1:
   extends: .container-logs-template
