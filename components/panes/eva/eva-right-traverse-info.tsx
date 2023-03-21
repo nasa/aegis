@@ -17,6 +17,8 @@ import { upsertTraverse } from "store/traverse";
 import { updateMapDirective } from "store/map";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
+import * as httpClient from "http-client/elevation";
+import _ from "lodash";
 
 const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -29,6 +31,10 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
       state.traverse.traverses.find((traverse) => traverse.uuid === selectedEvaSequenceItemUuid),
     shallowEqual
   );
+
+  // planet radius value used to generate elevation profile
+  const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
+  const missionId = mission?.id;
 
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = mapDirective?.uuid === selectedTraverse?.uuid ? mapDirective : null;
@@ -46,7 +52,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
     }
   };
 
-  const handleEdit = () => {
+  const handlePathEdit = () => {
     if (verifyNoActiveMapAction()) {
       dispatch(
         updateMapDirective({
@@ -58,7 +64,30 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
     }
   };
 
-  const handleSaveEdit = () => {
+  const handlePathFinished = async () => {
+    const R = parseFloat(mission?.config.msv.radius.minor);
+
+    // dig the dem filename out of the MMGIS-formatted mission config
+    const measureJson = mission?.config.tools.find((tool) => tool.name === "Measure")?.variables;
+    const demFilepath: string = measureJson["dem"];
+
+    // generate new elevation profile via api
+    const newElevationProfile = await httpClient.getElevationProfile(
+      missionId,
+      demFilepath,
+      selectedTraverse.path,
+      selectedTraverse.pathSegmentDistances,
+      10, // resolution in meters //TODO: should this be a config value based on the resolution of the DEM?
+      R
+    );
+    dispatch(
+      upsertTraverse({
+        ...selectedTraverse,
+        pathSegmentElevations: newElevationProfile.data,
+        elevationResolutionMeters: 10,
+      })
+    );
+
     dispatch(
       updateMapDirective({
         ...mapDirective,
@@ -67,7 +96,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
     );
   };
 
-  const handleCancelEdit = () => {
+  const handleCancelPathEdit = () => {
     dispatch(
       updateMapDirective({
         ...mapDirective,
@@ -179,7 +208,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                   <>
                     <IconButton
                       onClick={() => {
-                        handleEdit();
+                        handlePathEdit();
                       }}
                       icon={faRoute}
                       label="Edit Path on Map"
@@ -202,7 +231,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                   <>
                     <IconButton
                       onClick={() => {
-                        handleSaveEdit();
+                        handlePathFinished();
                       }}
                       icon={faFloppyDisk}
                       label="Finished"
@@ -211,7 +240,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
 
                     <IconButton
                       onClick={() => {
-                        handleCancelEdit();
+                        handleCancelPathEdit();
                       }}
                       icon={faXmark}
                       label="Cancel"

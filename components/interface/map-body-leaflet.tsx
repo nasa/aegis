@@ -96,7 +96,7 @@ const MapBody: FunctionComponent = () => {
   const [showAllStations, setShowAllStations] = useState(true);
 
   const [scale, setScale] = useState(0);
-  const [mapZoom, setMapZoom] = useState(0);
+  const [mapZoom, setMapZoom] = useState(0); // value used to show correct scale bar
 
   // make color filter settings for any sublayer. This is the format of leaflet.tilelayer.colorfilter package
   const makeLayerColorFilter = (lControls: LayerControls, sublayerName: string): string[] => {
@@ -404,7 +404,7 @@ const MapBody: FunctionComponent = () => {
   );
 
   /**
-   * Map instantiation and event listeners.
+   * Map instantiation
    */
   useLayoutEffect(() => {
     if (!mapRef.current || !map || !mission.config) return;

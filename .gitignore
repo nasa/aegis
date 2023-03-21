@@ -48,5 +48,9 @@ junit.xml
 ~$*
 temp
 
-# Local static directory for non-docker development
-/public/static/
+# static files in the public folder
+/public/static/**
+
+# any __pycache__ folder or pyc file
+__pycache__
+*.py[cod]

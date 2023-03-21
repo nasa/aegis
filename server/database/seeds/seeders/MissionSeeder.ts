@@ -112,7 +112,7 @@ export class MissionSeeder extends Seeder {
             name: "Measure",
             icon: "chart-areaspline",
             js: "MeasureTool",
-            variables: { dem: "Data/missionDEM.tif" },
+            variables: { dem: "Data/NAC_DTM_APOLLO14.TIF" },
           },
         ],
         time: { enabled: false, visible: false, format: "" },

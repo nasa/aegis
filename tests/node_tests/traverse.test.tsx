@@ -47,6 +47,8 @@ describe("EVA API Endpoint", () => {
     name: "Jest Traverse-1",
     path: null,
     pathSegmentDistances: [0],
+    pathSegmentElevations: [[0]],
+    elevationResolutionMeters: 10,
     durationLower: 0,
     durationUpper: 0,
     status: "Candidate",

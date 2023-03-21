@@ -63,6 +63,8 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
       durationUpper: null,
       path: [],
       pathSegmentDistances: null,
+      pathSegmentElevations: null,
+      elevationResolutionMeters: null,
       status: null,
     };
   };
