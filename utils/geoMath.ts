@@ -1,8 +1,10 @@
 /**
- * Calculate the distance between two coordinates
+ * This uses the 'haversine' formula to calculate the great-circle distance between two points
+ * that is, the shortest distance over the planet's surface (not including terrain)
  * @param {AEGISPoint} point1 - the first coordinate
  * @param {AEGISPoint} point2 - the second coordinate
- * @param {number} R - The radius of the planet in question
+ * @param {number} R - The radius of the planet in question (usually meters)
+ * @reference http://www.movable-type.co.uk/scripts/latlong.html
  */
 export function getDistanceBetweenTwoCoordinates(
   point1: AEGISPoint,
@@ -22,8 +24,22 @@ export function getDistanceBetweenTwoCoordinates(
   return d;
 }
 
+/**
+ * Convert degrees to radians
+ * @param {number} deg - degrees
+ * @returns {number} radians
+ */
 function deg2rad(deg) {
   return deg * (Math.PI / 180);
+}
+
+/**
+ * Convert radians to degrees
+ * @param angle - radians
+ * @returns  degrees
+ */
+function rad2deg(angle) {
+  return angle * (180 / Math.PI);
 }
 
 /**
@@ -42,8 +58,84 @@ export const getTotalDistance = (points: AEGISPoint[], R: number): number => {
 };
 
 /**
- * Calculate the center/average of multiple AEGISPoint coordinates
- *
+ * Get the bearing between two points
+ * @param {AEGISPoint} point1 - the first coordinate
+ * @param {AEGISPoint} point2 - the second coordinate
+ * @returns {number} bearing in degrees
+ */
+export function getBearingBetweenTwoCoordinates(point1: AEGISPoint, point2: AEGISPoint): number {
+  const lat1 = deg2rad(point1.lat);
+  const lat2 = deg2rad(point2.lat);
+  const dLon = deg2rad(point2.lng - point1.lng);
+
+  const y = Math.sin(dLon) * Math.cos(lat2);
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+  const brng = Math.atan2(y, x);
+  return (rad2deg(brng) + 360) % 360;
+}
+
+/**
+ * Get the point x percent along a path
+ * @param {AEGISPoint[]} points - the path
+ * @param {number} percent - the percent along the path (0-1)
+ * @param {number} R - The radius of the planet in question
+ * @returns {AEGISPoint} the point
+ */
+export function getPointAlongPolyline(
+  points: AEGISPoint[],
+  percent: number,
+  R: number
+): AEGISPoint {
+  const totalDistance = getTotalDistance(points, R);
+  const targetDistance = totalDistance * percent;
+  let distance = 0;
+  let point: AEGISPoint;
+  points.forEach((latLng, index) => {
+    if (index === 0) return;
+    const d = getDistanceBetweenTwoCoordinates(points[index], points[index - 1], R);
+    if (distance + d >= targetDistance) {
+      const percentAlongSegment = (targetDistance - distance) / d;
+      point = getPointAlongSegment(points[index - 1], points[index], percentAlongSegment);
+      return;
+    }
+    distance += d;
+  });
+  return point;
+}
+
+/**
+ * Get point along a segment
+ * @param {AEGISPoint} point1 - the first coordinate
+ * @param {AEGISPoint} point2 - the second coordinate
+ * @param {number} percent - the percent along the segment (0-1)
+ */
+function getPointAlongSegment(point1: AEGISPoint, point2: AEGISPoint, percent: number): AEGISPoint {
+  const lat1 = deg2rad(point1.lat);
+  const lon1 = deg2rad(point1.lng);
+  const lat2 = deg2rad(point2.lat);
+  const lon2 = deg2rad(point2.lng);
+
+  const dLon = lon2 - lon1;
+
+  const Bx = Math.cos(lat2) * Math.cos(dLon);
+  const By = Math.cos(lat2) * Math.sin(dLon);
+  const lat3 = Math.atan2(
+    Math.sin(lat1) + Math.sin(lat2),
+    Math.sqrt((Math.cos(lat1) + Bx) * (Math.cos(lat1) + Bx) + By * By)
+  );
+  const lon3 = lon1 + Math.atan2(By, Math.cos(lat1) + Bx);
+
+  const lat = rad2deg(lat3);
+  const lng = rad2deg(lon3);
+
+  return {
+    lat: lat + (point2.lat - lat) * percent,
+    lng: lng + (point2.lng - lng) * percent,
+  };
+}
+
+/**
+ * Calculate the center/average of multiple AEGISPoint coordinates *
  * Refined from @url http://stackoverflow.com/a/14231286/538646
  */
 export function calcCentroidofCoordinates(coords: AEGISPoint[]): AEGISPoint {
@@ -78,6 +170,11 @@ export function calcCentroidofCoordinates(coords: AEGISPoint[]): AEGISPoint {
   };
 }
 
+/**
+ * Convert a Leaflet LatLng to an AEGISPoint
+ * @param {L.LatLng} latLng - the Leaflet LatLng
+ * @returns {AEGISPoint} the AEGISPoint
+ */
 export const convertLeafletLatLngToAegisPoint = (latLng: L.LatLng): AEGISPoint => {
   return {
     lat: latLng.lat,
@@ -85,28 +182,21 @@ export const convertLeafletLatLngToAegisPoint = (latLng: L.LatLng): AEGISPoint =
   };
 };
 
+/**
+ * Convert an array of Leaflet LatLngs to an array of AEGISPoints
+ * @param {L.LatLng[]} latLngs - the Leaflet LatLngs
+ * @returns {AEGISPoint[]} the AEGISPoints
+ */
 export const convertLeafletLatLngsToAegisPoints = (latLngs: L.LatLng[]): AEGISPoint[] => {
   return latLngs.map((latLng) => convertLeafletLatLngToAegisPoint(latLng));
 };
 
 /**
- *   
-  // sample implementation:
-  // location is an array of AEGISPoint
-
-  // const numPointsAt10Meters =
-  //   getTotalDistance(location, parseInt(mission.config.msv.radius.minor)) / 10;
-
-  // const newPoints = generateEquidistantPointsAlongPolyline(
-  //   location,
-  //   numPointsAt10Meters,
-  //   parseInt(mission.config.msv.radius.minor)
-  // );
-
- * @param polyline An array of points
- * @param n number of new points to add between each segment in the polyline
- * @param R radius of planet
- * @returns New array with added points
+ * Generate an array of n equidistant points along a polyline
+ * @param {AEGISPoint[]} polyline - the polyline
+ * @param {number} n - the number of points to generate
+ * @param {number} R - the radius of the planet in question
+ * @returns {AEGISPoint[]} the equidistant points
  */
 export function generateEquidistantPointsAlongPolyline(
   polyline: AEGISPoint[],
@@ -148,7 +238,6 @@ export function generateEquidistantPointsAlongPolyline(
       currentDistance += segmentDistance;
     }
   }
-  output.push(editablePolyline[editablePolyline.length - 1]);
 
   return output;
 }
