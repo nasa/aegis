@@ -113,6 +113,8 @@ export function generateEquidistantPointsAlongPolyline(
   n: number,
   R: number
 ): AEGISPoint[] {
+  if (n < 2) return polyline;
+
   const editablePolyline = [...polyline];
 
   // Calculate total distance

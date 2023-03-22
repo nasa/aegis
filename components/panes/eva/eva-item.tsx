@@ -74,7 +74,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
 
     const newStationSequenceItem: EvaSequenceItem = {
       type: "station",
-      uuid: "unassigned",
+      uuid: "",
     };
     if (newEvaSequence.length === 0) {
       newEvaSequence.push(newStationSequenceItem);

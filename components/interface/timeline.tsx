@@ -107,14 +107,17 @@ const NavTimeline: FunctionComponent = () => {
               durations: null,
               distanceFromLander: null,
             };
-            //subdivide seach segment by 150 meters for greater accuracy
-            const numPointsAt150Meters =
-              getTotalDistance(station.walkbackPath, parseInt(planetRadius)) / 150;
+            // subdivide seach segment by 150 meters for greater accuracy
+            const numPointsAt150Meters = Math.floor(
+              getTotalDistance(station.walkbackPath, parseInt(planetRadius)) / 150
+            );
+
             const newWalkbackPath: AEGISPoint[] = generateEquidistantPointsAlongPolyline(
               station.walkbackPath,
               numPointsAt150Meters,
               parseInt(planetRadius)
             );
+
             walkback.path = newWalkbackPath;
 
             walkback.distanceFromLander = [];
@@ -151,7 +154,7 @@ const NavTimeline: FunctionComponent = () => {
           }
         } else if (sequenceItem.type === "traverse") {
           const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
-          if (!traverse.path || traverse?.path?.length < 2) continue; //skip traverses with less than 2 points
+          if (!traverse || traverse?.path?.length < 2) continue; //skip traverses with less than 2 points
           sequenceItemForPaperJS.name = traverse.name;
 
           //subdivide seach segment by 150 meters for greater accuracy
