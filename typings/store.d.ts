@@ -78,6 +78,7 @@ interface PresetState {
 type InterfaceSection = "map_layer_selector" | "poi" | "station" | "evas";
 interface InterfaceState {
   sectionSelectedLabel: InterfaceSection;
+  rightPanelOpen: boolean;
 }
 
 interface STMState {

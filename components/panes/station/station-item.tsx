@@ -6,6 +6,7 @@ import { setSelectedStationRightNavItem, setSelectedStationUuid } from "store/st
 import stationStyles from "./station.module.css";
 import { setSelectedEvaSequenceItemUuid, setSelectedEvaUuid } from "store/eva";
 import { decodeEmoji } from "utils/formatting";
+import { setRightPanelOpen } from "store/interface";
 
 const StationItem: FunctionComponent<{
   selectedStationUuid: string;
@@ -30,11 +31,13 @@ const StationItem: FunctionComponent<{
       onClick={() => {
         if (selectedStationUuid === station.uuid) {
           dispatch(setSelectedStationUuid(null)); //hide station right panel
+          dispatch(setRightPanelOpen(false));
         } else {
           dispatch(setSelectedStationUuid(station.uuid));
           dispatch(setSelectedEvaSequenceItemUuid(null));
           dispatch(setSelectedEvaUuid(null));
           if (!selectedRightNavItem) dispatch(setSelectedStationRightNavItem("info_panel"));
+          dispatch(setRightPanelOpen(true));
         }
       }}
     >
