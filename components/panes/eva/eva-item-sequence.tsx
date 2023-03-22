@@ -70,6 +70,7 @@ const EvaItemSequence: FunctionComponent<{
 
             // recalculate traverse path distances
             const distances: number[] = [];
+
             for (let i = 1; i < newTraversePath.length; i++) {
               distances.push(
                 getTotalDistance(
@@ -240,7 +241,7 @@ const EvaItemSequence: FunctionComponent<{
                           handleSequenceStationChange(val, index);
                         }}
                       >
-                        <option value="unassigned">-- Select a station --</option>
+                        <option value="">-- Select a station --</option>
                         {stations.map((station) => {
                           const stationAlreadyInSequence = evaSequence.find(
                             (sequenceItem) => sequenceItem.uuid === station.uuid
