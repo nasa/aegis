@@ -18,6 +18,7 @@ import { setSelectedStationUuid } from "store/station";
 import { v4 as uuidv4 } from "uuid";
 import EvaItemSequence from "./eva-item-sequence";
 import { generateUniqueName } from "utils/unique-name";
+import { setRightPanelOpen } from "store/interface";
 
 const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
   const dispatch = useDispatch();
@@ -156,6 +157,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
             if (selectedEvaUuid === eva.uuid) {
               if (selectedEvaSequenceItemUuid === null) {
                 dispatch(setSelectedEvaUuid(null));
+                dispatch(setRightPanelOpen(false));
               }
               dispatch(setSelectedEvaSequenceItemUuid(null));
             } else {
@@ -163,6 +165,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
               dispatch(setSelectedEvaSequenceItemUuid(null));
 
               if (!selectedRightNavItem) dispatch(setSelectedEvaRightNavItem("info_panel"));
+              dispatch(setRightPanelOpen(true));
 
               // add this eva uuid to the expanded list if it's not already there
               if (!expandedEvaUuids.find((uuid) => uuid === eva.uuid)) {

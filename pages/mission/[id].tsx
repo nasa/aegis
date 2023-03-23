@@ -1,7 +1,7 @@
 import type { NextPage } from "next";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useDispatch } from "react-redux";
-import { useAppSelector, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 
@@ -31,6 +31,7 @@ import { getEvas } from "http-client/eva";
 import { upsertEvas, upsertEvasFromDb } from "store/eva";
 import { upsertTraverses, replaceAllTraversesFromDb } from "store/traverse";
 import { getTraverses } from "http-client/traverse";
+import { setRightPanelOpen } from "store/interface";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -60,7 +61,7 @@ const Main: NextPage = () => {
   const dispatch = useDispatch();
   const router = useRouter();
   const missionStore = useAppSelector((state) => state.mission, shallowEqual);
-  const [showRightPanel, setShowRightPanel] = useState(true);
+  const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, refEqual);
 
   /**
    * Check if user is logged in.
@@ -209,17 +210,17 @@ const Main: NextPage = () => {
         </div>
         <div
           className={styles.drawerSlider}
-          onClick={() => setShowRightPanel((prevState) => !prevState)}
+          onClick={() => dispatch(setRightPanelOpen(!rightPanelOpen))}
         >
           <div className={styles.circle}>
-            {showRightPanel ? (
+            {rightPanelOpen ? (
               <FontAwesomeIcon className={styles.drawerIcon} color="white" icon={faChevronRight} />
             ) : (
               <FontAwesomeIcon className={styles.drawerIcon} color="white" icon={faChevronLeft} />
             )}
           </div>
         </div>
-        {showRightPanel && (
+        {rightPanelOpen && (
           <div className={styles.rightControl}>
             <RightControlPanel />
           </div>

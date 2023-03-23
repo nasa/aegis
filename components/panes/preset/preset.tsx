@@ -16,6 +16,7 @@ import { v4 as uuidv4 } from "uuid";
 import { IconButton, ModifiedIndicator } from "components/interface/_global-elements";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { generateUniqueName } from "utils/unique-name";
+import { setRightPanelOpen } from "store/interface";
 
 const PresetEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -131,12 +132,14 @@ const PresetList: FunctionComponent<{
   const handleSelectPresetClick = async (currentPreset: Preset) => {
     if (currentPreset.uuid === selectedPresetUuid) {
       dispatch(setSelectedPresetUuid(null));
+      dispatch(setRightPanelOpen(false));
       return;
     }
 
     dispatch(setSelectedPresetUuid(currentPreset.uuid));
     dispatch(setLayerControls(currentPreset.layerControls));
     if (!selectedRightNavItem) dispatch(setSelectedPresetRightNavItem("info_panel"));
+    dispatch(setRightPanelOpen(true));
   };
 
   return (

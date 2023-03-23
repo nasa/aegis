@@ -7,6 +7,7 @@ import _ from "lodash";
 import { setSelectedPoiUuid, setSelectedPOIRightNavItem } from "store/poi";
 import { setSelectedEvaSequenceItemUuid, setSelectedEvaUuid } from "store/eva";
 import { decodeEmoji } from "utils/formatting";
+import { setRightPanelOpen } from "store/interface";
 
 const PoiItem: FunctionComponent<{
   selectedPoiUuid: string;
@@ -49,11 +50,13 @@ const PoiItem: FunctionComponent<{
       onClick={() => {
         if (selectedPoiUuid === poi.uuid) {
           dispatch(setSelectedPoiUuid(null)); //hide poi right panel
+          dispatch(setRightPanelOpen(false));
         } else {
           dispatch(setSelectedPoiUuid(poi.uuid));
           dispatch(setSelectedEvaSequenceItemUuid(null));
           dispatch(setSelectedEvaUuid(null));
           if (!selectedRightNavItem) dispatch(setSelectedPOIRightNavItem("info_panel"));
+          dispatch(setRightPanelOpen(true));
         }
       }}
     >

@@ -15,6 +15,7 @@ import { faArrowDown, faArrowUp, faTrash } from "@fortawesome/free-solid-svg-ico
 import { setSelectedStationUuid } from "store/station";
 import { decodeEmoji } from "utils/formatting";
 import { getTotalDistance } from "utils/geoMath";
+import { setRightPanelOpen } from "store/interface";
 
 const EvaItemSequence: FunctionComponent<{
   evaUuid: string;
@@ -199,6 +200,7 @@ const EvaItemSequence: FunctionComponent<{
                     dispatch(setSelectedTraverseRightNavItem("info_panel"));
                     dispatch(setSelectedStationUuid(null));
                   }
+                  dispatch(setRightPanelOpen(true));
                 }
               }}
             >
