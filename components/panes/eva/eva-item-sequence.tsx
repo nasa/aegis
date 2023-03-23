@@ -35,7 +35,7 @@ const EvaItemSequence: FunctionComponent<{
     refEqual
   );
 
-  const setTraversesStartEndToStations = useCallback(
+  const setTraverseNamesAndStartEnds = useCallback(
     (evaSequence: EvaSequenceItem[]) => {
       const newTraverses: Traverse[] = [];
       evaSequence.forEach((item, index) => {
@@ -81,8 +81,12 @@ const EvaItemSequence: FunctionComponent<{
               );
             }
 
+            // rename the traverse to <previous station name> to <next station name>
+            const newTraverseName = previousStation?.name + " to " + nextStation?.name;
+
             const newTraverse: Traverse = {
               ...thisTraverse,
+              name: newTraverseName,
               path: newTraversePath,
               pathSegmentDistances: distances,
             };
@@ -101,7 +105,7 @@ const EvaItemSequence: FunctionComponent<{
       type: "station",
       uuid: stationUuid,
     };
-    setTraversesStartEndToStations(newEvaSequence);
+    setTraverseNamesAndStartEnds(newEvaSequence);
 
     dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
   };
@@ -124,7 +128,7 @@ const EvaItemSequence: FunctionComponent<{
     }
 
     dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
-    setTraversesStartEndToStations(newEvaSequence);
+    setTraverseNamesAndStartEnds(newEvaSequence);
   };
 
   const handeleMoveStationUp = (index: number) => {
@@ -137,7 +141,7 @@ const EvaItemSequence: FunctionComponent<{
     newEvaSequence[index] = tempStation;
 
     dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
-    setTraversesStartEndToStations(newEvaSequence);
+    setTraverseNamesAndStartEnds(newEvaSequence);
   };
 
   const handeleMoveStationDown = (index: number) => {
@@ -149,7 +153,7 @@ const EvaItemSequence: FunctionComponent<{
     newEvaSequence[stationBeforeIndex] = newEvaSequence[index];
     newEvaSequence[index] = tempStation;
     dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
-    setTraversesStartEndToStations(newEvaSequence);
+    setTraverseNamesAndStartEnds(newEvaSequence);
   };
 
   return (

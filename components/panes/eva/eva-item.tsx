@@ -17,7 +17,6 @@ import { faCaretDown, faCaretRight, faPlusCircle } from "@fortawesome/free-solid
 import { setSelectedStationUuid } from "store/station";
 import { v4 as uuidv4 } from "uuid";
 import EvaItemSequence from "./eva-item-sequence";
-import { generateUniqueName } from "utils/unique-name";
 import { setRightPanelOpen } from "store/interface";
 
 const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
@@ -50,15 +49,10 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
   const [traversesInEvaFromDb, setTraversesInEvaFromDb] = useState<Traverse[]>([]);
 
   const createBlankTraverse = (): Traverse => {
-    const randomName = generateUniqueName({
-      dictName: "adjectives",
-      existingNames: traverses.map((item) => item.name),
-    });
-
     return {
       missionId: missionId,
       uuid: uuidv4(),
-      name: randomName,
+      name: "",
       description: "",
       durationLower: null,
       durationUpper: null,
