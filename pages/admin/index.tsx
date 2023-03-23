@@ -22,12 +22,27 @@ const Index: NextPage = () => {
       const response = await isLoggedIn(); //check user is logged in
       const adminResponse = await isAdmin(); //check user is admin
       if (response.status !== "success" || !adminResponse.data["admin"]) {
-        router.push("/"); //user is not logged in or an admin. Redirect to homepage
+        await router.push("/"); //user is not logged in or an admin. Redirect to homepage
       } else {
         setAdmin(true);
       }
     })();
   }, [router]);
+
+  const tileLoop = [
+    {
+      title: "Missions",
+      description: "Modify existing missions or add new ones",
+      button: "Add/Edit Missions",
+      onClick: navigateMission,
+    },
+    {
+      title: "Users",
+      description: "Register new users, or edit the old ones",
+      button: "Register or Edit Users",
+      onClick: navigateUser,
+    },
+  ];
 
   return (
     <>
@@ -40,28 +55,19 @@ const Index: NextPage = () => {
               </div>
               <div className={styles.bodyContent}>
                 <div className={styles.actionTileContainer}>
-                  <div className={styles.actionTile}>
-                    <div className={styles.content}>
-                      <h2 className={styles.title}>Missions</h2>
-                      <div className={styles.description}>
-                        <p>Modify existing missions or add new ones</p>
+                  {tileLoop.map((tile) => (
+                    <div key={tile.title} className={styles.actionTile}>
+                      <div className={styles.content}>
+                        <h2 className={styles.title}>{tile.title}</h2>
+                        <div className={styles.description}>
+                          <p>{tile.description}</p>
+                        </div>
+                        <button className={styles.button} onClick={tile.onClick}>
+                          {tile.button}
+                        </button>
                       </div>
-                      <button className={styles.button} onClick={navigateMission}>
-                        Add/Edit Missions
-                      </button>
                     </div>
-                  </div>
-                  <div className={styles.actionTile}>
-                    <div className={styles.content}>
-                      <h2 className={styles.title}>Users</h2>
-                      <div className={styles.description}>
-                        <p>Register new users, or edit the old ones</p>
-                      </div>
-                      <button className={styles.button} onClick={navigateUser}>
-                        Register or Edit Users
-                      </button>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
