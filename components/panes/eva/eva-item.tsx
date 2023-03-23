@@ -90,6 +90,11 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
       });
       newEvaSequence.push(newStationSequenceItem);
     }
+    // expand the eva item
+    if (!expandedEvaUuids.find((uuid) => uuid === eva.uuid)) {
+      dispatch(setExpandedEvaUuids([...expandedEvaUuids, eva.uuid]));
+    }
+
     dispatch(setEvaSequence({ evaUuid: eva.uuid, sequence: newEvaSequence }));
   };
 
