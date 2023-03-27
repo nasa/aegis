@@ -136,15 +136,14 @@
   background-color: var(--eva);
   color: black;
 }
+.evaItemNameHoverMode {
+  background-color: var(--grey1);
+  cursor: pointer;
+}
 
 .evaItemNameSelected:hover {
   background-color: var(--eva) !important;
   color: black !important;
-}
-
-.evaItemName:hover {
-  background-color: var(--grey1);
-  cursor: pointer;
 }
 
 .evaItemNameText {

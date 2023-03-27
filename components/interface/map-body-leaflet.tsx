@@ -41,6 +41,7 @@ import {
 } from "utils/geoMath";
 import { decodeEmoji } from "utils/formatting";
 import { Checkbox } from "./_global-elements";
+import { setHoverItemUuid } from "store/playheadHover";
 
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
@@ -87,6 +88,8 @@ const MapBody: FunctionComponent = () => {
 
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
   const sectionSelected = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
+
+  const hoverItemUuid = useAppSelector((state) => state.playheadHover.itemUuid, refEqual);
 
   const [layersOnMap, setLayersOnMap] = useState([]);
   const [showHightlightOnMap, setShowHighlightOnMap] = useState(false);
@@ -340,6 +343,12 @@ const MapBody: FunctionComponent = () => {
           })
           .on("click", () => {
             onClick();
+          })
+          .on("mouseover", () => {
+            dispatch(setHoverItemUuid(marker.uuid));
+          })
+          .on("mouseout", () => {
+            dispatch(setHoverItemUuid(null));
           });
 
         // dragend handler that causes edit to be saved on mouseup
@@ -423,6 +432,12 @@ const MapBody: FunctionComponent = () => {
           })
           .on("click", () => {
             onClick();
+          })
+          .on("mouseover", () => {
+            dispatch(setHoverItemUuid(polyline.uuid));
+          })
+          .on("mouseout", () => {
+            dispatch(setHoverItemUuid(null));
           });
 
         map.current.addLayer(polyline);
@@ -1049,7 +1064,7 @@ const MapBody: FunctionComponent = () => {
 
     // remove any existing highlight layers
     map.current.eachLayer((layer: AEGISCircleMarker) => {
-      if (layer?.mapItemType === "selectedMarker") {
+      if (layer?.mapItemType === "selected") {
         map.current.removeLayer(layer);
       }
     });
@@ -1077,7 +1092,7 @@ const MapBody: FunctionComponent = () => {
         fill: false,
         dashArray: "5, 5",
       }) as AEGISCircleMarker;
-      marker.mapItemType = "selectedMarker";
+      marker.mapItemType = "selected";
       marker.bringToBack();
 
       map.current.addLayer(marker);
@@ -1092,6 +1107,63 @@ const MapBody: FunctionComponent = () => {
       setShowHighlightOnMap(true);
     }
   }, [selectedPoi, selectedStation]);
+
+  /**
+   * If hover uuid changes, show a hover highlight on the map
+   */
+  useEffect(() => {
+    // remove hoverMarker layer
+    // remove any existing highlight layers
+    map.current.eachLayer((layer: AEGISCircleMarker | AEGISPolyline) => {
+      if (layer?.mapItemType === "hover") {
+        map.current.removeLayer(layer);
+      }
+    });
+
+    if (hoverItemUuid) {
+      // search for this item on the map
+      let latLngs: L.LatLng[] = [];
+      map.current.eachLayer((layer) => {
+        if (
+          layer?.uuid === hoverItemUuid &&
+          (layer.mapItemType === "poi" || layer.mapItemType === "station")
+        ) {
+          const markerLayer = layer as AEGISMarker;
+          latLngs.push(markerLayer.getLatLng());
+        } else if (layer?.uuid === hoverItemUuid && layer.mapItemType === "traverse") {
+          const polylineLayer = layer as AEGISPolyline;
+          latLngs = polylineLayer.getLatLngs() as L.LatLng[];
+        }
+      });
+      if (latLngs.length === 1) {
+        // create markers that are dotted stroke with no fill
+
+        const marker = L.circleMarker(latLngs[0], {
+          radius: 25,
+          color: "#ffffff",
+          stroke: true,
+          weight: 1,
+          opacity: 1,
+          fill: false,
+          dashArray: "5, 5",
+        }) as AEGISCircleMarker;
+        marker.mapItemType = "hover";
+        marker.bringToFront();
+        map.current.addLayer(marker);
+      } else if (latLngs.length > 1) {
+        const polyline = L.polyline(latLngs, {
+          color: "#ffffff",
+          weight: 3,
+          dashArray: "5, 5",
+          opacity: 1,
+          smoothFactor: 1,
+        }) as AEGISPolyline;
+        polyline.mapItemType = "hover";
+        polyline.bringToFront();
+        map.current.addLayer(polyline);
+      }
+    }
+  }, [hoverItemUuid]);
 
   return (
     <div className={styles.mapContainer}>
