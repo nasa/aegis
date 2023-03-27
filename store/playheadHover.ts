@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 
 export const initialState: PlayheadHoverState = {
   seconds: 0,
+  itemUuid: null,
 };
 
 export const playheadHoverSlice = createSlice({
@@ -14,7 +15,10 @@ export const playheadHoverSlice = createSlice({
     changeHoverTime: (state, action: { payload: number }) => {
       state.seconds = action.payload;
     },
+    setHoverItemUuid: (state, action: { payload: string }) => {
+      state.itemUuid = action.payload;
+    },
   },
 });
 
-export const { changeHoverTime } = playheadHoverSlice.actions;
+export const { changeHoverTime, setHoverItemUuid } = playheadHoverSlice.actions;

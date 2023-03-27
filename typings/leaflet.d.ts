@@ -12,7 +12,7 @@ type AEGISMarker = L.Marker & {
 
 type AEGISPolyline = L.Polyline & {
   uuid?: string;
-  mapItemType: "traverse" | "walkback";
+  mapItemType: "traverse" | "walkback" | "hover";
 };
 
 type AEGISMapLayer = L.Layer & {
@@ -21,7 +21,7 @@ type AEGISMapLayer = L.Layer & {
 };
 
 type AEGISCircleMarker = L.CircleMarker & {
-  mapItemType: "selectedMarker";
+  mapItemType: "selected" | "hover";
 };
 
 type CircleWithUuid = L.Circle & {

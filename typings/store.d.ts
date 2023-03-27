@@ -15,6 +15,7 @@ interface PlayheadState {
 interface PlayheadHoverState {
   /** Seconds representing the time into the mission day that the mouse is hovering on via the nav-timeline */
   seconds: number;
+  itemUuid: string;
 }
 
 interface MissionState {

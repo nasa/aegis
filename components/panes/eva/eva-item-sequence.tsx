@@ -16,6 +16,7 @@ import { setSelectedStationUuid } from "store/station";
 import { decodeEmoji } from "utils/formatting";
 import { getTotalDistance } from "utils/geoMath";
 import { setRightPanelOpen } from "store/interface";
+import { setHoverItemUuid } from "store/playheadHover";
 
 const EvaItemSequence: FunctionComponent<{
   evaUuid: string;
@@ -34,6 +35,7 @@ const EvaItemSequence: FunctionComponent<{
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
+  const hoverItemUuid = useAppSelector((state) => state.playheadHover.itemUuid, refEqual);
 
   const setTraverseNamesAndStartEnds = useCallback(
     (evaSequence: EvaSequenceItem[]) => {
@@ -180,10 +182,12 @@ const EvaItemSequence: FunctionComponent<{
             );
           }
 
-          const isEvaSequenceItemSelectedStyle =
-            sequenceItem.uuid === selectedEvaSequenceItemUuid
-              ? evaStyles.evaItemNameSelected
-              : null;
+          let isEvaSequenceItemSelectedOrHoveredStyle = null;
+          if (sequenceItem.uuid === selectedEvaSequenceItemUuid) {
+            isEvaSequenceItemSelectedOrHoveredStyle = evaStyles.evaItemNameSelected;
+          } else if (sequenceItem.uuid === hoverItemUuid) {
+            isEvaSequenceItemSelectedOrHoveredStyle = evaStyles.evaItemNameHoverMode;
+          }
 
           return (
             <div
@@ -207,13 +211,21 @@ const EvaItemSequence: FunctionComponent<{
                   dispatch(setRightPanelOpen(true));
                 }
               }}
+              onMouseOver={() => {
+                dispatch(setHoverItemUuid(sequenceItem.uuid));
+              }}
+              onMouseLeave={() => {
+                dispatch(setHoverItemUuid(null));
+              }}
             >
               {evaItemIcon}
 
               {sequenceItem.type === "station" && (
                 <>
                   {!editMode ? (
-                    <div className={`${evaStyles.evaItemName} ${isEvaSequenceItemSelectedStyle}`}>
+                    <div
+                      className={`${evaStyles.evaItemName} ${isEvaSequenceItemSelectedOrHoveredStyle}`}
+                    >
                       <div className={evaStyles.evaItemNameText}>
                         {stations.find((station) => station.uuid === sequenceItem.uuid)?.name
                           ? stations.find((station) => station.uuid === sequenceItem.uuid)?.name
@@ -237,7 +249,7 @@ const EvaItemSequence: FunctionComponent<{
                     </div>
                   ) : (
                     <div
-                      className={`${evaStyles.evaItemName} ${evaStyles.editMode} ${isEvaSequenceItemSelectedStyle}`}
+                      className={`${evaStyles.evaItemName} ${evaStyles.editMode} ${isEvaSequenceItemSelectedOrHoveredStyle}`}
                     >
                       <Dropdown
                         selected={sequenceItem.uuid}
@@ -305,7 +317,7 @@ const EvaItemSequence: FunctionComponent<{
                   <div
                     className={`${evaStyles.evaItemName} ${
                       editMode && evaStyles.editMode
-                    }  ${isEvaSequenceItemSelectedStyle}`}
+                    }  ${isEvaSequenceItemSelectedOrHoveredStyle}`}
                   >
                     <div className={evaStyles.evaItemNameText}>
                       {traverses.find((traverse) => traverse.uuid === sequenceItem.uuid)?.name}

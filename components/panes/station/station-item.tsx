@@ -7,6 +7,7 @@ import stationStyles from "./station.module.css";
 import { setSelectedEvaSequenceItemUuid, setSelectedEvaUuid } from "store/eva";
 import { decodeEmoji } from "utils/formatting";
 import { setRightPanelOpen } from "store/interface";
+import { setHoverItemUuid } from "store/playheadHover";
 
 const StationItem: FunctionComponent<{
   selectedStationUuid: string;
@@ -21,8 +22,14 @@ const StationItem: FunctionComponent<{
     refEqual
   );
 
-  const isStationSelectedStyle =
-    station.uuid === selectedStationUuid ? stationStyles.nameSelected : null;
+  const hoverItemUuid = useAppSelector((state) => state.playheadHover.itemUuid, refEqual);
+
+  let isStationSelectedOrHoveredStyle = null;
+  if (station.uuid === selectedStationUuid) {
+    isStationSelectedOrHoveredStyle = stationStyles.nameSelected;
+  } else if (station.uuid === hoverItemUuid) {
+    isStationSelectedOrHoveredStyle = stationStyles.nameHovered;
+  }
 
   return (
     <div
@@ -40,9 +47,15 @@ const StationItem: FunctionComponent<{
           dispatch(setRightPanelOpen(true));
         }
       }}
+      onMouseOver={() => {
+        dispatch(setHoverItemUuid(station.uuid));
+      }}
+      onMouseLeave={() => {
+        dispatch(setHoverItemUuid(null));
+      }}
     >
       <div className={stationStyles.itemIcon}>{decodeEmoji(station.icon)}</div>
-      <div className={`${stationStyles.name} ${isStationSelectedStyle}`}>
+      <div className={`${stationStyles.name} ${isStationSelectedOrHoveredStyle}`}>
         <div>{station.name}</div>
         <ModifiedIndicator
           obj1={[station, ...stationActions]}

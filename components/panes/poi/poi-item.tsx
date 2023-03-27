@@ -8,6 +8,7 @@ import { setSelectedPoiUuid, setSelectedPOIRightNavItem } from "store/poi";
 import { setSelectedEvaSequenceItemUuid, setSelectedEvaUuid } from "store/eva";
 import { decodeEmoji } from "utils/formatting";
 import { setRightPanelOpen } from "store/interface";
+import { setHoverItemUuid } from "store/playheadHover";
 
 const PoiItem: FunctionComponent<{
   selectedPoiUuid: string;
@@ -18,8 +19,15 @@ const PoiItem: FunctionComponent<{
 }> = ({ selectedPoiUuid, poi, poiFromDb, actions, actionsFromDb }) => {
   const dispatch = useDispatch();
   const selectedRightNavItem = useAppSelector((state) => state.poi.selectedRightNavItem, refEqual);
+  const hoverItemUuid = useAppSelector((state) => state.playheadHover.itemUuid, refEqual);
 
-  const isPoiSelectedStyle = poi.uuid === selectedPoiUuid ? poiStyles.nameSelected : null;
+  let isPoiSelectedOrHoveredStyle = null;
+  if (poi.uuid === selectedPoiUuid) {
+    isPoiSelectedOrHoveredStyle = poiStyles.nameSelected;
+  } else if (poi.uuid === hoverItemUuid) {
+    isPoiSelectedOrHoveredStyle = poiStyles.nameHovered;
+  }
+
   const [poiActions, setPoiActions] = useState<Action[]>([]);
   const [poiActionsFromDb, setPoiActionsFromDb] = useState<Action[]>([]);
   useEffect(() => {
@@ -59,9 +67,15 @@ const PoiItem: FunctionComponent<{
           dispatch(setRightPanelOpen(true));
         }
       }}
+      onMouseOver={() => {
+        dispatch(setHoverItemUuid(poi.uuid));
+      }}
+      onMouseLeave={() => {
+        dispatch(setHoverItemUuid(null));
+      }}
     >
       <div className={poiStyles.itemIcon}>{decodeEmoji(poi.icon)}</div>
-      <div className={`${poiStyles.name} ${isPoiSelectedStyle}`}>
+      <div className={`${poiStyles.name} ${isPoiSelectedOrHoveredStyle}`}>
         <div>{poi.name}</div>
         <ModifiedIndicator
           obj1={[poi, ...poiActions]}

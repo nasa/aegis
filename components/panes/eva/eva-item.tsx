@@ -114,7 +114,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
 
   let evaSelectionStyle = null;
 
-  // if this is the this eva, highlight or emphasize it
+  // if this is this eva, highlight or emphasize it
   if (eva.uuid === selectedEvaUuid) {
     evaSelectionStyle = evaStyles.nameSelected;
     // if there is a selected sequence item and it's in this eva, then only emphasize the eva name rather than highlighting it

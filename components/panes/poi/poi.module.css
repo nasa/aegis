@@ -52,13 +52,13 @@
   cursor: pointer;
 }
 
+.nameHovered {
+  background-color: var(--grey1);
+}
+
 .nameSelected:hover {
   background-color: var(--poi) !important;
   color: black !important;
-}
-
-.name:hover {
-  background-color: var(--grey1);
 }
 
 .name.nohover {
