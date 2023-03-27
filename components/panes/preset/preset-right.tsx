@@ -148,22 +148,25 @@ const PresetEditorRight: FunctionComponent = () => {
     selectedPreset && (
       <>
         <div className={paneStyles.rightTopTitle} style={{ color: "var(--map)" }}>
-          <InLineEditInput
-            fieldName="Preset Name"
-            value={selectedPreset.name}
-            editing={presetsEditing.includes(selectedPresetUuid)}
-            maxLength={255}
-            styleInput={{
-              width: "100%",
-              marginRight: "10px",
-              color: "var(--map)",
-              fontSize: "1em",
-            }}
-            containerStyle={{ paddingLeft: 0 }}
-            onChange={(val) => {
-              dispatch(upsertPreset({ ...selectedPreset, name: val }));
-            }}
-          />
+          <div className={paneStyles.rightTopTitleText}>
+            <InLineEditInput
+              fieldName="Preset Name"
+              value={selectedPreset.name}
+              editing={presetsEditing.includes(selectedPresetUuid)}
+              maxLength={255}
+              styleInput={{
+                width: "100%",
+                marginRight: "10px",
+                color: "var(--map)",
+                fontSize: "1em",
+              }}
+              containerStyle={{ paddingLeft: 0 }}
+              styleValue={{ padding: 0, height: "auto" }}
+              onChange={(val) => {
+                dispatch(upsertPreset({ ...selectedPreset, name: val }));
+              }}
+            />
+          </div>
         </div>
         <div className={paneStyles.rightSubTray}>
           <div className={paneStyles.rightIconRow}>
@@ -194,57 +197,53 @@ const PresetEditorRight: FunctionComponent = () => {
           </div>
           <div className={paneStyles.saveCancelContainer}>
             {presetsEditing.includes(selectedPresetUuid) && (
-              <div className={paneStyles.verticalCenter}>
-                <IconButton
-                  icon={faTrashAlt}
-                  onClick={() => {
-                    handleDelete();
-                  }}
-                  label="Delete Preset"
-                  style={{ width: "110px" }}
-                />
-              </div>
+              <IconButton
+                icon={faTrashAlt}
+                onClick={() => {
+                  handleDelete();
+                }}
+                toolTip="Delete Preset"
+                style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+              />
             )}
             {!presetsEditing.includes(selectedPresetUuid) && isAdmin && (
-              <div className={paneStyles.verticalCenter}>
-                <IconButton
-                  icon={faEdit}
-                  onClick={() => {
-                    handleEdit();
-                  }}
-                  label="Edit Preset"
-                  style={{ width: "100px" }}
-                />
-              </div>
+              <IconButton
+                icon={faEdit}
+                onClick={() => {
+                  handleEdit();
+                }}
+                label="Edit"
+                toolTip="Edit Preset"
+                style={{ width: "60px", fontSize: "0.9em" }}
+                labelStyle={{ marginTop: "2px" }}
+              />
             )}
 
             {presetsEditing.includes(selectedPresetUuid) && (
               <>
-                <div className={paneStyles.verticalCenter}>
-                  <IconButton
-                    onClick={() => {
-                      handleSave();
-                    }}
-                    icon={faFloppyDisk}
-                    label="Save Preset"
-                    enabled={modified}
-                    style={{
-                      width: "105px",
-                      backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
-                      color: modified ? "white" : "var(--grey4)",
-                    }}
-                  />
-                </div>
-                <div className={paneStyles.verticalCenter}>
-                  <IconButton
-                    onClick={() => {
-                      handleCancel();
-                    }}
-                    icon={faBan}
-                    label="Cancel"
-                    style={{ width: "75px" }}
-                  />
-                </div>
+                <IconButton
+                  onClick={() => {
+                    handleSave();
+                  }}
+                  icon={faFloppyDisk}
+                  toolTip={`Save Preset${modified ? "" : " (nothing to save)"}`}
+                  enabled={modified}
+                  style={{
+                    width: "30px",
+                    backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
+                    color: modified ? "white" : "var(--grey4)",
+                    fontSize: "0.9em",
+                    paddingLeft: "10px",
+                  }}
+                />
+                <IconButton
+                  onClick={() => {
+                    handleCancel();
+                  }}
+                  icon={faBan}
+                  toolTip="Cancel Edit"
+                  style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                />
               </>
             )}
           </div>

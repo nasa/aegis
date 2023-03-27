@@ -18,6 +18,10 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
   );
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
+  const defaultTraverseSpeed = useAppSelector(
+    (state) => state.mission.mission.traverseSpeed,
+    shallowEqual
+  );
 
   const [totalStationTime, setTotalStationTime] = useState({ durationLower: 0, durationUpper: 0 });
   const [totalTraverseTime, setTotalTraverseTime] = useState({
@@ -132,7 +136,9 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                 </div>
               </div>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Traverse Rate (km/hr)</div>
+                <div className={paneStyles.panelSectionTitle}>
+                  Traverse Rate (km/hr) Mission Default: {defaultTraverseSpeed} km/hr
+                </div>
                 <div className={paneStyles.inputField}>
                   <InLineEditInput
                     fieldName="Average Traverse Rate"

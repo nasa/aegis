@@ -31,6 +31,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
+  const defaultTraverseSpeed = useAppSelector(
+    (state) => state.mission.mission.traverseSpeed,
+    refEqual
+  );
   const selectedStation = useAppSelector(
     (state) =>
       state.station.stations.find((station) => station.uuid === state.station.selectedStationUuid),
@@ -225,6 +229,20 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   }, [selectedStation, dispatch, handleResetWalkback, landerLocation]);
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
+
+  const durationMinutes = () => {
+    //convert meters to km, then divide by traverse speed to get minutes
+    const distanceMeters = selectedStation.walkbackPathSegmentDistances?.reduce(
+      (accumulator, currentVal) => {
+        return accumulator + currentVal;
+      },
+      0
+    );
+    const distanceKm = distanceMeters / 1000;
+    const durationHours = distanceKm / defaultTraverseSpeed;
+    const durationMinutes = durationHours * 60;
+    return durationMinutes.toFixed(2);
+  };
 
   return (
     <div className={paneStyles.rightBody}>
@@ -580,17 +598,18 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             </div>
             <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Walk-back Distance</div>
+                <div className={paneStyles.panelSectionTitle}>Walk-back Distance (m)</div>
                 <div className={paneStyles.panelText}>
                   {selectedStation.walkbackPathSegmentDistances
                     ?.reduce((accumulator, currentVal) => accumulator + currentVal, 0)
                     .toFixed(2)}
-                  &nbsp;m
                 </div>
               </div>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Walk-back Duration</div>
-                <div className={paneStyles.panelText}>TBD</div>
+                <div className={paneStyles.panelSectionTitle}>Walk-back Duration (min)</div>
+                <div className={paneStyles.panelText}>
+                  <>{durationMinutes()}</>
+                </div>
               </div>
             </div>
           </div>

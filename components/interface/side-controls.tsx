@@ -5,7 +5,7 @@ import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { setSectionSelected } from "store/interface";
+import { setRightPanelOpen, setSectionSelected } from "store/interface";
 
 import { paneTypes } from "components/interface/_paneTypes";
 import { setSelectedEvaUuid } from "store/eva";
@@ -67,10 +67,16 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
   const dispatch = useDispatch();
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
   const poisFromDb = useAppSelector((state) => state.poi.poisFromDb, shallowEqual);
+  const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
   const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
   const presetsFromDb = useAppSelector((state) => state.preset.presetsFromDb, shallowEqual);
+  const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
   const stationsFromDb = useAppSelector((state) => state.station.stationsFromDb, shallowEqual);
+  const selectedStationUuid = useAppSelector(
+    (state) => state.station.selectedStationUuid,
+    refEqual
+  );
   const poiActions = useAppSelector(
     (state) => state.action.actions.filter((storeAction) => storeAction.poiUuid),
     shallowEqual
@@ -132,6 +138,17 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
               onClick={() => {
                 dispatch(setSectionSelected(paneType));
                 dispatch(setSelectedEvaUuid(null));
+                switch (paneType) {
+                  case "poi":
+                    dispatch(setRightPanelOpen(selectedPoiUuid !== null));
+                    break;
+                  case "map_layer_selector":
+                    dispatch(setRightPanelOpen(selectedPresetUuid !== null));
+                    break;
+                  case "station":
+                    dispatch(setRightPanelOpen(selectedStationUuid !== null));
+                    break;
+                }
               }}
             >
               <FontAwesomeIcon icon={paneTypes[paneType].icon} size="lg" />

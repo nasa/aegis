@@ -385,57 +385,53 @@ const EvaRightEva: FunctionComponent = () => {
           </div>
           <div className={paneStyles.saveCancelContainer}>
             {evasEditing.includes(selectedEvaUuid) && (
-              <div className={paneStyles.verticalCenter}>
-                <IconButton
-                  icon={faTrashAlt}
-                  onClick={() => {
-                    handleDelete();
-                  }}
-                  label="Delete EVA"
-                  style={{ width: "95px" }}
-                />
-              </div>
+              <IconButton
+                icon={faTrashAlt}
+                onClick={() => {
+                  handleDelete();
+                }}
+                toolTip="Delete EVA"
+                style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+              />
             )}
             {!evasEditing.includes(selectedEvaUuid) && isAdmin && (
-              <div className={paneStyles.verticalCenter}>
-                <IconButton
-                  icon={faEdit}
-                  onClick={() => {
-                    dispatch(setEvaEditMode({ evaUuid: selectedEva.uuid, editMode: true }));
-                  }}
-                  label="Edit EVA"
-                  style={{ width: "85px" }}
-                />
-              </div>
+              <IconButton
+                icon={faEdit}
+                onClick={() => {
+                  dispatch(setEvaEditMode({ evaUuid: selectedEva.uuid, editMode: true }));
+                }}
+                label="Edit"
+                toolTip="Edit EVA"
+                style={{ width: "60px", fontSize: "0.9em" }}
+                labelStyle={{ marginTop: "2px" }}
+              />
             )}
 
             {evasEditing.includes(selectedEvaUuid) && (
               <>
-                <div className={paneStyles.verticalCenter}>
-                  <IconButton
-                    onClick={() => {
-                      handleSave();
-                    }}
-                    icon={faFloppyDisk}
-                    label="Save EVA"
-                    enabled={modified}
-                    style={{
-                      width: "85px",
-                      backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
-                      color: modified ? "white" : "var(--grey4)",
-                    }}
-                  />
-                </div>
-                <div className={paneStyles.verticalCenter}>
-                  <IconButton
-                    onClick={() => {
-                      handleCancel();
-                    }}
-                    icon={faBan}
-                    label="Cancel"
-                    style={{ width: "75px" }}
-                  />
-                </div>
+                <IconButton
+                  onClick={() => {
+                    handleSave();
+                  }}
+                  icon={faFloppyDisk}
+                  toolTip={`Save EVA${modified ? "" : " (nothing to save)"}`}
+                  enabled={modified}
+                  style={{
+                    width: "30px",
+                    backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
+                    color: modified ? "white" : "var(--grey4)",
+                    fontSize: "0.9em",
+                    paddingLeft: "10px",
+                  }}
+                />
+                <IconButton
+                  onClick={() => {
+                    handleCancel();
+                  }}
+                  icon={faBan}
+                  toolTip="Cancel Edit"
+                  style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                />
               </>
             )}
           </div>

@@ -276,7 +276,7 @@ const PoiEditorRight: FunctionComponent = () => {
                 color: "var(--poi)",
                 fontSize: "1em",
               }}
-              containerStyle={{ paddingLeft: 0 }}
+              styleValue={{ padding: 0, height: "auto" }}
               onChange={(val) => {
                 dispatch(upsertPoi({ ...selectedPoi, name: val }));
               }}
@@ -312,57 +312,53 @@ const PoiEditorRight: FunctionComponent = () => {
           </div>
           <div className={paneStyles.saveCancelContainer}>
             {poisEditing.includes(selectedPoiUuid) && (
-              <div className={paneStyles.verticalCenter}>
-                <IconButton
-                  icon={faTrashAlt}
-                  onClick={() => {
-                    handleDelete();
-                  }}
-                  label="Delete POI"
-                  style={{ width: "95px" }}
-                />
-              </div>
+              <IconButton
+                icon={faTrashAlt}
+                onClick={() => {
+                  handleDelete();
+                }}
+                toolTip="Delete POI"
+                style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+              />
             )}
             {!poisEditing.includes(selectedPoiUuid) && isAdmin && (
-              <div className={paneStyles.verticalCenter}>
-                <IconButton
-                  icon={faEdit}
-                  onClick={() => {
-                    dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: true }));
-                  }}
-                  label="Edit POI"
-                  style={{ width: "85px" }}
-                />
-              </div>
+              <IconButton
+                icon={faEdit}
+                onClick={() => {
+                  dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: true }));
+                }}
+                label="Edit"
+                toolTip="Edit POI"
+                style={{ width: "60px", fontSize: "0.9em" }}
+                labelStyle={{ marginTop: "2px" }}
+              />
             )}
 
             {poisEditing.includes(selectedPoiUuid) && (
               <>
-                <div className={paneStyles.verticalCenter}>
-                  <IconButton
-                    onClick={() => {
-                      handleSave();
-                    }}
-                    icon={faFloppyDisk}
-                    label="Save POI"
-                    enabled={modified}
-                    style={{
-                      width: "85px",
-                      backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
-                      color: modified ? "white" : "var(--grey4)",
-                    }}
-                  />
-                </div>
-                <div className={paneStyles.verticalCenter}>
-                  <IconButton
-                    onClick={() => {
-                      handleCancel();
-                    }}
-                    icon={faBan}
-                    label="Cancel"
-                    style={{ width: "75px" }}
-                  />
-                </div>
+                <IconButton
+                  onClick={() => {
+                    handleSave();
+                  }}
+                  icon={faFloppyDisk}
+                  toolTip={`Save POI${modified ? "" : " (nothing to save)"}`}
+                  enabled={modified}
+                  style={{
+                    width: "30px",
+                    backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
+                    color: modified ? "white" : "var(--grey4)",
+                    fontSize: "0.9em",
+                    paddingLeft: "10px",
+                  }}
+                />
+                <IconButton
+                  onClick={() => {
+                    handleCancel();
+                  }}
+                  icon={faBan}
+                  toolTip="Cancel Edit"
+                  style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                />
               </>
             )}
           </div>

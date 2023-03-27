@@ -118,7 +118,7 @@
 
 .rightTopTitle {
   display: flex;
-  align-self: flex-start;
+  justify-content: stretch;
   font-size: 1.1em;
   font-weight: 400;
   margin-left: 10px;
@@ -127,7 +127,10 @@
 }
 
 .rightTopTitleText {
-  margin: auto;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .rightTopTitleIcon {
@@ -141,6 +144,7 @@
   flex: 1;
   justify-content: right;
   margin-right: 3px;
+  margin-top: 7px;
 }
 
 .leftPanelContainer {

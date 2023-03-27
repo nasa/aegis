@@ -57,8 +57,10 @@ const MapBody: FunctionComponent = () => {
 
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
   const missionLayers = useAppSelector((state) => state.mission.layers, shallowEqual);
-  const layerControls = useAppSelector((state) => state.map.layerControls, shallowEqual);
 
+  const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, shallowEqual);
+
+  const layerControls = useAppSelector((state) => state.map.layerControls, shallowEqual);
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
 
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
@@ -121,6 +123,24 @@ const MapBody: FunctionComponent = () => {
       }%`,
     ];
   };
+
+  /**
+   * If the window layout changes, resize the map
+   */
+  useLayoutEffect(() => {
+    if (map.current) {
+      // all this to keep the map in the same position when the right window closes or opens
+      const prevCenterPixels = map.current.project(map.current.getCenter(), map.current.getZoom());
+      const currentWidth = map.current.getSize().x;
+
+      map.current.invalidateSize();
+
+      const newWidth = map.current.getSize().x;
+      const newCenterPixels = prevCenterPixels.add([(newWidth - currentWidth) / 2, 0]);
+      const newCenter = map.current.unproject(newCenterPixels, map.current.getZoom());
+      map.current.setView(newCenter, map.current.getZoom(), true);
+    }
+  }, [rightPanelOpen]);
 
   /**
    * Map tile layers display management
