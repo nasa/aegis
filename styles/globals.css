@@ -23,11 +23,13 @@ body {
 
   --base: #00f0ff;
   --map: #61ff8d;
-  --markup: #e861a9;
+  /* --markup: #e861a9; */
+
   --eva: #ffc700;
   --tools: #ff7539;
   --poi: #28ecf9;
-  --station: #00ffd1;
+  /* --station: #00ffd1; */
+  --station: #ff8f5f;
   --alert: #cb0000;
   --alert-disabled: #650000;
 

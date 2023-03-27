@@ -31,6 +31,10 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
       state.traverse.traverses.find((traverse) => traverse.uuid === selectedEvaSequenceItemUuid),
     shallowEqual
   );
+  const defaultTraverseSpeed = useAppSelector(
+    (state) => state.mission.mission.traverseSpeed,
+    refEqual
+  );
 
   // planet radius value used to generate elevation profile
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
@@ -107,6 +111,20 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
+  const durationMinutes = () => {
+    //convert meters to km, then divide by traverse speed to get minutes
+    const distanceMeters = selectedTraverse.pathSegmentDistances?.reduce(
+      (accumulator, currentVal) => {
+        return accumulator + currentVal;
+      },
+      0
+    );
+    const distanceKm = distanceMeters / 1000;
+    const durationHours = distanceKm / defaultTraverseSpeed;
+    const durationMinutes = durationHours * 60;
+    return durationMinutes.toFixed(2);
+  };
+
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle}>Traverse Information</div>
@@ -179,6 +197,12 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                   &nbsp;m
                 </div>
               </div>
+              <div className={paneStyles.panelMediumField}>
+                <div className={paneStyles.panelSectionTitle}>Walk-back Duration (min)</div>
+                <div className={paneStyles.panelText}>{durationMinutes()}</div>
+              </div>
+            </div>
+            <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Traverse Total m Climbed</div>
                 <div className={paneStyles.panelDisplayVal}>m</div>

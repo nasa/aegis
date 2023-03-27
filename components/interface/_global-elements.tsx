@@ -23,17 +23,26 @@ import { decodeEmoji } from "utils/formatting";
 
 export const IconButton: FunctionComponent<{
   onClick: () => void;
-  label: string;
+  label?: string;
+  toolTip?: string;
   icon: IconDefinition;
   style?: CSSProperties;
+  labelStyle?: CSSProperties;
   size?: "xs" | "lg";
   enabled?: boolean;
-}> = ({ onClick, label, icon, style, size, enabled = true }) => {
+}> = ({ onClick, label, toolTip, icon, style, labelStyle, size, enabled = true }) => {
   const enabledStyle = !enabled ? styles.iconButtonDisabled : "";
   return (
-    <div className={`${styles.iconButton} ${enabledStyle}`} onClick={onClick} style={style}>
+    <div
+      className={`${styles.iconButton} ${enabledStyle}`}
+      title={toolTip}
+      onClick={onClick}
+      style={style}
+    >
       <FontAwesomeIcon icon={icon} size={size} />
-      <div className={styles.iconButtonLabel}>{label}</div>
+      <div className={styles.iconButtonLabel} style={labelStyle}>
+        {label}
+      </div>
     </div>
   );
 };

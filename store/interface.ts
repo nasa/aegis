@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 
 export const initialState: InterfaceState = {
   sectionSelectedLabel: "evas",
-  rightPanelOpen: true,
+  rightPanelOpen: false,
 };
 
 export const interfaceSlice = createSlice({

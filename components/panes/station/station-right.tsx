@@ -385,59 +385,55 @@ const StationEditorRight: FunctionComponent = () => {
           </div>
           <div className={paneStyles.saveCancelContainer}>
             {stationsEditing.includes(selectedStationUuid) && (
-              <div className={paneStyles.verticalCenter}>
-                <IconButton
-                  icon={faTrashAlt}
-                  onClick={() => {
-                    handleDelete();
-                  }}
-                  label="Delete Station"
-                  style={{ width: "115px" }}
-                />
-              </div>
+              <IconButton
+                icon={faTrashAlt}
+                onClick={() => {
+                  handleDelete();
+                }}
+                toolTip="Delete Station"
+                style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+              />
             )}
             {!stationsEditing.includes(selectedStationUuid) && isAdmin && (
-              <div className={paneStyles.verticalCenter}>
-                <IconButton
-                  icon={faEdit}
-                  onClick={() => {
-                    dispatch(
-                      setStationEditMode({ stationUuid: selectedStation.uuid, editMode: true })
-                    );
-                  }}
-                  label="Edit Station"
-                  style={{ width: "105px" }}
-                />
-              </div>
+              <IconButton
+                icon={faEdit}
+                onClick={() => {
+                  dispatch(
+                    setStationEditMode({ stationUuid: selectedStation.uuid, editMode: true })
+                  );
+                }}
+                label="Edit"
+                toolTip="Edit Station"
+                style={{ width: "60px", fontSize: "0.9em" }}
+                labelStyle={{ marginTop: "2px" }}
+              />
             )}
 
             {stationsEditing.includes(selectedStationUuid) && (
               <>
-                <div className={paneStyles.verticalCenter}>
-                  <IconButton
-                    onClick={() => {
-                      handleSave();
-                    }}
-                    icon={faFloppyDisk}
-                    label="Save Station"
-                    enabled={modified}
-                    style={{
-                      width: "105px",
-                      backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
-                      color: modified ? "white" : "var(--grey4)",
-                    }}
-                  />
-                </div>
-                <div className={paneStyles.verticalCenter}>
-                  <IconButton
-                    onClick={() => {
-                      handleCancel();
-                    }}
-                    icon={faBan}
-                    label="Cancel"
-                    style={{ width: "75px" }}
-                  />
-                </div>
+                <IconButton
+                  onClick={() => {
+                    handleSave();
+                  }}
+                  icon={faFloppyDisk}
+                  toolTip={`Save Station${modified ? "" : " (nothing to save)"}`}
+                  enabled={modified}
+                  style={{
+                    width: "30px",
+                    backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
+                    color: modified ? "white" : "var(--grey4)",
+                    fontSize: "0.9em",
+                    paddingLeft: "10px",
+                  }}
+                />
+                <IconButton
+                  onClick={() => {
+                    handleCancel();
+                  }}
+                  icon={faBan}
+                  toolTip="Cancel Edit"
+                  style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                />
               </>
             )}
           </div>

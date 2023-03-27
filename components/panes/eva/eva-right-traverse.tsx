@@ -164,45 +164,43 @@ const EvaRightTraverse: FunctionComponent = () => {
           </div>
           <div className={paneStyles.saveCancelContainer}>
             {!traversesEditing.includes(selectedEvaSequenceItemUuid) && isAdmin && (
-              <div className={paneStyles.verticalCenter}>
-                <IconButton
-                  icon={faEdit}
-                  onClick={() => {
-                    handleEdit();
-                  }}
-                  label="Edit Traverse"
-                  style={{ width: "110px" }}
-                />
-              </div>
+              <IconButton
+                icon={faEdit}
+                onClick={() => {
+                  handleEdit();
+                }}
+                label="Edit"
+                toolTip="Edit Traverse"
+                style={{ width: "60px", fontSize: "0.9em" }}
+                labelStyle={{ marginTop: "2px" }}
+              />
             )}
 
             {traversesEditing.includes(selectedEvaSequenceItemUuid) && (
               <>
-                <div className={paneStyles.verticalCenter}>
-                  <IconButton
-                    onClick={() => {
-                      handleSave();
-                    }}
-                    icon={faFloppyDisk}
-                    label="Save Traverse"
-                    enabled={modified}
-                    style={{
-                      width: "115px",
-                      backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
-                      color: modified ? "white" : "var(--grey4)",
-                    }}
-                  />
-                </div>
-                <div className={paneStyles.verticalCenter}>
-                  <IconButton
-                    onClick={() => {
-                      handleCancel();
-                    }}
-                    icon={faBan}
-                    label="Cancel"
-                    style={{ width: "75px" }}
-                  />
-                </div>
+                <IconButton
+                  onClick={() => {
+                    handleSave();
+                  }}
+                  icon={faFloppyDisk}
+                  toolTip={`Save Traverse${modified ? "" : " (nothing to save)"}`}
+                  enabled={modified}
+                  style={{
+                    width: "30px",
+                    backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
+                    color: modified ? "white" : "var(--grey4)",
+                    fontSize: "0.9em",
+                    paddingLeft: "10px",
+                  }}
+                />
+                <IconButton
+                  onClick={() => {
+                    handleCancel();
+                  }}
+                  icon={faBan}
+                  toolTip="Cancel Edit"
+                  style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                />
               </>
             )}
           </div>
