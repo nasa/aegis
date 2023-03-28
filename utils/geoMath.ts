@@ -1,3 +1,4 @@
+import _ from "lodash";
 /**
  * This uses the 'haversine' formula to calculate the great-circle distance between two points
  * that is, the shortest distance over the planet's surface (not including terrain)
@@ -33,14 +34,14 @@ function deg2rad(deg) {
   return deg * (Math.PI / 180);
 }
 
-/**
- * Convert radians to degrees
- * @param angle - radians
- * @returns  degrees
- */
-function rad2deg(angle) {
-  return angle * (180 / Math.PI);
-}
+// /**
+//  * Convert radians to degrees
+//  * @param angle - radians
+//  * @returns  degrees
+//  */
+// function rad2deg(angle) {
+//   return angle * (180 / Math.PI);
+// }
 
 /**
  * Calculate the total distance of a path (array of points)
@@ -56,83 +57,6 @@ export const getTotalDistance = (points: AEGISPoint[], R: number): number => {
   });
   return distance;
 };
-
-/**
- * Get the bearing between two points
- * @param {AEGISPoint} point1 - the first coordinate
- * @param {AEGISPoint} point2 - the second coordinate
- * @returns {number} bearing in degrees
- */
-export function getBearingBetweenTwoCoordinates(point1: AEGISPoint, point2: AEGISPoint): number {
-  const lat1 = deg2rad(point1.lat);
-  const lat2 = deg2rad(point2.lat);
-  const dLon = deg2rad(point2.lng - point1.lng);
-
-  const y = Math.sin(dLon) * Math.cos(lat2);
-  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
-  const brng = Math.atan2(y, x);
-  return (rad2deg(brng) + 360) % 360;
-}
-
-/**
- * Get the point x percent along a path
- * @param {AEGISPoint[]} points - the path
- * @param {number} percent - the percent along the path (0-1)
- * @param {number} R - The radius of the planet in question
- * @returns {AEGISPoint} the point
- */
-export function getPointAlongPolyline(
-  points: AEGISPoint[],
-  percent: number,
-  R: number
-): AEGISPoint {
-  const totalDistance = getTotalDistance(points, R);
-  const targetDistance = totalDistance * percent;
-  let distance = 0;
-  let point: AEGISPoint;
-  points.forEach((latLng, index) => {
-    if (index === 0) return;
-    const d = getDistanceBetweenTwoCoordinates(points[index], points[index - 1], R);
-    if (distance + d >= targetDistance) {
-      const percentAlongSegment = (targetDistance - distance) / d;
-      point = getPointAlongSegment(points[index - 1], points[index], percentAlongSegment);
-      return;
-    }
-    distance += d;
-  });
-  return point;
-}
-
-/**
- * Get point along a segment
- * @param {AEGISPoint} point1 - the first coordinate
- * @param {AEGISPoint} point2 - the second coordinate
- * @param {number} percent - the percent along the segment (0-1)
- */
-function getPointAlongSegment(point1: AEGISPoint, point2: AEGISPoint, percent: number): AEGISPoint {
-  const lat1 = deg2rad(point1.lat);
-  const lon1 = deg2rad(point1.lng);
-  const lat2 = deg2rad(point2.lat);
-  const lon2 = deg2rad(point2.lng);
-
-  const dLon = lon2 - lon1;
-
-  const Bx = Math.cos(lat2) * Math.cos(dLon);
-  const By = Math.cos(lat2) * Math.sin(dLon);
-  const lat3 = Math.atan2(
-    Math.sin(lat1) + Math.sin(lat2),
-    Math.sqrt((Math.cos(lat1) + Bx) * (Math.cos(lat1) + Bx) + By * By)
-  );
-  const lon3 = lon1 + Math.atan2(By, Math.cos(lat1) + Bx);
-
-  const lat = rad2deg(lat3);
-  const lng = rad2deg(lon3);
-
-  return {
-    lat: lat + (point2.lat - lat) * percent,
-    lng: lng + (point2.lng - lng) * percent,
-  };
-}
 
 /**
  * Calculate the center/average of multiple AEGISPoint coordinates *
@@ -231,13 +155,14 @@ export function generateEquidistantPointsAlongPolyline(
       const lng =
         editablePolyline[i - 1].lng +
         ratio * (editablePolyline[i].lng - editablePolyline[i - 1].lng);
-      output.push({ lat, lng });
+      if (!isNaN(lat) && !isNaN(lng)) output.push({ lat, lng });
       editablePolyline.splice(i, 0, { lat, lng });
       currentDistance = remainder;
     } else {
       currentDistance += segmentDistance;
     }
   }
-
+  //append last point to be the destination if it's missing
+  if (!_.isEqual(output.at(-1), editablePolyline.at(-1))) output.push(editablePolyline.at(-1));
   return output;
 }

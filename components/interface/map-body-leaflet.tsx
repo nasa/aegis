@@ -85,6 +85,7 @@ const MapBody: FunctionComponent = () => {
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
+  const playheadHover = useAppSelector((state) => state.playheadHover, shallowEqual);
 
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
   const sectionSelected = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
@@ -229,8 +230,12 @@ const MapBody: FunctionComponent = () => {
     });
   }, [layerControls, map]);
 
+  /**
+   * Get the map item by uuid
+   * Optionally provide a test for mapItemType as well
+   */
   const getMapItemByUuid = useCallback(
-    (uuid: string, mapItemType: MapItemType): AEGISMapLayer => {
+    (uuid: string, mapItemType?: MapItemType): AEGISMapLayer => {
       let itemToSave: AEGISMapLayer = null;
       map.current.eachLayer((layer: AEGISMapLayer) => {
         if (layer.uuid === uuid) {
@@ -299,15 +304,15 @@ const MapBody: FunctionComponent = () => {
       location,
       mapItemType,
       onClick = () => {},
-      onDraggend = () => {},
+      onDragEnd = () => {},
     }: {
       name: string;
       uuid: string;
       iconEmoji: string;
       location: AEGISPoint;
-      mapItemType: "poi" | "station" | "lander";
+      mapItemType: MapMarkerType;
       onClick?: Function;
-      onDraggend?: Function;
+      onDragEnd?: Function;
     }) => {
       const html = `<div class="leaflet-aegis-icon">${decodeEmoji(iconEmoji)}</div>`;
       const icon = L.divIcon({ html });
@@ -335,32 +340,35 @@ const MapBody: FunctionComponent = () => {
         marker.mapItemType = mapItemType;
 
         // marker handlers
-        marker
-          .bindTooltip(`${name} ${typeName}`, {
-            sticky: true,
-            direction: "top",
-            offset: new L.Point(0, -20),
-          })
-          .on("click", () => {
-            onClick();
-          })
-          .on("mouseover", () => {
-            dispatch(setHoverItemUuid(marker.uuid));
-          })
-          .on("mouseout", () => {
-            dispatch(setHoverItemUuid(null));
-          });
-
-        // dragend handler that causes edit to be saved on mouseup
-        marker.on("dragend", (e) => {
-          map.current.getContainer().style.cursor = "grab";
-          onDraggend(e.target as AEGISMarker);
+        marker.bindTooltip(`${name} ${typeName}`, {
+          sticky: true,
+          direction: "top",
+          offset: new L.Point(0, -20),
         });
+        if (onClick) {
+          marker
+            .on("click", () => {
+              onClick();
+            })
+            .on("mouseover", () => {
+              dispatch(setHoverItemUuid(marker.uuid));
+            })
+            .on("mouseout", () => {
+              dispatch(setHoverItemUuid(null));
+            });
+        }
+        if (onDragEnd) {
+          // dragend handler that causes edit to be saved on mouseup
+          marker.on("dragend", (e) => {
+            map.current.getContainer().style.cursor = "grab";
+            onDragEnd(e.target as AEGISMarker);
+          });
+        }
 
         map.current.addLayer(marker);
       }
     },
-    [map, getMapItemByUuid]
+    [map, getMapItemByUuid, dispatch]
   );
 
   /**
@@ -383,7 +391,7 @@ const MapBody: FunctionComponent = () => {
       onClick?: Function;
       color: string;
       dashArray?: string;
-      mapItemType: "traverse" | "antPath" | "walkback";
+      mapItemType: MapPolylineType;
       drawAntPath: boolean;
     }) => {
       // if the location isn't the null default, draw it on the map
@@ -460,7 +468,7 @@ const MapBody: FunctionComponent = () => {
         }
       }
     },
-    [map, getMapItemByUuid]
+    [map, getMapItemByUuid, dispatch]
   );
 
   const saveUpdatedPoiOrStationPosition = useCallback(
@@ -925,7 +933,7 @@ const MapBody: FunctionComponent = () => {
             dispatch(setSectionSelected("poi"));
             dispatch(setSelectedPoiUuid(poi.uuid));
           },
-          onDraggend: (marker: AEGISMarker) => {
+          onDragEnd: (marker: AEGISMarker) => {
             const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
             saveUpdatedPoiOrStationPosition(poi.uuid, "poi", newLocation);
             dispatch(updateMapDirective(null));
@@ -972,7 +980,7 @@ const MapBody: FunctionComponent = () => {
             dispatch(setSectionSelected("station"));
             dispatch(setSelectedStationUuid(station.uuid));
           },
-          onDraggend: (marker: AEGISMarker) => {
+          onDragEnd: (marker: AEGISMarker) => {
             const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
             saveUpdatedPoiOrStationPosition(station.uuid, "station", newLocation);
             dispatch(updateMapDirective(null));
@@ -1055,6 +1063,84 @@ const MapBody: FunctionComponent = () => {
       });
     }
   }, [map, traverses, mapDirective, drawOrUpdatePolylineOnMap, dispatch, traversesToShow]);
+
+  /**
+   * Draw or update hover marker on the map when the hover seconds change.
+   */
+  useEffect(() => {
+    if (!map.current || mapDirective) return;
+
+    //search for marker on the map
+    const existingLayer = getMapItemByUuid("hover-marker-uuid") as AEGISMarker;
+
+    //hoverSeconds is null meaning we're not hovering.
+    if (!playheadHover.seconds || !selectedEva) {
+      //Also remove the marker from map if exists
+      if (existingLayer) map.current.removeLayer(existingLayer);
+      return;
+    }
+
+    //find where this point should be drawn on the eva
+    let location: AEGISPoint = { lat: 0, lng: 0 };
+
+    const sequenceItem = selectedEva.sequence.find(
+      (seqItem) => seqItem.uuid === playheadHover.sequenceItemUuid
+    );
+    if (sequenceItem) {
+      if (sequenceItem.type === "station") {
+        location = stations.find((station) => station.uuid === sequenceItem.uuid).location;
+      } else if (sequenceItem.type === "traverse") {
+        const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
+
+        //how far (in distance) are we along the entire traverse. Ex: 5m into a 25m traverse
+        const cumulativeCurrentDistance =
+          traverse.pathSegmentDistances.reduce(
+            (accumulator, currentValue) => accumulator + currentValue,
+            0
+          ) * playheadHover.sequenceItemPercentElapsed;
+        //determine which segment we are in
+        let cumulativePrevSegDistances = 0;
+        for (let i = 0; i < traverse.pathSegmentDistances.length; i++) {
+          if (
+            cumulativePrevSegDistances + traverse.pathSegmentDistances[i] >
+            cumulativeCurrentDistance
+          ) {
+            //we are in this segment
+            const percentSegmentDistance =
+              (cumulativeCurrentDistance - cumulativePrevSegDistances) /
+              traverse.pathSegmentDistances[i];
+            const lat =
+              traverse.path[i].lat +
+              (traverse.path[i + 1].lat - traverse.path[i].lat) * percentSegmentDistance;
+            const lng =
+              traverse.path[i].lng +
+              (traverse.path[i + 1].lng - traverse.path[i].lng) * percentSegmentDistance;
+            location = { lat, lng };
+            break;
+          } else {
+            cumulativePrevSegDistances += traverse.pathSegmentDistances[i];
+          }
+        }
+      }
+
+      const html = `<div class="leaflet-aegis-icon">${decodeEmoji("1f468-200d-1f680")}</div>`;
+      const icon = L.divIcon({ html });
+      //if exists, set location
+      if (existingLayer) {
+        existingLayer.setLatLng(location as L.LatLng);
+        existingLayer.setIcon(icon);
+      } else {
+        //marker doesn't exist, draw it and add it to leaflet
+        const marker = L.marker(location as AEGISPoint, {
+          icon,
+        }) as AEGISMarker;
+        marker.uuid = "hover-marker-uuid";
+        marker.mapItemType = "hover";
+
+        map.current.addLayer(marker);
+      }
+    }
+  }, [playheadHover, getMapItemByUuid, mapDirective, selectedEva, stations, traverses]);
 
   /**
    * Monitor map item highlights and draw highlight layer on the map
