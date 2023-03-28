@@ -7,13 +7,17 @@ type FeatureGroupWithUuid = L.FeatureGroup & {
 
 type AEGISMarker = L.Marker & {
   uuid?: string;
-  mapItemType: "poi" | "station" | "lander";
+  mapItemType: MapMarkerType;
 };
+
+type MapMarkerType = "poi" | "station" | "lander" | "hover";
 
 type AEGISPolyline = L.Polyline & {
   uuid?: string;
-  mapItemType: "traverse" | "walkback" | "hover";
+  mapItemType: MapPolylineType;
 };
+
+type MapPolylineType = "traverse" | "walkback" | "antPath" | "hover";
 
 type AEGISMapLayer = L.Layer & {
   uuid?: string;
