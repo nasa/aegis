@@ -1253,7 +1253,7 @@ const MapBody: FunctionComponent = () => {
 
   return (
     <div className={styles.mapContainer}>
-      <div className={styles.map} ref={mapRef}></div>
+      <div className={styles.map} ref={mapRef} />
 
       <div className={styles.mapDisplayControls}>
         <div className={styles.controlsContainer}>

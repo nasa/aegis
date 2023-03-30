@@ -97,7 +97,7 @@ const UploadFile: FunctionComponent<UploadProps> = (props: UploadProps) => {
             <br />
           </p>
         ) : (
-          <p></p>
+          <p />
         )}
       </div>
       <div>

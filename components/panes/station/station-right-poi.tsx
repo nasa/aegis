@@ -49,7 +49,7 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       </div>
                       <div className={`${poiStyles.name}`}>
                         <div>{poi.name}</div>
-                        <div className={poiStyles.poiRightSpacer}></div>
+                        <div className={poiStyles.poiRightSpacer} />
                       </div>
                     </div>
                   )
@@ -83,7 +83,7 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       )}
                       <div className={`${poiStyles.name} ${poiStyles.nohover}`}>
                         <div>{poi.name}</div>
-                        <div className={poiStyles.poiRightSpacer}></div>
+                        <div className={poiStyles.poiRightSpacer} />
                       </div>
                     </div>
                   )

@@ -54,3 +54,4 @@ temp
 # any __pycache__ folder or pyc file
 __pycache__
 *.py[cod]
+/static

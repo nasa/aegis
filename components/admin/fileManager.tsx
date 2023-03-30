@@ -91,7 +91,7 @@ const FileManager: FunctionComponent<{
   }
 
   //delete a file
-  async function deleteFileToAPI(filename: string) {
+  async function deleteFileToAPI(filename: string): Promise<void> {
     const confirmDelete = confirm("Are you sure you want to delete " + filename);
     if (confirmDelete) {
       const res = await deleteFile(`${path}/${filename}`);
@@ -101,6 +101,7 @@ const FileManager: FunctionComponent<{
       }
       await getDirListing();
     }
+    return;
   }
 
   useEffect(() => {
@@ -127,7 +128,7 @@ const FileManager: FunctionComponent<{
                 <th>Type</th>
                 <th>File Count</th>
                 <th>Name</th>
-                <th></th>
+                <th />
               </tr>
             </thead>
             <tbody>

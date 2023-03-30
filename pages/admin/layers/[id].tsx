@@ -41,7 +41,7 @@ const Layers: NextPage = () => {
     (async () => {
       const response = await isLoggedIn(); //check user is logged in
       if (response.status !== "success") {
-        router.push("/"); //user is not logged in. Redirect to homepage
+        await router.push("/"); //user is not logged in. Redirect to homepage
       }
 
       //set mission id state

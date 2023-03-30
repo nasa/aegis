@@ -8,20 +8,12 @@
 .stm {
   padding-left: 20px;
   padding-top: 10px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  column-gap: 5px;
-  row-gap: 5px;
-  width: -moz-fit-content;
-  width: fit-content;
-  cursor: default;
-  height: 100%;
-  align-items: flex-start;
-  align-content: flex-start;
 }
 .stm_mini {
-  padding: 0px;
+  padding: 0;
+}
+
+.stm, .stm_mini {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-start;

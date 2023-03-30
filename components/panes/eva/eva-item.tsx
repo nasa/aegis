@@ -187,7 +187,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
               fill: "#ff0000",
             }}
           />
-          <div className={evaStyles.nameItemRightSpacer}></div>
+          <div className={evaStyles.nameItemRightSpacer} />
         </div>
       </div>
       {expandedEvaUuids.find((uuid) => uuid === eva.uuid) && (
@@ -204,7 +204,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
               }}
               label="Add Station"
               icon={faPlusCircle}
-            ></IconButton>
+            />
           </div>
         </div>
       )}

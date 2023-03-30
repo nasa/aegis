@@ -170,7 +170,7 @@ const EvaItemSequence: FunctionComponent<{
                 <div className={evaStyles.iconCustom}>{decodeEmoji(thisStation.icon)}</div>
               );
             } else {
-              evaItemIcon = <div className={evaStyles.iconCustom}></div>;
+              evaItemIcon = <div className={evaStyles.iconCustom} />;
             }
           } else if (sequenceItem.type === "traverse") {
             evaItemIcon = (
@@ -245,7 +245,7 @@ const EvaItemSequence: FunctionComponent<{
                           fill: "#ff0000",
                         }}
                       />
-                      <div className={evaStyles.evaItemNameRightSpacer}></div>
+                      <div className={evaStyles.evaItemNameRightSpacer} />
                     </div>
                   ) : (
                     <div
@@ -336,7 +336,7 @@ const EvaItemSequence: FunctionComponent<{
                         fill: "#ff0000",
                       }}
                     />
-                    <div className={evaStyles.evaItemNameRightSpacer}></div>
+                    <div className={evaStyles.evaItemNameRightSpacer} />
                   </div>
                 </>
               )}

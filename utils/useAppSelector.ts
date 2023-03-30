@@ -64,7 +64,6 @@ export const deepEqual = productionDeepEqual;
 export const selectorEqualityNotify = (equalityFn: EqualityFn): EqualityFn => {
   const wrapper: EqualityFn = (prev, next) => {
     const prevAndNextEqual = equalityFn(prev, next);
-    // eslint-disable-next-line no-console
     console.log(
       prevAndNextEqual ? "Selector called, no render" : "Selector called, will re-render",
       { prev, next, prevAndNextEqual }

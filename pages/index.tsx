@@ -138,7 +138,7 @@ const MissionSelect = () => {
                 <td>Project Name</td>
                 <td>Version</td>
                 <td>Last Edited</td>
-                <td></td>
+                <td />
               </tr>
 
               {missions &&
@@ -208,7 +208,7 @@ const Left = () => {
                 );
               }}
             >
-              <span className={styles.logoEmss}></span>
+              <span className={styles.logoEmss} />
             </div>
           </div>
         </div>
@@ -330,7 +330,7 @@ const Left = () => {
 };
 
 const Right = () => {
-  return <div className={styles.right}></div>;
+  return <div className={styles.right} />;
 };
 
 const Home: NextPage = () => {

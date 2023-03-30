@@ -16,14 +16,13 @@ export function createNewLayer(missionId?: number): Layer {
     time: createNewMMGIS_Time(),
     shape: "none",
   };
-  const layer = {
+  return {
     uuid: null,
     missionId: missionId || null,
     layerConfig: layerConfig,
     createdAt: null,
     updatedAt: null,
   };
-  return layer;
 }
 
 /**

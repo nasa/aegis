@@ -82,7 +82,7 @@
 }
 
 .wordMark {
-  font-family: "Aldrich";
+  font-family: "Aldrich", serif;
   font-weight: 400;
   font-size: 50px;
 }
@@ -106,8 +106,7 @@
 }
 
 .aboutSection ul {
-  list-style-position: outside;
-  list-style: none;
+  list-style: none outside none;
   margin: 0;
   padding-left: 5px;
 }

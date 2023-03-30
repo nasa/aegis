@@ -38,11 +38,11 @@ export function hhmmssFromDateString(dateStringParam: string): string {
  * Formats any appSeconds value into hh:mm:ss equivalent
  */
 export function hhmmssFromSeconds(secondsParam: number): string {
-  var hours = Math.abs(Math.trunc(secondsParam / 3600));
-  var minutes = (Math.abs(Math.trunc(secondsParam / 60)) % 60) % 60;
-  var seconds = Math.abs(Math.trunc(secondsParam)) % 60;
+  const hours = Math.abs(Math.trunc(secondsParam / 3600));
+  const minutes = (Math.abs(Math.trunc(secondsParam / 60)) % 60) % 60;
+  let seconds = Math.abs(Math.trunc(secondsParam)) % 60;
   seconds = Math.floor(seconds);
-  var timeStr = padZeros(hours, 2) + ":" + padZeros(minutes, 2) + ":" + padZeros(seconds, 2);
+  let timeStr = padZeros(hours, 2) + ":" + padZeros(minutes, 2) + ":" + padZeros(seconds, 2);
   if (secondsParam < 0) {
     timeStr = "-" + timeStr;
   }
@@ -57,14 +57,14 @@ export function hhmmssmmmFromSeconds(secondsParam: number): string {
   const minutes = (Math.abs(Math.trunc(secondsParam / 60)) % 60) % 60;
   const seconds = Math.abs(Math.trunc(secondsParam)) % 60;
   const milliseconds = (secondsParam - Math.trunc(secondsParam)).toFixed(3);
-  var timeStr =
+  let timeStr =
     padZeros(hours, 2) +
     ":" +
     padZeros(minutes, 2) +
     ":" +
     padZeros(seconds, 2) +
     "." +
-    milliseconds.toString().substr(2);
+    milliseconds.toString().substring(2);
   if (secondsParam < 0) {
     timeStr = "-" + timeStr;
   }
@@ -170,8 +170,8 @@ export const formatEVADisplayTitle = ({
   pageName: string;
   descriptiveTitle: string;
 }): string => {
-  const regexWithNum = /^(U|R)S EVA \d+[A-Z]*/; // US EVA 55 or US EVA 55A (optional letter)
-  const regexWithoutNum = /^(U|R)S EVA/;
+  const regexWithNum = /^([UR])S EVA \d+[A-Z]*/; // US EVA 55 or US EVA 55A (optional letter)
+  const regexWithoutNum = /^([UR])S EVA/;
 
   // Both name and display title start like US EVA 55
   if (regexWithNum.test(pageName) && regexWithNum.test(descriptiveTitle)) {
@@ -210,7 +210,7 @@ export function toDecimal(str: string): number {
   const removedChars = str.replace(/[^0-9.]/g, "");
   // make sure string contains only one decimal point
   const decimalCount = (removedChars.match(/\./g) || []).length;
-  let result = null;
+  let result;
   if (decimalCount > 1) {
     //split string at first decimal point
     const splitString = removedChars.split(".");

@@ -69,7 +69,7 @@ const StationItem: FunctionComponent<{
             fill: "#ff0000",
           }}
         />
-        <div className={stationStyles.stationRightSpacer}></div>
+        <div className={stationStyles.stationRightSpacer} />
       </div>
     </div>
   );

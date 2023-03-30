@@ -108,7 +108,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     "26AB",
                     "26AA",
                   ]}
-                ></IconDropdown>
+                />
               </div>
             </div>
           </div>
@@ -169,7 +169,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     )}
                   </>
                 ) : (
-                  <div className={paneStyles.buttonPlaceholder}></div>
+                  <div className={paneStyles.buttonPlaceholder} />
                 )}
                 {editMode && mapAction === "createMarker" && (
                   <IconButton

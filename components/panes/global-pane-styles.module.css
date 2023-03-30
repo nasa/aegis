@@ -65,7 +65,7 @@
   display: flex;
   gap: 6px;
   flex-direction: row;
-  padding: 0 0px 5px 0px;
+  padding: 0 0 5px 0;
   margin-left: 6px;
 }
 

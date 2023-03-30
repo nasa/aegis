@@ -215,7 +215,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
                       : ""
                   }
                 >
-                  <option value=""></option>
+                  <option value="" />
                   {fileList?.map((file) => {
                     return (
                       <option value={file.name} key={file.name}>
