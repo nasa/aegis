@@ -1,6 +1,6 @@
 .actionPanelContainer {
-  margin: 0px;
-  padding: 0px;
+  margin: 0;
+  padding: 0;
 }
 
 .actionPanelContainer .actionToolTip,
@@ -30,5 +30,5 @@
 }
 
 .actionsHeadingCaret {
-  margin-left: 0px;
+  margin-left: 0;
 }

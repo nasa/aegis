@@ -135,8 +135,7 @@ async function getEVAs(missionId: number, evaUuid?: string): Promise<Eva[]> {
   }
 
   //convert foreign keys
-  const evas = convertEVAs(dbevas);
-  return evas;
+  return convertEVAs(dbevas);
 }
 
 /**

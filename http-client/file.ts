@@ -13,8 +13,7 @@ export async function uploadFile(
   };
 
   try {
-    const res = await axios.post("/api/file/upload", formData, config);
-    return res;
+    return await axios.post("/api/file/upload", formData, config);
   } catch (e) {
     //axios rejects the promise if the response is an error. Just pass the response data through
     if (e.name === "CanceledError") {
@@ -30,8 +29,7 @@ export async function uploadFile(
  * @returns boolean if delete was successful
  */
 export async function deleteFile(path: string): Promise<Response> {
-  const res: Response = await fetch(`/api/file/delete?path=${encodeURIComponent(path)}`);
-  return res;
+  return (await fetch(`/api/file/delete?path=${encodeURIComponent(path)}`)) as Response;
 }
 
 /**
@@ -46,12 +44,11 @@ export async function renameFile(
   oldName: string,
   newName: string
 ): Promise<Response> {
-  const res: Response = await fetch(
+  return (await fetch(
     `/api/file/rename?path=${encodeURIComponent(path)}&oldname=${encodeURIComponent(
       oldName
     )}&newname=${encodeURIComponent(newName)}`
-  );
-  return res;
+  )) as Response;
 }
 
 /**

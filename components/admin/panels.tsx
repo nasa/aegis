@@ -139,7 +139,7 @@ const Panels: FunctionComponent<PanelProps> = (props: PanelProps) => {
                   : ""
               }
             >
-              <option value=""></option>
+              <option value="" />
               <option value="tms">TMS</option>
               <option value="wtms">WTMS</option>
               <option value="wms">WMS</option>
@@ -168,7 +168,7 @@ const Panels: FunctionComponent<PanelProps> = (props: PanelProps) => {
                 config_panelSettings?.demFallbackType ? config_panelSettings.demFallbackType : ""
               }
             >
-              <option value=""></option>
+              <option value="" />
               <option value="rgba">RGBA</option>
               <option value="tif">TIF</option>
             </select>

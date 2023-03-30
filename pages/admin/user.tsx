@@ -23,7 +23,7 @@ const User: NextPage = () => {
       const response = await isLoggedIn(); //check user is logged in
       const adminResponse = await isAdmin(); //check user is admin
       if (response.status !== "success" || !adminResponse.data["admin"]) {
-        router.push("/"); //user is not logged in or an admin. Redirect to homepage
+        await router.push("/"); //user is not logged in or an admin. Redirect to homepage
       } else {
         setAdmin(true);
       }

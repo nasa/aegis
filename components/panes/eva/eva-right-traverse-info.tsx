@@ -18,7 +18,6 @@ import { updateMapDirective } from "store/map";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import * as httpClient from "http-client/elevation";
-import _ from "lodash";
 
 const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -249,7 +248,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                     />
                   </>
                 ) : (
-                  <div className={paneStyles.buttonPlaceholder}></div>
+                  <div className={paneStyles.buttonPlaceholder} />
                 )}
                 {editMode && mapAction === "editPolyline" && (
                   <>

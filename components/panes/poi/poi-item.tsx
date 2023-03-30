@@ -89,7 +89,7 @@ const PoiItem: FunctionComponent<{
             fill: "#ff0000",
           }}
         />
-        <div className={poiStyles.poiRightSpacer}></div>
+        <div className={poiStyles.poiRightSpacer} />
       </div>
     </div>
   );

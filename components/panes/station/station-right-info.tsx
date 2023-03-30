@@ -481,7 +481,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   )}
                 </>
               ) : (
-                <div className={paneStyles.buttonPlaceholder}></div>
+                <div className={paneStyles.buttonPlaceholder} />
               )}
               {editMode && mapAction === "createMarker" && (
                 <IconButton
@@ -556,7 +556,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           />
                         </>
                       ) : (
-                        <div className={paneStyles.buttonPlaceholder}></div>
+                        <div className={paneStyles.buttonPlaceholder} />
                       )}
                       {editMode && mapAction === "editPolyline" && (
                         <>

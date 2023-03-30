@@ -1,7 +1,7 @@
 import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
-import { withORM, getEM } from "utils/mikro";
+import { getEM, withORM } from "utils/mikro";
 import _ from "lodash";
 import { Layer as Layer_db } from "server/database/models/layer.model";
 import {
@@ -159,7 +159,7 @@ async function getLayers(missionId: number, layerUUID?: string): Promise<Layer[]
 
   if (layers) {
     //convert fks
-    const convertedLayers = layers.map((layers_db) => {
+    return layers.map((layers_db) => {
       const layer: Layer = {
         uuid: layers_db.uuid,
         missionId: layers_db.mission.id,
@@ -169,7 +169,6 @@ async function getLayers(missionId: number, layerUUID?: string): Promise<Layer[]
       };
       return layer;
     });
-    return convertedLayers;
   } else {
     return [];
   }

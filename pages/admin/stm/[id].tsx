@@ -93,7 +93,7 @@ const STM: NextPage = () => {
       try {
         setMessage(`Deleting ${stmType}: ${uuid}`);
         await deleteSTM(missionIdSlug, uuid, stmType);
-        loadSTMfromDB(missionIdSlug);
+        await loadSTMfromDB(missionIdSlug);
         setMessage(`Delete Complete`);
       } catch {
         setMessage(`Unknown error deleting ${stmType}: ${uuid}`);

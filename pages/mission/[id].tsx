@@ -78,7 +78,7 @@ const Main: NextPage = () => {
       } else {
         dispatch(setIsLoggedIn(false));
         dispatch(clearIronSessionData());
-        router.push("/");
+        await router.push("/");
       }
     })();
   }, [dispatch, router]);

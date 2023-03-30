@@ -121,7 +121,7 @@ async function upsertUser(user: User): Promise<User> {
     } as User;
   } else {
     upsertRecord.createdAt = updateDate;
-    const createReference = await em.create(User_db, upsertRecord);
+    const createReference = em.create(User_db, upsertRecord);
     await em.persistAndFlush(createReference);
     return {
       ...userCopy,

@@ -146,13 +146,13 @@ body {
   text-overflow: ellipsis;
 }
 .react-checkbox-tree > ol {
-  width: 0px;
+  width: 0;
 }
 .rct-collapse,
 .rct-node-icon {
-  padding: 0px !important;
+  padding: 0 !important;
 }
 .rct-checkbox {
   margin-left: 5px;
-  padding: 0px 3px 0px 0px !important;
+  padding: 0 3px 0 0 !important;
 }

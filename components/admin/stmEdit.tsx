@@ -27,7 +27,7 @@ const STMEdit: FunctionComponent<STMProps> = (props: STMProps) => {
   return (
     <div id="stmEdit_div">
       <div>
-        <div className={stmStyles.div_select}></div>
+        <div className={stmStyles.div_select} />
         <div id="div_addObjective" className={stmStyles.div_add}>
           <NewObjectiveFields missionId={props.missionId} reloadSTM={props.reloadSTMfromDB} />
         </div>

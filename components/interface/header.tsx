@@ -52,7 +52,7 @@ const Header: FunctionComponent = () => {
             }}
             title="More info about EVA Mission System Software (EMSS)"
           >
-            <span className={styles.logoEmss}></span>
+            <span className={styles.logoEmss} />
           </div>
         </div>
       </div>

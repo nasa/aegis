@@ -1,7 +1,7 @@
 import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
-import { withORM, getEM } from "utils/mikro";
+import { getEM, withORM } from "utils/mikro";
 import {
   EntityData,
   ForeignKeyConstraintViolationException,
@@ -179,8 +179,7 @@ async function upsertAction(action: Action): Promise<Action> {
   await em.persistAndFlush(upsertReference);
 
   //convert foreign keys
-  const convertedAction = convertActions([upsertReference])[0];
-  return convertedAction;
+  return convertActions([upsertReference])[0];
 }
 
 /**

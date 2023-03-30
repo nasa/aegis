@@ -1,7 +1,7 @@
 import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
-import { withORM, getEM } from "utils/mikro";
+import { getEM, withORM } from "utils/mikro";
 import {
   EntityData,
   ForeignKeyConstraintViolationException,
@@ -139,8 +139,7 @@ async function getTraverses(missionId: number, traverseUuid?: string): Promise<T
   }
 
   //convert foreign keys
-  const traverses = convertTraverses(dbtraverses);
-  return traverses;
+  return convertTraverses(dbtraverses);
 }
 
 /**

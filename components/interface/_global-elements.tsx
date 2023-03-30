@@ -311,9 +311,7 @@ export const ContentEditableTextArea: FunctionComponent<{
           tagName="div" // Use a custom HTML tag (uses a div by default)
         />
       )}
-      {!editing && (
-        <div className={styles.notesText} dangerouslySetInnerHTML={{ __html: html }}></div>
-      )}
+      {!editing && <div className={styles.notesText} dangerouslySetInnerHTML={{ __html: html }} />}
     </>
   );
 };

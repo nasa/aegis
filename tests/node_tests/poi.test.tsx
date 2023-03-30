@@ -180,5 +180,5 @@ afterAll(async () => {
   await em.nativeDelete(User_db, { id: testAdmin.id });
 
   // Closing the DB connection allows Jest to exit successfully.
-  closeORM();
+  await closeORM();
 });

@@ -47,7 +47,7 @@ export async function unzip(
     //cleanup
     if (subfolder) {
       if (fs.existsSync(`${destRoot}/${outputDir}/${subfolder}`)) {
-        deleteFile(`${destRoot}/${outputDir}/${subfolder}`);
+        await deleteFile(`${destRoot}/${outputDir}/${subfolder}`);
       }
     }
     await deleteFile(filename);

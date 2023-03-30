@@ -161,7 +161,7 @@ const Sublayer: FunctionComponent<{
             )}
           </div>
         ) : (
-          <div className={styles.visibility}></div>
+          <div className={styles.visibility} />
         )}
         <div className={styles.sublayerTitle}>
           {sublayer.name} ({sublayer.type})

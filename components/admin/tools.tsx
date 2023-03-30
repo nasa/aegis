@@ -1,6 +1,5 @@
-import { useEffect, useState, Dispatch, SetStateAction, FunctionComponent } from "react";
+import { Dispatch, FunctionComponent, SetStateAction, useEffect, useState } from "react";
 import styles from "./admin.module.css";
-import _ from "lodash";
 import { JSONEditor } from "./helper";
 
 //Type used to track extra information about each tool needed to render the components
@@ -148,7 +147,7 @@ function createTools(): WrappedTool[] {
       variables: undefined,
     };
   }
-  const allTools = [
+  return [
     {
       name: "Layers",
       helpText: "Hierarchically toggle layers on and off and alter their opacities",
@@ -205,6 +204,5 @@ function createTools(): WrappedTool[] {
       tool: createTool("Measure"),
     },
   ];
-  return allTools;
 }
 export default Tools;
