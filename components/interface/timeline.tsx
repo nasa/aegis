@@ -12,84 +12,14 @@ import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 
 import styles from "./timeline.module.css";
 import { padZeros } from "utils/formatting";
-import {
-  generateEquidistantPointsAlongPolyline,
-  getDistanceBetweenTwoCoordinates,
-  getTotalDistance,
-} from "utils/geoMath";
+import { addPointsAtMeters, getDistanceBetweenTwoCoordinates } from "utils/geoMath";
 import { useDispatch } from "react-redux";
 import { clearHover, setHover } from "store/playheadHover";
 import _ from "lodash";
 import { Dispatch } from "@reduxjs/toolkit";
 
 /**
- * On mouse hover handler for paper js
- */
-const throttledOnMouseMove = (
-  dispatch: Dispatch,
-  paperRefs: MutableRefObject<PaperDrawings>,
-  storeRefs: MutableRefObject<StoreData_PaperJS>,
-  waitMs: number
-) => {
-  const handlerFn = (event: paper.MouseEvent) => {
-    const xLoc = event.point.x;
-    //check if we're inside the bounds of the graph
-    if (
-      xLoc > paperRefs.current.paperVars.graphLeft &&
-      xLoc < paperRefs.current.paperVars.graphLeft + paperRefs.current.paperVars.graphWidth
-    ) {
-      //remove old line, draw new line
-      paperRefs.current.hoverLine.removeChildren();
-      const hoverLine = new paper.Path.Line({
-        from: new paper.Point(event.point.x, paperRefs.current.paperVars.graphTop),
-        to: new paper.Point(
-          event.point.x,
-          paperRefs.current.paperVars.graphTop + paperRefs.current.paperVars.graphHeight
-        ),
-        strokeColor: paperRefs.current.styles.hoverColor,
-        strokeWidth: 1,
-      });
-      paperRefs.current.hoverLine.addChild(hoverLine);
-      paperRefs.current.hoverLine.bringToFront();
-      paperRefs.current.hoverLine.visible = true;
-
-      //calculate hover seconds
-      const seconds =
-        (event.point.x - paperRefs.current.paperVars.graphLeft) /
-        paperRefs.current.paperVars.pixelsPerSecond;
-
-      //determine sequence item
-      let sequenceUuid = null;
-      let sequenceItemPercentElapsed = null;
-      for (const bkgBlock of paperRefs.current.graphBkg.children) {
-        if (bkgBlock.contains(new paper.Point(xLoc, paperRefs.current.paperVars.graphTop + 1))) {
-          //add 1 so the y point would be inside the block
-          sequenceUuid = bkgBlock.name;
-          const sequenceItem = storeRefs.current.sequenceItems.find(
-            (seqItem) => seqItem.uuid === bkgBlock.name
-          );
-          sequenceItemPercentElapsed =
-            (seconds - sequenceItem.secondsStart) / (sequenceItem.totalDuration * 60);
-          break;
-        }
-      }
-
-      //save hover data to store
-      dispatch(setHover({ seconds, sequenceUuid, sequenceItemPercentElapsed }));
-    } else {
-      //mouse is outside of the grpah area but is still inside paper canvas
-      paperRefs.current.hoverLine.visible = false;
-      dispatch(clearHover());
-    }
-  };
-  return _.throttle(handlerFn, waitMs, {
-    leading: true,
-    trailing: false,
-  });
-};
-
-/**
- * sets the stroke or fill color for an array of paper items
+ * Sets the stroke or fill color for an array of paper items
  * @param group a paper group that contains an array of paper items
  * @param customColor the color to set to
  */
@@ -101,7 +31,7 @@ function setColorForItems(group: paper.Item[], customColor: paper.Color = null) 
 }
 
 /**
- * highlight the timeline with the selected sequence index
+ * Highlight the timeline with the selected sequence index
  */
 function highlightSelection(
   paperRefs: MutableRefObject<PaperDrawings>,
@@ -153,20 +83,604 @@ function highlightSelection(
 }
 
 /**
- * main function to draw the timeline. All the paper drawing happens here
+ * Draws the vertical line wtih the rotated time at the bottom.
+ * @param paperRefs object containing all the paper data
+ * @param xLoc x location of the time marker
+ * @param customColor optional color to draw the line with
+ * @returns a paper group containing the line and time text
  */
-function drawTimeline(
+function drawTimeMarker(
   paperRefs: MutableRefObject<PaperDrawings>,
-  storeRefs: MutableRefObject<StoreData_PaperJS>,
-  isEvaSelected: boolean
+  xLoc: number,
+  customColor: paper.Color = null
+): paper.Group {
+  const paperVars = paperRefs.current.paperVars;
+
+  const markerGroup = new paper.Group();
+  const color = customColor || paperRefs.current.styles.lineColor;
+  const verticalLine = new paper.Path.Line({
+    from: new paper.Point(xLoc, paperVars.timelineTop),
+    to: new paper.Point(xLoc, paperVars.timelineTop + paperVars.timelineHeight),
+    strokeColor: color,
+    strokeWidth: 1,
+  });
+  verticalLine.name = "lineMarker";
+  const seconds = (xLoc - paperVars.timelineLeft) * (1 / paperVars.pixelsPerSecondX);
+  const timeHrs = Math.floor(seconds / 3600);
+  const timeMins = Math.round((seconds % 3600) / 60);
+  const timeLabel = new paper.PointText({
+    point: new paper.Point(xLoc + 4, paperVars.timelineTop + paperVars.timelineHeight + 30),
+    justification: "left",
+    fontFamily: paperRefs.current.styles.gNavigatorFontFamilyActivity,
+    fontSize: 12,
+    fillColor: color,
+    content: timeHrs + ":" + padZeros(timeMins, 2),
+  });
+  timeLabel.rotate(
+    -90,
+    new paper.Point(xLoc + 4, paperVars.timelineTop + paperVars.timelineHeight + 30)
+  );
+  markerGroup.addChildren([timeLabel, verticalLine]);
+  return markerGroup;
+}
+
+/**
+ * Draws the y axis meter ticks
+ * @param paperRefs object containing all the paper data
+ * @param xLoc x location of the meter marker (for right or left y-axis)
+ * @param yLoc y location of the meter marker
+ * @param label label to display next to the meter marker
+ * @param align alignment of the label and tickmark when drawn on on the right or left y-axis
+ * @returns
+ */
+function drawMeterMarker(
+  paperRefs: MutableRefObject<PaperDrawings>,
+  xLoc: number,
+  yLoc: number,
+  label: string,
+  align: "left" | "right"
+): paper.Group {
+  const markerGroup = new paper.Group();
+  const horizontalLine = new paper.Path.Line({
+    from: new paper.Point(xLoc + 10 * (align === "right" ? -1 : 1), yLoc),
+    to: new paper.Point(xLoc, yLoc),
+    strokeColor: paperRefs.current.styles.lineColor,
+    strokeWidth: 1,
+  });
+  const meterLabel = new paper.PointText({
+    point: new paper.Point(xLoc + 15 * (align === "right" ? -1 : 1), yLoc + 4),
+    justification: align,
+    fontFamily: paperRefs.current.styles.gNavigatorFontFamilyActivity,
+    fontSize: 12,
+    fillColor: paperRefs.current.styles.sequenceColor,
+    content: label,
+  });
+  markerGroup.addChildren([horizontalLine, meterLabel]);
+  return markerGroup;
+}
+
+/**
+ * Draws graph axis
+ * @param paperRefs
+ * @param storeRefs
+ */
+function drawGraphAxis(
+  paperRefs: MutableRefObject<PaperDrawings>,
+  storeRefs: MutableRefObject<StoreData_PaperJS>
 ) {
-  //clear project and initilize paper refs
-  paper.project.clear();
+  const paperVars = paperRefs.current.paperVars;
+
+  //draw top and bottom lines
+  const topLine = new paper.Path.Line({
+    from: new paper.Point(paperVars.timelineLeft, paperVars.timelineTop),
+    to: new paper.Point(paperVars.timelineLeft + paperVars.timeineWidth, paperVars.timelineTop),
+    strokeColor: paperRefs.current.styles.lineColor,
+  });
+  const bottomLine = new paper.Path.Line({
+    from: new paper.Point(paperVars.timelineLeft, paperVars.sequenceTop - 4),
+    to: new paper.Point(paperVars.timelineLeft + paperVars.timeineWidth, paperVars.sequenceTop - 4),
+    strokeColor: paperRefs.current.styles.lineColor,
+  });
+  paperRefs.current.graphAxis.addChildren([topLine, bottomLine]);
+
+  //draw start and end lines for eva length
+  drawTimeMarker(paperRefs, paperVars.timelineLeft, paperRefs.current.styles.startEndHighlight);
+  drawTimeMarker(
+    paperRefs,
+    paperVars.timelineLeft + storeRefs.current.evaLengthMins * paperVars.pixelsPerSecondX * 60,
+    paperRefs.current.styles.startEndHighlight
+  );
+
+  //draw PET label
+  const petLabel = new paper.PointText({
+    point: new paper.Point(
+      paperVars.timelineLeft - 10,
+      paperVars.timelineTop + paperVars.timelineHeight + 30
+    ),
+    justification: "left",
+    fontFamily: paperRefs.current.styles.gNavigatorFontFamilyActivity,
+    fontSize: 12,
+    fillColor: "#FFFFFF",
+    content: "PET",
+  });
+  petLabel.rotate(
+    -90,
+    new paper.Point(
+      paperVars.timelineLeft - 10,
+      paperVars.timelineTop + paperVars.timelineHeight + 30
+    )
+  );
+
+  //draw left y-axis meters
+  const markerSpacingPx = 20; //20px = spacing for markers
+  //max meters
+  drawMeterMarker(
+    paperRefs,
+    paperVars.timelineLeft,
+    paperVars.timelineTop,
+    Math.round(storeRefs.current.maxDistanceFromLanderMeters).toString(),
+    "right"
+  );
+  // min meter (at 0)
+  drawMeterMarker(
+    paperRefs,
+    paperVars.timelineLeft,
+    paperVars.timelineTop + paperVars.graphHeight,
+    "0",
+    "right"
+  );
+  //inbetween meter lines
+  const numDistanceMarkers = Math.floor(paperVars.graphHeight / markerSpacingPx);
+  const metersBtwnDistanceMarkers =
+    storeRefs.current.maxDistanceFromLanderMeters / numDistanceMarkers;
+  for (let i = 1; i < numDistanceMarkers; i++) {
+    drawMeterMarker(
+      paperRefs,
+      paperVars.timelineLeft,
+      paperVars.timelineTop + metersBtwnDistanceMarkers * i * paperVars.pixelsPerMeterDistanceY,
+      Math.round(
+        storeRefs.current.maxDistanceFromLanderMeters - metersBtwnDistanceMarkers * i
+      ).toString(),
+      "right"
+    );
+  }
+
+  //draw right y-axis meters
+  const xLocRightYaxis = paperVars.timelineLeft + paperVars.timeineWidth;
+  const spacingFromLanderMaker = markerSpacingPx * 0.8; //how close are we allow other markers to come close to the lander marker
+  let elevationFromLander: number;
+
+  //lander meter and horizontal axis
+  if (storeRefs.current.landerElevationMeters) {
+    drawMeterMarker(
+      paperRefs,
+      xLocRightYaxis,
+      paperVars.timelineTop + paperVars.landerElevationFromGraphTop,
+      `Lander (${Math.round(storeRefs.current.landerElevationMeters)})`,
+      "left"
+    );
+    const landerLine = new paper.Path.Line({
+      from: new paper.Point(
+        paperVars.timelineLeft + paperVars.timeineWidth,
+        paperVars.timelineTop + paperVars.landerElevationFromGraphTop
+      ),
+      to: new paper.Point(
+        paperVars.timelineLeft,
+        paperVars.timelineTop + paperVars.landerElevationFromGraphTop
+      ),
+      strokeColor: paperRefs.current.styles.lineColor,
+    });
+    paperRefs.current.graphAxis.addChild(landerLine);
+
+    //max meters
+    elevationFromLander =
+      storeRefs.current.maxElevationMeters - storeRefs.current.landerElevationMeters;
+    if (paperVars.landerElevationFromGraphTop > spacingFromLanderMaker) {
+      drawMeterMarker(
+        paperRefs,
+        xLocRightYaxis,
+        paperVars.timelineTop,
+        `${Math.round(elevationFromLander)} (${Math.round(
+          storeRefs.current.maxElevationMeters
+        ).toString()})`,
+        "left"
+      );
+    }
+    //min meters
+    elevationFromLander =
+      storeRefs.current.landerElevationMeters - storeRefs.current.minElevationMeters;
+    if (paperVars.graphHeight - paperVars.landerElevationFromGraphTop > spacingFromLanderMaker) {
+      drawMeterMarker(
+        paperRefs,
+        xLocRightYaxis,
+        paperVars.timelineTop + paperVars.graphHeight,
+        `${Math.round(elevationFromLander)} (${Math.round(
+          storeRefs.current.minElevationMeters
+        ).toString()})`,
+        "left"
+      ); // min meter
+    }
+    //inbetween meter lines
+    const numElevationMarkers = Math.floor(paperVars.graphHeight / markerSpacingPx);
+    const metersBtwnElevationMarkers =
+      (storeRefs.current.maxElevationMeters - storeRefs.current.minElevationMeters) /
+      numElevationMarkers;
+    for (let i = 1; i < numElevationMarkers; i++) {
+      elevationFromLander = Math.abs(
+        storeRefs.current.landerElevationMeters -
+          (storeRefs.current.maxElevationMeters - metersBtwnElevationMarkers * i)
+      );
+      const pixelsFromLanderMarker = elevationFromLander * paperVars.pixelsPerMeterElevationY;
+      if (pixelsFromLanderMarker > spacingFromLanderMaker) {
+        drawMeterMarker(
+          paperRefs,
+          xLocRightYaxis,
+          paperVars.timelineTop +
+            metersBtwnElevationMarkers * i * paperVars.pixelsPerMeterElevationY,
+          `${Math.round(elevationFromLander)} (${Math.round(
+            storeRefs.current.maxElevationMeters - metersBtwnElevationMarkers * i
+          ).toString()})`,
+          "left"
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Draws the distance from lander line graph, and also the walk back if it's a station
+ * @param paperRefs
+ * @param storeRefs
+ */
+function drawLanderDistanceGraph(
+  paperRefs: MutableRefObject<PaperDrawings>,
+  storeRefs: MutableRefObject<StoreData_PaperJS>
+) {
+  const paperVars = paperRefs.current.paperVars;
+
+  let itemLocX: number = paperVars.timelineLeft;
+  for (const [sequenceItemIndex, sequenceItem] of storeRefs.current.sequenceItems.entries()) {
+    if (
+      !sequenceItem.subdividedDistFromLanderMeters ||
+      sequenceItem.subdividedDistFromLanderMeters.length === 0
+    ) {
+      //there is no distance from lander calculated (can happen if lander location isn't set for this mission).
+      continue;
+    }
+    const landerDistanceGroup = new paper.Group();
+    landerDistanceGroup.name = sequenceItem.uuid;
+
+    //draw walkback line if this is a station and it has a walkback
+    if (sequenceItem.type === "station" && sequenceItem.walkback) {
+      const walkbackGroup = drawWalkback(paperRefs, itemLocX, sequenceItem.walkback);
+      paperRefs.current.walkbacks.push(walkbackGroup);
+    }
+
+    //draw a line for each duration segment
+    for (const [durationIndex, duration] of sequenceItem.subdividedDurationsMins.entries()) {
+      const width = duration * paperVars.pixelsPerSecondX * 60; //duration is in minutes
+      const itemLocYStart =
+        paperVars.timelineTop +
+        paperVars.graphHeight -
+        sequenceItem.subdividedDistFromLanderMeters[durationIndex] *
+          paperVars.pixelsPerMeterDistanceY;
+      //on traverses, there's always one more item in distanceFromLander array than the duration array
+      //if we're on a station, just make the End equal to the Start
+      const itemLocYEnd =
+        sequenceItem.subdividedDistFromLanderMeters.length - 1 > durationIndex
+          ? paperVars.timelineTop +
+            paperVars.graphHeight -
+            sequenceItem.subdividedDistFromLanderMeters[durationIndex + 1] *
+              paperVars.pixelsPerMeterDistanceY
+          : itemLocYStart;
+      const graphLine = new paper.Path.Line({
+        from: new paper.Point(itemLocX, itemLocYStart),
+        to: new paper.Point(itemLocX + width, itemLocYEnd),
+        strokeColor: paperRefs.current.styles.sequenceColor,
+        strokeWidth: 1.5,
+      });
+      landerDistanceGroup.addChild(graphLine);
+
+      //draw first and last dots on the distance graph
+      if (sequenceItemIndex === 0 && durationIndex === 0) {
+        const diamond = new paper.Path.Rectangle({
+          point: new paper.Point(itemLocX - 3, itemLocYStart - 3),
+          size: 6,
+          fillColor: paperRefs.current.styles.sequenceColor,
+        });
+        diamond.rotate(45);
+        landerDistanceGroup.addChild(diamond);
+      }
+      if (
+        sequenceItemIndex === storeRefs.current.sequenceItems.length - 1 &&
+        durationIndex === sequenceItem.subdividedDurationsMins.length - 1
+      ) {
+        const diamond = new paper.Path.Rectangle({
+          point: new paper.Point(itemLocX + width - 3, itemLocYStart - 3),
+          size: 6,
+          fillColor: paperRefs.current.styles.sequenceColor,
+        });
+        diamond.rotate(45);
+        landerDistanceGroup.addChild(diamond);
+      }
+
+      paperRefs.current.landerDistance.push(landerDistanceGroup);
+      itemLocX += width; //increment x
+    }
+  }
+}
+
+/**
+ * Draws the walkback path for a given station
+ * @param paperRefs
+ * @param xLoc x location that the walkback starts
+ * @param walkbackData the walkback data for a station
+ * @param customColor optional color to draw the line with
+ * @returns a papergroup containing the walkback drawing for this station
+ */
+function drawWalkback(
+  paperRefs: MutableRefObject<PaperDrawings>,
+  xLoc: number,
+  walkbackData: Walkback_PaperJS,
+  customColor: paper.Color = null
+): paper.Group {
+  const paperVars = paperRefs.current.paperVars;
+
+  const walkbackGroup = new paper.Group();
+  const color = customColor || paperRefs.current.styles.walkbackColor;
+  let itemLocX: number = xLoc;
+
+  //draw a line for each duration segment
+  for (const [durationIdex, duration] of walkbackData.durationsMins.entries()) {
+    const width = duration * paperVars.pixelsPerSecondX * 60; //duration is in minutes
+    const itemLocYStart =
+      paperVars.timelineTop +
+      paperVars.graphHeight -
+      walkbackData.distanceFromLanderMeters[durationIdex] * paperVars.pixelsPerMeterDistanceY;
+    //on traverses, there's always one more item in distanceFromLander array than the duration array
+    //if we're on a station, just make the End equal to the Start
+    const itemLocYEnd =
+      walkbackData.distanceFromLanderMeters.length - 1 > durationIdex
+        ? paperVars.timelineTop +
+          paperVars.graphHeight -
+          walkbackData.distanceFromLanderMeters[durationIdex + 1] *
+            paperVars.pixelsPerMeterDistanceY
+        : itemLocYStart;
+    const graphLine = new paper.Path.Line({
+      from: new paper.Point(itemLocX, itemLocYStart),
+      to: new paper.Point(itemLocX + width, itemLocYEnd),
+      strokeColor: color,
+      strokeWidth: 1.5,
+    });
+    graphLine.dashArray = [5, 2];
+    walkbackGroup.addChild(graphLine);
+    itemLocX += width;
+  }
+  return walkbackGroup;
+}
+
+/**
+ * Draws the elevation profile graph
+ * @param paperRefs
+ * @param storeRefs
+ */
+function drawElevationProfile(
+  paperRefs: MutableRefObject<PaperDrawings>,
+  storeRefs: MutableRefObject<StoreData_PaperJS>
+) {
+  if (!storeRefs.current.landerElevationMeters) return;
+
+  const paperVars = paperRefs.current.paperVars;
+  const elevationResolution = storeRefs.current.elevationResolutionMeters || 10; //10 default
+  const width =
+    (elevationResolution / storeRefs.current.traverseRateMSec) * paperVars.pixelsPerSecondX;
+  //loop through sequence
+  for (const sequenceItem of storeRefs.current.sequenceItems) {
+    if (!sequenceItem.segmentElevationMeters) continue;
+    //loop through segments
+    const sequenceStartPixel =
+      paperVars.timelineLeft + sequenceItem.secondsStart * paperVars.pixelsPerSecondX;
+    let itemLocX: number = sequenceStartPixel;
+    for (const [
+      segmentElevationIndex,
+      segmentElevation,
+    ] of sequenceItem.segmentElevationMeters.entries()) {
+      const elevationGroup = new paper.Group();
+      const pointArray = [];
+      const landerYPixel = paperVars.timelineTop + paperVars.landerElevationFromGraphTop;
+
+      //push first point at lander line
+      pointArray.push([itemLocX, landerYPixel]);
+
+      //loop through elevations
+      for (const [elevationIndex, elevation] of segmentElevation.entries()) {
+        pointArray.push([
+          itemLocX,
+          paperVars.timelineTop +
+            (storeRefs.current.maxElevationMeters - elevation) * paperVars.pixelsPerMeterElevationY,
+        ]);
+
+        //the last point of current segment is equal to the first point in the next segment
+        //  don't increment the x coordinate
+        if (elevationIndex !== segmentElevation.length - 1) itemLocX += width;
+
+        //the last elevation point may not be exactly the elevation resolution distance.
+        //  don't use width. take the duration for this segment and set the x location
+        //  for the next loop to be the end of the segment.
+        if (elevationIndex === segmentElevation.length - 2) {
+          let accumuatliveSegmentDistance = 0;
+          for (let i = 0; i <= segmentElevationIndex; i++) {
+            accumuatliveSegmentDistance += sequenceItem.segmentDistancesMeters[i];
+          }
+          itemLocX =
+            sequenceStartPixel +
+            accumuatliveSegmentDistance *
+              (1 / storeRefs.current.traverseRateMSec) *
+              paperVars.pixelsPerSecondX;
+        }
+
+        //this is a station
+        if (segmentElevation.length === 1) {
+          itemLocX =
+            sequenceStartPixel +
+            sequenceItem.subdividedTotalDurationMins * 60 * paperVars.pixelsPerSecondX;
+          pointArray.push([
+            itemLocX,
+            paperVars.timelineTop +
+              (storeRefs.current.maxElevationMeters - elevation) *
+                paperVars.pixelsPerMeterElevationY,
+          ]);
+        }
+      }
+
+      //push last point at lander line
+      pointArray.push([itemLocX, landerYPixel]);
+
+      //add styling, add to group, and push group to paper refs.
+      const segmentElevationPath = new paper.Path(pointArray);
+      segmentElevationPath.fillColor = paperRefs.current.styles.elevationShade;
+      segmentElevationPath.opacity = 0.5;
+      segmentElevationPath.strokeWidth = 1.5;
+      elevationGroup.addChild(segmentElevationPath);
+      paperRefs.current.elevationProfile.push(elevationGroup);
+    }
+  }
+}
+
+/**
+ * Draws the EVA sequence - station boxes, traverses, and vertical time markers
+ * @param paperRefs
+ * @param storeRefs
+ */
+function drawSequence(
+  paperRefs: MutableRefObject<PaperDrawings>,
+  storeRefs: MutableRefObject<StoreData_PaperJS>
+) {
+  const paperVars = paperRefs.current.paperVars;
+
+  let itemLocX: number = paperVars.timelineLeft;
+  for (let i = 0; i < storeRefs.current.sequenceItems.length; i++) {
+    const sequenceItem = storeRefs.current.sequenceItems[i];
+    const sequenceItemGroup = new paper.Group();
+    let width = 0;
+    if (sequenceItem.type === "station") {
+      //draw box
+      width = paperVars.pixelsPerSecondX * sequenceItem.subdividedDurationsMins[0] * 60;
+      const stationBox = new paper.Rectangle(
+        new paper.Point(itemLocX, paperVars.sequenceTop),
+        new paper.Point(itemLocX + width, paperVars.sequenceTop + paperVars.sequenceHeight)
+      );
+      const stationBoxRounded = new paper.Path.Rectangle({
+        rectangle: stationBox,
+        radius: new paper.Size(5, 5),
+        strokeColor: paperRefs.current.styles.sequenceColor,
+        strokeWidth: 1.5,
+      });
+
+      //label
+      const stationMiddleX = itemLocX + width / 2;
+      const label = new paper.PointText({
+        point: new paper.Point(stationMiddleX, paperVars.sequenceTop + 14),
+        justification: "center",
+        content: sequenceItem.name,
+        fillColor: paperRefs.current.styles.sequenceColor,
+      });
+      //clip mask for station box
+      const clipRectangle = new paper.Path.Rectangle(
+        new paper.Point(itemLocX - 1, paperVars.sequenceTop - 1),
+        new paper.Point(itemLocX + width + 1, paperVars.sequenceTop + paperVars.sequenceHeight + 1)
+      );
+
+      sequenceItemGroup.addChildren([clipRectangle, stationBoxRounded, label]);
+      sequenceItemGroup.clipped = true;
+    } else if (sequenceItem.type === "traverse") {
+      width =
+        paperVars.pixelsPerSecondX *
+        sequenceItem.subdividedDurationsMins.reduce(
+          (accumulator, currentValue) => accumulator + currentValue,
+          0
+        ) *
+        60;
+      const traverseLine = new paper.Path.Line({
+        from: new paper.Point(itemLocX, paperVars.sequenceTop + 10),
+        to: new paper.Point(itemLocX + width, paperVars.sequenceTop + 10),
+        strokeColor: paperRefs.current.styles.sequenceColor,
+        strokeWidth: 1.5,
+        dashArray: [5, 2],
+      });
+      sequenceItemGroup.addChild(traverseLine);
+    }
+
+    //add station or traverse group to the sequence array
+    sequenceItemGroup.name = sequenceItem.uuid;
+    paperRefs.current.evaSequence.push(sequenceItemGroup);
+
+    //draw background rectangle (that turns yellow when selected) and add it to the paper refs
+    const bkgRect = new paper.Path.Rectangle({
+      rectangle: new paper.Rectangle(
+        new paper.Point(itemLocX + 1, paperVars.timelineTop + 1),
+        new paper.Point(itemLocX + width - 1, paperVars.sequenceTop - 5)
+      ),
+      fillColor: paperRefs.current.styles.regularBkgColor,
+      name: sequenceItem.uuid,
+    });
+    paperRefs.current.graphBkg.addChild(bkgRect);
+
+    //move x-axis location
+    itemLocX += width;
+
+    //draw sequence ending time marker and add it to the paper refs
+    const markerColor =
+      i === storeRefs.current.sequenceItems.length - 1
+        ? paperRefs.current.styles.startEndHighlight
+        : paperRefs.current.styles.lineColor;
+    const timeMarkerEnd = drawTimeMarker(paperRefs, itemLocX, markerColor);
+    timeMarkerEnd.name = sequenceItem.uuid;
+    paperRefs.current.timeMarkers.addChild(timeMarkerEnd);
+  }
+
+  //draw "Available" block at the end of the sequence
+  if (Math.round(itemLocX) < paperVars.timelineLeft + paperVars.timeineWidth) {
+    const availableBox = new paper.Path.Rectangle({
+      from: new paper.Point(itemLocX + 1, paperVars.timelineTop + 1),
+      to: new paper.Point(
+        paperVars.timelineLeft + paperVars.timeineWidth - 1,
+        paperVars.sequenceTop - 5
+      ),
+      fillColor: paperRefs.current.styles.availableBkgColor,
+      name: "availableBox",
+    });
+    const availableMiddleX = (itemLocX + paperVars.timelineLeft + paperVars.timeineWidth) / 2;
+    const seconds =
+      (paperVars.timelineLeft + paperVars.timeineWidth - itemLocX) *
+      (1 / paperVars.pixelsPerSecondX);
+    const timeHrs = Math.floor(seconds / 3600);
+    const timeMins = Math.round((seconds % 3600) / 60);
+    const availableLabel = new paper.PointText({
+      point: new paper.Point(availableMiddleX, paperVars.sequenceTop + 14),
+      justification: "center",
+      content: "Available (" + timeHrs + ":" + padZeros(timeMins, 2) + ")",
+      fillColor: paperRefs.current.styles.sequenceColor,
+      name: "availableLabel",
+    });
+    const group = new paper.Group();
+    group.addChildren([availableBox, availableLabel]);
+  }
+}
+
+/**
+ * Initialize a new paper ref. Calcaulates the paper vars given the data in the store ref and canvas size
+ */
+function initPaperRef(
+  paperRefs: MutableRefObject<PaperDrawings>,
+  storeRefs: MutableRefObject<StoreData_PaperJS>
+) {
   paperRefs.current = {
     timeMarkers: new paper.Group(),
     evaSequence: [],
     walkbacks: [],
     landerDistance: [],
+    elevationProfile: [],
     graphBkg: new paper.Group(),
     graphAxis: new paper.Group(),
     hoverLine: new paper.Group(),
@@ -180,396 +694,133 @@ function drawTimeline(
       regularBkgColor: new paper.Color("#313440"), //var(--grey1)
       walkbackColor: new paper.Color("#cb0000"), //var(--alert)
       gNavigatorFontFamilyActivity: "Inter",
-      hoverColor: new paper.Color("#cb0000"), //var(--alert)
+      hoverColor: new paper.Color("#00C2FF"),
+      elevationLine: new paper.Color("#5D3FD3"),
+      elevationShade: new paper.Color("#BDB5D5"),
     },
     paperVars: {
       canvasWidth: paper.view.size.width, //full drawing area
       canvasHeight: paper.view.size.height,
-      graphHeight: null, //just the grpah drawing area
-      graphWidth: null,
-
-      pixelsPerSecond: null,
-      pixelsPerMeter: null,
-      graphTop: null,
-      graphLeft: null,
+      timelineHeight: null, //just the grpah drawing area
+      timeineWidth: null,
+      timelineTop: null,
+      timelineLeft: null,
       sequenceTop: null,
       sequenceHeight: null,
-      distanceGraphHeight: null,
+      graphHeight: null,
+      pixelsPerSecondX: null,
+      pixelsPerMeterDistanceY: null,
+      pixelsPerMeterElevationY: null,
+      landerElevationFromGraphTop: null,
     },
   };
   const paperVars = paperRefs.current.paperVars; //save this to a shorter reference so it reduces the variable name when used below
 
-  paperVars.graphWidth = paperVars.canvasWidth * 0.8;
-  paperVars.graphHeight = paperVars.canvasHeight * 0.6;
-  paperVars.pixelsPerSecond =
-    paperVars.graphWidth /
-    (Math.max(storeRefs.current.evaLength, storeRefs.current.evaLengthCalculated) * 60);
-  paperVars.graphTop = (paperVars.canvasHeight - paperVars.graphHeight) / 3;
-  paperVars.graphLeft = (paperVars.canvasWidth - paperVars.graphWidth) / 2;
-  paperVars.sequenceTop = paperVars.graphTop + paperVars.graphHeight - paperVars.graphHeight * 0.25;
-  paperVars.sequenceHeight = paperVars.graphHeight * 0.2;
-  paperVars.distanceGraphHeight = paperVars.sequenceTop - paperVars.graphTop - 4;
-  paperVars.pixelsPerMeter =
-    paperVars.distanceGraphHeight / storeRefs.current.maxDistanceFromLander;
-
-  //draws skeleton graph axis
-  function drawGraphAxis() {
-    //draw top and bottom lines
-    const topLine = new paper.Path.Line({
-      to: new paper.Point(paperVars.graphLeft, paperVars.graphTop),
-      from: new paper.Point(paperVars.graphLeft + paperVars.graphWidth, paperVars.graphTop),
-      strokeColor: paperRefs.current.styles.lineColor,
-    });
-    const bottomLine = new paper.Path.Line({
-      from: new paper.Point(paperVars.graphLeft, paperVars.sequenceTop - 4),
-      to: new paper.Point(paperVars.graphLeft + paperVars.graphWidth, paperVars.sequenceTop - 4),
-      strokeColor: paperRefs.current.styles.lineColor,
-    });
-    paperRefs.current.graphAxis.addChildren([topLine, bottomLine]);
-
-    //draw start and end lines for eva length
-    drawTimeMarker(paperVars.graphLeft, paperRefs.current.styles.startEndHighlight);
-    drawTimeMarker(
-      paperVars.graphLeft + storeRefs.current.evaLength * paperVars.pixelsPerSecond * 60,
-      paperRefs.current.styles.sequenceColor
-    );
-
-    //draw PET label
-    const petLabel = new paper.PointText({
-      point: new paper.Point(
-        paperVars.graphLeft - 10,
-        paperVars.graphTop + paperVars.graphHeight + 30
-      ),
-      justification: "left",
-      fontFamily: paperRefs.current.styles.gNavigatorFontFamilyActivity,
-      fontSize: 12,
-      fillColor: "#FFFFFF",
-      content: "PET",
-    });
-    petLabel.rotate(
-      -90,
-      new paper.Point(paperVars.graphLeft - 10, paperVars.graphTop + paperVars.graphHeight + 30)
-    );
-
-    //draw y axis meters
-    drawMeterMarker(
-      paperVars.graphTop,
-      Math.round(storeRefs.current.maxDistanceFromLander).toString()
-    );
-    drawMeterMarker(paperVars.sequenceTop - 4, "0");
-    //draw meter lines
-    const numMarkers = Math.floor(paperVars.distanceGraphHeight / 20); //spacing for markers
-    const metersBetweenMarkers = storeRefs.current.maxDistanceFromLander / numMarkers;
-    for (let i = 1; i < numMarkers; i++) {
-      drawMeterMarker(
-        paperVars.graphTop + metersBetweenMarkers * i * paperVars.pixelsPerMeter,
-        Math.round(storeRefs.current.maxDistanceFromLander - metersBetweenMarkers * i).toString()
-      );
-    }
+  paperVars.timeineWidth = paperVars.canvasWidth * 0.8;
+  paperVars.timelineHeight = paperVars.canvasHeight * 0.6;
+  paperVars.timelineTop = (paperVars.canvasHeight - paperVars.timelineHeight) / 3;
+  paperVars.timelineLeft = (paperVars.canvasWidth - paperVars.timeineWidth) / 2;
+  paperVars.sequenceTop =
+    paperVars.timelineTop + paperVars.timelineHeight - paperVars.timelineHeight * 0.25;
+  paperVars.sequenceHeight = paperVars.timelineHeight * 0.2;
+  paperVars.graphHeight = paperVars.sequenceTop - paperVars.timelineTop - 4; //4px buffer between graph bottom and beginning of sequence
+  paperVars.pixelsPerSecondX =
+    paperVars.timeineWidth /
+    (Math.max(storeRefs.current.evaLengthMins, storeRefs.current.evaLengthCalculatedMins) * 60);
+  paperVars.pixelsPerMeterDistanceY =
+    paperVars.graphHeight / storeRefs.current.maxDistanceFromLanderMeters;
+  paperVars.pixelsPerMeterElevationY =
+    paperVars.graphHeight /
+    (storeRefs.current.maxElevationMeters - storeRefs.current.minElevationMeters);
+  if (!storeRefs.current.landerElevationMeters) {
+    paperVars.landerElevationFromGraphTop = null;
+  } else {
+    paperVars.landerElevationFromGraphTop =
+      (storeRefs.current.maxElevationMeters - storeRefs.current.landerElevationMeters) *
+      paperVars.pixelsPerMeterElevationY;
   }
+}
 
-  //draws the distance from lander line graph, and also the walk back if it's a station
-  function drawLanderDistanceGraph() {
-    let itemLocX: number = paperVars.graphLeft;
-    for (let i = 0; i < storeRefs.current.sequenceItems.length; i++) {
-      const sequenceItem = storeRefs.current.sequenceItems[i];
-      if (!sequenceItem.distanceFromLander || sequenceItem.distanceFromLander.length === 0) {
-        //there is no distance from lander calculated (can happen if lander location isn't set for this mission).
-        continue;
-      }
-      const landerDistanceGroup = new paper.Group();
-      landerDistanceGroup.name = sequenceItem.uuid;
-
-      //draw walkback line if this is a station and it has a walkback
-      if (sequenceItem.type === "station" && sequenceItem.walkback) {
-        const walkbackGroup = drawWalkback(itemLocX, sequenceItem.walkback);
-        paperRefs.current.walkbacks.push(walkbackGroup);
-      }
-
-      //draw a line for each duration segment
-      for (let j = 0; j < sequenceItem.durations.length; j++) {
-        const width = sequenceItem.durations[j] * paperVars.pixelsPerSecond * 60; //duration is in minutes
-        const itemLocYStart =
-          paperVars.graphTop +
-          paperVars.distanceGraphHeight -
-          sequenceItem.distanceFromLander[j] * paperVars.pixelsPerMeter;
-        //on traverses, there's always one more item in distanceFromLander array than the duration array
-        //if we're on a station, just make the End equal to the Start
-        const itemLocYEnd =
-          sequenceItem.distanceFromLander.length - 1 > j
-            ? paperVars.graphTop +
-              paperVars.distanceGraphHeight -
-              sequenceItem.distanceFromLander[j + 1] * paperVars.pixelsPerMeter
-            : itemLocYStart;
-        const graphLine = new paper.Path.Line({
-          from: new paper.Point(itemLocX, itemLocYStart),
-          to: new paper.Point(itemLocX + width, itemLocYEnd),
-          strokeColor: paperRefs.current.styles.sequenceColor,
-          strokeWidth: 1.5,
-        });
-        landerDistanceGroup.addChild(graphLine);
-
-        //draw first and last dots on the distance graph
-        if (i === 0 && j === 0) {
-          const diamond = new paper.Path.Rectangle({
-            point: new paper.Point(itemLocX - 3, itemLocYStart - 3),
-            size: 6,
-            fillColor: paperRefs.current.styles.sequenceColor,
-          });
-          diamond.rotate(45);
-          landerDistanceGroup.addChild(diamond);
-        }
-        if (
-          i === storeRefs.current.sequenceItems.length - 1 &&
-          j === sequenceItem.durations.length - 1
-        ) {
-          const diamond = new paper.Path.Rectangle({
-            point: new paper.Point(itemLocX + width - 3, itemLocYStart - 3),
-            size: 6,
-            fillColor: paperRefs.current.styles.sequenceColor,
-          });
-          diamond.rotate(45);
-          landerDistanceGroup.addChild(diamond);
-        }
-
-        paperRefs.current.landerDistance.push(landerDistanceGroup);
-        itemLocX += width; //increment x
-      }
-    }
-  }
-
-  //draws the EVA sequence - station boxes, traverses, and vertical time markers
-  function drawSequence() {
-    let itemLocX: number = paperVars.graphLeft;
-    for (let i = 0; i < storeRefs.current.sequenceItems.length; i++) {
-      const sequenceItem = storeRefs.current.sequenceItems[i];
-      const sequenceItemGroup = new paper.Group();
-      let width = 0;
-      if (sequenceItem.type === "station") {
-        //draw box
-        width = paperVars.pixelsPerSecond * sequenceItem.durations[0] * 60;
-        const stationBox = new paper.Rectangle(
-          new paper.Point(itemLocX, paperVars.sequenceTop),
-          new paper.Point(itemLocX + width, paperVars.sequenceTop + paperVars.sequenceHeight)
-        );
-        const stationBoxRounded = new paper.Path.Rectangle({
-          rectangle: stationBox,
-          radius: new paper.Size(5, 5),
-          strokeColor: paperRefs.current.styles.sequenceColor,
-          strokeWidth: 1.5,
-        });
-
-        //label
-        const stationMiddleX = itemLocX + width / 2;
-        const label = new paper.PointText({
-          point: new paper.Point(stationMiddleX, paperVars.sequenceTop + 14),
-          justification: "center",
-          content: sequenceItem.name,
-          fillColor: paperRefs.current.styles.sequenceColor,
-        });
-        //clip mask for station box
-        const clipRectangle = new paper.Path.Rectangle(
-          new paper.Point(itemLocX - 1, paperVars.sequenceTop - 1),
-          new paper.Point(
-            itemLocX + width + 1,
-            paperVars.sequenceTop + paperVars.sequenceHeight + 1
-          )
-        );
-
-        sequenceItemGroup.addChildren([clipRectangle, stationBoxRounded, label]);
-        sequenceItemGroup.clipped = true;
-      } else if (sequenceItem.type === "traverse") {
-        width =
-          paperVars.pixelsPerSecond *
-          sequenceItem.durations.reduce(
-            (accumulator, currentValue) => accumulator + currentValue,
-            0
-          ) *
-          60;
-        const traverseLine = new paper.Path.Line({
-          from: new paper.Point(itemLocX, paperVars.sequenceTop + 10),
-          to: new paper.Point(itemLocX + width, paperVars.sequenceTop + 10),
-          strokeColor: paperRefs.current.styles.sequenceColor,
-          strokeWidth: 1.5,
-          dashArray: [5, 2],
-        });
-        sequenceItemGroup.addChild(traverseLine);
-      }
-
-      //add station or traverse group to the sequence array
-      sequenceItemGroup.name = sequenceItem.uuid;
-      paperRefs.current.evaSequence.push(sequenceItemGroup);
-
-      //draw background rectangle (that turns yellow when selected) and add it to the paper refs
-      const bkgRect = new paper.Path.Rectangle({
-        rectangle: new paper.Rectangle(
-          new paper.Point(itemLocX + 1, paperVars.graphTop + 1),
-          new paper.Point(itemLocX + width - 1, paperVars.sequenceTop - 5)
-        ),
-        fillColor: paperRefs.current.styles.regularBkgColor,
-        name: sequenceItem.uuid,
-      });
-      paperRefs.current.graphBkg.addChild(bkgRect);
-
-      //move x-axis location
-      itemLocX += width;
-
-      //draw sequence ending time marker and add it to the paper refs
-      const markerColor =
-        i === storeRefs.current.sequenceItems.length - 1
-          ? paperRefs.current.styles.startEndHighlight
-          : paperRefs.current.styles.lineColor;
-      const timeMarkerEnd = drawTimeMarker(itemLocX, markerColor);
-      timeMarkerEnd.name = sequenceItem.uuid;
-      paperRefs.current.timeMarkers.addChild(timeMarkerEnd);
-    }
-
-    //draw "Available" block at the end of the sequence
-    if (Math.round(itemLocX) < paperVars.graphLeft + paperVars.graphWidth) {
-      const availableBox = new paper.Path.Rectangle({
-        from: new paper.Point(itemLocX + 1, paperVars.graphTop + 1),
-        to: new paper.Point(
-          paperVars.graphLeft + paperVars.graphWidth - 1,
-          paperVars.sequenceTop - 5
-        ),
-        fillColor: paperRefs.current.styles.availableBkgColor,
-        name: "availableBox",
-      });
-      const availableMiddleX = (itemLocX + paperVars.graphLeft + paperVars.graphWidth) / 2;
-      const seconds =
-        (paperVars.graphLeft + paperVars.graphWidth - itemLocX) * (1 / paperVars.pixelsPerSecond);
-      const timeHrs = Math.floor(seconds / 3600);
-      const timeMins = Math.round((seconds % 3600) / 60);
-      const availableLabel = new paper.PointText({
-        point: new paper.Point(availableMiddleX, paperVars.sequenceTop + 14),
-        justification: "center",
-        content: "Available (" + timeHrs + ":" + padZeros(timeMins, 2) + ")",
-        fillColor: paperRefs.current.styles.sequenceColor,
-        name: "availableLabel",
-      });
-      const group = new paper.Group();
-      group.addChildren([availableBox, availableLabel]);
-    }
-  }
-
-  /**
-   * Draws the walkback path for a given station
-   * @param xLoc x location that the walkback starts
-   * @param walkbackData the walkback data for a station
-   * @param customColor optional color to draw the line with
-   * @returns a papergroup containing the walkback drawing for this station
-   */
-  function drawWalkback(
-    xLoc: number,
-    walkbackData: Walkback_PaperJS,
-    customColor: paper.Color = null
-  ): paper.Group {
-    const walkbackGroup = new paper.Group();
-    const color = customColor || paperRefs.current.styles.walkbackColor;
-    let itemLocX: number = xLoc;
-
-    //draw a line for each duration segment
-    for (let j = 0; j < walkbackData.durations.length; j++) {
-      const width = walkbackData.durations[j] * paperVars.pixelsPerSecond * 60; //duration is in minutes
-      const itemLocYStart =
-        paperVars.graphTop +
-        paperVars.distanceGraphHeight -
-        walkbackData.distanceFromLander[j] * paperVars.pixelsPerMeter;
-      //on traverses, there's always one more item in distanceFromLander array than the duration array
-      //if we're on a station, just make the End equal to the Start
-      const itemLocYEnd =
-        walkbackData.distanceFromLander.length - 1 > j
-          ? paperVars.graphTop +
-            paperVars.distanceGraphHeight -
-            walkbackData.distanceFromLander[j + 1] * paperVars.pixelsPerMeter
-          : itemLocYStart;
-      const graphLine = new paper.Path.Line({
-        from: new paper.Point(itemLocX, itemLocYStart),
-        to: new paper.Point(itemLocX + width, itemLocYEnd),
-        strokeColor: color,
-        strokeWidth: 1.5,
-      });
-      graphLine.dashArray = [5, 2];
-      walkbackGroup.addChild(graphLine);
-      itemLocX += width;
-    }
-    return walkbackGroup;
-  }
-
-  /**
-   * draws the vertical line wtih the rotated time at the bottom.
-   * @param xLoc x location of the time marker
-   * @param customColor optional color to draw the line with
-   * @returns a paper group containing the line and time text
-   */
-  function drawTimeMarker(xLoc: number, customColor: paper.Color = null): paper.Group {
-    const markerGroup = new paper.Group();
-    const color = customColor || paperRefs.current.styles.lineColor;
-    const verticalLine = new paper.Path.Line({
-      from: new paper.Point(xLoc, paperVars.graphTop),
-      to: new paper.Point(xLoc, paperVars.graphTop + paperVars.graphHeight),
-      strokeColor: color,
-      strokeWidth: 1,
-    });
-    verticalLine.name = "lineMarker";
-    const seconds = (xLoc - paperVars.graphLeft) * (1 / paperVars.pixelsPerSecond);
-    const timeHrs = Math.floor(seconds / 3600);
-    const timeMins = Math.round((seconds % 3600) / 60);
-    const timeLabel = new paper.PointText({
-      point: new paper.Point(xLoc + 4, paperVars.graphTop + paperVars.graphHeight + 30),
-      justification: "left",
-      fontFamily: paperRefs.current.styles.gNavigatorFontFamilyActivity,
-      fontSize: 12,
-      fillColor: color,
-      content: timeHrs + ":" + padZeros(timeMins, 2),
-    });
-    timeLabel.rotate(
-      -90,
-      new paper.Point(xLoc + 4, paperVars.graphTop + paperVars.graphHeight + 30)
-    );
-    markerGroup.addChildren([timeLabel]);
-    return markerGroup;
-  }
-
-  //draws the y axis meter ticks
-  function drawMeterMarker(yLoc: number, label: string): paper.Group {
-    const markerGroup = new paper.Group();
-    const horizontalLine = new paper.Path.Line({
-      from: new paper.Point(paperVars.graphLeft - 10, yLoc),
-      to: new paper.Point(paperVars.graphLeft, yLoc),
-      strokeColor: paperRefs.current.styles.lineColor,
-      strokeWidth: 1,
-    });
-    const meterLabel = new paper.PointText({
-      point: new paper.Point(paperVars.graphLeft - 15, yLoc + 4),
-      justification: "right",
-      fontFamily: paperRefs.current.styles.gNavigatorFontFamilyActivity,
-      fontSize: 12,
-      fillColor: paperRefs.current.styles.sequenceColor,
-      content: label + " m",
-    });
-    markerGroup.addChildren([horizontalLine, meterLabel]);
-    return markerGroup;
-  }
+/**
+ * Main function to draw the timeline. All the paper drawing happens here
+ */
+function drawTimeline(
+  paperRefs: MutableRefObject<PaperDrawings>,
+  storeRefs: MutableRefObject<StoreData_PaperJS>,
+  isEvaSelected: boolean
+) {
+  //clear project and initilize paper refs
+  paper.project.clear();
+  initPaperRef(paperRefs, storeRefs);
 
   //draw all the things
-  drawGraphAxis();
+  drawGraphAxis(paperRefs, storeRefs);
   if (isEvaSelected) {
-    drawSequence();
-    drawLanderDistanceGraph();
+    drawSequence(paperRefs, storeRefs);
+    drawLanderDistanceGraph(paperRefs, storeRefs);
+    drawElevationProfile(paperRefs, storeRefs);
     highlightSelection(paperRefs, storeRefs);
   }
-
-  //draw hover line
-  const hoverLine = new paper.Path.Line({
-    from: new paper.Point(paperVars.graphLeft, paperVars.graphTop),
-    to: new paper.Point(paperVars.graphLeft, paperVars.graphTop + paperVars.graphHeight),
-    strokeColor: paperRefs.current.styles.hoverColor,
-    strokeWidth: 1,
-  });
-  paperRefs.current.hoverLine.addChild(hoverLine);
-  paperRefs.current.hoverLine.visible = false;
 }
+
+/**
+ * On mouse hover handler for paper js
+ */
+const throttledOnMouseMove = (
+  dispatch: Dispatch,
+  paperRefs: MutableRefObject<PaperDrawings>,
+  storeRefs: MutableRefObject<StoreData_PaperJS>,
+  waitMs: number
+) => {
+  const handlerFn = (event: paper.MouseEvent) => {
+    const xLoc = event.point.x;
+    //check if we're inside the bounds of the graph
+    if (
+      xLoc > paperRefs.current.paperVars.timelineLeft &&
+      xLoc < paperRefs.current.paperVars.timelineLeft + paperRefs.current.paperVars.timeineWidth
+    ) {
+      //remove old line, draw new line
+      paperRefs.current.hoverLine.removeChildren();
+      paperRefs.current.hoverLine.addChild(
+        drawTimeMarker(paperRefs, event.point.x, paperRefs.current.styles.hoverColor)
+      );
+      paperRefs.current.hoverLine.bringToFront();
+      paperRefs.current.hoverLine.visible = true;
+
+      //calculate hover seconds
+      const seconds =
+        (event.point.x - paperRefs.current.paperVars.timelineLeft) /
+        paperRefs.current.paperVars.pixelsPerSecondX;
+
+      //determine sequence item
+      let sequenceUuid = null;
+      let sequenceItemPercentElapsed = null;
+      for (const bkgBlock of paperRefs.current.graphBkg.children) {
+        if (bkgBlock.contains(new paper.Point(xLoc, paperRefs.current.paperVars.timelineTop + 1))) {
+          //add 1 so the y point would be inside the block
+          sequenceUuid = bkgBlock.name;
+          const sequenceItem = storeRefs.current.sequenceItems.find(
+            (seqItem) => seqItem.uuid === bkgBlock.name
+          );
+          sequenceItemPercentElapsed =
+            (seconds - sequenceItem.secondsStart) / (sequenceItem.subdividedTotalDurationMins * 60);
+          break;
+        }
+      }
+
+      //save hover data to store
+      dispatch(setHover({ seconds, sequenceUuid, sequenceItemPercentElapsed }));
+    } else {
+      //mouse is outside of the grpah area but is still inside paper canvas
+      paperRefs.current.hoverLine.visible = false;
+      dispatch(clearHover());
+    }
+  };
+  return _.throttle(handlerFn, waitMs, {
+    leading: true,
+    trailing: false,
+  });
+};
 
 /**
  * Renders the navigation timeline presented at the bottom of the window
@@ -588,14 +839,7 @@ const NavTimeline: FunctionComponent = () => {
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid)?.traverseRate,
     refEqual
   );
-  const landerLocation = useAppSelector(
-    (state) => state.mission.mission?.landerLocation,
-    shallowEqual
-  );
-  const planetRadius = useAppSelector(
-    (state) => state.mission.mission?.config.msv.radius.minor,
-    refEqual
-  );
+  const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
@@ -612,27 +856,46 @@ const NavTimeline: FunctionComponent = () => {
     storeRefs.current = {
       sequenceItems: [],
       selectedEvaSequenceItemUuid,
-      maxDistanceFromLander: 0,
-      evaLength: selectedEva?.maxDuration ? +selectedEva?.maxDuration : 240, //default 4 hours in minutes
-      evaLengthCalculated: 0,
+      maxDistanceFromLanderMeters: 0,
+      evaLengthMins: selectedEva?.maxDuration ? +selectedEva?.maxDuration : 240, //default 4 hours in minutes
+      evaLengthCalculatedMins: 0,
+      maxElevationMeters: null,
+      minElevationMeters: null,
+      landerElevationMeters: null,
+      traverseRateMSec: null,
+      elevationResolutionMeters: null,
     };
 
-    if (selectedEva?.sequence) {
+    if (selectedEva?.sequence && mission) {
+      const planetRadius = parseFloat(mission?.config.msv.radius.minor);
+
+      storeRefs.current.traverseRateMSec = isNaN(evaTraverseRate)
+        ? 0
+        : +evaTraverseRate * (1000 / 3600);
+      storeRefs.current.elevationResolutionMeters = mission.config.tools.find(
+        (tool) => tool.name === "Measure"
+      )?.variables["resolution"];
+      storeRefs.current.landerElevationMeters = mission.landerElevationMeters;
+
       for (const sequenceItem of selectedEva.sequence) {
         const sequenceItemForPaperJS: EvaSequenceItem_PaperJS = {
           ...sequenceItem,
-          durations: null,
-          totalDuration: null,
           name: null,
-          coordinates: null,
-          distanceFromLander: null,
-          secondsStart: storeRefs.current.evaLengthCalculated * 60,
+          subdividedCoordinates: null,
+          secondsStart: storeRefs.current.evaLengthCalculatedMins * 60,
+          subdividedDurationsMins: null,
+          subdividedTotalDurationMins: null,
+          subdividedDistFromLanderMeters: null,
+          segmentElevationMeters: null,
         };
         if (sequenceItem.type === "station") {
           const station = stations.find((station) => station.uuid === sequenceItem.uuid);
           if (!station) continue; //skip if station doesn't exist (happens when station hasn't been selected yet when editing sequence)
           sequenceItemForPaperJS.name = station.name;
-          sequenceItemForPaperJS.coordinates = station.location;
+          sequenceItemForPaperJS.subdividedCoordinates = station.location;
+          sequenceItemForPaperJS.segmentElevationMeters = station.elevation
+            ? [[station.elevation]]
+            : null;
 
           //calculate duration from actions assigned to station
           let durationMinutes = 0;
@@ -645,67 +908,63 @@ const NavTimeline: FunctionComponent = () => {
               durationMinutes += isNaN(actionDuration) ? 0 : actionDuration;
             }
           }
-          sequenceItemForPaperJS.durations = [durationMinutes];
-          sequenceItemForPaperJS.totalDuration = durationMinutes;
-          storeRefs.current.evaLengthCalculated += durationMinutes; //add to sum for total length calculated
+          sequenceItemForPaperJS.subdividedDurationsMins = [durationMinutes];
+          sequenceItemForPaperJS.subdividedTotalDurationMins = durationMinutes;
+          storeRefs.current.evaLengthCalculatedMins += durationMinutes; //add to sum for total length calculated
 
-          if (landerLocation) {
+          if (mission.landerLocation) {
             //calculate distance to lander
             const landerDistance = getDistanceBetweenTwoCoordinates(
               station.location,
-              landerLocation,
-              parseFloat(planetRadius)
+              mission.landerLocation,
+              planetRadius
             );
 
-            if (landerDistance > storeRefs.current.maxDistanceFromLander)
-              storeRefs.current.maxDistanceFromLander = landerDistance;
-            sequenceItemForPaperJS.distanceFromLander = [landerDistance];
+            if (landerDistance > storeRefs.current.maxDistanceFromLanderMeters)
+              storeRefs.current.maxDistanceFromLanderMeters = landerDistance;
+            sequenceItemForPaperJS.subdividedDistFromLanderMeters = [landerDistance];
 
             //calculate walkback path if this station has a walkback
             if (station.walkbackPath) {
               const walkback: Walkback_PaperJS = {
                 path: null,
-                durations: null,
-                distanceFromLander: null,
+                durationsMins: null,
+                distanceFromLanderMeters: null,
               };
               // subdivide seach segment by 150 meters for greater accuracy
-              const numPointsAt150Meters = Math.floor(
-                getTotalDistance(station.walkbackPath, parseInt(planetRadius)) / 150
-              );
-
-              const newWalkbackPath: AEGISPoint[] = generateEquidistantPointsAlongPolyline(
+              const newWalkbackPath: AEGISPoint[] = addPointsAtMeters(
                 station.walkbackPath,
-                numPointsAt150Meters,
-                parseInt(planetRadius)
+                150,
+                planetRadius
               );
               walkback.path = newWalkbackPath;
 
-              walkback.distanceFromLander = [];
-              walkback.durations = [];
+              walkback.distanceFromLanderMeters = [];
+              walkback.durationsMins = [];
               //loop through new subdivided walkback path
               for (let i = 0; i < newWalkbackPath.length; i++) {
                 //calculate distance from lander. Track max distance
                 const landerDistance = getDistanceBetweenTwoCoordinates(
                   newWalkbackPath[i],
-                  landerLocation,
-                  parseFloat(planetRadius)
+                  mission.landerLocation,
+                  planetRadius
                 );
 
-                if (landerDistance > storeRefs.current.maxDistanceFromLander)
-                  storeRefs.current.maxDistanceFromLander = landerDistance;
-                walkback.distanceFromLander.push(landerDistance);
+                if (landerDistance > storeRefs.current.maxDistanceFromLanderMeters)
+                  storeRefs.current.maxDistanceFromLanderMeters = landerDistance;
+                walkback.distanceFromLanderMeters.push(landerDistance);
 
                 //calculate duration. distance is in m, rate is in km/hr, duration is in minutes
                 if (i !== newWalkbackPath.length - 1) {
                   const distanceSegment = getDistanceBetweenTwoCoordinates(
                     newWalkbackPath[i],
                     newWalkbackPath[i + 1],
-                    parseFloat(planetRadius)
+                    planetRadius
                   );
                   const duration = isNaN(evaTraverseRate)
                     ? 0
                     : (distanceSegment / (+evaTraverseRate * 1000)) * 60;
-                  walkback.durations.push(duration);
+                  walkback.durationsMins.push(duration);
                 }
               }
 
@@ -718,31 +977,45 @@ const NavTimeline: FunctionComponent = () => {
           if (!traverse || traverse?.path?.length < 2) continue; //skip traverses with less than 2 points
           sequenceItemForPaperJS.name = traverse.name;
 
-          //subdivide seach segment by 150 meters for greater accuracy
-          const numPointsAt150Meters =
-            getTotalDistance(traverse.path, parseInt(planetRadius)) / 150;
-          const newTraverse: AEGISPoint[] = generateEquidistantPointsAlongPolyline(
-            traverse.path,
-            numPointsAt150Meters,
-            parseInt(planetRadius)
-          );
-          sequenceItemForPaperJS.coordinates = newTraverse;
+          //find max/min of elevation
+          if (traverse.pathSegmentElevations) {
+            for (const elevationSegment of traverse.pathSegmentElevations) {
+              for (const elevation of elevationSegment) {
+                if (
+                  !storeRefs.current.maxElevationMeters ||
+                  storeRefs.current.maxElevationMeters < elevation
+                ) {
+                  storeRefs.current.maxElevationMeters = elevation;
+                }
+                if (
+                  !storeRefs.current.minElevationMeters ||
+                  storeRefs.current.minElevationMeters > elevation
+                ) {
+                  storeRefs.current.minElevationMeters = elevation;
+                }
+              }
+            }
+          }
 
-          sequenceItemForPaperJS.distanceFromLander = [];
-          sequenceItemForPaperJS.durations = [];
-          sequenceItemForPaperJS.totalDuration = 0;
+          //subdivide seach traverse segment by 150 meters for greater accuracy
+          const newTraverse: AEGISPoint[] = addPointsAtMeters(traverse.path, 150, planetRadius);
+          sequenceItemForPaperJS.subdividedCoordinates = newTraverse;
+
+          sequenceItemForPaperJS.subdividedDistFromLanderMeters = [];
+          sequenceItemForPaperJS.subdividedDurationsMins = [];
+          sequenceItemForPaperJS.subdividedTotalDurationMins = 0;
           //loop through new subdivided traverse
           for (let i = 0; i < newTraverse.length; i++) {
-            if (landerLocation) {
+            if (mission.landerLocation) {
               //calculate distance from lander. Track max distance
               const landerDistance = getDistanceBetweenTwoCoordinates(
                 newTraverse[i],
-                landerLocation,
-                parseFloat(planetRadius)
+                mission.landerLocation,
+                planetRadius
               );
-              if (landerDistance > storeRefs.current.maxDistanceFromLander)
-                storeRefs.current.maxDistanceFromLander = landerDistance;
-              sequenceItemForPaperJS.distanceFromLander.push(landerDistance);
+              if (landerDistance > storeRefs.current.maxDistanceFromLanderMeters)
+                storeRefs.current.maxDistanceFromLanderMeters = landerDistance;
+              sequenceItemForPaperJS.subdividedDistFromLanderMeters.push(landerDistance);
             }
 
             //calculate duration. distance is in m, rate is in km/hr, duration is in minutes
@@ -750,16 +1023,20 @@ const NavTimeline: FunctionComponent = () => {
               const distanceSegment = getDistanceBetweenTwoCoordinates(
                 newTraverse[i],
                 newTraverse[i + 1],
-                parseFloat(planetRadius)
+                planetRadius
               );
               const duration = isNaN(evaTraverseRate)
                 ? 0
                 : (distanceSegment / (+evaTraverseRate * 1000)) * 60;
-              sequenceItemForPaperJS.durations.push(duration);
-              sequenceItemForPaperJS.totalDuration += duration;
-              storeRefs.current.evaLengthCalculated += duration; //add to sum for total length calculated
+              sequenceItemForPaperJS.subdividedDurationsMins.push(duration);
+              sequenceItemForPaperJS.subdividedTotalDurationMins += duration;
+              storeRefs.current.evaLengthCalculatedMins += duration; //add to sum for total length calculated
             }
           }
+
+          //elevation
+          sequenceItemForPaperJS.segmentElevationMeters = traverse.pathSegmentElevations;
+          sequenceItemForPaperJS.segmentDistancesMeters = traverse.pathSegmentDistances;
         }
         storeRefs.current.sequenceItems.push(sequenceItemForPaperJS);
       }
@@ -770,8 +1047,7 @@ const NavTimeline: FunctionComponent = () => {
     actions,
     traverses,
     evaTraverseRate,
-    planetRadius,
-    landerLocation,
+    mission,
     selectedEvaSequenceItemUuid,
   ]);
 
@@ -786,12 +1062,11 @@ const NavTimeline: FunctionComponent = () => {
     if (isNil(paper.project) && typeof window !== "undefined") {
       paper.setup(canvas.current);
     }
-    processDataFromStore();
+    processDataFromStore(); //loads data into the storeRef
     drawTimeline(paperRefs, storeRefs, selectedEva !== undefined);
 
     //event handlers
     paper.view.onMouseMove = throttledOnMouseMove(dispatch, paperRefs, storeRefs, 15);
-
     // paper.view.onMouseEnter = () => {};
     paper.view.onMouseLeave = () => {
       paperRefs.current.hoverLine.visible = false;

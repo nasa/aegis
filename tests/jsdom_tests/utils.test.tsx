@@ -1,8 +1,11 @@
 import { describe, expect, test, it } from "@jest/globals";
 import {
+  addPointsAtMeters,
   calcCentroidofCoordinates,
+  computeDestinationPoint,
   convertLeafletLatLngToAegisPoint,
   getDistanceBetweenTwoCoordinates,
+  getRhumbLineBearing,
   getTotalDistance,
 } from "utils/geoMath";
 import { LatLng } from "leaflet";
@@ -23,6 +26,7 @@ import {
 import { getEM } from "utils/mikro";
 
 describe("Utilities Functions", () => {
+  const earthRadius = 6371000; //6378137;
   const latLng1: LatLng = new LatLng(0, 0);
   const latLng2: LatLng = new LatLng(0, 0);
   const tests = [
@@ -185,6 +189,95 @@ describe("Utilities Functions", () => {
     expect(toDecimal("sdfsdf")).toBe(null);
     expect(toDecimal(null)).toBe(null);
     expect(toDecimal("")).toBe(null);
+  });
+
+  describe("computeDestinationPoint", () => {
+    it("should get the destination point to a given point, distance and bearing", () => {
+      let point = computeDestinationPoint(
+        { lat: 52.518611, lng: 13.408056 },
+        15000,
+        180,
+        earthRadius
+      );
+      point.lat = +point.lat.toFixed(5);
+      point.lng = +point.lng.toFixed(5);
+
+      expect(point).toEqual({
+        lat: +(52.383712759112186).toFixed(5),
+        lng: +(13.408056).toFixed(5),
+      });
+      point = computeDestinationPoint({ lat: 52.518611, lng: 13.408056 }, 15000, 135, earthRadius);
+      point.lat = +point.lat.toFixed(5);
+      point.lng = +point.lng.toFixed(5);
+      expect(point).toEqual({
+        lat: +(52.42312025947117).toFixed(5),
+        lng: +(13.56447370636139).toFixed(5),
+      });
+    });
+
+    it("should not exceed maxLon or fall below minLon", () => {
+      expect(
+        computeDestinationPoint({ lat: 18.5075232, lng: 73.8047121 }, 50000000, 0, earthRadius)
+      ).toEqual({
+        lat: 71.83167384063478,
+        lng: -106.19528790000001,
+      });
+    });
+
+    it("should leave lng untouched if bearing is 0 or 180", () => {
+      expect(
+        computeDestinationPoint({ lat: 18.5075232, lng: 73.8047121 }, 500, 0, earthRadius)
+      ).toEqual({
+        lat: 18.512019808029596,
+        lng: 73.8047121,
+      });
+
+      expect(
+        computeDestinationPoint({ lat: 18.5075232, lng: 73.8047121 }, 500, 180, earthRadius)
+      ).toEqual({
+        lat: 18.50302659197041,
+        lng: 73.8047121,
+      });
+    });
+  });
+
+  describe("getRhumbLineBearing", () => {
+    it("should return a bearing between two points", () => {
+      expect(
+        getRhumbLineBearing(
+          { lat: 39.778889, lng: -104.9825 },
+          { lat: 43.778889, lng: -102.9825 }
+        ).toFixed(5)
+      ).toEqual((20.438617005368314).toFixed(5));
+    });
+  });
+
+  describe("addPointsAtMeters", () => {
+    it("should return a new path with the same distance as the old path", () => {
+      const path = [
+        { lat: -3.645421873728663, lng: -17.47186660766602 },
+        { lat: -3.6305197977566683, lng: -17.43161201477051 },
+      ];
+      const newPath = addPointsAtMeters(path, 10, earthRadius);
+      const distance = getTotalDistance(path, earthRadius).toFixed(5);
+      const newDistance = getTotalDistance(newPath, earthRadius).toFixed(5);
+      expect(distance).toEqual(newDistance);
+    });
+
+    it("should return the original path if the first and last coordinates are the same", () => {
+      const path = [
+        { lat: -3.645421873728663, lng: -17.47186660766602 },
+        { lat: -3.645421873728663, lng: -17.47186660766602 },
+      ];
+      const newPath = addPointsAtMeters(path, 10, earthRadius);
+      expect(path).toEqual(newPath);
+    });
+
+    it("should return the original path if given a single point", () => {
+      const path = [{ lat: -3.645421873728663, lng: -17.47186660766602 }];
+      const newPath = addPointsAtMeters(path, 10, earthRadius);
+      expect(path).toEqual(newPath);
+    });
   });
 
   describe("Mikro ORM", () => {

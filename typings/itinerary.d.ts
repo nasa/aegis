@@ -52,7 +52,6 @@ interface Traverse {
   path: AEGISPoint[];
   pathSegmentDistances: number[]; //meters
   pathSegmentElevations: number[][]; //meters
-  elevationResolutionMeters: number;
   durationLower: number; //minutes
   durationUpper: number; //minutes
   description: string;
@@ -85,6 +84,7 @@ interface Station {
   description: string;
   radius: number;
   location: AEGISPoint;
+  elevation: number;
   walkbackPath: AEGISPoint[];
   walkbackPathSegmentDistances: number[]; //meters
   icon: string;

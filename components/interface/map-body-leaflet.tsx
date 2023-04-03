@@ -28,7 +28,7 @@ import { setSectionSelected } from "store/interface";
 import {
   revertWalkbackPathAndDistance,
   setSelectedStationUuid,
-  updateStationLocation,
+  updateStationLocationAndElevation,
   updateWalkbackPathAndDistance,
 } from "store/station";
 import { setSelectedEvaRightNavItem, setSelectedEvaSequenceItemUuid } from "store/eva";
@@ -42,6 +42,7 @@ import {
 import { decodeEmoji } from "utils/formatting";
 import { Checkbox } from "./_global-elements";
 import { setHoverItemUuid } from "store/playheadHover";
+import { getElevationSinglePoint } from "http-client/elevation";
 
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
@@ -472,14 +473,23 @@ const MapBody: FunctionComponent = () => {
   );
 
   const saveUpdatedPoiOrStationPosition = useCallback(
-    (uuid: string, mapItemType: MapItemType, location: AEGISPoint) => {
+    async (uuid: string, mapItemType: MapItemType, location: AEGISPoint) => {
       if (mapItemType === "poi") {
         dispatch(updatePoiLocation({ uuid, location }));
       } else if (mapItemType === "station") {
-        dispatch(updateStationLocation({ uuid, location }));
+        // dig the dem filename out of the MMGIS-formatted mission config
+        const measureJson = mission?.config.tools.find(
+          (tool) => tool.name === "Measure"
+        )?.variables;
+        const demFilepath: string = measureJson["dem"];
+        const radius = parseFloat(mission?.config.msv.radius.minor);
+
+        const elevation = (await getElevationSinglePoint(mission.id, demFilepath, location, radius))
+          .data;
+        dispatch(updateStationLocationAndElevation({ uuid, location, elevation }));
       }
     },
-    [dispatch]
+    [dispatch, mission]
   );
 
   /**
@@ -722,19 +732,16 @@ const MapBody: FunctionComponent = () => {
             }
           });
           const thisTraverse = traverses.find((t) => t.uuid === mapDirective?.uuid);
+          const newPath = _.cloneDeep(thisTraverse.path);
+          const newPathSegmentDistances = _.cloneDeep(thisTraverse.pathSegmentDistances);
           if (stationLocationBefore) {
             const newDistance = getDistanceBetweenTwoCoordinates(
               stationLocationBefore,
               thisTraverse.path[1],
               parseFloat(mission.config.msv.radius.minor)
             );
-            dispatch(
-              updateTraversePathAndDistance({
-                uuid: mapDirective?.uuid,
-                path: [stationLocationBefore, ...thisTraverse.path.slice(1)],
-                distance: [newDistance, ...thisTraverse.pathSegmentDistances.slice(1)],
-              })
-            );
+            newPath[0] = stationLocationBefore;
+            newPathSegmentDistances[0] = newDistance;
           }
           if (stationLocationAfter) {
             const newDistance = getDistanceBetweenTwoCoordinates(
@@ -742,14 +749,16 @@ const MapBody: FunctionComponent = () => {
               stationLocationAfter,
               parseFloat(mission.config.msv.radius.minor)
             );
-            dispatch(
-              updateTraversePathAndDistance({
-                uuid: mapDirective?.uuid,
-                path: [...thisTraverse.path.slice(0, -1), stationLocationAfter],
-                distance: [...thisTraverse.pathSegmentDistances.slice(0, -1), newDistance],
-              })
-            );
+            newPath[newPath.length - 1] = stationLocationAfter;
+            newPathSegmentDistances[newPathSegmentDistances.length - 1] = newDistance;
           }
+          dispatch(
+            updateTraversePathAndDistance({
+              uuid: mapDirective?.uuid,
+              path: newPath,
+              distance: newPathSegmentDistances,
+            })
+          );
         }
 
         if (mapDirective.mapItemType === "walkback") {

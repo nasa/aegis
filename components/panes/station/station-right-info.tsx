@@ -506,8 +506,13 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 </>
               )}
               {!editMode && !selectedStation.location && (
-                <div className={paneStyles.panelText}>Location not yet set</div>
+                <div className={paneStyles.panelText}>Location not set</div>
               )}
+            </div>
+
+            <div className={paneStyles.panelSectionTitle}>Elevation (m)</div>
+            <div className={paneStyles.panelText}>
+              {selectedStation.elevation ? selectedStation.elevation.toFixed(2) : "Not set"}
             </div>
           </div>
 

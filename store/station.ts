@@ -57,7 +57,10 @@ export const stationSlice = createSlice({
         );
       }
     },
-    updateStationLocation: (state, action: { payload: { uuid: string; location: AEGISPoint } }) => {
+    updateStationLocationAndElevation: (
+      state,
+      action: { payload: { uuid: string; location: AEGISPoint; elevation: number } }
+    ) => {
       state.stations = state.stations.map((station) => {
         if (station.uuid === action.payload.uuid) {
           // set the first point of the walkback location to the new station location
@@ -65,7 +68,12 @@ export const stationSlice = createSlice({
           if (station.walkbackPath && station.walkbackPath.length > 0) {
             station.walkbackPath[0] = action.payload.location;
           }
-          return { ...station, location: action.payload.location, walkbackPath: walkbackLocation };
+          return {
+            ...station,
+            location: action.payload.location,
+            elevation: action.payload.elevation,
+            walkbackPath: walkbackLocation,
+          };
         }
         return station;
       });
@@ -109,7 +117,7 @@ export const {
   setSelectedStationUuid,
   duplicateStation,
   setStationEditMode,
-  updateStationLocation,
+  updateStationLocationAndElevation,
   updateWalkbackPathAndDistance,
   revertWalkbackPathAndDistance,
 } = stationSlice.actions;

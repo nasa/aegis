@@ -4,5 +4,5 @@ type ElevationProfilePostData = {
   path: AEGISPoint[];
   pathSegmentDistances: number[];
   resolutionMeters: number;
-  R: number;
+  radius: number;
 };
