@@ -72,6 +72,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
 
     // dig the dem filename out of the MMGIS-formatted mission config
     const measureJson = mission?.config.tools.find((tool) => tool.name === "Measure")?.variables;
+    const elevationResolutionMeters = measureJson["resolution"];
     const demFilepath: string = measureJson["dem"];
 
     // generate new elevation profile via api
@@ -80,14 +81,13 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
       demFilepath,
       selectedTraverse.path,
       selectedTraverse.pathSegmentDistances,
-      10, // resolution in meters //TODO: should this be a config value based on the resolution of the DEM?
+      elevationResolutionMeters || 10, // resolution in meters, default 10
       R
     );
     dispatch(
       upsertTraverse({
         ...selectedTraverse,
         pathSegmentElevations: newElevationProfile.data,
-        elevationResolutionMeters: 10,
       })
     );
 

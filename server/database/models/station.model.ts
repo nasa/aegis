@@ -38,6 +38,8 @@ export class Station implements Station_db_type {
   radius!: number;
   @Property({ type: MikroTypes.json, nullable: true })
   location: AEGISPoint;
+  @Property({ type: MikroTypes.float, nullable: true })
+  elevation!: number;
   @Property({ type: MikroTypes.json, nullable: true })
   walkbackPath: AEGISPoint[];
   @Property({ type: MikroTypes.json, nullable: true })

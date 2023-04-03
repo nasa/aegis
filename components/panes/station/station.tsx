@@ -53,6 +53,7 @@ const StationEditorLeft: FunctionComponent = () => {
       description: "",
       radius: 5,
       location: null,
+      elevation: null,
       durationLower: 0,
       durationUpper: 0,
       walkbackPath: null,

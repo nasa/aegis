@@ -15,6 +15,8 @@ export class Mission implements Mission_db_type {
   landerLocation: AEGISPoint;
   @Property({ type: MikroTypes.double, nullable: true })
   traverseSpeed: number;
+  @Property({ type: MikroTypes.double, nullable: true })
+  landerElevationMeters: number;
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;

@@ -3,6 +3,7 @@ interface PaperDrawings {
   evaSequence: paper.Group[];
   walkbacks: paper.Group[];
   landerDistance: paper.Group[];
+  elevationProfile: paper.Group[];
   graphBkg: paper.Group;
   graphAxis: paper.Group;
   hoverLine: paper.Group;
@@ -17,46 +18,58 @@ interface PaperDrawings {
     walkbackColor: paper.Color;
     gNavigatorFontFamilyActivity: string;
     hoverColor: paper.Color;
+    elevationLine: paper.Color;
+    elevationShade: paper.Color;
   };
   paperVars: {
     //paper vars to help with math.
     canvasWidth: number; //full drawing area
     canvasHeight: number;
-    graphHeight: number; //just the grpah drawing area
-    graphWidth: number;
-
-    pixelsPerSecond: number;
-    pixelsPerMeter: number;
-    graphTop: number;
-    graphLeft: number;
+    timelineHeight: number; //just the timeline drawing area
+    timeineWidth: number;
+    timelineTop: number;
+    timelineLeft: number;
     sequenceTop: number;
     sequenceHeight: number;
-    distanceGraphHeight: number;
+    graphHeight: number; //just the graph area that has the line graphs
+    pixelsPerSecondX: number;
+    pixelsPerMeterDistanceY: number;
+    pixelsPerMeterElevationY: number;
+    landerElevationFromGraphTop: number;
   };
 }
 
 interface StoreData_PaperJS {
   sequenceItems: EvaSequenceItem_PaperJS[];
   selectedEvaSequenceItemUuid: string;
-  maxDistanceFromLander: number; //used to calculate top of y axis graph
-  evaLength: number; //minutes. user input eva length
-  evaLengthCalculated: number; //minutes. actual eval length from the station actions and traverses
+  maxDistanceFromLanderMeters: number; //used to calculate top of left y-axis graph
+  evaLengthMins: number; //user input eva length
+  evaLengthCalculatedMins: number; //actual eval length from the station actions and traverses
+  maxElevationMeters: number; //used to calculate top of right y-axis graph
+  minElevationMeters: number; //used to calculate bottom of right y-axis graph
+  landerElevationMeters: number;
+  traverseRateMSec: number; //m/sec
+  elevationResolutionMeters: number; //meters
 }
 
-//Does not reflect the store values. Contains subdivided segments for drawing more accurate graph lines
+/**
+ * Does not reflect the store values. Contains subdivided segments for drawing more accurate graph lines
+ */
 interface EvaSequenceItem_PaperJS extends EvaSequenceItem {
   name: string;
-  coordinates: AEGISPoint | AEGISPoint[]; //single point for station. array of points for traverse
-  durations: number[]; //minutes. duration for each segment in the coordinate array
-  totalDuration: number; //minutes
-  distanceFromLander: number[]; //meters. distance for each segment in the coordinate array
+  secondsStart: number; //time when this sequence item starts
+  subdividedTotalDurationMins: number;
+  subdividedCoordinates: AEGISPoint | AEGISPoint[]; //single point for station. array of points for traverse
+  subdividedDurationsMins: number[]; //duration for each segment in the coordinate array
+  subdividedDistFromLanderMeters: number[]; //distance for each segment in the coordinate array
+  segmentElevationMeters?: number[][]; //meters. Not subdivided.
+  segmentDistancesMeters?: number[]; //meters. Not subdivided
   walkback?: Walkback_PaperJS; //for Stations only
-  secondsStart: number; //seconds
 }
 
 //Does not reflect the store values. Contains subdivided segments for drawing more accurate graph lines
 interface Walkback_PaperJS {
   path: AEGISPoint[];
-  durations: number[]; //minutes. duration for each segment in the path array
-  distanceFromLander: number[]; //meters. duration for each segment in the path array
+  durationsMins: number[]; //duration for each segment in the path array
+  distanceFromLanderMeters: number[]; //duration for each segment in the path array
 }

@@ -18,6 +18,7 @@ import { deleteFile } from "http-client/file";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import { faCopy, faPaste } from "@fortawesome/free-solid-svg-icons";
+import { getElevationSinglePoint } from "http-client/elevation";
 
 const Mission: NextPage = () => {
   const router = useRouter();
@@ -208,6 +209,26 @@ const AddEditMission = (props: {
     alert(`${res.status} - ${res.message}`);
   }
 
+  //calculate the lander elevation based on the lander location
+  async function calcLanderElevation() {
+    if (!mission.landerLocation.lat || !mission.landerLocation.lat) {
+      alert("invalid lander location, cannot calculate elevation");
+    }
+
+    const radius = parseFloat(mission?.config.msv.radius.minor);
+    const measureJson = mission?.config.tools.find((tool) => tool.name === "Measure")?.variables;
+    const demFilepath: string = measureJson["dem"];
+    const point: AEGISPoint = {
+      lat: mission.landerLocation.lat,
+      lng: mission.landerLocation.lng,
+    };
+    const elevation = (await getElevationSinglePoint(mission.id, demFilepath, point, radius)).data;
+    setMission({
+      ...mission,
+      landerElevationMeters: elevation,
+    });
+  }
+
   async function onChangeHandler(
     event: ChangeEvent<HTMLInputElement> | ChangeEvent<HTMLTextAreaElement>
   ) {
@@ -314,6 +335,32 @@ const AddEditMission = (props: {
                 }}
                 value={mission?.landerLocation?.lng || ""}
               />
+            </div>
+          </div>
+          <div id="landerEleDiv">
+            <div className={styles.editDiv}>
+              <label htmlFor="landerEle">Lander Elevation</label>
+            </div>
+            <div className={styles.editDiv}>
+              <input
+                id="landerEle"
+                type="text"
+                onChange={(e) => {
+                  setMission({
+                    ...mission,
+                    landerElevationMeters: +e.target.value,
+                  });
+                }}
+                value={mission?.landerElevationMeters || ""}
+              />{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  calcLanderElevation();
+                }}
+              >
+                Calculate
+              </button>
             </div>
           </div>
           <div id="traverseDiv">

@@ -9,6 +9,7 @@ interface Mission {
   createdAt?: string;
   updatedAt?: string;
   landerLocation?: AEGISPoint;
+  landerElevationMeters?: number;
   traverseSpeed?: number;
 }
 
