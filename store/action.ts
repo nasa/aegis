@@ -75,3 +75,5 @@ export const {
   deleteAllActionsFromDb,
   duplicateAction,
 } = actionSlice.actions;
+
+export default actionSlice.reducer;

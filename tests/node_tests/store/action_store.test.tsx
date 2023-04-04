@@ -1,0 +1,233 @@
+import reducer, { initialState } from "store/action";
+import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
+import { getORM, getEM, closeORM } from "utils/mikro";
+
+import UserFactory from "../../factories/UserFactory";
+import MissionFactory from "../../factories/MissionFactory";
+import { Mission as Mission_db } from "server/database/models/mission.model";
+import { User as User_db } from "server/database/models/user.model";
+import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
+let testMission: Mission_db;
+let testAdmin: User_db;
+
+beforeAll(async () => {
+  await getORM();
+  const em = getEM();
+  testAdmin = await new UserFactory(em).createOne();
+  testMission = await new MissionFactory(em).createOne();
+});
+
+describe("Action Store Tests", () => {
+  it("should return the initial state on first run", () => {
+    // Arrange
+    const nextState = initialState;
+
+    // Act
+    const result = reducer(undefined, {
+      type: undefined,
+    });
+
+    // Assert
+    expect(result).toEqual(nextState);
+  });
+  describe("Action: upsertAction success", () => {
+    it("should upsert an action by UUID", () => {
+      // Arrange
+      const nextAction = {
+        type: "action/upsertAction",
+        payload: {
+          uuid: "test",
+          name: "test",
+          description: "test",
+          priorityOverride: 5,
+          durationLower: 5,
+          inventoryItems: [],
+          type: "measurement",
+          status: "Candidate",
+          missionId: 5000,
+          createdAt: "test",
+          updatedAt: "test",
+        },
+      };
+
+      // Act
+      const result = reducer(initialState, nextAction);
+      // Assert
+      expect(result.actions[0]).toEqual(nextAction.payload);
+    });
+
+    it("should upsert multiple actions", () => {
+      // Arrange
+
+      // Action Array to dispatch
+      const actions: Action[] = [
+        {
+          uuid: "test",
+          name: "test",
+          description: "test",
+          priorityOverride: 5,
+          durationLower: 5,
+          inventoryItems: [],
+          type: "measurement",
+          status: "Candidate",
+          missionId: 5000,
+          createdAt: "test",
+          updatedAt: "test",
+        },
+        {
+          uuid: "test2",
+          name: "test2",
+          description: "test2",
+          priorityOverride: 5,
+          durationLower: 5,
+          inventoryItems: [],
+          type: "measurement",
+          status: "Candidate",
+          missionId: 2002,
+          createdAt: "test2",
+          updatedAt: "test2",
+        },
+      ];
+
+      // Act
+      const result = reducer(initialState, {
+        type: "action/upsertActions",
+        payload: actions,
+      });
+      // Assert
+      expect(result.actions[0]).toEqual(actions[0]);
+      expect(result.actions[1]).toEqual(actions[1]);
+    });
+
+    it("Should Upsert an action from DB", () => {
+      // Action Array to dispatch
+      const actions: Action[] = [
+        {
+          uuid: "test",
+          name: "test",
+          description: "test",
+          priorityOverride: 5,
+          durationLower: 5,
+          inventoryItems: [],
+          type: "measurement",
+          status: "Candidate",
+          missionId: 5000,
+          createdAt: "test",
+          updatedAt: "test",
+        },
+        {
+          uuid: "test2",
+          name: "test2",
+          description: "test2",
+          priorityOverride: 5,
+          durationLower: 5,
+          inventoryItems: [],
+          type: "measurement",
+          status: "Candidate",
+          missionId: 2002,
+          createdAt: "test2",
+          updatedAt: "test2",
+        },
+      ];
+
+      // Act
+      const result = reducer(initialState, {
+        type: "action/upsertActionsFromDb",
+        payload: actions,
+      });
+      // Assert
+      expect(result.actionsFromDb[0]).toEqual(actions[0]);
+      expect(result.actionsFromDb[1]).toEqual(actions[1]);
+    });
+    it("Should delete an single action", () => {
+      // Arrange
+      const nextAction = {
+        type: "action/upsertAction",
+        payload: {
+          uuid: "test",
+          name: "test",
+          description: "test",
+          priorityOverride: 5,
+          durationLower: 5,
+          inventoryItems: [],
+          type: "measurement",
+          status: "Candidate",
+          missionId: 5000,
+          createdAt: "test",
+          updatedAt: "test",
+        },
+      };
+
+      // Act
+      const result = reducer(initialState, nextAction);
+      // Assert
+      expect(result.actions[0]).toEqual(nextAction.payload);
+      const deleteAction = {
+        type: "action/deleteAction",
+        payload: {
+          uuid: "test",
+        },
+      };
+      const result2 = reducer(result, deleteAction);
+      expect(result2.actions.length).toEqual(0);
+    });
+    it("Should delete multiple actions", () => {
+      // Action Array to dispatch
+      const actions: Action[] = [
+        {
+          uuid: "test",
+          name: "test",
+          description: "test",
+          priorityOverride: 5,
+          durationLower: 5,
+          inventoryItems: [],
+          type: "measurement",
+          status: "Candidate",
+          missionId: 5000,
+          createdAt: "test",
+          updatedAt: "test",
+        },
+        {
+          uuid: "test2",
+          name: "test2",
+          description: "test2",
+          priorityOverride: 5,
+          durationLower: 5,
+          inventoryItems: [],
+          type: "measurement",
+          status: "Candidate",
+          missionId: 2002,
+          createdAt: "test2",
+          updatedAt: "test2",
+        },
+      ];
+
+      // Act
+      const result = reducer(initialState, {
+        type: "action/upsertActions",
+        payload: actions,
+      });
+      // Assert
+      expect(result.actions[0]).toEqual(actions[0]);
+      expect(result.actions[1]).toEqual(actions[1]);
+      const deleteAction = {
+        type: "action/deleteActions",
+        payload: ["test", "test2"],
+      };
+      const result2 = reducer(result, deleteAction);
+      expect(result2.actions.length).toEqual(0);
+    });
+  });
+});
+
+afterAll(async () => {
+  //Cleanup our Database
+  const em = getEM();
+  await em.nativeDelete(Mission_db, { id: testMission.id });
+  await em.nativeDelete(User_db, { id: testAdmin.id });
+  // Closing the DB connection allows Jest to exit successfully.
+  await closeORM();
+});

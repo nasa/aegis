@@ -14,16 +14,12 @@ export const mapSlice = createSlice({
     setLayerControls: (state, action: { payload: LayerControls }) => {
       state.layerControls = action.payload;
     },
-
-    setActiveSelectedName: (state, action: { payload: string }) => {
-      state.activeSelectedName = action.payload;
-    },
     updateMapDirective: (state, action: { payload: MapDirective }) => {
       state.mapDirective = action.payload;
     },
   },
 });
 
-export const { setLayerControls, setActiveSelectedName, updateMapDirective } = mapSlice.actions;
+export const { setLayerControls, updateMapDirective } = mapSlice.actions;
 
 export default mapSlice.reducer;
