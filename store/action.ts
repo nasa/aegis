@@ -49,17 +49,33 @@ export const actionSlice = createSlice({
     deleteAllActionsFromDb: (state) => {
       state.actionsFromDb = [];
     },
-    duplicateAction: (
-      state,
-      action: { payload: { action: Action; stationUuid?: string; poiUuid?: string } }
-    ) => {
-      const newAction: Action = _.cloneDeep(action.payload.action);
-      newAction.uuid = uuidv4();
-      newAction.parentActionUuid = action.payload.action.uuid;
-      newAction.stationUuid = action.payload.stationUuid;
-      newAction.poiUuid = action.payload.poiUuid;
-      newAction.name = `${newAction.name} (copy)`;
-      state.actions.push(newAction);
+    duplicateAction: {
+      reducer: (
+        state,
+        action: {
+          payload: {
+            action: Action;
+            stationUuid?: string;
+            poiUuid?: string;
+            newActionUuid: string;
+          };
+        }
+      ) => {
+        const newAction: Action = _.cloneDeep(action.payload.action);
+        newAction.uuid = action.payload.newActionUuid;
+        newAction.parentActionUuid = action.payload.action.uuid;
+        newAction.stationUuid = action.payload.stationUuid;
+        newAction.poiUuid = action.payload.poiUuid;
+        newAction.name = `${newAction.name} (copy)`;
+        state.actions.push(newAction);
+      },
+      prepare: (payload: { action: Action; stationUuid?: string; poiUuid?: string }) => {
+        const { action, stationUuid, poiUuid } = payload;
+        const newActionUuid = uuidv4();
+        return {
+          payload: { action: action, stationUuid: stationUuid, poiUuid: poiUuid, newActionUuid },
+        };
+      },
     },
   },
 });
