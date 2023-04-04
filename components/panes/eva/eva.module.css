@@ -55,7 +55,7 @@
 }
 
 .nameEmphasized {
-  border: 1px solid var(--eva);
+  background-color: #594f1d;
 }
 
 .name:hover {
@@ -119,6 +119,7 @@
   padding: 4px 5px 4px 5px;
   margin: 1px 4px 1px 3px;
   border-radius: var(--radius);
+  -webkit-user-select: none;
   user-select: none;
 }
 .evaItemName.editMode:hover {

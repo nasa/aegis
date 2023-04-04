@@ -12,11 +12,13 @@ import {
   duplicateEva,
   setEvaEditMode,
   setExpandedEvaUuids,
+  setSelectedEvaSequenceItemUuid,
   setSelectedEvaUuid,
   upsertEva,
 } from "store/eva";
 import { useDispatch } from "react-redux";
 import { generateUniqueName } from "utils/unique-name";
+import { setRightPanelOpen } from "store/interface";
 
 const EvaPlannerLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -55,8 +57,11 @@ const EvaPlannerLeft: FunctionComponent = () => {
     dispatch(setEvaEditMode({ evaUuid: blankEva.uuid, editMode: true }));
     // select the new Eva
     dispatch(setSelectedEvaUuid(blankEva.uuid));
+    dispatch(setSelectedEvaSequenceItemUuid(null));
     // expand the new Eva
     dispatch(setExpandedEvaUuids([...expandedEvaUuids, blankEva.uuid]));
+    // open right panel
+    dispatch(setRightPanelOpen(true));
   };
 
   return (
@@ -84,6 +89,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
                 onClick={() => {
                   if (selectedEva) {
                     dispatch(duplicateEva(selectedEva));
+                    dispatch(setRightPanelOpen(true));
                   }
                 }}
                 label="Duplicate EVA"

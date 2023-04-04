@@ -20,13 +20,12 @@ import {
   setSelectedPOIRightNavItem,
   setPoiEditMode,
   upsertPoi,
-  upsertPoisFromDb,
-  deleteAllPoisFromDb,
+  setPoisFromDb,
 } from "store/poi";
 import {
   deleteActions,
   deleteActionsFromDb,
-  deleteAllActionsFromDb,
+  setActionsFromDb,
   upsertActions,
   upsertActionsFromDb,
 } from "store/action";
@@ -38,6 +37,7 @@ import * as InternalAPI from "http-client/internal-api";
 import * as httpClient_action from "http-client/action";
 import { updateMapDirective } from "store/map";
 import { decodeEmoji } from "utils/formatting";
+import { setRightPanelOpen } from "store/interface";
 
 const panelTypes: PanelTypes = {
   info_panel: {
@@ -113,8 +113,7 @@ const PoiEditorRight: FunctionComponent = () => {
         // update the POI in the store with a  fresh copy of POIs from DB
         const poiData = await InternalAPI.getPOIs(selectedMissionId);
         if (poiData.data) {
-          dispatch(deleteAllPoisFromDb());
-          dispatch(upsertPoisFromDb(poiData.data));
+          dispatch(setPoisFromDb(poiData.data));
         }
       } else {
         throw new Error("Error upserting POI: " + poiUpsertResponse.message);
@@ -183,8 +182,7 @@ const PoiEditorRight: FunctionComponent = () => {
         // update store copy of the db with a fresh copy of actions for this mission from the db
         const actionData = await httpClient_action.getActions({ missionId: selectedMissionId });
         if (actionData.data) {
-          dispatch(deleteAllActionsFromDb());
-          dispatch(upsertActionsFromDb(actionData.data));
+          dispatch(setActionsFromDb(actionData.data));
         }
 
         // delete the POI from the DB via internal API call
@@ -197,8 +195,7 @@ const PoiEditorRight: FunctionComponent = () => {
           // get fresh copy of POIs from DB
           const poiData = await InternalAPI.getPOIs(selectedMissionId);
           if (poiData.data) {
-            dispatch(deleteAllPoisFromDb());
-            dispatch(upsertPoisFromDb(poiData.data));
+            dispatch(setPoisFromDb(poiData.data));
           }
         } else {
           console.error("Error deleting POI: " + deleteResponse.message);
@@ -211,6 +208,8 @@ const PoiEditorRight: FunctionComponent = () => {
       }
 
       dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: false }));
+      // close right panel
+      dispatch(setRightPanelOpen(false));
     }
   };
 
@@ -231,6 +230,7 @@ const PoiEditorRight: FunctionComponent = () => {
       dispatch(deletePoi(selectedPoi));
       dispatch(setSelectedPoiUuid(null));
       dispatch(deleteActions(poiActions));
+      dispatch(setRightPanelOpen(false));
     }
     dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: false }));
 

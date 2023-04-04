@@ -55,8 +55,9 @@ const PresetEditorLeft: FunctionComponent = () => {
     dispatch(setPresetEditMode({ presetUuid: blankPreset.uuid, editMode: true }));
     // select the newly created POI
     dispatch(setSelectedPresetUuid(blankPreset.uuid));
+    // open right panel
+    dispatch(setRightPanelOpen(true));
     // create preset interactions entry
-
     const layerControlInteractions: LayerControlInteractions = {};
     for (const [key] of Object.entries(blankPreset.layerControls)) {
       layerControlInteractions[key] = {
@@ -106,6 +107,7 @@ const PresetEditorLeft: FunctionComponent = () => {
             onClick={() => {
               if (selectedPresetUuid !== null) {
                 dispatch(duplicatePreset(selectedPreset));
+                dispatch(setRightPanelOpen(true));
               }
             }}
             label="Duplicate"

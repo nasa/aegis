@@ -12,17 +12,20 @@ export const traverseSlice = createSlice({
   name: "traverse",
   initialState,
   reducers: {
-    upsertTraverses: (state, action: { payload: Traverse[] }) => {
-      action.payload.forEach((traverse) => upsertToArrayByUuid(state.traverses, traverse));
-    },
     upsertTraverse: (state, action: { payload: Traverse }) => {
       upsertToArrayByUuid(state.traverses, action.payload);
     },
-    replaceAllTraversesFromDb: (state, action: { payload: Traverse[] }) => {
-      state.traversesFromDb = action.payload;
+    upsertTraverses: (state, action: { payload: Traverse[] }) => {
+      action.payload.forEach((traverse) => upsertToArrayByUuid(state.traverses, traverse));
     },
     upsertTraverseFromDb: (state, action: { payload: Traverse }) => {
       upsertToArrayByUuid(state.traversesFromDb, action.payload);
+    },
+    setTraverses: (state, action: { payload: Traverse[] }) => {
+      state.traverses = action.payload;
+    },
+    setTraversesFromDb: (state, action: { payload: Traverse[] }) => {
+      state.traversesFromDb = action.payload;
     },
 
     deleteTraverse: (state, action: { payload: { uuid: string } }) => {
@@ -72,10 +75,11 @@ export const traverseSlice = createSlice({
 });
 
 export const {
-  upsertTraverses,
   upsertTraverse,
-  replaceAllTraversesFromDb,
+  upsertTraverses,
   upsertTraverseFromDb,
+  setTraverses,
+  setTraversesFromDb,
   deleteTraverse,
   deleteTraverseFromDb,
   deleteAllTraverses,

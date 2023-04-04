@@ -18,6 +18,7 @@ import { generateUniqueName } from "utils/unique-name";
 import { duplicateAction } from "store/action";
 import _ from "lodash";
 import { duplicateStationOrPOI } from "utils/duplicate";
+import { setRightPanelOpen } from "store/interface";
 
 const StationEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -66,6 +67,8 @@ const StationEditorLeft: FunctionComponent = () => {
     dispatch(setStationEditMode({ stationUuid: blankStation.uuid, editMode: true }));
     // select the newly created Station
     dispatch(setSelectedStationUuid(blankStation.uuid));
+    // open right panel
+    dispatch(setRightPanelOpen(true));
     // set the selected tab to the info tab
     dispatch(setSelectedStationRightNavItem("info_panel"));
   };
@@ -87,6 +90,10 @@ const StationEditorLeft: FunctionComponent = () => {
           })
         );
       }
+      // open right panel
+      dispatch(setRightPanelOpen(true));
+      // set the selected tab to the info tab
+      dispatch(setSelectedStationRightNavItem("info_panel"));
     }
   };
 

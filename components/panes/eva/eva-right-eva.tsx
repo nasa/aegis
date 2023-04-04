@@ -17,23 +17,23 @@ import { IconButton, InLineEditInput } from "components/interface/_global-elemen
 import Info_Panel from "./eva-right-eva-info";
 import STM_Panel from "../stm-coverage";
 import {
-  deleteAllEvasFromDb,
   deleteEva,
   setEvaEditMode,
+  setEvasFromDb,
   setSelectedEvaRightNavItem,
   setSelectedEvaUuid,
   upsertEva,
-  upsertEvasFromDb,
 } from "store/eva";
 import {
   deleteTraverse,
   deleteTraverseFromDb,
   upsertTraverse,
-  replaceAllTraversesFromDb,
+  setTraversesFromDb,
   setTraverseEditMode,
 } from "store/traverse";
 import * as httpClient_Eva from "http-client/eva";
 import * as httpClient_Traverse from "http-client/traverse";
+import { setRightPanelOpen } from "store/interface";
 
 const EvaRightEva: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -108,8 +108,7 @@ const EvaRightEva: FunctionComponent = () => {
         // update the Station in the store with a fresh copy from the DB
         const evaData = await httpClient_Eva.getEvas(selectedMissionId);
         if (evaData.data) {
-          dispatch(deleteAllEvasFromDb());
-          dispatch(upsertEvasFromDb(evaData.data));
+          dispatch(setEvasFromDb(evaData.data));
         }
       } else {
         throw new Error("Error upserting Station: " + evaUpsertResponse.message);
@@ -171,7 +170,7 @@ const EvaRightEva: FunctionComponent = () => {
       // reset the traversesFromDB in the store with a fresh copy from the DB
       const traverseData = await httpClient_Traverse.getTraverses(selectedMissionId);
       if (traverseData.data) {
-        dispatch(replaceAllTraversesFromDb(traverseData.data));
+        dispatch(setTraversesFromDb(traverseData.data));
       }
 
       dispatch(setEvaEditMode({ evaUuid: selectedEva.uuid, editMode: false }));
@@ -202,7 +201,7 @@ const EvaRightEva: FunctionComponent = () => {
       // get fresh copy of Traverses from DB
       const traverseData = await httpClient_Traverse.getTraverses(selectedMissionId);
       if (traverseData.data) {
-        dispatch(replaceAllTraversesFromDb(traverseData.data));
+        dispatch(setTraversesFromDb(traverseData.data));
       }
 
       // delete all of the traverses used in this EVA sequence from the traverses store
@@ -228,8 +227,7 @@ const EvaRightEva: FunctionComponent = () => {
           // get fresh copy of Evas from DB
           const evaData = await httpClient_Eva.getEvas(selectedMissionId);
           if (evaData.data) {
-            dispatch(deleteAllEvasFromDb());
-            dispatch(upsertEvasFromDb(evaData.data));
+            dispatch(setEvasFromDb(evaData.data));
           }
         } else {
           console.error("Error deleting Eva: " + deleteResponse.message);
@@ -241,6 +239,8 @@ const EvaRightEva: FunctionComponent = () => {
       }
 
       dispatch(setEvaEditMode({ evaUuid: selectedEva.uuid, editMode: false }));
+      // close right panel
+      dispatch(setRightPanelOpen(false));
     }
   };
 
@@ -297,6 +297,7 @@ const EvaRightEva: FunctionComponent = () => {
       // eva hasn't been saved to the db. delete the eva and actions from the store
       dispatch(deleteEva(selectedEva));
       dispatch(setSelectedEvaUuid(null));
+      dispatch(setRightPanelOpen(false));
     }
     dispatch(setEvaEditMode({ evaUuid: selectedEva.uuid, editMode: false }));
   };

@@ -22,6 +22,12 @@ export const poiSlice = createSlice({
     upsertPoisFromDb: (state, action: { payload: POI[] }) => {
       action.payload.forEach((poi) => upsertToArrayByUuid(state.poisFromDb, poi));
     },
+    setPois: (state, action: { payload: POI[] }) => {
+      state.pois = action.payload;
+    },
+    setPoisFromDb: (state, action: { payload: POI[] }) => {
+      state.poisFromDb = action.payload;
+    },
     deletePoi: (state, action: { payload: POI }) => {
       state.pois = state.pois.filter((poi) => poi.uuid !== action.payload.uuid);
     },
@@ -68,8 +74,10 @@ export const poiSlice = createSlice({
 export const {
   upsertPoi,
   upsertPois,
-  deletePoi,
   upsertPoisFromDb,
+  setPois,
+  setPoisFromDb,
+  deletePoi,
   deleteAllPois,
   deleteAllPoisFromDb,
   setSelectedPOIRightNavItem,

@@ -16,17 +16,17 @@ import Info_panel from "./preset-right-info";
 import Layers_Panel from "./preset-right-layers";
 import paneStyles from "../global-pane-styles.module.css";
 import {
-  deleteAllPresetsFromDb,
   deletePreset,
   setPresetEditMode,
   setSelectedPresetUuid,
   setSelectedPresetRightNavItem,
   upsertPreset,
-  upsertPresetsFromDb,
   resetAllPresetInteractions,
+  setPresetsFromDb,
 } from "store/preset";
 import * as InternalAPI from "http-client/internal-api";
 import { IconButton, InLineEditInput } from "components/interface/_global-elements";
+import { setRightPanelOpen } from "store/interface";
 
 const PresetEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -82,8 +82,7 @@ const PresetEditorRight: FunctionComponent = () => {
         // get fresh copy of presets from DB
         const presetData = await InternalAPI.getPresets(selectedMissionId);
         if (presetData.data) {
-          dispatch(deleteAllPresetsFromDb());
-          dispatch(upsertPresetsFromDb(presetData.data));
+          dispatch(setPresetsFromDb(presetData.data));
         }
       } else {
         throw new Error("Error upserting Presets: " + upsertReponse.message);
@@ -98,6 +97,7 @@ const PresetEditorRight: FunctionComponent = () => {
     if (!selectedPresetFromDb) {
       dispatch(deletePreset(selectedPreset));
       dispatch(setSelectedPresetUuid(null));
+      dispatch(setRightPanelOpen(false));
     } else {
       // if selected Preset is in the db, replace it with the one from the db (undoing any changes)
       dispatch(upsertPreset(selectedPresetFromDb));
@@ -124,8 +124,7 @@ const PresetEditorRight: FunctionComponent = () => {
           // get fresh copy of presets from DB
           const presetData = await InternalAPI.getPresets(selectedMissionId);
           if (presetData.data) {
-            dispatch(deleteAllPresetsFromDb());
-            dispatch(upsertPresetsFromDb(presetData.data));
+            dispatch(setPresetsFromDb(presetData.data));
           }
         } else {
           console.error("Error deleting preset: " + deleteResponse.message);
@@ -136,6 +135,7 @@ const PresetEditorRight: FunctionComponent = () => {
         dispatch(setSelectedPresetUuid(null));
       }
       dispatch(setPresetEditMode({ presetUuid: selectedPresetUuid, editMode: false }));
+      dispatch(setRightPanelOpen(false));
     }
   };
 

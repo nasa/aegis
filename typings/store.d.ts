@@ -15,9 +15,9 @@ interface PlayheadState {
 interface PlayheadHoverState {
   /** Seconds representing the time into the mission that the mouse is hovering on via the nav-timeline */
   seconds: number;
-  itemUuid: string;
-  sequenceItemUuid: string; //when hovering over the timeline
-  sequenceItemPercentElapsed: number; //when hovering over the timline, represents % duration elapsed for that sequence item at that point in time
+  leftPanelItemUuid: string;
+  timelineSeqItemUuid: string; //when hovering over the timeline
+  timelineSeqItemPctElapsed: number; //when hovering over the timline, represents % duration elapsed for that sequence item at that point in time
 }
 
 interface MissionState {
