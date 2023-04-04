@@ -5,8 +5,8 @@ import { getORM, getEM, closeORM } from "utils/mikro";
 import handleLayer from "pages/api/layer";
 import Login from "pages/api/users/login";
 
-import UserFactory from "../factories/UserFactory";
-import MissionFactory from "../factories/MissionFactory";
+import UserFactory from "../../factories/UserFactory";
+import MissionFactory from "../../factories/MissionFactory";
 import { Mission as Mission_db } from "server/database/models/mission.model";
 import { User as User_db } from "server/database/models/user.model";
 import {
@@ -31,7 +31,7 @@ beforeAll(async () => {
   testMission = await new MissionFactory(em).createOne();
 });
 
-describe("Map and MMGIS Reducer: ", () => {
+describe("AEGIS Map Store Tests: ", () => {
   type ApiRequest = NextApiRequest & ReturnType<typeof createRequest>;
   type ApiResponse = NextApiResponse & ReturnType<typeof createResponse>;
 
@@ -116,6 +116,46 @@ describe("Map and MMGIS Reducer: ", () => {
 
     const nextLayerControls = reducer(initialState, setLayerControls(controls));
     expect(setLayerControls(nextLayerControls.layerControls)).toMatchObject(newControls);
+  });
+
+  describe("Map Store: updateMapDirective", () => {
+    it("should update the map directive", () => {
+      // Arrange
+      const nextMapDirective = {
+        type: "map/updateMapDirective",
+        payload: {
+          center: [0, 0],
+          zoom: 0,
+          bearing: 0,
+          pitch: 0,
+        },
+      };
+
+      // Act
+      const result = reducer(initialState, nextMapDirective);
+
+      // Assert
+      expect(result.mapDirective).toEqual(nextMapDirective.payload);
+    });
+    // Should fail to update map Directive
+    it("should fail to update the map directive", () => {
+      // Arrange
+      const nextMapDirective = {
+        type: "map/updateMapDirective",
+        payload: {
+          center: [0, 0],
+          zoom: 0,
+          bearing: 0,
+          pitch: 0,
+        },
+      };
+
+      // Act
+      const result = reducer(initialState, nextMapDirective);
+
+      // Assert
+      expect(result.mapDirective).not.toEqual(initialState.mapDirective);
+    });
   });
 });
 

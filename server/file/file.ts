@@ -70,10 +70,10 @@ export async function deleteFile(path: string): Promise<boolean> {
       };
       await rm(`${destRoot}/${path}`, options); //delete file or folder
       console.log(`File/directory deleted ${destRoot}/${path}`);
+      return true;
     } else {
-      console.log(`Nothing deleted. File/directory does not exist ${destRoot}/${path}`);
+      throw new Error(`File/directory does not exist ${destRoot}/${path}`);
     }
-    return true;
   } catch (e) {
     console.log(`Error in deleteFile: ${e}`);
     return false;
@@ -92,6 +92,7 @@ export async function listFiles(path: string): Promise<GISfile[]> {
       return await Promise.all(
         files.map(async (file) => {
           let fileCount = 1;
+          console.log(file.isDirectory());
           if (file.isDirectory()) {
             fileCount = await countFiles(`${path}/${file.name}`);
           }
@@ -100,7 +101,7 @@ export async function listFiles(path: string): Promise<GISfile[]> {
         })
       );
     } else {
-      return [];
+      throw new Error(`Path does not exist: ${destRoot}/${path}`);
     }
   } catch (e) {
     console.log(`Error in listfiles: ${e}`);
@@ -131,7 +132,7 @@ async function countFiles(directory: string): Promise<number> {
  * @param path the path to directory in the root PUBLIC_STATIC_DIR
  * @param oldName old file or folder name
  * @param newName new file or folder name
- * @returns true if rename is sccessful, false otherwise
+ * @returns true if rename is successful, false otherwise
  */
 export async function renameFile(path: string, oldName: string, newName: string): Promise<boolean> {
   try {
