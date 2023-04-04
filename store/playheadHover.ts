@@ -2,9 +2,9 @@ import { createSlice } from "@reduxjs/toolkit";
 
 export const initialState: PlayheadHoverState = {
   seconds: null,
-  sequenceItemUuid: null,
-  sequenceItemPercentElapsed: null,
-  itemUuid: null,
+  timelineSeqItemUuid: null,
+  timelineSeqItemPctElapsed: null,
+  leftPanelItemUuid: null,
 };
 
 export const playheadHoverSlice = createSlice({
@@ -22,17 +22,17 @@ export const playheadHoverSlice = createSlice({
       }
     ) => {
       state.seconds = action.payload.seconds;
-      state.sequenceItemUuid = action.payload.sequenceUuid;
-      state.sequenceItemPercentElapsed = action.payload.sequenceItemPercentElapsed;
+      state.timelineSeqItemUuid = action.payload.sequenceUuid;
+      state.timelineSeqItemPctElapsed = action.payload.sequenceItemPercentElapsed;
     },
 
     clearHover: (state) => {
       state.seconds = null;
-      state.sequenceItemUuid = null;
-      state.sequenceItemPercentElapsed = null;
+      state.timelineSeqItemUuid = null;
+      state.timelineSeqItemPctElapsed = null;
     },
     setHoverItemUuid: (state, action: { payload: string }) => {
-      state.itemUuid = action.payload;
+      state.leftPanelItemUuid = action.payload;
     },
   },
 });

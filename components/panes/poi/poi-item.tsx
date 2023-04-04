@@ -19,7 +19,7 @@ const PoiItem: FunctionComponent<{
 }> = ({ selectedPoiUuid, poi, poiFromDb, actions, actionsFromDb }) => {
   const dispatch = useDispatch();
   const selectedRightNavItem = useAppSelector((state) => state.poi.selectedRightNavItem, refEqual);
-  const hoverItemUuid = useAppSelector((state) => state.playheadHover.itemUuid, refEqual);
+  const hoverItemUuid = useAppSelector((state) => state.playheadHover.leftPanelItemUuid, refEqual);
 
   let isPoiSelectedOrHoveredStyle = null;
   if (poi.uuid === selectedPoiUuid) {

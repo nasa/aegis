@@ -22,6 +22,12 @@ export const stationSlice = createSlice({
     upsertStationsFromDb: (state, action: { payload: Station[] }) => {
       action.payload.forEach((station) => upsertToArrayByUuid(state.stationsFromDb, station));
     },
+    setStations: (state, action: { payload: Station[] }) => {
+      state.stations = action.payload;
+    },
+    setStationsFromDb: (state, action: { payload: Station[] }) => {
+      state.stationsFromDb = action.payload;
+    },
     deleteStation: (state, action: { payload: Station }) => {
       state.stations = state.stations.filter((station) => station.uuid !== action.payload.uuid);
     },
@@ -109,6 +115,8 @@ export const stationSlice = createSlice({
 export const {
   upsertStation,
   upsertStations,
+  setStations,
+  setStationsFromDb,
   deleteStation,
   upsertStationsFromDb,
   deleteAllStations,

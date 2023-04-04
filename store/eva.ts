@@ -17,23 +17,20 @@ export const evaSlice = createSlice({
   name: "eva",
   initialState,
   reducers: {
-    upsertEvas: (state, action: { payload: Eva[] }) => {
-      action.payload.forEach((eva) => upsertToArrayByUuid(state.evas, eva));
-    },
     upsertEva: (state, action: { payload: Eva }) => {
       upsertToArrayByUuid(state.evas, action.payload);
     },
-    duplicateEva: (state, action: { payload: Eva }) => {
-      const eva = action.payload;
-      const newEva = { ...eva, uuid: uuidv4(), name: eva.name + " (copy)" };
-      state.evas.push(newEva);
-      // turn on edit mode for the new eva
-      state.evasEditing.push(newEva.uuid);
-      // select the newly created eva
-      state.selectedEvaUuid = newEva.uuid;
+    upsertEvas: (state, action: { payload: Eva[] }) => {
+      action.payload.forEach((eva) => upsertToArrayByUuid(state.evas, eva));
     },
     upsertEvasFromDb: (state, action: { payload: Eva[] }) => {
       action.payload.forEach((eva) => upsertToArrayByUuid(state.evasFromDb, eva));
+    },
+    setEvas: (state, action: { payload: Eva[] }) => {
+      state.evas = action.payload;
+    },
+    setEvasFromDb: (state, action: { payload: Eva[] }) => {
+      state.evasFromDb = action.payload;
     },
     deleteEva: (state, action: { payload: Eva }) => {
       state.evas = state.evas.filter((eva) => eva.uuid !== action.payload.uuid);
@@ -43,6 +40,15 @@ export const evaSlice = createSlice({
     },
     deleteAllEvasFromDb: (state) => {
       state.evasFromDb = [];
+    },
+    duplicateEva: (state, action: { payload: Eva }) => {
+      const eva = action.payload;
+      const newEva = { ...eva, uuid: uuidv4(), name: eva.name + " (copy)" };
+      state.evas.push(newEva);
+      // turn on edit mode for the new eva
+      state.evasEditing.push(newEva.uuid);
+      // select the newly created eva
+      state.selectedEvaUuid = newEva.uuid;
     },
 
     setSelectedEvaRightNavItem: (state, action: { payload: string }) => {
@@ -78,13 +84,15 @@ export const evaSlice = createSlice({
 });
 
 export const {
-  upsertEvas,
   upsertEva,
-  duplicateEva,
+  upsertEvas,
   upsertEvasFromDb,
+  setEvas,
+  setEvasFromDb,
   deleteEva,
   deleteAllEvas,
   deleteAllEvasFromDb,
+  duplicateEva,
   setSelectedEvaUuid,
   setSelectedEvaSequenceItemUuid,
   setSelectedEvaRightNavItem,

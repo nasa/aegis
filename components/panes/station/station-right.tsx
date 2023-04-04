@@ -21,15 +21,14 @@ import {
   setSelectedStationRightNavItem,
   setStationEditMode,
   upsertStation,
-  upsertStationsFromDb,
-  deleteAllStationsFromDb,
+  setStationsFromDb,
 } from "store/station";
 import {
-  deleteAllActionsFromDb,
   upsertActionsFromDb,
   upsertActions,
   deleteActions,
   deleteActionsFromDb,
+  setActionsFromDb,
 } from "store/action";
 
 import Info_Panel from "./station-right-info";
@@ -40,6 +39,7 @@ import * as httpClient_station from "http-client/station";
 import * as httpClient_action from "http-client/action";
 import { updateMapDirective } from "store/map";
 import { decodeEmoji } from "utils/formatting";
+import { setRightPanelOpen } from "store/interface";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -166,8 +166,7 @@ const StationEditorRight: FunctionComponent = () => {
         // update the Station in the store with a fresh copy from the DB
         const stationData = await httpClient_station.getStations(selectedMissionId);
         if (stationData.data) {
-          dispatch(deleteAllStationsFromDb());
-          dispatch(upsertStationsFromDb(stationData.data));
+          dispatch(setStationsFromDb(stationData.data));
         }
       } else {
         throw new Error("Error upserting Station: " + stationUpsertResponse.message);
@@ -252,8 +251,7 @@ const StationEditorRight: FunctionComponent = () => {
         // update store copy of the db with a fresh copy of actions for this mission from the db
         const actionData = await httpClient_action.getActions({ missionId: selectedMissionId });
         if (actionData.data) {
-          dispatch(deleteAllActionsFromDb());
-          dispatch(upsertActionsFromDb(actionData.data));
+          dispatch(setActionsFromDb(actionData.data));
         }
 
         // delete the Station from the DB via internal API call
@@ -268,8 +266,7 @@ const StationEditorRight: FunctionComponent = () => {
           // get fresh copy of Stations from DB
           const stationData = await httpClient_station.getStations(selectedMissionId);
           if (stationData.data) {
-            dispatch(deleteAllStationsFromDb());
-            dispatch(upsertStationsFromDb(stationData.data));
+            dispatch(setStationsFromDb(stationData.data));
           }
         } else {
           console.error("Error deleting Station: " + deleteResponse.message);
@@ -282,6 +279,8 @@ const StationEditorRight: FunctionComponent = () => {
       }
       cancelMarkerMapDirective();
       dispatch(setStationEditMode({ stationUuid: selectedStation.uuid, editMode: false }));
+      // close right panel
+      dispatch(setRightPanelOpen(false));
     }
   };
 
@@ -305,6 +304,7 @@ const StationEditorRight: FunctionComponent = () => {
       dispatch(deleteStation(selectedStation));
       dispatch(setSelectedStationUuid(null));
       dispatch(deleteActions(stationActions));
+      dispatch(setRightPanelOpen(false));
     }
 
     // if the walkback is in edit mode, save the walkback

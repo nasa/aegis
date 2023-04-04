@@ -35,7 +35,7 @@ const EvaItemSequence: FunctionComponent<{
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
-  const hoverItemUuid = useAppSelector((state) => state.playheadHover.itemUuid, refEqual);
+  const hoverItemUuid = useAppSelector((state) => state.playheadHover.leftPanelItemUuid, refEqual);
 
   const setTraverseNamesAndStartEnds = useCallback(
     (evaSequence: EvaSequenceItem[]) => {

@@ -144,7 +144,11 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                                   className={stationStyles.copyIcon}
                                   onClick={(e) => {
                                     dispatch(
-                                      duplicateAction({ action, stationUuid: selectedStationUuid })
+                                      duplicateAction({
+                                        action,
+                                        stationUuid: selectedStationUuid,
+                                        preserveParentUuid: true,
+                                      })
                                     );
                                     e.stopPropagation();
                                   }}

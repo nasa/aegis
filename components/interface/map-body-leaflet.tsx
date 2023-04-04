@@ -91,7 +91,7 @@ const MapBody: FunctionComponent = () => {
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
   const sectionSelected = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
 
-  const hoverItemUuid = useAppSelector((state) => state.playheadHover.itemUuid, refEqual);
+  const hoverItemUuid = useAppSelector((state) => state.playheadHover.leftPanelItemUuid, refEqual);
 
   const [layersOnMap, setLayersOnMap] = useState([]);
   const [showHightlightOnMap, setShowHighlightOnMap] = useState(false);
@@ -889,7 +889,8 @@ const MapBody: FunctionComponent = () => {
       } else {
         setTraversesToShow([]);
       }
-    } else if (selectedEva) {
+    }
+    if (selectedEva) {
       const traverseSequenceItems = selectedEva.sequence.filter((item) => item.type === "traverse");
       const traversesInEva = traverses.filter((traverse) =>
         traverseSequenceItems.find((item) => item.uuid === traverse.uuid)
@@ -1067,11 +1068,19 @@ const MapBody: FunctionComponent = () => {
           },
           color: "blue",
           mapItemType: "traverse",
-          drawAntPath: traversesToShow.length > 1,
+          drawAntPath: selectedEvaSequenceItemUuid !== traverse.uuid, //make it an ant path if this is not the selected traverse
         });
       });
     }
-  }, [map, traverses, mapDirective, drawOrUpdatePolylineOnMap, dispatch, traversesToShow]);
+  }, [
+    map,
+    traverses,
+    mapDirective,
+    drawOrUpdatePolylineOnMap,
+    dispatch,
+    traversesToShow,
+    selectedEvaSequenceItemUuid,
+  ]);
 
   /**
    * Draw or update hover marker on the map when the hover seconds change.
@@ -1093,7 +1102,7 @@ const MapBody: FunctionComponent = () => {
     let location: AEGISPoint = { lat: 0, lng: 0 };
 
     const sequenceItem = selectedEva.sequence.find(
-      (seqItem) => seqItem.uuid === playheadHover.sequenceItemUuid
+      (seqItem) => seqItem.uuid === playheadHover.timelineSeqItemUuid
     );
     if (sequenceItem) {
       if (sequenceItem.type === "station") {
@@ -1106,7 +1115,7 @@ const MapBody: FunctionComponent = () => {
           traverse.pathSegmentDistances.reduce(
             (accumulator, currentValue) => accumulator + currentValue,
             0
-          ) * playheadHover.sequenceItemPercentElapsed;
+          ) * playheadHover.timelineSeqItemPctElapsed;
         //determine which segment we are in
         let cumulativePrevSegDistances = 0;
         for (let i = 0; i < traverse.pathSegmentDistances.length; i++) {
@@ -1216,9 +1225,9 @@ const MapBody: FunctionComponent = () => {
     });
 
     if (hoverItemUuid) {
-      // search for this item on the map
+      // search for this item on the map to get the lat lng
       let latLngs: L.LatLng[] = [];
-      map.current.eachLayer((layer) => {
+      map.current.eachLayer((layer: AEGISMapLayer) => {
         if (
           layer?.uuid === hoverItemUuid &&
           (layer.mapItemType === "poi" || layer.mapItemType === "station")
@@ -1231,8 +1240,8 @@ const MapBody: FunctionComponent = () => {
         }
       });
       if (latLngs.length === 1) {
+        // highlight markers
         // create markers that are dotted stroke with no fill
-
         const marker = L.circleMarker(latLngs[0], {
           radius: 25,
           color: "#ffffff",
@@ -1246,10 +1255,10 @@ const MapBody: FunctionComponent = () => {
         marker.bringToFront();
         map.current.addLayer(marker);
       } else if (latLngs.length > 1) {
+        //highlight polylines (aka traverses)
         const polyline = L.polyline(latLngs, {
           color: "#ffffff",
           weight: 3,
-          dashArray: "5, 5",
           opacity: 1,
           smoothFactor: 1,
         }) as AEGISPolyline;

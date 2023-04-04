@@ -18,6 +18,7 @@ import _ from "lodash";
 import { generateUniqueName } from "utils/unique-name";
 import { duplicateAction } from "store/action";
 import { duplicateStationOrPOI } from "utils/duplicate";
+import { setRightPanelOpen } from "store/interface";
 
 const PoiEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -59,18 +60,22 @@ const PoiEditorLeft: FunctionComponent = () => {
     dispatch(setPoiEditMode({ poiUuid: blankPoi.uuid, editMode: true }));
     // select the newly created POI
     dispatch(setSelectedPoiUuid(blankPoi.uuid));
+    // open right panel
+    dispatch(setRightPanelOpen(true));
     // set the selected tab to the POI's info tab
     dispatch(setSelectedPOIRightNavItem("info_panel"));
   };
 
   const handleDuplicatePoi = (poi: POI) => {
     if (selectedPoiUuid !== null) {
+      //duplicate poi
       const newPoi: POI = {
         ...poi,
         uuid: uuidv4(),
         name: duplicateStationOrPOI(poi, pois),
       };
       dispatch(duplicatePoi(newPoi));
+      //duplicate actions
       const newStationActions = actions.filter((action) => action.poiUuid === poi?.uuid);
       for (const action of newStationActions) {
         dispatch(
@@ -80,6 +85,11 @@ const PoiEditorLeft: FunctionComponent = () => {
           })
         );
       }
+
+      // open right panel
+      dispatch(setRightPanelOpen(true));
+      // set the selected tab to the POI's info tab
+      dispatch(setSelectedPOIRightNavItem("info_panel"));
     }
   };
 

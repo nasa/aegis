@@ -15,21 +15,21 @@ import { getStations } from "http-client/station";
 import { getActions } from "http-client/action";
 import { getGoals, getInvestigations, getObjectives } from "http-client/stm";
 import { setLayerControls } from "store/map";
-import { upsertPois, upsertPoisFromDb } from "store/poi";
+import { setPois, setPoisFromDb } from "store/poi";
 import {
   setPresetInteractions,
+  setPresets,
+  setPresetsFromDb,
   setSelectedPresetUuid,
-  upsertPresets,
-  upsertPresetsFromDb,
 } from "store/preset";
 import { setLayers, setMission } from "store/mission";
 import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/user";
-import { upsertStations, upsertStationsFromDb } from "store/station";
-import { upsertActions, upsertActionsFromDb } from "store/action";
+import { setStations, setStationsFromDb } from "store/station";
+import { setActions, setActionsFromDb } from "store/action";
 import { setGoals, setInvestigations, setObjectives } from "store/stm";
 import { getEvas } from "http-client/eva";
-import { upsertEvas, upsertEvasFromDb } from "store/eva";
-import { upsertTraverses, replaceAllTraversesFromDb } from "store/traverse";
+import { setEvas, setEvasFromDb } from "store/eva";
+import { setTraversesFromDb, setTraverses } from "store/traverse";
 import { getTraverses } from "http-client/traverse";
 import { setRightPanelOpen } from "store/interface";
 
@@ -129,15 +129,15 @@ const Main: NextPage = () => {
       //Populate POIs
       const poiData = await InternalAPI.getPOIs(parseInt(id as string));
       if (poiData.data) {
-        dispatch(upsertPois(poiData.data));
-        dispatch(upsertPoisFromDb(poiData.data));
+        dispatch(setPois(poiData.data));
+        dispatch(setPoisFromDb(poiData.data));
       }
 
       //Populate Presets
       const presetData = await InternalAPI.getPresets(parseInt(id as string));
       if (presetData.data) {
-        dispatch(upsertPresets(presetData.data));
-        dispatch(upsertPresetsFromDb(presetData.data));
+        dispatch(setPresets(presetData.data));
+        dispatch(setPresetsFromDb(presetData.data));
         presetData.data.forEach((preset) => {
           const layerControlInteractions: LayerControlInteractions = {};
           for (const [key] of Object.entries(preset.layerControls)) {
@@ -161,29 +161,29 @@ const Main: NextPage = () => {
       //Populate stations
       const stationData = await getStations(parseInt(id as string));
       if (stationData.data) {
-        dispatch(upsertStations(stationData.data));
-        dispatch(upsertStationsFromDb(stationData.data));
+        dispatch(setStations(stationData.data));
+        dispatch(setStationsFromDb(stationData.data));
       }
 
       //Populate actions
       const actionData = await getActions({ missionId: parseInt(id as string) });
       if (actionData.data) {
-        dispatch(upsertActions(actionData.data));
-        dispatch(upsertActionsFromDb(actionData.data));
+        dispatch(setActions(actionData.data));
+        dispatch(setActionsFromDb(actionData.data));
       }
 
       //Populate evas
       const evaData = await getEvas(parseInt(id as string));
       if (evaData.data) {
-        dispatch(upsertEvas(evaData.data));
-        dispatch(upsertEvasFromDb(evaData.data));
+        dispatch(setEvas(evaData.data));
+        dispatch(setEvasFromDb(evaData.data));
       }
 
       //Populate traverses //TODO: Does this have to load only current user's traverses?
       const traverseData = await getTraverses(parseInt(id as string));
       if (traverseData.data) {
-        dispatch(upsertTraverses(traverseData.data));
-        dispatch(replaceAllTraversesFromDb(traverseData.data));
+        dispatch(setTraverses(traverseData.data));
+        dispatch(setTraversesFromDb(traverseData.data));
       }
 
       //Populate stm

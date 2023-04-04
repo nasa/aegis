@@ -21,6 +21,12 @@ export const actionSlice = createSlice({
     upsertActionsFromDb: (state, action: { payload: Action[] }) => {
       action.payload.forEach((action) => upsertToArrayByUuid(state.actionsFromDb, action));
     },
+    setActions: (state, action: { payload: Action[] }) => {
+      state.actions = action.payload;
+    },
+    setActionsFromDb: (state, action: { payload: Action[] }) => {
+      state.actionsFromDb = action.payload;
+    },
     deleteAction: (state, action: { payload: Action }) => {
       state.actions.splice(
         state.actions.findIndex((stateAction) => stateAction.uuid === action.payload.uuid),
@@ -57,23 +63,40 @@ export const actionSlice = createSlice({
             action: Action;
             stationUuid?: string;
             poiUuid?: string;
+            preserveParentUuid?: boolean;
             newActionUuid: string;
           };
         }
       ) => {
         const newAction: Action = _.cloneDeep(action.payload.action);
         newAction.uuid = action.payload.newActionUuid;
-        newAction.parentActionUuid = action.payload.action.uuid;
         newAction.stationUuid = action.payload.stationUuid;
         newAction.poiUuid = action.payload.poiUuid;
         newAction.name = `${newAction.name} (copy)`;
+        console.log(action.payload.preserveParentUuid);
+        if (action.payload.preserveParentUuid) {
+          newAction.parentActionUuid = action.payload.action.uuid;
+        } else {
+          newAction.parentActionUuid = null;
+        }
         state.actions.push(newAction);
       },
-      prepare: (payload: { action: Action; stationUuid?: string; poiUuid?: string }) => {
-        const { action, stationUuid, poiUuid } = payload;
+      prepare: (payload: {
+        action: Action;
+        stationUuid?: string;
+        poiUuid?: string;
+        preserveParentUuid?: boolean;
+      }) => {
+        const { action, stationUuid, poiUuid, preserveParentUuid } = payload;
         const newActionUuid = uuidv4();
         return {
-          payload: { action: action, stationUuid: stationUuid, poiUuid: poiUuid, newActionUuid },
+          payload: {
+            action: action,
+            stationUuid: stationUuid,
+            poiUuid: poiUuid,
+            preserveParentUuid: preserveParentUuid,
+            newActionUuid,
+          },
         };
       },
     },
@@ -84,6 +107,8 @@ export const {
   upsertAction,
   upsertActions,
   upsertActionsFromDb,
+  setActions,
+  setActionsFromDb,
   deleteAction,
   deleteActions,
   deleteActionsFromDb,

@@ -176,6 +176,7 @@ async function upsertMission(mission: Mission): Promise<Mission> {
   } else {
     //insert record.
     //Can't use "upsert" to insert a new record if there's no other unique column in the table
+    delete upsertRecord.id; //attempting to insert with an id of null will throw a mikro error. remove the property completely so mikro can give us a new id.
     upsertRecord.version = 1;
     upsertRecord.createdAt = updateDate;
     const createReference = em.create(Mission_db, upsertRecord);
