@@ -15,7 +15,8 @@ import { stationSlice, initialState as stationInitialState } from "./station";
 import { actionSlice, initialState as actionInitialState } from "./action";
 import { traverseSlice, initialState as traverseInitialState } from "./traverse";
 
-let store;
+export type StoreType = ReturnType<typeof configureStore<RootState>>;
+let store: StoreType;
 
 export const initialState = {
   playhead: playheadInitialState,
@@ -50,7 +51,7 @@ export const reducer = combineReducers({
 });
 export type RootState = ReturnType<typeof reducer>;
 
-const initStore = () => {
+const initStore = (): StoreType => {
   store = configureStore({
     reducer,
     preloadedState: initialState,

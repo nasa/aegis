@@ -1,12 +1,15 @@
-import reducer, { initialState } from "store/action";
+import reducer, { initialState, duplicateAction, deleteActionsFromDb } from "store/action";
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
+import { v4 as uuidv4 } from "uuid";
 
 import UserFactory from "../../factories/UserFactory";
 import MissionFactory from "../../factories/MissionFactory";
+import makeTestStore from "../../factories/makeTestStore";
 import { Mission as Mission_db } from "server/database/models/mission.model";
 import { User as User_db } from "server/database/models/user.model";
 import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
+
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -220,6 +223,107 @@ describe("Action Store Tests", () => {
       const result2 = reducer(result, deleteAction);
       expect(result2.actions.length).toEqual(0);
     });
+  });
+});
+
+describe("Action Store Tests with mock store", () => {
+  test("Delete actions", () => {
+    const uuids = [uuidv4(), uuidv4(), uuidv4(), uuidv4()];
+
+    const store = makeTestStore({
+      action: {
+        actions: [],
+        actionsFromDb: [
+          {
+            uuid: uuids[0],
+            name: "Jest Action-0",
+            missionId: 1,
+            priorityOverride: 1,
+            type: "measurement",
+            description: "",
+            durationLower: 5,
+            inventoryItems: [],
+            status: "Approved",
+          },
+          {
+            uuid: uuids[1],
+            name: "Jest Action-1",
+            missionId: 1,
+            priorityOverride: 1,
+            type: "measurement",
+            description: "",
+            durationLower: 5,
+            inventoryItems: [],
+            status: "Approved",
+          },
+          {
+            uuid: uuids[2],
+            name: "Jest Action-2",
+            missionId: 1,
+            priorityOverride: 1,
+            type: "measurement",
+            description: "",
+            durationLower: 5,
+            inventoryItems: [],
+            status: "Approved",
+          },
+          {
+            uuid: uuids[3],
+            name: "Jest Action-3",
+            missionId: 1,
+            priorityOverride: 1,
+            type: "measurement",
+            description: "",
+            durationLower: 5,
+            inventoryItems: [],
+            status: "Approved",
+          },
+        ],
+      },
+    });
+
+    // ensure the actions are in the store
+    expect(store.getState().action.actionsFromDb.length).toEqual(4);
+
+    // force it to think that the array is Action[] since uuid is all deleteActions really needs
+    store.dispatch(
+      deleteActionsFromDb([{ uuid: uuids[0] }, { uuid: uuids[2] }] as unknown as Action[])
+    );
+
+    // ensure the actions were deleted from the store
+    expect(store.getState().action.actionsFromDb.length).toEqual(2);
+    expect(store.getState().action.actionsFromDb[0].name).toEqual("Jest Action-1");
+    expect(store.getState().action.actionsFromDb[1].name).toEqual("Jest Action-3");
+  });
+
+  test("Duplicate an action", () => {
+    const store = makeTestStore({});
+
+    // ensure nothing in the store yet
+    expect(store.getState().action.actions.length).toEqual(0);
+
+    // uuid of the original action (which isn't in the store in this case because here duplicateAction
+    // isn't really duplicating, but adding an action with a new uuid)
+    const uuid = uuidv4();
+
+    const action: Action = {
+      uuid,
+      name: "Jest Action-1",
+      missionId: 1,
+      priorityOverride: 1,
+      type: "measurement",
+      description: "",
+      durationLower: 5,
+      inventoryItems: [],
+      status: "Approved",
+    };
+
+    store.dispatch(duplicateAction({ action }));
+
+    // ensure the action was added to the store
+    expect(store.getState().action.actions.length).toEqual(1);
+    expect(store.getState().action.actions[0].name).toEqual("Jest Action-1 (copy)");
+    expect(store.getState().action.actions[0].uuid).not.toEqual(uuid);
   });
 });
 
