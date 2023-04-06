@@ -45,6 +45,8 @@ export class Station implements Station_db_type {
   @Property({ type: MikroTypes.json, nullable: true })
   walkbackPathSegmentDistances: number[];
   @Property({ type: MikroTypes.json, nullable: true })
+  walkbackPathSegmentElevations: number[][];
+  @Property({ type: MikroTypes.json, nullable: true })
   actionOrderUuids: string[];
   @Property({ type: MikroTypes.double, nullable: true })
   durationLower!: number;

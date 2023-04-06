@@ -55,6 +55,7 @@ describe("Station API Endpoint", () => {
     icon: null,
     walkbackPath: null,
     walkbackPathSegmentDistances: [0],
+    walkbackPathSegmentElevations: null,
     durationLower: 0,
     durationUpper: 0,
 

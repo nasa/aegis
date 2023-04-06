@@ -24,15 +24,20 @@ import {
 import _ from "lodash";
 import { updateMapDirective } from "store/map";
 import { setSelectedPoiUuid, updatePoiLocation } from "store/poi";
-import { setSectionSelected } from "store/interface";
 import {
-  revertWalkbackPathAndDistance,
+  insertElevationPending,
+  removeElevationPending,
+  setSectionSelected,
+} from "store/interface";
+import {
+  deleteStationWalkbackElevation,
+  revertWalkbackPath,
   setSelectedStationUuid,
   updateStationLocationAndElevation,
-  updateWalkbackPathAndDistance,
+  updateWalkbackPath,
 } from "store/station";
-import { setSelectedEvaRightNavItem, setSelectedEvaSequenceItemUuid } from "store/eva";
-import { revertTraversePathAndDistance, updateTraversePathAndDistance } from "store/traverse";
+import { setSelectedEvaSequenceItemUuid } from "store/eva";
+import { deleteTraverseElevation, revertTraversePath, updateTraversePath } from "store/traverse";
 import {
   convertLeafletLatLngsToAegisPoints,
   convertLeafletLatLngToAegisPoint,
@@ -42,7 +47,7 @@ import {
 import { decodeEmoji } from "utils/formatting";
 import { Checkbox } from "./_global-elements";
 import { setHoverItemUuid } from "store/playheadHover";
-import { getElevationSinglePoint } from "http-client/elevation";
+import { getElevationProfile, getElevationSinglePoint } from "http-client/elevation";
 
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
@@ -55,7 +60,7 @@ const MapBody: FunctionComponent = () => {
   const mapRef = useRef(null);
   const map = useRef(null);
   const crs = useRef(null);
-  const draggableLines = useRef(null);
+  const draggableLines: MutableRefObject<DraggableLines> = useRef(null);
 
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
   const missionLayers = useAppSelector((state) => state.mission.layers, shallowEqual);
@@ -128,6 +133,47 @@ const MapBody: FunctionComponent = () => {
       }%`,
     ];
   };
+
+  //get elevation for a single point or a path
+  const getElevation = useCallback(
+    async (
+      path: AEGISPoint[],
+      pathSegmentDistances: number[],
+      uuid: string
+    ): Promise<number[][] | number> => {
+      dispatch(insertElevationPending(uuid));
+      const radius = parseFloat(mission?.config.msv.radius.minor);
+
+      // dig the dem filename out of the MMGIS-formatted mission config
+      const measureJson = mission?.config.tools.find((tool) => tool.name === "Measure")?.variables;
+      const elevationResolutionMeters = measureJson["resolution"];
+      const demFilepath: string = measureJson["dem"];
+
+      let newElevationProfile: WrappedResponse<number[][] | number>;
+      if (path.length === 1) {
+        newElevationProfile = await getElevationSinglePoint(
+          mission.id,
+          demFilepath,
+          path[0],
+          radius
+        );
+      } else {
+        // generate new elevation profile via api
+        newElevationProfile = await getElevationProfile(
+          mission.id,
+          demFilepath,
+          path,
+          pathSegmentDistances,
+          elevationResolutionMeters || 10, // resolution in meters, default 10
+          radius
+        );
+      }
+      dispatch(removeElevationPending(uuid));
+
+      return newElevationProfile.data;
+    },
+    [mission, dispatch]
+  );
 
   /**
    * If the window layout changes, resize the map
@@ -236,9 +282,10 @@ const MapBody: FunctionComponent = () => {
    * Optionally provide a test for mapItemType as well
    */
   const getMapItemByUuid = useCallback(
-    (uuid: string, mapItemType?: MapItemType): AEGISMapLayer => {
-      let itemToSave: AEGISMapLayer = null;
-      map.current.eachLayer((layer: AEGISMapLayer) => {
+    (uuid: string, mapItemType?: MapItemType): AEGISMarker | AEGISPolyline => {
+      let itemToSave: AEGISMarker | AEGISPolyline = null;
+      //map.current.eachLayer((layer: AEGISMapLayer) => {
+      map.current.eachLayer((layer: AEGISMarker | AEGISPolyline) => {
         if (layer.uuid === uuid) {
           if (mapItemType && layer.mapItemType !== mapItemType) return null;
           itemToSave = layer;
@@ -416,7 +463,6 @@ const MapBody: FunctionComponent = () => {
           typeName = "Walkback";
           break;
       }
-
       if (existingLayer && existingLayer.mapItemType === mapItemType) {
         existingLayer.setLatLngs(path);
       } else {
@@ -477,19 +523,12 @@ const MapBody: FunctionComponent = () => {
       if (mapItemType === "poi") {
         dispatch(updatePoiLocation({ uuid, location }));
       } else if (mapItemType === "station") {
-        // dig the dem filename out of the MMGIS-formatted mission config
-        const measureJson = mission?.config.tools.find(
-          (tool) => tool.name === "Measure"
-        )?.variables;
-        const demFilepath: string = measureJson["dem"];
-        const radius = parseFloat(mission?.config.msv.radius.minor);
-
-        const elevation = (await getElevationSinglePoint(mission.id, demFilepath, location, radius))
-          .data;
+        console.log("saveUpdatedStationPosition");
+        const elevation = (await getElevation([location], [0], uuid)) as number;
         dispatch(updateStationLocationAndElevation({ uuid, location, elevation }));
       }
     },
-    [dispatch, mission]
+    [dispatch, getElevation, mission]
   );
 
   /**
@@ -609,13 +648,121 @@ const MapBody: FunctionComponent = () => {
     };
   }, [map, mapDirective, saveUpdatedPoiOrStationPosition, dispatch]);
 
+  // reset the walkback for a given station uuid
+  // set the start and end points of the walkback to the station location and the mission lander location
+  const saveWalkback = useCallback(
+    async (stationUuid: string) => {
+      const missionLanderLocation = mission.landerLocation;
+      const thisStation = stations.find((s) => s.uuid === stationUuid);
+
+      // replace first item in walkback location with the station location
+      const newWalkbackPath = [thisStation.location, ...thisStation.walkbackPath.slice(1)];
+      // replace the last item in walkback location with the mission lander location
+      newWalkbackPath[newWalkbackPath.length - 1] = missionLanderLocation;
+
+      // replace first item in walkback distance with the new distance
+      const newSegmentDistances = [
+        getDistanceBetweenTwoCoordinates(
+          thisStation.location,
+          thisStation.walkbackPath[1],
+          parseFloat(mission.config.msv.radius.minor)
+        ),
+        ...thisStation.walkbackPathSegmentDistances.slice(1),
+      ];
+      //replace last item in walkback distance with the new distance
+      newSegmentDistances[newSegmentDistances.length - 1] = getDistanceBetweenTwoCoordinates(
+        newWalkbackPath[newWalkbackPath.length - 2],
+        missionLanderLocation,
+        parseFloat(mission.config.msv.radius.minor)
+      );
+
+      //get elevation for new walkback
+      const walkbackPathSegmentElevations = (await getElevation(
+        newWalkbackPath,
+        newSegmentDistances,
+        stationUuid
+      )) as number[][];
+
+      dispatch(
+        updateWalkbackPath({
+          uuid: stationUuid,
+          walkbackPath: newWalkbackPath,
+          walkbackPathSegmentDistances: newSegmentDistances,
+          walkbackPathSegmentElevations,
+        })
+      );
+    },
+    [mission, stations, dispatch, getElevation]
+  );
+
+  // save the traverse for a given uuid
+  // set the start and end points of the traverse to the station locations on either side of the traverse
+  const saveTraverse = useCallback(
+    async (traverseUuid: string) => {
+      // find the traverse in the eva
+      let stationLocationBefore: AEGISPoint = null;
+      let stationLocationAfter: AEGISPoint = null;
+      selectedEva.sequence.forEach((item, index) => {
+        if (item.type === "traverse" && item.uuid === traverseUuid) {
+          const stationUuidBefore = selectedEva.sequence[index - 1].uuid;
+          const stationUuidAfter = selectedEva.sequence[index + 1].uuid;
+          stationLocationBefore = stations.find((s) => s.uuid === stationUuidBefore).location;
+          stationLocationAfter = stations.find((s) => s.uuid === stationUuidAfter).location;
+        }
+      });
+      const thisTraverse = traverses.find((t) => t.uuid === traverseUuid);
+      const newPath = _.cloneDeep(thisTraverse.path);
+      const newPathSegmentDistances = _.cloneDeep(thisTraverse.pathSegmentDistances);
+
+      //set starting station
+      if (stationLocationBefore && !_.isEqual(thisTraverse.path.at(0), stationLocationBefore)) {
+        const newDistance = getDistanceBetweenTwoCoordinates(
+          stationLocationBefore,
+          thisTraverse.path[1],
+          parseFloat(mission.config.msv.radius.minor)
+        );
+        newPath[0] = stationLocationBefore;
+        newPathSegmentDistances[0] = newDistance;
+      }
+
+      //set ending station
+      if (stationLocationAfter && !_.isEqual(thisTraverse.path.at(-1), stationLocationAfter)) {
+        const newDistance = getDistanceBetweenTwoCoordinates(
+          thisTraverse.path[thisTraverse.path.length - 2],
+          stationLocationAfter,
+          parseFloat(mission.config.msv.radius.minor)
+        );
+        newPath[newPath.length - 1] = stationLocationAfter;
+        newPathSegmentDistances[newPathSegmentDistances.length - 1] = newDistance;
+      }
+
+      //get new elevation
+      const pathSegmentElevations = (await getElevation(
+        newPath,
+        newPathSegmentDistances,
+        traverseUuid
+      )) as number[][];
+
+      dispatch(
+        updateTraversePath({
+          uuid: traverseUuid,
+          path: newPath,
+          pathSegmentDistances: newPathSegmentDistances,
+          pathSegmentElevations,
+        })
+      );
+    },
+    [selectedEva, stations, traverses, mission.config.msv.radius.minor, dispatch, getElevation]
+  );
+
   /**
    * Listen for mapDirective for stations, pois, and traverses, and trigger map draw/edit modes appropriately
    */
   useEffect(() => {
-    if (!map.current || !draggableLines) return;
+    if (!map.current || !draggableLines || !mapDirective) return;
 
-    switch (mapDirective?.mapAction) {
+    console.log(mapDirective.mapAction);
+    switch (mapDirective.mapAction) {
       case "createMarker":
         // create events only come from Marker obejcts (pois and stations) since traverses are initially created by the app
         map.current.getContainer().style.cursor = "crosshair";
@@ -660,8 +807,9 @@ const MapBody: FunctionComponent = () => {
         if (polylineToUpdate) {
           draggableLines.current.enableForLayer(polylineToUpdate);
 
-          const dispatchPathAndDistance = (e) => {
-            if (e.layer.uuid === mapDirective?.uuid) {
+          const dispatchPathAndDistance = async (e: L.LeafletEvent, saveElevation: boolean) => {
+            //TODO: layer is deprecated but changing this to propagatedFrom throws a null when dragging?
+            if (e.layer.uuid === mapDirective.uuid) {
               const path = convertLeafletLatLngsToAegisPoints(e.layer.getLatLngs());
               const polylinePoints: AEGISPoint[] = convertLeafletLatLngsToAegisPoints(
                 e.layer.getLatLngs()
@@ -675,33 +823,57 @@ const MapBody: FunctionComponent = () => {
                   )
                 );
               }
+
+              //get elevation
+              const elevation = saveElevation
+                ? ((await getElevation(path, distance, mapDirective.uuid)) as number[][])
+                : null;
+
               if (e.layer.mapItemType === "traverse") {
                 dispatch(
-                  updateTraversePathAndDistance({
-                    uuid: mapDirective?.uuid,
+                  updateTraversePath({
+                    uuid: mapDirective.uuid,
                     path,
-                    distance,
+                    pathSegmentDistances: distance,
+                    pathSegmentElevations: elevation,
                   })
                 );
               }
               if (e.layer.mapItemType === "walkback") {
                 dispatch(
-                  updateWalkbackPathAndDistance({
-                    uuid: mapDirective?.uuid,
-                    path,
-                    distance,
+                  updateWalkbackPath({
+                    uuid: mapDirective.uuid,
+                    walkbackPath: path,
+                    walkbackPathSegmentDistances: distance,
+                    walkbackPathSegmentElevations: elevation,
                   })
                 );
               }
             }
           };
 
-          draggableLines.current.on("drag", (e) => {
-            dispatchPathAndDistance(e);
+          draggableLines.current.on("dragstart", (e) => {
+            if (e.layer.mapItemType === "traverse") {
+              dispatch(deleteTraverseElevation(mapDirective.uuid));
+            }
+            if (e.layer.mapItemType === "walkback") {
+              dispatch(deleteStationWalkbackElevation(mapDirective.uuid));
+            }
+          });
+
+          draggableLines.current.on(
+            "drag",
+            _.throttle((e) => {
+              dispatchPathAndDistance(e, false);
+            }, 15)
+          );
+
+          draggableLines.current.on("dragend", (e) => {
+            dispatchPathAndDistance(e, true);
           });
 
           draggableLines.current.on("remove", (e) => {
-            dispatchPathAndDistance(e);
+            dispatchPathAndDistance(e, true);
           });
         }
 
@@ -709,91 +881,22 @@ const MapBody: FunctionComponent = () => {
 
       case "saveEditPolyline":
         // only called by polyline edits. Markers happen on click or draggend events
-        // **** no need to save because we're love updating the store with the new location as the user drags the polyline ****
+        // **** no need to save because we love updating the store with the new location as the user drags the polyline ****
 
         // find this polyline layer on the map
         draggableLines.current.disableForLayer(
-          getMapItemByUuid(mapDirective.uuid, mapDirective.mapItemType)
+          getMapItemByUuid(mapDirective.uuid, mapDirective.mapItemType) as L.Polyline
         );
 
         draggableLines.current.off("drag");
         draggableLines.current.off("remove");
 
         if (mapDirective.mapItemType === "traverse") {
-          // find the traverse in the eva, and set the end points of the traverse to the station locations on either side of the traverse
-          let stationLocationBefore: AEGISPoint = null;
-          let stationLocationAfter: AEGISPoint = null;
-          selectedEva.sequence.forEach((item, index) => {
-            if (item.type === "traverse" && item.uuid === mapDirective?.uuid) {
-              const stationUuidBefore = selectedEva.sequence[index - 1].uuid;
-              const stationUuidAfter = selectedEva.sequence[index + 1].uuid;
-              stationLocationBefore = stations.find((s) => s.uuid === stationUuidBefore).location;
-              stationLocationAfter = stations.find((s) => s.uuid === stationUuidAfter).location;
-            }
-          });
-          const thisTraverse = traverses.find((t) => t.uuid === mapDirective?.uuid);
-          const newPath = _.cloneDeep(thisTraverse.path);
-          const newPathSegmentDistances = _.cloneDeep(thisTraverse.pathSegmentDistances);
-          if (stationLocationBefore) {
-            const newDistance = getDistanceBetweenTwoCoordinates(
-              stationLocationBefore,
-              thisTraverse.path[1],
-              parseFloat(mission.config.msv.radius.minor)
-            );
-            newPath[0] = stationLocationBefore;
-            newPathSegmentDistances[0] = newDistance;
-          }
-          if (stationLocationAfter) {
-            const newDistance = getDistanceBetweenTwoCoordinates(
-              thisTraverse.path[thisTraverse.path.length - 2],
-              stationLocationAfter,
-              parseFloat(mission.config.msv.radius.minor)
-            );
-            newPath[newPath.length - 1] = stationLocationAfter;
-            newPathSegmentDistances[newPathSegmentDistances.length - 1] = newDistance;
-          }
-          dispatch(
-            updateTraversePathAndDistance({
-              uuid: mapDirective?.uuid,
-              path: newPath,
-              distance: newPathSegmentDistances,
-            })
-          );
+          saveTraverse(mapDirective.uuid);
         }
 
         if (mapDirective.mapItemType === "walkback") {
-          // set the start and end points of the walkback to the station location and the mission lander location
-          const missionLanderLocation = mission.landerLocation;
-          const thisStation = stations.find((s) => s.uuid === mapDirective?.uuid);
-
-          // replace first item in walkback location with the station location
-          const newWalkbackPath = [thisStation.location, ...thisStation.walkbackPath.slice(1)];
-          // replace the last item in walkback location with the mission lander location
-          newWalkbackPath[newWalkbackPath.length - 1] = missionLanderLocation;
-
-          // replace first item in walkback distance with the new distance
-          const newDistances = [
-            getDistanceBetweenTwoCoordinates(
-              thisStation.location,
-              thisStation.walkbackPath[1],
-              parseFloat(mission.config.msv.radius.minor)
-            ),
-            ...thisStation.walkbackPathSegmentDistances.slice(1),
-          ];
-
-          newDistances[newDistances.length - 1] = getDistanceBetweenTwoCoordinates(
-            newWalkbackPath[newWalkbackPath.length - 2],
-            missionLanderLocation,
-            parseFloat(mission.config.msv.radius.minor)
-          );
-
-          dispatch(
-            updateWalkbackPathAndDistance({
-              uuid: mapDirective?.uuid,
-              path: newWalkbackPath,
-              distance: newDistances,
-            })
-          );
+          saveWalkback(mapDirective.uuid);
         }
 
         clearAction();
@@ -801,13 +904,13 @@ const MapBody: FunctionComponent = () => {
 
       case "cancelEditPolyline":
         draggableLines.current.disableForLayer(
-          getMapItemByUuid(mapDirective.uuid, mapDirective.mapItemType)
+          getMapItemByUuid(mapDirective.uuid, mapDirective.mapItemType) as L.Polyline
         );
         if (mapDirective.mapItemType === "traverse") {
-          dispatch(revertTraversePathAndDistance({ uuid: mapDirective?.uuid }));
+          dispatch(revertTraversePath({ uuid: mapDirective.uuid }));
         }
         if (mapDirective.mapItemType === "walkback") {
-          dispatch(revertWalkbackPathAndDistance({ uuid: mapDirective?.uuid }));
+          dispatch(revertWalkbackPath({ uuid: mapDirective.uuid }));
         }
 
         draggableLines.current.off("drag");
@@ -832,14 +935,19 @@ const MapBody: FunctionComponent = () => {
     };
   }, [
     map,
-    mission,
+    mission.config.msv.radius.minor,
     draggableLines,
     mapDirective,
     dispatch,
     getMapItemByUuid,
-    selectedEva,
-    traverses,
-    stations,
+    getElevation,
+    /**
+     * TODO refactor with thunks.
+     * Paths are upserted during drag causing the traverse and station walkback callback func
+     * to be redefined. Adding this depency causes leaflet events to fire way too many times.
+     * */
+    //saveTraverse,
+    //saveWalkback,
   ]);
 
   /**
@@ -1009,7 +1117,7 @@ const MapBody: FunctionComponent = () => {
   ]);
 
   /**
-   * Draw station with walkback on the map when the selected station changes
+   * Draw station walkback on the map when the selected station changes
    */
   useEffect(() => {
     if (!map.current || mapDirective) return;
@@ -1064,7 +1172,6 @@ const MapBody: FunctionComponent = () => {
           onClick: () => {
             dispatch(setSectionSelected("evas"));
             dispatch(setSelectedEvaSequenceItemUuid(traverse.uuid));
-            dispatch(setSelectedEvaRightNavItem("info_panel"));
           },
           color: "blue",
           mapItemType: "traverse",

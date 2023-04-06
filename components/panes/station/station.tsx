@@ -59,6 +59,7 @@ const StationEditorLeft: FunctionComponent = () => {
       durationUpper: 0,
       walkbackPath: null,
       walkbackPathSegmentDistances: null,
+      walkbackPathSegmentElevations: null,
       icon: null,
       poiUuids: [],
     };

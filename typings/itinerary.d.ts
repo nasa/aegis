@@ -87,6 +87,7 @@ interface Station {
   elevation: number;
   walkbackPath: AEGISPoint[];
   walkbackPathSegmentDistances: number[]; //meters
+  walkbackPathSegmentElevations: number[][]; //meters
   icon: string;
 
   /**

@@ -154,3 +154,17 @@
   left: -90px;
   top: 15px;
 }
+
+.statusLoading {
+  width: 18px;
+  min-height: 18px;
+  display: inline-block;
+  margin-left: 0.1em;
+  padding-right: 0.4em;
+
+  background-size: 18px 18px;
+  background-repeat: no-repeat;
+
+  background-position: center;
+  background-image: url(/images/icon_status_loading.svg);
+}
