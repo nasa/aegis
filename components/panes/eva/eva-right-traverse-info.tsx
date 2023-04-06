@@ -11,14 +11,16 @@ import {
   InLineEditInput,
   LastEdited,
 } from "components/interface/_global-elements";
-import { FunctionComponent } from "react";
+import { FunctionComponent, useCallback, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { upsertTraverse } from "store/traverse";
 import { updateMapDirective } from "store/map";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
+import evaStyles from "./eva.module.css";
 import * as httpClient from "http-client/elevation";
 import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
+import { insertElevationPending, removeElevationPending } from "store/interface";
 
 const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -41,36 +43,27 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
     shallowEqual
   );
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
+  const elevationPendingIndex = useAppSelector(
+    (state) =>
+      state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedTraverse.uuid),
+    refEqual
+  );
 
   // planet radius value used to generate elevation profile
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
-  const missionId = mission?.id;
 
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = mapDirective?.uuid === selectedTraverse?.uuid ? mapDirective : null;
 
-  async function getElevation(
-    path: AEGISPoint[],
-    pathSegmentDistances: number[]
-  ): Promise<number[][]> {
-    const R = parseFloat(mission?.config.msv.radius.minor);
+  const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
 
-    // dig the dem filename out of the MMGIS-formatted mission config
-    const measureJson = mission?.config.tools.find((tool) => tool.name === "Measure")?.variables;
-    const elevationResolutionMeters = measureJson["resolution"];
-    const demFilepath: string = measureJson["dem"];
-
-    // generate new elevation profile via api
-    const newElevationProfile = await httpClient.getElevationProfile(
-      missionId,
-      demFilepath,
-      path,
-      pathSegmentDistances,
-      elevationResolutionMeters || 10, // resolution in meters, default 10
-      R
-    );
-    return newElevationProfile.data;
-  }
+  useEffect(() => {
+    if (elevationPendingIndex > -1) {
+      setSaveButtonState("pending");
+    } else {
+      setSaveButtonState("enabled");
+    }
+  }, [elevationPendingIndex]);
 
   const verifyNoActiveMapAction = (): boolean => {
     // if another mapAction is underway, fire an alert and return false
@@ -85,6 +78,36 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
     }
   };
 
+  //todo move to thunk. repeated in map-body-leaflet.tsx
+  const getElevation = useCallback(
+    async (
+      path: AEGISPoint[],
+      pathSegmentDistances: number[],
+      uuid: string
+    ): Promise<number[][]> => {
+      dispatch(insertElevationPending(uuid));
+      const R = parseFloat(mission?.config.msv.radius.minor);
+
+      // dig the dem filename out of the MMGIS-formatted mission config
+      const measureJson = mission?.config.tools.find((tool) => tool.name === "Measure")?.variables;
+      const elevationResolutionMeters = measureJson["resolution"];
+      const demFilepath: string = measureJson["dem"];
+
+      // generate new elevation profile via api
+      const newElevationProfile = await httpClient.getElevationProfile(
+        mission.id,
+        demFilepath,
+        path,
+        pathSegmentDistances,
+        elevationResolutionMeters || 10, // resolution in meters, default 10
+        R
+      );
+      dispatch(removeElevationPending(uuid));
+      return newElevationProfile.data;
+    },
+    [mission, dispatch]
+  );
+
   const handlePathEdit = () => {
     if (verifyNoActiveMapAction()) {
       dispatch(
@@ -98,16 +121,6 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
   };
 
   const handlePathFinished = async () => {
-    dispatch(
-      upsertTraverse({
-        ...selectedTraverse,
-        pathSegmentElevations: await getElevation(
-          selectedTraverse.path,
-          selectedTraverse.pathSegmentDistances
-        ),
-      })
-    );
-
     dispatch(
       updateMapDirective({
         ...mapDirective,
@@ -147,7 +160,11 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
         parseFloat(mission?.config.msv.radius.minor)
       ),
     ];
-    const newPathSegmentElevations = await getElevation(newPath, newPathSegmentDistances);
+    const newPathSegmentElevations = await getElevation(
+      newPath,
+      newPathSegmentDistances,
+      selectedTraverse.uuid
+    );
 
     //update store
     dispatch(
@@ -302,26 +319,34 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                 ) : (
                   <div className={paneStyles.buttonPlaceholder} />
                 )}
-                {editMode && mapAction === "editPolyline" && (
-                  <>
-                    <IconButton
-                      onClick={() => {
-                        handlePathFinished();
-                      }}
-                      icon={faFloppyDisk}
-                      label="Finished"
-                      style={{ width: "90px" }}
-                    />
+                {editMode && mapAction === "editPolyline" ? (
+                  saveButtonState === "pending" ? (
+                    <>
+                      <span className={evaStyles.statusLoading} />
+                    </>
+                  ) : (
+                    <>
+                      <IconButton
+                        onClick={() => {
+                          handlePathFinished();
+                        }}
+                        icon={faFloppyDisk}
+                        label="Finished"
+                        style={{ width: "90px" }}
+                      />
 
-                    <IconButton
-                      onClick={() => {
-                        handleCancelPathEdit();
-                      }}
-                      icon={faXmark}
-                      label="Cancel"
-                      style={{ width: "75px" }}
-                    />
-                  </>
+                      <IconButton
+                        onClick={() => {
+                          handleCancelPathEdit();
+                        }}
+                        icon={faXmark}
+                        label="Cancel"
+                        style={{ width: "75px" }}
+                      />
+                    </>
+                  )
+                ) : (
+                  <></>
                 )}
 
                 {!editMode && !selectedTraverse.path && (

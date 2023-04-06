@@ -12,6 +12,7 @@ import {
 } from "store/traverse";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
+import evaStyles from "./eva.module.css";
 import Info_Panel from "./eva-right-traverse-info";
 import * as httpClient_Traverse from "http-client/traverse";
 import { updateMapDirective } from "store/map";
@@ -39,6 +40,11 @@ const EvaRightTraverse: FunctionComponent = () => {
     (state) => state.traverse.selectedTraverseRightNavItem,
     shallowEqual
   );
+  const elevationPendingIndex = useAppSelector(
+    (state) =>
+      state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedTraverse.uuid),
+    refEqual
+  );
 
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = mapDirective?.uuid === selectedEvaSequenceItemUuid ? mapDirective : null;
@@ -46,10 +52,16 @@ const EvaRightTraverse: FunctionComponent = () => {
     (state) => state.user.ironSessionData?.user.permission.includes("admin"),
     refEqual
   );
-  const [modified, setModified] = useState(false);
+  const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
+
   useEffect(() => {
-    setModified(!_.isEqual(selectedTraverse, selectedTraverseFromDb));
-  }, [selectedTraverse, selectedTraverseFromDb]);
+    if (elevationPendingIndex > -1) {
+      setSaveButtonState("pending");
+    } else {
+      const isModified = !_.isEqual(selectedTraverse, selectedTraverseFromDb);
+      setSaveButtonState(isModified ? "enabled" : "disabled");
+    }
+  }, [elevationPendingIndex, selectedTraverse, selectedTraverseFromDb]);
 
   const panelTypes: PanelTypes = {
     info_panel: {
@@ -176,32 +188,43 @@ const EvaRightTraverse: FunctionComponent = () => {
               />
             )}
 
-            {traversesEditing.includes(selectedEvaSequenceItemUuid) && (
-              <>
-                <IconButton
-                  onClick={() => {
-                    handleSave();
-                  }}
-                  icon={faFloppyDisk}
-                  toolTip={`Save Traverse${modified ? "" : " (nothing to save)"}`}
-                  enabled={modified}
-                  style={{
-                    width: "30px",
-                    backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
-                    color: modified ? "white" : "var(--grey4)",
-                    fontSize: "0.9em",
-                    paddingLeft: "10px",
-                  }}
-                />
-                <IconButton
-                  onClick={() => {
-                    handleCancel();
-                  }}
-                  icon={faBan}
-                  toolTip="Cancel Edit"
-                  style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
-                />
-              </>
+            {traversesEditing.includes(selectedEvaSequenceItemUuid) ? (
+              saveButtonState === "pending" ? (
+                <>
+                  <span className={evaStyles.statusLoading} />
+                </>
+              ) : (
+                <>
+                  <IconButton
+                    onClick={() => {
+                      handleSave();
+                    }}
+                    icon={faFloppyDisk}
+                    toolTip={`Save Traverse${
+                      saveButtonState === "enabled" ? "" : " (nothing to save)"
+                    }`}
+                    enabled={saveButtonState === "enabled"}
+                    style={{
+                      width: "30px",
+                      backgroundColor:
+                        saveButtonState === "enabled" ? "var(--alert)" : "var(--alert-disabled)",
+                      color: saveButtonState === "enabled" ? "white" : "var(--grey4)",
+                      fontSize: "0.9em",
+                      paddingLeft: "10px",
+                    }}
+                  />
+                  <IconButton
+                    onClick={() => {
+                      handleCancel();
+                    }}
+                    icon={faBan}
+                    toolTip="Cancel Edit"
+                    style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                  />
+                </>
+              )
+            ) : (
+              <></>
             )}
           </div>
         </div>

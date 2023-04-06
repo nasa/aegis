@@ -1,4 +1,5 @@
 import paneStyles from "../global-pane-styles.module.css";
+import stationStyles from "./station.module.css";
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
@@ -87,6 +88,13 @@ const StationEditorRight: FunctionComponent = () => {
     });
     return evasUsingThisStation;
   }, shallowEqual);
+
+  const elevationPendingIndex = useAppSelector(
+    (state) =>
+      state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedStationUuid),
+    refEqual
+  );
+
   const isAdmin = useAppSelector(
     (state) => state.user.ironSessionData?.user.permission.includes("admin"),
     refEqual
@@ -126,15 +134,27 @@ const StationEditorRight: FunctionComponent = () => {
   };
 
   //track modified
-  const [modified, setModified] = useState(false);
+  const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
+
   useEffect(() => {
-    const stationEqual = _.isEqual(selectedStation, selectedStationFromDb);
-    const actionEqual = _.isEqual(
-      _.sortBy(stationActions, ["uuid"]),
-      _.sortBy(stationActionsFromDb, ["uuid"])
-    );
-    setModified(!stationEqual || !actionEqual);
-  }, [selectedStation, selectedStationFromDb, stationActions, stationActionsFromDb]);
+    if (elevationPendingIndex > -1) {
+      setSaveButtonState("pending");
+    } else {
+      const stationEqual = _.isEqual(selectedStation, selectedStationFromDb);
+      const actionEqual = _.isEqual(
+        _.sortBy(stationActions, ["uuid"]),
+        _.sortBy(stationActionsFromDb, ["uuid"])
+      );
+      const isModified = !stationEqual || !actionEqual;
+      setSaveButtonState(isModified ? "enabled" : "disabled");
+    }
+  }, [
+    elevationPendingIndex,
+    selectedStation,
+    selectedStationFromDb,
+    stationActions,
+    stationActionsFromDb,
+  ]);
 
   const cancelMarkerMapDirective = () => {
     // if there's an active create or edit action, cancel it
@@ -156,7 +176,7 @@ const StationEditorRight: FunctionComponent = () => {
   };
 
   const handleSave = async () => {
-    if (selectedStation && modified) {
+    if (selectedStation) {
       // upsert the changed Station to the DB via internal API call
       const stationUpsertResponse = await httpClient_station.upsertStation(selectedStation);
 
@@ -384,7 +404,7 @@ const StationEditorRight: FunctionComponent = () => {
               })}
           </div>
           <div className={paneStyles.saveCancelContainer}>
-            {stationsEditing.includes(selectedStationUuid) && (
+            {stationsEditing.includes(selectedStationUuid) && !(saveButtonState === "pending") ? (
               <IconButton
                 icon={faTrashAlt}
                 onClick={() => {
@@ -393,6 +413,8 @@ const StationEditorRight: FunctionComponent = () => {
                 toolTip="Delete Station"
                 style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
               />
+            ) : (
+              <></>
             )}
             {!stationsEditing.includes(selectedStationUuid) && isAdmin && (
               <IconButton
@@ -409,32 +431,43 @@ const StationEditorRight: FunctionComponent = () => {
               />
             )}
 
-            {stationsEditing.includes(selectedStationUuid) && (
-              <>
-                <IconButton
-                  onClick={() => {
-                    handleSave();
-                  }}
-                  icon={faFloppyDisk}
-                  toolTip={`Save Station${modified ? "" : " (nothing to save)"}`}
-                  enabled={modified}
-                  style={{
-                    width: "30px",
-                    backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
-                    color: modified ? "white" : "var(--grey4)",
-                    fontSize: "0.9em",
-                    paddingLeft: "10px",
-                  }}
-                />
-                <IconButton
-                  onClick={() => {
-                    handleCancel();
-                  }}
-                  icon={faBan}
-                  toolTip="Cancel Edit"
-                  style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
-                />
-              </>
+            {stationsEditing.includes(selectedStationUuid) ? (
+              saveButtonState === "pending" ? (
+                <>
+                  <span className={stationStyles.statusLoading} />
+                </>
+              ) : (
+                <>
+                  <IconButton
+                    onClick={() => {
+                      handleSave();
+                    }}
+                    icon={faFloppyDisk}
+                    toolTip={`Save Station${
+                      saveButtonState === "enabled" ? "" : " (nothing to save)"
+                    }`}
+                    enabled={saveButtonState === "enabled"}
+                    style={{
+                      width: "30px",
+                      backgroundColor:
+                        saveButtonState === "enabled" ? "var(--alert)" : "var(--alert-disabled)",
+                      color: saveButtonState === "enabled" ? "white" : "var(--grey4)",
+                      fontSize: "0.9em",
+                      paddingLeft: "10px",
+                    }}
+                  />
+                  <IconButton
+                    onClick={() => {
+                      handleCancel();
+                    }}
+                    icon={faBan}
+                    toolTip="Cancel Edit"
+                    style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                  />
+                </>
+              )
+            ) : (
+              <></>
             )}
           </div>
         </div>

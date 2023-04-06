@@ -5,7 +5,7 @@ export const initialState: TraverseState = {
   traverses: [],
   traversesFromDb: [],
   traversesEditing: [],
-  selectedTraverseRightNavItem: "",
+  selectedTraverseRightNavItem: "info_panel",
 };
 
 export const traverseSlice = createSlice({
@@ -51,17 +51,28 @@ export const traverseSlice = createSlice({
         );
       }
     },
-    updateTraversePathAndDistance: (
+    updateTraversePath: (
       state,
-      action: { payload: { uuid: string; path: AEGISPoint[]; distance: number[] } }
+      action: {
+        payload: {
+          uuid: string;
+          path: AEGISPoint[];
+          pathSegmentDistances: number[];
+          pathSegmentElevations?: number[][];
+        };
+      }
     ) => {
       const traverse = state.traverses.find((traverse) => traverse.uuid === action.payload.uuid);
       if (traverse) {
         traverse.path = action.payload.path;
-        traverse.pathSegmentDistances = action.payload.distance;
+        traverse.pathSegmentDistances = action.payload.pathSegmentDistances;
+        if (action.payload.pathSegmentElevations) {
+          traverse.pathSegmentElevations = action.payload.pathSegmentElevations;
+        }
       }
     },
-    revertTraversePathAndDistance: (state, action: { payload: { uuid: string } }) => {
+
+    revertTraversePath: (state, action: { payload: { uuid: string } }) => {
       const traverse = state.traverses.find((traverse) => traverse.uuid === action.payload.uuid);
       const traverseFromDb = state.traversesFromDb.find(
         (traverse) => traverse.uuid === action.payload.uuid
@@ -69,6 +80,13 @@ export const traverseSlice = createSlice({
       if (traverse && traverseFromDb) {
         traverse.path = traverseFromDb.path;
         traverse.pathSegmentDistances = traverseFromDb.pathSegmentDistances;
+        traverse.pathSegmentElevations = traverseFromDb.pathSegmentElevations;
+      }
+    },
+    deleteTraverseElevation: (state, action: { payload: string }) => {
+      const traverse = state.traverses.find((traverse) => traverse.uuid === action.payload);
+      if (traverse) {
+        traverse.pathSegmentElevations = [];
       }
     },
   },
@@ -85,6 +103,7 @@ export const {
   deleteAllTraverses,
   setSelectedTraverseRightNavItem,
   setTraverseEditMode,
-  updateTraversePathAndDistance,
-  revertTraversePathAndDistance,
+  updateTraversePath,
+  revertTraversePath,
+  deleteTraverseElevation,
 } = traverseSlice.actions;

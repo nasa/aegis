@@ -84,22 +84,27 @@ export const stationSlice = createSlice({
         return station;
       });
     },
-    updateWalkbackPathAndDistance: (
+    updateWalkbackPath: (
       state,
-      action: { payload: { uuid: string; path: AEGISPoint[]; distance: number[] } }
+      action: {
+        payload: {
+          uuid: string;
+          walkbackPath: AEGISPoint[];
+          walkbackPathSegmentDistances: number[];
+          walkbackPathSegmentElevations?: number[][];
+        };
+      }
     ) => {
-      state.stations = state.stations.map((station) => {
-        if (station.uuid === action.payload.uuid) {
-          return {
-            ...station,
-            walkbackPath: action.payload.path,
-            walkbackPathSegmentDistances: action.payload.distance,
-          };
+      const station = state.stations.find((station) => station.uuid === action.payload.uuid);
+      if (station) {
+        station.walkbackPath = action.payload.walkbackPath;
+        station.walkbackPathSegmentDistances = action.payload.walkbackPathSegmentDistances;
+        if (action.payload.walkbackPathSegmentElevations) {
+          station.walkbackPathSegmentElevations = action.payload.walkbackPathSegmentElevations;
         }
-        return station;
-      });
+      }
     },
-    revertWalkbackPathAndDistance: (state, action: { payload: { uuid: string } }) => {
+    revertWalkbackPath: (state, action: { payload: { uuid: string } }) => {
       const station = state.stations.find((station) => station.uuid === action.payload.uuid);
       const stationFromDb = state.stationsFromDb.find(
         (station) => station.uuid === action.payload.uuid
@@ -107,6 +112,13 @@ export const stationSlice = createSlice({
       if (station && stationFromDb) {
         station.walkbackPath = stationFromDb.walkbackPath;
         station.walkbackPathSegmentDistances = stationFromDb.walkbackPathSegmentDistances;
+        station.walkbackPathSegmentElevations = stationFromDb.walkbackPathSegmentElevations;
+      }
+    },
+    deleteStationWalkbackElevation: (state, action: { payload: string }) => {
+      const station = state.stations.find((station) => station.uuid === action.payload);
+      if (station) {
+        station.walkbackPathSegmentElevations = [];
       }
     },
   },
@@ -126,6 +138,7 @@ export const {
   duplicateStation,
   setStationEditMode,
   updateStationLocationAndElevation,
-  updateWalkbackPathAndDistance,
-  revertWalkbackPathAndDistance,
+  updateWalkbackPath,
+  revertWalkbackPath,
+  deleteStationWalkbackElevation,
 } = stationSlice.actions;

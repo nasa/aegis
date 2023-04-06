@@ -26,3 +26,5 @@ interface Option {
   name: string;
   value: string;
 }
+
+type saveButtonState = "enabled" | "disabled" | "pending";

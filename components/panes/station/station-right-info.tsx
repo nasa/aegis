@@ -1,6 +1,6 @@
 import { FunctionComponent, useCallback, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import styles from "./station.module.css";
+import stationStyles from "./station.module.css";
 import {
   faFloppyDisk,
   faIcons,
@@ -50,6 +50,11 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   );
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = mapDirective?.uuid === selectedStation.uuid ? mapDirective : null;
+  const elevationPendingIndex = useAppSelector(
+    (state) =>
+      state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedStation.uuid),
+    refEqual
+  );
 
   const evasUsingThisStation = useAppSelector((state) => {
     const evasUsingThisStation = [];
@@ -69,6 +74,15 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   });
   const [actionCount, setActionCount] = useState(0);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
+
+  useEffect(() => {
+    if (elevationPendingIndex > -1) {
+      setSaveButtonState("pending");
+    } else {
+      setSaveButtonState("enabled");
+    }
+  }, [elevationPendingIndex]);
 
   useEffect(() => {
     let totalDurationLower = 0;
@@ -329,15 +343,15 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
               <div className={paneStyles.panelSmallField}>
                 <div className={paneStyles.panelSectionTitle}>Icon</div>
-                <div className={styles.iconDisplay}>
+                <div className={stationStyles.iconDisplay}>
                   {selectedStation.icon && (
-                    <div className={styles.iconDisplayIcon}>
+                    <div className={stationStyles.iconDisplayIcon}>
                       {decodeEmoji(selectedStation.icon)}
                     </div>
                   )}
                   {editMode && (
                     <>
-                      <div className={styles.iconDisplayButton}>
+                      <div className={stationStyles.iconDisplayButton}>
                         <IconButton
                           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                           icon={faIcons}
@@ -345,9 +359,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           style={!showEmojiPicker ? { width: "90px" } : { width: "70px" }}
                         />
                       </div>
-                      <div className={styles.iconPickerContainer}>
+                      <div className={stationStyles.iconPickerContainer}>
                         {showEmojiPicker && (
-                          <div className={styles.iconPicker}>
+                          <div className={stationStyles.iconPicker}>
                             <Picker
                               data={emojiPickerData}
                               emojiButtonSize={30}
@@ -440,7 +454,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         style={{ width: "130px" }}
                       />
                     </>
-                  ) : (
+                  ) : saveButtonState !== "pending" ? (
                     <IconButton
                       onClick={() => {
                         handleEdit();
@@ -449,35 +463,41 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       label="Edit on Map"
                       style={{ width: "105px" }}
                     />
+                  ) : (
+                    <span className={stationStyles.statusLoading} />
                   )}
-                  {selectedStation.poiUuids?.length > 0 && (
-                    <>
-                      <IconButton
-                        onClick={() => {
-                          handleCalcCentroid();
-                        }}
-                        icon={faMapLocationDot}
-                        label="POIs Centroid"
-                        style={{ width: "115px" }}
-                      />
-                      <IconButton
-                        onClick={() => {
-                          if (landerLocation?.lat && landerLocation?.lng) {
-                            dispatch(
-                              upsertStation({
-                                ...selectedStation,
-                                location: landerLocation,
-                              })
-                            );
-                          } else {
-                            alert("No lander location specified for this mission");
-                          }
-                        }}
-                        icon={faMapLocationDot}
-                        label="Lander"
-                        style={{ width: "70px" }}
-                      />
-                    </>
+                  {selectedStation.poiUuids?.length > 0 ? (
+                    saveButtonState !== "pending" && (
+                      <>
+                        <IconButton
+                          onClick={() => {
+                            handleCalcCentroid();
+                          }}
+                          icon={faMapLocationDot}
+                          label="POIs Centroid"
+                          style={{ width: "115px" }}
+                        />
+                        <IconButton
+                          onClick={() => {
+                            if (landerLocation?.lat && landerLocation?.lng) {
+                              dispatch(
+                                upsertStation({
+                                  ...selectedStation,
+                                  location: landerLocation,
+                                })
+                              );
+                            } else {
+                              alert("No lander location specified for this mission");
+                            }
+                          }}
+                          icon={faMapLocationDot}
+                          label="Lander"
+                          style={{ width: "70px" }}
+                        />
+                      </>
+                    )
+                  ) : (
+                    <></>
                   )}
                 </>
               ) : (
@@ -541,48 +561,60 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         </div>
                       )}
                       {editMode && mapAction === null ? (
-                        <>
-                          <IconButton
-                            onClick={() => {
-                              handleEditWalkback();
-                            }}
-                            icon={faRoute}
-                            label="Edit Path on Map"
-                            style={{ width: "135px" }}
-                          />
+                        saveButtonState === "pending" ? (
+                          <span className={stationStyles.statusLoading} />
+                        ) : (
+                          <>
+                            <IconButton
+                              onClick={() => {
+                                handleEditWalkback();
+                              }}
+                              icon={faRoute}
+                              label="Edit Path on Map"
+                              style={{ width: "135px" }}
+                            />
 
-                          <IconButton
-                            onClick={() => {
-                              handleResetWalkback();
-                            }}
-                            icon={faMapLocationDot}
-                            label="Reset Path"
-                            style={{ width: "100px" }}
-                          />
-                        </>
+                            <IconButton
+                              onClick={() => {
+                                handleResetWalkback();
+                              }}
+                              icon={faMapLocationDot}
+                              label="Reset Path"
+                              style={{ width: "100px" }}
+                            />
+                          </>
+                        )
                       ) : (
                         <div className={paneStyles.buttonPlaceholder} />
                       )}
-                      {editMode && mapAction === "editPolyline" && (
-                        <>
-                          <IconButton
-                            onClick={() => {
-                              handleSaveEditWalkback();
-                            }}
-                            icon={faFloppyDisk}
-                            label="Finished"
-                            style={{ width: "90px" }}
-                          />
+                      {editMode && mapAction === "editPolyline" ? (
+                        saveButtonState === "pending" ? (
+                          <>
+                            <span className={stationStyles.statusLoading} />
+                          </>
+                        ) : (
+                          <>
+                            <IconButton
+                              onClick={() => {
+                                handleSaveEditWalkback();
+                              }}
+                              icon={faFloppyDisk}
+                              label="Finished"
+                              style={{ width: "90px" }}
+                            />
 
-                          <IconButton
-                            onClick={() => {
-                              handleCancelEditWalkback();
-                            }}
-                            icon={faXmark}
-                            label="Cancel"
-                            style={{ width: "75px" }}
-                          />
-                        </>
+                            <IconButton
+                              onClick={() => {
+                                handleCancelEditWalkback();
+                              }}
+                              icon={faXmark}
+                              label="Cancel"
+                              style={{ width: "75px" }}
+                            />
+                          </>
+                        )
+                      ) : (
+                        <></>
                       )}
                     </>
                   ) : (
