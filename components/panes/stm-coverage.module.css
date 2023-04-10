@@ -13,7 +13,8 @@
   padding: 0;
 }
 
-.stm, .stm_mini {
+.stm,
+.stm_mini {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-start;
@@ -50,6 +51,11 @@
   color: black;
   width: 1em;
   text-align: center;
+}
+.objectiveNumberingRow_mini {
+  color: white;
+  font-size: 0.7rem;
+  font-family: sans-serif;
 }
 .objectiveNumberingCol {
   border-top-left-radius: var(--radius);

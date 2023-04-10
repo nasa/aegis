@@ -316,7 +316,6 @@
 
 .notesText {
   display: flex;
-  height: 150px;
   background-color: var(--grey2);
   color: #ffffff;
   border: 1px solid var(--grey2);

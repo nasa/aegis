@@ -7,6 +7,7 @@ import {
   useEffect,
   useLayoutEffect,
   useRef,
+  useState,
 } from "react";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 
@@ -17,6 +18,7 @@ import { useDispatch } from "react-redux";
 import { clearHover, setHover } from "store/playheadHover";
 import _ from "lodash";
 import { Dispatch } from "@reduxjs/toolkit";
+import { STM_Coverage } from "components/panes/stm-coverage";
 
 /**
  * Sets the stroke or fill color for an array of paper items
@@ -49,8 +51,6 @@ function highlightSelection(
       }
     } else if (i === paperRefs.current.timeMarkers.children.length - 1) {
       setColorForItems(timeMarkerGroup.children, paperRefs.current.styles.startEndHighlight);
-    } else {
-      setColorForItems(timeMarkerGroup.children, paperRefs.current.styles.lineColor);
     }
   }
 
@@ -59,7 +59,7 @@ function highlightSelection(
     const color =
       sequenceItemGroup.name === sequenceItemUuid
         ? paperRefs.current.styles.selectedColor
-        : paperRefs.current.styles.sequenceColor;
+        : paperRefs.current.styles.labelColor;
     setColorForItems(sequenceItemGroup.children, color);
   }
 
@@ -70,15 +70,6 @@ function highlightSelection(
         ? paperRefs.current.styles.selectedBkgColor
         : paperRefs.current.styles.regularBkgColor;
     setColorForItems([backgroundGroup], color);
-  }
-
-  //highlight distance graph
-  for (const distanceGraphGroup of paperRefs.current.landerDistance) {
-    const color =
-      distanceGraphGroup.name === sequenceItemUuid
-        ? paperRefs.current.styles.selectedColor
-        : paperRefs.current.styles.sequenceColor;
-    setColorForItems(distanceGraphGroup.children, color);
   }
 }
 
@@ -92,7 +83,8 @@ function highlightSelection(
 function drawTimeMarker(
   paperRefs: MutableRefObject<PaperDrawings>,
   xLoc: number,
-  customColor: paper.Color = null
+  customColor: paper.Color = null,
+  customTextColor: paper.Color = null
 ): paper.Group {
   const paperVars = paperRefs.current.paperVars;
 
@@ -100,7 +92,7 @@ function drawTimeMarker(
   const color = customColor || paperRefs.current.styles.lineColor;
   const verticalLine = new paper.Path.Line({
     from: new paper.Point(xLoc, paperVars.timelineTop),
-    to: new paper.Point(xLoc, paperVars.timelineTop + paperVars.timelineHeight),
+    to: new paper.Point(xLoc, paperVars.timelineTop + paperVars.timelineHeight + 20),
     strokeColor: color,
     strokeWidth: 1,
   });
@@ -109,16 +101,16 @@ function drawTimeMarker(
   const timeHrs = Math.floor(seconds / 3600);
   const timeMins = Math.round((seconds % 3600) / 60);
   const timeLabel = new paper.PointText({
-    point: new paper.Point(xLoc + 4, paperVars.timelineTop + paperVars.timelineHeight + 30),
+    point: new paper.Point(xLoc - 30, paperVars.timelineTop + paperVars.timelineHeight + 40),
     justification: "left",
     fontFamily: paperRefs.current.styles.gNavigatorFontFamilyActivity,
     fontSize: 12,
-    fillColor: color,
+    fillColor: customTextColor || paperRefs.current.styles.labelColor,
     content: timeHrs + ":" + padZeros(timeMins, 2),
   });
   timeLabel.rotate(
-    -90,
-    new paper.Point(xLoc + 4, paperVars.timelineTop + paperVars.timelineHeight + 30)
+    -45,
+    new paper.Point(xLoc - 15, paperVars.timelineTop + paperVars.timelineHeight + 25)
   );
   markerGroup.addChildren([timeLabel, verticalLine]);
   return markerGroup;
@@ -138,13 +130,14 @@ function drawMeterMarker(
   xLoc: number,
   yLoc: number,
   label: string,
+  color: paper.Color,
   align: "left" | "right"
 ): paper.Group {
   const markerGroup = new paper.Group();
   const horizontalLine = new paper.Path.Line({
     from: new paper.Point(xLoc + 10 * (align === "right" ? -1 : 1), yLoc),
     to: new paper.Point(xLoc, yLoc),
-    strokeColor: paperRefs.current.styles.lineColor,
+    strokeColor: color,
     strokeWidth: 1,
   });
   const meterLabel = new paper.PointText({
@@ -152,7 +145,7 @@ function drawMeterMarker(
     justification: align,
     fontFamily: paperRefs.current.styles.gNavigatorFontFamilyActivity,
     fontSize: 12,
-    fillColor: paperRefs.current.styles.sequenceColor,
+    fillColor: color,
     content: label,
   });
   markerGroup.addChildren([horizontalLine, meterLabel]);
@@ -179,37 +172,78 @@ function drawGraphAxis(
   const bottomLine = new paper.Path.Line({
     from: new paper.Point(paperVars.timelineLeft, paperVars.sequenceTop - 4),
     to: new paper.Point(paperVars.timelineLeft + paperVars.timeineWidth, paperVars.sequenceTop - 4),
-    strokeColor: paperRefs.current.styles.lineColor,
+    strokeColor: paperRefs.current.styles.sequenceColor,
   });
   paperRefs.current.graphAxis.addChildren([topLine, bottomLine]);
 
   //draw start and end lines for eva length
-  drawTimeMarker(paperRefs, paperVars.timelineLeft, paperRefs.current.styles.startEndHighlight);
+  drawTimeMarker(
+    paperRefs,
+    paperVars.timelineLeft,
+    paperRefs.current.styles.startEndHighlight,
+    paperRefs.current.styles.startEndHighlight
+  );
   drawTimeMarker(
     paperRefs,
     paperVars.timelineLeft + storeRefs.current.evaLengthMins * paperVars.pixelsPerSecondX * 60,
+    paperRefs.current.styles.startEndHighlight,
     paperRefs.current.styles.startEndHighlight
   );
 
   //draw PET label
   const petLabel = new paper.PointText({
     point: new paper.Point(
-      paperVars.timelineLeft - 10,
-      paperVars.timelineTop + paperVars.timelineHeight + 30
+      paperVars.timelineLeft - 35,
+      paperVars.timelineTop + paperVars.timelineHeight + 25
     ),
     justification: "left",
     fontFamily: paperRefs.current.styles.gNavigatorFontFamilyActivity,
     fontSize: 12,
-    fillColor: "#FFFFFF",
+    fillColor: paperRefs.current.styles.labelColor,
     content: "PET",
   });
-  petLabel.rotate(
+  paperRefs.current.graphAxis.addChild(petLabel);
+
+  //draw left y-axis label
+  const leftYAxisLabelXOffset = 60;
+  const leftYAxisLabel = new paper.PointText({
+    point: new paper.Point(
+      paperVars.timelineLeft - leftYAxisLabelXOffset,
+      paperVars.timelineTop - 5
+    ),
+    justification: "right",
+    fontFamily: paperRefs.current.styles.gNavigatorFontFamilyActivity,
+    fontSize: 12,
+    fillColor: paperRefs.current.styles.sequenceColor,
+    content: "Distance from Lander (m)",
+  });
+  leftYAxisLabel.rotate(
+    -90,
+    new paper.Point(paperVars.timelineLeft - leftYAxisLabelXOffset, paperVars.timelineTop - 5)
+  );
+  paperRefs.current.graphAxis.addChild(leftYAxisLabel);
+
+  //draw right y-axis label
+  const rightYAxisLabelXOffset = 65;
+  const rightYAxisLabel = new paper.PointText({
+    point: new paper.Point(
+      paperVars.timelineLeft + paperVars.timeineWidth + rightYAxisLabelXOffset,
+      paperVars.timelineTop - 5
+    ),
+    justification: "right",
+    fontFamily: paperRefs.current.styles.gNavigatorFontFamilyActivity,
+    fontSize: 12,
+    fillColor: paperRefs.current.styles.elevationColor,
+    content: "Relative Elevation (m)",
+  });
+  rightYAxisLabel.rotate(
     -90,
     new paper.Point(
-      paperVars.timelineLeft - 10,
-      paperVars.timelineTop + paperVars.timelineHeight + 30
+      paperVars.timelineLeft + paperVars.timeineWidth + rightYAxisLabelXOffset,
+      paperVars.timelineTop - 5
     )
   );
+  paperRefs.current.graphAxis.addChild(rightYAxisLabel);
 
   //draw left y-axis meters
   const markerSpacingPx = 20; //20px = spacing for markers
@@ -218,7 +252,8 @@ function drawGraphAxis(
     paperRefs,
     paperVars.timelineLeft,
     paperVars.timelineTop,
-    Math.round(storeRefs.current.maxDistanceFromLanderMeters).toString(),
+    `${Math.round(storeRefs.current.maxDistanceFromLanderMeters).toLocaleString("en-US")}`,
+    paperRefs.current.styles.sequenceColor,
     "right"
   );
   // min meter (at 0)
@@ -227,6 +262,7 @@ function drawGraphAxis(
     paperVars.timelineLeft,
     paperVars.timelineTop + paperVars.graphHeight,
     "0",
+    paperRefs.current.styles.sequenceColor,
     "right"
   );
   //inbetween meter lines
@@ -238,9 +274,10 @@ function drawGraphAxis(
       paperRefs,
       paperVars.timelineLeft,
       paperVars.timelineTop + metersBtwnDistanceMarkers * i * paperVars.pixelsPerMeterDistanceY,
-      Math.round(
+      `${Math.round(
         storeRefs.current.maxDistanceFromLanderMeters - metersBtwnDistanceMarkers * i
-      ).toString(),
+      ).toLocaleString("en-US")}`,
+      paperRefs.current.styles.sequenceColor,
       "right"
     );
   }
@@ -256,7 +293,8 @@ function drawGraphAxis(
       paperRefs,
       xLocRightYaxis,
       paperVars.timelineTop + paperVars.landerElevationFromGraphTop,
-      `Lander (${Math.round(storeRefs.current.landerElevationMeters)})`,
+      `Lander`,
+      paperRefs.current.styles.elevationColor,
       "left"
     );
     const landerLine = new paper.Path.Line({
@@ -268,7 +306,7 @@ function drawGraphAxis(
         paperVars.timelineLeft,
         paperVars.timelineTop + paperVars.landerElevationFromGraphTop
       ),
-      strokeColor: paperRefs.current.styles.lineColor,
+      strokeColor: paperRefs.current.styles.elevationColor,
     });
     paperRefs.current.graphAxis.addChild(landerLine);
 
@@ -280,9 +318,8 @@ function drawGraphAxis(
         paperRefs,
         xLocRightYaxis,
         paperVars.timelineTop,
-        `${Math.round(elevationFromLander)} (${Math.round(
-          storeRefs.current.maxElevationMeters
-        ).toString()})`,
+        `${Math.round(elevationFromLander).toLocaleString("en-US")}`,
+        paperRefs.current.styles.elevationColor,
         "left"
       );
     }
@@ -294,9 +331,10 @@ function drawGraphAxis(
         paperRefs,
         xLocRightYaxis,
         paperVars.timelineTop + paperVars.graphHeight,
-        `${Math.round(elevationFromLander)} (${Math.round(
-          storeRefs.current.minElevationMeters
-        ).toString()})`,
+        `${
+          storeRefs.current.minElevationMeters < storeRefs.current.landerElevationMeters ? "-" : ""
+        }${Math.round(elevationFromLander).toLocaleString("en-US")}`,
+        paperRefs.current.styles.elevationColor,
         "left"
       ); // min meter
     }
@@ -306,10 +344,10 @@ function drawGraphAxis(
       (storeRefs.current.maxElevationMeters - storeRefs.current.minElevationMeters) /
       numElevationMarkers;
     for (let i = 1; i < numElevationMarkers; i++) {
-      elevationFromLander = Math.abs(
-        storeRefs.current.landerElevationMeters -
-          (storeRefs.current.maxElevationMeters - metersBtwnElevationMarkers * i)
-      );
+      const realLanderElevation = storeRefs.current.landerElevationMeters;
+      const realLabelElevation =
+        storeRefs.current.maxElevationMeters - metersBtwnElevationMarkers * i;
+      elevationFromLander = Math.abs(realLanderElevation - realLabelElevation);
       const pixelsFromLanderMarker = elevationFromLander * paperVars.pixelsPerMeterElevationY;
       if (pixelsFromLanderMarker > spacingFromLanderMaker) {
         drawMeterMarker(
@@ -317,9 +355,10 @@ function drawGraphAxis(
           xLocRightYaxis,
           paperVars.timelineTop +
             metersBtwnElevationMarkers * i * paperVars.pixelsPerMeterElevationY,
-          `${Math.round(elevationFromLander)} (${Math.round(
-            storeRefs.current.maxElevationMeters - metersBtwnElevationMarkers * i
-          ).toString()})`,
+          `${realLanderElevation > realLabelElevation ? "-" : ""}${Math.round(
+            elevationFromLander
+          ).toLocaleString("en-US")}`,
+          paperRefs.current.styles.elevationColor,
           "left"
         );
       }
@@ -334,12 +373,17 @@ function drawGraphAxis(
  */
 function drawLanderDistanceGraph(
   paperRefs: MutableRefObject<PaperDrawings>,
-  storeRefs: MutableRefObject<StoreData_PaperJS>
+  storeRefs: MutableRefObject<StoreData_PaperJS>,
+  graphItems: MutableRefObject<GraphItems>
 ) {
   const paperVars = paperRefs.current.paperVars;
 
   let itemLocX: number = paperVars.timelineLeft;
-  for (const [sequenceItemIndex, sequenceItem] of storeRefs.current.sequenceItems.entries()) {
+
+  const landerDistanceGroup = new paper.Group();
+
+  //loop through sequence items
+  for (const sequenceItem of storeRefs.current.sequenceItems) {
     if (
       !sequenceItem.subdividedDistFromLanderMeters ||
       sequenceItem.subdividedDistFromLanderMeters.length === 0
@@ -347,16 +391,26 @@ function drawLanderDistanceGraph(
       //there is no distance from lander calculated (can happen if lander location isn't set for this mission).
       continue;
     }
-    const landerDistanceGroup = new paper.Group();
-    landerDistanceGroup.name = sequenceItem.uuid;
+    const landerDistanceSequenceGroup = new paper.Group();
+    landerDistanceSequenceGroup.name = sequenceItem.uuid;
+
+    const graphValueArray = [];
 
     //draw walkback line if this is a station and it has a walkback
     if (sequenceItem.type === "station" && sequenceItem.walkback) {
       const walkbackGroup = drawWalkback(paperRefs, itemLocX, sequenceItem.walkback);
       paperRefs.current.walkbacks.push(walkbackGroup);
+      graphValueArray[sequenceItem.uuid] = {
+        distanceFromLander: [
+          { xPixels: 0, val: sequenceItem.walkback.distanceFromLanderMeters[0] },
+        ],
+      };
     }
 
-    //draw a line for each duration segment
+    //loop through segment durations
+    const pointArray = [];
+    let fillArray = [[itemLocX, paperVars.timelineTop + paperVars.graphHeight]];
+
     for (const [durationIndex, duration] of sequenceItem.subdividedDurationsMins.entries()) {
       const width = duration * paperVars.pixelsPerSecondX * 60; //duration is in minutes
       const itemLocYStart =
@@ -373,41 +427,63 @@ function drawLanderDistanceGraph(
             sequenceItem.subdividedDistFromLanderMeters[durationIndex + 1] *
               paperVars.pixelsPerMeterDistanceY
           : itemLocYStart;
-      const graphLine = new paper.Path.Line({
-        from: new paper.Point(itemLocX, itemLocYStart),
-        to: new paper.Point(itemLocX + width, itemLocYEnd),
-        strokeColor: paperRefs.current.styles.sequenceColor,
-        strokeWidth: 1.5,
-      });
-      landerDistanceGroup.addChild(graphLine);
+      pointArray.push([itemLocX, itemLocYStart]);
+      pointArray.push([itemLocX + width, itemLocYEnd]);
 
-      //draw first and last dots on the distance graph
-      if (sequenceItemIndex === 0 && durationIndex === 0) {
-        const diamond = new paper.Path.Rectangle({
-          point: new paper.Point(itemLocX - 3, itemLocYStart - 3),
-          size: 6,
-          fillColor: paperRefs.current.styles.sequenceColor,
-        });
-        diamond.rotate(45);
-        landerDistanceGroup.addChild(diamond);
-      }
-      if (
-        sequenceItemIndex === storeRefs.current.sequenceItems.length - 1 &&
-        durationIndex === sequenceItem.subdividedDurationsMins.length - 1
-      ) {
-        const diamond = new paper.Path.Rectangle({
-          point: new paper.Point(itemLocX + width - 3, itemLocYStart - 3),
-          size: 6,
-          fillColor: paperRefs.current.styles.sequenceColor,
-        });
-        diamond.rotate(45);
-        landerDistanceGroup.addChild(diamond);
-      }
-
-      paperRefs.current.landerDistance.push(landerDistanceGroup);
+      paperRefs.current.landerDistance.push(landerDistanceSequenceGroup);
       itemLocX += width; //increment x
+
+      //collect the graph values for this item for later use
+      graphValueArray.push({
+        xPixels: itemLocX,
+        val: sequenceItem.subdividedDistFromLanderMeters[durationIndex],
+      } as GraphData);
     }
+    fillArray = fillArray.concat(pointArray);
+    fillArray.push([itemLocX, paperVars.timelineTop + paperVars.graphHeight]);
+
+    //draw the path of the stroke and fill
+    const distanceFromLanderStrokePath = new paper.Path(pointArray);
+    distanceFromLanderStrokePath.strokeColor = paperRefs.current.styles.sequenceColor;
+    distanceFromLanderStrokePath.opacity = 1;
+    distanceFromLanderStrokePath.strokeWidth = 1.5;
+    landerDistanceSequenceGroup.addChild(distanceFromLanderStrokePath);
+
+    const distanceFromLanderFillPath = new paper.Path(fillArray);
+    distanceFromLanderFillPath.fillColor = paperRefs.current.styles.sequenceColor;
+    distanceFromLanderFillPath.opacity = 0.1;
+    landerDistanceSequenceGroup.addChild(distanceFromLanderFillPath);
+    landerDistanceGroup.addChild(landerDistanceSequenceGroup);
+
+    //populate the graphValues ref for this sequence item. These values are used to draw the hover text
+    graphItems.current[sequenceItem.uuid] = {
+      type: sequenceItem.type,
+      distanceFromLander: graphValueArray,
+    } as GraphItem;
   }
+
+  //draw first and last dots on the distance graph
+  const diamond = new paper.Path.Rectangle({
+    point: new paper.Point(
+      paperVars.timelineLeft - 3,
+      paperVars.timelineTop + paperVars.graphHeight - 3
+    ),
+    size: 6,
+    fillColor: paperRefs.current.styles.sequenceColor,
+  });
+  diamond.rotate(45);
+  landerDistanceGroup.addChild(diamond);
+
+  const diamond2 = new paper.Path.Rectangle({
+    point: new paper.Point(
+      paperVars.timelineLeft + paperVars.timeineWidth - 3,
+      paperVars.timelineTop + paperVars.graphHeight - 3
+    ),
+    size: 6,
+    fillColor: paperRefs.current.styles.sequenceColor,
+  });
+  diamond2.rotate(45);
+  landerDistanceGroup.addChild(diamond2);
 }
 
 /**
@@ -487,10 +563,11 @@ function drawElevationProfile(
     ] of sequenceItem.segmentElevationMeters.entries()) {
       const elevationGroup = new paper.Group();
       const pointArray = [];
-      const landerYPixel = paperVars.timelineTop + paperVars.landerElevationFromGraphTop;
+      let fillArray = [];
 
+      const landerYPixel = paperVars.timelineTop + paperVars.landerElevationFromGraphTop;
       //push first point at lander line
-      pointArray.push([itemLocX, landerYPixel]);
+      fillArray.push([itemLocX, landerYPixel]);
 
       //loop through elevations
       for (const [elevationIndex, elevation] of segmentElevation.entries()) {
@@ -533,15 +610,46 @@ function drawElevationProfile(
         }
       }
 
+      fillArray = fillArray.concat(pointArray);
+
       //push last point at lander line
-      pointArray.push([itemLocX, landerYPixel]);
+      fillArray.push([itemLocX, landerYPixel]);
 
       //add styling, add to group, and push group to paper refs.
-      const segmentElevationPath = new paper.Path(pointArray);
-      segmentElevationPath.fillColor = paperRefs.current.styles.elevationShade;
-      segmentElevationPath.opacity = 0.5;
-      segmentElevationPath.strokeWidth = 1.5;
-      elevationGroup.addChild(segmentElevationPath);
+      const segmentElevationStrokePath = new paper.Path(pointArray);
+      segmentElevationStrokePath.strokeColor = paperRefs.current.styles.elevationColor;
+      segmentElevationStrokePath.opacity = 1;
+      segmentElevationStrokePath.strokeWidth = 1.5;
+      elevationGroup.addChild(segmentElevationStrokePath);
+
+      const segmentElevationFillPath = new paper.Path(fillArray);
+      segmentElevationFillPath.fillColor = paperRefs.current.styles.elevationColor;
+      segmentElevationFillPath.opacity = 0.1;
+      elevationGroup.addChild(segmentElevationFillPath);
+
+      //draw first and last dots on the elevation graph
+      const diamond = new paper.Path.Rectangle({
+        point: new paper.Point(
+          paperVars.timelineLeft - 3,
+          paperVars.timelineTop + paperVars.landerElevationFromGraphTop - 3
+        ),
+        size: 6,
+        fillColor: paperRefs.current.styles.elevationColor,
+      });
+      diamond.rotate(45);
+      elevationGroup.addChild(diamond);
+
+      const diamond2 = new paper.Path.Rectangle({
+        point: new paper.Point(
+          paperVars.timelineLeft + paperVars.timeineWidth - 3,
+          paperVars.timelineTop + paperVars.landerElevationFromGraphTop - 3
+        ),
+        size: 6,
+        fillColor: paperRefs.current.styles.elevationColor,
+      });
+      diamond2.rotate(45);
+      elevationGroup.addChild(diamond2);
+
       paperRefs.current.elevationProfile.push(elevationGroup);
     }
   }
@@ -552,7 +660,7 @@ function drawElevationProfile(
  * @param paperRefs
  * @param storeRefs
  */
-function drawSequence(
+function drawSequenceBottomSection(
   paperRefs: MutableRefObject<PaperDrawings>,
   storeRefs: MutableRefObject<StoreData_PaperJS>
 ) {
@@ -573,17 +681,25 @@ function drawSequence(
       const stationBoxRounded = new paper.Path.Rectangle({
         rectangle: stationBox,
         radius: new paper.Size(5, 5),
-        strokeColor: paperRefs.current.styles.sequenceColor,
+        strokeColor: paperRefs.current.styles.lineColor,
         strokeWidth: 1.5,
       });
 
       //label
       const stationMiddleX = itemLocX + width / 2;
+
+      //abbreviate station name if too long
+      let content = sequenceItem.name;
+      if (width < 60 && width > 30) {
+        content = `${content.substring(0, 2)}...`;
+      } else if (width < 30) {
+        content = `${content.substring(0, 1)}..`;
+      }
       const label = new paper.PointText({
         point: new paper.Point(stationMiddleX, paperVars.sequenceTop + 14),
         justification: "center",
-        content: sequenceItem.name,
-        fillColor: paperRefs.current.styles.sequenceColor,
+        content,
+        fillColor: paperRefs.current.styles.labelColor,
       });
       //clip mask for station box
       const clipRectangle = new paper.Path.Rectangle(
@@ -604,7 +720,7 @@ function drawSequence(
       const traverseLine = new paper.Path.Line({
         from: new paper.Point(itemLocX, paperVars.sequenceTop + 10),
         to: new paper.Point(itemLocX + width, paperVars.sequenceTop + 10),
-        strokeColor: paperRefs.current.styles.sequenceColor,
+        strokeColor: paperRefs.current.styles.labelColor,
         strokeWidth: 1.5,
         dashArray: [5, 2],
       });
@@ -634,7 +750,12 @@ function drawSequence(
       i === storeRefs.current.sequenceItems.length - 1
         ? paperRefs.current.styles.startEndHighlight
         : paperRefs.current.styles.lineColor;
-    const timeMarkerEnd = drawTimeMarker(paperRefs, itemLocX, markerColor);
+    const timeMarkerEnd = drawTimeMarker(
+      paperRefs,
+      itemLocX,
+      markerColor,
+      paperRefs.current.styles.labelColor
+    );
     timeMarkerEnd.name = sequenceItem.uuid;
     paperRefs.current.timeMarkers.addChild(timeMarkerEnd);
   }
@@ -660,7 +781,7 @@ function drawSequence(
       point: new paper.Point(availableMiddleX, paperVars.sequenceTop + 14),
       justification: "center",
       content: "Available (" + timeHrs + ":" + padZeros(timeMins, 2) + ")",
-      fillColor: paperRefs.current.styles.sequenceColor,
+      fillColor: paperRefs.current.styles.labelColor,
       name: "availableLabel",
     });
     const group = new paper.Group();
@@ -686,22 +807,23 @@ function initPaperRef(
     hoverLine: new paper.Group(),
     styles: {
       lineColor: new paper.Color("#616574"), //var(--grey3)
-      sequenceColor: new paper.Color("#FFFFFF"),
-      startEndHighlight: new paper.Color("#00C2FF"),
+      labelColor: new paper.Color("#a9a9a9"), //var(--grey4)
+      sequenceColor: new paper.Color("#93AFD7"), // light blue
+      // startEndHighlight: new paper.Color("#00C2FF"), // blue
+      startEndHighlight: new paper.Color("#EEEEEE"), // almost white
       selectedBkgColor: new paper.Color("#41403B"),
       selectedColor: new paper.Color("#ffc700"), //var(--eva)
       availableBkgColor: new paper.Color("#424653"), //var(--grey2)
       regularBkgColor: new paper.Color("#313440"), //var(--grey1)
-      walkbackColor: new paper.Color("#cb0000"), //var(--alert)
+      walkbackColor: new paper.Color("#93AFD7"),
       gNavigatorFontFamilyActivity: "Inter",
       hoverColor: new paper.Color("#00C2FF"),
-      elevationLine: new paper.Color("#5D3FD3"),
-      elevationShade: new paper.Color("#BDB5D5"),
+      elevationColor: new paper.Color("#8fae95"),
     },
     paperVars: {
       canvasWidth: paper.view.size.width, //full drawing area
       canvasHeight: paper.view.size.height,
-      timelineHeight: null, //just the grpah drawing area
+      timelineHeight: null, //just the graph drawing area
       timeineWidth: null,
       timelineTop: null,
       timelineLeft: null,
@@ -716,13 +838,13 @@ function initPaperRef(
   };
   const paperVars = paperRefs.current.paperVars; //save this to a shorter reference so it reduces the variable name when used below
 
-  paperVars.timeineWidth = paperVars.canvasWidth * 0.8;
-  paperVars.timelineHeight = paperVars.canvasHeight * 0.6;
-  paperVars.timelineTop = (paperVars.canvasHeight - paperVars.timelineHeight) / 3;
-  paperVars.timelineLeft = (paperVars.canvasWidth - paperVars.timeineWidth) / 2;
-  paperVars.sequenceTop =
-    paperVars.timelineTop + paperVars.timelineHeight - paperVars.timelineHeight * 0.25;
-  paperVars.sequenceHeight = paperVars.timelineHeight * 0.2;
+  const YAxisLabelWidth = 75;
+  paperVars.timeineWidth = paperVars.canvasWidth - YAxisLabelWidth * 2;
+  paperVars.timelineHeight = paperVars.canvasHeight - 60;
+  paperVars.timelineTop = 10;
+  paperVars.timelineLeft = YAxisLabelWidth;
+  paperVars.sequenceTop = paperVars.timelineTop + paperVars.timelineHeight;
+  paperVars.sequenceHeight = 20;
   paperVars.graphHeight = paperVars.sequenceTop - paperVars.timelineTop - 4; //4px buffer between graph bottom and beginning of sequence
   paperVars.pixelsPerSecondX =
     paperVars.timeineWidth /
@@ -747,6 +869,7 @@ function initPaperRef(
 function drawTimeline(
   paperRefs: MutableRefObject<PaperDrawings>,
   storeRefs: MutableRefObject<StoreData_PaperJS>,
+  graphItems: MutableRefObject<GraphItems>,
   isEvaSelected: boolean
 ) {
   //clear project and initilize paper refs
@@ -756,8 +879,8 @@ function drawTimeline(
   //draw all the things
   drawGraphAxis(paperRefs, storeRefs);
   if (isEvaSelected) {
-    drawSequence(paperRefs, storeRefs);
-    drawLanderDistanceGraph(paperRefs, storeRefs);
+    drawSequenceBottomSection(paperRefs, storeRefs);
+    drawLanderDistanceGraph(paperRefs, storeRefs, graphItems);
     drawElevationProfile(paperRefs, storeRefs);
     highlightSelection(paperRefs, storeRefs);
   }
@@ -770,6 +893,9 @@ const throttledOnMouseMove = (
   dispatch: Dispatch,
   paperRefs: MutableRefObject<PaperDrawings>,
   storeRefs: MutableRefObject<StoreData_PaperJS>,
+  hoverValues: HoverValues,
+  setHoverValues: Function,
+  graphItems: MutableRefObject<GraphItems>,
   waitMs: number
 ) => {
   const handlerFn = (event: paper.MouseEvent) => {
@@ -782,7 +908,12 @@ const throttledOnMouseMove = (
       //remove old line, draw new line
       paperRefs.current.hoverLine.removeChildren();
       paperRefs.current.hoverLine.addChild(
-        drawTimeMarker(paperRefs, event.point.x, paperRefs.current.styles.hoverColor)
+        drawTimeMarker(
+          paperRefs,
+          event.point.x,
+          paperRefs.current.styles.hoverColor,
+          paperRefs.current.styles.hoverColor
+        )
       );
       paperRefs.current.hoverLine.bringToFront();
       paperRefs.current.hoverLine.visible = true;
@@ -808,6 +939,22 @@ const throttledOnMouseMove = (
         }
       }
 
+      //show the distance from lander in the hover value
+      const distanceFromLanderGraphValues = graphItems.current[sequenceUuid]?.distanceFromLander;
+      if (distanceFromLanderGraphValues) {
+        // find the index of the item with the closest x value compared to xLoc
+        let closestGraphItem = null;
+        let closestDistanceToXLoc = 1000000;
+        for (const graphItem of distanceFromLanderGraphValues) {
+          if (Math.abs(graphItem.xPixels - xLoc) < closestDistanceToXLoc) {
+            closestGraphItem = graphItem;
+            closestDistanceToXLoc = Math.abs(graphItem.xPixels - xLoc);
+          }
+        }
+
+        setHoverValues({ ...hoverValues, distanceFromLanderMeters: closestGraphItem.val });
+      }
+
       //save hover data to store
       dispatch(setHover({ seconds, sequenceUuid, sequenceItemPercentElapsed }));
     } else {
@@ -820,6 +967,17 @@ const throttledOnMouseMove = (
     leading: true,
     trailing: false,
   });
+};
+
+const TimelineHoverValues = ({ hoverValues }) => {
+  return (
+    <div className={styles.timelineHoverValues}>
+      <div className={styles.timelineHoverValueTitle}>Distance From Lander</div>
+      <div className={styles.timelineHoverValue}>
+        {hoverValues.distanceFromLanderMeters?.toFixed(2)} m
+      </div>
+    </div>
+  );
 };
 
 /**
@@ -847,6 +1005,17 @@ const NavTimeline: FunctionComponent = () => {
   const canvas: MutableRefObject<HTMLCanvasElement> = useRef(null);
   const paperRefs: MutableRefObject<PaperDrawings> = useRef(null);
   const storeRefs: MutableRefObject<StoreData_PaperJS> = useRef(null);
+  const [hoverValues, setHoverValues] = useState({
+    distanceFromLanderMeters: null,
+    elevationMeters: null,
+    slopeMetersPerMeter: null,
+    walkbackDistanceFromLanderMeters: null,
+    walkbackElevationMeters: null,
+    walkbackSlopeMetersPerMeter: null,
+  });
+  const graphItems: MutableRefObject<GraphItems> = useRef({
+    sequenceItems: null,
+  });
 
   /**
    * Populate storeRefs with all our store information so paper.js can read it.
@@ -1063,28 +1232,41 @@ const NavTimeline: FunctionComponent = () => {
       paper.setup(canvas.current);
     }
     processDataFromStore(); //loads data into the storeRef
-    drawTimeline(paperRefs, storeRefs, selectedEva !== undefined);
+    drawTimeline(paperRefs, storeRefs, graphItems, selectedEva !== undefined);
 
     //event handlers
-    paper.view.onMouseMove = throttledOnMouseMove(dispatch, paperRefs, storeRefs, 15);
+    paper.view.onMouseMove = throttledOnMouseMove(
+      dispatch,
+      paperRefs,
+      storeRefs,
+      hoverValues,
+      setHoverValues,
+      graphItems,
+      15
+    );
     // paper.view.onMouseEnter = () => {};
     paper.view.onMouseLeave = () => {
       paperRefs.current.hoverLine.visible = false;
       dispatch(clearHover());
     };
     paper.view.onResize = function () {
-      drawTimeline(paperRefs, storeRefs, selectedEva !== undefined);
+      drawTimeline(paperRefs, storeRefs, graphItems, selectedEva !== undefined);
     };
 
     return () => paper.project.remove();
-  }, [selectedEva, processDataFromStore, storeRefs, dispatch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedEva, processDataFromStore, storeRefs, dispatch, setHoverValues]);
 
   return (
-    <>
+    <div className={styles.timelineContainer}>
+      <TimelineHoverValues hoverValues={hoverValues} />
       <div className={styles.canvasContainer}>
         <canvas ref={canvas} data-paper-resize />
       </div>
-    </>
+      <div className={styles.timelineStmContainer}>
+        <STM_Coverage actions={actions} mini={true} horizontal={false} uniqueKey="evaTimelineStm" />
+      </div>
+    </div>
   );
 };
 
