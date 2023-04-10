@@ -1,10 +1,11 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 export const initialState: PlayheadHoverState = {
-  seconds: null,
   timelineSeqItemUuid: null,
-  timelineSeqItemPctElapsed: null,
   leftPanelItemUuid: null,
+  mapItemUuid: null,
+  evaSecondsElapsed: null,
+  sequenceItemPercentElapsed: null,
 };
 
 export const playheadHoverSlice = createSlice({
@@ -15,26 +16,38 @@ export const playheadHoverSlice = createSlice({
      * Change the seconds the cursor is hovering on via the nav-timeline
      * Also change the sequence UUID that is currently being hovered over
      */
-    setHover: (
+
+    setTimelineHoverUuid: (state, action: { payload: string }) => {
+      state.timelineSeqItemUuid = action.payload;
+    },
+    setLeftPanelHoverUuid: (state, action: { payload: string }) => {
+      state.leftPanelItemUuid = action.payload;
+    },
+    setMapItemHoverUuid: (state, action: { payload: string }) => {
+      state.mapItemUuid = action.payload;
+    },
+    setMapItemHover: (
       state,
       action: {
         payload: { seconds: number; sequenceUuid: string; sequenceItemPercentElapsed: number };
       }
     ) => {
-      state.seconds = action.payload.seconds;
-      state.timelineSeqItemUuid = action.payload.sequenceUuid;
-      state.timelineSeqItemPctElapsed = action.payload.sequenceItemPercentElapsed;
+      state.evaSecondsElapsed = action.payload.seconds;
+      state.mapItemUuid = action.payload.sequenceUuid;
+      state.sequenceItemPercentElapsed = action.payload.sequenceItemPercentElapsed;
     },
-
-    clearHover: (state) => {
-      state.seconds = null;
-      state.timelineSeqItemUuid = null;
-      state.timelineSeqItemPctElapsed = null;
-    },
-    setHoverItemUuid: (state, action: { payload: string }) => {
-      state.leftPanelItemUuid = action.payload;
+    clearMapItemHover: (state) => {
+      state.evaSecondsElapsed = null;
+      state.mapItemUuid = null;
+      state.sequenceItemPercentElapsed = null;
     },
   },
 });
 
-export const { setHover, clearHover, setHoverItemUuid } = playheadHoverSlice.actions;
+export const {
+  setTimelineHoverUuid,
+  setLeftPanelHoverUuid,
+  setMapItemHoverUuid,
+  setMapItemHover,
+  clearMapItemHover,
+} = playheadHoverSlice.actions;

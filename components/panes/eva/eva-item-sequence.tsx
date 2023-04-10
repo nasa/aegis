@@ -16,7 +16,11 @@ import { setSelectedStationUuid } from "store/station";
 import { decodeEmoji } from "utils/formatting";
 import { getTotalDistance } from "utils/geoMath";
 import { setRightPanelOpen } from "store/interface";
-import { setHoverItemUuid } from "store/playheadHover";
+import {
+  setLeftPanelHoverUuid,
+  setMapItemHoverUuid,
+  setTimelineHoverUuid,
+} from "store/playheadHover";
 
 const EvaItemSequence: FunctionComponent<{
   evaUuid: string;
@@ -212,10 +216,14 @@ const EvaItemSequence: FunctionComponent<{
                 }
               }}
               onMouseOver={() => {
-                dispatch(setHoverItemUuid(sequenceItem.uuid));
+                dispatch(setMapItemHoverUuid(sequenceItem.uuid));
+                dispatch(setTimelineHoverUuid(sequenceItem.uuid));
+                dispatch(setLeftPanelHoverUuid(sequenceItem.uuid));
               }}
               onMouseLeave={() => {
-                dispatch(setHoverItemUuid(null));
+                dispatch(setMapItemHoverUuid(null));
+                dispatch(setTimelineHoverUuid(null));
+                dispatch(setLeftPanelHoverUuid(null));
               }}
             >
               {evaItemIcon}

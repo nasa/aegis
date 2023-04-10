@@ -46,7 +46,11 @@ import {
 } from "utils/geoMath";
 import { decodeEmoji } from "utils/formatting";
 import { Checkbox } from "./_global-elements";
-import { setHoverItemUuid } from "store/playheadHover";
+import {
+  setLeftPanelHoverUuid,
+  setMapItemHoverUuid,
+  setTimelineHoverUuid,
+} from "store/playheadHover";
 import { getElevationProfile, getElevationSinglePoint } from "http-client/elevation";
 
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
@@ -96,7 +100,7 @@ const MapBody: FunctionComponent = () => {
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
   const sectionSelected = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
 
-  const hoverItemUuid = useAppSelector((state) => state.playheadHover.leftPanelItemUuid, refEqual);
+  const mapHoverItemUuid = useAppSelector((state) => state.playheadHover.mapItemUuid, refEqual);
 
   const [layersOnMap, setLayersOnMap] = useState([]);
   const [showHightlightOnMap, setShowHighlightOnMap] = useState(false);
@@ -399,10 +403,14 @@ const MapBody: FunctionComponent = () => {
               onClick();
             })
             .on("mouseover", () => {
-              dispatch(setHoverItemUuid(marker.uuid));
+              dispatch(setLeftPanelHoverUuid(marker.uuid));
+              dispatch(setTimelineHoverUuid(marker.uuid));
+              dispatch(setMapItemHoverUuid(marker.uuid));
             })
             .on("mouseout", () => {
-              dispatch(setHoverItemUuid(null));
+              dispatch(setLeftPanelHoverUuid(null));
+              dispatch(setTimelineHoverUuid(null));
+              dispatch(setMapItemHoverUuid(null));
             });
         }
         if (onDragEnd) {
@@ -489,10 +497,14 @@ const MapBody: FunctionComponent = () => {
             onClick();
           })
           .on("mouseover", () => {
-            dispatch(setHoverItemUuid(polyline.uuid));
+            dispatch(setLeftPanelHoverUuid(polyline.uuid));
+            dispatch(setTimelineHoverUuid(polyline.uuid));
+            dispatch(setMapItemHoverUuid(polyline.uuid));
           })
           .on("mouseout", () => {
-            dispatch(setHoverItemUuid(null));
+            dispatch(setLeftPanelHoverUuid(null));
+            dispatch(setTimelineHoverUuid(null));
+            dispatch(setMapItemHoverUuid(null));
           });
 
         map.current.addLayer(polyline);
@@ -1200,7 +1212,7 @@ const MapBody: FunctionComponent = () => {
     const existingLayer = getMapItemByUuid("hover-marker-uuid") as AEGISMarker;
 
     //hoverSeconds is null meaning we're not hovering.
-    if (!playheadHover.seconds || !selectedEva) {
+    if (!playheadHover.evaSecondsElapsed || !selectedEva) {
       //Also remove the marker from map if exists
       if (existingLayer) map.current.removeLayer(existingLayer);
       return;
@@ -1210,7 +1222,7 @@ const MapBody: FunctionComponent = () => {
     let location: AEGISPoint = { lat: 0, lng: 0 };
 
     const sequenceItem = selectedEva.sequence.find(
-      (seqItem) => seqItem.uuid === playheadHover.timelineSeqItemUuid
+      (seqItem) => seqItem.uuid === playheadHover.mapItemUuid
     );
     if (sequenceItem) {
       if (sequenceItem.type === "station") {
@@ -1223,7 +1235,7 @@ const MapBody: FunctionComponent = () => {
           traverse.pathSegmentDistances.reduce(
             (accumulator, currentValue) => accumulator + currentValue,
             0
-          ) * playheadHover.timelineSeqItemPctElapsed;
+          ) * playheadHover.sequenceItemPercentElapsed;
         //determine which segment we are in
         let cumulativePrevSegDistances = 0;
         for (let i = 0; i < traverse.pathSegmentDistances.length; i++) {
@@ -1332,17 +1344,17 @@ const MapBody: FunctionComponent = () => {
       }
     });
 
-    if (hoverItemUuid) {
+    if (mapHoverItemUuid) {
       // search for this item on the map to get the lat lng
       let latLngs: L.LatLng[] = [];
       map.current.eachLayer((layer: AEGISMapLayer) => {
         if (
-          layer?.uuid === hoverItemUuid &&
+          layer?.uuid === mapHoverItemUuid &&
           (layer.mapItemType === "poi" || layer.mapItemType === "station")
         ) {
           const markerLayer = layer as AEGISMarker;
           latLngs.push(markerLayer.getLatLng());
-        } else if (layer?.uuid === hoverItemUuid && layer.mapItemType === "traverse") {
+        } else if (layer?.uuid === mapHoverItemUuid && layer.mapItemType === "traverse") {
           const polylineLayer = layer as AEGISPolyline;
           latLngs = polylineLayer.getLatLngs() as L.LatLng[];
         }
@@ -1375,7 +1387,7 @@ const MapBody: FunctionComponent = () => {
         map.current.addLayer(polyline);
       }
     }
-  }, [hoverItemUuid]);
+  }, [mapHoverItemUuid]);
 
   return (
     <div className={styles.mapContainer}>

@@ -15,7 +15,7 @@ import styles from "./timeline.module.css";
 import { padZeros } from "utils/formatting";
 import { addPointsAtMeters, getDistanceBetweenTwoCoordinates } from "utils/geoMath";
 import { useDispatch } from "react-redux";
-import { clearHover, setHover } from "store/playheadHover";
+import { setLeftPanelHoverUuid, setMapItemHover, clearMapItemHover } from "store/playheadHover";
 import _ from "lodash";
 import { Dispatch } from "@reduxjs/toolkit";
 import { STM_Coverage } from "components/panes/stm-coverage";
@@ -956,11 +956,13 @@ const throttledOnMouseMove = (
       }
 
       //save hover data to store
-      dispatch(setHover({ seconds, sequenceUuid, sequenceItemPercentElapsed }));
+      dispatch(setLeftPanelHoverUuid(sequenceUuid));
+      dispatch(setMapItemHover({ seconds, sequenceUuid, sequenceItemPercentElapsed }));
     } else {
       //mouse is outside of the grpah area but is still inside paper canvas
       paperRefs.current.hoverLine.visible = false;
-      dispatch(clearHover());
+      dispatch(setLeftPanelHoverUuid(null));
+      dispatch(clearMapItemHover());
     }
   };
   return _.throttle(handlerFn, waitMs, {
@@ -1220,7 +1222,7 @@ const NavTimeline: FunctionComponent = () => {
     selectedEvaSequenceItemUuid,
   ]);
 
-  //use effect to handle when color highlighting when selected sequence item changes
+  //use effect to handle color highlighting when selected sequence item changes
   useEffect(() => {
     storeRefs.current.selectedEvaSequenceItemUuid = selectedEvaSequenceItemUuid;
     highlightSelection(paperRefs, storeRefs);
@@ -1247,7 +1249,7 @@ const NavTimeline: FunctionComponent = () => {
     // paper.view.onMouseEnter = () => {};
     paper.view.onMouseLeave = () => {
       paperRefs.current.hoverLine.visible = false;
-      dispatch(clearHover());
+      dispatch(clearMapItemHover());
     };
     paper.view.onResize = function () {
       drawTimeline(paperRefs, storeRefs, graphItems, selectedEva !== undefined);
