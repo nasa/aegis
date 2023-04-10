@@ -32,17 +32,17 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
 
   //gather all actions, then order them
   useEffect(() => {
-    if (selectedStationUuid && actions && selectedStation) {
-      const allStationActions: Action[] = [];
+    if (!selectedStationUuid || !actions || !selectedStation) return;
 
-      //get actions directly attached to this station
-      allStationActions.push(
-        ...actions.filter((action) => {
-          return action.stationUuid === selectedStationUuid;
-        })
-      );
-      setStationActions(allStationActions);
-    }
+    const allStationActions: Action[] = [];
+
+    //get actions directly attached to this station
+    allStationActions.push(
+      ...actions.filter((action) => {
+        return action.stationUuid === selectedStationUuid;
+      })
+    );
+    setStationActions(allStationActions);
   }, [selectedStationUuid, actions, stationPois, selectedStation]);
 
   return (
