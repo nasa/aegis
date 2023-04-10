@@ -7,7 +7,11 @@ import stationStyles from "./station.module.css";
 import { setSelectedEvaSequenceItemUuid, setSelectedEvaUuid } from "store/eva";
 import { decodeEmoji } from "utils/formatting";
 import { setRightPanelOpen } from "store/interface";
-import { setHoverItemUuid } from "store/playheadHover";
+import {
+  setMapItemHoverUuid,
+  setLeftPanelHoverUuid,
+  setTimelineHoverUuid,
+} from "store/playheadHover";
 
 const StationItem: FunctionComponent<{
   selectedStationUuid: string;
@@ -48,10 +52,14 @@ const StationItem: FunctionComponent<{
         }
       }}
       onMouseOver={() => {
-        dispatch(setHoverItemUuid(station.uuid));
+        dispatch(setMapItemHoverUuid(station.uuid));
+        dispatch(setLeftPanelHoverUuid(station.uuid));
+        dispatch(setTimelineHoverUuid(station.uuid));
       }}
       onMouseLeave={() => {
-        dispatch(setHoverItemUuid(null));
+        dispatch(setMapItemHoverUuid(null));
+        dispatch(setLeftPanelHoverUuid(null));
+        dispatch(setTimelineHoverUuid(null));
       }}
     >
       <div className={stationStyles.itemIcon}>{decodeEmoji(station.icon)}</div>
