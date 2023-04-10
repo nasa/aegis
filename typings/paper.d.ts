@@ -9,6 +9,7 @@ interface PaperDrawings {
   hoverLine: paper.Group;
   styles: {
     lineColor: paper.Color;
+    labelColor: paper.Color;
     sequenceColor: paper.Color;
     startEndHighlight: paper.Color;
     selectedBkgColor: paper.Color;
@@ -18,8 +19,7 @@ interface PaperDrawings {
     walkbackColor: paper.Color;
     gNavigatorFontFamilyActivity: string;
     hoverColor: paper.Color;
-    elevationLine: paper.Color;
-    elevationShade: paper.Color;
+    elevationColor: paper.Color;
   };
   paperVars: {
     //paper vars to help with math.
@@ -52,6 +52,27 @@ interface StoreData_PaperJS {
   elevationResolutionMeters: number; //meters
 }
 
+interface HoverValues {
+  distanceFromLanderMeters: number;
+  elevationMeters: number;
+  slopeMetersPerMeter: number;
+  walkbackDistanceFromLanderMeters: number;
+  walkbackElevationMeters: number;
+  walkbackSlopeMetersPerMeter: number;
+}
+
+interface GraphData {
+  xPixels: number;
+  val: number;
+}
+interface GraphItem {
+  type: "station" | "traverse";
+  distanceFromLander: GraphData[];
+}
+interface GraphItems {
+  [uuid: string]: GraphItem;
+}
+
 /**
  * Does not reflect the store values. Contains subdivided segments for drawing more accurate graph lines
  */
@@ -71,5 +92,7 @@ interface EvaSequenceItem_PaperJS extends EvaSequenceItem {
 interface Walkback_PaperJS {
   path: AEGISPoint[];
   durationsMins: number[]; //duration for each segment in the path array
-  distanceFromLanderMeters: number[]; //duration for each segment in the path array
+  distanceFromLanderMeters: number[];
+  segmentElevationMeters?: number[][]; //meters. Not subdivided.
+  segmentDistancesMeters?: number[]; //meters. Not subdivided
 }

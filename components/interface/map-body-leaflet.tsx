@@ -528,7 +528,7 @@ const MapBody: FunctionComponent = () => {
         dispatch(updateStationLocationAndElevation({ uuid, location, elevation }));
       }
     },
-    [dispatch, getElevation, mission]
+    [dispatch, getElevation]
   );
 
   /**
@@ -832,7 +832,7 @@ const MapBody: FunctionComponent = () => {
               if (e.layer.mapItemType === "traverse") {
                 dispatch(
                   updateTraversePath({
-                    uuid: mapDirective.uuid,
+                    uuid: e.layer.uuid,
                     path,
                     pathSegmentDistances: distance,
                     pathSegmentElevations: elevation,
@@ -842,7 +842,7 @@ const MapBody: FunctionComponent = () => {
               if (e.layer.mapItemType === "walkback") {
                 dispatch(
                   updateWalkbackPath({
-                    uuid: mapDirective.uuid,
+                    uuid: e.layer.uuid,
                     walkbackPath: path,
                     walkbackPathSegmentDistances: distance,
                     walkbackPathSegmentElevations: elevation,
@@ -854,10 +854,10 @@ const MapBody: FunctionComponent = () => {
 
           draggableLines.current.on("dragstart", (e) => {
             if (e.layer.mapItemType === "traverse") {
-              dispatch(deleteTraverseElevation(mapDirective.uuid));
+              dispatch(deleteTraverseElevation(e.layer.uuid));
             }
             if (e.layer.mapItemType === "walkback") {
-              dispatch(deleteStationWalkbackElevation(mapDirective.uuid));
+              dispatch(deleteStationWalkbackElevation(e.layer.uuid));
             }
           });
 
@@ -933,6 +933,7 @@ const MapBody: FunctionComponent = () => {
         draggableLines.current.off("drag");
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     map,
     mission.config.msv.radius.minor,

@@ -204,16 +204,26 @@ export const STM_Coverage: FunctionComponent<{
   return (
     <>
       {props.mini ? (
-        <div className={`${stmStyles.stm_mini} ${stmStyles.flexRow}`}>
+        <div
+          className={`${stmStyles.stm_mini} ${
+            props.horizontal ? stmStyles.flexRow : stmStyles.flexColumn
+          }`}
+        >
           {invstgs &&
             allSTMObjectives.map((objective) => {
               return (
                 <div
                   key={objective.uuid}
-                  className={`${stmStyles.objective_mini} ${stmStyles.flexRow}`}
+                  className={`${stmStyles.objective_mini} ${
+                    props.horizontal ? stmStyles.flexRow : stmStyles.flexColumn
+                  }`}
                 >
                   <div
-                    className={stmStyles.objectiveNumberingCol_mini}
+                    className={`${
+                      props.horizontal
+                        ? stmStyles.objectiveNumberingCol_mini
+                        : stmStyles.objectiveNumberingRow_mini
+                    }`}
                     id={objective.uuid + props.uniqueKey}
                   >
                     {objective.numbering}
@@ -226,14 +236,20 @@ export const STM_Coverage: FunctionComponent<{
                     className={stmStyles.tooltip}
                     events={["hover", "click"]}
                   />
-                  <div className={`${stmStyles.goalsContainer_mini} ${stmStyles.flexRow}`}>
+                  <div
+                    className={`${stmStyles.goalsContainer_mini} ${
+                      props.horizontal ? stmStyles.flexRow : stmStyles.flexColumn
+                    }`}
+                  >
                     {allSTMGoals
                       .filter((goal) => goal.objectiveUuid === objective.uuid)
                       .map((goal) => {
                         return (
                           <div
                             key={goal.uuid}
-                            className={`${stmStyles.invstgsContainer} ${stmStyles.flexRow}`}
+                            className={`${stmStyles.invstgsContainer} ${
+                              props.horizontal ? stmStyles.flexRow : stmStyles.flexColumn
+                            }`}
                           >
                             {allSTMInvstgs
                               .filter((invstg) => invstg.goalUuid === goal.uuid)

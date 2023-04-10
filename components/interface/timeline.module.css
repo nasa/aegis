@@ -1,13 +1,34 @@
+.timelineContainer {
+  display: flex;
+  height: 250px;
+  border-top: 2px solid black;
+  background-color: black;
+}
+
+.timelineHoverValues {
+  width: 150px;
+  background-color: var(--grey1);
+  font-size: 0.8rem;
+}
+
+.timelineStmContainer {
+  width: 55px;
+  overflow: hidden;
+  background-color: var(--grey1);
+}
+
 .canvasContainer {
   width: 100%;
   bottom: 0;
   left: 0;
   z-index: 500;
   background-color: var(--grey1);
-  border-top: 2px solid black;
+  border-left: 2px solid black;
+  border-right: 2px solid black;
+  border-radius: var(--radius);
 }
 
 .canvasContainer canvas {
-  height: 162px;
+  height: 100%;
   width: 100%;
 }
