@@ -18,13 +18,13 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
 
   //gather all actions, then order them
   useEffect(() => {
-    if (selectedPoiUuid && actions && selectedPoi) {
-      const allPoiActions: Action[] = [];
+    if (!selectedPoiUuid || !actions || !selectedPoi) return;
 
-      //get actions directly attached to this POI
-      allPoiActions.push(...actions.filter((action) => action.poiUuid === selectedPoiUuid));
-      setPoiActions(allPoiActions);
-    }
+    const allPoiActions: Action[] = [];
+
+    //get actions directly attached to this POI
+    allPoiActions.push(...actions.filter((action) => action.poiUuid === selectedPoiUuid));
+    setPoiActions(allPoiActions);
   }, [selectedPoiUuid, actions, selectedPoi]);
 
   return (

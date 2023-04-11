@@ -11,10 +11,12 @@ import {
   faTrashAlt,
   faEdit,
   faFlask,
+  faPersonDigging,
 } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, InLineEditInput } from "components/interface/_global-elements";
 
 import Info_Panel from "./eva-right-eva-info";
+import Actions_Panel from "./eva-right-eva-actions";
 import STM_Panel from "../stm-coverage";
 import {
   deleteEva,
@@ -309,7 +311,12 @@ const EvaRightEva: FunctionComponent = () => {
       color: "var(--eva)",
       icon: faCircleInfo,
     },
-
+    actions_panel: {
+      title: "EVA Actions",
+      panel: <Actions_Panel editMode={false} />,
+      color: "var(--eva)",
+      icon: faPersonDigging,
+    },
     stm_panel: {
       title: "EVA STM Coverage",
       panel: (
