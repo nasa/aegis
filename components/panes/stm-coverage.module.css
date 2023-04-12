@@ -117,6 +117,21 @@
   width: 1em;
   text-align: center;
 }
+.invstgNumberingCol_mini {
+  background-color: white;
+  color: black;
+  text-align: center;
+  font-size: 0.4rem;
+  width: 0.5rem;
+}
+.invstgNumberingCol_miniStart {
+  border-top-left-radius: 2px;
+  border-top-right-radius: 2px;
+}
+.investgNumberingCol_miniEnd {
+  border-bottom-left-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
 .invstgNumberingRow {
   border-bottom-left-radius: var(--radius);
   border-bottom-right-radius: var(--radius);
