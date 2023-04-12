@@ -18,6 +18,8 @@ import { traverseSlice, initialState as traverseInitialState } from "./traverse"
 export type StoreType = ReturnType<typeof configureStore<RootState>>;
 let store: StoreType;
 
+export type AppDispatch = typeof store.dispatch;
+
 export const initialState = {
   playhead: playheadInitialState,
   playheadHover: playheadHoverInitialState,
