@@ -8,6 +8,7 @@ import styles from "./index.module.css";
 import { login, isLoggedIn, logout } from "http-client/internal-api";
 import { getMissions } from "http-client/mission";
 import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/user";
+import { useAppDispatch } from "utils/useAppDispatch";
 
 const Head = dynamic(import("next/head"), {
   ssr: false,
@@ -17,7 +18,7 @@ const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   const handleLoginButtonClick = async () => {
     const response = await login(username, password);

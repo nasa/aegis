@@ -1,6 +1,5 @@
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -14,30 +13,16 @@ import {
   faEdit,
 } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, InLineEditInput } from "components/interface/_global-elements";
-import {
-  deletePoi,
-  setSelectedPoiUuid,
-  setSelectedPOIRightNavItem,
-  setPoiEditMode,
-  upsertPoi,
-  setPoisFromDb,
-} from "store/poi";
-import {
-  deleteActions,
-  deleteActionsFromDb,
-  setActionsFromDb,
-  upsertActions,
-  upsertActionsFromDb,
-} from "store/action";
+import { setSelectedPOIRightNavItem, setPoiEditMode, upsertPoi } from "store/poi";
 
 import Info_Panel from "./poi-right-info";
 import Actions_Panel from "./poi-right-actions";
 // import Reports_Panel from "./poi-right-reports";
-import * as InternalAPI from "http-client/internal-api";
-import * as httpClient_action from "http-client/action";
-import { updateMapDirective } from "store/map";
 import { decodeEmoji } from "utils/formatting";
-import { setRightPanelOpen } from "store/interface";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { thunkSavePoi } from "store/thunk/poi/thunkSavePoi";
+import { thunkDeletePoi } from "store/thunk/poi/thunkDeletePoi";
+import { thunkPoiCancel } from "store/thunk/poi/thunkPoiCancel";
 
 const panelTypes: PanelTypes = {
   info_panel: {
@@ -61,8 +46,7 @@ const panelTypes: PanelTypes = {
 };
 
 const PoiEditorRight: FunctionComponent = () => {
-  const dispatch = useDispatch();
-  const selectedMissionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
+  const dispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector((state) => state.poi.selectedRightNavItem, refEqual);
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
   const selectedPoi = useAppSelector(
@@ -74,8 +58,6 @@ const PoiEditorRight: FunctionComponent = () => {
     (state) => state.poi.poisFromDb.find((poi) => poi.uuid === selectedPoiUuid),
     shallowEqual
   );
-  const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
-  const thisMapDirective = mapDirective?.uuid === selectedPoi?.uuid ? mapDirective : null;
 
   const poiActions = useAppSelector(
     (state) =>
@@ -104,152 +86,40 @@ const PoiEditorRight: FunctionComponent = () => {
 
   const handleSave = async () => {
     if (selectedPoi && modified) {
-      // upsert the changed POI to the DB via internal API call
-      const poiUpsertResponse = await InternalAPI.setPOI(selectedPoi);
-
-      if (poiUpsertResponse.status === "success") {
-        // upsert the changed POI to the store
-        dispatch(upsertPoi(poiUpsertResponse.data));
-        // update the POI in the store with a  fresh copy of POIs from DB
-        const poiData = await InternalAPI.getPOIs(selectedMissionId);
-        if (poiData.data) {
-          dispatch(setPoisFromDb(poiData.data));
-        }
-      } else {
-        throw new Error("Error upserting POI: " + poiUpsertResponse.message);
-      }
-
-      // find out if the actions in this poi have been modified and need to be persisted
-      const actionsModified = !_.isEqual(poiActions, poiActionsFromDb);
-      if (actionsModified) {
-        //upsert Actions to db
-        const upsertedPoiActions: Action[] = [];
-        for (const actionToUpsert of poiActions) {
-          const actionUpsertResponse = await httpClient_action.upsertAction(actionToUpsert);
-          if (actionUpsertResponse.status !== "success") {
-            throw new Error("Error upserting poi actions " + actionUpsertResponse.message);
-          } else {
-            upsertedPoiActions.push(actionUpsertResponse.data);
-          }
-        }
-        // upsert the changed Action (with new updated dates) to the store
-        dispatch(upsertActions(upsertedPoiActions));
-
-        // clear the store copy of the db
-        dispatch(deleteActionsFromDb(poiActionsFromDb));
-        // filter out deleted actions using local state
-        const deletedStationActions: Action[] = poiActionsFromDb.filter((actionDb) => {
-          const found = poiActions.some((poiAction) => {
-            return poiAction.uuid === actionDb.uuid;
-          });
-          return !found;
-        });
-        // take array of deleted actions and delete them in the db
-        for (const deletedAction of deletedStationActions) {
-          const actionDeleteResponse = await httpClient_action.deleteAction(deletedAction.uuid);
-          if (actionDeleteResponse.status !== "success") {
-            throw new Error("Error deleting poi actions " + actionDeleteResponse.message);
-          }
-        }
-
-        // update the store copy of the db with a fresh copy from the DB
-        const actionData = await httpClient_action.getActions({
-          poiUuid: selectedPoi.uuid,
-        });
-        if (actionData.data?.length > 0) {
-          dispatch(upsertActionsFromDb(actionData.data));
-        }
-      }
-
-      dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: false }));
+      dispatch(
+        thunkSavePoi({
+          selectedPoi,
+          poiActions,
+          poiActionsFromDb,
+          selectedPoiUuid,
+        })
+      );
     }
   };
 
   const handleDelete = async () => {
     if (selectedPoi) {
-      // if the selected poi is in poisFromDb then delete it from the db
-      if (selectedPoiFromDb) {
-        // delete actions from the db via internal api call
-        for (const actionToDelete of poiActions) {
-          const actionDeleteResponse: WrappedResponse<number> =
-            await httpClient_action.deleteAction(actionToDelete.uuid);
-          if (actionDeleteResponse.status !== "success") {
-            throw new Error("Error deleting actions for poi " + actionDeleteResponse.message);
-          }
-        }
-        // delete actions from the store
-        dispatch(deleteActions(poiActions));
-        // update store copy of the db with a fresh copy of actions for this mission from the db
-        const actionData = await httpClient_action.getActions({ missionId: selectedMissionId });
-        if (actionData.data) {
-          dispatch(setActionsFromDb(actionData.data));
-        }
-
-        // delete the POI from the DB via internal API call
-        const deleteResponse = await InternalAPI.deletePOI(selectedPoi.uuid);
-        if (deleteResponse.status === "success") {
-          // remove the corresponding POI from the store
-          dispatch(deletePoi(selectedPoi));
-          dispatch(setSelectedPoiUuid(null));
-
-          // get fresh copy of POIs from DB
-          const poiData = await InternalAPI.getPOIs(selectedMissionId);
-          if (poiData.data) {
-            dispatch(setPoisFromDb(poiData.data));
-          }
-        } else {
-          console.error("Error deleting POI: " + deleteResponse.message);
-        }
-      } else {
-        // if the selected poi is not in poisFromDb then delete it from the store
-        dispatch(deletePoi(selectedPoi));
-        dispatch(setSelectedPoiUuid(null));
-        dispatch(deleteActions(poiActions));
-      }
-
-      dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: false }));
-      // close right panel
-      dispatch(setRightPanelOpen(false));
+      dispatch(
+        thunkDeletePoi({
+          selectedPoi,
+          selectedPoiFromDb,
+          poiActions,
+          selectedPoiUuid,
+        })
+      );
     }
   };
 
   const handleCancel = () => {
-    if (selectedPoiFromDb) {
-      // if selected poi is in the db, replace it with the one from the db (undoing any changes)
-      dispatch(upsertPoi(selectedPoiFromDb));
-      dispatch(upsertActions(poiActionsFromDb));
-
-      //delete newly added actions that user doesn't want to save
-      const addedActionsToDelete: Action[] = poiActions.filter(
-        // only delete actions that don't exist in the db
-        (action) => poiActionsFromDb.findIndex((actionDb) => actionDb.uuid === action.uuid) === -1
-      );
-      dispatch(deleteActions(addedActionsToDelete));
-    } else {
-      // if selected poi isn't in the db, delete it from the store
-      dispatch(deletePoi(selectedPoi));
-      dispatch(setSelectedPoiUuid(null));
-      dispatch(deleteActions(poiActions));
-      dispatch(setRightPanelOpen(false));
-    }
-    dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: false }));
-
-    // if there's an active create or edit action, cancel it
-    if (thisMapDirective?.mapAction === "createMarker") {
-      dispatch(
-        updateMapDirective({
-          ...thisMapDirective,
-          mapAction: "cancelCreateMarker",
-        })
-      );
-    } else if (thisMapDirective?.mapAction === "editMarker") {
-      dispatch(
-        updateMapDirective({
-          ...thisMapDirective,
-          mapAction: "cancelEditMarker",
-        })
-      );
-    }
+    dispatch(
+      thunkPoiCancel({
+        selectedPoi,
+        selectedPoiFromDb,
+        poiActions,
+        poiActionsFromDb,
+        selectedPoiUuid,
+      })
+    );
   };
 
   let ActiveComponent = null;
