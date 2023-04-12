@@ -204,6 +204,7 @@ export const STM_Coverage: FunctionComponent<{
   return (
     <>
       {props.mini ? (
+        //minified stm
         <div
           className={`${stmStyles.stm_mini} ${
             props.horizontal ? stmStyles.flexRow : stmStyles.flexColumn
@@ -257,12 +258,21 @@ export const STM_Coverage: FunctionComponent<{
                                 return (
                                   <div key={invstg.uuid}>
                                     <div
-                                      className={`${stmStyles.invstgNumberingRow_mini} ${
-                                        index === 0 && stmStyles.invstgNumberingRow_miniStart
+                                      className={`${
+                                        props.horizontal
+                                          ? stmStyles.invstgNumberingRow_mini
+                                          : stmStyles.invstgNumberingCol_mini
+                                      } ${
+                                        index === 0 &&
+                                        (props.horizontal
+                                          ? stmStyles.invstgNumberingRow_miniStart
+                                          : stmStyles.invstgNumberingCol_miniStart)
                                       }
                                         ${
                                           index === array.length - 1 &&
-                                          stmStyles.investgNumberingRow_miniEnd
+                                          (props.horizontal
+                                            ? stmStyles.investgNumberingRow_miniEnd
+                                            : stmStyles.investgNumberingCol_miniEnd)
                                         } ${invstgs?.includes(invstg) && stmStyles.highlight}`}
                                       id={invstg.uuid + props.uniqueKey}
                                     >
@@ -302,6 +312,7 @@ export const STM_Coverage: FunctionComponent<{
             })}
         </div>
       ) : (
+        //regular (not mini) stm
         <div
           className={`${stmStyles.stm} ${
             props.horizontal ? stmStyles.flexRow : stmStyles.flexColumn

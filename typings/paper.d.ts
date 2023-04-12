@@ -1,12 +1,16 @@
-interface PaperDrawings {
-  timeMarkers: paper.Group;
-  evaSequence: paper.Group[];
-  walkbacks: paper.Group[];
-  landerDistance: paper.Group[];
-  elevationProfile: paper.Group[];
-  graphBkg: paper.Group;
+/**
+ * References to all the paper groups that are drawn
+ */
+interface PaperGroups {
+  graphBkg: paper.Group; //each child in the paper group is a sequence item
   graphAxis: paper.Group;
   hoverLine: paper.Group;
+}
+
+/**
+ * Contains data that paper needs to draw
+ */
+interface PaperData {
   styles: {
     lineColor: paper.Color;
     labelColor: paper.Color;
@@ -39,10 +43,14 @@ interface PaperDrawings {
   };
 }
 
+/**
+ * Contains processed store data that we paper will need.
+ * Does not do any calucations based on pixels
+ */
 interface StoreData_PaperJS {
   sequenceItems: EvaSequenceItem_PaperJS[];
   selectedEvaSequenceItemUuid: string;
-  maxDistanceFromLanderMeters: number; //used to calculate top of left y-axis graph
+  maxDistFromLanderMeters: number; //used to calculate top of left y-axis graph
   evaLengthMins: number; //user input eva length
   evaLengthCalculatedMins: number; //actual eval length from the station actions and traverses
   maxElevationMeters: number; //used to calculate top of right y-axis graph
@@ -50,6 +58,30 @@ interface StoreData_PaperJS {
   landerElevationMeters: number;
   traverseRateMSec: number; //m/sec
   elevationResolutionMeters: number; //meters
+}
+
+/**
+ * Does not reflect the store values. Contains subdivided segments for drawing more accurate graph lines
+ */
+interface EvaSequenceItem_PaperJS extends EvaSequenceItem {
+  name: string;
+  secondsStart: number; //time when this sequence item starts
+  subdividedTotalDurationMins: number;
+  subdividedCoordinates: AEGISPoint | AEGISPoint[]; //single point for station. array of points for traverse
+  subdividedDurationsMins: number[]; //duration for the subdivided coordinates
+  subdividedDistFromLanderMeters: number[]; //distance for subdivided coordinates.
+  segmentElevationMeters: number[][]; //meters. Not subdivided. First dimension is the original segments. 2nd dimension is elevations at the DEM resolution
+  segmentDistancesMeters: number[]; //meters. Not subdivided. Distance between the original segments
+  walkback?: Walkback_PaperJS; //for Stations only
+}
+
+//Does not reflect the store values. Contains subdivided segments for drawing more accurate graph lines
+interface Walkback_PaperJS {
+  subdividedPath: AEGISPoint[];
+  subdividedDurationMins: number[]; //duration for the subdivided path
+  subdividedDistFromLanderMeters: number[]; //distance for subdivided path
+  segmentElevationMeters: number[][]; //meters. Not subdivided. First dimension is the original segments. 2nd dimension is elevations at the DEM resolution
+  segmentDistancesMeters: number[]; //meters. Not subdivided. Distance between the original segments
 }
 
 interface HoverValues {
@@ -62,37 +94,17 @@ interface HoverValues {
 }
 
 interface GraphData {
-  xPixels: number;
-  val: number;
+  xPixels: number; //the x pixel on the graph
+  yPixels: number; //the y pixel on the graph
+  val: number; //the y value that is represented (ex: distance from lander in meters)
 }
 interface GraphItem {
   type: "station" | "traverse";
-  distanceFromLander: GraphData[];
+  distanceFromLanderXY: GraphData[];
+  elevationProfileXY: GraphData[];
+  walkbackXY: GraphData[];
+  walkbackElevationXY: GraphData[];
 }
 interface GraphItems {
   [uuid: string]: GraphItem;
-}
-
-/**
- * Does not reflect the store values. Contains subdivided segments for drawing more accurate graph lines
- */
-interface EvaSequenceItem_PaperJS extends EvaSequenceItem {
-  name: string;
-  secondsStart: number; //time when this sequence item starts
-  subdividedTotalDurationMins: number;
-  subdividedCoordinates: AEGISPoint | AEGISPoint[]; //single point for station. array of points for traverse
-  subdividedDurationsMins: number[]; //duration for each segment in the coordinate array
-  subdividedDistFromLanderMeters: number[]; //distance for each segment in the coordinate array
-  segmentElevationMeters?: number[][]; //meters. Not subdivided.
-  segmentDistancesMeters?: number[]; //meters. Not subdivided
-  walkback?: Walkback_PaperJS; //for Stations only
-}
-
-//Does not reflect the store values. Contains subdivided segments for drawing more accurate graph lines
-interface Walkback_PaperJS {
-  path: AEGISPoint[];
-  durationsMins: number[]; //duration for each segment in the path array
-  distanceFromLanderMeters: number[];
-  segmentElevationMeters?: number[][]; //meters. Not subdivided.
-  segmentDistancesMeters?: number[]; //meters. Not subdivided
 }
