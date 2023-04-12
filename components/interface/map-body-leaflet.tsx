@@ -535,7 +535,6 @@ const MapBody: FunctionComponent = () => {
       if (mapItemType === "poi") {
         dispatch(updatePoiLocation({ uuid, location }));
       } else if (mapItemType === "station") {
-        console.log("saveUpdatedStationPosition");
         const elevation = (await getElevation([location], [0], uuid)) as number;
         dispatch(updateStationLocationAndElevation({ uuid, location, elevation }));
       }
@@ -773,7 +772,6 @@ const MapBody: FunctionComponent = () => {
   useEffect(() => {
     if (!map.current || !draggableLines || !mapDirective) return;
 
-    console.log(mapDirective.mapAction);
     switch (mapDirective.mapAction) {
       case "createMarker":
         // create events only come from Marker obejcts (pois and stations) since traverses are initially created by the app

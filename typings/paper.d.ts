@@ -3,7 +3,6 @@
  */
 interface PaperGroups {
   graphBkg: paper.Group; //each child in the paper group is a sequence item
-  graphAxis: paper.Group;
   hoverLine: paper.Group;
 }
 
@@ -12,18 +11,18 @@ interface PaperGroups {
  */
 interface PaperData {
   styles: {
-    lineColor: paper.Color;
-    labelColor: paper.Color;
-    sequenceColor: paper.Color;
-    startEndHighlight: paper.Color;
-    selectedBkgColor: paper.Color;
-    selectedColor: paper.Color;
-    availableBkgColor: paper.Color;
-    regularBkgColor: paper.Color;
-    walkbackColor: paper.Color;
     gNavigatorFontFamilyActivity: string;
-    hoverColor: paper.Color;
-    elevationColor: paper.Color;
+    blue: paper.Color;
+    brightBlue: paper.Color;
+    green: paper.Color;
+    yellow: paper.Color;
+    lightYellow: paper.Color;
+    gray1: paper.Color;
+    gray2: paper.Color;
+    gray3: paper.Color;
+    gray4: paper.Color;
+    white: paper.Color;
+    red: paper.Color;
   };
   paperVars: {
     //paper vars to help with math.
@@ -98,6 +97,8 @@ interface GraphData {
   yPixels: number; //the y pixel on the graph
   val: number; //the y value that is represented (ex: distance from lander in meters)
 }
+
+//graph item for a single sequence item
 interface GraphItem {
   type: "station" | "traverse";
   distanceFromLanderXY: GraphData[];
@@ -105,6 +106,8 @@ interface GraphItem {
   walkbackXY: GraphData[];
   walkbackElevationXY: GraphData[];
 }
+
+//all the graphing items for an EVA keyed by sequence uuid
 interface GraphItems {
   [uuid: string]: GraphItem;
 }
