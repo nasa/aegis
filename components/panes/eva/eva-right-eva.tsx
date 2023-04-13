@@ -10,14 +10,12 @@ import {
   faFloppyDisk,
   faTrashAlt,
   faEdit,
-  faFlask,
   faPersonDigging,
 } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, InLineEditInput } from "components/interface/_global-elements";
 
 import Info_Panel from "./eva-right-eva-info";
 import Actions_Panel from "./eva-right-eva-actions";
-import STM_Panel from "../stm-coverage";
 import {
   deleteEva,
   setEvaEditMode,
@@ -62,18 +60,6 @@ const EvaRightEva: FunctionComponent = () => {
     (state) => state.user.ironSessionData?.user.permission.includes("admin"),
     refEqual
   );
-  // all actions from all stations in this eva
-  const evaActions = useAppSelector((state) => {
-    const stationUuidsInThisEva = [];
-    selectedEva.sequence.forEach((sequenceItem) => {
-      if (sequenceItem.type === "station") {
-        stationUuidsInThisEva.push(sequenceItem.uuid);
-      }
-    });
-    return state.action.actions.filter((action) => {
-      return stationUuidsInThisEva.includes(action.stationUuid);
-    });
-  }, shallowEqual);
 
   //track modified
   const [modified, setModified] = useState(false);
@@ -316,19 +302,6 @@ const EvaRightEva: FunctionComponent = () => {
       panel: <Actions_Panel editMode={false} />,
       color: "var(--eva)",
       icon: faPersonDigging,
-    },
-    stm_panel: {
-      title: "EVA STM Coverage",
-      panel: (
-        <STM_Panel
-          actions={evaActions}
-          mini={false}
-          horizontal={false}
-          uniqueKey={selectedEvaUuid}
-        />
-      ),
-      color: "var(--eva)",
-      icon: faFlask,
     },
   };
 

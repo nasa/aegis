@@ -49,6 +49,8 @@ export const evaSlice = createSlice({
       state.evasEditing.push(newEva.uuid);
       // select the newly created eva
       state.selectedEvaUuid = newEva.uuid;
+      // expand the newly created eva
+      state.expandedEvaUuids.push(newEva.uuid);
     },
 
     setSelectedEvaRightNavItem: (state, action: { payload: string }) => {

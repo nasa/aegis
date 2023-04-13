@@ -13,7 +13,6 @@ import {
   faFloppyDisk,
   faTrashAlt,
   faEdit,
-  faFlask,
 } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, InLineEditInput } from "components/interface/_global-elements";
 import {
@@ -35,7 +34,6 @@ import {
 import Info_Panel from "./station-right-info";
 import Poi_Panel from "./station-right-poi";
 import Actions_Panel from "./station-right-actions";
-import STM_Panel from "../stm-coverage";
 import * as httpClient_station from "http-client/station";
 import * as httpClient_action from "http-client/action";
 import { updateMapDirective } from "store/map";
@@ -117,19 +115,6 @@ const StationEditorRight: FunctionComponent = () => {
       panel: <Actions_Panel editMode={stationsEditing.includes(selectedStationUuid)} />,
       color: "var(--station)",
       icon: faPersonDigging,
-    },
-    stm_panel: {
-      title: "Station STM Coverage",
-      panel: (
-        <STM_Panel
-          actions={stationActions}
-          mini={false}
-          horizontal={false}
-          uniqueKey={selectedStationUuid}
-        />
-      ),
-      color: "var(--station)",
-      icon: faFlask,
     },
   };
 
