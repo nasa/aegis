@@ -62,9 +62,11 @@ const layerBaseURL = "/static/missionFiles";
 const MapBody: FunctionComponent = () => {
   const dispatch = useDispatch();
   const mapRef = useRef(null);
-  const map = useRef(null);
-  const crs = useRef(null);
+  const map = useRef<L.Map>(null);
+  const crs = useRef<L.Proj.CRS>(null);
   const draggableLines: MutableRefObject<DraggableLines> = useRef(null);
+  const stationFeatureGroup = useRef<L.FeatureGroup>(null);
+  const poiFeatureGroup = useRef<L.FeatureGroup>(null);
 
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
   const missionLayers = useAppSelector((state) => state.mission.layers, shallowEqual);
@@ -193,7 +195,7 @@ const MapBody: FunctionComponent = () => {
       const newWidth = map.current.getSize().x;
       const newCenterPixels = prevCenterPixels.add([(newWidth - currentWidth) / 2, 0]);
       const newCenter = map.current.unproject(newCenterPixels, map.current.getZoom());
-      map.current.setView(newCenter, map.current.getZoom(), true);
+      map.current.setView(newCenter, map.current.getZoom(), { animate: true });
     }
   }, [rightPanelOpen]);
 
@@ -226,8 +228,8 @@ const MapBody: FunctionComponent = () => {
 
     // remove map layers that are not enabled in layerControls
     map.current.eachLayer((layer) => {
-      if (layer.options.id) {
-        if (!layerControls[layer.options.id].enabled) {
+      if ((layer as L.TileLayer).options.id) {
+        if (!layerControls[(layer as L.TileLayer).options.id].enabled) {
           map.current.removeLayer(layer);
         }
       }
@@ -274,8 +276,10 @@ const MapBody: FunctionComponent = () => {
     if (!map.current || !layerControls) return;
     map.current.eachLayer((layer) => {
       for (const layerControl of Object.values(layerControls)) {
-        if (layer.options.id === layerControl.name) {
-          layer.updateFilter(makeLayerColorFilter(layerControls, layerControl.name));
+        if ((layer as L.TileLayer).options.id === layerControl.name) {
+          (layer as L.TileLayer).updateFilter(
+            makeLayerColorFilter(layerControls, layerControl.name)
+          );
         }
       }
     });
@@ -288,7 +292,7 @@ const MapBody: FunctionComponent = () => {
   const getMapItemByUuid = useCallback(
     (uuid: string, mapItemType?: MapItemType): AEGISMarker | AEGISPolyline => {
       let itemToSave: AEGISMarker | AEGISPolyline = null;
-      //map.current.eachLayer((layer: AEGISMapLayer) => {
+
       map.current.eachLayer((layer: AEGISMarker | AEGISPolyline) => {
         if (layer.uuid === uuid) {
           if (mapItemType && layer.mapItemType !== mapItemType) return null;
@@ -308,7 +312,7 @@ const MapBody: FunctionComponent = () => {
 
     const center = map.current.getCenter();
     const pointC = map.current.latLngToContainerPoint(center);
-    const pointX = [pointC.x + 100, pointC.y];
+    const pointX: L.PointExpression = [pointC.x + 100, pointC.y];
     const latLngC = map.current.containerPointToLatLng(pointC);
     const latLngX = map.current.containerPointToLatLng(pointX);
     const distance = getDistanceBetweenTwoCoordinates(
@@ -421,7 +425,14 @@ const MapBody: FunctionComponent = () => {
           });
         }
 
-        map.current.addLayer(marker);
+        if (typeName === "Station") {
+          marker.setZIndexOffset(1000);
+          stationFeatureGroup.current.addLayer(marker);
+        } else if (typeName === "Poi") {
+          poiFeatureGroup.current.addLayer(marker);
+        } else {
+          map.current.addLayer(marker);
+        }
       }
     },
     [map, getMapItemByUuid, dispatch]
@@ -601,6 +612,14 @@ const MapBody: FunctionComponent = () => {
       if (!draggableLines.current) {
         draggableLines.current = new DraggableLines(map.current, { allowExtendingLine: false });
       }
+
+      if (!stationFeatureGroup.current) {
+        stationFeatureGroup.current = L.featureGroup().addTo(map.current);
+      }
+
+      if (!poiFeatureGroup.current) {
+        poiFeatureGroup.current = L.featureGroup().addTo(map.current);
+      }
     }
     return () => {
       if (map.current) {
@@ -617,8 +636,8 @@ const MapBody: FunctionComponent = () => {
     if (!map.current || !mission) return;
     const config = mission?.config;
 
-    const center = [config?.msv?.view[0], config?.msv?.view[1]];
-    const zoom = config?.msv?.view[2];
+    const center = [+config?.msv?.view[0], +config?.msv?.view[1]] as L.LatLngExpression;
+    const zoom = +config?.msv?.view[2];
     map.current.setView(center, zoom);
   }, [mission, map]);
 
@@ -1041,12 +1060,8 @@ const MapBody: FunctionComponent = () => {
   useEffect(() => {
     if (!map.current || mapDirective) return;
 
-    // delete all poi in leaflet that are not in the poi store
-    map.current.eachLayer((layer: AEGISMarker | AEGISPolyline) => {
-      if (layer.mapItemType === "poi") {
-        map.current.removeLayer(layer);
-      }
-    });
+    // delete all poi in leaflet
+    poiFeatureGroup.current.clearLayers();
 
     // draw or update all pois
     poisToShow.forEach((poi) => {
@@ -1088,14 +1103,9 @@ const MapBody: FunctionComponent = () => {
     if (!stationsToShow) return;
 
     // remove all stations from the map
-    map.current.eachLayer((layer: AEGISMarker | AEGISPolyline) => {
-      if (layer.mapItemType === "station") {
-        map.current.removeLayer(layer);
-      }
-    });
+    stationFeatureGroup.current.clearLayers();
 
     // draw all stations
-
     stationsToShow.forEach((station) => {
       if (station.location) {
         drawOrUpdateMarkerOnMap({
@@ -1117,6 +1127,8 @@ const MapBody: FunctionComponent = () => {
         });
       }
     });
+
+    stationFeatureGroup.current.setZIndex(999);
   }, [
     map,
     stations,

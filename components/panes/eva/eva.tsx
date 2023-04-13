@@ -12,6 +12,7 @@ import {
   duplicateEva,
   setEvaEditMode,
   setExpandedEvaUuids,
+  setSelectedEvaRightNavItem,
   setSelectedEvaSequenceItemUuid,
   setSelectedEvaUuid,
   upsertEva,
@@ -62,6 +63,8 @@ const EvaPlannerLeft: FunctionComponent = () => {
     dispatch(setExpandedEvaUuids([...expandedEvaUuids, blankEva.uuid]));
     // open right panel
     dispatch(setRightPanelOpen(true));
+    // set selected tab
+    dispatch(setSelectedEvaRightNavItem("info_panel"));
   };
 
   return (

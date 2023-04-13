@@ -30,7 +30,7 @@ export function drawTimeMarker(
     strokeWidth: 1,
   });
   verticalLine.name = "lineMarker";
-  const seconds = (xLoc - paperVars.timelineLeft) * (1 / paperVars.pixelsPerSecondX);
+  const seconds = Math.round((xLoc - paperVars.timelineLeft) * (1 / paperVars.pixelsPerSecondX));
   const timeHrs = Math.floor(seconds / 3600);
   const timeMins = Math.round((seconds % 3600) / 60);
   const timeLabel = new paper.PointText({

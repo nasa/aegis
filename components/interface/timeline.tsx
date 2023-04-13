@@ -689,7 +689,14 @@ const NavTimeline: FunctionComponent = () => {
         <canvas ref={canvas} data-paper-resize />
       </div>
       <div className={styles.timelineStmContainer}>
-        <STM_Coverage actions={actions} mini={true} horizontal={false} uniqueKey="evaTimelineStm" />
+        <STM_Coverage
+          actions={actions.filter((action) =>
+            selectedEva?.sequence.some((sequenceItem) => sequenceItem.uuid === action.stationUuid)
+          )}
+          mini={true}
+          horizontal={false}
+          uniqueKey="evaTimelineStm"
+        />
       </div>
     </div>
   );
