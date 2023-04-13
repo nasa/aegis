@@ -136,6 +136,12 @@
 .rightTopTitleIcon {
   font-size: 1.1em;
   padding-right: 5px;
+  min-height: 29px;
+}
+
+.rightTopTitleNoIcon {
+  font-size: 1.1em;
+  min-height: 29px;
 }
 
 .saveCancelContainer {

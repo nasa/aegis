@@ -350,8 +350,12 @@ const StationEditorRight: FunctionComponent = () => {
     selectedStation && (
       <>
         <div className={paneStyles.rightTopTitle}>
-          {selectedStation.icon && (
+          {selectedStation.icon ? (
             <div className={paneStyles.rightTopTitleIcon}>{decodeEmoji(selectedStation.icon)}</div>
+          ) : (
+            <div className={paneStyles.rightTopTitleIcon}>
+              <div className={paneStyles.rightTopTitleNoIcon} />
+            </div>
           )}
           <div className={paneStyles.rightTopTitleText} style={{ color: "var(--station)" }}>
             <InLineEditInput
