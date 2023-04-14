@@ -24,25 +24,18 @@ import {
 import _ from "lodash";
 import { updateMapDirective } from "store/map";
 import { setSelectedPoiUuid, updatePoiLocation } from "store/poi";
-import {
-  insertElevationPending,
-  removeElevationPending,
-  setSectionSelected,
-} from "store/interface";
+import { setSectionSelected } from "store/interface";
 import {
   deleteStationWalkbackElevation,
   revertWalkbackPath,
   setSelectedStationUuid,
-  updateStationLocationAndElevation,
-  updateWalkbackPath,
 } from "store/station";
 import { setSelectedEvaSequenceItemUuid } from "store/eva";
-import { deleteTraverseElevation, revertTraversePath, updateTraversePath } from "store/traverse";
+import { deleteTraverseElevation, revertTraversePath } from "store/traverse";
 import {
   convertLeafletLatLngsToAegisPoints,
   convertLeafletLatLngToAegisPoint,
   getDistanceBetweenTwoCoordinates,
-  getTotalDistance,
 } from "utils/geoMath";
 import { decodeEmoji } from "utils/formatting";
 import { Checkbox } from "./_global-elements";
@@ -51,7 +44,13 @@ import {
   setMapItemHoverUuid,
   setTimelineHoverUuid,
 } from "store/playheadHover";
-import { getElevationProfile, getElevationSinglePoint } from "http-client/elevation";
+import {
+  thunkUpdateStationLocation,
+  thunkFullUpdateWalkbackPath,
+  thunkUpdateWalkbackPath,
+} from "store/thunk/thunkStation";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { thunkFullUpdateTraversePath, thunkUpdateTraversePath } from "store/thunk/thunkTraverse";
 
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
@@ -61,6 +60,7 @@ const layerBaseURL = "/static/missionFiles";
 
 const MapBody: FunctionComponent = () => {
   const dispatch = useDispatch();
+  const appDispatch = useAppDispatch();
   const mapRef = useRef(null);
   const map = useRef<L.Map>(null);
   const crs = useRef<L.Proj.CRS>(null);
@@ -97,7 +97,7 @@ const MapBody: FunctionComponent = () => {
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
-  const playheadHover = useAppSelector((state) => state.playheadHover, shallowEqual);
+  const playheadHover = useAppSelector((state) => state.playheadHover, shallowEqual); //astronaut hover timeline
 
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
   const sectionSelected = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
@@ -105,7 +105,7 @@ const MapBody: FunctionComponent = () => {
   const mapHoverItemUuid = useAppSelector((state) => state.playheadHover.mapItemUuid, refEqual);
 
   const [layersOnMap, setLayersOnMap] = useState([]);
-  const [showHightlightOnMap, setShowHighlightOnMap] = useState(false);
+  const [showSelectedItemOnMap, setShowSelectedItemOnMap] = useState(false); //click selected items
 
   const [poisToShow, setPoisToShow] = useState<POI[]>([]);
   const [stationsToShow, setStationsToShow] = useState<Station[]>([]);
@@ -139,47 +139,6 @@ const MapBody: FunctionComponent = () => {
       }%`,
     ];
   };
-
-  //get elevation for a single point or a path
-  const getElevation = useCallback(
-    async (
-      path: AEGISPoint[],
-      pathSegmentDistances: number[],
-      uuid: string
-    ): Promise<number[][] | number> => {
-      dispatch(insertElevationPending(uuid));
-      const radius = parseFloat(mission?.config.msv.radius.minor);
-
-      // dig the dem filename out of the MMGIS-formatted mission config
-      const measureJson = mission?.config.tools.find((tool) => tool.name === "Measure")?.variables;
-      const elevationResolutionMeters = measureJson["resolution"];
-      const demFilepath: string = measureJson["dem"];
-
-      let newElevationProfile: WrappedResponse<number[][] | number>;
-      if (path.length === 1) {
-        newElevationProfile = await getElevationSinglePoint(
-          mission.id,
-          demFilepath,
-          path[0],
-          radius
-        );
-      } else {
-        // generate new elevation profile via api
-        newElevationProfile = await getElevationProfile(
-          mission.id,
-          demFilepath,
-          path,
-          pathSegmentDistances,
-          elevationResolutionMeters || 10, // resolution in meters, default 10
-          radius
-        );
-      }
-      dispatch(removeElevationPending(uuid));
-
-      return newElevationProfile.data;
-    },
-    [mission, dispatch]
-  );
 
   /**
    * If the window layout changes, resize the map
@@ -439,9 +398,40 @@ const MapBody: FunctionComponent = () => {
   );
 
   /**
-   * Draw or update polylines on the map
+   * update polyline on map
    */
-  const drawOrUpdatePolylineOnMap = useCallback(
+  const updatePolylineOnMap = useCallback(
+    ({
+      uuid,
+      path,
+      mapItemType,
+    }: {
+      uuid: string;
+      path: AEGISPoint[];
+      mapItemType: MapPolylineType;
+    }) => {
+      if (
+        !Array.isArray(path) ||
+        !path[0]?.lat ||
+        !path[0]?.lng ||
+        !path[path.length - 1]?.lat ||
+        !path[path.length - 1]?.lng
+      )
+        return;
+
+      const existingLayer = getMapItemByUuid(uuid, mapItemType) as AEGISPolyline;
+
+      if (existingLayer && existingLayer.mapItemType === mapItemType) {
+        existingLayer.setLatLngs(path);
+      }
+    },
+    [getMapItemByUuid]
+  );
+
+  /**
+   * Draw polylines on the map
+   */
+  const drawPolylineOnMap = useCallback(
     ({
       name,
       uuid,
@@ -471,74 +461,61 @@ const MapBody: FunctionComponent = () => {
       )
         return;
 
-      const existingLayer = getMapItemByUuid(uuid, mapItemType) as AEGISPolyline;
+      const typeName = mapItemType.charAt(0).toUpperCase() + mapItemType.slice(1);
 
-      let typeName = "";
-      switch (mapItemType) {
-        case "traverse":
-          typeName = "Traverse";
-          break;
-        case "walkback":
-          typeName = "Walkback";
-          break;
-      }
-      if (existingLayer && existingLayer.mapItemType === mapItemType) {
-        existingLayer.setLatLngs(path);
-      } else {
-        const polyline = new HighlightablePolyline(path as AEGISPoint[], {
-          color: color,
-          weight: 3,
-          dashArray: dashArray,
-          opacity: 0.5,
-          smoothFactor: 1,
-          outlineColor: "#8b8680",
-          raised: false,
-        }) as any; //TODO: figure out the weird HighlightablePolyline typescript implementation
-        polyline.uuid = uuid;
-        polyline.mapItemType = mapItemType;
+      const polyline = new HighlightablePolyline(path as AEGISPoint[], {
+        color: color,
+        weight: 3,
+        dashArray: dashArray,
+        opacity: 0.5,
+        smoothFactor: 1,
+        outlineColor: "#8b8680",
+        raised: false,
+      }) as any; //TODO: figure out the weird HighlightablePolyline typescript implementation
+      polyline.uuid = uuid;
+      polyline.mapItemType = mapItemType;
 
-        // polyline handlers
-        polyline
-          .bindTooltip(`${name} ${typeName}`, {
-            sticky: true,
-            direction: "top",
-            offset: new L.Point(0, -20),
-          })
-          .on("click", () => {
-            onClick();
-          })
-          .on("mouseover", () => {
-            dispatch(setLeftPanelHoverUuid(polyline.uuid));
-            dispatch(setTimelineHoverUuid(polyline.uuid));
-            dispatch(setMapItemHoverUuid(polyline.uuid));
-          })
-          .on("mouseout", () => {
-            dispatch(setLeftPanelHoverUuid(null));
-            dispatch(setTimelineHoverUuid(null));
-            dispatch(setMapItemHoverUuid(null));
-          });
+      // polyline handlers
+      polyline
+        .bindTooltip(`${name} ${typeName}`, {
+          sticky: true,
+          direction: "top",
+          offset: new L.Point(0, -20),
+        })
+        .on("click", () => {
+          onClick();
+        })
+        .on("mouseover", () => {
+          dispatch(setLeftPanelHoverUuid(polyline.uuid));
+          dispatch(setTimelineHoverUuid(polyline.uuid));
+          dispatch(setMapItemHoverUuid(polyline.uuid));
+        })
+        .on("mouseout", () => {
+          dispatch(setLeftPanelHoverUuid(null));
+          dispatch(setTimelineHoverUuid(null));
+          dispatch(setMapItemHoverUuid(null));
+        });
 
-        map.current.addLayer(polyline);
+      map.current.addLayer(polyline);
 
-        if (drawAntPath) {
-          const aPath = antPath(path, {
-            delay: 9000,
-            dashArray: [10, 20],
-            weight: 5,
-            opacity: 1,
-            color: "rgb(0, 0, 0, 0)",
-            pulseColor: "rgb(255, 255, 255, 1)",
-            paused: false,
-            reverse: false,
-            hardwareAccelerated: true,
-          });
-          aPath.mapItemType = "antPath" as MapItemType;
+      if (drawAntPath) {
+        const aPath = antPath(path, {
+          delay: 9000,
+          dashArray: [10, 20],
+          weight: 5,
+          opacity: 1,
+          color: "rgb(0, 0, 0, 0)",
+          pulseColor: "rgb(255, 255, 255, 1)",
+          paused: false,
+          reverse: false,
+          hardwareAccelerated: true,
+        });
+        aPath.mapItemType = "antPath" as MapItemType;
 
-          map.current.addLayer(aPath);
-        }
+        map.current.addLayer(aPath);
       }
     },
-    [map, getMapItemByUuid, dispatch]
+    [map, dispatch]
   );
 
   const saveUpdatedPoiOrStationPosition = useCallback(
@@ -546,11 +523,10 @@ const MapBody: FunctionComponent = () => {
       if (mapItemType === "poi") {
         dispatch(updatePoiLocation({ uuid, location }));
       } else if (mapItemType === "station") {
-        const elevation = (await getElevation([location], [0], uuid)) as number;
-        dispatch(updateStationLocationAndElevation({ uuid, location, elevation }));
+        await appDispatch(thunkUpdateStationLocation({ location, stationUuid: uuid }));
       }
     },
-    [dispatch, getElevation]
+    [dispatch, appDispatch]
   );
 
   /**
@@ -678,113 +654,6 @@ const MapBody: FunctionComponent = () => {
     };
   }, [map, mapDirective, saveUpdatedPoiOrStationPosition, dispatch]);
 
-  // reset the walkback for a given station uuid
-  // set the start and end points of the walkback to the station location and the mission lander location
-  const saveWalkback = useCallback(
-    async (stationUuid: string) => {
-      const missionLanderLocation = mission.landerLocation;
-      const thisStation = stations.find((s) => s.uuid === stationUuid);
-
-      // replace first item in walkback location with the station location
-      const newWalkbackPath = [thisStation.location, ...thisStation.walkbackPath.slice(1)];
-      // replace the last item in walkback location with the mission lander location
-      newWalkbackPath[newWalkbackPath.length - 1] = missionLanderLocation;
-
-      // replace first item in walkback distance with the new distance
-      const newSegmentDistances = [
-        getDistanceBetweenTwoCoordinates(
-          thisStation.location,
-          thisStation.walkbackPath[1],
-          parseFloat(mission.config.msv.radius.minor)
-        ),
-        ...thisStation.walkbackPathSegmentDistances.slice(1),
-      ];
-      //replace last item in walkback distance with the new distance
-      newSegmentDistances[newSegmentDistances.length - 1] = getDistanceBetweenTwoCoordinates(
-        newWalkbackPath[newWalkbackPath.length - 2],
-        missionLanderLocation,
-        parseFloat(mission.config.msv.radius.minor)
-      );
-
-      //get elevation for new walkback
-      const walkbackPathSegmentElevations = (await getElevation(
-        newWalkbackPath,
-        newSegmentDistances,
-        stationUuid
-      )) as number[][];
-
-      dispatch(
-        updateWalkbackPath({
-          uuid: stationUuid,
-          walkbackPath: newWalkbackPath,
-          walkbackPathSegmentDistances: newSegmentDistances,
-          walkbackPathSegmentElevations,
-        })
-      );
-    },
-    [mission, stations, dispatch, getElevation]
-  );
-
-  // save the traverse for a given uuid
-  // set the start and end points of the traverse to the station locations on either side of the traverse
-  const saveTraverse = useCallback(
-    async (traverseUuid: string) => {
-      // find the traverse in the eva
-      let stationLocationBefore: AEGISPoint = null;
-      let stationLocationAfter: AEGISPoint = null;
-      selectedEva.sequence.forEach((item, index) => {
-        if (item.type === "traverse" && item.uuid === traverseUuid) {
-          const stationUuidBefore = selectedEva.sequence[index - 1].uuid;
-          const stationUuidAfter = selectedEva.sequence[index + 1].uuid;
-          stationLocationBefore = stations.find((s) => s.uuid === stationUuidBefore).location;
-          stationLocationAfter = stations.find((s) => s.uuid === stationUuidAfter).location;
-        }
-      });
-      const thisTraverse = traverses.find((t) => t.uuid === traverseUuid);
-      const newPath = _.cloneDeep(thisTraverse.path);
-      const newPathSegmentDistances = _.cloneDeep(thisTraverse.pathSegmentDistances);
-
-      //set starting station
-      if (stationLocationBefore && !_.isEqual(thisTraverse.path.at(0), stationLocationBefore)) {
-        const newDistance = getDistanceBetweenTwoCoordinates(
-          stationLocationBefore,
-          thisTraverse.path[1],
-          parseFloat(mission.config.msv.radius.minor)
-        );
-        newPath[0] = stationLocationBefore;
-        newPathSegmentDistances[0] = newDistance;
-      }
-
-      //set ending station
-      if (stationLocationAfter && !_.isEqual(thisTraverse.path.at(-1), stationLocationAfter)) {
-        const newDistance = getDistanceBetweenTwoCoordinates(
-          thisTraverse.path[thisTraverse.path.length - 2],
-          stationLocationAfter,
-          parseFloat(mission.config.msv.radius.minor)
-        );
-        newPath[newPath.length - 1] = stationLocationAfter;
-        newPathSegmentDistances[newPathSegmentDistances.length - 1] = newDistance;
-      }
-
-      //get new elevation
-      const pathSegmentElevations = (await getElevation(
-        newPath,
-        newPathSegmentDistances,
-        traverseUuid
-      )) as number[][];
-
-      dispatch(
-        updateTraversePath({
-          uuid: traverseUuid,
-          path: newPath,
-          pathSegmentDistances: newPathSegmentDistances,
-          pathSegmentElevations,
-        })
-      );
-    },
-    [selectedEva, stations, traverses, mission.config.msv.radius.minor, dispatch, getElevation]
-  );
-
   /**
    * Listen for mapDirective for stations, pois, and traverses, and trigger map draw/edit modes appropriately
    */
@@ -822,10 +691,7 @@ const MapBody: FunctionComponent = () => {
 
       case "editPolyline":
         map.current.getContainer().style.cursor = "crosshair";
-        setShowHighlightOnMap(false);
-
-        // edit polyline is only possible when user has selected a traverse, so only one polyline is on the map
-        // set all polylines on the map to editable
+        setShowSelectedItemOnMap(false);
 
         // find this polyline layer on the map
         const polylineToUpdate = getMapItemByUuid(
@@ -836,47 +702,61 @@ const MapBody: FunctionComponent = () => {
         if (polylineToUpdate) {
           draggableLines.current.enableForLayer(polylineToUpdate);
 
-          const dispatchPathAndDistance = async (e: L.LeafletEvent, saveElevation: boolean) => {
+          const dispatchPath = async (e: L.LeafletEvent, saveElevation: boolean) => {
             //TODO: layer is deprecated but changing this to propagatedFrom throws a null when dragging?
-            if (e.layer.uuid === mapDirective.uuid) {
-              const path = convertLeafletLatLngsToAegisPoints(e.layer.getLatLngs());
-              const polylinePoints: AEGISPoint[] = convertLeafletLatLngsToAegisPoints(
-                e.layer.getLatLngs()
-              );
-              const distance: number[] = [];
-              for (let i = 1; i < polylinePoints.length; i++) {
-                distance.push(
-                  getTotalDistance(
-                    [polylinePoints[i - 1], polylinePoints[i]],
-                    parseFloat(mission.config.msv.radius.minor)
-                  )
-                );
-              }
+            if (e.layer.uuid !== mapDirective.uuid) return;
 
-              //get elevation
-              const elevation = saveElevation
-                ? ((await getElevation(path, distance, mapDirective.uuid)) as number[][])
-                : null;
+            const path = convertLeafletLatLngsToAegisPoints(e.layer.getLatLngs());
 
-              if (e.layer.mapItemType === "traverse") {
-                dispatch(
-                  updateTraversePath({
-                    uuid: e.layer.uuid,
+            if (e.layer.mapItemType === "traverse") {
+              if (!saveElevation) {
+                //update just the path
+                await appDispatch(
+                  thunkUpdateTraversePath({
                     path,
-                    pathSegmentDistances: distance,
-                    pathSegmentElevations: elevation,
+                    traverseUuid: mapDirective.uuid,
                   })
                 );
+              } else {
+                //update path, elevation, and snap endpoints
+                const response = await appDispatch(
+                  thunkFullUpdateTraversePath({
+                    path,
+                    traverseUuid: mapDirective.uuid,
+                  })
+                );
+
+                //redraw the line incase we had to snap endpoints
+                updatePolylineOnMap({
+                  uuid: mapDirective.uuid,
+                  path: response.payload as AEGISPoint[],
+                  mapItemType: "traverse",
+                });
               }
-              if (e.layer.mapItemType === "walkback") {
-                dispatch(
-                  updateWalkbackPath({
-                    uuid: e.layer.uuid,
-                    walkbackPath: path,
-                    walkbackPathSegmentDistances: distance,
-                    walkbackPathSegmentElevations: elevation,
+            }
+            if (e.layer.mapItemType === "walkback") {
+              if (!saveElevation) {
+                //update just the path
+                await appDispatch(
+                  thunkUpdateWalkbackPath({
+                    path,
+                    stationUuid: mapDirective.uuid,
                   })
                 );
+              } else {
+                //update path, elevation, and snap endpoints
+                const response = await appDispatch(
+                  thunkFullUpdateWalkbackPath({
+                    path,
+                    stationUuid: mapDirective.uuid,
+                  })
+                );
+                //redraw the line incase we had to snap endpoints
+                updatePolylineOnMap({
+                  uuid: mapDirective.uuid,
+                  path: response.payload as AEGISPoint[],
+                  mapItemType: "walkback",
+                });
               }
             }
           };
@@ -893,16 +773,16 @@ const MapBody: FunctionComponent = () => {
           draggableLines.current.on(
             "drag",
             _.throttle((e) => {
-              dispatchPathAndDistance(e, false);
+              dispatchPath(e, false);
             }, 15)
           );
 
           draggableLines.current.on("dragend", (e) => {
-            dispatchPathAndDistance(e, true);
+            dispatchPath(e, true);
           });
 
           draggableLines.current.on("remove", (e) => {
-            dispatchPathAndDistance(e, true);
+            dispatchPath(e, true);
           });
         }
 
@@ -919,14 +799,6 @@ const MapBody: FunctionComponent = () => {
 
         draggableLines.current.off("drag");
         draggableLines.current.off("remove");
-
-        if (mapDirective.mapItemType === "traverse") {
-          saveTraverse(mapDirective.uuid);
-        }
-
-        if (mapDirective.mapItemType === "walkback") {
-          saveWalkback(mapDirective.uuid);
-        }
 
         clearAction();
         break;
@@ -952,7 +824,7 @@ const MapBody: FunctionComponent = () => {
 
     function clearAction() {
       dispatch(updateMapDirective(null));
-      setShowHighlightOnMap(true);
+      setShowSelectedItemOnMap(true);
       map.current.getContainer().style.cursor = "grab";
     }
 
@@ -970,14 +842,6 @@ const MapBody: FunctionComponent = () => {
     mapDirective,
     dispatch,
     getMapItemByUuid,
-    getElevation,
-    /**
-     * TODO refactor with thunks.
-     * Paths are upserted during drag causing the traverse and station walkback callback func
-     * to be redefined. Adding this depency causes leaflet events to fire way too many times.
-     * */
-    //saveTraverse,
-    //saveWalkback,
   ]);
 
   /**
@@ -1073,7 +937,7 @@ const MapBody: FunctionComponent = () => {
           mapItemType: "poi",
           location: poi.location,
           onClick: () => {
-            setShowHighlightOnMap(true);
+            setShowSelectedItemOnMap(true);
             dispatch(setSectionSelected("poi"));
             dispatch(setSelectedPoiUuid(poi.uuid));
           },
@@ -1087,7 +951,6 @@ const MapBody: FunctionComponent = () => {
     });
   }, [
     map,
-    pois,
     mapDirective,
     drawOrUpdateMarkerOnMap,
     saveUpdatedPoiOrStationPosition,
@@ -1115,7 +978,7 @@ const MapBody: FunctionComponent = () => {
           mapItemType: "station",
           location: station.location,
           onClick: () => {
-            setShowHighlightOnMap(true);
+            setShowSelectedItemOnMap(true);
             dispatch(setSectionSelected("station"));
             dispatch(setSelectedStationUuid(station.uuid));
           },
@@ -1131,7 +994,6 @@ const MapBody: FunctionComponent = () => {
     stationFeatureGroup.current.setZIndex(999);
   }, [
     map,
-    stations,
     mapDirective,
     drawOrUpdateMarkerOnMap,
     saveUpdatedPoiOrStationPosition,
@@ -1153,7 +1015,7 @@ const MapBody: FunctionComponent = () => {
 
     // draw the walkback traverse
     if (!mapDirective && selectedStation?.walkbackPath) {
-      drawOrUpdatePolylineOnMap({
+      drawPolylineOnMap({
         name: selectedStation.name,
         uuid: selectedStation.uuid,
         mapItemType: "walkback",
@@ -1161,14 +1023,14 @@ const MapBody: FunctionComponent = () => {
         color: "red",
         dashArray: "5, 5",
         onClick: () => {
-          setShowHighlightOnMap(true);
+          setShowSelectedItemOnMap(true);
           dispatch(setSectionSelected("station"));
           dispatch(setSelectedStationUuid(selectedStation.uuid));
         },
         drawAntPath: false,
       });
     }
-  }, [map, selectedStation, mapDirective, drawOrUpdatePolylineOnMap, dispatch]);
+  }, [map, selectedStation, mapDirective, drawPolylineOnMap, dispatch]);
 
   /**
    * Draw or update traverses on the map when selections or traverses change. Serves as draw when page loads
@@ -1188,7 +1050,7 @@ const MapBody: FunctionComponent = () => {
 
       // draw all traverses in the selectedEva sequence
       traversesToShow.forEach((traverse) => {
-        drawOrUpdatePolylineOnMap({
+        drawPolylineOnMap({
           name: traverse.name,
           uuid: traverse.uuid,
           path: traverse.path,
@@ -1204,16 +1066,15 @@ const MapBody: FunctionComponent = () => {
     }
   }, [
     map,
-    traverses,
     mapDirective,
-    drawOrUpdatePolylineOnMap,
+    drawPolylineOnMap,
     dispatch,
     traversesToShow,
     selectedEvaSequenceItemUuid,
   ]);
 
   /**
-   * Draw or update hover marker on the map when the hover seconds change.
+   * Draw or update hover timeline marker (astronaut) on the map when the hover seconds change.
    */
   useEffect(() => {
     if (!map.current || mapDirective) return;
@@ -1303,7 +1164,7 @@ const MapBody: FunctionComponent = () => {
       }
     });
 
-    if (!showHightlightOnMap) return;
+    if (!showSelectedItemOnMap) return;
 
     let highlightLocation: AEGISPoint = null;
     if (sectionSelected === "poi" && selectedPoi?.location) {
@@ -1331,19 +1192,20 @@ const MapBody: FunctionComponent = () => {
 
       map.current.addLayer(marker);
     }
-  }, [map, selectedPoi, selectedStation, dispatch, showHightlightOnMap, sectionSelected]);
+  }, [map, selectedPoi, selectedStation, dispatch, showSelectedItemOnMap, sectionSelected]);
 
   /**
    * if selected Poi or Station changes, then show the highlight on the map
    */
   useEffect(() => {
     if (selectedPoi || selectedStation) {
-      setShowHighlightOnMap(true);
+      setShowSelectedItemOnMap(true);
     }
   }, [selectedPoi, selectedStation]);
 
   /**
    * If hover uuid changes, show a hover highlight on the map
+   * This is the hover on item
    */
   useEffect(() => {
     // remove hoverMarker layer

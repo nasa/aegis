@@ -11,19 +11,19 @@ import {
   InLineEditInput,
   LastEdited,
 } from "components/interface/_global-elements";
-import { FunctionComponent, useCallback, useEffect, useState } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { upsertTraverse } from "store/traverse";
 import { updateMapDirective } from "store/map";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
-import * as httpClient from "http-client/elevation";
-import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
-import { insertElevationPending, removeElevationPending } from "store/interface";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { thunkResetTraverse } from "store/thunk/thunkTraverse";
 
 const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
+  const appDispatch = useAppDispatch();
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
@@ -37,20 +37,11 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
     (state) => state.mission.mission.traverseSpeed,
     refEqual
   );
-  const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
-  const evaSequence = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid).sequence,
-    shallowEqual
-  );
-  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
   const elevationPendingIndex = useAppSelector(
     (state) =>
       state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedTraverse.uuid),
     refEqual
   );
-
-  // planet radius value used to generate elevation profile
-  const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
 
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = mapDirective?.uuid === selectedTraverse?.uuid ? mapDirective : null;
@@ -77,36 +68,6 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
       return true;
     }
   };
-
-  //todo move to thunk. repeated in map-body-leaflet.tsx
-  const getElevation = useCallback(
-    async (
-      path: AEGISPoint[],
-      pathSegmentDistances: number[],
-      uuid: string
-    ): Promise<number[][]> => {
-      dispatch(insertElevationPending(uuid));
-      const R = parseFloat(mission?.config.msv.radius.minor);
-
-      // dig the dem filename out of the MMGIS-formatted mission config
-      const measureJson = mission?.config.tools.find((tool) => tool.name === "Measure")?.variables;
-      const elevationResolutionMeters = measureJson["resolution"];
-      const demFilepath: string = measureJson["dem"];
-
-      // generate new elevation profile via api
-      const newElevationProfile = await httpClient.getElevationProfile(
-        mission.id,
-        demFilepath,
-        path,
-        pathSegmentDistances,
-        elevationResolutionMeters || 10, // resolution in meters, default 10
-        R
-      );
-      dispatch(removeElevationPending(uuid));
-      return newElevationProfile.data;
-    },
-    [mission, dispatch]
-  );
 
   const handlePathEdit = () => {
     if (verifyNoActiveMapAction()) {
@@ -140,41 +101,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
 
   const handlePathReset = async () => {
     //reset path to stations endpoints
-    const sequenceIndex = evaSequence.findIndex(
-      (sequenceItem) => sequenceItem.uuid === selectedEvaSequenceItemUuid
-    );
-    if (sequenceIndex < 1) return;
-    const fromStation = stations.find(
-      (station) => station.uuid === evaSequence[sequenceIndex - 1].uuid
-    );
-    const toStation = stations.find(
-      (station) => station.uuid === evaSequence[sequenceIndex + 1].uuid
-    );
-    const newPath = [fromStation.location, toStation.location];
-
-    //get new distances and elevation
-    const newPathSegmentDistances = [
-      getDistanceBetweenTwoCoordinates(
-        newPath[0],
-        newPath[1],
-        parseFloat(mission?.config.msv.radius.minor)
-      ),
-    ];
-    const newPathSegmentElevations = await getElevation(
-      newPath,
-      newPathSegmentDistances,
-      selectedTraverse.uuid
-    );
-
-    //update store
-    dispatch(
-      upsertTraverse({
-        ...selectedTraverse,
-        path: newPath,
-        pathSegmentDistances: newPathSegmentDistances,
-        pathSegmentElevations: newPathSegmentElevations,
-      })
-    );
+    appDispatch(thunkResetTraverse({ traverseUuid: selectedTraverse.uuid }));
   };
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;

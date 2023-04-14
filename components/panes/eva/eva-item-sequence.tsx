@@ -1,5 +1,5 @@
 import { Dropdown, ModifiedIndicator } from "components/interface/_global-elements";
-import { FunctionComponent, useCallback } from "react";
+import { FunctionComponent } from "react";
 import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import {
@@ -8,19 +8,20 @@ import {
   setEvaSequence,
   setSelectedEvaSequenceItemUuid,
 } from "store/eva";
-import { deleteTraverse, setSelectedTraverseRightNavItem, upsertTraverses } from "store/traverse";
+import { deleteTraverse, setSelectedTraverseRightNavItem } from "store/traverse";
 import evaStyles from "./eva.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowDown, faArrowUp, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { setSelectedStationUuid } from "store/station";
 import { decodeEmoji } from "utils/formatting";
-import { getTotalDistance } from "utils/geoMath";
 import { setRightPanelOpen } from "store/interface";
 import {
   setLeftPanelHoverUuid,
   setMapItemHoverUuid,
   setTimelineHoverUuid,
 } from "store/playheadHover";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { thunkUpdateAllTraversesForEVASequence } from "store/thunk/thunkTraverse";
 
 const EvaItemSequence: FunctionComponent<{
   evaUuid: string;
@@ -28,12 +29,12 @@ const EvaItemSequence: FunctionComponent<{
   editMode: boolean;
 }> = ({ evaUuid, evaSequence, editMode }) => {
   const dispatch = useDispatch();
+  const appDispatch = useAppDispatch();
 
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
   const stationsFromDb = useAppSelector((state) => state.station.stationsFromDb, shallowEqual);
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
   const traversesFromDb = useAppSelector((state) => state.traverse.traversesFromDb, shallowEqual);
-  const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
 
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
@@ -41,79 +42,16 @@ const EvaItemSequence: FunctionComponent<{
   );
   const hoverItemUuid = useAppSelector((state) => state.playheadHover.leftPanelItemUuid, refEqual);
 
-  const setTraverseNamesAndStartEnds = useCallback(
-    (evaSequence: EvaSequenceItem[]) => {
-      const newTraverses: Traverse[] = [];
-      evaSequence.forEach((item, index) => {
-        if (item.type === "traverse") {
-          const thisTraverse = traverses.find((traverse) => traverse.uuid === item.uuid);
-          const newTraversePath = [...thisTraverse.path];
-          if (thisTraverse) {
-            if (newTraversePath.length === 0) {
-              // make blank location array with two points if it is empty
-              newTraversePath.push({ lat: null, lng: null } as AEGISPoint);
-              newTraversePath.push({ lat: null, lng: null } as AEGISPoint);
-            }
-
-            // if item is a traverse, there is always a previous station
-            const previousItem = evaSequence[index - 1];
-            const previousStation = stations.find((station) => station.uuid === previousItem.uuid);
-            if (previousStation) {
-              // replace first point with previous station location
-              newTraversePath[0] = {
-                lat: previousStation.location?.lat,
-                lng: previousStation.location?.lng,
-              } as AEGISPoint;
-            }
-            const nextItem = evaSequence[index + 1];
-            const nextStation = stations.find((station) => station.uuid === nextItem.uuid);
-            if (nextStation) {
-              // replace last point with next station location
-              newTraversePath[newTraversePath.length - 1] = {
-                lat: nextStation.location?.lat,
-                lng: nextStation.location?.lng,
-              } as AEGISPoint;
-            }
-
-            // recalculate traverse path distances
-            const distances: number[] = [];
-
-            for (let i = 1; i < newTraversePath.length; i++) {
-              distances.push(
-                getTotalDistance(
-                  [newTraversePath[i - 1], newTraversePath[i]],
-                  parseFloat(mission.config.msv.radius.minor)
-                )
-              );
-            }
-
-            // rename the traverse to <previous station name> to <next station name>
-            const newTraverseName = previousStation?.name + " to " + nextStation?.name;
-
-            const newTraverse: Traverse = {
-              ...thisTraverse,
-              name: newTraverseName,
-              path: newTraversePath,
-              pathSegmentDistances: distances,
-            };
-            newTraverses.push(newTraverse);
-          }
-        }
-      });
-      dispatch(upsertTraverses(newTraverses));
-    },
-    [traverses, stations, dispatch, mission]
-  );
-
   const handleSequenceStationChange = (stationUuid: string, index: number) => {
     const newEvaSequence = [...evaSequence];
     newEvaSequence[index] = {
       type: "station",
       uuid: stationUuid,
     };
-    setTraverseNamesAndStartEnds(newEvaSequence);
 
     dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
+    //setTraverseNamesAndStartEnds(newEvaSequence);
+    appDispatch(thunkUpdateAllTraversesForEVASequence({ evaSequence: newEvaSequence }));
   };
 
   const handleSequenceStationDelete = (index: number) => {
@@ -134,7 +72,7 @@ const EvaItemSequence: FunctionComponent<{
     }
 
     dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
-    setTraverseNamesAndStartEnds(newEvaSequence);
+    appDispatch(thunkUpdateAllTraversesForEVASequence({ evaSequence: newEvaSequence }));
   };
 
   const handeleMoveStationUp = (index: number) => {
@@ -147,7 +85,7 @@ const EvaItemSequence: FunctionComponent<{
     newEvaSequence[index] = tempStation;
 
     dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
-    setTraverseNamesAndStartEnds(newEvaSequence);
+    appDispatch(thunkUpdateAllTraversesForEVASequence({ evaSequence: newEvaSequence }));
   };
 
   const handeleMoveStationDown = (index: number) => {
@@ -159,7 +97,7 @@ const EvaItemSequence: FunctionComponent<{
     newEvaSequence[stationBeforeIndex] = newEvaSequence[index];
     newEvaSequence[index] = tempStation;
     dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
-    setTraverseNamesAndStartEnds(newEvaSequence);
+    appDispatch(thunkUpdateAllTraversesForEVASequence({ evaSequence: newEvaSequence }));
   };
 
   return (
