@@ -25,10 +25,12 @@ import { toDecimal } from "utils/formatting";
 import emojiPickerData from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
 import { decodeEmoji } from "utils/formatting";
-import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { thunkResetWalkback, thunkUpdateStationLocation } from "store/thunk/thunkStation";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
+  const appDispatch = useAppDispatch();
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
   const defaultTraverseSpeed = useAppSelector(
@@ -43,10 +45,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const landerLocation = useAppSelector(
     (state) => state.mission.mission.landerLocation,
     shallowEqual
-  );
-  const planetRadius = useAppSelector(
-    (state) => state.mission.mission?.config.msv.radius.minor,
-    refEqual
   );
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = mapDirective?.uuid === selectedStation.uuid ? mapDirective : null;
@@ -167,11 +165,8 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       return poi.location;
     });
     const centroid = calcCentroidofCoordinates(poiLocs);
-    dispatch(
-      upsertStation({
-        ...selectedStation,
-        location: centroid,
-      })
+    appDispatch(
+      thunkUpdateStationLocation({ location: centroid, stationUuid: selectedStation.uuid })
     );
   };
 
@@ -206,30 +201,8 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   };
 
   const handleResetWalkback = useCallback(() => {
-    const walkbackPath = [
-      {
-        lat: selectedStation.location.lat,
-        lng: selectedStation.location.lng,
-      },
-      {
-        lat: landerLocation.lat,
-        lng: landerLocation.lng,
-      },
-    ];
-    dispatch(
-      upsertStation({
-        ...selectedStation,
-        walkbackPath: walkbackPath,
-        walkbackPathSegmentDistances: [
-          getDistanceBetweenTwoCoordinates(
-            walkbackPath[0],
-            walkbackPath[1],
-            parseFloat(planetRadius)
-          ),
-        ],
-      })
-    );
-  }, [dispatch, landerLocation, selectedStation, planetRadius]);
+    appDispatch(thunkResetWalkback({ stationUuid: selectedStation.uuid }));
+  }, [appDispatch, selectedStation.uuid]);
 
   useEffect(() => {
     if (!selectedStation.walkbackPath) {
@@ -478,12 +451,12 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           style={{ width: "115px" }}
                         />
                         <IconButton
-                          onClick={() => {
+                          onClick={async () => {
                             if (landerLocation?.lat && landerLocation?.lng) {
-                              dispatch(
-                                upsertStation({
-                                  ...selectedStation,
+                              await appDispatch(
+                                thunkUpdateStationLocation({
                                   location: landerLocation,
+                                  stationUuid: selectedStation.uuid,
                                 })
                               );
                             } else {
