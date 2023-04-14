@@ -17,7 +17,7 @@ import PoiItem from "./poi-item";
 import _ from "lodash";
 import { generateUniqueName } from "utils/unique-name";
 import { duplicateAction } from "store/action";
-import { duplicateStationOrPOI } from "utils/duplicate";
+import { makeUniqueStringCopy } from "utils/duplicate";
 import { setRightPanelOpen } from "store/interface";
 
 const PoiEditorLeft: FunctionComponent = () => {
@@ -72,7 +72,10 @@ const PoiEditorLeft: FunctionComponent = () => {
       const newPoi: POI = {
         ...poi,
         uuid: uuidv4(),
-        name: duplicateStationOrPOI(poi, pois),
+        name: makeUniqueStringCopy(
+          poi.name,
+          pois.map((item) => item.name)
+        ),
       };
       dispatch(duplicatePoi(newPoi));
       //duplicate actions

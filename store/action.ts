@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import _ from "lodash";
 import { upsertToArrayByUuid } from "utils/store";
 import { v4 as uuidv4 } from "uuid";
+import { makeUniqueStringCopy } from "../utils/duplicate";
 
 export const initialState: ActionState = {
   actions: [],
@@ -72,8 +73,10 @@ export const actionSlice = createSlice({
         newAction.uuid = action.payload.newActionUuid;
         newAction.stationUuid = action.payload.stationUuid;
         newAction.poiUuid = action.payload.poiUuid;
-        newAction.name = `${newAction.name} (copy)`;
-        console.log(action.payload.preserveParentUuid);
+        newAction.name = makeUniqueStringCopy(
+          newAction.name,
+          state.actions.map((a) => a.name)
+        );
         if (action.payload.preserveParentUuid) {
           newAction.parentActionUuid = action.payload.action.uuid;
         } else {
