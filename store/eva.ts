@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { upsertToArrayByUuid } from "utils/store";
 import { v4 as uuidv4 } from "uuid";
+import { makeUniqueStringCopy } from "../utils/duplicate";
 
 export const initialState: EvaState = {
   selectedEvaRightNavItem: "",
@@ -43,7 +44,14 @@ export const evaSlice = createSlice({
     },
     duplicateEva: (state, action: { payload: Eva }) => {
       const eva = action.payload;
-      const newEva = { ...eva, uuid: uuidv4(), name: eva.name + " (copy)" };
+      const newEva = {
+        ...eva,
+        uuid: uuidv4(),
+        name: makeUniqueStringCopy(
+          eva.name,
+          state.evas.map((item) => item.name)
+        ),
+      };
       state.evas.push(newEva);
       // turn on edit mode for the new eva
       state.evasEditing.push(newEva.uuid);

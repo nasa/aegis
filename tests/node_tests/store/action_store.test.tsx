@@ -322,7 +322,7 @@ describe("Action Store Tests with mock store", () => {
 
     // ensure the action was added to the store
     expect(store.getState().action.actions.length).toEqual(1);
-    expect(store.getState().action.actions[0].name).toEqual("Jest Action-1 (copy)");
+    expect(store.getState().action.actions[0].name).toEqual("Jest Action-1 (copy 1)");
     expect(store.getState().action.actions[0].uuid).not.toEqual(uuid);
   });
 });

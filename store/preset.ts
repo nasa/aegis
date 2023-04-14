@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { upsertToArrayByUuid } from "../utils/store";
 import { v4 as uuidv4 } from "uuid";
+import { makeUniqueStringCopy } from "../utils/duplicate";
 export const initialState: PresetState = {
   presets: [],
   presetsFromDb: [],
@@ -39,7 +40,10 @@ export const presetSlice = createSlice({
       const newPreset: Preset = {
         ...action.payload,
         uuid: uuidv4(),
-        name: action.payload.name + " (copy)",
+        name: makeUniqueStringCopy(
+          action.payload.name,
+          state.presets.map((item) => item.name)
+        ),
       };
       state.presets.push(newPreset);
       // turn on edit mode for the new preset

@@ -3,10 +3,12 @@
  *
  * @param duplicateItem
  * @param duplicateItems
+ * @param propName
  */
-export function duplicateStationOrPOI(
-  duplicateItem: Station | POI,
-  duplicateItems: Station[] | POI[]
+export function copyStringFromObj<P extends string, T extends Record<P, string>>(
+  duplicateItem: T,
+  duplicateItems: T[],
+  propName: P
 ): string {
   /**
    * Find the highest copy number for a POI or Station name
@@ -21,21 +23,21 @@ export function duplicateStationOrPOI(
     return duplicateItemNameCopy[1] ? parseInt(duplicateItemNameCopyNumber as string) : 0;
   };
 
-  const duplicateItemName = duplicateItem.name;
+  const duplicateItemName = duplicateItem[propName];
   const duplicateItemNameRegex = / \((copy \d+)\)$/;
   if (
     !duplicateItemNameRegex.test(duplicateItemName) &&
-    !duplicateItems.some((s) => s.name === duplicateItemName)
+    !duplicateItems.some((s) => s[propName] === duplicateItemName)
   ) {
     return duplicateItemName + " (copy 1)";
   } else {
     const duplicateItemNameCopy = duplicateItemName.split(duplicateItemNameRegex); // e.g. ["Station Name", " (copy 1)" "Modifer"]
     let highestStationDuplicateNumber = 0;
     for (const duplicateItem of duplicateItems) {
-      if (!duplicateItem.name.startsWith(duplicateItemNameCopy[0])) {
+      if (!duplicateItem[propName].startsWith(duplicateItemNameCopy[0])) {
         continue;
       }
-      const duplicateItemDuplicateNumber = findHighestDuplicateNumber(duplicateItem.name);
+      const duplicateItemDuplicateNumber = findHighestDuplicateNumber(duplicateItem[propName]);
       if (duplicateItemDuplicateNumber > highestStationDuplicateNumber) {
         highestStationDuplicateNumber = duplicateItemDuplicateNumber;
       }
@@ -43,4 +45,23 @@ export function duplicateStationOrPOI(
     const duplicateItemNameCopyNumberIncremented = highestStationDuplicateNumber + 1;
     return duplicateItemNameCopy[0] + " (copy " + duplicateItemNameCopyNumberIncremented + ")";
   }
+}
+
+/**
+ * A helper method to duplicate a unique name with a string and array of strings
+ *
+ * @param duplicateItemName
+ * @param duplicateItems
+ * @param propName
+ */
+export function makeUniqueStringCopy(
+  duplicateItemName: string,
+  duplicateItems: string[],
+  propName: string = "name"
+): string {
+  return copyStringFromObj(
+    { [propName]: duplicateItemName } as Record<string, string>,
+    duplicateItems.map((s) => ({ [propName]: s } as Record<string, string>)),
+    propName as keyof Record<string, string>
+  );
 }
