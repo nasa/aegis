@@ -601,8 +601,6 @@ const MapBody: FunctionComponent = () => {
       map.current = L.map(mapRef.current, {
         center: center,
         zoom: zoom,
-        zoomDelta: 0.05,
-        zoomSnap: 0,
         fadeAnimation: true,
       });
       if (crs.current) {
