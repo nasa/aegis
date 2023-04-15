@@ -4,6 +4,8 @@ export const initialState: InterfaceState = {
   sectionSelectedLabel: "evas",
   rightPanelOpen: false,
   elevationPendingItemUuids: [],
+  timelineShowDistanceFromLander: true,
+  timelineShowElevation: true,
 };
 
 export const interfaceSlice = createSlice({
@@ -23,6 +25,12 @@ export const interfaceSlice = createSlice({
       const index = state.elevationPendingItemUuids.indexOf(action.payload);
       if (index > -1) state.elevationPendingItemUuids.splice(index, 1);
     },
+    setShowDistanceFromLander: (state, action: { payload: boolean }) => {
+      state.timelineShowDistanceFromLander = action.payload;
+    },
+    setShowElevation: (state, action: { payload: boolean }) => {
+      state.timelineShowElevation = action.payload;
+    },
   },
 });
 
@@ -31,4 +39,6 @@ export const {
   setRightPanelOpen,
   insertElevationPending,
   removeElevationPending,
+  setShowDistanceFromLander,
+  setShowElevation,
 } = interfaceSlice.actions;

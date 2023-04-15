@@ -48,6 +48,7 @@ interface PaperData {
  */
 interface StoreData_PaperJS {
   sequenceItems: EvaSequenceItem_PaperJS[];
+  flattenedGraphData: GraphData;
   selectedEvaSequenceItemUuid: string;
   maxDistFromLanderMeters: number; //used to calculate top of left y-axis graph
   evaLengthMins: number; //user input eva length
@@ -86,28 +87,27 @@ interface Walkback_PaperJS {
 interface HoverValues {
   distanceFromLanderMeters: number;
   elevationMeters: number;
-  slopeMetersPerMeter: number;
+  slopeDegrees: number;
   walkbackDistanceFromLanderMeters: number;
   walkbackElevationMeters: number;
-  walkbackSlopeMetersPerMeter: number;
+  walkbackSlopeDegrees: number;
 }
 
-interface GraphData {
-  xPixels: number; //the x pixel on the graph
-  yPixels: number; //the y pixel on the graph
+interface GraphDataItem {
+  xPixel: number; //the x pixel on the graph
+  yPixel: number; //the y pixel on the graph
   val: number; //the y value that is represented (ex: distance from lander in meters)
 }
-
-//graph item for a single sequence item
-interface GraphItem {
-  type: "station" | "traverse";
-  distanceFromLanderXY: GraphData[];
-  elevationProfileXY: GraphData[];
-  walkbackXY: GraphData[];
-  walkbackElevationXY: GraphData[];
+interface GraphData {
+  distanceFromLanderXY: GraphDataItem[];
+  elevationXY: GraphDataItem[];
+  walkbackXY: GraphDataItem[];
+  walkbackElevationXY: GraphDataItem[];
 }
 
-//all the graphing items for an EVA keyed by sequence uuid
-interface GraphItems {
-  [uuid: string]: GraphItem;
+interface GraphSequenceData extends GraphData {
+  type: "station" | "traverse";
+}
+interface GraphSequenceItems {
+  [uuid: string]: GraphSequenceData;
 }

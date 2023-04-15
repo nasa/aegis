@@ -6,6 +6,7 @@ import {
   convertLeafletLatLngToAegisPoint,
   getDistanceBetweenTwoCoordinates,
   getRhumbLineBearing,
+  getSlope,
   getTotalDistance,
 } from "utils/geoMath";
 import { LatLng } from "leaflet";
@@ -284,5 +285,26 @@ describe("Utilities Functions", () => {
     test("Entity Manager Error", async () => {
       expect(() => getEM()).toThrow("Run Mikro.getORM() first");
     });
+  });
+});
+
+describe("getSlope", () => {
+  test("should return the slope in degrees given two points", () => {
+    expect(getSlope(0, 0, 1, 1)).toBe(45);
+    expect(getSlope(1, 2, 3, 4)).toBe(45);
+    expect(getSlope(-1, -2, -3, -4)).toBe(45);
+    expect(getSlope(0, 0, -1, -1)).toBe(45);
+    expect(getSlope(2, 4, 0, 0)).toBe(63.43494882292201);
+    expect(getSlope(-2, -4, 0, 0)).toBe(63.43494882292201);
+    expect(getSlope(0, 0, 0, 1)).toBe(90);
+    expect(getSlope(0, 0, 0, -1)).toBe(90);
+    expect(getSlope(0, 0, 1, 0)).toBe(0);
+    expect(getSlope(0, 0, -1, 0)).toBe(-0);
+  });
+
+  test("should return 90 if the run is zero", () => {
+    expect(getSlope(0, 0, 0, 1)).toBe(90);
+    expect(getSlope(1, 2, 1, 3)).toBe(90);
+    expect(getSlope(-1, -2, -1, -3)).toBe(90);
   });
 });

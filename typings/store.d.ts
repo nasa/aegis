@@ -83,6 +83,8 @@ interface InterfaceState {
   sectionSelectedLabel: InterfaceSection;
   rightPanelOpen: boolean;
   elevationPendingItemUuids: string[];
+  timelineShowDistanceFromLander: boolean;
+  timelineShowElevation: boolean;
 }
 
 interface STMState {

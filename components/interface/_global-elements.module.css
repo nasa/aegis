@@ -28,10 +28,6 @@
   margin-left: 3px;
 }
 
-.iconButton:hover {
-  background-color: var(--grey3);
-}
-
 .select {
   position: relative;
   display: flex;

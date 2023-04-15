@@ -4,6 +4,7 @@ import { padZeros } from "utils/formatting";
 import _ from "lodash";
 import { AnyAction } from "@reduxjs/toolkit";
 import paper from "paper";
+import { getSlope } from "utils/geoMath";
 
 /**
  * Draws the vertical line wtih the rotated time at the bottom.
@@ -310,7 +311,7 @@ export function drawGraphAxis(
  */
 export function drawLanderDistanceGraph(
   paperDataRef: MutableRefObject<PaperData>,
-  graphItems: MutableRefObject<GraphItems>
+  graphItems: MutableRefObject<GraphSequenceItems>
 ): void {
   const paperVars = paperDataRef.current.paperVars;
   const landerDistanceGroup = new paper.Group();
@@ -324,22 +325,22 @@ export function drawLanderDistanceGraph(
       graphItem
     ].distanceFromLanderXY.entries()) {
       //push stroke point
-      strokePoints.push([graphData.xPixels, graphData.yPixels]);
+      strokePoints.push([graphData.xPixel, graphData.yPixel]);
 
       //push fill point
-      if (graphDataIndex === 0) fillPoints.push([graphData.xPixels, yZeroPixel]);
-      fillPoints.push([graphData.xPixels, graphData.yPixels]);
+      if (graphDataIndex === 0) fillPoints.push([graphData.xPixel, yZeroPixel]);
+      fillPoints.push([graphData.xPixel, graphData.yPixel]);
       if (graphDataIndex === graphItems.current[graphItem].distanceFromLanderXY.length - 1)
-        fillPoints.push([graphData.xPixels, yZeroPixel]);
+        fillPoints.push([graphData.xPixel, yZeroPixel]);
     }
     const distanceFromLanderStrokePath = new paper.Path(strokePoints);
     distanceFromLanderStrokePath.strokeColor = paperDataRef.current.styles.blue;
     distanceFromLanderStrokePath.opacity = 1;
     distanceFromLanderStrokePath.strokeWidth = 1.5;
 
-    const distanceFromLanderFillPath = new paper.Path(fillPoints);
-    distanceFromLanderFillPath.fillColor = paperDataRef.current.styles.blue;
-    distanceFromLanderFillPath.opacity = 0.1;
+    // const distanceFromLanderFillPath = new paper.Path(fillPoints);
+    // distanceFromLanderFillPath.fillColor = paperDataRef.current.styles.blue;
+    // distanceFromLanderFillPath.opacity = 0.1;
   }
 
   //draw first and last dots on the distance graph
@@ -375,26 +376,26 @@ export function drawLanderDistanceGraph(
  */
 export function drawElevationProfile(
   paperDataRef: MutableRefObject<PaperData>,
-  graphItems: MutableRefObject<GraphItems>
+  graphItems: MutableRefObject<GraphSequenceItems>
 ): void {
   const paperVars = paperDataRef.current.paperVars;
   const yLanderPixel = paperVars.timelineTop + paperVars.landerElevationFromGraphTop;
 
-  // oop through the sequence items
-  for (const graphItem in graphItems.current) {
+  // loop through the sequence items
+  for (const sequenceItemUuid in graphItems.current) {
     //build points for each sequence and draw
     const fillPoints: number[][] = [];
     const strokePoints: number[][] = [];
 
-    const sequenceGraphData = graphItems.current[graphItem].elevationProfileXY;
-    if (!sequenceGraphData || sequenceGraphData.length === 0) continue;
+    const graphDataItems = graphItems.current[sequenceItemUuid].elevationXY;
+    if (!graphDataItems || graphDataItems.length === 0) continue;
 
-    fillPoints.push([sequenceGraphData[0].xPixels, yLanderPixel]);
-    for (const graphData of sequenceGraphData) {
-      fillPoints.push([graphData.xPixels, graphData.yPixels]);
-      strokePoints.push([graphData.xPixels, graphData.yPixels]);
+    fillPoints.push([graphDataItems[0].xPixel, yLanderPixel]);
+    for (const graphDataItem of graphDataItems) {
+      fillPoints.push([graphDataItem.xPixel, graphDataItem.yPixel]);
+      strokePoints.push([graphDataItem.xPixel, graphDataItem.yPixel]);
     }
-    fillPoints.push([sequenceGraphData.at(-1).xPixels, yLanderPixel]);
+    fillPoints.push([graphDataItems.at(-1).xPixel, yLanderPixel]);
 
     const elevationFillPath = new paper.Path(fillPoints);
     elevationFillPath.fillColor = paperDataRef.current.styles.green;
@@ -436,13 +437,17 @@ export function drawElevationProfile(
  */
 export function drawWalkbacks(
   paperDataRef: MutableRefObject<PaperData>,
-  graphItems: MutableRefObject<GraphItems>
+  graphItems: MutableRefObject<GraphSequenceItems>,
+  selectedEvaSequenceItemUuid: string
 ): void {
-  for (const graphItem in graphItems.current) {
-    if (!graphItems.current[graphItem].walkbackXY) continue;
-    const pointArray = graphItems.current[graphItem].walkbackXY.map((graphData) => [
-      graphData.xPixels,
-      graphData.yPixels,
+  for (const sequenceItemUuid in graphItems.current) {
+    const graphDataItems = graphItems.current[sequenceItemUuid].walkbackXY;
+    if (!graphDataItems || graphDataItems.length === 0) continue;
+    if (sequenceItemUuid !== selectedEvaSequenceItemUuid) continue;
+
+    const pointArray = graphItems.current[sequenceItemUuid].walkbackXY.map((graphData) => [
+      graphData.xPixel,
+      graphData.yPixel,
     ]);
     const walkbackLine = new paper.Path(pointArray);
     walkbackLine.strokeColor = paperDataRef.current.styles.blue;
@@ -458,18 +463,35 @@ export function drawWalkbacks(
  */
 export function drawWalkbackElevations(
   paperDataRef: MutableRefObject<PaperData>,
-  graphItems: MutableRefObject<GraphItems>
+  graphItems: MutableRefObject<GraphSequenceItems>,
+  selectedEvaSequenceItemUuid: string
 ): void {
-  for (const graphItem in graphItems.current) {
-    if (!graphItems.current[graphItem].walkbackElevationXY) continue;
-    const pointArray = graphItems.current[graphItem].walkbackElevationXY.map((graphData) => [
-      graphData.xPixels,
-      graphData.yPixels,
-    ]);
-    const walkbackLine = new paper.Path(pointArray);
-    walkbackLine.strokeColor = paperDataRef.current.styles.green;
-    walkbackLine.strokeWidth = 1.5;
-    walkbackLine.dashArray = [5, 2];
+  const paperVars = paperDataRef.current.paperVars;
+  const yLanderPixel = paperVars.timelineTop + paperVars.landerElevationFromGraphTop;
+
+  for (const sequenceItemUuid in graphItems.current) {
+    const fillPoints: number[][] = [];
+    const strokePoints: number[][] = [];
+
+    const graphDataItems = graphItems.current[sequenceItemUuid].walkbackElevationXY;
+    if (!graphDataItems || graphDataItems.length === 0) continue;
+    if (sequenceItemUuid !== selectedEvaSequenceItemUuid) continue;
+
+    fillPoints.push([graphDataItems[0].xPixel, yLanderPixel]);
+    for (const graphDataItem of graphDataItems) {
+      fillPoints.push([graphDataItem.xPixel, graphDataItem.yPixel]);
+      strokePoints.push([graphDataItem.xPixel, graphDataItem.yPixel]);
+    }
+    fillPoints.push([graphDataItems.at(-1).xPixel, yLanderPixel]);
+
+    const walkbackElevationLine = new paper.Path(strokePoints);
+    walkbackElevationLine.strokeColor = paperDataRef.current.styles.green;
+    walkbackElevationLine.strokeWidth = 1.5;
+    walkbackElevationLine.dashArray = [5, 2];
+
+    const walkbackElevationFillPath = new paper.Path(fillPoints);
+    walkbackElevationFillPath.fillColor = paperDataRef.current.styles.green;
+    walkbackElevationFillPath.opacity = 0.1;
   }
 }
 
@@ -503,7 +525,7 @@ export function drawSequenceBottomSection(
       const boxColor =
         selectedEvaSequenceItemUuid === sequenceItem.uuid
           ? paperDataRef.current.styles.yellow
-          : paperDataRef.current.styles.gray1;
+          : paperDataRef.current.styles.gray2;
       const stationBoxRounded = new paper.Path.Rectangle({
         rectangle: stationBox,
         radius: new paper.Size(5, 5),
@@ -598,34 +620,35 @@ export function drawSequenceBottomSection(
   }
 
   //draw "Available" block at the end of the sequence
-  if (Math.round(itemLocX) < paperVars.timelineLeft + paperVars.timeineWidth) {
-    const availableBox = new paper.Path.Rectangle({
-      from: new paper.Point(itemLocX + 1, paperVars.timelineTop + 1),
-      to: new paper.Point(
-        paperVars.timelineLeft + paperVars.timeineWidth - 1,
-        paperVars.sequenceTop - 5
-      ),
-      fillColor: paperDataRef.current.styles.gray3,
-      name: "availableBox",
-    });
-    const availableMiddleX = (itemLocX + paperVars.timelineLeft + paperVars.timeineWidth) / 2;
-    const seconds =
-      (paperVars.timelineLeft + paperVars.timeineWidth - itemLocX) *
-      (1 / paperVars.pixelsPerSecondX);
-    const timeHrs = Math.floor(seconds / 3600);
-    const timeMins = Math.round((seconds % 3600) / 60);
-    const availableLabel = new paper.PointText({
-      point: new paper.Point(availableMiddleX, paperVars.sequenceTop + 14),
-      justification: "center",
-      content: "Available (" + timeHrs + ":" + padZeros(timeMins, 2) + ")",
-      fillColor: paperDataRef.current.styles.gray2,
-      name: "availableLabel",
-    });
-    const group = new paper.Group();
-    group.addChildren([availableBox, availableLabel]);
+  if (storeRef.current.evaLengthCalculatedMins < storeRef.current.evaLengthMins) {
+    if (Math.round(itemLocX) < paperVars.timelineLeft + paperVars.timeineWidth) {
+      const availableBox = new paper.Path.Rectangle({
+        from: new paper.Point(itemLocX + 1, paperVars.timelineTop + 1),
+        to: new paper.Point(
+          paperVars.timelineLeft + paperVars.timeineWidth - 1,
+          paperVars.sequenceTop - 5
+        ),
+        fillColor: paperDataRef.current.styles.gray3,
+        name: "availableBox",
+      });
+      const availableMiddleX = (itemLocX + paperVars.timelineLeft + paperVars.timeineWidth) / 2;
+      const seconds =
+        (paperVars.timelineLeft + paperVars.timeineWidth - itemLocX) *
+        (1 / paperVars.pixelsPerSecondX);
+      const timeHrs = Math.floor(seconds / 3600);
+      const timeMins = Math.round((seconds % 3600) / 60);
+      const availableLabel = new paper.PointText({
+        point: new paper.Point(availableMiddleX, paperVars.sequenceTop + 14),
+        justification: "center",
+        content: "Available (" + timeHrs + ":" + padZeros(timeMins, 2) + ")",
+        fillColor: paperDataRef.current.styles.gray2,
+        name: "availableLabel",
+      });
+      const group = new paper.Group();
+      group.addChildren([availableBox, availableLabel]);
+    }
   }
 }
-
 /**
  * Draw the mouse hover line. Also dispatch information about where the
  * mouse is to the store
@@ -641,7 +664,10 @@ export const drawMouseHover = (
   paperDataRef: MutableRefObject<PaperData>,
   paperGroupsRef: MutableRefObject<PaperGroups>,
   storeRef: MutableRefObject<StoreData_PaperJS>,
-  xLoc: number
+  flattenedGraphData: MutableRefObject<GraphData>,
+  xLoc: number,
+  setHoverValues: Function,
+  landerElevationMeters: number
 ): number => {
   //check if we're inside the bounds of the graph
   if (
@@ -683,6 +709,93 @@ export const drawMouseHover = (
         break;
       }
     }
+
+    const newHoverValues: HoverValues = {
+      distanceFromLanderMeters: null,
+      elevationMeters: null,
+      slopeDegrees: null,
+      walkbackDistanceFromLanderMeters: null,
+      walkbackElevationMeters: null,
+      walkbackSlopeDegrees: null,
+    };
+
+    //show the distance from lander in the hover value
+    if (flattenedGraphData.current.distanceFromLanderXY) {
+      // find the GraphDataItem of the distanceFromLander with the closest x value compared to xLoc
+      let closestDistanceToXLoc = 1000000;
+      for (const graphDataItem of flattenedGraphData.current.distanceFromLanderXY) {
+        const absXDiff = Math.abs(graphDataItem.xPixel - xLoc);
+        if (absXDiff < closestDistanceToXLoc) {
+          newHoverValues.distanceFromLanderMeters = graphDataItem.val;
+          closestDistanceToXLoc = absXDiff;
+        }
+      }
+    }
+
+    // find the GraphDataItem of the elevation with the closest x value compared to xLoc
+    if (flattenedGraphData.current.elevationXY) {
+      let closestDistanceToXLoc = 1000000;
+      let lastGraphDataItem: GraphDataItem = null;
+      for (const graphDataItem of flattenedGraphData.current.elevationXY) {
+        const absXDiff = Math.abs(graphDataItem.xPixel - xLoc);
+        if (absXDiff < closestDistanceToXLoc) {
+          newHoverValues.elevationMeters = graphDataItem.val - landerElevationMeters;
+          // calculate the slope angle between this graphDataItem and the previous one
+          if (lastGraphDataItem) {
+            newHoverValues.slopeDegrees = getSlope(
+              lastGraphDataItem.xPixel,
+              lastGraphDataItem.val,
+              graphDataItem.xPixel,
+              graphDataItem.val
+            );
+          }
+          closestDistanceToXLoc = absXDiff;
+        }
+        lastGraphDataItem = graphDataItem;
+      }
+    }
+
+    // find the GraphDataItem of the walkbackDistanceFromLander with the closest x value compared to xLoc
+    if (flattenedGraphData.current.walkbackXY) {
+      let closestDistanceToXLoc = 1000000;
+      for (const graphDataItem of flattenedGraphData.current.walkbackXY) {
+        const absXDiff = Math.abs(graphDataItem.xPixel - xLoc);
+        if (absXDiff < closestDistanceToXLoc) {
+          newHoverValues.walkbackDistanceFromLanderMeters = graphDataItem.val;
+          closestDistanceToXLoc = absXDiff;
+        }
+      }
+    } else {
+      newHoverValues.walkbackDistanceFromLanderMeters = null;
+    }
+
+    // find the GraphDataItem of the walkbackElevationXY with the closest x value compared to xLoc
+    if (flattenedGraphData.current.walkbackElevationXY) {
+      let closestDistanceToXLoc = 1000000;
+      let lastWalkbackGraphDataItem: GraphDataItem = null;
+      for (const graphDataItem of flattenedGraphData.current.walkbackElevationXY) {
+        const absXDiff = Math.abs(graphDataItem.xPixel - xLoc);
+        if (absXDiff < closestDistanceToXLoc) {
+          newHoverValues.walkbackElevationMeters = graphDataItem.val - landerElevationMeters;
+          // calculate the slope angle between this graphDataItem and the previous one
+          if (lastWalkbackGraphDataItem) {
+            newHoverValues.slopeDegrees = getSlope(
+              lastWalkbackGraphDataItem.xPixel,
+              lastWalkbackGraphDataItem.val,
+              graphDataItem.xPixel,
+              graphDataItem.val
+            );
+          }
+          closestDistanceToXLoc = absXDiff;
+        }
+        lastWalkbackGraphDataItem = graphDataItem;
+      }
+    } else {
+      newHoverValues.walkbackElevationMeters = null;
+    }
+
+    // set the hover values for display to the left of the timeline
+    setHoverValues(newHoverValues);
 
     //save hover data to store
     dispatch(setLeftPanelHoverUuid(sequenceUuid));
