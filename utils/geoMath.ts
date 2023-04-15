@@ -228,3 +228,13 @@ export function addPointsAtMeters(
 
   return newPath;
 }
+
+/**
+ * Find the slope in degrees of a line between two points in x and y coordinates
+ */
+export function getSlope(x1: number, y1: number, x2: number, y2: number): number {
+  const rise = y2 - y1;
+  const run = x2 - x1;
+  if (run === 0) return 90;
+  return (Math.atan(rise / run) * 180) / Math.PI;
+}

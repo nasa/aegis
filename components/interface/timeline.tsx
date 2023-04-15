@@ -17,345 +17,81 @@ import { useDispatch } from "react-redux";
 import { clearMapItemHover } from "store/playheadHover";
 import _ from "lodash";
 import { STM_Coverage } from "components/panes/stm-coverage";
-import * as TimelineDrawing from "./timelineDrawing";
+import * as TimelineDrawing from "./timeline-drawing";
+import { IconButton } from "./_global-elements";
+import { faChartArea, faChartLine } from "@fortawesome/free-solid-svg-icons";
+import { setShowDistanceFromLander, setShowElevation } from "store/interface";
 
-/**
- * Calculate elevation point array
- * @param segmentedElevationMeters elevation by segments
- * @param segmentedDistancesMeters distances by segments
- * @returns an array of elevation graph data
- */
-function calcElevationGraphData(
-  segmentedElevationMeters: number[][],
-  segmentedDistancesMeters: number[],
-  xLocStart: number,
-  totalDurationMins: number,
-  paperDataRef: MutableRefObject<PaperData>,
-  storeRef: MutableRefObject<StoreData_PaperJS>
-): GraphData[] {
-  const paperVars = paperDataRef.current.paperVars;
-  //consts used for calculating elevation
-  const elevationResolution = storeRef.current.elevationResolutionMeters || 10; //10 default
-  const elevationWidth =
-    (elevationResolution / storeRef.current.traverseRateMSec) * paperVars.pixelsPerSecondX;
+const TimelineHoverValues: FunctionComponent<{ hoverValues: HoverValues }> = ({ hoverValues }) => {
+  const dispatch = useDispatch();
+  const showDistanceFromLander = useAppSelector(
+    (state) => state.interface.timelineShowDistanceFromLander,
+    refEqual
+  );
+  const showElevation = useAppSelector((state) => state.interface.timelineShowElevation, refEqual);
 
-  const graphData_elevation: GraphData[] = [];
-  let xLoc = xLocStart;
-  for (const [segmentElevationIndex, segmentElevation] of segmentedElevationMeters.entries()) {
-    //loop through elevations
-    for (const [elevationIndex, elevation] of segmentElevation.entries()) {
-      graphData_elevation.push({
-        xPixels: xLoc,
-        yPixels:
-          paperVars.timelineTop +
-          (storeRef.current.maxElevationMeters - elevation) * paperVars.pixelsPerMeterElevationY,
-        val: elevation,
-      });
+  const distanceFromLanderSelectedColor = showDistanceFromLander ? "#93AFD790" : "var(--grey3)";
+  const elevationSelectedColor = showElevation ? "#8fae9590" : "var(--grey3)";
 
-      //the last point of current segment is equal to the first point in the next segment
-      //  don't increment the x coordinate
-      if (elevationIndex !== segmentElevation.length - 1) xLoc += elevationWidth;
-
-      //the last elevation point may not be exactly the elevation resolution distance.
-      //  don't use width. take the duration for this segment and set the x location
-      //  for the next loop to be the end of the segment.
-      if (elevationIndex === segmentElevation.length - 2) {
-        let accumuatliveSegmentDistance = 0;
-        for (let i = 0; i <= segmentElevationIndex; i++) {
-          accumuatliveSegmentDistance += segmentedDistancesMeters[i];
-        }
-        xLoc =
-          xLocStart +
-          accumuatliveSegmentDistance *
-            (1 / storeRef.current.traverseRateMSec) *
-            paperVars.pixelsPerSecondX;
-      }
-
-      //this is a station
-      if (segmentElevation.length === 1) {
-        xLoc = xLocStart + totalDurationMins * 60 * paperVars.pixelsPerSecondX;
-        graphData_elevation.push({
-          xPixels: xLoc,
-          yPixels:
-            paperVars.timelineTop +
-            (storeRef.current.maxElevationMeters - elevation) * paperVars.pixelsPerMeterElevationY,
-          val: elevation,
-        });
-      }
-    }
-  }
-
-  return graphData_elevation;
-}
-
-/**
- * Initilize the graph items ref
- * This func translates all the geo data from the store into paper x y pixels for drawing
- * @param paperDataRef
- * @param storeRef
- * @param graphItemsRef
- */
-function initGraphItemsRef(
-  paperDataRef: MutableRefObject<PaperData>,
-  storeRef: MutableRefObject<StoreData_PaperJS>,
-  graphItemsRef: MutableRefObject<GraphItems>
-) {
-  //init graph data
-  graphItemsRef.current = {};
-
-  const paperVars = paperDataRef.current.paperVars;
-  //loop through sequence items
-  for (const sequenceItem of storeRef.current.sequenceItems) {
-    const sequenceStartPixel =
-      paperVars.timelineLeft + sequenceItem.secondsStart * paperVars.pixelsPerSecondX;
-
-    //calculate xy coordinates for all the graph lines
-    const graphData_distFromLndr: GraphData[] = []; //the distance from lander for the sequence
-    let graphData_elevation: GraphData[] = null; //elevation profile for the sequence
-    const graphData_walkback: GraphData[] = []; //all walkbacks for the sequence.
-    let graphData_walkbackElevation: GraphData[] = null; //all walkback elevations for the sequence
-
-    //check if we have lander data
-    if (
-      sequenceItem.subdividedDistFromLanderMeters &&
-      sequenceItem.subdividedDistFromLanderMeters.length > 0
-    ) {
-      //calc walkback if this is a station and it has a walkback
-      if (sequenceItem.type === "station" && sequenceItem.walkback) {
-        const walkbackData = sequenceItem.walkback;
-
-        //calc walkback distance from lander
-        let itemLocX_walkback: number = sequenceStartPixel; //x location for this walkback
-        for (const [durationIndex, duration] of walkbackData.subdividedDurationMins.entries()) {
-          const width = duration * paperVars.pixelsPerSecondX * 60; //duration is in minutes
-          const itemLocYStart =
-            paperVars.timelineTop +
-            paperVars.graphHeight -
-            walkbackData.subdividedDistFromLanderMeters[durationIndex] *
-              paperVars.pixelsPerMeterDistanceY;
-          graphData_walkback.push({
-            xPixels: itemLocX_walkback,
-            yPixels: itemLocYStart,
-            val: walkbackData.subdividedDistFromLanderMeters[durationIndex],
-          });
-
-          //we're on the last duration item
-          if (durationIndex === walkbackData.subdividedDurationMins.length - 1) {
-            //add on the last point
-            //distance array should have +1 more item than the duration array.
-            const walkbackDistMetersEnd =
-              walkbackData.subdividedDistFromLanderMeters[durationIndex + 1]; //meters
-            const itemLocYEnd =
-              paperVars.timelineTop +
-              paperVars.graphHeight -
-              walkbackDistMetersEnd * paperVars.pixelsPerMeterDistanceY;
-            graphData_walkback.push({
-              xPixels: itemLocX_walkback + width,
-              yPixels: itemLocYEnd,
-              val: walkbackDistMetersEnd,
-            });
-          }
-          itemLocX_walkback += width;
-        }
-
-        //calc walkback elevation
-        if (storeRef.current.landerElevationMeters && walkbackData.segmentElevationMeters) {
-          graphData_walkbackElevation = calcElevationGraphData(
-            walkbackData.segmentElevationMeters,
-            walkbackData.segmentDistancesMeters,
-            sequenceStartPixel,
-            walkbackData.subdividedDurationMins.reduce(
-              (accumulator, currentValue) => accumulator + currentValue,
-              0
-            ),
-            paperDataRef,
-            storeRef
-          );
-        }
-      }
-
-      //calc distance from lander
-      let itemLocX_dstFromLndr: number = sequenceStartPixel;
-      for (const [durationIndex, duration] of sequenceItem.subdividedDurationsMins.entries()) {
-        const width = duration * paperVars.pixelsPerSecondX * 60; //duration is in minutes
-        const distFromLanderMeters = sequenceItem.subdividedDistFromLanderMeters[durationIndex];
-        const itemLocY =
-          paperVars.timelineTop +
-          paperVars.graphHeight -
-          distFromLanderMeters * paperVars.pixelsPerMeterDistanceY;
-        graphData_distFromLndr.push({
-          xPixels: itemLocX_dstFromLndr,
-          yPixels: itemLocY,
-          val: distFromLanderMeters,
-        });
-
-        //we're on the last duration item
-        if (durationIndex === sequenceItem.subdividedDurationsMins.length - 1) {
-          //add on the last point
-          if (sequenceItem.subdividedDistFromLanderMeters.length === 1) {
-            //this is a station. Use the y value calculated from above
-            graphData_distFromLndr.push({
-              xPixels: itemLocX_dstFromLndr + width,
-              yPixels: itemLocY,
-              val: distFromLanderMeters,
-            });
-          } else {
-            //distance array should have +1 more item than the duration array.
-            const distFromLanderMetersEnd =
-              sequenceItem.subdividedDistFromLanderMeters[durationIndex + 1]; //meters
-            const itemLocYEnd =
-              paperVars.timelineTop +
-              paperVars.graphHeight -
-              distFromLanderMetersEnd * paperVars.pixelsPerMeterDistanceY;
-            graphData_distFromLndr.push({
-              xPixels: itemLocX_dstFromLndr + width,
-              yPixels: itemLocYEnd,
-              val: distFromLanderMetersEnd,
-            });
-          }
-        }
-        itemLocX_dstFromLndr += width; //increment x
-      }
-    }
-
-    //calc elevation profile
-    if (storeRef.current.landerElevationMeters && sequenceItem.segmentElevationMeters) {
-      graphData_elevation = calcElevationGraphData(
-        sequenceItem.segmentElevationMeters,
-        sequenceItem.segmentDistancesMeters,
-        sequenceStartPixel,
-        sequenceItem.subdividedTotalDurationMins,
-        paperDataRef,
-        storeRef
-      );
-    }
-
-    //create a new graph item for this sequence item
-    graphItemsRef.current[sequenceItem.uuid] = {
-      type: sequenceItem.type,
-      distanceFromLanderXY: graphData_distFromLndr,
-      elevationProfileXY: graphData_elevation,
-      walkbackXY: graphData_walkback,
-      walkbackElevationXY: graphData_walkbackElevation,
-    } as GraphItem;
-  }
-}
-
-/**
- * Initialize refs for paper. Sets colors and pixel boundaries based on canvas size
- */
-function initPaperRefs(
-  paperDataRef: MutableRefObject<PaperData>,
-  paperGroupsRef: MutableRefObject<PaperGroups>,
-  storeRef: MutableRefObject<StoreData_PaperJS>
-) {
-  //init groups
-  paperGroupsRef.current = {
-    graphBkg: new paper.Group(),
-    hoverLine: new paper.Group(),
-  };
-
-  //init paper vars and styles
-  paperDataRef.current = {
-    styles: {
-      gNavigatorFontFamilyActivity: "Inter",
-      blue: new paper.Color("#93AFD7"),
-      brightBlue: new paper.Color("#00C2FF"),
-      green: new paper.Color("#8fae95"),
-      yellow: new paper.Color("#ffc700"),
-      lightYellow: new paper.Color("#41403B"),
-      gray1: new paper.Color("#616574"),
-      gray2: new paper.Color("#a9a9a9"),
-      gray3: new paper.Color("#424653"),
-      gray4: new paper.Color("#313440"),
-      white: new paper.Color("#EEEEEE"),
-      red: new paper.Color("#d793af"),
-    },
-    paperVars: {
-      canvasWidth: paper.view.size.width, //full drawing area
-      canvasHeight: paper.view.size.height,
-      timelineHeight: null, //just the graph drawing area
-      timeineWidth: null,
-      timelineTop: null,
-      timelineLeft: null,
-      sequenceTop: null,
-      sequenceHeight: null,
-      graphHeight: null,
-      pixelsPerSecondX: null,
-      pixelsPerMeterDistanceY: null,
-      pixelsPerMeterElevationY: null,
-      landerElevationFromGraphTop: null,
-    },
-  };
-
-  //calculate paper vars. These are pixel and spacing variables that help determine where to draw things
-  const paperVars = paperDataRef.current.paperVars; //save this to a shorter reference so it reduces the variable name when used below
-
-  const YAxisLabelWidth = 75;
-  paperVars.timeineWidth = paperVars.canvasWidth - YAxisLabelWidth * 2;
-  paperVars.timelineHeight = paperVars.canvasHeight - 60;
-  paperVars.timelineTop = 10;
-  paperVars.timelineLeft = YAxisLabelWidth;
-  paperVars.sequenceTop = paperVars.timelineTop + paperVars.timelineHeight;
-  paperVars.sequenceHeight = 20;
-  paperVars.graphHeight = paperVars.sequenceTop - paperVars.timelineTop - 4; //4px buffer between graph bottom and beginning of sequence
-  paperVars.pixelsPerSecondX =
-    paperVars.timeineWidth /
-    (Math.max(storeRef.current.evaLengthMins, storeRef.current.evaLengthCalculatedMins) * 60);
-  paperVars.pixelsPerMeterDistanceY =
-    paperVars.graphHeight / storeRef.current.maxDistFromLanderMeters;
-  paperVars.pixelsPerMeterElevationY =
-    paperVars.graphHeight /
-    (storeRef.current.maxElevationMeters - storeRef.current.minElevationMeters);
-  if (!storeRef.current.landerElevationMeters) {
-    paperVars.landerElevationFromGraphTop = null;
-  } else {
-    paperVars.landerElevationFromGraphTop =
-      (storeRef.current.maxElevationMeters - storeRef.current.landerElevationMeters) *
-      paperVars.pixelsPerMeterElevationY;
-  }
-}
-
-/**
- * Main function to draw the timeline. All the paper drawing happens here
- */
-function drawTimeline(
-  paperDataRef: MutableRefObject<PaperData>,
-  paperGroupsRef: MutableRefObject<PaperGroups>,
-  storeRef: MutableRefObject<StoreData_PaperJS>,
-  graphItems: MutableRefObject<GraphItems>,
-  isEvaSelected: boolean,
-  selectedEvaSequenceItemUuid: string
-) {
-  //clear project and initilize paper refs
-  paper.project.clear();
-  initPaperRefs(paperDataRef, paperGroupsRef, storeRef);
-  initGraphItemsRef(paperDataRef, storeRef, graphItems);
-
-  //draw just the graph axis if no EVA is selected
-  TimelineDrawing.drawGraphAxis(paperDataRef, storeRef);
-
-  //draw all the things
-  if (isEvaSelected) {
-    TimelineDrawing.drawSequenceBottomSection(
-      paperDataRef,
-      paperGroupsRef,
-      storeRef,
-      selectedEvaSequenceItemUuid
-    );
-    TimelineDrawing.drawLanderDistanceGraph(paperDataRef, graphItems);
-    TimelineDrawing.drawElevationProfile(paperDataRef, graphItems);
-    TimelineDrawing.drawWalkbacks(paperDataRef, graphItems);
-    TimelineDrawing.drawWalkbackElevations(paperDataRef, graphItems);
-  }
-}
-
-const TimelineHoverValues = ({ hoverValues }) => {
   return (
-    <div className={styles.timelineHoverValues}>
-      <div className={styles.timelineHoverValueTitle}>Distance From Lander</div>
-      <div className={styles.timelineHoverValue}>
-        {hoverValues.distanceFromLanderMeters?.toFixed(2)} m
+    <div className={styles.timelineHoverContainer}>
+      <div className={styles.timelineOptions}>
+        <IconButton
+          icon={faChartLine}
+          onClick={() => {
+            dispatch(setShowDistanceFromLander(!showDistanceFromLander));
+          }}
+          toolTip="Show Distance From Lander"
+          style={{
+            backgroundColor: distanceFromLanderSelectedColor,
+            width: "30px",
+            fontSize: "1em",
+            paddingLeft: "10px",
+          }}
+        />
+        <IconButton
+          icon={faChartArea}
+          onClick={() => {
+            dispatch(setShowElevation(!showElevation));
+          }}
+          toolTip="Show Elevation"
+          style={{
+            backgroundColor: elevationSelectedColor,
+            width: "30px",
+            fontSize: "1em",
+            paddingLeft: "10px",
+          }}
+        />
+      </div>
+      <div className={styles.timelineHoverValues}>
+        <div className={styles.timelineHoverValueItem}>
+          <div className={styles.timelineHoverValueTitle}>Distance From Lander</div>
+          <div className={styles.timelineHoverValue}>
+            {hoverValues.distanceFromLanderMeters?.toFixed(2)}{" "}
+            {hoverValues.distanceFromLanderMeters ? "m" : "\u00A0"}
+          </div>
+        </div>
+        <div className={styles.timelineHoverValueItem}>
+          <div className={styles.timelineHoverValueTitle}>Relative Elevation</div>
+          <div className={styles.timelineHoverValue}>
+            {hoverValues.elevationMeters?.toFixed(2)}
+            {hoverValues.elevationMeters ? " m" : "\u00A0"}
+          </div>
+        </div>
+        <div className={styles.timelineHoverValueItem}>
+          <div className={styles.timelineHoverValueTitle}>Walkback Lander Dist</div>
+          <div className={styles.timelineHoverValue}>
+            {hoverValues.walkbackDistanceFromLanderMeters?.toFixed(2)}
+            {hoverValues.walkbackDistanceFromLanderMeters ? " m" : "\u00A0"}
+          </div>
+        </div>
+        <div className={styles.timelineHoverValueItem}>
+          <div className={styles.timelineHoverValueTitle}>Walkback Elevation</div>
+          <div className={styles.timelineHoverValue}>
+            {hoverValues.walkbackElevationMeters?.toFixed(2)}
+            {hoverValues.walkbackElevationMeters ? " m" : "\u00A0"}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -382,21 +118,33 @@ const NavTimeline: FunctionComponent = () => {
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
+  const showDistanceFromLander = useAppSelector(
+    (state) => state.interface.timelineShowDistanceFromLander,
+    refEqual
+  );
+  const showElevation = useAppSelector((state) => state.interface.timelineShowElevation, refEqual);
 
   const canvas: MutableRefObject<HTMLCanvasElement> = useRef(null);
   const paperDataRef: MutableRefObject<PaperData> = useRef(null);
   const storeRef: MutableRefObject<StoreData_PaperJS> = useRef(null);
   const paperGroupsRef: MutableRefObject<PaperGroups> = useRef(null);
-  const graphItemsRef: MutableRefObject<GraphItems> = useRef(null);
+  const graphSequenceItems: MutableRefObject<GraphSequenceItems> = useRef(null);
+  const flattenedGraphData: MutableRefObject<GraphData> = useRef({
+    distanceFromLanderXY: [],
+    elevationXY: [],
+    walkbackXY: [],
+    walkbackElevationXY: [],
+  });
 
-  const [hoverValues, setHoverValues] = useState({
+  const initHoverValues: HoverValues = {
     distanceFromLanderMeters: null,
     elevationMeters: null,
-    slopeMetersPerMeter: null,
+    slopeDegrees: null,
     walkbackDistanceFromLanderMeters: null,
     walkbackElevationMeters: null,
-    walkbackSlopeMetersPerMeter: null,
-  });
+    walkbackSlopeDegrees: null,
+  };
+  const [hoverValues, setHoverValues] = useState<HoverValues>(initHoverValues);
 
   /**
    * Populate storeRefs with all our store information so paper.js can read it.
@@ -405,6 +153,7 @@ const NavTimeline: FunctionComponent = () => {
   const processDataFromStore = useCallback(() => {
     storeRef.current = {
       sequenceItems: [],
+      flattenedGraphData: null,
       selectedEvaSequenceItemUuid: null,
       maxDistFromLanderMeters: 0,
       evaLengthMins: selectedEva?.maxDuration ? +selectedEva?.maxDuration : 240, //default 4 hours in minutes
@@ -602,45 +351,60 @@ const NavTimeline: FunctionComponent = () => {
 
   //handles on mouse move over the paper canvas
   const onMouseMove = (event: paper.MouseEvent) => {
-    const hoveredSequenceUuid = TimelineDrawing.drawMouseHover(
+    TimelineDrawing.drawMouseHover(
       dispatch,
       paperDataRef,
       paperGroupsRef,
       storeRef,
-      event.point.x
+      flattenedGraphData,
+      event.point.x,
+      setHoverValues,
+      mission?.landerElevationMeters
     );
-
-    //show the distance from lander in the hover value
-    const distanceFromLanderGraphValues =
-      graphItemsRef.current[hoveredSequenceUuid]?.distanceFromLanderXY;
-    if (distanceFromLanderGraphValues) {
-      // find the index of the item with the closest x value compared to xLoc
-      let closestGraphItem = null;
-      let closestDistanceToXLoc = 1000000;
-      for (const graphItem of distanceFromLanderGraphValues) {
-        if (Math.abs(graphItem.xPixels - event.point.x) < closestDistanceToXLoc) {
-          closestGraphItem = graphItem;
-          closestDistanceToXLoc = Math.abs(graphItem.xPixels - event.point.x);
-        }
-      }
-
-      setHoverValues({ ...hoverValues, distanceFromLanderMeters: closestGraphItem.val });
-    }
   };
+
+  /**
+   * Main function to draw the timeline. All the paper drawing happens here
+   */
+  const drawTimeline = useCallback(() => {
+    //clear project and initilize paper refs
+    paper.project.clear();
+
+    initPaperRefs(paperDataRef, paperGroupsRef, storeRef);
+    initGraphItemsRef(paperDataRef, storeRef, graphSequenceItems, flattenedGraphData);
+
+    //draw just the graph axis if no EVA is selected
+    TimelineDrawing.drawGraphAxis(paperDataRef, storeRef);
+
+    //draw all the things
+    if (selectedEva) {
+      TimelineDrawing.drawSequenceBottomSection(
+        paperDataRef,
+        paperGroupsRef,
+        storeRef,
+        selectedEvaSequenceItemUuid
+      );
+      if (showDistanceFromLander) {
+        TimelineDrawing.drawLanderDistanceGraph(paperDataRef, graphSequenceItems);
+      }
+      if (showElevation) {
+        TimelineDrawing.drawElevationProfile(paperDataRef, graphSequenceItems);
+      }
+      TimelineDrawing.drawWalkbacks(paperDataRef, graphSequenceItems, selectedEvaSequenceItemUuid);
+      TimelineDrawing.drawWalkbackElevations(
+        paperDataRef,
+        graphSequenceItems,
+        selectedEvaSequenceItemUuid
+      );
+    }
+  }, [selectedEva, selectedEvaSequenceItemUuid, showDistanceFromLander, showElevation]);
 
   //use effect to handle color highlighting when selected sequence item changes
   useEffect(() => {
     storeRef.current.selectedEvaSequenceItemUuid = selectedEvaSequenceItemUuid;
     //redraw entire timeline
-    drawTimeline(
-      paperDataRef,
-      paperGroupsRef,
-      storeRef,
-      graphItemsRef,
-      selectedEva !== undefined,
-      selectedEvaSequenceItemUuid
-    );
-  }, [selectedEvaSequenceItemUuid, selectedEva]);
+    drawTimeline();
+  }, [drawTimeline, storeRef, selectedEvaSequenceItemUuid]);
 
   // Initialize the timeline on first render
   useLayoutEffect(() => {
@@ -648,14 +412,7 @@ const NavTimeline: FunctionComponent = () => {
       paper.setup(canvas.current);
     }
     processDataFromStore(); //loads data into the storeRef
-    drawTimeline(
-      paperDataRef,
-      paperGroupsRef,
-      storeRef,
-      graphItemsRef,
-      selectedEva !== undefined,
-      selectedEvaSequenceItemUuid
-    );
+    drawTimeline();
 
     paper.view.onMouseMove = _.throttle(onMouseMove, 15, {
       leading: true,
@@ -666,29 +423,49 @@ const NavTimeline: FunctionComponent = () => {
     paper.view.onMouseLeave = () => {
       paperGroupsRef.current.hoverLine.visible = false;
       dispatch(clearMapItemHover());
+
+      //clear hover values
+      setHoverValues(initHoverValues);
     };
     paper.view.onResize = function () {
-      drawTimeline(
-        paperDataRef,
-        paperGroupsRef,
-        storeRef,
-        graphItemsRef,
-        selectedEva !== undefined,
-        selectedEvaSequenceItemUuid
-      );
+      drawTimeline();
     };
 
     return () => paper.project.remove();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedEva, processDataFromStore, storeRef, dispatch, setHoverValues]);
+  }, [
+    selectedEva,
+    processDataFromStore,
+    storeRef,
+    dispatch,
+    setHoverValues,
+    selectedEvaSequenceItemUuid,
+    showDistanceFromLander,
+    showElevation,
+  ]);
+
+  // populated the flattenedGraphData ref walkback data based on the selected station
+  useEffect(() => {
+    if (selectedEvaSequenceItemUuid) {
+      flattenedGraphData.current.walkbackXY =
+        graphSequenceItems.current[selectedEvaSequenceItemUuid].walkbackXY;
+      flattenedGraphData.current.walkbackElevationXY =
+        graphSequenceItems.current[selectedEvaSequenceItemUuid].walkbackElevationXY;
+    } else {
+      flattenedGraphData.current.walkbackXY = [];
+      flattenedGraphData.current.walkbackElevationXY = [];
+    }
+  }, [selectedEvaSequenceItemUuid, graphSequenceItems, flattenedGraphData]);
 
   return (
     <div className={styles.timelineContainer}>
       <TimelineHoverValues hoverValues={hoverValues} />
       <div className={styles.canvasContainer}>
-        <canvas ref={canvas} data-paper-resize />
+        <div className={styles.timelineBodyItem}>
+          <canvas ref={canvas} data-paper-resize />
+        </div>
       </div>
-      <div className={styles.timelineStmContainer}>
+      <div className={styles.timelineRight}>
         <STM_Coverage
           actions={actions.filter((action) =>
             selectedEva?.sequence.some((sequenceItem) => sequenceItem.uuid === action.stationUuid)
@@ -701,5 +478,315 @@ const NavTimeline: FunctionComponent = () => {
     </div>
   );
 };
+
+/**
+ * Calculate elevation point array
+ * @param segmentedElevationMeters elevation by segments
+ * @param segmentedDistancesMeters distances by segments
+ * @returns an array of elevation graph data
+ */
+function calcElevationGraphData(
+  segmentedElevationMeters: number[][],
+  segmentedDistancesMeters: number[],
+  xLocStart: number,
+  totalDurationMins: number,
+  paperDataRef: MutableRefObject<PaperData>,
+  storeRef: MutableRefObject<StoreData_PaperJS>
+): GraphDataItem[] {
+  const paperVars = paperDataRef.current.paperVars;
+  //consts used for calculating elevation
+  const elevationResolution = storeRef.current.elevationResolutionMeters || 10; //10 default
+  const elevationWidth =
+    (elevationResolution / storeRef.current.traverseRateMSec) * paperVars.pixelsPerSecondX;
+
+  const graphData_elevation: GraphDataItem[] = [];
+  let xLoc = xLocStart;
+  for (const [segmentElevationIndex, segmentElevation] of segmentedElevationMeters.entries()) {
+    //loop through elevations
+    for (const [elevationIndex, elevation] of segmentElevation.entries()) {
+      graphData_elevation.push({
+        xPixel: xLoc,
+        yPixel:
+          paperVars.timelineTop +
+          (storeRef.current.maxElevationMeters - elevation) * paperVars.pixelsPerMeterElevationY,
+        val: elevation,
+      });
+
+      //the last point of current segment is equal to the first point in the next segment
+      //  don't increment the x coordinate
+      if (elevationIndex !== segmentElevation.length - 1) xLoc += elevationWidth;
+
+      //the last elevation point may not be exactly the elevation resolution distance.
+      //  don't use width. take the duration for this segment and set the x location
+      //  for the next loop to be the end of the segment.
+      if (elevationIndex === segmentElevation.length - 2) {
+        let accumuatliveSegmentDistance = 0;
+        for (let i = 0; i <= segmentElevationIndex; i++) {
+          accumuatliveSegmentDistance += segmentedDistancesMeters[i];
+        }
+        xLoc =
+          xLocStart +
+          accumuatliveSegmentDistance *
+            (1 / storeRef.current.traverseRateMSec) *
+            paperVars.pixelsPerSecondX;
+      }
+
+      //this is a station
+      if (segmentElevation.length === 1) {
+        xLoc = xLocStart + totalDurationMins * 60 * paperVars.pixelsPerSecondX;
+        graphData_elevation.push({
+          xPixel: xLoc,
+          yPixel:
+            paperVars.timelineTop +
+            (storeRef.current.maxElevationMeters - elevation) * paperVars.pixelsPerMeterElevationY,
+          val: elevation,
+        });
+      }
+    }
+  }
+
+  return graphData_elevation;
+}
+
+/**
+ * Initilize the graph items ref
+ * This func translates all the geo data from the store into paper x y pixels for drawing
+ * @param paperDataRef
+ * @param storeRef
+ * @param graphSequenceItems
+ * @param flattenedGraphData
+ */
+function initGraphItemsRef(
+  paperDataRef: MutableRefObject<PaperData>,
+  storeRef: MutableRefObject<StoreData_PaperJS>,
+  graphSequenceItems: MutableRefObject<GraphSequenceItems>,
+  flattenedGraphData: MutableRefObject<GraphData>
+) {
+  //init graph data
+  graphSequenceItems.current = {};
+
+  const paperVars = paperDataRef.current.paperVars;
+  //loop through sequence items
+  for (const sequenceItem of storeRef.current.sequenceItems) {
+    const sequenceStartPixel =
+      paperVars.timelineLeft + sequenceItem.secondsStart * paperVars.pixelsPerSecondX;
+
+    //calculate xy coordinates for all the graph lines
+    const graphData_distFromLndr: GraphDataItem[] = []; //the distance from lander for the sequence
+    let graphData_elevation: GraphDataItem[] = []; //elevation profile for the sequence
+    const graphData_walkback: GraphDataItem[] = []; //all walkbacks for the sequence.
+    let graphData_walkbackElevation: GraphDataItem[] = []; //all walkback elevations for the sequence
+
+    //check if we have lander data
+    if (
+      sequenceItem.subdividedDistFromLanderMeters &&
+      sequenceItem.subdividedDistFromLanderMeters.length > 0
+    ) {
+      //calc walkback if this is a station and it has a walkback
+      if (sequenceItem.type === "station" && sequenceItem.walkback) {
+        const walkbackData = sequenceItem.walkback;
+
+        //calc walkback distance from lander
+        let itemLocX_walkback: number = sequenceStartPixel; //x location for this walkback
+        for (const [durationIndex, duration] of walkbackData.subdividedDurationMins.entries()) {
+          const width = duration * paperVars.pixelsPerSecondX * 60; //duration is in minutes
+          const itemLocYStart =
+            paperVars.timelineTop +
+            paperVars.graphHeight -
+            walkbackData.subdividedDistFromLanderMeters[durationIndex] *
+              paperVars.pixelsPerMeterDistanceY;
+          graphData_walkback.push({
+            xPixel: itemLocX_walkback,
+            yPixel: itemLocYStart,
+            val: walkbackData.subdividedDistFromLanderMeters[durationIndex],
+          });
+
+          //we're on the last duration item
+          if (durationIndex === walkbackData.subdividedDurationMins.length - 1) {
+            //add on the last point
+            //distance array should have +1 more item than the duration array.
+            const walkbackDistMetersEnd =
+              walkbackData.subdividedDistFromLanderMeters[durationIndex + 1]; //meters
+            const itemLocYEnd =
+              paperVars.timelineTop +
+              paperVars.graphHeight -
+              walkbackDistMetersEnd * paperVars.pixelsPerMeterDistanceY;
+            graphData_walkback.push({
+              xPixel: itemLocX_walkback + width,
+              yPixel: itemLocYEnd,
+              val: walkbackDistMetersEnd,
+            });
+          }
+          itemLocX_walkback += width;
+        }
+
+        //calc walkback elevation
+        if (storeRef.current.landerElevationMeters && walkbackData.segmentElevationMeters) {
+          graphData_walkbackElevation = calcElevationGraphData(
+            walkbackData.segmentElevationMeters,
+            walkbackData.segmentDistancesMeters,
+            sequenceStartPixel,
+            walkbackData.subdividedDurationMins.reduce(
+              (accumulator, currentValue) => accumulator + currentValue,
+              0
+            ),
+            paperDataRef,
+            storeRef
+          );
+        }
+      }
+
+      //calc distance from lander
+      let itemLocX_dstFromLndr: number = sequenceStartPixel;
+      for (const [durationIndex, duration] of sequenceItem.subdividedDurationsMins.entries()) {
+        const width = duration * paperVars.pixelsPerSecondX * 60; //duration is in minutes
+        const distFromLanderMeters = sequenceItem.subdividedDistFromLanderMeters[durationIndex];
+        const itemLocY =
+          paperVars.timelineTop +
+          paperVars.graphHeight -
+          distFromLanderMeters * paperVars.pixelsPerMeterDistanceY;
+        graphData_distFromLndr.push({
+          xPixel: itemLocX_dstFromLndr,
+          yPixel: itemLocY,
+          val: distFromLanderMeters,
+        });
+
+        //we're on the last duration item
+        if (durationIndex === sequenceItem.subdividedDurationsMins.length - 1) {
+          //add on the last point
+          if (sequenceItem.subdividedDistFromLanderMeters.length === 1) {
+            //this is a station. Use the y value calculated from above
+            graphData_distFromLndr.push({
+              xPixel: itemLocX_dstFromLndr + width,
+              yPixel: itemLocY,
+              val: distFromLanderMeters,
+            });
+          } else {
+            //distance array should have +1 more item than the duration array.
+            const distFromLanderMetersEnd =
+              sequenceItem.subdividedDistFromLanderMeters[durationIndex + 1]; //meters
+            const itemLocYEnd =
+              paperVars.timelineTop +
+              paperVars.graphHeight -
+              distFromLanderMetersEnd * paperVars.pixelsPerMeterDistanceY;
+            graphData_distFromLndr.push({
+              xPixel: itemLocX_dstFromLndr + width,
+              yPixel: itemLocYEnd,
+              val: distFromLanderMetersEnd,
+            });
+          }
+        }
+        itemLocX_dstFromLndr += width; //increment x
+      }
+    }
+
+    //calc elevation profile
+    if (storeRef.current.landerElevationMeters && sequenceItem.segmentElevationMeters) {
+      graphData_elevation = calcElevationGraphData(
+        sequenceItem.segmentElevationMeters,
+        sequenceItem.segmentDistancesMeters,
+        sequenceStartPixel,
+        sequenceItem.subdividedTotalDurationMins,
+        paperDataRef,
+        storeRef
+      );
+    }
+
+    //create a new graph item for this sequence item
+    graphSequenceItems.current[sequenceItem.uuid] = {
+      type: sequenceItem.type,
+      distanceFromLanderXY: graphData_distFromLndr,
+      elevationXY: graphData_elevation,
+      walkbackXY: graphData_walkback,
+      walkbackElevationXY: graphData_walkbackElevation,
+    } as GraphSequenceData;
+
+    // flatten the graph data items from all sequences to make it easier to access for hover values
+    // note that walkback data is not added to the flattened graph data here. Instead, it's added using a useEffect based on the selected station
+    flattenedGraphData.current.distanceFromLanderXY = [
+      ...flattenedGraphData.current.distanceFromLanderXY,
+      ...graphData_distFromLndr,
+    ];
+    flattenedGraphData.current.elevationXY = [
+      ...flattenedGraphData.current.elevationXY,
+      ...graphData_elevation,
+    ];
+  }
+}
+
+/**
+ * Initialize refs for paper. Sets colors and pixel boundaries based on canvas size
+ */
+function initPaperRefs(
+  paperDataRef: MutableRefObject<PaperData>,
+  paperGroupsRef: MutableRefObject<PaperGroups>,
+  storeRef: MutableRefObject<StoreData_PaperJS>
+) {
+  //init groups
+  paperGroupsRef.current = {
+    graphBkg: new paper.Group(),
+    hoverLine: new paper.Group(),
+  };
+
+  //init paper vars and styles
+  paperDataRef.current = {
+    styles: {
+      gNavigatorFontFamilyActivity: "Inter",
+      blue: new paper.Color("#93AFD7"),
+      brightBlue: new paper.Color("#00C2FF"),
+      green: new paper.Color("#8fae95"),
+      yellow: new paper.Color("#ffc700"),
+      lightYellow: new paper.Color("#41403B"),
+      gray1: new paper.Color("#616574"),
+      gray2: new paper.Color("#a9a9a9"),
+      gray3: new paper.Color("#424653"),
+      gray4: new paper.Color("#313440"),
+      white: new paper.Color("#EEEEEE"),
+      red: new paper.Color("#FC5454"),
+    },
+    paperVars: {
+      canvasWidth: paper.view.size.width, //full drawing area
+      canvasHeight: paper.view.size.height,
+      timelineHeight: null, //just the graph drawing area
+      timeineWidth: null,
+      timelineTop: null,
+      timelineLeft: null,
+      sequenceTop: null,
+      sequenceHeight: null,
+      graphHeight: null,
+      pixelsPerSecondX: null,
+      pixelsPerMeterDistanceY: null,
+      pixelsPerMeterElevationY: null,
+      landerElevationFromGraphTop: null,
+    },
+  };
+
+  //calculate paper vars. These are pixel and spacing variables that help determine where to draw things
+  const paperVars = paperDataRef.current.paperVars; //save this to a shorter reference so it reduces the variable name when used below
+
+  const YAxisLabelWidth = 75;
+  paperVars.timeineWidth = paperVars.canvasWidth - YAxisLabelWidth * 2;
+  paperVars.timelineHeight = paperVars.canvasHeight - 60;
+  paperVars.timelineTop = 10;
+  paperVars.timelineLeft = YAxisLabelWidth;
+  paperVars.sequenceTop = paperVars.timelineTop + paperVars.timelineHeight;
+  paperVars.sequenceHeight = 20;
+  paperVars.graphHeight = paperVars.sequenceTop - paperVars.timelineTop - 4; //4px buffer between graph bottom and beginning of sequence
+  paperVars.pixelsPerSecondX =
+    paperVars.timeineWidth /
+    (Math.max(storeRef.current.evaLengthMins, storeRef.current.evaLengthCalculatedMins) * 60);
+  paperVars.pixelsPerMeterDistanceY =
+    paperVars.graphHeight / storeRef.current.maxDistFromLanderMeters;
+  paperVars.pixelsPerMeterElevationY =
+    paperVars.graphHeight /
+    (storeRef.current.maxElevationMeters - storeRef.current.minElevationMeters);
+  if (!storeRef.current.landerElevationMeters) {
+    paperVars.landerElevationFromGraphTop = null;
+  } else {
+    paperVars.landerElevationFromGraphTop =
+      (storeRef.current.maxElevationMeters - storeRef.current.landerElevationMeters) *
+      paperVars.pixelsPerMeterElevationY;
+  }
+}
 
 export default NavTimeline;

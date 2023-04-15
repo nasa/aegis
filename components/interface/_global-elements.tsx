@@ -34,7 +34,7 @@ export const IconButton: FunctionComponent<{
   const enabledStyle = !enabled ? styles.iconButtonDisabled : "";
   return (
     <div
-      className={`${styles.iconButton} ${enabledStyle}`}
+      className={`${styles.iconButton} ${enabledStyle} `}
       title={toolTip}
       onClick={onClick}
       style={style}
