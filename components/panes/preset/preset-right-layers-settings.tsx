@@ -9,15 +9,16 @@ const getPercentOrDefault = (value: number | undefined) => {
 };
 
 const Slider: FunctionComponent<{
+  display: string;
   name: string;
   value: number;
   setValue: (value: number) => void;
   min?: number;
   max?: number;
-}> = ({ name, value, setValue, min = 0, max = 100 }) => {
+}> = ({ display, name, value, setValue, min = 0, max = 100 }) => {
   return (
     <div className={styles.listItem}>
-      <div className={styles.listItemText}>Opacity</div>
+      <div className={styles.listItemText}>{display}</div>
       <div className={styles.listItemSlider}>
         <div className={styles.listItemPercentage}>{value}%</div>
         <input
@@ -28,9 +29,7 @@ const Slider: FunctionComponent<{
           title={name}
           defaultValue={value}
           className={styles.slider}
-          onChange={(e) => {
-            setValue(parseInt(e.target.value));
-          }}
+          onChange={(e) => setValue(parseInt(e.target.value))}
         />
       </div>
     </div>
@@ -99,21 +98,25 @@ const Settings_subpanel: FunctionComponent<{
     <div className={styles.slidersContainer}>
       <div className={styles.sliderTitle}>Display Adjustments</div>
       <Slider
+        display="Opacity"
         name="opacity"
         value={getPercentOrDefault(presetLayerStyle?.opacity)}
         setValue={setOpacity}
       />
       <Slider
+        display="Contrast"
         name="contrast"
         value={getPercentOrDefault(presetLayerStyle?.contrast)}
         setValue={setContrast}
       />
       <Slider
+        display="Brightness"
         name="brightness"
         value={getPercentOrDefault(presetLayerStyle?.brightness)}
         setValue={setBrightness}
       />
       <Slider
+        display="Saturation"
         name="saturation"
         value={getPercentOrDefault(presetLayerStyle?.saturation)}
         setValue={setSaturation}
