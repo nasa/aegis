@@ -12,6 +12,8 @@ const Settings_subpanel: FunctionComponent<{
 
   const presetLayerStyle = selectedPreset.layerControls[sublayer.name].style;
 
+  console.log(presetLayerStyle?.opacity);
+
   const setOpacity = (value: number) => {
     const newVal = value / 100;
     dispatch(
@@ -70,7 +72,10 @@ const Settings_subpanel: FunctionComponent<{
 
         <div className={styles.listItemSlider}>
           <div className={styles.listItemPercentage}>
-            {presetLayerStyle?.opacity ? Math.round(presetLayerStyle?.opacity * 100) : 100}%
+            {presetLayerStyle?.opacity === undefined
+              ? 100
+              : Math.round(presetLayerStyle?.opacity * 100)}
+            %
           </div>
           <input
             type="range"
@@ -79,7 +84,9 @@ const Settings_subpanel: FunctionComponent<{
             name={"opacity"}
             title="opacity"
             defaultValue={
-              presetLayerStyle?.opacity ? Math.round(presetLayerStyle?.opacity * 100) : 100
+              presetLayerStyle?.opacity === undefined
+                ? 100
+                : Math.round(presetLayerStyle?.opacity * 100)
             }
             className={styles.slider}
             onChange={(e) => {
@@ -92,7 +99,10 @@ const Settings_subpanel: FunctionComponent<{
         <div className={styles.listItemText}>Contrast</div>
         <div className={styles.listItemSlider}>
           <div className={styles.listItemPercentage}>
-            {presetLayerStyle?.contrast ? Math.round(presetLayerStyle?.contrast * 100) : 100}%
+            {presetLayerStyle?.contrast === undefined
+              ? 100
+              : Math.round(presetLayerStyle?.contrast * 100)}
+            %
           </div>
           <input
             type="range"
@@ -101,7 +111,9 @@ const Settings_subpanel: FunctionComponent<{
             name={"contrast"}
             title="contrast"
             defaultValue={
-              presetLayerStyle?.contrast ? Math.round(presetLayerStyle?.contrast * 100) : 100
+              presetLayerStyle?.contrast === undefined
+                ? 100
+                : Math.round(presetLayerStyle?.contrast * 100)
             }
             className={styles.slider}
             onChange={(e) => {
@@ -114,7 +126,10 @@ const Settings_subpanel: FunctionComponent<{
         <div className={styles.listItemText}>Brightness</div>
         <div className={styles.listItemSlider}>
           <div className={styles.listItemPercentage}>
-            {presetLayerStyle?.brightness ? Math.round(presetLayerStyle?.brightness * 100) : 100}%
+            {presetLayerStyle?.brightness === undefined
+              ? 100
+              : Math.round(presetLayerStyle?.brightness * 100)}
+            %
           </div>
           <input
             type="range"
@@ -123,7 +138,9 @@ const Settings_subpanel: FunctionComponent<{
             name={"brightness"}
             title="brightness"
             defaultValue={
-              presetLayerStyle?.brightness ? Math.round(presetLayerStyle?.brightness * 100) : 100
+              presetLayerStyle?.brightness === undefined
+                ? 100
+                : Math.round(presetLayerStyle?.brightness * 100)
             }
             className={styles.slider}
             onChange={(e) => {
@@ -136,7 +153,10 @@ const Settings_subpanel: FunctionComponent<{
         <div className={styles.listItemText}>Saturation</div>
         <div className={styles.listItemSlider}>
           <div className={styles.listItemPercentage}>
-            {presetLayerStyle?.saturation ? Math.round(presetLayerStyle?.saturation * 100) : 100}%
+            {presetLayerStyle?.saturation === undefined
+              ? 100
+              : Math.round(presetLayerStyle?.saturation * 100)}
+            %
           </div>
           <input
             type="range"
@@ -148,7 +168,9 @@ const Settings_subpanel: FunctionComponent<{
               setSaturation(parseInt(e.target.value));
             }}
             defaultValue={
-              presetLayerStyle?.saturation ? Math.round(presetLayerStyle?.saturation * 100) : 100
+              presetLayerStyle?.saturation === undefined
+                ? 100
+                : Math.round(presetLayerStyle?.saturation * 100)
             }
             className={styles.slider}
           />
