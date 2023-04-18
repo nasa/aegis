@@ -9,6 +9,7 @@ import { setRightPanelOpen, setSectionSelected } from "store/interface";
 
 import { paneTypes } from "components/interface/_paneTypes";
 import { setSelectedEvaUuid } from "store/eva";
+import NavTimeline from "components/interface/timeline";
 
 /* This control sits at the left side of the screen and loads the selected component based on the NavGutter icon selected */
 export const LeftControlPanel: FunctionComponent = () => {
@@ -37,6 +38,25 @@ export const LeftControlPanel: FunctionComponent = () => {
         <ActiveComponent />
       </div>
     </div>
+  );
+};
+
+export const BottomControlPanel: FunctionComponent = () => {
+  const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
+
+  let ActiveComponent = null;
+  if (!_.isNil(selectedEvaUuid)) {
+    ActiveComponent = NavTimeline;
+  }
+
+  return (
+    <>
+      {ActiveComponent && (
+        <div className={styles.activeComponentBottom}>
+          <ActiveComponent />
+        </div>
+      )}
+    </>
   );
 };
 
