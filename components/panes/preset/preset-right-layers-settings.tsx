@@ -12,10 +12,10 @@ const Slider: FunctionComponent<{
   display: string;
   name: string;
   value: number;
-  setValue: (value: number) => void;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   min?: number;
   max?: number;
-}> = ({ display, name, value, setValue, min = 0, max = 100 }) => {
+}> = ({ display, name, value, onChange, min = 0, max = 100 }) => {
   return (
     <div className={styles.listItem}>
       <div className={styles.listItemText}>{display}</div>
@@ -29,7 +29,7 @@ const Slider: FunctionComponent<{
           title={name}
           defaultValue={value}
           className={styles.slider}
-          onChange={(e) => setValue(parseInt(e.target.value))}
+          onChange={onChange}
         />
       </div>
     </div>
@@ -101,25 +101,25 @@ const Settings_subpanel: FunctionComponent<{
         display="Opacity"
         name="opacity"
         value={getPercentOrDefault(presetLayerStyle?.opacity)}
-        setValue={setOpacity}
+        onChange={(e) => setOpacity(Number(e.target.value))}
       />
       <Slider
         display="Contrast"
         name="contrast"
         value={getPercentOrDefault(presetLayerStyle?.contrast)}
-        setValue={setContrast}
+        onChange={(e) => setContrast(Number(e.target.value))}
       />
       <Slider
         display="Brightness"
         name="brightness"
         value={getPercentOrDefault(presetLayerStyle?.brightness)}
-        setValue={setBrightness}
+        onChange={(e) => setBrightness(Number(e.target.value))}
       />
       <Slider
         display="Saturation"
         name="saturation"
         value={getPercentOrDefault(presetLayerStyle?.saturation)}
-        setValue={setSaturation}
+        onChange={(e) => setSaturation(Number(e.target.value))}
       />
       <div className={styles.listItem}>
         <div className={styles.listItemText}>Blend</div>
