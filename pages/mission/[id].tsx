@@ -53,9 +53,12 @@ const Header = dynamic(import("components/interface/header"), {
   ssr: false,
 });
 
-const NavTimeline = dynamic(import("components/interface/timeline"), {
-  ssr: false,
-});
+const BottomControlPanel = dynamic(
+  import("components/interface/side-controls").then((mod) => mod.BottomControlPanel),
+  {
+    ssr: false,
+  }
+);
 
 const Main: NextPage = () => {
   const dispatch = useDispatch();
@@ -226,7 +229,9 @@ const Main: NextPage = () => {
           </div>
         )}
       </div>
-      <div>{<NavTimeline />}</div>
+      <div className={styles.bottomControl}>
+        <BottomControlPanel />
+      </div>
     </div>
   );
 };
