@@ -337,10 +337,6 @@ export function drawLanderDistanceGraph(
     distanceFromLanderStrokePath.strokeColor = paperDataRef.current.styles.blue;
     distanceFromLanderStrokePath.opacity = 1;
     distanceFromLanderStrokePath.strokeWidth = 1.5;
-
-    // const distanceFromLanderFillPath = new paper.Path(fillPoints);
-    // distanceFromLanderFillPath.fillColor = paperDataRef.current.styles.blue;
-    // distanceFromLanderFillPath.opacity = 0.1;
   }
 
   //draw first and last dots on the distance graph
