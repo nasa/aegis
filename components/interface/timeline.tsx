@@ -65,7 +65,7 @@ const TimelineHoverValues: FunctionComponent<{ hoverValues: HoverValues }> = ({ 
       </div>
       <div className={styles.timelineHoverValues}>
         <div className={styles.timelineHoverValueItem}>
-          <div className={styles.timelineHoverValueTitle}>Distance From Lander</div>
+          <div className={styles.timelineHoverValueTitle}>Lander Distance</div>
           <div className={styles.timelineHoverValue}>
             {hoverValues.distanceFromLanderMeters?.toFixed(2)}{" "}
             {hoverValues.distanceFromLanderMeters ? "m" : "\u00A0"}
@@ -90,6 +90,46 @@ const TimelineHoverValues: FunctionComponent<{ hoverValues: HoverValues }> = ({ 
           <div className={styles.timelineHoverValue}>
             {hoverValues.walkbackElevationMeters?.toFixed(2)}
             {hoverValues.walkbackElevationMeters ? " m" : "\u00A0"}
+          </div>
+        </div>
+      </div>
+      <div className={styles.timelineKey}>
+        <div className={styles.timelineKeyItem}>
+          <div className={styles.timelineKeyName}>Traverse</div>
+          <div className={styles.timelinKeySymbols}>
+            <div className={styles.line} style={{ borderColor: "#93AFD7" }}></div>
+            <div className={styles.line} style={{ borderColor: "#8fae95" }}></div>
+          </div>
+        </div>
+        <div className={styles.timelineKeyItem}>
+          <div className={styles.timelineKeyName}>Walkback</div>
+          <div className={styles.timelinKeySvgSymbols}>
+            <div className={styles.svgLine}>
+              <svg>
+                <line
+                  x1="0"
+                  y1="5"
+                  x2="20"
+                  y2="5"
+                  stroke="#93AFD7"
+                  strokeWidth="2"
+                  strokeDasharray="5 2"
+                />
+              </svg>
+            </div>
+            <div className={styles.svgLine}>
+              <svg>
+                <line
+                  x1="0"
+                  y1="5"
+                  x2="20"
+                  y2="5"
+                  stroke="#8fae95"
+                  strokeWidth="2"
+                  strokeDasharray="5 2"
+                />
+              </svg>
+            </div>
           </div>
         </div>
       </div>
