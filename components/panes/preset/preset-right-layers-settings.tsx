@@ -12,8 +12,6 @@ const Settings_subpanel: FunctionComponent<{
 
   const presetLayerStyle = selectedPreset.layerControls[sublayer.name].style;
 
-  console.log(presetLayerStyle?.opacity);
-
   const setOpacity = (value: number) => {
     const newVal = value / 100;
     dispatch(
