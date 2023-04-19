@@ -58,6 +58,10 @@ const zoom = 13;
 
 const layerBaseURL = "/static/missionFiles";
 
+const getPercentOrDefault = (value: number | undefined) => {
+  return typeof value === "number" ? Math.round(value * 100) : 100;
+};
+
 const MapBody: FunctionComponent = () => {
   const dispatch = useDispatch();
   const appDispatch = useAppDispatch();
@@ -119,24 +123,10 @@ const MapBody: FunctionComponent = () => {
   // make color filter settings for any sublayer. This is the format of leaflet.tilelayer.colorfilter package
   const makeLayerColorFilter = (lControls: LayerControls, sublayerName: string): string[] => {
     return [
-      `brightness:${
-        lControls[sublayerName].style?.brightness
-          ? lControls[sublayerName].style?.brightness * 100
-          : 100
-      }%`,
-      `contrast:${
-        lControls[sublayerName].style?.contrast
-          ? lControls[sublayerName].style?.contrast * 100
-          : 100
-      }%`,
-      `opacity:${
-        lControls[sublayerName].style?.opacity ? lControls[sublayerName].style?.opacity * 100 : 100
-      }%`,
-      `saturate:${
-        lControls[sublayerName].style?.saturation
-          ? lControls[sublayerName].style?.saturation * 100
-          : 100
-      }%`,
+      `brightness:${getPercentOrDefault(lControls[sublayerName].style?.brightness)}%`,
+      `contrast:${getPercentOrDefault(lControls[sublayerName].style?.contrast)}%`,
+      `opacity:${getPercentOrDefault(lControls[sublayerName].style?.opacity)}%`,
+      `saturate:${getPercentOrDefault(lControls[sublayerName].style?.saturation)}%`,
     ];
   };
 
