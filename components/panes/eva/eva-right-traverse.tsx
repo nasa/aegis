@@ -153,7 +153,7 @@ const EvaRightTraverse: FunctionComponent = () => {
                     key={panelType}
                     className={
                       selectedRightNavItem === panelType
-                        ? paneStyles.rightIconContainerSelected
+                        ? paneStyles.rightIconContainerSelectedTraverse
                         : paneStyles.rightIconContainer
                     }
                   >

@@ -371,7 +371,7 @@ const StationEditorRight: FunctionComponent = () => {
                     key={panelType}
                     className={
                       selectedRightNavItem === panelType
-                        ? paneStyles.rightIconContainerSelected
+                        ? paneStyles.rightIconContainerSelectedStation
                         : paneStyles.rightIconContainer
                     }
                   >

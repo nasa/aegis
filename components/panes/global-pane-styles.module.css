@@ -116,6 +116,42 @@
   cursor: pointer;
 }
 
+.rightIconContainerSelectedPreset {
+  background: var(--grey1);
+  border-top: 3px solid var(--map);
+  border-radius: 4px 4px 0 0;
+  width: 35px;
+  height: 32px;
+  cursor: pointer;
+}
+
+.rightIconContainerSelectedPoi {
+  background: var(--grey1);
+  border-top: 3px solid var(--poi);
+  border-radius: 4px 4px 0 0;
+  width: 35px;
+  height: 32px;
+  cursor: pointer;
+}
+
+.rightIconContainerSelectedStation {
+  background: var(--grey1);
+  border-top: 3px solid var(--station);
+  border-radius: 4px 4px 0 0;
+  width: 35px;
+  height: 32px;
+  cursor: pointer;
+}
+
+.rightIconContainerSelectedTraverse {
+  background: var(--grey1);
+  border-top: 3px solid var(--eva);
+  border-radius: 4px 4px 0 0;
+  width: 35px;
+  height: 32px;
+  cursor: pointer;
+}
+
 .rightTopTitle {
   display: flex;
   justify-content: stretch;
