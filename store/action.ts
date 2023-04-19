@@ -42,6 +42,14 @@ export const actionSlice = createSlice({
         );
       });
     },
+    deleteActionsByUuid: (state, action: { payload: string[] }) => {
+      action.payload.forEach((uuid) => {
+        state.actions.splice(
+          state.actions.findIndex((stateAction) => stateAction.uuid === uuid),
+          1
+        );
+      });
+    },
     deleteActionsFromDb: (state, action: { payload: Action[] }) => {
       action.payload.forEach((actionToDelete) => {
         const actionIndex = state.actionsFromDb.findIndex(
