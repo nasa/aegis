@@ -23,6 +23,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkSavePoi } from "store/thunk/poi/thunkSavePoi";
 import { thunkDeletePoi } from "store/thunk/poi/thunkDeletePoi";
 import { thunkPoiCancel } from "store/thunk/poi/thunkPoiCancel";
+import { selectPoiActions } from "store/selectors";
 
 const panelTypes: PanelTypes = {
   info_panel: {
@@ -59,11 +60,7 @@ const PoiEditorRight: FunctionComponent = () => {
     shallowEqual
   );
 
-  const poiActions = useAppSelector(
-    (state) =>
-      state.action.actions.filter((storeAction: Action) => storeAction.poiUuid === selectedPoiUuid),
-    shallowEqual
-  );
+  const poiActions = useAppSelector(selectPoiActions(selectedPoiUuid), shallowEqual);
   const poiActionsFromDb = useAppSelector(
     (state) =>
       state.action.actionsFromDb.filter((storeAction) => storeAction.poiUuid === selectedPoiUuid),

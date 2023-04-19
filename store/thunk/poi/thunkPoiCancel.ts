@@ -1,8 +1,8 @@
-import { deletePoi, setPoiEditMode, setSelectedPoiUuid, upsertPoi } from "store/poi";
+import { setPoiEditMode, upsertPoi } from "store/poi";
 import appCreateAsyncThunk from "../thunkUtil";
 import { deleteActions, upsertActions } from "store/action";
 import { updateMapDirective } from "store/map";
-import { setRightPanelOpen } from "store/interface";
+import { obliteratePoi } from "store/cross-slice";
 
 export const thunkPoiCancel = appCreateAsyncThunk<{
   selectedPoi: POI;
@@ -32,10 +32,7 @@ export const thunkPoiCancel = appCreateAsyncThunk<{
       dispatch(deleteActions(addedActionsToDelete));
     } else {
       // if selected poi isn't in the db, delete it from the store
-      dispatch(deletePoi(selectedPoi));
-      dispatch(setSelectedPoiUuid(null));
-      dispatch(deleteActions(poiActions));
-      dispatch(setRightPanelOpen(false));
+      dispatch(obliteratePoi({ poiUuid: selectedPoiUuid }));
     }
     dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: false }));
 

@@ -31,6 +31,9 @@ export const poiSlice = createSlice({
     deletePoi: (state, action: { payload: POI }) => {
       state.pois = state.pois.filter((poi) => poi.uuid !== action.payload.uuid);
     },
+    deletePoiByUuid: (state, action: { payload: string }) => {
+      state.pois = state.pois.filter((poi) => poi.uuid !== action.payload);
+    },
     deleteAllPois: (state) => {
       state.pois = [];
     },
