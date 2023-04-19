@@ -94,6 +94,8 @@ const Settings_subpanel: FunctionComponent<{
     );
   };
 
+  console.log(presetLayerStyle?.opacity);
+
   return (
     <div className={styles.slidersContainer}>
       <div className={styles.sliderTitle}>Display Adjustments</div>
