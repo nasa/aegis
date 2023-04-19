@@ -33,6 +33,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
       state.traverse.traverses.find((traverse) => traverse.uuid === selectedEvaSequenceItemUuid),
     shallowEqual
   );
+
   const defaultTraverseSpeed = useAppSelector(
     (state) => state.mission.mission.traverseSpeed,
     refEqual
@@ -48,6 +49,32 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
 
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
 
+  const calculateAscentAndDescent = () => {
+    const elevations = selectedTraverse.pathSegmentElevations;
+    const returnValue = {
+      totalMetersClimbed: 0,
+      totalMetersDescended: 0,
+    };
+    //Loop through the multidimensional array of elevations
+    for (const elevation of elevations) {
+      // loop over all but the last element (note i < elevation.length - 1)
+      for (let i = 0; i < elevation.length - 1; i++) {
+        const difference = elevation[i + 1] - elevation[i];
+        if (difference > 0) {
+          returnValue.totalMetersClimbed += difference;
+        } else {
+          returnValue.totalMetersDescended += -difference;
+        }
+      }
+    }
+    return returnValue;
+  };
+
+  const elevationTotals = calculateAscentAndDescent();
+
+  const totalMetersClimbed = elevationTotals.totalMetersClimbed.toFixed(2);
+  const totalMetersDescended = elevationTotals.totalMetersDescended.toFixed(2);
+
   useEffect(() => {
     if (elevationPendingIndex > -1) {
       setSaveButtonState("pending");
@@ -58,7 +85,6 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
 
   const verifyNoActiveMapAction = (): boolean => {
     // if another mapAction is underway, fire an alert and return false
-
     if (mapDirective && mapDirective.mapAction !== null) {
       alert(
         "Another map action is underway. Please cancel or complete that action before creating a new one."
@@ -200,11 +226,11 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
             <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Traverse Total m Climbed</div>
-                <div className={paneStyles.panelDisplayVal}>m</div>
+                <div className={paneStyles.panelDisplayVal}>{totalMetersClimbed}m</div>
               </div>
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Traverse Total m Descended</div>
-                <div className={paneStyles.panelDisplayVal}>m</div>
+                <div className={paneStyles.panelDisplayVal}>{totalMetersDescended}m</div>
               </div>
             </div>
           </div>
