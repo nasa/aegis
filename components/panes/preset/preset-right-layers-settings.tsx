@@ -3,6 +3,35 @@ import styles from "./preset-right-layers-settings.module.css";
 import { Dropdown } from "components/interface/_global-elements";
 import { useDispatch } from "react-redux";
 import { setPresetLayerControlStyle } from "store/preset";
+import getPercentOrDefault from "utils/getPercentOrDefault";
+
+const Slider: FunctionComponent<{
+  display: string;
+  name: string;
+  value: number;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  min?: number;
+  max?: number;
+}> = ({ display, name, value, onChange, min = 0, max = 100 }) => {
+  return (
+    <div className={styles.listItem}>
+      <div className={styles.listItemText}>{display}</div>
+      <div className={styles.listItemSlider}>
+        <div className={styles.listItemPercentage}>{value}%</div>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          name={name}
+          title={name}
+          defaultValue={value}
+          className={styles.slider}
+          onChange={onChange}
+        />
+      </div>
+    </div>
+  );
+};
 
 const Settings_subpanel: FunctionComponent<{
   sublayer: MMGIS_Sublayer;
@@ -65,95 +94,30 @@ const Settings_subpanel: FunctionComponent<{
   return (
     <div className={styles.slidersContainer}>
       <div className={styles.sliderTitle}>Display Adjustments</div>
-      <div className={styles.listItem}>
-        <div className={styles.listItemText}>Opacity</div>
-
-        <div className={styles.listItemSlider}>
-          <div className={styles.listItemPercentage}>
-            {presetLayerStyle?.opacity ? Math.round(presetLayerStyle?.opacity * 100) : 100}%
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            name={"opacity"}
-            title="opacity"
-            defaultValue={
-              presetLayerStyle?.opacity ? Math.round(presetLayerStyle?.opacity * 100) : 100
-            }
-            className={styles.slider}
-            onChange={(e) => {
-              setOpacity(parseInt(e.target.value));
-            }}
-          />
-        </div>
-      </div>
-      <div className={styles.listItem}>
-        <div className={styles.listItemText}>Contrast</div>
-        <div className={styles.listItemSlider}>
-          <div className={styles.listItemPercentage}>
-            {presetLayerStyle?.contrast ? Math.round(presetLayerStyle?.contrast * 100) : 100}%
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            name={"contrast"}
-            title="contrast"
-            defaultValue={
-              presetLayerStyle?.contrast ? Math.round(presetLayerStyle?.contrast * 100) : 100
-            }
-            className={styles.slider}
-            onChange={(e) => {
-              setContrast(parseInt(e.target.value));
-            }}
-          />
-        </div>
-      </div>
-      <div className={styles.listItem}>
-        <div className={styles.listItemText}>Brightness</div>
-        <div className={styles.listItemSlider}>
-          <div className={styles.listItemPercentage}>
-            {presetLayerStyle?.brightness ? Math.round(presetLayerStyle?.brightness * 100) : 100}%
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            name={"brightness"}
-            title="brightness"
-            defaultValue={
-              presetLayerStyle?.brightness ? Math.round(presetLayerStyle?.brightness * 100) : 100
-            }
-            className={styles.slider}
-            onChange={(e) => {
-              setBrightness(parseInt(e.target.value));
-            }}
-          />
-        </div>
-      </div>
-      <div className={styles.listItem}>
-        <div className={styles.listItemText}>Saturation</div>
-        <div className={styles.listItemSlider}>
-          <div className={styles.listItemPercentage}>
-            {presetLayerStyle?.saturation ? Math.round(presetLayerStyle?.saturation * 100) : 100}%
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            name={"saturation"}
-            title="saturation"
-            onChange={(e) => {
-              setSaturation(parseInt(e.target.value));
-            }}
-            defaultValue={
-              presetLayerStyle?.saturation ? Math.round(presetLayerStyle?.saturation * 100) : 100
-            }
-            className={styles.slider}
-          />
-        </div>
-      </div>
+      <Slider
+        display="Opacity"
+        name="opacity"
+        value={getPercentOrDefault(presetLayerStyle?.opacity)}
+        onChange={(e) => setOpacity(Number(e.target.value))}
+      />
+      <Slider
+        display="Contrast"
+        name="contrast"
+        value={getPercentOrDefault(presetLayerStyle?.contrast)}
+        onChange={(e) => setContrast(Number(e.target.value))}
+      />
+      <Slider
+        display="Brightness"
+        name="brightness"
+        value={getPercentOrDefault(presetLayerStyle?.brightness)}
+        onChange={(e) => setBrightness(Number(e.target.value))}
+      />
+      <Slider
+        display="Saturation"
+        name="saturation"
+        value={getPercentOrDefault(presetLayerStyle?.saturation)}
+        onChange={(e) => setSaturation(Number(e.target.value))}
+      />
       <div className={styles.listItem}>
         <div className={styles.listItemText}>Blend</div>
         <Dropdown

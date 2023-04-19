@@ -51,6 +51,7 @@ import {
 } from "store/thunk/thunkStation";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkFullUpdateTraversePath, thunkUpdateTraversePath } from "store/thunk/thunkTraverse";
+import getPercentOrDefault from "utils/getPercentOrDefault";
 
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
@@ -119,24 +120,10 @@ const MapBody: FunctionComponent = () => {
   // make color filter settings for any sublayer. This is the format of leaflet.tilelayer.colorfilter package
   const makeLayerColorFilter = (lControls: LayerControls, sublayerName: string): string[] => {
     return [
-      `brightness:${
-        lControls[sublayerName].style?.brightness
-          ? lControls[sublayerName].style?.brightness * 100
-          : 100
-      }%`,
-      `contrast:${
-        lControls[sublayerName].style?.contrast
-          ? lControls[sublayerName].style?.contrast * 100
-          : 100
-      }%`,
-      `opacity:${
-        lControls[sublayerName].style?.opacity ? lControls[sublayerName].style?.opacity * 100 : 100
-      }%`,
-      `saturate:${
-        lControls[sublayerName].style?.saturation
-          ? lControls[sublayerName].style?.saturation * 100
-          : 100
-      }%`,
+      `brightness:${getPercentOrDefault(lControls[sublayerName].style?.brightness)}%`,
+      `contrast:${getPercentOrDefault(lControls[sublayerName].style?.contrast)}%`,
+      `opacity:${getPercentOrDefault(lControls[sublayerName].style?.opacity)}%`,
+      `saturate:${getPercentOrDefault(lControls[sublayerName].style?.saturation)}%`,
     ];
   };
 
