@@ -158,7 +158,7 @@ const PoiEditorRight: FunctionComponent = () => {
                   key={panelType}
                   className={
                     selectedRightNavItem === panelType
-                      ? paneStyles.rightIconContainerSelected
+                      ? paneStyles.rightIconContainerSelectedPoi
                       : paneStyles.rightIconContainer
                   }
                 >

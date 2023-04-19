@@ -176,7 +176,7 @@ const PresetEditorRight: FunctionComponent = () => {
                   key={panelType}
                   className={
                     selectedRightNavItem === panelType
-                      ? paneStyles.rightIconContainerSelected
+                      ? paneStyles.rightIconContainerSelectedPreset
                       : paneStyles.rightIconContainer
                   }
                 >
