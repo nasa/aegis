@@ -3,10 +3,7 @@ import styles from "./preset-right-layers-settings.module.css";
 import { Dropdown } from "components/interface/_global-elements";
 import { useDispatch } from "react-redux";
 import { setPresetLayerControlStyle } from "store/preset";
-
-const getPercentOrDefault = (value: number | undefined) => {
-  return typeof value === "number" ? Math.round(value * 100) : 100;
-};
+import getPercentOrDefault from "utils/getPercentOrDefault";
 
 const Slider: FunctionComponent<{
   display: string;

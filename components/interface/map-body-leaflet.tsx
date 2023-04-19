@@ -51,16 +51,13 @@ import {
 } from "store/thunk/thunkStation";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkFullUpdateTraversePath, thunkUpdateTraversePath } from "store/thunk/thunkTraverse";
+import getPercentOrDefault from "utils/getPercentOrDefault";
 
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
 const zoom = 13;
 
 const layerBaseURL = "/static/missionFiles";
-
-const getPercentOrDefault = (value: number | undefined) => {
-  return typeof value === "number" ? Math.round(value * 100) : 100;
-};
 
 const MapBody: FunctionComponent = () => {
   const dispatch = useDispatch();
