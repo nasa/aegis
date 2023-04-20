@@ -42,25 +42,6 @@ export const evaSlice = createSlice({
     deleteAllEvasFromDb: (state) => {
       state.evasFromDb = [];
     },
-    duplicateEva: (state, action: { payload: Eva }) => {
-      const eva = action.payload;
-      const newEva = {
-        ...eva,
-        uuid: uuidv4(),
-        name: makeUniqueStringCopy(
-          eva.name,
-          state.evas.map((item) => item.name)
-        ),
-      };
-      state.evas.push(newEva);
-      // turn on edit mode for the new eva
-      state.evasEditing.push(newEva.uuid);
-      // select the newly created eva
-      state.selectedEvaUuid = newEva.uuid;
-      // expand the newly created eva
-      state.expandedEvaUuids.push(newEva.uuid);
-    },
-
     setSelectedEvaRightNavItem: (state, action: { payload: string }) => {
       state.selectedEvaRightNavItem = action.payload;
     },
@@ -89,6 +70,36 @@ export const evaSlice = createSlice({
       } else {
         state.evasEditing = state.evasEditing.filter((uuid) => uuid !== action.payload.evaUuid);
       }
+    },
+    duplicateEva: {
+      reducer: (state, action: { payload: { eva: Eva; newEvaUuid: string } }) => {
+        const eva = action.payload.eva;
+        const newEvaUuid = action.payload.newEvaUuid;
+        const newEva = {
+          ...eva,
+          uuid: newEvaUuid,
+          name: makeUniqueStringCopy(
+            eva.name,
+            state.evas.map((item) => item.name)
+          ),
+        };
+        state.evas.push(newEva);
+        // turn on edit mode for the new eva
+        state.evasEditing.push(newEvaUuid);
+        // select the newly created eva
+        state.selectedEvaUuid = newEvaUuid;
+        // expand the newly created eva
+        state.expandedEvaUuids.push(newEvaUuid);
+      },
+      prepare: (eva: Eva) => {
+        const newEvaUuid = uuidv4();
+        return {
+          payload: {
+            eva,
+            newEvaUuid,
+          },
+        };
+      },
     },
   },
 });
