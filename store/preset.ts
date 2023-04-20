@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { upsertToArrayByUuid } from "../utils/store";
+import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
 import { makeUniqueStringCopy } from "../utils/duplicate";
 export const initialState: PresetState = {
@@ -35,21 +36,6 @@ export const presetSlice = createSlice({
     },
     deleteAllPresetsFromDb: (state) => {
       state.presetsFromDb = [];
-    },
-    duplicatePreset: (state, action: { payload: Preset }) => {
-      const newPreset: Preset = {
-        ...action.payload,
-        uuid: uuidv4(),
-        name: makeUniqueStringCopy(
-          action.payload.name,
-          state.presets.map((item) => item.name)
-        ),
-      };
-      state.presets.push(newPreset);
-      // turn on edit mode for the new preset
-      state.presetsEditing.push(newPreset.uuid);
-      // select the newly created POI
-      state.selectedPresetUuid = newPreset.uuid;
     },
     setSelectedPresetUuid: (state, action: { payload: string }) => {
       state.selectedPresetUuid = action.payload;
@@ -146,6 +132,34 @@ export const presetSlice = createSlice({
       Object.keys(state.presetInteractions[action.payload.presetUuid]).forEach((layerName) => {
         state.presetInteractions[action.payload.presetUuid][layerName].tabSelected = null;
       });
+    },
+    duplicatePreset: {
+      reducer: (
+        state,
+        action: {
+          payload: {
+            preset: Preset;
+            newPresetUuid: string;
+          };
+        }
+      ) => {
+        const newPreset: Preset = _.cloneDeep(action.payload.preset);
+        newPreset.uuid = action.payload.newPresetUuid;
+        newPreset.name = makeUniqueStringCopy(
+          action.payload.preset.name,
+          state.presets.map((item) => item.name)
+        );
+        state.presets.push(newPreset);
+      },
+      prepare: (payload: Preset) => {
+        const newPresetUuid = uuidv4();
+        return {
+          payload: {
+            preset: payload,
+            newPresetUuid,
+          },
+        };
+      },
     },
   },
 });
