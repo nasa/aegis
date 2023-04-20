@@ -49,6 +49,10 @@ const Login = () => {
     }
   };
 
+  const handleSubmit = (event) => {
+    event.preventDefault();
+  };
+
   return (
     <>
       <input
@@ -58,7 +62,7 @@ const Login = () => {
         onClick={handleGuestLogin}
       />
       <div className={styles.title}>Login to AEGIS</div>
-      <div className={styles.login}>
+      <form className={styles.login} onSubmit={handleSubmit}>
         <div className={styles.errorMessage}>{errorMessage}</div>
         <div className={styles.loginFormField}>
           <label htmlFor="usernameField" className={styles.loginFormLabel}>
@@ -91,6 +95,7 @@ const Login = () => {
         <div className={styles.loginFormField}>
           <button
             className={styles.loginFormButton}
+            type={"submit"}
             onClick={() => {
               handleLoginButtonClick();
             }}
@@ -98,7 +103,7 @@ const Login = () => {
             Login
           </button>
         </div>
-      </div>
+      </form>
     </>
   );
 };
