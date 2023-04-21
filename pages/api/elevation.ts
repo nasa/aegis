@@ -30,7 +30,7 @@ const getPolylineProfile: NextApiHandler<WrappedResponse<number[][]>> = async (
         // The "/static" path is mapped in the docker-compose file for the GDAL container. This maps to the public static folder in the project.
         const geoTiffPath = `/static/missionFiles/${postData.missionId}/${postData.demFilepath}`;
 
-        console.log("geoTiffPath: " + geoTiffPath);
+        // console.log("geoTiffPath: " + geoTiffPath);
 
         let initRes: Response = null;
         let initJobRes: FlaskServiceResponse = null;
@@ -76,9 +76,9 @@ const getPolylineProfile: NextApiHandler<WrappedResponse<number[][]>> = async (
           );
 
           initJobRes = await initRes.json();
-          console.log("initJobRes: " + JSON.stringify(initJobRes));
+          // console.log("initJobRes: " + JSON.stringify(initJobRes));
         } catch (e) {
-          console.error(e);
+          console.error("Posting error", e);
           return res.status(500).json({
             status: "error",
             message:
@@ -100,7 +100,7 @@ const getPolylineProfile: NextApiHandler<WrappedResponse<number[][]>> = async (
           );
 
           const jobResJson: FlaskJobResponse = await jobRes.json();
-          console.log("jobResJson: " + JSON.stringify(jobResJson));
+          // console.log("jobResJson: " + JSON.stringify(jobResJson));
 
           const elevationResults: number[][] = JSON.parse(jobResJson.report);
 
@@ -110,7 +110,7 @@ const getPolylineProfile: NextApiHandler<WrappedResponse<number[][]>> = async (
             data: elevationResults,
           });
         } catch (e) {
-          console.error(e);
+          console.error("Error GETing the result from docker", e);
           return res.status(500).json({
             status: "error",
             message:
@@ -125,7 +125,7 @@ const getPolylineProfile: NextApiHandler<WrappedResponse<number[][]>> = async (
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
   } catch (e) {
-    console.error(e);
+    console.error("Error in query", e);
     return res
       .status(500)
       .json({ status: "error", message: "Error in query " + JSON.stringify(e) });

@@ -50,11 +50,13 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
 
   const calculateAscentAndDescent = () => {
-    const elevations = selectedTraverse.pathSegmentElevations;
     const returnValue = {
       totalMetersClimbed: 0,
       totalMetersDescended: 0,
     };
+    const elevations = selectedTraverse.pathSegmentElevations;
+    if (!elevations) return returnValue;
+
     //Loop through the multidimensional array of elevations
     for (const elevation of elevations) {
       // loop over all but the last element (note i < elevation.length - 1)
