@@ -192,7 +192,7 @@ const Sublayer: FunctionComponent<{
           >
             <FontAwesomeIcon icon={faCircleInfo} />
           </div>
-          {editMode && (
+          {editMode && sublayer.type !== "vector" && (
             <div
               className={styles.sublayerToolIcon}
               onClick={() => {

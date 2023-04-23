@@ -155,7 +155,7 @@ const MapBody: FunctionComponent = () => {
     const layersToAdd: Sublayer[] = [];
     for (const configLayer of missionLayers) {
       for (const configSublayer of configLayer.layerConfig.sublayers) {
-        if (configSublayer.type === "tile") {
+        if (configSublayer.type === "tile" || configSublayer.type === "vector") {
           if (layerControls[configSublayer.name].enabled) {
             layersToAdd.push(configSublayer);
           }
@@ -179,34 +179,71 @@ const MapBody: FunctionComponent = () => {
           map.current.removeLayer(layer);
         }
       }
+      if ((layer as AEGISFeatureGroup).id) {
+        if (!layerControls[(layer as AEGISFeatureGroup).id].enabled) {
+          map.current.removeLayer(layer);
+        }
+      }
     });
 
     // check map layers in order
     layersToAddInOrder.map((configSublayer, index) => {
       // if layer isn't already on the map, add it
       if (!isLayerOnMapByName(map, configSublayer.name)) {
-        const filter = makeLayerColorFilter(layerControls, configSublayer.name);
-        const tileLayer = (L.tileLayer as any).colorFilter(
-          `${layerBaseURL}/${mission.id}/Layers/${configSublayer.aegisURL}`,
-          {
-            tileSize: 256,
-            bounds: [
-              [configSublayer.boundingBox[1], configSublayer.boundingBox[0]],
-              [configSublayer.boundingBox[3], configSublayer.boundingBox[2]],
-            ],
-            tms: configSublayer.tileformat === "tms",
-            minZoom: 1,
-            minNativeZoom: configSublayer.minZoom,
-            maxZoom: configSublayer.maxZoom,
-            maxNativeZoom: configSublayer.maxNativeZoom,
-            id: `${configSublayer.name}`,
-            opacity: layerControls[configSublayer.name].style?.opacity,
-            zIndex: index,
-            filter,
-          }
-        );
-        map.current.addLayer(tileLayer);
-        tileLayer.bringToFront();
+        if (configSublayer.type === "tile") {
+          const filter = makeLayerColorFilter(layerControls, configSublayer.name);
+          const tileLayer = (L.tileLayer as any).colorFilter(
+            `${layerBaseURL}/${mission.id}/Layers/${configSublayer.aegisURL}`,
+            {
+              tileSize: 256,
+              bounds: [
+                [configSublayer.boundingBox[1], configSublayer.boundingBox[0]],
+                [configSublayer.boundingBox[3], configSublayer.boundingBox[2]],
+              ],
+              tms: configSublayer.tileformat === "tms",
+              minZoom: 1,
+              minNativeZoom: configSublayer.minZoom,
+              maxZoom: configSublayer.maxZoom,
+              maxNativeZoom: configSublayer.maxNativeZoom,
+              id: `${configSublayer.name}`,
+              opacity: layerControls[configSublayer.name].style?.opacity,
+              zIndex: index,
+              filter,
+            }
+          );
+          map.current.addLayer(tileLayer);
+          tileLayer.bringToFront();
+        } else if (configSublayer.type === "vector") {
+          // fetch geojson object from aegisURL
+          (async () => {
+            const res = await fetch(`${layerBaseURL}/${mission.id}/Data/${configSublayer.url}`, {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            });
+            const geojson = await res.json();
+
+            // create a featureGroup for the layer
+            const featureGroup = L.featureGroup() as AEGISFeatureGroup;
+            featureGroup.id = configSublayer.name;
+
+            const vectorLayer = L.geoJSON(geojson, {
+              style: () => {
+                return {
+                  name: configSublayer.name,
+                  strokeColor: configSublayer.style?.color,
+                  fillColor: configSublayer.style?.fillColor,
+                  fillOpacity: configSublayer.style?.fillOpacity,
+                  weight: configSublayer.style?.weight,
+                };
+              },
+            });
+            featureGroup.addLayer(vectorLayer);
+
+            map.current.addLayer(featureGroup);
+          })();
+        }
       } else {
         // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
         const layer = getLayerByName(map, configSublayer.name);
@@ -214,6 +251,13 @@ const MapBody: FunctionComponent = () => {
       }
     });
   }, [mission, layerControls, map, layersOnMap, missionLayers]);
+
+  /**
+   * Map vector geojson layers display management
+   */
+  useEffect(() => {
+    if (!mission || !layerControls || !map.current) return;
+  }, [mission, layerControls, map]);
 
   /**
    * Update map with opacity value for sublayers as sliders are moved

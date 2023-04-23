@@ -31,3 +31,7 @@ type AEGISCircleMarker = L.CircleMarker & {
 type CircleWithUuid = L.Circle & {
   uuid?: string;
 };
+
+type AEGISFeatureGroup = L.FeatureGroup & {
+  id: string;
+};
