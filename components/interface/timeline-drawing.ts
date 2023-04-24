@@ -618,15 +618,6 @@ export function drawSequenceBottomSection(
   //draw "Available" block at the end of the sequence
   if (storeRef.current.evaLengthCalculatedMins < storeRef.current.evaLengthMins) {
     if (Math.round(itemLocX) < paperVars.timelineLeft + paperVars.timeineWidth) {
-      const availableBox = new paper.Path.Rectangle({
-        from: new paper.Point(itemLocX + 1, paperVars.timelineTop + 1),
-        to: new paper.Point(
-          paperVars.timelineLeft + paperVars.timeineWidth - 1,
-          paperVars.sequenceTop - 5
-        ),
-        fillColor: paperDataRef.current.styles.gray3,
-        name: "availableBox",
-      });
       const availableMiddleX = (itemLocX + paperVars.timelineLeft + paperVars.timeineWidth) / 2;
       const seconds =
         (paperVars.timelineLeft + paperVars.timeineWidth - itemLocX) *
@@ -641,7 +632,7 @@ export function drawSequenceBottomSection(
         name: "availableLabel",
       });
       const group = new paper.Group();
-      group.addChildren([availableBox, availableLabel]);
+      group.addChild(availableLabel);
     }
   }
 }

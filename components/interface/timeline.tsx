@@ -150,6 +150,10 @@ const NavTimeline: FunctionComponent = () => {
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
+  const missionTraverseRate = useAppSelector(
+    (state) => state.mission.mission.traverseSpeed,
+    refEqual
+  );
   const evaTraverseRate = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid)?.traverseRate,
     refEqual
@@ -223,6 +227,7 @@ const NavTimeline: FunctionComponent = () => {
           subdividedDistFromLanderMeters: null,
           segmentElevationMeters: null,
           segmentDistancesMeters: null,
+          traverseRateMSec: null,
         };
         if (sequenceItem.type === "station") {
           const station = stations.find((station) => station.uuid === sequenceItem.uuid);
@@ -232,6 +237,10 @@ const NavTimeline: FunctionComponent = () => {
           sequenceItemForPaperJS.segmentElevationMeters = station.elevation
             ? [[station.elevation]]
             : null;
+
+          //get traverse rate for this sequence item in meters per second (eva rate falling back to mission rate)
+          const traverseRate = _.isNumber(evaTraverseRate) ? evaTraverseRate : missionTraverseRate;
+          sequenceItemForPaperJS.traverseRateMSec = traverseRate * (1000 / 3600); //convert to m/sec
 
           //calculate duration from actions assigned to station
           let durationMinutes = 0;
@@ -299,9 +308,13 @@ const NavTimeline: FunctionComponent = () => {
                     newWalkbackPath[i + 1],
                     planetRadius
                   );
-                  const duration = isNaN(evaTraverseRate)
+                  const traverseRate = _.isNumber(evaTraverseRate)
+                    ? evaTraverseRate
+                    : missionTraverseRate;
+
+                  const duration = isNaN(traverseRate)
                     ? 0
-                    : (distanceSegment / (+evaTraverseRate * 1000)) * 60;
+                    : (distanceSegment / (+traverseRate * 1000)) * 60;
                   walkback.subdividedDurationMins.push(duration);
                 }
               }
@@ -318,6 +331,17 @@ const NavTimeline: FunctionComponent = () => {
           const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
           if (!traverse || traverse?.path?.length < 2) continue; //skip traverses with less than 2 points
           sequenceItemForPaperJS.name = traverse.name;
+
+          //set the traverse rate for the sequence item in meters per second
+          //(traverse field value, falling back to eva rate, falling back to mission rate)
+          let traverseRate = missionTraverseRate;
+          if (evaTraverseRate) {
+            traverseRate = evaTraverseRate;
+          }
+          if (traverse.traverseRate) {
+            traverseRate = traverse.traverseRate;
+          }
+          sequenceItemForPaperJS.traverseRateMSec = traverseRate * (1000 / 3600);
 
           //find max/min of elevation
           if (traverse.pathSegmentElevations) {
@@ -338,10 +362,6 @@ const NavTimeline: FunctionComponent = () => {
               }
             }
           }
-
-          //set the traverse rate for the sequence item in meters per second
-          const traverseRate = traverse.traverseRate ? +traverse.traverseRate : evaTraverseRate;
-          sequenceItemForPaperJS.traverseRateMSec = traverseRate * (1000 / 3600);
 
           //subdivide seach traverse segment by 150 meters for greater accuracy
           const newTraverse: AEGISPoint[] = addPointsAtMeters(traverse.path, 150, planetRadius);
@@ -387,7 +407,7 @@ const NavTimeline: FunctionComponent = () => {
         storeRef.current.sequenceItems.push(sequenceItemForPaperJS);
       }
     }
-  }, [selectedEva, stations, actions, traverses, evaTraverseRate, mission]);
+  }, [selectedEva, stations, actions, traverses, evaTraverseRate, mission, missionTraverseRate]);
 
   //handles on mouse move over the paper canvas
   const onMouseMove = (event: paper.MouseEvent) => {
@@ -437,7 +457,13 @@ const NavTimeline: FunctionComponent = () => {
         selectedEvaSequenceItemUuid
       );
     }
-  }, [selectedEva, selectedEvaSequenceItemUuid, showDistanceFromLander, showElevation]);
+  }, [
+    selectedEva,
+    selectedEvaSequenceItemUuid,
+    showDistanceFromLander,
+    showElevation,
+    graphSequenceItems,
+  ]);
 
   //use effect to handle color highlighting when selected sequence item changes
   useEffect(() => {
@@ -543,6 +569,7 @@ function calcElevationGraphData(
   let xLoc = xLocStart;
   for (const [segmentElevationIndex, segmentElevation] of segmentedElevationMeters.entries()) {
     //loop through elevations
+    let lastRoundX = Math.round(xLoc);
     for (const [elevationIndex, elevation] of segmentElevation.entries()) {
       graphData_elevation.push({
         xPixel: xLoc,
@@ -551,23 +578,6 @@ function calcElevationGraphData(
           (storeRef.current.maxElevationMeters - elevation) * paperVars.pixelsPerMeterElevationY,
         val: elevation,
       });
-
-      //the last point of current segment is equal to the first point in the next segment
-      //  don't increment the x coordinate
-      if (elevationIndex !== segmentElevation.length - 1) xLoc += elevationWidth;
-
-      //the last elevation point may not be exactly the elevation resolution distance.
-      //  don't use width. take the duration for this segment and set the x location
-      //  for the next loop to be the end of the segment.
-      if (elevationIndex === segmentElevation.length - 2) {
-        let accumuatliveSegmentDistance = 0;
-        for (let i = 0; i <= segmentElevationIndex; i++) {
-          accumuatliveSegmentDistance += segmentedDistancesMeters[i];
-        }
-        xLoc =
-          xLocStart +
-          accumuatliveSegmentDistance * (1 / traverseRateMSec) * paperVars.pixelsPerSecondX;
-      }
 
       //this is a station
       if (segmentElevation.length === 1) {
@@ -579,6 +589,28 @@ function calcElevationGraphData(
             (storeRef.current.maxElevationMeters - elevation) * paperVars.pixelsPerMeterElevationY,
           val: elevation,
         });
+        break;
+      }
+
+      //the last point of current segment is equal to the first point in the next segment
+      //  don't increment the x coordinate
+      if (elevationIndex !== segmentElevation.length - 1) xLoc += elevationWidth;
+
+      // only draw one value per x pixel
+      if (Math.round(xLoc) !== lastRoundX) {
+        //the last elevation point may not be exactly the elevation resolution distance.
+        //  don't use width. take the duration for this segment and set the x location
+        //  for the next loop to be the end of the segment.
+        if (elevationIndex === segmentElevation.length - 2) {
+          let accumuatliveSegmentDistance = 0;
+          for (let i = 0; i <= segmentElevationIndex; i++) {
+            accumuatliveSegmentDistance += segmentedDistancesMeters[i];
+          }
+          xLoc =
+            xLocStart +
+            accumuatliveSegmentDistance * (1 / traverseRateMSec) * paperVars.pixelsPerSecondX;
+        }
+        lastRoundX = Math.round(xLoc);
       }
     }
   }
@@ -587,7 +619,7 @@ function calcElevationGraphData(
 }
 
 /**
- * Initilize the graph items ref
+ * Initialize the graph items ref
  * This func translates all the geo data from the store into paper x y pixels for drawing
  * @param paperDataRef
  * @param storeRef
