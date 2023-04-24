@@ -6,6 +6,7 @@ import { upsertStation } from "store/station";
 import poiStyles from "../poi/poi.module.css";
 import _ from "lodash";
 import { Checkbox } from "components/interface/_global-elements";
+import { setMapItemHoverUuid } from "store/playheadHover";
 
 const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -62,7 +63,12 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 const checked = selectedStation.poiUuids?.includes(poi.uuid);
                 return (
                   poi && (
-                    <div className={poiStyles.poiItem} key={poi.uuid}>
+                    <div
+                      className={poiStyles.poiItem}
+                      key={poi.uuid}
+                      onMouseEnter={() => dispatch(setMapItemHoverUuid(poi.uuid))}
+                      onMouseLeave={() => dispatch(setMapItemHoverUuid(null))}
+                    >
                       <Checkbox
                         checked={checked}
                         onChange={(e) => {
