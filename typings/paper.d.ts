@@ -72,7 +72,7 @@ interface EvaSequenceItem_PaperJS extends EvaSequenceItem {
   segmentElevationMeters: number[][]; //meters. Not subdivided. First dimension is the original segments. 2nd dimension is elevations at the DEM resolution
   segmentDistancesMeters: number[]; //meters. Not subdivided. Distance between the original segments
   walkback?: Walkback_PaperJS; //for Stations only
-  traverseRateMSec?: number; //for traverses only
+  traverseRateMSec: number; //for traverses only
 }
 
 //Does not reflect the store values. Contains subdivided segments for drawing more accurate graph lines
