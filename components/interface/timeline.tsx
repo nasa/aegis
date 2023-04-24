@@ -201,16 +201,12 @@ const NavTimeline: FunctionComponent = () => {
       maxElevationMeters: null,
       minElevationMeters: null,
       landerElevationMeters: null,
-      traverseRateMSec: null,
       elevationResolutionMeters: null,
     };
 
     if (selectedEva?.sequence && mission) {
       const planetRadius = parseFloat(mission?.config.msv.radius.minor);
 
-      storeRef.current.traverseRateMSec = isNaN(evaTraverseRate)
-        ? 0
-        : +evaTraverseRate * (1000 / 3600);
       storeRef.current.elevationResolutionMeters = mission.config.tools.find(
         (tool) => tool.name === "Measure"
       )?.variables["resolution"];
@@ -343,6 +339,10 @@ const NavTimeline: FunctionComponent = () => {
             }
           }
 
+          //set the traverse rate for the sequence item in meters per second
+          const traverseRate = traverse.traverseRate ? +traverse.traverseRate : evaTraverseRate;
+          sequenceItemForPaperJS.traverseRateMSec = traverseRate * (1000 / 3600);
+
           //subdivide seach traverse segment by 150 meters for greater accuracy
           const newTraverse: AEGISPoint[] = addPointsAtMeters(traverse.path, 150, planetRadius);
           sequenceItemForPaperJS.subdividedCoordinates = newTraverse;
@@ -371,9 +371,9 @@ const NavTimeline: FunctionComponent = () => {
                 newTraverse[i + 1],
                 planetRadius
               );
-              const duration = isNaN(evaTraverseRate)
+              const duration = isNaN(traverseRate)
                 ? 0
-                : (distanceSegment / (+evaTraverseRate * 1000)) * 60;
+                : (distanceSegment / (+traverseRate * 1000)) * 60;
               sequenceItemForPaperJS.subdividedDurationsMins.push(duration);
               sequenceItemForPaperJS.subdividedTotalDurationMins += duration;
               storeRef.current.evaLengthCalculatedMins += duration; //add to sum for total length calculated
@@ -531,13 +531,13 @@ function calcElevationGraphData(
   xLocStart: number,
   totalDurationMins: number,
   paperDataRef: MutableRefObject<PaperData>,
-  storeRef: MutableRefObject<StoreData_PaperJS>
+  storeRef: MutableRefObject<StoreData_PaperJS>,
+  traverseRateMSec: number
 ): GraphDataItem[] {
   const paperVars = paperDataRef.current.paperVars;
   //consts used for calculating elevation
   const elevationResolution = storeRef.current.elevationResolutionMeters || 10; //10 default
-  const elevationWidth =
-    (elevationResolution / storeRef.current.traverseRateMSec) * paperVars.pixelsPerSecondX;
+  const elevationWidth = (elevationResolution / traverseRateMSec) * paperVars.pixelsPerSecondX;
 
   const graphData_elevation: GraphDataItem[] = [];
   let xLoc = xLocStart;
@@ -566,9 +566,7 @@ function calcElevationGraphData(
         }
         xLoc =
           xLocStart +
-          accumuatliveSegmentDistance *
-            (1 / storeRef.current.traverseRateMSec) *
-            paperVars.pixelsPerSecondX;
+          accumuatliveSegmentDistance * (1 / traverseRateMSec) * paperVars.pixelsPerSecondX;
       }
 
       //this is a station
@@ -671,7 +669,8 @@ function initGraphItemsRef(
               0
             ),
             paperDataRef,
-            storeRef
+            storeRef,
+            sequenceItem.traverseRateMSec
           );
         }
       }
@@ -728,7 +727,8 @@ function initGraphItemsRef(
         sequenceStartPixel,
         sequenceItem.subdividedTotalDurationMins,
         paperDataRef,
-        storeRef
+        storeRef,
+        sequenceItem.traverseRateMSec
       );
     }
 

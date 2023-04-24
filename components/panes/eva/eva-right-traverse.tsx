@@ -1,6 +1,6 @@
 import { faBan, faCircleInfo, faEdit, faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { IconButton, InLineEditInput } from "components/interface/_global-elements";
+import { IconButton } from "components/interface/_global-elements";
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
@@ -125,23 +125,7 @@ const EvaRightTraverse: FunctionComponent = () => {
       <>
         <div className={paneStyles.rightTopTitle}>
           <div className={paneStyles.rightTopTitleText} style={{ color: "var(--eva)" }}>
-            <InLineEditInput
-              fieldName="Traverse Name"
-              value={selectedTraverse.name}
-              editing={traversesEditing.includes(selectedEvaSequenceItemUuid)}
-              maxLength={255}
-              styleInput={{
-                width: "100%",
-                marginRight: "10px",
-                color: "var(--eva)",
-                fontSize: "1em",
-              }}
-              styleValue={{ padding: 0, height: "auto" }}
-              containerStyle={{ paddingLeft: 0 }}
-              onChange={(val: string) => {
-                dispatch(upsertTraverse({ ...selectedTraverse, name: val }));
-              }}
-            />
+            {selectedTraverse.name}
           </div>
         </div>
         <div className={paneStyles.rightSubTray}>

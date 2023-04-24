@@ -52,9 +52,10 @@ interface Traverse {
   path: AEGISPoint[];
   pathSegmentDistances: number[]; //meters
   pathSegmentElevations: number[][]; //meters
-  durationLower: number; //minutes
-  durationUpper: number; //minutes
+  predictedDurationLower: number; //minutes
+  predictedDurationUpper: number; //minutes
   description: string;
+  traverseRate?: number; // km/hour
 
   createdAt?: string;
   updatedAt?: string;

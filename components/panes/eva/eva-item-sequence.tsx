@@ -13,7 +13,7 @@ import evaStyles from "./eva.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowDown, faArrowUp, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { setSelectedStationUuid } from "store/station";
-import { decodeEmoji } from "utils/formatting";
+import { decodeEmoji, hhmmFromMinutes } from "utils/formatting";
 import { setRightPanelOpen } from "store/interface";
 import {
   setLeftPanelHoverUuid,
@@ -35,6 +35,15 @@ const EvaItemSequence: FunctionComponent<{
   const stationsFromDb = useAppSelector((state) => state.station.stationsFromDb, shallowEqual);
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
   const traversesFromDb = useAppSelector((state) => state.traverse.traversesFromDb, shallowEqual);
+  const actions = useAppSelector((state) => state.action.actions, shallowEqual);
+  const missionTraverseRate = useAppSelector(
+    (state) => state.mission.mission.traverseSpeed,
+    shallowEqual
+  );
+  const selectedEvaTraverseRate = useAppSelector(
+    (state) => state.eva.evas.find((eva) => eva.uuid === evaUuid)?.traverseRate,
+    shallowEqual
+  );
 
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
@@ -100,13 +109,46 @@ const EvaItemSequence: FunctionComponent<{
     appDispatch(thunkUpdateAllTraversesForEVASequence({ evaSequence: newEvaSequence }));
   };
 
+  const durationMinutes = (selectedTraverse: Traverse): number => {
+    //convert meters to km, then divide by traverse speed to get minutes
+    const distanceMeters = selectedTraverse.pathSegmentDistances?.reduce(
+      (accumulator, currentVal) => {
+        return accumulator + currentVal;
+      },
+      0
+    );
+    let traverseRate = missionTraverseRate;
+    if (selectedEvaTraverseRate) {
+      traverseRate = selectedEvaTraverseRate;
+    }
+    if (selectedTraverse.traverseRate) {
+      traverseRate = selectedTraverse.traverseRate;
+    }
+    const distanceKm = distanceMeters / 1000;
+    const durationHours = distanceKm / traverseRate;
+    const durationMinutes = durationHours * 60;
+    return durationMinutes;
+  };
+
+  const stationDurationMinutes = (station: Station): number => {
+    let totalDurationUpper = 0;
+    actions.forEach((action) => {
+      if (action.stationUuid === station.uuid) {
+        totalDurationUpper += action.durationUpper;
+      }
+    });
+    return totalDurationUpper;
+  };
+
   return (
     <div className={evaStyles.evaSequence}>
       {evaSequence &&
         evaSequence.map((sequenceItem, index) => {
           let evaItemIcon = null;
+          let thisStation: Station = null;
+          let thisTraverse: Traverse = null;
           if (sequenceItem.type === "station") {
-            const thisStation = stations.find((station) => station.uuid === sequenceItem.uuid);
+            thisStation = stations.find((station) => station.uuid === sequenceItem.uuid);
             if (thisStation) {
               evaItemIcon = (
                 <div className={evaStyles.iconCustom}>{decodeEmoji(thisStation.icon)}</div>
@@ -115,6 +157,7 @@ const EvaItemSequence: FunctionComponent<{
               evaItemIcon = <div className={evaStyles.iconCustom} />;
             }
           } else if (sequenceItem.type === "traverse") {
+            thisTraverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
             evaItemIcon = (
               <div className={evaStyles.evaTraverseIndicator}>
                 <div className={evaStyles.iconTraverseDotsContainer}>
@@ -191,7 +234,9 @@ const EvaItemSequence: FunctionComponent<{
                           fill: "#ff0000",
                         }}
                       />
-                      <div className={evaStyles.evaItemNameRightSpacer} />
+                      <div className={evaStyles.evaItemDuration}>
+                        {hhmmFromMinutes(stationDurationMinutes(thisStation))}
+                      </div>
                     </div>
                   ) : (
                     <div
@@ -282,7 +327,9 @@ const EvaItemSequence: FunctionComponent<{
                         fill: "#ff0000",
                       }}
                     />
-                    <div className={evaStyles.evaItemNameRightSpacer} />
+                    <div className={evaStyles.evaItemDuration}>
+                      {hhmmFromMinutes(durationMinutes(thisTraverse))}
+                    </div>
                   </div>
                 </>
               )}

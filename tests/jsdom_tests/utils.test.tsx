@@ -16,6 +16,7 @@ import {
   formatEVADisplayTitle,
   getJulianDate,
   getPlayheadISOString,
+  hhmmFromMinutes,
   hhmmssFromDateString,
   hhmmssFromSeconds,
   hhmmssmmmFromSeconds,
@@ -306,5 +307,29 @@ describe("getSlope", () => {
     expect(getSlope(0, 0, 0, 1)).toBe(90);
     expect(getSlope(1, 2, 1, 3)).toBe(90);
     expect(getSlope(-1, -2, -1, -3)).toBe(90);
+  });
+});
+
+describe("hhmmFromMinutes", () => {
+  it("should format positive minutes into hh:mm", () => {
+    expect(hhmmFromMinutes(90)).toEqual("01:30");
+    expect(hhmmFromMinutes(120)).toEqual("02:00");
+    expect(hhmmFromMinutes(720)).toEqual("12:00");
+  });
+
+  it("should format negative minutes into -hh:mm", () => {
+    expect(hhmmFromMinutes(-90)).toEqual("-01:30");
+    expect(hhmmFromMinutes(-120)).toEqual("-02:00");
+    expect(hhmmFromMinutes(-720)).toEqual("-12:00");
+  });
+
+  it("should format zero minutes into 00:00", () => {
+    expect(hhmmFromMinutes(0)).toEqual("00:00");
+  });
+
+  it("should pad single digit hours and minutes with zeros", () => {
+    expect(hhmmFromMinutes(9)).toEqual("00:09");
+    expect(hhmmFromMinutes(63)).toEqual("01:03");
+    expect(hhmmFromMinutes(600)).toEqual("10:00");
   });
 });
