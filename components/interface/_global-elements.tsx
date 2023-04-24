@@ -296,8 +296,13 @@ export const ContentEditableTextArea: FunctionComponent<{
   html: string;
   editing: boolean;
   onChange: (event: ContentEditableEvent) => void;
-}> = ({ html, editing, onChange }) => {
+  defaultValue?: string;
+}> = ({ html, editing, onChange, defaultValue }) => {
+  const [focus, setFocus] = useState(false);
+
   const contentEditable = createRef<HTMLElement>();
+
+  const showDefaultValue = defaultValue && !focus && (html === "" || html === "<br>");
 
   return (
     <>
@@ -305,10 +310,12 @@ export const ContentEditableTextArea: FunctionComponent<{
         <ContentEditable
           className={styles.notesTextArea}
           innerRef={contentEditable}
-          html={html} // innerHTML of the editable div
+          html={showDefaultValue ? defaultValue : html} // innerHTML of the editable div
           disabled={!editing} // use true to disable editing
           onChange={onChange}
           tagName="div" // Use a custom HTML tag (uses a div by default)
+          onFocus={() => setFocus(true)}
+          onBlur={() => setFocus(false)}
         />
       )}
       {!editing && <div className={styles.notesText} dangerouslySetInnerHTML={{ __html: html }} />}
