@@ -72,6 +72,19 @@ export function hhmmssmmmFromSeconds(secondsParam: number): string {
 }
 
 /**
+ * Formats any minutes into hh:mm equivalent
+ */
+export function hhmmFromMinutes(minutesParam: number): string {
+  const hours = Math.abs(Math.trunc(minutesParam / 60));
+  const minutes = Math.abs(Math.trunc(minutesParam)) % 60;
+  let timeStr = padZeros(hours, 2) + ":" + padZeros(minutes, 2);
+  if (minutesParam < 0) {
+    timeStr = "-" + timeStr;
+  }
+  return timeStr;
+}
+
+/**
  * Formats any isoString timestamp into yyyy-mm-dd
  */
 export function shortdateFromDateString(dateString: string): string {

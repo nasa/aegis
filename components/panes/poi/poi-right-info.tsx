@@ -5,7 +5,6 @@ import {
   IconDropdown,
   ContentEditableTextArea,
   IconButton,
-  InLineEditInput,
   LastEdited,
 } from "components/interface/_global-elements";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -73,7 +72,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionRow}>
-              <div className={paneStyles.panelSmallField}>
+              {/* <div className={paneStyles.panelSmallField}>
                 <div className={paneStyles.panelSectionTitle}>Radius (m)</div>
                 <div className={paneStyles.inputField}>
                   <InLineEditInput
@@ -88,7 +87,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     }}
                   />
                 </div>
-              </div>
+              </div> */}
               <div className={paneStyles.panelColorDropdownContainer}>
                 <div className={paneStyles.panelSectionTitle}>Icon</div>
                 <IconDropdown

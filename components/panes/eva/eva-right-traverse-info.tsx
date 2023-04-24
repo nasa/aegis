@@ -34,10 +34,15 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
     shallowEqual
   );
 
-  const defaultTraverseSpeed = useAppSelector(
+  const missionTraverseRate = useAppSelector(
     (state) => state.mission.mission.traverseSpeed,
     refEqual
   );
+  const selectedEvaTraverseRate = useAppSelector(
+    (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid)?.traverseRate,
+    refEqual
+  );
+
   const elevationPendingIndex = useAppSelector(
     (state) =>
       state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedTraverse.uuid),
@@ -142,8 +147,15 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
       },
       0
     );
+    let traverseRate = missionTraverseRate;
+    if (selectedEvaTraverseRate) {
+      traverseRate = selectedEvaTraverseRate;
+    }
+    if (selectedTraverse.traverseRate) {
+      traverseRate = selectedTraverse.traverseRate;
+    }
     const distanceKm = distanceMeters / 1000;
-    const durationHours = distanceKm / defaultTraverseSpeed;
+    const durationHours = distanceKm / traverseRate;
     const durationMinutes = durationHours * 60;
     return durationMinutes.toFixed(2);
   };
@@ -153,46 +165,6 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
       <div className={paneStyles.rightBodyTitle}>Traverse Information</div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionRow}>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Min Duration (mins)</div>
-                <div className={paneStyles.inputField}>
-                  <InLineEditInput
-                    fieldName="Min Duration"
-                    editing={editMode}
-                    maxLength={3}
-                    styleInput={{ width: "55px" }}
-                    containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
-                    value={selectedTraverse.durationLower?.toString()}
-                    onChange={(val) => {
-                      dispatch(
-                        upsertTraverse({ ...selectedTraverse, durationLower: parseFloat(val) })
-                      );
-                    }}
-                  />
-                </div>
-              </div>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Max Duration (mins)</div>
-                <div className={paneStyles.inputField}>
-                  <InLineEditInput
-                    fieldName="Max Duration"
-                    editing={editMode}
-                    maxLength={3}
-                    styleInput={{ width: "55px" }}
-                    containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
-                    value={selectedTraverse.durationUpper?.toString()}
-                    onChange={(val) => {
-                      dispatch(
-                        upsertTraverse({ ...selectedTraverse, durationUpper: parseFloat(val) })
-                      );
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle}>Traverse Description</div>
             <ContentEditableTextArea
@@ -209,30 +181,100 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
             />
           </div>
           <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>Predicted Values</div>
+            <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
+              <div className={paneStyles.panelMediumField}>
+                <div className={paneStyles.panelSectionTitle}>Min Duration (mins)</div>
+                <div className={paneStyles.inputField}>
+                  <InLineEditInput
+                    fieldName="Min Duration"
+                    editing={editMode}
+                    maxLength={3}
+                    styleInput={{ width: "55px" }}
+                    containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                    value={selectedTraverse.predictedDurationLower?.toString()}
+                    onChange={(val) => {
+                      dispatch(
+                        upsertTraverse({
+                          ...selectedTraverse,
+                          predictedDurationLower: parseFloat(val),
+                        })
+                      );
+                    }}
+                  />
+                </div>
+              </div>
+              <div className={paneStyles.panelMediumField}>
+                <div className={paneStyles.panelSectionTitle}>Max Duration (mins)</div>
+                <div className={paneStyles.inputField}>
+                  <InLineEditInput
+                    fieldName="Max Duration"
+                    editing={editMode}
+                    maxLength={3}
+                    styleInput={{ width: "55px" }}
+                    containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                    value={selectedTraverse.predictedDurationUpper?.toString()}
+                    onChange={(val) => {
+                      dispatch(
+                        upsertTraverse({
+                          ...selectedTraverse,
+                          predictedDurationUpper: parseFloat(val),
+                        })
+                      );
+                    }}
+                  />
+                </div>
+              </div>
+              <div className={paneStyles.panelMediumField}>
+                <div className={paneStyles.panelSectionTitle}>
+                  Traverse Rate (km/hr) {selectedEvaTraverseRate ? "EVA" : "Mission"} Default:
+                  {selectedEvaTraverseRate || missionTraverseRate} km/hr
+                </div>
+                <div className={paneStyles.inputField}>
+                  <InLineEditInput
+                    fieldName="Traverse Rate"
+                    editing={editMode}
+                    maxLength={3}
+                    styleInput={{ width: "55px" }}
+                    containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                    value={selectedTraverse.traverseRate?.toString()}
+                    onChange={(val: number) => {
+                      dispatch(
+                        upsertTraverse({
+                          ...selectedTraverse,
+                          traverseRate: val,
+                        })
+                      );
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle}>Calculated Values</div>
             <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Traverse Distance</div>
+                <div className={paneStyles.panelSectionTitle}>Distance (m)</div>
                 <div className={paneStyles.panelDisplayVal}>
                   {selectedTraverse.pathSegmentDistances
                     ?.reduce((accumulator, currentVal) => accumulator + currentVal, 0)
                     .toFixed(2)}
-                  &nbsp;m
                 </div>
               </div>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Walk-back Duration (min)</div>
+                <div className={paneStyles.panelSectionTitle}>Calc Duration (min)</div>
                 <div className={paneStyles.panelText}>{durationMinutes()}</div>
               </div>
             </div>
             <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Traverse Total m Climbed</div>
-                <div className={paneStyles.panelDisplayVal}>{totalMetersClimbed}m</div>
+                <div className={paneStyles.panelSectionTitle}>Total Ascent (m)</div>
+                <div className={paneStyles.panelDisplayVal}>{totalMetersClimbed}</div>
               </div>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Traverse Total m Descended</div>
-                <div className={paneStyles.panelDisplayVal}>{totalMetersDescended}m</div>
+                <div className={paneStyles.panelSectionTitle}>Total Descended (m)</div>
+                <div className={paneStyles.panelDisplayVal}>{totalMetersDescended}</div>
               </div>
             </div>
           </div>

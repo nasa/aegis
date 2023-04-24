@@ -17,6 +17,7 @@ import { IconButton, ModifiedIndicator } from "components/interface/_global-elem
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { generateUniqueName } from "utils/unique-name";
 import { setRightPanelOpen } from "store/interface";
+import { setAllLayerControlsInvisible } from "utils/store";
 
 const PresetEditorLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -135,6 +136,7 @@ const PresetList: FunctionComponent<{
     if (currentPreset.uuid === selectedPresetUuid) {
       dispatch(setSelectedPresetUuid(null));
       dispatch(setRightPanelOpen(false));
+      dispatch(setLayerControls(setAllLayerControlsInvisible(currentPreset.layerControls)));
       return;
     }
 

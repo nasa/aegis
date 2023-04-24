@@ -5,6 +5,8 @@
  * @returns The modified array with the upserted element.
  */
 
+import _ from "lodash";
+
 interface MustContain {
   uuid: string;
   createdAt?: string;
@@ -25,4 +27,14 @@ export function upsertToArrayByUuid<T extends MustContain>(array: T[], element: 
     return 0;
   });
   return array;
+}
+
+// set map layerControls object to all layers invisible
+export function setAllLayerControlsInvisible(layerControls: LayerControls): LayerControls {
+  const newLayerControls = _.cloneDeep(layerControls);
+
+  Object.keys(newLayerControls).forEach((key) => {
+    newLayerControls[key].enabled = false;
+  });
+  return newLayerControls;
 }

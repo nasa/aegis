@@ -33,7 +33,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const appDispatch = useAppDispatch();
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
-  const defaultTraverseSpeed = useAppSelector(
+  const missionTraverseRate = useAppSelector(
     (state) => state.mission.mission.traverseSpeed,
     refEqual
   );
@@ -225,8 +225,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       },
       0
     );
+    const traverseRate = missionTraverseRate;
+
     const distanceKm = distanceMeters / 1000;
-    const durationHours = distanceKm / defaultTraverseSpeed;
+    const durationHours = distanceKm / traverseRate;
     const durationMinutes = durationHours * 60;
     return durationMinutes.toFixed(2);
   };
@@ -238,7 +240,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionRow}>
-              <div className={paneStyles.panelSmallField}>
+              {/* <div className={paneStyles.panelSmallField}>
                 <div className={paneStyles.panelSectionTitle}>Radius (m)</div>
                 <div className={paneStyles.inputField}>
                   <InLineEditInput
@@ -253,7 +255,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     }}
                   />
                 </div>
-              </div>
+              </div> */}
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Est Dwell Nominal*</div>
                 <div className={paneStyles.inputField}>
@@ -357,7 +359,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           </div>
 
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Station Value & Notes</div>
+            <div className={paneStyles.panelSectionTitle}>Station Description</div>
             <ContentEditableTextArea
               html={selectedStation.description} // innerHTML of the editable div
               editing={editMode}
@@ -372,7 +374,8 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             />
           </div>
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
+            <div className={paneStyles.panelSectionTitle}>Calculated Values</div>
+            <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>EVAs Using This Station</div>
                 <div className={paneStyles.panelText}>{evasUsingThisStation.length}</div>
@@ -516,7 +519,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               style={{ marginTop: "3px", marginBottom: "3px", gap: "5px" }}
             >
               <div className={paneStyles.verticalCenter}>
-                <FontAwesomeIcon icon={faLocationDot} />
+                <FontAwesomeIcon icon={faRoute} />
               </div>
               {selectedStation.location ? (
                 <>

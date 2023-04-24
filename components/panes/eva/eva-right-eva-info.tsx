@@ -18,16 +18,13 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
   );
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
-  const defaultTraverseSpeed = useAppSelector(
+  const missionTraverseRate = useAppSelector(
     (state) => state.mission.mission.traverseSpeed,
     shallowEqual
   );
 
   const [totalStationTime, setTotalStationTime] = useState({ durationLower: 0, durationUpper: 0 });
-  const [totalTraverseTime, setTotalTraverseTime] = useState({
-    durationLower: 0,
-    durationUpper: 0,
-  });
+  const [totalTraverseTime, setTotalTraverseTime] = useState(0);
   const [totalTraverseDistance, setTotalTraverseDistance] = useState(0);
 
   const [actionsCount, setActionsCount] = useState(0);
@@ -35,9 +32,8 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
   const calculateTotals = useCallback(() => {
     let totalStationTimeLower = 0;
     let totalStationTimeUpper = 0;
-    let totalTraverseTimeLower = 0;
-    let totalTraverseTimeUpper = 0;
     let totalTraverseDistance = 0;
+    let totalTraverseTime = 0;
     selectedEva.sequence.forEach((sequenceItem) => {
       if (sequenceItem.type === "station") {
         const stationActions = actions.filter((action) => action.stationUuid === sequenceItem.uuid);
@@ -47,15 +43,20 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
         });
       } else if (sequenceItem.type === "traverse") {
         const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
-        totalTraverseTimeLower += traverse?.durationLower;
-        totalTraverseTimeUpper += traverse?.durationUpper;
+
+        // calculate traverse distances
         if (Array.isArray(traverse?.pathSegmentDistances)) {
-          totalTraverseDistance += traverse?.pathSegmentDistances.reduce(
+          const thisTraverseDistance = traverse?.pathSegmentDistances.reduce(
             (accumulator, currentVal) => accumulator + currentVal,
             0
           );
-        } else {
-          totalTraverseDistance = 0;
+          totalTraverseDistance += thisTraverseDistance;
+
+          // calculate traverse times
+          const traverseRate = traverse.traverseRate ? traverse.traverseRate : missionTraverseRate;
+          const traverseRateMPerMin = (traverseRate * 1000) / 60;
+          const thisTraverseTimeMinutes = thisTraverseDistance / traverseRateMPerMin;
+          totalTraverseTime += thisTraverseTimeMinutes;
         }
       }
     });
@@ -63,12 +64,10 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
       durationLower: totalStationTimeLower,
       durationUpper: totalStationTimeUpper,
     });
-    setTotalTraverseTime({
-      durationLower: totalTraverseTimeLower,
-      durationUpper: totalTraverseTimeUpper,
-    });
+    setTotalTraverseTime(totalTraverseTime);
+
     setTotalTraverseDistance(totalTraverseDistance);
-  }, [selectedEva, actions, traverses]);
+  }, [selectedEva, actions, traverses, missionTraverseRate]);
 
   const countActions = useCallback(() => {
     let count = 0;
@@ -94,21 +93,13 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     }
   };
 
-  const displayTraverseTime = () => {
-    if (totalTraverseTime.durationLower === totalTraverseTime.durationUpper) {
-      return totalTraverseTime.durationLower;
-    } else {
-      return `${totalTraverseTime.durationLower} - ${totalTraverseTime.durationUpper}`;
-    }
-  };
-
   const displayTotalTime = () => {
-    const totalTimeLower = totalStationTime.durationLower + totalTraverseTime.durationLower;
-    const totalTimeUpper = totalStationTime.durationUpper + totalTraverseTime.durationUpper;
+    const totalTimeLower = totalStationTime.durationLower + totalTraverseTime;
+    const totalTimeUpper = totalStationTime.durationUpper + totalTraverseTime;
     if (totalTimeLower === totalTimeUpper) {
       return totalTimeLower;
     } else {
-      return `${totalTimeLower} - ${totalTimeUpper}`;
+      return `${totalTimeLower.toFixed(0)} - ${totalTimeUpper.toFixed(0)}`;
     }
   };
 
@@ -118,7 +109,23 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionRow}>
+            <div className={paneStyles.panelSectionTitle}>EVA Description</div>
+            <ContentEditableTextArea
+              html={selectedEva.description} // innerHTML of the editable div
+              editing={editMode}
+              onChange={(evt) => {
+                dispatch(
+                  upsertEva({
+                    ...selectedEva,
+                    description: evt.target.value,
+                  })
+                );
+              }} // handle innerHTML change
+            />
+          </div>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>Predicted Values</div>
+            <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Max Duration (mins)</div>
                 <div className={paneStyles.inputField}>
@@ -137,7 +144,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               </div>
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>
-                  Traverse Rate (km/hr) Mission Default: {defaultTraverseSpeed} km/hr
+                  Traverse Rate (km/hr) Mission Default: {missionTraverseRate} km/hr
                 </div>
                 <div className={paneStyles.inputField}>
                   <InLineEditInput
@@ -156,37 +163,22 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
             </div>
           </div>
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>EVA Description</div>
-            <ContentEditableTextArea
-              html={selectedEva.description} // innerHTML of the editable div
-              editing={editMode}
-              onChange={(evt) => {
-                dispatch(
-                  upsertEva({
-                    ...selectedEva,
-                    description: evt.target.value,
-                  })
-                );
-              }} // handle innerHTML change
-            />
-          </div>
-          <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle}>Calculated Values</div>
             <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Total Station Time</div>
+                <div className={paneStyles.panelSectionTitle}>Total Station Dwell Time</div>
                 <div className={paneStyles.panelDisplayVal}>
                   <>{displayStationTime()}</>&nbsp;mins
                 </div>
               </div>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Total Traverse Time</div>
+                <div className={paneStyles.panelSectionTitle}>Total Traverse Duration</div>
                 <div className={paneStyles.panelDisplayVal}>
-                  <>{displayTraverseTime()}</>&nbsp;mins
+                  <>{totalTraverseTime.toFixed(0)}</>&nbsp;mins
                 </div>
               </div>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Total Time</div>
+                <div className={paneStyles.panelSectionTitle}>Total EVA Duration</div>
                 <div className={paneStyles.panelDisplayVal}>
                   <>{displayTotalTime()}</>&nbsp;mins
                 </div>

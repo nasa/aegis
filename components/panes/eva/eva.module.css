@@ -146,8 +146,13 @@
   align-self: center;
 }
 
-.evaItemNameRightSpacer {
+.evaItemDuration {
   flex: 1;
+  text-align: right;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
 }
 
 .evaItemNameButtons {
