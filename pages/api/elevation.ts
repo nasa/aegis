@@ -1,6 +1,7 @@
 import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
+import _ from "lodash";
 
 type FlaskServiceResponse = {
   key: string;
@@ -16,6 +17,7 @@ type FlaskJobResponse = {
   report: string;
   returncode: number;
   start_time: string;
+  status?: string;
 };
 
 const getPolylineProfile: NextApiHandler<WrappedResponse<number[][]>> = async (
@@ -33,7 +35,9 @@ const getPolylineProfile: NextApiHandler<WrappedResponse<number[][]>> = async (
         // console.log("geoTiffPath: " + geoTiffPath);
 
         let initRes: Response = null;
-        let initJobRes: FlaskServiceResponse = null;
+        let initResJson: FlaskServiceResponse = null;
+        let jobRes: Response = null;
+        let jobResJson: FlaskJobResponse = null;
         try {
           // convert negative signs to underscores for passing as pipe-delimited python parameter
           const pathParam = postData.path
@@ -75,8 +79,8 @@ const getPolylineProfile: NextApiHandler<WrappedResponse<number[][]>> = async (
             }
           );
 
-          initJobRes = await initRes.json();
-          // console.log("initJobRes: " + JSON.stringify(initJobRes));
+          initResJson = await initRes.json();
+          // console.log("initResJson: " + JSON.stringify(initResJson));
         } catch (e) {
           console.error("Posting error", e);
           return res.status(500).json({
@@ -89,18 +93,30 @@ const getPolylineProfile: NextApiHandler<WrappedResponse<number[][]>> = async (
         try {
           // call the docker container with python to get the results
 
-          const jobRes = await fetch(
-            `http://${process.env.GDAL_HOST}:${process.env.GDAL_PORT}/commands/pathToElevationProfile?key=${initJobRes?.key}&wait=true`,
-            {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-              },
-            }
-          );
+          // poll the job status until it's done
+          let keepLooping = true;
+          const loopLimit = 40;
+          for (let i = 0; i < loopLimit && keepLooping; i++) {
+            jobRes = await fetch(
+              `http://${process.env.GDAL_HOST}:${process.env.GDAL_PORT}/commands/pathToElevationProfile?key=${initResJson?.key}`,
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            );
 
-          const jobResJson: FlaskJobResponse = await jobRes.json();
-          // console.log("jobResJson: " + JSON.stringify(jobResJson));
+            jobResJson = await jobRes.json();
+            // console.log("jobResJson: " + JSON.stringify(jobResJson));
+
+            if (_.has(jobResJson, "returncode") || _.has(jobResJson, "error")) {
+              keepLooping = false;
+            } else {
+              // if the job is still running, wait 250ms and try again
+              await new Promise((resolve) => setTimeout(resolve, 250));
+            }
+          }
 
           const elevationResults: number[][] = JSON.parse(jobResJson.report);
 
@@ -117,7 +133,7 @@ const getPolylineProfile: NextApiHandler<WrappedResponse<number[][]>> = async (
               "Error GETing the result from docker. " +
               e +
               " | Response: " +
-              JSON.stringify(initRes),
+              JSON.stringify(jobRes),
           });
         }
       }
