@@ -42,7 +42,7 @@ const PresetEditorLeft: FunctionComponent = () => {
     const blankPreset: Preset = {
       uuid: uuidv4(),
       name: randomName,
-      description: "Enter description here",
+      description: "",
       ownerId: user.id,
       missionId: missionId,
       missionPreset: false,

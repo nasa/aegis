@@ -29,6 +29,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     }
   };
 
+  const showDefaultDescription =
+    !editMode && (selectedPreset?.description === "" || selectedPreset?.description === "<br>");
+
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle}>Preset Information</div>
@@ -102,8 +105,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
         )}
         <div className={paneStyles.panelSection}>
           <div className={paneStyles.panelSectionTitle}>Preset Description</div>
+          {/* Need to have the code duplication below to show the default description before and after edit mode */}
           <ContentEditableTextArea
-            html={selectedPreset?.description} // innerHTML of the editable div
+            html={showDefaultDescription ? "Enter description here" : selectedPreset?.description} // innerHTML of the editable div
+            defaultValue="Enter description here"
             editing={editMode}
             onChange={(evt) => {
               dispatch(upsertPreset({ ...selectedPreset, description: evt.target.value }));
