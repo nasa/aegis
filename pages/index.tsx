@@ -232,12 +232,7 @@ const Left = () => {
           <div className={styles.aboutSectionTitle}>Useful Links</div>
           <ul>
             <li>
-              <a
-                href={
-                  "https://wiki.jsc.nasa.gov/exploration/index.php/Artemis_EVA_Geographic_Information_System"
-                }
-                target={"_blank"}
-              >
+              <a href={"https://wiki.jsc.nasa.gov/fod/index.php/Artemis_EVA_GIS"} target={"_blank"}>
                 About AEGIS
               </a>
             </li>
@@ -285,6 +280,14 @@ const Left = () => {
                     </a>
                   </div>
                   <div className={styles.teamTitle}>Interaction and Visual Design</div>
+                </li>
+                <li>
+                  <div className={styles.creditHeading}>
+                    <a className={styles.teamName} href={"mailto:omar.a.baig@nasa.gov"}>
+                      Omar Baig
+                    </a>
+                  </div>
+                  <div className={styles.teamTitle}>Software Engineering</div>
                 </li>
               </ul>
             </div>
