@@ -286,7 +286,7 @@
   color: white;
   font-size: 0.75rem;
   line-height: 1rem;
-  margin-bottom: 0.5rem;
+  margin: 15px 0 0 0;
 }
 
 .successMessage {
@@ -481,15 +481,6 @@
   background-color: #ffc107;
 }
 
-.errorMessage {
-  color: #dc3545;
-  font-weight: 600;
-  align-items: end;
-  font-size: 12px;
-  margin: 0;
-  float: right;
-}
-
 .inputSubmit {
   width: 100%;
   background-color: #4CAF50;
@@ -580,7 +571,6 @@
 
 .configDiv label .label {
   display: inline-block;
-  margin-left: 15%;
   font-weight: bold;
 }
 

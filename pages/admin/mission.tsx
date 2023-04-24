@@ -17,7 +17,6 @@ import adminStyles from "components/admin/admin.module.css";
 import { deleteFile } from "http-client/file";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
-import { faCopy, faPaste } from "@fortawesome/free-solid-svg-icons";
 import { getElevationSinglePoint } from "http-client/elevation";
 
 const Mission: NextPage = () => {
@@ -192,7 +191,8 @@ const AddEditMission = (props: {
   const { refreshMissionList, mission, setMission } = { ...props };
   const [config, setConfig] = useState<Config>(createNewConfig());
   const [errorTriggered, setErrorTriggered] = useState<boolean>(false);
-
+  const [tempMission, setTempMission] = useState<string>("");
+  const [enableLayerButton, setEnableLayerButton] = useState<boolean>(false);
   useEffect(() => {
     if (props.mission) {
       setConfig(props.mission.config);
@@ -229,23 +229,9 @@ const AddEditMission = (props: {
     });
   }
 
-  async function onChangeHandler(
-    event: ChangeEvent<HTMLInputElement> | ChangeEvent<HTMLTextAreaElement>
-  ) {
-    const { name, value } = event.target;
-    switch (name) {
-      case "missionConfig":
-        if (isValidJsonString(value)) {
-          setConfig(JSON.parse(value));
-        } else {
-          if (value === "") {
-            setConfig(JSON.parse(value));
-            return;
-          }
-          setConfig(undefined);
-        }
-        break;
-    }
+  async function updateTempMissionConfig(event: ChangeEvent<HTMLTextAreaElement>) {
+    const { value } = event.target;
+    setTempMission(value);
   }
 
   function isValidJsonString(str: string) {
@@ -396,37 +382,62 @@ const AddEditMission = (props: {
           <div className={styles.configDiv}>
             <label className={styles.title} htmlFor="configImport">
               <span className={styles.label}>Mission Config (json)</span>
-              <FontAwesomeIcon
-                title="Paste from Clipboard"
-                icon={faPaste}
-                className={styles.actionIcon}
-                onClick={() => {
-                  navigator.clipboard.readText().then((text) => {
-                    if (isValidJsonString(text)) {
-                      setConfig(JSON.parse(text));
-                      setErrorTriggered(false);
-                    } else {
-                      setErrorTriggered(true);
-                    }
-                  });
-                }}
-              />
-              <FontAwesomeIcon
-                title="Copy Json"
-                icon={faCopy}
-                className={styles.actionIcon}
-                onClick={() => {
-                  navigator.clipboard.writeText(JSON.stringify(config, null, 2));
-                }}
-              />
             </label>
 
             <textarea
               id="configImport"
               className={styles.configImport}
-              value={JSON.stringify(config, null, 2)}
-              onChange={onChangeHandler}
+              value={tempMission}
+              onChange={updateTempMissionConfig}
             />
+            <button
+              type="button"
+              onClick={() => {
+                if (isValidJsonString(tempMission)) {
+                  setConfig(JSON.parse(tempMission));
+                  setErrorTriggered(false);
+                  setEnableLayerButton(true);
+                } else {
+                  setErrorTriggered(true);
+                  setEnableLayerButton(false);
+                }
+              }}
+            >
+              Import Json
+            </button>
+            <button
+              type={"button"}
+              onClick={() => {
+                const tempMissionConfig = JSON.parse(tempMission);
+                if (tempMissionConfig.layers) {
+                  tempMissionConfig.layers.forEach((layer: any) => {
+                    // import the layer into the database
+                    const body = {
+                      missionId: mission.id,
+                      layerConfig: layer,
+                    };
+
+                    fetch("/api/layer", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify(body),
+                    })
+                      .then((res) => res.json())
+                      .then((data) => {
+                        console.log(data);
+                      })
+                      .catch((err) => {
+                        console.log(err);
+                      });
+                  });
+                }
+              }}
+              disabled={!enableLayerButton && mission.id !== undefined}
+            >
+              Import Layers
+            </button>
             <span className={styles.errorMessage}>
               {errorTriggered === true ? "Invalid JSON" : ""}
             </span>

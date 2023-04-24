@@ -64,7 +64,7 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
       }
 
       //upsert a record
-      if (req.method === "POST" && isAdmin) {
+      if (req.method === "POST") {
         try {
           //perform the upsert
           const upsertObject: Layer = req.body as Layer;
@@ -181,11 +181,9 @@ async function getLayers(missionId: number, layerUUID?: string): Promise<Layer[]
  */
 async function upsertLayer(layer: Layer): Promise<Layer> {
   const em = getEM();
-
   const upsertRecord: Layer = _.cloneDeep(layer);
 
   const updateDateString = roundDateToSecond(new Date()).toISOString();
-  upsertRecord.layerConfig.time.current = new Date(updateDateString); //the time property on this config item is the save date
 
   //convert fks and upsert
   const convertedRecord: EntityData<Layer_db> = {
