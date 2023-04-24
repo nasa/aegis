@@ -129,7 +129,10 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
             itemModified = !poiEqual || !poiActionEqual;
             break;
           case "map_layer_selector":
-            itemModified = !_.isEqual(presets, presetsFromDb);
+            itemModified = !_.isEqual(
+              _.sortBy(presets, ["uuid"]),
+              _.sortBy(presetsFromDb, ["uuid"])
+            );
             break;
           case "station":
             const stationsEqual = _.isEqual(
