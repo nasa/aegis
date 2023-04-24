@@ -43,6 +43,21 @@ Perform "All install methods" instructions above before performing the following
 4. Run `npm run dev` to start the frontend.
 5. Open [http://aegis-local.fit.nasa.gov:4000](http://aegis-local.fit.nasa.gov:4000) with your browser (lack of https). In dev, username and password are both `admin`.
 
+## Setting up tiles for local development
+
+Setup local environment using the instructions above before performing the following.
+
+1. Download the [Apollo 14 zips](https://nasa-ext.app.box.com/s/kpisqjexem99biar7h21xt773apcvcm2/folder/198248141077) and extract the contents anywhere on your computer.
+2. Open [https://aegis-local.fit.nasa.gov/admin](https://aegis-local.fit.nasa.gov/admin) or [http://aegis-local.fit.nasa.gov:4000/admin](http://aegis-local.fit.nasa.gov:4000/admin) depending on whether you started the full docker-compose or just the database.
+3. Under `Missions` select `Add/Edit Missions`.
+4. Under the Mission select `Edit Layers`
+5. Under `Manage files in the /Layers folder for this mission` section, select browse and navigate to the `Apollo_14/Layers` folder you extracted in step 1.
+6. For each zip file in `Apollo_14/Layers` submit and upload them.
+7. Under the Mission select `Edit Mission`
+8. Under `Manage files in the /Data folder for this mission` section, select browse and navigate to the `Apollo_14/Data` folder you extracted in step 1.
+9. Select `NAC_DTM_APOLLO14.zip` and submit and upload it for elevation data.
+10. Add `{"dem":"Data/NAC_DTM_APOLLO14.TIF","resolution":10}` to `Measure` object in `mission config.s`
+
 ## Helpful docker commands
 
 ### Seeing container logs
