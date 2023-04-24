@@ -338,8 +338,16 @@ const Left = () => {
   );
 };
 
-const Right = () => {
-  return <div className={styles.right} />;
+const Inset: React.FunctionComponent = () => {
+  return (
+    <div className={styles.insetContainer}>
+      <a href="https://svs.gsfc.nasa.gov/5074" target="_blank">
+        Image: Mons Mouton
+        <br />
+        NASA Science Visualization Studio
+      </a>
+    </div>
+  );
 };
 
 const Home: NextPage = () => {
@@ -366,7 +374,7 @@ const Home: NextPage = () => {
       </Head>
       <div className={styles.main}>
         <Left />
-        <Right />
+        <Inset />
       </div>
     </>
   );
