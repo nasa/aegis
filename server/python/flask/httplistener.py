@@ -6,7 +6,7 @@
 # The endpoint is /commands/<command_name> and the arguments are passed as a JSON body in the format:
 # { "args": ["arg1", "arg2", "arg3"]} }
 # Example:
-# curl -X POST -H 'Content-Type: application/json' -d '{"args": ["/static/1/arizona_dem_10m_3857.tif", "35.5816285", "-111.64001942", "35.58291988", "-111.62139416", "10", "z", "1"]}' http://localhost:4200/commands/2ptsToProfile
+# curl -X POST -H 'Content-Type: application/json' -d '{"args": ["--raster", "/static/missionFiles/1/Data/NAC_DTM_APOLLO14.TIF", "--axes", "z", "--band", "1", "--path", "_3.645421873728663,-17.47186660766602|-3.654850309034696,-17.46714591979981|-3.6449998008920375,-17.46010780334473|-3.6305197977566683,-17.43161201477051", "--steps", "32|37|97"]}' http://127.0.0.1:4200/commands/pathToElevationProfile
 
 from flask import Flask
 from flask_executor import Executor
