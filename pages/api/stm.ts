@@ -74,6 +74,7 @@ const handleSTM: NextApiHandler<
         o: "Objective",
         g: "Goal",
         i: "Investigation",
+        a: "ALL",
       };
       // retrieve a STM record. Mission and type are required query prams
       if (req.method === "GET") {
@@ -176,6 +177,8 @@ const handleSTM: NextApiHandler<
             deletedUUID = await deleteSTM(queryParams.g, "Goal");
           } else if (queryParams.stmType === "i" && queryParams.i) {
             deletedUUID = await deleteSTM(queryParams.i, "Investigation");
+          } else if (queryParams.stmType === "a" && queryParams.missionId) {
+            deletedUUID = await deleteSTMTree(queryParams.missionId);
           } else {
             return res.status(500).json({ status: "error", message: "Invalid url parameters" });
           }
@@ -505,6 +508,32 @@ async function deleteSTM(
   }
 
   return returnVal;
+}
+
+/**
+ * Deletes entire STM tree for a given mission
+ */
+async function deleteSTMTree(missionId: number): Promise<string> {
+  const em = getEM();
+
+  // loop through hierarchy and delete. There's probably a better way to do this but I burned hours so this is it for now
+  const objectives = await getObjectives(missionId);
+  for (const objective of objectives) {
+    const goals = await getGoals(missionId, objective.uuid);
+    for (const goal of goals) {
+      const investigations = await getInvestigations(missionId, null, goal.uuid);
+      for (const investigation of investigations) {
+        const entity = await em.findOne(STMInvestigation_db, investigation.uuid);
+        await em.removeAndFlush(entity);
+      }
+      const entity = await em.findOne(STMGoal_db, goal.uuid);
+      await em.removeAndFlush(entity);
+    }
+    const entity = await em.findOne(STMObjective_db, objective.uuid);
+    await em.removeAndFlush(entity);
+  }
+
+  return "all items deleted";
 }
 
 export default withIronSessionApiRoute(withORM(handleSTM), ironOptions);

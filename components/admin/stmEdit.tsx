@@ -1,6 +1,8 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import stmStyles from "./stmEdit.module.css";
-import { upsertSTM } from "http-client/stm";
+import { deleteSTM, upsertSTM } from "http-client/stm";
+import { useDispatch } from "react-redux";
+import { clearSTM, addObjective, addGoal, addInvestigation } from "store/stm";
 
 interface STMProps {
   reloadSTMfromDB: (missionId: number) => void;
@@ -19,56 +21,207 @@ const STMEdit: FunctionComponent<STMProps> = (props: STMProps) => {
 
   //set default selected uuid
   useEffect(() => {
-    if (allObjectives?.length > 0) {
-      setSelectedObjUUID(allObjectives[0].uuid);
+    if (!selectedObjUUID) {
+      if (allObjectives?.length > 0) {
+        setSelectedObjUUID(allObjectives[0].uuid);
+      }
     }
-  }, [allObjectives]);
+  }, [allObjectives, selectedObjUUID]);
 
   return (
-    <div id="stmEdit_div">
-      <div>
-        <div className={stmStyles.div_select} />
-        <div id="div_addObjective" className={stmStyles.div_add}>
-          <NewObjectiveFields missionId={props.missionId} reloadSTM={props.reloadSTMfromDB} />
+    <>
+      <div id="stmEdit_div">
+        <div>
+          <div className={stmStyles.div_select} />
+          <div id="div_addObjective" className={stmStyles.div_add}>
+            <NewObjectiveFields missionId={props.missionId} reloadSTM={props.reloadSTMfromDB} />
+          </div>
         </div>
-      </div>
-      <div>
-        <div id="div_selectObjective" className={stmStyles.div_select}>
-          {allObjectives?.length > 0 && selectedObjUUID && (
-            <ObjectiveSelect
-              objectives={props.allObjectives}
-              selectedObjUUID={selectedObjUUID}
-              setSelectedObjUUID={setSelectedObjUUID}
+        <div>
+          <div id="div_selectObjective" className={stmStyles.div_select}>
+            {allObjectives?.length > 0 && selectedObjUUID && (
+              <ObjectiveSelect
+                objectives={props.allObjectives}
+                selectedObjUUID={selectedObjUUID}
+                setSelectedObjUUID={setSelectedObjUUID}
+                setSelectedGoalUUID={setSelectedGoalUUID}
+              />
+            )}
+          </div>
+          <div id="div_addGoal" className={stmStyles.div_add}>
+            <NewGoalFields
+              objectiveUUID={selectedObjUUID}
+              missionId={props.missionId}
+              reloadSTM={props.reloadSTMfromDB}
             />
-          )}
+          </div>
         </div>
-        <div id="div_addGoal" className={stmStyles.div_add}>
-          <NewGoalFields
-            objectiveUUID={selectedObjUUID}
-            missionId={props.missionId}
-            reloadSTM={props.reloadSTMfromDB}
-          />
+        <div>
+          <div id="div_selectGoal" className={stmStyles.div_select}>
+            <GoalSelect
+              allGoals={props.allGoals}
+              objectiveUUID={selectedObjUUID}
+              selectedGoalUUID={selectedGoalUUID}
+              setSelectedGoalUUID={setSelectedGoalUUID}
+            />
+          </div>
+          <div id="div_addInvestigation" className={stmStyles.div_add}>
+            <NewInvstgFields
+              goalUUID={selectedGoalUUID}
+              missionId={props.missionId}
+              reloadSTM={props.reloadSTMfromDB}
+            />
+          </div>
         </div>
+        *STM items can only be deleted if they have no children
       </div>
-      <div>
-        <div id="div_selectGoal" className={stmStyles.div_select}>
-          <GoalSelect
-            allGoals={props.allGoals}
-            objectiveUUID={selectedObjUUID}
-            selectedGoalUUID={selectedGoalUUID}
-            setSelectedGoalUUID={setSelectedGoalUUID}
-          />
-        </div>
-        <div id="div_addInvestigation" className={stmStyles.div_add}>
-          <NewInvstgFields
-            goalUUID={selectedGoalUUID}
-            missionId={props.missionId}
-            reloadSTM={props.reloadSTMfromDB}
-          />
-        </div>
+      <h3>Import/Export STM</h3>
+      <div className={stmStyles.importExport}>
+        <ExportSTM
+          allObjectives={props.allObjectives}
+          allGoals={props.allGoals}
+          allInvestigations={props.allInvestigations}
+        />
+        <ImportSTM missionId={props.missionId} reloadSTMfromDB={props.reloadSTMfromDB} />
       </div>
-      *STM items can only be deleted if they have no children
-    </div>
+    </>
+  );
+};
+
+const destructiveImportSTM = async (dispatch: Function, stmJson: string, missionId: number) => {
+  const stm = JSON.parse(stmJson);
+  // delete all existing STM items from the store
+  dispatch(clearSTM());
+
+  // delete all esiting STM items for this mission from the db via the API
+  deleteSTM(missionId, "ALL");
+
+  // add all STM items from the imported JSON to the store
+  stm.objectives.forEach(async (obj: STMObjective) => {
+    const newObjective: STMObjective = {
+      uuid: obj.uuid,
+      name: obj.name,
+      numbering: obj.numbering,
+      missionId,
+      createdAt: new Date(Date.now()).toISOString(),
+      updatedAt: new Date(Date.now()).toISOString(),
+    };
+    await upsertSTM(missionId, newObjective, "Objective");
+    dispatch(addObjective(newObjective));
+  });
+
+  stm.goals.forEach(async (goal: STMGoal) => {
+    const newGoal: STMGoal = {
+      uuid: goal.uuid,
+      name: goal.name,
+      numbering: goal.numbering,
+      objectiveUuid: goal.objectiveUuid,
+      createdAt: new Date(Date.now()).toISOString(),
+      updatedAt: new Date(Date.now()).toISOString(),
+    };
+    await upsertSTM(missionId, newGoal, "Goal");
+    dispatch(addGoal(newGoal));
+  });
+
+  stm.investigations.forEach(async (invstg: STMInvestigation) => {
+    const newInvstg: STMInvestigation = {
+      uuid: invstg.uuid,
+      name: invstg.name,
+      numbering: invstg.numbering,
+      goalUuid: invstg.goalUuid,
+      createdAt: new Date(Date.now()).toISOString(),
+      updatedAt: new Date(Date.now()).toISOString(),
+    };
+    await upsertSTM(missionId, newInvstg, "Investigation");
+    dispatch(addInvestigation(newInvstg));
+  });
+};
+
+const ExportSTM = (props: {
+  allObjectives: STMObjective[];
+  allGoals: STMGoal[];
+  allInvestigations: STMInvestigation[];
+}) => {
+  // strip out missionId, createdAd, and updatedAd from all STM items
+  const objectives = props.allObjectives.map((obj: STMObjective) => {
+    return {
+      uuid: obj.uuid,
+      name: obj.name,
+      numbering: obj.numbering,
+    };
+  });
+  const goals = props.allGoals.map((goal: STMGoal) => {
+    return {
+      uuid: goal.uuid,
+      name: goal.name,
+      numbering: goal.numbering,
+      objectiveUuid: goal.objectiveUuid,
+    };
+  });
+  const investigations = props.allInvestigations.map((invstg: STMInvestigation) => {
+    return {
+      uuid: invstg.uuid,
+      name: invstg.name,
+      numbering: invstg.numbering,
+      goalUuid: invstg.goalUuid,
+    };
+  });
+
+  const stm = {
+    objectives: objectives,
+    goals: goals,
+    investigations: investigations,
+  };
+
+  const exportSTM = () => {
+    const stmString = JSON.stringify(stm);
+    const stmBlob = new Blob([stmString], { type: "application/json" });
+    const stmUrl = URL.createObjectURL(stmBlob);
+    const downloadLink = document.createElement("a");
+    downloadLink.href = stmUrl;
+    downloadLink.download = "stm.json";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+  };
+
+  return (
+    <>
+      <div className={stmStyles.exportContainer}>
+        <button onClick={exportSTM} className={stmStyles.exportButton}>
+          Export STM to JSON
+        </button>
+      </div>
+    </>
+  );
+};
+
+const ImportSTM = (props: { missionId: number; reloadSTMfromDB: Function }) => {
+  const dispatch = useDispatch();
+  const [stmJson, setStmJson] = useState<string>(null);
+
+  return (
+    <>
+      <textarea
+        id="importStm"
+        placeholder="paste STM json to import here"
+        onChange={(e) => setStmJson(e.target.value)}
+      />
+      <button
+        onClick={() => {
+          if (
+            confirm(
+              "Are you sure you want to import? This will destroy all existing STM records for this mission"
+            )
+          ) {
+            destructiveImportSTM(dispatch, stmJson, props.missionId);
+            props.reloadSTMfromDB(props.missionId);
+          }
+        }}
+      >
+        Import STM
+      </button>
+    </>
   );
 };
 
@@ -81,6 +234,7 @@ const ObjectiveSelect = (props: {
   objectives: STMObjective[];
   selectedObjUUID: string;
   setSelectedObjUUID: (uuid: string) => void;
+  setSelectedGoalUUID: (uuid: string) => void;
 }) => {
   return (
     <>
@@ -89,7 +243,10 @@ const ObjectiveSelect = (props: {
       </label>
       <select
         id="objSelect"
-        onChange={(e) => props.setSelectedObjUUID(e.target.value)}
+        onChange={(e) => {
+          props.setSelectedObjUUID(e.target.value);
+          props.setSelectedGoalUUID(null);
+        }}
         value={props.selectedObjUUID}
         className={stmStyles.selectField}
       >
@@ -120,10 +277,12 @@ const GoalSelect = (props: {
       return goal.objectiveUuid === props.objectiveUUID;
     });
     setFilteredGoals(goals);
-    if (goals.length > 0) {
-      props.setSelectedGoalUUID(goals[0].uuid);
-    } else {
-      props.setSelectedGoalUUID(null);
+    if (!props.selectedGoalUUID) {
+      if (goals.length > 0) {
+        props.setSelectedGoalUUID(goals[0].uuid);
+      } else {
+        props.setSelectedGoalUUID(null);
+      }
     }
   }, [props]);
 

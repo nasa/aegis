@@ -63,8 +63,8 @@ export async function upsertSTM(
 /****** DELETE ******/
 export async function deleteSTM(
   missionId: number,
-  uuid: string,
-  stmType: "Objective" | "Goal" | "Investigation"
+  stmType: "Objective" | "Goal" | "Investigation" | "ALL",
+  uuid?: string
 ): Promise<WrappedResponse<string | null>> {
   const stmParam: string = stmType.charAt(0).toLowerCase();
 

@@ -21,3 +21,10 @@
 .div_add {
   display: inline-block;
 }
+
+.importExport {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  margin-top: 20px;
+}

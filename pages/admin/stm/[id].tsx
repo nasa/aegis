@@ -86,13 +86,13 @@ const STM: NextPage = () => {
       }
       if (showAlert) {
         alert(
-          `Cannot delete ${stmType} becuase it has children. Delete all the children first, then delete this ${stmType}.`
+          `Cannot delete ${stmType} because it has children. Delete all the children first, then delete this ${stmType}.`
         );
         return;
       }
       try {
         setMessage(`Deleting ${stmType}: ${uuid}`);
-        await deleteSTM(missionIdSlug, uuid, stmType);
+        await deleteSTM(missionIdSlug, stmType, uuid);
         await loadSTMfromDB(missionIdSlug);
         setMessage(`Delete Complete`);
       } catch {
