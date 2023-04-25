@@ -421,10 +421,10 @@ const MapBody: FunctionComponent = () => {
           });
         }
 
-        if (typeName === "Station") {
+        if (mapItemType === "station") {
           marker.setZIndexOffset(1000);
           stationFeatureGroup.current.addLayer(marker);
-        } else if (typeName === "Poi") {
+        } else if (mapItemType === "poi") {
           poiFeatureGroup.current.addLayer(marker);
         } else {
           map.current.addLayer(marker);
@@ -887,7 +887,11 @@ const MapBody: FunctionComponent = () => {
     if (showAllStations) {
       setStationsToShow(stations);
     } else if (selectedStation) {
-      setStationsToShow([selectedStation]);
+      if (sectionSelected === "station" || sectionSelected === "evas") {
+        setStationsToShow([selectedStation]);
+      } else {
+        setStationsToShow([]);
+      }
     } else if (selectedEva) {
       const stationSequenceItems = selectedEva.sequence.filter((item) => item.type === "station");
       const stationsInEva = stations.filter((station) =>
@@ -897,7 +901,7 @@ const MapBody: FunctionComponent = () => {
     } else {
       setStationsToShow([]);
     }
-  }, [stations, selectedStation, selectedEva, showAllStations]);
+  }, [stations, selectedStation, selectedEva, showAllStations, sectionSelected]);
 
   /**
    * Populate POIs to show when POIs or selections change
@@ -907,11 +911,15 @@ const MapBody: FunctionComponent = () => {
     if (showAllPois) {
       setPoisToShow(pois);
     } else if (selectedPoi) {
-      setPoisToShow([selectedPoi]);
+      if (sectionSelected === "poi") {
+        setPoisToShow([selectedPoi]);
+      } else {
+        setPoisToShow([]);
+      }
     } else {
       setPoisToShow([]);
     }
-  }, [pois, selectedPoi, showAllPois]);
+  }, [pois, selectedPoi, showAllPois, sectionSelected]);
 
   /**
    * Populate traverses to show when traverses or selections change
@@ -998,7 +1006,6 @@ const MapBody: FunctionComponent = () => {
    */
   useEffect(() => {
     if (!map.current || mapDirective) return;
-    if (!stationsToShow) return;
 
     // remove all stations from the map
     stationFeatureGroup.current.clearLayers();
@@ -1048,6 +1055,8 @@ const MapBody: FunctionComponent = () => {
       }
     });
 
+    if (sectionSelected !== "station" && sectionSelected !== "evas") return;
+
     // draw the walkback traverse
     if (!mapDirective && selectedStation?.walkbackPath) {
       drawPolylineOnMap({
@@ -1065,7 +1074,7 @@ const MapBody: FunctionComponent = () => {
         drawAntPath: false,
       });
     }
-  }, [map, selectedStation, mapDirective, drawPolylineOnMap, dispatch]);
+  }, [map, selectedStation, mapDirective, drawPolylineOnMap, dispatch, sectionSelected]);
 
   /**
    * Draw or update traverses on the map when selections or traverses change. Serves as draw when page loads
@@ -1186,36 +1195,19 @@ const MapBody: FunctionComponent = () => {
     }
   }, [playheadHover, getMapItemByUuid, mapDirective, selectedEva, stations, traverses]);
 
-  /**
-   * Monitor map item highlights and draw highlight layer on the map
-   */
-  useEffect(() => {
-    if (!map.current) return;
-
+  const removeSelectedMarker = useCallback(() => {
     // remove any existing highlight layers
     map.current.eachLayer((layer: AEGISCircleMarker) => {
       if (layer?.mapItemType === "selected") {
         map.current.removeLayer(layer);
       }
     });
+  }, [map]);
 
-    if (!showSelectedItemOnMap) return;
+  const drawSelectedMarker = useCallback(
+    (highlightLocation) => {
+      if (!showSelectedItemOnMap) return;
 
-    let highlightLocation: AEGISPoint = null;
-    let panMapToLocation: AEGISPoint = null;
-    if (sectionSelected === "poi" && selectedPoi?.location) {
-      // highlight selectedPpo if the poi section is selected
-      highlightLocation = selectedPoi.location;
-      panMapToLocation = selectedPoi.location;
-    } else if (selectedStation?.location) {
-      highlightLocation = selectedStation.location;
-      panMapToLocation = selectedStation.location;
-    } else if (selectedTraverse?.path) {
-      // highlight the midpoint of the selected traverse
-      panMapToLocation = getMidpoint(selectedTraverse.path);
-    }
-
-    if (highlightLocation) {
       const latLng = new L.LatLng(highlightLocation.lat, highlightLocation.lng);
 
       // create a circle marker that is a white dotted stroke with no fill
@@ -1232,6 +1224,36 @@ const MapBody: FunctionComponent = () => {
       marker.bringToBack();
 
       map.current.addLayer(marker);
+    },
+    [map, showSelectedItemOnMap]
+  );
+
+  /**
+   * Monitor map item highlights and draw highlight layer on the map
+   */
+  useEffect(() => {
+    if (!map.current) return;
+
+    removeSelectedMarker();
+
+    if (!showSelectedItemOnMap) return;
+
+    let highlightLocation: AEGISPoint = null;
+    let panMapToLocation: AEGISPoint = null;
+    if (sectionSelected === "poi" && selectedPoi?.location) {
+      // highlight selectedPpo if the poi section is selected
+      highlightLocation = selectedPoi.location;
+      panMapToLocation = selectedPoi.location;
+    } else if (sectionSelected === "station" && selectedStation?.location) {
+      highlightLocation = selectedStation.location;
+      panMapToLocation = selectedStation.location;
+    } else if (selectedTraverse?.path) {
+      // highlight the midpoint of the selected traverse
+      panMapToLocation = getMidpoint(selectedTraverse.path);
+    }
+
+    if (highlightLocation) {
+      drawSelectedMarker(highlightLocation);
     }
 
     if (panMapToLocation) {
@@ -1246,6 +1268,8 @@ const MapBody: FunctionComponent = () => {
     dispatch,
     showSelectedItemOnMap,
     sectionSelected,
+    removeSelectedMarker,
+    drawSelectedMarker,
     selectedTraverse,
   ]);
 
