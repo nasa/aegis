@@ -110,6 +110,7 @@ const EvaItemSequence: FunctionComponent<{
   };
 
   const durationMinutes = (selectedTraverse: Traverse): number => {
+    if (!selectedTraverse) return;
     //convert meters to km, then divide by traverse speed to get minutes
     const distanceMeters = selectedTraverse.pathSegmentDistances?.reduce(
       (accumulator, currentVal) => {
