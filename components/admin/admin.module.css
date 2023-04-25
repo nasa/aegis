@@ -34,15 +34,15 @@
   text-align: center;
   position: relative;
   cursor: pointer;
-  box-shadow: 0 10px 15px -3px rgba(33,150,243,.4),0 4px 6px -4px rgba(33,150,243,.4);
+  box-shadow: 0 10px 15px -3px rgba(33, 150, 243, 0.4), 0 4px 6px -4px rgba(33, 150, 243, 0.4);
   border-radius: 10px;
-  background-color: #6B6ECC;
+  background-color: #6b6ecc;
   background: linear-gradient(45deg, #04051dea 0%, #2b566e 100%);
   transition: 1s;
 }
 
 .actionTile:hover {
-  box-shadow: 0 10px 15px -3px rgba(255,0,243,.4),0 4px 6px -4px rgba(33,150,243,.4);
+  box-shadow: 0 10px 15px -3px rgba(255, 0, 243, 0.4), 0 4px 6px -4px rgba(33, 150, 243, 0.4);
   background: linear-gradient(45deg, #04051dea 0%, #2b566e 100%);
 }
 
@@ -74,7 +74,7 @@
   color: rgb(255 255 255);
   text-transform: uppercase;
   font-weight: 700;
-  font-size: .75rem;
+  font-size: 0.75rem;
   padding: 0.75rem 1.5rem;
   background-color: rgb(33 150 243);
   border-radius: 0.5rem;
@@ -175,7 +175,7 @@
 }
 
 .table tr:nth-child(even) {
-  background-color: #0B3D91;
+  background-color: #0b3d91;
   color: white;
 }
 
@@ -197,7 +197,6 @@
 .form {
   width: 300px;
 }
-
 
 .formGroup {
   display: flex;
@@ -247,12 +246,12 @@
   border: 1px solid #ddd;
   border-radius: 0.25rem;
   width: 100%;
-  background-color: #0B3D91;
+  background-color: #0b3d91;
 }
 
 .formGroup button:hover {
   background-color: white;
-  color: #0B3D91;
+  color: #0b3d91;
   border: 2px solid black;
 }
 
@@ -260,7 +259,7 @@
   position: relative;
 }
 .addButton {
-  background-color: #0B3D91;
+  background-color: #0b3d91;
   color: white;
   border: 1px solid #ddd;
   border-radius: 0.25rem;
@@ -277,7 +276,7 @@
 
 .addButton:hover {
   background-color: white;
-  color: #0B3D91;
+  color: #0b3d91;
   border: 2px solid black;
 }
 
@@ -369,7 +368,6 @@
 .icons:active {
   color: var(--grey1);
 }
-
 
 .apiButton {
   width: 100%;
@@ -483,7 +481,7 @@
 
 .inputSubmit {
   width: 100%;
-  background-color: #4CAF50;
+  background-color: #4caf50;
   color: white;
   padding: 14px 20px;
   margin: 8px 0;
@@ -513,7 +511,8 @@
   cursor: not-allowed;
 }
 
-.errorList, .successList {
+.errorList,
+.successList {
   list-style: none;
   padding-left: 0;
 }
@@ -558,7 +557,7 @@
   border: 1px solid var(--grey4);
   border-radius: 5px;
   color: white;
-  background-color: #0B3D91;
+  background-color: #0b3d91;
   margin: 0 auto;
 }
 

@@ -36,6 +36,7 @@ import {
   convertLeafletLatLngsToAegisPoints,
   convertLeafletLatLngToAegisPoint,
   getDistanceBetweenTwoCoordinates,
+  getMidpoint,
 } from "utils/geoMath";
 import { decodeEmoji } from "utils/formatting";
 import { Checkbox } from "./_global-elements";
@@ -78,24 +79,29 @@ const MapBody: FunctionComponent = () => {
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
 
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
+  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
   const selectedPoi = useAppSelector(
     (state) => state.poi.pois.find((poi) => poi.uuid === state.poi.selectedPoiUuid),
     refEqual
   );
-  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
   const selectedStation = useAppSelector(
     (state) =>
       state.station.stations.find((station) => station.uuid === state.station.selectedStationUuid),
     refEqual
   );
-
   const selectedEva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
     refEqual
   );
-
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
+    refEqual
+  );
+  const selectedTraverse = useAppSelector(
+    (state) =>
+      state.traverse.traverses.find(
+        (traverse) => traverse.uuid === state.eva.selectedEvaSequenceItemUuid
+      ),
     refEqual
   );
   const playheadHover = useAppSelector((state) => state.playheadHover, shallowEqual); //astronaut hover timeline
@@ -1196,11 +1202,17 @@ const MapBody: FunctionComponent = () => {
     if (!showSelectedItemOnMap) return;
 
     let highlightLocation: AEGISPoint = null;
+    let panMapToLocation: AEGISPoint = null;
     if (sectionSelected === "poi" && selectedPoi?.location) {
       // highlight selectedPpo if the poi section is selected
       highlightLocation = selectedPoi.location;
+      panMapToLocation = selectedPoi.location;
     } else if (selectedStation?.location) {
       highlightLocation = selectedStation.location;
+      panMapToLocation = selectedStation.location;
+    } else if (selectedTraverse?.path) {
+      // highlight the midpoint of the selected traverse
+      panMapToLocation = getMidpoint(selectedTraverse.path);
     }
 
     if (highlightLocation) {
@@ -1221,7 +1233,21 @@ const MapBody: FunctionComponent = () => {
 
       map.current.addLayer(marker);
     }
-  }, [map, selectedPoi, selectedStation, dispatch, showSelectedItemOnMap, sectionSelected]);
+
+    if (panMapToLocation) {
+      if (!map.current.getBounds().contains(panMapToLocation)) {
+        map.current.panTo(panMapToLocation);
+      }
+    }
+  }, [
+    map,
+    selectedPoi,
+    selectedStation,
+    dispatch,
+    showSelectedItemOnMap,
+    sectionSelected,
+    selectedTraverse,
+  ]);
 
   /**
    * if selected Poi or Station changes, then show the highlight on the map
