@@ -238,3 +238,12 @@ export function getSlope(x1: number, y1: number, x2: number, y2: number): number
   if (run === 0) return 90;
   return (Math.atan(rise / run) * 180) / Math.PI;
 }
+
+/**
+ * Get the midpoint of an array of AEGISPoints by averaging the lat and lng
+ */
+export function getMidpoint(points: AEGISPoint[]): AEGISPoint {
+  const lat = _.meanBy(points, "lat");
+  const lng = _.meanBy(points, "lng");
+  return { lat, lng };
+}

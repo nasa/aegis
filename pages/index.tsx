@@ -344,7 +344,7 @@ const Inset: React.FunctionComponent = () => {
       <a href="https://svs.gsfc.nasa.gov/5074" target="_blank">
         Image: Mons Mouton
         <br />
-        NASA Science Visualization Studio
+        NASA Scientific Visualization Studio
       </a>
     </div>
   );

@@ -181,7 +181,9 @@ export const ModifiedIndicator: FunctionComponent<{
   obj2: Object;
   svgStyle: { width: string; height: string; cx: string; cy: string; r: string; fill: string };
 }> = ({ obj1, obj2, svgStyle }) => {
-  if (_.isEqual(_.sortBy(obj1, ["uuid"]), _.sortBy(obj2, ["uuid"]))) {
+  const diff = _.differenceWith(_.sortBy(obj2, ["uuid"]), _.sortBy(obj1, ["uuid"]), _.isEqual);
+
+  if (diff && diff.length === 0) {
     return <></>;
   } else {
     return (

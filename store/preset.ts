@@ -43,19 +43,6 @@ export const presetSlice = createSlice({
     setSelectedPresetRightNavItem: (state, action: { payload: string }) => {
       state.selectedRightNavItem = action.payload;
     },
-    setPresetLayerControl: (
-      state,
-      action: { payload: { presetUuid: string; layerName: string; layerControl: LayerControl } }
-    ) => {
-      const preset = state.presets.find((preset) => preset.uuid === action.payload.presetUuid);
-      const presetIndex = state.presets.findIndex(
-        (preset) => preset.uuid === action.payload.presetUuid
-      );
-      if (preset) {
-        preset.layerControls[action.payload.layerName] = action.payload.layerControl;
-      }
-      state.presets[presetIndex] = preset;
-    },
     togglePresetLayerControlEnabled: (
       state,
       action: { payload: { presetUuid: string; layerName: string } }
@@ -175,7 +162,6 @@ export const {
   duplicatePreset,
   setSelectedPresetUuid,
   setSelectedPresetRightNavItem,
-  setPresetLayerControl,
   togglePresetLayerControlEnabled,
   setPresetLayerControlStyle,
   togglePresetInteractionLayerExpanded,
