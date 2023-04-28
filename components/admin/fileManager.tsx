@@ -54,6 +54,9 @@ const FileManager: FunctionComponent<{
       });
       setDirListing(fileStates);
       if (setFileList) setFileList(fileList);
+    } else {
+      setDirListing([]);
+      if (setFileList) setFileList([]);
     }
   }, [path, setFileList]);
 

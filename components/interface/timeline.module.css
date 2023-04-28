@@ -5,7 +5,6 @@
 }
 
 .timelineBodyItem {
-  margin: 4px;
   height: 100%;
   background-color: var(--grey2);
   border-radius: var(--panelRadius);
@@ -13,7 +12,7 @@
 
 .timelineRight {
   padding-left: 4px;
-  margin: 4px 4px 0 0;
+  margin: 4px 4px 4px 0;
   width: 60px;
   background-color: var(--grey2);
   border-radius: var(--panelRadius);
@@ -24,18 +23,18 @@
   flex-direction: row;
   justify-content: right;
   background-color: var(--grey1);
-  padding: 4px 0 4px 4px;
 }
 
 .timelineHoverContainer {
   display: flex;
   flex-direction: column;
+  row-gap: 4px;
   width: 150px;
-  height: 100%;
   background-color: var(--grey1);
   font-size: 0.8rem;
   border-radius: var(--panelRadius);
-  margin: 0 0 0 4px;
+  margin-top: 4px;
+  margin-bottom: 4px;
 }
 
 .timelineHoverValues {
@@ -63,7 +62,7 @@
   left: 0;
   z-index: 500;
   background-color: var(--grey1);
-  border-radius: var(--radius);
+  margin: 4px;
 }
 
 .canvasContainer canvas {
@@ -74,11 +73,10 @@
 .timelineKey {
   display: flex;
   flex-direction: column;
-  margin: 4px 0 4px 0;
   padding: 4px;
-  height: 100%;
   background-color: var(--grey2);
   border-radius: var(--panelRadius);
+  flex-grow: 1;
 }
 
 .timelineKeyItem {
@@ -116,6 +114,7 @@
 .svgLine {
   margin: 3px 0 0 4px;
   width: 20px;
+  height: 0.5rem;
 }
 
 /* make a dashed line using gradient */
