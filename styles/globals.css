@@ -33,6 +33,10 @@ body {
   --alert: #cb0000;
   --alert-disabled: #650000;
 
+  --info: #2b6092;
+  --warning: #cabd00;
+  --error: #cb0000;
+
   --radius: 3px;
   --panelRadius: 8px;
 }

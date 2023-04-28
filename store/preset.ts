@@ -74,8 +74,15 @@ export const presetSlice = createSlice({
       state,
       action: { payload: { presetUuid: string; layerName: string } }
     ) => {
-      state.presetInteractions[action.payload.presetUuid][action.payload.layerName].expanded =
-        !state.presetInteractions[action.payload.presetUuid][action.payload.layerName].expanded;
+      if (!_.isNil(state.presetInteractions[action.payload.presetUuid][action.payload.layerName])) {
+        state.presetInteractions[action.payload.presetUuid][action.payload.layerName].expanded =
+          !state.presetInteractions[action.payload.presetUuid][action.payload.layerName].expanded;
+      } else {
+        state.presetInteractions[action.payload.presetUuid][action.payload.layerName] = {
+          expanded: true,
+          tabSelected: null,
+        };
+      }
     },
     setPresetInteractions: (
       state,

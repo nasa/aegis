@@ -13,6 +13,8 @@ import {
   faFloppyDisk,
   faTrashAlt,
   faEdit,
+  faTriangleExclamation,
+  faCheck,
 } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, InLineEditInput } from "components/interface/_global-elements";
 import {
@@ -34,11 +36,13 @@ import {
 import Info_Panel from "./station-right-info";
 import Poi_Panel from "./station-right-poi";
 import Actions_Panel from "./station-right-actions";
+import Report_Panel from "../report";
 import * as httpClient_station from "http-client/station";
 import * as httpClient_action from "http-client/action";
 import { updateMapDirective } from "store/map";
 import { decodeEmoji } from "utils/formatting";
 import { setRightPanelOpen } from "store/interface";
+import { getAlertColor } from "utils/component-helpers";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -63,6 +67,7 @@ const StationEditorRight: FunctionComponent = () => {
     (state) => state.station.stationsFromDb.find((station) => station.uuid === selectedStationUuid),
     shallowEqual
   );
+
   const stationActions = useAppSelector(
     (state) =>
       state.action.actions.filter((storeAction) => storeAction.stationUuid === selectedStationUuid),
@@ -90,36 +95,60 @@ const StationEditorRight: FunctionComponent = () => {
   const elevationPendingIndex = useAppSelector(
     (state) =>
       state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedStationUuid),
-    refEqual
+    shallowEqual
   );
 
   const isAdmin = useAppSelector(
     (state) => state.user.ironSessionData?.user.permission.includes("admin"),
     refEqual
   );
+
+  const calculatedFields = useAppSelector(
+    (state) =>
+      state.station.calculatedFields.find((calculated) => calculated.uuid === selectedStationUuid),
+    shallowEqual
+  );
+
+  const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
+  const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--station)");
+
   const panelTypes: PanelTypes = {
     info_panel: {
       title: "Station Information",
-      panel: <Info_Panel editMode={stationsEditing.includes(selectedStationUuid)} />,
-      color: "var(--station)",
+      panel: (
+        <Info_Panel
+          editMode={stationsEditing.includes(selectedStationUuid)}
+          totalStationTime={calculatedFields?.totalTime}
+          actionCount={calculatedFields?.actionCount}
+        />
+      ),
+      selectedColor: "var(--station)",
       icon: faCircleInfo,
     },
     poi_panel: {
       title: "Station POIs",
       panel: <Poi_Panel editMode={stationsEditing.includes(selectedStationUuid)} />,
-      color: "var(--station)",
+      selectedColor: "var(--station)",
       icon: faCircleDot,
     },
     actions_panel: {
       title: "Station Actions",
       panel: <Actions_Panel editMode={stationsEditing.includes(selectedStationUuid)} />,
-      color: "var(--station)",
+      selectedColor: "var(--station)",
       icon: faPersonDigging,
+    },
+    report_panel: {
+      title: "Station Report",
+      panel: (
+        <Report_Panel reportItems={calculatedFields?.reportItems} reportTitle={"Station Report"} />
+      ),
+      selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "var(--station)",
+      unselectedColor: reportsTabIconColor,
+      icon: calculatedFields?.reportItems.length > 0 ? faTriangleExclamation : faCheck,
     },
   };
 
   //track modified
-  const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
 
   useEffect(() => {
     if (elevationPendingIndex > -1) {
@@ -140,6 +169,11 @@ const StationEditorRight: FunctionComponent = () => {
     stationActions,
     stationActionsFromDb,
   ]);
+
+  // set reports tab icon color
+  useEffect(() => {
+    setReportsTabIconColor(getAlertColor(calculatedFields?.reportItems));
+  }, [calculatedFields]);
 
   const cancelMarkerMapDirective = () => {
     // if there's an active create or edit action, cancel it
@@ -366,6 +400,9 @@ const StationEditorRight: FunctionComponent = () => {
           <div className={paneStyles.rightIconRow}>
             {panelTypes &&
               Object.keys(panelTypes).map((panelType) => {
+                const unselectedColor = _.has(panelTypes[panelType], "unselectedColor")
+                  ? panelTypes[panelType].unselectedColor
+                  : "white";
                 return (
                   <div
                     key={panelType}
@@ -380,8 +417,8 @@ const StationEditorRight: FunctionComponent = () => {
                       style={{
                         color:
                           selectedRightNavItem === panelType
-                            ? panelTypes[panelType].color
-                            : "white",
+                            ? panelTypes[panelType].selectedColor
+                            : unselectedColor,
                       }}
                       title={panelTypes[panelType].title}
                       onClick={() => dispatch(setSelectedStationRightNavItem(panelType))}

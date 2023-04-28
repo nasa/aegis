@@ -1,6 +1,15 @@
 import appCreateAsyncThunk from "./thunkUtil";
-import { updateWalkbackPath, upsertStation } from "store/station";
-import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/geoMath";
+import {
+  updateWalkbackPath,
+  upsertStation,
+  setStationCalculatedFields as setStationCalculatedFields,
+} from "store/station";
+import {
+  calculateAscentAndDescent,
+  getDistanceBetweenTwoCoordinates,
+  getTotalDistance,
+  traverseDurationMinutes,
+} from "utils/geoMath";
 import { thunkGetElevation } from "./thunkElevation";
 import _ from "lodash";
 import { thunkUpdateAllTraversesForEVASequence } from "./thunkTraverse";
@@ -193,3 +202,106 @@ export const thunkResetWalkback = appCreateAsyncThunk<{
     })
   );
 });
+
+/**
+ * Create reports for all stations
+ */
+export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
+  "createStationCalculatedFields",
+  async (_, { dispatch, getState }) => {
+    const stations = getState().station.stations;
+    const allCalculatedFields: StationCalculatedFields[] = [];
+    const missionTraverseRate = getState().mission.mission.traverseSpeed;
+    for (const station of stations) {
+      //get station actions
+      const stationActions = getState().action.actions.filter(
+        (storeAction) => storeAction.stationUuid === station.uuid
+      );
+
+      //calculate total station time
+      let totalDurationLower = 0;
+      let totalDurationUpper = 0;
+      let actionCount = 0;
+      stationActions.forEach((action) => {
+        totalDurationLower += action.durationLower;
+        totalDurationUpper += action.durationUpper;
+        actionCount++;
+      });
+
+      //generate station report messages
+      if (!station) return;
+      const newReportItems: ReportItem[] = [];
+
+      // check if station has no actions
+      if (stationActions.length === 0) {
+        newReportItems.push({
+          message: "Station has no actions",
+          type: "warning",
+        } as ReportItem);
+      }
+
+      // check if station has no location
+      if (!station.location) {
+        newReportItems.push({
+          message: "Station location not yet set",
+          type: "warning",
+        } as ReportItem);
+      }
+
+      // check if station durationLower is greater than totalDurationLower
+      if (station.durationLower < totalDurationLower) {
+        newReportItems.push({
+          message: "Estimated nominal dwell time is less than total of nominal action durations",
+          type: "error",
+        } as ReportItem);
+      }
+
+      // check if station durationUpper is greater than totalDurationUpper
+      if (station.durationUpper < totalDurationUpper) {
+        newReportItems.push({
+          message: "Estimated maximum dwell time is less than total of maximum action durations",
+          type: "error",
+        } as ReportItem);
+      }
+      // check if station has no associated POIs
+      if (station.poiUuids.length === 0) {
+        newReportItems.push({
+          message: "Station has no associated POIs",
+          type: "info",
+        } as ReportItem);
+      }
+
+      // get walback duration minutes
+      const walkbackDurationMinutes = traverseDurationMinutes(
+        station.walkbackPathSegmentDistances,
+        missionTraverseRate
+      );
+
+      // get walkback distance meters
+      const walkbackDistanceMeters = station.walkbackPathSegmentDistances?.reduce(
+        (accumulator, currentVal) => accumulator + currentVal,
+        0
+      );
+
+      // total ascended and descended
+      const walkbackAscentDescent = calculateAscentAndDescent(
+        station.walkbackPathSegmentElevations
+      );
+
+      const newCalculatedFields: StationCalculatedFields = {
+        uuid: station.uuid,
+        reportItems: newReportItems,
+        totalTime: {
+          durationLower: totalDurationLower,
+          durationUpper: totalDurationUpper,
+        },
+        actionCount,
+        walkbackDurationMinutes,
+        walkbackDistanceMeters,
+        walkbackAscentDescent,
+      };
+      allCalculatedFields.push(newCalculatedFields);
+    }
+    dispatch(setStationCalculatedFields({ calculatedFields: allCalculatedFields }));
+  }
+);

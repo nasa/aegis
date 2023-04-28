@@ -20,6 +20,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkResetTraverse } from "store/thunk/thunkTraverse";
+import { formatNumberWithCommas } from "utils/formatting";
 
 const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -49,38 +50,18 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
     refEqual
   );
 
+  const calculatedFields = useAppSelector(
+    (state) =>
+      state.traverse.calculatedFields.find(
+        (calculated) => calculated.uuid === selectedTraverse.uuid
+      ),
+    shallowEqual
+  );
+
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = mapDirective?.uuid === selectedTraverse?.uuid ? mapDirective : null;
 
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
-
-  const calculateAscentAndDescent = () => {
-    const returnValue = {
-      totalMetersClimbed: 0,
-      totalMetersDescended: 0,
-    };
-    const elevations = selectedTraverse.pathSegmentElevations;
-    if (!elevations) return returnValue;
-
-    //Loop through the multidimensional array of elevations
-    for (const elevation of elevations) {
-      // loop over all but the last element (note i < elevation.length - 1)
-      for (let i = 0; i < elevation.length - 1; i++) {
-        const difference = elevation[i + 1] - elevation[i];
-        if (difference > 0) {
-          returnValue.totalMetersClimbed += difference;
-        } else {
-          returnValue.totalMetersDescended += -difference;
-        }
-      }
-    }
-    return returnValue;
-  };
-
-  const elevationTotals = calculateAscentAndDescent();
-
-  const totalMetersClimbed = elevationTotals.totalMetersClimbed.toFixed(2);
-  const totalMetersDescended = elevationTotals.totalMetersDescended.toFixed(2);
 
   useEffect(() => {
     if (elevationPendingIndex > -1) {
@@ -139,27 +120,6 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
-  const durationMinutes = () => {
-    //convert meters to km, then divide by traverse speed to get minutes
-    const distanceMeters = selectedTraverse.pathSegmentDistances?.reduce(
-      (accumulator, currentVal) => {
-        return accumulator + currentVal;
-      },
-      0
-    );
-    let traverseRate = missionTraverseRate;
-    if (selectedEvaTraverseRate) {
-      traverseRate = selectedEvaTraverseRate;
-    }
-    if (selectedTraverse.traverseRate) {
-      traverseRate = selectedTraverse.traverseRate;
-    }
-    const distanceKm = distanceMeters / 1000;
-    const durationHours = distanceKm / traverseRate;
-    const durationMinutes = durationHours * 60;
-    return durationMinutes.toFixed(2);
-  };
-
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle}>Traverse Information</div>
@@ -184,10 +144,10 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
             <div className={paneStyles.panelSectionTitle}>Predicted Values</div>
             <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Min Duration (mins)</div>
+                <div className={paneStyles.panelSectionTitle}>Nominal Duration (mins)</div>
                 <div className={paneStyles.inputField}>
                   <InLineEditInput
-                    fieldName="Min Duration"
+                    fieldName="Nominal Duration"
                     editing={editMode}
                     maxLength={3}
                     styleInput={{ width: "55px" }}
@@ -226,9 +186,13 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                 </div>
               </div>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>
-                  Traverse Rate (km/hr) {selectedEvaTraverseRate ? "EVA" : "Mission"} Default:
-                  {selectedEvaTraverseRate || missionTraverseRate} km/hr
+                <div
+                  className={paneStyles.panelSectionTitle}
+                  title={`${selectedEvaTraverseRate ? "EVA" : "Mission"} Default: ${
+                    selectedEvaTraverseRate || missionTraverseRate
+                  } km/hr`}
+                >
+                  Traverse Rate (km/hr)
                 </div>
                 <div className={paneStyles.inputField}>
                   <InLineEditInput
@@ -257,24 +221,28 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Distance (m)</div>
                 <div className={paneStyles.panelDisplayVal}>
-                  {selectedTraverse.pathSegmentDistances
-                    ?.reduce((accumulator, currentVal) => accumulator + currentVal, 0)
-                    .toFixed(2)}
+                  {formatNumberWithCommas(calculatedFields.distanceMeters)}
                 </div>
               </div>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Calc Duration (min)</div>
-                <div className={paneStyles.panelText}>{durationMinutes()}</div>
+                <div className={paneStyles.panelSectionTitle}>Calc Duration (mins)</div>
+                <div className={paneStyles.panelText}>
+                  {calculatedFields.durationMinutes.toFixed(2)}
+                </div>
               </div>
             </div>
             <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Total Ascent (m)</div>
-                <div className={paneStyles.panelDisplayVal}>{totalMetersClimbed}</div>
+                <div className={paneStyles.panelDisplayVal}>
+                  {calculatedFields.ascentDescent.totalMetersClimbed.toFixed(2)}
+                </div>
               </div>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Total Descended (m)</div>
-                <div className={paneStyles.panelDisplayVal}>{totalMetersDescended}</div>
+                <div className={paneStyles.panelSectionTitle}>Total Descent (m)</div>
+                <div className={paneStyles.panelDisplayVal}>
+                  {calculatedFields.ascentDescent.totalMetersDescended.toFixed(2)}
+                </div>
               </div>
             </div>
           </div>

@@ -7,6 +7,7 @@ export const initialState: StationState = {
   selectedStationUuid: null,
   selectedRightNavItem: "info_panel",
   stationsEditing: [],
+  calculatedFields: [],
 };
 
 export const stationSlice = createSlice({
@@ -100,6 +101,12 @@ export const stationSlice = createSlice({
         station.walkbackPathSegmentElevations = [];
       }
     },
+    setStationCalculatedFields: (
+      state,
+      action: { payload: { calculatedFields: StationCalculatedFields[] } }
+    ) => {
+      state.calculatedFields = action.payload.calculatedFields;
+    },
   },
 });
 
@@ -119,4 +126,5 @@ export const {
   updateWalkbackPath,
   revertWalkbackPath,
   deleteStationWalkbackElevation,
+  setStationCalculatedFields,
 } = stationSlice.actions;

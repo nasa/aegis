@@ -10,16 +10,27 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
-import { upsertPoi } from "store/poi";
+import { setSelectedPOIRightNavItem, upsertPoi } from "store/poi";
 import { updateMapDirective } from "store/map";
+import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 
-const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
+const Info_Panel: FunctionComponent<{
+  editMode: boolean;
+  totalPoiTime: TotalTimeObj;
+  actionCount: number;
+}> = ({ editMode, totalPoiTime, actionCount }) => {
   const dispatch = useDispatch();
   const selectedPoi = useAppSelector(
     (state) => state.poi.pois.find((poi) => poi.uuid === state.poi.selectedPoiUuid),
     shallowEqual
   );
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
+  const stationsUsingThisPoi = useAppSelector(
+    (state) =>
+      state.station.stations.filter((station) => station.poiUuids.includes(selectedPoi.uuid)),
+    shallowEqual
+  );
+
   const thisMapDirective = mapDirective?.uuid === selectedPoi?.uuid ? mapDirective : null;
 
   const dispatchPoiMapAction = (mapAction: MapAction) => {
@@ -113,7 +124,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           </div>
 
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>POI Value & Notes</div>
+            <div className={paneStyles.panelSectionTitle}>POI Description</div>
             <ContentEditableTextArea
               html={selectedPoi.description} // innerHTML of the editable div
               editing={editMode}
@@ -128,6 +139,31 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             />
           </div>
           <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>Calculated Values</div>
+            <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
+              <div className={paneStyles.panelMediumField}>
+                <div className={paneStyles.panelSectionTitle}>Stations with this POI</div>
+                <div className={paneStyles.panelText}>{stationsUsingThisPoi.length}</div>
+              </div>
+              <div
+                className={paneStyles.panelSmallField}
+                onClick={() => {
+                  dispatch(setSelectedPOIRightNavItem("actions_panel"));
+                }}
+                style={{ cursor: "pointer" }}
+              >
+                <div className={paneStyles.panelSectionTitle}># Actions</div>
+                <div className={paneStyles.panelText}>{actionCount}</div>
+              </div>
+              <div className={paneStyles.panelMediumField}>
+                <div className={paneStyles.panelSectionTitle}>Total Action Time</div>
+                <div className={paneStyles.panelDisplayVal}>
+                  <>{displayFormattedTotalTimeObj(totalPoiTime)}</>&nbsp;mins
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle}>Location</div>
 
             <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
@@ -138,12 +174,15 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   </div>
                 )}
                 <div className={paneStyles.verticalCenter}>
-                  <div className={paneStyles.panelText}>
-                    {selectedPoi.location &&
-                      `${selectedPoi.location?.lat.toFixed(8)}, ${selectedPoi.location?.lng.toFixed(
-                        8
-                      )}`}
-                  </div>
+                  {!selectedPoi.location ? (
+                    <div className={paneStyles.panelText}>Location not set</div>
+                  ) : (
+                    <div className={paneStyles.panelText}>
+                      Lat: {`${selectedPoi.location?.lat.toFixed(6)}`}
+                      <br />
+                      Lng: {`${selectedPoi.location?.lng.toFixed(6)}`}
+                    </div>
+                  )}
                 </div>
                 {editMode && mapAction === null ? (
                   <>
@@ -191,9 +230,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       style={{ width: "70px" }}
                     />
                   </>
-                )}
-                {!editMode && !selectedPoi.location && (
-                  <div className={paneStyles.panelText}>Location not yet set</div>
                 )}
               </>
             </div>

@@ -51,7 +51,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
       sequence: [],
       description: "",
       traverseRate: 3.2, // default to 3.2 km/hr
-      maxDuration: null,
+      maxDuration: 240, // default to 4 hours
     };
     dispatch(upsertEva(blankEva));
     // turn on edit mode for the new Eva

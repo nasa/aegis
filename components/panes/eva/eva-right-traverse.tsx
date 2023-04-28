@@ -1,4 +1,11 @@
-import { faBan, faCircleInfo, faEdit, faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
+import {
+  faBan,
+  faCheck,
+  faCircleInfo,
+  faEdit,
+  faFloppyDisk,
+  faTriangleExclamation,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconButton } from "components/interface/_global-elements";
 import _ from "lodash";
@@ -14,8 +21,10 @@ import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
 import Info_Panel from "./eva-right-traverse-info";
+import Report_Panel from "../report";
 import * as httpClient_Traverse from "http-client/traverse";
 import { updateMapDirective } from "store/map";
+import { getAlertColor } from "utils/component-helpers";
 
 const EvaRightTraverse: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -52,6 +61,15 @@ const EvaRightTraverse: FunctionComponent = () => {
     (state) => state.user.ironSessionData?.user.permission.includes("admin"),
     refEqual
   );
+
+  const calculatedFields = useAppSelector(
+    (state) =>
+      state.traverse.calculatedFields.find(
+        (calculated) => calculated.uuid === selectedTraverse.uuid
+      ),
+    shallowEqual
+  );
+
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
 
   useEffect(() => {
@@ -63,12 +81,23 @@ const EvaRightTraverse: FunctionComponent = () => {
     }
   }, [elevationPendingIndex, selectedTraverse, selectedTraverseFromDb]);
 
+  const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--eva)");
+
   const panelTypes: PanelTypes = {
     info_panel: {
       title: "Traverse Information",
       panel: <Info_Panel editMode={traversesEditing.includes(selectedEvaSequenceItemUuid)} />,
-      color: "var(--eva)",
+      selectedColor: "var(--eva)",
       icon: faCircleInfo,
+    },
+    report_panel: {
+      title: "Reports",
+      panel: (
+        <Report_Panel reportItems={calculatedFields.reportItems} reportTitle={"Traverse Report"} />
+      ),
+      selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "var(--eva)",
+      unselectedColor: reportsTabIconColor,
+      icon: calculatedFields.reportItems.length > 0 ? faTriangleExclamation : faCheck,
     },
   };
 
@@ -115,6 +144,11 @@ const EvaRightTraverse: FunctionComponent = () => {
     dispatch(setTraverseEditMode({ uuid: selectedEvaSequenceItemUuid, editMode: true }));
   };
 
+  // set reports tab icon color
+  useEffect(() => {
+    setReportsTabIconColor(getAlertColor(calculatedFields?.reportItems));
+  }, [calculatedFields]);
+
   let activeComponent: FunctionComponent = null;
   if (!_.isNil(panelTypes[selectedRightNavItem])) {
     activeComponent = panelTypes[selectedRightNavItem].panel;
@@ -132,6 +166,9 @@ const EvaRightTraverse: FunctionComponent = () => {
           <div className={paneStyles.rightIconRow}>
             {panelTypes &&
               Object.keys(panelTypes).map((panelType) => {
+                const unselectedColor = _.has(panelTypes[panelType], "unselectedColor")
+                  ? panelTypes[panelType].unselectedColor
+                  : "white";
                 return (
                   <div
                     key={panelType}
@@ -146,8 +183,8 @@ const EvaRightTraverse: FunctionComponent = () => {
                       style={{
                         color:
                           selectedRightNavItem === panelType
-                            ? panelTypes[panelType].color
-                            : "white",
+                            ? panelTypes[panelType].selectedColor
+                            : unselectedColor,
                       }}
                       title={panelTypes[panelType].title}
                       onClick={() => dispatch(setSelectedTraverseRightNavItem(panelType))}

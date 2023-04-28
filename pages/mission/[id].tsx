@@ -1,6 +1,7 @@
 import type { NextPage } from "next";
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
+import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
@@ -32,6 +33,10 @@ import { setEvas, setEvasFromDb } from "store/eva";
 import { setTraversesFromDb, setTraverses } from "store/traverse";
 import { getTraverses } from "http-client/traverse";
 import { setRightPanelOpen } from "store/interface";
+import { thunkCreateStationCalculatedFields } from "store/thunk/thunkStation";
+import { thunkCreateTraverseCalculatedFields } from "store/thunk/thunkTraverse";
+import { thunkCreateEvasCalculatedFields } from "store/thunk/thunkEva";
+import { thunkCreatePoiCalculatedFields } from "store/thunk/thunkPoi";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -62,9 +67,23 @@ const BottomControlPanel = dynamic(
 
 const Main: NextPage = () => {
   const dispatch = useDispatch();
+  const appDispatch = useAppDispatch();
   const router = useRouter();
   const missionStore = useAppSelector((state) => state.mission, shallowEqual);
   const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, refEqual);
+  const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
+  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
+  const actions = useAppSelector((state) => state.action.actions, shallowEqual);
+  const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
+  const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
+  const stationsCalculatedFields = useAppSelector(
+    (state) => state.station.calculatedFields,
+    shallowEqual
+  );
+  const traversesCalculatedFields = useAppSelector(
+    (state) => state.traverse.calculatedFields,
+    shallowEqual
+  );
 
   /**
    * Check if user is logged in.
@@ -198,6 +217,30 @@ const Main: NextPage = () => {
       if (invstgData.data) dispatch(setInvestigations(invstgData.data));
     })();
   }, [router, dispatch]);
+
+  //Generate poi calculated values
+  useEffect(() => {
+    if (!pois || !actions) return;
+    appDispatch(thunkCreatePoiCalculatedFields());
+  }, [pois, actions, appDispatch]);
+
+  //Generate station calculated values
+  useEffect(() => {
+    if (!stations || !actions) return;
+    appDispatch(thunkCreateStationCalculatedFields());
+  }, [stations, actions, appDispatch]);
+
+  //Generate traverse calculated values
+  useEffect(() => {
+    if (!traverses) return;
+    appDispatch(thunkCreateTraverseCalculatedFields());
+  }, [traverses, appDispatch]);
+
+  //Generate eva calculated values. These are dependent on stations and traverses having had their calculated values generated
+  useEffect(() => {
+    if (!evas || !stationsCalculatedFields || !traversesCalculatedFields) return;
+    appDispatch(thunkCreateEvasCalculatedFields());
+  }, [evas, stationsCalculatedFields, traversesCalculatedFields, appDispatch]);
 
   return (
     <div className={styles.page}>

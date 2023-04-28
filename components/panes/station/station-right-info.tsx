@@ -27,16 +27,17 @@ import Picker from "@emoji-mart/react";
 import { decodeEmoji } from "utils/formatting";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkResetWalkback, thunkUpdateStationLocation } from "store/thunk/thunkStation";
+import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 
-const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
+const Info_Panel: FunctionComponent<{
+  editMode: boolean;
+  totalStationTime: TotalTimeObj;
+  actionCount: number;
+}> = ({ editMode, totalStationTime, actionCount }) => {
   const dispatch = useDispatch();
   const appDispatch = useAppDispatch();
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
-  const actions = useAppSelector((state) => state.action.actions, shallowEqual);
-  const missionTraverseRate = useAppSelector(
-    (state) => state.mission.mission.traverseSpeed,
-    refEqual
-  );
+
   const selectedStation = useAppSelector(
     (state) =>
       state.station.stations.find((station) => station.uuid === state.station.selectedStationUuid),
@@ -44,6 +45,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   );
   const landerLocation = useAppSelector(
     (state) => state.mission.mission.landerLocation,
+    shallowEqual
+  );
+  const landerElevation = useAppSelector(
+    (state) => state.mission.mission.landerElevationMeters,
     shallowEqual
   );
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
@@ -66,11 +71,12 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     return evasUsingThisStation;
   }, shallowEqual);
 
-  const [totalStationTime, setTotalStationTime] = useState({
-    durationLower: 0,
-    durationUpper: 0,
-  });
-  const [actionCount, setActionCount] = useState(0);
+  const calculatedFields = useAppSelector(
+    (state) =>
+      state.station.calculatedFields.find((calculated) => calculated.uuid === selectedStation.uuid),
+    shallowEqual
+  );
+
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
 
@@ -81,37 +87,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       setSaveButtonState("enabled");
     }
   }, [elevationPendingIndex]);
-
-  useEffect(() => {
-    let totalDurationLower = 0;
-    let totalDurationUpper = 0;
-    actions.forEach((action) => {
-      if (action.stationUuid === selectedStation.uuid) {
-        totalDurationLower += action.durationLower;
-        totalDurationUpper += action.durationUpper;
-      }
-    });
-    setTotalStationTime({
-      durationLower: totalDurationLower,
-      durationUpper: totalDurationUpper,
-    });
-
-    let actionCount = 0;
-    actions.forEach((action) => {
-      if (action.stationUuid === selectedStation.uuid) {
-        actionCount++;
-      }
-    });
-    setActionCount(actionCount);
-  }, [actions, selectedStation.uuid]);
-
-  const displayStationTime = () => {
-    if (totalStationTime.durationLower === totalStationTime.durationUpper) {
-      return totalStationTime.durationLower;
-    } else {
-      return `${totalStationTime.durationLower} - ${totalStationTime.durationUpper}`;
-    }
-  };
 
   useEffect(() => {
     if (!editMode) setShowEmojiPicker(false);
@@ -217,20 +192,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
-  const durationMinutes = () => {
-    //convert meters to km, then divide by traverse speed to get minutes
-    const distanceMeters = selectedStation.walkbackPathSegmentDistances?.reduce(
-      (accumulator, currentVal) => {
-        return accumulator + currentVal;
-      },
-      0
-    );
-    const traverseRate = missionTraverseRate;
-
-    const distanceKm = distanceMeters / 1000;
-    const durationHours = distanceKm / traverseRate;
-    const durationMinutes = durationHours * 60;
-    return durationMinutes.toFixed(2);
+  const relativeElevation = () => {
+    if (!selectedStation.elevation || !landerElevation) return "Not set";
+    return (selectedStation.elevation - landerElevation).toFixed(2);
   };
 
   return (
@@ -257,7 +221,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 </div>
               </div> */}
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Est Dwell Nominal*</div>
+                <div className={paneStyles.panelSectionTitle}>Est Dwell Nominal (mins)</div>
                 <div className={paneStyles.inputField}>
                   <InLineEditInput
                     fieldName="Minimum Time in minutes"
@@ -285,7 +249,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 </div>
               </div>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Est Dwell Max</div>
+                <div className={paneStyles.panelSectionTitle}>Est Dwell Max (mins)</div>
                 <div className={paneStyles.inputField}>
                   <InLineEditInput
                     fieldName="Maximum Time in minutes"
@@ -387,13 +351,13 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 }}
                 style={{ cursor: "pointer" }}
               >
-                <div className={paneStyles.panelSectionTitle}>Actions</div>
+                <div className={paneStyles.panelSectionTitle}># Actions</div>
                 <div className={paneStyles.panelText}>{actionCount}</div>
               </div>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Total Station Time</div>
+                <div className={paneStyles.panelSectionTitle}>Total Action Time</div>
                 <div className={paneStyles.panelDisplayVal}>
-                  <>{displayStationTime()}</>&nbsp;mins
+                  <>{displayFormattedTotalTimeObj(totalStationTime)}</>&nbsp;mins
                 </div>
               </div>
             </div>
@@ -409,7 +373,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 </div>
               )}
 
-              {selectedStation.location && (
+              {!selectedStation.location ? (
+                <div className={paneStyles.panelText}>Location not set</div>
+              ) : (
                 <div className={paneStyles.panelText}>
                   Lat: {`${selectedStation.location?.lat.toFixed(6)}`}
                   <br />
@@ -501,19 +467,14 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   />
                 </>
               )}
-              {!editMode && !selectedStation.location && (
-                <div className={paneStyles.panelText}>Location not set</div>
-              )}
             </div>
 
-            <div className={paneStyles.panelSectionTitle}>Elevation (m)</div>
-            <div className={paneStyles.panelText}>
-              {selectedStation.elevation ? selectedStation.elevation.toFixed(2) : "Not set"}
-            </div>
+            <div className={paneStyles.panelSectionTitle}>Relative Elevation (m)</div>
+            <div className={paneStyles.panelText}>{relativeElevation()}</div>
           </div>
 
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Walk-back Traverse</div>
+            <div className={paneStyles.panelSectionTitle}>Walkback (WB) Traverse</div>
             <div
               className={paneStyles.panelSectionRow}
               style={{ marginTop: "3px", marginBottom: "3px", gap: "5px" }}
@@ -611,17 +572,29 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             </div>
             <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Walk-back Distance (m)</div>
+                <div className={paneStyles.panelSectionTitle}>WB Distance (m)</div>
                 <div className={paneStyles.panelText}>
-                  {selectedStation.walkbackPathSegmentDistances
-                    ?.reduce((accumulator, currentVal) => accumulator + currentVal, 0)
-                    .toFixed(2)}
+                  {calculatedFields?.walkbackDistanceMeters?.toFixed(2)}
                 </div>
               </div>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Walk-back Duration (min)</div>
+                <div className={paneStyles.panelSectionTitle}>WB Duration (mins)</div>
                 <div className={paneStyles.panelText}>
-                  <>{durationMinutes()}</>
+                  <>{calculatedFields?.walkbackDurationMinutes?.toFixed(2)}</>
+                </div>
+              </div>
+            </div>
+            <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
+              <div className={paneStyles.panelMediumField}>
+                <div className={paneStyles.panelSectionTitle}>WB Total Ascent (m)</div>
+                <div className={paneStyles.panelDisplayVal}>
+                  {calculatedFields?.walkbackAscentDescent.totalMetersClimbed?.toFixed(2)}
+                </div>
+              </div>
+              <div className={paneStyles.panelMediumField}>
+                <div className={paneStyles.panelSectionTitle}>WB Total Descent (m)</div>
+                <div className={paneStyles.panelDisplayVal}>
+                  {calculatedFields?.walkbackAscentDescent.totalMetersDescended?.toFixed(2)}
                 </div>
               </div>
             </div>

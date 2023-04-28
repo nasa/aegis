@@ -1,6 +1,11 @@
 import _ from "lodash";
-import { updateTraversePath, upsertTraverse } from "store/traverse";
-import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/geoMath";
+import { setTraverseCalculatedFields, updateTraversePath, upsertTraverse } from "store/traverse";
+import {
+  calculateAscentAndDescent,
+  getDistanceBetweenTwoCoordinates,
+  getTotalDistance,
+  traverseDurationMinutes,
+} from "utils/geoMath";
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkGetElevation } from "./thunkElevation";
 
@@ -250,3 +255,64 @@ export const thunkUpdateAllTraversesForEVASequence = appCreateAsyncThunk<{
     }
   }
 });
+
+export const thunkCreateTraverseCalculatedFields = appCreateAsyncThunk<void>(
+  "createTraverseCalculatedFields",
+  async (_, { dispatch, getState }) => {
+    const traverses = getState().traverse.traverses;
+    const missionTraverseRate = getState().mission.mission.traverseSpeed;
+    const selectedEvaTraverseRate = getState().eva.evas.find(
+      (eva) => eva.uuid === getState().eva.selectedEvaUuid
+    )?.traverseRate;
+    const allCalculatedFields: TraverseCalculatedFields[] = [];
+    for (const traverse of traverses) {
+      const newReportItems: ReportItem[] = [];
+
+      let traverseRate = missionTraverseRate;
+      if (selectedEvaTraverseRate) {
+        traverseRate = selectedEvaTraverseRate;
+      }
+      if (traverse.traverseRate) {
+        traverseRate = traverse.traverseRate;
+      }
+
+      // get duration minutes
+      const durationMinutes = traverseDurationMinutes(traverse.pathSegmentDistances, traverseRate);
+
+      // get distance meters
+      const distanceMeters = traverse.pathSegmentDistances?.reduce(
+        (accumulator, currentVal) => accumulator + currentVal,
+        0
+      );
+
+      // total ascended and descended
+      const ascentDescent = calculateAscentAndDescent(traverse.pathSegmentElevations);
+
+      // check if calculated duration is greater than predicted durationLower
+      if (traverse.predictedDurationLower > durationMinutes) {
+        newReportItems.push({
+          message: "Calculated traverse duration is under predicted nominal traverse time",
+          type: "info",
+        } as ReportItem);
+      }
+
+      // check if calculated duration is greater than predicted durationUpper
+      if (traverse.predictedDurationUpper < durationMinutes) {
+        newReportItems.push({
+          message: "Calculated traverse duration is over predicted maximum traverse time",
+          type: "error",
+        } as ReportItem);
+      }
+
+      const newCalculatedFields: TraverseCalculatedFields = {
+        uuid: traverse.uuid,
+        reportItems: newReportItems,
+        durationMinutes,
+        distanceMeters,
+        ascentDescent,
+      };
+      allCalculatedFields.push(newCalculatedFields);
+    }
+    dispatch(setTraverseCalculatedFields({ calculatedFields: allCalculatedFields }));
+  }
+);

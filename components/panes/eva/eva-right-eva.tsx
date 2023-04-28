@@ -11,11 +11,15 @@ import {
   faTrashAlt,
   faEdit,
   faPersonDigging,
+  faTriangleExclamation,
+  faCheck,
+  IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, InLineEditInput } from "components/interface/_global-elements";
 
 import Info_Panel from "./eva-right-eva-info";
 import Actions_Panel from "./eva-right-eva-actions";
+import Report_Panel from "../report";
 import {
   deleteEva,
   setEvaEditMode,
@@ -34,6 +38,7 @@ import {
 import * as httpClient_Eva from "http-client/eva";
 import * as httpClient_Traverse from "http-client/traverse";
 import { setRightPanelOpen } from "store/interface";
+import { getAlertColor } from "utils/component-helpers";
 
 const EvaRightEva: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -54,6 +59,15 @@ const EvaRightEva: FunctionComponent = () => {
   );
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
   const traversesFromDb = useAppSelector((state) => state.traverse.traversesFromDb, shallowEqual);
+  const allTraverseCalculatedFields = useAppSelector(
+    (state) => state.traverse.calculatedFields,
+    shallowEqual
+  );
+  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
+  const allStationCalculatedFields = useAppSelector(
+    (state) => state.station.calculatedFields,
+    shallowEqual
+  );
 
   const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
   const isAdmin = useAppSelector(
@@ -61,8 +75,17 @@ const EvaRightEva: FunctionComponent = () => {
     refEqual
   );
 
+  const calculatedFields = useAppSelector(
+    (state) =>
+      state.eva.calculatedFields.find((calculated) => calculated.uuid === selectedEva?.uuid),
+    shallowEqual
+  );
+
+  const [evaReportSequenceItems, setEvaReportSequenceItems] = useState<EvaReportSequenceItem[]>([]);
+
   //track modified
   const [modified, setModified] = useState(false);
+
   useEffect(() => {
     const evaEqual = _.isEqual(selectedEva, selectedEvaFromDb);
 
@@ -290,25 +313,97 @@ const EvaRightEva: FunctionComponent = () => {
     dispatch(setEvaEditMode({ evaUuid: selectedEva.uuid, editMode: false }));
   };
 
+  // generate evaReportSequenceItems from the eva sequence
+  useEffect(() => {
+    const evaReportSequenceItems: EvaReportSequenceItem[] = [];
+    selectedEva?.sequence.forEach((sequenceItem) => {
+      if (sequenceItem.type === "traverse") {
+        const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
+        const travereCalculatedFields = allTraverseCalculatedFields.find(
+          (traverseCalculatedFields) => traverseCalculatedFields.uuid === sequenceItem.uuid
+        );
+        if (traverse) {
+          evaReportSequenceItems.push({
+            type: "traverse",
+            uuid: traverse.uuid,
+            name: traverse.name,
+            reportItems: travereCalculatedFields?.reportItems,
+          });
+        }
+      } else if (sequenceItem.type === "station") {
+        const station = stations.find((station) => station.uuid === sequenceItem.uuid);
+        const stationCalculatedFields = allStationCalculatedFields.find(
+          (stationCalculatedFields) => stationCalculatedFields.uuid === sequenceItem.uuid
+        );
+        if (station) {
+          evaReportSequenceItems.push({
+            type: "station",
+            uuid: station.uuid,
+            name: station.name,
+            reportItems: stationCalculatedFields?.reportItems,
+          });
+        }
+      }
+    });
+    setEvaReportSequenceItems(evaReportSequenceItems);
+  }, [selectedEva, allTraverseCalculatedFields, allStationCalculatedFields, stations, traverses]);
+
+  const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--eva)");
+  const [reportsTabIcon, setReportsTabIcon] = useState<IconDefinition>(faTriangleExclamation);
+
   const panelTypes: PanelTypes = {
     info_panel: {
       title: "EVA Information",
       panel: <Info_Panel editMode={evasEditing.includes(selectedEvaUuid)} />,
-      color: "var(--eva)",
+      selectedColor: "var(--eva)",
       icon: faCircleInfo,
     },
     actions_panel: {
       title: "EVA Actions",
       panel: <Actions_Panel editMode={false} />,
-      color: "var(--eva)",
+      selectedColor: "var(--eva)",
       icon: faPersonDigging,
     },
+    report_panel: {
+      title: "Reports",
+      panel: (
+        <Report_Panel
+          reportItems={calculatedFields?.reportItems}
+          evaReportItems={evaReportSequenceItems}
+          reportTitle={"EVA Report"}
+        />
+      ),
+      selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "var(--eva)",
+      unselectedColor: reportsTabIconColor,
+      icon: reportsTabIcon,
+    },
   };
+
+  // set reports tab icon color
+  useEffect(() => {
+    setReportsTabIconColor(getAlertColor(calculatedFields?.reportItems, evaReportSequenceItems));
+  }, [calculatedFields, evaReportSequenceItems]);
 
   let activeComponent: FunctionComponent = null;
   if (!_.isNil(panelTypes[selectedRightNavItem])) {
     activeComponent = panelTypes[selectedRightNavItem].panel;
   }
+
+  // set reports tab icon
+  useEffect(() => {
+    if (!evaReportSequenceItems || !calculatedFields) return;
+    let showCheckmark = true;
+    if (calculatedFields?.reportItems.length > 0) {
+      showCheckmark = false;
+    } else {
+      evaReportSequenceItems.forEach((evaReportSequenceItem) => {
+        if (evaReportSequenceItem.reportItems.length > 0) {
+          showCheckmark = false;
+        }
+      });
+    }
+    setReportsTabIcon(showCheckmark ? faCheck : faTriangleExclamation);
+  }, [calculatedFields, evaReportSequenceItems]);
 
   return (
     selectedEva && (
@@ -338,6 +433,9 @@ const EvaRightEva: FunctionComponent = () => {
           <div className={paneStyles.rightIconRow}>
             {panelTypes &&
               Object.keys(panelTypes).map((panelType) => {
+                const unselectedColor = _.has(panelTypes[panelType], "unselectedColor")
+                  ? panelTypes[panelType].unselectedColor
+                  : "white";
                 return (
                   <div
                     key={panelType}
@@ -352,8 +450,8 @@ const EvaRightEva: FunctionComponent = () => {
                       style={{
                         color:
                           selectedRightNavItem === panelType
-                            ? panelTypes[panelType].color
-                            : "white",
+                            ? panelTypes[panelType].selectedColor
+                            : unselectedColor,
                       }}
                       title={panelTypes[panelType].title}
                       onClick={() => dispatch(setSelectedEvaRightNavItem(panelType))}

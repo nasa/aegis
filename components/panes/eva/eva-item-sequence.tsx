@@ -84,7 +84,7 @@ const EvaItemSequence: FunctionComponent<{
     appDispatch(thunkUpdateAllTraversesForEVASequence({ evaSequence: newEvaSequence }));
   };
 
-  const handeleMoveStationUp = (index: number) => {
+  const handleMoveStationUp = (index: number) => {
     const newEvaSequence = [...evaSequence];
 
     // swap the item at index -2 with the item at index
@@ -97,7 +97,7 @@ const EvaItemSequence: FunctionComponent<{
     appDispatch(thunkUpdateAllTraversesForEVASequence({ evaSequence: newEvaSequence }));
   };
 
-  const handeleMoveStationDown = (index: number) => {
+  const handleMoveStationDown = (index: number) => {
     const newEvaSequence = [...evaSequence];
 
     // swap the item at index +2 with the item at index
@@ -275,7 +275,7 @@ const EvaItemSequence: FunctionComponent<{
                           }`}
                           onClick={() => {
                             if (index === 0) return;
-                            handeleMoveStationUp(index);
+                            handleMoveStationUp(index);
                           }}
                         >
                           <FontAwesomeIcon icon={faArrowUp} />
@@ -286,7 +286,7 @@ const EvaItemSequence: FunctionComponent<{
                           }`}
                           onClick={() => {
                             if (index === evaSequence.length - 1) return;
-                            handeleMoveStationDown(index);
+                            handleMoveStationDown(index);
                           }}
                         >
                           <FontAwesomeIcon icon={faArrowDown} />

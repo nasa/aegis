@@ -5,46 +5,27 @@ import paneStyles from "../global-pane-styles.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCircleInfo,
-  // faMagnifyingGlassChart,
   faPersonDigging,
   faBan,
   faFloppyDisk,
   faTrashAlt,
   faEdit,
+  faTriangleExclamation,
+  faCheck,
 } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, InLineEditInput } from "components/interface/_global-elements";
 import { setSelectedPOIRightNavItem, setPoiEditMode, upsertPoi } from "store/poi";
 
 import Info_Panel from "./poi-right-info";
 import Actions_Panel from "./poi-right-actions";
-// import Reports_Panel from "./poi-right-reports";
 import { decodeEmoji } from "utils/formatting";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkSavePoi } from "store/thunk/poi/thunkSavePoi";
 import { thunkDeletePoi } from "store/thunk/poi/thunkDeletePoi";
 import { thunkPoiCancel } from "store/thunk/poi/thunkPoiCancel";
 import { selectPoiActions } from "store/selectors";
-
-const panelTypes: PanelTypes = {
-  info_panel: {
-    title: "POI Information",
-    panel: Info_Panel,
-    color: "var(--poi)",
-    icon: faCircleInfo,
-  },
-  actions_panel: {
-    title: "POI Actions",
-    panel: Actions_Panel,
-    color: "var(--poi)",
-    icon: faPersonDigging,
-  },
-  // reports_panel: {
-  //   title: "POI Reports",
-  //   panel: Reports_Panel,
-  //   color: "var(--poi)",
-  //   icon: faMagnifyingGlassChart,
-  // },
-};
+import Report_Panel from "../report";
+import { getAlertColor } from "utils/component-helpers";
 
 const PoiEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -71,7 +52,14 @@ const PoiEditorRight: FunctionComponent = () => {
     refEqual
   );
 
+  const calculatedFields = useAppSelector(
+    (state) => state.poi.calculatedFields.find((calculated) => calculated.uuid === selectedPoiUuid),
+    shallowEqual
+  );
+
   const [modified, setModified] = useState(false);
+  const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--station)");
+
   useEffect(() => {
     const poiEqual = _.isEqual(selectedPoi, selectedPoiFromDb);
     const actionEqual = _.isEqual(
@@ -80,6 +68,36 @@ const PoiEditorRight: FunctionComponent = () => {
     );
     setModified(!poiEqual || !actionEqual);
   }, [selectedPoi, selectedPoiFromDb, poiActions, poiActionsFromDb]);
+
+  const panelTypes: PanelTypes = {
+    info_panel: {
+      title: "POI Information",
+      panel: (
+        <Info_Panel
+          editMode={poisEditing.includes(selectedPoiUuid)}
+          totalPoiTime={calculatedFields?.totalTime}
+          actionCount={calculatedFields?.actionCount}
+        />
+      ),
+      selectedColor: "var(--poi)",
+      icon: faCircleInfo,
+    },
+    actions_panel: {
+      title: "POI Actions",
+      panel: <Actions_Panel editMode={poisEditing.includes(selectedPoiUuid)} />,
+      selectedColor: "var(--poi)",
+      icon: faPersonDigging,
+    },
+    report_panel: {
+      title: "Station Report",
+      panel: (
+        <Report_Panel reportItems={calculatedFields?.reportItems} reportTitle={"Station Report"} />
+      ),
+      selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "var(--station)",
+      unselectedColor: reportsTabIconColor,
+      icon: calculatedFields?.reportItems.length > 0 ? faTriangleExclamation : faCheck,
+    },
+  };
 
   const handleSave = async () => {
     if (selectedPoi && modified) {
@@ -119,9 +137,14 @@ const PoiEditorRight: FunctionComponent = () => {
     );
   };
 
-  let ActiveComponent = null;
+  // set reports tab icon color
+  useEffect(() => {
+    setReportsTabIconColor(getAlertColor(calculatedFields?.reportItems));
+  }, [calculatedFields]);
+
+  let activeComponent = null;
   if (!_.isNil(panelTypes[selectedRightNavItem])) {
-    ActiveComponent = panelTypes[selectedRightNavItem].panel;
+    activeComponent = panelTypes[selectedRightNavItem].panel;
   }
 
   return (
@@ -153,6 +176,9 @@ const PoiEditorRight: FunctionComponent = () => {
         <div className={paneStyles.rightSubTray}>
           <div className={paneStyles.rightIconRow}>
             {Object.keys(panelTypes).map((panelType) => {
+              const unselectedColor = _.has(panelTypes[panelType], "unselectedColor")
+                ? panelTypes[panelType].unselectedColor
+                : "white";
               return (
                 <div
                   key={panelType}
@@ -166,7 +192,9 @@ const PoiEditorRight: FunctionComponent = () => {
                     className={paneStyles.rightIcon}
                     style={{
                       color:
-                        selectedRightNavItem === panelType ? panelTypes[panelType].color : "white",
+                        selectedRightNavItem === panelType
+                          ? panelTypes[panelType].selectedColor
+                          : unselectedColor,
                     }}
                     title={panelTypes[panelType].title}
                     onClick={() => dispatch(setSelectedPOIRightNavItem(panelType))}
@@ -230,10 +258,7 @@ const PoiEditorRight: FunctionComponent = () => {
             )}
           </div>
         </div>
-        <ActiveComponent
-          className={paneStyles.rightActiveWindow}
-          editMode={poisEditing.includes(selectedPoiUuid)}
-        />
+        {activeComponent}
       </>
     )
   );

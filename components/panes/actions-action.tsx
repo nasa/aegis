@@ -154,7 +154,7 @@ const RightAction: FunctionComponent<{
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Duration Min*</div>
+                <div className={paneStyles.panelSectionTitle}>Duration Nominal (mins)</div>
                 <div className={paneStyles.inputField}>
                   <InLineEditInput
                     fieldName="Minimum Time in minutes"
@@ -176,7 +176,7 @@ const RightAction: FunctionComponent<{
                 </div>
               </div>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Duration Max</div>
+                <div className={paneStyles.panelSectionTitle}>Duration Max (mins)</div>
                 <div className={paneStyles.inputField}>
                   <InLineEditInput
                     fieldName="Maximum Time in minutes"
@@ -211,7 +211,7 @@ const RightAction: FunctionComponent<{
             />
           </div>
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Action Value & Notes</div>
+            <div className={paneStyles.panelSectionTitle}>Action Description</div>
             <ContentEditableTextArea
               html={action.description} // innerHTML of the editable div
               editing={editMode}
