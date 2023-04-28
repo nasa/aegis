@@ -12,7 +12,9 @@ import { setSectionSelected } from "store/interface";
 import Actions from "../actions";
 import { setStationEditMode, upsertStation } from "store/station";
 
-const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
+const Actions_Panel: FunctionComponent<{
+  editMode: boolean;
+}> = ({ editMode }) => {
   const dispatch = useDispatch();
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
@@ -30,6 +32,17 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   const [stationActions, setStationActions] = useState<Action[]>(null); //contains all station actions
   const [poiExpanded, setPoiExpanded] = useState(false);
 
+  const calculatedFields = useAppSelector(
+    (state) =>
+      state.station.calculatedFields.find(
+        (calculatedFields) => calculatedFields.uuid === selectedStationUuid
+      ),
+    shallowEqual
+  );
+
+  const [actionsCalculatedFields, setActionsCalculatedField] =
+    useState<ActionsCalculatedFields>(null);
+
   //gather all actions, then order them
   useEffect(() => {
     if (!selectedStationUuid || !actions || !selectedStation) return;
@@ -45,11 +58,18 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     setStationActions(allStationActions);
   }, [selectedStationUuid, actions, stationPois, selectedStation]);
 
+  useEffect(() => {
+    // create the calulated action fields for the action tab
+    const newActionsCalculatedFields: ActionsCalculatedFields = {
+      actionCount: calculatedFields.actionCount,
+      totalActionTime: calculatedFields.totalTime,
+    };
+    setActionsCalculatedField(newActionsCalculatedFields);
+  }, [calculatedFields]);
+
   return (
     <div className={paneStyles.rightBody}>
-      <div className={`${paneStyles.rightBodyTitle} ${stationStyles.stationColor}`}>
-        Station Actions
-      </div>
+      <div className={`${paneStyles.rightBodyTitle}`}>Station Actions</div>
       <div className={paneStyles.rightBodyBody}>
         <Actions
           editMode={editMode}
@@ -65,6 +85,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
             dispatch(upsertStation({ ...selectedStation, actionOrderUuids: actionOrderUuids }));
           }}
           actionParentUuid={{ stationUuid: selectedStationUuid }}
+          actionsCalculatedFields={actionsCalculatedFields}
         />
 
         <div className={paneStyles.panelContainer}>

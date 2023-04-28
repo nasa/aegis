@@ -6,6 +6,7 @@ export const initialState: TraverseState = {
   traversesFromDb: [],
   traversesEditing: [],
   selectedTraverseRightNavItem: "info_panel",
+  calculatedFields: [],
 };
 
 export const traverseSlice = createSlice({
@@ -71,7 +72,6 @@ export const traverseSlice = createSlice({
         }
       }
     },
-
     revertTraversePath: (state, action: { payload: { uuid: string } }) => {
       const traverse = state.traverses.find((traverse) => traverse.uuid === action.payload.uuid);
       const traverseFromDb = state.traversesFromDb.find(
@@ -88,6 +88,12 @@ export const traverseSlice = createSlice({
       if (traverse) {
         traverse.pathSegmentElevations = [];
       }
+    },
+    setTraverseCalculatedFields: (
+      state,
+      action: { payload: { calculatedFields: TraverseCalculatedFields[] } }
+    ) => {
+      state.calculatedFields = action.payload.calculatedFields;
     },
   },
 });
@@ -106,4 +112,5 @@ export const {
   updateTraversePath,
   revertTraversePath,
   deleteTraverseElevation,
+  setTraverseCalculatedFields,
 } = traverseSlice.actions;

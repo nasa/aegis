@@ -141,20 +141,6 @@ export function getPlayheadISOString(playheadDate: string, playheadSeconds: numb
   return withSeconds.toISOString();
 }
 
-/** Nicely format an IO collections string for display */
-export function cleanCollectionsString(colStr: string): string {
-  const fullTree = colStr.split("|");
-  let cleaned = fullTree[fullTree.length - 1];
-  cleaned = cleaned.replace(fullTree[1], "");
-  if (fullTree[2]?.includes("Earth Obs")) {
-    cleaned = fullTree[2].replace(fullTree[1], "") + " " + cleaned;
-  }
-  if (cleaned === "Photo") {
-    cleaned = fullTree[2].replace(fullTree[1], "");
-  }
-  return cleaned;
-}
-
 /** Get a formatted pseudo-julian date */
 export function getJulianDate(date: Date): string {
   const year = date.getUTCFullYear();
@@ -167,46 +153,6 @@ export function getJulianDate(date: Date): string {
 
   return `${year}/${jd}`;
 }
-
-const stripParens = (str: string): string => {
-  if (str[0] === "(" && str[str.length - 1] === ")") {
-    return str.slice(1, -1);
-  }
-  return str;
-};
-
-/** Cleans EVA titles from the wiki */
-export const formatEVADisplayTitle = ({
-  pageName,
-  descriptiveTitle,
-}: {
-  pageName: string;
-  descriptiveTitle: string;
-}): string => {
-  const regexWithNum = /^([UR])S EVA \d+[A-Z]*/; // US EVA 55 or US EVA 55A (optional letter)
-  const regexWithoutNum = /^([UR])S EVA/;
-
-  // Both name and display title start like US EVA 55
-  if (regexWithNum.test(pageName) && regexWithNum.test(descriptiveTitle)) {
-    const title = stripParens(descriptiveTitle.replace(regexWithNum, "").trim());
-    return `${pageName}${title ? " - " + title : ""}`; // could look inside parenthetical here and only display that
-
-    // only name starts like US EVA 55
-  } else if (regexWithNum.test(pageName)) {
-    const title = regexWithoutNum.test(descriptiveTitle)
-      ? descriptiveTitle.replace(regexWithoutNum, "").trim()
-      : descriptiveTitle;
-    return `${pageName} - ${stripParens(title)}`;
-
-    // This is a weird case where display title has numbers but page name does not.
-  } else if (regexWithNum.test(descriptiveTitle)) {
-    return descriptiveTitle;
-
-    // No EVA numbers, just use page name
-  } else {
-    return pageName; // if neither have number, I think just the page name makes sense
-  }
-};
 
 /**
  * Round Date to nearest second
@@ -257,3 +203,11 @@ export const decodeEmoji = (str: string): string => {
   }
   return emoji;
 };
+
+/**
+ * Format a number to a string with commas and 2 decimal places
+ */
+export function formatNumberWithCommas(num: number): string {
+  if (_.isNil(num)) return "";
+  return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}

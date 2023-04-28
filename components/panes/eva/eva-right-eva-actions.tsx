@@ -12,8 +12,18 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   );
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
 
+  const calculatedFields = useAppSelector(
+    (state) =>
+      state.eva.calculatedFields.find(
+        (calculatedFields) => calculatedFields.uuid === selectedEvaUuid
+      ),
+    shallowEqual
+  );
+
   const [evaActions, setEvaActions] = useState<Action[]>(null); //contains all EVA actions
   const [evaActionOrderUuids, setEvaActionOrderUuids] = useState<string[]>(null); //contains all EVA actions
+  const [actionsCalculatedFields, setActionsCalculatedField] =
+    useState<ActionsCalculatedFields>(null);
 
   //gather all actions, then order them
   useEffect(() => {
@@ -39,6 +49,15 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     setEvaActionOrderUuids(allEvaActions.map((action) => action.uuid));
   }, [actions, selectedEva, stations]);
 
+  useEffect(() => {
+    // create the calulated action fields for the action tab
+    const newActionsCalculatedFields: ActionsCalculatedFields = {
+      actionCount: calculatedFields.totalStationActionCount,
+      totalActionTime: calculatedFields.totalStationTime,
+    };
+    setActionsCalculatedField(newActionsCalculatedFields);
+  }, [calculatedFields]);
+
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle}>All EVA Actions</div>
@@ -51,6 +70,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
           actionOrderUuids={evaActionOrderUuids}
           setActionOrderUuids={() => {}}
           actionParentUuid={null}
+          actionsCalculatedFields={actionsCalculatedFields}
         />
       </div>
     </div>

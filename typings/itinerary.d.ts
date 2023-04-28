@@ -264,3 +264,14 @@ type InventoryItem = {
 };
 
 type ActionType = "measurement" | "observation" | "sample" | "photo" | "other";
+
+// used for display of time ranges
+type TotalTimeObj = {
+  durationLower: number;
+  durationUpper: number;
+};
+
+type TotalAscentDescentObj = {
+  totalMetersClimbed: number;
+  totalMetersDescended: number;
+};

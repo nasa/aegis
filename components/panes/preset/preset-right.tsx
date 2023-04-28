@@ -59,13 +59,13 @@ const PresetEditorRight: FunctionComponent = () => {
     info_panel: {
       title: "Preset Information",
       panel: Info_panel,
-      color: "var(--map)",
+      selectedColor: "var(--map)",
       icon: faCircleInfo,
     },
     layers_panel: {
       title: "Preset Layer Configuration",
       panel: Layers_Panel,
-      color: "var(--map)",
+      selectedColor: "var(--map)",
       icon: faLayerGroup,
     },
   };
@@ -184,7 +184,9 @@ const PresetEditorRight: FunctionComponent = () => {
                     className={paneStyles.rightIcon}
                     style={{
                       color:
-                        selectedRightNavItem === panelType ? panelTypes[panelType].color : "white",
+                        selectedRightNavItem === panelType
+                          ? panelTypes[panelType].selectedColor
+                          : "white",
                     }}
                     title={panelTypes[panelType].title}
                     onClick={() => dispatch(setSelectedPresetRightNavItem(panelType))}

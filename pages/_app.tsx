@@ -12,7 +12,12 @@ import { config } from "@fortawesome/fontawesome-svg-core";
 
 function App({ Component, pageProps }: AppProps) {
   config.autoAddCss = false; // Tell Font Awesome to skip adding the CSS automatically since we did it manually above.
-  return <Component {...pageProps} />;
+  return (
+    <>
+      <title>AEGIS</title>
+      <Component {...pageProps} />
+    </>
+  );
 }
 
 export default wrapper.withRedux(App);

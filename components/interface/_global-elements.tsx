@@ -345,5 +345,64 @@ export const Checkbox: FunctionComponent<{
 export const LastEdited: FunctionComponent<{
   updatedAt: string;
 }> = ({ updatedAt }) => {
-  return <>{updatedAt ? <>{longdateFromDateString(updatedAt)}&nbsp;Z</> : <>N/A</>}&nbsp;&nbsp;</>;
+  const returnDivContent = (updatedAt) => {
+    if (!updatedAt) return <>N/A</>;
+    const date = new Date(updatedAt);
+    // calculate the difference between now and the last update
+    const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+    // less than 1 minute
+    switch (true) {
+      case diff < 60:
+        return <>just now</>;
+      case diff < 3600:
+        const minutes = Math.floor(diff / 60);
+        return (
+          <>
+            {minutes} minute{minutes === 1 ? "" : "s"} ago
+          </>
+        );
+      case diff < 86400:
+        const hours = Math.floor(diff / 3600);
+        return (
+          <>
+            {hours} hour{hours === 1 ? "" : "s"} ago
+          </>
+        );
+      case diff < 604800:
+        const days = Math.floor(diff / 86400);
+        return (
+          <>
+            {days} day{days === 1 ? "" : "s"} ago
+          </>
+        );
+      case diff < 2592000:
+        const weeks = Math.floor(diff / 604800);
+        return (
+          <>
+            {weeks} week{weeks === 1 ? "" : "s"} ago
+          </>
+        );
+      case diff < 31536000:
+        const months = Math.floor(diff / 2592000);
+        return (
+          <>
+            {months} month{months === 1 ? "" : "s"} ago
+          </>
+        );
+      default:
+        const years = Math.floor(diff / 31536000);
+        return (
+          <>
+            {years} year{years === 1 ? "" : "s"} ago
+          </>
+        );
+    }
+  };
+
+  if (!updatedAt) return <></>;
+  return (
+    <div className={styles.updatedAt} title={`${longdateFromDateString(updatedAt)} Z`}>
+      {<>{returnDivContent(updatedAt)}</>}
+    </div>
+  );
 };

@@ -357,3 +357,7 @@
   right: 1px;
   top: -5px;
 }
+
+.updatedAt {
+  cursor: default;
+}

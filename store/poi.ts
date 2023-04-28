@@ -7,6 +7,7 @@ export const initialState: PoiState = {
   selectedPoiUuid: null,
   selectedRightNavItem: "info_panel",
   poisEditing: [],
+  calculatedFields: [],
 };
 
 export const poiSlice = createSlice({
@@ -71,6 +72,12 @@ export const poiSlice = createSlice({
         return poi;
       });
     },
+    setPoiCalculatedFields: (
+      state,
+      action: { payload: { calculatedFields: PoiCalculatedFields[] } }
+    ) => {
+      state.calculatedFields = action.payload.calculatedFields;
+    },
   },
 });
 
@@ -88,4 +95,5 @@ export const {
   duplicatePoi,
   setPoiEditMode,
   updatePoiLocation,
+  setPoiCalculatedFields,
 } = poiSlice.actions;

@@ -138,7 +138,6 @@ async function upsertUser(user: User): Promise<User> {
  */
 async function deleteUser(userId: number): Promise<boolean> {
   const em = getEM();
-  console.log(userId);
   const entity = await em.findOne(User_db, { id: userId });
   if (entity) {
     await em.removeAndFlush(entity);

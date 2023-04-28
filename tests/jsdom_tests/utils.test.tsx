@@ -8,12 +8,12 @@ import {
   getRhumbLineBearing,
   getSlope,
   getTotalDistance,
+  traverseDurationMinutes,
 } from "utils/geoMath";
 import { LatLng } from "leaflet";
 import {
   appSecondsFromDateString,
-  cleanCollectionsString,
-  formatEVADisplayTitle,
+  formatNumberWithCommas,
   getJulianDate,
   getPlayheadISOString,
   hhmmFromMinutes,
@@ -133,28 +133,6 @@ describe("Utilities Functions", () => {
 
   test("Formatting: Calculates Seconds into day", () => {
     const julianDateTest = new Date("2020-01-01T00:00:00Z");
-    const displayTitle1 = {
-      pageName: "US EVA 1",
-      descriptiveTitle: "US EVA 1",
-    };
-    const displayTitle2 = {
-      pageName: "US EVA 55",
-      descriptiveTitle: "The second",
-    };
-
-    const displayTitle3 = {
-      pageName: "XX",
-      descriptiveTitle: "US EVA 55 : The 3rd",
-    };
-
-    const displayTitle4 = {
-      pageName: "US EVA",
-      descriptiveTitle: "XXX",
-    };
-    const displayTitle5 = {
-      pageName: "US EVA 55",
-      descriptiveTitle: "(XXX)",
-    };
 
     expect(appSecondsFromDateString("2021-01-01T00:00:00.000Z")).toBe(0);
     expect(hhmmssFromDateString("2021-01-01T00:00:00.000Z")).toBe("00:00:00");
@@ -170,17 +148,8 @@ describe("Utilities Functions", () => {
       "The date string couldn't be converted into a Date"
     );
     expect(getPlayheadISOString("2021-01-01T00:00:00.000Z", 0)).toBe("2021-01-01T00:00:00.000Z");
-    expect(cleanCollectionsString("Space Force|Will be deleted|Earth Obs")).toBe(
-      "Earth Obs Earth Obs"
-    );
-    expect(cleanCollectionsString("Test|Cleaned|Photo")).toBe("Photo");
-    expect(cleanCollectionsString("Cobalt Corax")).toBe("Cobalt Corax");
+
     expect(getJulianDate(julianDateTest)).toBe("2020/1");
-    expect(formatEVADisplayTitle(displayTitle1)).toBe("US EVA 1");
-    expect(formatEVADisplayTitle(displayTitle2)).toBe("US EVA 55 - The second");
-    expect(formatEVADisplayTitle(displayTitle3)).toBe("US EVA 55 : The 3rd");
-    expect(formatEVADisplayTitle(displayTitle4)).toBe("US EVA");
-    expect(formatEVADisplayTitle(displayTitle5)).toBe("US EVA 55 - XXX");
 
     expect(toDecimal("0")).toBe(0);
     expect(toDecimal("0.0")).toBe(0);
@@ -331,5 +300,51 @@ describe("hhmmFromMinutes", () => {
     expect(hhmmFromMinutes(9)).toEqual("00:09");
     expect(hhmmFromMinutes(63)).toEqual("01:03");
     expect(hhmmFromMinutes(600)).toEqual("10:00");
+  });
+});
+
+describe("traverseDurationMinutes", () => {
+  test("returns 0 when segmentDistances is not provided", () => {
+    expect(traverseDurationMinutes(null, 10)).toBe(0);
+  });
+
+  test("returns 0 when traverseRate is not provided", () => {
+    expect(traverseDurationMinutes([1000, 2000], null)).toBe(0);
+  });
+
+  test("returns 0 when both segmentDistances and traverseRate are not provided", () => {
+    expect(traverseDurationMinutes(null, null)).toBe(0);
+  });
+
+  test("returns correct duration for a single segment", () => {
+    expect(traverseDurationMinutes([1000], 10)).toBe(6);
+  });
+
+  test("returns correct duration for multiple segments", () => {
+    expect(traverseDurationMinutes([500, 500], 1)).toBe(60);
+  });
+
+  test("returns 0 when segmentDistances is an empty array", () => {
+    expect(traverseDurationMinutes([], 10)).toBe(0);
+  });
+
+  test("returns 0 when traverseRate is 0", () => {
+    expect(traverseDurationMinutes([1000, 2000], 0)).toBe(0);
+  });
+
+  test("returns 0 when segmentDistances and traverseRate are both 0", () => {
+    expect(traverseDurationMinutes([0, 0], 0)).toBe(0);
+  });
+});
+
+describe("formatNumberWithCommas", () => {
+  it("formats numbers with commas", () => {
+    expect(formatNumberWithCommas(1000)).toBe("1,000.00");
+    expect(formatNumberWithCommas(123456789.12)).toBe("123,456,789.12");
+    expect(formatNumberWithCommas(9876543210.123)).toBe("9,876,543,210.12");
+  });
+
+  it('returns "0.00" when given 0', () => {
+    expect(formatNumberWithCommas(0)).toBe("0.00");
   });
 });

@@ -12,6 +12,7 @@ export const initialState: EvaState = {
   evas: [],
   evasFromDb: [],
   evasEditing: [],
+  calculatedFields: [],
 };
 
 export const evaSlice = createSlice({
@@ -101,6 +102,12 @@ export const evaSlice = createSlice({
         };
       },
     },
+    setEvasCalculatedFields: (
+      state,
+      action: { payload: { calculatedFields: EvaCalculatedFields[] } }
+    ) => {
+      state.calculatedFields = action.payload.calculatedFields;
+    },
   },
 });
 
@@ -120,4 +127,5 @@ export const {
   setExpandedEvaUuids,
   setEvaSequence,
   setEvaEditMode,
+  setEvasCalculatedFields,
 } = evaSlice.actions;

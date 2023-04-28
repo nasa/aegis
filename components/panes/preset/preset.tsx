@@ -148,7 +148,7 @@ const PresetList: FunctionComponent<{
 
   return (
     <div className={styles.layerGroup}>
-      {Object.keys(presets).map((key) => {
+      {Object.keys(presets).map((key, index) => {
         const currentPreset = presets[key];
         const selectedStyle =
           currentPreset.uuid === selectedPresetUuid ? styles.presetItemSelected : null;
@@ -160,7 +160,7 @@ const PresetList: FunctionComponent<{
         )[0];
         return (
           <div
-            key={`sub_${currentPreset.name}`}
+            key={`sub_${currentPreset.name}_${index}`}
             className={`${styles.presetItem} ${selectedStyle}`}
           >
             <div

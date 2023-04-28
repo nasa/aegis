@@ -92,7 +92,6 @@ export async function listFiles(path: string): Promise<GISfile[]> {
       return await Promise.all(
         files.map(async (file) => {
           let fileCount = 1;
-          console.log(file.isDirectory());
           if (file.isDirectory()) {
             fileCount = await countFiles(`${path}/${file.name}`);
           }

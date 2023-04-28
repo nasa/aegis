@@ -14,7 +14,17 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     shallowEqual
   );
 
+  const calculatedFields = useAppSelector(
+    (state) =>
+      state.poi.calculatedFields.find(
+        (calculatedFields) => calculatedFields.uuid === selectedPoiUuid
+      ),
+    shallowEqual
+  );
+
   const [poiActions, setPoiActions] = useState<Action[]>(null); //contains all POI actions
+  const [actionsCalculatedFields, setActionsCalculatedField] =
+    useState<ActionsCalculatedFields>(null);
 
   //gather all actions, then order them
   useEffect(() => {
@@ -26,6 +36,15 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     allPoiActions.push(...actions.filter((action) => action.poiUuid === selectedPoiUuid));
     setPoiActions(allPoiActions);
   }, [selectedPoiUuid, actions, selectedPoi]);
+
+  useEffect(() => {
+    // create the calulated action fields for the action tab
+    const newActionsCalculatedFields: ActionsCalculatedFields = {
+      actionCount: calculatedFields.actionCount,
+      totalActionTime: calculatedFields.totalTime,
+    };
+    setActionsCalculatedField(newActionsCalculatedFields);
+  }, [calculatedFields]);
 
   return (
     <div className={paneStyles.rightBody}>
@@ -43,6 +62,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
             dispatch(upsertPoi({ ...selectedPoi, actionOrderUuids: actionOrderUuids }));
           }}
           actionParentUuid={{ poiUuid: selectedPoiUuid }}
+          actionsCalculatedFields={actionsCalculatedFields}
         />
       </div>
     </div>

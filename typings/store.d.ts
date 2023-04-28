@@ -52,6 +52,7 @@ interface EvaState {
   evas: Eva[];
   evasFromDb: Eva[];
   evasEditing: string[];
+  calculatedFields: EvaCalculatedFields[];
 }
 
 interface TraverseState {
@@ -59,6 +60,7 @@ interface TraverseState {
   traversesFromDb: Traverse[];
   traversesEditing: string[];
   selectedTraverseRightNavItem: string;
+  calculatedFields: TraverseCalculatedFields[];
 }
 
 interface PoiState {
@@ -67,6 +69,7 @@ interface PoiState {
   selectedPoiUuid: string;
   selectedRightNavItem: string;
   poisEditing: string[];
+  calculatedFields: PoiCalculatedFields[];
 }
 
 interface PresetState {
@@ -99,9 +102,58 @@ interface StationState {
   selectedStationUuid: string;
   selectedRightNavItem: string;
   stationsEditing: string[];
+  calculatedFields: StationCalculatedFields[];
 }
 
 interface ActionState {
   actions: Action[];
   actionsFromDb: Action[];
 }
+
+type ReportItem = {
+  message: string;
+  type: "error" | "warning" | "info";
+};
+
+type CalculatedFields = {
+  uuid: string;
+  reportItems: ReportItem[];
+};
+
+type PoiCalculatedFields = CalculatedFields & {
+  totalTime: TotalTimeObj;
+  actionCount: number;
+};
+
+type StationCalculatedFields = CalculatedFields & {
+  totalTime: TotalTimeObj;
+  actionCount: number;
+  walkbackDurationMinutes: number;
+  walkbackDistanceMeters: number;
+  walkbackAscentDescent: TotalAscentDescentObj;
+};
+
+type ActionsCalculatedFields = {
+  totalActionTime: TotalTimeObj;
+  actionCount: number;
+};
+
+type TraverseCalculatedFields = CalculatedFields & {
+  durationMinutes: number;
+  distanceMeters: number;
+  ascentDescent: TotalAscentDescentObj;
+};
+
+type EvaReportSequenceItem = EvaSequenceItem & {
+  name: string;
+  reportItems: ReportItem[];
+};
+
+type EvaCalculatedFields = CalculatedFields & {
+  totalStationTime: TotalTimeObj;
+  totalStationActionCount: number;
+  totalTraverseTime: number;
+  totalTraverseDistanceMeters: number;
+  totalTraverseAscentDescent: TotalAscentDescentObj;
+  totalEvaTime: TotalTimeObj;
+};

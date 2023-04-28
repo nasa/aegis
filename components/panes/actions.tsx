@@ -14,6 +14,7 @@ import { faPlusCircle, faTableList } from "@fortawesome/free-solid-svg-icons";
 import ReactDragListView from "react-drag-listview";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { STM_Coverage } from "./stm-coverage";
+import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 const profanityFilter = require("leo-profanity");
 
 type ActionParentUuid = {
@@ -29,6 +30,7 @@ const Actions: FunctionComponent<{
   actionOrderUuids: string[];
   setActionOrderUuids: (actionOrderUuids: string[]) => void;
   actionParentUuid: ActionParentUuid;
+  actionsCalculatedFields: ActionsCalculatedFields;
 }> = ({
   editMode,
   setEditMode,
@@ -37,12 +39,14 @@ const Actions: FunctionComponent<{
   actionOrderUuids,
   setActionOrderUuids,
   actionParentUuid,
+  actionsCalculatedFields,
 }) => {
   const dispatch = useDispatch();
   const selectedMissionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
+
   const [wrappedActions, setWrappedActions] = useState<WrappedAction[]>(null); //contains all actions in order
 
-  //gather all actions, order, and wrap them
+  //gather all actions, order, and wrap them. Calculate all calculated fields
   useEffect(() => {
     if (actions) {
       //check if action ordering is defined.
@@ -107,7 +111,7 @@ const Actions: FunctionComponent<{
       status: "Candidate",
       type: "other",
       durationLower: 5,
-      durationUpper: null,
+      durationUpper: 6,
       stmUuidRefs: null,
       inventoryItems: null,
       priorityOverride: null,
@@ -184,6 +188,20 @@ const Actions: FunctionComponent<{
                   onInvstgHover={highlightActions}
                   uniqueKey="summaryInfo"
                 />
+              </div>
+
+              <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
+                <div className={paneStyles.panelSmallField}>
+                  <div className={paneStyles.panelSectionTitle}># Actions</div>
+                  <div className={paneStyles.panelText}>{actionsCalculatedFields?.actionCount}</div>
+                </div>
+                <div className={paneStyles.panelMediumField}>
+                  <div className={paneStyles.panelSectionTitle}>Total Action Time</div>
+                  <div className={paneStyles.panelDisplayVal}>
+                    <>{displayFormattedTotalTimeObj(actionsCalculatedFields?.totalActionTime)}</>
+                    &nbsp;mins
+                  </div>
+                </div>
               </div>
             </div>
           </div>

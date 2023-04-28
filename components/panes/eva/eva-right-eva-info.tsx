@@ -3,11 +3,13 @@ import {
   InLineEditInput,
   LastEdited,
 } from "components/interface/_global-elements";
-import { FunctionComponent, useCallback, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import { useDispatch } from "react-redux";
 import { upsertEva } from "store/eva";
 import { shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
+import { displayFormattedTotalTimeObj } from "utils/component-helpers";
+import { formatNumberWithCommas } from "utils/formatting";
 
 const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -16,92 +18,14 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     (state) => state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid),
     shallowEqual
   );
-  const actions = useAppSelector((state) => state.action.actions, shallowEqual);
-  const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
   const missionTraverseRate = useAppSelector(
     (state) => state.mission.mission.traverseSpeed,
     shallowEqual
   );
-
-  const [totalStationTime, setTotalStationTime] = useState({ durationLower: 0, durationUpper: 0 });
-  const [totalTraverseTime, setTotalTraverseTime] = useState(0);
-  const [totalTraverseDistance, setTotalTraverseDistance] = useState(0);
-
-  const [actionsCount, setActionsCount] = useState(0);
-
-  const calculateTotals = useCallback(() => {
-    let totalStationTimeLower = 0;
-    let totalStationTimeUpper = 0;
-    let totalTraverseDistance = 0;
-    let totalTraverseTime = 0;
-    selectedEva.sequence.forEach((sequenceItem) => {
-      if (sequenceItem.type === "station") {
-        const stationActions = actions.filter((action) => action.stationUuid === sequenceItem.uuid);
-        stationActions.forEach((action) => {
-          totalStationTimeLower += action?.durationLower;
-          totalStationTimeUpper += action?.durationUpper;
-        });
-      } else if (sequenceItem.type === "traverse") {
-        const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
-
-        // calculate traverse distances
-        if (Array.isArray(traverse?.pathSegmentDistances)) {
-          const thisTraverseDistance = traverse?.pathSegmentDistances.reduce(
-            (accumulator, currentVal) => accumulator + currentVal,
-            0
-          );
-          totalTraverseDistance += thisTraverseDistance;
-
-          // calculate traverse times
-          const traverseRate = traverse.traverseRate ? traverse.traverseRate : missionTraverseRate;
-          const traverseRateMPerMin = (traverseRate * 1000) / 60;
-          const thisTraverseTimeMinutes = thisTraverseDistance / traverseRateMPerMin;
-          totalTraverseTime += thisTraverseTimeMinutes;
-        }
-      }
-    });
-    setTotalStationTime({
-      durationLower: totalStationTimeLower,
-      durationUpper: totalStationTimeUpper,
-    });
-    setTotalTraverseTime(totalTraverseTime);
-
-    setTotalTraverseDistance(totalTraverseDistance);
-  }, [selectedEva, actions, traverses, missionTraverseRate]);
-
-  const countActions = useCallback(() => {
-    let count = 0;
-    selectedEva.sequence.forEach((sequenceItem) => {
-      if (sequenceItem.type === "station") {
-        const stationActions = actions.filter((action) => action.stationUuid === sequenceItem.uuid);
-        count += stationActions.length;
-      }
-    });
-    setActionsCount(count);
-  }, [selectedEva, actions]);
-
-  useEffect(() => {
-    calculateTotals();
-    countActions();
-  }, [calculateTotals, countActions]);
-
-  const displayStationTime = () => {
-    if (totalStationTime.durationLower === totalStationTime.durationUpper) {
-      return totalStationTime.durationLower;
-    } else {
-      return `${totalStationTime.durationLower} - ${totalStationTime.durationUpper}`;
-    }
-  };
-
-  const displayTotalTime = () => {
-    const totalTimeLower = totalStationTime.durationLower + totalTraverseTime;
-    const totalTimeUpper = totalStationTime.durationUpper + totalTraverseTime;
-    if (totalTimeLower === totalTimeUpper) {
-      return totalTimeLower;
-    } else {
-      return `${totalTimeLower.toFixed(0)} - ${totalTimeUpper.toFixed(0)}`;
-    }
-  };
+  const evaCalculatedFields = useAppSelector(
+    (state) => state.eva.calculatedFields.find((calculated) => calculated.uuid === selectedEvaUuid),
+    shallowEqual
+  );
 
   return (
     <div className={paneStyles.rightBody}>
@@ -143,8 +67,13 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                 </div>
               </div>
               <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>
-                  Traverse Rate (km/hr) Mission Default: {missionTraverseRate} km/hr
+                <div
+                  className={paneStyles.panelSectionTitle}
+                  title={`${selectedEva?.traverseRate ? "EVA" : "Mission"} Default: ${
+                    selectedEva?.traverseRate || missionTraverseRate
+                  } km/hr`}
+                >
+                  Traverse Rate (km/hr)
                 </div>
                 <div className={paneStyles.inputField}>
                   <InLineEditInput
@@ -168,31 +97,34 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Total Station Dwell Time</div>
                 <div className={paneStyles.panelDisplayVal}>
-                  <>{displayStationTime()}</>&nbsp;mins
+                  <>{displayFormattedTotalTimeObj(evaCalculatedFields?.totalStationTime)}</>
+                  &nbsp;mins
                 </div>
               </div>
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Total Traverse Duration</div>
                 <div className={paneStyles.panelDisplayVal}>
-                  <>{totalTraverseTime.toFixed(0)}</>&nbsp;mins
+                  <>{evaCalculatedFields?.totalTraverseTime?.toFixed(0)}</>&nbsp;mins
                 </div>
               </div>
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Total EVA Duration</div>
                 <div className={paneStyles.panelDisplayVal}>
-                  <>{displayTotalTime()}</>&nbsp;mins
+                  <>{displayFormattedTotalTimeObj(evaCalculatedFields?.totalEvaTime)}</>&nbsp;mins
                 </div>
               </div>
             </div>
             <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}># Station Actions</div>
-                <div className={paneStyles.panelDisplayVal}>{actionsCount}</div>
+                <div className={paneStyles.panelDisplayVal}>
+                  {evaCalculatedFields?.totalStationActionCount}
+                </div>
               </div>
               <div className={paneStyles.panelMediumField}>
                 <div className={paneStyles.panelSectionTitle}>Total Traverse Distance</div>
                 <div className={paneStyles.panelDisplayVal}>
-                  {totalTraverseDistance.toFixed(2)}&nbsp;m
+                  {formatNumberWithCommas(evaCalculatedFields?.totalTraverseDistanceMeters)}&nbsp;m
                 </div>
               </div>
             </div>

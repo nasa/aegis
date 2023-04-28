@@ -74,7 +74,7 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
                           }
                         >
                           {presetLayerControlInteractions &&
-                            (presetLayerControlInteractions[layer.layerConfig.name].expanded ? (
+                            (presetLayerControlInteractions[layer.layerConfig.name]?.expanded ? (
                               <FontAwesomeIcon icon={faCaretDown} size="sm" />
                             ) : (
                               <FontAwesomeIcon icon={faCaretRight} size="sm" />
@@ -86,7 +86,7 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
                       </div>
                       <div>
                         {presetLayerControlInteractions &&
-                          presetLayerControlInteractions[layer.layerConfig.name].expanded &&
+                          presetLayerControlInteractions[layer.layerConfig.name]?.expanded &&
                           layer.layerConfig.sublayers &&
                           layer.layerConfig.sublayers.map((sublayer: Sublayer) => {
                             return (

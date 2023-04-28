@@ -247,3 +247,51 @@ export function getMidpoint(points: AEGISPoint[]): AEGISPoint {
   const lng = _.meanBy(points, "lng");
   return { lat, lng };
 }
+
+/**
+ * Calculate total ascent and descent from a pathSegmentElevations array
+ * @param elevations pathSegmentElevations
+ * @returns
+ */
+export const calculateAscentAndDescent = (elevations: number[][]): TotalAscentDescentObj => {
+  const returnValue: TotalAscentDescentObj = {
+    totalMetersClimbed: 0,
+    totalMetersDescended: 0,
+  };
+  if (!elevations) return returnValue;
+
+  //Loop through the multidimensional array of elevations
+  for (const elevation of elevations) {
+    // loop over all but the last element (note i < elevation.length - 1)
+    for (let i = 0; i < elevation.length - 1; i++) {
+      const difference = elevation[i + 1] - elevation[i];
+      if (difference > 0) {
+        returnValue.totalMetersClimbed += difference;
+      } else {
+        returnValue.totalMetersDescended += -difference;
+      }
+    }
+  }
+  return returnValue;
+};
+
+/**
+ * Calculate the total duration of a pathSegmentDistances array given a traverse rate
+ * @param segmentDistances an array of distances in meters
+ * @param traverseRate the traverse rate in km/h
+ */
+export const traverseDurationMinutes = (
+  segmentDistances: number[],
+  traverseRate: number
+): number => {
+  if (!segmentDistances || !traverseRate) return 0;
+  //convert meters to km, then divide by traverse speed to get minutes
+  const distanceMeters = segmentDistances.reduce((accumulator, currentVal) => {
+    return accumulator + currentVal;
+  }, 0);
+
+  const distanceKm = distanceMeters / 1000;
+  const durationHours = distanceKm / traverseRate;
+  const durationMinutes = durationHours * 60;
+  return durationMinutes;
+};

@@ -1,0 +1,44 @@
+.info {
+  background-color: var(--grey3);
+}
+.warning {
+  background-color: var(--warning);
+  color: black;
+}
+.error {
+  background-color: var(--error);
+}
+.reportItems {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.reportItem {
+  font-size: 0.8em;
+  padding: 4px 8px 4px 8px;
+  margin: 4px 8px 0 8px;
+  border-radius: var(--panelRadius);
+  cursor: default;
+}
+.reportItem:first-child {
+  margin-top: 0;
+}
+
+.noReportItem {
+  font-size: 0.8em;
+  padding: 4px 8px 4px 8px;
+  margin: 0 8px 0 8px;
+  border-radius: var(--panelRadius);
+  cursor: default;
+}
+
+.evaReportSequenceTitle {
+  font-size: 1.1em;
+  font-weight: bold;
+  margin: 15px 0 0 8px;
+}
+.evaReportSequenceItemName {
+  font-size: 0.8em;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
