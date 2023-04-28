@@ -283,7 +283,22 @@ const AddEditMission = (props: {
                 onChange={(e) => {
                   setMission({ ...mission, name: e.target.value });
                 }}
-                value={mission?.name}
+                value={mission.name}
+              />
+            </div>
+          </div>
+          <div id="bannerDiv">
+            <div className={styles.editDiv}>
+              <label htmlFor="banner">Mission Banner</label>
+            </div>
+            <div className={styles.editDiv}>
+              <input
+                id="banner"
+                type="text"
+                onChange={(e) => {
+                  setConfig({ ...config, missionBanner: e.target.value });
+                }}
+                value={config.missionBanner || ""}
               />
             </div>
           </div>
@@ -301,7 +316,7 @@ const AddEditMission = (props: {
                     landerLocation: { ...mission.landerLocation, lat: +e.target.value },
                   });
                 }}
-                value={mission?.landerLocation?.lat || ""}
+                value={mission.landerLocation?.lat || ""}
               />
             </div>
           </div>
@@ -319,7 +334,7 @@ const AddEditMission = (props: {
                     landerLocation: { ...mission.landerLocation, lng: +e.target.value },
                   });
                 }}
-                value={mission?.landerLocation?.lng || ""}
+                value={mission.landerLocation?.lng || ""}
               />
             </div>
           </div>
@@ -337,7 +352,7 @@ const AddEditMission = (props: {
                     landerElevationMeters: +e.target.value,
                   });
                 }}
-                value={mission?.landerElevationMeters || ""}
+                value={mission.landerElevationMeters || ""}
               />{" "}
               <button
                 type="button"
@@ -363,20 +378,20 @@ const AddEditMission = (props: {
                     traverseSpeed: +e.target.value,
                   });
                 }}
-                value={mission?.traverseSpeed}
+                value={mission.traverseSpeed}
               />
             </div>
           </div>
-          <MSV config_msv={config?.msv} setConfig={setConfig} />
-          <Tools config_tools={config?.tools} setConfig={setConfig} />
-          <Projection config_projection={config?.projection} setConfig={setConfig} />
-          <Look config_look={config?.look} setConfig={setConfig} />
+          <MSV config_msv={config.msv} setConfig={setConfig} />
+          <Tools config_tools={config.tools} setConfig={setConfig} />
+          <Projection config_projection={config.projection} setConfig={setConfig} />
+          <Look config_look={config.look} setConfig={setConfig} />
           <Panels
-            config_panels={config?.panels}
-            config_panelSettings={config?.panelSettings}
+            config_panels={config.panels}
+            config_panelSettings={config.panelSettings}
             setConfig={setConfig}
           />
-          <Time config_time={config?.time} setConfig={setConfig} />
+          <Time config_time={config.time} setConfig={setConfig} />
         </div>
         <div className={styles.rightFlexCenter}>
           <div className={styles.configDiv}>

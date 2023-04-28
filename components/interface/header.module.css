@@ -4,7 +4,7 @@
 
 .homeIcon {
   cursor: pointer;
-  transition: .5s ease;
+  transition: 0.5s ease;
 }
 
 .homeIcon:hover {
@@ -55,7 +55,7 @@
 
 .verticalCenter {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   justify-content: space-around;
 }
 
@@ -88,4 +88,8 @@
   font-size: 30px;
   height: 36px;
   cursor: pointer;
+}
+
+.missionBanner {
+  margin-left: 10px;
 }

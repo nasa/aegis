@@ -30,6 +30,7 @@ interface Config {
   tools: MMGIS_Tool[];
   //layers: LayerConfig[];
   time: MMGIS_ConfigTime;
+  missionBanner: string;
 }
 
 type GISfile = {

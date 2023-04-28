@@ -8,6 +8,7 @@ import { FunctionComponent } from "react";
 const Header: FunctionComponent = () => {
   const router = useRouter();
   const missionName = useAppSelector((state) => state.mission.mission?.name, refEqual);
+  const banner = useAppSelector((state) => state.mission.mission?.config.missionBanner, refEqual);
 
   return (
     <>
@@ -30,6 +31,7 @@ const Header: FunctionComponent = () => {
           <div className={styles.mission}>
             <div className={styles.verticalCenter}>
               <div className={styles.headerTextItem}>{missionName}</div>
+              {banner && <div className={styles.missionBanner}>{banner}</div>}
             </div>
           </div>
         </div>
