@@ -31,13 +31,13 @@ export const thunkGetElevation = appCreateAsyncThunk<
   if (path.length === 1) {
     newElevationProfile = await getElevationSinglePoint(mission.id, demFilepath, path[0], radius);
   } else {
-    const elevationResolutionMeters = measureJson["resolution"];
+    const elevationResolutionMeters = measureJson["resolution"] || 10; // resolution in meters, default 10
     newElevationProfile = await getElevationProfile(
       mission.id,
       demFilepath,
       path,
       pathSegmentDistances,
-      elevationResolutionMeters || 10, // resolution in meters, default 10
+      elevationResolutionMeters,
       radius
     );
   }

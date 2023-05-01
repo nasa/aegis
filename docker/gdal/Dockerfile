@@ -19,4 +19,4 @@ RUN apt-get -o APT::Retries=3 -y update && \
 
 WORKDIR /app
 COPY server/python ./
-CMD ["python", "flask/httplistener.py"]
+CMD ["python", "elevationService.py"]

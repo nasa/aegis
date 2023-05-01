@@ -4,7 +4,7 @@ from .__error_checking import _error_check_point
 
 
 def _degrees_to_radians(degrees):
-    """ Converts the degrees into radians
+    """Converts the degrees into radians
     :param degrees: decimal degrees
     :return: radians
     """
@@ -12,7 +12,7 @@ def _degrees_to_radians(degrees):
 
 
 def _radians_to_degrees(radians):
-    """ Converts the radians into degrees
+    """Converts the radians into degrees
     :param radians: decimal degrees
     :return: radians
     """

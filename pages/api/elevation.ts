@@ -1,24 +1,6 @@
 import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
-import _ from "lodash";
-
-type FlaskServiceResponse = {
-  key: string;
-  result_url: string;
-  status: string;
-};
-
-type FlaskJobResponse = {
-  end_type: number;
-  error: string;
-  key: string;
-  process_time: number;
-  report: string;
-  returncode: number;
-  start_time: string;
-  status?: string;
-};
 
 const getPolylineProfile: NextApiHandler<WrappedResponse<number[][]>> = async (
   req,
@@ -30,110 +12,71 @@ const getPolylineProfile: NextApiHandler<WrappedResponse<number[][]>> = async (
         const postData: ElevationProfilePostData = req.body;
 
         // The "/static" path is mapped in the docker-compose file for the GDAL container. This maps to the public static folder in the project.
-        const geoTiffPath = `/static/missionFiles/${postData.missionId}/${postData.demFilepath}`;
-
-        // console.log("geoTiffPath: " + geoTiffPath);
+        const rasterFilePath = `/static/missionFiles/${postData.missionId}/${postData.demFilepath}`;
 
         let initRes: Response = null;
-        let initResJson: FlaskServiceResponse = null;
-        let jobRes: Response = null;
-        let jobResJson: FlaskJobResponse = null;
+        let initResJson: WrappedResponse<number[][]> = null;
         try {
-          // convert negative signs to underscores for passing as pipe-delimited python parameter
-          const pathParam = postData.path
-            .map((point) => {
-              const latConv = point.lat.toString().replace("-", "_");
-              const lngConv = point.lng.toString().replace("-", "_");
-              return `${latConv},${lngConv}`;
-            })
-            .join("|");
+          const path = postData.path;
 
-          // convert to pipe-delimited python parameter
-          const stepsParam = postData.pathSegmentDistances
-            .map((dist) => Math.ceil(dist / postData.resolutionMeters).toString())
-            .join("|");
+          // create steps out of distances / dem resolution
+          const steps = postData.pathSegmentDistances.map((dist) =>
+            Math.ceil(dist / postData.resolutionMeters).toString()
+          );
 
-          const pythonArgs = {
-            args: [
-              "--raster",
-              geoTiffPath,
-              "--axes",
-              "z",
-              "--band",
-              "1",
-              "--path",
-              pathParam,
-              "--steps",
-              stepsParam,
-            ],
+          const requestBody: ElevationGdalRequestBody = {
+            rasterFilePath,
+            axes: "z",
+            band: 1,
+            path,
+            steps,
           };
 
           initRes = await fetch(
-            `http://${process.env.GDAL_HOST}:${process.env.GDAL_PORT}/commands/pathToElevationProfile`,
+            `http://${process.env.GDAL_HOST}:${process.env.GDAL_PORT}/pathToElevationProfile`,
             {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify(pythonArgs),
+              body: JSON.stringify(requestBody),
             }
           );
 
-          initResJson = await initRes.json();
+          try {
+            initResJson = await initRes.json();
+            // convert all elevations to numbers
+            initResJson.data = initResJson.data.map((segment) =>
+              segment.map((elevation) => parseFloat(String(elevation)))
+            );
+          } catch (e) {
+            console.error("Error parsing initResJson", e);
+            return res.status(500).json({
+              status: "error",
+              message:
+                "Error parsing initResJson. " + e + " | Response: " + JSON.stringify(initRes),
+            });
+          }
           // console.log("initResJson: " + JSON.stringify(initResJson));
+
+          if (initResJson.status === "success") {
+            return res.status(200).json({
+              status: "success",
+              data: initResJson.data,
+              message: "Success POSTing the job to docker.",
+            });
+          } else {
+            return res.status(500).json({
+              status: "error",
+              message: "Error POSTing the job to docker. Error: " + initResJson.message,
+            });
+          }
         } catch (e) {
           console.error("Posting error", e);
           return res.status(500).json({
             status: "error",
             message:
               "Error POSTing the job to docker. " + e + " | Response: " + JSON.stringify(initRes),
-          });
-        }
-
-        try {
-          // call the docker container with python to get the results
-
-          // poll the job status until it's done
-          let keepLooping = true;
-          const loopLimit = 40;
-          for (let i = 0; i < loopLimit && keepLooping; i++) {
-            jobRes = await fetch(
-              `http://${process.env.GDAL_HOST}:${process.env.GDAL_PORT}/commands/pathToElevationProfile?key=${initResJson?.key}`,
-              {
-                method: "GET",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-              }
-            );
-
-            jobResJson = await jobRes.json();
-            // console.log("jobResJson: " + JSON.stringify(jobResJson));
-
-            if (_.has(jobResJson, "returncode") || _.has(jobResJson, "error")) {
-              keepLooping = false;
-            } else {
-              // if the job is still running, wait 250ms and try again
-              await new Promise((resolve) => setTimeout(resolve, 250));
-            }
-          }
-
-          const elevationResults: number[][] = JSON.parse(jobResJson.report);
-
-          return res.status(200).json({
-            status: "success",
-            message: "elevation profile retrieved in " + jobResJson.process_time + " seconds",
-            data: elevationResults,
-          });
-        } catch (e) {
-          console.error("Error GETing the result from docker", e);
-          return res.status(500).json({
-            status: "error",
-            message:
-              "Error GETing the result from docker. " +
-              e +
-              " | Response: " +
-              JSON.stringify(jobRes),
           });
         }
       }
