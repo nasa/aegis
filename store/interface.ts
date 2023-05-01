@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 export const initialState: InterfaceState = {
-  sectionSelectedLabel: "evas",
+  sectionSelectedLabel: "map_layer_selector",
   rightPanelOpen: false,
   elevationPendingItemUuids: [],
   timelineShowDistanceFromLander: true,

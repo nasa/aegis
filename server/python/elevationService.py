@@ -1,5 +1,6 @@
-# Modifed from MMGIS to return array of arrays and not return intermediate coordinates
-# This function returns an array of arrays. Each child array is a list of elevations that correspond to the steps between each pair of coordinates
+# Modifed from MMGIS
+# Listens on port 80
+# This service returns an array of arrays. Each child array is a list of elevations that correspond to the steps between each pair of coordinates
 
 # Setting axes to "xyz" will return image coordinates instead of lat lons
 
@@ -10,12 +11,10 @@ from osgeo import osr
 from osgeo.gdalconst import *
 from osgeo import __version__ as osgeoversion
 from great_circle_calculator.great_circle_calculator import intermediate_point
-try:
-    from urllib.parse import unquote
-except ImportError:
-    from urllib import unquote
 
-import argparse
+from waitress import serve
+from flask import Flask, jsonify, request
+import json
 
 # Make gdal use exceptions instead of their own errors so that they can be caught
 gdal.UseExceptions()
@@ -24,16 +23,15 @@ gdal.UseExceptions()
 # and returns an array of values on the raster at those points in order
 
 
-def getRasterDataValues(pointArray):
+def getRasterDataValues(band, pointArray):
     valuesArray = []
     for i in range(0, len(pointArray)):
         try:
-            value = band.ReadAsArray(
-                pointArray[i][0], pointArray[i][1], 1, 1)[0][0]
+            value = band.ReadAsArray(pointArray[i][0], pointArray[i][1], 1, 1)[0][0]
         except Exception as e:
             # -1100101 = (e)rror
             value = -1100101
-            print ("Error at point: " + str(pointArray[i]) + " (probably out of bounds) ", e)
+            print("Error at point: " + str(pointArray[i]) + " (probably out of bounds) ", e)
 
         noData = band.GetNoDataValue()
         if noData is not None:
@@ -43,7 +41,7 @@ def getRasterDataValues(pointArray):
                 decPlaces = 10
             if abs(value) >= abs(noData / decPlaces) and abs(value) <= abs(noData * decPlaces):
                 value = -1100101
-        valuesArray.append(value)
+        valuesArray.append(str(value))
     return valuesArray
 
 
@@ -66,6 +64,7 @@ def getInterpolatedArrayLinear(endPairs, steps):
         interpolatedArray.append([x, y])
     return interpolatedArray
 
+
 # Takes in a [[x1,y1],[x2,y2]]
 # and returns [[x1,y1] + (steps - 2) interpolated pairs + [x2,y2]]
 
@@ -75,16 +74,18 @@ def getInterpolatedArray(endPairs, steps):
 
     for i in range(0, steps):
         point = intermediate_point(
-            (endPairs[0][1], endPairs[0][0]), (endPairs[1][1], endPairs[1][0]), float(i)/(float(steps) - 1.0))
+            (endPairs[0][1], endPairs[0][0]), (endPairs[1][1], endPairs[1][0]), float(i) / (float(steps) - 1.0)
+        )
         interpolatedArray.append([point[1], point[0]])
     return interpolatedArray
+
 
 # Takes in a [[lat,lon],[lat,lon]...[lat,lon]]
 # and returns [[pixel,pixel][pixel,pixel]...[pixel,pixel]]
 # based on the predeclared ds (gdal.open(raster))
 
 
-def latLonsToPixel(latLonPairs):
+def latLonsToPixel(ds, latLonPairs):
     # get georeference info
     transform = ds.GetGeoTransform()
     xOrigin = transform[0]
@@ -117,93 +118,83 @@ def latLonsToPixel(latLonPairs):
     return pixelPairs
 
 
+def pathToElevationProfile(rasterFilePath, axes, bandNumber, pathArr, stepsArr):
+    results = []
 
-# Get arguments
-# Path and Steps arguments are passed in with multiple succeeding arguments that are turned into lists
-# Each path has a to/from coordinate in "lat,lng,lat,lng" format. The steps argument is the number of steps between each pair of coordinates
-
-parser=argparse.ArgumentParser()
-parser.add_argument(   
-    "--raster",
-    help="The full path of the raster file Example: '/static/1/arizona_dem_10m_3857.tif'",
-    type=str,
-)
-parser.add_argument(   
-    "--axes",
-    help="Usually 'z' but can be 'xyz' if you want to get the x and y values as well",
-    type=str,
-)
-parser.add_argument(
-    "--band",
-    help="The band number of the raster to get the value from. Usually '1'",
-    type=str
-)
-parser.add_argument(
-    "--path",
-    type=str,
-)
-parser.add_argument(
-    "--steps",
-    type=str,
-)
-
-args = parser.parse_args()
-
-if not args.raster or not args.axes or not args.band or not args.path or not args.steps:
-    print(parser.print_help())
-    exit()
-
-band = int(args.band)
-
-results = []
-
-# Open the image
-ds = gdal.Open(args.raster, GA_ReadOnly)
-if ds is None:
-    print("Could not open image")
-    sys.exit(1)
-
-# Get the band
-if args.axes == 'xyz':
-    try:
-        band = ds.GetRasterBand(3)
-        bandX = ds.GetRasterBand(1)
-        bandY = ds.GetRasterBand(2)
-    except:
-        print("Failed to get bands 1, 2 and 3")
+    # Open the image
+    ds = gdal.Open(rasterFilePath, GA_ReadOnly)
+    if ds is None:
+        print("Could not open image")
         sys.exit(1)
-else:
-    band = ds.GetRasterBand(band)
 
-pathHyphen = args.path.replace('_', '-')
-pathArr = pathHyphen.split('|')
-stepsArr = args.steps.split('|')
+    # Get the band
+    if axes == "xyz":
+        try:
+            band = ds.GetRasterBand(3)
+            bandX = ds.GetRasterBand(1)
+            bandY = ds.GetRasterBand(2)
+        except:
+            print("Failed to get bands 1, 2 and 3")
+            sys.exit(1)
+    else:
+        band = ds.GetRasterBand(bandNumber)
 
-for i in range(1, len(pathArr), 1):
-  lat1, lon1 = pathArr[i - 1].split(',') # from previous point
-  lat2, lon2 = pathArr[i].split(',') # to next point
-  
-  lat1 = float(lat1)
-  lon1 = float(lon1)
-  lat2 = float(lat2)
-  lon2 = float(lon2)
+    for i in range(1, len(pathArr), 1):
+        lat1, lon1 = pathArr[i - 1]["lat"], pathArr[i - 1]["lng"]  # from previous point
+        lat2, lon2 = pathArr[i]["lat"], pathArr[i]["lng"]  # to next point
 
-  latLonEndPairs = [[lat1, lon1], [lat2, lon2]]
-  thisSteps = int(stepsArr[i - 1]) # steps between previous point and next point
+        latLonEndPairs = [[lat1, lon1], [lat2, lon2]]
+        thisSteps = int(stepsArr[i - 1])  # steps between previous point and next point
 
-  # Note: converting to pixels first and then interpolating in less accurate
-  # Interpolate between those latlons
-  latLonArray = getInterpolatedArray(latLonEndPairs, thisSteps)
+        # Note: converting to pixels first and then interpolating in less accurate
+        # Interpolate between those latlons
+        latLonArray = getInterpolatedArray(latLonEndPairs, thisSteps)
 
-  # Deep Copy the list
-  latLonElevArray = [x[:] for x in latLonArray]
+        # Deep Copy the list
+        latLonElevArray = [x[:] for x in latLonArray]
 
-  # Convert ends to image space pixels
-  pixelLatLonEndPairs = latLonsToPixel(latLonArray)
+        # Convert ends to image space pixels
+        pixelLatLonEndPairs = latLonsToPixel(ds, latLonElevArray)
 
-  # Find the raster value at each of those points
-  elevArray = getRasterDataValues(pixelLatLonEndPairs)
+        # Find the raster value at each of those points
+        elevArray = getRasterDataValues(band, pixelLatLonEndPairs)
 
-  results.append(elevArray)
+        results.append(elevArray)
 
-print(results)
+    return results
+
+
+from waitress import serve
+from flask import Flask, jsonify, request, make_response
+
+app = Flask(__name__)
+
+# route to test that the server is running and responding
+@app.route("/")
+def hello_world():
+    print("Hello, World!")
+    return '{"status": "success", "data": "Hello, World!"}'
+
+
+# route that accepts calls from the AEGIS api/elevations.ts file and returns the elevation profile
+@app.route("/pathToElevationProfile", methods=["POST"])
+def get_elevations():
+    try:
+        requestData = request.get_json()
+
+        results = pathToElevationProfile(
+            requestData["rasterFilePath"],
+            requestData["axes"],
+            requestData["band"],
+            requestData["path"],
+            requestData["steps"],
+        )
+        wrappedResponse = jsonify({"status": "success", "data": results})
+    except Exception as e:
+        wrappedResponse = {"status": "error", "message": "Error: " + str(e)}
+
+    return make_response(wrappedResponse, 200)
+
+
+if __name__ == "__main__":
+    serve(app, host="0.0.0.0", port=80)

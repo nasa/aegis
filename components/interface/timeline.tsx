@@ -215,6 +215,7 @@ const NavTimeline: FunctionComponent = () => {
         (tool) => tool.name === "Measure"
       )?.variables["resolution"];
       storeRef.current.landerElevationMeters = mission.landerElevationMeters;
+      storeRef.current.sequenceItems = [];
 
       for (const sequenceItem of selectedEva.sequence) {
         const sequenceItemForPaperJS: EvaSequenceItem_PaperJS = {

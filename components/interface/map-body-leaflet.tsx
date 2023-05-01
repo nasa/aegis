@@ -238,6 +238,7 @@ const MapBody: FunctionComponent = () => {
               style: () => {
                 return {
                   name: configSublayer.name,
+                  color: configSublayer.style?.color,
                   strokeColor: configSublayer.style?.color,
                   fillColor: configSublayer.style?.fillColor,
                   fillOpacity: configSublayer.style?.fillOpacity,
@@ -808,8 +809,8 @@ const MapBody: FunctionComponent = () => {
           draggableLines.current.on(
             "drag",
             _.throttle((e) => {
-              dispatchPath(e, false);
-            }, 15)
+              dispatchPath(e, true);
+            }, 100)
           );
 
           draggableLines.current.on("dragend", (e) => {
