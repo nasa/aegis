@@ -111,21 +111,23 @@ const Main: NextPage = () => {
   useEffect(() => {
     const { id } = router.query;
     if (!id || !dispatch) return;
+    const intMissionId = parseInt(Array.isArray(id) ? id[0] : id);
     (async () => {
       //populate mission
-      const missionData = await getMissions(parseInt(id as string));
+      const missionData = await getMissions(intMissionId);
       if (missionData.data) {
         dispatch(setMission(missionData.data[0]));
       }
 
-      //populate layers
-      const layerData = await getLayers(parseInt(id as string));
+      //populate layers and layerControls
+      const layerData = await getLayers(intMissionId);
+      const mapLayerControls: LayerControls = {};
       if (layerData.data) {
+        //populate mission layers
         dispatch(setLayers(layerData.data));
-        //populate layerControls for the layers loaded
-        const controls: LayerControls = {};
+        //populate map layerControls for the layers loaded
         layerData.data.map((configLayer) => {
-          controls[configLayer.layerConfig.name] = {
+          mapLayerControls[configLayer.layerConfig.name] = {
             name: configLayer.layerConfig.name,
             enabled: false,
             type: configLayer.layerConfig.type,
@@ -135,7 +137,7 @@ const Main: NextPage = () => {
 
           if (configLayer.layerConfig.sublayers) {
             configLayer.layerConfig.sublayers.map((sublayer) => {
-              controls[sublayer.name] = {
+              mapLayerControls[sublayer.name] = {
                 name: sublayer.name,
                 enabled: false,
                 type: sublayer.type,
@@ -145,75 +147,95 @@ const Main: NextPage = () => {
             });
           }
         });
-        dispatch(setLayerControls(controls));
+        dispatch(setLayerControls(mapLayerControls));
       }
 
-      //Populate POIs
-      const poiData = await InternalAPI.getPOIs(parseInt(id as string));
-      if (poiData.data) {
-        dispatch(setPois(poiData.data));
-        dispatch(setPoisFromDb(poiData.data));
-      }
-
-      //Populate Presets
-      const presetData = await InternalAPI.getPresets(parseInt(id as string));
-      if (presetData.data) {
-        dispatch(setPresets(presetData.data));
-        dispatch(setPresetsFromDb(presetData.data));
-        presetData.data.forEach((preset) => {
+      //Populate Presets and validate against modifications to layers made in admin since this preset was last saved
+      const presetData: Preset[] = (await InternalAPI.getPresets(intMissionId)).data;
+      if (presetData) {
+        const mapLayerControlKeys = Object.keys(mapLayerControls);
+        presetData.forEach((preset) => {
+          let modified = false;
           const layerControlInteractions: LayerControlInteractions = {};
-          for (const [key] of Object.entries(preset.layerControls)) {
+          //loop through the layer controls from the map
+          for (const key of mapLayerControlKeys) {
+            //build preset interactions
             layerControlInteractions[key] = {
               expanded: true,
               tabSelected: null,
             };
+
+            //add any layer controls that are missing from preset
+            if (!Object.keys(preset.layerControls).includes(key)) {
+              preset.layerControls[key] = mapLayerControls[key];
+              modified = true;
+            }
           }
+
+          //loop through preset layer controls and delete any layer controls that no longer exist
+          for (const key of Object.keys(preset.layerControls)) {
+            if (!mapLayerControlKeys.includes(key)) {
+              delete preset.layerControls[key];
+              modified = true;
+            }
+          }
+
           dispatch(setPresetInteractions({ presetUuid: preset.uuid, layerControlInteractions }));
+          //update this preset in the DB if any layer control changes we made
+          if (modified) InternalAPI.setPreset(preset);
         });
+
+        dispatch(setPresets(presetData));
+        dispatch(setPresetsFromDb(presetData));
         // Set the default preset
-        const defaultPreset = presetData.data.filter(
-          (preset) => preset.missionPresetDefault === true
-        );
+        const defaultPreset = presetData.filter((preset) => preset.missionPresetDefault === true);
         if (defaultPreset.length > 0) {
           dispatch(setSelectedPresetUuid(defaultPreset[0].uuid));
           dispatch(setLayerControls(defaultPreset[0].layerControls));
         }
       }
 
+      //Populate POIs
+      const poiData = await InternalAPI.getPOIs(intMissionId);
+      if (poiData.data) {
+        dispatch(setPois(poiData.data));
+        dispatch(setPoisFromDb(poiData.data));
+      }
+
       //Populate stations
-      const stationData = await getStations(parseInt(id as string));
+      const stationData = await getStations(intMissionId);
       if (stationData.data) {
         dispatch(setStations(stationData.data));
         dispatch(setStationsFromDb(stationData.data));
       }
 
       //Populate actions
-      const actionData = await getActions({ missionId: parseInt(id as string) });
+      const actionData = await getActions({ missionId: intMissionId });
       if (actionData.data) {
         dispatch(setActions(actionData.data));
         dispatch(setActionsFromDb(actionData.data));
       }
 
       //Populate evas
-      const evaData = await getEvas(parseInt(id as string));
+      const evaData = await getEvas(intMissionId);
       if (evaData.data) {
         dispatch(setEvas(evaData.data));
         dispatch(setEvasFromDb(evaData.data));
       }
 
       //Populate traverses //TODO: Does this have to load only current user's traverses?
-      const traverseData = await getTraverses(parseInt(id as string));
+      const traverseData = await getTraverses(intMissionId);
       if (traverseData.data) {
         dispatch(setTraverses(traverseData.data));
         dispatch(setTraversesFromDb(traverseData.data));
       }
 
       //Populate stm
-      const objectiveData = await getObjectives({ missionId: parseInt(id as string) });
+      const objectiveData = await getObjectives({ missionId: intMissionId });
       if (objectiveData.data) dispatch(setObjectives(objectiveData.data));
-      const goalData = await getGoals({ missionId: parseInt(id as string) });
+      const goalData = await getGoals({ missionId: intMissionId });
       if (goalData.data) dispatch(setGoals(goalData.data));
-      const invstgData = await getInvestigations({ missionId: parseInt(id as string) });
+      const invstgData = await getInvestigations({ missionId: intMissionId });
       if (invstgData.data) dispatch(setInvestigations(invstgData.data));
     })();
   }, [router, dispatch]);

@@ -18,6 +18,17 @@ interface LayerControls {
   [key: string]: LayerControl;
 }
 
+interface LayerControlInteractions {
+  [key: string]: LayerControlInteraction;
+}
+
+interface LayerControlInteraction {
+  expanded: boolean;
+  tabSelected: LayerDetailsTabs;
+}
+
+type LayerDetailsTabs = "info" | "sliders";
+
 /** Represents the DB structure for the Layer table */
 interface Layer {
   uuid: string;
@@ -68,14 +79,3 @@ type Preset_db_type = Omit<Preset, "ownerId" | "missionId" | "createdAt" | "upda
 interface PresetInteractions {
   [key: string]: LayerControlInteractions;
 }
-
-interface LayerControlInteractions {
-  [key: string]: LayerControlInteraction;
-}
-
-interface LayerControlInteraction {
-  expanded: boolean;
-  tabSelected: LayerDetailsTabs;
-}
-
-type LayerDetailsTabs = "info" | "sliders";
