@@ -55,9 +55,3 @@ type POIExpandedSections = {
   pois: boolean;
 };
 type SetPOIExpandedSectionsFn = (poiExpandedSections: POIExpandedSections) => void;
-
-interface WrappedResponse<T> {
-  status: "success" | "failure" | "error";
-  message: string;
-  data?: T;
-}
