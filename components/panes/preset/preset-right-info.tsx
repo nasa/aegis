@@ -4,6 +4,7 @@ import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { ContentEditableTextArea } from "components/interface/_global-elements";
 import { setPresetEditMode, upsertPreset } from "store/preset";
+import _ from "lodash";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -111,7 +112,14 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             defaultValue="Enter description here"
             editing={editMode}
             onChange={(evt) => {
-              dispatch(upsertPreset({ ...selectedPreset, description: evt.target.value }));
+              //Fix Richtext firefox bug
+              const cleanValue = _.replace(evt.target.value, /^[/s]*<br>$/, "");
+              dispatch(
+                upsertPreset({
+                  ...selectedPreset,
+                  description: cleanValue,
+                })
+              );
             }} // handle innerHTML change
           />
         </div>
