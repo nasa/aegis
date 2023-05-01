@@ -22,6 +22,7 @@ type Mission_db_type = Omit<Mission, "createdAt" | "updatedAt"> & {
 /** AEGIS version of Config JSON object from MMGIS.
  * Contains all the same properties with the exception of Layers */
 interface Config {
+  layers: (Omit<MMGIS_LayerConfig, "sublayers"> & { sublayers?: Sublayer[] })[];
   msv: MMGIS_Msv;
   projection: MMGIS_Projection;
   look: MMGIS_Look;

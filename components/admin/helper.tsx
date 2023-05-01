@@ -157,6 +157,7 @@ export function createNewConfig(): Config {
     //layers: [],
     time: { enabled: false, visible: false, format: "" },
     missionBanner: "",
+    layers: [],
   };
 }
 

@@ -32,6 +32,7 @@ interface MMGIS_Msv {
   view: string[];
   radius: MMGIS_Radius;
   mapscale: string;
+  layers?: object;
 }
 
 interface MMGIS_Projection {

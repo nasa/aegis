@@ -18,6 +18,8 @@ import { deleteFile } from "http-client/file";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import { getElevationSinglePoint } from "http-client/elevation";
+import { faTimesCircle } from "@fortawesome/free-solid-svg-icons";
+import { getLayers, upsertLayer } from "../../http-client/layer";
 
 const Mission: NextPage = () => {
   const router = useRouter();
@@ -25,7 +27,7 @@ const Mission: NextPage = () => {
   const [editMissionId, setEditMissionId] = useState<number>(); //track mission currently in edit
   const [mission, setMission] = useState<Mission>(); //current mission being edited
   const [admin, setAdmin] = useState<boolean>(false);
-
+  const [showImportMission, setShowImportMission] = useState<boolean>(false);
   async function loadMissionsFromDB() {
     const missionList = (await getMissions()).data;
     setMissions(missionList);
@@ -67,6 +69,251 @@ const Mission: NextPage = () => {
     setEditMissionId(null);
   }
 
+  const ImportMission = () => {
+    const [tempMission, setTempMission] = useState<string>("");
+    const [progressBarWidth, setProgressBarWidth] = useState<number>(0);
+    const [progressBarText, setProgressBarText] = useState<string>("");
+    const [progressBarColor, setProgressBarColor] = useState<string>("#00ff00");
+
+    async function updateTempMissionConfig(event: ChangeEvent<HTMLTextAreaElement>) {
+      const { value } = event.target;
+      await setTempMission(value);
+    }
+
+    function isValidJsonString(str: string) {
+      try {
+        JSON.parse(str);
+      } catch (e) {
+        return false;
+      }
+      return true;
+    }
+
+    async function handleMissionImport(): Promise<void> {
+      //First upsert config into mission
+      const tempMissionObj = JSON.parse(tempMission);
+      const mmgisImport = typeof tempMissionObj.config === "undefined";
+      //Make a copy of the layers array so we can delete it from the object
+      let tempLayers;
+      if (mmgisImport) {
+        if (typeof tempMissionObj.msv.layers === "undefined") {
+          tempLayers = tempMissionObj.layers;
+        } else {
+          tempLayers = tempMissionObj.msv.layers;
+        }
+        delete tempMissionObj.msv.layers;
+      } else {
+        tempLayers = tempMissionObj.config.layers;
+      }
+
+      let body;
+      //We have to handle two different types of input, one from MMGIS and one from our own export
+      if (mmgisImport) {
+        //We can assume this is an MMGIS import
+        body = {
+          id: null,
+          config: tempMissionObj,
+          name: tempMissionObj.msv.mission,
+          landerLocation: null,
+          traverseSpeed: 0,
+          landerElevationMeters: null,
+        };
+      } else {
+        //We can assume this is an export from our own system
+        body = {
+          id: null,
+          config: tempMissionObj.config,
+          name: tempMissionObj.name,
+          landerLocation: tempMissionObj.landerLocation,
+          traverseSpeed: tempMissionObj.traverseSpeed,
+          landerElevationMeters: tempMissionObj.landerElevationMeters,
+        };
+      }
+      setProgressBarWidth(0);
+      setProgressBarText("Importing Mission");
+      setProgressBarColor("#00ff00");
+      try {
+        const newMission = await upsertMission(body);
+        setProgressBarWidth(25);
+        setProgressBarText("Importing Layers");
+        setProgressBarColor("#00ff00");
+
+        tempLayers.forEach((layer: any) => {
+          // import the layer into the database
+          const body = {
+            uuid: null,
+            missionId: newMission.data.id,
+            layerConfig: layer,
+            createdAt: null,
+            updatedAt: null,
+          };
+          upsertLayer(body);
+          setProgressBarWidth(50);
+          setProgressBarText("Importing Layers");
+          setProgressBarColor("#00ff00");
+        });
+
+        setProgressBarWidth(100);
+        setProgressBarText("Import Finished!");
+        setProgressBarColor("#00ff00");
+      } catch (e) {
+        console.log(e);
+        setProgressBarWidth(100);
+        setProgressBarText("Error Importing Mission");
+        setProgressBarColor("#ff0000");
+        return;
+      }
+      //Refresh Mission List
+      await loadMissionsFromDB();
+    }
+
+    async function handleMissionExport(): Promise<void> {
+      if (!mission) {
+        setProgressBarText("No Mission to Export");
+        return;
+      }
+      setProgressBarWidth(0);
+      setProgressBarText("Exporting Mission");
+      setProgressBarColor("#00ff00");
+      // Add the layers to the mission config
+      const missionConfig = mission.config;
+      setProgressBarWidth(25);
+      setProgressBarText("Importing Layers");
+      setProgressBarColor("#00ff00");
+      const layers = await getLayers(mission.id);
+
+      missionConfig.layers = layers.data.map((layer) => layer.layerConfig);
+      //delete uuid from sublayers in layers
+      missionConfig.layers.forEach((layer) => {
+        layer.sublayers.forEach((sublayer) => {
+          delete sublayer.uuid;
+        });
+      });
+      setTempMission(JSON.stringify(mission, null, 2));
+      setProgressBarWidth(100);
+      setProgressBarText("Export Finished!");
+    }
+
+    async function handleMissionDownload(): Promise<void> {
+      // Determine if MMGIS or our own export
+      if (!tempMission) {
+        setProgressBarText("No Mission to Download");
+        return;
+      }
+      const tempMissionObj = JSON.parse(tempMission);
+      const mmgisExport = typeof tempMissionObj.config === "undefined";
+      setProgressBarWidth(0);
+      setProgressBarText("");
+      setProgressBarColor("#00ff00");
+      try {
+        if (tempMission) {
+          const tempMissionObj = await JSON.parse(tempMission);
+          const element = document.createElement("a");
+          const file = new Blob([tempMission], { type: "text/plain" });
+          element.href = URL.createObjectURL(file);
+          if (mmgisExport) {
+            element.download = tempMissionObj.msv.mission + ".json";
+          } else {
+            element.download = tempMissionObj.name + ".json";
+          }
+          document.body.appendChild(element); // Required for this to work in FireFox
+          element.click();
+          //Set Progress Bar and Messages
+          setProgressBarWidth(100);
+          setProgressBarText("Download Finished!");
+          setProgressBarColor("#00ff00");
+        } else {
+          setProgressBarText("Json Not Found, Hit Export First to Download");
+        }
+      } catch (e) {
+        console.log(e);
+        setProgressBarWidth(100);
+        setProgressBarText("Error Downloading Mission");
+        setProgressBarColor("#ff0000");
+        return;
+      }
+    }
+
+    return (
+      <>
+        {showImportMission && (
+          <div className={styles.importMission}>
+            <div className={styles.rightFlexCenter}>
+              <div className={styles.configDiv}>
+                <FontAwesomeIcon
+                  icon={faTimesCircle}
+                  size="lg"
+                  className={styles.closeButton}
+                  onClick={() => {
+                    setShowImportMission(false);
+                  }}
+                />
+                <label className={styles.title} htmlFor="configImport">
+                  <span className={styles.label}>Import/Export Mission w/(json)</span>
+                </label>
+
+                <textarea
+                  id="configImport"
+                  className={styles.configImport}
+                  value={tempMission}
+                  onChange={updateTempMissionConfig}
+                />
+                <div className={styles.progressBarContainer}>
+                  <div
+                    className={styles.progressBar}
+                    style={{ width: `${progressBarWidth}%`, backgroundColor: progressBarColor }}
+                  >
+                    <div
+                      className={styles.progressBarFill}
+                      style={{ width: `${progressBarWidth}%`, backgroundColor: progressBarColor }}
+                    />
+                  </div>
+                  <div className={styles.progressBarText}>{progressBarText}</div>
+                </div>
+                <div className={styles.buttonContainer}>
+                  <button
+                    type="button"
+                    className={styles.importButton}
+                    onClick={() => {
+                      if (isValidJsonString(tempMission)) {
+                        setProgressBarText("Importing Mission");
+                        handleMissionImport();
+                      } else {
+                        setProgressBarText("Invalid JSON");
+                        setProgressBarColor("#ff0000");
+                        setProgressBarWidth(100);
+                      }
+                    }}
+                  >
+                    Import Json
+                  </button>
+                  <button
+                    className={styles.exportButton}
+                    type="button"
+                    onClick={() => {
+                      handleMissionExport();
+                    }}
+                  >
+                    Export Json
+                  </button>
+                  <button
+                    type={"button"}
+                    className={styles.downloadButton}
+                    onClick={() => {
+                      handleMissionDownload();
+                    }}
+                  >
+                    Download Json
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
+
   return (
     <>
       {admin ? (
@@ -92,10 +339,22 @@ const Mission: NextPage = () => {
             >
               Add New Mission (Clear Form)
             </button>
+            <button
+              className={styles.importButton}
+              type="button"
+              onClick={() => {
+                //Show import Mission Form
+                setShowImportMission(!showImportMission);
+              }}
+            >
+              {showImportMission ? "Close Import/Export" : "Open Import/Export"}
+            </button>
+            <ImportMission />
             <AddEditMission
               refreshMissionList={loadMissionsFromDB}
               mission={mission}
               setMission={setMission}
+              importMission={ImportMission}
             />
           </div>
         </div>
@@ -187,12 +446,10 @@ const AddEditMission = (props: {
   refreshMissionList: () => {};
   mission: Mission;
   setMission: Dispatch<SetStateAction<Mission>>;
+  importMission: () => {};
 }) => {
   const { refreshMissionList, mission, setMission } = { ...props };
   const [config, setConfig] = useState<Config>(createNewConfig());
-  const [errorTriggered, setErrorTriggered] = useState<boolean>(false);
-  const [tempMission, setTempMission] = useState<string>("");
-  const [enableLayerButton, setEnableLayerButton] = useState<boolean>(false);
   useEffect(() => {
     if (props.mission) {
       setConfig(props.mission.config);
@@ -227,20 +484,6 @@ const AddEditMission = (props: {
       ...mission,
       landerElevationMeters: elevation,
     });
-  }
-
-  async function updateTempMissionConfig(event: ChangeEvent<HTMLTextAreaElement>) {
-    const { value } = event.target;
-    setTempMission(value);
-  }
-
-  function isValidJsonString(str: string) {
-    try {
-      JSON.parse(str);
-    } catch (e) {
-      return false;
-    }
-    return true;
   }
 
   return (
@@ -392,71 +635,6 @@ const AddEditMission = (props: {
             setConfig={setConfig}
           />
           <Time config_time={config.time} setConfig={setConfig} />
-        </div>
-        <div className={styles.rightFlexCenter}>
-          <div className={styles.configDiv}>
-            <label className={styles.title} htmlFor="configImport">
-              <span className={styles.label}>Mission Config (json)</span>
-            </label>
-
-            <textarea
-              id="configImport"
-              className={styles.configImport}
-              value={tempMission}
-              onChange={updateTempMissionConfig}
-            />
-            <button
-              type="button"
-              onClick={() => {
-                if (isValidJsonString(tempMission)) {
-                  setConfig(JSON.parse(tempMission));
-                  setErrorTriggered(false);
-                  setEnableLayerButton(true);
-                } else {
-                  setErrorTriggered(true);
-                  setEnableLayerButton(false);
-                }
-              }}
-            >
-              Import Json
-            </button>
-            <button
-              type={"button"}
-              onClick={() => {
-                const tempMissionConfig = JSON.parse(tempMission);
-                if (tempMissionConfig.layers) {
-                  tempMissionConfig.layers.forEach((layer: any) => {
-                    // import the layer into the database
-                    const body = {
-                      missionId: mission.id,
-                      layerConfig: layer,
-                    };
-
-                    fetch("/api/layer", {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify(body),
-                    })
-                      .then((res) => res.json())
-                      .then((data) => {
-                        console.log(data);
-                      })
-                      .catch((err) => {
-                        console.log(err);
-                      });
-                  });
-                }
-              }}
-              disabled={!enableLayerButton && mission.id !== undefined}
-            >
-              Import Layers
-            </button>
-            <span className={styles.errorMessage}>
-              {errorTriggered === true ? "Invalid JSON" : ""}
-            </span>
-          </div>
         </div>
       </div>
     )
