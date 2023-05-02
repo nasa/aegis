@@ -84,18 +84,6 @@ body {
   font-size: 1.2em;
 }
 
-/* metatag component styling */
-.rti--container {
-  --rti-bg: var(--grey1) !important;
-  --rti-border: var(--grey1) !important;
-  --rti-main: var(--grey2) !important;
-  --rti-radius: var(--radius) !important;
-  --rti-s: "0.3rem"; /* spacing */
-  --rti-tag: var(--grey3) !important;
-  --rti-tag-remove: "#ff0000" !important;
-  padding: 1px !important;
-}
-
 /* zoom control color */
 .leaflet-bar a {
   background-color: var(--grey2) !important;
@@ -109,6 +97,23 @@ body {
   color: #ffffff !important;
   border: 1px solid var(--grey3) !important;
   text-shadow: none !important;
+}
+
+/* map background color */
+.leaflet-container {
+  background-color: var(--grey2) !important;
+}
+
+/* metatag component styling */
+.rti--container {
+  --rti-bg: var(--grey1) !important;
+  --rti-border: var(--grey1) !important;
+  --rti-main: var(--grey2) !important;
+  --rti-radius: var(--radius) !important;
+  --rti-s: "0.3rem"; /* spacing */
+  --rti-tag: var(--grey3) !important;
+  --rti-tag-remove: "#ff0000" !important;
+  padding: 1px !important;
 }
 
 /* --- react-tag-input overrides --- */

@@ -24,7 +24,7 @@ import {
 import _ from "lodash";
 import { updateMapDirective } from "store/map";
 import { setSelectedPoiUuid, updatePoiLocation } from "store/poi";
-import { setSectionSelected } from "store/interface";
+import { setRightPanelOpen, setSectionSelected } from "store/interface";
 import {
   deleteStationWalkbackElevation,
   revertWalkbackPath,
@@ -984,6 +984,7 @@ const MapBody: FunctionComponent = () => {
             setShowSelectedItemOnMap(true);
             dispatch(setSectionSelected("poi"));
             dispatch(setSelectedPoiUuid(poi.uuid));
+            dispatch(setRightPanelOpen(true));
           },
           onDragEnd: (marker: AEGISMarker) => {
             const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
@@ -1024,6 +1025,7 @@ const MapBody: FunctionComponent = () => {
             setShowSelectedItemOnMap(true);
             dispatch(setSectionSelected("station"));
             dispatch(setSelectedStationUuid(station.uuid));
+            dispatch(setRightPanelOpen(true));
           },
           onDragEnd: (marker: AEGISMarker) => {
             const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
@@ -1257,7 +1259,7 @@ const MapBody: FunctionComponent = () => {
       drawSelectedMarker(highlightLocation);
     }
 
-    if (panMapToLocation) {
+    if (panMapToLocation && mapDirective === null) {
       if (!map.current.getBounds().contains(panMapToLocation)) {
         map.current.panTo(panMapToLocation);
       }
@@ -1272,6 +1274,7 @@ const MapBody: FunctionComponent = () => {
     removeSelectedMarker,
     drawSelectedMarker,
     selectedTraverse,
+    mapDirective,
   ]);
 
   /**

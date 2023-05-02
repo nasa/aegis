@@ -1,6 +1,6 @@
 import _ from "lodash";
 import styles from "./side-controls.module.css";
-import { FunctionComponent } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 
@@ -43,17 +43,21 @@ export const LeftControlPanel: FunctionComponent = () => {
 
 export const BottomControlPanel: FunctionComponent = () => {
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
+  const [showTimeline, setShowTimeline] = useState(false);
 
-  let ActiveComponent = null;
-  if (!_.isNil(selectedEvaUuid)) {
-    ActiveComponent = NavTimeline;
-  }
+  useEffect(() => {
+    if (selectedEvaUuid) {
+      setShowTimeline(true);
+    } else {
+      setShowTimeline(false);
+    }
+  }, [selectedEvaUuid]);
 
   return (
     <>
-      {ActiveComponent && (
+      {showTimeline && (
         <div className={styles.activeComponentBottom}>
-          <ActiveComponent />
+          <NavTimeline />
         </div>
       )}
     </>

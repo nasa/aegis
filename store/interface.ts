@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 
 export const initialState: InterfaceState = {
   sectionSelectedLabel: "map_layer_selector",
-  rightPanelOpen: false,
+  rightPanelOpen: true,
   elevationPendingItemUuids: [],
   timelineShowDistanceFromLander: true,
   timelineShowElevation: true,
