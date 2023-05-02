@@ -7,11 +7,11 @@ export class User implements User_db_type {
   @PrimaryKey({ type: MikroTypes.integer })
   id!: number;
 
-  @Property({ type: MikroTypes.string })
+  @Property({ type: MikroTypes.text })
   username!: string;
-  @Property({ type: MikroTypes.string })
+  @Property({ type: MikroTypes.text })
   email: string;
-  @Property({ type: MikroTypes.string, hidden: true })
+  @Property({ type: MikroTypes.text, hidden: true })
   password!: string;
   @Property({ type: MikroTypes.string })
   permission: PermissionRole;

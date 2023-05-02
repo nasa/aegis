@@ -9,7 +9,7 @@ export class STM_Investigation implements STMInvestigation_db_type {
   @ManyToOne(() => STM_Goal) //many investigations have one goal
   goal!: STM_Goal;
 
-  @Property({ type: MikroTypes.string })
+  @Property({ type: MikroTypes.text })
   name!: string;
   @Property({ type: MikroTypes.string })
   numbering!: string;

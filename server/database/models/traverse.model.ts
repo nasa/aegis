@@ -10,7 +10,7 @@ export class Traverse implements Traverse_db_type {
   @ManyToOne(() => Mission, { unique: false, primary: false })
   mission!: Mission;
 
-  @Property({ type: MikroTypes.string })
+  @Property({ type: MikroTypes.text })
   name!: string;
   @Property({ type: MikroTypes.json, nullable: true })
   path: AEGISPoint[];
@@ -22,7 +22,7 @@ export class Traverse implements Traverse_db_type {
   predictedDurationLower: number;
   @Property({ type: MikroTypes.double, nullable: true })
   predictedDurationUpper: number;
-  @Property({ type: MikroTypes.string, nullable: true })
+  @Property({ type: MikroTypes.text, nullable: true })
   description: string;
   @Property({ type: MikroTypes.string, nullable: true })
   status: TraverseStatus;

@@ -17,7 +17,7 @@ export class Poi implements Poi_db_type {
   @ManyToMany(() => Station, (station) => station.poi) //a poi can belong to many stations
   station = new Collection<Station>(this);
 
-  @Property({ type: MikroTypes.string })
+  @Property({ type: MikroTypes.text })
   name!: string;
   @Property({ type: MikroTypes.text })
   description!: string;
