@@ -12,9 +12,9 @@ export class Preset implements Preset_db_type {
   @ManyToOne(() => Mission, { unique: false, primary: false })
   mission!: Mission;
 
-  @Property({ type: MikroTypes.string })
+  @Property({ type: MikroTypes.text })
   name: string;
-  @Property({ type: MikroTypes.string, nullable: true })
+  @Property({ type: MikroTypes.text, nullable: true })
   description: string;
   @Property({ type: MikroTypes.boolean, default: false })
   missionPreset: boolean;

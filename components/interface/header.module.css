@@ -2,6 +2,10 @@
   display: flex;
 }
 
+.center {
+  overflow: hidden;
+}
+
 .homeIcon {
   cursor: pointer;
   transition: 0.5s ease;
@@ -92,4 +96,8 @@
 
 .missionBanner {
   margin-left: 10px;
+  margin-right: 10px;
+  font-size: 1em;
+  height: 40px;
+  line-height: 40px;
 }

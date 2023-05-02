@@ -123,8 +123,8 @@ const MapBody: FunctionComponent = () => {
   const [scale, setScale] = useState(0);
   const [mapZoom, setMapZoom] = useState(0); // value used to show correct scale bar
 
-  // make color filter settings for any sublayer. This is the format of leaflet.tilelayer.colorfilter package
-  const makeLayerColorFilter = (lControls: LayerControls, sublayerName: string): string[] => {
+  // make color filter settings for tile sublayer. This is the format of leaflet.tilelayer.colorfilter package
+  const makeTileLayerColorFilter = (lControls: LayerControls, sublayerName: string): string[] => {
     return [
       `brightness:${getPercentOrDefault(lControls[sublayerName].style?.brightness)}%`,
       `contrast:${getPercentOrDefault(lControls[sublayerName].style?.contrast)}%`,
@@ -168,6 +168,7 @@ const MapBody: FunctionComponent = () => {
         }
       }
     }
+
     // reverse the array to add the ones at the bottom of the tree first
     const layersToAddInOrder = layersToAdd.reverse();
 
@@ -197,10 +198,14 @@ const MapBody: FunctionComponent = () => {
       // if layer isn't already on the map, add it
       if (!isLayerOnMapByName(map, configSublayer.name)) {
         if (configSublayer.type === "tile") {
-          const filter = makeLayerColorFilter(layerControls, configSublayer.name);
+          const filter = makeTileLayerColorFilter(layerControls, configSublayer.name);
           const tileLayer = (L.tileLayer as any).colorFilter(
             `${layerBaseURL}/${mission.id}/Layers/${configSublayer.aegisURL}`,
             {
+              //manually add id and type fields for tracking later on
+              id: `${configSublayer.name}`,
+              type: "tile",
+
               tileSize: 256,
               bounds: [
                 [configSublayer.boundingBox[1], configSublayer.boundingBox[0]],
@@ -211,7 +216,6 @@ const MapBody: FunctionComponent = () => {
               minNativeZoom: configSublayer.minZoom,
               maxZoom: configSublayer.maxZoom,
               maxNativeZoom: configSublayer.maxNativeZoom,
-              id: `${configSublayer.name}`,
               opacity: layerControls[configSublayer.name].style?.opacity,
               zIndex: index,
               filter,
@@ -235,14 +239,24 @@ const MapBody: FunctionComponent = () => {
             featureGroup.id = configSublayer.name;
 
             const vectorLayer = L.geoJSON(geojson, {
-              style: () => {
+              style: (geoJsonFeature) => {
+                //fill color defaults to color if not defined
+                let fillColor = layerControls[configSublayer.name].style?.color;
+                if (layerControls[configSublayer.name].style?.fillColor?.startsWith("prop:")) {
+                  const fillPropertyName =
+                    layerControls[configSublayer.name].style?.fillColor.slice(5);
+                  fillColor = geoJsonFeature.properties[fillPropertyName];
+                }
                 return {
-                  name: configSublayer.name,
-                  color: configSublayer.style?.color,
-                  strokeColor: configSublayer.style?.color,
-                  fillColor: configSublayer.style?.fillColor,
-                  fillOpacity: configSublayer.style?.fillOpacity,
-                  weight: configSublayer.style?.weight,
+                  //manually add id and type fields for tracking later on
+                  id: configSublayer.name,
+                  type: "vector",
+                  //manually define defaults
+                  color: layerControls[configSublayer.name].style?.color,
+                  opacity: layerControls[configSublayer.name].style?.opacity,
+                  weight: layerControls[configSublayer.name].style?.weight,
+                  fillColor: fillColor,
+                  fillOpacity: layerControls[configSublayer.name].style?.fillOpacity,
                 };
               },
             });
@@ -267,16 +281,25 @@ const MapBody: FunctionComponent = () => {
   }, [mission, layerControls, map]);
 
   /**
-   * Update map with opacity value for sublayers as sliders are moved
+   * Update map with display adjustments for sublayers as sliders are moved
    */
   useEffect(() => {
     if (!map.current || !layerControls) return;
-    map.current.eachLayer((layer) => {
+    map.current.eachLayer((layer: any) => {
       for (const layerControl of Object.values(layerControls)) {
-        if ((layer as L.TileLayer).options.id === layerControl.name) {
-          (layer as L.TileLayer).updateFilter(
-            makeLayerColorFilter(layerControls, layerControl.name)
-          );
+        if (layer.options.id === layerControl.name) {
+          if (layer.options.type === "tile") {
+            (layer as L.TileLayer).updateFilter(
+              makeTileLayerColorFilter(layerControls, layerControl.name)
+            );
+          } else if (layer.options.type === "vector") {
+            (layer as L.GeoJSON).setStyle({
+              color: layerControl.style?.color,
+              opacity: layerControl.style?.opacity,
+              weight: layerControl.style?.weight,
+              fillOpacity: layerControl.style?.fillOpacity,
+            });
+          }
         }
       }
     });
@@ -1192,6 +1215,7 @@ const MapBody: FunctionComponent = () => {
         }) as AEGISMarker;
         marker.uuid = "hover-marker-uuid";
         marker.mapItemType = "hover";
+        marker.setZIndexOffset(2000);
 
         map.current.addLayer(marker);
       }

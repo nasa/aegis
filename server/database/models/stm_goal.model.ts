@@ -20,7 +20,7 @@ export class STM_Goal implements STMGoal_db_type {
   @OneToMany(() => STM_Investigation, (i) => i.goal) //one goal has many investigations
   investigations = new Collection<STM_Investigation>(this);
 
-  @Property({ type: MikroTypes.string })
+  @Property({ type: MikroTypes.text })
   name!: string;
   @Property({ type: MikroTypes.string })
   numbering!: string;

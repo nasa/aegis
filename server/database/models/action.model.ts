@@ -22,7 +22,7 @@ export class Action implements Action_db_type {
   @Property({ type: MikroTypes.datetime, nullable: true })
   parentCopyDate: Date;
 
-  @Property({ type: MikroTypes.string })
+  @Property({ type: MikroTypes.text })
   name!: string;
   @Property({ type: MikroTypes.integer, nullable: true })
   priorityOverride: number;
@@ -30,7 +30,7 @@ export class Action implements Action_db_type {
   stmUuidRefs: string[];
   @Property({ type: MikroTypes.string })
   type!: ActionType;
-  @Property({ type: MikroTypes.string })
+  @Property({ type: MikroTypes.text })
   description!: string;
   @Property({ type: MikroTypes.double, nullable: true })
   durationLower!: number;
