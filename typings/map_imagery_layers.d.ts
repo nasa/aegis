@@ -7,11 +7,15 @@ interface LayerControl {
 }
 
 interface LayerControlStyle {
-  opacity: number;
-  contrast: number;
-  brightness: number;
-  saturation: number;
+  opacity: number; //Percent
+  contrast: number; //Percent
+  brightness: number; //Percent
+  saturation: number; //Percent
   blendMode: string;
+  color: string; //stroke color
+  weight: number; //stroke weight
+  fillColor: string;
+  fillOpacity: number;
 }
 
 interface LayerControls {

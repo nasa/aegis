@@ -87,7 +87,7 @@ export function drawMeterMarker(
 }
 
 /**
- *
+ * Draws the graph axis, borders, and labels
  * @param paperDataRef
  * @param paperGroupsRef
  * @param storeRef

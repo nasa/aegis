@@ -125,8 +125,10 @@ const Main: NextPage = () => {
       if (layerData.data) {
         //populate mission layers
         dispatch(setLayers(layerData.data));
-        //populate map layerControls for the layers loaded
+
+        //populate map layerControls
         layerData.data.map((configLayer) => {
+          //add header layers
           mapLayerControls[configLayer.layerConfig.name] = {
             name: configLayer.layerConfig.name,
             enabled: false,
@@ -134,7 +136,7 @@ const Main: NextPage = () => {
             mapLayerRef: null,
             style: null,
           };
-
+          //add sublayers
           if (configLayer.layerConfig.sublayers) {
             configLayer.layerConfig.sublayers.map((sublayer) => {
               mapLayerControls[sublayer.name] = {
@@ -142,7 +144,17 @@ const Main: NextPage = () => {
                 enabled: false,
                 type: sublayer.type,
                 mapLayerRef: null,
-                style: null,
+                style: {
+                  opacity: sublayer.style?.opacity || 1,
+                  contrast: 1,
+                  brightness: 1,
+                  saturation: 1,
+                  blendMode: "Normal",
+                  color: sublayer.style?.color || "#FFFFFF",
+                  weight: sublayer.style?.weight || 1,
+                  fillColor: sublayer.style?.fillColor || "#FFFFFF",
+                  fillOpacity: sublayer.style?.fillOpacity || 0.2,
+                },
               };
             });
           }
