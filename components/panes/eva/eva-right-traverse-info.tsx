@@ -36,7 +36,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
   );
 
   const missionTraverseRate = useAppSelector(
-    (state) => state.mission.mission.traverseSpeed,
+    (state) => state.mission.mission?.traverseSpeed,
     refEqual
   );
   const selectedEvaTraverseRate = useAppSelector(

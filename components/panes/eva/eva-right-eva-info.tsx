@@ -19,7 +19,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     shallowEqual
   );
   const missionTraverseRate = useAppSelector(
-    (state) => state.mission.mission.traverseSpeed,
+    (state) => state.mission.mission?.traverseSpeed,
     shallowEqual
   );
   const evaCalculatedFields = useAppSelector(

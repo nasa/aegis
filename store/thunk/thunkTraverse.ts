@@ -260,7 +260,7 @@ export const thunkCreateTraverseCalculatedFields = appCreateAsyncThunk<void>(
   "createTraverseCalculatedFields",
   async (_, { dispatch, getState }) => {
     const traverses = getState().traverse.traverses;
-    const missionTraverseRate = getState().mission.mission.traverseSpeed;
+    const missionTraverseRate = getState().mission.mission?.traverseSpeed;
     const selectedEvaTraverseRate = getState().eva.evas.find(
       (eva) => eva.uuid === getState().eva.selectedEvaUuid
     )?.traverseRate;

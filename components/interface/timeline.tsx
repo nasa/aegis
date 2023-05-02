@@ -151,7 +151,7 @@ const NavTimeline: FunctionComponent = () => {
     refEqual
   );
   const missionTraverseRate = useAppSelector(
-    (state) => state.mission.mission.traverseSpeed,
+    (state) => state.mission.mission?.traverseSpeed,
     refEqual
   );
   const evaTraverseRate = useAppSelector(

@@ -37,7 +37,7 @@ const EvaItemSequence: FunctionComponent<{
   const traversesFromDb = useAppSelector((state) => state.traverse.traversesFromDb, shallowEqual);
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
   const missionTraverseRate = useAppSelector(
-    (state) => state.mission.mission.traverseSpeed,
+    (state) => state.mission.mission?.traverseSpeed,
     shallowEqual
   );
   const selectedEvaTraverseRate = useAppSelector(

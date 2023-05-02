@@ -9,6 +9,7 @@ import { login, isLoggedIn, logout } from "http-client/internal-api";
 import { getMissions } from "http-client/mission";
 import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/user";
 import { useAppDispatch } from "utils/useAppDispatch";
+import { obliterateEntireStore } from "store/cross-slice";
 
 const Head = dynamic(import("next/head"), {
   ssr: false,
@@ -355,6 +356,7 @@ const Home: NextPage = () => {
 
   // Populate the user store with iron session login state via API call
   useEffect(() => {
+    dispatch(obliterateEntireStore());
     (async () => {
       const response = await isLoggedIn();
       if (response.status === "success") {

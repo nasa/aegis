@@ -621,7 +621,7 @@ const AddEditMission = (props: {
                     traverseSpeed: +e.target.value,
                   });
                 }}
-                value={mission.traverseSpeed}
+                value={mission?.traverseSpeed}
               />
             </div>
           </div>
