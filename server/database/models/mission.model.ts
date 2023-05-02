@@ -5,7 +5,7 @@ export class Mission implements Mission_db_type {
   @PrimaryKey({ type: MikroTypes.integer })
   id!: number;
 
-  @Property({ type: MikroTypes.string })
+  @Property({ type: MikroTypes.text })
   name!: string;
   @Property({ type: MikroTypes.json, nullable: true })
   config!: Config;

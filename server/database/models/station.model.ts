@@ -28,11 +28,11 @@ export class Station implements Station_db_type {
   @ManyToMany(() => Poi, "station", { owner: true }) //many stations can have many pois
   poi = new Collection<Poi>(this);
 
-  @Property({ type: MikroTypes.string })
+  @Property({ type: MikroTypes.text })
   name!: string;
   @Property({ type: MikroTypes.string })
   status!: StationStatus;
-  @Property({ type: MikroTypes.string })
+  @Property({ type: MikroTypes.text })
   description!: string;
   @Property({ type: MikroTypes.float })
   radius!: number;

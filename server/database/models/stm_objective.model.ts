@@ -20,7 +20,7 @@ export class STM_Objective implements STMObjective_db_type {
   @OneToMany(() => STM_Goal, (i) => i.objective) //one objective has many goals
   goals = new Collection<STM_Goal>(this);
 
-  @Property({ type: MikroTypes.string })
+  @Property({ type: MikroTypes.text })
   name!: string;
   @Property({ type: MikroTypes.string })
   numbering!: string;
