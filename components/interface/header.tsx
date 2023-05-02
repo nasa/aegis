@@ -31,6 +31,14 @@ const Header: FunctionComponent = () => {
           <div className={styles.mission}>
             <div className={styles.verticalCenter}>
               <div className={styles.headerTextItem}>{missionName}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className={styles.center}>
+        <div className={styles.item}>
+          <div className={styles.missionBanner}>
+            <div className={styles.verticalCenter}>
               {banner && <div className={styles.missionBanner}>{banner}</div>}
             </div>
           </div>

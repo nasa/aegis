@@ -23,6 +23,12 @@
   min-width: 100px;
 }
 
+.listItemControl {
+  display: flex;
+  margin-left: 5px;
+  margin-top: 2px;
+  width: 100%;
+}
 .listItemSlider {
   display: flex;
   margin-left: 5px;
