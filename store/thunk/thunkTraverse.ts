@@ -1,5 +1,10 @@
 import _ from "lodash";
-import { setTraverseCalculatedFields, updateTraversePath, upsertTraverse } from "store/traverse";
+import {
+  setTraverseCalculatedFields,
+  updateTraversePath,
+  upsertTraverse,
+  upsertTraverseFromDb,
+} from "store/traverse";
 import {
   calculateAscentAndDescent,
   getDistanceBetweenTwoCoordinates,
@@ -8,6 +13,7 @@ import {
 } from "utils/geoMath";
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkGetElevation } from "./thunkElevation";
+import { upsertTraverse as traverseToDB } from "http-client/traverse";
 
 /**
  * Only updates traverse path and distances
@@ -251,6 +257,36 @@ export const thunkUpdateAllTraversesForEVASequence = appCreateAsyncThunk<{
             evaSequence: evaSequence,
           })
         );
+      }
+    }
+  }
+});
+
+export const thunkUpdateAllTraverseNames = appCreateAsyncThunk<{
+  evaSequence: EvaSequenceItem[];
+  stationUUID: string;
+}>("updateAllTraverseNames", async ({ evaSequence, stationUUID }, { dispatch, getState }) => {
+  for (const sequenceItem of evaSequence) {
+    const index = evaSequence.indexOf(sequenceItem);
+    let stationBefore: Station;
+    let stationAfter: Station;
+    if (sequenceItem.type === "traverse") {
+      const stationUuidBefore = evaSequence[index - 1].uuid;
+      const stationUuidAfter = evaSequence[index + 1].uuid;
+      stationBefore = getState().station.stations.find((s) => s.uuid === stationUuidBefore);
+      stationAfter = getState().station.stations.find((s) => s.uuid === stationUuidAfter);
+      const newTraverseName = stationBefore.name + " to " + stationAfter.name;
+      const selectedTraverse = getState().traverse.traverses.find(
+        (t) => t.uuid === sequenceItem.uuid
+      );
+      if (stationUUID === stationUuidBefore || stationUUID === stationUuidAfter) {
+        const newTraverse = {
+          ...selectedTraverse,
+          name: newTraverseName,
+        };
+        await traverseToDB(newTraverse);
+        await dispatch(await upsertTraverse(newTraverse));
+        await dispatch(await upsertTraverseFromDb(newTraverse));
       }
     }
   }

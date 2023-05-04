@@ -8,6 +8,7 @@ import Header from "components/interface/header";
 const Index: NextPage = () => {
   const router = useRouter();
   const [admin, setAdmin] = useState(false);
+
   const navigateMission = () => {
     router.push("/admin/mission");
   };
