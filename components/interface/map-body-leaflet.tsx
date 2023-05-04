@@ -152,7 +152,7 @@ const MapBody: FunctionComponent = () => {
   }, [rightPanelOpen]);
 
   /**
-   * Map tile layers display management
+   * Map layers display management
    */
   useEffect(() => {
     if (!mission || !layerControls || !map.current) return;
@@ -274,13 +274,6 @@ const MapBody: FunctionComponent = () => {
   }, [mission, layerControls, map, layersOnMap, missionLayers]);
 
   /**
-   * Map vector geojson layers display management
-   */
-  useEffect(() => {
-    if (!mission || !layerControls || !map.current) return;
-  }, [mission, layerControls, map]);
-
-  /**
    * Update map with display adjustments for sublayers as sliders are moved
    */
   useEffect(() => {
@@ -332,7 +325,7 @@ const MapBody: FunctionComponent = () => {
 
     const center = map.current.getCenter();
     const pointC = map.current.latLngToContainerPoint(center);
-    const pointX: L.PointExpression = [pointC.x + 100, pointC.y];
+    const pointX: L.PointExpression = [pointC.x + 100, pointC.y]; //measure scale for 100 pixels(?)
     const latLngC = map.current.containerPointToLatLng(pointC);
     const latLngX = map.current.containerPointToLatLng(pointX);
     const distance = getDistanceBetweenTwoCoordinates(
@@ -344,27 +337,34 @@ const MapBody: FunctionComponent = () => {
   }, [mission, map, mapZoom]);
 
   /**
-   * Draw scale bar div
+   * Draw scale bar div.
+   * Scale represents how many meters represents 100 pixels on the map
    */
   const drawScaleBarDiv = useCallback(() => {
     if (!mission || !map.current) return;
 
-    // size scale bar to the nearest 50m, 100m, 500m, 1km, 5km, 10km, 50km, 100km, 500km, 1000km
-    const nearestRoundNum = Math.ceil(scale / 100) * 100;
-    // scale / 100 = nearestRoundNum / x
-    const scaleBarSize = nearestRoundNum / (scale / 100);
+    // round up the scale value to the nearest custom meter marks. Ex: if scale is 51 it will round to 100.
+    let roundedScale: number;
+    const meters = [1, 2, 5, 10, 50, 100, 200, 500, 1000, 2000, 5000, 10000];
+    for (const meter of meters) {
+      roundedScale = Math.ceil(scale / meter) * meter;
+      if (scale < meter) {
+        break;
+      }
+    }
+    // if it's over 1000m, turn the label into km
+    const roundedScaleLabel =
+      roundedScale >= 1000 ? `${roundedScale / 1000}km` : `${roundedScale}m`;
+
+    // determine how wide to draw the scale bar
+    // scale / 100 = roundedScale / x
+    const scaleBarSize = roundedScale / (scale / 100);
 
     return (
       <>
-        {scaleBarSize < 500 ? (
-          <div className={styles.scaleValue} style={{ width: scaleBarSize }}>
-            {nearestRoundNum}m
-          </div>
-        ) : (
-          <div className={styles.scaleValue} style={{ width: 100 }}>
-            {scale.toFixed(3)} m
-          </div>
-        )}
+        <div className={styles.scaleValue} style={{ width: scaleBarSize }}>
+          {roundedScaleLabel}
+        </div>
       </>
     );
   }, [mission, map, scale]);
