@@ -43,9 +43,12 @@ import { updateMapDirective } from "store/map";
 import { decodeEmoji } from "utils/formatting";
 import { setRightPanelOpen } from "store/interface";
 import { getAlertColor } from "utils/component-helpers";
+import { thunkUpdateAllTraverseNames } from "../../../store/thunk/thunkTraverse";
+import { useAppDispatch } from "utils/useAppDispatch";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
+  const appDispatch = useAppDispatch();
   const selectedMissionId = useAppSelector((state) => state.mission.mission?.id, shallowEqual);
   const selectedRightNavItem = useAppSelector(
     (state) => state.station.selectedRightNavItem,
@@ -108,6 +111,7 @@ const StationEditorRight: FunctionComponent = () => {
       state.station.calculatedFields.find((calculated) => calculated.uuid === selectedStationUuid),
     shallowEqual
   );
+  const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
 
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
   const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--station)");
@@ -263,6 +267,27 @@ const StationEditorRight: FunctionComponent = () => {
           })
         );
       }
+
+      //Get all Evas
+
+      if (evas) {
+        // Loop through each eva sequence to get the ones with this station uuid
+        const evasUsingThisStation: Eva[] = evas.filter((eva) => {
+          return eva.sequence.some((sequence) => {
+            return sequence.uuid === selectedStation.uuid;
+          });
+        });
+        // We've changed a station name, so everything in EVA must be set to edit and flagged for update
+        evasUsingThisStation.forEach((eva) => {
+          appDispatch(
+            thunkUpdateAllTraverseNames({
+              evaSequence: eva.sequence,
+              stationUUID: selectedStation.uuid,
+            })
+          );
+        });
+      }
+
       cancelMarkerMapDirective();
       dispatch(setStationEditMode({ stationUuid: selectedStation.uuid, editMode: false }));
     }

@@ -117,6 +117,10 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
     (state) => state.action.actionsFromDb.filter((storeAction) => storeAction.stationUuid),
     shallowEqual
   );
+  const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
+  const evasFromDb = useAppSelector((state) => state.eva.evasFromDb, shallowEqual);
+  const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
+  const traversesFromDb = useAppSelector((state) => state.traverse.traversesFromDb, shallowEqual);
 
   return (
     <div className={styles.iconGutter}>
@@ -148,6 +152,15 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
               _.sortBy(stationActionsFromDb, ["uuid"])
             );
             itemModified = !stationsEqual || !stationActionEqual;
+            break;
+          case "evas":
+            const evasEqual = _.isEqual(_.sortBy(evas, ["uuid"]), _.sortBy(evasFromDb, ["uuid"]));
+            const traversesEqual = _.isEqual(
+              _.sortBy(traverses, ["uuid"]),
+              _.sortBy(traversesFromDb, ["uuid"])
+            );
+
+            itemModified = !evasEqual || !traversesEqual;
             break;
         }
 
