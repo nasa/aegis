@@ -83,12 +83,6 @@ export const traverseSlice = createSlice({
         traverse.pathSegmentElevations = traverseFromDb.pathSegmentElevations;
       }
     },
-    deleteTraverseElevation: (state, action: { payload: string }) => {
-      const traverse = state.traverses.find((traverse) => traverse.uuid === action.payload);
-      if (traverse) {
-        traverse.pathSegmentElevations = [];
-      }
-    },
     setTraverseCalculatedFields: (
       state,
       action: { payload: { calculatedFields: TraverseCalculatedFields[] } }
@@ -111,6 +105,5 @@ export const {
   setTraverseEditMode,
   updateTraversePath,
   revertTraversePath,
-  deleteTraverseElevation,
   setTraverseCalculatedFields,
 } = traverseSlice.actions;
