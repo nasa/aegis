@@ -23,15 +23,11 @@ import {
 } from "react";
 import _ from "lodash";
 import { updateMapDirective } from "store/map";
-import { setSelectedPoiUuid, updatePoiLocation } from "store/poi";
+import { setSelectedPoiUuid } from "store/poi";
 import { setRightPanelOpen, setSectionSelected } from "store/interface";
-import {
-  deleteStationWalkbackElevation,
-  revertWalkbackPath,
-  setSelectedStationUuid,
-} from "store/station";
+import { revertWalkbackPath, setSelectedStationUuid } from "store/station";
 import { setSelectedEvaSequenceItemUuid } from "store/eva";
-import { deleteTraverseElevation, revertTraversePath } from "store/traverse";
+import { revertTraversePath } from "store/traverse";
 import {
   convertLeafletLatLngsToAegisPoints,
   convertLeafletLatLngToAegisPoint,
@@ -53,6 +49,7 @@ import {
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkFullUpdateTraversePath, thunkUpdateTraversePath } from "store/thunk/thunkTraverse";
 import getPercentOrDefault from "utils/getPercentOrDefault";
+import { thunkUpdatePoiLocation } from "store/thunk/thunkPoi";
 
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
@@ -582,12 +579,12 @@ const MapBody: FunctionComponent = () => {
   const saveUpdatedPoiOrStationPosition = useCallback(
     async (uuid: string, mapItemType: MapItemType, location: AEGISPoint) => {
       if (mapItemType === "poi") {
-        dispatch(updatePoiLocation({ uuid, location }));
+        await appDispatch(thunkUpdatePoiLocation({ location, poiUuid: uuid }));
       } else if (mapItemType === "station") {
         await appDispatch(thunkUpdateStationLocation({ location, stationUuid: uuid }));
       }
     },
-    [dispatch, appDispatch]
+    [appDispatch]
   );
 
   /**
@@ -819,15 +816,6 @@ const MapBody: FunctionComponent = () => {
               }
             }
           };
-
-          draggableLines.current.on("dragstart", (e) => {
-            if (e.layer.mapItemType === "traverse") {
-              dispatch(deleteTraverseElevation(e.layer.uuid));
-            }
-            if (e.layer.mapItemType === "walkback") {
-              dispatch(deleteStationWalkbackElevation(e.layer.uuid));
-            }
-          });
 
           draggableLines.current.on(
             "drag",

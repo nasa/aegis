@@ -51,6 +51,7 @@ const PoiEditorLeft: FunctionComponent = () => {
       priorityOverride: 0,
       radius: 5,
       location: null,
+      elevation: null,
       icon: "1F534",
       tags: [],
       status: "Candidate",

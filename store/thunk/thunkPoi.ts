@@ -1,5 +1,28 @@
 import { setPoiCalculatedFields } from "store/poi";
 import appCreateAsyncThunk from "./thunkUtil";
+import { thunkGetElevation } from "./thunkElevation";
+import { upsertPoi } from "store/poi";
+
+export const thunkUpdatePoiLocation = appCreateAsyncThunk<{
+  location: AEGISPoint;
+  poiUuid: string;
+}>("updatePoiLocation", async ({ location, poiUuid }, { dispatch, getState }) => {
+  const elevation = await dispatch(
+    thunkGetElevation({
+      path: [location],
+      pathSegmentDistances: [0],
+      uuid: poiUuid,
+    })
+  );
+
+  const poi = getState().poi.pois.find((s) => s.uuid === poiUuid);
+  if (elevation.payload === false) {
+    //gracefully reject?
+  } else {
+    //upsert location and elevation
+    dispatch(upsertPoi({ ...poi, location, elevation: elevation.payload as number }));
+  }
+});
 
 /**
  * Create reports for all pois

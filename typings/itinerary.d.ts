@@ -146,6 +146,7 @@ interface POI {
    * The coordinates or series of coordinates of the POI.
    */
   location: AEGISPoint;
+  elevation: number;
 
   /**
    * The emoji of this POI
