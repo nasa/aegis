@@ -139,6 +139,7 @@ const StationEditorLeft: FunctionComponent = () => {
             }}
             label="Add"
             icon={faPlusCircle}
+            style={{ width: "65px" }}
           />
           <Button
             onClick={() => {
@@ -147,6 +148,7 @@ const StationEditorLeft: FunctionComponent = () => {
             label="Duplicate"
             icon={faClone}
             enabled={selectedStationUuid !== null}
+            style={{ width: "95px" }}
           />
         </div>
       )}

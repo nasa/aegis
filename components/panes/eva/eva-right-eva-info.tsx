@@ -130,7 +130,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         evaCalculatedFields?.totalStationTime?.durationUpper === 0 ? (
                           <>N/A</>
                         ) : (
-                          <>{displayFormattedTotalTimeObj(evaCalculatedFields?.totalStationTime)}</>
+                          displayFormattedTotalTimeObj(evaCalculatedFields?.totalStationTime)
                         )}
                       </div>
                     </div>
@@ -144,7 +144,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         {evaCalculatedFields?.totalTraverseTime === 0 ? (
                           <>N/A</>
                         ) : (
-                          displayFormattedTotalTimeObj(evaCalculatedFields?.totalStationTime)
+                          evaCalculatedFields?.totalTraverseTime.toFixed(0)
                         )}
                       </div>
                     </div>
@@ -155,11 +155,11 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {evaCalculatedFields?.totalStationTime?.durationLower === 0 &&
-                        evaCalculatedFields?.totalStationTime?.durationUpper === 0 ? (
+                        {evaCalculatedFields?.totalEvaTime?.durationLower === 0 &&
+                        evaCalculatedFields?.totalEvaTime?.durationUpper === 0 ? (
                           <>N/A</>
                         ) : (
-                          <>{displayFormattedTotalTimeObj(evaCalculatedFields?.totalEvaTime)}</>
+                          displayFormattedTotalTimeObj(evaCalculatedFields?.totalEvaTime)
                         )}
                       </div>
                     </div>
