@@ -79,7 +79,7 @@ const Actions_Panel: FunctionComponent<{
             );
           }}
           actions={stationActions}
-          actionColor={{ color: "var(--station)" }}
+          actionColor={{ color: "white" }}
           actionOrderUuids={selectedStation.actionOrderUuids}
           setActionOrderUuids={(actionOrderUuids) => {
             dispatch(upsertStation({ ...selectedStation, actionOrderUuids: actionOrderUuids }));
@@ -106,9 +106,7 @@ const Actions_Panel: FunctionComponent<{
                 />
               )}
             </div>
-            <div className={`${stationStyles.stationPoiTitle} ${stationStyles.stationColor}`}>
-              Associated POI Actions
-            </div>
+            <div className={`${stationStyles.stationPoiTitle}`}>Associated POI Actions</div>
           </div>
           <div className={stationStyles.stationPoiSection}>
             {poiExpanded &&
@@ -145,7 +143,7 @@ const Actions_Panel: FunctionComponent<{
                             <div className={stationStyles.stationPoiActionItems}>
                               <div className={paneStyles.actionsHeading}>
                                 <div
-                                  className={`${paneStyles.actionsHeadingTitle} ${stationStyles.stationColor} ${stationStyles.stationActionsHeadingTitle}`}
+                                  className={`${paneStyles.actionsHeadingTitle} ${stationStyles.stationActionsHeadingTitle}`}
                                 >
                                   {action.type}
                                 </div>

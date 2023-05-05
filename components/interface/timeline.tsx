@@ -18,7 +18,7 @@ import { clearMapItemHover } from "store/playheadHover";
 import _ from "lodash";
 import { STM_Coverage } from "components/panes/stm-coverage";
 import * as TimelineDrawing from "./timeline-drawing";
-import { IconButton } from "./_global-elements";
+import { Button } from "./_global-elements";
 import { faChartArea, faChartLine } from "@fortawesome/free-solid-svg-icons";
 import { setShowDistanceFromLander, setShowElevation } from "store/interface";
 import { setSelectedEvaSequenceItemUuid } from "store/eva";
@@ -37,7 +37,7 @@ const TimelineHoverValues: FunctionComponent<{ hoverValues: HoverValues }> = ({ 
   return (
     <div className={styles.timelineHoverContainer}>
       <div className={styles.timelineOptions}>
-        <IconButton
+        <Button
           icon={faChartLine}
           onClick={() => {
             dispatch(setShowDistanceFromLander(!showDistanceFromLander));
@@ -50,7 +50,7 @@ const TimelineHoverValues: FunctionComponent<{ hoverValues: HoverValues }> = ({ 
             paddingLeft: "10px",
           }}
         />
-        <IconButton
+        <Button
           icon={faChartArea}
           onClick={() => {
             dispatch(setShowElevation(!showElevation));

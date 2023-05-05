@@ -38,8 +38,10 @@
 }
 
 .presetItemSelected {
-  background-color: var(--map);
+  background-color: var(--grey5);
+  font-weight: 500;
   color: black;
+  cursor: pointer;
 }
 
 .presetIcon {
@@ -65,7 +67,7 @@
 
 .defaultText {
   font-size: 0.8em;
-  color: var(--grey4);
+  font-weight: 400;
   margin-left: 5px;
 }
 

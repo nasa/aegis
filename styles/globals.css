@@ -19,23 +19,27 @@ body {
   --grey1: #313440;
   --grey2: #424653;
   --grey3: #616574;
-  --grey4: #a9a9a9; /* home page only for now */
+  --grey4: #a9a9a9;
+  --grey5: #e0e0e0;
 
   --base: #00f0ff;
-  --map: #61ff8d;
+  --preset: #ff8f5f;
   /* --markup: #e861a9; */
 
   --eva: #ffc700;
   --tools: #ff7539;
   --poi: #28ecf9;
   /* --station: #00ffd1; */
-  --station: #ff8f5f;
+  /* --station: #db84ec; */
+  --station: #61ff8d;
+
   --alert: #cb0000;
   --alert-disabled: #650000;
 
   --info: #2b6092;
-  --warning: #cabd00;
-  --error: #cb0000;
+  --warning: #ddce00;
+  --error: #ff4040;
+  --errorText: #cb0000;
 
   --radius: 3px;
   --panelRadius: 8px;
@@ -45,12 +49,12 @@ body {
 /* Firefox */
 * {
   scrollbar-width: auto;
-  scrollbar-color: #eeeeee #eeeeee10;
+  scrollbar-color: var(--grey4) #eeeeee10;
 }
 
 /* Chrome, Edge, and Safari */
 *::-webkit-scrollbar {
-  width: 7px;
+  width: 6px;
 }
 
 *::-webkit-scrollbar-track {
@@ -58,7 +62,7 @@ body {
 }
 
 *::-webkit-scrollbar-thumb {
-  background-color: #eeeeee;
+  background-color: var(--grey4);
   border-radius: 2px;
   border: 1px none #eeeeee10;
 }

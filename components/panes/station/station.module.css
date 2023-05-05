@@ -31,7 +31,8 @@
 }
 
 .nameSelected {
-  background-color: var(--station);
+  background-color: var(--grey5);
+  font-weight: 500;
   color: black;
   cursor: pointer;
 }
@@ -41,7 +42,6 @@
 }
 
 .nameSelected:hover {
-  background-color: var(--station) !important;
   color: black !important;
 }
 
@@ -110,7 +110,7 @@
 }
 
 .actionHeadingFaded {
-  opacity: 0.2;
+  opacity: 0.3;
 }
 
 .itemIcon {
@@ -143,6 +143,7 @@
 
 .iconDisplayButton {
   cursor: pointer;
+  margin-right: 5px;
 }
 
 .iconPickerContainer {
@@ -152,7 +153,7 @@
 .iconPicker {
   position: absolute;
   left: -90px;
-  top: 15px;
+  top: 40px;
 }
 
 .statusLoading {

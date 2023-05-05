@@ -5,7 +5,7 @@ import styles from "./eva.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import EvaItem from "./eva-item";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
-import { IconButton } from "components/interface/_global-elements";
+import { Button } from "components/interface/_global-elements";
 import { faClone, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -81,14 +81,14 @@ const EvaPlannerLeft: FunctionComponent = () => {
         {isAdmin && (
           <div className={styles.evasLeftFooter}>
             <div className={paneStyles.iconButtons}>
-              <IconButton
+              <Button
                 onClick={() => {
                   handleCreateEva();
                 }}
                 label="Add EVA"
                 icon={faPlusCircle}
               />
-              <IconButton
+              <Button
                 onClick={() => {
                   if (selectedEva) {
                     dispatch(duplicateEva(selectedEva));

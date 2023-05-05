@@ -15,7 +15,7 @@ import {
   faCheck,
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
-import { IconButton, InLineEditInput } from "components/interface/_global-elements";
+import { Button, InLineEditInput } from "components/interface/_global-elements";
 
 import Info_Panel from "./eva-right-eva-info";
 import Actions_Panel from "./eva-right-eva-actions";
@@ -340,6 +340,7 @@ const EvaRightEva: FunctionComponent = () => {
             type: "station",
             uuid: station.uuid,
             name: station.name,
+            icon: station.icon,
             reportItems: stationCalculatedFields?.reportItems,
           });
         }
@@ -355,13 +356,13 @@ const EvaRightEva: FunctionComponent = () => {
     info_panel: {
       title: "EVA Information",
       panel: <Info_Panel editMode={evasEditing.includes(selectedEvaUuid)} />,
-      selectedColor: "var(--eva)",
+      selectedColor: "white",
       icon: faCircleInfo,
     },
     actions_panel: {
       title: "EVA Actions",
       panel: <Actions_Panel editMode={false} />,
-      selectedColor: "var(--eva)",
+      selectedColor: "white",
       icon: faPersonDigging,
     },
     report_panel: {
@@ -464,7 +465,7 @@ const EvaRightEva: FunctionComponent = () => {
           </div>
           <div className={paneStyles.saveCancelContainer}>
             {evasEditing.includes(selectedEvaUuid) && (
-              <IconButton
+              <Button
                 icon={faTrashAlt}
                 onClick={() => {
                   handleDelete();
@@ -474,7 +475,7 @@ const EvaRightEva: FunctionComponent = () => {
               />
             )}
             {!evasEditing.includes(selectedEvaUuid) && isAdmin && (
-              <IconButton
+              <Button
                 icon={faEdit}
                 onClick={() => {
                   dispatch(setEvaEditMode({ evaUuid: selectedEva.uuid, editMode: true }));
@@ -488,7 +489,7 @@ const EvaRightEva: FunctionComponent = () => {
 
             {evasEditing.includes(selectedEvaUuid) && (
               <>
-                <IconButton
+                <Button
                   onClick={() => {
                     handleSave();
                   }}
@@ -503,7 +504,7 @@ const EvaRightEva: FunctionComponent = () => {
                     paddingLeft: "10px",
                   }}
                 />
-                <IconButton
+                <Button
                   onClick={() => {
                     handleCancel();
                   }}

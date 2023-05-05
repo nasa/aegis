@@ -44,18 +44,18 @@
 }
 
 .nameSelected {
-  background-color: var(--eva);
+  background-color: var(--grey5);
+  font-weight: 500;
   color: black;
   cursor: pointer;
 }
 
 .nameSelected:hover {
-  background-color: var(--eva) !important;
-  color: black !important;
+  background-color: var(--grey5) !important;
 }
 
 .nameEmphasized {
-  background-color: #594f1d;
+  background-color: var(--grey3);
 }
 
 .name:hover {
@@ -128,8 +128,10 @@
 }
 
 .evaItemNameSelected {
-  background-color: var(--eva);
+  background-color: var(--grey5);
+  font-weight: 500;
   color: black;
+  cursor: pointer;
 }
 .evaItemNameHoverMode {
   background-color: var(--grey1);
@@ -137,7 +139,6 @@
 }
 
 .evaItemNameSelected:hover {
-  background-color: var(--eva) !important;
   color: black !important;
 }
 

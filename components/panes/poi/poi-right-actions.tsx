@@ -56,7 +56,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
             dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: newEditMode }));
           }}
           actions={poiActions}
-          actionColor={{ color: "var(--poi)" }}
+          actionColor={{ color: "white" }}
           actionOrderUuids={selectedPoi.actionOrderUuids}
           setActionOrderUuids={(actionOrderUuids) => {
             dispatch(upsertPoi({ ...selectedPoi, actionOrderUuids: actionOrderUuids }));

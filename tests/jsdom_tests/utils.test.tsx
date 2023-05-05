@@ -339,12 +339,12 @@ describe("traverseDurationMinutes", () => {
 
 describe("formatNumberWithCommas", () => {
   it("formats numbers with commas", () => {
-    expect(formatNumberWithCommas(1000)).toBe("1,000.00");
-    expect(formatNumberWithCommas(123456789.12)).toBe("123,456,789.12");
-    expect(formatNumberWithCommas(9876543210.123)).toBe("9,876,543,210.12");
+    expect(formatNumberWithCommas(1000)).toBe("1,000");
+    expect(formatNumberWithCommas(123456789.12)).toBe("123,456,789");
+    expect(formatNumberWithCommas(9876543210.123)).toBe("9,876,543,210");
   });
 
   it('returns "0.00" when given 0', () => {
-    expect(formatNumberWithCommas(0)).toBe("0.00");
+    expect(formatNumberWithCommas(0)).toBe("0");
   });
 });

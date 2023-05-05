@@ -2,29 +2,27 @@ import { FunctionComponent, useCallback, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
 import {
+  faCalculator,
+  faClock,
   faFloppyDisk,
-  faIcons,
   faLocationDot,
-  faMapLocationDot,
+  faMessage,
   faRoute,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   ContentEditableTextArea,
-  IconButton,
+  Button,
   InLineEditInput,
   LastEdited,
+  SubpanelHeading,
 } from "components/interface/_global-elements";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, upsertStation } from "store/station";
 import { updateMapDirective } from "store/map";
 import { calcCentroidofCoordinates } from "utils/geoMath";
-import { toDecimal } from "utils/formatting";
-import emojiPickerData from "@emoji-mart/data";
-import Picker from "@emoji-mart/react";
-import { decodeEmoji } from "utils/formatting";
+import { formatNumberWithCommas, toDecimal } from "utils/formatting";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkResetWalkback, thunkUpdateStationLocation } from "store/thunk/thunkStation";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
@@ -77,7 +75,6 @@ const Info_Panel: FunctionComponent<{
     shallowEqual
   );
 
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
 
   useEffect(() => {
@@ -87,10 +84,6 @@ const Info_Panel: FunctionComponent<{
       setSaveButtonState("enabled");
     }
   }, [elevationPendingIndex]);
-
-  useEffect(() => {
-    if (!editMode) setShowEmojiPicker(false);
-  }, [editMode]);
 
   const dispatchStationMapAction = (mapAction: MapAction) => {
     dispatch(
@@ -186,16 +179,9 @@ const Info_Panel: FunctionComponent<{
         handleResetWalkback();
       }
     }
-    // when selectedStation changes, turn off the emoji picker in case it's open
-    setShowEmojiPicker(false);
   }, [selectedStation, dispatch, handleResetWalkback, landerLocation]);
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
-
-  const relativeElevation = () => {
-    if (!selectedStation.elevation || !landerElevation) return "Not set";
-    return (selectedStation.elevation - landerElevation).toFixed(2);
-  };
 
   return (
     <div className={paneStyles.rightBody}>
@@ -203,407 +189,455 @@ const Info_Panel: FunctionComponent<{
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>
+              <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
+            </div>
+            <div className={paneStyles.descriptionContainer}>
+              <ContentEditableTextArea
+                html={selectedStation.description} // innerHTML of the editable div
+                editing={editMode}
+                onChange={(evt) => {
+                  dispatch(
+                    upsertStation({
+                      ...selectedStation,
+                      description: evt.target.value,
+                    })
+                  );
+                }} // handle innerHTML change
+              />
+            </div>
+          </div>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "6px" }}>
+              <SubpanelHeading icon={faClock}>Estimated Dwell Time</SubpanelHeading>
+            </div>
             <div className={paneStyles.panelSectionRow}>
-              {/* <div className={paneStyles.panelSmallField}>
-                <div className={paneStyles.panelSectionTitle}>Radius (m)</div>
-                <div className={paneStyles.inputField}>
-                  <InLineEditInput
-                    fieldName="Radius"
-                    editing={editMode}
-                    maxLength={4}
-                    styleInput={{ width: "45px" }}
-                    containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
-                    value={selectedStation.radius.toString()}
-                    onChange={(val) => {
-                      dispatch(upsertStation({ ...selectedStation, radius: parseFloat(val) }));
-                    }}
-                  />
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.inputFieldLabel}>Nominal (mins):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.inputFieldValue}>
+                        <InLineEditInput
+                          fieldName="Minimum Time in minutes"
+                          editing={editMode}
+                          maxLength={4}
+                          styleInput={{ width: "45px" }}
+                          containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                          value={selectedStation.durationLower?.toString()}
+                          onChange={(val) => {
+                            const updatedStation: Station = {
+                              ...selectedStation,
+                              durationLower: parseFloat(val),
+                            };
+                            dispatch(upsertStation(updatedStation));
+                          }}
+                          onBlur={(e) => {
+                            const numericVal = toDecimal(e.target.value);
+                            const updatedStation: Station = {
+                              ...selectedStation,
+                              durationLower: numericVal,
+                            };
+                            dispatch(upsertStation(updatedStation));
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div> */}
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Est Dwell Nominal (mins)</div>
-                <div className={paneStyles.inputField}>
-                  <InLineEditInput
-                    fieldName="Minimum Time in minutes"
-                    editing={editMode}
-                    maxLength={4}
-                    styleInput={{ width: "45px" }}
-                    containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
-                    value={selectedStation.durationLower?.toString()}
-                    onChange={(val) => {
-                      const updatedStation: Station = {
-                        ...selectedStation,
-                        durationLower: parseFloat(val),
-                      };
-                      dispatch(upsertStation(updatedStation));
-                    }}
-                    onBlur={(e) => {
-                      const numericVal = toDecimal(e.target.value);
-                      const updatedStation: Station = {
-                        ...selectedStation,
-                        durationLower: numericVal,
-                      };
-                      dispatch(upsertStation(updatedStation));
-                    }}
-                  />
-                </div>
-              </div>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Est Dwell Max (mins)</div>
-                <div className={paneStyles.inputField}>
-                  <InLineEditInput
-                    fieldName="Maximum Time in minutes"
-                    editing={editMode}
-                    maxLength={4}
-                    styleInput={{ width: "45px" }}
-                    containerStyle={{ fontSize: "0.8rem", fontWeight: 400 }}
-                    value={selectedStation.durationUpper?.toString()}
-                    onChange={(val) => {
-                      const updatedStation: Station = {
-                        ...selectedStation,
-                        durationUpper: parseFloat(val),
-                      };
-                      dispatch(upsertStation(updatedStation));
-                    }}
-                    onBlur={(e) => {
-                      const numericVal = toDecimal(e.target.value);
-                      const updatedStation: Station = {
-                        ...selectedStation,
-                        durationUpper: numericVal,
-                      };
-                      dispatch(upsertStation(updatedStation));
-                    }}
-                  />
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.inputFieldLabel}>Maximum (mins):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.inputFieldValue}>
+                        <InLineEditInput
+                          fieldName="Maximum Time in minutes"
+                          editing={editMode}
+                          maxLength={4}
+                          styleInput={{ width: "45px" }}
+                          containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                          value={selectedStation.durationUpper?.toString()}
+                          onChange={(val) => {
+                            const updatedStation: Station = {
+                              ...selectedStation,
+                              durationUpper: parseFloat(val),
+                            };
+                            dispatch(upsertStation(updatedStation));
+                          }}
+                          onBlur={(e) => {
+                            const numericVal = toDecimal(e.target.value);
+                            const updatedStation: Station = {
+                              ...selectedStation,
+                              durationUpper: numericVal,
+                            };
+                            dispatch(upsertStation(updatedStation));
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
-              <div className={paneStyles.panelSmallField}>
-                <div className={paneStyles.panelSectionTitle}>Icon</div>
-                <div className={stationStyles.iconDisplay}>
-                  {selectedStation.icon && (
-                    <div className={stationStyles.iconDisplayIcon}>
-                      {decodeEmoji(selectedStation.icon)}
+            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+              <SubpanelHeading icon={faCalculator}>Totals</SubpanelHeading>
+            </div>
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable}>
+                  <div
+                    className={paneStyles.panelColumnTableRow}
+                    onClick={() => {
+                      dispatch(setSelectedStationRightNavItem("actions_panel"));
+                    }}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Actions in this Station:</div>
                     </div>
-                  )}
-                  {editMode && (
-                    <>
-                      <div className={stationStyles.iconDisplayButton}>
-                        <IconButton
-                          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                          icon={faIcons}
-                          label={!showEmojiPicker ? "Pick Icon" : "Close"}
-                          style={!showEmojiPicker ? { width: "90px" } : { width: "70px" }}
-                        />
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>{actionCount}</div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>EVAs Using this Station:</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {evasUsingThisStation.length}
                       </div>
-                      <div className={stationStyles.iconPickerContainer}>
-                        {showEmojiPicker && (
-                          <div className={stationStyles.iconPicker}>
-                            <Picker
-                              data={emojiPickerData}
-                              emojiButtonSize={30}
-                              emojiSize={20}
-                              perLine={10}
-                              darkMode={true}
-                              onEmojiSelect={(e) => {
-                                dispatch(upsertStation({ ...selectedStation, icon: e.unified }));
-                                setShowEmojiPicker(false);
-                              }}
-                            />
-                          </div>
+                    </div>
+                  </div>
+                </div>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Total Action Time (mins):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {totalStationTime?.durationLower === 0 &&
+                        totalStationTime?.durationUpper === 0 ? (
+                          <>N/A</>
+                        ) : (
+                          <>{displayFormattedTotalTimeObj(totalStationTime)}</>
                         )}
                       </div>
-                    </>
-                  )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Station Description</div>
-            <ContentEditableTextArea
-              html={selectedStation.description} // innerHTML of the editable div
-              editing={editMode}
-              onChange={(evt) => {
-                dispatch(
-                  upsertStation({
-                    ...selectedStation,
-                    description: evt.target.value,
-                  })
-                );
-              }} // handle innerHTML change
-            />
-          </div>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Calculated Values</div>
-            <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>EVAs Using This Station</div>
-                <div className={paneStyles.panelText}>{evasUsingThisStation.length}</div>
-              </div>
-              <div
-                className={paneStyles.panelSmallField}
-                onClick={() => {
-                  dispatch(setSelectedStationRightNavItem("actions_panel"));
-                }}
-                style={{ cursor: "pointer" }}
-              >
-                <div className={paneStyles.panelSectionTitle}># Actions</div>
-                <div className={paneStyles.panelText}>{actionCount}</div>
-              </div>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Total Action Time</div>
-                <div className={paneStyles.panelDisplayVal}>
-                  <>{displayFormattedTotalTimeObj(totalStationTime)}</>&nbsp;mins
-                </div>
-              </div>
+            <div className={paneStyles.panelSectionTitle}>
+              <SubpanelHeading icon={faLocationDot}>Location</SubpanelHeading>
             </div>
-          </div>
-
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Location</div>
-
-            <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
-              {(selectedStation.location || editMode) && (
-                <div className={paneStyles.verticalCenter}>
-                  <FontAwesomeIcon icon={faLocationDot} />
-                </div>
-              )}
-
-              {!selectedStation.location ? (
-                <div className={paneStyles.panelText}>Location not set</div>
-              ) : (
-                <div className={paneStyles.panelText}>
-                  Lat: {`${selectedStation.location?.lat.toFixed(6)}`}
-                  <br />
-                  Lng: {`${selectedStation.location?.lng.toFixed(6)}`}
-                </div>
-              )}
-
-              {editMode && mapAction === null ? (
-                <>
-                  {!selectedStation.location ? (
-                    <>
-                      <IconButton
-                        onClick={() => {
-                          handleCreate();
-                        }}
-                        icon={faMapLocationDot}
-                        label="Create Location"
-                        style={{ width: "130px" }}
-                      />
-                    </>
-                  ) : saveButtonState !== "pending" ? (
-                    <IconButton
-                      onClick={() => {
-                        handleEdit();
-                      }}
-                      icon={faMapLocationDot}
-                      label="Edit on Map"
-                      style={{ width: "105px" }}
-                    />
-                  ) : (
-                    <span className={stationStyles.statusLoading} />
-                  )}
-                  {selectedStation.poiUuids?.length > 0 ? (
-                    saveButtonState !== "pending" && (
+            {editMode ? (
+              <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
+                {editMode && mapAction === null && (
+                  <>
+                    {!selectedStation.location ? (
                       <>
-                        <IconButton
+                        <Button
                           onClick={() => {
-                            handleCalcCentroid();
+                            handleCreate();
                           }}
-                          icon={faMapLocationDot}
-                          label="POIs Centroid"
-                          style={{ width: "115px" }}
-                        />
-                        <IconButton
-                          onClick={async () => {
-                            if (landerLocation?.lat && landerLocation?.lng) {
-                              await appDispatch(
-                                thunkUpdateStationLocation({
-                                  location: landerLocation,
-                                  stationUuid: selectedStation.uuid,
-                                })
-                              );
-                            } else {
-                              alert("No lander location specified for this mission");
-                            }
-                          }}
-                          icon={faMapLocationDot}
-                          label="Lander"
-                          style={{ width: "70px" }}
+                          label="Create Location"
+                          style={{ width: "110px" }}
                         />
                       </>
-                    )
-                  ) : (
-                    <></>
-                  )}
-                </>
-              ) : (
-                <div className={paneStyles.buttonPlaceholder} />
-              )}
-              {editMode && mapAction === "createMarker" && (
-                <IconButton
-                  onClick={() => {
-                    handleCancelCreate();
-                  }}
-                  icon={faXmark}
-                  label="Cancel"
-                  style={{ width: "70px" }}
-                />
-              )}
-              {editMode && mapAction === "editMarker" && (
-                <>
-                  <IconButton
+                    ) : saveButtonState !== "pending" ? (
+                      <Button
+                        onClick={() => {
+                          handleEdit();
+                        }}
+                        label="Edit on Map"
+                        style={{ width: "90px" }}
+                      />
+                    ) : (
+                      <span className={stationStyles.statusLoading} />
+                    )}
+                    {selectedStation.poiUuids?.length > 0 ? (
+                      saveButtonState !== "pending" && (
+                        <>
+                          <Button
+                            onClick={() => {
+                              handleCalcCentroid();
+                            }}
+                            label="POIs Centroid"
+                            style={{ width: "95px" }}
+                          />
+                          <Button
+                            onClick={async () => {
+                              if (landerLocation?.lat && landerLocation?.lng) {
+                                await appDispatch(
+                                  thunkUpdateStationLocation({
+                                    location: landerLocation,
+                                    stationUuid: selectedStation.uuid,
+                                  })
+                                );
+                              } else {
+                                alert("No lander location specified for this mission");
+                              }
+                            }}
+                            label="Set to Lander"
+                            style={{ width: "95px" }}
+                          />
+                        </>
+                      )
+                    ) : (
+                      <></>
+                    )}
+                  </>
+                )}
+                {editMode && mapAction === "createMarker" && (
+                  <Button
                     onClick={() => {
-                      handleCancelEdit();
+                      handleCancelCreate();
                     }}
                     icon={faXmark}
                     label="Cancel"
                     style={{ width: "70px" }}
                   />
-                </>
-              )}
-            </div>
-
-            <div className={paneStyles.panelSectionTitle}>Relative Elevation (m)</div>
-            <div className={paneStyles.panelText}>{relativeElevation()}</div>
-          </div>
-
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Walkback (WB) Traverse</div>
-            <div
-              className={paneStyles.panelSectionRow}
-              style={{ marginTop: "3px", marginBottom: "3px", gap: "5px" }}
-            >
-              <div className={paneStyles.verticalCenter}>
-                <FontAwesomeIcon icon={faRoute} />
+                )}
+                {editMode && mapAction === "editMarker" && (
+                  <>
+                    <Button
+                      onClick={() => {
+                        handleCancelEdit();
+                      }}
+                      icon={faXmark}
+                      label="Cancel"
+                      style={{ width: "70px" }}
+                    />
+                  </>
+                )}
               </div>
-              {selectedStation.location ? (
-                <>
-                  {landerLocation ? (
-                    <>
-                      {selectedStation.walkbackPath ? (
-                        <div className={paneStyles.verticalCenter}>
-                          <div className={paneStyles.panelText}>
-                            {selectedStation.walkbackPath.length}&nbsp;points
-                          </div>
-                        </div>
-                      ) : (
-                        <div className={paneStyles.verticalCenter}>
-                          <div className={paneStyles.panelText}>No Path</div>
-                        </div>
-                      )}
-                      {editMode && mapAction === null ? (
-                        saveButtonState === "pending" ? (
-                          <span className={stationStyles.statusLoading} />
-                        ) : (
-                          <>
-                            <IconButton
-                              onClick={() => {
-                                handleEditWalkback();
-                              }}
-                              icon={faRoute}
-                              label="Edit Path on Map"
-                              style={{ width: "135px" }}
-                            />
+            ) : (
+              <div className={paneStyles.sectionButtonRowEmpty} />
+            )}
 
-                            <IconButton
-                              onClick={() => {
-                                handleResetWalkback();
-                              }}
-                              icon={faMapLocationDot}
-                              label="Reset Path"
-                              style={{ width: "100px" }}
-                            />
-                          </>
-                        )
-                      ) : (
-                        <div className={paneStyles.buttonPlaceholder} />
-                      )}
-                      {editMode && mapAction === "editPolyline" ? (
-                        saveButtonState === "pending" ? (
-                          <>
-                            <span className={stationStyles.statusLoading} />
-                          </>
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Lat:</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {!selectedStation.location ? (
+                          <>Not set</>
                         ) : (
-                          <>
-                            <IconButton
-                              onClick={() => {
-                                handleSaveEditWalkback();
-                              }}
-                              icon={faFloppyDisk}
-                              label="Finished"
-                              style={{ width: "90px" }}
-                            />
-
-                            <IconButton
-                              onClick={() => {
-                                handleCancelEditWalkback();
-                              }}
-                              icon={faXmark}
-                              label="Cancel"
-                              style={{ width: "75px" }}
-                            />
-                          </>
-                        )
-                      ) : (
-                        <></>
-                      )}
-                    </>
-                  ) : (
-                    <div className={`${paneStyles.verticalCenter} ${paneStyles.buttonPlaceholder}`}>
-                      <div className={paneStyles.panelText}>
-                        N/A - No lander location specified for this mission
+                          selectedStation.location.lat.toFixed(6)
+                        )}
                       </div>
                     </div>
-                  )}
-                </>
-              ) : (
-                <div className={`${paneStyles.verticalCenter} ${paneStyles.buttonPlaceholder}`}>
-                  <div className={paneStyles.panelText}>
-                    N/A - Please create a station location first
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Lng:</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {!selectedStation.location ? (
+                          <>Not set</>
+                        ) : (
+                          selectedStation.location.lng.toFixed(6)
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              )}
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Relative Elevation (m):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {!selectedStation.elevation ? (
+                          <>Not set</>
+                        ) : (
+                          (selectedStation.elevation - landerElevation).toFixed(0)
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>WB Distance (m)</div>
-                <div className={paneStyles.panelText}>
-                  {calculatedFields?.walkbackDistanceMeters?.toFixed(2)}
-                </div>
-              </div>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>WB Duration (mins)</div>
-                <div className={paneStyles.panelText}>
-                  <>{calculatedFields?.walkbackDurationMinutes?.toFixed(2)}</>
-                </div>
-              </div>
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.panelColumnItem}></div>
             </div>
-            <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>WB Total Ascent (m)</div>
-                <div className={paneStyles.panelDisplayVal}>
-                  {calculatedFields?.walkbackAscentDescent.totalMetersClimbed?.toFixed(2)}
-                </div>
+          </div>
+
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>
+              <SubpanelHeading icon={faRoute}>Walkback Path</SubpanelHeading>
+            </div>
+            {editMode ? (
+              <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
+                {!selectedStation.location && (
+                  <div className={`${paneStyles.verticalCenter} ${paneStyles.buttonPlaceholder}`}>
+                    <div className={paneStyles.panelText}>Station Locaton not set</div>
+                  </div>
+                )}
+                {!landerLocation && (
+                  <div className={`${paneStyles.verticalCenter} ${paneStyles.buttonPlaceholder}`}>
+                    <div className={paneStyles.panelText}>Mission lander location not set</div>
+                  </div>
+                )}
+
+                {editMode &&
+                  selectedStation.location &&
+                  landerLocation &&
+                  mapAction === null &&
+                  (saveButtonState === "pending" ? (
+                    <span className={stationStyles.statusLoading} />
+                  ) : (
+                    <>
+                      <Button
+                        onClick={() => {
+                          handleEditWalkback();
+                        }}
+                        label="Edit Path on Map"
+                        style={{ width: "115px" }}
+                      />
+
+                      <Button
+                        onClick={() => {
+                          handleResetWalkback();
+                        }}
+                        label="Reset Path"
+                        style={{ width: "85px" }}
+                      />
+                    </>
+                  ))}
+                {editMode &&
+                  mapAction === "editPolyline" &&
+                  (saveButtonState === "pending" ? (
+                    <>
+                      <span className={stationStyles.statusLoading} />
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={() => {
+                          handleSaveEditWalkback();
+                        }}
+                        icon={faFloppyDisk}
+                        label="Finished"
+                        style={{ width: "90px" }}
+                      />
+
+                      <Button
+                        onClick={() => {
+                          handleCancelEditWalkback();
+                        }}
+                        icon={faXmark}
+                        label="Cancel"
+                        style={{ width: "75px" }}
+                      />
+                    </>
+                  ))}
               </div>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>WB Total Descent (m)</div>
-                <div className={paneStyles.panelDisplayVal}>
-                  {calculatedFields?.walkbackAscentDescent.totalMetersDescended?.toFixed(2)}
+            ) : (
+              <div className={paneStyles.sectionButtonRowEmpty} />
+            )}
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Distance (m):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {!selectedStation.location ? (
+                          <>N/A</>
+                        ) : (
+                          formatNumberWithCommas(calculatedFields?.walkbackDistanceMeters)
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Duration (mins):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {!selectedStation.location ? (
+                          <>N/A</>
+                        ) : (
+                          calculatedFields?.walkbackDurationMinutes?.toFixed(0)
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Total Ascent (m):</div>
+                    </div>
+
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {!selectedStation.location ? (
+                          <>N/A</>
+                        ) : (
+                          formatNumberWithCommas(
+                            calculatedFields?.walkbackAscentDescent.totalMetersClimbed
+                          )
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Total Descent (m):</div>
+                    </div>
+
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {!selectedStation.location ? (
+                          <>N/A</>
+                        ) : (
+                          formatNumberWithCommas(
+                            calculatedFields?.walkbackAscentDescent.totalMetersDescended
+                          )
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Last Edited</div>
-            <div className={paneStyles.verticalCenter}>
-              <div className={paneStyles.panelText}>
-                <LastEdited updatedAt={selectedStation?.updatedAt} />
+            <div className={paneStyles.panelSection2Column}>
+              <div className={paneStyles.panelColumnTable}>
+                <div className={paneStyles.panelColumnTableRow}>
+                  <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.displayFieldLabel}>Last Edited:</div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={paneStyles.displayFieldValue}>
+                      <LastEdited updatedAt={selectedStation?.updatedAt} />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

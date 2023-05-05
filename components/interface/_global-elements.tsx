@@ -1,4 +1,4 @@
-import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import { IconDefinition, IconProp } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -21,11 +21,11 @@ import ContentEditable, { ContentEditableEvent } from "react-contenteditable";
 import { longdateFromDateString } from "utils/formatting";
 import { decodeEmoji } from "utils/formatting";
 
-export const IconButton: FunctionComponent<{
+export const Button: FunctionComponent<{
   onClick: () => void;
   label?: string;
   toolTip?: string;
-  icon: IconDefinition;
+  icon?: IconDefinition;
   style?: CSSProperties;
   labelStyle?: CSSProperties;
   size?: "xs" | "lg";
@@ -34,15 +34,13 @@ export const IconButton: FunctionComponent<{
   const enabledStyle = !enabled ? styles.iconButtonDisabled : "";
   return (
     <div
-      className={`${styles.iconButton} ${enabledStyle} `}
+      className={`${styles.button} ${enabledStyle} `}
       title={toolTip}
       onClick={onClick}
       style={style}
     >
-      <FontAwesomeIcon icon={icon} size={size} />
-      <div className={styles.iconButtonLabel} style={labelStyle}>
-        {label}
-      </div>
+      {icon && <FontAwesomeIcon icon={icon} size={size} className={styles.buttonLabelIcon} />}
+      <div style={labelStyle}>{label}</div>
     </div>
   );
 };
@@ -102,7 +100,7 @@ export const IconDropdown: FunctionComponent<{
     } else {
       selectedItem = (
         <div className={styles.iconDropdownModalItem}>
-          <div className={styles.iconDropdownModalItemLabel}>Select Icon...</div>
+          <div className={styles.iconDropdownModalItemLabel}></div>
         </div>
       );
     }
@@ -308,7 +306,7 @@ export const ContentEditableTextArea: FunctionComponent<{
 
   return (
     <>
-      {editing && (
+      {editing ? (
         <ContentEditable
           className={styles.notesTextArea}
           innerRef={contentEditable}
@@ -319,8 +317,9 @@ export const ContentEditableTextArea: FunctionComponent<{
           onFocus={() => setFocus(true)}
           onBlur={() => setFocus(false)}
         />
+      ) : (
+        <div className={styles.notesText} dangerouslySetInnerHTML={{ __html: html }} />
       )}
-      {!editing && <div className={styles.notesText} dangerouslySetInnerHTML={{ __html: html }} />}
     </>
   );
 };
@@ -403,6 +402,18 @@ export const LastEdited: FunctionComponent<{
   return (
     <div className={styles.updatedAt} title={`${longdateFromDateString(updatedAt)} Z`}>
       {<>{returnDivContent(updatedAt)}</>}
+    </div>
+  );
+};
+
+export const SubpanelHeading: FunctionComponent<{
+  icon: IconProp;
+  children: ReactNode;
+}> = ({ icon, children }) => {
+  return (
+    <div style={{ color: "var(--grey5)" }}>
+      <FontAwesomeIcon icon={icon} style={{ width: "15px", marginRight: "3px" }} />
+      <span>{children}</span>
     </div>
   );
 };

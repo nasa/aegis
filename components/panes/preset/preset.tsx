@@ -13,7 +13,7 @@ import {
 import { setLayerControls } from "store/map";
 import { setSelectedPresetUuid, setSelectedPresetRightNavItem } from "store/preset";
 import { v4 as uuidv4 } from "uuid";
-import { IconButton, ModifiedIndicator } from "components/interface/_global-elements";
+import { Button, ModifiedIndicator } from "components/interface/_global-elements";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { generateUniqueName } from "utils/unique-name";
 import { setRightPanelOpen } from "store/interface";
@@ -97,14 +97,14 @@ const PresetEditorLeft: FunctionComponent = () => {
       </div>
       {isAdmin && (
         <div className={paneStyles.iconButtons}>
-          <IconButton
+          <Button
             onClick={() => {
               handleCreatePreset();
             }}
             label="Add"
             icon={faPlusCircle}
           />
-          <IconButton
+          <Button
             onClick={() => {
               if (selectedPresetUuid !== null) {
                 dispatch(duplicatePreset(selectedPreset));

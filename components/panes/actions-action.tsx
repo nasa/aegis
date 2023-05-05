@@ -1,7 +1,10 @@
 import {
   faCaretDown,
   faCaretRight,
+  faClock,
   faGripVertical,
+  faMessage,
+  faTableList,
   faTrashAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
@@ -11,6 +14,7 @@ import {
   Dropdown,
   InLineEditInput,
   LastEdited,
+  SubpanelHeading,
 } from "components/interface/_global-elements";
 import { FunctionComponent, useState, CSSProperties } from "react";
 import paneStyles from "./global-pane-styles.module.css";
@@ -151,81 +155,123 @@ const RightAction: FunctionComponent<{
       </div>
       {expanded && (
         <>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionRow}>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Duration Nominal (mins)</div>
-                <div className={paneStyles.inputField}>
-                  <InLineEditInput
-                    fieldName="Minimum Time in minutes"
-                    editing={editMode}
-                    maxLength={4}
-                    styleInput={{ width: "45px" }}
-                    containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
-                    value={action.durationLower.toString()}
-                    onChange={(val: number) => {
-                      const updatedAction: Action = { ...action, durationLower: val };
-                      dispatch(upsertAction(updatedAction));
-                    }}
-                    onBlur={(e) => {
-                      const numericVal = toDecimal(e.target.value);
-                      const updatedAction: Action = { ...action, durationLower: numericVal };
-                      dispatch(upsertAction(updatedAction));
-                    }}
-                  />
-                </div>
+          <div className={paneStyles.actionIndent}>
+            <div className={paneStyles.panelSection}>
+              <div className={paneStyles.panelSectionTitle}>
+                <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
               </div>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Duration Max (mins)</div>
-                <div className={paneStyles.inputField}>
-                  <InLineEditInput
-                    fieldName="Maximum Time in minutes"
-                    editing={editMode}
-                    maxLength={4}
-                    styleInput={{ width: "45px" }}
-                    containerStyle={{ fontSize: "0.8rem", fontWeight: 400 }}
-                    value={action.durationUpper?.toString()}
-                    onChange={(val: number) => {
-                      const updatedAction: Action = { ...action, durationUpper: val };
-                      dispatch(upsertAction(updatedAction));
-                    }}
-                    onBlur={(e) => {
-                      const numericVal = toDecimal(e.target.value);
-                      const updatedAction: Action = { ...action, durationUpper: numericVal };
-                      dispatch(upsertAction(updatedAction));
-                    }}
-                  />
+              <div className={paneStyles.descriptionContainer}>
+                <ContentEditableTextArea
+                  html={action.description} // innerHTML of the editable div
+                  editing={editMode}
+                  onChange={(evt) => {
+                    const updatedAction: Action = { ...action, description: evt.target.value };
+                    dispatch(upsertAction(updatedAction));
+                  }} // handle innerHTML change
+                />
+              </div>
+            </div>
+            <div className={paneStyles.panelSection}>
+              <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+                <SubpanelHeading icon={faClock}>Estimated Action Time</SubpanelHeading>
+              </div>
+              <div className={paneStyles.panelSectionRow}>
+                <div className={paneStyles.panelSection2Column}>
+                  <div className={paneStyles.panelColumnTable}>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCellLeft}>
+                        <div className={paneStyles.inputFieldLabel}>Nominal Duration (mins):</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.inputFieldValue}>
+                          <InLineEditInput
+                            fieldName="Minimum Time in minutes"
+                            editing={editMode}
+                            maxLength={4}
+                            styleInput={{ width: "45px" }}
+                            containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                            value={action.durationLower.toString()}
+                            onChange={(val: number) => {
+                              const updatedAction: Action = { ...action, durationLower: val };
+                              dispatch(upsertAction(updatedAction));
+                            }}
+                            onBlur={(e) => {
+                              const numericVal = toDecimal(e.target.value);
+                              const updatedAction: Action = {
+                                ...action,
+                                durationLower: numericVal,
+                              };
+                              dispatch(upsertAction(updatedAction));
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTable}>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCellLeft}>
+                        <div className={paneStyles.inputFieldLabel}>Max Duration (mins):</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.inputFieldValue}>
+                          <InLineEditInput
+                            fieldName="Maximum Time in minutes"
+                            editing={editMode}
+                            maxLength={4}
+                            styleInput={{ width: "45px" }}
+                            containerStyle={{ fontSize: "0.8rem", fontWeight: 400 }}
+                            value={action.durationUpper?.toString()}
+                            onChange={(val: number) => {
+                              const updatedAction: Action = { ...action, durationUpper: val };
+                              dispatch(upsertAction(updatedAction));
+                            }}
+                            onBlur={(e) => {
+                              const numericVal = toDecimal(e.target.value);
+                              const updatedAction: Action = {
+                                ...action,
+                                durationUpper: numericVal,
+                              };
+                              dispatch(upsertAction(updatedAction));
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Science Tracability</div>
-            <STMSelector
-              editMode={editMode}
-              action={action}
-              onSTMChange={(stmUuidRefs: string[]) => {
-                const updatedAction: Action = { ...action, stmUuidRefs: stmUuidRefs };
-                dispatch(upsertAction(updatedAction));
-              }}
-            />
-          </div>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Action Description</div>
-            <ContentEditableTextArea
-              html={action.description} // innerHTML of the editable div
-              editing={editMode}
-              onChange={(evt) => {
-                const updatedAction: Action = { ...action, description: evt.target.value };
-                dispatch(upsertAction(updatedAction));
-              }} // handle innerHTML change
-            />
-          </div>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Last Edited</div>
-            <div className={paneStyles.verticalCenter}>
-              <div className={paneStyles.panelText}>
-                <LastEdited updatedAt={action?.updatedAt} />
+            <div className={paneStyles.panelSection}>
+              <div className={paneStyles.panelSectionTitle}>
+                <SubpanelHeading icon={faTableList}>STM Coverage</SubpanelHeading>
+              </div>
+              <div className={actionStyles.stmSelectorContainer}>
+                <STMSelector
+                  editMode={editMode}
+                  action={action}
+                  onSTMChange={(stmUuidRefs: string[]) => {
+                    const updatedAction: Action = { ...action, stmUuidRefs: stmUuidRefs };
+                    dispatch(upsertAction(updatedAction));
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className={paneStyles.panelSection}>
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Last Edited:</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        <LastEdited updatedAt={action?.updatedAt} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

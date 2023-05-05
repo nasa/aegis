@@ -1,7 +1,7 @@
 import { FunctionComponent, useEffect, useState, CSSProperties } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions.module.css";
-import { IconButton } from "components/interface/_global-elements";
+import { Button, SubpanelHeading } from "components/interface/_global-elements";
 import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual } from "utils/useAppSelector";
 import { upsertAction } from "store/action";
@@ -12,7 +12,6 @@ import "react-tooltip/dist/react-tooltip.css";
 import _ from "lodash";
 import { faPlusCircle, faTableList } from "@fortawesome/free-solid-svg-icons";
 import ReactDragListView from "react-drag-listview";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { STM_Coverage } from "./stm-coverage";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 const profanityFilter = require("leo-profanity");
@@ -178,9 +177,10 @@ const Actions: FunctionComponent<{
         <>
           <div className={paneStyles.panelContainer}>
             <div className={paneStyles.panelSection}>
-              <div className={paneStyles.panelSectionTitle}>Actions STM Coverage</div>
+              <div className={paneStyles.panelSectionTitle}>
+                <SubpanelHeading icon={faTableList}>Total STM Coverage</SubpanelHeading>
+              </div>
               <div className={actionStyles.stmCoverage}>
-                <FontAwesomeIcon icon={faTableList} size="sm" title="STM Coverage" />
                 <STM_Coverage
                   actions={actions}
                   mini={true}
@@ -191,15 +191,37 @@ const Actions: FunctionComponent<{
               </div>
 
               <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
-                <div className={paneStyles.panelSmallField}>
-                  <div className={paneStyles.panelSectionTitle}># Actions</div>
-                  <div className={paneStyles.panelText}>{actionsCalculatedFields?.actionCount}</div>
-                </div>
-                <div className={paneStyles.panelMediumField}>
-                  <div className={paneStyles.panelSectionTitle}>Total Action Time</div>
-                  <div className={paneStyles.panelDisplayVal}>
-                    <>{displayFormattedTotalTimeObj(actionsCalculatedFields?.totalActionTime)}</>
-                    &nbsp;mins
+                <div className={paneStyles.panelSection2Column}>
+                  <div className={paneStyles.panelColumnTable}>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCellLeft}>
+                        <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {actionsCalculatedFields?.actionCount}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTable}>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCellLeft}>
+                        <div className={paneStyles.displayFieldLabel}>
+                          Total Action Time (mins):
+                        </div>
+                      </div>
+                      <div className={paneStyles.displayFieldValue}>
+                        {actionsCalculatedFields?.totalActionTime.durationLower === 0 &&
+                        actionsCalculatedFields?.totalActionTime.durationUpper === 0 ? (
+                          <>N/A</>
+                        ) : (
+                          <>
+                            {displayFormattedTotalTimeObj(actionsCalculatedFields?.totalActionTime)}
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -223,7 +245,7 @@ const Actions: FunctionComponent<{
           </ReactDragListView>
           <div className={actionStyles.rightBodyItem}>
             {editMode && (
-              <IconButton
+              <Button
                 icon={faPlusCircle}
                 label="Add Action"
                 style={{ width: "100px" }}

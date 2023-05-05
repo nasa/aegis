@@ -146,6 +146,7 @@ type TraverseCalculatedFields = CalculatedFields & {
 
 type EvaReportSequenceItem = EvaSequenceItem & {
   name: string;
+  icon?: string;
   reportItems: ReportItem[];
 };
 
