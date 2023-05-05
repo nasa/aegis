@@ -41,7 +41,7 @@ export const getAlertColor = (
 export const displayFormattedTotalTimeObj = (totalTimeObj: TotalTimeObj): string => {
   if (!totalTimeObj || !totalTimeObj.durationLower || !totalTimeObj.durationUpper) return null;
   if (totalTimeObj?.durationLower === totalTimeObj?.durationUpper) {
-    return totalTimeObj.durationLower.toString();
+    return `${Math.round(totalTimeObj.durationLower)}`;
   } else {
     return `${Math.round(totalTimeObj?.durationLower)} - ${Math.round(
       totalTimeObj?.durationUpper
