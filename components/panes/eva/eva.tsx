@@ -85,8 +85,9 @@ const EvaPlannerLeft: FunctionComponent = () => {
                 onClick={() => {
                   handleCreateEva();
                 }}
-                label="Add EVA"
+                label="Add"
                 icon={faPlusCircle}
+                style={{ width: "65px" }}
               />
               <Button
                 onClick={() => {
@@ -95,9 +96,10 @@ const EvaPlannerLeft: FunctionComponent = () => {
                     dispatch(setRightPanelOpen(true));
                   }
                 }}
-                label="Duplicate EVA"
+                label="Duplicate"
                 icon={faClone}
                 enabled={!_.isNull(selectedEva)}
+                style={{ width: "95px" }}
               />
             </div>
           </div>

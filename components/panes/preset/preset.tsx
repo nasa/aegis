@@ -103,6 +103,7 @@ const PresetEditorLeft: FunctionComponent = () => {
             }}
             label="Add"
             icon={faPlusCircle}
+            style={{ width: "65px" }}
           />
           <Button
             onClick={() => {
@@ -114,6 +115,7 @@ const PresetEditorLeft: FunctionComponent = () => {
             label="Duplicate"
             icon={faClone}
             enabled={selectedPresetUuid !== null}
+            style={{ width: "95px" }}
           />
         </div>
       )}

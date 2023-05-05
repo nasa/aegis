@@ -297,16 +297,21 @@ export const thunkCreateTraverseCalculatedFields = appCreateAsyncThunk<void>(
   async (_, { dispatch, getState }) => {
     const traverses = getState().traverse.traverses;
     const missionTraverseRate = getState().mission.mission?.traverseSpeed;
-    const selectedEvaTraverseRate = getState().eva.evas.find(
-      (eva) => eva.uuid === getState().eva.selectedEvaUuid
-    )?.traverseRate;
     const allCalculatedFields: TraverseCalculatedFields[] = [];
+
     for (const traverse of traverses) {
       const newReportItems: ReportItem[] = [];
 
+      // find the eva this traverse is used in
+      const eva = getState().eva.evas.find((eva) => {
+        return eva.sequence.find((sequenceItem) => {
+          return sequenceItem.uuid === traverse.uuid;
+        });
+      });
+
       let traverseRate = missionTraverseRate;
-      if (selectedEvaTraverseRate) {
-        traverseRate = selectedEvaTraverseRate;
+      if (eva?.traverseRate) {
+        traverseRate = eva?.traverseRate;
       }
       if (traverse.traverseRate) {
         traverseRate = traverse.traverseRate;

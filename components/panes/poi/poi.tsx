@@ -126,6 +126,7 @@ const PoiEditorLeft: FunctionComponent = () => {
             }}
             label="Add"
             icon={faPlusCircle}
+            style={{ width: "65px" }}
           />
           <Button
             onClick={() => {
@@ -134,6 +135,7 @@ const PoiEditorLeft: FunctionComponent = () => {
             label="Duplicate"
             icon={faClone}
             enabled={selectedPoiUuid !== null}
+            style={{ width: "95px" }}
           />
         </div>
       )}
