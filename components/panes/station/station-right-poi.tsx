@@ -4,6 +4,7 @@ import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { upsertStation } from "store/station";
 import poiStyles from "../poi/poi.module.css";
+import stationStyles from "./station.module.css";
 import _ from "lodash";
 import { Checkbox, SubpanelHeading } from "components/interface/_global-elements";
 import { setMapItemHoverUuid } from "store/playheadHover";
@@ -42,64 +43,66 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           <div className={paneStyles.panelSectionTitle}>
             <SubpanelHeading icon={faCircleDot}>POIs Linked to this Station</SubpanelHeading>
           </div>
-          {!editMode ? (
-            <>
-              {selectedPois.map((poi) => {
-                return (
-                  poi && (
-                    <div className={poiStyles.poiItem} key={poi.uuid}>
-                      <div className={poiStyles.itemIcon}>
-                        {String.fromCodePoint(parseInt(poi.icon, 16))}
-                      </div>
-                      <div className={`${poiStyles.name}`}>
-                        <div>{poi.name}</div>
-                        <div className={poiStyles.poiRightSpacer} />
-                      </div>
-                    </div>
-                  )
-                );
-              })}
-            </>
-          ) : (
-            <>
-              {_.sortBy(pois, "name").map((poi) => {
-                const checked = selectedStation.poiUuids?.includes(poi.uuid);
-                return (
-                  poi && (
-                    <div
-                      className={poiStyles.poiItem}
-                      key={poi.uuid}
-                      onMouseEnter={() => dispatch(setMapItemHoverUuid(poi.uuid))}
-                      onMouseLeave={() => dispatch(setMapItemHoverUuid(null))}
-                    >
-                      <Checkbox
-                        checked={checked}
-                        onChange={(e) => {
-                          const updatedStation: Station = {
-                            ...selectedStation,
-                            poiUuids: e.target.checked
-                              ? [...selectedStation?.poiUuids, poi.uuid]
-                              : selectedStation?.poiUuids.filter((uuid) => uuid !== poi.uuid),
-                          };
-                          dispatch(upsertStation(updatedStation));
-                        }}
-                      />
-
-                      {poi.icon && (
+          <div className={stationStyles.associatedPoisContainer}>
+            {!editMode ? (
+              <>
+                {selectedPois.map((poi) => {
+                  return (
+                    poi && (
+                      <div className={poiStyles.poiItem} key={poi.uuid}>
                         <div className={poiStyles.itemIcon}>
                           {String.fromCodePoint(parseInt(poi.icon, 16))}
                         </div>
-                      )}
-                      <div className={`${poiStyles.name} ${poiStyles.nohover}`}>
-                        <div>{poi.name}</div>
-                        <div className={poiStyles.poiRightSpacer} />
+                        <div className={`${poiStyles.name}`}>
+                          <div>{poi.name}</div>
+                          <div className={poiStyles.poiRightSpacer} />
+                        </div>
                       </div>
-                    </div>
-                  )
-                );
-              })}
-            </>
-          )}
+                    )
+                  );
+                })}
+              </>
+            ) : (
+              <>
+                {_.sortBy(pois, "name").map((poi) => {
+                  const checked = selectedStation.poiUuids?.includes(poi.uuid);
+                  return (
+                    poi && (
+                      <div
+                        className={poiStyles.poiItem}
+                        key={poi.uuid}
+                        onMouseEnter={() => dispatch(setMapItemHoverUuid(poi.uuid))}
+                        onMouseLeave={() => dispatch(setMapItemHoverUuid(null))}
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onChange={(e) => {
+                            const updatedStation: Station = {
+                              ...selectedStation,
+                              poiUuids: e.target.checked
+                                ? [...selectedStation?.poiUuids, poi.uuid]
+                                : selectedStation?.poiUuids.filter((uuid) => uuid !== poi.uuid),
+                            };
+                            dispatch(upsertStation(updatedStation));
+                          }}
+                        />
+
+                        {poi.icon && (
+                          <div className={poiStyles.itemIcon}>
+                            {String.fromCodePoint(parseInt(poi.icon, 16))}
+                          </div>
+                        )}
+                        <div className={`${poiStyles.name} ${poiStyles.nohover}`}>
+                          <div>{poi.name}</div>
+                          <div className={poiStyles.poiRightSpacer} />
+                        </div>
+                      </div>
+                    )
+                  );
+                })}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
