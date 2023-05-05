@@ -18,9 +18,10 @@ import { clearMapItemHover } from "store/playheadHover";
 import _ from "lodash";
 import { STM_Coverage } from "components/panes/stm-coverage";
 import * as TimelineDrawing from "./timeline-drawing";
-import { IconButton } from "./_global-elements";
+import { Button } from "./_global-elements";
 import { faChartArea, faChartLine } from "@fortawesome/free-solid-svg-icons";
 import { setShowDistanceFromLander, setShowElevation } from "store/interface";
+import { setSelectedEvaSequenceItemUuid } from "store/eva";
 
 const TimelineHoverValues: FunctionComponent<{ hoverValues: HoverValues }> = ({ hoverValues }) => {
   const dispatch = useDispatch();
@@ -36,7 +37,7 @@ const TimelineHoverValues: FunctionComponent<{ hoverValues: HoverValues }> = ({ 
   return (
     <div className={styles.timelineHoverContainer}>
       <div className={styles.timelineOptions}>
-        <IconButton
+        <Button
           icon={faChartLine}
           onClick={() => {
             dispatch(setShowDistanceFromLander(!showDistanceFromLander));
@@ -49,7 +50,7 @@ const TimelineHoverValues: FunctionComponent<{ hoverValues: HoverValues }> = ({ 
             paddingLeft: "10px",
           }}
         />
-        <IconButton
+        <Button
           icon={faChartArea}
           onClick={() => {
             dispatch(setShowElevation(!showElevation));
@@ -486,7 +487,6 @@ const NavTimeline: FunctionComponent = () => {
       trailing: false,
     });
 
-    // paper.view.onMouseEnter = () => {};
     paper.view.onMouseLeave = () => {
       paperGroupsRef.current.hoverLine.visible = false;
       dispatch(clearMapItemHover());
@@ -496,6 +496,26 @@ const NavTimeline: FunctionComponent = () => {
     };
     paper.view.onResize = function () {
       drawTimeline();
+    };
+    paper.view.onClick = function (event: paper.MouseEvent) {
+      //determine what sequence item the x coordinate is in
+      let sequenceUuid: string = null;
+      for (const bkgBlock of paperGroupsRef.current.graphBkg.children) {
+        if (
+          bkgBlock.contains(
+            new paper.Point(event.point.x, paperDataRef.current.paperVars.timelineTop + 1)
+          )
+        ) {
+          //add 1 so the y point would be inside the block
+          sequenceUuid = bkgBlock.name;
+          break;
+        }
+      }
+
+      //set selected uuid if we have one
+      if (sequenceUuid) {
+        dispatch(setSelectedEvaSequenceItemUuid(sequenceUuid));
+      }
     };
 
     return () => paper.project.remove();

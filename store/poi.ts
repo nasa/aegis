@@ -64,14 +64,6 @@ export const poiSlice = createSlice({
         }
       }
     },
-    updatePoiLocation: (state, action: { payload: { uuid: string; location: AEGISPoint } }) => {
-      state.pois = state.pois.map((poi) => {
-        if (poi.uuid === action.payload.uuid) {
-          return { ...poi, location: action.payload.location };
-        }
-        return poi;
-      });
-    },
     setPoiCalculatedFields: (
       state,
       action: { payload: { calculatedFields: PoiCalculatedFields[] } }
@@ -94,6 +86,5 @@ export const {
   setSelectedPoiUuid,
   duplicatePoi,
   setPoiEditMode,
-  updatePoiLocation,
   setPoiCalculatedFields,
 } = poiSlice.actions;

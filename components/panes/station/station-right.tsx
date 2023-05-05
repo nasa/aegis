@@ -16,7 +16,7 @@ import {
   faTriangleExclamation,
   faCheck,
 } from "@fortawesome/free-solid-svg-icons";
-import { IconButton, InLineEditInput } from "components/interface/_global-elements";
+import { Button, InLineEditInput } from "components/interface/_global-elements";
 import {
   deleteStation,
   setSelectedStationUuid,
@@ -43,9 +43,14 @@ import { updateMapDirective } from "store/map";
 import { decodeEmoji } from "utils/formatting";
 import { setRightPanelOpen } from "store/interface";
 import { getAlertColor } from "utils/component-helpers";
+import Picker from "@emoji-mart/react";
+import emojiPickerData from "@emoji-mart/data";
+import { thunkUpdateAllTraverseNames } from "../../../store/thunk/thunkTraverse";
+import { useAppDispatch } from "utils/useAppDispatch";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
+  const appDispatch = useAppDispatch();
   const selectedMissionId = useAppSelector((state) => state.mission.mission?.id, shallowEqual);
   const selectedRightNavItem = useAppSelector(
     (state) => state.station.selectedRightNavItem,
@@ -108,9 +113,11 @@ const StationEditorRight: FunctionComponent = () => {
       state.station.calculatedFields.find((calculated) => calculated.uuid === selectedStationUuid),
     shallowEqual
   );
+  const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
 
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
   const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--station)");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const panelTypes: PanelTypes = {
     info_panel: {
@@ -122,19 +129,19 @@ const StationEditorRight: FunctionComponent = () => {
           actionCount={calculatedFields?.actionCount}
         />
       ),
-      selectedColor: "var(--station)",
+      selectedColor: "white",
       icon: faCircleInfo,
     },
     poi_panel: {
       title: "Station POIs",
       panel: <Poi_Panel editMode={stationsEditing.includes(selectedStationUuid)} />,
-      selectedColor: "var(--station)",
+      selectedColor: "white",
       icon: faCircleDot,
     },
     actions_panel: {
       title: "Station Actions",
       panel: <Actions_Panel editMode={stationsEditing.includes(selectedStationUuid)} />,
-      selectedColor: "var(--station)",
+      selectedColor: "white",
       icon: faPersonDigging,
     },
     report_panel: {
@@ -142,7 +149,7 @@ const StationEditorRight: FunctionComponent = () => {
       panel: (
         <Report_Panel reportItems={calculatedFields?.reportItems} reportTitle={"Station Report"} />
       ),
-      selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "var(--station)",
+      selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "white",
       unselectedColor: reportsTabIconColor,
       icon: calculatedFields?.reportItems.length > 0 ? faTriangleExclamation : faCheck,
     },
@@ -263,6 +270,27 @@ const StationEditorRight: FunctionComponent = () => {
           })
         );
       }
+
+      //Get all Evas
+
+      if (evas) {
+        // Loop through each eva sequence to get the ones with this station uuid
+        const evasUsingThisStation: Eva[] = evas.filter((eva) => {
+          return eva.sequence.some((sequence) => {
+            return sequence.uuid === selectedStation.uuid;
+          });
+        });
+        // We've changed a station name, so everything in EVA must be set to edit and flagged for update
+        evasUsingThisStation.forEach((eva) => {
+          appDispatch(
+            thunkUpdateAllTraverseNames({
+              evaSequence: eva.sequence,
+              stationUUID: selectedStation.uuid,
+            })
+          );
+        });
+      }
+
       cancelMarkerMapDirective();
       dispatch(setStationEditMode({ stationUuid: selectedStation.uuid, editMode: false }));
     }
@@ -360,6 +388,10 @@ const StationEditorRight: FunctionComponent = () => {
     dispatch(setStationEditMode({ stationUuid: selectedStation.uuid, editMode: false }));
   };
 
+  useEffect(() => {
+    if (!stationsEditing.includes(selectedStationUuid)) setShowEmojiPicker(false);
+  }, [stationsEditing, selectedStationUuid]);
+
   let activeComponent: FunctionComponent = null;
   if (!_.isNil(panelTypes[selectedRightNavItem])) {
     activeComponent = panelTypes[selectedRightNavItem].panel;
@@ -375,6 +407,34 @@ const StationEditorRight: FunctionComponent = () => {
             <div className={paneStyles.rightTopTitleIcon}>
               <div className={paneStyles.rightTopTitleNoIcon} />
             </div>
+          )}
+          {stationsEditing.includes(selectedStationUuid) && (
+            <>
+              <div className={stationStyles.iconDisplayButton}>
+                <Button
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  label={!showEmojiPicker ? "Pick Icon" : "Close"}
+                  style={{ width: "75px", height: "35px" }}
+                />
+              </div>
+              <div className={stationStyles.iconPickerContainer}>
+                {showEmojiPicker && (
+                  <div className={stationStyles.iconPicker}>
+                    <Picker
+                      data={emojiPickerData}
+                      emojiButtonSize={30}
+                      emojiSize={20}
+                      perLine={10}
+                      darkMode={true}
+                      onEmojiSelect={(e) => {
+                        dispatch(upsertStation({ ...selectedStation, icon: e.unified }));
+                        setShowEmojiPicker(false);
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </>
           )}
           <div className={paneStyles.rightTopTitleText} style={{ color: "var(--station)" }}>
             <InLineEditInput
@@ -431,7 +491,7 @@ const StationEditorRight: FunctionComponent = () => {
           </div>
           <div className={paneStyles.saveCancelContainer}>
             {stationsEditing.includes(selectedStationUuid) && !(saveButtonState === "pending") ? (
-              <IconButton
+              <Button
                 icon={faTrashAlt}
                 onClick={() => {
                   handleDelete();
@@ -443,7 +503,7 @@ const StationEditorRight: FunctionComponent = () => {
               <></>
             )}
             {!stationsEditing.includes(selectedStationUuid) && isAdmin && (
-              <IconButton
+              <Button
                 icon={faEdit}
                 onClick={() => {
                   dispatch(
@@ -464,7 +524,7 @@ const StationEditorRight: FunctionComponent = () => {
                 </>
               ) : (
                 <>
-                  <IconButton
+                  <Button
                     onClick={() => {
                       handleSave();
                     }}
@@ -482,7 +542,7 @@ const StationEditorRight: FunctionComponent = () => {
                       paddingLeft: "10px",
                     }}
                   />
-                  <IconButton
+                  <Button
                     onClick={() => {
                       handleCancel();
                     }}

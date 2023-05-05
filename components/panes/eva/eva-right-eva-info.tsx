@@ -2,6 +2,7 @@ import {
   ContentEditableTextArea,
   InLineEditInput,
   LastEdited,
+  SubpanelHeading,
 } from "components/interface/_global-elements";
 import { FunctionComponent } from "react";
 import { useDispatch } from "react-redux";
@@ -10,6 +11,7 @@ import { shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { formatNumberWithCommas } from "utils/formatting";
+import { faCalculator, faLightbulb, faMessage } from "@fortawesome/free-solid-svg-icons";
 
 const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -33,107 +35,178 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>EVA Description</div>
-            <ContentEditableTextArea
-              html={selectedEva.description} // innerHTML of the editable div
-              editing={editMode}
-              onChange={(evt) => {
-                dispatch(
-                  upsertEva({
-                    ...selectedEva,
-                    description: evt.target.value,
-                  })
-                );
-              }} // handle innerHTML change
-            />
+            <div className={paneStyles.panelSectionTitle}>
+              <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
+            </div>
+            <div className={paneStyles.descriptionContainer}>
+              <ContentEditableTextArea
+                html={selectedEva.description} // innerHTML of the editable div
+                editing={editMode}
+                onChange={(evt) => {
+                  dispatch(
+                    upsertEva({
+                      ...selectedEva,
+                      description: evt.target.value,
+                    })
+                  );
+                }} // handle innerHTML change
+              />
+            </div>
           </div>
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Predicted Values</div>
-            <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Max Duration (mins)</div>
-                <div className={paneStyles.inputField}>
-                  <InLineEditInput
-                    fieldName="Total EVA Time"
-                    editing={editMode}
-                    maxLength={5}
-                    styleInput={{ width: "55px" }}
-                    containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
-                    value={selectedEva.maxDuration?.toString()}
-                    onChange={(val: number) => {
-                      dispatch(upsertEva({ ...selectedEva, maxDuration: val }));
-                    }}
-                  />
+            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "3px" }}>
+              <SubpanelHeading icon={faLightbulb}>Predicted Values</SubpanelHeading>
+            </div>
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.inputFieldLabel}>Max Duration (mins):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.inputFieldValue}>
+                        <InLineEditInput
+                          fieldName="Max Duration"
+                          editing={editMode}
+                          maxLength={5}
+                          styleInput={{ width: "55px" }}
+                          containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                          value={selectedEva.maxDuration?.toString()}
+                          onChange={(val: number) => {
+                            dispatch(upsertEva({ ...selectedEva, maxDuration: val }));
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className={paneStyles.panelMediumField}>
-                <div
-                  className={paneStyles.panelSectionTitle}
-                  title={`${selectedEva?.traverseRate ? "EVA" : "Mission"} Default: ${
-                    selectedEva?.traverseRate || missionTraverseRate
-                  } km/hr`}
-                >
-                  Traverse Rate (km/hr)
-                </div>
-                <div className={paneStyles.inputField}>
-                  <InLineEditInput
-                    fieldName="Average Traverse Rate"
-                    editing={editMode}
-                    maxLength={4}
-                    styleInput={{ width: "55px" }}
-                    containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
-                    value={selectedEva.traverseRate?.toString()}
-                    onChange={(val: number) => {
-                      dispatch(upsertEva({ ...selectedEva, traverseRate: val }));
-                    }}
-                  />
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div
+                        className={paneStyles.inputFieldLabel}
+                        title={`${selectedEva?.traverseRate ? "EVA" : "Mission"} Default: ${
+                          selectedEva?.traverseRate || missionTraverseRate
+                        } km/hr`}
+                      >
+                        Traverse Rate (km/hr)
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.inputFieldValue}>
+                        <InLineEditInput
+                          fieldName="Average Traverse Rate"
+                          editing={editMode}
+                          maxLength={4}
+                          styleInput={{ width: "55px" }}
+                          containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                          value={selectedEva.traverseRate?.toString()}
+                          onChange={(val: number) => {
+                            dispatch(upsertEva({ ...selectedEva, traverseRate: val }));
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Calculated Values</div>
-            <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Total Station Dwell Time</div>
-                <div className={paneStyles.panelDisplayVal}>
-                  <>{displayFormattedTotalTimeObj(evaCalculatedFields?.totalStationTime)}</>
-                  &nbsp;mins
-                </div>
-              </div>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Total Traverse Duration</div>
-                <div className={paneStyles.panelDisplayVal}>
-                  <>{evaCalculatedFields?.totalTraverseTime?.toFixed(0)}</>&nbsp;mins
-                </div>
-              </div>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Total EVA Duration</div>
-                <div className={paneStyles.panelDisplayVal}>
-                  <>{displayFormattedTotalTimeObj(evaCalculatedFields?.totalEvaTime)}</>&nbsp;mins
-                </div>
-              </div>
+            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+              <SubpanelHeading icon={faCalculator}>Totals</SubpanelHeading>
             </div>
-            <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}># Station Actions</div>
-                <div className={paneStyles.panelDisplayVal}>
-                  {evaCalculatedFields?.totalStationActionCount}
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Action Time (mins):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {evaCalculatedFields?.totalStationTime?.durationLower === 0 &&
+                        evaCalculatedFields?.totalStationTime?.durationUpper === 0 ? (
+                          <>N/A</>
+                        ) : (
+                          <>{displayFormattedTotalTimeObj(evaCalculatedFields?.totalStationTime)}</>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Traverse Time (mins):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {evaCalculatedFields?.totalTraverseTime === 0 ? (
+                          <>N/A</>
+                        ) : (
+                          displayFormattedTotalTimeObj(evaCalculatedFields?.totalStationTime)
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>EVA Duration (mins):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {evaCalculatedFields?.totalStationTime?.durationLower === 0 &&
+                        evaCalculatedFields?.totalStationTime?.durationUpper === 0 ? (
+                          <>N/A</>
+                        ) : (
+                          <>{displayFormattedTotalTimeObj(evaCalculatedFields?.totalEvaTime)}</>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Total Traverse Distance</div>
-                <div className={paneStyles.panelDisplayVal}>
-                  {formatNumberWithCommas(evaCalculatedFields?.totalTraverseDistanceMeters)}&nbsp;m
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {evaCalculatedFields?.totalStationActionCount}
+                      </div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Traverse Distance (m):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {evaCalculatedFields?.totalTraverseDistanceMeters === 0 ? (
+                          <>N/A</>
+                        ) : (
+                          formatNumberWithCommas(evaCalculatedFields?.totalTraverseDistanceMeters)
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Last Edited</div>
-            <div className={paneStyles.verticalCenter}>
-              <div className={paneStyles.panelText}>
-                <LastEdited updatedAt={selectedEva?.updatedAt} />
+            <div className={paneStyles.panelSection2Column}>
+              <div className={paneStyles.panelColumnTable}>
+                <div className={paneStyles.panelColumnTableRow}>
+                  <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.displayFieldLabel}>Last Edited:</div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={paneStyles.displayFieldValue}>
+                      <LastEdited updatedAt={selectedEva?.updatedAt} />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

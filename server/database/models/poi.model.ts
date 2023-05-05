@@ -27,6 +27,8 @@ export class Poi implements Poi_db_type {
   radius!: number;
   @Property({ type: MikroTypes.json, nullable: true })
   location: AEGISPoint;
+  @Property({ type: MikroTypes.float, nullable: true })
+  elevation!: number;
   @Property({ type: MikroTypes.string, nullable: true })
   icon: string;
   @Property({ type: MikroTypes.json, nullable: true })

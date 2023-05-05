@@ -1,4 +1,4 @@
-.iconButton {
+.button {
   display: flex;
   flex-direction: row;
   justify-content: space-around;
@@ -19,13 +19,13 @@
   user-select: none;
 }
 
-.iconButtonDisabled {
+.buttonDisabled {
   background-color: var(--grey3);
   color: var(--grey4);
 }
 
-.iconButtonLabel {
-  margin-left: 3px;
+.buttonIcon {
+  margin-right: 3px;
 }
 
 .select {
@@ -72,7 +72,7 @@
 .colorSelectArrow {
   position: absolute;
   top: 2px;
-  right: 5px;
+  right: 8px;
   pointer-events: none;
 }
 
@@ -147,14 +147,11 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  width: 100px;
-  height: 1.5em;
+  height: 1.8em;
+  min-height: 28px;
   color: #ffffff;
   border: none;
-  font-size: 0.9em;
-  font-weight: 400;
-  margin-top: 3px;
-  margin-left: 2px;
+  margin-top: 2px;
   -webkit-user-select: none;
   user-select: none;
 }
@@ -174,7 +171,6 @@
   justify-content: space-between;
   align-items: flex-start;
   width: 100%;
-  height: 100%;
   padding: 0;
   margin: 0;
 }
@@ -184,28 +180,19 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: flex-start;
-  width: 100%;
-
-  padding: 3px 5px;
+  width: 50px;
+  border-bottom: solid 1px var(--grey2);
+  margin-right: 4px;
+  padding: 5px 5px 5px 2px;
   background-color: var(--grey3);
   color: #ffffff;
-  border: none;
-  font-size: 0.9em;
-  font-weight: 400;
   cursor: pointer;
 }
 
 .iconDropdownModalItemNotEditing {
   display: flex;
-
-  width: 100%;
-
-  padding: 3px 5px;
-  background-color: var(--grey2);
+  padding: 2px 5px 5px 2px;
   color: #ffffff;
-  border: none;
-  font-size: 0.9em;
-  font-weight: 400;
 }
 
 .iconDropdownModalItem:first-child {
@@ -215,6 +202,7 @@
 .iconDropdownModalItem:last-child {
   border-bottom-left-radius: var(--radius);
   border-bottom-right-radius: var(--radius);
+  border-bottom: none;
 }
 .iconDropdownModalItem:only-of-type {
   border-radius: var(--radius);
@@ -234,9 +222,6 @@
   display: flex;
   flex-direction: column;
   justify-content: space-around;
-
-  font-size: 11px;
-  margin-right: 2px;
 }
 
 .itemDot {
@@ -245,7 +230,7 @@
 }
 
 .inLineEditInput {
-  padding: 8px;
+  padding: 4px;
   height: 2em;
   background-color: var(--grey1);
   color: #ffffff;
@@ -255,11 +240,14 @@
 }
 
 .inLineEditValue {
-  height: 2em;
   border: 1px solid rgb(0, 0, 0, 0);
   border-radius: var(--radius);
-  padding: 4px 4px 4px 8px;
+  height: 1.3em;
+  margin-left: 4px;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .tagsContainer {
@@ -296,7 +284,8 @@
 }
 
 .notesTextArea {
-  height: 150px;
+  min-height: 110px;
+  max-height: 390px;
   background-color: var(--grey1);
   color: #ffffff;
   border: 1px solid var(--grey3);
@@ -311,13 +300,14 @@
 }
 
 .notesText {
-  display: flex;
   background-color: var(--grey2);
   color: #ffffff;
   border: 1px solid var(--grey2);
   border-radius: var(--radius);
   font-size: 0.8em;
   font-weight: 400;
+  width: 430px;
+  max-height: 450px;
   padding: 5px;
   cursor: default;
   margin-top: 3px;

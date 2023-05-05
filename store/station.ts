@@ -95,12 +95,6 @@ export const stationSlice = createSlice({
         station.walkbackPathSegmentElevations = stationFromDb.walkbackPathSegmentElevations;
       }
     },
-    deleteStationWalkbackElevation: (state, action: { payload: string }) => {
-      const station = state.stations.find((station) => station.uuid === action.payload);
-      if (station) {
-        station.walkbackPathSegmentElevations = [];
-      }
-    },
     setStationCalculatedFields: (
       state,
       action: { payload: { calculatedFields: StationCalculatedFields[] } }
@@ -125,6 +119,5 @@ export const {
   setStationEditMode,
   updateWalkbackPath,
   revertWalkbackPath,
-  deleteStationWalkbackElevation,
   setStationCalculatedFields,
 } = stationSlice.actions;

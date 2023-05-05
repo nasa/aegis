@@ -2,7 +2,7 @@ import poiStyles from "./poi.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent } from "react";
-import { IconButton } from "components/interface/_global-elements";
+import { Button } from "components/interface/_global-elements";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import {
@@ -51,6 +51,7 @@ const PoiEditorLeft: FunctionComponent = () => {
       priorityOverride: 0,
       radius: 5,
       location: null,
+      elevation: null,
       icon: "1F534",
       tags: [],
       status: "Candidate",
@@ -119,14 +120,14 @@ const PoiEditorLeft: FunctionComponent = () => {
       </div>
       {isAdmin && (
         <div className={paneStyles.iconButtons}>
-          <IconButton
+          <Button
             onClick={() => {
               handleCreatePoi();
             }}
             label="Add"
             icon={faPlusCircle}
           />
-          <IconButton
+          <Button
             onClick={() => {
               handleDuplicatePoi(selectedPoi);
             }}
