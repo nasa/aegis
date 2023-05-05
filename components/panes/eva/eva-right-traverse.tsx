@@ -7,7 +7,7 @@ import {
   faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { IconButton } from "components/interface/_global-elements";
+import { Button } from "components/interface/_global-elements";
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
@@ -81,13 +81,13 @@ const EvaRightTraverse: FunctionComponent = () => {
     }
   }, [elevationPendingIndex, selectedTraverse, selectedTraverseFromDb]);
 
-  const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--eva)");
+  const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("white");
 
   const panelTypes: PanelTypes = {
     info_panel: {
       title: "Traverse Information",
       panel: <Info_Panel editMode={traversesEditing.includes(selectedEvaSequenceItemUuid)} />,
-      selectedColor: "var(--eva)",
+      selectedColor: "white",
       icon: faCircleInfo,
     },
     report_panel: {
@@ -95,7 +95,7 @@ const EvaRightTraverse: FunctionComponent = () => {
       panel: (
         <Report_Panel reportItems={calculatedFields.reportItems} reportTitle={"Traverse Report"} />
       ),
-      selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "var(--eva)",
+      selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "white",
       unselectedColor: reportsTabIconColor,
       icon: calculatedFields.reportItems.length > 0 ? faTriangleExclamation : faCheck,
     },
@@ -197,7 +197,7 @@ const EvaRightTraverse: FunctionComponent = () => {
           </div>
           <div className={paneStyles.saveCancelContainer}>
             {!traversesEditing.includes(selectedEvaSequenceItemUuid) && isAdmin && (
-              <IconButton
+              <Button
                 icon={faEdit}
                 onClick={() => {
                   handleEdit();
@@ -216,7 +216,7 @@ const EvaRightTraverse: FunctionComponent = () => {
                 </>
               ) : (
                 <>
-                  <IconButton
+                  <Button
                     onClick={() => {
                       handleSave();
                     }}
@@ -234,7 +234,7 @@ const EvaRightTraverse: FunctionComponent = () => {
                       paddingLeft: "10px",
                     }}
                   />
-                  <IconButton
+                  <Button
                     onClick={() => {
                       handleCancel();
                     }}

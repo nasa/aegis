@@ -2,7 +2,7 @@ import styles from "./station.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent } from "react";
-import { IconButton } from "components/interface/_global-elements";
+import { Button } from "components/interface/_global-elements";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import {
@@ -133,14 +133,14 @@ const StationEditorLeft: FunctionComponent = () => {
       </div>
       {isAdmin && (
         <div className={paneStyles.iconButtons}>
-          <IconButton
+          <Button
             onClick={() => {
               handleCreateStation();
             }}
             label="Add"
             icon={faPlusCircle}
           />
-          <IconButton
+          <Button
             onClick={() => {
               handleDuplicateStation(selectedStation);
             }}

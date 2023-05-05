@@ -56,6 +56,7 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
           priorityOverride: validPoiBody.priorityOverride,
           radius: validPoiBody.radius,
           location: validPoiBody.location,
+          elevation: validPoiBody.elevation,
           icon: validPoiBody.icon,
           tags: validPoiBody.tags,
           status: validPoiBody.status,

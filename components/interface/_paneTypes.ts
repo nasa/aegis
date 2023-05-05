@@ -15,7 +15,7 @@ export const paneTypes: PaneTypes = {
     title: "Map Display Presets",
     leftPane: MapSelector,
     rightPane: MapSelectorRight,
-    color: "var(--map)",
+    color: "var(--preset)",
     icon: faGlobe,
   },
   poi: {

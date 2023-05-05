@@ -1,4 +1,4 @@
-import { IconButton, ModifiedIndicator } from "components/interface/_global-elements";
+import { Button, ModifiedIndicator } from "components/interface/_global-elements";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
@@ -197,7 +197,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
       {editMode && (
         <div className={evaStyles.evaFooterContainer}>
           <div className={paneStyles.iconButtons}>
-            <IconButton
+            <Button
               onClick={() => {
                 handleAddStation();
               }}

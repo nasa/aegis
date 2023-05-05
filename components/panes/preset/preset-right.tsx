@@ -25,7 +25,7 @@ import {
   setPresetsFromDb,
 } from "store/preset";
 import * as InternalAPI from "http-client/internal-api";
-import { IconButton, InLineEditInput } from "components/interface/_global-elements";
+import { Button, InLineEditInput } from "components/interface/_global-elements";
 import { setRightPanelOpen } from "store/interface";
 
 const PresetEditorRight: FunctionComponent = () => {
@@ -59,13 +59,13 @@ const PresetEditorRight: FunctionComponent = () => {
     info_panel: {
       title: "Preset Information",
       panel: Info_panel,
-      selectedColor: "var(--map)",
+      selectedColor: "white",
       icon: faCircleInfo,
     },
     layers_panel: {
       title: "Preset Layer Configuration",
       panel: Layers_Panel,
-      selectedColor: "var(--map)",
+      selectedColor: "white",
       icon: faLayerGroup,
     },
   };
@@ -147,7 +147,7 @@ const PresetEditorRight: FunctionComponent = () => {
   return (
     selectedPreset && (
       <>
-        <div className={paneStyles.rightTopTitle} style={{ color: "var(--map)" }}>
+        <div className={paneStyles.rightTopTitle} style={{ color: "var(--preset)" }}>
           <div className={paneStyles.rightTopTitleText}>
             <InLineEditInput
               fieldName="Preset Name"
@@ -157,7 +157,7 @@ const PresetEditorRight: FunctionComponent = () => {
               styleInput={{
                 width: "100%",
                 marginRight: "10px",
-                color: "var(--map)",
+                color: "var(--preset)",
                 fontSize: "1em",
               }}
               containerStyle={{ paddingLeft: 0 }}
@@ -199,7 +199,7 @@ const PresetEditorRight: FunctionComponent = () => {
           </div>
           <div className={paneStyles.saveCancelContainer}>
             {presetsEditing.includes(selectedPresetUuid) && (
-              <IconButton
+              <Button
                 icon={faTrashAlt}
                 onClick={() => {
                   handleDelete();
@@ -209,7 +209,7 @@ const PresetEditorRight: FunctionComponent = () => {
               />
             )}
             {!presetsEditing.includes(selectedPresetUuid) && isAdmin && (
-              <IconButton
+              <Button
                 icon={faEdit}
                 onClick={() => {
                   handleEdit();
@@ -223,7 +223,7 @@ const PresetEditorRight: FunctionComponent = () => {
 
             {presetsEditing.includes(selectedPresetUuid) && (
               <>
-                <IconButton
+                <Button
                   onClick={() => {
                     handleSave();
                   }}
@@ -238,7 +238,7 @@ const PresetEditorRight: FunctionComponent = () => {
                     paddingLeft: "10px",
                   }}
                 />
-                <IconButton
+                <Button
                   onClick={() => {
                     handleCancel();
                   }}

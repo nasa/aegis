@@ -5,6 +5,9 @@ import "react-tooltip/dist/react-tooltip.css";
 import { useDispatch } from "react-redux";
 import { setSelectedEvaSequenceItemUuid } from "store/eva";
 import { setSelectedStationUuid } from "store/station";
+import { faCircleInfo, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { decodeEmoji } from "utils/formatting";
 
 const Report_Panel: FunctionComponent<{
   reportItems: ReportItem[];
@@ -60,6 +63,7 @@ const ReportItems: FunctionComponent<{
               }
             }}
           >
+            {evaReportSequenceItem.icon && decodeEmoji(evaReportSequenceItem.icon)}{" "}
             {evaReportSequenceItem.name}
           </div>
         )}
@@ -68,14 +72,20 @@ const ReportItems: FunctionComponent<{
             <>
               {reportItems.map((reportItem, index) => {
                 let reportItemClass = styles.info;
+                let reportItemIcon = faCircleInfo;
                 if (reportItem.type === "warning") {
                   reportItemClass = styles.warning;
+                  reportItemIcon = faTriangleExclamation;
                 } else if (reportItem.type === "error") {
                   reportItemClass = styles.error;
+                  reportItemIcon = faTriangleExclamation;
                 }
                 return (
-                  <div key={index} className={`${styles.reportItem} ${reportItemClass}`}>
-                    {reportItem.message}
+                  <div key={index} className={styles.reportItem}>
+                    <div className={`${styles.reportItemIcon} ${reportItemClass}`}>
+                      <FontAwesomeIcon icon={reportItemIcon} size={"lg"} />
+                    </div>
+                    <div>{reportItem.message}</div>
                   </div>
                 );
               })}

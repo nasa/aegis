@@ -1,15 +1,16 @@
 import {
   faFloppyDisk,
-  faMapLocationDot,
+  faLightbulb,
+  faMessage,
   faRoute,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   ContentEditableTextArea,
-  IconButton,
+  Button,
   InLineEditInput,
   LastEdited,
+  SubpanelHeading,
 } from "components/interface/_global-elements";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
@@ -126,205 +127,246 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Traverse Description</div>
-            <ContentEditableTextArea
-              html={selectedTraverse.description} // innerHTML of the editable div
-              editing={editMode}
-              onChange={(evt) => {
-                dispatch(
-                  upsertTraverse({
-                    ...selectedTraverse,
-                    description: evt.target.value,
-                  })
-                );
-              }} // handle innerHTML change
-            />
-          </div>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Predicted Values</div>
-            <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Nominal Duration (mins)</div>
-                <div className={paneStyles.inputField}>
-                  <InLineEditInput
-                    fieldName="Nominal Duration"
-                    editing={editMode}
-                    maxLength={3}
-                    styleInput={{ width: "55px" }}
-                    containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
-                    value={selectedTraverse.predictedDurationLower?.toString()}
-                    onChange={(val) => {
-                      dispatch(
-                        upsertTraverse({
-                          ...selectedTraverse,
-                          predictedDurationLower: parseFloat(val),
-                        })
-                      );
-                    }}
-                  />
-                </div>
-              </div>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Max Duration (mins)</div>
-                <div className={paneStyles.inputField}>
-                  <InLineEditInput
-                    fieldName="Max Duration"
-                    editing={editMode}
-                    maxLength={3}
-                    styleInput={{ width: "55px" }}
-                    containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
-                    value={selectedTraverse.predictedDurationUpper?.toString()}
-                    onChange={(val) => {
-                      dispatch(
-                        upsertTraverse({
-                          ...selectedTraverse,
-                          predictedDurationUpper: parseFloat(val),
-                        })
-                      );
-                    }}
-                  />
-                </div>
-              </div>
-              <div className={paneStyles.panelMediumField}>
-                <div
-                  className={paneStyles.panelSectionTitle}
-                  title={`${selectedEvaTraverseRate ? "EVA" : "Mission"} Default: ${
-                    selectedEvaTraverseRate || missionTraverseRate
-                  } km/hr`}
-                >
-                  Traverse Rate (km/hr)
-                </div>
-                <div className={paneStyles.inputField}>
-                  <InLineEditInput
-                    fieldName="Traverse Rate"
-                    editing={editMode}
-                    maxLength={3}
-                    styleInput={{ width: "55px" }}
-                    containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
-                    value={selectedTraverse.traverseRate?.toString()}
-                    onChange={(val: number) => {
-                      dispatch(
-                        upsertTraverse({
-                          ...selectedTraverse,
-                          traverseRate: val,
-                        })
-                      );
-                    }}
-                  />
-                </div>
-              </div>
+            <div className={paneStyles.panelSectionTitle}>
+              <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
+            </div>
+            <div className={paneStyles.descriptionContainer}>
+              <ContentEditableTextArea
+                html={selectedTraverse.description} // innerHTML of the editable div
+                editing={editMode}
+                onChange={(evt) => {
+                  dispatch(
+                    upsertTraverse({
+                      ...selectedTraverse,
+                      description: evt.target.value,
+                    })
+                  );
+                }} // handle innerHTML change
+              />
             </div>
           </div>
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Calculated Values</div>
-            <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Distance (m)</div>
-                <div className={paneStyles.panelDisplayVal}>
-                  {formatNumberWithCommas(calculatedFields.distanceMeters)}
-                </div>
-              </div>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Calc Duration (mins)</div>
-                <div className={paneStyles.panelText}>
-                  {calculatedFields.durationMinutes.toFixed(2)}
-                </div>
-              </div>
+            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "4px" }}>
+              <SubpanelHeading icon={faLightbulb}>Predicted Values</SubpanelHeading>
             </div>
-            <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Total Ascent (m)</div>
-                <div className={paneStyles.panelDisplayVal}>
-                  {calculatedFields.ascentDescent.totalMetersClimbed.toFixed(2)}
-                </div>
-              </div>
-              <div className={paneStyles.panelMediumField}>
-                <div className={paneStyles.panelSectionTitle}>Total Descent (m)</div>
-                <div className={paneStyles.panelDisplayVal}>
-                  {calculatedFields.ascentDescent.totalMetersDescended.toFixed(2)}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Path</div>
-
-            <div className={paneStyles.panelSectionRow} style={{ marginTop: "3px", gap: "5px" }}>
-              <>
-                {(selectedTraverse.path || editMode) && (
-                  <div className={paneStyles.verticalCenter}>
-                    <FontAwesomeIcon icon={faRoute} />
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.inputFieldLabel}>Nominal Duration (mins):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.inputFieldValue}>
+                        <InLineEditInput
+                          fieldName="Nominal Duration"
+                          editing={editMode}
+                          maxLength={3}
+                          styleInput={{ width: "55px" }}
+                          containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                          value={selectedTraverse.predictedDurationLower?.toString()}
+                          onChange={(val) => {
+                            dispatch(
+                              upsertTraverse({
+                                ...selectedTraverse,
+                                predictedDurationLower: parseFloat(val),
+                              })
+                            );
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
-                )}
-                <div className={paneStyles.verticalCenter}>
-                  <div className={paneStyles.panelText}>
-                    {selectedTraverse.path && <>{selectedTraverse.path.length}&nbsp;points</>}
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div
+                        className={paneStyles.inputFieldLabel}
+                        title={`${selectedEvaTraverseRate ? "EVA" : "Mission"} Default: ${
+                          selectedEvaTraverseRate || missionTraverseRate
+                        } km/hr`}
+                      >
+                        Traverse Rate (km/hr):
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.inputFieldValue}>
+                        <InLineEditInput
+                          fieldName="Traverse Rate"
+                          editing={editMode}
+                          maxLength={3}
+                          styleInput={{ width: "55px" }}
+                          containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                          value={selectedTraverse.traverseRate?.toString()}
+                          onChange={(val: number) => {
+                            dispatch(
+                              upsertTraverse({
+                                ...selectedTraverse,
+                                traverseRate: val,
+                              })
+                            );
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
-                {editMode && mapAction === null ? (
-                  <>
-                    <IconButton
-                      onClick={() => {
-                        handlePathEdit();
-                      }}
-                      icon={faRoute}
-                      label="Edit Path on Map"
-                      style={{ width: "135px" }}
-                    />
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.inputFieldLabel}>Max Duration (mins):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.inputFieldValue}>
+                        <InLineEditInput
+                          fieldName="Max Duration"
+                          editing={editMode}
+                          maxLength={3}
+                          styleInput={{ width: "55px" }}
+                          containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                          value={selectedTraverse.predictedDurationUpper?.toString()}
+                          onChange={(val) => {
+                            dispatch(
+                              upsertTraverse({
+                                ...selectedTraverse,
+                                predictedDurationUpper: parseFloat(val),
+                              })
+                            );
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                    <IconButton
-                      onClick={() => {
-                        handlePathReset();
-                      }}
-                      icon={faMapLocationDot}
-                      label="Reset Path"
-                      style={{ width: "100px" }}
-                    />
-                  </>
-                ) : (
-                  <div className={paneStyles.buttonPlaceholder} />
-                )}
-                {editMode && mapAction === "editPolyline" ? (
-                  saveButtonState === "pending" ? (
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>
+              <SubpanelHeading icon={faRoute}>Path</SubpanelHeading>
+            </div>
+
+            {editMode ? (
+              <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
+                <>
+                  {editMode && mapAction === null ? (
                     <>
-                      <span className={evaStyles.statusLoading} />
+                      <Button
+                        onClick={() => {
+                          handlePathEdit();
+                        }}
+                        label="Edit Path on Map"
+                        style={{ width: "115px" }}
+                      />
+
+                      <Button
+                        onClick={() => {
+                          handlePathReset();
+                        }}
+                        label="Reset Path"
+                        style={{ width: "85px" }}
+                      />
                     </>
                   ) : (
-                    <>
-                      <IconButton
-                        onClick={() => {
-                          handlePathFinished();
-                        }}
-                        icon={faFloppyDisk}
-                        label="Finished"
-                        style={{ width: "90px" }}
-                      />
+                    <div className={paneStyles.buttonPlaceholder} />
+                  )}
+                  {editMode && mapAction === "editPolyline" ? (
+                    saveButtonState === "pending" ? (
+                      <>
+                        <span className={evaStyles.statusLoading} />
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          onClick={() => {
+                            handlePathFinished();
+                          }}
+                          icon={faFloppyDisk}
+                          label="Finished"
+                          style={{ width: "90px" }}
+                        />
 
-                      <IconButton
-                        onClick={() => {
-                          handleCancelPathEdit();
-                        }}
-                        icon={faXmark}
-                        label="Cancel"
-                        style={{ width: "75px" }}
-                      />
-                    </>
-                  )
-                ) : (
-                  <></>
-                )}
-
-                {!editMode && !selectedTraverse.path && (
-                  <div className={paneStyles.panelText}>Location not yet set</div>
-                )}
-              </>
+                        <Button
+                          onClick={() => {
+                            handleCancelPathEdit();
+                          }}
+                          icon={faXmark}
+                          label="Cancel"
+                          style={{ width: "75px" }}
+                        />
+                      </>
+                    )
+                  ) : (
+                    <></>
+                  )}
+                </>
+              </div>
+            ) : (
+              <div className={paneStyles.sectionButtonRowEmpty} />
+            )}
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Distance (m):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {formatNumberWithCommas(calculatedFields.distanceMeters)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Duration (mins):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {calculatedFields.durationMinutes.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Total Ascent (m):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {calculatedFields.ascentDescent.totalMetersClimbed.toFixed(0)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Total Descent (m):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {calculatedFields.ascentDescent.totalMetersDescended.toFixed(0)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>Last Edited</div>
-            <div className={paneStyles.verticalCenter}>
-              <div className={paneStyles.panelText}>
-                <LastEdited updatedAt={selectedTraverse?.updatedAt} />
+            <div className={paneStyles.panelSection2Column}>
+              <div className={paneStyles.panelColumnTable}>
+                <div className={paneStyles.panelColumnTableRow}>
+                  <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.displayFieldLabel}>Last Edited:</div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={paneStyles.displayFieldValue}>
+                      <LastEdited updatedAt={selectedTraverse?.updatedAt} />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

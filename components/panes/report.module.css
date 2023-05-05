@@ -1,12 +1,11 @@
 .info {
-  background-color: var(--grey3);
+  color: var(--grey5);
 }
 .warning {
-  background-color: var(--warning);
-  color: black;
+  color: var(--warning);
 }
 .error {
-  background-color: var(--error);
+  color: var(--error);
 }
 .reportItems {
   display: flex;
@@ -19,9 +18,15 @@
   margin: 4px 8px 0 8px;
   border-radius: var(--panelRadius);
   cursor: default;
+
+  display: flex;
 }
 .reportItem:first-child {
   margin-top: 0;
+}
+
+.reportItemIcon {
+  margin-right: 8px;
 }
 
 .noReportItem {

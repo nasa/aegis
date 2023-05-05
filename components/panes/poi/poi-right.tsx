@@ -13,12 +13,11 @@ import {
   faTriangleExclamation,
   faCheck,
 } from "@fortawesome/free-solid-svg-icons";
-import { IconButton, InLineEditInput } from "components/interface/_global-elements";
+import { Button, IconDropdown, InLineEditInput } from "components/interface/_global-elements";
 import { setSelectedPOIRightNavItem, setPoiEditMode, upsertPoi } from "store/poi";
 
 import Info_Panel from "./poi-right-info";
 import Actions_Panel from "./poi-right-actions";
-import { decodeEmoji } from "utils/formatting";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkSavePoi } from "store/thunk/poi/thunkSavePoi";
 import { thunkDeletePoi } from "store/thunk/poi/thunkDeletePoi";
@@ -79,13 +78,13 @@ const PoiEditorRight: FunctionComponent = () => {
           actionCount={calculatedFields?.actionCount}
         />
       ),
-      selectedColor: "var(--poi)",
+      selectedColor: "white",
       icon: faCircleInfo,
     },
     actions_panel: {
       title: "POI Actions",
       panel: <Actions_Panel editMode={poisEditing.includes(selectedPoiUuid)} />,
-      selectedColor: "var(--poi)",
+      selectedColor: "white",
       icon: faPersonDigging,
     },
     report_panel: {
@@ -93,7 +92,7 @@ const PoiEditorRight: FunctionComponent = () => {
       panel: (
         <Report_Panel reportItems={calculatedFields?.reportItems} reportTitle={"Station Report"} />
       ),
-      selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "var(--station)",
+      selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "white",
       unselectedColor: reportsTabIconColor,
       icon: calculatedFields?.reportItems.length > 0 ? faTriangleExclamation : faCheck,
     },
@@ -151,9 +150,15 @@ const PoiEditorRight: FunctionComponent = () => {
     selectedPoi && (
       <>
         <div className={paneStyles.rightTopTitle}>
-          {selectedPoi.icon && (
-            <div className={paneStyles.rightTopTitleIcon}>{decodeEmoji(selectedPoi.icon)}</div>
-          )}
+          <IconDropdown
+            selected={selectedPoi.icon}
+            editing={poisEditing.includes(selectedPoiUuid)}
+            setSelected={(value) => {
+              dispatch(upsertPoi({ ...selectedPoi, icon: value }));
+            }}
+            items={["1F534", "1F535", "1F7E2", "1F7E1", "1F7E3", "1F7E0", "1F7E4", "26AB", "26AA"]}
+          />
+
           <div className={paneStyles.rightTopTitleText} style={{ color: "var(--poi)" }}>
             <InLineEditInput
               fieldName="POI"
@@ -207,7 +212,7 @@ const PoiEditorRight: FunctionComponent = () => {
           </div>
           <div className={paneStyles.saveCancelContainer}>
             {poisEditing.includes(selectedPoiUuid) && (
-              <IconButton
+              <Button
                 icon={faTrashAlt}
                 onClick={() => {
                   handleDelete();
@@ -217,7 +222,7 @@ const PoiEditorRight: FunctionComponent = () => {
               />
             )}
             {!poisEditing.includes(selectedPoiUuid) && isAdmin && (
-              <IconButton
+              <Button
                 icon={faEdit}
                 onClick={() => {
                   dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: true }));
@@ -231,7 +236,7 @@ const PoiEditorRight: FunctionComponent = () => {
 
             {poisEditing.includes(selectedPoiUuid) && (
               <>
-                <IconButton
+                <Button
                   onClick={() => {
                     handleSave();
                   }}
@@ -246,7 +251,7 @@ const PoiEditorRight: FunctionComponent = () => {
                     paddingLeft: "10px",
                   }}
                 />
-                <IconButton
+                <Button
                   onClick={() => {
                     handleCancel();
                   }}

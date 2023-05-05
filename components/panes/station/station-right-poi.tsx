@@ -5,8 +5,9 @@ import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { upsertStation } from "store/station";
 import poiStyles from "../poi/poi.module.css";
 import _ from "lodash";
-import { Checkbox } from "components/interface/_global-elements";
+import { Checkbox, SubpanelHeading } from "components/interface/_global-elements";
 import { setMapItemHoverUuid } from "store/playheadHover";
+import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 
 const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -38,7 +39,9 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       <div className={paneStyles.rightBodyTitle}>Station POIs</div>
       <div className={paneStyles.panelContainer}>
         <div className={paneStyles.panelSection}>
-          <div className={paneStyles.panelSectionTitle}>POIs Linked to this Station</div>
+          <div className={paneStyles.panelSectionTitle}>
+            <SubpanelHeading icon={faCircleDot}>POIs Linked to this Station</SubpanelHeading>
+          </div>
           {!editMode ? (
             <>
               {selectedPois.map((poi) => {

@@ -47,7 +47,8 @@
 }
 
 .nameSelected {
-  background-color: var(--poi);
+  background-color: var(--grey5);
+  font-weight: 500;
   color: black;
   cursor: pointer;
 }
@@ -57,7 +58,6 @@
 }
 
 .nameSelected:hover {
-  background-color: var(--poi) !important;
   color: black !important;
 }
 

@@ -118,7 +118,7 @@
 
 .rightIconContainerSelectedPreset {
   background: var(--grey1);
-  border-top: 3px solid var(--map);
+  border-top: 3px solid var(--grey4);
   border-radius: 4px 4px 0 0;
   width: 35px;
   height: 32px;
@@ -127,7 +127,7 @@
 
 .rightIconContainerSelectedPoi {
   background: var(--grey1);
-  border-top: 3px solid var(--poi);
+  border-top: 3px solid var(--grey4);
   border-radius: 4px 4px 0 0;
   width: 35px;
   height: 32px;
@@ -136,7 +136,7 @@
 
 .rightIconContainerSelectedStation {
   background: var(--grey1);
-  border-top: 3px solid var(--station);
+  border-top: 3px solid var(--grey4);
   border-radius: 4px 4px 0 0;
   width: 35px;
   height: 32px;
@@ -145,7 +145,7 @@
 
 .rightIconContainerSelectedTraverse {
   background: var(--grey1);
-  border-top: 3px solid var(--eva);
+  border-top: 3px solid var(--grey4);
   border-radius: 4px 4px 0 0;
   width: 35px;
   height: 32px;
@@ -170,8 +170,7 @@
 }
 
 .rightTopTitleIcon {
-  font-size: 1.1em;
-  padding-right: 5px;
+  font-size: 1.2em;
   min-height: 29px;
 }
 
@@ -239,6 +238,28 @@
   user-select: none;
 }
 
+.panelSection2Column {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  padding-left: 18px;
+}
+
+.actionIndent {
+  padding-left: 25px;
+}
+
+.sectionButtonRow {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  padding-left: 16px;
+  gap: 5px;
+}
+
+.sectionButtonRowEmpty {
+  margin-top: 8px;
+}
+
 .panelText {
   font-size: 0.8em;
   font-weight: 400;
@@ -250,11 +271,28 @@
 }
 
 .panelSmallField {
-  flex: 0 0 80px;
+  color: red;
 }
 
-.panelMediumField {
-  flex: 0 0 150px;
+.panelColumnTable {
+  flex: 1;
+  display: table-row-group;
+}
+
+.panelColumnTableRow {
+  display: table-row;
+}
+
+.panelColumnTableCell {
+  display: table-cell;
+}
+.panelColumnTableCellLeft {
+  display: table-cell;
+  /* text-align: right; */
+}
+
+.panelColumnTableCell {
+  display: table-cell;
 }
 
 .panelDisplayVal {
@@ -276,6 +314,45 @@
 
 .inputField {
   margin-top: 1px;
+  display: flex;
+}
+
+.inputFieldLabel {
+  font-size: 0.8em;
+  font-weight: 400;
+  color: var(--grey4);
+  -webkit-user-select: none;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.inputFieldValue {
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.displayFieldLabel {
+  font-size: 0.8em;
+  font-weight: 400;
+  color: var(--grey4);
+  -webkit-user-select: none;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.displayFieldValue {
+  font-size: 0.8em;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-left: 8px;
 }
 
 .actionsHeading {
@@ -320,4 +397,8 @@
 
 .checkUneditable {
   margin: 0 8px 0 4px;
+}
+
+.descriptionContainer {
+  padding-left: 13px;
 }

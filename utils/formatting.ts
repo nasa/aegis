@@ -209,5 +209,5 @@ export const decodeEmoji = (str: string): string => {
  */
 export function formatNumberWithCommas(num: number): string {
   if (_.isNil(num)) return "";
-  return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return num.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
