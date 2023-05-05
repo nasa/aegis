@@ -306,7 +306,7 @@
   border-radius: var(--radius);
   font-size: 0.8em;
   font-weight: 400;
-  width: 430px;
+  max-width: 430px;
   max-height: 450px;
   padding: 5px;
   cursor: default;

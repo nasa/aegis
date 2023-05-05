@@ -68,6 +68,10 @@
   cursor: pointer;
 }
 
+.associatedPoisContainer {
+  overflow-y: auto;
+}
+
 .stationPoiSection {
   padding: 0 5px 5px 5px;
 }
