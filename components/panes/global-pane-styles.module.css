@@ -208,7 +208,6 @@
   flex-direction: column;
   padding: 10px 5px 10px 5px;
   border-top: 1px solid var(--grey3);
-  height: 100%;
   overflow-y: hidden;
 }
 
