@@ -655,6 +655,12 @@ function initGraphItemsRef(
 ) {
   //init graph data
   graphSequenceItems.current = {};
+  flattenedGraphData.current = {
+    elevationXY: [],
+    distanceFromLanderXY: [],
+    walkbackXY: [],
+    walkbackElevationXY: [],
+  };
 
   const paperVars = paperDataRef.current.paperVars;
   //loop through sequence items
