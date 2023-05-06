@@ -1,6 +1,6 @@
 import { FunctionComponent } from "react";
 import styles from "./preset-right-layers-settings.module.css";
-import { Dropdown } from "components/interface/_global-elements";
+// import { Dropdown } from "components/interface/_global-elements";
 import { useDispatch } from "react-redux";
 import { setPresetLayerControlStyle } from "store/preset";
 import getPercentOrDefault from "utils/getPercentOrDefault";
@@ -111,15 +111,15 @@ const Settings_subpanel: FunctionComponent<{
       })
     );
   };
-  const setBlendMode = (value: string) => {
-    dispatch(
-      setPresetLayerControlStyle({
-        presetUuid: selectedPreset.uuid,
-        layerName: sublayer.name,
-        style: { ...presetLayerStyle, blendMode: value },
-      })
-    );
-  };
+  // const setBlendMode = (value: string) => {
+  //   dispatch(
+  //     setPresetLayerControlStyle({
+  //       presetUuid: selectedPreset.uuid,
+  //       layerName: sublayer.name,
+  //       style: { ...presetLayerStyle, blendMode: value },
+  //     })
+  //   );
+  // };
   const setColor = (value: string) => {
     dispatch(
       setPresetLayerControlStyle({
@@ -184,7 +184,7 @@ const Settings_subpanel: FunctionComponent<{
           onChange={(e) => setSaturation(Number(e.target.value))}
         />
       )}
-      {showSliders.blendMode && (
+      {/* {showSliders.blendMode && (
         <div className={styles.listItem}>
           <div className={styles.listItemText}>Blend</div>
           <div className={styles.listItemControl}>
@@ -214,7 +214,7 @@ const Settings_subpanel: FunctionComponent<{
             </Dropdown>
           </div>
         </div>
-      )}
+      )} */}
       {showSliders.colorPicker && (
         <div className={styles.listItem}>
           <div className={styles.listItemText}>Stroke Color</div>

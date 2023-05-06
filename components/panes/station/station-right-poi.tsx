@@ -39,7 +39,7 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle}>Station POIs</div>
       <div className={paneStyles.panelContainer}>
-        <div className={paneStyles.panelSection}>
+        <div className={paneStyles.panelSection} style={{ height: "100%" }}>
           <div className={paneStyles.panelSectionTitle}>
             <SubpanelHeading icon={faCircleDot}>POIs Linked to this Station</SubpanelHeading>
           </div>
