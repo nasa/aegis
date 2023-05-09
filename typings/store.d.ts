@@ -48,7 +48,6 @@ interface EvaState {
   selectedEvaUuid: string;
   selectedEvaSequenceItemUuid: string;
   expandedEvaUuids: string[];
-  selectedLeftNavItem: string;
   evas: Eva[];
   evasFromDb: Eva[];
   evasEditing: string[];

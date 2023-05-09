@@ -3,11 +3,10 @@ import paneStyles from "./global-pane-styles.module.css";
 import styles from "./report.module.css";
 import "react-tooltip/dist/react-tooltip.css";
 import { useDispatch } from "react-redux";
-import { setSelectedEvaSequenceItemUuid } from "store/eva";
-import { setSelectedStationUuid } from "store/station";
 import { faCircleInfo, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { decodeEmoji } from "utils/formatting";
+import { selectEVASequenceItem } from "store/cross-slice";
 
 const Report_Panel: FunctionComponent<{
   reportItems: ReportItem[];
@@ -57,10 +56,7 @@ const ReportItems: FunctionComponent<{
           <div
             className={styles.evaReportSequenceItemName}
             onClick={() => {
-              dispatch(setSelectedEvaSequenceItemUuid(evaReportSequenceItem.uuid));
-              if (evaReportSequenceItem.type === "station") {
-                dispatch(setSelectedStationUuid(evaReportSequenceItem.uuid));
-              }
+              dispatch(selectEVASequenceItem({ sequenceItemUuid: evaReportSequenceItem.uuid }));
             }}
           >
             {evaReportSequenceItem.icon && decodeEmoji(evaReportSequenceItem.icon)}{" "}

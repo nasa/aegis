@@ -9,6 +9,22 @@
   color: white;
 }
 
+.body {
+  margin-top: 70px;
+  display: flex;
+}
+
+.leftPanel {
+  width: 50%;
+  height: 100%;
+  margin-top: 10px;
+}
+
+.rightPanel {
+  width: 50%;
+  height: 100%;
+}
+
 .bodyContent {
   padding: 20px;
 }
@@ -672,4 +688,119 @@
   align-items: center;
   margin-top: 10px;
   width: 100%;
+}
+
+.missionList {
+  list-style: none;
+  padding-left: 0;
+  margin: 0 auto;
+  text-align: center;
+  width: 200px;
+}
+
+.missionName {
+  font-weight: bold;
+  font-size: 1.2em;
+  margin-bottom: 10px;
+  color: white;
+  background: #0b3d91;
+  border: 3px solid white;
+  border-radius: 25px;
+  cursor: pointer;
+}
+
+.missionName:hover {
+  background: white;
+  color: #0b3d91;
+  border: 3px solid #0b3d91;
+}
+
+.poiHeader {
+  text-align: center;
+  font-weight: bold;
+}
+
+.poiList {
+  list-style: none;
+  padding-left: 0;
+  margin: 0 auto;
+  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.poiCard {
+  align-items: center;
+  width: 300px;
+  margin: 10px;
+  padding: 10px;
+  border: 1px solid var(--grey4);
+  border-radius: 5px;
+  background-color: #0b3d91;
+  color: white;
+  display:flex;
+  justify-content:flex-start;
+  flex-direction: column;
+  position: relative;
+  flex-grow: 1;
+  flex-wrap: wrap;
+}
+/*Put icon in top right corner of card*/
+.poiIcon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: white;
+  font-size: 22px;
+  font-weight: bold;
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+/* Put name in center top of card */
+.poiName {
+  top: 0;
+  position: relative;
+  align-items: center;
+  font-weight: bold;
+  font-size: 1.2em;
+}
+
+.flexBreak {
+  flex-basis: 100%;
+  height: 0;
+}
+
+.errorList {
+  list-style: none;
+  padding-left: 0;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.errorHeader {
+  text-align: center;
+  font-weight: bold;
+  color: #721c24;
+}
+
+.errorListItem {
+  color: #721c24;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 5px;
+  padding: 5px;
+  max-width: 650px;
+  text-align: center;
+margin: 10px auto;
+}
+.smallText {
+  font-size: 0.8em;
+  color: red;
+  top: -10px;
+  position: relative;
+}
+
+.poiCardContainer {
+  height: auto;
 }

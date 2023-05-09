@@ -21,7 +21,7 @@ import * as TimelineDrawing from "./timeline-drawing";
 import { Button } from "./_global-elements";
 import { faChartArea, faChartLine } from "@fortawesome/free-solid-svg-icons";
 import { setShowDistanceFromLander, setShowElevation } from "store/interface";
-import { setSelectedEvaSequenceItemUuid } from "store/eva";
+import { selectEVASequenceItem } from "store/cross-slice";
 
 const TimelineHoverValues: FunctionComponent<{ hoverValues: HoverValues }> = ({ hoverValues }) => {
   const dispatch = useDispatch();
@@ -514,7 +514,7 @@ const NavTimeline: FunctionComponent = () => {
 
       //set selected uuid if we have one
       if (sequenceUuid) {
-        dispatch(setSelectedEvaSequenceItemUuid(sequenceUuid));
+        dispatch(selectEVASequenceItem({ sequenceItemUuid: sequenceUuid }));
       }
     };
 
