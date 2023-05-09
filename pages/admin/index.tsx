@@ -17,6 +17,10 @@ const Index: NextPage = () => {
     router.push("/admin/user");
   };
 
+  const navigatePOI = () => {
+    router.push("/admin/poi");
+  };
+
   //on load check login and mission id
   useEffect(() => {
     (async () => {
@@ -42,6 +46,12 @@ const Index: NextPage = () => {
       description: "Register new users, or edit the old ones",
       button: "Register or Edit Users",
       onClick: navigateUser,
+    },
+    {
+      title: "POIs",
+      description: "Add new POIs or edit existing ones",
+      button: "Add/Edit POIs",
+      onClick: navigatePOI,
     },
   ];
 

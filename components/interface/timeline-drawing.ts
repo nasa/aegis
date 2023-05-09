@@ -1,7 +1,6 @@
 import { Dispatch, MutableRefObject } from "react";
 import { clearMapItemHover, setLeftPanelHoverUuid, setMapItemHover } from "store/playheadHover";
 import { padZeros } from "utils/formatting";
-import _ from "lodash";
 import { AnyAction } from "@reduxjs/toolkit";
 import paper from "paper";
 import { getSlope } from "utils/geoMath";
@@ -430,6 +429,7 @@ export function drawElevationProfile(
  * Draws the walkback path for the EVA.
  * @param paperDataRef
  * @param graphItems
+ * @param selectedEvaSequenceItemUuid
  */
 export function drawWalkbacks(
   paperDataRef: MutableRefObject<PaperData>,

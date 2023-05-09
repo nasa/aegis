@@ -51,9 +51,9 @@ export async function deletePreset(presetUuid: string): Promise<WrappedResponse<
   return await res.json();
 }
 
-export async function isLoggedIn(): Promise<WrappedResponse<boolean>> {
+export async function isLoggedIn(): Promise<WrappedResponse<AdminCheck>> {
   const res = await fetch(`/api/users/isLoggedIn`);
-  const response: WrappedResponse<boolean> = await res.json();
+  const response: WrappedResponse<AdminCheck> = await res.json();
 
   return response;
 }

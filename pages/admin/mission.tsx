@@ -20,6 +20,7 @@ import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import { getElevationSinglePoint } from "http-client/elevation";
 import { faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import { getLayers, upsertLayer } from "../../http-client/layer";
+import { isValidJson } from "utils/formatting";
 
 const Mission: NextPage = () => {
   const router = useRouter();
@@ -78,15 +79,6 @@ const Mission: NextPage = () => {
     async function updateTempMissionConfig(event: ChangeEvent<HTMLTextAreaElement>) {
       const { value } = event.target;
       await setTempMission(value);
-    }
-
-    function isValidJsonString(str: string) {
-      try {
-        JSON.parse(str);
-      } catch (e) {
-        return false;
-      }
-      return true;
     }
 
     async function handleMissionImport(): Promise<void> {
@@ -275,7 +267,7 @@ const Mission: NextPage = () => {
                     type="button"
                     className={styles.importButton}
                     onClick={() => {
-                      if (isValidJsonString(tempMission)) {
+                      if (isValidJson(tempMission)) {
                         setProgressBarText("Importing Mission");
                         handleMissionImport();
                       } else {
