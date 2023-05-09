@@ -118,3 +118,15 @@ export const thunkCreateEvasCalculatedFields = appCreateAsyncThunk<void>(
     dispatch(setEvasCalculatedFields({ calculatedFields: allCalculatedFields }));
   }
 );
+
+export const thunkGetStationOrTraverse = appCreateAsyncThunk<
+  { uuid: string },
+  { type: "station" | "traverse"; item: Station | Traverse },
+  false
+>("getStationOrTraverse", async ({ uuid }, { getState }) => {
+  const station = getState().station.stations.find((s) => s.uuid === uuid);
+  if (station) return { type: "station", item: station };
+  const traverse = getState().traverse.traverses.find((t) => t.uuid === uuid);
+  if (traverse) return { type: "traverse", item: traverse };
+  throw new Error("Traverse and Station not found");
+});

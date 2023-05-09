@@ -91,53 +91,44 @@ export const thunkFullUpdateWalkbackPath = appCreateAsyncThunk<
   false
 >("fullUpdateWalkbackPath", async ({ path, stationUuid }, { dispatch, getState }) => {
   //calculate path distances
-  const pathSegmentDistances: number[] = [];
-  const radius = parseFloat(getState().mission.mission.config.msv.radius.minor);
-  if (path && path.length > 0) {
-    for (let i = 1; i < path.length; i++) {
-      pathSegmentDistances.push(getTotalDistance([path[i - 1], path[i]], radius));
-    }
+  let newPath: AEGISPoint[];
+  if (!path || path.length === 0) {
+    newPath = [
+      getState().mission.mission.landerLocation,
+      getState().mission.mission.landerLocation,
+    ];
   } else {
-    const station = getState().station.stations.find((s) => s.uuid === stationUuid);
-    path = [station.location, getState().mission.mission.landerLocation];
-    pathSegmentDistances.push(getDistanceBetweenTwoCoordinates(path[0], path[1], radius));
+    newPath = _.cloneDeep(path);
   }
-
-  //make a copy
-  const newPath = _.cloneDeep(path);
-  const newPathSegmentDistances = _.cloneDeep(pathSegmentDistances);
   let newElevationProfile = null;
 
   const station = getState().station.stations.find((s) => s.uuid === stationUuid);
   const landerLocation = getState().mission.mission.landerLocation;
-
   //set starting station
   if (station && !_.isEqual(path.at(0), station.location)) {
-    const newDistance = getDistanceBetweenTwoCoordinates(
-      station.location,
-      path[1],
-      parseFloat(getState().mission.mission.config.msv.radius.minor)
-    );
     newPath[0] = station.location;
-    newPathSegmentDistances[0] = newDistance;
   }
-
   //set ending lander
   if (landerLocation && !_.isEqual(path.at(-1), landerLocation)) {
-    const newDistance = getDistanceBetweenTwoCoordinates(
-      path[path.length - 2],
-      landerLocation,
-      parseFloat(getState().mission.mission.config.msv.radius.minor)
-    );
     newPath[newPath.length - 1] = landerLocation;
-    newPathSegmentDistances[newPathSegmentDistances.length - 1] = newDistance;
+  }
+
+  //calculate new path distances
+  const pathSegmentDistances: number[] = [];
+  for (let i = 1; i < newPath.length; i++) {
+    pathSegmentDistances.push(
+      getTotalDistance(
+        [newPath[i - 1], newPath[i]],
+        parseFloat(getState().mission.mission.config.msv.radius.minor)
+      )
+    );
   }
 
   //get elevation traverse
   const elevationResponse = await dispatch(
     thunkGetElevation({
       path: newPath,
-      pathSegmentDistances: newPathSegmentDistances,
+      pathSegmentDistances: pathSegmentDistances,
       uuid: stationUuid,
     })
   );
@@ -151,7 +142,7 @@ export const thunkFullUpdateWalkbackPath = appCreateAsyncThunk<
     updateWalkbackPath({
       uuid: stationUuid,
       walkbackPath: newPath,
-      walkbackPathSegmentDistances: newPathSegmentDistances,
+      walkbackPathSegmentDistances: pathSegmentDistances,
       walkbackPathSegmentElevations: newElevationProfile,
     })
   );

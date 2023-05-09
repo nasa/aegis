@@ -13,13 +13,13 @@ import {
   setEvaEditMode,
   setExpandedEvaUuids,
   setSelectedEvaRightNavItem,
-  setSelectedEvaSequenceItemUuid,
   setSelectedEvaUuid,
   upsertEva,
 } from "store/eva";
 import { useDispatch } from "react-redux";
 import { generateUniqueName } from "utils/unique-name";
 import { setRightPanelOpen } from "store/interface";
+import { selectEVASequenceItem } from "store/cross-slice";
 
 const EvaPlannerLeft: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -58,7 +58,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
     dispatch(setEvaEditMode({ evaUuid: blankEva.uuid, editMode: true }));
     // select the new Eva
     dispatch(setSelectedEvaUuid(blankEva.uuid));
-    dispatch(setSelectedEvaSequenceItemUuid(null));
+    dispatch(selectEVASequenceItem({ sequenceItemUuid: null }));
     // expand the new Eva
     dispatch(setExpandedEvaUuids([...expandedEvaUuids, blankEva.uuid]));
     // open right panel
