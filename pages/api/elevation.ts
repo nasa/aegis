@@ -57,7 +57,6 @@ const getPolylineProfile: NextApiHandler<WrappedResponse<number[][]>> = async (
                 "Error parsing initResJson. " + e + " | Response: " + JSON.stringify(initRes),
             });
           }
-          // console.log("initResJson: " + JSON.stringify(initResJson));
 
           if (initResJson.status === "success") {
             return res.status(200).json({
