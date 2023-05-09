@@ -4,7 +4,7 @@ import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, setSelectedStationUuid } from "store/station";
 import stationStyles from "./station.module.css";
-import { setSelectedEvaSequenceItemUuid, setSelectedEvaUuid } from "store/eva";
+import { clearEvaSelections } from "store/eva";
 import { decodeEmoji } from "utils/formatting";
 import { setRightPanelOpen } from "store/interface";
 import {
@@ -45,8 +45,7 @@ const StationItem: FunctionComponent<{
           dispatch(setRightPanelOpen(false));
         } else {
           dispatch(setSelectedStationUuid(station.uuid));
-          dispatch(setSelectedEvaSequenceItemUuid(null));
-          dispatch(setSelectedEvaUuid(null));
+          dispatch(clearEvaSelections());
           if (!selectedRightNavItem) dispatch(setSelectedStationRightNavItem("info_panel"));
           dispatch(setRightPanelOpen(true));
         }

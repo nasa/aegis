@@ -5,7 +5,6 @@ import { makeUniqueStringCopy } from "../utils/duplicate";
 
 export const initialState: EvaState = {
   selectedEvaRightNavItem: "",
-  selectedLeftNavItem: "",
   selectedEvaUuid: "",
   selectedEvaSequenceItemUuid: "",
   expandedEvaUuids: [],
@@ -108,6 +107,11 @@ export const evaSlice = createSlice({
     ) => {
       state.calculatedFields = action.payload.calculatedFields;
     },
+    clearEvaSelections: (state) => {
+      state.selectedEvaRightNavItem = "";
+      state.selectedEvaUuid = "";
+      state.selectedEvaSequenceItemUuid = "";
+    },
   },
 });
 
@@ -128,4 +132,5 @@ export const {
   setEvaSequence,
   setEvaEditMode,
   setEvasCalculatedFields,
+  clearEvaSelections,
 } = evaSlice.actions;

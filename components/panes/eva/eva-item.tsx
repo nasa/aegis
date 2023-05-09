@@ -5,7 +5,6 @@ import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import {
   setSelectedEvaRightNavItem,
   setExpandedEvaUuids,
-  setSelectedEvaSequenceItemUuid,
   setSelectedEvaUuid,
   setEvaSequence,
 } from "store/eva";
@@ -18,6 +17,7 @@ import { setSelectedStationUuid } from "store/station";
 import { v4 as uuidv4 } from "uuid";
 import EvaItemSequence from "./eva-item-sequence";
 import { setRightPanelOpen } from "store/interface";
+import { selectEVASequenceItem } from "store/cross-slice";
 
 const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
   const dispatch = useDispatch();
@@ -157,10 +157,8 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
                 dispatch(setSelectedEvaUuid(null));
                 dispatch(setRightPanelOpen(false));
               }
-              dispatch(setSelectedEvaSequenceItemUuid(null));
             } else {
               dispatch(setSelectedEvaUuid(eva.uuid));
-              dispatch(setSelectedEvaSequenceItemUuid(null));
 
               if (!selectedRightNavItem) dispatch(setSelectedEvaRightNavItem("info_panel"));
               dispatch(setRightPanelOpen(true));
@@ -170,6 +168,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
                 dispatch(setExpandedEvaUuids([...expandedEvaUuids, eva.uuid]));
               }
             }
+            dispatch(selectEVASequenceItem({ sequenceItemUuid: null }));
             dispatch(setSelectedStationUuid(null));
           }}
         >

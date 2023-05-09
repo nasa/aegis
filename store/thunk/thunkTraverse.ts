@@ -68,25 +68,11 @@ export const thunkFullUpdateTraversePath = appCreateAsyncThunk<
 >(
   "fullUpdateTraversePath",
   async ({ path, traverseUuid, rename, evaSequence }, { dispatch, getState }) => {
-    //calculate path distances
-    const pathSegmentDistances: number[] = [];
-    if (path && path.length > 0) {
-      for (let i = 1; i < path.length; i++) {
-        pathSegmentDistances.push(
-          getTotalDistance(
-            [path[i - 1], path[i]],
-            parseFloat(getState().mission.mission.config.msv.radius.minor)
-          )
-        );
-      }
-    } else {
-      path = [getState().mission.mission.landerLocation, getState().mission.mission.landerLocation];
-      pathSegmentDistances.push(0);
-    }
-
     //make a copy
-    const newPath = _.cloneDeep(path);
-    const newPathSegmentDistances = _.cloneDeep(pathSegmentDistances);
+    const newPath =
+      !path || path.length === 0
+        ? [getState().mission.mission.landerLocation, getState().mission.mission.landerLocation]
+        : _.cloneDeep(path);
     let newElevationProfile = null;
 
     // find the traverse and start/end stations
@@ -110,31 +96,29 @@ export const thunkFullUpdateTraversePath = appCreateAsyncThunk<
 
     //set starting station
     if (stationBefore.location && !_.isEqual(path.at(0), stationBefore.location)) {
-      const newDistance = getDistanceBetweenTwoCoordinates(
-        stationBefore.location,
-        path[1],
-        parseFloat(getState().mission.mission.config.msv.radius.minor)
-      );
       newPath[0] = stationBefore.location;
-      newPathSegmentDistances[0] = newDistance;
     }
-
     //set ending station
     if (stationAfter.location && !_.isEqual(path.at(-1), stationAfter.location)) {
-      const newDistance = getDistanceBetweenTwoCoordinates(
-        path[path.length - 2],
-        stationAfter.location,
-        parseFloat(getState().mission.mission.config.msv.radius.minor)
-      );
       newPath[newPath.length - 1] = stationAfter.location;
-      newPathSegmentDistances[newPathSegmentDistances.length - 1] = newDistance;
+    }
+
+    //calculate new path distances
+    const pathSegmentDistances: number[] = [];
+    for (let i = 1; i < newPath.length; i++) {
+      pathSegmentDistances.push(
+        getTotalDistance(
+          [newPath[i - 1], newPath[i]],
+          parseFloat(getState().mission.mission.config.msv.radius.minor)
+        )
+      );
     }
 
     //get elevation traverse
     const elevationResponse = await dispatch(
       thunkGetElevation({
         path: newPath,
-        pathSegmentDistances: newPathSegmentDistances,
+        pathSegmentDistances: pathSegmentDistances,
         uuid: traverseUuid,
       })
     );
@@ -157,7 +141,7 @@ export const thunkFullUpdateTraversePath = appCreateAsyncThunk<
           ...selectedTraverse,
           name: newTraverseName,
           path: newPath,
-          pathSegmentDistances: newPathSegmentDistances,
+          pathSegmentDistances: pathSegmentDistances,
           pathSegmentElevations: newElevationProfile,
         })
       );
@@ -167,7 +151,7 @@ export const thunkFullUpdateTraversePath = appCreateAsyncThunk<
         updateTraversePath({
           uuid: traverseUuid,
           path: newPath,
-          pathSegmentDistances: newPathSegmentDistances,
+          pathSegmentDistances: pathSegmentDistances,
           pathSegmentElevations: newElevationProfile,
         })
       );

@@ -2,17 +2,11 @@ import { Dropdown, ModifiedIndicator } from "components/interface/_global-elemen
 import { FunctionComponent } from "react";
 import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
-import {
-  setSelectedEvaRightNavItem,
-  setSelectedEvaUuid,
-  setEvaSequence,
-  setSelectedEvaSequenceItemUuid,
-} from "store/eva";
-import { deleteTraverse, setSelectedTraverseRightNavItem } from "store/traverse";
+import { setSelectedEvaRightNavItem, setSelectedEvaUuid, setEvaSequence } from "store/eva";
+import { deleteTraverse } from "store/traverse";
 import evaStyles from "./eva.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowDown, faArrowUp, faTrash } from "@fortawesome/free-solid-svg-icons";
-import { setSelectedStationUuid } from "store/station";
 import { decodeEmoji, hhmmFromMinutes } from "utils/formatting";
 import { setRightPanelOpen } from "store/interface";
 import {
@@ -22,6 +16,7 @@ import {
 } from "store/playheadHover";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkUpdateAllTraversesForEVASequence } from "store/thunk/thunkTraverse";
+import { selectEVASequenceItem } from "store/cross-slice";
 
 const EvaItemSequence: FunctionComponent<{
   evaUuid: string;
@@ -59,7 +54,6 @@ const EvaItemSequence: FunctionComponent<{
     };
 
     dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
-    //setTraverseNamesAndStartEnds(newEvaSequence);
     appDispatch(thunkUpdateAllTraversesForEVASequence({ evaSequence: newEvaSequence }));
   };
 
@@ -183,17 +177,11 @@ const EvaItemSequence: FunctionComponent<{
                 if (editMode) return;
 
                 if (selectedEvaSequenceItemUuid === sequenceItem.uuid) {
-                  dispatch(setSelectedEvaSequenceItemUuid(null));
+                  dispatch(selectEVASequenceItem({ sequenceItemUuid: null }));
                   dispatch(setSelectedEvaRightNavItem("info_panel"));
                 } else {
-                  dispatch(setSelectedEvaSequenceItemUuid(sequenceItem.uuid));
                   dispatch(setSelectedEvaUuid(evaUuid));
-                  if (sequenceItem.type === "station") {
-                    dispatch(setSelectedStationUuid(sequenceItem.uuid));
-                  } else if (sequenceItem.type === "traverse") {
-                    dispatch(setSelectedTraverseRightNavItem("info_panel"));
-                    dispatch(setSelectedStationUuid(null));
-                  }
+                  dispatch(selectEVASequenceItem({ sequenceItemUuid: sequenceItem.uuid }));
                   dispatch(setRightPanelOpen(true));
                 }
               }}

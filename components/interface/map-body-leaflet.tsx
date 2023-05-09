@@ -26,7 +26,6 @@ import { updateMapDirective } from "store/map";
 import { setSelectedPoiUuid } from "store/poi";
 import { setRightPanelOpen, setSectionSelected } from "store/interface";
 import { revertWalkbackPath, setSelectedStationUuid } from "store/station";
-import { setSelectedEvaSequenceItemUuid } from "store/eva";
 import { revertTraversePath } from "store/traverse";
 import {
   convertLeafletLatLngsToAegisPoints,
@@ -50,6 +49,8 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkFullUpdateTraversePath, thunkUpdateTraversePath } from "store/thunk/thunkTraverse";
 import getPercentOrDefault from "utils/getPercentOrDefault";
 import { thunkUpdatePoiLocation } from "store/thunk/thunkPoi";
+import { selectEVASequenceItem } from "store/cross-slice";
+import { thunkGetStationOrTraverse } from "store/thunk/thunkEva";
 
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
@@ -94,13 +95,6 @@ const MapBody: FunctionComponent = () => {
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
-  const selectedTraverse = useAppSelector(
-    (state) =>
-      state.traverse.traverses.find(
-        (traverse) => traverse.uuid === state.eva.selectedEvaSequenceItemUuid
-      ),
-    refEqual
-  );
   const playheadHover = useAppSelector((state) => state.playheadHover, shallowEqual); //astronaut hover timeline
 
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
@@ -109,7 +103,7 @@ const MapBody: FunctionComponent = () => {
   const mapHoverItemUuid = useAppSelector((state) => state.playheadHover.mapItemUuid, refEqual);
 
   const [layersOnMap, setLayersOnMap] = useState([]);
-  const [showSelectedItemOnMap, setShowSelectedItemOnMap] = useState(false); //click selected items
+  const [showSelectedItemOnMap, setShowSelectedItemOnMap] = useState(true); //click selected items
 
   const [poisToShow, setPoisToShow] = useState<POI[]>([]);
   const [stationsToShow, setStationsToShow] = useState<Station[]>([]);
@@ -1114,7 +1108,7 @@ const MapBody: FunctionComponent = () => {
           path: traverse.path,
           onClick: () => {
             dispatch(setSectionSelected("evas"));
-            dispatch(setSelectedEvaSequenceItemUuid(traverse.uuid));
+            dispatch(selectEVASequenceItem({ sequenceItemUuid: traverse.uuid }));
           },
           color: "blue",
           mapItemType: "traverse",
@@ -1220,7 +1214,7 @@ const MapBody: FunctionComponent = () => {
   }, [map]);
 
   const drawSelectedMarker = useCallback(
-    (highlightLocation) => {
+    (highlightLocation: AEGISPoint) => {
       if (!showSelectedItemOnMap) return;
 
       const latLng = new L.LatLng(highlightLocation.lat, highlightLocation.lng);
@@ -1244,49 +1238,63 @@ const MapBody: FunctionComponent = () => {
   );
 
   /**
-   * Monitor map item highlights and draw highlight layer on the map
+   * Monitor map item selection and draw selected layer on the map
    */
   useEffect(() => {
-    if (!map.current) return;
+    const handler = async () => {
+      if (!map.current) return;
 
-    removeSelectedMarker();
+      removeSelectedMarker();
 
-    if (!showSelectedItemOnMap) return;
+      if (!showSelectedItemOnMap) return;
 
-    let highlightLocation: AEGISPoint = null;
-    let panMapToLocation: AEGISPoint = null;
-    if (sectionSelected === "poi" && selectedPoi?.location) {
-      // highlight selectedPpo if the poi section is selected
-      highlightLocation = selectedPoi.location;
-      panMapToLocation = selectedPoi.location;
-    } else if (sectionSelected === "station" && selectedStation?.location) {
-      highlightLocation = selectedStation.location;
-      panMapToLocation = selectedStation.location;
-    } else if (selectedTraverse?.path) {
-      // highlight the midpoint of the selected traverse
-      panMapToLocation = getMidpoint(selectedTraverse.path);
-    }
-
-    if (highlightLocation) {
-      drawSelectedMarker(highlightLocation);
-    }
-
-    if (panMapToLocation && mapDirective === null) {
-      if (!map.current.getBounds().contains(panMapToLocation)) {
-        map.current.panTo(panMapToLocation);
+      let highlightLocation: AEGISPoint = null;
+      let panMapToLocation: AEGISPoint = null;
+      if (sectionSelected === "poi" && selectedPoi?.location) {
+        // highlight selectedPoi if the poi section is selected
+        highlightLocation = selectedPoi.location;
+        panMapToLocation = selectedPoi.location;
+      } else if (sectionSelected === "station" && selectedStation?.location) {
+        highlightLocation = selectedStation.location;
+        panMapToLocation = selectedStation.location;
+      } else if (sectionSelected === "evas" && selectedEvaSequenceItemUuid) {
+        const seqItemRes = await appDispatch(
+          thunkGetStationOrTraverse({ uuid: selectedEvaSequenceItemUuid })
+        );
+        if (seqItemRes.payload !== false) {
+          const seqItem = seqItemRes.payload;
+          if (seqItem.type === "traverse") {
+            panMapToLocation = getMidpoint((seqItem.item as Traverse).path);
+          } else if (seqItem.type === "station") {
+            const selectedStation = seqItem.item as Station;
+            highlightLocation = selectedStation.location;
+            panMapToLocation = selectedStation.location;
+          }
+        }
       }
-    }
+
+      if (highlightLocation) {
+        drawSelectedMarker(highlightLocation);
+      }
+
+      if (panMapToLocation && mapDirective === null) {
+        if (!map.current.getBounds().contains(panMapToLocation)) {
+          map.current.panTo(panMapToLocation);
+        }
+      }
+    };
+    handler();
   }, [
     map,
     selectedPoi,
     selectedStation,
-    dispatch,
+    appDispatch,
     showSelectedItemOnMap,
     sectionSelected,
     removeSelectedMarker,
     drawSelectedMarker,
-    selectedTraverse,
     mapDirective,
+    selectedEvaSequenceItemUuid,
   ]);
 
   /**
