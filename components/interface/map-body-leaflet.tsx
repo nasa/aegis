@@ -311,9 +311,7 @@ const MapBody: FunctionComponent = () => {
   /**
    * Update scale bar value
    */
-  useEffect(() => {
-    if (!mission || !map.current) return;
-
+  const calculateScale = useCallback(() => {
     const center = map.current.getCenter();
     const pointC = map.current.latLngToContainerPoint(center);
     const pointX: L.PointExpression = [pointC.x + 100, pointC.y]; //measure scale for 100 pixels(?)
@@ -325,7 +323,12 @@ const MapBody: FunctionComponent = () => {
       parseFloat(mission.config.msv.radius.minor)
     );
     setScale(distance);
-  }, [mission, map, mapZoom]);
+  }, [mission.config.msv.radius.minor]);
+
+  useEffect(() => {
+    if (!mission || !map.current) return;
+    calculateScale();
+  }, [mission, map, mapZoom, calculateScale]);
 
   /**
    * Draw scale bar div.
@@ -665,7 +668,9 @@ const MapBody: FunctionComponent = () => {
     const center = [+config?.msv?.view[0], +config?.msv?.view[1]] as L.LatLngExpression;
     const zoom = +config?.msv?.view[2];
     map.current.setView(center, zoom);
-  }, [mission, map]);
+    //react does not detect a change to the map ref when setView is called. Manually re-calculate scale
+    calculateScale();
+  }, [mission, map, calculateScale]);
 
   /**
    * Map event listeners, redefined when state values changes via useEffect to allow their functions to access the latest state values
