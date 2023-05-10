@@ -183,18 +183,23 @@ export function drawGraphAxis(
   );
   axisGroup.addChild(rightYAxisLabel);
 
-  //draw left y-axis meters
-  const markerSpacingPx = 20; //20px = spacing for markers
-  //max meters
-  drawMeterMarker(
-    paperDataRef,
-    paperVars.timelineLeft,
-    paperVars.timelineTop,
-    `${Math.round(storeRef.current.maxDistFromLanderMeters).toLocaleString("en-US")}`,
-    paperDataRef.current.styles.blue,
-    "right"
-  );
-  // min meter (at 0)
+  const markerSpacingPx = 25; //at least this many pixels between markers
+  const possibleIntervalMeters = [1, 2, 5, 10, 15, 20, 25, 50, 100, 150, 200, 500, 1000];
+
+  //draw left y-axis meter markers
+
+  //determine interval for distance markers
+  let distanceInterval = possibleIntervalMeters[0];
+  for (let i = 0; i < possibleIntervalMeters.length; i++) {
+    const numMarkers = storeRef.current.maxDistFromLanderMeters / possibleIntervalMeters[i];
+    //determine how many can fit taking into account the marker spacing pixels
+    if (numMarkers < paperVars.graphHeight / markerSpacingPx && i > 0) {
+      distanceInterval = possibleIntervalMeters[i - 1];
+      break;
+    }
+  }
+
+  //draw distance lander marker
   drawMeterMarker(
     paperDataRef,
     paperVars.timelineLeft,
@@ -203,29 +208,30 @@ export function drawGraphAxis(
     paperDataRef.current.styles.blue,
     "right"
   );
-  //inbetween meter lines
-  const numDistanceMarkers = Math.floor(paperVars.graphHeight / markerSpacingPx);
-  const metersBtwnDistanceMarkers = storeRef.current.maxDistFromLanderMeters / numDistanceMarkers;
-  for (let i = 1; i < numDistanceMarkers; i++) {
+  //draw distance markers above lander line
+  const numMarkersAboveLander =
+    paperVars.graphHeight / (distanceInterval * paperVars.pixelsPerMeterDistanceY);
+  console.log(`${distanceInterval}, ${numMarkersAboveLander}`);
+  for (let i = 1; i < numMarkersAboveLander; i++) {
+    const distanceFromLander = i * distanceInterval;
     drawMeterMarker(
       paperDataRef,
       paperVars.timelineLeft,
-      paperVars.timelineTop + metersBtwnDistanceMarkers * i * paperVars.pixelsPerMeterDistanceY,
-      `${Math.round(
-        storeRef.current.maxDistFromLanderMeters - metersBtwnDistanceMarkers * i
-      ).toLocaleString("en-US")}`,
+      paperVars.timelineTop +
+        paperVars.graphHeight -
+        distanceFromLander * paperVars.pixelsPerMeterDistanceY,
+      `${Math.round(distanceFromLander).toLocaleString("en-US")}`,
       paperDataRef.current.styles.blue,
       "right"
     );
   }
 
-  //draw right y-axis meters
+  //draw right y-axis meters markers
   const xLocRightYaxis = paperVars.timelineLeft + paperVars.timeineWidth;
-  const spacingFromLanderMaker = markerSpacingPx * 0.8; //how close are we allow other markers to come close to the lander marker
-  let elevationFromLander: number;
 
-  //lander meter and horizontal axis
+  //only draw if we have a lander elevation
   if (storeRef.current.landerElevationMeters) {
+    //right lander horizontal axis line and marker
     drawMeterMarker(
       paperDataRef,
       xLocRightYaxis,
@@ -247,58 +253,51 @@ export function drawGraphAxis(
     });
     axisGroup.addChild(landerLine);
 
-    //max meters
-    elevationFromLander =
-      storeRef.current.maxElevationMeters - storeRef.current.landerElevationMeters;
-    if (paperVars.landerElevationFromGraphTop > spacingFromLanderMaker) {
+    //determine interval for elevation markers
+    let elevationInterval = possibleIntervalMeters[0];
+    for (let i = 0; i < possibleIntervalMeters.length; i++) {
+      const numMarkers =
+        (storeRef.current.maxElevationMeters - storeRef.current.minElevationMeters) /
+        possibleIntervalMeters[i];
+      //determine how many can fit taking into account the marker spacing pixels
+      if (numMarkers < paperVars.graphHeight / markerSpacingPx && i > 0) {
+        elevationInterval = possibleIntervalMeters[i - 1];
+        break;
+      }
+    }
+
+    //draw elevation markers
+    const elevationIntervalInPixels = elevationInterval * paperVars.pixelsPerMeterElevationY;
+    const yLocLanderElevation = paperVars.timelineTop + paperVars.landerElevationFromGraphTop;
+    let markerArea: number;
+    let numMarkers: number;
+
+    //draw markers below lander
+    markerArea = paperVars.graphHeight - paperVars.landerElevationFromGraphTop;
+    numMarkers = markerArea / elevationIntervalInPixels;
+    for (let i = 1; i < numMarkers; i++) {
       drawMeterMarker(
         paperDataRef,
         xLocRightYaxis,
-        paperVars.timelineTop,
-        `${Math.round(elevationFromLander).toLocaleString("en-US")}`,
+        yLocLanderElevation + elevationIntervalInPixels * i,
+        `-${Math.round(i * elevationInterval).toLocaleString("en-US")}`,
         paperDataRef.current.styles.green,
         "left"
       );
     }
-    //min meters
-    elevationFromLander =
-      storeRef.current.landerElevationMeters - storeRef.current.minElevationMeters;
-    if (paperVars.graphHeight - paperVars.landerElevationFromGraphTop > spacingFromLanderMaker) {
+
+    //draw markers above lander
+    markerArea = paperVars.landerElevationFromGraphTop;
+    numMarkers = markerArea / elevationIntervalInPixels;
+    for (let i = 1; i < numMarkers; i++) {
       drawMeterMarker(
         paperDataRef,
         xLocRightYaxis,
-        paperVars.timelineTop + paperVars.graphHeight,
-        `${
-          storeRef.current.minElevationMeters < storeRef.current.landerElevationMeters ? "-" : ""
-        }${Math.round(elevationFromLander).toLocaleString("en-US")}`,
+        yLocLanderElevation - elevationIntervalInPixels * i,
+        `${Math.round(i * elevationInterval).toLocaleString("en-US")}`,
         paperDataRef.current.styles.green,
         "left"
-      ); // min meter
-    }
-    //inbetween meter lines
-    const numElevationMarkers = Math.floor(paperVars.graphHeight / markerSpacingPx);
-    const metersBtwnElevationMarkers =
-      (storeRef.current.maxElevationMeters - storeRef.current.minElevationMeters) /
-      numElevationMarkers;
-    for (let i = 1; i < numElevationMarkers; i++) {
-      const realLanderElevation = storeRef.current.landerElevationMeters;
-      const realLabelElevation =
-        storeRef.current.maxElevationMeters - metersBtwnElevationMarkers * i;
-      elevationFromLander = Math.abs(realLanderElevation - realLabelElevation);
-      const pixelsFromLanderMarker = elevationFromLander * paperVars.pixelsPerMeterElevationY;
-      if (pixelsFromLanderMarker > spacingFromLanderMaker) {
-        drawMeterMarker(
-          paperDataRef,
-          xLocRightYaxis,
-          paperVars.timelineTop +
-            metersBtwnElevationMarkers * i * paperVars.pixelsPerMeterElevationY,
-          `${realLanderElevation > realLabelElevation ? "-" : ""}${Math.round(
-            elevationFromLander
-          ).toLocaleString("en-US")}`,
-          paperDataRef.current.styles.green,
-          "left"
-        );
-      }
+      );
     }
   }
 }

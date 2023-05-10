@@ -110,7 +110,7 @@
 
 .rightIconContainerSelected {
   background: var(--grey1);
-  border-top: 3px solid #fff;
+  border-top: 3px solid var(--grey4);
   border-radius: 4px 4px 0 0;
   width: 35px;
   height: 32px;
