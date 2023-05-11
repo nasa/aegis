@@ -6,7 +6,6 @@ import {
   Children,
   cloneElement,
   useState,
-  createRef,
   useRef,
   useLayoutEffect,
   CSSProperties,
@@ -299,8 +298,25 @@ export const ContentEditableTextArea: FunctionComponent<{
   defaultValue?: string;
 }> = ({ html, editing, onChange, defaultValue }) => {
   const [focus, setFocus] = useState(false);
+  const [cursor, setCursor] = useState(null);
+  const ref = useRef(null);
 
-  const contentEditable = createRef<HTMLElement>();
+  useLayoutEffect(() => {
+    const htmlElement = ref.current;
+    if (!htmlElement || !htmlElement.childNodes[0]) return;
+    if (cursor <= html.length) {
+      const newRange = document.createRange();
+      newRange.setStart(htmlElement.childNodes[0], cursor);
+      const selection = document.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(newRange);
+    }
+  }, [ref, cursor, html]);
+
+  const handleChange = (e) => {
+    setCursor(document.getSelection().focusOffset);
+    onChange(e);
+  };
 
   const showDefaultValue = defaultValue && !focus && (html === "" || html === "<br>");
 
@@ -309,11 +325,10 @@ export const ContentEditableTextArea: FunctionComponent<{
       {editing ? (
         <ContentEditable
           className={styles.notesTextArea}
-          innerRef={contentEditable}
+          innerRef={ref}
           html={showDefaultValue ? defaultValue : html} // innerHTML of the editable div
           disabled={!editing} // use true to disable editing
-          onChange={onChange}
-          tagName="div" // Use a custom HTML tag (uses a div by default)
+          onChange={(event) => handleChange(event)}
           onFocus={() => setFocus(true)}
           onBlur={() => setFocus(false)}
         />

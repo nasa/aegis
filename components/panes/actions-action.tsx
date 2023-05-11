@@ -63,12 +63,7 @@ const RightAction: FunctionComponent<{
 
   return (
     <div className={`${paneStyles.panelContainer} ${actionStyles.actionPanelContainer}`}>
-      <div
-        className={`${paneStyles.actionsHeading} ${highlight && actionStyles.highlightAction}`}
-        onClick={() => {
-          setExpanded(!expanded);
-        }}
-      >
+      <div className={`${paneStyles.actionsHeading} ${highlight && actionStyles.highlightAction}`}>
         {editMode && (
           <a>
             <FontAwesomeIcon icon={faGripVertical} className={actionStyles.reorderIcon} size="sm" />
@@ -79,6 +74,9 @@ const RightAction: FunctionComponent<{
           className={`${paneStyles.actionsHeadingCaret} ${
             editMode && actionStyles.actionsHeadingCaret
           } `}
+          onClick={() => {
+            setExpanded(!expanded);
+          }}
         >
           {expanded ? (
             <FontAwesomeIcon icon={faCaretDown} size="sm" />
