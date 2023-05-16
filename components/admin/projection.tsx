@@ -1,280 +1,135 @@
-import { Dispatch, FunctionComponent, SetStateAction } from "react";
+import { FunctionComponent } from "react";
 import styles from "./admin.module.css";
+import { CheckboxInputField, TextInputField } from "components/form/FormInput";
+import { validators } from "utils/formValidators";
 
-interface ProjectionProps {
-  config_projection: MMGIS_Projection;
-  setConfig: Dispatch<SetStateAction<Config>>;
-}
+const { mustBeNumber } = validators;
 
-const Projection: FunctionComponent<ProjectionProps> = (props: ProjectionProps) => {
+const Projection: FunctionComponent = () => {
   return (
     <>
       <h4>Projection</h4>
       <div className={styles.sectionDiv}>
         <div id="customDiv">
           <div className={styles.editDiv}>
-            <label htmlFor="custom">Using Custom Projection</label>
-          </div>
-          <div className={styles.editDiv}>
-            <input
-              id="custom"
-              type="checkbox"
-              onChange={(e) => {
-                props.setConfig((previousConfig) => {
-                  return {
-                    ...previousConfig,
-                    projection: { ...previousConfig.projection, custom: e.target.checked },
-                  };
-                });
-              }} //use a functional/callback in the setter since multiple components will be using this
-              checked={props.config_projection?.custom}
+            <CheckboxInputField
+              name={"config.projection.custom"}
+              label={{ label: "Using Custom Projection" }}
+              className={styles.editDiv}
             />
           </div>
         </div>
         <div id="epsgDiv">
           <div className={styles.editDiv}>
-            <label htmlFor="espg">EPSG (or similar code)</label>
-          </div>
-          <div className={styles.editDiv}>
-            <input
-              id="espg"
-              type="text"
-              onChange={(e) => {
-                props.setConfig((previousConfig) => {
-                  return {
-                    ...previousConfig,
-                    projection: { ...previousConfig.projection, epsg: e.target.value },
-                  };
-                });
-              }}
-              value={props.config_projection?.epsg}
+            <TextInputField
+              name="config.projection.epsg"
+              label={{ label: "EPSG (or similar code)" }}
+              className={styles.editDiv}
             />
           </div>
         </div>
         <div id="projDiv">
           <div className={styles.editDiv}>
-            <label htmlFor="proj">Proj4 v2.3.14 String</label>
-          </div>
-          <div className={styles.editDiv}>
-            <input
-              id="proj"
-              type="text"
-              onChange={(e) => {
-                props.setConfig((previousConfig) => {
-                  return {
-                    ...previousConfig,
-                    projection: { ...previousConfig.projection, proj: e.target.value },
-                  };
-                });
-              }}
-              value={props.config_projection?.proj}
+            <TextInputField
+              name="config.projection.proj"
+              label={{ label: "Proj4 v2.3.14 String" }}
+              className={styles.editDiv}
             />
           </div>
         </div>
         <div id="xmlpathDiv">
           <div className={styles.editDiv}>
-            <label
-              htmlFor="xmlpath"
-              title="Path to tilemapresource.xml (from MMGIS home directory)"
-            >
-              Path to timemapresource.xml
-            </label>
-          </div>
-          <div className={styles.editDiv}>
-            <input
-              id="xmlpath"
-              type="text"
-              onChange={(e) => {
-                props.setConfig((previousConfig) => {
-                  return {
-                    ...previousConfig,
-                    projection: { ...previousConfig.projection, xmlpath: e.target.value },
-                  };
-                });
+            <TextInputField
+              name="config.projection.xmlpath"
+              label={{
+                title: "Path to tilemapresource.xml (from MMGIS home directory)",
+                label: "Path to timemapresource.xml",
               }}
-              value={props.config_projection?.xmlpath}
+              className={styles.editDiv}
             />
           </div>
         </div>
         <br />
         <div id="minxDiv">
           <div className={styles.editDiv}>
-            <label htmlFor="minx">Bounds MinX</label>
-          </div>
-          <div className={styles.editDiv}>
-            <input
-              id="minx"
-              type="text"
-              onChange={(e) => {
-                props.setConfig((previousConfig) => {
-                  const newBounds: string[] = previousConfig.projection.bounds;
-                  newBounds[0] = e.target.value;
-                  return {
-                    ...previousConfig,
-                    projection: { ...previousConfig.projection, bounds: newBounds },
-                  };
-                });
-              }}
-              value={props.config_projection?.bounds[0]}
+            <TextInputField
+              name="config.projection.bounds[0]"
+              label={{ label: "Bounds MinX" }}
+              className={styles.editDiv}
+              validators={[mustBeNumber]}
             />
           </div>
         </div>
         <div id="minyDiv">
           <div className={styles.editDiv}>
-            <label htmlFor="miny">Bounds MinY</label>
-          </div>
-          <div className={styles.editDiv}>
-            <input
-              id="miny"
-              type="text"
-              onChange={(e) => {
-                props.setConfig((previousConfig) => {
-                  const newBounds: string[] = previousConfig.projection.bounds;
-                  newBounds[1] = e.target.value;
-                  return {
-                    ...previousConfig,
-                    projection: { ...previousConfig.projection, bounds: newBounds },
-                  };
-                });
-              }}
-              value={props.config_projection?.bounds[1]}
+            <TextInputField
+              name="config.projection.bounds[1]"
+              label={{ label: "Bounds MinY" }}
+              className={styles.editDiv}
+              validators={[mustBeNumber]}
             />
           </div>
         </div>
         <br />
         <div id="maxxDiv">
           <div className={styles.editDiv}>
-            <label htmlFor="maxx">Bounds MaxX</label>
-          </div>
-          <div className={styles.editDiv}>
-            <input
-              id="maxx"
-              type="text"
-              onChange={(e) => {
-                props.setConfig((previousConfig) => {
-                  const newBounds: string[] = previousConfig.projection.bounds;
-                  newBounds[2] = e.target.value;
-                  return {
-                    ...previousConfig,
-                    projection: { ...previousConfig.projection, bounds: newBounds },
-                  };
-                });
-              }}
-              value={props.config_projection?.bounds[2]}
+            <TextInputField
+              name="config.projection.bounds[2]"
+              label={{ label: "Bounds MaxX" }}
+              className={styles.editDiv}
+              validators={[mustBeNumber]}
             />
           </div>
         </div>
         <div id="maxyDiv">
           <div className={styles.editDiv}>
-            <label htmlFor="maxy">Bounds MaxY</label>
-          </div>
-          <div className={styles.editDiv}>
-            <input
-              id="maxy"
-              type="text"
-              onChange={(e) => {
-                props.setConfig((previousConfig) => {
-                  const newBounds: string[] = previousConfig.projection.bounds;
-                  newBounds[3] = e.target.value;
-                  return {
-                    ...previousConfig,
-                    projection: { ...previousConfig.projection, bounds: newBounds },
-                  };
-                });
-              }}
-              value={props.config_projection?.bounds[3]}
+            <TextInputField
+              name="config.projection.bounds[3]"
+              label={{ label: "Bounds MaxY" }}
+              className={styles.editDiv}
+              validators={[mustBeNumber]}
             />
           </div>
         </div>
         <br />
         <div id="originxDiv">
           <div className={styles.editDiv}>
-            <label htmlFor="originx">Origin X</label>
-          </div>
-          <div className={styles.editDiv}>
-            <input
-              id="originx"
-              type="text"
-              onChange={(e) => {
-                props.setConfig((previousConfig) => {
-                  const newOrigin: string[] = previousConfig.projection.origin;
-                  newOrigin[0] = e.target.value;
-                  return {
-                    ...previousConfig,
-                    projection: { ...previousConfig.projection, view: newOrigin },
-                  };
-                });
-              }}
-              value={props.config_projection?.origin[0]}
+            <TextInputField
+              name="config.projection.origin[0]"
+              label={{ label: "Origin X" }}
+              className={styles.editDiv}
+              validators={[mustBeNumber]}
             />
           </div>
         </div>
         <div id="originyDiv">
           <div className={styles.editDiv}>
-            <label htmlFor="originy">Origin Y</label>
-          </div>
-          <div className={styles.editDiv}>
-            <input
-              id="originy"
-              type="text"
-              onChange={(e) => {
-                props.setConfig((previousConfig) => {
-                  const newOrigin: string[] = previousConfig.projection.origin;
-                  newOrigin[1] = e.target.value;
-                  return {
-                    ...previousConfig,
-                    projection: { ...previousConfig.projection, view: newOrigin },
-                  };
-                });
-              }}
-              value={props.config_projection?.origin[1]}
+            <TextInputField
+              name="config.projection.origin[1]"
+              label={{ label: "Origin Y" }}
+              className={styles.editDiv}
+              validators={[mustBeNumber]}
             />
           </div>
         </div>
         <br />
         <div id="zoomDiv">
           <div className={styles.editDiv}>
-            <label htmlFor="zoom">At Zoom Level</label>
-          </div>
-          <div className={styles.editDiv}>
-            <input
-              id="zoom"
-              type="text"
-              onChange={(e) => {
-                props.setConfig((previousConfig) => {
-                  return {
-                    ...previousConfig,
-                    projection: {
-                      ...previousConfig.projection,
-                      reszoomlevel: parseInt(e.target.value),
-                    },
-                  };
-                });
-              }}
-              value={props.config_projection?.reszoomlevel}
+            <TextInputField
+              name="config.projection.reszoomlevel"
+              label={{ label: "At Zoom Level" }}
+              className={styles.editDiv}
+              validators={[mustBeNumber]}
             />
           </div>
         </div>
         <div id="resunitsDiv">
           <div className={styles.editDiv}>
-            <label htmlFor="resunits">The Units per Pixel are: </label>
-          </div>
-          <div className={styles.editDiv}>
-            <input
-              id="resunits"
-              type="text"
-              onChange={(e) => {
-                props.setConfig((previousConfig) => {
-                  return {
-                    ...previousConfig,
-                    projection: {
-                      ...previousConfig.projection,
-                      resunitsperpixel: parseInt(e.target.value),
-                    },
-                  };
-                });
-              }}
-              value={props.config_projection?.resunitsperpixel}
+            <TextInputField
+              name="config.projection.resunitsperpixel"
+              label={{ label: "The Unity per Pixel are: " }}
+              className={styles.editDiv}
+              validators={[mustBeNumber]}
             />
           </div>
         </div>

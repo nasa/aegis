@@ -3,23 +3,14 @@ import { ChangeEvent, Dispatch, SetStateAction, useEffect, useState } from "reac
 import { useRouter } from "next/router";
 import { isAdmin, isLoggedIn } from "http-client/internal-api";
 import { getMissions, deleteMission, upsertMission } from "http-client/mission";
-import MSV from "components/admin/msv";
-import Tools from "components/admin/tools";
-import Projection from "components/admin/projection";
-import Look from "components/admin/look";
-import Panels from "components/admin/panels";
-import Time from "components/admin/time";
 import styles from "components/admin/admin.module.css";
 import { createNewConfig } from "components/admin/helper";
 import Header from "components/interface/header";
-import FileManager from "components/admin/fileManager";
-import adminStyles from "components/admin/admin.module.css";
 import { deleteFile } from "http-client/file";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
-import { getElevationSinglePoint } from "http-client/elevation";
-import { faTimesCircle } from "@fortawesome/free-solid-svg-icons";
-import { getLayers, upsertLayer } from "../../http-client/layer";
+import { faArrowAltCircleLeft, faTimesCircle } from "@fortawesome/free-regular-svg-icons";
+import { getLayers, upsertLayer } from "http-client/layer";
+import MissionEditor from "components/admin/missionEditor";
 import { isValidJson } from "utils/formatting";
 
 const Mission: NextPage = () => {
@@ -342,11 +333,10 @@ const Mission: NextPage = () => {
               {showImportMission ? "Close Import/Export" : "Open Import/Export"}
             </button>
             <ImportMission />
-            <AddEditMission
+            <MissionEditor
               refreshMissionList={loadMissionsFromDB}
               mission={mission}
               setMission={setMission}
-              importMission={ImportMission}
             />
           </div>
         </div>
@@ -434,203 +424,5 @@ const MissionList = (props: {
 };
 
 //Add new mission components
-const AddEditMission = (props: {
-  refreshMissionList: () => {};
-  mission: Mission;
-  setMission: Dispatch<SetStateAction<Mission>>;
-  importMission: () => {};
-}) => {
-  const { refreshMissionList, mission, setMission } = { ...props };
-  const [config, setConfig] = useState<Config>(createNewConfig());
-  useEffect(() => {
-    if (props.mission) {
-      setConfig(props.mission.config);
-    }
-  }, [props.mission]);
-
-  //save the mission and call and upsert
-  async function saveMission() {
-    const missionToSave: Mission = { ...mission, config: config };
-    const res = await upsertMission(missionToSave);
-    if (res.status === "success") {
-      refreshMissionList();
-    }
-    alert(`${res.status} - ${res.message}`);
-  }
-
-  //calculate the lander elevation based on the lander location
-  async function calcLanderElevation() {
-    if (!mission.landerLocation.lat || !mission.landerLocation.lat) {
-      alert("invalid lander location, cannot calculate elevation");
-    }
-
-    const radius = parseFloat(mission?.config.msv.radius.minor);
-    const measureJson = mission?.config.tools.find((tool) => tool.name === "Measure")?.variables;
-    const demFilepath: string = measureJson["dem"];
-    const point: AEGISPoint = {
-      lat: mission.landerLocation.lat,
-      lng: mission.landerLocation.lng,
-    };
-    const elevation = (await getElevationSinglePoint(mission.id, demFilepath, point, radius)).data;
-    setMission({
-      ...mission,
-      landerElevationMeters: elevation,
-    });
-  }
-
-  return (
-    mission && (
-      <div className={styles.container}>
-        <div className={adminStyles.editMissionDiv}>
-          {mission.id ? <h3>Edit Mission &quot;{mission.name}&quot;</h3> : <h3>Add Mission</h3>}
-          <button
-            type="button"
-            onClick={() => {
-              saveMission();
-            }}
-          >
-            Save Mission
-          </button>
-          <br />
-          <br />
-          <div className={adminStyles.sectionDiv}>
-            Manage files in the /Data folder for this mission
-            <br />
-            <br />
-            {mission.id ? (
-              <>
-                <FileManager path={`missionFiles/${mission.id}/Data`} />
-              </>
-            ) : (
-              <div>A new mission must be saved first before you can upload files</div>
-            )}
-          </div>
-          <br />
-          <br />
-          <div id="missionDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="newName">Mission Name (Parent)</label>
-            </div>
-            <div className={styles.editDiv}>
-              <input
-                id="newName"
-                type="text"
-                onChange={(e) => {
-                  setMission({ ...mission, name: e.target.value });
-                }}
-                value={mission.name}
-              />
-            </div>
-          </div>
-          <div id="bannerDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="banner">Mission Banner</label>
-            </div>
-            <div className={styles.editDiv}>
-              <input
-                id="banner"
-                type="text"
-                onChange={(e) => {
-                  setConfig({ ...config, missionBanner: e.target.value });
-                }}
-                value={config.missionBanner || ""}
-              />
-            </div>
-          </div>
-          <div id="landerLatDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="landerLat">Lander Location Latitude</label>
-            </div>
-            <div className={styles.editDiv}>
-              <input
-                id="landerLat"
-                type="text"
-                onChange={(e) => {
-                  setMission({
-                    ...mission,
-                    landerLocation: { ...mission.landerLocation, lat: +e.target.value },
-                  });
-                }}
-                value={mission.landerLocation?.lat || ""}
-              />
-            </div>
-          </div>
-          <div id="landerLongDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="landerLong">Lander Location Longitude</label>
-            </div>
-            <div className={styles.editDiv}>
-              <input
-                id="landerLong"
-                type="text"
-                onChange={(e) => {
-                  setMission({
-                    ...mission,
-                    landerLocation: { ...mission.landerLocation, lng: +e.target.value },
-                  });
-                }}
-                value={mission.landerLocation?.lng || ""}
-              />
-            </div>
-          </div>
-          <div id="landerEleDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="landerEle">Lander Elevation</label>
-            </div>
-            <div className={styles.editDiv}>
-              <input
-                id="landerEle"
-                type="text"
-                onChange={(e) => {
-                  setMission({
-                    ...mission,
-                    landerElevationMeters: +e.target.value,
-                  });
-                }}
-                value={mission.landerElevationMeters || ""}
-              />{" "}
-              <button
-                type="button"
-                onClick={() => {
-                  calcLanderElevation();
-                }}
-              >
-                Calculate
-              </button>
-            </div>
-          </div>
-          <div id="traverseDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="traverse">Default Traverse Speed</label>
-            </div>
-            <div className={styles.editDiv}>
-              <input
-                id="traverse"
-                type="text"
-                onChange={(e) => {
-                  setMission({
-                    ...mission,
-                    traverseSpeed: +e.target.value,
-                  });
-                }}
-                value={mission?.traverseSpeed}
-              />
-            </div>
-          </div>
-          <MSV config_msv={config.msv} setConfig={setConfig} />
-          <Tools config_tools={config.tools} setConfig={setConfig} />
-          <Projection config_projection={config.projection} setConfig={setConfig} />
-          <Look config_look={config.look} setConfig={setConfig} />
-          <Panels
-            config_panels={config.panels}
-            config_panelSettings={config.panelSettings}
-            setConfig={setConfig}
-          />
-          <Time config_time={config.time} setConfig={setConfig} />
-        </div>
-      </div>
-    )
-  );
-};
 
 export default Mission;

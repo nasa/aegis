@@ -1,23 +1,25 @@
 import { Dispatch, FunctionComponent, SetStateAction, useEffect, useState } from "react";
 import styles from "./admin.module.css";
-import { JSONEditor } from "./helper";
+import { CheckboxInputField, TextAreaField, TextInputField } from "components/form/FormInput";
+import { validators } from "utils/formValidators";
+import { WrappedTool } from "./missionEditor";
 
-//Type used to track extra information about each tool needed to render the components
-type WrappedTool = {
-  name: string;
-  tool?: MMGIS_Tool;
-  helpText: string;
-  active: boolean;
-};
+const { mustBeValidJSON } = validators;
 
 interface ToolProps {
   config_tools: MMGIS_Tool[];
   setConfig: Dispatch<SetStateAction<Config>>;
 }
 
+export const initializeTools = (configTools: MMGIS_Tool[]): WrappedTool[] => {
+  return getAllTools(createTools(), configTools);
+};
+
 const Tools: FunctionComponent<ToolProps> = (props: ToolProps) => {
   const { config_tools, setConfig } = props;
   const [allWrappedTools, setAllWrappedTools] = useState<WrappedTool[]>([]);
+
+  const allTools = getAllTools(createTools(), config_tools);
 
   //set states with values incoming from the prop
   useEffect(() => {
@@ -62,10 +64,10 @@ const Tools: FunctionComponent<ToolProps> = (props: ToolProps) => {
     <>
       <h4>Tools</h4>
       <div className={styles.sectionDiv}>
-        {allWrappedTools.map((tool) => {
+        {allTools.map((tool, index) => {
           return (
             <div id={tool.name} key={tool.name}>
-              <EditTool tool={tool} updateConfig={updateConfig} />
+              <EditTool tool={tool} updateConfig={updateConfig} index={index} />
             </div>
           );
         })}
@@ -79,15 +81,11 @@ const Tools: FunctionComponent<ToolProps> = (props: ToolProps) => {
  * @param props takes in a WrappedTool to render, and the setState for updating the parent list of all WrappedTools
  * @returns
  */
-const EditTool = (props: { tool: WrappedTool; updateConfig: (tools: WrappedTool) => void }) => {
-  function setJSON(value: JSON) {
-    props.updateConfig({
-      ...props.tool,
-      active: value ? true : props.tool.active,
-      tool: { ...props.tool.tool, variables: value },
-    });
-  }
-
+const EditTool = (props: {
+  tool: WrappedTool;
+  updateConfig: (tools: WrappedTool) => void;
+  index: number;
+}) => {
   return (
     <>
       <div className={styles.editDiv}>
@@ -96,49 +94,53 @@ const EditTool = (props: { tool: WrappedTool; updateConfig: (tools: WrappedTool)
         </label>
       </div>
       <div className={styles.editDiv}>
-        <input
-          id="checkbox"
-          type="checkbox"
-          onChange={(e) => {
-            props.updateConfig({ ...props.tool, active: e.target.checked });
-          }}
-          checked={props.tool.active}
-          title={props.tool.name + " toggle"}
+        <CheckboxInputField
+          name={`tools[${props.index}].active`}
+          initialValue={props.tool.active}
         />
       </div>
 
-      <JSONEditor
-        fieldName={props.tool.tool.name + "JSON"}
-        value={props.tool.tool.variables}
-        onChange={(value) => {
-          setJSON(value);
-        }}
+      <TextAreaField
+        name={`tools[${props.index}].variables`}
+        initialValue={"awdwasd"}
+        validators={[mustBeValidJSON]}
       />
 
       <div className={styles.editDiv}>
         Icon&nbsp;
-        <input
-          id="icon"
-          type="text"
-          onChange={(e) => {
-            props.updateConfig({
-              ...props.tool,
-              tool: { ...props.tool.tool, icon: e.target.value },
-            });
-          }}
-          value={props.tool.tool?.icon}
-          title={props.tool.name + " icon"}
+        <TextInputField
+          name={`tools[${props.index}].tool.icon`}
+          initialValue={props.tool?.tool.icon}
         />
       </div>
     </>
   );
 };
 
+const getAllTools = (createdTools: WrappedTool[], configTools: MMGIS_Tool[]): WrappedTool[] => {
+  const wrappedConfigTools: WrappedTool[] = configTools.map((configTool) => {
+    return {
+      name: configTool.name,
+      tool: configTool,
+      helpText: "",
+      active: true,
+      variables: JSON.stringify(configTool.variables),
+    };
+  });
+
+  return [
+    ...wrappedConfigTools,
+    ...createdTools.filter(
+      (createdTool) => !wrappedConfigTools.find((t) => t.name === createdTool.name)
+    ),
+  ];
+};
+
 /**
  * Creates basic structure of all tools to render in the MMGIS config
  * @returns an array of tools wrapped in an object containing names and help texts from MMGIS
  */
-function createTools(): WrappedTool[] {
+export function createTools(): WrappedTool[] {
   function createTool(name: string): MMGIS_Tool {
     return {
       name: name,
