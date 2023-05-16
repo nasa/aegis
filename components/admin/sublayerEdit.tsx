@@ -613,7 +613,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
                 onChange={(e) => {
                   saveSublayer({
                     ...sublayer,
-                    boundingBox: e.target.value.split(",").map((val) => parseInt(val)),
+                    boundingBox: e.target.value.split(",").map((val) => parseFloat(val)),
                   });
                 }}
                 value={sublayer.boundingBox?.toString()}
