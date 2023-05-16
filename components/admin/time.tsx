@@ -1,12 +1,8 @@
-import { Dispatch, FunctionComponent, SetStateAction } from "react";
+import { FunctionComponent } from "react";
 import styles from "./admin.module.css";
+import { CheckboxInputField, TextInputField } from "components/form/FormInput";
 
-interface TimeProps {
-  config_time: MMGIS_ConfigTime;
-  setConfig: Dispatch<SetStateAction<Config>>;
-}
-
-const Time: FunctionComponent<TimeProps> = (props: TimeProps) => {
+const Time: FunctionComponent = () => {
   return (
     <>
       <h4>Time</h4>{" "}
@@ -14,61 +10,28 @@ const Time: FunctionComponent<TimeProps> = (props: TimeProps) => {
         <h5>User Interface</h5>
         <div id="enabledDiv">
           <div className={styles.editDiv}>
-            <label htmlFor="enabled">Enabled</label>
-          </div>
-          <div className={styles.editDiv}>
-            <input
-              id="enabled"
-              type="checkbox"
-              onChange={(e) => {
-                props.setConfig((previousConfig) => {
-                  return {
-                    ...previousConfig,
-                    time: { ...previousConfig.time, enabled: e.target.checked },
-                  };
-                });
-              }}
-              checked={props.config_time?.enabled}
+            <CheckboxInputField
+              name="config.time.enabled"
+              label={{ label: "Enabled" }}
+              className={styles.editDiv}
             />
           </div>
         </div>
         <div id="visibleDiv">
           <div className={styles.editDiv}>
-            <label htmlFor="visible">Visible</label>
-          </div>
-          <div className={styles.editDiv}>
-            <input
-              id="visible"
-              type="checkbox"
-              onChange={(e) => {
-                props.setConfig((previousConfig) => {
-                  return {
-                    ...previousConfig,
-                    time: { ...previousConfig.time, visible: e.target.checked },
-                  };
-                });
-              }}
-              checked={props.config_time?.visible}
+            <CheckboxInputField
+              name="config.time.visible"
+              label={{ label: "Visible" }}
+              className={styles.editDiv}
             />
           </div>
         </div>
         <div id="formatDiv">
           <div className={styles.editDiv}>
-            <label htmlFor="format">Time Format</label>
-          </div>
-          <div className={styles.editDiv}>
-            <input
-              id="format"
-              type="text"
-              onChange={(e) => {
-                props.setConfig((previousConfig) => {
-                  return {
-                    ...previousConfig,
-                    time: { ...previousConfig.time, format: e.target.value },
-                  };
-                });
-              }}
-              value={props.config_time?.format}
+            <TextInputField
+              name="config.time.format"
+              label={{ label: "Time Format" }}
+              className={styles.editDiv}
             />
           </div>
         </div>
