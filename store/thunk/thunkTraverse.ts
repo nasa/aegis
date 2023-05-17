@@ -1,6 +1,7 @@
 import _ from "lodash";
 import {
   setTraverseCalculatedFields,
+  setTraverseEditMode,
   updateTraversePath,
   upsertTraverse,
   upsertTraverseFromDb,
@@ -233,7 +234,7 @@ export const thunkUpdateAllTraversesForEVASequence = appCreateAsyncThunk<{
       const thisTraverse = getState().traverse.traverses.find((t) => t.uuid === sequenceItem.uuid);
       const newTraversePath = [...thisTraverse.path];
       if (thisTraverse) {
-        dispatch(
+        await dispatch(
           thunkFullUpdateTraversePath({
             path: newTraversePath,
             traverseUuid: thisTraverse.uuid,
@@ -241,6 +242,7 @@ export const thunkUpdateAllTraversesForEVASequence = appCreateAsyncThunk<{
             evaSequence: evaSequence,
           })
         );
+        dispatch(setTraverseEditMode({ uuid: thisTraverse.uuid, editMode: true }));
       }
     }
   }
@@ -251,6 +253,7 @@ export const thunkUpdateAllTraverseNames = appCreateAsyncThunk<{
   stationUUID: string;
 }>("updateAllTraverseNames", async ({ evaSequence, stationUUID }, { dispatch, getState }) => {
   for (const sequenceItem of evaSequence) {
+    //Find if the current station has a name change
     const index = evaSequence.indexOf(sequenceItem);
     let stationBefore: Station;
     let stationAfter: Station;
@@ -269,8 +272,8 @@ export const thunkUpdateAllTraverseNames = appCreateAsyncThunk<{
           name: newTraverseName,
         };
         await traverseToDB(newTraverse);
-        await dispatch(await upsertTraverse(newTraverse));
-        await dispatch(await upsertTraverseFromDb(newTraverse));
+        dispatch(upsertTraverse(newTraverse));
+        dispatch(upsertTraverseFromDb(newTraverse));
       }
     }
   }
