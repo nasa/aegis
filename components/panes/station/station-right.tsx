@@ -1,4 +1,4 @@
-import paneStyles from "../global-pane-styles.module.css";
+import paneStyles from "components/panes/global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
@@ -45,8 +45,9 @@ import { setRightPanelOpen } from "store/interface";
 import { getAlertColor } from "utils/component-helpers";
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
-import { thunkUpdateAllTraverseNames } from "../../../store/thunk/thunkTraverse";
+import { thunkUpdateAllTraverseNames } from "store/thunk/thunkTraverse";
 import { useAppDispatch } from "utils/useAppDispatch";
+import { setTraverseEditMode, upsertTraverse } from "store/traverse";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -63,6 +64,7 @@ const StationEditorRight: FunctionComponent = () => {
   const stationsEditing = useAppSelector((state) => state.station.stationsEditing, shallowEqual);
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = mapDirective?.uuid === selectedStationUuid ? mapDirective : null;
+  const traversesFromDb = useAppSelector((state) => state.traverse.traversesFromDb, shallowEqual);
 
   const selectedStation = useAppSelector(
     (state) => state.station.stations.find((station) => station.uuid === selectedStationUuid),
@@ -85,9 +87,22 @@ const StationEditorRight: FunctionComponent = () => {
       ),
     shallowEqual
   );
-  const evasUsingThisStation = useAppSelector((state) => {
-    const evasUsingThisStation = [];
+
+  const evasUsingThisStation: Eva[] = useAppSelector((state) => {
+    const evasUsingThisStation: Eva[] = [];
     state.eva.evas.forEach((eva) => {
+      eva.sequence.forEach((sequenceItem) => {
+        if (sequenceItem.uuid === selectedStation?.uuid) {
+          evasUsingThisStation.push(eva);
+        }
+      });
+    });
+    return evasUsingThisStation;
+  }, shallowEqual);
+
+  const evasUsingThisStationFromDb: Eva[] = useAppSelector((state) => {
+    const evasUsingThisStation: Eva[] = [];
+    state.eva.evasFromDb.forEach((eva) => {
       eva.sequence.forEach((sequenceItem) => {
         if (sequenceItem.uuid === selectedStation?.uuid) {
           evasUsingThisStation.push(eva);
@@ -271,24 +286,24 @@ const StationEditorRight: FunctionComponent = () => {
         );
       }
 
-      //Get all Evas
-
-      if (evas) {
+      //Get all Evas and make sure the name actually updated. If it did, update all traverse names
+      if (evas && selectedStation.name !== selectedStationFromDb.name) {
         // Loop through each eva sequence to get the ones with this station uuid
         const evasUsingThisStation: Eva[] = evas.filter((eva) => {
           return eva.sequence.some((sequence) => {
             return sequence.uuid === selectedStation.uuid;
           });
         });
+
         // We've changed a station name, so everything in EVA must be set to edit and flagged for update
-        evasUsingThisStation.forEach((eva) => {
-          appDispatch(
+        for (const eva of evasUsingThisStation) {
+          await appDispatch(
             thunkUpdateAllTraverseNames({
               evaSequence: eva.sequence,
               stationUUID: selectedStation.uuid,
             })
           );
-        });
+        }
       }
 
       cancelMarkerMapDirective();
@@ -353,12 +368,29 @@ const StationEditorRight: FunctionComponent = () => {
 
   const handleCancel = () => {
     // find out if this station is already on the map
-
+    const traverseUUIDs: string[] = [];
     if (selectedStationFromDb) {
       // station is already saved once to the db, replace it with the one from the db (undoing any changes)
       dispatch(upsertStation(selectedStationFromDb));
       dispatch(upsertActions(stationActionsFromDb));
+      for (const eva of evasUsingThisStationFromDb) {
+        // Get all Traverses in this EVA
+        eva.sequence.forEach((sequenceItem) => {
+          if (sequenceItem.type === "traverse") {
+            traverseUUIDs.push(sequenceItem.uuid);
+          }
+        });
 
+        traverseUUIDs.forEach((traverseUUID) => {
+          const traverseFromDb = traversesFromDb.find(
+            (traverseFromDb) => traverseFromDb.uuid === traverseUUID
+          );
+          if (traverseFromDb) {
+            dispatch(upsertTraverse(traverseFromDb));
+            dispatch(setTraverseEditMode({ uuid: traverseUUID, editMode: false }));
+          }
+        });
+      }
       //delete newly added actions that user doesn't want to save
       const addedActionsToDelete: Action[] = stationActions.filter(
         // only delete actions that don't exist in the db
