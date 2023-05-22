@@ -11,7 +11,6 @@ import {
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import {
-  ContentEditableTextArea,
   Button,
   InLineEditInput,
   LastEdited,
@@ -26,6 +25,7 @@ import { formatNumberWithCommas, toDecimal } from "utils/formatting";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkResetWalkback, thunkUpdateStationLocation } from "store/thunk/thunkStation";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
+import { WysiwygTextArea } from "components/interface/_wysiwyg";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -193,14 +193,14 @@ const Info_Panel: FunctionComponent<{
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
             </div>
             <div className={paneStyles.descriptionContainer}>
-              <ContentEditableTextArea
-                html={selectedStation.description} // innerHTML of the editable div
+              <WysiwygTextArea
+                value={selectedStation.description}
                 editing={editMode}
-                onChange={(evt) => {
+                onChange={(value) => {
                   dispatch(
                     upsertStation({
                       ...selectedStation,
-                      description: evt.target.value,
+                      description: value,
                     })
                   );
                 }} // handle innerHTML change

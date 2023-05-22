@@ -1,5 +1,4 @@
 import {
-  ContentEditableTextArea,
   InLineEditInput,
   LastEdited,
   SubpanelHeading,
@@ -12,6 +11,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { formatNumberWithCommas } from "utils/formatting";
 import { faCalculator, faLightbulb, faMessage } from "@fortawesome/free-solid-svg-icons";
+import { WysiwygTextArea } from "components/interface/_wysiwyg";
 
 const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -39,14 +39,14 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
             </div>
             <div className={paneStyles.descriptionContainer}>
-              <ContentEditableTextArea
-                html={selectedEva.description} // innerHTML of the editable div
+              <WysiwygTextArea
+                value={selectedEva.description}
                 editing={editMode}
-                onChange={(evt) => {
+                onChange={(value) => {
                   dispatch(
                     upsertEva({
                       ...selectedEva,
-                      description: evt.target.value,
+                      description: value,
                     })
                   );
                 }} // handle innerHTML change

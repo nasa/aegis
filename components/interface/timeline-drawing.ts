@@ -211,7 +211,6 @@ export function drawGraphAxis(
   //draw distance markers above lander line
   const numMarkersAboveLander =
     paperVars.graphHeight / (distanceInterval * paperVars.pixelsPerMeterDistanceY);
-  console.log(`${distanceInterval}, ${numMarkersAboveLander}`);
   for (let i = 1; i < numMarkersAboveLander; i++) {
     const distanceFromLander = i * distanceInterval;
     drawMeterMarker(

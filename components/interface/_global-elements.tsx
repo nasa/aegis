@@ -16,7 +16,6 @@ import {
 import styles from "./_global-elements.module.css";
 import _ from "lodash";
 import { TagsInput } from "react-tag-input-component";
-import ContentEditable, { ContentEditableEvent } from "react-contenteditable";
 import { longdateFromDateString } from "utils/formatting";
 import { decodeEmoji } from "utils/formatting";
 
@@ -286,54 +285,6 @@ export const Tags: FunctionComponent<{
             </div>
           ))}
         </div>
-      )}
-    </>
-  );
-};
-
-export const ContentEditableTextArea: FunctionComponent<{
-  html: string;
-  editing: boolean;
-  onChange: (event: ContentEditableEvent) => void;
-  defaultValue?: string;
-}> = ({ html, editing, onChange, defaultValue }) => {
-  const [focus, setFocus] = useState(false);
-  const [cursor, setCursor] = useState(null);
-  const ref = useRef(null);
-
-  useLayoutEffect(() => {
-    const htmlElement = ref.current;
-    if (!htmlElement || !htmlElement.childNodes[0]) return;
-    if (cursor <= html.length) {
-      const newRange = document.createRange();
-      newRange.setStart(htmlElement.childNodes[0], cursor);
-      const selection = document.getSelection();
-      selection.removeAllRanges();
-      selection.addRange(newRange);
-    }
-  }, [ref, cursor, html]);
-
-  const handleChange = (e) => {
-    setCursor(document.getSelection().focusOffset);
-    onChange(e);
-  };
-
-  const showDefaultValue = defaultValue && !focus && (html === "" || html === "<br>");
-
-  return (
-    <>
-      {editing ? (
-        <ContentEditable
-          className={styles.notesTextArea}
-          innerRef={ref}
-          html={showDefaultValue ? defaultValue : html} // innerHTML of the editable div
-          disabled={!editing} // use true to disable editing
-          onChange={(event) => handleChange(event)}
-          onFocus={() => setFocus(true)}
-          onBlur={() => setFocus(false)}
-        />
-      ) : (
-        <div className={styles.notesText} dangerouslySetInnerHTML={{ __html: html }} />
       )}
     </>
   );

@@ -10,12 +10,12 @@ import {
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  ContentEditableTextArea,
   Dropdown,
   InLineEditInput,
   LastEdited,
   SubpanelHeading,
 } from "components/interface/_global-elements";
+import { WysiwygTextArea } from "components/interface/_wysiwyg";
 import { FunctionComponent, useState, CSSProperties } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
@@ -45,7 +45,6 @@ const RightAction: FunctionComponent<{
     shallowEqual
   );
   const [expanded, setExpanded] = useState(false);
-
   function buildActionTooltip() {
     if (parentAction && parentPoi) {
       const dateString = longdateFromDateString(action.parentCopyDate) + "Z";
@@ -63,7 +62,12 @@ const RightAction: FunctionComponent<{
 
   return (
     <div className={`${paneStyles.panelContainer} ${actionStyles.actionPanelContainer}`}>
-      <div className={`${paneStyles.actionsHeading} ${highlight && actionStyles.highlightAction}`}>
+      <div
+        className={`${paneStyles.actionsHeading} ${highlight && actionStyles.highlightAction}`}
+        onClick={() => {
+          setExpanded(!expanded);
+        }}
+      >
         {editMode && (
           <a>
             <FontAwesomeIcon icon={faGripVertical} className={actionStyles.reorderIcon} size="sm" />
@@ -74,9 +78,6 @@ const RightAction: FunctionComponent<{
           className={`${paneStyles.actionsHeadingCaret} ${
             editMode && actionStyles.actionsHeadingCaret
           } `}
-          onClick={() => {
-            setExpanded(!expanded);
-          }}
         >
           {expanded ? (
             <FontAwesomeIcon icon={faCaretDown} size="sm" />
@@ -159,11 +160,11 @@ const RightAction: FunctionComponent<{
                 <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
               </div>
               <div className={paneStyles.descriptionContainer}>
-                <ContentEditableTextArea
-                  html={action.description} // innerHTML of the editable div
+                <WysiwygTextArea
+                  value={action.description}
                   editing={editMode}
-                  onChange={(evt) => {
-                    const updatedAction: Action = { ...action, description: evt.target.value };
+                  onChange={(value) => {
+                    const updatedAction: Action = { ...action, description: value };
                     dispatch(upsertAction(updatedAction));
                   }} // handle innerHTML change
                 />
