@@ -6,7 +6,6 @@ import {
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import {
-  ContentEditableTextArea,
   Button,
   InLineEditInput,
   LastEdited,
@@ -22,6 +21,7 @@ import evaStyles from "./eva.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkResetTraverse } from "store/thunk/thunkTraverse";
 import { formatNumberWithCommas } from "utils/formatting";
+import { WysiwygTextArea } from "components/interface/_wysiwyg";
 
 const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -131,14 +131,14 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
             </div>
             <div className={paneStyles.descriptionContainer}>
-              <ContentEditableTextArea
-                html={selectedTraverse.description} // innerHTML of the editable div
+              <WysiwygTextArea
+                value={selectedTraverse.description}
                 editing={editMode}
-                onChange={(evt) => {
+                onChange={(value) => {
                   dispatch(
                     upsertTraverse({
                       ...selectedTraverse,
-                      description: evt.target.value,
+                      description: value,
                     })
                   );
                 }} // handle innerHTML change

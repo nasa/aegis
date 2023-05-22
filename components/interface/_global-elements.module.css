@@ -351,3 +351,19 @@
 .updatedAt {
   cursor: default;
 }
+
+.wysiwyg {
+  padding: 4px;
+  background-color: var(--grey1);
+  color: #ffffff;
+  border: 1px solid var(--grey3);
+  border-radius: var(--radius);
+  cursor: text;
+  font-size: 0.8em;
+}
+
+.wysiwygParagraph {
+  margin-top: 0px;
+  margin-bottom: 0px;
+  min-height: 1rem;
+}

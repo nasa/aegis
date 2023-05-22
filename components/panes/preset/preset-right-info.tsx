@@ -2,9 +2,9 @@ import { FunctionComponent, ChangeEvent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
-import { ContentEditableTextArea } from "components/interface/_global-elements";
 import { setPresetEditMode, upsertPreset } from "store/preset";
 import _ from "lodash";
+import { WysiwygTextArea } from "components/interface/_wysiwyg";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -29,9 +29,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       dispatch(upsertPreset({ ...selectedPreset, missionPresetDefault: false }));
     }
   };
-
-  const showDefaultDescription =
-    !editMode && (selectedPreset?.description === "" || selectedPreset?.description === "<br>");
 
   return (
     <div className={paneStyles.rightBody}>
@@ -107,20 +104,18 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
         <div className={paneStyles.panelSection}>
           <div className={paneStyles.panelSectionTitle}>Preset Description</div>
           {/* Need to have the code duplication below to show the default description before and after edit mode */}
-          <ContentEditableTextArea
-            html={showDefaultDescription ? "Enter description here" : selectedPreset?.description} // innerHTML of the editable div
+          <WysiwygTextArea
+            value={selectedPreset?.description}
             defaultValue="Enter description here"
             editing={editMode}
-            onChange={(evt) => {
-              //Fix Richtext firefox bug
-              const cleanValue = _.replace(evt.target.value, /^[/s]*<br>$/, "");
+            onChange={(value) => {
               dispatch(
                 upsertPreset({
                   ...selectedPreset,
-                  description: cleanValue,
+                  description: value,
                 })
               );
-            }} // handle innerHTML change
+            }}
           />
         </div>
       </div>
