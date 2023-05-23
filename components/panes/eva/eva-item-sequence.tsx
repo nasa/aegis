@@ -3,20 +3,16 @@ import { FunctionComponent } from "react";
 import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import { setSelectedEvaRightNavItem, setSelectedEvaUuid, setEvaSequence } from "store/eva";
-import { deleteTraverse } from "store/traverse";
 import evaStyles from "./eva.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowDown, faArrowUp, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { decodeEmoji, hhmmFromMinutes } from "utils/formatting";
 import { setRightPanelOpen } from "store/interface";
-import {
-  setLeftPanelHoverUuid,
-  setMapItemHoverUuid,
-  setTimelineHoverUuid,
-} from "store/playheadHover";
+import { setAllHoverUuids } from "store/playheadHover";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkUpdateAllTraversesForEVASequence } from "store/thunk/thunkTraverse";
+import { thunkUpdateAllTraversesForEVA } from "store/thunk/thunkTraverse";
 import { selectEVASequenceItem } from "store/cross-slice";
+import { thunkChangeStationInEva, thunkDeleteStationFromEva } from "store/thunk/thunkEva";
 
 const EvaItemSequence: FunctionComponent<{
   evaUuid: string;
@@ -28,15 +24,14 @@ const EvaItemSequence: FunctionComponent<{
 
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
   const stationsFromDb = useAppSelector((state) => state.station.stationsFromDb, shallowEqual);
-  const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
-  const traversesFromDb = useAppSelector((state) => state.traverse.traversesFromDb, shallowEqual);
-  const actions = useAppSelector((state) => state.action.actions, shallowEqual);
-  const missionTraverseRate = useAppSelector(
-    (state) => state.mission.mission?.traverseSpeed,
+  const stationCalculatedFields = useAppSelector(
+    (state) => state.station.calculatedFields,
     shallowEqual
   );
-  const selectedEvaTraverseRate = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === evaUuid)?.traverseRate,
+  const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
+  const traversesFromDb = useAppSelector((state) => state.traverse.traversesFromDb, shallowEqual);
+  const traverseCalculatedFields = useAppSelector(
+    (state) => state.traverse.calculatedFields,
     shallowEqual
   );
 
@@ -45,38 +40,6 @@ const EvaItemSequence: FunctionComponent<{
     refEqual
   );
   const hoverItemUuid = useAppSelector((state) => state.playheadHover.leftPanelItemUuid, refEqual);
-
-  const handleSequenceStationChange = (stationUuid: string, index: number) => {
-    const newEvaSequence = [...evaSequence];
-    newEvaSequence[index] = {
-      type: "station",
-      uuid: stationUuid,
-    };
-
-    dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
-    appDispatch(thunkUpdateAllTraversesForEVASequence({ evaSequence: newEvaSequence }));
-  };
-
-  const handleSequenceStationDelete = (index: number) => {
-    const newEvaSequence = [...evaSequence];
-    // if there is a traverse after the station, delete it, if not delete the traverse before the station if there is one
-    if (newEvaSequence[index + 1] && newEvaSequence[index + 1].type === "traverse") {
-      dispatch(deleteTraverse({ uuid: newEvaSequence[index + 1].uuid }));
-      // remove the station and this sequence from the newEvaSequence
-      newEvaSequence.splice(index, 2);
-    } else if (newEvaSequence[index - 1] && newEvaSequence[index - 1].type === "traverse") {
-      // if there is a traverse before the station, delete it
-      dispatch(deleteTraverse({ uuid: newEvaSequence[index - 1].uuid }));
-      // remove the station and this sequence from the newEvaSequence
-      newEvaSequence.splice(index - 1, 2);
-    } else {
-      // remove the station alone
-      newEvaSequence.splice(index, 1);
-    }
-
-    dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
-    appDispatch(thunkUpdateAllTraversesForEVASequence({ evaSequence: newEvaSequence }));
-  };
 
   const handleMoveStationUp = (index: number) => {
     const newEvaSequence = [...evaSequence];
@@ -88,7 +51,7 @@ const EvaItemSequence: FunctionComponent<{
     newEvaSequence[index] = tempStation;
 
     dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
-    appDispatch(thunkUpdateAllTraversesForEVASequence({ evaSequence: newEvaSequence }));
+    appDispatch(thunkUpdateAllTraversesForEVA({ evaSequence: newEvaSequence }));
   };
 
   const handleMoveStationDown = (index: number) => {
@@ -100,39 +63,7 @@ const EvaItemSequence: FunctionComponent<{
     newEvaSequence[stationBeforeIndex] = newEvaSequence[index];
     newEvaSequence[index] = tempStation;
     dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
-    appDispatch(thunkUpdateAllTraversesForEVASequence({ evaSequence: newEvaSequence }));
-  };
-
-  const durationMinutes = (selectedTraverse: Traverse): number => {
-    if (!selectedTraverse) return;
-    //convert meters to km, then divide by traverse speed to get minutes
-    const distanceMeters = selectedTraverse.pathSegmentDistances?.reduce(
-      (accumulator, currentVal) => {
-        return accumulator + currentVal;
-      },
-      0
-    );
-    let traverseRate = missionTraverseRate;
-    if (selectedEvaTraverseRate) {
-      traverseRate = selectedEvaTraverseRate;
-    }
-    if (selectedTraverse.traverseRate) {
-      traverseRate = selectedTraverse.traverseRate;
-    }
-    const distanceKm = distanceMeters / 1000;
-    const durationHours = distanceKm / traverseRate;
-    const durationMinutes = durationHours * 60;
-    return durationMinutes;
-  };
-
-  const stationDurationMinutes = (station: Station): number => {
-    let totalDurationUpper = 0;
-    actions.forEach((action) => {
-      if (action.stationUuid === station.uuid) {
-        totalDurationUpper += action.durationUpper;
-      }
-    });
-    return totalDurationUpper;
+    appDispatch(thunkUpdateAllTraversesForEVA({ evaSequence: newEvaSequence }));
   };
 
   return (
@@ -186,14 +117,10 @@ const EvaItemSequence: FunctionComponent<{
                 }
               }}
               onMouseOver={() => {
-                dispatch(setMapItemHoverUuid(sequenceItem.uuid));
-                dispatch(setTimelineHoverUuid(sequenceItem.uuid));
-                dispatch(setLeftPanelHoverUuid(sequenceItem.uuid));
+                dispatch(setAllHoverUuids(sequenceItem.uuid));
               }}
               onMouseLeave={() => {
-                dispatch(setMapItemHoverUuid(null));
-                dispatch(setTimelineHoverUuid(null));
-                dispatch(setLeftPanelHoverUuid(null));
+                dispatch(setAllHoverUuids(null));
               }}
             >
               {evaItemIcon}
@@ -205,12 +132,10 @@ const EvaItemSequence: FunctionComponent<{
                       className={`${evaStyles.evaItemName} ${isEvaSequenceItemSelectedOrHoveredStyle}`}
                     >
                       <div className={evaStyles.evaItemNameText}>
-                        {stations.find((station) => station.uuid === sequenceItem.uuid)?.name
-                          ? stations.find((station) => station.uuid === sequenceItem.uuid)?.name
-                          : `< Station not selected >`}
+                        {thisStation?.name ? thisStation?.name : `< Station not selected >`}
                       </div>
                       <ModifiedIndicator
-                        obj1={[stations.find((station) => station.uuid === sequenceItem.uuid)]}
+                        obj1={[thisStation]}
                         obj2={[
                           stationsFromDb.find((station) => station.uuid === sequenceItem.uuid),
                         ]}
@@ -224,7 +149,11 @@ const EvaItemSequence: FunctionComponent<{
                         }}
                       />
                       <div className={evaStyles.evaItemDuration}>
-                        {hhmmFromMinutes(stationDurationMinutes(thisStation))}
+                        {hhmmFromMinutes(
+                          stationCalculatedFields.find(
+                            (stationData) => stationData.uuid === thisStation.uuid
+                          )?.totalTime.durationUpper
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -236,7 +165,14 @@ const EvaItemSequence: FunctionComponent<{
                         arrowStyle={{ top: "1px" }}
                         containerStyle={{ width: "200px" }}
                         onChange={(val) => {
-                          handleSequenceStationChange(val, index);
+                          appDispatch(
+                            thunkChangeStationInEva({
+                              evaSequence,
+                              sequenceIndex: index,
+                              newStationUuid: val,
+                              evaUuid,
+                            })
+                          );
                         }}
                       >
                         <option value="">-- Select a station --</option>
@@ -282,7 +218,13 @@ const EvaItemSequence: FunctionComponent<{
                         <div
                           className={evaStyles.evaItemNameButton}
                           onClick={() => {
-                            handleSequenceStationDelete(index);
+                            appDispatch(
+                              thunkDeleteStationFromEva({
+                                evaSequence,
+                                sequenceIndex: index,
+                                evaUuid,
+                              })
+                            );
                           }}
                         >
                           <FontAwesomeIcon icon={faTrash} />
@@ -299,11 +241,9 @@ const EvaItemSequence: FunctionComponent<{
                       editMode && evaStyles.editMode
                     }  ${isEvaSequenceItemSelectedOrHoveredStyle}`}
                   >
-                    <div className={evaStyles.evaItemNameText}>
-                      {traverses.find((traverse) => traverse.uuid === sequenceItem.uuid)?.name}
-                    </div>
+                    <div className={evaStyles.evaItemNameText}>{thisTraverse?.name}</div>
                     <ModifiedIndicator
-                      obj1={[traverses.find((traverse) => traverse.uuid === sequenceItem.uuid)]}
+                      obj1={[thisTraverse]}
                       obj2={[
                         traversesFromDb.find((traverse) => traverse.uuid === sequenceItem.uuid),
                       ]}
@@ -317,7 +257,11 @@ const EvaItemSequence: FunctionComponent<{
                       }}
                     />
                     <div className={evaStyles.evaItemDuration}>
-                      {hhmmFromMinutes(durationMinutes(thisTraverse))}
+                      {hhmmFromMinutes(
+                        traverseCalculatedFields.find(
+                          (traverseData) => traverseData.uuid === thisTraverse?.uuid
+                        )?.durationMinutes
+                      )}
                     </div>
                   </div>
                 </>

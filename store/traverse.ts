@@ -16,9 +16,6 @@ export const traverseSlice = createSlice({
     upsertTraverse: (state, action: { payload: Traverse }) => {
       upsertToArrayByUuid(state.traverses, action.payload);
     },
-    upsertTraverses: (state, action: { payload: Traverse[] }) => {
-      action.payload.forEach((traverse) => upsertToArrayByUuid(state.traverses, traverse));
-    },
     upsertTraverseFromDb: (state, action: { payload: Traverse }) => {
       upsertToArrayByUuid(state.traversesFromDb, action.payload);
     },
@@ -36,9 +33,6 @@ export const traverseSlice = createSlice({
       state.traversesFromDb = state.traversesFromDb.filter(
         (traverse) => traverse.uuid !== action.payload.uuid
       );
-    },
-    deleteAllTraverses: (state) => {
-      state.traverses = [];
     },
     setSelectedTraverseRightNavItem: (state, action: { payload: string }) => {
       state.selectedTraverseRightNavItem = action.payload;
@@ -89,21 +83,25 @@ export const traverseSlice = createSlice({
     ) => {
       state.calculatedFields = action.payload.calculatedFields;
     },
+    duplicateTraverse: (state, action: { payload: Traverse }) => {
+      state.traverses.push(action.payload);
+      // turn on edit mode for the new traverse
+      state.traversesEditing.push(action.payload.uuid);
+    },
   },
 });
 
 export const {
   upsertTraverse,
-  upsertTraverses,
   upsertTraverseFromDb,
   setTraverses,
   setTraversesFromDb,
   deleteTraverse,
   deleteTraverseFromDb,
-  deleteAllTraverses,
   setSelectedTraverseRightNavItem,
   setTraverseEditMode,
   updateTraversePath,
   revertTraversePath,
   setTraverseCalculatedFields,
+  duplicateTraverse,
 } = traverseSlice.actions;

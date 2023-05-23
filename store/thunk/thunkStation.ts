@@ -3,6 +3,12 @@ import {
   updateWalkbackPath,
   upsertStation,
   setStationCalculatedFields as setStationCalculatedFields,
+  setStationEditMode,
+  setSelectedStationUuid,
+  setSelectedStationRightNavItem,
+  duplicateStation,
+  setStationsFromDb,
+  deleteStationByUuid,
 } from "store/station";
 import {
   calculateAscentAndDescent,
@@ -12,7 +18,27 @@ import {
 } from "utils/geoMath";
 import { thunkGetElevation } from "./thunkElevation";
 import _ from "lodash";
-import { thunkUpdateAllTraversesForEVASequence } from "./thunkTraverse";
+import {
+  thunkUpdateAllTraversesForEVA,
+  thunkUpdateTraverseNamesForStationInEVA,
+} from "./thunkTraverse";
+import { generateUniqueName } from "utils/unique-name";
+import { v4 as uuidv4 } from "uuid";
+import { setRightPanelOpen } from "store/interface";
+import { makeUniqueStringCopy } from "utils/duplicate";
+import {
+  deleteActionsByUuid,
+  deleteActionsFromDbByUuid,
+  duplicateAction,
+  setActionsFromDb,
+  upsertActions,
+  upsertActionsFromDb,
+} from "store/action";
+import * as httpClient_station from "http-client/station";
+import * as httpClient_action from "http-client/action";
+import { updateMapDirective } from "store/map";
+import { setTraverseEditMode, upsertTraverse } from "store/traverse";
+import { thunkCancelMarkerMapDirective } from "./thunkMap";
 
 export const thunkUpdateStationLocation = appCreateAsyncThunk<{
   location: AEGISPoint;
@@ -35,12 +61,12 @@ export const thunkUpdateStationLocation = appCreateAsyncThunk<{
   }
 
   //update walkback path, elevation, and snap to new location
-  dispatch(thunkFullUpdateWalkbackPath({ path: station.walkbackPath, stationUuid }));
+  dispatch(thunkFullUpdateWalkback({ path: station.walkbackPath, stationUuid }));
 
   //find all EVAs this station is in and update those traverses connecting to it
   for (const eva of getState().eva.evas) {
     if (eva.sequence.some((seqItem) => seqItem.uuid === stationUuid)) {
-      await dispatch(thunkUpdateAllTraversesForEVASequence({ evaSequence: eva.sequence }));
+      await dispatch(thunkUpdateAllTraversesForEVA({ evaSequence: eva.sequence }));
     }
   }
 });
@@ -82,7 +108,7 @@ export const thunkUpdateWalkbackPath = appCreateAsyncThunk<{
  * Returns the path (could be updated if we had to snap endpoints)
  *  or false if the thunk rejects
  */
-export const thunkFullUpdateWalkbackPath = appCreateAsyncThunk<
+export const thunkFullUpdateWalkback = appCreateAsyncThunk<
   {
     path: AEGISPoint[];
     stationUuid: string;
@@ -152,6 +178,7 @@ export const thunkFullUpdateWalkbackPath = appCreateAsyncThunk<
 
 /**
  * Reset the start and end points of walkback to station and lander
+ * Updates path, distance, elevation
  */
 export const thunkResetWalkback = appCreateAsyncThunk<{
   stationUuid: string;
@@ -294,5 +321,337 @@ export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
       allCalculatedFields.push(newCalculatedFields);
     }
     dispatch(setStationCalculatedFields({ calculatedFields: allCalculatedFields }));
+  }
+);
+
+export const thunkSaveStation = appCreateAsyncThunk<{
+  station: Station;
+}>("stationSave", async ({ station }, { dispatch, getState }) => {
+  if (!station) return;
+  const stationActions = getState().action.actions.filter(
+    (action) => action.stationUuid === station.uuid
+  );
+  const stationActionsFromDb = getState().action.actionsFromDb.filter(
+    (action) => action.stationUuid === station.uuid
+  );
+
+  // upsert the changed Station to the DB via internal API call
+  const stationUpsertResponse = await httpClient_station.upsertStation(station);
+
+  if (stationUpsertResponse.status === "success") {
+    // upsert the changed Station (with new updated date) to the store
+    dispatch(upsertStation(stationUpsertResponse.data));
+    // update the Station in the store with a fresh copy from the DB
+    const stationData = await httpClient_station.getStations(getState().mission.mission?.id);
+    if (stationData.data) {
+      dispatch(setStationsFromDb(stationData.data));
+    }
+  } else {
+    throw new Error("Error upserting Station: " + stationUpsertResponse.message);
+  }
+
+  // find out if the actions in this station have been modified and need to be persisted
+  const actionsModified = !_.isEqual(stationActions, stationActionsFromDb);
+  if (actionsModified) {
+    //upsert Actions to db
+    const upsertedStationActions: Action[] = [];
+    for (const actionToUpsert of stationActions) {
+      const actionUpsertResponse = await httpClient_action.upsertAction(actionToUpsert);
+      if (actionUpsertResponse.status !== "success") {
+        throw new Error("Error upserting station actions " + actionUpsertResponse.message);
+      } else {
+        upsertedStationActions.push(actionUpsertResponse.data);
+      }
+    }
+    // upsert the changed Action (with new updated dates) to the store
+    dispatch(upsertActions(upsertedStationActions));
+
+    // remove any deleted actions from the db
+    dispatch(deleteActionsFromDbByUuid(stationActionsFromDb.map((a) => a.uuid)));
+    // filter out deleted actions using local state
+    const deletedStationActions: Action[] = stationActionsFromDb.filter((actionDb) => {
+      const found = stationActions.some((stationAction) => {
+        return stationAction.uuid === actionDb.uuid;
+      });
+      return !found;
+    });
+    // take array of deleted actions and delete them in the db
+    for (const deletedAction of deletedStationActions) {
+      const actionDeleteResponse = await httpClient_action.deleteAction(deletedAction.uuid);
+      if (actionDeleteResponse.status !== "success") {
+        throw new Error("Error deleting station actions " + actionDeleteResponse.message);
+      }
+    }
+
+    // update the store copy of the db with a fresh copy from the DB
+    const actionData = await httpClient_action.getActions({
+      stationUuid: station.uuid,
+    });
+    if (actionData.data) {
+      dispatch(upsertActionsFromDb(actionData.data));
+    }
+  }
+
+  // if the walkback is in edit mode, save the walkback
+  const stationMapDirective =
+    getState().map.mapDirective?.uuid === station.uuid ? getState().map.mapDirective : null;
+
+  if (stationMapDirective?.mapAction === "editPolyline") {
+    // handle walkback edit state
+    dispatch(
+      updateMapDirective({
+        ...stationMapDirective,
+        mapAction: "saveEditPolyline",
+      })
+    );
+  }
+
+  //Get all Evas and make sure the name actually updated. If it did, update all traverse names
+  if (
+    getState().eva.evas &&
+    station.name !== getState().station.stationsFromDb.find((s) => s.uuid === station.uuid).name
+  ) {
+    // Loop through each eva sequence to get the ones with this station uuid
+    const evasUsingThisStation: Eva[] = getState().eva.evas.filter((eva) => {
+      return eva.sequence.some((sequence) => {
+        return sequence.uuid === station.uuid;
+      });
+    });
+
+    // We've changed a station name, so everything in EVA must be set to edit and flagged for update
+    for (const eva of evasUsingThisStation) {
+      await dispatch(
+        thunkUpdateTraverseNamesForStationInEVA({
+          evaSequence: eva.sequence,
+          stationUUID: station.uuid,
+        })
+      );
+    }
+  }
+
+  dispatch(thunkCancelMarkerMapDirective({ uuid: station.uuid }));
+  dispatch(setStationEditMode({ stationUuid: station.uuid, editMode: false }));
+});
+
+export const thunkStationCancel = appCreateAsyncThunk<{
+  station: Station;
+}>("stationCancel", async ({ station }, { dispatch, getState }) => {
+  const stationFromDb = getState().station.stationsFromDb.find(
+    (stationDb) => stationDb.uuid === station.uuid
+  );
+  const stationActions = getState().action.actions.filter(
+    (action) => action.stationUuid === station.uuid
+  );
+  const stationActionsFromDb = getState().action.actionsFromDb.filter(
+    (action) => action.stationUuid === station.uuid
+  );
+
+  // find out if this station is already on the map
+  const traverseUUIDs: string[] = [];
+  if (stationFromDb) {
+    // station is already saved once to the db, replace it with the one from the db (undoing any changes)
+    dispatch(upsertStation(stationFromDb));
+    dispatch(upsertActions(stationActionsFromDb));
+
+    const evasUsingThisStationFromDb: Eva[] = [];
+    getState().eva.evasFromDb.forEach((eva) => {
+      eva.sequence.forEach((sequenceItem) => {
+        if (sequenceItem.uuid === station?.uuid) {
+          evasUsingThisStationFromDb.push(eva);
+        }
+      });
+    });
+    for (const eva of evasUsingThisStationFromDb) {
+      // Get all Traverses in this EVA
+      eva.sequence.forEach((sequenceItem) => {
+        if (sequenceItem.type === "traverse") {
+          traverseUUIDs.push(sequenceItem.uuid);
+        }
+      });
+
+      traverseUUIDs.forEach((traverseUUID) => {
+        const traverseFromDb = getState().traverse.traversesFromDb.find(
+          (traverseFromDb) => traverseFromDb.uuid === traverseUUID
+        );
+        if (traverseFromDb) {
+          dispatch(upsertTraverse(traverseFromDb));
+          dispatch(setTraverseEditMode({ uuid: traverseUUID, editMode: false }));
+        }
+      });
+    }
+    //delete newly added actions that user doesn't want to save
+    const addedActionsToDelete: Action[] = stationActions.filter(
+      // only delete actions that don't exist in the db
+      (action) => stationActionsFromDb.findIndex((actionDb) => actionDb.uuid === action.uuid) === -1
+    );
+    dispatch(deleteActionsByUuid(addedActionsToDelete.map((a) => a.uuid)));
+  } else {
+    // station hasn't been saved to the db. delete the station and actions from the store
+    dispatch(deleteStationByUuid(station.uuid));
+    dispatch(setSelectedStationUuid(null));
+    dispatch(deleteActionsByUuid(stationActions.map((a) => a.uuid)));
+    dispatch(setRightPanelOpen(false));
+  }
+
+  // if the walkback is in edit mode, save the walkback
+  const stationMapDirective =
+    getState().map.mapDirective?.uuid === station.uuid ? getState().map.mapDirective : null;
+
+  if (stationMapDirective?.mapAction === "editPolyline") {
+    // handle walkback edit state
+    dispatch(
+      updateMapDirective({
+        ...stationMapDirective,
+        mapAction: "cancelEditPolyline",
+      })
+    );
+  }
+  dispatch(thunkCancelMarkerMapDirective({ uuid: station.uuid }));
+  dispatch(setStationEditMode({ stationUuid: station.uuid, editMode: false }));
+});
+
+export const thunkDeleteStation = appCreateAsyncThunk<{
+  station: Station;
+}>("stationDelete", async ({ station }, { dispatch, getState }) => {
+  if (!station) return;
+  const stationFromDb = getState().station.stationsFromDb.find(
+    (stationDb) => stationDb.uuid === station.uuid
+  );
+  const stationActions = getState().action.actions.filter(
+    (action) => action.stationUuid === station.uuid
+  );
+
+  const evasUsingThisStation: Eva[] = [];
+  getState().eva.evas.forEach((eva) => {
+    eva.sequence.forEach((sequenceItem) => {
+      if (sequenceItem.uuid === station?.uuid) {
+        evasUsingThisStation.push(eva);
+      }
+    });
+  });
+  if (evasUsingThisStation.length > 0) {
+    alert("Cannot delete a station that is being used by an EVA");
+    return;
+  }
+
+  // if the selected station is in stationsFromDb then delete it from the db
+  if (stationFromDb) {
+    // delete actions from the db via internal api call
+    for (const actionToDelete of stationActions) {
+      const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteAction(
+        actionToDelete.uuid
+      );
+      if (actionDeleteResponse.status !== "success") {
+        throw new Error("Error deleting actions for station " + actionDeleteResponse.message);
+      }
+    }
+    // delete actions from the store
+    dispatch(deleteActionsByUuid(stationActions.map((a) => a.uuid)));
+    // update store copy of the db with a fresh copy of actions for this mission from the db
+    const actionData = await httpClient_action.getActions({
+      missionId: getState().mission.mission?.id,
+    });
+    if (actionData.data) {
+      dispatch(setActionsFromDb(actionData.data));
+    }
+
+    // delete the Station from the DB via internal API call
+    const deleteResponse: WrappedResponse<number> = await httpClient_station.deleteStation(
+      station.uuid
+    );
+    if (deleteResponse.status === "success") {
+      // remove the corresponding Station from the store
+      dispatch(deleteStationByUuid(station.uuid));
+      dispatch(setSelectedStationUuid(null));
+
+      // get fresh copy of Stations from DB
+      const stationData = await httpClient_station.getStations(getState().mission.mission?.id);
+      if (stationData.data) {
+        dispatch(setStationsFromDb(stationData.data));
+      }
+    } else {
+      console.error("Error deleting Station: " + deleteResponse.message);
+    }
+  } else {
+    // if the selected station is not in stationsFromDb then delete it from the store
+    dispatch(deleteStationByUuid(station.uuid));
+    dispatch(setSelectedStationUuid(null));
+    dispatch(deleteActionsByUuid(stationActions.map((a) => a.uuid)));
+  }
+  dispatch(thunkCancelMarkerMapDirective({ uuid: station.uuid }));
+  dispatch(setStationEditMode({ stationUuid: station.uuid, editMode: false }));
+  // close right panel
+  dispatch(setRightPanelOpen(false));
+});
+
+export const thunkCreateStation = appCreateAsyncThunk<void>(
+  "stationCreate",
+  async (_, { dispatch, getState }) => {
+    const randomName = generateUniqueName({
+      dictName: "countries",
+      existingNames: getState().station.stations.map((item) => item.name),
+    });
+
+    const blankStation: Station = {
+      ownerId: getState().user.ironSessionData?.user.id,
+      missionId: getState().mission.mission?.id,
+      uuid: uuidv4(),
+      name: randomName,
+      status: "Candidate",
+      description: "",
+      radius: 5,
+      location: null,
+      elevation: null,
+      durationLower: 10,
+      durationUpper: 15,
+      walkbackPath: null,
+      walkbackPathSegmentDistances: null,
+      walkbackPathSegmentElevations: null,
+      icon: null,
+      poiUuids: [],
+    };
+    dispatch(upsertStation(blankStation));
+    // turn on edit mode for the new Station
+    dispatch(setStationEditMode({ stationUuid: blankStation.uuid, editMode: true }));
+    // select the newly created Station
+    dispatch(setSelectedStationUuid(blankStation.uuid));
+    // open right panel
+    dispatch(setRightPanelOpen(true));
+    // set the selected tab to the info tab
+    dispatch(setSelectedStationRightNavItem("info_panel"));
+  }
+);
+
+export const thunkDuplicateStation = appCreateAsyncThunk<{ station: Station }>(
+  "stationDuplicate",
+  async ({ station }, { dispatch, getState }) => {
+    if (!station) return;
+    //duplicate station
+    const newStation: Station = {
+      ...station,
+      uuid: uuidv4(),
+      name: makeUniqueStringCopy(
+        station.name,
+        getState().station.stations.map((s) => s.name)
+      ),
+    };
+    dispatch(duplicateStation(newStation));
+
+    //duplicate actions
+    const newStationActions = getState().action.actions.filter(
+      (action) => action.stationUuid === station?.uuid
+    );
+    for (const action of newStationActions) {
+      dispatch(
+        duplicateAction({
+          action: action,
+          stationUuid: newStation.uuid,
+        })
+      );
+    }
+    // open right panel
+    dispatch(setRightPanelOpen(true));
+    // set the selected tab to the info tab
+    dispatch(setSelectedStationRightNavItem("info_panel"));
   }
 );

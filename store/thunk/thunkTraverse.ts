@@ -8,7 +8,6 @@ import {
 } from "store/traverse";
 import {
   calculateAscentAndDescent,
-  getDistanceBetweenTwoCoordinates,
   getTotalDistance,
   traverseDurationMinutes,
 } from "utils/geoMath";
@@ -57,7 +56,7 @@ export const thunkUpdateTraversePath = appCreateAsyncThunk<{
  * Returns the path (could be updated if we had to snap endpoints)
  *  or false if the thunk rejects
  */
-export const thunkFullUpdateTraversePath = appCreateAsyncThunk<
+export const thunkFullUpdateTraverse = appCreateAsyncThunk<
   {
     path: AEGISPoint[];
     traverseUuid: string;
@@ -67,7 +66,7 @@ export const thunkFullUpdateTraversePath = appCreateAsyncThunk<
   AEGISPoint[],
   false
 >(
-  "fullUpdateTraversePath",
+  "fullUpdateTraverse",
   async ({ path, traverseUuid, rename, evaSequence }, { dispatch, getState }) => {
     //make a copy
     const newPath =
@@ -76,7 +75,7 @@ export const thunkFullUpdateTraversePath = appCreateAsyncThunk<
         : _.cloneDeep(path);
     let newElevationProfile = null;
 
-    // find the traverse and start/end stations
+    // find the traverse and start/end stations to check endpoints
     let selectedEvaSequence = evaSequence;
     if (!selectedEvaSequence) {
       selectedEvaSequence = getState().eva.evas.find(
@@ -163,8 +162,7 @@ export const thunkFullUpdateTraversePath = appCreateAsyncThunk<
 );
 
 /**
- * Reset the start and end points of the traverse to the station locations
- * on either side of the traverse
+ * Reset traverse to a single segment from start/end station locations
  */
 export const thunkResetTraverse = appCreateAsyncThunk<{
   traverseUuid: string;
@@ -172,11 +170,8 @@ export const thunkResetTraverse = appCreateAsyncThunk<{
   const selectedEva = getState().eva.evas.find(
     (eva) => eva.uuid === getState().eva.selectedEvaUuid
   );
-  const selectedTraverse = getState().traverse.traverses.find(
-    (traverse) => traverse.uuid === traverseUuid
-  );
 
-  //reset path to stations endpoints
+  //reset path to a single segment with stations endpoints
   const sequenceIndex = selectedEva.sequence.findIndex(
     (sequenceItem) => sequenceItem.uuid === getState().eva.selectedEvaSequenceItemUuid
   );
@@ -189,35 +184,12 @@ export const thunkResetTraverse = appCreateAsyncThunk<{
   );
   const newPath = [fromStation.location, toStation.location];
 
-  //get new distances
-  const newPathSegmentDistances = [
-    getDistanceBetweenTwoCoordinates(
-      newPath[0],
-      newPath[1],
-      parseFloat(getState().mission.mission.config.msv.radius.minor)
-    ),
-  ];
-
-  //get elevation
-  let elevation = null;
-  const elevationResponse = await dispatch(
-    thunkGetElevation({
+  await dispatch(
+    thunkFullUpdateTraverse({
       path: newPath,
-      pathSegmentDistances: newPathSegmentDistances,
-      uuid: traverseUuid,
-    })
-  );
-  if (elevationResponse.payload !== false) {
-    elevation = elevationResponse.payload as number[][];
-  }
-
-  //update store
-  dispatch(
-    upsertTraverse({
-      ...selectedTraverse,
-      path: newPath,
-      pathSegmentDistances: newPathSegmentDistances,
-      pathSegmentElevations: elevation,
+      traverseUuid,
+      rename: false,
+      evaSequence: selectedEva.sequence,
     })
   );
 });
@@ -226,7 +198,7 @@ export const thunkResetTraverse = appCreateAsyncThunk<{
  * Update all traverses for an eva sequence
  * Reconnect ends, update names and elevations
  */
-export const thunkUpdateAllTraversesForEVASequence = appCreateAsyncThunk<{
+export const thunkUpdateAllTraversesForEVA = appCreateAsyncThunk<{
   evaSequence: EvaSequenceItem[];
 }>("updateAllTraversesForEVA", async ({ evaSequence }, { dispatch, getState }) => {
   for (const sequenceItem of evaSequence) {
@@ -235,7 +207,7 @@ export const thunkUpdateAllTraversesForEVASequence = appCreateAsyncThunk<{
       const newTraversePath = [...thisTraverse.path];
       if (thisTraverse) {
         await dispatch(
-          thunkFullUpdateTraversePath({
+          thunkFullUpdateTraverse({
             path: newTraversePath,
             traverseUuid: thisTraverse.uuid,
             rename: true,
@@ -248,36 +220,37 @@ export const thunkUpdateAllTraversesForEVASequence = appCreateAsyncThunk<{
   }
 });
 
-export const thunkUpdateAllTraverseNames = appCreateAsyncThunk<{
+/** Update traverse names surrounding a given station in a given EVA */
+export const thunkUpdateTraverseNamesForStationInEVA = appCreateAsyncThunk<{
   evaSequence: EvaSequenceItem[];
   stationUUID: string;
-}>("updateAllTraverseNames", async ({ evaSequence, stationUUID }, { dispatch, getState }) => {
-  for (const sequenceItem of evaSequence) {
-    //Find if the current station has a name change
-    const index = evaSequence.indexOf(sequenceItem);
-    let stationBefore: Station;
-    let stationAfter: Station;
-    if (sequenceItem.type === "traverse") {
-      const stationUuidBefore = evaSequence[index - 1].uuid;
-      const stationUuidAfter = evaSequence[index + 1].uuid;
-      stationBefore = getState().station.stations.find((s) => s.uuid === stationUuidBefore);
-      stationAfter = getState().station.stations.find((s) => s.uuid === stationUuidAfter);
-      const newTraverseName = stationBefore.name + " to " + stationAfter.name;
-      const selectedTraverse = getState().traverse.traverses.find(
-        (t) => t.uuid === sequenceItem.uuid
-      );
-      if (stationUUID === stationUuidBefore || stationUUID === stationUuidAfter) {
-        const newTraverse = {
-          ...selectedTraverse,
-          name: newTraverseName,
-        };
-        await traverseToDB(newTraverse);
-        dispatch(upsertTraverse(newTraverse));
-        dispatch(upsertTraverseFromDb(newTraverse));
+}>(
+  "updateTraverseNamesForStationInEVA",
+  async ({ evaSequence, stationUUID }, { dispatch, getState }) => {
+    for (const [index, sequenceItem] of evaSequence.entries()) {
+      if (sequenceItem.type === "traverse") {
+        const stationUuidBefore = evaSequence[index - 1].uuid;
+        const stationUuidAfter = evaSequence[index + 1].uuid;
+        if (stationUUID === stationUuidBefore || stationUUID === stationUuidAfter) {
+          const stationBefore = getState().station.stations.find(
+            (s) => s.uuid === stationUuidBefore
+          );
+          const stationAfter = getState().station.stations.find((s) => s.uuid === stationUuidAfter);
+          const selectedTraverse = getState().traverse.traverses.find(
+            (t) => t.uuid === sequenceItem.uuid
+          );
+          const newTraverse = {
+            ...selectedTraverse,
+            name: `${stationBefore.name} to ${stationAfter.name}`,
+          };
+          await traverseToDB(newTraverse);
+          dispatch(upsertTraverse(newTraverse));
+          dispatch(upsertTraverseFromDb(newTraverse));
+        }
       }
     }
   }
-});
+);
 
 export const thunkCreateTraverseCalculatedFields = appCreateAsyncThunk<void>(
   "createTraverseCalculatedFields",

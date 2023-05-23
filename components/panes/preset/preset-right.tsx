@@ -15,21 +15,14 @@ import {
 import Info_panel from "./preset-right-info";
 import Layers_Panel from "./preset-right-layers";
 import paneStyles from "../global-pane-styles.module.css";
-import {
-  deletePreset,
-  setPresetEditMode,
-  setSelectedPresetUuid,
-  setSelectedPresetRightNavItem,
-  upsertPreset,
-  resetAllPresetInteractions,
-  setPresetsFromDb,
-} from "store/preset";
-import * as InternalAPI from "http-client/internal-api";
+import { setPresetEditMode, setSelectedPresetRightNavItem, upsertPreset } from "store/preset";
 import { Button, InLineEditInput } from "components/interface/_global-elements";
-import { setRightPanelOpen } from "store/interface";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { thunkDeletePreset, thunkPresetCancel, thunkSavePreset } from "store/thunk/thunkPreset";
 
 const PresetEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
+  const appDispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector(
     (state) => state.preset.selectedRightNavItem,
     refEqual
@@ -44,7 +37,6 @@ const PresetEditorRight: FunctionComponent = () => {
     shallowEqual
   );
   const presetsEditing = useAppSelector((state) => state.preset.presetsEditing, shallowEqual);
-  const selectedMissionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
   const isAdmin = useAppSelector(
     (state) => state.user.ironSessionData?.user.permission.includes("admin"),
     refEqual
@@ -68,75 +60,6 @@ const PresetEditorRight: FunctionComponent = () => {
       selectedColor: "white",
       icon: faLayerGroup,
     },
-  };
-
-  const handleSave = async () => {
-    if (selectedPreset && modified) {
-      // upsert the changed Preset to the DB
-      const upsertReponse = await InternalAPI.setPreset(selectedPreset);
-
-      if (upsertReponse.status === "success") {
-        // upsert the changed preset to the store
-        dispatch(upsertPreset(upsertReponse.data));
-        // update the preset in the store from the DB
-        // get fresh copy of presets from DB
-        const presetData = await InternalAPI.getPresets(selectedMissionId);
-        if (presetData.data) {
-          dispatch(setPresetsFromDb(presetData.data));
-        }
-      } else {
-        throw new Error("Error upserting Presets: " + upsertReponse.message);
-      }
-      dispatch(setPresetEditMode({ presetUuid: selectedPreset.uuid, editMode: false }));
-      dispatch(resetAllPresetInteractions({ presetUuid: selectedPreset.uuid }));
-    }
-  };
-
-  const handleCancel = () => {
-    // if selected preset isn't in the db, delete it from the store
-    if (!selectedPresetFromDb) {
-      dispatch(deletePreset(selectedPreset));
-      dispatch(setSelectedPresetUuid(null));
-      dispatch(setRightPanelOpen(false));
-    } else {
-      // if selected Preset is in the db, replace it with the one from the db (undoing any changes)
-      dispatch(upsertPreset(selectedPresetFromDb));
-    }
-    dispatch(setPresetEditMode({ presetUuid: selectedPreset.uuid, editMode: false }));
-    dispatch(resetAllPresetInteractions({ presetUuid: selectedPreset.uuid }));
-  };
-
-  const handleEdit = () => {
-    dispatch(setPresetEditMode({ presetUuid: selectedPresetUuid, editMode: true }));
-  };
-
-  const handleDelete = async () => {
-    if (selectedPreset) {
-      // if the selected preset is in presetsFromDb then delete it from the db
-      if (selectedPresetFromDb) {
-        // delete the preset from the DB via internal API call
-        const deleteResponse = await InternalAPI.deletePreset(selectedPreset.uuid);
-        if (deleteResponse.status === "success") {
-          // remove the corresponding preset from the store
-          dispatch(deletePreset(selectedPreset));
-          dispatch(setSelectedPresetUuid(null));
-
-          // get fresh copy of presets from DB
-          const presetData = await InternalAPI.getPresets(selectedMissionId);
-          if (presetData.data) {
-            dispatch(setPresetsFromDb(presetData.data));
-          }
-        } else {
-          console.error("Error deleting preset: " + deleteResponse.message);
-        }
-      } else {
-        // if the selected preset is not in presetsFromDb then delete it from the store
-        dispatch(deletePreset(selectedPreset));
-        dispatch(setSelectedPresetUuid(null));
-      }
-      dispatch(setPresetEditMode({ presetUuid: selectedPresetUuid, editMode: false }));
-      dispatch(setRightPanelOpen(false));
-    }
   };
 
   let ActiveComponent = null;
@@ -202,7 +125,7 @@ const PresetEditorRight: FunctionComponent = () => {
               <Button
                 icon={faTrashAlt}
                 onClick={() => {
-                  handleDelete();
+                  appDispatch(thunkDeletePreset({ preset: selectedPreset }));
                 }}
                 toolTip="Delete Preset"
                 style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
@@ -212,7 +135,7 @@ const PresetEditorRight: FunctionComponent = () => {
               <Button
                 icon={faEdit}
                 onClick={() => {
-                  handleEdit();
+                  dispatch(setPresetEditMode({ presetUuid: selectedPresetUuid, editMode: true }));
                 }}
                 label="Edit"
                 toolTip="Edit Preset"
@@ -225,7 +148,7 @@ const PresetEditorRight: FunctionComponent = () => {
               <>
                 <Button
                   onClick={() => {
-                    handleSave();
+                    appDispatch(thunkSavePreset({ preset: selectedPreset }));
                   }}
                   icon={faFloppyDisk}
                   toolTip={`Save Preset${modified ? "" : " (nothing to save)"}`}
@@ -240,7 +163,7 @@ const PresetEditorRight: FunctionComponent = () => {
                 />
                 <Button
                   onClick={() => {
-                    handleCancel();
+                    appDispatch(thunkPresetCancel({ preset: selectedPreset }));
                   }}
                   icon={faBan}
                   toolTip="Cancel Edit"

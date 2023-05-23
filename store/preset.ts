@@ -1,8 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { upsertToArrayByUuid } from "../utils/store";
 import _ from "lodash";
-import { v4 as uuidv4 } from "uuid";
-import { makeUniqueStringCopy } from "../utils/duplicate";
 export const initialState: PresetState = {
   presets: [],
   presetsFromDb: [],
@@ -127,33 +125,12 @@ export const presetSlice = createSlice({
         state.presetInteractions[action.payload.presetUuid][layerName].tabSelected = null;
       });
     },
-    duplicatePreset: {
-      reducer: (
-        state,
-        action: {
-          payload: {
-            preset: Preset;
-            newPresetUuid: string;
-          };
-        }
-      ) => {
-        const newPreset: Preset = _.cloneDeep(action.payload.preset);
-        newPreset.uuid = action.payload.newPresetUuid;
-        newPreset.name = makeUniqueStringCopy(
-          action.payload.preset.name,
-          state.presets.map((item) => item.name)
-        );
-        state.presets.push(newPreset);
-      },
-      prepare: (payload: Preset) => {
-        const newPresetUuid = uuidv4();
-        return {
-          payload: {
-            preset: payload,
-            newPresetUuid,
-          },
-        };
-      },
+    duplicatePreset: (state, action: { payload: Preset }) => {
+      state.presets.push(action.payload);
+      // turn on edit mode for the new Preset
+      state.presetsEditing.push(action.payload.uuid);
+      // select the newly created Preset
+      state.selectedPresetUuid = action.payload.uuid;
     },
   },
 });

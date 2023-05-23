@@ -28,19 +28,11 @@ export const actionSlice = createSlice({
     setActionsFromDb: (state, action: { payload: Action[] }) => {
       state.actionsFromDb = action.payload;
     },
-    deleteAction: (state, action: { payload: Action }) => {
+    deleteActionByUuid: (state, action: { payload: string }) => {
       state.actions.splice(
-        state.actions.findIndex((stateAction) => stateAction.uuid === action.payload.uuid),
+        state.actions.findIndex((stateAction) => stateAction.uuid === action.payload),
         1
       );
-    },
-    deleteActions: (state, action: { payload: Action[] }) => {
-      action.payload.forEach((actionToDelete) => {
-        state.actions.splice(
-          state.actions.findIndex((stateAction) => stateAction.uuid === actionToDelete.uuid),
-          1
-        );
-      });
     },
     deleteActionsByUuid: (state, action: { payload: string[] }) => {
       action.payload.forEach((uuid) => {
@@ -50,19 +42,13 @@ export const actionSlice = createSlice({
         );
       });
     },
-    deleteActionsFromDb: (state, action: { payload: Action[] }) => {
-      action.payload.forEach((actionToDelete) => {
+    deleteActionsFromDbByUuid: (state, action: { payload: string[] }) => {
+      action.payload.forEach((uuidtoDelete) => {
         const actionIndex = state.actionsFromDb.findIndex(
-          (stateAction) => stateAction.uuid === actionToDelete.uuid
+          (stateAction) => stateAction.uuid === uuidtoDelete
         );
         if (actionIndex >= 0) state.actionsFromDb.splice(actionIndex, 1);
       });
-    },
-    deleteAllActions: (state) => {
-      state.actions = [];
-    },
-    deleteAllActionsFromDb: (state) => {
-      state.actionsFromDb = [];
     },
     duplicateAction: {
       reducer: (
@@ -120,11 +106,9 @@ export const {
   upsertActionsFromDb,
   setActions,
   setActionsFromDb,
-  deleteAction,
-  deleteActions,
-  deleteActionsFromDb,
-  deleteAllActions,
-  deleteAllActionsFromDb,
+  deleteActionByUuid,
+  deleteActionsByUuid,
+  deleteActionsFromDbByUuid,
   duplicateAction,
 } = actionSlice.actions;
 

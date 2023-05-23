@@ -1,4 +1,4 @@
-import reducer, { initialState, duplicateAction, deleteActionsFromDb } from "store/action";
+import reducer, { initialState, duplicateAction, deleteActionsFromDbByUuid } from "store/action";
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import { v4 as uuidv4 } from "uuid";
@@ -169,10 +169,8 @@ describe("Action Store Tests", () => {
       // Assert
       expect(result.actions[0]).toEqual(nextAction.payload);
       const deleteAction = {
-        type: "action/deleteAction",
-        payload: {
-          uuid: "test",
-        },
+        type: "action/deleteActionByUuid",
+        payload: "test",
       };
       const result2 = reducer(result, deleteAction);
       expect(result2.actions.length).toEqual(0);
@@ -217,7 +215,7 @@ describe("Action Store Tests", () => {
       expect(result.actions[0]).toEqual(actions[0]);
       expect(result.actions[1]).toEqual(actions[1]);
       const deleteAction = {
-        type: "action/deleteActions",
+        type: "action/deleteActionsByUuid",
         payload: ["test", "test2"],
       };
       const result2 = reducer(result, deleteAction);
@@ -286,9 +284,7 @@ describe("Action Store Tests with mock store", () => {
     expect(store.getState().action.actionsFromDb.length).toEqual(4);
 
     // force it to think that the array is Action[] since uuid is all deleteActions really needs
-    store.dispatch(
-      deleteActionsFromDb([{ uuid: uuids[0] }, { uuid: uuids[2] }] as unknown as Action[])
-    );
+    store.dispatch(deleteActionsFromDbByUuid([uuids[0], uuids[2]]));
 
     // ensure the actions were deleted from the store
     expect(store.getState().action.actionsFromDb.length).toEqual(2);

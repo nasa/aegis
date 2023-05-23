@@ -22,7 +22,7 @@ export function drawTimeMarker(
   const paperVars = paperDataRef.current.paperVars;
 
   const markerGroup = new paper.Group();
-  const color = customColor || paperDataRef.current.styles.gray1;
+  const color = customColor || paperDataRef.current.styles.grey1;
   const verticalLine = new paper.Path.Line({
     from: new paper.Point(xLoc, paperVars.timelineTop),
     to: new paper.Point(xLoc, paperVars.timelineTop + paperVars.timelineHeight + 20),
@@ -38,7 +38,7 @@ export function drawTimeMarker(
     justification: "left",
     fontFamily: paperDataRef.current.styles.gNavigatorFontFamilyActivity,
     fontSize: 12,
-    fillColor: customTextColor || paperDataRef.current.styles.gray2,
+    fillColor: customTextColor || paperDataRef.current.styles.grey2,
     content: timeHrs + ":" + padZeros(timeMins, 2),
   });
   timeLabel.rotate(
@@ -102,12 +102,12 @@ export function drawGraphAxis(
   const topLine = new paper.Path.Line({
     from: new paper.Point(paperVars.timelineLeft, paperVars.timelineTop),
     to: new paper.Point(paperVars.timelineLeft + paperVars.timeineWidth, paperVars.timelineTop),
-    strokeColor: paperDataRef.current.styles.gray1,
+    strokeColor: paperDataRef.current.styles.grey1,
   });
   const bottomLine = new paper.Path.Line({
     from: new paper.Point(paperVars.timelineLeft, paperVars.sequenceTop - 4),
     to: new paper.Point(paperVars.timelineLeft + paperVars.timeineWidth, paperVars.sequenceTop - 4),
-    strokeColor: paperDataRef.current.styles.gray1,
+    strokeColor: paperDataRef.current.styles.grey1,
   });
   axisGroup.addChildren([topLine, bottomLine]);
 
@@ -137,7 +137,7 @@ export function drawGraphAxis(
     justification: "left",
     fontFamily: paperDataRef.current.styles.gNavigatorFontFamilyActivity,
     fontSize: 12,
-    fillColor: paperDataRef.current.styles.gray2,
+    fillColor: paperDataRef.current.styles.grey2,
     content: "PET",
   });
   axisGroup.addChild(petLabel);
@@ -519,7 +519,7 @@ export function drawSequenceBottomSection(
       const boxColor =
         selectedEvaSequenceItemUuid === sequenceItem.uuid
           ? paperDataRef.current.styles.yellow
-          : paperDataRef.current.styles.gray2;
+          : paperDataRef.current.styles.grey2;
       const stationBoxRounded = new paper.Path.Rectangle({
         rectangle: stationBox,
         radius: new paper.Size(5, 5),
@@ -536,15 +536,15 @@ export function drawSequenceBottomSection(
       } else if (width < 30) {
         content = `${content.substring(0, 1)}..`;
       }
-      const gray2 =
+      const grey2 =
         selectedEvaSequenceItemUuid === sequenceItem.uuid
           ? paperDataRef.current.styles.yellow
-          : paperDataRef.current.styles.gray2;
+          : paperDataRef.current.styles.grey2;
       const label = new paper.PointText({
         point: new paper.Point(stationMiddleX, paperVars.sequenceTop + 14),
         justification: "center",
         content,
-        fillColor: gray2,
+        fillColor: grey2,
       });
       //clip mask for station box
       const clipRectangle = new paper.Path.Rectangle(
@@ -565,7 +565,7 @@ export function drawSequenceBottomSection(
       const traverseColor =
         selectedEvaSequenceItemUuid === sequenceItem.uuid
           ? paperDataRef.current.styles.yellow
-          : paperDataRef.current.styles.gray2;
+          : paperDataRef.current.styles.grey2;
       const traverseLine = new paper.Path.Line({
         from: new paper.Point(itemLocX, paperVars.sequenceTop + 10),
         to: new paper.Point(itemLocX + width, paperVars.sequenceTop + 10),
@@ -580,7 +580,7 @@ export function drawSequenceBottomSection(
     const bkgColor =
       selectedEvaSequenceItemUuid === sequenceItem.uuid
         ? paperDataRef.current.styles.lightYellow
-        : paperDataRef.current.styles.gray4;
+        : paperDataRef.current.styles.grey4;
     const bkgRect = new paper.Path.Rectangle({
       rectangle: new paper.Rectangle(
         new paper.Point(itemLocX + 1, paperVars.timelineTop + 1),
@@ -595,21 +595,21 @@ export function drawSequenceBottomSection(
     itemLocX += width;
 
     //draw sequence ending time marker
-    let gray2: paper.Color = paperDataRef.current.styles.gray2;
-    let lineColor: paper.Color = paperDataRef.current.styles.gray1;
+    let grey2: paper.Color = paperDataRef.current.styles.grey2;
+    let lineColor: paper.Color = paperDataRef.current.styles.grey1;
     //highlight this ending time marker if the next sequence item is selected so the start time marker of the selected sequence is highlighted
     if (
       (i < storeRef.current.sequenceItems.length - 1 &&
         storeRef.current.sequenceItems[i + 1].uuid === selectedEvaSequenceItemUuid) ||
       selectedEvaSequenceItemUuid === sequenceItem.uuid
     ) {
-      gray2 = paperDataRef.current.styles.yellow;
+      grey2 = paperDataRef.current.styles.yellow;
       lineColor = paperDataRef.current.styles.yellow;
     } else if (i === storeRef.current.sequenceItems.length - 1) {
       //the color of the time marker at the end of the EVA sequence
       lineColor = paperDataRef.current.styles.white;
     }
-    const timeMarkerEnd = drawTimeMarker(paperDataRef, itemLocX, lineColor, gray2);
+    const timeMarkerEnd = drawTimeMarker(paperDataRef, itemLocX, lineColor, grey2);
     timeMarkerEnd.name = sequenceItem.uuid;
   }
 
@@ -626,7 +626,7 @@ export function drawSequenceBottomSection(
         point: new paper.Point(availableMiddleX, paperVars.sequenceTop + 14),
         justification: "center",
         content: "Available (" + timeHrs + ":" + padZeros(timeMins, 2) + ")",
-        fillColor: paperDataRef.current.styles.gray2,
+        fillColor: paperDataRef.current.styles.grey2,
         name: "availableLabel",
       });
       const group = new paper.Group();

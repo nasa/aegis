@@ -17,26 +17,14 @@ export const stationSlice = createSlice({
     upsertStation: (state, action: { payload: Station }) => {
       upsertToArrayByUuid(state.stations, action.payload);
     },
-    upsertStations: (state, action: { payload: Station[] }) => {
-      action.payload.forEach((station) => upsertToArrayByUuid(state.stations, station));
-    },
-    upsertStationsFromDb: (state, action: { payload: Station[] }) => {
-      action.payload.forEach((station) => upsertToArrayByUuid(state.stationsFromDb, station));
-    },
     setStations: (state, action: { payload: Station[] }) => {
       state.stations = action.payload;
     },
     setStationsFromDb: (state, action: { payload: Station[] }) => {
       state.stationsFromDb = action.payload;
     },
-    deleteStation: (state, action: { payload: Station }) => {
-      state.stations = state.stations.filter((station) => station.uuid !== action.payload.uuid);
-    },
-    deleteAllStations: (state) => {
-      state.stations = [];
-    },
-    deleteAllStationsFromDb: (state) => {
-      state.stationsFromDb = [];
+    deleteStationByUuid: (state, action: { payload: string }) => {
+      state.stations = state.stations.filter((station) => station.uuid !== action.payload);
     },
     setSelectedStationRightNavItem: (state, action: { payload: string }) => {
       state.selectedRightNavItem = action.payload;
@@ -44,7 +32,6 @@ export const stationSlice = createSlice({
     setSelectedStationUuid: (state, action: { payload: string }) => {
       state.selectedStationUuid = action.payload;
     },
-
     duplicateStation: (state, action: { payload: Station }) => {
       state.stations.push(action.payload);
       // turn on edit mode for the new station
@@ -106,13 +93,9 @@ export const stationSlice = createSlice({
 
 export const {
   upsertStation,
-  upsertStations,
   setStations,
   setStationsFromDb,
-  deleteStation,
-  upsertStationsFromDb,
-  deleteAllStations,
-  deleteAllStationsFromDb,
+  deleteStationByUuid,
   setSelectedStationRightNavItem,
   setSelectedStationUuid,
   duplicateStation,
