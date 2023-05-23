@@ -20,29 +20,19 @@ import { Button, InLineEditInput } from "components/interface/_global-elements";
 import Info_Panel from "./eva-right-eva-info";
 import Actions_Panel from "./eva-right-eva-actions";
 import Report_Panel from "../report";
-import {
-  deleteEva,
-  setEvaEditMode,
-  setEvasFromDb,
-  setSelectedEvaRightNavItem,
-  setSelectedEvaUuid,
-  upsertEva,
-} from "store/eva";
-import {
-  deleteTraverse,
-  deleteTraverseFromDb,
-  upsertTraverse,
-  setTraversesFromDb,
-  setTraverseEditMode,
-} from "store/traverse";
-import * as httpClient_Eva from "http-client/eva";
-import * as httpClient_Traverse from "http-client/traverse";
-import { setRightPanelOpen } from "store/interface";
+import { setEvaEditMode, setSelectedEvaRightNavItem, upsertEva } from "store/eva";
 import { getAlertColor } from "utils/component-helpers";
+import { useAppDispatch } from "utils/useAppDispatch";
+import {
+  thunkDeleteEva,
+  thunkEvaCancel,
+  thunkGetStationOrTraverse,
+  thunkSaveEva,
+} from "store/thunk/thunkEva";
 
 const EvaRightEva: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const selectedMissionId = useAppSelector((state) => state.mission.mission?.id, shallowEqual);
+  const appDispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector(
     (state) => state.eva.selectedEvaRightNavItem,
     shallowEqual
@@ -63,13 +53,11 @@ const EvaRightEva: FunctionComponent = () => {
     (state) => state.traverse.calculatedFields,
     shallowEqual
   );
-  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
   const allStationCalculatedFields = useAppSelector(
     (state) => state.station.calculatedFields,
     shallowEqual
   );
 
-  const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
   const isAdmin = useAppSelector(
     (state) => state.user.ironSessionData?.user.permission.includes("admin"),
     refEqual
@@ -108,246 +96,50 @@ const EvaRightEva: FunctionComponent = () => {
     setModified(!evaEqual || !traversesEqual);
   }, [selectedEva, selectedEvaFromDb, traverses, traversesFromDb]);
 
-  const handleSave = async () => {
-    if (selectedEva && modified) {
-      // upsert the changed Station to the DB via internal API call
-      const evaUpsertResponse = await httpClient_Eva.upsertEva(selectedEva);
-
-      if (evaUpsertResponse.status === "success") {
-        // upsert the changed Station (with new updated date) to the store
-        dispatch(upsertEva(evaUpsertResponse.data));
-        // update the Station in the store with a fresh copy from the DB
-        const evaData = await httpClient_Eva.getEvas(selectedMissionId);
-        if (evaData.data) {
-          dispatch(setEvasFromDb(evaData.data));
-        }
-      } else {
-        throw new Error("Error upserting Station: " + evaUpsertResponse.message);
-      }
-
-      // find out if the traverses in this eva have been modified and need to be persisted
-      const traverseUuidsInThisEva: string[] = [];
-      selectedEva.sequence.forEach((sequenceItem) => {
-        if (sequenceItem.type === "traverse") {
-          traverseUuidsInThisEva.push(sequenceItem.uuid);
-        }
-      });
-      const thisEvasTraverses = traverses.filter((traverse) => {
-        return traverseUuidsInThisEva.includes(traverse.uuid);
-      });
-      const thisEvasTraversesFromDb = traversesFromDb.filter((traverse) => {
-        return traverseUuidsInThisEva.includes(traverse.uuid);
-      });
-      const traversesEqual = _.isEqual(
-        _.sortBy(thisEvasTraverses, ["uuid"]),
-        _.sortBy(thisEvasTraversesFromDb, ["uuid"])
-      );
-      if (!traversesEqual) {
-        // upsert the traverses to the DB via internal API call
-        for (const traverse of thisEvasTraverses) {
-          const traverseUpsertResponse = await httpClient_Traverse.upsertTraverse(traverse);
-          if (traverseUpsertResponse.status === "success") {
-            // upsert the changed Traverse (with new updated date) to the store
-            dispatch(upsertTraverse(traverseUpsertResponse.data));
-          }
-        }
-      }
-
-      // prune traverses from the db that are no longer in any EVA
-      const traverseUuidsInAnyEva = [];
-      evas.forEach((eva) => {
-        eva.sequence.forEach((sequenceItem) => {
-          if (sequenceItem.type === "traverse") {
-            traverseUuidsInAnyEva.push(sequenceItem.uuid);
-          }
-        });
-      });
-      const traversesToDelete = traversesFromDb.filter((traverse) => {
-        return !traverseUuidsInAnyEva.includes(traverse.uuid);
-      });
-      for (const traverse of traversesToDelete) {
-        const deleteResponse: WrappedResponse<number> = await httpClient_Traverse.deleteTraverse(
-          traverse.uuid
-        );
-        if (deleteResponse.status === "success") {
-          // remove the corresponding traverse from the store
-          // TODO: investigate why this is needed.
-          // The httpClient_Traverse.getTraverses(selectedMissionId) call below includes this deleted item
-          // it's as though Mikro is not committing the delete in time to return the correct response for getTraverses.
-          dispatch(deleteTraverseFromDb({ uuid: traverse.uuid }));
-        }
-      }
-
-      // reset the traversesFromDB in the store with a fresh copy from the DB
-      const traverseData = await httpClient_Traverse.getTraverses(selectedMissionId);
-      if (traverseData.data) {
-        dispatch(setTraversesFromDb(traverseData.data));
-      }
-
-      dispatch(setEvaEditMode({ evaUuid: selectedEva.uuid, editMode: false }));
-    }
-  };
-
-  const handleDelete = async () => {
-    if (selectedEva) {
-      // delete all of the traverses used in this EVA sequence if they are in traversesFromDb
-      const traverseUuidsInThisEva = [];
-      selectedEva.sequence.forEach((sequenceItem) => {
-        if (sequenceItem.type === "traverse") {
-          traverseUuidsInThisEva.push(sequenceItem.uuid);
-        }
-      });
-      const thisEvasTraversesFromDb = traversesFromDb.filter((traverse) => {
-        return traverseUuidsInThisEva.includes(traverse.uuid);
-      });
-      for (const traverse of thisEvasTraversesFromDb) {
-        const deleteResponse: WrappedResponse<number> = await httpClient_Traverse.deleteTraverse(
-          traverse.uuid
-        );
-        if (deleteResponse.status === "success") {
-          // remove the corresponding traverse from the traversesFromDb store
-          dispatch(deleteTraverseFromDb({ uuid: traverse.uuid }));
-        }
-      }
-      // get fresh copy of Traverses from DB
-      const traverseData = await httpClient_Traverse.getTraverses(selectedMissionId);
-      if (traverseData.data) {
-        dispatch(setTraversesFromDb(traverseData.data));
-      }
-
-      // delete all of the traverses used in this EVA sequence from the traverses store
-      const thisEvasTraverses = traverses.filter((traverse) => {
-        return traverseUuidsInThisEva.includes(traverse.uuid);
-      });
-      thisEvasTraverses.forEach((traverse) => {
-        dispatch(deleteTraverse({ uuid: traverse.uuid }));
-      });
-
-      // delete the eva from the DB or the store
-      // if the selected eva is in evasFromDb then delete it from the db
-      if (selectedEvaFromDb) {
-        // delete the Eva from the DB via internal API call
-        const deleteResponse: WrappedResponse<number> = await httpClient_Eva.deleteEva(
-          selectedEva.uuid
-        );
-        if (deleteResponse.status === "success") {
-          // remove the corresponding eva from the store
-          dispatch(deleteEva(selectedEva));
-          dispatch(setSelectedEvaUuid(null));
-
-          // get fresh copy of Evas from DB
-          const evaData = await httpClient_Eva.getEvas(selectedMissionId);
-          if (evaData.data) {
-            dispatch(setEvasFromDb(evaData.data));
-          }
-        } else {
-          console.error("Error deleting Eva: " + deleteResponse.message);
-        }
-      } else {
-        // if the selected eva is not in evasFromDb then delete it from the store
-        dispatch(deleteEva(selectedEva));
-        dispatch(setSelectedEvaUuid(null));
-      }
-
-      dispatch(setEvaEditMode({ evaUuid: selectedEva.uuid, editMode: false }));
-      // close right panel
-      dispatch(setRightPanelOpen(false));
-    }
-  };
-
-  const handleCancel = () => {
-    if (selectedEvaFromDb) {
-      // delete the traverses that were added to the store are not in the copy from the db
-      const traverseUuidsInThisEva = [];
-      selectedEva.sequence.forEach((sequenceItem) => {
-        if (sequenceItem.type === "traverse") {
-          traverseUuidsInThisEva.push(sequenceItem.uuid);
-        }
-      });
-      const traverseUuidsInThisEvaInDb = [];
-      selectedEvaFromDb.sequence.forEach((sequenceItem) => {
-        if (sequenceItem.type === "traverse") {
-          traverseUuidsInThisEvaInDb.push(sequenceItem.uuid);
-        }
-      });
-      const traverseUuidsInThisEvaNotInThisEvaFromDb = traverseUuidsInThisEva.filter(
-        (traverseUuid) => {
-          return !traverseUuidsInThisEvaInDb.includes(traverseUuid);
-        }
-      );
-      // delete the traverses that were added during this edit to this EVA
-      traverseUuidsInThisEvaNotInThisEvaFromDb.forEach((traverseUuid) => {
-        dispatch(deleteTraverse({ uuid: traverseUuid }));
-      });
-
-      // revert the traverses used in this eva using copies from traversesFromDb and also disable edit mode of each
-      const traversesInThisEva = traverses.filter((traverse) => {
-        return traverseUuidsInThisEva.includes(traverse.uuid);
-      });
-      traversesInThisEva.forEach((traverse) => {
-        const traverseFromDb = traversesFromDb.find(
-          (traverseFromDb) => traverseFromDb.uuid === traverse.uuid
-        );
-        if (traverseFromDb) {
-          dispatch(upsertTraverse(traverseFromDb));
-          dispatch(setTraverseEditMode({ uuid: traverse.uuid, editMode: false }));
-        }
-      });
-
-      // copy back alltraverses for this eva defined in selecteedEvaFromDb
-      const traversesInThisEvaFromDb = traversesFromDb.filter((traverse) => {
-        return traverseUuidsInThisEvaInDb.includes(traverse.uuid);
-      });
-      traversesInThisEvaFromDb.forEach((traverse) => {
-        dispatch(upsertTraverse(traverse));
-      });
-
-      // eva is already saved once to the db, replace it with the one from the db (undoing any changes)
-      dispatch(upsertEva(selectedEvaFromDb));
-    } else {
-      // eva hasn't been saved to the db. delete the eva and actions from the store
-      dispatch(deleteEva(selectedEva));
-      dispatch(setSelectedEvaUuid(null));
-      dispatch(setRightPanelOpen(false));
-    }
-    dispatch(setEvaEditMode({ evaUuid: selectedEva.uuid, editMode: false }));
-  };
-
   // generate evaReportSequenceItems from the eva sequence
   useEffect(() => {
-    const evaReportSequenceItems: EvaReportSequenceItem[] = [];
-    selectedEva?.sequence.forEach((sequenceItem) => {
-      if (sequenceItem.type === "traverse") {
-        const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
-        const travereCalculatedFields = allTraverseCalculatedFields.find(
-          (traverseCalculatedFields) => traverseCalculatedFields.uuid === sequenceItem.uuid
-        );
-        if (traverse) {
-          evaReportSequenceItems.push({
-            type: "traverse",
-            uuid: traverse.uuid,
-            name: traverse.name,
-            reportItems: travereCalculatedFields?.reportItems,
-          });
-        }
-      } else if (sequenceItem.type === "station") {
-        const station = stations.find((station) => station.uuid === sequenceItem.uuid);
-        const stationCalculatedFields = allStationCalculatedFields.find(
-          (stationCalculatedFields) => stationCalculatedFields.uuid === sequenceItem.uuid
-        );
-        if (station) {
-          evaReportSequenceItems.push({
-            type: "station",
-            uuid: station.uuid,
-            name: station.name,
-            icon: station.icon,
-            reportItems: stationCalculatedFields?.reportItems,
-          });
+    (async () => {
+      const evaReportSequenceItems: EvaReportSequenceItem[] = [];
+      if (selectedEva) {
+        for (const sequenceItem of selectedEva.sequence) {
+          const seqItemRes = await appDispatch(
+            thunkGetStationOrTraverse({ uuid: sequenceItem.uuid })
+          );
+          if (!seqItemRes.payload) continue;
+
+          if (seqItemRes.payload.type === "traverse") {
+            const traverse = seqItemRes.payload.item as Traverse;
+            const travereCalculatedFields = allTraverseCalculatedFields.find(
+              (traverseCalculatedFields) => traverseCalculatedFields.uuid === sequenceItem.uuid
+            );
+            if (traverse) {
+              evaReportSequenceItems.push({
+                type: "traverse",
+                uuid: traverse.uuid,
+                name: traverse.name,
+                reportItems: travereCalculatedFields?.reportItems,
+              });
+            }
+          } else if (seqItemRes.payload.type === "station") {
+            const station = seqItemRes.payload.item as Station;
+            const stationCalculatedFields = allStationCalculatedFields.find(
+              (stationCalculatedFields) => stationCalculatedFields.uuid === sequenceItem.uuid
+            );
+            if (station) {
+              evaReportSequenceItems.push({
+                type: "station",
+                uuid: station.uuid,
+                name: station.name,
+                icon: station.icon,
+                reportItems: stationCalculatedFields?.reportItems,
+              });
+            }
+          }
         }
       }
-    });
-    setEvaReportSequenceItems(evaReportSequenceItems);
-  }, [selectedEva, allTraverseCalculatedFields, allStationCalculatedFields, stations, traverses]);
+      setEvaReportSequenceItems(evaReportSequenceItems);
+    })();
+  }, [selectedEva, allTraverseCalculatedFields, allStationCalculatedFields, appDispatch]);
 
   const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--eva)");
   const [reportsTabIcon, setReportsTabIcon] = useState<IconDefinition>(faTriangleExclamation);
@@ -468,7 +260,7 @@ const EvaRightEva: FunctionComponent = () => {
               <Button
                 icon={faTrashAlt}
                 onClick={() => {
-                  handleDelete();
+                  appDispatch(thunkDeleteEva({ eva: selectedEva }));
                 }}
                 toolTip="Delete EVA"
                 style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
@@ -491,7 +283,7 @@ const EvaRightEva: FunctionComponent = () => {
               <>
                 <Button
                   onClick={() => {
-                    handleSave();
+                    appDispatch(thunkSaveEva({ eva: selectedEva }));
                   }}
                   icon={faFloppyDisk}
                   toolTip={`Save EVA${modified ? "" : " (nothing to save)"}`}
@@ -506,7 +298,7 @@ const EvaRightEva: FunctionComponent = () => {
                 />
                 <Button
                   onClick={() => {
-                    handleCancel();
+                    appDispatch(thunkEvaCancel({ eva: selectedEva }));
                   }}
                   icon={faBan}
                   toolTip="Cancel Edit"

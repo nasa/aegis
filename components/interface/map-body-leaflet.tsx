@@ -35,18 +35,14 @@ import {
 } from "utils/geoMath";
 import { decodeEmoji } from "utils/formatting";
 import { Checkbox } from "./_global-elements";
-import {
-  setLeftPanelHoverUuid,
-  setMapItemHoverUuid,
-  setTimelineHoverUuid,
-} from "store/playheadHover";
+import { setAllHoverUuids } from "store/playheadHover";
 import {
   thunkUpdateStationLocation,
-  thunkFullUpdateWalkbackPath,
+  thunkFullUpdateWalkback,
   thunkUpdateWalkbackPath,
 } from "store/thunk/thunkStation";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkFullUpdateTraversePath, thunkUpdateTraversePath } from "store/thunk/thunkTraverse";
+import { thunkFullUpdateTraverse, thunkUpdateTraversePath } from "store/thunk/thunkTraverse";
 import getPercentOrDefault from "utils/getPercentOrDefault";
 import { thunkUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { selectEVASequenceItem } from "store/cross-slice";
@@ -421,14 +417,10 @@ const MapBody: FunctionComponent = () => {
               onClick();
             })
             .on("mouseover", () => {
-              dispatch(setLeftPanelHoverUuid(marker.uuid));
-              dispatch(setTimelineHoverUuid(marker.uuid));
-              dispatch(setMapItemHoverUuid(marker.uuid));
+              dispatch(setAllHoverUuids(marker.uuid));
             })
             .on("mouseout", () => {
-              dispatch(setLeftPanelHoverUuid(null));
-              dispatch(setTimelineHoverUuid(null));
-              dispatch(setMapItemHoverUuid(null));
+              dispatch(setAllHoverUuids(null));
             });
         }
         if (onDragEnd) {
@@ -541,14 +533,10 @@ const MapBody: FunctionComponent = () => {
           onClick();
         })
         .on("mouseover", () => {
-          dispatch(setLeftPanelHoverUuid(polyline.uuid));
-          dispatch(setTimelineHoverUuid(polyline.uuid));
-          dispatch(setMapItemHoverUuid(polyline.uuid));
+          dispatch(setAllHoverUuids(polyline.uuid));
         })
         .on("mouseout", () => {
-          dispatch(setLeftPanelHoverUuid(null));
-          dispatch(setTimelineHoverUuid(null));
-          dispatch(setMapItemHoverUuid(null));
+          dispatch(setAllHoverUuids(null));
         });
 
       map.current.addLayer(polyline);
@@ -775,7 +763,7 @@ const MapBody: FunctionComponent = () => {
               } else {
                 //update path, elevation, and snap endpoints
                 const response = await appDispatch(
-                  thunkFullUpdateTraversePath({
+                  thunkFullUpdateTraverse({
                     path,
                     traverseUuid: mapDirective.uuid,
                   })
@@ -801,7 +789,7 @@ const MapBody: FunctionComponent = () => {
               } else {
                 //update path, elevation, and snap endpoints
                 const response = await appDispatch(
-                  thunkFullUpdateWalkbackPath({
+                  thunkFullUpdateWalkback({
                     path,
                     stationUuid: mapDirective.uuid,
                   })
@@ -1134,80 +1122,85 @@ const MapBody: FunctionComponent = () => {
    * Draw or update hover timeline marker (astronaut) on the map when the hover seconds change.
    */
   useEffect(() => {
-    if (!map.current || mapDirective) return;
+    (async () => {
+      if (!map.current || mapDirective) return;
 
-    //search for marker on the map
-    const existingLayer = getMapItemByUuid("hover-marker-uuid") as AEGISMarker;
+      //search for marker on the map
+      const existingLayer = getMapItemByUuid("hover-marker-uuid") as AEGISMarker;
 
-    //hoverSeconds is null meaning we're not hovering.
-    if (!playheadHover.evaSecondsElapsed || !selectedEva) {
-      //Also remove the marker from map if exists
-      if (existingLayer) map.current.removeLayer(existingLayer);
-      return;
-    }
+      //hoverSeconds is null meaning we're not hovering.
+      if (!playheadHover.evaSecondsElapsed || !selectedEva) {
+        //Also remove the marker from map if exists
+        if (existingLayer) map.current.removeLayer(existingLayer);
+        return;
+      }
 
-    //find where this point should be drawn on the eva
-    let location: AEGISPoint = { lat: 0, lng: 0 };
+      //find where this point should be drawn on the eva
+      const sequenceItem = selectedEva.sequence.find(
+        (seqItem) => seqItem.uuid === playheadHover.mapItemUuid
+      );
+      if (sequenceItem) {
+        let location: AEGISPoint = { lat: 0, lng: 0 };
+        const seqItemRes = await appDispatch(
+          thunkGetStationOrTraverse({ uuid: sequenceItem.uuid })
+        );
+        if (!seqItemRes.payload) return location;
 
-    const sequenceItem = selectedEva.sequence.find(
-      (seqItem) => seqItem.uuid === playheadHover.mapItemUuid
-    );
-    if (sequenceItem) {
-      if (sequenceItem.type === "station") {
-        location = stations.find((station) => station.uuid === sequenceItem.uuid).location;
-      } else if (sequenceItem.type === "traverse") {
-        const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
+        if (seqItemRes.payload.type === "station") {
+          location = (seqItemRes.payload.item as Station).location;
+        } else if (seqItemRes.payload.type === "traverse") {
+          const traverse = seqItemRes.payload.item as Traverse;
 
-        //how far (in distance) are we along the entire traverse. Ex: 5m into a 25m traverse
-        const cumulativeCurrentDistance =
-          traverse.pathSegmentDistances.reduce(
-            (accumulator, currentValue) => accumulator + currentValue,
-            0
-          ) * playheadHover.sequenceItemPercentElapsed;
-        //determine which segment we are in
-        let cumulativePrevSegDistances = 0;
-        for (let i = 0; i < traverse.pathSegmentDistances.length; i++) {
-          if (
-            cumulativePrevSegDistances + traverse.pathSegmentDistances[i] >
-            cumulativeCurrentDistance
-          ) {
-            //we are in this segment
-            const percentSegmentDistance =
-              (cumulativeCurrentDistance - cumulativePrevSegDistances) /
-              traverse.pathSegmentDistances[i];
-            const lat =
-              traverse.path[i].lat +
-              (traverse.path[i + 1].lat - traverse.path[i].lat) * percentSegmentDistance;
-            const lng =
-              traverse.path[i].lng +
-              (traverse.path[i + 1].lng - traverse.path[i].lng) * percentSegmentDistance;
-            location = { lat, lng };
-            break;
-          } else {
-            cumulativePrevSegDistances += traverse.pathSegmentDistances[i];
+          //how far (in distance) are we along the entire traverse. Ex: 5m into a 25m traverse
+          const cumulativeCurrentDistance =
+            traverse.pathSegmentDistances.reduce(
+              (accumulator, currentValue) => accumulator + currentValue,
+              0
+            ) * playheadHover.sequenceItemPercentElapsed;
+          //determine which segment we are in
+          let cumulativePrevSegDistances = 0;
+          for (let i = 0; i < traverse.pathSegmentDistances.length; i++) {
+            if (
+              cumulativePrevSegDistances + traverse.pathSegmentDistances[i] >
+              cumulativeCurrentDistance
+            ) {
+              //we are in this segment
+              const percentSegmentDistance =
+                (cumulativeCurrentDistance - cumulativePrevSegDistances) /
+                traverse.pathSegmentDistances[i];
+              const lat =
+                traverse.path[i].lat +
+                (traverse.path[i + 1].lat - traverse.path[i].lat) * percentSegmentDistance;
+              const lng =
+                traverse.path[i].lng +
+                (traverse.path[i + 1].lng - traverse.path[i].lng) * percentSegmentDistance;
+              location = { lat, lng };
+              break;
+            } else {
+              cumulativePrevSegDistances += traverse.pathSegmentDistances[i];
+            }
           }
         }
-      }
+        const html = `<div class="leaflet-aegis-icon">${decodeEmoji("1f468-200d-1f680")}</div>`;
+        const icon = L.divIcon({ html });
+        //if exists, set location
+        if (existingLayer) {
+          existingLayer.setLatLng(location as L.LatLng);
+          existingLayer.setIcon(icon);
+        } else {
+          //marker doesn't exist, draw it and add it to leaflet
+          const marker = L.marker(location as AEGISPoint, {
+            icon,
+          }) as AEGISMarker;
+          marker.uuid = "hover-marker-uuid";
+          marker.mapItemType = "hover";
+          marker.setZIndexOffset(2000);
 
-      const html = `<div class="leaflet-aegis-icon">${decodeEmoji("1f468-200d-1f680")}</div>`;
-      const icon = L.divIcon({ html });
-      //if exists, set location
-      if (existingLayer) {
-        existingLayer.setLatLng(location as L.LatLng);
-        existingLayer.setIcon(icon);
-      } else {
-        //marker doesn't exist, draw it and add it to leaflet
-        const marker = L.marker(location as AEGISPoint, {
-          icon,
-        }) as AEGISMarker;
-        marker.uuid = "hover-marker-uuid";
-        marker.mapItemType = "hover";
-        marker.setZIndexOffset(2000);
-
-        map.current.addLayer(marker);
+          map.current.addLayer(marker);
+        }
       }
-    }
-  }, [playheadHover, getMapItemByUuid, mapDirective, selectedEva, stations, traverses]);
+    })();
+  }, [playheadHover, getMapItemByUuid, mapDirective, selectedEva, appDispatch]);
 
   const removeSelectedMarker = useCallback(() => {
     // remove any existing highlight layers

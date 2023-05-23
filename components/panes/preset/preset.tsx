@@ -4,28 +4,19 @@ import { faClone, faGlobe, faPlusCircle, faUser } from "@fortawesome/free-solid-
 import { FunctionComponent } from "react";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
-import {
-  duplicatePreset,
-  setPresetEditMode,
-  setPresetInteractions,
-  upsertPreset,
-} from "store/preset";
 import { setLayerControls } from "store/map";
 import { setSelectedPresetUuid, setSelectedPresetRightNavItem } from "store/preset";
-import { v4 as uuidv4 } from "uuid";
 import { Button, ModifiedIndicator } from "components/interface/_global-elements";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { generateUniqueName } from "utils/unique-name";
 import { setRightPanelOpen } from "store/interface";
 import { setAllLayerControlsInvisible } from "utils/store";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { thunkCreatePreset, thunkDuplicatePreset } from "store/thunk/thunkPreset";
 
 const PresetEditorLeft: FunctionComponent = () => {
-  const dispatch = useDispatch();
+  const appDispatch = useAppDispatch();
   const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
-  const user: User = useAppSelector((state) => state.user.ironSessionData?.user, shallowEqual);
-  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
-  const mapLayerControls = useAppSelector((state) => state.map.layerControls, shallowEqual);
   const isAdmin = useAppSelector(
     (state) => state.user.ironSessionData?.user.permission.includes("admin"),
     refEqual
@@ -34,40 +25,6 @@ const PresetEditorLeft: FunctionComponent = () => {
   if (presets !== null) {
     selectedPreset = presets.find((preset: Preset) => preset.uuid === selectedPresetUuid);
   }
-  const handleCreatePreset = async () => {
-    const randomName = generateUniqueName({
-      dictName: "colors",
-      existingNames: presets.map((item) => item.name),
-    });
-
-    const blankPreset: Preset = {
-      uuid: uuidv4(),
-      name: randomName,
-      description: "",
-      ownerId: user.id,
-      missionId: missionId,
-      missionPreset: false,
-      missionPresetDefault: false,
-      layerControls: mapLayerControls,
-    };
-
-    dispatch(upsertPreset(blankPreset));
-    // turn on edit mode for the new POI
-    dispatch(setPresetEditMode({ presetUuid: blankPreset.uuid, editMode: true }));
-    // select the newly created POI
-    dispatch(setSelectedPresetUuid(blankPreset.uuid));
-    // open right panel
-    dispatch(setRightPanelOpen(true));
-    // create preset interactions entry
-    const layerControlInteractions: LayerControlInteractions = {};
-    for (const [key] of Object.entries(blankPreset.layerControls)) {
-      layerControlInteractions[key] = {
-        expanded: true,
-        tabSelected: null,
-      };
-    }
-    dispatch(setPresetInteractions({ presetUuid: blankPreset.uuid, layerControlInteractions }));
-  };
 
   const missionPresets = presets
     .filter((preset) => preset.missionPreset === true)
@@ -99,7 +56,7 @@ const PresetEditorLeft: FunctionComponent = () => {
         <div className={paneStyles.iconButtons}>
           <Button
             onClick={() => {
-              handleCreatePreset();
+              appDispatch(thunkCreatePreset());
             }}
             label="Add"
             icon={faPlusCircle}
@@ -108,8 +65,7 @@ const PresetEditorLeft: FunctionComponent = () => {
           <Button
             onClick={() => {
               if (selectedPresetUuid !== null) {
-                dispatch(duplicatePreset(selectedPreset));
-                dispatch(setRightPanelOpen(true));
+                appDispatch(thunkDuplicatePreset({ preset: selectedPreset }));
               }
             }}
             label="Duplicate"
@@ -157,9 +113,7 @@ const PresetList: FunctionComponent<{
         const iconSelectedStyle =
           currentPreset.uuid === selectedPresetUuid ? styles.presetIconSelected : null;
 
-        const presetFromDb = presetsFromDb.filter(
-          (preset) => preset.uuid === currentPreset.uuid
-        )[0];
+        const presetFromDb = presetsFromDb.find((preset) => preset.uuid === currentPreset.uuid);
         return (
           <div
             key={`sub_${currentPreset.name}_${index}`}

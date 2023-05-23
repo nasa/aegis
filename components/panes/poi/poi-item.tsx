@@ -8,11 +8,7 @@ import { setSelectedPoiUuid, setSelectedPOIRightNavItem } from "store/poi";
 import { clearEvaSelections } from "store/eva";
 import { decodeEmoji } from "utils/formatting";
 import { setRightPanelOpen } from "store/interface";
-import {
-  setMapItemHoverUuid,
-  setLeftPanelHoverUuid,
-  setTimelineHoverUuid,
-} from "store/playheadHover";
+import { setAllHoverUuids } from "store/playheadHover";
 
 const PoiItem: FunctionComponent<{
   selectedPoiUuid: string;
@@ -71,14 +67,10 @@ const PoiItem: FunctionComponent<{
         }
       }}
       onMouseOver={() => {
-        dispatch(setMapItemHoverUuid(poi.uuid));
-        dispatch(setLeftPanelHoverUuid(poi.uuid));
-        dispatch(setTimelineHoverUuid(poi.uuid));
+        dispatch(setAllHoverUuids(poi.uuid));
       }}
       onMouseLeave={() => {
-        dispatch(setMapItemHoverUuid(null));
-        dispatch(setLeftPanelHoverUuid(null));
-        dispatch(setTimelineHoverUuid(null));
+        dispatch(setAllHoverUuids(null));
       }}
     >
       <div className={poiStyles.itemIcon}>{decodeEmoji(poi.icon)}</div>

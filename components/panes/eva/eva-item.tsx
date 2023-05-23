@@ -2,26 +2,21 @@ import { Button, ModifiedIndicator } from "components/interface/_global-elements
 import { FunctionComponent, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
-import {
-  setSelectedEvaRightNavItem,
-  setExpandedEvaUuids,
-  setSelectedEvaUuid,
-  setEvaSequence,
-} from "store/eva";
-import { upsertTraverse } from "store/traverse";
+import { setSelectedEvaRightNavItem, setExpandedEvaUuids, setSelectedEvaUuid } from "store/eva";
 import evaStyles from "./eva.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { setSelectedStationUuid } from "store/station";
-import { v4 as uuidv4 } from "uuid";
 import EvaItemSequence from "./eva-item-sequence";
 import { setRightPanelOpen } from "store/interface";
 import { selectEVASequenceItem } from "store/cross-slice";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { thunkAddStationToEva } from "store/thunk/thunkEva";
 
 const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
   const dispatch = useDispatch();
-
+  const appDispatch = useAppDispatch();
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, shallowEqual);
 
   const thisEvaFromDb = useAppSelector(
@@ -43,53 +38,9 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
     refEqual
   );
   const expandedEvaUuids = useAppSelector((state) => state.eva.expandedEvaUuids, shallowEqual);
-  const missionId = useAppSelector((state) => state.mission.mission.id, shallowEqual);
 
   const [traversesInEva, setTraversesInEva] = useState<Traverse[]>([]);
   const [traversesInEvaFromDb, setTraversesInEvaFromDb] = useState<Traverse[]>([]);
-
-  const createBlankTraverse = (): Traverse => {
-    return {
-      missionId: missionId,
-      uuid: uuidv4(),
-      name: "",
-      description: "",
-      predictedDurationLower: null,
-      predictedDurationUpper: null,
-      path: [],
-      pathSegmentDistances: null,
-      pathSegmentElevations: null,
-      status: null,
-    };
-  };
-
-  const handleAddStation = () => {
-    const newEvaSequence = [...eva.sequence];
-
-    const newStationSequenceItem: EvaSequenceItem = {
-      type: "station",
-      uuid: "",
-    };
-    if (newEvaSequence.length === 0) {
-      newEvaSequence.push(newStationSequenceItem);
-    } else {
-      // add a traverse before the station
-      const newTraverse = createBlankTraverse();
-      dispatch(upsertTraverse(newTraverse));
-
-      newEvaSequence.push({
-        type: "traverse",
-        uuid: newTraverse.uuid,
-      });
-      newEvaSequence.push(newStationSequenceItem);
-    }
-    // expand the eva item
-    if (!expandedEvaUuids.find((uuid) => uuid === eva.uuid)) {
-      dispatch(setExpandedEvaUuids([...expandedEvaUuids, eva.uuid]));
-    }
-
-    dispatch(setEvaSequence({ evaUuid: eva.uuid, sequence: newEvaSequence }));
-  };
 
   useEffect(() => {
     if (eva.sequence) {
@@ -113,7 +64,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
 
   let evaSelectionStyle = null;
 
-  // if this is this eva, highlight or emphasize it
+  // if this eva is selected, highlight or emphasize it
   if (eva.uuid === selectedEvaUuid) {
     evaSelectionStyle = evaStyles.nameSelected;
     // if there is a selected sequence item and it's in this eva, then only emphasize the eva name rather than highlighting it
@@ -164,7 +115,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
               dispatch(setRightPanelOpen(true));
 
               // add this eva uuid to the expanded list if it's not already there
-              if (!expandedEvaUuids.find((uuid) => uuid === eva.uuid)) {
+              if (expandedEvaUuids.indexOf(eva.uuid) === -1) {
                 dispatch(setExpandedEvaUuids([...expandedEvaUuids, eva.uuid]));
               }
             }
@@ -198,10 +149,11 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
           <div className={paneStyles.iconButtons}>
             <Button
               onClick={() => {
-                handleAddStation();
+                appDispatch(thunkAddStationToEva({ eva }));
               }}
               label="Add Station"
               icon={faPlusCircle}
+              style={{ width: "105px" }}
             />
           </div>
         </div>

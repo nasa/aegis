@@ -19,7 +19,7 @@ import { WysiwygTextArea } from "components/interface/_wysiwyg";
 import { FunctionComponent, useState, CSSProperties } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
-import { deleteAction, upsertAction } from "store/action";
+import { deleteActionByUuid, upsertAction } from "store/action";
 import { longdateFromDateString, toDecimal } from "utils/formatting";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
@@ -128,7 +128,7 @@ const RightAction: FunctionComponent<{
               icon={faTrashAlt}
               size="sm"
               onClick={(e) => {
-                dispatch(deleteAction(action));
+                dispatch(deleteActionByUuid(action.uuid));
                 setEditMode(true);
                 e.stopPropagation();
               }}
