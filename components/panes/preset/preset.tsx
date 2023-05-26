@@ -14,7 +14,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreatePreset, thunkDuplicatePreset } from "store/thunk/thunkPreset";
 
 const PresetEditorLeft: FunctionComponent = () => {
-  const appDispatch = useAppDispatch();
+  const thunkDispatch = useAppDispatch();
   const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const isAdmin = useAppSelector(
@@ -56,7 +56,7 @@ const PresetEditorLeft: FunctionComponent = () => {
         <div className={paneStyles.iconButtons}>
           <Button
             onClick={() => {
-              appDispatch(thunkCreatePreset());
+              thunkDispatch(thunkCreatePreset());
             }}
             label="Add"
             icon={faPlusCircle}
@@ -65,7 +65,7 @@ const PresetEditorLeft: FunctionComponent = () => {
           <Button
             onClick={() => {
               if (selectedPresetUuid !== null) {
-                appDispatch(thunkDuplicatePreset({ preset: selectedPreset }));
+                thunkDispatch(thunkDuplicatePreset({ preset: selectedPreset }));
               }
             }}
             label="Duplicate"

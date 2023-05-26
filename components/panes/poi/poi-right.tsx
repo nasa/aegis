@@ -22,9 +22,11 @@ import { thunkSavePoi, thunkDeletePoi, thunkPoiCancel } from "store/thunk/thunkP
 import { selectPoiActions } from "store/selectors";
 import Report_Panel from "../report";
 import { getAlertColor } from "utils/component-helpers";
+import { useDispatch } from "react-redux";
 
 const PoiEditorRight: FunctionComponent = () => {
-  const appDispatch = useAppDispatch();
+  const dispatch = useDispatch();
+  const thunkDispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector((state) => state.poi.selectedRightNavItem, refEqual);
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
   const selectedPoi = useAppSelector(
@@ -112,7 +114,7 @@ const PoiEditorRight: FunctionComponent = () => {
             selected={selectedPoi.icon}
             editing={poisEditing.includes(selectedPoiUuid)}
             setSelected={(value) => {
-              appDispatch(upsertPoi({ ...selectedPoi, icon: value }));
+              dispatch(upsertPoi({ ...selectedPoi, icon: value }));
             }}
             items={["1F534", "1F535", "1F7E2", "1F7E1", "1F7E3", "1F7E0", "1F7E4", "26AB", "26AA"]}
           />
@@ -122,7 +124,6 @@ const PoiEditorRight: FunctionComponent = () => {
               fieldName="POI"
               value={selectedPoi.name}
               editing={poisEditing.includes(selectedPoiUuid)}
-              maxLength={255}
               styleInput={{
                 width: "100%",
                 marginRight: "10px",
@@ -130,8 +131,8 @@ const PoiEditorRight: FunctionComponent = () => {
                 fontSize: "1em",
               }}
               styleValue={{ padding: 0, height: "auto" }}
-              onChange={(val) => {
-                appDispatch(upsertPoi({ ...selectedPoi, name: val }));
+              onSubmit={(val: string) => {
+                dispatch(upsertPoi({ ...selectedPoi, name: val }));
               }}
             />
           </div>
@@ -160,7 +161,7 @@ const PoiEditorRight: FunctionComponent = () => {
                           : unselectedColor,
                     }}
                     title={panelTypes[panelType].title}
-                    onClick={() => appDispatch(setSelectedPOIRightNavItem(panelType))}
+                    onClick={() => dispatch(setSelectedPOIRightNavItem(panelType))}
                   >
                     <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
                   </div>
@@ -174,7 +175,7 @@ const PoiEditorRight: FunctionComponent = () => {
                 icon={faTrashAlt}
                 onClick={() => {
                   if (selectedPoi) {
-                    appDispatch(
+                    thunkDispatch(
                       thunkDeletePoi({
                         poi: selectedPoi,
                       })
@@ -189,7 +190,7 @@ const PoiEditorRight: FunctionComponent = () => {
               <Button
                 icon={faEdit}
                 onClick={() => {
-                  appDispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: true }));
+                  dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: true }));
                 }}
                 label="Edit"
                 toolTip="Edit POI"
@@ -203,7 +204,7 @@ const PoiEditorRight: FunctionComponent = () => {
                 <Button
                   onClick={() => {
                     if (selectedPoi && modified) {
-                      appDispatch(
+                      thunkDispatch(
                         thunkSavePoi({
                           poi: selectedPoi,
                         })
@@ -223,7 +224,7 @@ const PoiEditorRight: FunctionComponent = () => {
                 />
                 <Button
                   onClick={() => {
-                    appDispatch(
+                    thunkDispatch(
                       thunkPoiCancel({
                         poi: selectedPoi,
                       })

@@ -16,7 +16,7 @@ import { thunkAddStationToEva } from "store/thunk/thunkEva";
 
 const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
   const dispatch = useDispatch();
-  const appDispatch = useAppDispatch();
+  const thunkDispatch = useAppDispatch();
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, shallowEqual);
 
   const thisEvaFromDb = useAppSelector(
@@ -149,7 +149,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
           <div className={paneStyles.iconButtons}>
             <Button
               onClick={() => {
-                appDispatch(thunkAddStationToEva({ eva }));
+                thunkDispatch(thunkAddStationToEva({ eva }));
               }}
               label="Add Station"
               icon={faPlusCircle}

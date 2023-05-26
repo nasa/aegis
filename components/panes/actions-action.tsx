@@ -112,13 +112,11 @@ const RightAction: FunctionComponent<{
           <InLineEditInput
             fieldName="Action Title"
             editing={editMode}
-            maxLength={255}
             styleInput={{ width: "100%" }}
-            containerStyle={{ fontSize: "0.8rem", fontWeight: 400 }}
+            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
             value={action.name}
-            onChange={(val) => {
-              const updatedAction: Action = { ...action, name: val };
-              dispatch(upsertAction(updatedAction));
+            onSubmit={(value: string) => {
+              dispatch(upsertAction({ ...action, name: value }));
             }}
           />
         </div>
@@ -186,21 +184,16 @@ const RightAction: FunctionComponent<{
                           <InLineEditInput
                             fieldName="Minimum Time in minutes"
                             editing={editMode}
-                            maxLength={4}
                             styleInput={{ width: "45px" }}
-                            containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                            styleContainer={{ fontSize: "0.8em", fontWeight: 400 }}
                             value={action.durationLower.toString()}
-                            onChange={(val: number) => {
-                              const updatedAction: Action = { ...action, durationLower: val };
-                              dispatch(upsertAction(updatedAction));
-                            }}
-                            onBlur={(e) => {
-                              const numericVal = toDecimal(e.target.value);
-                              const updatedAction: Action = {
-                                ...action,
-                                durationLower: numericVal,
-                              };
-                              dispatch(upsertAction(updatedAction));
+                            onSubmit={(value: string) => {
+                              dispatch(
+                                upsertAction({
+                                  ...action,
+                                  durationLower: toDecimal(value),
+                                })
+                              );
                             }}
                           />
                         </div>
@@ -217,21 +210,16 @@ const RightAction: FunctionComponent<{
                           <InLineEditInput
                             fieldName="Maximum Time in minutes"
                             editing={editMode}
-                            maxLength={4}
                             styleInput={{ width: "45px" }}
-                            containerStyle={{ fontSize: "0.8rem", fontWeight: 400 }}
+                            styleContainer={{ fontSize: "0.8em", fontWeight: 400 }}
                             value={action.durationUpper?.toString()}
-                            onChange={(val: number) => {
-                              const updatedAction: Action = { ...action, durationUpper: val };
-                              dispatch(upsertAction(updatedAction));
-                            }}
-                            onBlur={(e) => {
-                              const numericVal = toDecimal(e.target.value);
-                              const updatedAction: Action = {
-                                ...action,
-                                durationUpper: numericVal,
-                              };
-                              dispatch(upsertAction(updatedAction));
+                            onSubmit={(value: string) => {
+                              dispatch(
+                                upsertAction({
+                                  ...action,
+                                  durationUpper: toDecimal(value),
+                                })
+                              );
                             }}
                           />
                         </div>

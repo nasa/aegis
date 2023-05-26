@@ -33,7 +33,7 @@ const Info_Panel: FunctionComponent<{
   actionCount: number;
 }> = ({ editMode, totalStationTime, actionCount }) => {
   const dispatch = useDispatch();
-  const appDispatch = useAppDispatch();
+  const thunkDispatch = useAppDispatch();
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
 
   const selectedStation = useAppSelector(
@@ -133,7 +133,7 @@ const Info_Panel: FunctionComponent<{
       return poi.location;
     });
     const centroid = calcCentroidofCoordinates(poiLocs);
-    appDispatch(
+    thunkDispatch(
       thunkUpdateStationLocation({ location: centroid, stationUuid: selectedStation.uuid })
     );
   };
@@ -169,8 +169,8 @@ const Info_Panel: FunctionComponent<{
   };
 
   const handleResetWalkback = useCallback(() => {
-    appDispatch(thunkResetWalkback({ stationUuid: selectedStation.uuid }));
-  }, [appDispatch, selectedStation.uuid]);
+    thunkDispatch(thunkResetWalkback({ stationUuid: selectedStation.uuid }));
+  }, [thunkDispatch, selectedStation.uuid]);
 
   useEffect(() => {
     if (!selectedStation.walkbackPath) {
@@ -223,24 +223,16 @@ const Info_Panel: FunctionComponent<{
                         <InLineEditInput
                           fieldName="Minimum Time in minutes"
                           editing={editMode}
-                          maxLength={4}
                           styleInput={{ width: "45px" }}
-                          containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                          styleContainer={{ fontSize: "0.8em", fontWeight: 400 }}
                           value={selectedStation.durationLower?.toString()}
-                          onChange={(val) => {
-                            const updatedStation: Station = {
-                              ...selectedStation,
-                              durationLower: parseFloat(val),
-                            };
-                            dispatch(upsertStation(updatedStation));
-                          }}
-                          onBlur={(e) => {
-                            const numericVal = toDecimal(e.target.value);
-                            const updatedStation: Station = {
-                              ...selectedStation,
-                              durationLower: numericVal,
-                            };
-                            dispatch(upsertStation(updatedStation));
+                          onSubmit={(val: string) => {
+                            dispatch(
+                              upsertStation({
+                                ...selectedStation,
+                                durationLower: toDecimal(val),
+                              })
+                            );
                           }}
                         />
                       </div>
@@ -257,24 +249,16 @@ const Info_Panel: FunctionComponent<{
                         <InLineEditInput
                           fieldName="Maximum Time in minutes"
                           editing={editMode}
-                          maxLength={4}
                           styleInput={{ width: "45px" }}
-                          containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                          styleContainer={{ fontSize: "0.8em", fontWeight: 400 }}
                           value={selectedStation.durationUpper?.toString()}
-                          onChange={(val) => {
-                            const updatedStation: Station = {
-                              ...selectedStation,
-                              durationUpper: parseFloat(val),
-                            };
-                            dispatch(upsertStation(updatedStation));
-                          }}
-                          onBlur={(e) => {
-                            const numericVal = toDecimal(e.target.value);
-                            const updatedStation: Station = {
-                              ...selectedStation,
-                              durationUpper: numericVal,
-                            };
-                            dispatch(upsertStation(updatedStation));
+                          onSubmit={(val: string) => {
+                            dispatch(
+                              upsertStation({
+                                ...selectedStation,
+                                durationUpper: toDecimal(val),
+                              })
+                            );
                           }}
                         />
                       </div>
@@ -379,7 +363,7 @@ const Info_Panel: FunctionComponent<{
                           <Button
                             onClick={async () => {
                               if (landerLocation?.lat && landerLocation?.lng) {
-                                await appDispatch(
+                                await thunkDispatch(
                                   thunkUpdateStationLocation({
                                     location: landerLocation,
                                     stationUuid: selectedStation.uuid,

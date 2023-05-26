@@ -28,6 +28,7 @@ interface label {
 
 interface FieldProps {
   name: string;
+  fieldName?: string;
   label?: label | false;
   validators?: FieldValidator<unknown>[];
   style?: React.CSSProperties;
@@ -35,17 +36,25 @@ interface FieldProps {
   placeholder?: string;
   initialValue?: string;
   disabled?: boolean;
+  styleInput?: React.CSSProperties;
+  classNameInput?: string;
+  onChange?: React.ChangeEventHandler;
+  onBlur?: React.FocusEventHandler;
 }
 
 export const TextInputField: FunctionComponent<FieldProps> = ({
   name,
+  fieldName,
   label = false,
   validators = [],
-  style = {},
   className,
+  classNameInput,
+  styleInput,
   placeholder,
   initialValue,
   disabled = false,
+  onChange,
+  onBlur,
 }) => {
   return (
     <Field
@@ -64,11 +73,23 @@ export const TextInputField: FunctionComponent<FieldProps> = ({
           <div className={className}>
             <input
               {...input}
-              className={`${meta.error && meta.touched ? "error" : null}`}
+              className={`${classNameInput} ${meta.error && meta.touched ? "error" : null}`}
               type="text"
-              style={style}
+              aria-label={fieldName}
+              style={styleInput}
               disabled={disabled}
               placeholder={placeholder}
+              onChange={(event) => {
+                if (onChange) onChange(event); //call custom on change
+                input.onChange(event); //call native on change
+              }}
+              onBlur={(event) => {
+                if (onBlur) onBlur(event);
+                input.onBlur(event);
+              }}
+              onClick={(event) => {
+                event.stopPropagation();
+              }}
             />
           </div>
           {showValidationErrors({ meta })}

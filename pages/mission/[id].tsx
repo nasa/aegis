@@ -67,7 +67,7 @@ const BottomControlPanel = dynamic(
 
 const Main: NextPage = () => {
   const dispatch = useDispatch();
-  const appDispatch = useAppDispatch();
+  const thunkDispatch = useAppDispatch();
   const router = useRouter();
   const missionStore = useAppSelector((state) => state.mission, shallowEqual);
   const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, refEqual);
@@ -255,26 +255,26 @@ const Main: NextPage = () => {
   //Generate poi calculated values
   useEffect(() => {
     if (!pois || !actions) return;
-    appDispatch(thunkCreatePoiCalculatedFields());
-  }, [pois, actions, appDispatch]);
+    thunkDispatch(thunkCreatePoiCalculatedFields());
+  }, [pois, actions, thunkDispatch]);
 
   //Generate station calculated values
   useEffect(() => {
     if (!stations || !actions) return;
-    appDispatch(thunkCreateStationCalculatedFields());
-  }, [stations, actions, appDispatch]);
+    thunkDispatch(thunkCreateStationCalculatedFields());
+  }, [stations, actions, thunkDispatch]);
 
   //Generate traverse calculated values
   useEffect(() => {
     if (!traverses) return;
-    appDispatch(thunkCreateTraverseCalculatedFields());
-  }, [traverses, appDispatch]);
+    thunkDispatch(thunkCreateTraverseCalculatedFields());
+  }, [traverses, thunkDispatch]);
 
   //Generate eva calculated values. These are dependent on stations and traverses having had their calculated values generated
   useEffect(() => {
     if (!evas || !stationsCalculatedFields || !traversesCalculatedFields) return;
-    appDispatch(thunkCreateEvasCalculatedFields());
-  }, [evas, stationsCalculatedFields, traversesCalculatedFields, appDispatch]);
+    thunkDispatch(thunkCreateEvasCalculatedFields());
+  }, [evas, stationsCalculatedFields, traversesCalculatedFields, thunkDispatch]);
 
   return (
     <div className={styles.page}>

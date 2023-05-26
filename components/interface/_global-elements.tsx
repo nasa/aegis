@@ -6,8 +6,6 @@ import {
   Children,
   cloneElement,
   useState,
-  useRef,
-  useLayoutEffect,
   CSSProperties,
   ChangeEvent,
   ReactNode,
@@ -18,6 +16,10 @@ import _ from "lodash";
 import { TagsInput } from "react-tag-input-component";
 import { longdateFromDateString } from "utils/formatting";
 import { decodeEmoji } from "utils/formatting";
+import { FieldValidator } from "final-form";
+import { TextInputField } from "components/form/FormInput";
+import { Form } from "react-final-form";
+import React from "react";
 
 export const Button: FunctionComponent<{
   onClick: () => void;
@@ -193,56 +195,65 @@ export const ModifiedIndicator: FunctionComponent<{
 };
 
 export const InLineEditInput: FunctionComponent<{
+  value: string;
   fieldName: string;
   editing: boolean;
   styleInput: CSSProperties;
   styleValue?: CSSProperties;
-  containerStyle?: CSSProperties;
-  maxLength: number;
-  value: string;
-  onChange: Function;
-  onBlur?: Function;
+  styleContainer?: CSSProperties;
+  onChange?: React.ChangeEventHandler;
+  onBlur?: React.FocusEventHandler;
+  onSubmit?: (value: string) => void;
+  validators?: FieldValidator<unknown>[];
+  initialValue?: string;
+  placeholder?: string;
+  disabled?: boolean;
 }> = ({
+  value,
   fieldName,
   editing,
   styleInput,
   styleValue,
-  containerStyle,
-  maxLength,
-  value,
+  styleContainer,
   onChange,
   onBlur,
+  onSubmit,
+  validators,
+  initialValue,
+  placeholder,
+  disabled,
 }) => {
-  const [cursor, setCursor] = useState(null);
-  const ref = useRef(null);
-
-  useLayoutEffect(() => {
-    const input = ref.current;
-    if (input) input.setSelectionRange(cursor, cursor);
-  }, [ref, cursor, value]);
-
-  const handleChange = (e) => {
-    setCursor(e.target.selectionStart);
-    onChange(e.target.value);
-  };
-
   return (
-    <div style={containerStyle}>
+    <div style={styleContainer}>
       {editing && (
-        <input
-          className={styles.inLineEditInput}
-          maxLength={maxLength}
-          style={styleInput}
-          aria-label={fieldName}
-          value={value}
-          onChange={(event) => handleChange(event)}
-          onBlur={(event) => {
-            if (onBlur) onBlur(event);
+        <Form
+          onSubmit={(formValues) => {
+            if (onSubmit) onSubmit(formValues.tempName);
           }}
-          onClick={(e) => {
-            e.stopPropagation();
+          initialValues={{ tempName: value }}
+          render={({ handleSubmit, form }) => {
+            return (
+              <form onSubmit={handleSubmit}>
+                <div style={styleContainer}>
+                  <TextInputField
+                    name="tempName"
+                    validators={validators}
+                    fieldName={fieldName}
+                    styleInput={styleInput}
+                    classNameInput={styles.inLineEditInput}
+                    onChange={onChange}
+                    onBlur={(event: React.FocusEvent) => {
+                      if (onBlur) onBlur(event);
+                      form.submit();
+                    }}
+                    initialValue={initialValue}
+                    placeholder={placeholder}
+                    disabled={disabled}
+                  />
+                </div>
+              </form>
+            );
           }}
-          ref={ref}
         />
       )}
       {!editing && (

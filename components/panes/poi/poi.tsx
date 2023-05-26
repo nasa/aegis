@@ -10,7 +10,7 @@ import { thunkCreatePoi, thunkDuplicatePoi } from "store/thunk/thunkPoi";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 const PoiEditorLeft: FunctionComponent = () => {
-  const appDispatch = useAppDispatch();
+  const thunkDispatch = useAppDispatch();
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
   const poisFromDb = useAppSelector((state) => state.poi.poisFromDb, shallowEqual);
 
@@ -49,7 +49,7 @@ const PoiEditorLeft: FunctionComponent = () => {
         <div className={paneStyles.iconButtons}>
           <Button
             onClick={() => {
-              appDispatch(thunkCreatePoi());
+              thunkDispatch(thunkCreatePoi());
             }}
             label="Add"
             icon={faPlusCircle}
@@ -57,7 +57,7 @@ const PoiEditorLeft: FunctionComponent = () => {
           />
           <Button
             onClick={() => {
-              appDispatch(thunkDuplicatePoi({ poi: selectedPoi }));
+              thunkDispatch(thunkDuplicatePoi({ poi: selectedPoi }));
             }}
             label="Duplicate"
             icon={faClone}
