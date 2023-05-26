@@ -20,7 +20,7 @@ const EvaItemSequence: FunctionComponent<{
   editMode: boolean;
 }> = ({ evaUuid, evaSequence, editMode }) => {
   const dispatch = useDispatch();
-  const appDispatch = useAppDispatch();
+  const thunkDispatch = useAppDispatch();
 
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
   const stationsFromDb = useAppSelector((state) => state.station.stationsFromDb, shallowEqual);
@@ -51,7 +51,7 @@ const EvaItemSequence: FunctionComponent<{
     newEvaSequence[index] = tempStation;
 
     dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
-    appDispatch(thunkUpdateAllTraversesForEVA({ evaSequence: newEvaSequence }));
+    thunkDispatch(thunkUpdateAllTraversesForEVA({ evaSequence: newEvaSequence }));
   };
 
   const handleMoveStationDown = (index: number) => {
@@ -63,7 +63,7 @@ const EvaItemSequence: FunctionComponent<{
     newEvaSequence[stationBeforeIndex] = newEvaSequence[index];
     newEvaSequence[index] = tempStation;
     dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
-    appDispatch(thunkUpdateAllTraversesForEVA({ evaSequence: newEvaSequence }));
+    thunkDispatch(thunkUpdateAllTraversesForEVA({ evaSequence: newEvaSequence }));
   };
 
   return (
@@ -165,7 +165,7 @@ const EvaItemSequence: FunctionComponent<{
                         arrowStyle={{ top: "1px" }}
                         containerStyle={{ width: "200px" }}
                         onChange={(val) => {
-                          appDispatch(
+                          thunkDispatch(
                             thunkChangeStationInEva({
                               evaSequence,
                               sequenceIndex: index,
@@ -218,7 +218,7 @@ const EvaItemSequence: FunctionComponent<{
                         <div
                           className={evaStyles.evaItemNameButton}
                           onClick={() => {
-                            appDispatch(
+                            thunkDispatch(
                               thunkDeleteStationFromEva({
                                 evaSequence,
                                 sequenceIndex: index,

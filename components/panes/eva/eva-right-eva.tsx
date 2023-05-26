@@ -32,7 +32,7 @@ import {
 
 const EvaRightEva: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const appDispatch = useAppDispatch();
+  const thunkDispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector(
     (state) => state.eva.selectedEvaRightNavItem,
     shallowEqual
@@ -102,7 +102,7 @@ const EvaRightEva: FunctionComponent = () => {
       const evaReportSequenceItems: EvaReportSequenceItem[] = [];
       if (selectedEva) {
         for (const sequenceItem of selectedEva.sequence) {
-          const seqItemRes = await appDispatch(
+          const seqItemRes = await thunkDispatch(
             thunkGetStationOrTraverse({ uuid: sequenceItem.uuid })
           );
           if (!seqItemRes.payload) continue;
@@ -139,7 +139,7 @@ const EvaRightEva: FunctionComponent = () => {
       }
       setEvaReportSequenceItems(evaReportSequenceItems);
     })();
-  }, [selectedEva, allTraverseCalculatedFields, allStationCalculatedFields, appDispatch]);
+  }, [selectedEva, allTraverseCalculatedFields, allStationCalculatedFields, thunkDispatch]);
 
   const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--eva)");
   const [reportsTabIcon, setReportsTabIcon] = useState<IconDefinition>(faTriangleExclamation);
@@ -207,7 +207,6 @@ const EvaRightEva: FunctionComponent = () => {
               fieldName="Station"
               value={selectedEva.name}
               editing={evasEditing.includes(selectedEvaUuid)}
-              maxLength={255}
               styleInput={{
                 width: "100%",
                 marginRight: "10px",
@@ -215,8 +214,8 @@ const EvaRightEva: FunctionComponent = () => {
                 fontSize: "1em",
               }}
               styleValue={{ padding: 0, height: "auto" }}
-              containerStyle={{ paddingLeft: 0 }}
-              onChange={(val) => {
+              styleContainer={{ paddingLeft: 0 }}
+              onSubmit={(val) => {
                 dispatch(upsertEva({ ...selectedEva, name: val }));
               }}
             />
@@ -260,7 +259,7 @@ const EvaRightEva: FunctionComponent = () => {
               <Button
                 icon={faTrashAlt}
                 onClick={() => {
-                  appDispatch(thunkDeleteEva({ eva: selectedEva }));
+                  thunkDispatch(thunkDeleteEva({ eva: selectedEva }));
                 }}
                 toolTip="Delete EVA"
                 style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
@@ -283,7 +282,7 @@ const EvaRightEva: FunctionComponent = () => {
               <>
                 <Button
                   onClick={() => {
-                    appDispatch(thunkSaveEva({ eva: selectedEva }));
+                    thunkDispatch(thunkSaveEva({ eva: selectedEva }));
                   }}
                   icon={faFloppyDisk}
                   toolTip={`Save EVA${modified ? "" : " (nothing to save)"}`}
@@ -298,7 +297,7 @@ const EvaRightEva: FunctionComponent = () => {
                 />
                 <Button
                   onClick={() => {
-                    appDispatch(thunkEvaCancel({ eva: selectedEva }));
+                    thunkDispatch(thunkEvaCancel({ eva: selectedEva }));
                   }}
                   icon={faBan}
                   toolTip="Cancel Edit"

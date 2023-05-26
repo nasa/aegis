@@ -9,7 +9,7 @@ import { upsertEva } from "store/eva";
 import { shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
-import { formatNumberWithCommas } from "utils/formatting";
+import { formatNumberWithCommas, toDecimal } from "utils/formatting";
 import { faCalculator, faLightbulb, faMessage } from "@fortawesome/free-solid-svg-icons";
 import { WysiwygTextArea } from "components/interface/_wysiwyg";
 
@@ -69,12 +69,11 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         <InLineEditInput
                           fieldName="Max Duration"
                           editing={editMode}
-                          maxLength={5}
                           styleInput={{ width: "55px" }}
-                          containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                          styleContainer={{ fontSize: "0.8em", fontWeight: 400 }}
                           value={selectedEva.maxDuration?.toString()}
-                          onChange={(val: number) => {
-                            dispatch(upsertEva({ ...selectedEva, maxDuration: val }));
+                          onSubmit={(val: string) => {
+                            dispatch(upsertEva({ ...selectedEva, maxDuration: toDecimal(val) }));
                           }}
                         />
                       </div>
@@ -98,12 +97,11 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         <InLineEditInput
                           fieldName="Average Traverse Rate"
                           editing={editMode}
-                          maxLength={4}
                           styleInput={{ width: "55px" }}
-                          containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                          styleContainer={{ fontSize: "0.8em", fontWeight: 400 }}
                           value={selectedEva.traverseRate?.toString()}
-                          onChange={(val: number) => {
-                            dispatch(upsertEva({ ...selectedEva, traverseRate: val }));
+                          onSubmit={(val: string) => {
+                            dispatch(upsertEva({ ...selectedEva, traverseRate: toDecimal(val) }));
                           }}
                         />
                       </div>

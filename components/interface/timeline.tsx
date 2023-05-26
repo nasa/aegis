@@ -145,7 +145,7 @@ const TimelineHoverValues: FunctionComponent<{ hoverValues: HoverValues }> = ({ 
  */
 const NavTimeline: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const appDispatch = useAppDispatch();
+  const thunkDispatch = useAppDispatch();
   const selectedEva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
     shallowEqual
@@ -234,7 +234,7 @@ const NavTimeline: FunctionComponent = () => {
           };
 
           //get station or traverse from the sequence uuid
-          const seqItemRes = await appDispatch(
+          const seqItemRes = await thunkDispatch(
             thunkGetStationOrTraverse({ uuid: sequenceItem.uuid })
           );
           if (!seqItemRes.payload) continue;
@@ -422,7 +422,7 @@ const NavTimeline: FunctionComponent = () => {
         }
       }
     })();
-  }, [selectedEva, actions, evaTraverseRate, mission, missionTraverseRate, appDispatch]);
+  }, [selectedEva, actions, evaTraverseRate, mission, missionTraverseRate, thunkDispatch]);
 
   //handles on mouse move over the paper canvas
   const onMouseMove = (event: paper.MouseEvent) => {

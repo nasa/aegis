@@ -56,7 +56,7 @@ const layerBaseURL = "/static/missionFiles";
 
 const MapBody: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const appDispatch = useAppDispatch();
+  const thunkDispatch = useAppDispatch();
   const mapRef = useRef(null);
   const map = useRef<L.Map>(null);
   const crs = useRef<L.Proj.CRS>(null);
@@ -564,12 +564,12 @@ const MapBody: FunctionComponent = () => {
   const saveUpdatedPoiOrStationPosition = useCallback(
     async (uuid: string, mapItemType: MapItemType, location: AEGISPoint) => {
       if (mapItemType === "poi") {
-        await appDispatch(thunkUpdatePoiLocation({ location, poiUuid: uuid }));
+        await thunkDispatch(thunkUpdatePoiLocation({ location, poiUuid: uuid }));
       } else if (mapItemType === "station") {
-        await appDispatch(thunkUpdateStationLocation({ location, stationUuid: uuid }));
+        await thunkDispatch(thunkUpdateStationLocation({ location, stationUuid: uuid }));
       }
     },
-    [appDispatch]
+    [thunkDispatch]
   );
 
   /**
@@ -754,7 +754,7 @@ const MapBody: FunctionComponent = () => {
             if (e.layer.mapItemType === "traverse") {
               if (!saveElevation) {
                 //update just the path
-                await appDispatch(
+                await thunkDispatch(
                   thunkUpdateTraversePath({
                     path,
                     traverseUuid: mapDirective.uuid,
@@ -762,7 +762,7 @@ const MapBody: FunctionComponent = () => {
                 );
               } else {
                 //update path, elevation, and snap endpoints
-                const response = await appDispatch(
+                const response = await thunkDispatch(
                   thunkFullUpdateTraverse({
                     path,
                     traverseUuid: mapDirective.uuid,
@@ -780,7 +780,7 @@ const MapBody: FunctionComponent = () => {
             if (e.layer.mapItemType === "walkback") {
               if (!saveElevation) {
                 //update just the path
-                await appDispatch(
+                await thunkDispatch(
                   thunkUpdateWalkbackPath({
                     path,
                     stationUuid: mapDirective.uuid,
@@ -788,7 +788,7 @@ const MapBody: FunctionComponent = () => {
                 );
               } else {
                 //update path, elevation, and snap endpoints
-                const response = await appDispatch(
+                const response = await thunkDispatch(
                   thunkFullUpdateWalkback({
                     path,
                     stationUuid: mapDirective.uuid,
@@ -1141,7 +1141,7 @@ const MapBody: FunctionComponent = () => {
       );
       if (sequenceItem) {
         let location: AEGISPoint = { lat: 0, lng: 0 };
-        const seqItemRes = await appDispatch(
+        const seqItemRes = await thunkDispatch(
           thunkGetStationOrTraverse({ uuid: sequenceItem.uuid })
         );
         if (!seqItemRes.payload) return location;
@@ -1200,7 +1200,7 @@ const MapBody: FunctionComponent = () => {
         }
       }
     })();
-  }, [playheadHover, getMapItemByUuid, mapDirective, selectedEva, appDispatch]);
+  }, [playheadHover, getMapItemByUuid, mapDirective, selectedEva, thunkDispatch]);
 
   const removeSelectedMarker = useCallback(() => {
     // remove any existing highlight layers
@@ -1256,7 +1256,7 @@ const MapBody: FunctionComponent = () => {
         highlightLocation = selectedStation.location;
         panMapToLocation = selectedStation.location;
       } else if (sectionSelected === "evas" && selectedEvaSequenceItemUuid) {
-        const seqItemRes = await appDispatch(
+        const seqItemRes = await thunkDispatch(
           thunkGetStationOrTraverse({ uuid: selectedEvaSequenceItemUuid })
         );
         if (seqItemRes.payload !== false) {
@@ -1286,7 +1286,7 @@ const MapBody: FunctionComponent = () => {
     map,
     selectedPoi,
     selectedStation,
-    appDispatch,
+    thunkDispatch,
     showSelectedItemOnMap,
     sectionSelected,
     removeSelectedMarker,

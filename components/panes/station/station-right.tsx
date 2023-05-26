@@ -32,7 +32,7 @@ import { thunkDeleteStation, thunkSaveStation, thunkStationCancel } from "store/
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const appDispatch = useAppDispatch();
+  const thunkDispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector(
     (state) => state.station.selectedRightNavItem,
     shallowEqual
@@ -197,7 +197,6 @@ const StationEditorRight: FunctionComponent = () => {
               fieldName="Station"
               value={selectedStation.name}
               editing={stationsEditing.includes(selectedStationUuid)}
-              maxLength={255}
               styleInput={{
                 width: "100%",
                 marginRight: "10px",
@@ -205,8 +204,8 @@ const StationEditorRight: FunctionComponent = () => {
                 fontSize: "1em",
               }}
               styleValue={{ padding: 0, height: "auto" }}
-              containerStyle={{ paddingLeft: 0 }}
-              onChange={(val) => {
+              styleContainer={{ paddingLeft: 0 }}
+              onSubmit={(val) => {
                 dispatch(upsertStation({ ...selectedStation, name: val }));
               }}
             />
@@ -250,7 +249,7 @@ const StationEditorRight: FunctionComponent = () => {
               <Button
                 icon={faTrashAlt}
                 onClick={() => {
-                  appDispatch(
+                  thunkDispatch(
                     thunkDeleteStation({
                       station: selectedStation,
                     })
@@ -286,7 +285,7 @@ const StationEditorRight: FunctionComponent = () => {
                 <>
                   <Button
                     onClick={() => {
-                      appDispatch(
+                      thunkDispatch(
                         thunkSaveStation({
                           station: selectedStation,
                         })
@@ -308,7 +307,7 @@ const StationEditorRight: FunctionComponent = () => {
                   />
                   <Button
                     onClick={() => {
-                      appDispatch(
+                      thunkDispatch(
                         thunkStationCancel({
                           station: selectedStation,
                         })

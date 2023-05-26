@@ -10,7 +10,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreateStation, thunkDuplicateStation } from "store/thunk/thunkStation";
 
 const StationEditorLeft: FunctionComponent = () => {
-  const appDispatch = useAppDispatch();
+  const thunkDispatch = useAppDispatch();
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
 
   const stationsFromDb = useAppSelector((state) => state.station.stationsFromDb, shallowEqual);
@@ -60,7 +60,7 @@ const StationEditorLeft: FunctionComponent = () => {
         <div className={paneStyles.iconButtons}>
           <Button
             onClick={() => {
-              appDispatch(thunkCreateStation());
+              thunkDispatch(thunkCreateStation());
             }}
             label="Add"
             icon={faPlusCircle}
@@ -68,7 +68,7 @@ const StationEditorLeft: FunctionComponent = () => {
           />
           <Button
             onClick={() => {
-              appDispatch(thunkDuplicateStation({ station: selectedStation }));
+              thunkDispatch(thunkDuplicateStation({ station: selectedStation }));
             }}
             label="Duplicate"
             icon={faClone}

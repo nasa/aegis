@@ -22,7 +22,7 @@ import { thunkDeletePreset, thunkPresetCancel, thunkSavePreset } from "store/thu
 
 const PresetEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const appDispatch = useAppDispatch();
+  const thunkDispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector(
     (state) => state.preset.selectedRightNavItem,
     refEqual
@@ -76,16 +76,15 @@ const PresetEditorRight: FunctionComponent = () => {
               fieldName="Preset Name"
               value={selectedPreset.name}
               editing={presetsEditing.includes(selectedPresetUuid)}
-              maxLength={255}
               styleInput={{
                 width: "100%",
                 marginRight: "10px",
                 color: "var(--preset)",
                 fontSize: "1em",
               }}
-              containerStyle={{ paddingLeft: 0 }}
+              styleContainer={{ paddingLeft: 0 }}
               styleValue={{ padding: 0, height: "auto" }}
-              onChange={(val) => {
+              onSubmit={(val) => {
                 dispatch(upsertPreset({ ...selectedPreset, name: val }));
               }}
             />
@@ -125,7 +124,7 @@ const PresetEditorRight: FunctionComponent = () => {
               <Button
                 icon={faTrashAlt}
                 onClick={() => {
-                  appDispatch(thunkDeletePreset({ preset: selectedPreset }));
+                  thunkDispatch(thunkDeletePreset({ preset: selectedPreset }));
                 }}
                 toolTip="Delete Preset"
                 style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
@@ -148,7 +147,7 @@ const PresetEditorRight: FunctionComponent = () => {
               <>
                 <Button
                   onClick={() => {
-                    appDispatch(thunkSavePreset({ preset: selectedPreset }));
+                    thunkDispatch(thunkSavePreset({ preset: selectedPreset }));
                   }}
                   icon={faFloppyDisk}
                   toolTip={`Save Preset${modified ? "" : " (nothing to save)"}`}
@@ -163,7 +162,7 @@ const PresetEditorRight: FunctionComponent = () => {
                 />
                 <Button
                   onClick={() => {
-                    appDispatch(thunkPresetCancel({ preset: selectedPreset }));
+                    thunkDispatch(thunkPresetCancel({ preset: selectedPreset }));
                   }}
                   icon={faBan}
                   toolTip="Cancel Edit"

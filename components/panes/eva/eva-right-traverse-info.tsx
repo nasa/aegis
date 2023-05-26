@@ -20,12 +20,12 @@ import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkResetTraverse } from "store/thunk/thunkTraverse";
-import { formatNumberWithCommas } from "utils/formatting";
+import { formatNumberWithCommas, toDecimal } from "utils/formatting";
 import { WysiwygTextArea } from "components/interface/_wysiwyg";
 
 const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
-  const appDispatch = useAppDispatch();
+  const thunkDispatch = useAppDispatch();
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
@@ -116,7 +116,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
 
   const handlePathReset = async () => {
     //reset path to stations endpoints
-    appDispatch(thunkResetTraverse({ traverseUuid: selectedTraverse.uuid }));
+    thunkDispatch(thunkResetTraverse({ traverseUuid: selectedTraverse.uuid }));
   };
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
@@ -161,15 +161,14 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                         <InLineEditInput
                           fieldName="Nominal Duration"
                           editing={editMode}
-                          maxLength={3}
                           styleInput={{ width: "55px" }}
-                          containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                          styleContainer={{ fontSize: "0.8em", fontWeight: 400 }}
                           value={selectedTraverse.predictedDurationLower?.toString()}
-                          onChange={(val) => {
+                          onSubmit={(val) => {
                             dispatch(
                               upsertTraverse({
                                 ...selectedTraverse,
-                                predictedDurationLower: parseFloat(val),
+                                predictedDurationLower: toDecimal(val),
                               })
                             );
                           }}
@@ -193,15 +192,14 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                         <InLineEditInput
                           fieldName="Traverse Rate"
                           editing={editMode}
-                          maxLength={3}
                           styleInput={{ width: "55px" }}
-                          containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                          styleContainer={{ fontSize: "0.8em", fontWeight: 400 }}
                           value={selectedTraverse.traverseRate?.toString()}
-                          onChange={(val: number) => {
+                          onSubmit={(val: string) => {
                             dispatch(
                               upsertTraverse({
                                 ...selectedTraverse,
-                                traverseRate: val,
+                                traverseRate: toDecimal(val),
                               })
                             );
                           }}
@@ -220,15 +218,14 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                         <InLineEditInput
                           fieldName="Max Duration"
                           editing={editMode}
-                          maxLength={3}
                           styleInput={{ width: "55px" }}
-                          containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
+                          styleContainer={{ fontSize: "0.8em", fontWeight: 400 }}
                           value={selectedTraverse.predictedDurationUpper?.toString()}
-                          onChange={(val) => {
+                          onSubmit={(val: string) => {
                             dispatch(
                               upsertTraverse({
                                 ...selectedTraverse,
-                                predictedDurationUpper: parseFloat(val),
+                                predictedDurationUpper: toDecimal(val),
                               })
                             );
                           }}

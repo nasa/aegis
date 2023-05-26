@@ -56,7 +56,7 @@ const Leaf = ({ attributes, children, leaf }: RenderLeafProps) => {
  * @param node
  * @returns HTML string
  */
-function convertSlateJSONToHTML(node: Descendant): string {
+function convertNodeToHTML(node: Descendant): string {
   if (Text.isText(node)) {
     let string = _.escape(node.text);
     if (node.bold) {
@@ -71,7 +71,7 @@ function convertSlateJSONToHTML(node: Descendant): string {
     return string;
   }
 
-  const children = node.children.map((n) => convertSlateJSONToHTML(n)).join("");
+  const children = node.children.map((n) => convertNodeToHTML(n)).join("");
 
   switch (node.type) {
     case "paragraph":
@@ -92,7 +92,7 @@ function convertSlateJSONToHTML(node: Descendant): string {
  * @param defaultValue
  * @returns
  */
-function convertStringToSlateJSON(stringValue: string, defaultValue: string = ""): Descendant[] {
+function convertStringToNodes(stringValue: string, defaultValue: string = ""): Descendant[] {
   //if no description then use default value
   if (!stringValue) {
     return [
@@ -148,7 +148,8 @@ export const WysiwygTextArea: FunctionComponent<{
   const renderElement = useCallback((props) => <Element {...props} />, []);
   const renderLeaf = useCallback((props) => <Leaf {...props} />, []);
 
-  //reset the selector when we trigger edit mode incase the value has changed
+  //reset the selector to prevent a bug where a previous edited field had more new lines
+  //  than the new current field being edited. The selector will try to find the old location
   useEffect(() => {
     editor.selection = {
       anchor: { path: [0, 0], offset: 0 },
@@ -161,7 +162,7 @@ export const WysiwygTextArea: FunctionComponent<{
       {editing ? (
         <Slate
           editor={editor}
-          value={convertStringToSlateJSON(value, defaultValue)}
+          value={convertStringToNodes(value, defaultValue)}
           onChange={(nodes: Descendant[]) => {
             const isAstChange = editor.operations.some((op) => "set_selection" !== op.type);
             if (isAstChange) {
@@ -190,8 +191,8 @@ export const WysiwygTextArea: FunctionComponent<{
           className={styles.notesText}
           dangerouslySetInnerHTML={{
             __html: _.reduce(
-              convertStringToSlateJSON(value),
-              (htmlString, decendant) => htmlString + convertSlateJSONToHTML(decendant),
+              convertStringToNodes(value),
+              (htmlString, decendant) => htmlString + convertNodeToHTML(decendant),
               ""
             ),
           }}
