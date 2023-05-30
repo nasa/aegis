@@ -1,13 +1,19 @@
-import { FunctionComponent } from "react";
+import { ChangeEvent, FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { faCalculator, faLocationDot, faMessage, faXmark } from "@fortawesome/free-solid-svg-icons";
-import { Button, LastEdited, SubpanelHeading } from "components/interface/_global-elements";
+import {
+  Button,
+  InLineEditInput,
+  LastEdited,
+  SubpanelHeading,
+} from "components/interface/_global-elements";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { setSelectedPOIRightNavItem, upsertPoi } from "store/poi";
 import { updateMapDirective } from "store/map";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { WysiwygTextArea } from "components/interface/_wysiwyg";
+import { round } from "lodash";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -221,8 +227,29 @@ const Info_Panel: FunctionComponent<{
                       <div className={paneStyles.displayFieldLabel}>Lat:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {!selectedPoi.location ? <>Not set</> : selectedPoi.location.lat.toFixed(6)}
+                      <div className={paneStyles.inputFieldValue}>
+                        {!selectedPoi.location ? (
+                          <>Not set</>
+                        ) : (
+                          <InLineEditInput
+                            fieldName="Lat"
+                            editing={editMode}
+                            styleInput={{ width: "100%" }}
+                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
+                            value={round(selectedPoi.location.lat, 6).toString()}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                              dispatch(
+                                upsertPoi({
+                                  ...selectedPoi,
+                                  location: {
+                                    lat: +parseFloat(e.currentTarget.value),
+                                    lng: selectedPoi.location.lng,
+                                  },
+                                })
+                              );
+                            }}
+                          />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -232,7 +259,28 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {!selectedPoi.location ? <>Not set</> : selectedPoi.location.lng.toFixed(6)}
+                        {!selectedPoi.location ? (
+                          <>Not set</>
+                        ) : (
+                          <InLineEditInput
+                            fieldName="Lng"
+                            editing={editMode}
+                            styleInput={{ width: "100%" }}
+                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
+                            value={round(selectedPoi.location.lng, 6).toString()}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                              dispatch(
+                                upsertPoi({
+                                  ...selectedPoi,
+                                  location: {
+                                    lat: selectedPoi.location.lat,
+                                    lng: +parseFloat(e.currentTarget.value),
+                                  },
+                                })
+                              );
+                            }}
+                          />
+                        )}
                       </div>
                     </div>
                   </div>
