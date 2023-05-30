@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback, useEffect, useState } from "react";
+import { ChangeEvent, FunctionComponent, useCallback, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
 import {
@@ -26,6 +26,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkResetWalkback, thunkUpdateStationLocation } from "store/thunk/thunkStation";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { WysiwygTextArea } from "components/interface/_wysiwyg";
+import { round } from "lodash";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -422,7 +423,24 @@ const Info_Panel: FunctionComponent<{
                         {!selectedStation.location ? (
                           <>Not set</>
                         ) : (
-                          selectedStation.location.lat.toFixed(6)
+                          <InLineEditInput
+                            fieldName="Lat"
+                            editing={editMode}
+                            styleInput={{ width: "100%" }}
+                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
+                            value={round(selectedStation.location.lat, 6).toString()}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                              dispatch(
+                                upsertStation({
+                                  ...selectedStation,
+                                  location: {
+                                    lat: +parseFloat(e.currentTarget.value),
+                                    lng: selectedStation.location.lng,
+                                  },
+                                })
+                              );
+                            }}
+                          />
                         )}
                       </div>
                     </div>
@@ -436,7 +454,24 @@ const Info_Panel: FunctionComponent<{
                         {!selectedStation.location ? (
                           <>Not set</>
                         ) : (
-                          selectedStation.location.lng.toFixed(6)
+                          <InLineEditInput
+                            fieldName="Lng"
+                            editing={editMode}
+                            styleInput={{ width: "100%" }}
+                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
+                            value={round(selectedStation.location.lng, 6).toString()}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                              dispatch(
+                                upsertStation({
+                                  ...selectedStation,
+                                  location: {
+                                    lat: selectedStation.location.lat,
+                                    lng: +parseFloat(e.currentTarget.value),
+                                  },
+                                })
+                              );
+                            }}
+                          />
                         )}
                       </div>
                     </div>
