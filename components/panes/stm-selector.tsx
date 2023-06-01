@@ -122,7 +122,7 @@ const STMSelector: FunctionComponent<{
         </div>
       ) : (
         <div className={stmStyles.stmText}>
-          <STM_Coverage actions={[action]} mini={true} horizontal={true} uniqueKey={action.uuid} />
+          <STM_Coverage actions={[action]} mini={true} horizontal={true} />
         </div>
       )}
     </>

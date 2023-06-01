@@ -1,4 +1,5 @@
-import { Dropdown, ModifiedIndicator } from "components/interface/_global-elements";
+import { ModifiedIndicator } from "components/interface/_global-elements";
+import { Dropdown } from "components/interface/form/globalFields";
 import { FunctionComponent } from "react";
 import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
@@ -174,6 +175,7 @@ const EvaItemSequence: FunctionComponent<{
                             })
                           );
                         }}
+                        toolTip="Station"
                       >
                         <option value="">-- Select a station --</option>
                         {stations.map((station) => {

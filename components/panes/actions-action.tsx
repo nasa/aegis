@@ -9,13 +9,9 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  Dropdown,
-  InLineEditInput,
-  LastEdited,
-  SubpanelHeading,
-} from "components/interface/_global-elements";
-import { WysiwygTextArea } from "components/interface/_wysiwyg";
+import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
+import { Dropdown, InLineEditInput } from "components/interface/form/globalFields";
+import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { FunctionComponent, useState, CSSProperties } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
@@ -23,9 +19,9 @@ import { deleteActionByUuid, upsertAction } from "store/action";
 import { longdateFromDateString, toDecimal } from "utils/formatting";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
-import { Tooltip } from "react-tooltip";
 import ReactDOMServer from "react-dom/server";
 import STMSelector from "./stm-selector";
+import { validators, regExValidators } from "utils/formValidators";
 
 const RightAction: FunctionComponent<{
   editMode: boolean;
@@ -45,10 +41,11 @@ const RightAction: FunctionComponent<{
     shallowEqual
   );
   const [expanded, setExpanded] = useState(false);
-  function buildActionTooltip() {
+
+  const buildActionTooltip = () => {
     if (parentAction && parentPoi) {
       const dateString = longdateFromDateString(action.parentCopyDate) + "Z";
-      return (
+      return ReactDOMServer.renderToStaticMarkup(
         <>
           Copied from {parentPoi.name} - {parentAction.name}
           <br />
@@ -58,7 +55,7 @@ const RightAction: FunctionComponent<{
     } else {
       return <></>;
     }
-  }
+  };
 
   return (
     <div className={`${paneStyles.panelContainer} ${actionStyles.actionPanelContainer}`}>
@@ -99,6 +96,7 @@ const RightAction: FunctionComponent<{
             onChange={(val) => {
               dispatch(upsertAction({ ...action, type: val as ActionType }));
             }}
+            toolTip="Action Type"
           >
             <option value="measurement">Measurement</option>
             <option value="observation">Observation</option>
@@ -110,11 +108,14 @@ const RightAction: FunctionComponent<{
 
         <div className={paneStyles.actionsHeadingSubTitle}>
           <InLineEditInput
-            fieldName="Action Title"
-            editing={editMode}
-            styleInput={{ width: "100%" }}
-            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
             value={action.name}
+            editing={editMode}
+            fieldProps={{
+              name: "name",
+              ariaLabel: "Action Title",
+              style: { width: "100%" },
+              validators: [validators.required, validators.maxLength(255)],
+            }}
             onSubmit={(value: string) => {
               dispatch(upsertAction({ ...action, name: value }));
             }}
@@ -140,11 +141,8 @@ const RightAction: FunctionComponent<{
                 icon={faCircleDot}
                 size="sm"
                 className={actionStyles.iconFaded}
-              />
-              <Tooltip
-                anchorId={`${action.uuid}-${action.parentActionUuid}`}
-                className={actionStyles.actionToolTip}
-                html={ReactDOMServer.renderToString(buildActionTooltip())}
+                data-tooltip-id="aegis-tooltip"
+                data-tooltip-html={buildActionTooltip()}
               />
             </div>
           )
@@ -182,11 +180,20 @@ const RightAction: FunctionComponent<{
                       <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.inputFieldValue}>
                           <InLineEditInput
-                            fieldName="Minimum Time in minutes"
+                            value={action.durationLower?.toString()}
                             editing={editMode}
-                            styleInput={{ width: "45px" }}
-                            styleContainer={{ fontSize: "0.8em", fontWeight: 400 }}
-                            value={action.durationLower.toString()}
+                            fieldProps={{
+                              name: "durationLower",
+                              ariaLabel: "Minimum Time in minutes",
+                              style: { width: "45px" },
+                              validators: [validators.mustBeNumber, validators.maxLength(4)],
+                              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                                e.target.value = e.target.value.replace(
+                                  regExValidators.regExNumber,
+                                  ""
+                                );
+                              },
+                            }}
                             onSubmit={(value: string) => {
                               dispatch(
                                 upsertAction({
@@ -208,11 +215,20 @@ const RightAction: FunctionComponent<{
                       <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.inputFieldValue}>
                           <InLineEditInput
-                            fieldName="Maximum Time in minutes"
-                            editing={editMode}
-                            styleInput={{ width: "45px" }}
-                            styleContainer={{ fontSize: "0.8em", fontWeight: 400 }}
                             value={action.durationUpper?.toString()}
+                            editing={editMode}
+                            fieldProps={{
+                              name: "durationUpper",
+                              ariaLabel: "Maximum Time in minutes",
+                              style: { width: "45px" },
+                              validators: [validators.mustBeNumber, validators.maxLength(4)],
+                              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                                e.target.value = e.target.value.replace(
+                                  regExValidators.regExNumber,
+                                  ""
+                                );
+                              },
+                            }}
                             onSubmit={(value: string) => {
                               dispatch(
                                 upsertAction({

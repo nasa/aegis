@@ -7,7 +7,7 @@ import {
   faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Button } from "components/interface/_global-elements";
+import { Button } from "components/interface/form/globalFields";
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
@@ -186,7 +186,8 @@ const EvaRightTraverse: FunctionComponent = () => {
                             ? panelTypes[panelType].selectedColor
                             : unselectedColor,
                       }}
-                      title={panelTypes[panelType].title}
+                      data-tooltip-id="aegis-tooltip"
+                      data-tooltip-html={panelTypes[panelType].title}
                       onClick={() => dispatch(setSelectedTraverseRightNavItem(panelType))}
                     >
                       <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />

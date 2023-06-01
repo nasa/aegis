@@ -1,14 +1,14 @@
 import { FunctionComponent, useEffect, useState, CSSProperties } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions.module.css";
-import { Button, SubpanelHeading } from "components/interface/_global-elements";
+import { SubpanelHeading } from "components/interface/_global-elements";
+import { Button } from "components/interface/form/globalFields";
 import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual } from "utils/useAppSelector";
 import { upsertAction } from "store/action";
 import Action from "./actions-action";
 import { starWars, uniqueNamesGenerator } from "unique-names-generator";
 import { v4 as uuidv4 } from "uuid";
-import "react-tooltip/dist/react-tooltip.css";
 import _ from "lodash";
 import { faPlusCircle, faTableList } from "@fortawesome/free-solid-svg-icons";
 import ReactDragListView from "react-drag-listview";
@@ -186,7 +186,6 @@ const Actions: FunctionComponent<{
                   mini={true}
                   horizontal={true}
                   onInvstgHover={highlightActions}
-                  uniqueKey="summaryInfo"
                 />
               </div>
 

@@ -1,6 +1,6 @@
 import { FunctionComponent } from "react";
 import styles from "./admin.module.css";
-import { CheckboxInputField, SelectInputField, TextInputField } from "components/form/FormInput";
+import { FFCheckbox, FFSelect, FFInput } from "components/interface/form/globalFields";
 
 const Panels: FunctionComponent = () => {
   return (
@@ -9,38 +9,22 @@ const Panels: FunctionComponent = () => {
       <div className={styles.sectionDiv}>
         <div id="viewerDiv">
           <div className={styles.editDiv}>
-            <CheckboxInputField
-              name="panelValues.viewer"
-              label={{ label: "Viewer" }}
-              className={styles.editDiv}
-            />
+            <FFCheckbox name="panelValues.viewer" label={{ label: "Viewer" }} />
           </div>
         </div>
         <div id="mapDiv">
           <div className={styles.editDiv}>
-            <CheckboxInputField
-              name="panelValues.map"
-              label={{ label: "Map" }}
-              className={styles.editDiv}
-            />
+            <FFCheckbox name="panelValues.map" label={{ label: "Map" }} />
           </div>
         </div>
         <div id="globeDiv">
           <div className={styles.editDiv}>
-            <CheckboxInputField
-              name="panelValues.globe"
-              label={{ label: "Globe" }}
-              className={styles.editDiv}
-            />
+            <FFCheckbox name="panelValues.globe" label={{ label: "Globe" }} />
           </div>
         </div>
         <div id="demurlDiv">
           <div className={styles.editDiv}>
-            <TextInputField
-              name="panelSettings.demFallbackPath"
-              label={{ label: "DEM Fallback URL" }}
-              className={styles.editDiv}
-            />
+            <FFInput name="panelSettings.demFallbackPath" label={{ label: "DEM Fallback URL" }} />
           </div>
         </div>
         <div id="formatDiv">
@@ -48,10 +32,9 @@ const Panels: FunctionComponent = () => {
             <label htmlFor="format">Fallback Format</label>
           </div>
           <div className={styles.editDiv}>
-            <SelectInputField
+            <FFSelect
               name="panelSettings.demFallbackFormat"
               label={{ label: "Fallback Format" }}
-              className={styles.editDiv}
               options={[
                 { value: "", label: "" },
                 { value: "tms", label: "TMS" },
@@ -65,10 +48,9 @@ const Panels: FunctionComponent = () => {
             <label htmlFor="type">Fallback Type</label>
           </div>
           <div className={styles.editDiv}>
-            <SelectInputField
+            <FFSelect
               name="panelSettings.demFallbackType"
               label={{ label: "Fallback Type" }}
-              className={styles.editDiv}
               options={[
                 { value: "", label: "" },
                 { value: "rbga", label: "RGBA" },

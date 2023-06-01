@@ -13,7 +13,7 @@ import {
   faTriangleExclamation,
   faCheck,
 } from "@fortawesome/free-solid-svg-icons";
-import { Button, IconDropdown, InLineEditInput } from "components/interface/_global-elements";
+import { Button, IconDropdown, InLineEditInput } from "components/interface/form/globalFields";
 import { setSelectedPOIRightNavItem, setPoiEditMode, upsertPoi } from "store/poi";
 import Info_Panel from "./poi-right-info";
 import Actions_Panel from "./poi-right-actions";
@@ -23,6 +23,7 @@ import { selectPoiActions } from "store/selectors";
 import Report_Panel from "../report";
 import { getAlertColor } from "utils/component-helpers";
 import { useDispatch } from "react-redux";
+import { validators } from "utils/formValidators";
 
 const PoiEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -121,16 +122,20 @@ const PoiEditorRight: FunctionComponent = () => {
 
           <div className={paneStyles.rightTopTitleText} style={{ color: "var(--poi)" }}>
             <InLineEditInput
-              fieldName="POI"
               value={selectedPoi.name}
               editing={poisEditing.includes(selectedPoiUuid)}
-              styleInput={{
-                width: "100%",
-                marginRight: "10px",
-                color: "var(--poi)",
-                fontSize: "1em",
+              fieldProps={{
+                name: "name",
+                ariaLabel: "POI",
+                style: {
+                  width: "100%",
+                  color: "var(--poi)",
+                  fontSize: "1em",
+                },
+                validators: [validators.required, validators.maxLength(255)],
               }}
               styleValue={{ padding: 0, height: "auto" }}
+              styleContainer={{ paddingRight: "10px" }}
               onSubmit={(val: string) => {
                 dispatch(upsertPoi({ ...selectedPoi, name: val }));
               }}
@@ -160,7 +165,8 @@ const PoiEditorRight: FunctionComponent = () => {
                           ? panelTypes[panelType].selectedColor
                           : unselectedColor,
                     }}
-                    title={panelTypes[panelType].title}
+                    data-tooltip-id="aegis-tooltip"
+                    data-tooltip-html={panelTypes[panelType].title}
                     onClick={() => dispatch(setSelectedPOIRightNavItem(panelType))}
                   >
                     <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />

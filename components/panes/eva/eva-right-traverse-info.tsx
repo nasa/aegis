@@ -5,12 +5,8 @@ import {
   faRoute,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
-import {
-  Button,
-  InLineEditInput,
-  LastEdited,
-  SubpanelHeading,
-} from "components/interface/_global-elements";
+import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
+import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { upsertTraverse } from "store/traverse";
@@ -21,7 +17,8 @@ import evaStyles from "./eva.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkResetTraverse } from "store/thunk/thunkTraverse";
 import { formatNumberWithCommas, toDecimal } from "utils/formatting";
-import { WysiwygTextArea } from "components/interface/_wysiwyg";
+import { WysiwygTextArea } from "components/interface/form/wysiwyg";
+import { validators, regExValidators } from "utils/formValidators";
 
 const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -159,11 +156,20 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         <InLineEditInput
-                          fieldName="Nominal Duration"
-                          editing={editMode}
-                          styleInput={{ width: "55px" }}
-                          styleContainer={{ fontSize: "0.8em", fontWeight: 400 }}
                           value={selectedTraverse.predictedDurationLower?.toString()}
+                          editing={editMode}
+                          fieldProps={{
+                            name: "predictedDurationLower",
+                            ariaLabel: "Nominal Duration",
+                            style: { width: "55px" },
+                            validators: [validators.mustBeNumber, validators.maxLength(4)],
+                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                              e.target.value = e.target.value.replace(
+                                regExValidators.regExNumber,
+                                ""
+                              );
+                            },
+                          }}
                           onSubmit={(val) => {
                             dispatch(
                               upsertTraverse({
@@ -180,9 +186,10 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                     <div className={paneStyles.panelColumnTableCellLeft}>
                       <div
                         className={paneStyles.inputFieldLabel}
-                        title={`${selectedEvaTraverseRate ? "EVA" : "Mission"} Default: ${
-                          selectedEvaTraverseRate || missionTraverseRate
-                        } km/hr`}
+                        data-tooltip-id="aegis-tooltip"
+                        data-tooltip-html={`${
+                          selectedEvaTraverseRate ? "EVA" : "Mission"
+                        } Default: ${selectedEvaTraverseRate || missionTraverseRate} km/hr`}
                       >
                         Traverse Rate (km/hr):
                       </div>
@@ -190,11 +197,20 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         <InLineEditInput
-                          fieldName="Traverse Rate"
-                          editing={editMode}
-                          styleInput={{ width: "55px" }}
-                          styleContainer={{ fontSize: "0.8em", fontWeight: 400 }}
                           value={selectedTraverse.traverseRate?.toString()}
+                          editing={editMode}
+                          fieldProps={{
+                            name: "traverseRate",
+                            ariaLabel: "Traverse Rate",
+                            style: { width: "55px" },
+                            validators: [validators.mustBeNumber, validators.maxLength(4)],
+                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                              e.target.value = e.target.value.replace(
+                                regExValidators.regExNumber,
+                                ""
+                              );
+                            },
+                          }}
                           onSubmit={(val: string) => {
                             dispatch(
                               upsertTraverse({
@@ -216,11 +232,20 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         <InLineEditInput
-                          fieldName="Max Duration"
-                          editing={editMode}
-                          styleInput={{ width: "55px" }}
-                          styleContainer={{ fontSize: "0.8em", fontWeight: 400 }}
                           value={selectedTraverse.predictedDurationUpper?.toString()}
+                          editing={editMode}
+                          fieldProps={{
+                            name: "predictedDurationUpper",
+                            ariaLabel: "Max Duration",
+                            style: { width: "55px" },
+                            validators: [validators.mustBeNumber, validators.maxLength(4)],
+                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                              e.target.value = e.target.value.replace(
+                                regExValidators.regExNumber,
+                                ""
+                              );
+                            },
+                          }}
                           onSubmit={(val: string) => {
                             dispatch(
                               upsertTraverse({

@@ -3,15 +3,6 @@
   padding: 0;
 }
 
-.actionPanelContainer .actionToolTip,
-.stmItem .actionToolTip {
-  z-index: 900;
-  background-color: white;
-  color: black;
-  max-width: 400px;
-  opacity: 100%;
-}
-
 .highlightAction {
   background-color: #356b6c;
   border-radius: var(--panelRadius);

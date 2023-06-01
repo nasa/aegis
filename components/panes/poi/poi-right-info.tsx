@@ -1,19 +1,16 @@
-import { ChangeEvent, FunctionComponent } from "react";
+import { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { faCalculator, faLocationDot, faMessage, faXmark } from "@fortawesome/free-solid-svg-icons";
-import {
-  Button,
-  InLineEditInput,
-  LastEdited,
-  SubpanelHeading,
-} from "components/interface/_global-elements";
+import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
+import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { setSelectedPOIRightNavItem, upsertPoi } from "store/poi";
 import { updateMapDirective } from "store/map";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
-import { WysiwygTextArea } from "components/interface/_wysiwyg";
+import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { round } from "lodash";
+import { validators } from "utils/formValidators";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -227,22 +224,26 @@ const Info_Panel: FunctionComponent<{
                       <div className={paneStyles.displayFieldLabel}>Lat:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldValue}>
+                      <div className={paneStyles.displayFieldValue}>
                         {!selectedPoi.location ? (
                           <>Not set</>
                         ) : (
                           <InLineEditInput
-                            fieldName="Lat"
-                            editing={editMode}
-                            styleInput={{ width: "100%" }}
-                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             value={round(selectedPoi.location.lat, 6).toString()}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            editing={editMode}
+                            fieldProps={{
+                              name: "lat",
+                              ariaLabel: "Latitude",
+                              style: { width: "100px" },
+                              validators: [validators.mustBeNumber],
+                            }}
+                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
+                            onSubmit={(val: string) => {
                               dispatch(
                                 upsertPoi({
                                   ...selectedPoi,
                                   location: {
-                                    lat: +parseFloat(e.currentTarget.value),
+                                    lat: parseFloat(val),
                                     lng: selectedPoi.location.lng,
                                   },
                                 })
@@ -263,18 +264,22 @@ const Info_Panel: FunctionComponent<{
                           <>Not set</>
                         ) : (
                           <InLineEditInput
-                            fieldName="Lng"
-                            editing={editMode}
-                            styleInput={{ width: "100%" }}
-                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             value={round(selectedPoi.location.lng, 6).toString()}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            editing={editMode}
+                            fieldProps={{
+                              name: "Lng",
+                              ariaLabel: "Longitude",
+                              style: { width: "100px" },
+                              validators: [validators.mustBeNumber],
+                            }}
+                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
+                            onSubmit={(val: string) => {
                               dispatch(
                                 upsertPoi({
                                   ...selectedPoi,
                                   location: {
                                     lat: selectedPoi.location.lat,
-                                    lng: +parseFloat(e.currentTarget.value),
+                                    lng: parseFloat(val),
                                   },
                                 })
                               );

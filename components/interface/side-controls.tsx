@@ -174,7 +174,8 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
             <div
               className={styles.icon}
               style={{ color: paneTypes[paneType].color }}
-              title={paneTypes[paneType].title}
+              data-tooltip-id="aegis-tooltip"
+              data-tooltip-html={paneTypes[paneType].title}
               onClick={() => {
                 dispatch(setSectionSelected(paneType));
                 dispatch(setSelectedEvaUuid(null));

@@ -141,3 +141,7 @@
   border-radius: 5px;
   color: black;
 }
+
+.checkboxRow {
+  display: flex;
+}

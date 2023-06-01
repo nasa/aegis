@@ -16,7 +16,7 @@ import {
   faTriangleExclamation,
   faCheck,
 } from "@fortawesome/free-solid-svg-icons";
-import { Button, InLineEditInput } from "components/interface/_global-elements";
+import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { setSelectedStationRightNavItem, setStationEditMode, upsertStation } from "store/station";
 
 import Info_Panel from "./station-right-info";
@@ -29,6 +29,7 @@ import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDeleteStation, thunkSaveStation, thunkStationCancel } from "store/thunk/thunkStation";
+import { validators } from "utils/formValidators";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -194,14 +195,17 @@ const StationEditorRight: FunctionComponent = () => {
           )}
           <div className={paneStyles.rightTopTitleText} style={{ color: "var(--station)" }}>
             <InLineEditInput
-              fieldName="Station"
               value={selectedStation.name}
               editing={stationsEditing.includes(selectedStationUuid)}
-              styleInput={{
-                width: "100%",
-                marginRight: "10px",
-                color: "var(--station)",
-                fontSize: "1em",
+              fieldProps={{
+                name: "name",
+                ariaLabel: "Station",
+                style: {
+                  width: "100%",
+                  color: "var(--station)",
+                  fontSize: "1em",
+                },
+                validators: [validators.required, validators.maxLength(255)],
               }}
               styleValue={{ padding: 0, height: "auto" }}
               styleContainer={{ paddingLeft: 0 }}
@@ -235,7 +239,8 @@ const StationEditorRight: FunctionComponent = () => {
                             ? panelTypes[panelType].selectedColor
                             : unselectedColor,
                       }}
-                      title={panelTypes[panelType].title}
+                      data-tooltip-id="aegis-tooltip"
+                      data-tooltip-html={panelTypes[panelType].title}
                       onClick={() => dispatch(setSelectedStationRightNavItem(panelType))}
                     >
                       <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />

@@ -15,7 +15,7 @@ import {
   faCheck,
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
-import { Button, InLineEditInput } from "components/interface/_global-elements";
+import { Button, InLineEditInput } from "components/interface/form/globalFields";
 
 import Info_Panel from "./eva-right-eva-info";
 import Actions_Panel from "./eva-right-eva-actions";
@@ -29,6 +29,7 @@ import {
   thunkGetStationOrTraverse,
   thunkSaveEva,
 } from "store/thunk/thunkEva";
+import { validators } from "utils/formValidators";
 
 const EvaRightEva: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -204,14 +205,17 @@ const EvaRightEva: FunctionComponent = () => {
         <div className={paneStyles.rightTopTitle}>
           <div className={paneStyles.rightTopTitleText} style={{ color: "var(--eva)" }}>
             <InLineEditInput
-              fieldName="Station"
               value={selectedEva.name}
               editing={evasEditing.includes(selectedEvaUuid)}
-              styleInput={{
-                width: "100%",
-                marginRight: "10px",
-                color: "var(--eva)",
-                fontSize: "1em",
+              fieldProps={{
+                name: "name",
+                ariaLabel: "Station",
+                style: {
+                  width: "100%",
+                  color: "var(--eva)",
+                  fontSize: "1em",
+                },
+                validators: [validators.required, validators.maxLength(255)],
               }}
               styleValue={{ padding: 0, height: "auto" }}
               styleContainer={{ paddingLeft: 0 }}
@@ -245,7 +249,8 @@ const EvaRightEva: FunctionComponent = () => {
                             ? panelTypes[panelType].selectedColor
                             : unselectedColor,
                       }}
-                      title={panelTypes[panelType].title}
+                      data-tooltip-id="aegis-tooltip"
+                      data-tooltip-html={panelTypes[panelType].title}
                       onClick={() => dispatch(setSelectedEvaRightNavItem(panelType))}
                     >
                       <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
