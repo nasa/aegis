@@ -1,178 +1,10 @@
-import { IconDefinition, IconProp } from "@fortawesome/fontawesome-svg-core";
+import { IconProp } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
-import {
-  FunctionComponent,
-  Children,
-  cloneElement,
-  useState,
-  CSSProperties,
-  ChangeEvent,
-  ReactNode,
-} from "react";
-
+import { FunctionComponent, ReactNode } from "react";
 import styles from "./_global-elements.module.css";
 import _ from "lodash";
-import { TagsInput } from "react-tag-input-component";
 import { longdateFromDateString } from "utils/formatting";
-import { decodeEmoji } from "utils/formatting";
-import { FieldValidator } from "final-form";
-import { TextInputField } from "components/form/FormInput";
-import { Form } from "react-final-form";
 import React from "react";
-
-export const Button: FunctionComponent<{
-  onClick: () => void;
-  label?: string;
-  toolTip?: string;
-  icon?: IconDefinition;
-  style?: CSSProperties;
-  labelStyle?: CSSProperties;
-  size?: "xs" | "lg";
-  enabled?: boolean;
-}> = ({ onClick, label, toolTip, icon, style, labelStyle, size, enabled = true }) => {
-  const enabledStyle = !enabled ? styles.iconButtonDisabled : "";
-  return (
-    <div
-      className={`${styles.button} ${enabledStyle} `}
-      title={toolTip}
-      onClick={onClick}
-      style={style}
-    >
-      {icon && <FontAwesomeIcon icon={icon} size={size} className={styles.buttonLabelIcon} />}
-      <div style={labelStyle}>{label}</div>
-    </div>
-  );
-};
-
-export const Dropdown: FunctionComponent<{
-  children: any;
-  selected: string;
-  containerStyle?: CSSProperties;
-  selectStyle?: CSSProperties;
-  arrowStyle?: CSSProperties;
-  onChange: (value: string) => void;
-}> = ({ children, selected, containerStyle, selectStyle, arrowStyle, onChange }) => {
-  return (
-    <div className={styles.select} style={containerStyle}>
-      <select
-        value={selected}
-        style={selectStyle}
-        title="dropdown"
-        onChange={(e) => onChange(e.target.value)}
-        onClick={(e) => {
-          e.stopPropagation();
-        }}
-      >
-        {children}
-      </select>
-      <div className={styles.select_arrow} style={arrowStyle}>
-        <FontAwesomeIcon icon={faChevronDown} size="xs" />
-      </div>
-    </div>
-  );
-};
-
-export const IconDropdown: FunctionComponent<{
-  items: any[];
-  editing: boolean;
-  selected: string;
-  setSelected: Function;
-}> = ({ items, editing, selected, setSelected }) => {
-  const [expanded, setExpanded] = useState(false);
-
-  if (!editing) {
-    return (
-      <div className={styles.iconDropdownContainer}>
-        <div className={styles.iconDropdownModalItemNotEditing}>
-          <div className={styles.itemIcon}>{decodeEmoji(selected)}</div>
-        </div>
-      </div>
-    );
-  } else {
-    let selectedItem;
-    if (selected) {
-      selectedItem = (
-        <div className={styles.iconDropdownModalItem}>
-          <div className={styles.itemIcon}>{decodeEmoji(selected)}</div>
-        </div>
-      );
-    } else {
-      selectedItem = (
-        <div className={styles.iconDropdownModalItem}>
-          <div className={styles.iconDropdownModalItemLabel}></div>
-        </div>
-      );
-    }
-
-    return (
-      <div
-        tabIndex={0}
-        className={styles.iconDropdownContainer}
-        onClick={() => setExpanded(!expanded)}
-        onBlur={() => {
-          setExpanded(false);
-        }}
-      >
-        {selectedItem}
-        <span className={styles.colorSelectArrow}>
-          <FontAwesomeIcon icon={faChevronDown} size="xs" />
-        </span>
-        {expanded && (
-          <div className={styles.iconDropdownModalList}>
-            {items.map((item, index) => {
-              return (
-                <div
-                  className={styles.iconDropdownModalItem}
-                  key={`${item}_${index}`}
-                  onClick={() => setSelected(item)}
-                >
-                  <div className={styles.itemIcon}>{decodeEmoji(item)}</div>
-                  <div className={styles.iconDropdownModalItemLabel}>{item.label}</div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  }
-};
-
-export const MultiButton: FunctionComponent<{
-  children: ReactNode;
-  editing: boolean;
-  selected: string;
-  handleChange: Function;
-}> = ({ children, editing, selected, handleChange }) => {
-  return (
-    <div className={styles.multiButtonGroup}>
-      {/* Loop through the children and add the multibutton styling to each child depending on its position in the list */}
-      {Children.map(children, (child: any, idx) => {
-        let buttonStyle = styles.multiButton;
-        let selectedStyle = child.props.children === selected ? styles.multiButtonSelected : "";
-        if (editing) {
-          buttonStyle = styles.multiButtonEditing;
-          selectedStyle =
-            child.props.children === selected ? styles.multiButtonEditingSelected : "";
-        }
-
-        let style;
-        if (idx === 0) style = `${buttonStyle} ${selectedStyle} ${styles.multiButtonStart}`;
-        else if (idx === Children.count(children) - 1)
-          style = ` ${buttonStyle} ${selectedStyle} ${styles.multiButtonEnd}`;
-        else style = `${buttonStyle} ${selectedStyle} ${styles.multiButtonMiddle}`;
-
-        return cloneElement(child as any, {
-          className: style,
-          onClick: () => {
-            if (editing) handleChange(child.props.children);
-          },
-        });
-      })}
-    </div>
-  );
-};
 
 export const ModifiedIndicator: FunctionComponent<{
   obj1: Object;
@@ -185,137 +17,17 @@ export const ModifiedIndicator: FunctionComponent<{
     return <></>;
   } else {
     return (
-      <span title="Unsaved changes" className={styles.modifiedSpan}>
+      <span
+        data-tooltip-id="aegis-tooltip"
+        data-tooltip-html="Unsaved changes"
+        className={styles.modifiedSpan}
+      >
         <svg height={svgStyle.height} width={svgStyle.width}>
           <circle cx={svgStyle.cx} cy={svgStyle.cy} r={svgStyle.r} fill={svgStyle.fill} />
         </svg>
       </span>
     );
   }
-};
-
-export const InLineEditInput: FunctionComponent<{
-  value: string;
-  fieldName: string;
-  editing: boolean;
-  styleInput: CSSProperties;
-  styleValue?: CSSProperties;
-  styleContainer?: CSSProperties;
-  onChange?: React.ChangeEventHandler;
-  onBlur?: React.FocusEventHandler;
-  onSubmit?: (value: string) => void;
-  validators?: FieldValidator<unknown>[];
-  initialValue?: string;
-  placeholder?: string;
-  disabled?: boolean;
-}> = ({
-  value,
-  fieldName,
-  editing,
-  styleInput,
-  styleValue,
-  styleContainer,
-  onChange,
-  onBlur,
-  onSubmit,
-  validators,
-  initialValue,
-  placeholder,
-  disabled,
-}) => {
-  return (
-    <div style={styleContainer}>
-      {editing && (
-        <Form
-          onSubmit={(formValues) => {
-            if (onSubmit) onSubmit(formValues.tempName);
-          }}
-          initialValues={{ tempName: value }}
-          render={({ handleSubmit, form }) => {
-            return (
-              <form onSubmit={handleSubmit}>
-                <div style={styleContainer}>
-                  <TextInputField
-                    name="tempName"
-                    validators={validators}
-                    fieldName={fieldName}
-                    styleInput={styleInput}
-                    classNameInput={styles.inLineEditInput}
-                    onChange={onChange}
-                    onBlur={(event: React.FocusEvent) => {
-                      if (onBlur) onBlur(event);
-                      form.submit();
-                    }}
-                    initialValue={initialValue}
-                    placeholder={placeholder}
-                    disabled={disabled}
-                  />
-                </div>
-              </form>
-            );
-          }}
-        />
-      )}
-      {!editing && (
-        <div className={styles.inLineEditValue} style={styleValue} title={fieldName}>
-          {value}
-        </div>
-      )}
-    </div>
-  );
-};
-
-export const Tags: FunctionComponent<{
-  value: string[];
-  editing: boolean;
-  onChange: (tags: string[]) => void;
-  name: string;
-  separators: string[];
-  placeHolder: string;
-  onExisting: (tag: string) => void;
-}> = ({ value, editing, onChange, name, separators, placeHolder, onExisting }) => {
-  return (
-    <>
-      {editing && (
-        <div className={styles.tagsContainer}>
-          <TagsInput
-            value={value}
-            onChange={onChange}
-            name={name}
-            separators={separators}
-            placeHolder={placeHolder}
-            onExisting={onExisting}
-          />
-        </div>
-      )}
-      {!editing && (
-        <div className={styles.tagListContainer}>
-          {value.map((tag) => (
-            <div className={styles.tagListItem} key={tag}>
-              {tag}
-            </div>
-          ))}
-        </div>
-      )}
-    </>
-  );
-};
-
-export const Checkbox: FunctionComponent<{
-  checked: boolean;
-  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
-}> = ({ checked, onChange }) => {
-  return (
-    <div className={styles.checkboxContainer}>
-      <input
-        type="checkbox"
-        title="checkbox"
-        checked={checked}
-        onChange={onChange}
-        className={checked ? styles.checkboxChecked : ""}
-      />
-    </div>
-  );
 };
 
 export const LastEdited: FunctionComponent<{
@@ -377,7 +89,11 @@ export const LastEdited: FunctionComponent<{
 
   if (!updatedAt) return <></>;
   return (
-    <div className={styles.updatedAt} title={`${longdateFromDateString(updatedAt)} Z`}>
+    <div
+      className={styles.updatedAt}
+      data-tooltip-id="aegis-tooltip"
+      data-tooltip-html={`${longdateFromDateString(updatedAt)} Z`}
+    >
       {<>{returnDivContent(updatedAt)}</>}
     </div>
   );

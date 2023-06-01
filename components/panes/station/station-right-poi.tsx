@@ -6,7 +6,8 @@ import { upsertStation } from "store/station";
 import poiStyles from "../poi/poi.module.css";
 import stationStyles from "./station.module.css";
 import _ from "lodash";
-import { Checkbox, SubpanelHeading } from "components/interface/_global-elements";
+import { SubpanelHeading } from "components/interface/_global-elements";
+import { Checkbox } from "components/interface/form/globalFields";
 import { setMapItemHoverUuid } from "store/playheadHover";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 
@@ -85,6 +86,7 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             };
                             dispatch(upsertStation(updatedStation));
                           }}
+                          toolTip={`Link ${poi.name}`}
                         />
 
                         {poi.icon && (

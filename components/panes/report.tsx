@@ -1,7 +1,6 @@
 import { FunctionComponent } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import styles from "./report.module.css";
-import "react-tooltip/dist/react-tooltip.css";
 import { useDispatch } from "react-redux";
 import { faCircleInfo, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";

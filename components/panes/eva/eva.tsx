@@ -5,7 +5,7 @@ import styles from "./eva.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import EvaItem from "./eva-item";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
-import { Button } from "components/interface/_global-elements";
+import { Button } from "components/interface/form/globalFields";
 import { faClone, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreateEva, thunkDuplicateEva } from "store/thunk/thunkEva";

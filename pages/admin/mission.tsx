@@ -12,6 +12,7 @@ import { faArrowAltCircleLeft, faTimesCircle } from "@fortawesome/free-regular-s
 import { getLayers, upsertLayer } from "http-client/layer";
 import MissionEditor from "components/admin/missionEditor";
 import { isValidJson } from "utils/formatting";
+import { Tooltip } from "react-tooltip";
 
 const Mission: NextPage = () => {
   const router = useRouter();
@@ -301,6 +302,7 @@ const Mission: NextPage = () => {
     <>
       {admin ? (
         <div className={styles.pageStyle}>
+          <Tooltip id="aegis-tooltip" className={styles.tooltip} />
           <div className={styles.header}>
             <Header />
           </div>

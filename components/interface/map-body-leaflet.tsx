@@ -34,7 +34,7 @@ import {
   getMidpoint,
 } from "utils/geoMath";
 import { decodeEmoji } from "utils/formatting";
-import { Checkbox } from "./_global-elements";
+import { Checkbox } from "components/interface/form/globalFields";
 import { setAllHoverUuids } from "store/playheadHover";
 import {
   thunkUpdateStationLocation,
@@ -1375,6 +1375,7 @@ const MapBody: FunctionComponent = () => {
                 onChange={(e) => {
                   setShowAllPois(e.target.checked);
                 }}
+                toolTip="Show/Hide all POIs on map"
               />
             </div>
             <div className={styles.controlTitle}>All POIs</div>
@@ -1386,6 +1387,7 @@ const MapBody: FunctionComponent = () => {
                 onChange={(e) => {
                   setShowAllStations(e.target.checked);
                 }}
+                toolTip="Show/Hide all Stations on map"
               />
             </div>
             <div className={styles.controlTitle}>All Stations</div>

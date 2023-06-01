@@ -16,9 +16,10 @@ import Info_panel from "./preset-right-info";
 import Layers_Panel from "./preset-right-layers";
 import paneStyles from "../global-pane-styles.module.css";
 import { setPresetEditMode, setSelectedPresetRightNavItem, upsertPreset } from "store/preset";
-import { Button, InLineEditInput } from "components/interface/_global-elements";
+import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDeletePreset, thunkPresetCancel, thunkSavePreset } from "store/thunk/thunkPreset";
+import { validators } from "utils/formValidators";
 
 const PresetEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -73,14 +74,17 @@ const PresetEditorRight: FunctionComponent = () => {
         <div className={paneStyles.rightTopTitle} style={{ color: "var(--preset)" }}>
           <div className={paneStyles.rightTopTitleText}>
             <InLineEditInput
-              fieldName="Preset Name"
               value={selectedPreset.name}
               editing={presetsEditing.includes(selectedPresetUuid)}
-              styleInput={{
-                width: "100%",
-                marginRight: "10px",
-                color: "var(--preset)",
-                fontSize: "1em",
+              fieldProps={{
+                name: "name",
+                ariaLabel: "Preset Title",
+                style: {
+                  width: "100%",
+                  color: "var(--preset)",
+                  fontSize: "1em",
+                },
+                validators: [validators.required, validators.maxLength(255)],
               }}
               styleContainer={{ paddingLeft: 0 }}
               styleValue={{ padding: 0, height: "auto" }}
@@ -110,7 +114,8 @@ const PresetEditorRight: FunctionComponent = () => {
                           ? panelTypes[panelType].selectedColor
                           : "white",
                     }}
-                    title={panelTypes[panelType].title}
+                    data-tooltip-id="aegis-tooltip"
+                    data-tooltip-html={panelTypes[panelType].title}
                     onClick={() => dispatch(setSelectedPresetRightNavItem(panelType))}
                   >
                     <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />

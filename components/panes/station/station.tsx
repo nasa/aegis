@@ -2,7 +2,7 @@ import styles from "./station.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent } from "react";
-import { Button } from "components/interface/_global-elements";
+import { Button } from "components/interface/form/globalFields";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import StationItem from "./station-item";
 import _ from "lodash";

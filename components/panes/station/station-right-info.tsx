@@ -1,4 +1,4 @@
-import { ChangeEvent, FunctionComponent, useCallback, useEffect, useState } from "react";
+import { FunctionComponent, useCallback, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
 import {
@@ -10,12 +10,8 @@ import {
   faRoute,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
-import {
-  Button,
-  InLineEditInput,
-  LastEdited,
-  SubpanelHeading,
-} from "components/interface/_global-elements";
+import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
+import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, upsertStation } from "store/station";
@@ -25,8 +21,9 @@ import { formatNumberWithCommas, toDecimal } from "utils/formatting";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkResetWalkback, thunkUpdateStationLocation } from "store/thunk/thunkStation";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
-import { WysiwygTextArea } from "components/interface/_wysiwyg";
+import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { round } from "lodash";
+import { validators, regExValidators } from "utils/formValidators";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -222,10 +219,19 @@ const Info_Panel: FunctionComponent<{
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         <InLineEditInput
-                          fieldName="Minimum Time in minutes"
                           editing={editMode}
-                          styleInput={{ width: "45px" }}
-                          styleContainer={{ fontSize: "0.8em", fontWeight: 400 }}
+                          fieldProps={{
+                            name: "durationLower",
+                            ariaLabel: "Minimum Time in minutes",
+                            style: { width: "45px" },
+                            validators: [validators.mustBeNumber, validators.maxLength(4)],
+                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                              e.target.value = e.target.value.replace(
+                                regExValidators.regExNumber,
+                                ""
+                              );
+                            },
+                          }}
                           value={selectedStation.durationLower?.toString()}
                           onSubmit={(val: string) => {
                             dispatch(
@@ -248,11 +254,20 @@ const Info_Panel: FunctionComponent<{
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         <InLineEditInput
-                          fieldName="Maximum Time in minutes"
-                          editing={editMode}
-                          styleInput={{ width: "45px" }}
-                          styleContainer={{ fontSize: "0.8em", fontWeight: 400 }}
                           value={selectedStation.durationUpper?.toString()}
+                          editing={editMode}
+                          fieldProps={{
+                            name: "durationUpper",
+                            ariaLabel: "Maximum Time in minutes",
+                            style: { width: "45px" },
+                            validators: [validators.mustBeNumber, validators.maxLength(4)],
+                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                              e.target.value = e.target.value.replace(
+                                regExValidators.regExNumber,
+                                ""
+                              );
+                            },
+                          }}
                           onSubmit={(val: string) => {
                             dispatch(
                               upsertStation({
@@ -424,17 +439,21 @@ const Info_Panel: FunctionComponent<{
                           <>Not set</>
                         ) : (
                           <InLineEditInput
-                            fieldName="Lat"
-                            editing={editMode}
-                            styleInput={{ width: "100%" }}
-                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             value={round(selectedStation.location.lat, 6).toString()}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            editing={editMode}
+                            fieldProps={{
+                              name: "Lat",
+                              ariaLabel: "Latitude",
+                              style: { width: "100px" },
+                              validators: [validators.mustBeNumber],
+                            }}
+                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
+                            onSubmit={(val: string) => {
                               dispatch(
                                 upsertStation({
                                   ...selectedStation,
                                   location: {
-                                    lat: +parseFloat(e.currentTarget.value),
+                                    lat: parseFloat(val),
                                     lng: selectedStation.location.lng,
                                   },
                                 })
@@ -455,18 +474,22 @@ const Info_Panel: FunctionComponent<{
                           <>Not set</>
                         ) : (
                           <InLineEditInput
-                            fieldName="Lng"
-                            editing={editMode}
-                            styleInput={{ width: "100%" }}
-                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             value={round(selectedStation.location.lng, 6).toString()}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            editing={editMode}
+                            fieldProps={{
+                              name: "Lng",
+                              ariaLabel: "Longitude",
+                              style: { width: "100px" },
+                              validators: [validators.mustBeNumber],
+                            }}
+                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
+                            onSubmit={(val: string) => {
                               dispatch(
                                 upsertStation({
                                   ...selectedStation,
                                   location: {
                                     lat: selectedStation.location.lat,
-                                    lng: +parseFloat(e.currentTarget.value),
+                                    lng: parseFloat(val),
                                   },
                                 })
                               );

@@ -37,6 +37,7 @@ import { thunkCreateStationCalculatedFields } from "store/thunk/thunkStation";
 import { thunkCreateTraverseCalculatedFields } from "store/thunk/thunkTraverse";
 import { thunkCreateEvasCalculatedFields } from "store/thunk/thunkEva";
 import { thunkCreatePoiCalculatedFields } from "store/thunk/thunkPoi";
+import { Tooltip } from "react-tooltip";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -278,6 +279,7 @@ const Main: NextPage = () => {
 
   return (
     <div className={styles.page}>
+      <Tooltip id="aegis-tooltip" className={styles.tooltip} clickable={true} delayShow={1000} />
       <div className={styles.header}>
         <Header />
       </div>

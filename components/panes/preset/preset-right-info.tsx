@@ -1,10 +1,14 @@
 import { FunctionComponent, ChangeEvent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
+import presetStyles from "./preset.module.css";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { setPresetEditMode, upsertPreset } from "store/preset";
 import _ from "lodash";
-import { WysiwygTextArea } from "components/interface/_wysiwyg";
+import { WysiwygTextArea } from "components/interface/form/wysiwyg";
+import { Checkbox } from "components/interface/form/globalFields";
+import { SubpanelHeading } from "components/interface/_global-elements";
+import { faMessage } from "@fortawesome/free-solid-svg-icons";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -36,87 +40,92 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       <div className={paneStyles.panelContainer}>
         <div className={paneStyles.panelSection}>
           <div className={paneStyles.panelSectionTitle}>
-            {editMode ? (
-              <>
-                <input
-                  className={paneStyles.check}
-                  type="checkbox"
-                  title="Set preset visibility"
-                  checked={selectedPreset.missionPreset}
-                  onChange={(evt) => {
-                    if (!editMode) return;
-                    if (evt.target.checked) {
-                      dispatch(upsertPreset({ ...selectedPreset, missionPreset: true }));
-                    } else {
-                      // if the preset is being unset as a mission preset, then we need to also make sure it is not the default preset
-                      dispatch(
-                        upsertPreset({
-                          ...selectedPreset,
-                          missionPreset: false,
-                          missionPresetDefault: false,
-                        })
-                      );
-                    }
-                  }}
-                />
-                <>Preset is visible to everyone</>
-              </>
-            ) : (
-              <span className={paneStyles.checkUneditable}>
-                {selectedPreset.missionPreset ? (
-                  <>Preset is visible to everyone</>
-                ) : (
-                  <>Preset is visible to only you</>
-                )}
-              </span>
-            )}
-          </div>
-        </div>
-        {selectedPreset.missionPreset && (
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>
+            <div className={presetStyles.checkboxRow}>
               {editMode ? (
                 <>
-                  <input
-                    className={paneStyles.check}
-                    type="checkbox"
-                    title="Set default preset"
-                    checked={selectedPreset.missionPresetDefault}
+                  <Checkbox
+                    checked={selectedPreset.missionPreset}
                     onChange={(evt) => {
                       if (!editMode) return;
-                      handleDefaultPresetChange(evt);
+                      if (evt.target.checked) {
+                        dispatch(upsertPreset({ ...selectedPreset, missionPreset: true }));
+                      } else {
+                        // if the preset is being unset as a mission preset, then we need to also make sure it is not the default preset
+                        dispatch(
+                          upsertPreset({
+                            ...selectedPreset,
+                            missionPreset: false,
+                            missionPresetDefault: false,
+                          })
+                        );
+                      }
                     }}
+                    toolTip="Set preset visibility"
                   />
-                  <>Preset is the mission&apos;s default</>
+                  <div className={paneStyles.verticalCenter}>Preset is visible to everyone</div>
                 </>
               ) : (
                 <span className={paneStyles.checkUneditable}>
-                  {selectedPreset.missionPresetDefault ? (
-                    <>Preset is the mission&apos;s default</>
+                  {selectedPreset.missionPreset ? (
+                    <>Preset is visible to everyone</>
                   ) : (
-                    <>Preset is not the mission&apos;s default</>
+                    <>Preset is visible to only you</>
                   )}
                 </span>
               )}
             </div>
           </div>
+        </div>
+        {selectedPreset.missionPreset && (
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>
+              <div className={presetStyles.checkboxRow}>
+                {editMode ? (
+                  <>
+                    <Checkbox
+                      checked={selectedPreset.missionPresetDefault}
+                      onChange={(evt) => {
+                        if (!editMode) return;
+                        handleDefaultPresetChange(evt);
+                      }}
+                      toolTip="Set default preset"
+                    />
+                    <div className={paneStyles.verticalCenter}>
+                      Preset is the mission&apos;s default
+                    </div>
+                  </>
+                ) : (
+                  <span className={paneStyles.checkUneditable}>
+                    {selectedPreset.missionPresetDefault ? (
+                      <>Preset is the mission&apos;s default</>
+                    ) : (
+                      <>Preset is not the mission&apos;s default</>
+                    )}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
         )}
         <div className={paneStyles.panelSection}>
-          <div className={paneStyles.panelSectionTitle}>Preset Description</div>
-          {/* Need to have the code duplication below to show the default description before and after edit mode */}
-          <WysiwygTextArea
-            value={selectedPreset?.description}
-            defaultValue="Enter description here"
-            editing={editMode}
-            onChange={(value) => {
-              dispatch(
-                upsertPreset({
-                  ...selectedPreset,
-                  description: value,
-                })
-              );
-            }}
-          />
+          <div className={paneStyles.panelSectionTitle}>
+            <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
+          </div>
+          <div className={paneStyles.descriptionContainer}>
+            <WysiwygTextArea
+              value={selectedPreset?.description}
+              defaultValue="Enter description here"
+              editing={editMode}
+              onChange={(value) => {
+                dispatch(
+                  upsertPreset({
+                    ...selectedPreset,
+                    description: value,
+                  })
+                );
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>

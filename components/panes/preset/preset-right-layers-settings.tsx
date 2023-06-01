@@ -1,6 +1,5 @@
 import { FunctionComponent } from "react";
 import styles from "./preset-right-layers-settings.module.css";
-// import { Dropdown } from "components/interface/_global-elements";
 import { useDispatch } from "react-redux";
 import { setPresetLayerControlStyle } from "store/preset";
 import getPercentOrDefault from "utils/getPercentOrDefault";
@@ -28,7 +27,9 @@ const Slider: FunctionComponent<{
           min={min}
           max={max}
           name={name}
-          title={name}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-html={name}
+          aria-label={name}
           defaultValue={value}
           className={styles.slider}
           onChange={onChange}
@@ -194,6 +195,7 @@ const Settings_subpanel: FunctionComponent<{
               onChange={(value) => {
                 setBlendMode(value);
               }}
+              toolTip="Blend Mode"
             >
               <option value="normal">Normal</option>
               <option value="multiply">Multiply</option>

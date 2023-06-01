@@ -18,7 +18,7 @@ import { clearMapItemHover } from "store/playheadHover";
 import _ from "lodash";
 import { STM_Coverage } from "components/panes/stm-coverage";
 import * as TimelineDrawing from "./timeline-drawing";
-import { Button } from "./_global-elements";
+import { Button } from "components/interface/form/globalFields";
 import { faChartArea, faChartLine } from "@fortawesome/free-solid-svg-icons";
 import { setShowDistanceFromLander, setShowElevation } from "store/interface";
 import { selectEVASequenceItem } from "store/cross-slice";
@@ -576,7 +576,6 @@ const NavTimeline: FunctionComponent = () => {
           )}
           mini={true}
           horizontal={false}
-          uniqueKey="evaTimelineStm"
         />
       </div>
     </div>

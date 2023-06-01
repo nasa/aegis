@@ -2,7 +2,7 @@ import { Editable, RenderElementProps, RenderLeafProps, Slate, withReact } from 
 import { createEditor, Descendant, Text, Editor } from "slate";
 import { CustomEditor } from "typings/wysiwyg";
 import { FunctionComponent, useCallback, useEffect, useState } from "react";
-import styles from "./_global-elements.module.css";
+import styles from "./wysiwyg.module.css";
 import _ from "lodash";
 import isHotkey from "is-hotkey";
 

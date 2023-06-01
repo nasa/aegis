@@ -4,7 +4,6 @@ import stationStyles from "./station.module.css";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { duplicateAction } from "store/action";
-import "react-tooltip/dist/react-tooltip.css";
 import { faCaretDown, faCaretRight, faClone } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setSelectedPoiUuid } from "store/poi";
@@ -154,7 +153,8 @@ const Actions_Panel: FunctionComponent<{
                             </div>
                             <div
                               className={paneStyles.actionHeadingIcons}
-                              title="Copy action to station"
+                              data-tooltip-id="aegis-tooltip"
+                              data-tooltip-html="Copy this action to station"
                             >
                               {!inStation && editMode && (
                                 <FontAwesomeIcon
