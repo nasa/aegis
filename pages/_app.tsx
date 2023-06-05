@@ -1,5 +1,6 @@
 import "../styles/globals.css";
 import "leaflet/dist/leaflet.css";
+import "../styles/leaflet-blend.css";
 import "../styles/fonts.css";
 import { wrapper } from "../store";
 

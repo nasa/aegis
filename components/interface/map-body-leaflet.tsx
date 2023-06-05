@@ -206,6 +206,10 @@ const MapBody: FunctionComponent = () => {
               opacity: layerControls[configSublayer.name].style?.opacity,
               zIndex: index,
               filter,
+              // custom class name that we use to control mix-blend-mode
+              className: `leaflet-layer leaflet-blend-${
+                layerControls[configSublayer.name].style?.blendMode
+              }`,
             }
           );
           map.current.addLayer(tileLayer);
@@ -272,6 +276,8 @@ const MapBody: FunctionComponent = () => {
             (layer as L.TileLayer).updateFilter(
               makeTileLayerColorFilter(layerControls, layerControl.name)
             );
+            // custom class name that we use to control mix-blend-mode
+            layer.getContainer().className = `leaflet-layer leaflet-blend-${layerControl.style?.blendMode}`;
           } else if (layer.options.type === "vector") {
             (layer as L.GeoJSON).setStyle({
               color: layerControl.style?.color,

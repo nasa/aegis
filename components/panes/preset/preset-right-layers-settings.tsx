@@ -1,5 +1,6 @@
 import { FunctionComponent } from "react";
 import styles from "./preset-right-layers-settings.module.css";
+import { Dropdown } from "components/interface/form/globalFields";
 import { useDispatch } from "react-redux";
 import { setPresetLayerControlStyle } from "store/preset";
 import getPercentOrDefault from "utils/getPercentOrDefault";
@@ -112,15 +113,15 @@ const Settings_subpanel: FunctionComponent<{
       })
     );
   };
-  // const setBlendMode = (value: string) => {
-  //   dispatch(
-  //     setPresetLayerControlStyle({
-  //       presetUuid: selectedPreset.uuid,
-  //       layerName: sublayer.name,
-  //       style: { ...presetLayerStyle, blendMode: value },
-  //     })
-  //   );
-  // };
+  const setBlendMode = (value: string) => {
+    dispatch(
+      setPresetLayerControlStyle({
+        presetUuid: selectedPreset.uuid,
+        layerName: sublayer.name,
+        style: { ...presetLayerStyle, blendMode: value },
+      })
+    );
+  };
   const setColor = (value: string) => {
     dispatch(
       setPresetLayerControlStyle({
@@ -185,7 +186,7 @@ const Settings_subpanel: FunctionComponent<{
           onChange={(e) => setSaturation(Number(e.target.value))}
         />
       )}
-      {/* {showSliders.blendMode && (
+      {showSliders.blendMode && (
         <div className={styles.listItem}>
           <div className={styles.listItemText}>Blend</div>
           <div className={styles.listItemControl}>
@@ -198,25 +199,23 @@ const Settings_subpanel: FunctionComponent<{
               toolTip="Blend Mode"
             >
               <option value="normal">Normal</option>
-              <option value="multiply">Multiply</option>
-              <option value="screen">Screen</option>
-              <option value="overlay">Overlay</option>
-              <option value="darken">Darken</option>
-              <option value="lighten">Lighten</option>
-              <option value="color-dodge">Color Dodge</option>
+              <option value="color">Color</option>
               <option value="color-burn">Color Burn</option>
-              <option value="hard-light">Hard Light</option>
-              <option value="soft-light">Soft Light</option>
+              <option value="color-dodge">Color Dodge</option>
+              <option value="darken">Darken</option>
               <option value="difference">Difference</option>
               <option value="exclusion">Exclusion</option>
+              <option value="hard-light">Hard Light</option>
               <option value="hue">Hue</option>
-              <option value="saturation">Saturation</option>
-              <option value="color">Color</option>
+              <option value="lighten">Lighten</option>
               <option value="luminosity">Luminosity</option>
+              <option value="multiply">Multiply</option>
+              <option value="overlay">Overlay</option>
+              <option value="saturation">Saturation</option>
             </Dropdown>
           </div>
         </div>
-      )} */}
+      )}
       {showSliders.colorPicker && (
         <div className={styles.listItem}>
           <div className={styles.listItemText}>Stroke Color</div>
