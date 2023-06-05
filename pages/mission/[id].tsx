@@ -150,7 +150,7 @@ const Main: NextPage = () => {
                   contrast: 1,
                   brightness: 1,
                   saturation: 1,
-                  blendMode: "Normal",
+                  blendMode: "normal",
                   color: sublayer.style?.color || "#FFFFFF",
                   weight: sublayer.style?.weight || 1,
                   fillColor: sublayer.style?.fillColor || "#FFFFFF",
