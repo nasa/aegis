@@ -425,7 +425,6 @@ const Info_Panel: FunctionComponent<{
             ) : (
               <div className={paneStyles.sectionButtonRowEmpty} />
             )}
-
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
@@ -445,7 +444,7 @@ const Info_Panel: FunctionComponent<{
                               name: "Lat",
                               ariaLabel: "Latitude",
                               style: { width: "100px" },
-                              validators: [validators.mustBeNumber],
+                              validators: [validators.mustBeNumber, validators.required],
                             }}
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
@@ -480,7 +479,7 @@ const Info_Panel: FunctionComponent<{
                               name: "Lng",
                               ariaLabel: "Longitude",
                               style: { width: "100px" },
-                              validators: [validators.mustBeNumber],
+                              validators: [validators.mustBeNumber, validators.required],
                             }}
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
