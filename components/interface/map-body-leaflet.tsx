@@ -386,6 +386,8 @@ const MapBody: FunctionComponent = () => {
       onClick?: Function;
       onDragEnd?: Function;
     }) => {
+      if (isNaN(location.lat) || isNaN(location.lng)) return;
+
       const html = `<div class="leaflet-aegis-icon">${decodeEmoji(iconEmoji)}</div>`;
       const icon = L.divIcon({ html });
 
@@ -471,6 +473,9 @@ const MapBody: FunctionComponent = () => {
         !path[path.length - 1]?.lng
       )
         return;
+      for (let i = 0; i < path.length; i++) {
+        if (isNaN(path[i].lat) || isNaN(path[i].lng)) return;
+      }
 
       const existingLayer = getMapItemByUuid(uuid, mapItemType) as AEGISPolyline;
 
@@ -513,6 +518,9 @@ const MapBody: FunctionComponent = () => {
         !path[path.length - 1]?.lng
       )
         return;
+      for (let i = 0; i < path.length; i++) {
+        if (isNaN(path[i].lat) || isNaN(path[i].lng)) return;
+      }
 
       const typeName = mapItemType.charAt(0).toUpperCase() + mapItemType.slice(1);
 
@@ -1189,6 +1197,8 @@ const MapBody: FunctionComponent = () => {
         }
         const html = `<div class="leaflet-aegis-icon">${decodeEmoji("1f468-200d-1f680")}</div>`;
         const icon = L.divIcon({ html });
+
+        if (isNaN(location.lat) || isNaN(location.lng)) return;
         //if exists, set location
         if (existingLayer) {
           existingLayer.setLatLng(location as L.LatLng);
@@ -1220,6 +1230,7 @@ const MapBody: FunctionComponent = () => {
   const drawSelectedMarker = useCallback(
     (highlightLocation: AEGISPoint) => {
       if (!showSelectedItemOnMap) return;
+      if (isNaN(highlightLocation.lat) || isNaN(highlightLocation.lng)) return;
 
       const latLng = new L.LatLng(highlightLocation.lat, highlightLocation.lng);
 
@@ -1282,6 +1293,7 @@ const MapBody: FunctionComponent = () => {
       }
 
       if (panMapToLocation && mapDirective === null) {
+        if (isNaN(panMapToLocation.lat) || isNaN(panMapToLocation.lng)) return;
         if (!map.current.getBounds().contains(panMapToLocation)) {
           map.current.panTo(panMapToLocation);
         }

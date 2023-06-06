@@ -235,7 +235,7 @@ const Info_Panel: FunctionComponent<{
                               name: "lat",
                               ariaLabel: "Latitude",
                               style: { width: "100px" },
-                              validators: [validators.mustBeNumber],
+                              validators: [validators.mustBeNumber, validators.required],
                             }}
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
@@ -270,7 +270,7 @@ const Info_Panel: FunctionComponent<{
                               name: "Lng",
                               ariaLabel: "Longitude",
                               style: { width: "100px" },
-                              validators: [validators.mustBeNumber],
+                              validators: [validators.mustBeNumber, validators.required],
                             }}
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
