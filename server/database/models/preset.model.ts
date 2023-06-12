@@ -21,7 +21,9 @@ export class Preset implements Preset_db_type {
   @Property({ type: MikroTypes.boolean, default: false })
   missionPresetDefault: boolean;
   @Property({ type: MikroTypes.json, nullable: true })
-  layerControls!: LayerControls;
+  mapLayerControls!: MapLayerControls;
+  @Property({ type: MikroTypes.json, nullable: true })
+  layerOrder: PresetLayerOrder[];
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;

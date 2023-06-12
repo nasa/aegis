@@ -1,5 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import styles from "./admin.module.css";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * Creates a new emptyLayer object with no mission and no sublayers
@@ -28,10 +29,11 @@ export function createNewLayer(missionId?: number): Layer {
 /**
  * Creates a new empty sublayer
  * @param layerType The type of layer
- * @returns A new MMGIS_Sublayer object with required properties
+ * @returns A new Sublayer object with required properties
  */
-export function createNewSublayer(layerType: MMGIS_layerTypes): MMGIS_Sublayer {
-  const sublayer: MMGIS_Sublayer = {
+export function createNewSublayer(layerType: MMGIS_layerTypes): Sublayer {
+  const sublayer: Sublayer = {
+    uuid: uuidv4(),
     name: "",
     type: layerType,
     kind: "",

@@ -4,7 +4,7 @@ import { faClone, faGlobe, faPlusCircle, faUser } from "@fortawesome/free-solid-
 import { FunctionComponent } from "react";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
-import { setLayerControls } from "store/map";
+import { setMapLayerControls } from "store/map";
 import { setSelectedPresetUuid, setSelectedPresetRightNavItem } from "store/preset";
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import { Button } from "components/interface/form/globalFields";
@@ -95,12 +95,12 @@ const PresetList: FunctionComponent<{
     if (currentPreset.uuid === selectedPresetUuid) {
       dispatch(setSelectedPresetUuid(null));
       dispatch(setRightPanelOpen(false));
-      dispatch(setLayerControls(setAllLayerControlsInvisible(currentPreset.layerControls)));
+      dispatch(setMapLayerControls(setAllLayerControlsInvisible(currentPreset.mapLayerControls)));
       return;
     }
 
     dispatch(setSelectedPresetUuid(currentPreset.uuid));
-    dispatch(setLayerControls(currentPreset.layerControls));
+    dispatch(setMapLayerControls(currentPreset.mapLayerControls));
     if (!selectedRightNavItem) dispatch(setSelectedPresetRightNavItem("info_panel"));
     dispatch(setRightPanelOpen(true));
   };

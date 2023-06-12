@@ -12,7 +12,7 @@ export default class PresetFactory extends Factory<Preset_db> {
       mission: null,
       name: "Test Preset",
       description: "Test Preset Description",
-      layerControls: {
+      mapLayerControls: {
         Basemaps: {
           name: "Basemaps",
           type: "header",

@@ -51,7 +51,8 @@ describe("Preset API Endpoint", () => {
     description: null,
     missionPreset: false,
     missionPresetDefault: false,
-    layerControls: null,
+    mapLayerControls: null,
+    layerOrder: null,
     createdAt: null,
     updatedAt: null,
   };

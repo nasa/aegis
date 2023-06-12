@@ -13,6 +13,7 @@ import { getLayers, upsertLayer } from "http-client/layer";
 import MissionEditor from "components/admin/missionEditor";
 import { isValidJson } from "utils/formatting";
 import { Tooltip } from "react-tooltip";
+import { v4 as uuidv4 } from "uuid";
 
 const Mission: NextPage = () => {
   const router = useRouter();
@@ -70,7 +71,7 @@ const Mission: NextPage = () => {
 
     async function updateTempMissionConfig(event: ChangeEvent<HTMLTextAreaElement>) {
       const { value } = event.target;
-      await setTempMission(value);
+      setTempMission(value);
     }
 
     async function handleMissionImport(): Promise<void> {
@@ -125,7 +126,7 @@ const Mission: NextPage = () => {
         tempLayers.forEach((layer: any) => {
           // import the layer into the database
           const body = {
-            uuid: null,
+            uuid: uuidv4(),
             missionId: newMission.data.id,
             layerConfig: layer,
             createdAt: null,

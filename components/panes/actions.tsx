@@ -16,11 +16,6 @@ import { STM_Coverage } from "./stm-coverage";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 const profanityFilter = require("leo-profanity");
 
-type ActionParentUuid = {
-  poiUuid?: string;
-  stationUuid?: string;
-};
-
 const Actions: FunctionComponent<{
   editMode: boolean;
   setEditMode: (newEditMode: boolean) => void;
@@ -28,7 +23,7 @@ const Actions: FunctionComponent<{
   actionColor: CSSProperties;
   actionOrderUuids: string[];
   setActionOrderUuids: (actionOrderUuids: string[]) => void;
-  actionParentUuid: ActionParentUuid;
+  actionParentUuid: Pick<Action, "poiUuid" | "stationUuid">;
   actionsCalculatedFields: ActionsCalculatedFields;
 }> = ({
   editMode,

@@ -9,6 +9,7 @@
   font-weight: 700;
   margin-top: 5px;
   margin-left: 5px;
+  margin: 5px;
   -webkit-user-select: none;
   user-select: none;
 }
@@ -18,20 +19,18 @@
 }
 
 .layersBody {
-  margin-top: 5px;
-  margin-left: 15px;
+  margin: 5px;
 }
 
 .layerGroup {
-  padding-top: 6px;
-  padding-bottom: 6px;
-  margin-right: 5px;
+  margin: 6px 5px;
   -webkit-user-select: none;
   user-select: none;
 }
 
 .layer {
   display: flex;
+  gap: 8px;
 }
 
 .sublayer {
@@ -88,10 +87,6 @@
   background-color: var(--grey1);
 }
 
-.expandoCaret {
-  width: 15px;
-}
-
 .expandoCaretDisabled {
   color: var(--grey3);
 }
@@ -108,4 +103,21 @@
 
 .inVisible {
   color: var(--grey3);
+}
+
+.reorderIcon {
+  margin-left: 3px;
+  transform: scaleX(0.8);
+  cursor: pointer;
+}
+
+.reorderIconSublayer {
+  margin-left: 3px;
+  margin-right: 5px;
+  transform: scaleX(0.8);
+  cursor: pointer;
+}
+
+.sublayerGroup {
+  padding-left: 12px;
 }

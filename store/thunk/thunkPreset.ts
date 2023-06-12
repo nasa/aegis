@@ -6,11 +6,11 @@ import {
   upsertPreset,
   setPresetEditMode,
   setSelectedPresetUuid,
-  setPresetInteractions,
+  setPresetUIStates,
   duplicatePreset,
   setSelectedPresetRightNavItem,
   deletePreset,
-  resetAllPresetInteractions,
+  resetAllPresetUIStates,
   setPresetsFromDb,
 } from "store/preset";
 import { makeUniqueStringCopy } from "utils/duplicate";
@@ -36,7 +36,7 @@ export const thunkSavePreset = appCreateAsyncThunk<{
     throw new Error("Error upserting Presets: " + upsertReponse.message);
   }
   dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: false }));
-  dispatch(resetAllPresetInteractions({ presetUuid: preset.uuid }));
+  dispatch(resetAllPresetUIStates({ presetUuid: preset.uuid }));
 });
 
 export const thunkPresetCancel = appCreateAsyncThunk<{
@@ -56,7 +56,7 @@ export const thunkPresetCancel = appCreateAsyncThunk<{
     dispatch(upsertPreset(presetFromDb));
   }
   dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: false }));
-  dispatch(resetAllPresetInteractions({ presetUuid: preset.uuid }));
+  dispatch(resetAllPresetUIStates({ presetUuid: preset.uuid }));
 });
 
 export const thunkDeletePreset = appCreateAsyncThunk<{
@@ -101,6 +101,18 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
       existingNames: getState().preset.presets.map((item) => item.name),
     });
 
+    //flatten all layers uuids from mission for a default ordering
+    const defaultLayerOrder = getState().mission.layers.map((headerLayer) => {
+      const presetLayerOrder: PresetLayerOrder = {
+        headerLayerUuid: headerLayer.uuid,
+        sublayerUuids: [],
+      };
+      headerLayer.layerConfig.sublayers.forEach((sublayer) => {
+        presetLayerOrder.sublayerUuids.push(sublayer.uuid); //add sublayers
+      });
+      return presetLayerOrder;
+    });
+
     const blankPreset: Preset = {
       uuid: uuidv4(),
       name: randomName,
@@ -109,7 +121,8 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
       missionId: getState().mission.mission?.id,
       missionPreset: false,
       missionPresetDefault: false,
-      layerControls: getState().map.layerControls,
+      layerOrder: defaultLayerOrder,
+      mapLayerControls: getState().map.mapLayerControls,
     };
 
     dispatch(upsertPreset(blankPreset));
@@ -119,15 +132,20 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
     dispatch(setSelectedPresetUuid(blankPreset.uuid));
     // open right panel
     dispatch(setRightPanelOpen(true));
-    // create preset interactions entry
-    const layerControlInteractions: LayerControlInteractions = {};
-    for (const [key] of Object.entries(blankPreset.layerControls)) {
-      layerControlInteractions[key] = {
+    // create preset ui states entry
+    const presetUIStates: PresetUIStates = {};
+    for (const [key] of Object.entries(blankPreset.mapLayerControls)) {
+      presetUIStates[key] = {
         expanded: true,
         tabSelected: null,
       };
     }
-    dispatch(setPresetInteractions({ presetUuid: blankPreset.uuid, layerControlInteractions }));
+    dispatch(
+      setPresetUIStates({
+        presetUuid: blankPreset.uuid,
+        presetUIStates: presetUIStates,
+      })
+    );
   }
 );
 

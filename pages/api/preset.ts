@@ -58,7 +58,8 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
           description: presetBody.description,
           missionPreset: presetBody.missionPreset,
           missionPresetDefault: presetBody.missionPresetDefault,
-          layerControls: presetBody.layerControls,
+          mapLayerControls: presetBody.mapLayerControls,
+          layerOrder: presetBody.layerOrder,
           createdAt: new Date(presetBody.createdAt || updateDateString),
           updatedAt: new Date(updateDateString),
         };
@@ -72,7 +73,8 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
           description: upsertedPreset.description,
           missionPreset: upsertedPreset.missionPreset,
           missionPresetDefault: upsertedPreset.missionPresetDefault,
-          layerControls: upsertedPreset.layerControls,
+          mapLayerControls: upsertedPreset.mapLayerControls,
+          layerOrder: upsertedPreset.layerOrder,
           createdAt: upsertedPreset.createdAt.toISOString(),
           updatedAt: upsertedPreset.updatedAt.toISOString(),
         };
@@ -135,7 +137,8 @@ async function getAllPresetsForMission(missionId: number): Promise<Preset[] | fa
       description: presetItem.description,
       missionPreset: presetItem.missionPreset,
       missionPresetDefault: presetItem.missionPresetDefault,
-      layerControls: presetItem.layerControls,
+      mapLayerControls: presetItem.mapLayerControls,
+      layerOrder: presetItem.layerOrder,
       createdAt: presetItem.createdAt.toISOString(),
       updatedAt: presetItem.updatedAt.toISOString(),
     };
