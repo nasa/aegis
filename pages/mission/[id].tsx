@@ -181,7 +181,7 @@ const Main: NextPage = () => {
       if (presetData) {
         const mapLayerControlKeys = Object.keys(mapLayerControls); //name of layer
 
-        //validate against modifications to layers made in admin since this preset was last saved
+        //fix and validate against modifications to layers made in admin since this preset was last saved
         presetData.forEach((preset) => {
           let modified = false;
           const presetUIStates: PresetUIStates = {};
@@ -193,8 +193,20 @@ const Main: NextPage = () => {
               tabSelected: null,
             };
 
+            //convert the "enabled" property to "visible".
+            //Once all presets in all environments are updated this if statement can be removed.
+            if (
+              Object.prototype.hasOwnProperty.call(preset.mapLayerControls[layerName], "enabled")
+            ) {
+              preset.mapLayerControls[layerName].visible =
+                preset.mapLayerControls[layerName]["enabled"];
+              delete preset.mapLayerControls[layerName]["enabled"]; //this property has been renamed to "visible"
+              modified = true;
+            }
+
             //add any UUIDs that are missing from preset's layer control
             //  this happens when UUIDs are updated in admin after the preset was created
+            //Once all presets in all environments have UUIDs this if statement can be removed.
             if (!preset.mapLayerControls[layerName].uuid) {
               //find the layer from the mission to get the UUID
               for (const layerNameAndUuid of flatLayerNamesAndUuids) {
