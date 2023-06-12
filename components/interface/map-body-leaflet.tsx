@@ -69,8 +69,14 @@ const MapBody: FunctionComponent = () => {
 
   const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, shallowEqual);
 
-  const layerControls = useAppSelector((state) => state.map.layerControls, shallowEqual);
+  const layerControls = useAppSelector((state) => state.map.mapLayerControls, shallowEqual);
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
+
+  const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
+  const selectedPreset = useAppSelector(
+    (state) => state.preset.presets.find((p) => p.uuid === selectedPresetUuid),
+    shallowEqual
+  );
 
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
@@ -111,7 +117,10 @@ const MapBody: FunctionComponent = () => {
   const [mapZoom, setMapZoom] = useState(0); // value used to show correct scale bar
 
   // make color filter settings for tile sublayer. This is the format of leaflet.tilelayer.colorfilter package
-  const makeTileLayerColorFilter = (lControls: LayerControls, sublayerName: string): string[] => {
+  const makeTileLayerColorFilter = (
+    lControls: MapLayerControls,
+    sublayerName: string
+  ): string[] => {
     return [
       `brightness:${getPercentOrDefault(lControls[sublayerName].style?.brightness)}%`,
       `contrast:${getPercentOrDefault(lControls[sublayerName].style?.contrast)}%`,
@@ -144,13 +153,27 @@ const MapBody: FunctionComponent = () => {
   useEffect(() => {
     if (!mission || !layerControls || !map.current) return;
 
-    // go through all layers in mission config and add make a list of the ones that are enabled
+    // go through all layers in mission config,  add make a list of the ones that are enabled
     const layersToAdd: Sublayer[] = [];
-    for (const configLayer of missionLayers) {
-      for (const configSublayer of configLayer.layerConfig.sublayers) {
-        if (configSublayer.type === "tile" || configSublayer.type === "vector") {
-          if (layerControls[configSublayer.name].enabled) {
-            layersToAdd.push(configSublayer);
+
+    //loop through layers in the preset using their ordering
+    for (const headerLayer of selectedPreset.layerOrder) {
+      //loop through the sublayer uuids
+      for (const sublayerUuid of headerLayer.sublayerUuids) {
+        //check if sublayer is toggled visible in the preset
+        for (const layerName in selectedPreset.mapLayerControls) {
+          if (
+            selectedPreset.mapLayerControls[layerName].uuid === sublayerUuid &&
+            selectedPreset.mapLayerControls[layerName].visible
+          ) {
+            //this layer is visible - get the sublayer object from misson
+            for (const layer of missionLayers) {
+              for (const sublayer of layer.layerConfig.sublayers) {
+                if (sublayer.uuid === sublayerUuid) {
+                  layersToAdd.push(sublayer); //add sublayer
+                }
+              }
+            }
           }
         }
       }
@@ -169,12 +192,12 @@ const MapBody: FunctionComponent = () => {
     // remove map layers that are not enabled in layerControls
     map.current.eachLayer((layer) => {
       if ((layer as L.TileLayer).options.id) {
-        if (!layerControls[(layer as L.TileLayer).options.id].enabled) {
+        if (!layerControls[(layer as L.TileLayer).options.id].visible) {
           map.current.removeLayer(layer);
         }
       }
       if ((layer as AEGISFeatureGroup).id) {
-        if (!layerControls[(layer as AEGISFeatureGroup).id].enabled) {
+        if (!layerControls[(layer as AEGISFeatureGroup).id].visible) {
           map.current.removeLayer(layer);
         }
       }
@@ -262,7 +285,7 @@ const MapBody: FunctionComponent = () => {
         layer.bringToFront();
       }
     });
-  }, [mission, layerControls, map, layersOnMap, missionLayers]);
+  }, [mission, layerControls, map, layersOnMap, missionLayers, selectedPreset]);
 
   /**
    * Update map with display adjustments for sublayers as sliders are moved

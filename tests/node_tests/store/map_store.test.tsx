@@ -1,4 +1,4 @@
-import reducer, { initialState, setLayerControls } from "store/map";
+import reducer, { initialState, setMapLayerControls } from "store/map";
 import { setLayers } from "store/mission";
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
@@ -85,13 +85,14 @@ describe("AEGIS Map Store Tests: ", () => {
 
     // Arrange
     const configLayers = setLayers(layers);
-    const controls: LayerControls = {};
+    const controls: MapLayerControls = {};
 
     // Act
     configLayers.payload.map((configLayer) => {
       controls[configLayer.layerConfig.name] = {
         name: configLayer.layerConfig.name,
-        enabled: false,
+        uuid: configLayer.uuid,
+        visible: false,
         type: configLayer.layerConfig.type,
         mapLayerRef: null,
         style: null,
@@ -100,7 +101,8 @@ describe("AEGIS Map Store Tests: ", () => {
         configLayer.layerConfig.sublayers.map((sublayer) => {
           controls[sublayer.name] = {
             name: sublayer.name,
-            enabled: false,
+            uuid: sublayer.uuid,
+            visible: false,
             type: sublayer.type,
             mapLayerRef: null,
             style: null,
@@ -111,11 +113,11 @@ describe("AEGIS Map Store Tests: ", () => {
 
     const newControls = {
       payload: controls,
-      type: "map/setLayerControls",
+      type: "map/setMapLayerControls",
     };
 
-    const nextLayerControls = reducer(initialState, setLayerControls(controls));
-    expect(setLayerControls(nextLayerControls.layerControls)).toMatchObject(newControls);
+    const nextLayerControls = reducer(initialState, setMapLayerControls(controls));
+    expect(setMapLayerControls(nextLayerControls.mapLayerControls)).toMatchObject(newControls);
   });
 
   describe("Map Store: updateMapDirective", () => {

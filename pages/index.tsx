@@ -342,7 +342,7 @@ const Left = () => {
 const Inset: React.FunctionComponent = () => {
   return (
     <div className={styles.insetContainer}>
-      <a href="https://svs.gsfc.nasa.gov/5074" target="_blank">
+      <a href="https://svs.gsfc.nasa.gov/5074" target="_blank" rel="noopener">
         Image: Mons Mouton
         <br />
         NASA Scientific Visualization Studio

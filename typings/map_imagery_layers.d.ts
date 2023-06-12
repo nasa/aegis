@@ -1,12 +1,13 @@
-interface LayerControl {
+interface MapLayerControl {
   name: string;
-  enabled: boolean;
+  uuid: string;
+  visible: boolean;
   type: string;
   mapLayerRef: any;
-  style: LayerControlStyle;
+  style: MapLayerStyle;
 }
 
-interface LayerControlStyle {
+interface MapLayerStyle {
   opacity: number; //Percent
   contrast: number; //Percent
   brightness: number; //Percent
@@ -18,20 +19,22 @@ interface LayerControlStyle {
   fillOpacity: number;
 }
 
-interface LayerControls {
-  [key: string]: LayerControl;
+interface MapLayerControls {
+  [key: string]: MapLayerControl; //name
 }
 
-interface LayerControlInteractions {
-  [key: string]: LayerControlInteraction;
+interface PresetsUIStates {
+  [key: string]: PresetUIStates; //uuid
 }
 
-interface LayerControlInteraction {
+interface PresetUIStates {
+  [key: string]: PresetLayerUIState; //name
+}
+
+interface PresetLayerUIState {
   expanded: boolean;
-  tabSelected: LayerDetailsTabs;
+  tabSelected: "info" | "sliders";
 }
-
-type LayerDetailsTabs = "info" | "sliders";
 
 /** Represents the DB structure for the Layer table */
 interface Layer {
@@ -68,9 +71,15 @@ type Preset = {
   description: string;
   missionPreset: boolean;
   missionPresetDefault: boolean;
-  layerControls: LayerControls;
+  mapLayerControls: MapLayerControls; //flattened list of layers/sublayers
+  layerOrder: PresetLayerOrder[];
   createdAt?: string;
   updatedAt?: string;
+};
+
+type PresetLayerOrder = {
+  headerLayerUuid: string;
+  sublayerUuids: string[];
 };
 
 type Preset_db_type = Omit<Preset, "ownerId" | "missionId" | "createdAt" | "updatedAt"> & {
@@ -79,7 +88,3 @@ type Preset_db_type = Omit<Preset, "ownerId" | "missionId" | "createdAt" | "upda
   createdAt?: Date;
   updatedAt?: Date;
 };
-
-interface PresetInteractions {
-  [key: string]: LayerControlInteractions;
-}

@@ -37,7 +37,7 @@ interface UserInterface {
 }
 
 interface MapState {
-  layerControls: LayerControls;
+  mapLayerControls: MapLayerControls;
   activeSelectedName: string;
   mousePosition: LatLng;
   mapDirective: MapDirective;
@@ -76,7 +76,7 @@ interface PresetState {
   presetsFromDb: Preset[];
   selectedPresetUuid: string;
   selectedRightNavItem: string;
-  presetInteractions: PresetInteractions;
+  presetsUIStates: PresetsUIStates;
   presetsEditing: string[];
 }
 

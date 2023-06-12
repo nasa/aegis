@@ -15,10 +15,10 @@ import { getLayers } from "http-client/layer";
 import { getStations } from "http-client/station";
 import { getActions } from "http-client/action";
 import { getGoals, getInvestigations, getObjectives } from "http-client/stm";
-import { setLayerControls } from "store/map";
+import { setMapLayerControls } from "store/map";
 import { setPois, setPoisFromDb } from "store/poi";
 import {
-  setPresetInteractions,
+  setPresetUIStates,
   setPresets,
   setPresetsFromDb,
   setSelectedPresetUuid,
@@ -38,6 +38,7 @@ import { thunkCreateTraverseCalculatedFields } from "store/thunk/thunkTraverse";
 import { thunkCreateEvasCalculatedFields } from "store/thunk/thunkEva";
 import { thunkCreatePoiCalculatedFields } from "store/thunk/thunkPoi";
 import { Tooltip } from "react-tooltip";
+import { thunkSavePreset } from "store/thunk/thunkPreset";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -120,9 +121,13 @@ const Main: NextPage = () => {
         dispatch(setMission(missionData.data[0]));
       }
 
+      //used to find uuids in preset map layer controls
+      const flatLayerNamesAndUuids: { name: string; uuid: string }[] = [];
+
       //populate layers and layerControls
       const layerData = await getLayers(intMissionId);
-      const mapLayerControls: LayerControls = {};
+      const mapLayerControls: MapLayerControls = {};
+
       if (layerData.data) {
         //populate mission layers
         dispatch(setLayers(layerData.data));
@@ -132,17 +137,24 @@ const Main: NextPage = () => {
           //add header layers
           mapLayerControls[configLayer.layerConfig.name] = {
             name: configLayer.layerConfig.name,
-            enabled: false,
+            uuid: configLayer.uuid,
+            visible: false,
             type: configLayer.layerConfig.type,
             mapLayerRef: null,
             style: null,
           };
+          flatLayerNamesAndUuids.push({
+            name: configLayer.layerConfig.name,
+            uuid: configLayer.uuid,
+          });
+
           //add sublayers
           if (configLayer.layerConfig.sublayers) {
             configLayer.layerConfig.sublayers.map((sublayer) => {
               mapLayerControls[sublayer.name] = {
                 name: sublayer.name,
-                enabled: false,
+                uuid: sublayer.uuid,
+                visible: false,
                 type: sublayer.type,
                 mapLayerRef: null,
                 style: {
@@ -157,45 +169,69 @@ const Main: NextPage = () => {
                   fillOpacity: sublayer.style?.fillOpacity || 0.2,
                 },
               };
+              flatLayerNamesAndUuids.push({ name: sublayer.name, uuid: sublayer.uuid });
             });
           }
         });
-        dispatch(setLayerControls(mapLayerControls));
+        dispatch(setMapLayerControls(mapLayerControls));
       }
 
-      //Populate Presets and validate against modifications to layers made in admin since this preset was last saved
+      //Populate Presets
       const presetData: Preset[] = (await InternalAPI.getPresets(intMissionId)).data;
       if (presetData) {
-        const mapLayerControlKeys = Object.keys(mapLayerControls);
+        const mapLayerControlKeys = Object.keys(mapLayerControls); //name of layer
+
+        //validate against modifications to layers made in admin since this preset was last saved
         presetData.forEach((preset) => {
           let modified = false;
-          const layerControlInteractions: LayerControlInteractions = {};
+          const presetUIStates: PresetUIStates = {};
           //loop through the layer controls from the map
-          for (const key of mapLayerControlKeys) {
-            //build preset interactions
-            layerControlInteractions[key] = {
+          for (const layerName of mapLayerControlKeys) {
+            //build preset ui states
+            presetUIStates[layerName] = {
               expanded: true,
               tabSelected: null,
             };
 
+            //add any UUIDs that are missing from preset's layer control
+            //  this happens when UUIDs are updated in admin after the preset was created
+            if (!preset.mapLayerControls[layerName].uuid) {
+              //find the layer from the mission to get the UUID
+              for (const layerNameAndUuid of flatLayerNamesAndUuids) {
+                if (layerNameAndUuid.name === layerName) {
+                  preset.mapLayerControls[layerName].uuid = layerNameAndUuid.uuid;
+                  modified = true;
+                  break;
+                }
+              }
+            }
+
             //add any layer controls that are missing from preset
-            if (!Object.keys(preset.layerControls).includes(key)) {
-              preset.layerControls[key] = mapLayerControls[key];
+            //  this happens when layers are added in admin after the preset was created
+            if (!Object.keys(preset.mapLayerControls).includes(layerName)) {
+              preset.mapLayerControls[layerName] = mapLayerControls[layerName];
               modified = true;
             }
           }
 
           //loop through preset layer controls and delete any layer controls that no longer exist
-          for (const key of Object.keys(preset.layerControls)) {
+          //  this happens when layers are deleted in admin after the preset was created
+          for (const key of Object.keys(preset.mapLayerControls)) {
             if (!mapLayerControlKeys.includes(key)) {
-              delete preset.layerControls[key];
+              delete preset.mapLayerControls[key];
               modified = true;
             }
           }
 
-          dispatch(setPresetInteractions({ presetUuid: preset.uuid, layerControlInteractions }));
+          dispatch(
+            setPresetUIStates({
+              presetUuid: preset.uuid,
+              presetUIStates: presetUIStates,
+            })
+          );
+
           //update this preset in the DB if any layer control changes we made
-          if (modified) InternalAPI.setPreset(preset);
+          if (modified) thunkDispatch(thunkSavePreset({ preset }));
         });
 
         dispatch(setPresets(presetData));
@@ -204,7 +240,7 @@ const Main: NextPage = () => {
         const defaultPreset = presetData.filter((preset) => preset.missionPresetDefault === true);
         if (defaultPreset.length > 0) {
           dispatch(setSelectedPresetUuid(defaultPreset[0].uuid));
-          dispatch(setLayerControls(defaultPreset[0].layerControls));
+          dispatch(setMapLayerControls(defaultPreset[0].mapLayerControls));
         }
       }
 
@@ -251,7 +287,7 @@ const Main: NextPage = () => {
       const invstgData = await getInvestigations({ missionId: intMissionId });
       if (invstgData.data) dispatch(setInvestigations(invstgData.data));
     })();
-  }, [router, dispatch]);
+  }, [router, dispatch, thunkDispatch]);
 
   //Generate poi calculated values
   useEffect(() => {
