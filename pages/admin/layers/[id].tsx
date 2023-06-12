@@ -104,6 +104,7 @@ const Layers: NextPage = () => {
   }
 
   //inserts uuids for any layer/sublayer if it doesn't exist
+  //Once all presets in all environments have UUIDs this func and button can be removed.
   async function fixLayerUuids() {
     let totalCount = 0;
     for (const layer of allLayers) {
@@ -125,8 +126,8 @@ const Layers: NextPage = () => {
     }
     if (totalCount > 0) {
       await loadLayersfromDB(missionIdSlug);
-      alert(`Complete - ${totalCount} layers/sublayers did not have UUIDs`);
     }
+    alert(`Complete - ${totalCount} layers/sublayers did not have UUIDs`);
   }
 
   const checkLayerUsesFolder = useCallback(
@@ -372,7 +373,7 @@ const LayerList = (props: {
                       >
                         Delete Layer
                       </button>
-                      &nbsp;{layer.uuid ? "" : "Missing UUID"}
+                      &nbsp;{sublayer.uuid ? "" : "Missing UUID"}
                     </li>
                   </ul>
                 );

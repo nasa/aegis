@@ -151,28 +151,41 @@ const MapBody: FunctionComponent = () => {
    * Map layers display management
    */
   useEffect(() => {
-    if (!mission || !layerControls || !map.current) return;
+    if (!mission || !layerControls || !map.current || !selectedPreset || !missionLayers) return;
 
     // go through all layers in mission config,  add make a list of the ones that are enabled
     const layersToAdd: Sublayer[] = [];
 
     //loop through layers in the preset using their ordering
-    for (const headerLayer of selectedPreset.layerOrder) {
-      //loop through the sublayer uuids
-      for (const sublayerUuid of headerLayer.sublayerUuids) {
-        //check if sublayer is toggled visible in the preset
-        for (const layerName in selectedPreset.mapLayerControls) {
-          if (
-            selectedPreset.mapLayerControls[layerName].uuid === sublayerUuid &&
-            selectedPreset.mapLayerControls[layerName].visible
-          ) {
-            //this layer is visible - get the sublayer object from misson
-            for (const layer of missionLayers) {
-              for (const sublayer of layer.layerConfig.sublayers) {
-                if (sublayer.uuid === sublayerUuid) {
-                  layersToAdd.push(sublayer); //add sublayer
+    if (selectedPreset.layerOrder) {
+      for (const headerLayer of selectedPreset.layerOrder) {
+        //loop through the sublayer uuids
+        for (const sublayerUuid of headerLayer.sublayerUuids) {
+          //check if sublayer is toggled visible in the preset
+          for (const layerName in selectedPreset.mapLayerControls) {
+            if (
+              selectedPreset.mapLayerControls[layerName].uuid === sublayerUuid &&
+              selectedPreset.mapLayerControls[layerName].visible
+            ) {
+              //this layer is visible - get the sublayer object from misson
+              for (const layer of missionLayers) {
+                for (const sublayer of layer.layerConfig.sublayers) {
+                  if (sublayer.uuid === sublayerUuid) {
+                    layersToAdd.push(sublayer); //add sublayer
+                  }
                 }
               }
+            }
+          }
+        }
+      }
+    } else {
+      //preset does not have ordering, use the default order from mission
+      for (const configLayer of missionLayers) {
+        for (const configSublayer of configLayer.layerConfig.sublayers) {
+          if (configSublayer.type === "tile" || configSublayer.type === "vector") {
+            if (layerControls[configSublayer.name].visible) {
+              layersToAdd.push(configSublayer);
             }
           }
         }
