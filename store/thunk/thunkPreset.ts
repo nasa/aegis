@@ -14,7 +14,8 @@ import {
   setPresetsFromDb,
 } from "store/preset";
 import { makeUniqueStringCopy } from "utils/duplicate";
-import * as InternalAPI from "http-client/internal-api";
+import * as InternalAPI from "http-client/preset";
+import _ from "lodash";
 
 export const thunkSavePreset = appCreateAsyncThunk<{
   preset: Preset;
@@ -154,15 +155,18 @@ export const thunkDuplicatePreset = appCreateAsyncThunk<{ preset: Preset }>(
   async ({ preset }, { dispatch, getState }) => {
     if (!preset) return;
     //duplicate preset
-    const newPreset: Preset = {
-      ...preset,
-      uuid: uuidv4(),
-      name: makeUniqueStringCopy(
-        preset.name,
-        getState().preset.presets.map((item) => item.name)
-      ),
-    };
+    const newPreset: Preset = _.cloneDeep(preset);
+    newPreset.uuid = uuidv4();
+    newPreset.name = makeUniqueStringCopy(
+      preset.name,
+      getState().preset.presets.map((item) => item.name)
+    );
+    newPreset.missionPresetDefault = false; //never make a duplicate the default preset
     dispatch(duplicatePreset(newPreset));
+
+    //dupcate preset ui state
+    const newUIState: PresetUIStates = _.cloneDeep(getState().preset.presetsUIStates[preset.uuid]);
+    dispatch(setPresetUIStates({ presetUuid: newPreset.uuid, presetUIStates: newUIState }));
 
     // open right panel
     dispatch(setRightPanelOpen(true));

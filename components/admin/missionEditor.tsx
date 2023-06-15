@@ -5,7 +5,7 @@ import { createNewConfig, stringToJSON } from "./helper";
 import { Form } from "react-final-form";
 import { AnyObject } from "final-form";
 import { FFInput } from "components/interface/form/globalFields";
-import { validators } from "utils/formValidators";
+import { validators } from "components/interface/form/formValidators";
 import Look from "./look";
 import MSV from "./msv";
 import Projection from "components/admin/projection";

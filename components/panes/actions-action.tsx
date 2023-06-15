@@ -21,7 +21,7 @@ import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import ReactDOMServer from "react-dom/server";
 import STMSelector from "./stm-selector";
-import { validators, regExValidators } from "utils/formValidators";
+import { validators, regExValidators } from "components/interface/form/formValidators";
 
 const RightAction: FunctionComponent<{
   editMode: boolean;

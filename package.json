@@ -16,6 +16,8 @@
     "seed": "npx mikro-orm seeder:run",
     "migrate:up": "npx mikro-orm migration:up",
     "migrate:down": "npx mikro-orm migration:down",
+    "migrate:create": "npx mikro-orm migration:create",
+    "migrate:fresh": "npx mikro-orm migration:fresh --seed",
     "docker:dev": "cross-env DOCKER_SCAN_SUGGEST=false docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d",
     "docker:dev:rebuild": "cross-env DOCKER_SCAN_SUGGEST=false docker-compose -f docker-compose.yml -f docker-compose.dev.yml build --no-cache",
     "docker:preview": "cross-env DOCKER_SCAN_SUGGEST=false docker-compose -f docker-compose.yml -f docker-compose.preview.yml up --build -d",

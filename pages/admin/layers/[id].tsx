@@ -1,7 +1,7 @@
 import { NextPage } from "next";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { isLoggedIn } from "http-client/internal-api";
+import { isLoggedIn } from "http-client/login";
 import adminStyles from "components/admin/admin.module.css";
 import LayerEdit from "components/admin/layerEdit";
 import SublayerEdit from "components/admin/sublayerEdit";

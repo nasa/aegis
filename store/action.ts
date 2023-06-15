@@ -1,8 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import _ from "lodash";
 import { upsertToArrayByUuid } from "utils/store";
-import { v4 as uuidv4 } from "uuid";
-import { makeUniqueStringCopy } from "../utils/duplicate";
 
 export const initialState: ActionState = {
   actions: [],
@@ -50,53 +48,6 @@ export const actionSlice = createSlice({
         if (actionIndex >= 0) state.actionsFromDb.splice(actionIndex, 1);
       });
     },
-    duplicateAction: {
-      reducer: (
-        state,
-        action: {
-          payload: {
-            action: Action;
-            stationUuid?: string;
-            poiUuid?: string;
-            preserveParentUuid?: boolean;
-            newActionUuid: string;
-          };
-        }
-      ) => {
-        const newAction: Action = _.cloneDeep(action.payload.action);
-        newAction.uuid = action.payload.newActionUuid;
-        newAction.stationUuid = action.payload.stationUuid;
-        newAction.poiUuid = action.payload.poiUuid;
-        newAction.name = makeUniqueStringCopy(
-          newAction.name,
-          state.actions.map((a) => a.name)
-        );
-        if (action.payload.preserveParentUuid) {
-          newAction.parentActionUuid = action.payload.action.uuid;
-        } else {
-          newAction.parentActionUuid = null;
-        }
-        state.actions.push(newAction);
-      },
-      prepare: (payload: {
-        action: Action;
-        stationUuid?: string;
-        poiUuid?: string;
-        preserveParentUuid?: boolean;
-      }) => {
-        const { action, stationUuid, poiUuid, preserveParentUuid } = payload;
-        const newActionUuid = uuidv4();
-        return {
-          payload: {
-            action: action,
-            stationUuid: stationUuid,
-            poiUuid: poiUuid,
-            preserveParentUuid: preserveParentUuid,
-            newActionUuid,
-          },
-        };
-      },
-    },
   },
 });
 
@@ -109,7 +60,6 @@ export const {
   deleteActionByUuid,
   deleteActionsByUuid,
   deleteActionsFromDbByUuid,
-  duplicateAction,
 } = actionSlice.actions;
 
 export default actionSlice.reducer;

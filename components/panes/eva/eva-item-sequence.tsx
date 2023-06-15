@@ -117,7 +117,7 @@ const EvaItemSequence: FunctionComponent<{
                   dispatch(setRightPanelOpen(true));
                 }
               }}
-              onMouseOver={() => {
+              onMouseEnter={() => {
                 dispatch(setAllHoverUuids(sequenceItem.uuid));
               }}
               onMouseLeave={() => {

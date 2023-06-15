@@ -1,7 +1,8 @@
 import { NextPage } from "next";
 import { ChangeEvent, useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { getPOIs, isAdmin, isLoggedIn, setPOI } from "http-client/internal-api";
+import { isAdmin, isLoggedIn } from "http-client/login";
+import { getPOIs, setPOI } from "http-client/poi";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";
 import { getMissions } from "http-client/mission";

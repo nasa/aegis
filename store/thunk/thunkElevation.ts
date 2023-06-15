@@ -6,7 +6,7 @@ import { getElevationProfile, getElevationSinglePoint } from "http-client/elevat
  * Gets elevation fom API endpoint
  * also dispatches the elevationPending status for the uuid
  *
- * Returns the new elevation (single point, or path array)
+ * @Returns the new elevation (single point, or path array)
  *  returns false and throws error if the API errored
  */
 export const thunkGetElevation = appCreateAsyncThunk<

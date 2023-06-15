@@ -8,7 +8,8 @@ import { getSlope } from "utils/geoMath";
 /**
  * Draws the vertical line wtih the rotated time at the bottom.
  * @param paperDataRef object containing all the paper data
- * @param xLoc x location of the time marker
+ * @param xLoc optional x location of the time marker
+ * @param minutes optional minutes to place the time marker
  * @param customColor optional color to draw the line with
  * @param customTextColor optional color to draw the label with
  * @returns a paper group containing the line and time text
@@ -20,9 +21,9 @@ export function drawTimeMarker(
   customTextColor: paper.Color = null
 ): paper.Group {
   const paperVars = paperDataRef.current.paperVars;
-
   const markerGroup = new paper.Group();
   const color = customColor || paperDataRef.current.styles.grey1;
+
   const verticalLine = new paper.Path.Line({
     from: new paper.Point(xLoc, paperVars.timelineTop),
     to: new paper.Point(xLoc, paperVars.timelineTop + paperVars.timelineHeight + 20),
@@ -31,8 +32,8 @@ export function drawTimeMarker(
   });
   verticalLine.name = "lineMarker";
   const seconds = Math.round((xLoc - paperVars.timelineLeft) * (1 / paperVars.pixelsPerSecondX));
+  const timeMins = Math.floor((seconds % 3600) / 60);
   const timeHrs = Math.floor(seconds / 3600);
-  const timeMins = Math.round((seconds % 3600) / 60);
   const timeLabel = new paper.PointText({
     point: new paper.Point(xLoc - 30, paperVars.timelineTop + paperVars.timelineHeight + 40),
     justification: "left",
@@ -118,16 +119,19 @@ export function drawGraphAxis(
     paperDataRef.current.styles.white,
     paperDataRef.current.styles.white
   );
-  let endingColor = paperDataRef.current.styles.white;
-  if (storeRef.current.evaLengthCalculatedMins > storeRef.current.evaLengthMins)
-    endingColor = paperDataRef.current.styles.red;
-  drawTimeMarker(
-    paperDataRef,
-    paperVars.timelineLeft + storeRef.current.evaLengthMins * paperVars.pixelsPerSecondX * 60,
-    endingColor,
-    endingColor
-  );
-
+  if (Math.round(storeRef.current.evaLengthCalculatedMins) !== storeRef.current.evaLengthMins) {
+    //draw the ending line
+    let endingColor = paperDataRef.current.styles.white;
+    if (Math.round(storeRef.current.evaLengthCalculatedMins) > storeRef.current.evaLengthMins) {
+      endingColor = paperDataRef.current.styles.red;
+    }
+    drawTimeMarker(
+      paperDataRef,
+      paperVars.timelineLeft + storeRef.current.evaLengthMins * paperVars.pixelsPerSecondX * 60,
+      endingColor,
+      endingColor
+    );
+  }
   //draw PET label
   const petLabel = new paper.PointText({
     point: new paper.Point(
@@ -313,22 +317,12 @@ export function drawLanderDistanceGraph(
   const paperVars = paperDataRef.current.paperVars;
   const landerDistanceGroup = new paper.Group();
 
-  //draw graph
-  const yZeroPixel = paperVars.timelineTop + paperVars.graphHeight;
+  //loop through the sequence items
   for (const graphItem in graphItems.current) {
-    const fillPoints: number[][] = [];
     const strokePoints: number[][] = [];
-    for (const [graphDataIndex, graphData] of graphItems.current[
-      graphItem
-    ].distanceFromLanderXY.entries()) {
-      //push stroke point
-      strokePoints.push([graphData.xPixel, graphData.yPixel]);
-
-      //push fill point
-      if (graphDataIndex === 0) fillPoints.push([graphData.xPixel, yZeroPixel]);
-      fillPoints.push([graphData.xPixel, graphData.yPixel]);
-      if (graphDataIndex === graphItems.current[graphItem].distanceFromLanderXY.length - 1)
-        fillPoints.push([graphData.xPixel, yZeroPixel]);
+    //loop through the distance from lander coordinates
+    for (const graphData of graphItems.current[graphItem].distanceFromLanderXY) {
+      strokePoints.push([graphData.xPixel, graphData.yPixel]); //push stroke point
     }
     const distanceFromLanderStrokePath = new paper.Path(strokePoints);
     distanceFromLanderStrokePath.strokeColor = paperDataRef.current.styles.blue;
@@ -491,6 +485,7 @@ export function drawWalkbackElevations(
 
 /**
  * Draws the EVA sequence - station boxes, traverses, and vertical time markers
+ *  Sequence items are drawn rounded to their nearest minute
  * @param paperDataRef
  * @param paperGroupsRef
  * @param storeRef
@@ -504,17 +499,24 @@ export function drawSequenceBottomSection(
 ): void {
   const paperVars = paperDataRef.current.paperVars;
 
-  let itemLocX: number = paperVars.timelineLeft;
+  let xLoc: number = paperVars.timelineLeft; //running x pixel
+  let xLocRounded: number = paperVars.timelineLeft; //rounded running x pixel
+  let endXLocRounded: number = paperVars.timelineLeft; //ending x coordinate of the item
+  let minutes = 0; //running cumulative time
   for (let i = 0; i < storeRef.current.sequenceItems.length; i++) {
     const sequenceItem = storeRef.current.sequenceItems[i];
     const sequenceItemGroup = new paper.Group();
-    let width = 0;
+    let itemWidth = 0;
     if (sequenceItem.type === "station") {
       //draw box
-      width = paperVars.pixelsPerSecondX * sequenceItem.subdividedDurationsMins[0] * 60;
+      minutes += sequenceItem.subdividedDurationsMins[0];
+      itemWidth = paperVars.pixelsPerSecondX * sequenceItem.subdividedDurationsMins[0] * 60;
+      endXLocRounded =
+        paperVars.timelineLeft + Math.round(minutes) * 60 * paperVars.pixelsPerSecondX;
+
       const stationBox = new paper.Rectangle(
-        new paper.Point(itemLocX, paperVars.sequenceTop),
-        new paper.Point(itemLocX + width, paperVars.sequenceTop + paperVars.sequenceHeight)
+        new paper.Point(xLocRounded, paperVars.sequenceTop),
+        new paper.Point(endXLocRounded, paperVars.sequenceTop + paperVars.sequenceHeight)
       );
       const boxColor =
         selectedEvaSequenceItemUuid === sequenceItem.uuid
@@ -528,12 +530,13 @@ export function drawSequenceBottomSection(
       });
 
       //draw label
-      const stationMiddleX = itemLocX + width / 2;
+      const itemWidthRounded = endXLocRounded - xLocRounded;
+      const stationMiddleX = xLocRounded + itemWidthRounded / 2;
       //abbreviate station name if too long
       let content = sequenceItem.name;
-      if (width < 60 && width > 30) {
+      if (itemWidthRounded < 60 && itemWidthRounded > 30) {
         content = `${content.substring(0, 2)}...`;
-      } else if (width < 30) {
+      } else if (itemWidthRounded < 30) {
         content = `${content.substring(0, 1)}..`;
       }
       const grey2 =
@@ -548,27 +551,29 @@ export function drawSequenceBottomSection(
       });
       //clip mask for station box
       const clipRectangle = new paper.Path.Rectangle(
-        new paper.Point(itemLocX - 1, paperVars.sequenceTop - 1),
-        new paper.Point(itemLocX + width + 1, paperVars.sequenceTop + paperVars.sequenceHeight + 1)
+        new paper.Point(xLocRounded - 1, paperVars.sequenceTop - 1),
+        new paper.Point(endXLocRounded + 1, paperVars.sequenceTop + paperVars.sequenceHeight + 1)
       );
 
       sequenceItemGroup.addChildren([clipRectangle, stationBoxRounded, label]);
       sequenceItemGroup.clipped = true;
     } else if (sequenceItem.type === "traverse") {
-      width =
-        paperVars.pixelsPerSecondX *
-        sequenceItem.subdividedDurationsMins.reduce(
-          (accumulator, currentValue) => accumulator + currentValue,
-          0
-        ) *
-        60;
+      const traverseMins = sequenceItem.subdividedDurationsMins.reduce(
+        (accumulator, currentValue) => accumulator + currentValue,
+        0
+      );
+      minutes += traverseMins;
+      itemWidth = paperVars.pixelsPerSecondX * traverseMins * 60;
+      endXLocRounded =
+        paperVars.timelineLeft + Math.round(minutes) * 60 * paperVars.pixelsPerSecondX;
+
       const traverseColor =
         selectedEvaSequenceItemUuid === sequenceItem.uuid
           ? paperDataRef.current.styles.yellow
           : paperDataRef.current.styles.grey2;
       const traverseLine = new paper.Path.Line({
-        from: new paper.Point(itemLocX, paperVars.sequenceTop + 10),
-        to: new paper.Point(itemLocX + width, paperVars.sequenceTop + 10),
+        from: new paper.Point(xLocRounded, paperVars.sequenceTop + 10),
+        to: new paper.Point(endXLocRounded, paperVars.sequenceTop + 10),
         strokeColor: traverseColor,
         strokeWidth: 1.5,
         dashArray: [5, 2],
@@ -583,8 +588,8 @@ export function drawSequenceBottomSection(
         : paperDataRef.current.styles.grey4;
     const bkgRect = new paper.Path.Rectangle({
       rectangle: new paper.Rectangle(
-        new paper.Point(itemLocX + 1, paperVars.timelineTop + 1),
-        new paper.Point(itemLocX + width - 1, paperVars.sequenceTop - 5)
+        new paper.Point(xLocRounded + 1, paperVars.timelineTop + 1),
+        new paper.Point(endXLocRounded - 1, paperVars.sequenceTop - 5)
       ),
       fillColor: bkgColor,
       name: sequenceItem.uuid,
@@ -592,7 +597,8 @@ export function drawSequenceBottomSection(
     paperGroupsRef.current.graphBkg.addChild(bkgRect);
 
     //move x-axis location
-    itemLocX += width;
+    xLocRounded = endXLocRounded;
+    xLoc += itemWidth; //always holds the true x location and width
 
     //draw sequence ending time marker
     let grey2: paper.Color = paperDataRef.current.styles.grey2;
@@ -609,17 +615,16 @@ export function drawSequenceBottomSection(
       //the color of the time marker at the end of the EVA sequence
       lineColor = paperDataRef.current.styles.white;
     }
-    const timeMarkerEnd = drawTimeMarker(paperDataRef, itemLocX, lineColor, grey2);
+    const timeMarkerEnd = drawTimeMarker(paperDataRef, xLocRounded, lineColor, grey2);
     timeMarkerEnd.name = sequenceItem.uuid;
   }
 
   //draw "Available" block at the end of the sequence
-  if (storeRef.current.evaLengthCalculatedMins < storeRef.current.evaLengthMins) {
-    if (Math.round(itemLocX) < paperVars.timelineLeft + paperVars.timeineWidth) {
-      const availableMiddleX = (itemLocX + paperVars.timelineLeft + paperVars.timeineWidth) / 2;
+  if (Math.round(storeRef.current.evaLengthCalculatedMins) < storeRef.current.evaLengthMins) {
+    if (Math.round(xLoc) < paperVars.timelineLeft + paperVars.timeineWidth) {
+      const availableMiddleX = (xLoc + paperVars.timelineLeft + paperVars.timeineWidth) / 2;
       const seconds =
-        (paperVars.timelineLeft + paperVars.timeineWidth - itemLocX) *
-        (1 / paperVars.pixelsPerSecondX);
+        (paperVars.timelineLeft + paperVars.timeineWidth - xLoc) * (1 / paperVars.pixelsPerSecondX);
       const timeHrs = Math.floor(seconds / 3600);
       const timeMins = Math.round((seconds % 3600) / 60);
       const availableLabel = new paper.PointText({

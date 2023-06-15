@@ -19,7 +19,7 @@ import { setPresetEditMode, setSelectedPresetRightNavItem, upsertPreset } from "
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDeletePreset, thunkPresetCancel, thunkSavePreset } from "store/thunk/thunkPreset";
-import { validators } from "utils/formValidators";
+import { validators } from "components/interface/form/formValidators";
 
 const PresetEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();

@@ -1,7 +1,7 @@
 import { FunctionComponent } from "react";
 import styles from "./admin.module.css";
 import { FFInput } from "components/interface/form/globalFields";
-import { validators } from "utils/formValidators";
+import { validators } from "components/interface/form/formValidators";
 
 //create a type for props to make typescript happy
 

@@ -9,7 +9,9 @@ import { useRouter } from "next/router";
 import styles from "./mission.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronRight, faChevronLeft } from "@fortawesome/free-solid-svg-icons";
-import * as InternalAPI from "http-client/internal-api";
+import * as InternalAPI from "http-client/login";
+import { getPresets } from "http-client/preset";
+import { getPOIs } from "http-client/poi";
 import { getMissions } from "http-client/mission";
 import { getLayers } from "http-client/layer";
 import { getStations } from "http-client/station";
@@ -177,7 +179,7 @@ const Main: NextPage = () => {
       }
 
       //Populate Presets
-      const presetData: Preset[] = (await InternalAPI.getPresets(intMissionId)).data;
+      const presetData: Preset[] = (await getPresets(intMissionId)).data;
       if (presetData) {
         const mapLayerControlKeys = Object.keys(mapLayerControls); //name of layer
 
@@ -257,7 +259,7 @@ const Main: NextPage = () => {
       }
 
       //Populate POIs
-      const poiData = await InternalAPI.getPOIs(intMissionId);
+      const poiData = await getPOIs(intMissionId);
       if (poiData.data) {
         dispatch(setPois(poiData.data));
         dispatch(setPoisFromDb(poiData.data));

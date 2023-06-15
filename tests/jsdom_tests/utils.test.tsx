@@ -301,6 +301,12 @@ describe("hhmmFromMinutes", () => {
     expect(hhmmFromMinutes(63)).toEqual("01:03");
     expect(hhmmFromMinutes(600)).toEqual("10:00");
   });
+
+  it("should round minutes", () => {
+    expect(hhmmFromMinutes(9.7)).toEqual("00:10");
+    expect(hhmmFromMinutes(63.3)).toEqual("01:03");
+    expect(hhmmFromMinutes(600.1)).toEqual("10:00");
+  });
 });
 
 describe("traverseDurationMinutes", () => {

@@ -1,7 +1,7 @@
 import { FunctionComponent } from "react";
 import styles from "./admin.module.css";
 import { FFCheckbox, FFInput } from "components/interface/form/globalFields";
-import { validators } from "utils/formValidators";
+import { validators } from "components/interface/form/formValidators";
 
 const { mustBeNumber } = validators;
 

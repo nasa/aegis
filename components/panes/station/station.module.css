@@ -158,6 +158,7 @@
   position: absolute;
   left: -90px;
   top: 40px;
+  z-index: 100;
 }
 
 .statusLoading {

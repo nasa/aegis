@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { isLoggedIn, login, logout } from "http-client/internal-api";
+import { isLoggedIn, login, logout } from "http-client/login";
 import { getMissions } from "http-client/mission";
 import fetchMock from "jest-fetch-mock";
 

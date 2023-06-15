@@ -255,6 +255,12 @@ interface WrappedAction {
   highlight: boolean;
 }
 
+//Contians both parent uuid types for Action
+type ActionParentUuid = {
+  poiUuid?: string;
+  stationUuid?: string;
+};
+
 /**
  * Inventory item needed to perform an action.
  * Inventory management and tracking still being defined.

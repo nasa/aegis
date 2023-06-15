@@ -5,7 +5,7 @@ export type Stringy = string | string[] | number;
 /**
  * This file contains validators to be used with form fields
  * Before using these validators in the react-final-form validate property,
- *    they must be passed through the composeValidators() function below
+ *    they must be passed through the {@link composeValidators} function
  */
 
 const required = (value: Stringy): string | undefined => (value ? undefined : "Required");

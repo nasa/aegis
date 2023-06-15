@@ -29,7 +29,7 @@ import {
   thunkGetStationOrTraverse,
   thunkSaveEva,
 } from "store/thunk/thunkEva";
-import { validators } from "utils/formValidators";
+import { validators } from "components/interface/form/formValidators";
 
 const EvaRightEva: FunctionComponent = () => {
   const dispatch = useDispatch();

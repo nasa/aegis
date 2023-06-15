@@ -76,7 +76,7 @@ export function hhmmssmmmFromSeconds(secondsParam: number): string {
  */
 export function hhmmFromMinutes(minutesParam: number): string {
   const hours = Math.abs(Math.trunc(minutesParam / 60));
-  const minutes = Math.abs(Math.trunc(minutesParam)) % 60;
+  const minutes = Math.abs(Math.round(minutesParam)) % 60;
   let timeStr = padZeros(hours, 2) + ":" + padZeros(minutes, 2);
   if (minutesParam < 0) {
     timeStr = "-" + timeStr;

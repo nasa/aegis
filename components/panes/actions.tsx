@@ -3,18 +3,14 @@ import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions.module.css";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { Button } from "components/interface/form/globalFields";
-import { useDispatch } from "react-redux";
-import { useAppSelector, refEqual } from "utils/useAppSelector";
-import { upsertAction } from "store/action";
 import Action from "./actions-action";
-import { starWars, uniqueNamesGenerator } from "unique-names-generator";
-import { v4 as uuidv4 } from "uuid";
 import _ from "lodash";
 import { faPlusCircle, faTableList } from "@fortawesome/free-solid-svg-icons";
 import ReactDragListView from "react-drag-listview";
 import { STM_Coverage } from "./stm-coverage";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
-const profanityFilter = require("leo-profanity");
+import { useAppDispatch } from "utils/useAppDispatch";
+import { thunkCreateAction } from "store/thunk/thunkAction";
 
 const Actions: FunctionComponent<{
   editMode: boolean;
@@ -35,8 +31,7 @@ const Actions: FunctionComponent<{
   actionParentUuid,
   actionsCalculatedFields,
 }) => {
-  const dispatch = useDispatch();
-  const selectedMissionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
+  const thunkDispatch = useAppDispatch();
 
   const [wrappedActions, setWrappedActions] = useState<WrappedAction[]>(null); //contains all actions in order
 
@@ -83,53 +78,6 @@ const Actions: FunctionComponent<{
     }
     // eslint-disable-next-line
   }, [actions]);
-
-  const handleCreateAction = () => {
-    let randomName = "";
-    while (randomName === "") {
-      const name = uniqueNamesGenerator({
-        dictionaries: [starWars],
-        style: "capital",
-      });
-      const actionWithSameName = actions.find((action) => action.name === name);
-      const profanityCheck = profanityFilter.check(name);
-      randomName = actionWithSameName || profanityCheck ? "" : name;
-    }
-
-    const blankAction: Action = {
-      ...actionParentUuid,
-      missionId: selectedMissionId,
-      uuid: uuidv4(),
-      name: randomName,
-      description: "",
-      status: "Candidate",
-      type: "other",
-      durationLower: 5,
-      durationUpper: 6,
-      stmUuidRefs: null,
-      inventoryItems: null,
-      priorityOverride: null,
-    };
-
-    //upsert action order. new action goes on the end.
-    let actionOrder: string[];
-    if (actionOrderUuids && actionOrderUuids.length > 0) {
-      actionOrder = _.cloneDeep(actionOrderUuids);
-    } else {
-      //no order defined. build a new one based on whats already there
-      actionOrder = [];
-      for (const action of actions) {
-        actionOrder.push(action.uuid);
-      }
-    }
-    actionOrder.push(blankAction.uuid);
-    setActionOrderUuids(actionOrder);
-
-    //upsert action
-    dispatch(upsertAction(blankAction));
-
-    setEditMode(true);
-  };
 
   //set state of highlight connected actions when the STM is hovered over
   function highlightActions(invstgUUID: string) {
@@ -244,7 +192,15 @@ const Actions: FunctionComponent<{
                 label="Add Action"
                 style={{ width: "100px" }}
                 onClick={() => {
-                  handleCreateAction();
+                  thunkDispatch(
+                    thunkCreateAction({
+                      actionParentUuid,
+                      actionOrderUuids,
+                      setActionOrderUuids,
+                      setEditMode,
+                      actions,
+                    })
+                  );
                 }}
               />
             )}

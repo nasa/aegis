@@ -23,7 +23,7 @@ import { thunkResetWalkback, thunkUpdateStationLocation } from "store/thunk/thun
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { round } from "lodash";
-import { validators, regExValidators } from "utils/formValidators";
+import { validators, regExValidators } from "components/interface/form/formValidators";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;

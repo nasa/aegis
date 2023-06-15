@@ -29,7 +29,6 @@ import { makeUniqueStringCopy } from "utils/duplicate";
 import {
   deleteActionsByUuid,
   deleteActionsFromDbByUuid,
-  duplicateAction,
   setActionsFromDb,
   upsertActions,
   upsertActionsFromDb,
@@ -39,6 +38,7 @@ import * as httpClient_action from "http-client/action";
 import { updateMapDirective } from "store/map";
 import { setTraverseEditMode, upsertTraverse } from "store/traverse";
 import { thunkCancelMarkerMapDirective } from "./thunkMap";
+import { thunkDuplicateAction } from "./thunkAction";
 
 export const thunkUpdateStationLocation = appCreateAsyncThunk<{
   location: AEGISPoint;
@@ -627,28 +627,68 @@ export const thunkDuplicateStation = appCreateAsyncThunk<{ station: Station }>(
   async ({ station }, { dispatch, getState }) => {
     if (!station) return;
     //duplicate station
-    const newStation: Station = {
-      ...station,
-      uuid: uuidv4(),
-      name: makeUniqueStringCopy(
-        station.name,
-        getState().station.stations.map((s) => s.name)
-      ),
-    };
-    dispatch(duplicateStation(newStation));
+    const newStation: Station = _.cloneDeep(station);
+    newStation.uuid = uuidv4();
+    newStation.name = makeUniqueStringCopy(
+      station.name,
+      getState().station.stations.map((s) => s.name)
+    );
 
     //duplicate actions
-    const newStationActions = getState().action.actions.filter(
-      (action) => action.stationUuid === station?.uuid
+    const stationActions = getState().action.actions.filter(
+      (action) => action.stationUuid === station.uuid
     );
-    for (const action of newStationActions) {
-      dispatch(
-        duplicateAction({
-          action: action,
-          stationUuid: newStation.uuid,
-        })
-      );
+
+    const newActionOrderUuids = [];
+    //if there's an order, preserve it.
+    if (station.actionOrderUuids) {
+      for (const actionUuid of station.actionOrderUuids) {
+        const action = stationActions.find((a) => a.uuid === actionUuid);
+        const thunkRes = await dispatch(
+          thunkDuplicateAction({
+            action: action,
+            stationUuid: newStation.uuid,
+          })
+        );
+        if (thunkRes.payload) {
+          newActionOrderUuids.push(thunkRes.payload as String);
+        }
+      }
+
+      //in some environments we somehow got into a state where not all actions are listed (???)
+      if (station.actionOrderUuids.length !== stationActions.length) {
+        //add the leftover actions at the bottom
+        const leftoverActions = stationActions.filter(
+          (a) => !station.actionOrderUuids.includes(a.uuid)
+        );
+        for (const action of leftoverActions) {
+          const thunkRes = await dispatch(
+            thunkDuplicateAction({
+              action: action,
+              stationUuid: newStation.uuid,
+            })
+          );
+          if (thunkRes.payload) {
+            newActionOrderUuids.push(thunkRes.payload as String);
+          }
+        }
+      }
+    } else {
+      for (const action of stationActions) {
+        const thunkRes = await dispatch(
+          thunkDuplicateAction({
+            action: action,
+            stationUuid: newStation.uuid,
+          })
+        );
+        if (thunkRes.payload) {
+          newActionOrderUuids.push(thunkRes.payload as String);
+        }
+      }
     }
+    newStation.actionOrderUuids = newActionOrderUuids; //save new order
+    dispatch(duplicateStation(newStation));
+
     // open right panel
     dispatch(setRightPanelOpen(true));
     // set the selected tab to the info tab

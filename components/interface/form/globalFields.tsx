@@ -18,7 +18,7 @@ import { decodeEmoji } from "utils/formatting";
 import { Form } from "react-final-form";
 import React from "react";
 import { Field, FieldMetaState } from "react-final-form";
-import { composeValidators } from "utils/formValidators";
+import { composeValidators } from "components/interface/form/formValidators";
 import Select from "react-select";
 import { FFTextProps, FFCheckboxProps, FFSelectProps } from "typings/form";
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
@@ -103,13 +103,21 @@ export const IconDropdown: FunctionComponent<{
     let selectedItem;
     if (selected) {
       selectedItem = (
-        <div className={styles.iconDropdownModalItem}>
+        <div
+          className={`${styles.iconDropdownModalItemSelected} ${
+            expanded && styles.iconDropdownModalItemSelectedExpanded
+          }`}
+        >
           <div className={styles.itemIcon}>{decodeEmoji(selected)}</div>
         </div>
       );
     } else {
       selectedItem = (
-        <div className={styles.iconDropdownModalItem}>
+        <div
+          className={` ${styles.iconDropdownModalItemSelected} ${
+            expanded && styles.iconDropdownModalItemSelectedExpanded
+          }`}
+        >
           <div className={styles.iconDropdownModalItemLabel}></div>
         </div>
       );
@@ -185,11 +193,11 @@ export const MultiButton: FunctionComponent<{
 };
 
 /**
- * This component wraps the <FFInput> component inside a react-final-form <Form>
+ * This component wraps the {@link FFInput} component inside a react-final-form {@link Form}
  *    to allow each input to validate and submit individually (no singular save button for the entire page)
  * The onSubmit function is called onBlur. This is where the redux store update action should be defined
  * To use validators with this component, import validators from /utils/formValidator.ts and
- *    pass them them in as an array in the fieldPros.validators property.
+ *    pass them them in as an array in the fieldProps.validators property.
  * New validators can be added and exported from /utils/formValidators
  */
 export const InLineEditInput: FunctionComponent<{
@@ -316,7 +324,11 @@ export const ValidationErrors: FunctionComponent<{
   ) : null;
 };
 
-//Should not be called directly. Use the InLineEditInput component instead
+/**
+ * Should not be called directly. Use the {@link InLineEditInput} component instead
+ * @param param0
+ * @returns
+ */
 export const FFInput: FunctionComponent<FFTextProps> = ({
   name,
   ariaLabel,
@@ -375,7 +387,11 @@ export const FFInput: FunctionComponent<FFTextProps> = ({
   );
 };
 
-//Should not be called directly. Use the Wysiwig component instead
+/**
+ * Should not be called directly. Use the WysiwygTextArea component instead
+ * @param param0
+ * @returns
+ */
 export const FFTextArea: FunctionComponent<FFTextProps> = ({
   name,
   ariaLabel,
@@ -431,7 +447,11 @@ export const FFTextArea: FunctionComponent<FFTextProps> = ({
   );
 };
 
-//Should not be called directly. Use the Checkbox component instead
+/**
+ * Should not be called directly. Use the {@link Checkbox} component instead
+ * @param param0
+ * @returns
+ */
 export const FFCheckbox: FunctionComponent<FFCheckboxProps> = ({
   name,
   label = false,
@@ -474,7 +494,11 @@ export const FFCheckbox: FunctionComponent<FFCheckboxProps> = ({
   );
 };
 
-//Should not be called directly. Use the Dropdown component instead
+/**
+ * Should not be called directly. Use the {@link Dropdown} component instead
+ * @param param0
+ * @returns
+ */
 export const FFSelect: FunctionComponent<FFSelectProps> = ({
   name,
   className,

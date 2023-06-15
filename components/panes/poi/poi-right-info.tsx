@@ -10,7 +10,7 @@ import { updateMapDirective } from "store/map";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { round } from "lodash";
-import { validators } from "utils/formValidators";
+import { validators } from "components/interface/form/formValidators";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;

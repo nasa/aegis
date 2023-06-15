@@ -18,7 +18,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkResetTraverse } from "store/thunk/thunkTraverse";
 import { formatNumberWithCommas, toDecimal } from "utils/formatting";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
-import { validators, regExValidators } from "utils/formValidators";
+import { validators, regExValidators } from "components/interface/form/formValidators";
 
 const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
