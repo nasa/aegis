@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import styles from "./index.module.css";
-import { login, isLoggedIn, logout } from "http-client/internal-api";
+import { login, isLoggedIn, logout } from "http-client/login";
 import { getMissions } from "http-client/mission";
 import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/user";
 import { useAppDispatch } from "utils/useAppDispatch";

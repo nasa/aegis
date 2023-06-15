@@ -66,7 +66,7 @@ const PoiItem: FunctionComponent<{
           dispatch(setRightPanelOpen(true));
         }
       }}
-      onMouseOver={() => {
+      onMouseEnter={() => {
         dispatch(setAllHoverUuids(poi.uuid));
       }}
       onMouseLeave={() => {

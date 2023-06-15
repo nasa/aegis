@@ -22,8 +22,6 @@ import { Button } from "components/interface/form/globalFields";
 import { faChartArea, faChartLine } from "@fortawesome/free-solid-svg-icons";
 import { setShowDistanceFromLander, setShowElevation } from "store/interface";
 import { selectEVASequenceItem } from "store/cross-slice";
-import { thunkGetStationOrTraverse } from "store/thunk/thunkEva";
-import { useAppDispatch } from "utils/useAppDispatch";
 
 const TimelineHoverValues: FunctionComponent<{ hoverValues: HoverValues }> = ({ hoverValues }) => {
   const dispatch = useDispatch();
@@ -145,7 +143,6 @@ const TimelineHoverValues: FunctionComponent<{ hoverValues: HoverValues }> = ({ 
  */
 const NavTimeline: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const thunkDispatch = useAppDispatch();
   const selectedEva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
     shallowEqual
@@ -164,6 +161,9 @@ const NavTimeline: FunctionComponent = () => {
   );
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
+  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
+  const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
+
   const showDistanceFromLander = useAppSelector(
     (state) => state.interface.timelineShowDistanceFromLander,
     refEqual
@@ -197,232 +197,223 @@ const NavTimeline: FunctionComponent = () => {
    * Perform additional calculations required for drawing, such as subdividing any paths
    */
   const processDataFromStore = useCallback(() => {
-    (async () => {
-      storeRef.current = {
-        sequenceItems: [],
-        selectedEvaSequenceItemUuid: null,
-        maxDistFromLanderMeters: 0,
-        evaLengthMins: selectedEva?.maxDuration ? +selectedEva?.maxDuration : 240, //default 4 hours in minutes
-        evaLengthCalculatedMins: 0,
-        maxElevationMeters: null,
-        minElevationMeters: null,
-        landerElevationMeters: null,
-        elevationResolutionMeters: null,
-      };
+    storeRef.current = {
+      sequenceItems: [],
+      selectedEvaSequenceItemUuid: null,
+      maxDistFromLanderMeters: 0,
+      evaLengthMins: selectedEva?.maxDuration ? +selectedEva?.maxDuration : 240, //default 4 hours in minutes
+      evaLengthCalculatedMins: 0,
+      maxElevationMeters: null,
+      minElevationMeters: null,
+      landerElevationMeters: null,
+      elevationResolutionMeters: null,
+    };
 
-      if (selectedEva?.sequence && mission) {
-        const planetRadius = parseFloat(mission?.config.msv.radius.minor);
+    if (selectedEva?.sequence && mission) {
+      const planetRadius = parseFloat(mission?.config.msv.radius.minor);
 
-        storeRef.current.elevationResolutionMeters = mission.config.tools.find(
-          (tool) => tool.name === "Measure"
-        )?.variables["resolution"];
-        storeRef.current.landerElevationMeters = mission.landerElevationMeters;
-        storeRef.current.sequenceItems = [];
+      storeRef.current.elevationResolutionMeters = mission.config.tools.find(
+        (tool) => tool.name === "Measure"
+      )?.variables["resolution"];
+      storeRef.current.landerElevationMeters = mission.landerElevationMeters;
+      storeRef.current.sequenceItems = [];
 
-        for (const sequenceItem of selectedEva.sequence) {
-          const sequenceItemForPaperJS: EvaSequenceItem_PaperJS = {
-            ...sequenceItem,
-            name: null,
-            subdividedCoordinates: null,
-            secondsStart: storeRef.current.evaLengthCalculatedMins * 60,
-            subdividedDurationsMins: null,
-            subdividedTotalDurationMins: null,
-            subdividedDistFromLanderMeters: null,
-            segmentElevationMeters: null,
-            segmentDistancesMeters: null,
-            traverseRateMSec: null,
-          };
+      for (const sequenceItem of selectedEva.sequence) {
+        const sequenceItemForPaperJS: EvaSequenceItem_PaperJS = {
+          ...sequenceItem,
+          name: null,
+          subdividedCoordinates: null,
+          secondsStart: storeRef.current.evaLengthCalculatedMins * 60,
+          subdividedDurationsMins: null,
+          subdividedTotalDurationMins: null,
+          subdividedDistFromLanderMeters: null,
+          segmentElevationMeters: null,
+          segmentDistancesMeters: null,
+          traverseRateMSec: null,
+        };
 
-          //get station or traverse from the sequence uuid
-          const seqItemRes = await thunkDispatch(
-            thunkGetStationOrTraverse({ uuid: sequenceItem.uuid })
-          );
-          if (!seqItemRes.payload) continue;
+        //get station or traverse
+        if (sequenceItem.type === "station") {
+          const station = stations.find((s) => s.uuid === sequenceItem.uuid);
 
-          if (seqItemRes.payload.type === "station") {
-            const station = seqItemRes.payload.item as Station;
+          if (!station) continue; //skip if station doesn't exist (happens when station hasn't been selected yet when editing sequence)
+          sequenceItemForPaperJS.name = station.name;
+          sequenceItemForPaperJS.subdividedCoordinates = station.location;
+          sequenceItemForPaperJS.segmentElevationMeters = station.elevation
+            ? [[station.elevation]]
+            : null;
 
-            if (!station) continue; //skip if station doesn't exist (happens when station hasn't been selected yet when editing sequence)
-            sequenceItemForPaperJS.name = station.name;
-            sequenceItemForPaperJS.subdividedCoordinates = station.location;
-            sequenceItemForPaperJS.segmentElevationMeters = station.elevation
-              ? [[station.elevation]]
-              : null;
+          //get traverse rate for this sequence item in meters per second (eva rate falling back to mission rate)
+          const traverseRate = _.isNumber(evaTraverseRate) ? evaTraverseRate : missionTraverseRate;
+          sequenceItemForPaperJS.traverseRateMSec = traverseRate * (1000 / 3600); //convert to m/sec
 
-            //get traverse rate for this sequence item in meters per second (eva rate falling back to mission rate)
-            const traverseRate = _.isNumber(evaTraverseRate)
-              ? evaTraverseRate
-              : missionTraverseRate;
-            sequenceItemForPaperJS.traverseRateMSec = traverseRate * (1000 / 3600); //convert to m/sec
-
-            //calculate duration from actions assigned to station
-            let durationMinutes = 0;
-            for (const action of actions) {
-              if (action.stationUuid === sequenceItem.uuid) {
-                //duration values come in as strings during edit mode
-                const upper = isNaN(action.durationUpper) ? null : +action.durationUpper;
-                const lower = isNaN(action.durationLower) ? null : +action.durationLower;
-                const actionDuration = upper || lower;
-                durationMinutes += isNaN(actionDuration) ? 0 : actionDuration;
-              }
+          //calculate duration from actions assigned to station
+          let durationMinutes = 0;
+          for (const action of actions) {
+            if (action.stationUuid === sequenceItem.uuid) {
+              //duration values come in as strings during edit mode
+              const upper = isNaN(action.durationUpper) ? null : +action.durationUpper;
+              const lower = isNaN(action.durationLower) ? null : +action.durationLower;
+              const actionDuration = upper || lower;
+              durationMinutes += isNaN(actionDuration) ? 0 : actionDuration;
             }
-            sequenceItemForPaperJS.subdividedDurationsMins = [durationMinutes];
-            sequenceItemForPaperJS.subdividedTotalDurationMins = durationMinutes;
-            storeRef.current.evaLengthCalculatedMins += durationMinutes; //add to sum for total length calculated
+          }
+          sequenceItemForPaperJS.subdividedDurationsMins = [durationMinutes];
+          sequenceItemForPaperJS.subdividedTotalDurationMins = durationMinutes;
+          storeRef.current.evaLengthCalculatedMins += durationMinutes; //add to sum for total length calculated
 
-            if (mission.landerLocation) {
-              //calculate distance to lander
-              const landerDistance = getDistanceBetweenTwoCoordinates(
-                station.location,
-                mission.landerLocation,
+          if (mission.landerLocation) {
+            //calculate distance to lander
+            const landerDistance = getDistanceBetweenTwoCoordinates(
+              station.location,
+              mission.landerLocation,
+              planetRadius
+            );
+
+            if (landerDistance > storeRef.current.maxDistFromLanderMeters)
+              storeRef.current.maxDistFromLanderMeters = landerDistance;
+            sequenceItemForPaperJS.subdividedDistFromLanderMeters = [landerDistance];
+
+            //calculate walkback path if this station has a walkback
+            if (station.walkbackPath) {
+              const walkback: Walkback_PaperJS = {
+                subdividedPath: null,
+                subdividedDurationMins: null,
+                subdividedDistFromLanderMeters: null,
+                segmentElevationMeters: null,
+                segmentDistancesMeters: null,
+              };
+              // subdivide seach segment by 150 meters for greater accuracy
+              const newWalkbackPath: AEGISPoint[] = addPointsAtMeters(
+                station.walkbackPath,
+                150,
                 planetRadius
               );
+              walkback.subdividedPath = newWalkbackPath;
 
-              if (landerDistance > storeRef.current.maxDistFromLanderMeters)
-                storeRef.current.maxDistFromLanderMeters = landerDistance;
-              sequenceItemForPaperJS.subdividedDistFromLanderMeters = [landerDistance];
-
-              //calculate walkback path if this station has a walkback
-              if (station.walkbackPath) {
-                const walkback: Walkback_PaperJS = {
-                  subdividedPath: null,
-                  subdividedDurationMins: null,
-                  subdividedDistFromLanderMeters: null,
-                  segmentElevationMeters: null,
-                  segmentDistancesMeters: null,
-                };
-                // subdivide seach segment by 150 meters for greater accuracy
-                const newWalkbackPath: AEGISPoint[] = addPointsAtMeters(
-                  station.walkbackPath,
-                  150,
-                  planetRadius
-                );
-                walkback.subdividedPath = newWalkbackPath;
-
-                walkback.subdividedDurationMins = [];
-                walkback.subdividedDistFromLanderMeters = [];
-                //loop through new subdivided walkback path
-                for (let i = 0; i < newWalkbackPath.length; i++) {
-                  //calculate distance from lander. Track max distance
-                  const landerDistance = getDistanceBetweenTwoCoordinates(
-                    newWalkbackPath[i],
-                    mission.landerLocation,
-                    planetRadius
-                  );
-
-                  if (landerDistance > storeRef.current.maxDistFromLanderMeters)
-                    storeRef.current.maxDistFromLanderMeters = landerDistance;
-                  walkback.subdividedDistFromLanderMeters.push(landerDistance);
-
-                  //calculate duration. distance is in m, rate is in km/hr, duration is in minutes
-                  if (i !== newWalkbackPath.length - 1) {
-                    const distanceSegment = getDistanceBetweenTwoCoordinates(
-                      newWalkbackPath[i],
-                      newWalkbackPath[i + 1],
-                      planetRadius
-                    );
-                    const traverseRate = _.isNumber(evaTraverseRate)
-                      ? evaTraverseRate
-                      : missionTraverseRate;
-
-                    const duration = isNaN(traverseRate)
-                      ? 0
-                      : (distanceSegment / (+traverseRate * 1000)) * 60;
-                    walkback.subdividedDurationMins.push(duration);
-                  }
-                }
-
-                //set elevation data
-                walkback.segmentElevationMeters = station.walkbackPathSegmentElevations;
-                walkback.segmentDistancesMeters = station.walkbackPathSegmentDistances;
-
-                //set walkback data
-                sequenceItemForPaperJS.walkback = walkback;
-              }
-            }
-          } else if (seqItemRes.payload.type === "traverse") {
-            const traverse = seqItemRes.payload.item as Traverse;
-
-            if (!traverse || traverse?.path?.length < 2) continue; //skip traverses with less than 2 points
-            sequenceItemForPaperJS.name = traverse.name;
-
-            //set the traverse rate for the sequence item in meters per second
-            //(traverse field value, falling back to eva rate, falling back to mission rate)
-            let traverseRate = missionTraverseRate;
-            if (evaTraverseRate) {
-              traverseRate = evaTraverseRate;
-            }
-            if (traverse.traverseRate) {
-              traverseRate = traverse.traverseRate;
-            }
-            sequenceItemForPaperJS.traverseRateMSec = traverseRate * (1000 / 3600);
-
-            //find max/min of elevation
-            if (traverse.pathSegmentElevations) {
-              for (const elevationSegment of traverse.pathSegmentElevations) {
-                for (const elevation of elevationSegment) {
-                  if (
-                    !storeRef.current.maxElevationMeters ||
-                    storeRef.current.maxElevationMeters < elevation
-                  ) {
-                    storeRef.current.maxElevationMeters = elevation;
-                  }
-                  if (
-                    !storeRef.current.minElevationMeters ||
-                    storeRef.current.minElevationMeters > elevation
-                  ) {
-                    storeRef.current.minElevationMeters = elevation;
-                  }
-                }
-              }
-            }
-
-            //subdivide seach traverse segment by 150 meters for greater accuracy
-            const newTraverse: AEGISPoint[] = addPointsAtMeters(traverse.path, 150, planetRadius);
-            sequenceItemForPaperJS.subdividedCoordinates = newTraverse;
-
-            sequenceItemForPaperJS.subdividedDistFromLanderMeters = [];
-            sequenceItemForPaperJS.subdividedDurationsMins = [];
-            sequenceItemForPaperJS.subdividedTotalDurationMins = 0;
-            //loop through new subdivided traverse
-            for (let i = 0; i < newTraverse.length; i++) {
-              if (mission.landerLocation) {
+              walkback.subdividedDurationMins = [];
+              walkback.subdividedDistFromLanderMeters = [];
+              //loop through new subdivided walkback path
+              for (let i = 0; i < newWalkbackPath.length; i++) {
                 //calculate distance from lander. Track max distance
                 const landerDistance = getDistanceBetweenTwoCoordinates(
-                  newTraverse[i],
+                  newWalkbackPath[i],
                   mission.landerLocation,
                   planetRadius
                 );
+
                 if (landerDistance > storeRef.current.maxDistFromLanderMeters)
                   storeRef.current.maxDistFromLanderMeters = landerDistance;
-                sequenceItemForPaperJS.subdividedDistFromLanderMeters.push(landerDistance);
+                walkback.subdividedDistFromLanderMeters.push(landerDistance);
+
+                //calculate duration. distance is in m, rate is in km/hr, duration is in minutes
+                if (i !== newWalkbackPath.length - 1) {
+                  const distanceSegment = getDistanceBetweenTwoCoordinates(
+                    newWalkbackPath[i],
+                    newWalkbackPath[i + 1],
+                    planetRadius
+                  );
+                  const traverseRate = _.isNumber(evaTraverseRate)
+                    ? evaTraverseRate
+                    : missionTraverseRate;
+
+                  const duration = isNaN(traverseRate)
+                    ? 0
+                    : (distanceSegment / (+traverseRate * 1000)) * 60;
+                  walkback.subdividedDurationMins.push(duration);
+                }
               }
 
-              //calculate duration. distance is in m, rate is in km/hr, duration is in minutes
-              if (i !== newTraverse.length - 1) {
-                const distanceSegment = getDistanceBetweenTwoCoordinates(
-                  newTraverse[i],
-                  newTraverse[i + 1],
-                  planetRadius
-                );
-                const duration = isNaN(traverseRate)
-                  ? 0
-                  : (distanceSegment / (+traverseRate * 1000)) * 60;
-                sequenceItemForPaperJS.subdividedDurationsMins.push(duration);
-                sequenceItemForPaperJS.subdividedTotalDurationMins += duration;
-                storeRef.current.evaLengthCalculatedMins += duration; //add to sum for total length calculated
+              //set elevation data
+              walkback.segmentElevationMeters = station.walkbackPathSegmentElevations;
+              walkback.segmentDistancesMeters = station.walkbackPathSegmentDistances;
+
+              //set walkback data
+              sequenceItemForPaperJS.walkback = walkback;
+            }
+          }
+        } else if (sequenceItem.type === "traverse") {
+          const traverse = traverses.find((t) => t.uuid === sequenceItem.uuid);
+
+          if (!traverse || traverse?.path?.length < 2) continue; //skip traverses with less than 2 points
+          sequenceItemForPaperJS.name = traverse.name;
+
+          //set the traverse rate for the sequence item in meters per second
+          //(traverse field value, falling back to eva rate, falling back to mission rate)
+          let traverseRate = missionTraverseRate;
+          if (evaTraverseRate) {
+            traverseRate = evaTraverseRate;
+          }
+          if (traverse.traverseRate) {
+            traverseRate = traverse.traverseRate;
+          }
+          sequenceItemForPaperJS.traverseRateMSec = traverseRate * (1000 / 3600);
+
+          //find max/min of elevation
+          if (traverse.pathSegmentElevations) {
+            for (const elevationSegment of traverse.pathSegmentElevations) {
+              for (const elevation of elevationSegment) {
+                if (
+                  !storeRef.current.maxElevationMeters ||
+                  storeRef.current.maxElevationMeters < elevation
+                ) {
+                  storeRef.current.maxElevationMeters = elevation;
+                }
+                if (
+                  !storeRef.current.minElevationMeters ||
+                  storeRef.current.minElevationMeters > elevation
+                ) {
+                  storeRef.current.minElevationMeters = elevation;
+                }
               }
             }
-
-            //elevation
-            sequenceItemForPaperJS.segmentElevationMeters = traverse.pathSegmentElevations;
-            sequenceItemForPaperJS.segmentDistancesMeters = traverse.pathSegmentDistances;
           }
-          storeRef.current.sequenceItems.push(sequenceItemForPaperJS);
+
+          //subdivide seach traverse segment by 150 meters for greater accuracy
+          const newTraverse: AEGISPoint[] = addPointsAtMeters(traverse.path, 150, planetRadius);
+          sequenceItemForPaperJS.subdividedCoordinates = newTraverse;
+
+          sequenceItemForPaperJS.subdividedDistFromLanderMeters = [];
+          sequenceItemForPaperJS.subdividedDurationsMins = [];
+          sequenceItemForPaperJS.subdividedTotalDurationMins = 0;
+          //loop through new subdivided traverse
+          for (let i = 0; i < newTraverse.length; i++) {
+            if (mission.landerLocation) {
+              //calculate distance from lander. Track max distance
+              const landerDistance = getDistanceBetweenTwoCoordinates(
+                newTraverse[i],
+                mission.landerLocation,
+                planetRadius
+              );
+              if (landerDistance > storeRef.current.maxDistFromLanderMeters)
+                storeRef.current.maxDistFromLanderMeters = landerDistance;
+              sequenceItemForPaperJS.subdividedDistFromLanderMeters.push(landerDistance);
+            }
+
+            //calculate duration. distance is in m, rate is in km/hr, duration is in minutes
+            if (i !== newTraverse.length - 1) {
+              const distanceSegment = getDistanceBetweenTwoCoordinates(
+                newTraverse[i],
+                newTraverse[i + 1],
+                planetRadius
+              );
+              const duration = isNaN(traverseRate)
+                ? 0
+                : (distanceSegment / (+traverseRate * 1000)) * 60;
+              sequenceItemForPaperJS.subdividedDurationsMins.push(duration);
+              sequenceItemForPaperJS.subdividedTotalDurationMins += duration;
+              storeRef.current.evaLengthCalculatedMins += duration; //add to sum for total length calculated
+            }
+          }
+
+          //elevation
+          sequenceItemForPaperJS.segmentElevationMeters = traverse.pathSegmentElevations;
+          sequenceItemForPaperJS.segmentDistancesMeters = traverse.pathSegmentDistances;
         }
+        storeRef.current.sequenceItems.push(sequenceItemForPaperJS);
       }
-    })();
-  }, [selectedEva, actions, evaTraverseRate, mission, missionTraverseRate, thunkDispatch]);
+    }
+  }, [selectedEva, actions, evaTraverseRate, mission, missionTraverseRate, stations, traverses]);
 
   //handles on mouse move over the paper canvas
   const onMouseMove = (event: paper.MouseEvent) => {
@@ -489,49 +480,47 @@ const NavTimeline: FunctionComponent = () => {
 
   // Initialize the timeline on first render
   useLayoutEffect(() => {
-    (async () => {
-      if (isNil(paper.project) && typeof window !== "undefined") {
-        paper.setup(canvas.current);
-      }
-      await processDataFromStore(); //loads data into the storeRef
+    if (isNil(paper.project) && typeof window !== "undefined") {
+      paper.setup(canvas.current);
+    }
+    processDataFromStore(); //loads data into the storeRef
+    drawTimeline();
+
+    paper.view.onMouseMove = _.throttle(onMouseMove, 15, {
+      leading: true,
+      trailing: false,
+    });
+
+    paper.view.onMouseLeave = () => {
+      paperGroupsRef.current.hoverLine.visible = false;
+      dispatch(clearMapItemHover());
+
+      //clear hover values
+      setHoverValues(initHoverValues);
+    };
+    paper.view.onResize = function () {
       drawTimeline();
-
-      paper.view.onMouseMove = _.throttle(onMouseMove, 15, {
-        leading: true,
-        trailing: false,
-      });
-
-      paper.view.onMouseLeave = () => {
-        paperGroupsRef.current.hoverLine.visible = false;
-        dispatch(clearMapItemHover());
-
-        //clear hover values
-        setHoverValues(initHoverValues);
-      };
-      paper.view.onResize = function () {
-        drawTimeline();
-      };
-      paper.view.onClick = function (event: paper.MouseEvent) {
-        //determine what sequence item the x coordinate is in
-        let sequenceUuid: string = null;
-        for (const bkgBlock of paperGroupsRef.current.graphBkg.children) {
-          if (
-            bkgBlock.contains(
-              new paper.Point(event.point.x, paperDataRef.current.paperVars.timelineTop + 1)
-            )
-          ) {
-            //add 1 so the y point would be inside the block
-            sequenceUuid = bkgBlock.name;
-            break;
-          }
+    };
+    paper.view.onClick = function (event: paper.MouseEvent) {
+      //determine what sequence item the x coordinate is in
+      let sequenceUuid: string = null;
+      for (const bkgBlock of paperGroupsRef.current.graphBkg.children) {
+        if (
+          bkgBlock.contains(
+            new paper.Point(event.point.x, paperDataRef.current.paperVars.timelineTop + 1)
+          )
+        ) {
+          //add 1 so the y point would be inside the block
+          sequenceUuid = bkgBlock.name;
+          break;
         }
+      }
 
-        //set selected uuid if we have one
-        if (sequenceUuid) {
-          dispatch(selectEVASequenceItem({ sequenceItemUuid: sequenceUuid }));
-        }
-      };
-    })();
+      //set selected uuid if we have one
+      if (sequenceUuid) {
+        dispatch(selectEVASequenceItem({ sequenceItemUuid: sequenceUuid }));
+      }
+    };
 
     return () => paper.project.remove();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -618,7 +607,7 @@ function calcElevationGraphData(
 
       //this is a station
       if (segmentElevation.length === 1) {
-        xLoc = xLocStart + totalDurationMins * 60 * paperVars.pixelsPerSecondX;
+        xLoc = xLocStart + Math.round(totalDurationMins) * 60 * paperVars.pixelsPerSecondX;
         graphData_elevation.push({
           xPixel: xLoc,
           yPixel:
@@ -639,13 +628,16 @@ function calcElevationGraphData(
         //  don't use width. take the duration for this segment and set the x location
         //  for the next loop to be the end of the segment.
         if (elevationIndex === segmentElevation.length - 2) {
+          //add all the segment distances together
           let accumuatliveSegmentDistance = 0;
           for (let i = 0; i <= segmentElevationIndex; i++) {
             accumuatliveSegmentDistance += segmentedDistancesMeters[i];
           }
           xLoc =
             xLocStart +
-            accumuatliveSegmentDistance * (1 / traverseRateMSec) * paperVars.pixelsPerSecondX;
+            Math.round(accumuatliveSegmentDistance / traverseRateMSec / 60) *
+              60 *
+              paperVars.pixelsPerSecondX; //round to the nearest minute
         }
         lastRoundX = Math.round(xLoc);
       }
@@ -679,10 +671,11 @@ function initGraphItemsRef(
   };
 
   const paperVars = paperDataRef.current.paperVars;
-  //loop through sequence items
+  //loop through sequence items. Seq items are drawn rounded to the nearest minute, so match that here.
   for (const sequenceItem of storeRef.current.sequenceItems) {
-    const sequenceStartPixel =
-      paperVars.timelineLeft + sequenceItem.secondsStart * paperVars.pixelsPerSecondX;
+    const sequenceStartPixelRounded =
+      paperVars.timelineLeft +
+      Math.round(sequenceItem.secondsStart / 60) * 60 * paperVars.pixelsPerSecondX; //round to nearest minute
 
     //calculate xy coordinates for all the graph lines
     const graphData_distFromLndr: GraphDataItem[] = []; //the distance from lander for the sequence
@@ -700,7 +693,7 @@ function initGraphItemsRef(
         const walkbackData = sequenceItem.walkback;
 
         //calc walkback distance from lander
-        let itemLocX_walkback: number = sequenceStartPixel; //x location for this walkback
+        let itemLocX_walkback: number = sequenceStartPixelRounded; //x location for this walkback
         for (const [durationIndex, duration] of walkbackData.subdividedDurationMins.entries()) {
           const width = duration * paperVars.pixelsPerSecondX * 60; //duration is in minutes
           const itemLocYStart =
@@ -738,7 +731,7 @@ function initGraphItemsRef(
           graphData_walkbackElevation = calcElevationGraphData(
             walkbackData.segmentElevationMeters,
             walkbackData.segmentDistancesMeters,
-            sequenceStartPixel,
+            sequenceStartPixelRounded,
             walkbackData.subdividedDurationMins.reduce(
               (accumulator, currentValue) => accumulator + currentValue,
               0
@@ -751,9 +744,8 @@ function initGraphItemsRef(
       }
 
       //calc distance from lander
-      let itemLocX_dstFromLndr: number = sequenceStartPixel;
+      let itemLocX_dstFromLndr: number = sequenceStartPixelRounded;
       for (const [durationIndex, duration] of sequenceItem.subdividedDurationsMins.entries()) {
-        const width = duration * paperVars.pixelsPerSecondX * 60; //duration is in minutes
         const distFromLanderMeters = sequenceItem.subdividedDistFromLanderMeters[durationIndex];
         const itemLocY =
           paperVars.timelineTop +
@@ -767,11 +759,18 @@ function initGraphItemsRef(
 
         //we're on the last duration item
         if (durationIndex === sequenceItem.subdividedDurationsMins.length - 1) {
+          //end point is the start + seq item duration rounded to the nearest minute
+          const endX =
+            paperVars.timelineLeft +
+            Math.round(sequenceItem.secondsStart / 60 + sequenceItem.subdividedTotalDurationMins) *
+              60 *
+              paperVars.pixelsPerSecondX;
+
           //add on the last point
           if (sequenceItem.subdividedDistFromLanderMeters.length === 1) {
             //this is a station. Use the y value calculated from above
             graphData_distFromLndr.push({
-              xPixel: itemLocX_dstFromLndr + width,
+              xPixel: endX,
               yPixel: itemLocY,
               val: distFromLanderMeters,
             });
@@ -784,12 +783,13 @@ function initGraphItemsRef(
               paperVars.graphHeight -
               distFromLanderMetersEnd * paperVars.pixelsPerMeterDistanceY;
             graphData_distFromLndr.push({
-              xPixel: itemLocX_dstFromLndr + width,
+              xPixel: endX,
               yPixel: itemLocYEnd,
               val: distFromLanderMetersEnd,
             });
           }
         }
+        const width = duration * 60 * paperVars.pixelsPerSecondX; //duration is in minutes
         itemLocX_dstFromLndr += width; //increment x
       }
     }
@@ -799,7 +799,7 @@ function initGraphItemsRef(
       graphData_elevation = calcElevationGraphData(
         sequenceItem.segmentElevationMeters,
         sequenceItem.segmentDistancesMeters,
-        sequenceStartPixel,
+        sequenceStartPixelRounded,
         sequenceItem.subdividedTotalDurationMins,
         paperDataRef,
         storeRef,
@@ -889,7 +889,10 @@ function initPaperRefs(
   paperVars.graphHeight = paperVars.sequenceTop - paperVars.timelineTop - 4; //4px buffer between graph bottom and beginning of sequence
   paperVars.pixelsPerSecondX =
     paperVars.timeineWidth /
-    (Math.max(storeRef.current.evaLengthMins, storeRef.current.evaLengthCalculatedMins) * 60);
+    (Math.round(
+      Math.max(storeRef.current.evaLengthMins, storeRef.current.evaLengthCalculatedMins)
+    ) *
+      60);
   paperVars.pixelsPerMeterDistanceY =
     paperVars.graphHeight / storeRef.current.maxDistFromLanderMeters;
   paperVars.pixelsPerMeterElevationY =

@@ -1,7 +1,7 @@
 import { NextPage } from "next";
 import { ChangeEvent, Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { isAdmin, isLoggedIn } from "http-client/internal-api";
+import { isAdmin, isLoggedIn } from "http-client/login";
 import { getMissions, deleteMission, upsertMission } from "http-client/mission";
 import styles from "components/admin/admin.module.css";
 import { createNewConfig } from "components/admin/helper";

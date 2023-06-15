@@ -6,7 +6,7 @@ import {
 } from "store/poi";
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkGetElevation } from "./thunkElevation";
-import * as InternalAPI from "http-client/internal-api";
+import * as InternalAPI from "http-client/poi";
 import * as httpClient_action from "http-client/action";
 import {
   deleteActionsFromDbByUuid,
@@ -14,7 +14,6 @@ import {
   upsertActionsFromDb,
   deleteActionsByUuid,
   setActionsFromDb,
-  duplicateAction,
 } from "store/action";
 import deepEqual from "lodash/isEqual";
 import { obliteratePoi } from "store/cross-slice";
@@ -24,6 +23,8 @@ import { generateUniqueName } from "utils/unique-name";
 import { v4 as uuidv4 } from "uuid";
 import { makeUniqueStringCopy } from "utils/duplicate";
 import { thunkCancelMarkerMapDirective } from "./thunkMap";
+import _ from "lodash";
+import { thunkDuplicateAction } from "./thunkAction";
 
 export const thunkUpdatePoiLocation = appCreateAsyncThunk<{
   location: AEGISPoint;
@@ -99,18 +100,19 @@ export const thunkCreatePoiCalculatedFields = appCreateAsyncThunk<void>(
 export const thunkSavePoi = appCreateAsyncThunk<{
   poi: POI;
 }>("poiSave", async ({ poi }, { dispatch, getState }) => {
-  const selectedMissionId = getState().mission.mission?.id;
-  const poiUpsertResponse = await InternalAPI.setPOI(poi);
   const poiActions = getState().action.actions.filter((action) => action.poiUuid === poi.uuid);
   const poiActionsFromDb = getState().action.actionsFromDb.filter(
     (action) => action.poiUuid === poi.uuid
   );
 
+  //save poi to db
+  const poiUpsertResponse = await InternalAPI.setPOI(poi);
+
   if (poiUpsertResponse.status === "success") {
     // upsert the changed POI to the store
     dispatch(upsertPoi(poiUpsertResponse.data));
     // update the POI in the store with a  fresh copy of POIs from DB
-    const poiData = await InternalAPI.getPOIs(selectedMissionId);
+    const poiData = await InternalAPI.getPOIs(getState().mission.mission?.id);
     if (poiData.data) {
       dispatch(setPoisFromDb(poiData.data));
     }
@@ -290,28 +292,40 @@ export const thunkDuplicatePoi = appCreateAsyncThunk<{ poi: POI }>(
   async ({ poi }, { dispatch, getState }) => {
     if (!poi) return;
     //duplicate poi
-    const newPoi: POI = {
-      ...poi,
-      uuid: uuidv4(),
-      name: makeUniqueStringCopy(
-        poi.name,
-        getState().poi.pois.map((item) => item.name)
-      ),
-    };
-    dispatch(duplicatePoi(newPoi));
+    const newPoi: POI = _.cloneDeep(poi);
+    newPoi.uuid = uuidv4();
+    newPoi.name = makeUniqueStringCopy(
+      poi.name,
+      getState().poi.pois.map((item) => item.name)
+    );
 
     //duplicate actions
-    const newStationActions = getState().action.actions.filter(
-      (action) => action.poiUuid === poi?.uuid
-    );
-    for (const action of newStationActions) {
-      dispatch(
-        duplicateAction({
-          action: action,
-          poiUuid: newPoi.uuid,
-        })
-      );
+    const poiActions = getState().action.actions.filter((action) => action.poiUuid === poi?.uuid);
+
+    const newActionOrderUuids = [];
+    //if there's an order, preserve it.
+    if (poi.actionOrderUuids) {
+      for (const actionUuid of poi.actionOrderUuids) {
+        const action = poiActions.find((a) => a.uuid === actionUuid);
+        const thunkRes = await dispatch(
+          thunkDuplicateAction({ action: action, poiUuid: newPoi.uuid })
+        );
+        if (thunkRes.payload) {
+          newActionOrderUuids.push(thunkRes.payload as String);
+        }
+      }
+    } else {
+      for (const action of poiActions) {
+        const thunkRes = await dispatch(
+          thunkDuplicateAction({ action: action, poiUuid: newPoi.uuid })
+        );
+        if (thunkRes.payload) {
+          newActionOrderUuids.push(thunkRes.payload as String);
+        }
+      }
     }
+    newPoi.actionOrderUuids = newActionOrderUuids; //save new order
+    dispatch(duplicatePoi(newPoi));
 
     // open right panel
     dispatch(setRightPanelOpen(true));

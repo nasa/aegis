@@ -5,6 +5,11 @@ export const selectPoiActions =
   (state: RootState): Action[] =>
     state.action.actions.filter((storeAction: Action) => storeAction.poiUuid === poiUuid);
 
+export const selectStationActions =
+  (stationUuid: string) =>
+  (state: RootState): Action[] =>
+    state.action.actions.filter((storeAction: Action) => storeAction.stationUuid === stationUuid);
+
 export const selectMissionId = (state: RootState): number | false => {
   const mission = state.mission.mission;
   if (mission) {

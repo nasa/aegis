@@ -1,7 +1,7 @@
 import styles from "./preset.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faGlobe, faPlusCircle, faUser } from "@fortawesome/free-solid-svg-icons";
-import { FunctionComponent } from "react";
+import { FunctionComponent, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { setMapLayerControls } from "store/map";
@@ -91,6 +91,8 @@ const PresetList: FunctionComponent<{
     refEqual
   );
 
+  const [presetHoverUuid, setPresetHoverUuid] = useState(null);
+
   const handleSelectPresetClick = async (currentPreset: Preset) => {
     if (currentPreset.uuid === selectedPresetUuid) {
       dispatch(setSelectedPresetUuid(null));
@@ -109,8 +111,12 @@ const PresetList: FunctionComponent<{
     <div className={styles.layerGroup}>
       {Object.keys(presets).map((key, index) => {
         const currentPreset = presets[key];
-        const selectedStyle =
-          currentPreset.uuid === selectedPresetUuid ? styles.presetItemSelected : null;
+        let isSelectedOrHoveredStyle = null;
+        if (currentPreset.uuid === selectedPresetUuid) {
+          isSelectedOrHoveredStyle = styles.presetItemSelected;
+        } else if (currentPreset.uuid === presetHoverUuid) {
+          isSelectedOrHoveredStyle = styles.presetItemHovered;
+        }
         const iconSelectedStyle =
           currentPreset.uuid === selectedPresetUuid ? styles.presetIconSelected : null;
 
@@ -118,7 +124,13 @@ const PresetList: FunctionComponent<{
         return (
           <div
             key={`sub_${currentPreset.name}_${index}`}
-            className={`${styles.presetItem} ${selectedStyle}`}
+            className={`${styles.presetItem} ${isSelectedOrHoveredStyle}`}
+            onMouseEnter={() => {
+              setPresetHoverUuid(currentPreset.uuid);
+            }}
+            onMouseLeave={() => {
+              setPresetHoverUuid(null);
+            }}
           >
             <div
               className={styles.presetTitle}

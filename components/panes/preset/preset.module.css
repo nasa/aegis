@@ -44,6 +44,10 @@
   cursor: pointer;
 }
 
+.presetItemHovered {
+  background-color: var(--grey1);
+}
+
 .presetIcon {
   width: 20px;
   margin-left: 1px;

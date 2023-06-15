@@ -23,7 +23,7 @@ import { selectPoiActions } from "store/selectors";
 import Report_Panel from "../report";
 import { getAlertColor } from "utils/component-helpers";
 import { useDispatch } from "react-redux";
-import { validators } from "utils/formValidators";
+import { validators } from "components/interface/form/formValidators";
 
 const PoiEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -117,7 +117,30 @@ const PoiEditorRight: FunctionComponent = () => {
             setSelected={(value) => {
               dispatch(upsertPoi({ ...selectedPoi, icon: value }));
             }}
-            items={["1F534", "1F535", "1F7E2", "1F7E1", "1F7E3", "1F7E0", "1F7E4", "26AB", "26AA"]}
+            items={[
+              "1F534",
+              "1F7E0",
+              "1F7E1",
+              "1F7E2",
+              "1F535",
+              "1F7E3",
+              "1F7E4",
+              "26AB",
+              "26AA",
+              "1F7E5",
+              "1F7E7",
+              "1F7E8",
+              "1F7E9",
+              "1F7E6",
+              "1F7EA",
+              "1F7EB",
+              "2B1B",
+              "2B1C",
+              "1F53A",
+              "1F53B",
+              "1F536",
+              "1F537",
+            ]}
           />
 
           <div className={paneStyles.rightTopTitleText} style={{ color: "var(--poi)" }}>

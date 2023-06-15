@@ -46,7 +46,7 @@ const StationItem: FunctionComponent<{
           dispatch(setRightPanelOpen(true));
         }
       }}
-      onMouseOver={() => {
+      onMouseEnter={() => {
         dispatch(setAllHoverUuids(station.uuid));
       }}
       onMouseLeave={() => {
