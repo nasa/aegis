@@ -368,7 +368,7 @@
 .actionsHeadingTitle {
   font-size: 0.9rem;
   font-weight: 400;
-  width: 115px;
+  width: 93px;
   margin-top: 4px;
   text-transform: capitalize;
   cursor: pointer;
@@ -376,9 +376,10 @@
 
 .actionsHeadingSubTitle {
   flex-grow: 1;
+  max-width: 295px;
   font-size: 0.8rem;
   font-weight: 400;
-  margin-top: auto;
+  margin-top: 4px;
 }
 
 .actionsHeadingCaret {
@@ -393,6 +394,7 @@
 .actionHeadingIcons {
   width: 18px;
   margin-top: 4px;
+  user-select: none;
 }
 
 .checkUneditable {

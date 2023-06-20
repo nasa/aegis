@@ -273,7 +273,6 @@
 .inLineEditValue {
   border: 1px solid rgb(0, 0, 0, 0);
   border-radius: var(--radius);
-  height: 1.3em;
   margin-left: 4px;
   cursor: default;
   display: flex;

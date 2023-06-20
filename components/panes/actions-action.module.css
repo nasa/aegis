@@ -18,6 +18,7 @@
 
 .iconFaded {
   color: var(--grey4);
+  outline: none;
 }
 
 .actionsHeadingCaret {
