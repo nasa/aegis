@@ -316,8 +316,8 @@ const Left = () => {
                 </li>
                 <li>
                   <div className={styles.creditHeading}>
-                    <a className={styles.teamName} href={"mailto:cameron.w.pittman@nasa.gov"}>
-                      Cameron Pittman
+                    <a className={styles.teamName} href={"mailto:luke.a.mcsherry@nasa.gov"}>
+                      Luke McSherry
                     </a>
                   </div>
                   <div className={styles.teamTitle}>Software Engineering</div>
