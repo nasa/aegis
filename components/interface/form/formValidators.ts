@@ -1,4 +1,3 @@
-import { UnderscoreNamingStrategy } from "@mikro-orm/core";
 import { FieldValidator } from "final-form";
 
 export type Stringy = string | string[] | number;
