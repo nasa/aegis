@@ -7,7 +7,7 @@ import {
   names,
   starWars,
 } from "unique-names-generator";
-import starTrek from "../public/custom-dictionaries/star-trek-dict";
+import starTrek from "../public/custom-names/star-trek-names";
 const profanityFilter = require("leo-profanity");
 
 type DictName =
