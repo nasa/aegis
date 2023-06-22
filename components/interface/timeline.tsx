@@ -581,6 +581,7 @@ function calcElevationGraphData(
   segmentedElevationMeters: number[][],
   segmentedDistancesMeters: number[],
   xLocStart: number,
+  xLocStartRounded: number,
   totalDurationMins: number,
   paperDataRef: MutableRefObject<PaperData>,
   storeRef: MutableRefObject<StoreData_PaperJS>,
@@ -593,23 +594,46 @@ function calcElevationGraphData(
 
   const graphData_elevation: GraphDataItem[] = [];
   let xLoc = xLocStart;
-  for (const [segmentElevationIndex, segmentElevation] of segmentedElevationMeters.entries()) {
-    //loop through elevations
-    let lastRoundX = Math.round(xLoc);
-    for (const [elevationIndex, elevation] of segmentElevation.entries()) {
-      graphData_elevation.push({
-        xPixel: xLoc,
-        yPixel:
-          paperVars.timelineTop +
-          (storeRef.current.maxElevationMeters - elevation) * paperVars.pixelsPerMeterElevationY,
-        val: elevation,
-      });
+  let prevXLoc = xLoc;
+  const xLocMax = xLocStart + totalDurationMins * 60 * paperVars.pixelsPerSecondX;
+  const xLocMaxRounded = totalDurationMins
+    ? roundPixelToNearestMinute(xLocMax, paperVars.pixelsPerSecondX, paperVars.timelineLeft)
+    : xLocStartRounded;
+  //loop through subdivided segments
+  for (const [segmentIndex, segment] of segmentedElevationMeters.entries()) {
+    //loop through elevations at the resolution
+    for (const [elevationIndex, elevation] of segment.entries()) {
+      //round first point to nearest minute
+      if (segmentIndex === 0 && elevationIndex === 0) {
+        graphData_elevation.push({
+          xPixel: xLocStartRounded,
+          yPixel:
+            paperVars.timelineTop +
+            (storeRef.current.maxElevationMeters - elevation) * paperVars.pixelsPerMeterElevationY,
+          val: elevation,
+        });
+      }
 
-      //this is a station
-      if (segmentElevation.length === 1) {
-        xLoc = xLocStart + Math.round(totalDurationMins) * 60 * paperVars.pixelsPerSecondX;
+      // optimize by only drawing one point per x pixel and only within rounded x start and x end
+      if (
+        xLoc !== prevXLoc &&
+        Math.round(xLoc) !== Math.round(prevXLoc) &&
+        xLoc <= xLocMaxRounded &&
+        xLoc > xLocStartRounded
+      ) {
         graphData_elevation.push({
           xPixel: xLoc,
+          yPixel:
+            paperVars.timelineTop +
+            (storeRef.current.maxElevationMeters - elevation) * paperVars.pixelsPerMeterElevationY,
+          val: elevation,
+        });
+      }
+
+      //this is a station. Add the last point at and break out
+      if (segment.length === 1) {
+        graphData_elevation.push({
+          xPixel: xLocMaxRounded,
           yPixel:
             paperVars.timelineTop +
             (storeRef.current.maxElevationMeters - elevation) * paperVars.pixelsPerMeterElevationY,
@@ -618,19 +642,22 @@ function calcElevationGraphData(
         break;
       }
 
-      //the last point of current segment is equal to the first point in the next segment
-      //  don't increment the x coordinate
-      if (elevationIndex !== segmentElevation.length - 1) xLoc += elevationWidth;
+      prevXLoc = xLoc;
 
-      // only draw one value per x pixel
-      if (Math.round(xLoc) !== lastRoundX) {
-        //the last elevation point may not be exactly the elevation resolution distance.
-        //  don't use width. take the duration for this segment and set the x location
-        //  for the next loop to be the end of the segment.
-        if (elevationIndex === segmentElevation.length - 2) {
-          //add all the segment distances together
+      //increment x unless we're at the last point in this segment. the last point of current segment is equal to the first point in the next segment
+      if (elevationIndex !== segment.length - 1) xLoc += elevationWidth;
+
+      //the distance between the last 2 elevation points in this segment may not
+      //  be exactly the elevation resolution distance, so we can't use width to
+      //  calculate the next xLoc.
+      if (elevationIndex === segment.length - 2) {
+        //we're also in the last segment. Use the max
+        if (segmentIndex === segmentedElevationMeters.length - 1) {
+          xLoc = xLocMaxRounded;
+        } else {
+          //add all the previous segments distances together up to this point
           let accumuatliveSegmentDistance = 0;
-          for (let i = 0; i <= segmentElevationIndex; i++) {
+          for (let i = 0; i <= segmentIndex; i++) {
             accumuatliveSegmentDistance += segmentedDistancesMeters[i];
           }
           xLoc =
@@ -639,7 +666,6 @@ function calcElevationGraphData(
               60 *
               paperVars.pixelsPerSecondX; //round to the nearest minute
         }
-        lastRoundX = Math.round(xLoc);
       }
     }
   }
@@ -673,9 +699,13 @@ function initGraphItemsRef(
   const paperVars = paperDataRef.current.paperVars;
   //loop through sequence items. Seq items are drawn rounded to the nearest minute, so match that here.
   for (const sequenceItem of storeRef.current.sequenceItems) {
-    const sequenceStartPixelRounded =
-      paperVars.timelineLeft +
-      Math.round(sequenceItem.secondsStart / 60) * 60 * paperVars.pixelsPerSecondX; //round to nearest minute
+    const sequenceStartPixel =
+      paperVars.timelineLeft + sequenceItem.secondsStart * paperVars.pixelsPerSecondX;
+    const sequenceStartPixelRounded = roundPixelToNearestMinute(
+      sequenceStartPixel,
+      paperVars.pixelsPerSecondX,
+      paperVars.timelineLeft
+    );
 
     //calculate xy coordinates for all the graph lines
     const graphData_distFromLndr: GraphDataItem[] = []; //the distance from lander for the sequence
@@ -731,6 +761,7 @@ function initGraphItemsRef(
           graphData_walkbackElevation = calcElevationGraphData(
             walkbackData.segmentElevationMeters,
             walkbackData.segmentDistancesMeters,
+            sequenceStartPixel,
             sequenceStartPixelRounded,
             walkbackData.subdividedDurationMins.reduce(
               (accumulator, currentValue) => accumulator + currentValue,
@@ -745,37 +776,40 @@ function initGraphItemsRef(
 
       //calc distance from lander
       let itemLocX_dstFromLndr: number = sequenceStartPixelRounded;
+      const itemLocXMax_dstFromLndr =
+        sequenceStartPixel +
+        sequenceItem.subdividedTotalDurationMins * 60 * paperVars.pixelsPerSecondX;
+      const itemLocXMaxRounded_dstFromLndr = roundPixelToNearestMinute(
+        itemLocXMax_dstFromLndr,
+        paperVars.pixelsPerSecondX,
+        paperVars.timelineLeft
+      );
       for (const [durationIndex, duration] of sequenceItem.subdividedDurationsMins.entries()) {
         const distFromLanderMeters = sequenceItem.subdividedDistFromLanderMeters[durationIndex];
         const itemLocY =
           paperVars.timelineTop +
           paperVars.graphHeight -
           distFromLanderMeters * paperVars.pixelsPerMeterDistanceY;
-        graphData_distFromLndr.push({
-          xPixel: itemLocX_dstFromLndr,
-          yPixel: itemLocY,
-          val: distFromLanderMeters,
-        });
+        //only plot if it's within the rounded x end
+        if (itemLocX_dstFromLndr <= itemLocXMaxRounded_dstFromLndr) {
+          graphData_distFromLndr.push({
+            xPixel: itemLocX_dstFromLndr,
+            yPixel: itemLocY,
+            val: distFromLanderMeters,
+          });
+        }
 
         //we're on the last duration item
         if (durationIndex === sequenceItem.subdividedDurationsMins.length - 1) {
-          //end point is the start + seq item duration rounded to the nearest minute
-          const endX =
-            paperVars.timelineLeft +
-            Math.round(sequenceItem.secondsStart / 60 + sequenceItem.subdividedTotalDurationMins) *
-              60 *
-              paperVars.pixelsPerSecondX;
-
-          //add on the last point
+          //this is a station. Use the y value calculated from above
           if (sequenceItem.subdividedDistFromLanderMeters.length === 1) {
-            //this is a station. Use the y value calculated from above
             graphData_distFromLndr.push({
-              xPixel: endX,
+              xPixel: itemLocXMaxRounded_dstFromLndr,
               yPixel: itemLocY,
               val: distFromLanderMeters,
             });
           } else {
-            //distance array should have +1 more item than the duration array.
+            //distance array will have +1 more item than the duration array.
             const distFromLanderMetersEnd =
               sequenceItem.subdividedDistFromLanderMeters[durationIndex + 1]; //meters
             const itemLocYEnd =
@@ -783,7 +817,7 @@ function initGraphItemsRef(
               paperVars.graphHeight -
               distFromLanderMetersEnd * paperVars.pixelsPerMeterDistanceY;
             graphData_distFromLndr.push({
-              xPixel: endX,
+              xPixel: itemLocXMaxRounded_dstFromLndr,
               yPixel: itemLocYEnd,
               val: distFromLanderMetersEnd,
             });
@@ -799,6 +833,7 @@ function initGraphItemsRef(
       graphData_elevation = calcElevationGraphData(
         sequenceItem.segmentElevationMeters,
         sequenceItem.segmentDistancesMeters,
+        sequenceStartPixel,
         sequenceStartPixelRounded,
         sequenceItem.subdividedTotalDurationMins,
         paperDataRef,
@@ -907,4 +942,21 @@ function initPaperRefs(
   }
 }
 
+/**
+ * Rounds a given x pixel to the nearest minute and returns back the new adjusted x pixel
+ * This function is needed to conform how calcuations are made when rounding pixels.
+ * It's used mainly in path calculations (walkbacks and traverses) with fractional durations
+ * @param xPixel
+ * @param pixelsPerSecondX
+ * @param timelineStartLeft
+ * @returns
+ */
+function roundPixelToNearestMinute(
+  xPixel: number,
+  pixelsPerSecondX: number,
+  timelineStartLeft: number
+) {
+  const minutes = Math.round(((xPixel - timelineStartLeft) * 1) / pixelsPerSecondX / 60);
+  return minutes * 60 * pixelsPerSecondX + timelineStartLeft;
+}
 export default NavTimeline;
