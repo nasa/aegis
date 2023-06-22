@@ -18,7 +18,7 @@ export const thunkCreateAction = appCreateAsyncThunk<{
     { dispatch, getState }
   ) => {
     const randomName = generateUniqueName({
-      dictName: "starWars",
+      dictName: "starTrek",
       existingNames: getState().action.actions.map((a: Action) => a.name),
     });
 
