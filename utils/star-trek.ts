@@ -1,4 +1,4 @@
-export default [
+const starTrek = [
   "Enterprise",
   "Defiant",
   "Ajax",
@@ -30,7 +30,6 @@ export default [
   "Seven of Nine",
   "Tuvok",
   "Neelix",
-  "Doctor",
   "Paris",
   "Torres",
   "Kazon",
@@ -75,3 +74,5 @@ export default [
   "Replicator",
   "Dilithium",
 ];
+
+export default starTrek;
