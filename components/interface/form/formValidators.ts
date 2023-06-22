@@ -1,3 +1,4 @@
+import { UnderscoreNamingStrategy } from "@mikro-orm/core";
 import { FieldValidator } from "final-form";
 
 export type Stringy = string | string[] | number;
@@ -21,7 +22,7 @@ const minValue =
 const maxValue =
   (max: number) =>
   (value: Stringy): string | undefined =>
-    isNaN(Number(value)) || Number(value) <= max ? undefined : `Should be greater than ${max}`;
+    isNaN(Number(value)) || Number(value) <= max ? undefined : `Should be less than ${max}`;
 
 const minLength =
   (min: number) =>
@@ -51,6 +52,13 @@ const mustBeValidJSON = (value: Stringy): string | undefined => {
   return undefined;
 };
 
+const cannotContainDecimals = (value: Stringy): string | undefined => {
+  if (!value) return undefined;
+  return isNaN(Number(value)) || Number(value) - Math.floor(Number(value)) === 0
+    ? undefined
+    : "Number cannot contain decimals";
+};
+
 export const validators = {
   required,
   mustBeNumber,
@@ -59,6 +67,7 @@ export const validators = {
   minLength,
   maxLength,
   mustBeValidJSON,
+  cannotContainDecimals,
 };
 
 // UseFieldConfig<any>.validate?: FieldValidator<any>

@@ -224,7 +224,11 @@ const Info_Panel: FunctionComponent<{
                             name: "durationLower",
                             ariaLabel: "Minimum Time in minutes",
                             style: { width: "45px" },
-                            validators: [validators.mustBeNumber, validators.maxLength(4)],
+                            validators: [
+                              validators.mustBeNumber,
+                              validators.maxLength(4),
+                              validators.cannotContainDecimals,
+                            ],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                               e.target.value = e.target.value.replace(
                                 regExValidators.regExNumber,
@@ -260,7 +264,11 @@ const Info_Panel: FunctionComponent<{
                             name: "durationUpper",
                             ariaLabel: "Maximum Time in minutes",
                             style: { width: "45px" },
-                            validators: [validators.mustBeNumber, validators.maxLength(4)],
+                            validators: [
+                              validators.mustBeNumber,
+                              validators.maxLength(4),
+                              validators.cannotContainDecimals,
+                            ],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                               e.target.value = e.target.value.replace(
                                 regExValidators.regExNumber,
