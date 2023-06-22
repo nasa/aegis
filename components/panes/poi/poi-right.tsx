@@ -13,21 +13,21 @@ import {
   faTriangleExclamation,
   faCheck,
 } from "@fortawesome/free-solid-svg-icons";
-import { Button, IconDropdown, InLineEditInput } from "components/interface/_global-elements";
+import { Button, IconDropdown, InLineEditInput } from "components/interface/form/globalFields";
 import { setSelectedPOIRightNavItem, setPoiEditMode, upsertPoi } from "store/poi";
-
 import Info_Panel from "./poi-right-info";
 import Actions_Panel from "./poi-right-actions";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkSavePoi } from "store/thunk/poi/thunkSavePoi";
-import { thunkDeletePoi } from "store/thunk/poi/thunkDeletePoi";
-import { thunkPoiCancel } from "store/thunk/poi/thunkPoiCancel";
+import { thunkSavePoi, thunkDeletePoi, thunkPoiCancel } from "store/thunk/thunkPoi";
 import { selectPoiActions } from "store/selectors";
 import Report_Panel from "../report";
 import { getAlertColor } from "utils/component-helpers";
+import { useDispatch } from "react-redux";
+import { validators } from "components/interface/form/formValidators";
 
 const PoiEditorRight: FunctionComponent = () => {
-  const dispatch = useAppDispatch();
+  const dispatch = useDispatch();
+  const thunkDispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector((state) => state.poi.selectedRightNavItem, refEqual);
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
   const selectedPoi = useAppSelector(
@@ -35,22 +35,10 @@ const PoiEditorRight: FunctionComponent = () => {
     shallowEqual
   );
   const poisEditing = useAppSelector((state) => state.poi.poisEditing, shallowEqual);
-  const selectedPoiFromDb = useAppSelector(
-    (state) => state.poi.poisFromDb.find((poi) => poi.uuid === selectedPoiUuid),
-    shallowEqual
-  );
-
-  const poiActions = useAppSelector(selectPoiActions(selectedPoiUuid), shallowEqual);
-  const poiActionsFromDb = useAppSelector(
-    (state) =>
-      state.action.actionsFromDb.filter((storeAction) => storeAction.poiUuid === selectedPoiUuid),
-    shallowEqual
-  );
   const isAdmin = useAppSelector(
     (state) => state.user.ironSessionData?.user.permission.includes("admin"),
     refEqual
   );
-
   const calculatedFields = useAppSelector(
     (state) => state.poi.calculatedFields.find((calculated) => calculated.uuid === selectedPoiUuid),
     shallowEqual
@@ -59,6 +47,17 @@ const PoiEditorRight: FunctionComponent = () => {
   const [modified, setModified] = useState(false);
   const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--station)");
 
+  //these selectors from the store are only used to calculate modified. refactor?
+  const poiActions = useAppSelector(selectPoiActions(selectedPoiUuid), shallowEqual);
+  const poiActionsFromDb = useAppSelector(
+    (state) =>
+      state.action.actionsFromDb.filter((storeAction) => storeAction.poiUuid === selectedPoiUuid),
+    shallowEqual
+  );
+  const selectedPoiFromDb = useAppSelector(
+    (state) => state.poi.poisFromDb.find((poi) => poi.uuid === selectedPoiUuid),
+    shallowEqual
+  );
   useEffect(() => {
     const poiEqual = _.isEqual(selectedPoi, selectedPoiFromDb);
     const actionEqual = _.isEqual(
@@ -98,44 +97,6 @@ const PoiEditorRight: FunctionComponent = () => {
     },
   };
 
-  const handleSave = async () => {
-    if (selectedPoi && modified) {
-      dispatch(
-        thunkSavePoi({
-          selectedPoi,
-          poiActions,
-          poiActionsFromDb,
-          selectedPoiUuid,
-        })
-      );
-    }
-  };
-
-  const handleDelete = async () => {
-    if (selectedPoi) {
-      dispatch(
-        thunkDeletePoi({
-          selectedPoi,
-          selectedPoiFromDb,
-          poiActions,
-          selectedPoiUuid,
-        })
-      );
-    }
-  };
-
-  const handleCancel = () => {
-    dispatch(
-      thunkPoiCancel({
-        selectedPoi,
-        selectedPoiFromDb,
-        poiActions,
-        poiActionsFromDb,
-        selectedPoiUuid,
-      })
-    );
-  };
-
   // set reports tab icon color
   useEffect(() => {
     setReportsTabIconColor(getAlertColor(calculatedFields?.reportItems));
@@ -156,23 +117,49 @@ const PoiEditorRight: FunctionComponent = () => {
             setSelected={(value) => {
               dispatch(upsertPoi({ ...selectedPoi, icon: value }));
             }}
-            items={["1F534", "1F535", "1F7E2", "1F7E1", "1F7E3", "1F7E0", "1F7E4", "26AB", "26AA"]}
+            items={[
+              "1F534",
+              "1F7E0",
+              "1F7E1",
+              "1F7E2",
+              "1F535",
+              "1F7E3",
+              "1F7E4",
+              "26AB",
+              "26AA",
+              "1F7E5",
+              "1F7E7",
+              "1F7E8",
+              "1F7E9",
+              "1F7E6",
+              "1F7EA",
+              "1F7EB",
+              "2B1B",
+              "2B1C",
+              "1F53A",
+              "1F53B",
+              "1F536",
+              "1F537",
+            ]}
           />
 
           <div className={paneStyles.rightTopTitleText} style={{ color: "var(--poi)" }}>
             <InLineEditInput
-              fieldName="POI"
               value={selectedPoi.name}
               editing={poisEditing.includes(selectedPoiUuid)}
-              maxLength={255}
-              styleInput={{
-                width: "100%",
-                marginRight: "10px",
-                color: "var(--poi)",
-                fontSize: "1em",
+              fieldProps={{
+                name: "name",
+                ariaLabel: "POI",
+                style: {
+                  width: "100%",
+                  color: "var(--poi)",
+                  fontSize: "1em",
+                },
+                validators: [validators.required, validators.maxLength(255)],
               }}
               styleValue={{ padding: 0, height: "auto" }}
-              onChange={(val) => {
+              styleContainer={{ paddingRight: "10px" }}
+              onSubmit={(val: string) => {
                 dispatch(upsertPoi({ ...selectedPoi, name: val }));
               }}
             />
@@ -201,7 +188,8 @@ const PoiEditorRight: FunctionComponent = () => {
                           ? panelTypes[panelType].selectedColor
                           : unselectedColor,
                     }}
-                    title={panelTypes[panelType].title}
+                    data-tooltip-id="aegis-tooltip"
+                    data-tooltip-html={panelTypes[panelType].title}
                     onClick={() => dispatch(setSelectedPOIRightNavItem(panelType))}
                   >
                     <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
@@ -215,7 +203,13 @@ const PoiEditorRight: FunctionComponent = () => {
               <Button
                 icon={faTrashAlt}
                 onClick={() => {
-                  handleDelete();
+                  if (selectedPoi) {
+                    thunkDispatch(
+                      thunkDeletePoi({
+                        poi: selectedPoi,
+                      })
+                    );
+                  }
                 }}
                 toolTip="Delete POI"
                 style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
@@ -238,7 +232,13 @@ const PoiEditorRight: FunctionComponent = () => {
               <>
                 <Button
                   onClick={() => {
-                    handleSave();
+                    if (selectedPoi && modified) {
+                      thunkDispatch(
+                        thunkSavePoi({
+                          poi: selectedPoi,
+                        })
+                      );
+                    }
                   }}
                   icon={faFloppyDisk}
                   toolTip={`Save POI${modified ? "" : " (nothing to save)"}`}
@@ -253,7 +253,11 @@ const PoiEditorRight: FunctionComponent = () => {
                 />
                 <Button
                   onClick={() => {
-                    handleCancel();
+                    thunkDispatch(
+                      thunkPoiCancel({
+                        poi: selectedPoi,
+                      })
+                    );
                   }}
                   icon={faBan}
                   toolTip="Cancel Edit"

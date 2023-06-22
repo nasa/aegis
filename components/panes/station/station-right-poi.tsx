@@ -6,9 +6,14 @@ import { upsertStation } from "store/station";
 import poiStyles from "../poi/poi.module.css";
 import stationStyles from "./station.module.css";
 import _ from "lodash";
-import { Checkbox, SubpanelHeading } from "components/interface/_global-elements";
+import { SubpanelHeading } from "components/interface/_global-elements";
+import { Checkbox } from "components/interface/form/globalFields";
 import { setMapItemHoverUuid } from "store/playheadHover";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
+import { WysiwygTextArea } from "components/interface/form/wysiwyg";
+import { faMessage } from "@fortawesome/free-solid-svg-icons";
+import { setSectionSelected } from "store/interface";
+import { setSelectedPoiUuid } from "store/poi";
 
 const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -49,15 +54,36 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 {selectedPois.map((poi) => {
                   return (
                     poi && (
-                      <div className={poiStyles.poiItem} key={poi.uuid}>
-                        <div className={poiStyles.itemIcon}>
-                          {String.fromCodePoint(parseInt(poi.icon, 16))}
+                      <>
+                        <div
+                          className={poiStyles.poiItem}
+                          key={poi.uuid}
+                          onClick={() => {
+                            dispatch(setSectionSelected("poi"));
+                            dispatch(setSelectedPoiUuid(poi.uuid));
+                          }}
+                        >
+                          <div className={poiStyles.itemIcon}>
+                            {String.fromCodePoint(parseInt(poi.icon, 16))}
+                          </div>
+                          <div className={`${poiStyles.name}`}>
+                            <div>{poi.name}</div>
+                            <div className={poiStyles.poiRightSpacer} />
+                          </div>
                         </div>
-                        <div className={`${poiStyles.name}`}>
-                          <div>{poi.name}</div>
-                          <div className={poiStyles.poiRightSpacer} />
+                        <div className={poiStyles.poiAssocDescription}>
+                          <div className={paneStyles.panelSectionTitle}>
+                            <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
+                          </div>
+                          <div className={paneStyles.descriptionContainer}>
+                            <WysiwygTextArea
+                              value={poi.description}
+                              editing={false}
+                              onChange={() => {}}
+                            />
+                          </div>
                         </div>
-                      </div>
+                      </>
                     )
                   );
                 })}
@@ -85,6 +111,7 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             };
                             dispatch(upsertStation(updatedStation));
                           }}
+                          toolTip={`Link ${poi.name}`}
                         />
 
                         {poi.icon && (

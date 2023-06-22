@@ -36,8 +36,6 @@ const config = {
     "!<rootDir>/out/**",
     "!<rootDir>/.next/**",
     "!<rootDir>/http-client/**",
-    "!<rootDir>/pages/**/*.tsx",
-    "!<rootDir>/components/**",
     "!<rootDir>/scripts/**",
     "!<rootDir>/.idea/**",
     "!**/.cache/**",

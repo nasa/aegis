@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import styles from "./index.module.css";
-import { login, isLoggedIn, logout } from "http-client/internal-api";
+import { login, isLoggedIn, logout } from "http-client/login";
 import { getMissions } from "http-client/mission";
 import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/user";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -316,8 +316,8 @@ const Left = () => {
                 </li>
                 <li>
                   <div className={styles.creditHeading}>
-                    <a className={styles.teamName} href={"mailto:cameron.w.pittman@nasa.gov"}>
-                      Cameron Pittman
+                    <a className={styles.teamName} href={"mailto:luke.a.mcsherry@nasa.gov"}>
+                      Luke McSherry
                     </a>
                   </div>
                   <div className={styles.teamTitle}>Software Engineering</div>
@@ -342,7 +342,7 @@ const Left = () => {
 const Inset: React.FunctionComponent = () => {
   return (
     <div className={styles.insetContainer}>
-      <a href="https://svs.gsfc.nasa.gov/5074" target="_blank">
+      <a href="https://svs.gsfc.nasa.gov/5074" target="_blank" rel="noopener">
         Image: Mons Mouton
         <br />
         NASA Scientific Visualization Studio

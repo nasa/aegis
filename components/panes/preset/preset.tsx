@@ -1,31 +1,23 @@
 import styles from "./preset.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faGlobe, faPlusCircle, faUser } from "@fortawesome/free-solid-svg-icons";
-import { FunctionComponent } from "react";
+import { FunctionComponent, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
-import {
-  duplicatePreset,
-  setPresetEditMode,
-  setPresetInteractions,
-  upsertPreset,
-} from "store/preset";
-import { setLayerControls } from "store/map";
+import { setMapLayerControls } from "store/map";
 import { setSelectedPresetUuid, setSelectedPresetRightNavItem } from "store/preset";
-import { v4 as uuidv4 } from "uuid";
-import { Button, ModifiedIndicator } from "components/interface/_global-elements";
+import { ModifiedIndicator } from "components/interface/_global-elements";
+import { Button } from "components/interface/form/globalFields";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { generateUniqueName } from "utils/unique-name";
 import { setRightPanelOpen } from "store/interface";
 import { setAllLayerControlsInvisible } from "utils/store";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { thunkCreatePreset, thunkDuplicatePreset } from "store/thunk/thunkPreset";
 
 const PresetEditorLeft: FunctionComponent = () => {
-  const dispatch = useDispatch();
+  const thunkDispatch = useAppDispatch();
   const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
-  const user: User = useAppSelector((state) => state.user.ironSessionData?.user, shallowEqual);
-  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
-  const mapLayerControls = useAppSelector((state) => state.map.layerControls, shallowEqual);
   const isAdmin = useAppSelector(
     (state) => state.user.ironSessionData?.user.permission.includes("admin"),
     refEqual
@@ -34,40 +26,6 @@ const PresetEditorLeft: FunctionComponent = () => {
   if (presets !== null) {
     selectedPreset = presets.find((preset: Preset) => preset.uuid === selectedPresetUuid);
   }
-  const handleCreatePreset = async () => {
-    const randomName = generateUniqueName({
-      dictName: "colors",
-      existingNames: presets.map((item) => item.name),
-    });
-
-    const blankPreset: Preset = {
-      uuid: uuidv4(),
-      name: randomName,
-      description: "",
-      ownerId: user.id,
-      missionId: missionId,
-      missionPreset: false,
-      missionPresetDefault: false,
-      layerControls: mapLayerControls,
-    };
-
-    dispatch(upsertPreset(blankPreset));
-    // turn on edit mode for the new POI
-    dispatch(setPresetEditMode({ presetUuid: blankPreset.uuid, editMode: true }));
-    // select the newly created POI
-    dispatch(setSelectedPresetUuid(blankPreset.uuid));
-    // open right panel
-    dispatch(setRightPanelOpen(true));
-    // create preset interactions entry
-    const layerControlInteractions: LayerControlInteractions = {};
-    for (const [key] of Object.entries(blankPreset.layerControls)) {
-      layerControlInteractions[key] = {
-        expanded: true,
-        tabSelected: null,
-      };
-    }
-    dispatch(setPresetInteractions({ presetUuid: blankPreset.uuid, layerControlInteractions }));
-  };
 
   const missionPresets = presets
     .filter((preset) => preset.missionPreset === true)
@@ -99,7 +57,7 @@ const PresetEditorLeft: FunctionComponent = () => {
         <div className={paneStyles.iconButtons}>
           <Button
             onClick={() => {
-              handleCreatePreset();
+              thunkDispatch(thunkCreatePreset());
             }}
             label="Add"
             icon={faPlusCircle}
@@ -108,8 +66,7 @@ const PresetEditorLeft: FunctionComponent = () => {
           <Button
             onClick={() => {
               if (selectedPresetUuid !== null) {
-                dispatch(duplicatePreset(selectedPreset));
-                dispatch(setRightPanelOpen(true));
+                thunkDispatch(thunkDuplicatePreset({ preset: selectedPreset }));
               }
             }}
             label="Duplicate"
@@ -134,16 +91,18 @@ const PresetList: FunctionComponent<{
     refEqual
   );
 
+  const [presetHoverUuid, setPresetHoverUuid] = useState(null);
+
   const handleSelectPresetClick = async (currentPreset: Preset) => {
     if (currentPreset.uuid === selectedPresetUuid) {
       dispatch(setSelectedPresetUuid(null));
       dispatch(setRightPanelOpen(false));
-      dispatch(setLayerControls(setAllLayerControlsInvisible(currentPreset.layerControls)));
+      dispatch(setMapLayerControls(setAllLayerControlsInvisible(currentPreset.mapLayerControls)));
       return;
     }
 
     dispatch(setSelectedPresetUuid(currentPreset.uuid));
-    dispatch(setLayerControls(currentPreset.layerControls));
+    dispatch(setMapLayerControls(currentPreset.mapLayerControls));
     if (!selectedRightNavItem) dispatch(setSelectedPresetRightNavItem("info_panel"));
     dispatch(setRightPanelOpen(true));
   };
@@ -152,18 +111,26 @@ const PresetList: FunctionComponent<{
     <div className={styles.layerGroup}>
       {Object.keys(presets).map((key, index) => {
         const currentPreset = presets[key];
-        const selectedStyle =
-          currentPreset.uuid === selectedPresetUuid ? styles.presetItemSelected : null;
+        let isSelectedOrHoveredStyle = null;
+        if (currentPreset.uuid === selectedPresetUuid) {
+          isSelectedOrHoveredStyle = styles.presetItemSelected;
+        } else if (currentPreset.uuid === presetHoverUuid) {
+          isSelectedOrHoveredStyle = styles.presetItemHovered;
+        }
         const iconSelectedStyle =
           currentPreset.uuid === selectedPresetUuid ? styles.presetIconSelected : null;
 
-        const presetFromDb = presetsFromDb.filter(
-          (preset) => preset.uuid === currentPreset.uuid
-        )[0];
+        const presetFromDb = presetsFromDb.find((preset) => preset.uuid === currentPreset.uuid);
         return (
           <div
             key={`sub_${currentPreset.name}_${index}`}
-            className={`${styles.presetItem} ${selectedStyle}`}
+            className={`${styles.presetItem} ${isSelectedOrHoveredStyle}`}
+            onMouseEnter={() => {
+              setPresetHoverUuid(currentPreset.uuid);
+            }}
+            onMouseLeave={() => {
+              setPresetHoverUuid(null);
+            }}
           >
             <div
               className={styles.presetTitle}
@@ -174,8 +141,8 @@ const PresetList: FunctionComponent<{
                 {currentPreset.missionPresetDefault ? "(Default)" : ""}
               </span>
               <ModifiedIndicator
-                obj1={currentPreset}
-                obj2={presetFromDb}
+                obj1={[currentPreset]}
+                obj2={[presetFromDb]}
                 svgStyle={{
                   width: "15",
                   height: "12",

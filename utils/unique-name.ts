@@ -7,9 +7,17 @@ import {
   names,
   starWars,
 } from "unique-names-generator";
+import starTrek from "./star-trek";
 const profanityFilter = require("leo-profanity");
 
-type DictName = "adjectives" | "animals" | "colors" | "countries" | "names" | "starWars";
+type DictName =
+  | "adjectives"
+  | "animals"
+  | "colors"
+  | "countries"
+  | "names"
+  | "starWars"
+  | "starTrek";
 
 export function generateUniqueName({
   dictName,
@@ -39,6 +47,9 @@ export function generateUniqueName({
         break;
       case "starWars":
         dict = starWars;
+        break;
+      case "starTrek":
+        dict = starTrek;
         break;
       default:
         break;

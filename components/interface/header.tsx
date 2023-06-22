@@ -60,7 +60,8 @@ const Header: FunctionComponent = () => {
                 "_blank"
               );
             }}
-            title="More info about EVA Mission System Software (EMSS)"
+            data-tooltip-id="aegis-tooltip"
+            data-tooltip-html="More info about EVA Mission System Software (EMSS)"
           >
             <span className={styles.logoEmss} />
           </div>

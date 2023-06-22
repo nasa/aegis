@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 export const initialState: MapState = {
-  layerControls: null,
+  mapLayerControls: null,
   activeSelectedName: null,
   mousePosition: null,
   mapDirective: null,
@@ -11,8 +11,8 @@ export const mapSlice = createSlice({
   name: "map",
   initialState,
   reducers: {
-    setLayerControls: (state, action: { payload: LayerControls }) => {
-      state.layerControls = action.payload;
+    setMapLayerControls: (state, action: { payload: MapLayerControls }) => {
+      state.mapLayerControls = action.payload;
     },
     updateMapDirective: (state, action: { payload: MapDirective }) => {
       state.mapDirective = action.payload;
@@ -20,6 +20,6 @@ export const mapSlice = createSlice({
   },
 });
 
-export const { setLayerControls, updateMapDirective } = mapSlice.actions;
+export const { setMapLayerControls, updateMapDirective } = mapSlice.actions;
 
 export default mapSlice.reducer;

@@ -1,7 +1,7 @@
 import { NextPage } from "next";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { isAdmin, isLoggedIn } from "http-client/internal-api";
+import { isAdmin, isLoggedIn } from "http-client/login";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";
 import { deleteUser, getUsers, upsertUser } from "../../http-client/user";

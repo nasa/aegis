@@ -1,0 +1,31 @@
+.wysiwyg {
+  padding: 4px;
+  background-color: var(--grey1);
+  color: #ffffff;
+  border: 1px solid var(--grey3);
+  border-radius: var(--radius);
+  cursor: text;
+  font-size: 0.8em;
+}
+
+.wysiwygParagraph {
+  margin-top: 0px;
+  margin-bottom: 0px;
+  min-height: 1rem;
+}
+
+.notesText {
+  background-color: var(--grey2);
+  color: #ffffff;
+  border: 1px solid var(--grey2);
+  border-radius: var(--radius);
+  font-size: 0.8em;
+  font-weight: 400;
+  max-width: 430px;
+  max-height: 450px;
+  padding: 5px;
+  cursor: default;
+  margin-top: 3px;
+  outline: none;
+  overflow: auto;
+}

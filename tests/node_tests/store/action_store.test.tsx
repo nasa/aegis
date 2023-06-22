@@ -1,4 +1,4 @@
-import reducer, { initialState, duplicateAction, deleteActionsFromDb } from "store/action";
+import reducer, { initialState, deleteActionsFromDbByUuid } from "store/action";
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import { v4 as uuidv4 } from "uuid";
@@ -169,10 +169,8 @@ describe("Action Store Tests", () => {
       // Assert
       expect(result.actions[0]).toEqual(nextAction.payload);
       const deleteAction = {
-        type: "action/deleteAction",
-        payload: {
-          uuid: "test",
-        },
+        type: "action/deleteActionByUuid",
+        payload: "test",
       };
       const result2 = reducer(result, deleteAction);
       expect(result2.actions.length).toEqual(0);
@@ -217,7 +215,7 @@ describe("Action Store Tests", () => {
       expect(result.actions[0]).toEqual(actions[0]);
       expect(result.actions[1]).toEqual(actions[1]);
       const deleteAction = {
-        type: "action/deleteActions",
+        type: "action/deleteActionsByUuid",
         payload: ["test", "test2"],
       };
       const result2 = reducer(result, deleteAction);
@@ -286,44 +284,12 @@ describe("Action Store Tests with mock store", () => {
     expect(store.getState().action.actionsFromDb.length).toEqual(4);
 
     // force it to think that the array is Action[] since uuid is all deleteActions really needs
-    store.dispatch(
-      deleteActionsFromDb([{ uuid: uuids[0] }, { uuid: uuids[2] }] as unknown as Action[])
-    );
+    store.dispatch(deleteActionsFromDbByUuid([uuids[0], uuids[2]]));
 
     // ensure the actions were deleted from the store
     expect(store.getState().action.actionsFromDb.length).toEqual(2);
     expect(store.getState().action.actionsFromDb[0].name).toEqual("Jest Action-1");
     expect(store.getState().action.actionsFromDb[1].name).toEqual("Jest Action-3");
-  });
-
-  test("Duplicate an action", () => {
-    const store = makeTestStore({});
-
-    // ensure nothing in the store yet
-    expect(store.getState().action.actions.length).toEqual(0);
-
-    // uuid of the original action (which isn't in the store in this case because here duplicateAction
-    // isn't really duplicating, but adding an action with a new uuid)
-    const uuid = uuidv4();
-
-    const action: Action = {
-      uuid,
-      name: "Jest Action-1",
-      missionId: 1,
-      priorityOverride: 1,
-      type: "measurement",
-      description: "",
-      durationLower: 5,
-      inventoryItems: [],
-      status: "Approved",
-    };
-
-    store.dispatch(duplicateAction({ action }));
-
-    // ensure the action was added to the store
-    expect(store.getState().action.actions.length).toEqual(1);
-    expect(store.getState().action.actions[0].name).toEqual("Jest Action-1 (copy 1)");
-    expect(store.getState().action.actions[0].uuid).not.toEqual(uuid);
   });
 });
 

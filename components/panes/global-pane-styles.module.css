@@ -233,7 +233,7 @@
 .panelSectionTitle {
   font-size: 0.8em;
   font-weight: 400;
-  color: var(--grey4);
+  color: var(--grey5);
   -webkit-user-select: none;
   user-select: none;
 }
@@ -327,6 +327,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  padding-right: 5px;
 }
 
 .inputFieldValue {
@@ -334,6 +335,8 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  font-size: 0.8em;
+  font-weight: 400;
 }
 
 .displayFieldLabel {
@@ -365,7 +368,7 @@
 .actionsHeadingTitle {
   font-size: 0.9rem;
   font-weight: 400;
-  width: 115px;
+  width: 93px;
   margin-top: 4px;
   text-transform: capitalize;
   cursor: pointer;
@@ -373,9 +376,10 @@
 
 .actionsHeadingSubTitle {
   flex-grow: 1;
+  max-width: 295px;
   font-size: 0.8rem;
   font-weight: 400;
-  margin-top: auto;
+  margin-top: 4px;
 }
 
 .actionsHeadingCaret {
@@ -390,10 +394,7 @@
 .actionHeadingIcons {
   width: 18px;
   margin-top: 4px;
-}
-
-.check {
-  margin: 0 4px 0 4px;
+  user-select: none;
 }
 
 .checkUneditable {

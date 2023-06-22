@@ -1,7 +1,7 @@
 import { Dispatch, FunctionComponent, SetStateAction, useEffect, useState } from "react";
 import styles from "./admin.module.css";
-import { CheckboxInputField, TextAreaField, TextInputField } from "components/form/FormInput";
-import { validators } from "utils/formValidators";
+import { FFCheckbox, FFTextArea, FFInput } from "components/interface/form/globalFields";
+import { validators } from "components/interface/form/formValidators";
 import { WrappedTool } from "./missionEditor";
 
 const { mustBeValidJSON } = validators;
@@ -89,18 +89,19 @@ const EditTool = (props: {
   return (
     <>
       <div className={styles.editDiv}>
-        <label htmlFor="checkbox" title={props.tool.helpText}>
+        <label
+          htmlFor="checkbox"
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-html={props.tool.helpText}
+        >
           {props.tool.name}
         </label>
       </div>
       <div className={styles.editDiv}>
-        <CheckboxInputField
-          name={`tools[${props.index}].active`}
-          initialValue={props.tool.active}
-        />
+        <FFCheckbox name={`tools[${props.index}].active`} initialValue={props.tool.active} />
       </div>
 
-      <TextAreaField
+      <FFTextArea
         name={`tools[${props.index}].variables`}
         initialValue={"awdwasd"}
         validators={[mustBeValidJSON]}
@@ -108,10 +109,7 @@ const EditTool = (props: {
 
       <div className={styles.editDiv}>
         Icon&nbsp;
-        <TextInputField
-          name={`tools[${props.index}].tool.icon`}
-          initialValue={props.tool?.tool.icon}
-        />
+        <FFInput name={`tools[${props.index}].tool.icon`} initialValue={props.tool?.tool.icon} />
       </div>
     </>
   );

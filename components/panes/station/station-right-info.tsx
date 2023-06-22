@@ -10,13 +10,8 @@ import {
   faRoute,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
-import {
-  ContentEditableTextArea,
-  Button,
-  InLineEditInput,
-  LastEdited,
-  SubpanelHeading,
-} from "components/interface/_global-elements";
+import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
+import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, upsertStation } from "store/station";
@@ -26,6 +21,9 @@ import { formatNumberWithCommas, toDecimal } from "utils/formatting";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkResetWalkback, thunkUpdateStationLocation } from "store/thunk/thunkStation";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
+import { WysiwygTextArea } from "components/interface/form/wysiwyg";
+import { round } from "lodash";
+import { validators, regExValidators } from "components/interface/form/formValidators";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -33,7 +31,7 @@ const Info_Panel: FunctionComponent<{
   actionCount: number;
 }> = ({ editMode, totalStationTime, actionCount }) => {
   const dispatch = useDispatch();
-  const appDispatch = useAppDispatch();
+  const thunkDispatch = useAppDispatch();
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
 
   const selectedStation = useAppSelector(
@@ -133,7 +131,7 @@ const Info_Panel: FunctionComponent<{
       return poi.location;
     });
     const centroid = calcCentroidofCoordinates(poiLocs);
-    appDispatch(
+    thunkDispatch(
       thunkUpdateStationLocation({ location: centroid, stationUuid: selectedStation.uuid })
     );
   };
@@ -169,8 +167,8 @@ const Info_Panel: FunctionComponent<{
   };
 
   const handleResetWalkback = useCallback(() => {
-    appDispatch(thunkResetWalkback({ stationUuid: selectedStation.uuid }));
-  }, [appDispatch, selectedStation.uuid]);
+    thunkDispatch(thunkResetWalkback({ stationUuid: selectedStation.uuid }));
+  }, [thunkDispatch, selectedStation.uuid]);
 
   useEffect(() => {
     if (!selectedStation.walkbackPath) {
@@ -193,14 +191,14 @@ const Info_Panel: FunctionComponent<{
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
             </div>
             <div className={paneStyles.descriptionContainer}>
-              <ContentEditableTextArea
-                html={selectedStation.description} // innerHTML of the editable div
+              <WysiwygTextArea
+                value={selectedStation.description}
                 editing={editMode}
-                onChange={(evt) => {
+                onChange={(value) => {
                   dispatch(
                     upsertStation({
                       ...selectedStation,
-                      description: evt.target.value,
+                      description: value,
                     })
                   );
                 }} // handle innerHTML change
@@ -221,26 +219,27 @@ const Info_Panel: FunctionComponent<{
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         <InLineEditInput
-                          fieldName="Minimum Time in minutes"
                           editing={editMode}
-                          maxLength={4}
-                          styleInput={{ width: "45px" }}
-                          containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
-                          value={selectedStation.durationLower?.toString()}
-                          onChange={(val) => {
-                            const updatedStation: Station = {
-                              ...selectedStation,
-                              durationLower: parseFloat(val),
-                            };
-                            dispatch(upsertStation(updatedStation));
+                          fieldProps={{
+                            name: "durationLower",
+                            ariaLabel: "Minimum Time in minutes",
+                            style: { width: "45px" },
+                            validators: [validators.mustBeNumber, validators.maxLength(4)],
+                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                              e.target.value = e.target.value.replace(
+                                regExValidators.regExNumber,
+                                ""
+                              );
+                            },
                           }}
-                          onBlur={(e) => {
-                            const numericVal = toDecimal(e.target.value);
-                            const updatedStation: Station = {
-                              ...selectedStation,
-                              durationLower: numericVal,
-                            };
-                            dispatch(upsertStation(updatedStation));
+                          value={selectedStation.durationLower?.toString()}
+                          onSubmit={(val: string) => {
+                            dispatch(
+                              upsertStation({
+                                ...selectedStation,
+                                durationLower: toDecimal(val),
+                              })
+                            );
                           }}
                         />
                       </div>
@@ -255,26 +254,27 @@ const Info_Panel: FunctionComponent<{
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         <InLineEditInput
-                          fieldName="Maximum Time in minutes"
-                          editing={editMode}
-                          maxLength={4}
-                          styleInput={{ width: "45px" }}
-                          containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
                           value={selectedStation.durationUpper?.toString()}
-                          onChange={(val) => {
-                            const updatedStation: Station = {
-                              ...selectedStation,
-                              durationUpper: parseFloat(val),
-                            };
-                            dispatch(upsertStation(updatedStation));
+                          editing={editMode}
+                          fieldProps={{
+                            name: "durationUpper",
+                            ariaLabel: "Maximum Time in minutes",
+                            style: { width: "45px" },
+                            validators: [validators.mustBeNumber, validators.maxLength(4)],
+                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                              e.target.value = e.target.value.replace(
+                                regExValidators.regExNumber,
+                                ""
+                              );
+                            },
                           }}
-                          onBlur={(e) => {
-                            const numericVal = toDecimal(e.target.value);
-                            const updatedStation: Station = {
-                              ...selectedStation,
-                              durationUpper: numericVal,
-                            };
-                            dispatch(upsertStation(updatedStation));
+                          onSubmit={(val: string) => {
+                            dispatch(
+                              upsertStation({
+                                ...selectedStation,
+                                durationUpper: toDecimal(val),
+                              })
+                            );
                           }}
                         />
                       </div>
@@ -379,7 +379,7 @@ const Info_Panel: FunctionComponent<{
                           <Button
                             onClick={async () => {
                               if (landerLocation?.lat && landerLocation?.lng) {
-                                await appDispatch(
+                                await thunkDispatch(
                                   thunkUpdateStationLocation({
                                     location: landerLocation,
                                     stationUuid: selectedStation.uuid,
@@ -425,7 +425,6 @@ const Info_Panel: FunctionComponent<{
             ) : (
               <div className={paneStyles.sectionButtonRowEmpty} />
             )}
-
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
@@ -438,7 +437,28 @@ const Info_Panel: FunctionComponent<{
                         {!selectedStation.location ? (
                           <>Not set</>
                         ) : (
-                          selectedStation.location.lat.toFixed(6)
+                          <InLineEditInput
+                            value={round(selectedStation.location.lat, 6).toString()}
+                            editing={editMode}
+                            fieldProps={{
+                              name: "Lat",
+                              ariaLabel: "Latitude",
+                              style: { width: "100px" },
+                              validators: [validators.mustBeNumber, validators.required],
+                            }}
+                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
+                            onSubmit={(val: string) => {
+                              dispatch(
+                                upsertStation({
+                                  ...selectedStation,
+                                  location: {
+                                    lat: parseFloat(val),
+                                    lng: selectedStation.location.lng,
+                                  },
+                                })
+                              );
+                            }}
+                          />
                         )}
                       </div>
                     </div>
@@ -452,7 +472,28 @@ const Info_Panel: FunctionComponent<{
                         {!selectedStation.location ? (
                           <>Not set</>
                         ) : (
-                          selectedStation.location.lng.toFixed(6)
+                          <InLineEditInput
+                            value={round(selectedStation.location.lng, 6).toString()}
+                            editing={editMode}
+                            fieldProps={{
+                              name: "Lng",
+                              ariaLabel: "Longitude",
+                              style: { width: "100px" },
+                              validators: [validators.mustBeNumber, validators.required],
+                            }}
+                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
+                            onSubmit={(val: string) => {
+                              dispatch(
+                                upsertStation({
+                                  ...selectedStation,
+                                  location: {
+                                    lat: selectedStation.location.lat,
+                                    lng: parseFloat(val),
+                                  },
+                                })
+                              );
+                            }}
+                          />
                         )}
                       </div>
                     </div>

@@ -1,6 +1,6 @@
 import { FunctionComponent } from "react";
 import styles from "./admin.module.css";
-import { CheckboxInputField, TextInputField } from "components/form/FormInput";
+import { FFCheckbox, FFInput } from "components/interface/form/globalFields";
 
 const Time: FunctionComponent = () => {
   return (
@@ -10,29 +10,17 @@ const Time: FunctionComponent = () => {
         <h5>User Interface</h5>
         <div id="enabledDiv">
           <div className={styles.editDiv}>
-            <CheckboxInputField
-              name="config.time.enabled"
-              label={{ label: "Enabled" }}
-              className={styles.editDiv}
-            />
+            <FFCheckbox name="config.time.enabled" label={{ label: "Enabled" }} />
           </div>
         </div>
         <div id="visibleDiv">
           <div className={styles.editDiv}>
-            <CheckboxInputField
-              name="config.time.visible"
-              label={{ label: "Visible" }}
-              className={styles.editDiv}
-            />
+            <FFCheckbox name="config.time.visible" label={{ label: "Visible" }} />
           </div>
         </div>
         <div id="formatDiv">
           <div className={styles.editDiv}>
-            <TextInputField
-              name="config.time.format"
-              label={{ label: "Time Format" }}
-              className={styles.editDiv}
-            />
+            <FFInput name="config.time.format" label={{ label: "Time Format" }} />
           </div>
         </div>
       </div>

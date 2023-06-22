@@ -1,7 +1,7 @@
 import { FunctionComponent } from "react";
 import styles from "./admin.module.css";
-import { CheckboxInputField, TextInputField } from "components/form/FormInput";
-import { validators } from "utils/formValidators";
+import { FFCheckbox, FFInput } from "components/interface/form/globalFields";
+import { validators } from "components/interface/form/formValidators";
 
 const { mustBeNumber } = validators;
 
@@ -12,60 +12,48 @@ const Projection: FunctionComponent = () => {
       <div className={styles.sectionDiv}>
         <div id="customDiv">
           <div className={styles.editDiv}>
-            <CheckboxInputField
+            <FFCheckbox
               name={"config.projection.custom"}
               label={{ label: "Using Custom Projection" }}
-              className={styles.editDiv}
             />
           </div>
         </div>
         <div id="epsgDiv">
           <div className={styles.editDiv}>
-            <TextInputField
-              name="config.projection.epsg"
-              label={{ label: "EPSG (or similar code)" }}
-              className={styles.editDiv}
-            />
+            <FFInput name="config.projection.epsg" label={{ label: "EPSG (or similar code)" }} />
           </div>
         </div>
         <div id="projDiv">
           <div className={styles.editDiv}>
-            <TextInputField
-              name="config.projection.proj"
-              label={{ label: "Proj4 v2.3.14 String" }}
-              className={styles.editDiv}
-            />
+            <FFInput name="config.projection.proj" label={{ label: "Proj4 v2.3.14 String" }} />
           </div>
         </div>
         <div id="xmlpathDiv">
           <div className={styles.editDiv}>
-            <TextInputField
+            <FFInput
               name="config.projection.xmlpath"
               label={{
                 title: "Path to tilemapresource.xml (from MMGIS home directory)",
                 label: "Path to timemapresource.xml",
               }}
-              className={styles.editDiv}
             />
           </div>
         </div>
         <br />
         <div id="minxDiv">
           <div className={styles.editDiv}>
-            <TextInputField
+            <FFInput
               name="config.projection.bounds[0]"
               label={{ label: "Bounds MinX" }}
-              className={styles.editDiv}
               validators={[mustBeNumber]}
             />
           </div>
         </div>
         <div id="minyDiv">
           <div className={styles.editDiv}>
-            <TextInputField
+            <FFInput
               name="config.projection.bounds[1]"
               label={{ label: "Bounds MinY" }}
-              className={styles.editDiv}
               validators={[mustBeNumber]}
             />
           </div>
@@ -73,20 +61,18 @@ const Projection: FunctionComponent = () => {
         <br />
         <div id="maxxDiv">
           <div className={styles.editDiv}>
-            <TextInputField
+            <FFInput
               name="config.projection.bounds[2]"
               label={{ label: "Bounds MaxX" }}
-              className={styles.editDiv}
               validators={[mustBeNumber]}
             />
           </div>
         </div>
         <div id="maxyDiv">
           <div className={styles.editDiv}>
-            <TextInputField
+            <FFInput
               name="config.projection.bounds[3]"
               label={{ label: "Bounds MaxY" }}
-              className={styles.editDiv}
               validators={[mustBeNumber]}
             />
           </div>
@@ -94,20 +80,18 @@ const Projection: FunctionComponent = () => {
         <br />
         <div id="originxDiv">
           <div className={styles.editDiv}>
-            <TextInputField
+            <FFInput
               name="config.projection.origin[0]"
               label={{ label: "Origin X" }}
-              className={styles.editDiv}
               validators={[mustBeNumber]}
             />
           </div>
         </div>
         <div id="originyDiv">
           <div className={styles.editDiv}>
-            <TextInputField
+            <FFInput
               name="config.projection.origin[1]"
               label={{ label: "Origin Y" }}
-              className={styles.editDiv}
               validators={[mustBeNumber]}
             />
           </div>
@@ -115,20 +99,18 @@ const Projection: FunctionComponent = () => {
         <br />
         <div id="zoomDiv">
           <div className={styles.editDiv}>
-            <TextInputField
+            <FFInput
               name="config.projection.reszoomlevel"
               label={{ label: "At Zoom Level" }}
-              className={styles.editDiv}
               validators={[mustBeNumber]}
             />
           </div>
         </div>
         <div id="resunitsDiv">
           <div className={styles.editDiv}>
-            <TextInputField
+            <FFInput
               name="config.projection.resunitsperpixel"
               label={{ label: "The Unity per Pixel are: " }}
-              className={styles.editDiv}
               validators={[mustBeNumber]}
             />
           </div>

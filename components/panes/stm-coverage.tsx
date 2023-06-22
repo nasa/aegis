@@ -1,61 +1,19 @@
 import { FunctionComponent, useEffect, useState } from "react";
-import paneStyles from "./global-pane-styles.module.css";
 import stmStyles from "./stm-coverage.module.css";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
-import "react-tooltip/dist/react-tooltip.css";
 import _ from "lodash";
-import { Tooltip } from "react-tooltip";
 import ReactDOMServer from "react-dom/server";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faToggleOff, faToggleOn } from "@fortawesome/free-solid-svg-icons";
-
-const STM_Panel: FunctionComponent<{
-  actions: Action[];
-  mini: boolean;
-  horizontal: boolean;
-  onInvstgHover?: (invstgUUID: string) => void;
-  uniqueKey: string;
-}> = ({ actions, mini, horizontal, onInvstgHover, uniqueKey }) => {
-  const [stmMode, setStmMode] = useState(horizontal);
-
-  //wrap the STM inside a body panel
-  return (
-    <div className={paneStyles.rightBody}>
-      <div className={paneStyles.rightBodyTitle}>STM Coverage</div>
-      <div className={paneStyles.rightBodyBody}>
-        <div className={stmStyles.flipSwitch}>
-          Flip
-          <FontAwesomeIcon
-            icon={stmMode ? faToggleOn : faToggleOff}
-            onClick={() => {
-              setStmMode(!stmMode);
-            }}
-          />
-        </div>
-        <STM_Coverage
-          actions={actions}
-          mini={mini}
-          horizontal={stmMode}
-          onInvstgHover={onInvstgHover}
-          uniqueKey={uniqueKey}
-        />
-      </div>
-    </div>
-  );
-};
 
 export const STM_Coverage: FunctionComponent<{
   actions: Action[];
   mini: boolean;
   horizontal: boolean;
   onInvstgHover?: (invstgUUID: string) => void;
-  uniqueKey: string;
 }> = (props: {
   actions: Action[];
   mini: boolean;
   horizontal: boolean;
   onInvstgHover?: (invstgUUID: string) => void;
-  uniqueKey: string;
 }) => {
   const allSTMObjectives = useAppSelector((state) => state.stm.objectives, shallowEqual);
   const allSTMGoals = useAppSelector((state) => state.stm.goals, shallowEqual);
@@ -128,11 +86,7 @@ export const STM_Coverage: FunctionComponent<{
   }, [invstgs, allSTMGoals, allSTMInvstgs, allSTMObjectives]);
 
   //build hover tooltip jsx
-  function buildSTMTooltip(
-    stmUuid: string,
-    stmType: "objective" | "goal" | "investigation",
-    full: boolean
-  ) {
+  function buildSTMTooltip(stmUuid: string, stmType: string, full: boolean) {
     let toolTip: JSX.Element;
 
     if (stmType === "objective") {
@@ -201,6 +155,11 @@ export const STM_Coverage: FunctionComponent<{
     return toolTip;
   }
 
+  function handleHover(uuid: string) {
+    if (!props.onInvstgHover) return;
+    props.onInvstgHover(uuid);
+  }
+
   return (
     <>
       {props.mini ? (
@@ -212,6 +171,9 @@ export const STM_Coverage: FunctionComponent<{
         >
           {invstgs &&
             allSTMObjectives.map((objective) => {
+              const tooltipString = ReactDOMServer.renderToStaticMarkup(
+                buildSTMTooltip(objective.uuid, "objective", true)
+              );
               return (
                 <div
                   key={objective.uuid}
@@ -225,18 +187,11 @@ export const STM_Coverage: FunctionComponent<{
                         ? stmStyles.objectiveNumberingCol_mini
                         : stmStyles.objectiveNumberingRow_mini
                     }`}
-                    id={objective.uuid + props.uniqueKey}
+                    data-tooltip-id="aegis-tooltip"
+                    data-tooltip-html={tooltipString}
                   >
                     {objective.numbering}
                   </div>
-                  <Tooltip
-                    anchorId={objective.uuid + props.uniqueKey}
-                    html={ReactDOMServer.renderToString(
-                      buildSTMTooltip(objective.uuid, "objective", true)
-                    )}
-                    className={stmStyles.tooltip}
-                    events={["hover", "click"]}
-                  />
                   <div
                     className={`${stmStyles.goalsContainer_mini} ${
                       props.horizontal ? stmStyles.flexRow : stmStyles.flexColumn
@@ -255,6 +210,9 @@ export const STM_Coverage: FunctionComponent<{
                             {allSTMInvstgs
                               .filter((invstg) => invstg.goalUuid === goal.uuid)
                               .map((invstg, index, array) => {
+                                const tooltipString = ReactDOMServer.renderToStaticMarkup(
+                                  buildSTMTooltip(invstg.uuid, "investigation", true)
+                                );
                                 return (
                                   <div key={invstg.uuid}>
                                     <div
@@ -274,32 +232,17 @@ export const STM_Coverage: FunctionComponent<{
                                             ? stmStyles.investgNumberingRow_miniEnd
                                             : stmStyles.investgNumberingCol_miniEnd)
                                         } ${invstgs?.includes(invstg) && stmStyles.highlight}`}
-                                      id={invstg.uuid + props.uniqueKey}
+                                      data-tooltip-id="aegis-tooltip"
+                                      data-tooltip-html={tooltipString}
+                                      onMouseOver={() => {
+                                        handleHover(invstg.uuid);
+                                      }}
+                                      onMouseOut={() => {
+                                        handleHover(null);
+                                      }}
                                     >
                                       &nbsp;
                                     </div>
-                                    {props.onInvstgHover ? (
-                                      <Tooltip
-                                        anchorId={invstg.uuid + props.uniqueKey}
-                                        html={ReactDOMServer.renderToString(
-                                          buildSTMTooltip(invstg.uuid, "investigation", true)
-                                        )}
-                                        className={stmStyles.tooltip}
-                                        events={["hover", "click"]}
-                                        delayShow={100}
-                                        afterShow={() => props.onInvstgHover(invstg.uuid)}
-                                        afterHide={() => props.onInvstgHover(null)}
-                                      />
-                                    ) : (
-                                      <Tooltip
-                                        anchorId={invstg.uuid + props.uniqueKey}
-                                        html={ReactDOMServer.renderToString(
-                                          buildSTMTooltip(invstg.uuid, "investigation", true)
-                                        )}
-                                        className={stmStyles.tooltip}
-                                        events={["hover", "click"]}
-                                      />
-                                    )}
                                   </div>
                                 );
                               })}
@@ -320,6 +263,9 @@ export const STM_Coverage: FunctionComponent<{
         >
           {invstgs &&
             allSTMObjectives.map((objective) => {
+              const tooltipString = ReactDOMServer.renderToStaticMarkup(
+                buildSTMTooltip(objective.uuid, "objective", false)
+              );
               return (
                 <div
                   key={objective.uuid}
@@ -333,18 +279,11 @@ export const STM_Coverage: FunctionComponent<{
                         ? stmStyles.objectiveNumberingCol
                         : stmStyles.objectiveNumberingRow
                     } ${highlightedObjectives?.includes(objective) && stmStyles.highlight}`}
-                    id={objective.uuid + props.uniqueKey}
+                    data-tooltip-id="aegis-tooltip"
+                    data-tooltip-html={tooltipString}
                   >
                     {objective.numbering}
                   </div>
-                  <Tooltip
-                    anchorId={objective.uuid + props.uniqueKey}
-                    html={ReactDOMServer.renderToString(
-                      buildSTMTooltip(objective.uuid, "objective", false)
-                    )}
-                    className={stmStyles.tooltip}
-                    events={["hover", "click"]}
-                  />
                   <div
                     className={`${stmStyles.goalsContainer} ${
                       props.horizontal ? stmStyles.flexRow : stmStyles.flexColumn
@@ -353,6 +292,9 @@ export const STM_Coverage: FunctionComponent<{
                     {allSTMGoals
                       .filter((goal) => goal.objectiveUuid === objective.uuid)
                       .map((goal) => {
+                        const tooltipString = ReactDOMServer.renderToStaticMarkup(
+                          buildSTMTooltip(goal.uuid, "goal", false)
+                        );
                         return (
                           <div
                             key={goal.uuid}
@@ -366,18 +308,11 @@ export const STM_Coverage: FunctionComponent<{
                                   ? stmStyles.goalNumberingCol
                                   : stmStyles.goalNumberingRow
                               } ${highlightedGoals?.includes(goal) && stmStyles.highlight}`}
-                              id={goal.uuid + props.uniqueKey}
+                              data-tooltip-id="aegis-tooltip"
+                              data-tooltip-html={tooltipString}
                             >
                               {goal.numbering}
                             </div>
-                            <Tooltip
-                              anchorId={goal.uuid + props.uniqueKey}
-                              html={ReactDOMServer.renderToString(
-                                buildSTMTooltip(goal.uuid, "goal", false)
-                              )}
-                              className={stmStyles.tooltip}
-                              events={["hover", "click"]}
-                            />
                             <div
                               className={`${stmStyles.invstgsContainer} ${
                                 props.horizontal ? stmStyles.flexRow : stmStyles.flexColumn
@@ -386,6 +321,9 @@ export const STM_Coverage: FunctionComponent<{
                               {allSTMInvstgs
                                 .filter((invstg) => invstg.goalUuid === goal.uuid)
                                 .map((invstg) => {
+                                  const tooltipString = ReactDOMServer.renderToStaticMarkup(
+                                    buildSTMTooltip(invstg.uuid, "investigation", false)
+                                  );
                                   return (
                                     <div key={invstg.uuid} className={stmStyles.investigation}>
                                       <div
@@ -394,27 +332,17 @@ export const STM_Coverage: FunctionComponent<{
                                             ? stmStyles.invstgNumberingRow
                                             : stmStyles.invstgNumberingCol
                                         } ${invstgs?.includes(invstg) && stmStyles.highlight}`}
-                                        id={invstg.uuid + props.uniqueKey}
+                                        data-tooltip-id="aegis-tooltip"
+                                        data-tooltip-html={tooltipString}
+                                        onMouseOver={() => {
+                                          handleHover(invstg.uuid);
+                                        }}
+                                        onMouseOut={() => {
+                                          handleHover(null);
+                                        }}
                                       >
                                         {invstg.numbering}
                                       </div>
-                                      <Tooltip
-                                        anchorId={invstg.uuid + props.uniqueKey}
-                                        html={ReactDOMServer.renderToString(
-                                          buildSTMTooltip(invstg.uuid, "investigation", false)
-                                        )}
-                                        className={stmStyles.tooltip}
-                                        events={["hover", "click"]}
-                                        delayShow={props.onInvstgHover ? 100 : 0}
-                                        afterShow={() => {
-                                          return (
-                                            props.onInvstgHover && props.onInvstgHover(invstg.uuid)
-                                          );
-                                        }}
-                                        afterHide={() => {
-                                          return props.onInvstgHover && props.onInvstgHover(null);
-                                        }}
-                                      />
                                     </div>
                                   );
                                 })}
@@ -431,4 +359,4 @@ export const STM_Coverage: FunctionComponent<{
     </>
   );
 };
-export default STM_Panel;
+export default STM_Coverage;

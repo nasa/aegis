@@ -1,17 +1,15 @@
-import {
-  ContentEditableTextArea,
-  InLineEditInput,
-  LastEdited,
-  SubpanelHeading,
-} from "components/interface/_global-elements";
+import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
+import { InLineEditInput } from "components/interface/form/globalFields";
 import { FunctionComponent } from "react";
 import { useDispatch } from "react-redux";
 import { upsertEva } from "store/eva";
 import { shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
-import { formatNumberWithCommas } from "utils/formatting";
+import { formatNumberWithCommas, toDecimal } from "utils/formatting";
 import { faCalculator, faLightbulb, faMessage } from "@fortawesome/free-solid-svg-icons";
+import { WysiwygTextArea } from "components/interface/form/wysiwyg";
+import { regExValidators, validators } from "components/interface/form/formValidators";
 
 const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -39,14 +37,14 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
             </div>
             <div className={paneStyles.descriptionContainer}>
-              <ContentEditableTextArea
-                html={selectedEva.description} // innerHTML of the editable div
+              <WysiwygTextArea
+                value={selectedEva.description}
                 editing={editMode}
-                onChange={(evt) => {
+                onChange={(value) => {
                   dispatch(
                     upsertEva({
                       ...selectedEva,
-                      description: evt.target.value,
+                      description: value,
                     })
                   );
                 }} // handle innerHTML change
@@ -67,14 +65,22 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         <InLineEditInput
-                          fieldName="Max Duration"
-                          editing={editMode}
-                          maxLength={5}
-                          styleInput={{ width: "55px" }}
-                          containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
                           value={selectedEva.maxDuration?.toString()}
-                          onChange={(val: number) => {
-                            dispatch(upsertEva({ ...selectedEva, maxDuration: val }));
+                          editing={editMode}
+                          fieldProps={{
+                            name: "maxDuration",
+                            ariaLabel: "Max Duration",
+                            style: { width: "55px" },
+                            validators: [validators.mustBeNumber, validators.maxLength(5)],
+                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                              e.target.value = e.target.value.replace(
+                                regExValidators.regExNumber,
+                                ""
+                              );
+                            },
+                          }}
+                          onSubmit={(val: string) => {
+                            dispatch(upsertEva({ ...selectedEva, maxDuration: toDecimal(val) }));
                           }}
                         />
                       </div>
@@ -86,24 +92,33 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     <div className={paneStyles.panelColumnTableCellLeft}>
                       <div
                         className={paneStyles.inputFieldLabel}
-                        title={`${selectedEva?.traverseRate ? "EVA" : "Mission"} Default: ${
-                          selectedEva?.traverseRate || missionTraverseRate
-                        } km/hr`}
+                        data-tooltip-id="aegis-tooltip"
+                        data-tooltip-html={`${
+                          selectedEva?.traverseRate ? "EVA" : "Mission"
+                        } Default: ${selectedEva?.traverseRate || missionTraverseRate} km/hr`}
                       >
-                        Traverse Rate (km/hr)
+                        Traverse Rate (km/hr):
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         <InLineEditInput
-                          fieldName="Average Traverse Rate"
-                          editing={editMode}
-                          maxLength={4}
-                          styleInput={{ width: "55px" }}
-                          containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
                           value={selectedEva.traverseRate?.toString()}
-                          onChange={(val: number) => {
-                            dispatch(upsertEva({ ...selectedEva, traverseRate: val }));
+                          editing={editMode}
+                          fieldProps={{
+                            name: "traverseRate",
+                            ariaLabel: "Average Traverse Rate",
+                            style: { width: "55px" },
+                            validators: [validators.mustBeNumber, validators.maxLength(4)],
+                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                              e.target.value = e.target.value.replace(
+                                regExValidators.regExNumber,
+                                ""
+                              );
+                            },
+                          }}
+                          onSubmit={(val: string) => {
+                            dispatch(upsertEva({ ...selectedEva, traverseRate: toDecimal(val) }));
                           }}
                         />
                       </div>

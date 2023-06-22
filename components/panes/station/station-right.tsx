@@ -1,4 +1,4 @@
-import paneStyles from "../global-pane-styles.module.css";
+import paneStyles from "components/panes/global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
@@ -16,42 +16,24 @@ import {
   faTriangleExclamation,
   faCheck,
 } from "@fortawesome/free-solid-svg-icons";
-import { Button, InLineEditInput } from "components/interface/_global-elements";
-import {
-  deleteStation,
-  setSelectedStationUuid,
-  setSelectedStationRightNavItem,
-  setStationEditMode,
-  upsertStation,
-  setStationsFromDb,
-} from "store/station";
-import {
-  upsertActionsFromDb,
-  upsertActions,
-  deleteActions,
-  deleteActionsFromDb,
-  setActionsFromDb,
-} from "store/action";
+import { Button, InLineEditInput } from "components/interface/form/globalFields";
+import { setSelectedStationRightNavItem, setStationEditMode, upsertStation } from "store/station";
 
 import Info_Panel from "./station-right-info";
 import Poi_Panel from "./station-right-poi";
 import Actions_Panel from "./station-right-actions";
 import Report_Panel from "../report";
-import * as httpClient_station from "http-client/station";
-import * as httpClient_action from "http-client/action";
-import { updateMapDirective } from "store/map";
 import { decodeEmoji } from "utils/formatting";
-import { setRightPanelOpen } from "store/interface";
 import { getAlertColor } from "utils/component-helpers";
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
-import { thunkUpdateAllTraverseNames } from "../../../store/thunk/thunkTraverse";
 import { useAppDispatch } from "utils/useAppDispatch";
+import { thunkDeleteStation, thunkSaveStation, thunkStationCancel } from "store/thunk/thunkStation";
+import { validators } from "components/interface/form/formValidators";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const appDispatch = useAppDispatch();
-  const selectedMissionId = useAppSelector((state) => state.mission.mission?.id, shallowEqual);
+  const thunkDispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector(
     (state) => state.station.selectedRightNavItem,
     shallowEqual
@@ -61,60 +43,19 @@ const StationEditorRight: FunctionComponent = () => {
     shallowEqual
   );
   const stationsEditing = useAppSelector((state) => state.station.stationsEditing, shallowEqual);
-  const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
-  const thisMapDirective = mapDirective?.uuid === selectedStationUuid ? mapDirective : null;
-
   const selectedStation = useAppSelector(
     (state) => state.station.stations.find((station) => station.uuid === selectedStationUuid),
     shallowEqual
   );
-  const selectedStationFromDb = useAppSelector(
-    (state) => state.station.stationsFromDb.find((station) => station.uuid === selectedStationUuid),
-    shallowEqual
-  );
-
-  const stationActions = useAppSelector(
-    (state) =>
-      state.action.actions.filter((storeAction) => storeAction.stationUuid === selectedStationUuid),
-    shallowEqual
-  );
-  const stationActionsFromDb = useAppSelector(
-    (state) =>
-      state.action.actionsFromDb.filter(
-        (storeAction) => storeAction.stationUuid === selectedStationUuid
-      ),
-    shallowEqual
-  );
-  const evasUsingThisStation = useAppSelector((state) => {
-    const evasUsingThisStation = [];
-    state.eva.evas.forEach((eva) => {
-      eva.sequence.forEach((sequenceItem) => {
-        if (sequenceItem.uuid === selectedStation?.uuid) {
-          evasUsingThisStation.push(eva);
-        }
-      });
-    });
-    return evasUsingThisStation;
-  }, shallowEqual);
-
-  const elevationPendingIndex = useAppSelector(
-    (state) =>
-      state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedStationUuid),
-    shallowEqual
-  );
-
   const isAdmin = useAppSelector(
     (state) => state.user.ironSessionData?.user.permission.includes("admin"),
     refEqual
   );
-
   const calculatedFields = useAppSelector(
     (state) =>
       state.station.calculatedFields.find((calculated) => calculated.uuid === selectedStationUuid),
     shallowEqual
   );
-  const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
-
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
   const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--station)");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -155,8 +96,30 @@ const StationEditorRight: FunctionComponent = () => {
     },
   };
 
-  //track modified
+  //these selectors from the store are only used to calculate modified. refactor?
+  const stationActionsFromDb = useAppSelector(
+    (state) =>
+      state.action.actionsFromDb.filter(
+        (storeAction) => storeAction.stationUuid === selectedStationUuid
+      ),
+    shallowEqual
+  );
+  const elevationPendingIndex = useAppSelector(
+    (state) =>
+      state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedStationUuid),
+    shallowEqual
+  );
+  const selectedStationFromDb = useAppSelector(
+    (state) => state.station.stationsFromDb.find((station) => station.uuid === selectedStationUuid),
+    shallowEqual
+  );
 
+  const stationActions = useAppSelector(
+    (state) =>
+      state.action.actions.filter((storeAction) => storeAction.stationUuid === selectedStationUuid),
+    shallowEqual
+  );
+  //track modified
   useEffect(() => {
     if (elevationPendingIndex > -1) {
       setSaveButtonState("pending");
@@ -181,212 +144,6 @@ const StationEditorRight: FunctionComponent = () => {
   useEffect(() => {
     setReportsTabIconColor(getAlertColor(calculatedFields?.reportItems));
   }, [calculatedFields]);
-
-  const cancelMarkerMapDirective = () => {
-    // if there's an active create or edit action, cancel it
-    if (thisMapDirective?.mapAction === "createMarker") {
-      dispatch(
-        updateMapDirective({
-          ...thisMapDirective,
-          mapAction: "cancelCreateMarker",
-        })
-      );
-    } else if (thisMapDirective?.mapAction === "editMarker") {
-      dispatch(
-        updateMapDirective({
-          ...thisMapDirective,
-          mapAction: "cancelEditMarker",
-        })
-      );
-    }
-  };
-
-  const handleSave = async () => {
-    if (selectedStation) {
-      // upsert the changed Station to the DB via internal API call
-      const stationUpsertResponse = await httpClient_station.upsertStation(selectedStation);
-
-      if (stationUpsertResponse.status === "success") {
-        // upsert the changed Station (with new updated date) to the store
-        dispatch(upsertStation(stationUpsertResponse.data));
-        // update the Station in the store with a fresh copy from the DB
-        const stationData = await httpClient_station.getStations(selectedMissionId);
-        if (stationData.data) {
-          dispatch(setStationsFromDb(stationData.data));
-        }
-      } else {
-        throw new Error("Error upserting Station: " + stationUpsertResponse.message);
-      }
-
-      // find out if the actions in this station have been modified and need to be persisted
-      const actionsModified = !_.isEqual(stationActions, stationActionsFromDb);
-      if (actionsModified) {
-        //upsert Actions to db
-        const upsertedStationActions: Action[] = [];
-        for (const actionToUpsert of stationActions) {
-          const actionUpsertResponse = await httpClient_action.upsertAction(actionToUpsert);
-          if (actionUpsertResponse.status !== "success") {
-            throw new Error("Error upserting station actions " + actionUpsertResponse.message);
-          } else {
-            upsertedStationActions.push(actionUpsertResponse.data);
-          }
-        }
-        // upsert the changed Action (with new updated dates) to the store
-        dispatch(upsertActions(upsertedStationActions));
-
-        // remove any deleted actions from the db
-        dispatch(deleteActionsFromDb(stationActionsFromDb));
-        // filter out deleted actions using local state
-        const deletedStationActions: Action[] = stationActionsFromDb.filter((actionDb) => {
-          const found = stationActions.some((stationAction) => {
-            return stationAction.uuid === actionDb.uuid;
-          });
-          return !found;
-        });
-        // take array of deleted actions and delete them in the db
-        for (const deletedAction of deletedStationActions) {
-          const actionDeleteResponse = await httpClient_action.deleteAction(deletedAction.uuid);
-          if (actionDeleteResponse.status !== "success") {
-            throw new Error("Error deleting station actions " + actionDeleteResponse.message);
-          }
-        }
-
-        // update the store copy of the db with a fresh copy from the DB
-        const actionData = await httpClient_action.getActions({
-          stationUuid: selectedStation.uuid,
-        });
-        if (actionData.data) {
-          dispatch(upsertActionsFromDb(actionData.data));
-        }
-      }
-
-      // if the walkback is in edit mode, save the walkback
-      if (thisMapDirective?.mapAction === "editPolyline") {
-        // handle walkback edit state
-        dispatch(
-          updateMapDirective({
-            ...thisMapDirective,
-            mapAction: "saveEditPolyline",
-          })
-        );
-      }
-
-      //Get all Evas
-
-      if (evas) {
-        // Loop through each eva sequence to get the ones with this station uuid
-        const evasUsingThisStation: Eva[] = evas.filter((eva) => {
-          return eva.sequence.some((sequence) => {
-            return sequence.uuid === selectedStation.uuid;
-          });
-        });
-        // We've changed a station name, so everything in EVA must be set to edit and flagged for update
-        evasUsingThisStation.forEach((eva) => {
-          appDispatch(
-            thunkUpdateAllTraverseNames({
-              evaSequence: eva.sequence,
-              stationUUID: selectedStation.uuid,
-            })
-          );
-        });
-      }
-
-      cancelMarkerMapDirective();
-      dispatch(setStationEditMode({ stationUuid: selectedStation.uuid, editMode: false }));
-    }
-  };
-
-  const handleDelete = async () => {
-    if (selectedStation) {
-      if (evasUsingThisStation.length > 0) {
-        alert("Cannot delete a station that is being used by an EVA");
-        return;
-      }
-
-      // if the selected station is in stationsFromDb then delete it from the db
-      if (selectedStationFromDb) {
-        // delete actions from the db via internal api call
-        for (const actionToDelete of stationActions) {
-          const actionDeleteResponse: WrappedResponse<number> =
-            await httpClient_action.deleteAction(actionToDelete.uuid);
-          if (actionDeleteResponse.status !== "success") {
-            throw new Error("Error deleting actions for station " + actionDeleteResponse.message);
-          }
-        }
-        // delete actions from the store
-        dispatch(deleteActions(stationActions));
-        // update store copy of the db with a fresh copy of actions for this mission from the db
-        const actionData = await httpClient_action.getActions({ missionId: selectedMissionId });
-        if (actionData.data) {
-          dispatch(setActionsFromDb(actionData.data));
-        }
-
-        // delete the Station from the DB via internal API call
-        const deleteResponse: WrappedResponse<number> = await httpClient_station.deleteStation(
-          selectedStation.uuid
-        );
-        if (deleteResponse.status === "success") {
-          // remove the corresponding Station from the store
-          dispatch(deleteStation(selectedStation));
-          dispatch(setSelectedStationUuid(null));
-
-          // get fresh copy of Stations from DB
-          const stationData = await httpClient_station.getStations(selectedMissionId);
-          if (stationData.data) {
-            dispatch(setStationsFromDb(stationData.data));
-          }
-        } else {
-          console.error("Error deleting Station: " + deleteResponse.message);
-        }
-      } else {
-        // if the selected station is not in stationsFromDb then delete it from the store
-        dispatch(deleteStation(selectedStation));
-        dispatch(setSelectedStationUuid(null));
-        dispatch(deleteActions(stationActions));
-      }
-      cancelMarkerMapDirective();
-      dispatch(setStationEditMode({ stationUuid: selectedStation.uuid, editMode: false }));
-      // close right panel
-      dispatch(setRightPanelOpen(false));
-    }
-  };
-
-  const handleCancel = () => {
-    // find out if this station is already on the map
-
-    if (selectedStationFromDb) {
-      // station is already saved once to the db, replace it with the one from the db (undoing any changes)
-      dispatch(upsertStation(selectedStationFromDb));
-      dispatch(upsertActions(stationActionsFromDb));
-
-      //delete newly added actions that user doesn't want to save
-      const addedActionsToDelete: Action[] = stationActions.filter(
-        // only delete actions that don't exist in the db
-        (action) =>
-          stationActionsFromDb.findIndex((actionDb) => actionDb.uuid === action.uuid) === -1
-      );
-      dispatch(deleteActions(addedActionsToDelete));
-    } else {
-      // station hasn't been saved to the db. delete the station and actions from the store
-      dispatch(deleteStation(selectedStation));
-      dispatch(setSelectedStationUuid(null));
-      dispatch(deleteActions(stationActions));
-      dispatch(setRightPanelOpen(false));
-    }
-
-    // if the walkback is in edit mode, save the walkback
-    if (thisMapDirective?.mapAction === "editPolyline") {
-      // handle walkback edit state
-      dispatch(
-        updateMapDirective({
-          ...thisMapDirective,
-          mapAction: "cancelEditPolyline",
-        })
-      );
-    }
-    cancelMarkerMapDirective();
-    dispatch(setStationEditMode({ stationUuid: selectedStation.uuid, editMode: false }));
-  };
 
   useEffect(() => {
     if (!stationsEditing.includes(selectedStationUuid)) setShowEmojiPicker(false);
@@ -438,19 +195,21 @@ const StationEditorRight: FunctionComponent = () => {
           )}
           <div className={paneStyles.rightTopTitleText} style={{ color: "var(--station)" }}>
             <InLineEditInput
-              fieldName="Station"
               value={selectedStation.name}
               editing={stationsEditing.includes(selectedStationUuid)}
-              maxLength={255}
-              styleInput={{
-                width: "100%",
-                marginRight: "10px",
-                color: "var(--station)",
-                fontSize: "1em",
+              fieldProps={{
+                name: "name",
+                ariaLabel: "Station",
+                style: {
+                  width: "100%",
+                  color: "var(--station)",
+                  fontSize: "1em",
+                },
+                validators: [validators.required, validators.maxLength(255)],
               }}
               styleValue={{ padding: 0, height: "auto" }}
-              containerStyle={{ paddingLeft: 0 }}
-              onChange={(val) => {
+              styleContainer={{ paddingLeft: 0 }}
+              onSubmit={(val) => {
                 dispatch(upsertStation({ ...selectedStation, name: val }));
               }}
             />
@@ -480,7 +239,8 @@ const StationEditorRight: FunctionComponent = () => {
                             ? panelTypes[panelType].selectedColor
                             : unselectedColor,
                       }}
-                      title={panelTypes[panelType].title}
+                      data-tooltip-id="aegis-tooltip"
+                      data-tooltip-html={panelTypes[panelType].title}
                       onClick={() => dispatch(setSelectedStationRightNavItem(panelType))}
                     >
                       <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
@@ -494,7 +254,11 @@ const StationEditorRight: FunctionComponent = () => {
               <Button
                 icon={faTrashAlt}
                 onClick={() => {
-                  handleDelete();
+                  thunkDispatch(
+                    thunkDeleteStation({
+                      station: selectedStation,
+                    })
+                  );
                 }}
                 toolTip="Delete Station"
                 style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
@@ -526,7 +290,11 @@ const StationEditorRight: FunctionComponent = () => {
                 <>
                   <Button
                     onClick={() => {
-                      handleSave();
+                      thunkDispatch(
+                        thunkSaveStation({
+                          station: selectedStation,
+                        })
+                      );
                     }}
                     icon={faFloppyDisk}
                     toolTip={`Save Station${
@@ -544,7 +312,11 @@ const StationEditorRight: FunctionComponent = () => {
                   />
                   <Button
                     onClick={() => {
-                      handleCancel();
+                      thunkDispatch(
+                        thunkStationCancel({
+                          station: selectedStation,
+                        })
+                      );
                     }}
                     icon={faBan}
                     toolTip="Cancel Edit"

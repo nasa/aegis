@@ -13,7 +13,7 @@ export class PresetSeeder extends Seeder {
       description: "",
       missionPreset: true,
       missionPresetDefault: true,
-      layerControls: {
+      mapLayerControls: {
         Basemaps: {
           name: "Basemaps",
           type: "header",

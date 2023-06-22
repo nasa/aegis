@@ -1,8 +1,8 @@
 import { FunctionComponent } from "react";
 import styles from "./preset-right-layers-settings.module.css";
-// import { Dropdown } from "components/interface/_global-elements";
+import { Dropdown } from "components/interface/form/globalFields";
 import { useDispatch } from "react-redux";
-import { setPresetLayerControlStyle } from "store/preset";
+import { setPresetLayerStyle } from "store/preset";
 import getPercentOrDefault from "utils/getPercentOrDefault";
 import { CompactPicker } from "react-color";
 
@@ -28,7 +28,9 @@ const Slider: FunctionComponent<{
           min={min}
           max={max}
           name={name}
-          title={name}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-html={name}
+          aria-label={name}
           defaultValue={value}
           className={styles.slider}
           onChange={onChange}
@@ -44,7 +46,7 @@ const Settings_subpanel: FunctionComponent<{
 }> = ({ sublayer, selectedPreset }) => {
   const dispatch = useDispatch();
 
-  const presetLayerStyle = selectedPreset.layerControls[sublayer.name].style;
+  const presetLayerStyle = selectedPreset.mapLayerControls[sublayer.name].style;
 
   //default setting options to show
   let showSliders = {
@@ -71,80 +73,23 @@ const Settings_subpanel: FunctionComponent<{
     };
   }
 
-  const setOpacity = (value: number) => {
-    const newVal = value / 100;
+  const setStyle = (
+    value: number | string,
+    property:
+      | "opacity"
+      | "contrast"
+      | "brightness"
+      | "saturation"
+      | "blendMode"
+      | "color"
+      | "weight"
+      | "fillOpacity"
+  ) => {
     dispatch(
-      setPresetLayerControlStyle({
+      setPresetLayerStyle({
         presetUuid: selectedPreset.uuid,
         layerName: sublayer.name,
-        style: { ...presetLayerStyle, opacity: newVal },
-      })
-    );
-  };
-  const setContrast = (value: number) => {
-    const newVal = value / 100;
-    dispatch(
-      setPresetLayerControlStyle({
-        presetUuid: selectedPreset.uuid,
-        layerName: sublayer.name,
-        style: { ...presetLayerStyle, contrast: newVal },
-      })
-    );
-  };
-  const setBrightness = (value: number) => {
-    const newVal = value / 100;
-    dispatch(
-      setPresetLayerControlStyle({
-        presetUuid: selectedPreset.uuid,
-        layerName: sublayer.name,
-        style: { ...presetLayerStyle, brightness: newVal },
-      })
-    );
-  };
-  const setSaturation = (value: number) => {
-    const newVal = value / 100;
-    dispatch(
-      setPresetLayerControlStyle({
-        presetUuid: selectedPreset.uuid,
-        layerName: sublayer.name,
-        style: { ...presetLayerStyle, saturation: newVal },
-      })
-    );
-  };
-  // const setBlendMode = (value: string) => {
-  //   dispatch(
-  //     setPresetLayerControlStyle({
-  //       presetUuid: selectedPreset.uuid,
-  //       layerName: sublayer.name,
-  //       style: { ...presetLayerStyle, blendMode: value },
-  //     })
-  //   );
-  // };
-  const setColor = (value: string) => {
-    dispatch(
-      setPresetLayerControlStyle({
-        presetUuid: selectedPreset.uuid,
-        layerName: sublayer.name,
-        style: { ...presetLayerStyle, color: value },
-      })
-    );
-  };
-  const setWeight = (value: number) => {
-    dispatch(
-      setPresetLayerControlStyle({
-        presetUuid: selectedPreset.uuid,
-        layerName: sublayer.name,
-        style: { ...presetLayerStyle, weight: value },
-      })
-    );
-  };
-  const setFillOpacity = (value: number) => {
-    const newVal = value / 100;
-    dispatch(
-      setPresetLayerControlStyle({
-        presetUuid: selectedPreset.uuid,
-        layerName: sublayer.name,
-        style: { ...presetLayerStyle, fillOpacity: newVal },
+        style: { ...presetLayerStyle, [property]: value },
       })
     );
   };
@@ -157,7 +102,7 @@ const Settings_subpanel: FunctionComponent<{
           display={sublayer.type === "vector" ? "Stroke Opacity" : "Opacity"}
           name="opacity"
           value={getPercentOrDefault(presetLayerStyle?.opacity)}
-          onChange={(e) => setOpacity(Number(e.target.value))}
+          onChange={(e) => setStyle(Number(e.target.value) / 100, "opacity")}
         />
       )}
       {showSliders.contrast && (
@@ -165,7 +110,7 @@ const Settings_subpanel: FunctionComponent<{
           display="Contrast"
           name="contrast"
           value={getPercentOrDefault(presetLayerStyle?.contrast)}
-          onChange={(e) => setContrast(Number(e.target.value))}
+          onChange={(e) => setStyle(Number(e.target.value) / 100, "contrast")}
         />
       )}
       {showSliders.brightness && (
@@ -173,7 +118,7 @@ const Settings_subpanel: FunctionComponent<{
           display="Brightness"
           name="brightness"
           value={getPercentOrDefault(presetLayerStyle?.brightness)}
-          onChange={(e) => setBrightness(Number(e.target.value))}
+          onChange={(e) => setStyle(Number(e.target.value) / 100, "brightness")}
         />
       )}
       {showSliders.saturation && (
@@ -181,10 +126,10 @@ const Settings_subpanel: FunctionComponent<{
           display="Saturation"
           name="saturation"
           value={getPercentOrDefault(presetLayerStyle?.saturation)}
-          onChange={(e) => setSaturation(Number(e.target.value))}
+          onChange={(e) => setStyle(Number(e.target.value) / 100, "saturation")}
         />
       )}
-      {/* {showSliders.blendMode && (
+      {showSliders.blendMode && (
         <div className={styles.listItem}>
           <div className={styles.listItemText}>Blend</div>
           <div className={styles.listItemControl}>
@@ -192,36 +137,35 @@ const Settings_subpanel: FunctionComponent<{
               selected={presetLayerStyle?.blendMode ? presetLayerStyle?.blendMode : "normal"}
               arrowStyle={{ top: "1px" }}
               onChange={(value) => {
-                setBlendMode(value);
+                setStyle(value, "blendMode");
               }}
+              toolTip="Blend Mode"
             >
               <option value="normal">Normal</option>
-              <option value="multiply">Multiply</option>
-              <option value="screen">Screen</option>
-              <option value="overlay">Overlay</option>
-              <option value="darken">Darken</option>
-              <option value="lighten">Lighten</option>
-              <option value="color-dodge">Color Dodge</option>
+              <option value="color">Color</option>
               <option value="color-burn">Color Burn</option>
-              <option value="hard-light">Hard Light</option>
-              <option value="soft-light">Soft Light</option>
+              <option value="color-dodge">Color Dodge</option>
+              <option value="darken">Darken</option>
               <option value="difference">Difference</option>
               <option value="exclusion">Exclusion</option>
+              <option value="hard-light">Hard Light</option>
               <option value="hue">Hue</option>
-              <option value="saturation">Saturation</option>
-              <option value="color">Color</option>
+              <option value="lighten">Lighten</option>
               <option value="luminosity">Luminosity</option>
+              <option value="multiply">Multiply</option>
+              <option value="overlay">Overlay</option>
+              <option value="saturation">Saturation</option>
             </Dropdown>
           </div>
         </div>
-      )} */}
+      )}
       {showSliders.colorPicker && (
         <div className={styles.listItem}>
           <div className={styles.listItemText}>Stroke Color</div>
           <div className={styles.listItemControl}>
             <CompactPicker
               color={presetLayerStyle?.color}
-              onChangeComplete={(color) => setColor(color.hex)}
+              onChangeComplete={(color) => setStyle(color.hex, "color")}
             />
           </div>
         </div>
@@ -231,7 +175,7 @@ const Settings_subpanel: FunctionComponent<{
           display="Stroke Weight"
           name="weight"
           value={presetLayerStyle?.weight}
-          onChange={(e) => setWeight(Number(e.target.value))}
+          onChange={(e) => setStyle(Number(e.target.value), "weight")}
           min={1}
           max={5}
           unit={"px"}
@@ -242,7 +186,7 @@ const Settings_subpanel: FunctionComponent<{
           display="Fill Opacity"
           name="fillOpacity"
           value={getPercentOrDefault(presetLayerStyle?.fillOpacity)}
-          onChange={(e) => setFillOpacity(Number(e.target.value))}
+          onChange={(e) => setStyle(Number(e.target.value) / 100, "fillOpacity")}
         />
       )}
     </div>

@@ -9,23 +9,19 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  ContentEditableTextArea,
-  Dropdown,
-  InLineEditInput,
-  LastEdited,
-  SubpanelHeading,
-} from "components/interface/_global-elements";
+import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
+import { Dropdown, InLineEditInput } from "components/interface/form/globalFields";
+import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { FunctionComponent, useState, CSSProperties } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
-import { deleteAction, upsertAction } from "store/action";
+import { deleteActionByUuid, upsertAction } from "store/action";
 import { longdateFromDateString, toDecimal } from "utils/formatting";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
-import { Tooltip } from "react-tooltip";
 import ReactDOMServer from "react-dom/server";
 import STMSelector from "./stm-selector";
+import { validators, regExValidators } from "components/interface/form/formValidators";
 
 const RightAction: FunctionComponent<{
   editMode: boolean;
@@ -46,10 +42,10 @@ const RightAction: FunctionComponent<{
   );
   const [expanded, setExpanded] = useState(false);
 
-  function buildActionTooltip() {
+  const buildActionTooltip = () => {
     if (parentAction && parentPoi) {
       const dateString = longdateFromDateString(action.parentCopyDate) + "Z";
-      return (
+      return ReactDOMServer.renderToStaticMarkup(
         <>
           Copied from {parentPoi.name} - {parentAction.name}
           <br />
@@ -59,7 +55,7 @@ const RightAction: FunctionComponent<{
     } else {
       return <></>;
     }
-  }
+  };
 
   return (
     <div className={`${paneStyles.panelContainer} ${actionStyles.actionPanelContainer}`}>
@@ -89,7 +85,13 @@ const RightAction: FunctionComponent<{
           )}
         </div>
         {!editMode ? (
-          <div className={`${paneStyles.actionsHeadingTitle}`} style={actionColor}>
+          <div
+            className={`${paneStyles.actionsHeadingTitle}`}
+            style={actionColor}
+            onClick={() => {
+              setExpanded(!expanded);
+            }}
+          >
             {action.type}
           </div>
         ) : (
@@ -98,6 +100,7 @@ const RightAction: FunctionComponent<{
             onChange={(val) => {
               dispatch(upsertAction({ ...action, type: val as ActionType }));
             }}
+            toolTip="Action Type"
           >
             <option value="measurement">Measurement</option>
             <option value="observation">Observation</option>
@@ -109,15 +112,16 @@ const RightAction: FunctionComponent<{
 
         <div className={paneStyles.actionsHeadingSubTitle}>
           <InLineEditInput
-            fieldName="Action Title"
-            editing={editMode}
-            maxLength={255}
-            styleInput={{ width: "100%" }}
-            containerStyle={{ fontSize: "0.8rem", fontWeight: 400 }}
             value={action.name}
-            onChange={(val) => {
-              const updatedAction: Action = { ...action, name: val };
-              dispatch(upsertAction(updatedAction));
+            editing={editMode}
+            fieldProps={{
+              name: "name",
+              ariaLabel: "Action Title",
+              style: { width: "100%" },
+              validators: [validators.required, validators.maxLength(255)],
+            }}
+            onSubmit={(value: string) => {
+              dispatch(upsertAction({ ...action, name: value }));
             }}
           />
         </div>
@@ -127,7 +131,7 @@ const RightAction: FunctionComponent<{
               icon={faTrashAlt}
               size="sm"
               onClick={(e) => {
-                dispatch(deleteAction(action));
+                dispatch(deleteActionByUuid(action.uuid));
                 setEditMode(true);
                 e.stopPropagation();
               }}
@@ -141,11 +145,8 @@ const RightAction: FunctionComponent<{
                 icon={faCircleDot}
                 size="sm"
                 className={actionStyles.iconFaded}
-              />
-              <Tooltip
-                anchorId={`${action.uuid}-${action.parentActionUuid}`}
-                className={actionStyles.actionToolTip}
-                html={ReactDOMServer.renderToString(buildActionTooltip())}
+                data-tooltip-id="aegis-tooltip"
+                data-tooltip-html={buildActionTooltip()}
               />
             </div>
           )
@@ -159,11 +160,11 @@ const RightAction: FunctionComponent<{
                 <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
               </div>
               <div className={paneStyles.descriptionContainer}>
-                <ContentEditableTextArea
-                  html={action.description} // innerHTML of the editable div
+                <WysiwygTextArea
+                  value={action.description}
                   editing={editMode}
-                  onChange={(evt) => {
-                    const updatedAction: Action = { ...action, description: evt.target.value };
+                  onChange={(value) => {
+                    const updatedAction: Action = { ...action, description: value };
                     dispatch(upsertAction(updatedAction));
                   }} // handle innerHTML change
                 />
@@ -183,23 +184,27 @@ const RightAction: FunctionComponent<{
                       <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.inputFieldValue}>
                           <InLineEditInput
-                            fieldName="Minimum Time in minutes"
+                            value={action.durationLower?.toString()}
                             editing={editMode}
-                            maxLength={4}
-                            styleInput={{ width: "45px" }}
-                            containerStyle={{ fontSize: "0.8em", fontWeight: 400 }}
-                            value={action.durationLower.toString()}
-                            onChange={(val: number) => {
-                              const updatedAction: Action = { ...action, durationLower: val };
-                              dispatch(upsertAction(updatedAction));
+                            fieldProps={{
+                              name: "durationLower",
+                              ariaLabel: "Minimum Time in minutes",
+                              style: { width: "45px" },
+                              validators: [validators.mustBeNumber, validators.maxLength(4)],
+                              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                                e.target.value = e.target.value.replace(
+                                  regExValidators.regExNumber,
+                                  ""
+                                );
+                              },
                             }}
-                            onBlur={(e) => {
-                              const numericVal = toDecimal(e.target.value);
-                              const updatedAction: Action = {
-                                ...action,
-                                durationLower: numericVal,
-                              };
-                              dispatch(upsertAction(updatedAction));
+                            onSubmit={(value: string) => {
+                              dispatch(
+                                upsertAction({
+                                  ...action,
+                                  durationLower: toDecimal(value),
+                                })
+                              );
                             }}
                           />
                         </div>
@@ -214,23 +219,27 @@ const RightAction: FunctionComponent<{
                       <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.inputFieldValue}>
                           <InLineEditInput
-                            fieldName="Maximum Time in minutes"
-                            editing={editMode}
-                            maxLength={4}
-                            styleInput={{ width: "45px" }}
-                            containerStyle={{ fontSize: "0.8rem", fontWeight: 400 }}
                             value={action.durationUpper?.toString()}
-                            onChange={(val: number) => {
-                              const updatedAction: Action = { ...action, durationUpper: val };
-                              dispatch(upsertAction(updatedAction));
+                            editing={editMode}
+                            fieldProps={{
+                              name: "durationUpper",
+                              ariaLabel: "Maximum Time in minutes",
+                              style: { width: "45px" },
+                              validators: [validators.mustBeNumber, validators.maxLength(4)],
+                              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                                e.target.value = e.target.value.replace(
+                                  regExValidators.regExNumber,
+                                  ""
+                                );
+                              },
                             }}
-                            onBlur={(e) => {
-                              const numericVal = toDecimal(e.target.value);
-                              const updatedAction: Action = {
-                                ...action,
-                                durationUpper: numericVal,
-                              };
-                              dispatch(upsertAction(updatedAction));
+                            onSubmit={(value: string) => {
+                              dispatch(
+                                upsertAction({
+                                  ...action,
+                                  durationUpper: toDecimal(value),
+                                })
+                              );
                             }}
                           />
                         </div>

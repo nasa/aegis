@@ -31,6 +31,7 @@ export class LayerSeeder extends Seeder {
           {
             //id: 1,
             name: "Apollo 14 Traverse",
+            uuid: v4(),
             kind: "none",
             type: "vector",
             url: "Data/Apollo14Traverse.geojson",
@@ -94,6 +95,7 @@ export class LayerSeeder extends Seeder {
           {
             //id: 1,
             name: "Apollo 14 Sample Stations",
+            uuid: v4(),
             kind: "none",
             type: "vector",
             url: "Data/Apollo14.geojson",
@@ -157,6 +159,7 @@ export class LayerSeeder extends Seeder {
           {
             //id: 1,
             name: "NAC DTM DTR 2m ",
+            uuid: v4(),
             type: "tile",
             url: "Layers/NAC_DTM_DTR_2m/{z}/{x}/{y}.png",
             demtileurl: "Layers/NAC_DTM_2m_v2/{z}/{x}/{y}.png",
@@ -216,6 +219,7 @@ export class LayerSeeder extends Seeder {
           {
             //id: 1,
             name: "NAC DTM 2m Confidence Map",
+            uuid: v4(),
             type: "tile",
             url: "Layers/NAC_DTM_2m_confidence_map/{z}/{x}/{y}.png",
             demparser: "",
@@ -274,6 +278,7 @@ export class LayerSeeder extends Seeder {
           {
             //id: 1,
             name: "NAC DTM 2m Hillshade",
+            uuid: v4(),
             type: "tile",
             url: "Layers/NAC_DTM_hillshade/{z}/{x}/{y}.png",
             demparser: "",
@@ -332,6 +337,7 @@ export class LayerSeeder extends Seeder {
           {
             //id: 1,
             name: "NAC Ortho 50cm M150639913",
+            uuid: v4(),
             type: "tile",
             url: "Layers/NAC_ortho_50cm_2/{z}/{x}/{y}.png",
             aegisURL: "NAC_ortho_50cm_2/{z}/{x}/{y}.png",
@@ -361,6 +367,7 @@ export class LayerSeeder extends Seeder {
           {
             //id: 2,
             name: "NAC Ortho 50cm M150633128",
+            uuid: v4(),
             type: "tile",
             url: "Layers/NAC_ortho_50cm_1_v4/{z}/{x}/{y}.png",
             aegisURL: "NAC_ortho_50cm_1_v4/{z}/{x}/{y}.png",

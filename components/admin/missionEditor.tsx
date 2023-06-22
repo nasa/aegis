@@ -1,23 +1,20 @@
-import { TextInputField } from "components/form/FormInput";
-import { AnyObject } from "final-form";
 import { getElevationSinglePoint } from "http-client/elevation";
 import { Dispatch, FunctionComponent, SetStateAction, useEffect, useState } from "react";
-import { Form } from "react-final-form";
 import FileManager from "./fileManager";
 import { createNewConfig, stringToJSON } from "./helper";
+import { Form } from "react-final-form";
+import { AnyObject } from "final-form";
+import { FFInput } from "components/interface/form/globalFields";
+import { validators } from "components/interface/form/formValidators";
 import Look from "./look";
 import MSV from "./msv";
 import Projection from "components/admin/projection";
 import Panels from "./panels";
 import Time from "./time";
 import Tools, { createTools, initializeTools } from "./tools";
-import { validators } from "utils/formValidators";
-import styles from "components/admin/admin.module.css";
 import adminStyles from "components/admin/admin.module.css";
 import { forIn, pick, isEmpty } from "lodash";
 import { upsertMission } from "http-client/mission";
-
-const { mustBeNumber } = validators;
 
 //Type used to track extra information about each tool needed to render the components
 export type WrappedTool = {
@@ -140,7 +137,7 @@ const MissionEditor: FunctionComponent<{
         render={({ handleSubmit, values, errors }) => {
           return (
             <form onSubmit={handleSubmit}>
-              <div className={styles.container}>
+              <div className={adminStyles.container}>
                 <div className={adminStyles.editMissionDiv}>
                   {mission.id ? (
                     <h3>Edit Mission &quot;{mission.name}&quot;</h3>
@@ -167,52 +164,47 @@ const MissionEditor: FunctionComponent<{
                   <br />
                   <br />
                   <div id="missionDiv">
-                    <div className={styles.editDiv}>
-                      <TextInputField
+                    <div className={adminStyles.editDiv}>
+                      <FFInput
                         name="name"
-                        className={styles.editDiv}
                         label={{ label: "Mission Name (Parent)" }}
                         initialValue={mission?.name}
                       />
                     </div>
                   </div>
                   <div id="bannerDiv">
-                    <div className={styles.editDiv}>
-                      <TextInputField
+                    <div className={adminStyles.editDiv}>
+                      <FFInput
                         name="config.missionBanner"
-                        className={styles.editDiv}
-                        label={{ label: "Mission Banner" }}
+                        label={{ label: "Mission Banner", title: "Mission Banner" }}
                         initialValue={mission?.name}
                       />
                     </div>
                   </div>
                   <div id="landerLatDiv">
-                    <div className={styles.editDiv}>
-                      <TextInputField
+                    <div className={adminStyles.editDiv}>
+                      <FFInput
                         name="landerLocation.lat"
-                        className={styles.editDiv}
                         label={{ label: "Lander Location Latitude" }}
-                        validators={[mustBeNumber]}
+                        validators={[validators.mustBeNumber]}
                       />
                     </div>
                   </div>
                   <div id="landerLongDiv">
-                    <div className={styles.editDiv}>
-                      <TextInputField
+                    <div className={adminStyles.editDiv}>
+                      <FFInput
                         name="landerLocation.lng"
-                        className={styles.editDiv}
                         label={{ label: "Lander Location Longitude" }}
-                        validators={[mustBeNumber]}
+                        validators={[validators.mustBeNumber]}
                       />
                     </div>
                   </div>
                   <div id="landerEleDiv">
-                    <div className={styles.editDiv}>
-                      <TextInputField
+                    <div className={adminStyles.editDiv}>
+                      <FFInput
                         name="landerElevationMeters"
-                        className={styles.editDiv}
                         label={{ label: "Lander Location Elevation" }}
-                        validators={[mustBeNumber]}
+                        validators={[validators.mustBeNumber]}
                       />
                       <button
                         type="button"
@@ -225,12 +217,11 @@ const MissionEditor: FunctionComponent<{
                     </div>
                   </div>
                   <div id="traverseDiv">
-                    <div className={styles.editDiv}>
-                      <TextInputField
+                    <div className={adminStyles.editDiv}>
+                      <FFInput
                         name="traverseSpeed"
-                        className={styles.editDiv}
                         label={{ label: "Default Traverse Speed" }}
-                        validators={[mustBeNumber]}
+                        validators={[validators.mustBeNumber]}
                       />
                     </div>
                   </div>

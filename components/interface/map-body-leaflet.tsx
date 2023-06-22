@@ -34,19 +34,15 @@ import {
   getMidpoint,
 } from "utils/geoMath";
 import { decodeEmoji } from "utils/formatting";
-import { Checkbox } from "./_global-elements";
-import {
-  setLeftPanelHoverUuid,
-  setMapItemHoverUuid,
-  setTimelineHoverUuid,
-} from "store/playheadHover";
+import { Checkbox } from "components/interface/form/globalFields";
+import { setAllHoverUuids } from "store/playheadHover";
 import {
   thunkUpdateStationLocation,
-  thunkFullUpdateWalkbackPath,
+  thunkFullUpdateWalkback,
   thunkUpdateWalkbackPath,
 } from "store/thunk/thunkStation";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkFullUpdateTraversePath, thunkUpdateTraversePath } from "store/thunk/thunkTraverse";
+import { thunkFullUpdateTraverse, thunkUpdateTraversePath } from "store/thunk/thunkTraverse";
 import getPercentOrDefault from "utils/getPercentOrDefault";
 import { thunkUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { selectEVASequenceItem } from "store/cross-slice";
@@ -60,7 +56,7 @@ const layerBaseURL = "/static/missionFiles";
 
 const MapBody: FunctionComponent = () => {
   const dispatch = useDispatch();
-  const appDispatch = useAppDispatch();
+  const thunkDispatch = useAppDispatch();
   const mapRef = useRef(null);
   const map = useRef<L.Map>(null);
   const crs = useRef<L.Proj.CRS>(null);
@@ -73,8 +69,14 @@ const MapBody: FunctionComponent = () => {
 
   const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, shallowEqual);
 
-  const layerControls = useAppSelector((state) => state.map.layerControls, shallowEqual);
+  const layerControls = useAppSelector((state) => state.map.mapLayerControls, shallowEqual);
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
+
+  const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
+  const selectedPreset = useAppSelector(
+    (state) => state.preset.presets.find((p) => p.uuid === selectedPresetUuid),
+    shallowEqual
+  );
 
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
@@ -115,7 +117,10 @@ const MapBody: FunctionComponent = () => {
   const [mapZoom, setMapZoom] = useState(0); // value used to show correct scale bar
 
   // make color filter settings for tile sublayer. This is the format of leaflet.tilelayer.colorfilter package
-  const makeTileLayerColorFilter = (lControls: LayerControls, sublayerName: string): string[] => {
+  const makeTileLayerColorFilter = (
+    lControls: MapLayerControls,
+    sublayerName: string
+  ): string[] => {
     return [
       `brightness:${getPercentOrDefault(lControls[sublayerName].style?.brightness)}%`,
       `contrast:${getPercentOrDefault(lControls[sublayerName].style?.contrast)}%`,
@@ -146,15 +151,42 @@ const MapBody: FunctionComponent = () => {
    * Map layers display management
    */
   useEffect(() => {
-    if (!mission || !layerControls || !map.current) return;
+    if (!mission || !layerControls || !map.current || !selectedPreset || !missionLayers) return;
 
-    // go through all layers in mission config and add make a list of the ones that are enabled
+    // go through all layers in mission config,  add make a list of the ones that are enabled
     const layersToAdd: Sublayer[] = [];
-    for (const configLayer of missionLayers) {
-      for (const configSublayer of configLayer.layerConfig.sublayers) {
-        if (configSublayer.type === "tile" || configSublayer.type === "vector") {
-          if (layerControls[configSublayer.name].enabled) {
-            layersToAdd.push(configSublayer);
+
+    //loop through layers in the preset using their ordering
+    if (selectedPreset.layerOrder) {
+      for (const headerLayer of selectedPreset.layerOrder) {
+        //loop through the sublayer uuids
+        for (const sublayerUuid of headerLayer.sublayerUuids) {
+          //check if sublayer is toggled visible in the preset
+          for (const layerName in selectedPreset.mapLayerControls) {
+            if (
+              selectedPreset.mapLayerControls[layerName].uuid === sublayerUuid &&
+              selectedPreset.mapLayerControls[layerName].visible
+            ) {
+              //this layer is visible - get the sublayer object from misson
+              for (const layer of missionLayers) {
+                for (const sublayer of layer.layerConfig.sublayers) {
+                  if (sublayer.uuid === sublayerUuid) {
+                    layersToAdd.push(sublayer); //add sublayer
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    } else {
+      //preset does not have ordering, use the default order from mission
+      for (const configLayer of missionLayers) {
+        for (const configSublayer of configLayer.layerConfig.sublayers) {
+          if (configSublayer.type === "tile" || configSublayer.type === "vector") {
+            if (layerControls[configSublayer.name].visible) {
+              layersToAdd.push(configSublayer);
+            }
           }
         }
       }
@@ -173,12 +205,12 @@ const MapBody: FunctionComponent = () => {
     // remove map layers that are not enabled in layerControls
     map.current.eachLayer((layer) => {
       if ((layer as L.TileLayer).options.id) {
-        if (!layerControls[(layer as L.TileLayer).options.id].enabled) {
+        if (!layerControls[(layer as L.TileLayer).options.id].visible) {
           map.current.removeLayer(layer);
         }
       }
       if ((layer as AEGISFeatureGroup).id) {
-        if (!layerControls[(layer as AEGISFeatureGroup).id].enabled) {
+        if (!layerControls[(layer as AEGISFeatureGroup).id].visible) {
           map.current.removeLayer(layer);
         }
       }
@@ -210,6 +242,10 @@ const MapBody: FunctionComponent = () => {
               opacity: layerControls[configSublayer.name].style?.opacity,
               zIndex: index,
               filter,
+              // custom class name that we use to control mix-blend-mode
+              className: `leaflet-layer leaflet-blend-${
+                layerControls[configSublayer.name].style?.blendMode
+              }`,
             }
           );
           map.current.addLayer(tileLayer);
@@ -262,7 +298,7 @@ const MapBody: FunctionComponent = () => {
         layer.bringToFront();
       }
     });
-  }, [mission, layerControls, map, layersOnMap, missionLayers]);
+  }, [mission, layerControls, map, layersOnMap, missionLayers, selectedPreset]);
 
   /**
    * Update map with display adjustments for sublayers as sliders are moved
@@ -276,6 +312,8 @@ const MapBody: FunctionComponent = () => {
             (layer as L.TileLayer).updateFilter(
               makeTileLayerColorFilter(layerControls, layerControl.name)
             );
+            // custom class name that we use to control mix-blend-mode
+            layer.getContainer().className = `leaflet-layer leaflet-blend-${layerControl.style?.blendMode}`;
           } else if (layer.options.type === "vector") {
             (layer as L.GeoJSON).setStyle({
               color: layerControl.style?.color,
@@ -384,6 +422,8 @@ const MapBody: FunctionComponent = () => {
       onClick?: Function;
       onDragEnd?: Function;
     }) => {
+      if (isNaN(location.lat) || isNaN(location.lng)) return;
+
       const html = `<div class="leaflet-aegis-icon">${decodeEmoji(iconEmoji)}</div>`;
       const icon = L.divIcon({ html });
 
@@ -421,14 +461,10 @@ const MapBody: FunctionComponent = () => {
               onClick();
             })
             .on("mouseover", () => {
-              dispatch(setLeftPanelHoverUuid(marker.uuid));
-              dispatch(setTimelineHoverUuid(marker.uuid));
-              dispatch(setMapItemHoverUuid(marker.uuid));
+              dispatch(setAllHoverUuids(marker.uuid));
             })
             .on("mouseout", () => {
-              dispatch(setLeftPanelHoverUuid(null));
-              dispatch(setTimelineHoverUuid(null));
-              dispatch(setMapItemHoverUuid(null));
+              dispatch(setAllHoverUuids(null));
             });
         }
         if (onDragEnd) {
@@ -473,6 +509,9 @@ const MapBody: FunctionComponent = () => {
         !path[path.length - 1]?.lng
       )
         return;
+      for (let i = 0; i < path.length; i++) {
+        if (isNaN(path[i].lat) || isNaN(path[i].lng)) return;
+      }
 
       const existingLayer = getMapItemByUuid(uuid, mapItemType) as AEGISPolyline;
 
@@ -515,6 +554,9 @@ const MapBody: FunctionComponent = () => {
         !path[path.length - 1]?.lng
       )
         return;
+      for (let i = 0; i < path.length; i++) {
+        if (isNaN(path[i].lat) || isNaN(path[i].lng)) return;
+      }
 
       const typeName = mapItemType.charAt(0).toUpperCase() + mapItemType.slice(1);
 
@@ -541,14 +583,10 @@ const MapBody: FunctionComponent = () => {
           onClick();
         })
         .on("mouseover", () => {
-          dispatch(setLeftPanelHoverUuid(polyline.uuid));
-          dispatch(setTimelineHoverUuid(polyline.uuid));
-          dispatch(setMapItemHoverUuid(polyline.uuid));
+          dispatch(setAllHoverUuids(polyline.uuid));
         })
         .on("mouseout", () => {
-          dispatch(setLeftPanelHoverUuid(null));
-          dispatch(setTimelineHoverUuid(null));
-          dispatch(setMapItemHoverUuid(null));
+          dispatch(setAllHoverUuids(null));
         });
 
       map.current.addLayer(polyline);
@@ -576,12 +614,12 @@ const MapBody: FunctionComponent = () => {
   const saveUpdatedPoiOrStationPosition = useCallback(
     async (uuid: string, mapItemType: MapItemType, location: AEGISPoint) => {
       if (mapItemType === "poi") {
-        await appDispatch(thunkUpdatePoiLocation({ location, poiUuid: uuid }));
+        await thunkDispatch(thunkUpdatePoiLocation({ location, poiUuid: uuid }));
       } else if (mapItemType === "station") {
-        await appDispatch(thunkUpdateStationLocation({ location, stationUuid: uuid }));
+        await thunkDispatch(thunkUpdateStationLocation({ location, stationUuid: uuid }));
       }
     },
-    [appDispatch]
+    [thunkDispatch]
   );
 
   /**
@@ -766,7 +804,7 @@ const MapBody: FunctionComponent = () => {
             if (e.layer.mapItemType === "traverse") {
               if (!saveElevation) {
                 //update just the path
-                await appDispatch(
+                await thunkDispatch(
                   thunkUpdateTraversePath({
                     path,
                     traverseUuid: mapDirective.uuid,
@@ -774,8 +812,8 @@ const MapBody: FunctionComponent = () => {
                 );
               } else {
                 //update path, elevation, and snap endpoints
-                const response = await appDispatch(
-                  thunkFullUpdateTraversePath({
+                const response = await thunkDispatch(
+                  thunkFullUpdateTraverse({
                     path,
                     traverseUuid: mapDirective.uuid,
                   })
@@ -792,7 +830,7 @@ const MapBody: FunctionComponent = () => {
             if (e.layer.mapItemType === "walkback") {
               if (!saveElevation) {
                 //update just the path
-                await appDispatch(
+                await thunkDispatch(
                   thunkUpdateWalkbackPath({
                     path,
                     stationUuid: mapDirective.uuid,
@@ -800,8 +838,8 @@ const MapBody: FunctionComponent = () => {
                 );
               } else {
                 //update path, elevation, and snap endpoints
-                const response = await appDispatch(
-                  thunkFullUpdateWalkbackPath({
+                const response = await thunkDispatch(
+                  thunkFullUpdateWalkback({
                     path,
                     stationUuid: mapDirective.uuid,
                   })
@@ -1134,80 +1172,87 @@ const MapBody: FunctionComponent = () => {
    * Draw or update hover timeline marker (astronaut) on the map when the hover seconds change.
    */
   useEffect(() => {
-    if (!map.current || mapDirective) return;
+    (async () => {
+      if (!map.current || mapDirective) return;
 
-    //search for marker on the map
-    const existingLayer = getMapItemByUuid("hover-marker-uuid") as AEGISMarker;
+      //search for marker on the map
+      const existingLayer = getMapItemByUuid("hover-marker-uuid") as AEGISMarker;
 
-    //hoverSeconds is null meaning we're not hovering.
-    if (!playheadHover.evaSecondsElapsed || !selectedEva) {
-      //Also remove the marker from map if exists
-      if (existingLayer) map.current.removeLayer(existingLayer);
-      return;
-    }
+      //hoverSeconds is null meaning we're not hovering.
+      if (!playheadHover.evaSecondsElapsed || !selectedEva) {
+        //Also remove the marker from map if exists
+        if (existingLayer) map.current.removeLayer(existingLayer);
+        return;
+      }
 
-    //find where this point should be drawn on the eva
-    let location: AEGISPoint = { lat: 0, lng: 0 };
+      //find where this point should be drawn on the eva
+      const sequenceItem = selectedEva.sequence.find(
+        (seqItem) => seqItem.uuid === playheadHover.mapItemUuid
+      );
+      if (sequenceItem) {
+        let location: AEGISPoint = { lat: 0, lng: 0 };
+        const seqItemRes = await thunkDispatch(
+          thunkGetStationOrTraverse({ uuid: sequenceItem.uuid })
+        );
+        if (!seqItemRes.payload) return location;
 
-    const sequenceItem = selectedEva.sequence.find(
-      (seqItem) => seqItem.uuid === playheadHover.mapItemUuid
-    );
-    if (sequenceItem) {
-      if (sequenceItem.type === "station") {
-        location = stations.find((station) => station.uuid === sequenceItem.uuid).location;
-      } else if (sequenceItem.type === "traverse") {
-        const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
+        if (seqItemRes.payload.type === "station") {
+          location = (seqItemRes.payload.item as Station).location;
+        } else if (seqItemRes.payload.type === "traverse") {
+          const traverse = seqItemRes.payload.item as Traverse;
 
-        //how far (in distance) are we along the entire traverse. Ex: 5m into a 25m traverse
-        const cumulativeCurrentDistance =
-          traverse.pathSegmentDistances.reduce(
-            (accumulator, currentValue) => accumulator + currentValue,
-            0
-          ) * playheadHover.sequenceItemPercentElapsed;
-        //determine which segment we are in
-        let cumulativePrevSegDistances = 0;
-        for (let i = 0; i < traverse.pathSegmentDistances.length; i++) {
-          if (
-            cumulativePrevSegDistances + traverse.pathSegmentDistances[i] >
-            cumulativeCurrentDistance
-          ) {
-            //we are in this segment
-            const percentSegmentDistance =
-              (cumulativeCurrentDistance - cumulativePrevSegDistances) /
-              traverse.pathSegmentDistances[i];
-            const lat =
-              traverse.path[i].lat +
-              (traverse.path[i + 1].lat - traverse.path[i].lat) * percentSegmentDistance;
-            const lng =
-              traverse.path[i].lng +
-              (traverse.path[i + 1].lng - traverse.path[i].lng) * percentSegmentDistance;
-            location = { lat, lng };
-            break;
-          } else {
-            cumulativePrevSegDistances += traverse.pathSegmentDistances[i];
+          //how far (in distance) are we along the entire traverse. Ex: 5m into a 25m traverse
+          const cumulativeCurrentDistance =
+            traverse.pathSegmentDistances.reduce(
+              (accumulator, currentValue) => accumulator + currentValue,
+              0
+            ) * playheadHover.sequenceItemPercentElapsed;
+          //determine which segment we are in
+          let cumulativePrevSegDistances = 0;
+          for (let i = 0; i < traverse.pathSegmentDistances.length; i++) {
+            if (
+              cumulativePrevSegDistances + traverse.pathSegmentDistances[i] >
+              cumulativeCurrentDistance
+            ) {
+              //we are in this segment
+              const percentSegmentDistance =
+                (cumulativeCurrentDistance - cumulativePrevSegDistances) /
+                traverse.pathSegmentDistances[i];
+              const lat =
+                traverse.path[i].lat +
+                (traverse.path[i + 1].lat - traverse.path[i].lat) * percentSegmentDistance;
+              const lng =
+                traverse.path[i].lng +
+                (traverse.path[i + 1].lng - traverse.path[i].lng) * percentSegmentDistance;
+              location = { lat, lng };
+              break;
+            } else {
+              cumulativePrevSegDistances += traverse.pathSegmentDistances[i];
+            }
           }
         }
-      }
+        const html = `<div class="leaflet-aegis-icon">${decodeEmoji("1f468-200d-1f680")}</div>`;
+        const icon = L.divIcon({ html });
 
-      const html = `<div class="leaflet-aegis-icon">${decodeEmoji("1f468-200d-1f680")}</div>`;
-      const icon = L.divIcon({ html });
-      //if exists, set location
-      if (existingLayer) {
-        existingLayer.setLatLng(location as L.LatLng);
-        existingLayer.setIcon(icon);
-      } else {
-        //marker doesn't exist, draw it and add it to leaflet
-        const marker = L.marker(location as AEGISPoint, {
-          icon,
-        }) as AEGISMarker;
-        marker.uuid = "hover-marker-uuid";
-        marker.mapItemType = "hover";
-        marker.setZIndexOffset(2000);
+        if (isNaN(location.lat) || isNaN(location.lng)) return;
+        //if exists, set location
+        if (existingLayer) {
+          existingLayer.setLatLng(location as L.LatLng);
+          existingLayer.setIcon(icon);
+        } else {
+          //marker doesn't exist, draw it and add it to leaflet
+          const marker = L.marker(location as AEGISPoint, {
+            icon,
+          }) as AEGISMarker;
+          marker.uuid = "hover-marker-uuid";
+          marker.mapItemType = "hover";
+          marker.setZIndexOffset(2000);
 
-        map.current.addLayer(marker);
+          map.current.addLayer(marker);
+        }
       }
-    }
-  }, [playheadHover, getMapItemByUuid, mapDirective, selectedEva, stations, traverses]);
+    })();
+  }, [playheadHover, getMapItemByUuid, mapDirective, selectedEva, thunkDispatch]);
 
   const removeSelectedMarker = useCallback(() => {
     // remove any existing highlight layers
@@ -1221,6 +1266,7 @@ const MapBody: FunctionComponent = () => {
   const drawSelectedMarker = useCallback(
     (highlightLocation: AEGISPoint) => {
       if (!showSelectedItemOnMap) return;
+      if (isNaN(highlightLocation.lat) || isNaN(highlightLocation.lng)) return;
 
       const latLng = new L.LatLng(highlightLocation.lat, highlightLocation.lng);
 
@@ -1263,7 +1309,7 @@ const MapBody: FunctionComponent = () => {
         highlightLocation = selectedStation.location;
         panMapToLocation = selectedStation.location;
       } else if (sectionSelected === "evas" && selectedEvaSequenceItemUuid) {
-        const seqItemRes = await appDispatch(
+        const seqItemRes = await thunkDispatch(
           thunkGetStationOrTraverse({ uuid: selectedEvaSequenceItemUuid })
         );
         if (seqItemRes.payload !== false) {
@@ -1283,6 +1329,7 @@ const MapBody: FunctionComponent = () => {
       }
 
       if (panMapToLocation && mapDirective === null) {
+        if (isNaN(panMapToLocation.lat) || isNaN(panMapToLocation.lng)) return;
         if (!map.current.getBounds().contains(panMapToLocation)) {
           map.current.panTo(panMapToLocation);
         }
@@ -1293,7 +1340,7 @@ const MapBody: FunctionComponent = () => {
     map,
     selectedPoi,
     selectedStation,
-    appDispatch,
+    thunkDispatch,
     showSelectedItemOnMap,
     sectionSelected,
     removeSelectedMarker,
@@ -1382,6 +1429,7 @@ const MapBody: FunctionComponent = () => {
                 onChange={(e) => {
                   setShowAllPois(e.target.checked);
                 }}
+                toolTip="Show/Hide all POIs on map"
               />
             </div>
             <div className={styles.controlTitle}>All POIs</div>
@@ -1393,6 +1441,7 @@ const MapBody: FunctionComponent = () => {
                 onChange={(e) => {
                   setShowAllStations(e.target.checked);
                 }}
+                toolTip="Show/Hide all Stations on map"
               />
             </div>
             <div className={styles.controlTitle}>All Stations</div>

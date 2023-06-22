@@ -41,6 +41,11 @@ export const playheadHoverSlice = createSlice({
       state.mapItemUuid = null;
       state.sequenceItemPercentElapsed = null;
     },
+    setAllHoverUuids: (state, action: { payload: string }) => {
+      state.timelineSeqItemUuid = action.payload;
+      state.leftPanelItemUuid = action.payload;
+      state.mapItemUuid = action.payload;
+    },
   },
 });
 
@@ -50,4 +55,5 @@ export const {
   setMapItemHoverUuid,
   setMapItemHover,
   clearMapItemHover,
+  setAllHoverUuids,
 } = playheadHoverSlice.actions;

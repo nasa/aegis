@@ -1,7 +1,7 @@
 import { NextPage } from "next";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { isLoggedIn } from "http-client/internal-api";
+import { isLoggedIn } from "http-client/login";
 import adminStyles from "components/admin/admin.module.css";
 import LayerEdit from "components/admin/layerEdit";
 import SublayerEdit from "components/admin/sublayerEdit";
@@ -68,7 +68,7 @@ const Layers: NextPage = () => {
   }, [missionIdSlug]);
 
   //set the current layer and sublayer being edited
-  function setEdit(layer: Layer, sublayerIndex: number) {
+  function setCurrentlyEditing(layer: Layer, sublayerIndex: number) {
     setEditLayer(layer);
     setEditSublayerIndex(sublayerIndex);
   }
@@ -80,7 +80,10 @@ const Layers: NextPage = () => {
     ); //create copy to set in state
     if (selectedParentLayer) {
       selectedParentLayer.layerConfig.sublayers.push(createNewSublayer("tile")); //default new layer to a tile type
-      setEdit(selectedParentLayer, selectedParentLayer.layerConfig.sublayers.length - 1);
+      setCurrentlyEditing(
+        selectedParentLayer,
+        selectedParentLayer.layerConfig.sublayers.length - 1
+      );
     } else {
       alert("Error adding new sublayer");
     }
@@ -100,11 +103,38 @@ const Layers: NextPage = () => {
     }
   }
 
+  //inserts uuids for any layer/sublayer if it doesn't exist
+  //Once all presets in all environments have UUIDs this func and button can be removed.
+  async function fixLayerUuids() {
+    let totalCount = 0;
+    for (const layer of allLayers) {
+      let updateCount = 0;
+      if (!layer.uuid) {
+        layer.uuid = uuidv4();
+        updateCount++;
+      }
+      for (const sublayer of layer.layerConfig.sublayers) {
+        if (!sublayer.uuid) {
+          sublayer.uuid = uuidv4();
+          updateCount++;
+        }
+      }
+      if (updateCount > 0) {
+        await upsertLayer(layer);
+      }
+      totalCount += updateCount;
+    }
+    if (totalCount > 0) {
+      await loadLayersfromDB(missionIdSlug);
+    }
+    alert(`Complete - ${totalCount} layers/sublayers did not have UUIDs`);
+  }
+
   const checkLayerUsesFolder = useCallback(
     (folderName: string) => {
       for (const layer of allLayers) {
         for (const sublayers of layer.layerConfig.sublayers) {
-          if (sublayers.aegisURL?.startsWith(folderName)) {
+          if (sublayers.aegisURL?.startsWith(folderName + "/")) {
             return true;
           }
         }
@@ -126,18 +156,26 @@ const Layers: NextPage = () => {
       </button>
       <div id="layerList_div">
         <h3>Layers and Sublayers</h3>
+        <button
+          type="button"
+          onClick={() => {
+            fixLayerUuids();
+          }}
+        >
+          Fix Layer/Sublayer UUIDs
+        </button>
         <LayerList
           layers={allLayers}
           missionId={missionIdSlug}
           refreshLayerList={loadLayersfromDB}
-          setEdit={setEdit}
+          setEdit={setCurrentlyEditing}
         />
       </div>
       <div id="addLayer_div">
         <button
           type="button"
           onClick={() => {
-            setEdit(createNewLayer(missionIdSlug), null);
+            setCurrentlyEditing(createNewLayer(missionIdSlug), null);
           }}
         >
           Add New Header Layer (Clear Form)
@@ -311,11 +349,12 @@ const LayerList = (props: {
               >
                 Delete Layer
               </button>
+              &nbsp; {layer.uuid ? "" : "Missing UUID"}
               {layer.layerConfig?.sublayers.map((sublayer, index) => {
                 return (
                   <ul key={sublayer.name + index}>
                     <li>
-                      {sublayer.name}{" "}
+                      {sublayer.name}
                       <button
                         type="button"
                         onClick={() => {
@@ -334,6 +373,7 @@ const LayerList = (props: {
                       >
                         Delete Layer
                       </button>
+                      &nbsp;{sublayer.uuid ? "" : "Missing UUID"}
                     </li>
                   </ul>
                 );

@@ -8,7 +8,7 @@ import {
 } from "react";
 import { listFiles, deleteFile, renameFile } from "http-client/file";
 import { useRouter } from "next/router";
-import { isLoggedIn } from "http-client/internal-api";
+import { isLoggedIn } from "http-client/login";
 import UploadFile from "./uploadFile";
 import adminStyles from "components/admin/admin.module.css";
 

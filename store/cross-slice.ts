@@ -1,4 +1,4 @@
-import { PayloadAction, createSlice } from "@reduxjs/toolkit";
+import { AnyAction, PayloadAction, createSlice } from "@reduxjs/toolkit";
 import type { RootState } from "store";
 import { stationSlice } from "./station";
 import { poiSlice } from "./poi";
@@ -69,6 +69,19 @@ export const crossSlice = createSlice({
       Object.assign(state, newInitialState);
     },
   },
+  extraReducers: (builder) =>
+    builder.addMatcher(isRejectedAction, (state, action) => {
+      console.error("Rejected async thunk. Action = ", {
+        action,
+      });
+    }),
 });
+interface RejectedAction extends Action {
+  error: Error;
+}
+
+function isRejectedAction(action: AnyAction): action is RejectedAction {
+  return action.type.endsWith("rejected");
+}
 
 export const { selectEVASequenceItem, obliteratePoi, obliterateEntireStore } = crossSlice.actions;

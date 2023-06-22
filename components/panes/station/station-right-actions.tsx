@@ -3,19 +3,20 @@ import paneStyles from "../global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
-import { duplicateAction } from "store/action";
-import "react-tooltip/dist/react-tooltip.css";
 import { faCaretDown, faCaretRight, faClone } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setSelectedPoiUuid } from "store/poi";
 import { setSectionSelected } from "store/interface";
 import Actions from "../actions";
 import { setStationEditMode, upsertStation } from "store/station";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { thunkDuplicateAction } from "store/thunk/thunkAction";
 
 const Actions_Panel: FunctionComponent<{
   editMode: boolean;
 }> = ({ editMode }) => {
   const dispatch = useDispatch();
+  const thunkDispatch = useAppDispatch();
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
     refEqual
@@ -154,7 +155,8 @@ const Actions_Panel: FunctionComponent<{
                             </div>
                             <div
                               className={paneStyles.actionHeadingIcons}
-                              title="Copy action to station"
+                              data-tooltip-id="aegis-tooltip"
+                              data-tooltip-html="Copy this action to station"
                             >
                               {!inStation && editMode && (
                                 <FontAwesomeIcon
@@ -162,8 +164,8 @@ const Actions_Panel: FunctionComponent<{
                                   size="xs"
                                   className={stationStyles.copyIcon}
                                   onClick={(e) => {
-                                    dispatch(
-                                      duplicateAction({
+                                    thunkDispatch(
+                                      thunkDuplicateAction({
                                         action,
                                         stationUuid: selectedStationUuid,
                                         preserveParentUuid: true,

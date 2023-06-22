@@ -1,17 +1,16 @@
 import { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { faCalculator, faLocationDot, faMessage, faXmark } from "@fortawesome/free-solid-svg-icons";
-import {
-  ContentEditableTextArea,
-  Button,
-  LastEdited,
-  SubpanelHeading,
-} from "components/interface/_global-elements";
+import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
+import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { setSelectedPOIRightNavItem, upsertPoi } from "store/poi";
 import { updateMapDirective } from "store/map";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
+import { WysiwygTextArea } from "components/interface/form/wysiwyg";
+import { round } from "lodash";
+import { validators } from "components/interface/form/formValidators";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -89,14 +88,14 @@ const Info_Panel: FunctionComponent<{
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
             </div>
             <div className={paneStyles.descriptionContainer}>
-              <ContentEditableTextArea
-                html={selectedPoi.description} // innerHTML of the editable div
+              <WysiwygTextArea
+                value={selectedPoi.description}
                 editing={editMode}
-                onChange={(evt) => {
+                onChange={(value) => {
                   dispatch(
                     upsertPoi({
                       ...selectedPoi,
-                      description: evt.target.value,
+                      description: value,
                     })
                   );
                 }} // handle innerHTML change
@@ -226,7 +225,32 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {!selectedPoi.location ? <>Not set</> : selectedPoi.location.lat.toFixed(6)}
+                        {!selectedPoi.location ? (
+                          <>Not set</>
+                        ) : (
+                          <InLineEditInput
+                            value={round(selectedPoi.location.lat, 6).toString()}
+                            editing={editMode}
+                            fieldProps={{
+                              name: "lat",
+                              ariaLabel: "Latitude",
+                              style: { width: "100px" },
+                              validators: [validators.mustBeNumber, validators.required],
+                            }}
+                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
+                            onSubmit={(val: string) => {
+                              dispatch(
+                                upsertPoi({
+                                  ...selectedPoi,
+                                  location: {
+                                    lat: parseFloat(val),
+                                    lng: selectedPoi.location.lng,
+                                  },
+                                })
+                              );
+                            }}
+                          />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -236,7 +260,32 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {!selectedPoi.location ? <>Not set</> : selectedPoi.location.lng.toFixed(6)}
+                        {!selectedPoi.location ? (
+                          <>Not set</>
+                        ) : (
+                          <InLineEditInput
+                            value={round(selectedPoi.location.lng, 6).toString()}
+                            editing={editMode}
+                            fieldProps={{
+                              name: "Lng",
+                              ariaLabel: "Longitude",
+                              style: { width: "100px" },
+                              validators: [validators.mustBeNumber, validators.required],
+                            }}
+                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
+                            onSubmit={(val: string) => {
+                              dispatch(
+                                upsertPoi({
+                                  ...selectedPoi,
+                                  location: {
+                                    lat: selectedPoi.location.lat,
+                                    lng: parseFloat(val),
+                                  },
+                                })
+                              );
+                            }}
+                          />
+                        )}
                       </div>
                     </div>
                   </div>

@@ -17,10 +17,10 @@ interface PaperData {
     green: paper.Color;
     yellow: paper.Color;
     lightYellow: paper.Color;
-    gray1: paper.Color;
-    gray2: paper.Color;
-    gray3: paper.Color;
-    gray4: paper.Color;
+    grey1: paper.Color;
+    grey2: paper.Color;
+    grey3: paper.Color;
+    grey4: paper.Color;
     white: paper.Color;
     red: paper.Color;
   };
@@ -48,7 +48,6 @@ interface PaperData {
  */
 interface StoreData_PaperJS {
   sequenceItems: EvaSequenceItem_PaperJS[];
-  flattenedGraphData: GraphData;
   selectedEvaSequenceItemUuid: string;
   maxDistFromLanderMeters: number; //used to calculate top of left y-axis graph
   evaLengthMins: number; //user input eva length

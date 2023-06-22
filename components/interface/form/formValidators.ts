@@ -2,10 +2,16 @@ import { FieldValidator } from "final-form";
 
 export type Stringy = string | string[] | number;
 
+/**
+ * This file contains validators to be used with form fields
+ * Before using these validators in the react-final-form validate property,
+ *    they must be passed through the {@link composeValidators} function
+ */
+
 const required = (value: Stringy): string | undefined => (value ? undefined : "Required");
 
 const mustBeNumber = (value: Stringy): string | undefined =>
-  isNaN(Number(value)) ? "Must be a number" : undefined;
+  value && isNaN(Number(value)) ? "Must be a number" : undefined;
 
 const minValue =
   (min: number) =>
@@ -19,17 +25,21 @@ const maxValue =
 
 const minLength =
   (min: number) =>
-  (value: Stringy): string | undefined =>
-    typeof value === "string" && value.length >= min
+  (value: Stringy): string | undefined => {
+    if (!value) return undefined;
+    return typeof value === "string" && value.length >= min
       ? undefined
       : `Must be at least ${min} characters`;
+  };
 
 const maxLength =
   (max: number) =>
-  (value: Stringy): string | undefined =>
-    typeof value === "string" && value.length <= max
+  (value: Stringy): string | undefined => {
+    if (!value) return undefined;
+    return typeof value === "string" && value.length <= max
       ? undefined
       : `Must be at no more than ${max} characters`;
+  };
 
 const mustBeValidJSON = (value: Stringy): string | undefined => {
   if (!value) return undefined;
@@ -60,4 +70,12 @@ export const composeValidators = (...validators: FieldValidator<unknown>[]) => {
   ): string | undefined => {
     return validators.reduce((error, validator) => error || validator(value, allValues), undefined);
   };
+};
+
+// Regex validators to match characters NOT in the accepeted pattern
+
+const regExNumber = /[^\d\.]/;
+
+export const regExValidators = {
+  regExNumber,
 };

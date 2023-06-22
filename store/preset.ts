@@ -1,14 +1,12 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { upsertToArrayByUuid } from "../utils/store";
 import _ from "lodash";
-import { v4 as uuidv4 } from "uuid";
-import { makeUniqueStringCopy } from "../utils/duplicate";
 export const initialState: PresetState = {
   presets: [],
   presetsFromDb: [],
   selectedPresetUuid: null,
   selectedRightNavItem: "info_panel",
-  presetInteractions: {},
+  presetsUIStates: {},
   presetsEditing: [],
 };
 
@@ -43,73 +41,76 @@ export const presetSlice = createSlice({
     setSelectedPresetRightNavItem: (state, action: { payload: string }) => {
       state.selectedRightNavItem = action.payload;
     },
-    togglePresetLayerControlEnabled: (
+    togglePresetLayerVisible: (
       state,
       action: { payload: { presetUuid: string; layerName: string } }
     ) => {
-      const preset = state.presets.find((preset) => preset.uuid === action.payload.presetUuid);
       const presetIndex = state.presets.findIndex(
         (preset) => preset.uuid === action.payload.presetUuid
       );
-      if (preset) {
-        preset.layerControls[action.payload.layerName].enabled =
-          !preset.layerControls[action.payload.layerName].enabled;
+      if (presetIndex >= 0) {
+        state.presets[presetIndex].mapLayerControls[action.payload.layerName].visible =
+          !state.presets[presetIndex].mapLayerControls[action.payload.layerName].visible;
       }
-      state.presets[presetIndex] = preset;
     },
-    setPresetLayerControlStyle: (
+    setPresetLayerStyle: (
       state,
-      action: { payload: { presetUuid: string; layerName: string; style: LayerControlStyle } }
+      action: { payload: { presetUuid: string; layerName: string; style: MapLayerStyle } }
     ) => {
-      const preset = state.presets.find((preset) => preset.uuid === action.payload.presetUuid);
       const presetIndex = state.presets.findIndex(
         (preset) => preset.uuid === action.payload.presetUuid
       );
-      if (preset) {
-        preset.layerControls[action.payload.layerName].style = action.payload.style;
+      if (presetIndex >= 0) {
+        state.presets[presetIndex].mapLayerControls[action.payload.layerName].style =
+          action.payload.style;
       }
-      state.presets[presetIndex] = preset;
     },
-    togglePresetInteractionLayerExpanded: (
+    togglePresetUIStateLayerExpanded: (
       state,
       action: { payload: { presetUuid: string; layerName: string } }
     ) => {
-      if (!_.isNil(state.presetInteractions[action.payload.presetUuid][action.payload.layerName])) {
-        state.presetInteractions[action.payload.presetUuid][action.payload.layerName].expanded =
-          !state.presetInteractions[action.payload.presetUuid][action.payload.layerName].expanded;
+      if (!_.isNil(state.presetsUIStates[action.payload.presetUuid][action.payload.layerName])) {
+        state.presetsUIStates[action.payload.presetUuid][action.payload.layerName].expanded =
+          !state.presetsUIStates[action.payload.presetUuid][action.payload.layerName].expanded;
       } else {
-        state.presetInteractions[action.payload.presetUuid][action.payload.layerName] = {
+        state.presetsUIStates[action.payload.presetUuid][action.payload.layerName] = {
           expanded: true,
           tabSelected: null,
         };
       }
     },
-    setPresetInteractions: (
+    setPresetUIStates: (
       state,
       action: {
         payload: {
           presetUuid: string;
-          layerControlInteractions: LayerControlInteractions;
+          presetUIStates: PresetUIStates;
         };
       }
     ) => {
-      state.presetInteractions[action.payload.presetUuid] = action.payload.layerControlInteractions;
+      state.presetsUIStates[action.payload.presetUuid] = action.payload.presetUIStates;
     },
-    setPresetInteraction: (
+    setPresetLayerUIState: (
       state,
       action: {
         payload: {
           presetUuid: string;
           layerName: string;
-          layerControlInteraction: LayerControlInteraction;
+          presetLayerUIState: PresetLayerUIState;
         };
       }
     ) => {
-      state.presetInteractions[action.payload.presetUuid][action.payload.layerName] =
-        action.payload.layerControlInteraction;
+      state.presetsUIStates[action.payload.presetUuid][action.payload.layerName] =
+        action.payload.presetLayerUIState;
     },
-    deletePresetInteractions: (state, action: { payload: { presetUuid: string } }) => {
-      delete state.presetInteractions[action.payload.presetUuid];
+    deletePresetUIStates: (state, action: { payload: { presetUuid: string } }) => {
+      delete state.presetsUIStates[action.payload.presetUuid];
+    },
+    resetAllPresetUIStates: (state, action: { payload: { presetUuid: string } }) => {
+      // set all tabSelected values to null
+      Object.keys(state.presetsUIStates[action.payload.presetUuid]).forEach((layerName) => {
+        state.presetsUIStates[action.payload.presetUuid][layerName].tabSelected = null;
+      });
     },
     setPresetEditMode: (state, action: { payload: { presetUuid: string; editMode: boolean } }) => {
       const preset = state.presets.find((preset) => preset.uuid === action.payload.presetUuid);
@@ -121,39 +122,12 @@ export const presetSlice = createSlice({
         }
       }
     },
-    resetAllPresetInteractions: (state, action: { payload: { presetUuid: string } }) => {
-      // set all tabSelected values to null
-      Object.keys(state.presetInteractions[action.payload.presetUuid]).forEach((layerName) => {
-        state.presetInteractions[action.payload.presetUuid][layerName].tabSelected = null;
-      });
-    },
-    duplicatePreset: {
-      reducer: (
-        state,
-        action: {
-          payload: {
-            preset: Preset;
-            newPresetUuid: string;
-          };
-        }
-      ) => {
-        const newPreset: Preset = _.cloneDeep(action.payload.preset);
-        newPreset.uuid = action.payload.newPresetUuid;
-        newPreset.name = makeUniqueStringCopy(
-          action.payload.preset.name,
-          state.presets.map((item) => item.name)
-        );
-        state.presets.push(newPreset);
-      },
-      prepare: (payload: Preset) => {
-        const newPresetUuid = uuidv4();
-        return {
-          payload: {
-            preset: payload,
-            newPresetUuid,
-          },
-        };
-      },
+    duplicatePreset: (state, action: { payload: Preset }) => {
+      state.presets.push(action.payload);
+      // turn on edit mode for the new Preset
+      state.presetsEditing.push(action.payload.uuid);
+      // select the newly created Preset
+      state.selectedPresetUuid = action.payload.uuid;
     },
   },
 });
@@ -169,12 +143,12 @@ export const {
   duplicatePreset,
   setSelectedPresetUuid,
   setSelectedPresetRightNavItem,
-  togglePresetLayerControlEnabled,
-  setPresetLayerControlStyle,
-  togglePresetInteractionLayerExpanded,
-  setPresetInteractions,
-  setPresetInteraction,
-  deletePresetInteractions,
+  togglePresetLayerVisible,
+  setPresetLayerStyle,
+  togglePresetUIStateLayerExpanded,
+  setPresetUIStates,
+  setPresetLayerUIState,
+  deletePresetUIStates,
   setPresetEditMode,
-  resetAllPresetInteractions,
+  resetAllPresetUIStates,
 } = presetSlice.actions;

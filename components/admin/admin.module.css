@@ -668,7 +668,6 @@
   cursor: pointer;
 }
 
-
 /*Style top right Close button*/
 .closeButton {
   position: absolute;
@@ -738,8 +737,8 @@
   border-radius: 5px;
   background-color: #0b3d91;
   color: white;
-  display:flex;
-  justify-content:flex-start;
+  display: flex;
+  justify-content: flex-start;
   flex-direction: column;
   position: relative;
   flex-grow: 1;
@@ -792,7 +791,7 @@
   padding: 5px;
   max-width: 650px;
   text-align: center;
-margin: 10px auto;
+  margin: 10px auto;
 }
 .smallText {
   font-size: 0.8em;
@@ -803,4 +802,14 @@ margin: 10px auto;
 
 .poiCardContainer {
   height: auto;
+}
+
+.pageStyle .tooltip {
+  z-index: 900;
+  background-color: black;
+  color: white;
+  max-width: 300px;
+  opacity: 100%;
+  font-size: 0.8rem;
+  padding: 10px;
 }

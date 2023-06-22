@@ -70,3 +70,14 @@
   height: 100%;
   background: black;
 }
+
+.page .tooltip {
+  z-index: 900;
+  background-color: white;
+  color: black;
+  max-width: 300px;
+  opacity: 100%;
+  font-size: 0.8rem;
+  padding: 10px;
+  position: absolute;
+}
