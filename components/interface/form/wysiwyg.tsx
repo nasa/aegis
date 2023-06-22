@@ -107,14 +107,24 @@ function convertStringToNodes(stringValue: string, defaultValue: string = ""): D
       const json = JSON.parse(stringValue);
       return json;
     } catch (e) {
-      //If it's not in JSON form then insert it into slate's JSON syntax with plain text
+      //If it's not in JSON form then it must be an old old pre-wysiwyg string
       if (e instanceof SyntaxError) {
-        return [
-          {
+        const json: Descendant[] = [];
+        //these are very specific conversions targeted towards prod data at the time of this MR, and probably can be removed in the future
+        //clean and strip any html and put new cleaned string into a single paragraph
+        const splitByDiv = stringValue
+          .replaceAll("&nbsp;", " ")
+          .replaceAll(/^(<div>)+/gi, "") //remove leading divs
+          .replaceAll(/(<div>){2,}/gi, "<div>") //remove multiple divs to just a single div
+          .split("<div>"); //split on divs. Each new div goes into a new paragraph
+        const htmlRegex = /(<[\/a-z]([^>]+)>)/gi; //html tags
+        for (const paragraph of splitByDiv) {
+          json.push({
             type: "paragraph",
-            children: [{ text: stringValue }],
-          },
-        ];
+            children: [{ text: paragraph.replaceAll(htmlRegex, "") }],
+          });
+        }
+        return json;
       }
     }
   }

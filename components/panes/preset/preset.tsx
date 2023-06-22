@@ -141,8 +141,8 @@ const PresetList: FunctionComponent<{
                 {currentPreset.missionPresetDefault ? "(Default)" : ""}
               </span>
               <ModifiedIndicator
-                obj1={currentPreset}
-                obj2={presetFromDb}
+                obj1={[currentPreset]}
+                obj2={[presetFromDb]}
                 svgStyle={{
                   width: "15",
                   height: "12",
