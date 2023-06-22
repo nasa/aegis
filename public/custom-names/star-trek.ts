@@ -1,4 +1,4 @@
-const starTrek = [
+export default [
   "Enterprise",
   "Defiant",
   "Ajax",
@@ -75,5 +75,3 @@ const starTrek = [
   "Replicator",
   "Dilithium",
 ];
-
-export default starTrek;
