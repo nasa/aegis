@@ -7,6 +7,8 @@ export class Mission implements Mission_db_type {
 
   @Property({ type: MikroTypes.text })
   name!: string;
+  @Property({ type: MikroTypes.text, nullable: true })
+  description!: string;
   @Property({ type: MikroTypes.json, nullable: true })
   config!: Config;
   @Property({ type: MikroTypes.integer })
@@ -17,6 +19,16 @@ export class Mission implements Mission_db_type {
   traverseSpeed: number;
   @Property({ type: MikroTypes.double, nullable: true })
   landerElevationMeters: number;
+  @Property({ type: MikroTypes.double, nullable: true })
+  sunAzimuth: number;
+  @Property({ type: MikroTypes.double, nullable: true })
+  earthAzimuth: number;
+  @Property({ type: MikroTypes.boolean, default: false })
+  sunAzimuthVisible: boolean;
+  @Property({ type: MikroTypes.boolean, default: false })
+  earthAzimuthVisible: boolean;
+  @Property({ type: MikroTypes.double, nullable: true })
+  defaultEvaDuration: number;
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;

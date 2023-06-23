@@ -128,6 +128,12 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
       {Object.keys(paneTypes).map((paneType: InterfaceSection) => {
         let itemModified = false;
         switch (paneType) {
+          case "preset":
+            itemModified = !_.isEqual(
+              _.sortBy(presets, ["uuid"]),
+              _.sortBy(presetsFromDb, ["uuid"])
+            );
+            break;
           case "poi":
             const poiEqual = _.isEqual(_.sortBy(pois, ["uuid"]), _.sortBy(poisFromDb, ["uuid"]));
             const poiActionEqual = _.isEqual(
@@ -135,12 +141,6 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
               _.sortBy(poiActionsFromDb, ["uuid"])
             );
             itemModified = !poiEqual || !poiActionEqual;
-            break;
-          case "map_layer_selector":
-            itemModified = !_.isEqual(
-              _.sortBy(presets, ["uuid"]),
-              _.sortBy(presetsFromDb, ["uuid"])
-            );
             break;
           case "station":
             const stationsEqual = _.isEqual(
@@ -180,11 +180,11 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
                 dispatch(setSectionSelected(paneType));
                 dispatch(setSelectedEvaUuid(null));
                 switch (paneType) {
+                  case "preset":
+                    dispatch(setRightPanelOpen(selectedPresetUuid !== null));
+                    break;
                   case "poi":
                     dispatch(setRightPanelOpen(selectedPoiUuid !== null));
-                    break;
-                  case "map_layer_selector":
-                    dispatch(setRightPanelOpen(selectedPresetUuid !== null));
                     break;
                   case "station":
                     dispatch(setRightPanelOpen(selectedStationUuid !== null));

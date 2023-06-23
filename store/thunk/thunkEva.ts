@@ -387,7 +387,7 @@ export const thunkCreateEva = appCreateAsyncThunk<void>(
       sequence: [],
       description: "",
       traverseRate: 3.2, // default to 3.2 km/hr
-      maxDuration: 240, // default to 4 hours
+      maxDuration: getState().mission.mission.defaultEvaDuration,
     };
     dispatch(upsertEva(blankEva));
     // turn on edit mode for the new Eva
