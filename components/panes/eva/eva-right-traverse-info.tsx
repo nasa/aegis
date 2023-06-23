@@ -162,7 +162,11 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                             name: "predictedDurationLower",
                             ariaLabel: "Nominal Duration",
                             style: { width: "55px" },
-                            validators: [validators.mustBeNumber, validators.maxLength(4)],
+                            validators: [
+                              validators.mustBeNumber,
+                              validators.maxLength(4),
+                              validators.mustBeInteger,
+                            ],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                               e.target.value = e.target.value.replace(
                                 regExValidators.regExNumber,
@@ -238,7 +242,11 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                             name: "predictedDurationUpper",
                             ariaLabel: "Max Duration",
                             style: { width: "55px" },
-                            validators: [validators.mustBeNumber, validators.maxLength(4)],
+                            validators: [
+                              validators.mustBeNumber,
+                              validators.maxLength(4),
+                              validators.mustBeInteger,
+                            ],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                               e.target.value = e.target.value.replace(
                                 regExValidators.regExNumber,

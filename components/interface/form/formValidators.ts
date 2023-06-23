@@ -21,7 +21,7 @@ const minValue =
 const maxValue =
   (max: number) =>
   (value: Stringy): string | undefined =>
-    isNaN(Number(value)) || Number(value) <= max ? undefined : `Should be greater than ${max}`;
+    isNaN(Number(value)) || Number(value) <= max ? undefined : `Should be less than ${max}`;
 
 const minLength =
   (min: number) =>
@@ -51,6 +51,13 @@ const mustBeValidJSON = (value: Stringy): string | undefined => {
   return undefined;
 };
 
+const mustBeInteger = (value: Stringy): string | undefined => {
+  if (!value) return undefined;
+  return isNaN(Number(value)) || Number(value) - Math.floor(Number(value)) === 0
+    ? undefined
+    : "Must be an integer";
+};
+
 export const validators = {
   required,
   mustBeNumber,
@@ -59,6 +66,7 @@ export const validators = {
   minLength,
   maxLength,
   mustBeValidJSON,
+  mustBeInteger,
 };
 
 // UseFieldConfig<any>.validate?: FieldValidator<any>

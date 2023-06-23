@@ -71,7 +71,11 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             name: "maxDuration",
                             ariaLabel: "Max Duration",
                             style: { width: "55px" },
-                            validators: [validators.mustBeNumber, validators.maxLength(5)],
+                            validators: [
+                              validators.mustBeNumber,
+                              validators.maxLength(5),
+                              validators.mustBeInteger,
+                            ],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                               e.target.value = e.target.value.replace(
                                 regExValidators.regExNumber,
