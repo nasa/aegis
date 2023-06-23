@@ -23,6 +23,7 @@ import Select from "react-select";
 import { FFTextProps, FFCheckboxProps, FFSelectProps } from "typings/form";
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import formStyles from "./globalFields.module.css";
+import CircularSlider from "@fseehawer/react-circular-slider";
 
 export const Button: FunctionComponent<{
   onClick: () => void;
@@ -285,12 +286,15 @@ export const Tags: FunctionComponent<{
 
 export const Checkbox: FunctionComponent<{
   checked: boolean;
+  editable?: boolean;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
   toolTip?: string;
-}> = ({ checked, onChange, toolTip }) => {
+}> = ({ checked, editable = true, onChange, toolTip }) => {
+  const editableStyle = editable ? "null" : styles.notEditable;
+
   return (
     <div
-      className={styles.checkboxContainer}
+      className={`${styles.checkboxContainer} ${editableStyle}`}
       data-tooltip-id="aegis-tooltip"
       data-tooltip-html={toolTip}
     >
@@ -322,6 +326,48 @@ export const ValidationErrors: FunctionComponent<{
       />
     </div>
   ) : null;
+};
+
+/**
+ * This component wraps the CicrularSlider component from react-circular-slider
+ */
+export const DegreesInputSlider: FunctionComponent<{
+  value: number;
+  label: string;
+  editable: boolean;
+  onChange: Function;
+}> = ({ value, label, editable = true, onChange }) => {
+  const editableStyle = editable ? "" : styles.notEditable;
+  const knobColor = editable ? "white" : "var(--grey4)";
+
+  return (
+    <div className={`${styles.degreesInputSlider} ${editableStyle}`}>
+      <CircularSlider
+        width={100}
+        min={0}
+        max={360}
+        dataIndex={value}
+        appendToValue="°"
+        label={label}
+        labelColor="var(--grey4)"
+        labelFontSize="0.8rem"
+        valueFontSize="1rem"
+        verticalOffset="0.5rem"
+        knobPosition="top"
+        knobColor={knobColor}
+        knobSize={20}
+        progressColorFrom="var(--grey3)"
+        progressColorTo="var(--grey3)"
+        progressSize={5}
+        trackColor="var(--grey3)"
+        trackSize={5}
+        trackDraggable={true}
+        onChange={onChange}
+      >
+        <div /> {/* empty div to get rid of the grips on the slider knob */}
+      </CircularSlider>
+    </div>
+  );
 };
 
 /**

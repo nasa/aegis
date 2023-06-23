@@ -226,7 +226,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
                 </select>
               </div>
               <div className={styles.editDiv}>
-                <label htmlFor="aegisUrl">Tile Pattern </label>
+                <label htmlFor="aegisUrl">Tile Pattern {`(eg. {z}/{x}/{y}.png)`}</label>
                 <input
                   id="aegisUrl"
                   type="text"

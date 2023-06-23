@@ -201,7 +201,9 @@ const NavTimeline: FunctionComponent = () => {
       sequenceItems: [],
       selectedEvaSequenceItemUuid: null,
       maxDistFromLanderMeters: 0,
-      evaLengthMins: selectedEva?.maxDuration ? +selectedEva?.maxDuration : 240, //default 4 hours in minutes
+      evaLengthMins: selectedEva?.maxDuration
+        ? +selectedEva?.maxDuration
+        : +mission.defaultEvaDuration,
       evaLengthCalculatedMins: 0,
       maxElevationMeters: null,
       minElevationMeters: null,

@@ -315,7 +315,6 @@
 
 .checkboxContainer {
   display: flex;
-  align-self: center;
 }
 
 .checkboxContainer input[type="checkbox"] {
@@ -349,4 +348,12 @@
 .errorIcon {
   margin-left: -2em;
   outline: none;
+}
+
+.degreesInputSlider :first-child {
+  transition: none !important; /* override the transition baked into the circular slider component */
+}
+
+.notEditable {
+  pointer-events: none !important;
 }

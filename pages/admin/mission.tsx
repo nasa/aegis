@@ -56,9 +56,15 @@ const Mission: NextPage = () => {
     setMission({
       id: null,
       name: "",
+      description: "",
       config: createNewConfig(),
       landerLocation: null,
       traverseSpeed: 0,
+      sunAzimuth: 0,
+      sunAzimuthVisible: false,
+      earthAzimuth: 0,
+      earthAzimuthVisible: false,
+      defaultEvaDuration: 0,
     });
     setEditMissionId(null);
   }

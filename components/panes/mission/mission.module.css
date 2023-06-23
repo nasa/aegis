@@ -1,0 +1,43 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.body {
+  margin-top: 5px;
+  margin-left: 5px;
+  height: 0;
+  overflow-y: scroll;
+  flex: 1 1 auto;
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border-radius: var(--radius);
+  font-size: 0.9em;
+  padding: 3px 2px 3px 5px;
+  cursor: pointer;
+}
+
+.nameSelected {
+  background-color: var(--grey5);
+  font-weight: 500;
+  color: black;
+  cursor: pointer;
+}
+
+.rightSpacer {
+  flex: 1;
+}
+
+.icon {
+  width: 20px;
+  margin-left: 1px;
+  margin-right: 1px;
+  cursor: pointer;
+  height: 100%;
+  color: white;
+}
