@@ -74,7 +74,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             validators: [
                               validators.mustBeNumber,
                               validators.maxLength(5),
-                              validators.cannotContainDecimals,
+                              validators.mustBeInteger,
                             ],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                               e.target.value = e.target.value.replace(

@@ -165,7 +165,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                             validators: [
                               validators.mustBeNumber,
                               validators.maxLength(4),
-                              validators.cannotContainDecimals,
+                              validators.mustBeInteger,
                             ],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                               e.target.value = e.target.value.replace(
@@ -245,7 +245,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                             validators: [
                               validators.mustBeNumber,
                               validators.maxLength(4),
-                              validators.cannotContainDecimals,
+                              validators.mustBeInteger,
                             ],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                               e.target.value = e.target.value.replace(

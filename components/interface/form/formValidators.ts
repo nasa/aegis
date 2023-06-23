@@ -51,11 +51,11 @@ const mustBeValidJSON = (value: Stringy): string | undefined => {
   return undefined;
 };
 
-const cannotContainDecimals = (value: Stringy): string | undefined => {
+const mustBeInteger = (value: Stringy): string | undefined => {
   if (!value) return undefined;
   return isNaN(Number(value)) || Number(value) - Math.floor(Number(value)) === 0
     ? undefined
-    : "Number cannot contain decimals";
+    : "Must be an integer";
 };
 
 export const validators = {
@@ -66,7 +66,7 @@ export const validators = {
   minLength,
   maxLength,
   mustBeValidJSON,
-  cannotContainDecimals,
+  mustBeInteger,
 };
 
 // UseFieldConfig<any>.validate?: FieldValidator<any>

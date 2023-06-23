@@ -193,7 +193,7 @@ const RightAction: FunctionComponent<{
                               validators: [
                                 validators.mustBeNumber,
                                 validators.maxLength(4),
-                                validators.cannotContainDecimals,
+                                validators.mustBeInteger,
                               ],
                               onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                                 e.target.value = e.target.value.replace(
@@ -232,7 +232,7 @@ const RightAction: FunctionComponent<{
                               validators: [
                                 validators.mustBeNumber,
                                 validators.maxLength(4),
-                                validators.cannotContainDecimals,
+                                validators.mustBeInteger,
                               ],
                               onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                                 e.target.value = e.target.value.replace(
