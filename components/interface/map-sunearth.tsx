@@ -1,6 +1,14 @@
-import { FunctionComponent, useEffect, useRef, useState } from "react";
+import {
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import styles from "./map-sunearth.module.css";
+import React from "react";
 
 export const SunEarthPosition: FunctionComponent = () => {
   const containerRef = useRef<HTMLDivElement>();
@@ -9,23 +17,38 @@ export const SunEarthPosition: FunctionComponent = () => {
 
   const [containerSize, setContainerSize] = useState<number[]>([0, 0]);
 
+  // delay the update of the container size to give time for React to return the correct size
+  const updateSizeDelay = useCallback(() => {
+    setTimeout(() => {
+      const container = containerRef.current;
+      setContainerSize([container.clientWidth, container.clientHeight]);
+    }, 750);
+  }, [containerRef]);
+
+  // update the container size immediately
+  const updateSize = useCallback(() => {
+    const container = containerRef.current;
+    setContainerSize([container.clientWidth, container.clientHeight]);
+  }, [containerRef]);
+
+  useLayoutEffect(() => {
+    // delay initial update of container size
+    updateSizeDelay();
+    window.addEventListener("resize", updateSize);
+    return () => window.removeEventListener("resize", updateSize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (!containerRef.current) return;
-    function updateSize() {
-      const container = containerRef.current;
-
-      setContainerSize([container.clientWidth, container.clientHeight]);
-    }
-    window.addEventListener("resize", updateSize);
     updateSize();
-    return () => window.removeEventListener("resize", updateSize);
-  }, [containerRef, rightPanelOpen]);
+  }, [containerRef, rightPanelOpen, updateSize]);
 
   const chevronLength = 5;
 
   const generateLineWithChevrons = (i: number, x: number, color: string) => {
     return (
-      <>
+      <React.Fragment key={i}>
         <line
           key={`${i}line`}
           x1={x}
@@ -34,7 +57,6 @@ export const SunEarthPosition: FunctionComponent = () => {
           y2={containerSize[1] * 2}
           style={{ stroke: `rgb(${color}, 0.1)`, strokeWidth: 2 }}
         />
-        {/* Draw two sides of a chevron at the midpoint of the above line */}
         <line
           key={`${i}chevronleft`}
           x1={x}
@@ -44,33 +66,19 @@ export const SunEarthPosition: FunctionComponent = () => {
           style={{ stroke: `rgb(${color}, 0.2 )`, strokeWidth: 2 }}
         />
         <line
-          key={`${i}chevronleft`}
+          key={`${i}chevronright`}
           x1={x}
           y1={0}
           x2={x - chevronLength}
           y2={chevronLength}
           style={{ stroke: `rgb(${color}, 0.2)`, strokeWidth: 2 }}
         />
-      </>
+      </React.Fragment>
     );
   };
 
   return (
     <div ref={containerRef} className={styles.sunEarthPositionContainer}>
-      {/* {mission?.sunAzimuthVisible && (
-        <div className={styles.icon} style={{ left: sunIconPosition.x, top: sunIconPosition.y }}>
-          <FontAwesomeIcon size="lg" icon={faSun} color="rgb(255,255,0)" />
-        </div>
-      )}
-      {mission?.earthAzimuthVisible && (
-        <div
-          className={styles.icon}
-          style={{ left: earthIconPosition.x, top: earthIconPosition.y }}
-        >
-          <FontAwesomeIcon size="lg" icon={faEarthAmerica} color="rgb(0,255,255)" />
-        </div>
-      )} */}
-
       <svg height={containerSize[1]} width={containerSize[0]} className={styles.svg}>
         {mission?.sunAzimuthVisible && (
           <g
@@ -106,3 +114,5 @@ export const SunEarthPosition: FunctionComponent = () => {
     </div>
   );
 };
+
+export default SunEarthPosition;
