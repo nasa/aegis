@@ -243,6 +243,15 @@ const MissionEditor: FunctionComponent<{
                       />
                     </div>
                   </div>
+                  <div id="walkbackDiv">
+                    <div className={adminStyles.editDiv}>
+                      <FFInput
+                        name="walkbackSpeed"
+                        label={{ label: "Default Walkback Speed (km/h)" }}
+                        validators={[validators.mustBeNumber, validators.mustBeInteger]}
+                      />
+                    </div>
+                  </div>
                   <div id="sunAzimuthDiv">
                     <div className={adminStyles.editDiv}>
                       <FFInput

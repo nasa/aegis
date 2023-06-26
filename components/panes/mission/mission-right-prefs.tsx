@@ -457,6 +457,38 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     </div>
                   </div>
                 </div>
+                <div className={paneStyles.panelColumnTableRow}>
+                  <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.inputFieldLabel}>Walkback Speed (km/h):</div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={paneStyles.inputFieldValue}>
+                      <InLineEditInput
+                        editing={editMode}
+                        fieldProps={{
+                          name: "defaultWalkbackSpeed",
+                          ariaLabel: "Time in minutes",
+                          style: { width: "45px" },
+                          validators: [
+                            validators.mustBeNumber,
+                            validators.maxLength(2),
+                            validators.mustBeInteger,
+                          ],
+                          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                            e.target.value = e.target.value.replace(
+                              regExValidators.regExNumber,
+                              ""
+                            );
+                          },
+                        }}
+                        value={mission.walkbackSpeed?.toString()}
+                        onSubmit={(val: string) => {
+                          dispatch(setMission({ ...mission, walkbackSpeed: Number(val) }));
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

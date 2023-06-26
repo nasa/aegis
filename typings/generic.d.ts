@@ -17,6 +17,7 @@ interface Mission {
   sunAzimuthVisible: boolean;
   earthAzimuthVisible: boolean;
   defaultEvaDuration: number;
+  walkbackSpeed: number;
 }
 
 // No alteration needed to convert this store type to the database type
