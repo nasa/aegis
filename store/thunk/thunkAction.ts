@@ -35,6 +35,8 @@ export const thunkCreateAction = appCreateAsyncThunk<{
       stmUuidRefs: null,
       inventoryItems: null,
       priorityOverride: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     //upsert action
@@ -51,6 +53,7 @@ export const thunkCreateAction = appCreateAsyncThunk<{
         actionOrder.push(action.uuid);
       }
     }
+
     actionOrder.push(blankAction.uuid);
     setActionOrderUuids(actionOrder);
 

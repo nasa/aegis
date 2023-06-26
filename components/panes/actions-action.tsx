@@ -40,7 +40,9 @@ const RightAction: FunctionComponent<{
     (state) => state.poi.pois.find((storePoi) => storePoi.uuid === parentAction?.poiUuid),
     shallowEqual
   );
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(
+    action.createdAt !== null && action.createdAt === action.updatedAt
+  );
 
   const buildActionTooltip = () => {
     if (parentAction && parentPoi) {
@@ -190,11 +192,7 @@ const RightAction: FunctionComponent<{
                               name: "durationLower",
                               ariaLabel: "Minimum Time in minutes",
                               style: { width: "45px" },
-                              validators: [
-                                validators.mustBeNumber,
-                                validators.maxLength(4),
-                                validators.mustBeInteger,
-                              ],
+                              validators: [validators.mustBeNumber, validators.maxLength(4)],
                               onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                                 e.target.value = e.target.value.replace(
                                   regExValidators.regExNumber,
@@ -229,11 +227,7 @@ const RightAction: FunctionComponent<{
                               name: "durationUpper",
                               ariaLabel: "Maximum Time in minutes",
                               style: { width: "45px" },
-                              validators: [
-                                validators.mustBeNumber,
-                                validators.maxLength(4),
-                                validators.mustBeInteger,
-                              ],
+                              validators: [validators.mustBeNumber, validators.maxLength(4)],
                               onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                                 e.target.value = e.target.value.replace(
                                   regExValidators.regExNumber,
