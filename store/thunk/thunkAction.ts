@@ -51,6 +51,7 @@ export const thunkCreateAction = appCreateAsyncThunk<{
         actionOrder.push(action.uuid);
       }
     }
+
     actionOrder.push(blankAction.uuid);
     setActionOrderUuids(actionOrder);
 
