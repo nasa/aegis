@@ -686,7 +686,6 @@ const MapBody: FunctionComponent = () => {
 
     // Instantiate the map
     if (!map.current) {
-      // debugger;
       map.current = L.map(mapRef.current, {
         center: center,
         zoom: zoom,
