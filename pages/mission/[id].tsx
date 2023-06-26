@@ -25,7 +25,7 @@ import {
   setPresetsFromDb,
   setSelectedPresetUuid,
 } from "store/preset";
-import { setLayers, setMission } from "store/mission";
+import { setLayers, setMission, setMissionFromDb } from "store/mission";
 import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/user";
 import { setStations, setStationsFromDb } from "store/station";
 import { setActions, setActionsFromDb } from "store/action";
@@ -41,6 +41,7 @@ import { thunkCreateEvasCalculatedFields } from "store/thunk/thunkEva";
 import { thunkCreatePoiCalculatedFields } from "store/thunk/thunkPoi";
 import { Tooltip } from "react-tooltip";
 import { thunkSavePreset } from "store/thunk/thunkPreset";
+import { SunEarthPosition } from "components/interface/map-sunearth";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -121,6 +122,7 @@ const Main: NextPage = () => {
       const missionData = await getMissions(intMissionId);
       if (missionData.data) {
         dispatch(setMission(missionData.data[0]));
+        dispatch(setMissionFromDb(missionData.data[0]));
       }
 
       //used to find uuids in preset map layer controls
@@ -339,6 +341,7 @@ const Main: NextPage = () => {
         </div>
         <div className={styles.mapBody}>
           {missionStore.mission && missionStore.layers && <MapBody />}
+          {missionStore && <SunEarthPosition />}
         </div>
         <div
           className={styles.drawerSlider}

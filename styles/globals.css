@@ -23,15 +23,14 @@ body {
   --grey5: #e0e0e0;
 
   --base: #00f0ff;
+  /* --tools: #ff7539; */
+  --mission: #e861a9;
   --preset: #ff8f5f;
-  /* --markup: #e861a9; */
-
-  --eva: #ffc700;
-  --tools: #ff7539;
   --poi: #28ecf9;
   /* --station: #00ffd1; */
   /* --station: #db84ec; */
   --station: #61ff8d;
+  --eva: #ffc700;
 
   --alert: #cb0000;
   --alert-disabled: #650000;

@@ -359,6 +359,12 @@
   margin-left: 8px;
 }
 
+.degreesInputContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
 .actionsHeading {
   display: flex;
   gap: 8px;

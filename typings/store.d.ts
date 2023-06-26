@@ -22,8 +22,11 @@ interface PlayheadHoverState {
 
 interface MissionState {
   mission: Mission;
+  missionFromDb: Mission;
   layers: Layer[];
   userInterface: UserInterface;
+  selectedRightNavItem: string;
+  missionSectionsEditing: string[];
 }
 
 interface UserState {
@@ -80,7 +83,7 @@ interface PresetState {
   presetsEditing: string[];
 }
 
-type InterfaceSection = "map_layer_selector" | "poi" | "station" | "evas";
+type InterfaceSection = "mission" | "preset" | "poi" | "station" | "evas";
 interface InterfaceState {
   sectionSelectedLabel: InterfaceSection;
   rightPanelOpen: boolean;

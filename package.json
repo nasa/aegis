@@ -33,6 +33,7 @@
     "@fortawesome/free-regular-svg-icons": "^6.1.1",
     "@fortawesome/free-solid-svg-icons": "^6.1.1",
     "@fortawesome/react-fontawesome": "^0.2.0",
+    "@fseehawer/react-circular-slider": "^2.6.1",
     "@mikro-orm/cli": "5.6.15",
     "@mikro-orm/core": "5.6.15",
     "@mikro-orm/migrations": "5.6.15",

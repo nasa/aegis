@@ -16,12 +16,16 @@ const mustBeNumber = (value: Stringy): string | undefined =>
 const minValue =
   (min: number) =>
   (value: Stringy): string | undefined =>
-    isNaN(Number(value)) || Number(value) >= min ? undefined : `Should be greater than ${min}`;
+    isNaN(Number(value)) || Number(value) >= min
+      ? undefined
+      : `Should be greater than or equal to ${min}`;
 
 const maxValue =
   (max: number) =>
   (value: Stringy): string | undefined =>
-    isNaN(Number(value)) || Number(value) <= max ? undefined : `Should be less than ${max}`;
+    isNaN(Number(value)) || Number(value) <= max
+      ? undefined
+      : `Should be less than or equal to ${max}`;
 
 const minLength =
   (min: number) =>
