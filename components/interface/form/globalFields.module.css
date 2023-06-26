@@ -379,6 +379,10 @@
   outline: none;
 }
 
+.degreesInputSlider {
+  margin-top: 5px;
+}
+
 .degreesInputSlider :first-child {
   transition: none !important; /* override the transition baked into the circular slider component */
 }

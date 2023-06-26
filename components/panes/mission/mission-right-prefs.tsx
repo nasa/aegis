@@ -312,77 +312,107 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             </div>
           </div>
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-              <SubpanelHeading icon={faSun}>Sun Direction</SubpanelHeading>
-            </div>
-            <div className={paneStyles.panelSectionRow}>
-              <div className={paneStyles.degreesInputContainer}>
-                <div className={paneStyles.descriptionContainer}>
-                  <DegreesInputSlider
-                    value={mission.sunAzimuth}
-                    editable={editMode}
-                    label="Azimuth"
-                    onChange={(value) => {
-                      dispatch(
-                        setMission({
-                          ...mission,
-                          sunAzimuth: value,
-                        })
-                      );
-                    }}
-                  />
+            <div className={paneStyles.panelSectionInner2Column}>
+              <div className={paneStyles.panelSectionInner2ColumnLeft}>
+                <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+                  <SubpanelHeading icon={faSun}>Sun Direction</SubpanelHeading>
                 </div>
-                <div className={paneStyles.displayFieldLabel} style={{ marginLeft: "18px" }}>
-                  <div style={{ display: "flex" }}>
-                    <div style={{ marginTop: "3px" }}>Visible:</div>
-                    <div style={{ marginLeft: "3px" }}>
-                      <Checkbox
-                        checked={mission.sunAzimuthVisible}
+                <div className={paneStyles.panelSectionRow}>
+                  <div className={paneStyles.degreesInputContainer}>
+                    <div className={paneStyles.descriptionContainer}>
+                      <DegreesInputSlider
+                        value={mission.sunAzimuth}
                         editable={editMode}
-                        onChange={(e) => {
-                          dispatch(setMission({ ...mission, sunAzimuthVisible: e.target.checked }));
+                        label="Azimuth"
+                        onChange={(value) => {
+                          dispatch(
+                            setMission({
+                              ...mission,
+                              sunAzimuth: value,
+                            })
+                          );
                         }}
+                        icon={faSun}
                       />
+                    </div>
+                    <div className={paneStyles.displayFieldLabel} style={{ marginLeft: "18px" }}>
+                      <div style={{ display: "flex" }}>
+                        {editMode ? (
+                          <>
+                            <div style={{ marginTop: "3px" }}>Visible:</div>
+                            <div style={{ marginLeft: "3px" }}>
+                              <Checkbox
+                                checked={mission.sunAzimuthVisible}
+                                editable={editMode}
+                                onChange={(e) => {
+                                  dispatch(
+                                    setMission({ ...mission, sunAzimuthVisible: e.target.checked })
+                                  );
+                                }}
+                              />
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ marginTop: "3px" }}>
+                            {mission?.sunAzimuthVisible ? "Visible" : "Invisible"}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-              <SubpanelHeading icon={faEarthAmerica}>Earth Direction</SubpanelHeading>
-            </div>
-            <div className={paneStyles.panelSectionRow}>
-              <div className={paneStyles.degreesInputContainer}>
-                <div className={paneStyles.descriptionContainer}>
-                  <DegreesInputSlider
-                    value={mission.earthAzimuth}
-                    editable={editMode}
-                    label="Azimuth"
-                    onChange={(value) => {
-                      dispatch(
-                        setMission({
-                          ...mission,
-                          earthAzimuth: value,
-                        })
-                      );
-                    }}
-                  />
+              <div
+                className={paneStyles.panelSectionInner2ColumnRight}
+                style={{ marginLeft: "40px" }}
+              >
+                <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+                  <SubpanelHeading icon={faEarthAmerica}>Earth Direction</SubpanelHeading>
                 </div>
-                <div className={paneStyles.displayFieldLabel} style={{ marginLeft: "18px" }}>
-                  <div style={{ display: "flex" }}>
-                    <div style={{ marginTop: "3px" }}>Visible:</div>
-                    <div style={{ marginLeft: "3px" }}>
-                      <Checkbox
-                        checked={mission.earthAzimuthVisible}
+                <div className={paneStyles.panelSectionRow}>
+                  <div className={paneStyles.degreesInputContainer}>
+                    <div className={paneStyles.descriptionContainer}>
+                      <DegreesInputSlider
+                        value={mission.earthAzimuth}
                         editable={editMode}
-                        onChange={(e) => {
+                        label="Azimuth"
+                        onChange={(value) => {
                           dispatch(
-                            setMission({ ...mission, earthAzimuthVisible: e.target.checked })
+                            setMission({
+                              ...mission,
+                              earthAzimuth: value,
+                            })
                           );
                         }}
+                        icon={faEarthAmerica}
                       />
+                    </div>
+                    <div className={paneStyles.displayFieldLabel} style={{ marginLeft: "18px" }}>
+                      <div style={{ display: "flex" }}>
+                        {editMode ? (
+                          <>
+                            <div style={{ marginTop: "3px" }}>Visible:</div>
+                            <div style={{ marginLeft: "3px" }}>
+                              <Checkbox
+                                checked={mission.earthAzimuthVisible}
+                                editable={editMode}
+                                onChange={(e) => {
+                                  dispatch(
+                                    setMission({
+                                      ...mission,
+                                      earthAzimuthVisible: e.target.checked,
+                                    })
+                                  );
+                                }}
+                              />
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ marginTop: "3px" }}>
+                            {mission?.earthAzimuthVisible ? "Visible" : "Invisible"}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

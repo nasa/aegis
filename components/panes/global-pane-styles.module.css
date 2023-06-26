@@ -245,6 +245,12 @@
   padding-left: 18px;
 }
 
+.panelSectionInner2Column {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
+
 .actionIndent {
   padding-left: 25px;
   width: 450px;
@@ -361,7 +367,7 @@
 
 .degreesInputContainer {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
 }
 
