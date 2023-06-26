@@ -192,7 +192,11 @@ const RightAction: FunctionComponent<{
                               name: "durationLower",
                               ariaLabel: "Minimum Time in minutes",
                               style: { width: "45px" },
-                              validators: [validators.mustBeNumber, validators.maxLength(4)],
+                              validators: [
+                                validators.mustBeNumber,
+                                validators.maxLength(4),
+                                validators.mustBeInteger,
+                              ],
                               onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                                 e.target.value = e.target.value.replace(
                                   regExValidators.regExNumber,
@@ -227,7 +231,11 @@ const RightAction: FunctionComponent<{
                               name: "durationUpper",
                               ariaLabel: "Maximum Time in minutes",
                               style: { width: "45px" },
-                              validators: [validators.mustBeNumber, validators.maxLength(4)],
+                              validators: [
+                                validators.mustBeNumber,
+                                validators.maxLength(4),
+                                validators.mustBeInteger,
+                              ],
                               onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                                 e.target.value = e.target.value.replace(
                                   regExValidators.regExNumber,

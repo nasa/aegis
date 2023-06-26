@@ -22,8 +22,6 @@ export const thunkCreateAction = appCreateAsyncThunk<{
       existingNames: getState().action.actions.map((a: Action) => a.name),
     });
 
-    const creationDate = new Date();
-
     const blankAction: Action = {
       ...actionParentUuid,
       missionId: getState().mission.mission?.id,
@@ -37,8 +35,6 @@ export const thunkCreateAction = appCreateAsyncThunk<{
       stmUuidRefs: null,
       inventoryItems: null,
       priorityOverride: null,
-      createdAt: creationDate.toISOString(),
-      updatedAt: creationDate.toISOString(),
     };
 
     //upsert action
