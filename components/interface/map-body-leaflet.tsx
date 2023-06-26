@@ -412,7 +412,7 @@ const MapBody: FunctionComponent = () => {
 
     return (
       <>
-        <div className={styles.positionValue} style={{ width: 150 }}>
+        <div className={styles.positionValue}>
           <p>{latStr}</p>
           <p>{longStr}</p>
         </div>
@@ -754,10 +754,7 @@ const MapBody: FunctionComponent = () => {
     });
 
     map.current.on("mousemove", (e) => {
-      setMapPosition([
-        Math.round(e.latlng.lat * 10e6) / 10e6,
-        Math.round(e.latlng.lng * 10e6) / 10e6,
-      ]);
+      setMapPosition([e.latlng.lat.toFixed(6), e.latlng.lng.toFixed(6)]);
     });
 
     map.current.on("zoomend", () => {
