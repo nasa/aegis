@@ -40,9 +40,8 @@ const RightAction: FunctionComponent<{
     (state) => state.poi.pois.find((storePoi) => storePoi.uuid === parentAction?.poiUuid),
     shallowEqual
   );
-  const [expanded, setExpanded] = useState(
-    action.createdAt !== null && action.createdAt === action.updatedAt
-  );
+  const [expanded, setExpanded] = useState(action.createdAt === undefined);
+  console.log(action.createdAt);
 
   const buildActionTooltip = () => {
     if (parentAction && parentPoi) {
