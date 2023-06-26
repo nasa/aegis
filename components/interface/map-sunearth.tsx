@@ -74,24 +74,55 @@ export const SunEarthPosition: FunctionComponent = () => {
           <FontAwesomeIcon size="lg" icon={faEarthAmerica} color="rgb(0,255,255)" />
         </div>
       )}
-      <svg height={containerSize[1]} width={containerSize[0]}>
+
+      <svg height={containerSize[1]} width={containerSize[0]} className={styles.svg}>
         {mission?.sunAzimuthVisible && (
-          <line
-            x1={containerSize[0] / 2}
-            y1={containerSize[1] / 2}
-            x2={sunIconPosition.x + 10}
-            y2={sunIconPosition.y + 10}
-            style={{ stroke: "rgb(255,255,0, 0.5)", strokeWidth: 2 }}
-          />
+          <g
+            transform={`translate(${containerSize[1] / 2},${containerSize[1] / 2}) rotate(${
+              mission?.sunAzimuth
+            })`}
+          >
+            {
+              // draw vertical parallel lines across the screen. They are rotated in the group above
+              Array.from(Array(40).keys()).map((i) => {
+                const x = (i + 1) * ((containerSize[0] * 2) / 40) - containerSize[0];
+                return (
+                  <line
+                    key={i}
+                    x1={x}
+                    y1={0 - containerSize[1]}
+                    x2={x}
+                    y2={containerSize[1] * 2}
+                    style={{ stroke: "rgb(255,255,0, 0.1)", strokeWidth: 2 }}
+                  />
+                );
+              })
+            }
+          </g>
         )}
         {mission?.earthAzimuthVisible && (
-          <line
-            x1={containerSize[0] / 2}
-            y1={containerSize[1] / 2}
-            x2={earthIconPosition.x + 10}
-            y2={earthIconPosition.y + 10}
-            style={{ stroke: "rgb(0,255,255, 0.5)", strokeWidth: 2 }}
-          />
+          <g
+            transform={`translate(${containerSize[1] / 2},${containerSize[1] / 2}) rotate(${
+              mission?.earthAzimuth
+            })`}
+          >
+            {
+              // draw vertical parallel lines across the screen. They are rotated in the group above
+              Array.from(Array(40).keys()).map((i) => {
+                const x = (i + 1) * ((containerSize[0] * 2) / 40) - containerSize[0];
+                return (
+                  <line
+                    key={i}
+                    x1={x}
+                    y1={0 - containerSize[1]}
+                    x2={x}
+                    y2={containerSize[1] * 2}
+                    style={{ stroke: "rgb(0,255,255, 0.1)", strokeWidth: 2 }}
+                  />
+                );
+              })
+            }
+          </g>
         )}
       </svg>
     </div>
