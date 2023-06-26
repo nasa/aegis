@@ -114,6 +114,8 @@ const MapBody: FunctionComponent = () => {
   const [showAllPois, setShowAllPois] = useState(true);
   const [showAllStations, setShowAllStations] = useState(true);
 
+  const [mapPosition, setMapPosition] = useState([]);
+
   const [scale, setScale] = useState(0);
   const [mapZoom, setMapZoom] = useState(0); // value used to show correct scale bar
 
@@ -401,6 +403,22 @@ const MapBody: FunctionComponent = () => {
       </>
     );
   }, [map, scale]);
+
+  const drawLatLongDiv = useCallback(() => {
+    if (!map.current) return;
+
+    const latStr = `Latitude: ${mapPosition[0]}`;
+    const longStr = `Longitude: ${mapPosition[1]}`;
+
+    return (
+      <>
+        <div className={styles.positionValue} style={{ width: 150 }}>
+          <p>{latStr}</p>
+          <p>{longStr}</p>
+        </div>
+      </>
+    );
+  }, [mapPosition]);
 
   /**
    * Draw or update markers on the map
@@ -733,6 +751,13 @@ const MapBody: FunctionComponent = () => {
         // set the mouse cursor back to the default
         map.current.getContainer().style.cursor = "grab";
       }
+    });
+
+    map.current.on("mousemove", (e) => {
+      setMapPosition([
+        Math.round(e.latlng.lat * 10e6) / 10e6,
+        Math.round(e.latlng.lng * 10e6) / 10e6,
+      ]);
     });
 
     map.current.on("zoomend", () => {
@@ -1458,6 +1483,7 @@ const MapBody: FunctionComponent = () => {
       </div>
 
       <div className={styles.mapScaleDisplay}>{drawScaleBarDiv()}</div>
+      <div className={styles.mapPositionDisplay}>{drawLatLongDiv()}</div>
     </div>
   );
 };

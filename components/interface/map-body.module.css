@@ -58,7 +58,24 @@
   background-color: var(--grey2);
 }
 
+.mapPositionDisplay {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 2;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+
+  border-radius: var(--radius);
+  background-color: var(--grey2);
+}
+
 .scaleValue {
+  font-size: 0.8em;
+  border: 1px solid var(--grey3);
+  padding: 5px;
+}
+
+.positionValue {
   font-size: 0.8em;
   border: 1px solid var(--grey3);
   padding: 5px;
