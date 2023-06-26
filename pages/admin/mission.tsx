@@ -76,12 +76,13 @@ const Mission: NextPage = () => {
       description: "",
       config: createNewConfig(),
       landerLocation: null,
-      traverseSpeed: 0,
+      traverseSpeed: 2,
       sunAzimuth: 0,
       sunAzimuthVisible: false,
       earthAzimuth: 0,
       earthAzimuthVisible: false,
-      defaultEvaDuration: 0,
+      defaultEvaDuration: 240,
+      walkbackSpeed: 2,
     });
     setEditMissionId(null);
   }
