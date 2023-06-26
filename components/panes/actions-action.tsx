@@ -41,7 +41,6 @@ const RightAction: FunctionComponent<{
     shallowEqual
   );
   const [expanded, setExpanded] = useState(action.createdAt === undefined);
-  console.log(action.createdAt);
 
   const buildActionTooltip = () => {
     if (parentAction && parentPoi) {
