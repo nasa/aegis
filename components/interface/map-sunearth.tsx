@@ -1,44 +1,13 @@
-import { FunctionComponent, useCallback, useEffect, useRef, useState } from "react";
+import { FunctionComponent, useEffect, useRef, useState } from "react";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import styles from "./map-sunearth.module.css";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEarthAmerica, faSun } from "@fortawesome/free-solid-svg-icons";
 
 export const SunEarthPosition: FunctionComponent = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>();
   const mission = useAppSelector((state) => state.mission.mission, refEqual);
   const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, shallowEqual);
 
   const [containerSize, setContainerSize] = useState<number[]>([0, 0]);
-  const [sunIconPosition, setSunIconPosition] = useState({ x: 0, y: 0 });
-  const [earthIconPosition, setEarthIconPosition] = useState({ x: 0, y: 0 });
-
-  const getIconPosition = useCallback(
-    (angle: number) => {
-      if (!containerRef.current) return { x: 0, y: 0 };
-
-      const containerCenterX = containerSize[0] / 2;
-      const containerCenterY = containerSize[1] / 2;
-
-      const iconWidth = 20;
-      const iconHeight = 20;
-
-      const iconHalfWidth = iconWidth / 2;
-      const iconHalfHeight = iconHeight / 2;
-
-      const iconX =
-        containerCenterX -
-        iconHalfWidth +
-        Math.sin(angle * (Math.PI / 180)) * (containerSize[0] / 2 - iconHalfWidth);
-      const iconY =
-        containerCenterY -
-        iconHalfHeight -
-        Math.cos(angle * (Math.PI / 180)) * (containerSize[1] / 2 - iconHalfHeight);
-
-      return { x: iconX, y: iconY };
-    },
-    [containerSize]
-  );
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -52,16 +21,43 @@ export const SunEarthPosition: FunctionComponent = () => {
     return () => window.removeEventListener("resize", updateSize);
   }, [containerRef, rightPanelOpen]);
 
-  useEffect(() => {
-    if (!containerRef.current || !mission) return;
+  const chevronLength = 5;
 
-    setSunIconPosition(getIconPosition(mission.sunAzimuth));
-    setEarthIconPosition(getIconPosition(mission.earthAzimuth));
-  }, [mission, containerRef, getIconPosition]);
+  const generateLineWithChevrons = (i: number, x: number, color: string) => {
+    return (
+      <>
+        <line
+          key={`${i}line`}
+          x1={x}
+          y1={0 - containerSize[1]}
+          x2={x}
+          y2={containerSize[1] * 2}
+          style={{ stroke: `rgb(${color}, 0.1)`, strokeWidth: 2 }}
+        />
+        {/* Draw two sides of a chevron at the midpoint of the above line */}
+        <line
+          key={`${i}chevronleft`}
+          x1={x}
+          y1={0}
+          x2={x + chevronLength}
+          y2={chevronLength}
+          style={{ stroke: `rgb(${color}, 0.2 )`, strokeWidth: 2 }}
+        />
+        <line
+          key={`${i}chevronleft`}
+          x1={x}
+          y1={0}
+          x2={x - chevronLength}
+          y2={chevronLength}
+          style={{ stroke: `rgb(${color}, 0.2)`, strokeWidth: 2 }}
+        />
+      </>
+    );
+  };
 
   return (
     <div ref={containerRef} className={styles.sunEarthPositionContainer}>
-      {mission?.sunAzimuthVisible && (
+      {/* {mission?.sunAzimuthVisible && (
         <div className={styles.icon} style={{ left: sunIconPosition.x, top: sunIconPosition.y }}>
           <FontAwesomeIcon size="lg" icon={faSun} color="rgb(255,255,0)" />
         </div>
@@ -73,7 +69,7 @@ export const SunEarthPosition: FunctionComponent = () => {
         >
           <FontAwesomeIcon size="lg" icon={faEarthAmerica} color="rgb(0,255,255)" />
         </div>
-      )}
+      )} */}
 
       <svg height={containerSize[1]} width={containerSize[0]} className={styles.svg}>
         {mission?.sunAzimuthVisible && (
@@ -86,16 +82,7 @@ export const SunEarthPosition: FunctionComponent = () => {
               // draw vertical parallel lines across the screen. They are rotated in the group above
               Array.from(Array(40).keys()).map((i) => {
                 const x = (i + 1) * ((containerSize[0] * 2) / 40) - containerSize[0];
-                return (
-                  <line
-                    key={i}
-                    x1={x}
-                    y1={0 - containerSize[1]}
-                    x2={x}
-                    y2={containerSize[1] * 2}
-                    style={{ stroke: "rgb(255,255,0, 0.1)", strokeWidth: 2 }}
-                  />
-                );
+                return generateLineWithChevrons(i, x, "255,255,0");
               })
             }
           </g>
@@ -110,16 +97,7 @@ export const SunEarthPosition: FunctionComponent = () => {
               // draw vertical parallel lines across the screen. They are rotated in the group above
               Array.from(Array(40).keys()).map((i) => {
                 const x = (i + 1) * ((containerSize[0] * 2) / 40) - containerSize[0];
-                return (
-                  <line
-                    key={i}
-                    x1={x}
-                    y1={0 - containerSize[1]}
-                    x2={x}
-                    y2={containerSize[1] * 2}
-                    style={{ stroke: "rgb(0,255,255, 0.1)", strokeWidth: 2 }}
-                  />
-                );
+                return generateLineWithChevrons(i, x, "0,255,255");
               })
             }
           </g>
