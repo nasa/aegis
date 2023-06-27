@@ -114,7 +114,7 @@ const MapBody: FunctionComponent = () => {
   const [showAllPois, setShowAllPois] = useState(true);
   const [showAllStations, setShowAllStations] = useState(true);
 
-  const [mapPosition, setMapPosition] = useState([]);
+  const [mapPosition, setMapPosition] = useState<string[]>([]);
 
   const [scale, setScale] = useState(0);
   const [mapZoom, setMapZoom] = useState(0); // value used to show correct scale bar
@@ -405,7 +405,7 @@ const MapBody: FunctionComponent = () => {
   }, [map, scale]);
 
   const drawLatLongDiv = useCallback(() => {
-    if (!map.current) return;
+    if (!map.current || mapPosition.length === 0) return;
 
     const latLngStr = `${mapPosition[0]}, ${mapPosition[1]}`;
 
