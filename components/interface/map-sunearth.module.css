@@ -8,11 +8,6 @@
   pointer-events: none;
 }
 
-.svg {
-  transform-origin: 50% 50%;
-  transform-box: fill-box;
-}
-
 .icon {
   position: absolute;
 }

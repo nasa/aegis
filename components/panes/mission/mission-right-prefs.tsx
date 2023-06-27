@@ -436,7 +436,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           editing={editMode}
                           fieldProps={{
                             name: "defaultEvaDuration",
-                            ariaLabel: "Time in minutes",
+                            ariaLabel: "Default EVA Duration",
                             style: { width: "45px" },
                             validators: [
                               validators.mustBeNumber,
@@ -468,7 +468,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           editing={editMode}
                           fieldProps={{
                             name: "defaultTraverseSpeed",
-                            ariaLabel: "Time in minutes",
+                            ariaLabel: "Default traverse speed",
                             style: { width: "45px" },
                             validators: [
                               validators.mustBeNumber,
@@ -500,7 +500,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           editing={editMode}
                           fieldProps={{
                             name: "defaultWalkbackSpeed",
-                            ariaLabel: "Time in minutes",
+                            ariaLabel: "Default walkback speed",
                             style: { width: "45px" },
                             validators: [
                               validators.mustBeNumber,
