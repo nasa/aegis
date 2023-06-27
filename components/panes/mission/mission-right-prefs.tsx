@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, useRef } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
@@ -84,6 +84,28 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const handleCancelEdit = () => {
     dispatchMissionMapAction("cancelEditMarker");
   };
+
+  const handleOnChangeSunAzimuth = useRef(
+    _.throttle((mission: Mission, value: number) => {
+      dispatch(
+        setMission({
+          ...mission,
+          sunAzimuth: value,
+        })
+      );
+    }, 10)
+  );
+
+  const handleOnChangeEarthAzimuth = useRef(
+    _.throttle((mission: Mission, value: number) => {
+      dispatch(
+        setMission({
+          ...mission,
+          earthAzimuth: value,
+        })
+      );
+    }, 10)
+  );
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
@@ -325,12 +347,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         editable={editMode}
                         label="Sun Azimuth"
                         onChange={(value) => {
-                          dispatch(
-                            setMission({
-                              ...mission,
-                              sunAzimuth: value,
-                            })
-                          );
+                          handleOnChangeSunAzimuth.current(mission, value);
                         }}
                         icon={faSun}
                       />
@@ -377,12 +394,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         editable={editMode}
                         label="Earth Azimuth"
                         onChange={(value) => {
-                          dispatch(
-                            setMission({
-                              ...mission,
-                              earthAzimuth: value,
-                            })
-                          );
+                          handleOnChangeEarthAzimuth.current(mission, value);
                         }}
                         icon={faEarthAmerica}
                       />
