@@ -85,28 +85,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     dispatchMissionMapAction("cancelEditMarker");
   };
 
-  const handleOnChangeSunAzimuth = useRef(
-    _.throttle((value: number) => {
-      dispatch(
-        setMission({
-          ...mission,
-          sunAzimuth: value,
-        })
-      );
-    }, 10)
-  );
-
-  const handleOnChangeEarthAzimuth = useRef(
-    _.throttle((value: number) => {
-      dispatch(
-        setMission({
-          ...mission,
-          earthAzimuth: value,
-        })
-      );
-    }, 10)
-  );
-
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   const measureJson = mission?.config.tools.find((tool) => tool.name === "Measure")?.variables;
@@ -347,7 +325,12 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         editable={editMode}
                         label="Sun Azimuth"
                         onChange={(value) => {
-                          handleOnChangeSunAzimuth.current(value);
+                          dispatch(
+                            setMission({
+                              ...mission,
+                              sunAzimuth: value,
+                            })
+                          );
                         }}
                         icon={faSun}
                       />
@@ -394,7 +377,12 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         editable={editMode}
                         label="Earth Azimuth"
                         onChange={(value) => {
-                          handleOnChangeEarthAzimuth.current(value);
+                          dispatch(
+                            setMission({
+                              ...mission,
+                              earthAzimuth: value,
+                            })
+                          );
                         }}
                         icon={faEarthAmerica}
                       />
