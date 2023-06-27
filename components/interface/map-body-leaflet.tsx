@@ -407,15 +407,11 @@ const MapBody: FunctionComponent = () => {
   const drawLatLongDiv = useCallback(() => {
     if (!map.current) return;
 
-    const latStr = `Latitude: ${mapPosition[0]}`;
-    const longStr = `Longitude: ${mapPosition[1]}`;
+    const latLngStr = `${mapPosition[0]}, ${mapPosition[1]}`;
 
     return (
       <>
-        <div className={styles.positionValue}>
-          <p>{latStr}</p>
-          <p>{longStr}</p>
-        </div>
+        <div className={styles.positionValue}>{latLngStr}</div>
       </>
     );
   }, [mapPosition]);
