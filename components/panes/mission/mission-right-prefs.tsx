@@ -345,7 +345,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       <DegreesInputSlider
                         value={mission.sunAzimuth}
                         editable={editMode}
-                        label="Sun Azimuth"
+                        label="Azimuth"
                         onChange={(value) => {
                           handleOnChangeSunAzimuth.current(mission, value);
                         }}
@@ -392,7 +392,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       <DegreesInputSlider
                         value={mission.earthAzimuth}
                         editable={editMode}
-                        label="Earth Azimuth"
+                        label="Azimuth"
                         onChange={(value) => {
                           handleOnChangeEarthAzimuth.current(mission, value);
                         }}
