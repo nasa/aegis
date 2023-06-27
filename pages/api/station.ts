@@ -18,10 +18,14 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
   req,
   res
 ): Promise<unknown> => {
-  if (req.session?.user) {
-    const isAdmin = req.session.user.permission.includes("admin"); // will evaluate true or false
-    const { missionId, uuid } = req.query;
-    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+  const { uuid } = req.query;
+  const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
+  const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+  const editPermission = req.session?.user?.permissionList.find((p) => p.missionId == intMissionId)
+    ?.permissions.edit;
+  const viewPermission = req.session?.user?.permissionList.find((p) => p.missionId == intMissionId)
+    ?.permissions.view;
+  if (editPermission || viewPermission) {
     const stationUUID = Array.isArray(uuid) ? uuid[0] : uuid;
 
     if (req.method === "GET") {
@@ -48,7 +52,7 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
     // upsert a station
     if (req.method === "POST") {
       try {
-        if (!isAdmin) {
+        if (!editPermission) {
           return res.status(401).json({ status: "failure", message: "Unauthorized" });
         }
         const stationToUpsert: Station = req.body as Station;
@@ -79,7 +83,7 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
     // delete a record
     if (req.method === "DELETE") {
       try {
-        if (!isAdmin) {
+        if (!editPermission) {
           return res.status(401).json({ status: "failure", message: "Unauthorized" });
         }
         const deletedUUID = await deleteStation(stationUUID);
@@ -214,8 +218,7 @@ async function deleteStation(stationUuid: string): Promise<string | null> {
 
   if (entity) {
     entity.poi.removeAll(); //delete relationship to poi (does not delete the poi record)
-    em.remove(entity); //delete station
-    await em.flush(); //perform deletes
+    await em.remove(entity).flush(); //delete station and cascade deletes
   } else {
     returnVal = null;
   }

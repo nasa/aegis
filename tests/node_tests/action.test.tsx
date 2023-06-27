@@ -16,7 +16,7 @@ import { Action as Action_db } from "server/database/models/action.model";
 import ActionFactory from "../factories/ActionFactory";
 import { Mission as Mission_db } from "server/database/models/mission.model";
 import MissionFactory from "../factories/MissionFactory";
-import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
+import { TextEncoder, TextDecoder } from "util";
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -27,8 +27,25 @@ let testActions: Action_db[];
 beforeAll(async () => {
   await getORM();
   const em = getEM();
-  testAdmin = await new UserFactory(em).createOne();
   testMission = await new MissionFactory(em).createOne();
+  testAdmin = await new UserFactory(em).createOne({
+    permissionList: [
+      {
+        missionId: testMission.id,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+      {
+        missionId: 99999,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+    ],
+  });
   testActions = await new ActionFactory(em)
     .each((action) => {
       action.mission = testMission;
@@ -83,7 +100,7 @@ describe("Action API Endpoint", () => {
     const reqOptions: RequestOptions = {
       method: "GET",
       headers: { cookie: loginCookie },
-      query: { uuid: testActions[0].uuid },
+      query: { uuid: testActions[0].uuid, missionId: testMission.id },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handleAction(req, res);
@@ -99,6 +116,7 @@ describe("Action API Endpoint", () => {
     const reqOptions: RequestOptions = {
       method: "GET",
       headers: { cookie: loginCookie },
+      query: { missionId: testMission.id },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handleAction(req, res);
@@ -173,7 +191,7 @@ describe("Action API Endpoint", () => {
     const reqOptions: RequestOptions = {
       method: "DELETE",
       headers: { cookie: loginCookie },
-      query: { uuid: `${newAction.uuid}` },
+      query: { uuid: `${newAction.uuid}`, missionId: testMission.id },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handleAction(req, res);

@@ -575,6 +575,11 @@ const NavTimeline: FunctionComponent = () => {
  * Calculate elevation point array
  * @param segmentedElevationMeters elevation by segments
  * @param segmentedDistancesMeters distances by segments
+ * @param xLocStart
+ * @param totalDurationMins
+ * @param paperDataRef
+ * @param storeRef
+ * @param traverseRateMSec
  * @returns an array of elevation graph data
  */
 function calcElevationGraphData(

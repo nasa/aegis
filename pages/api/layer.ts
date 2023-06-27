@@ -35,95 +35,94 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
   res
 ): Promise<unknown> => {
   try {
-    if (req.session?.user) {
-      const isAdmin = req.session.user.permission.includes("admin"); // will evaluate true or false
-      const { missionId, uuid } = req.query;
-      const layerUUID = Array.isArray(uuid) ? uuid[0] : uuid;
-      const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
+    const { uuid } = req.query;
+    const layerUUID = Array.isArray(uuid) ? uuid[0] : uuid;
+    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+    const isLoggedIn = req.session?.user?.id;
+    // retrieve record
+    if (!isLoggedIn) {
+      return res.status(401).json({ status: "failure", message: "Unauthorized" });
+    }
+    if (req.method === "GET") {
+      try {
+        if (!intMissionId || _.isNaN(intMissionId)) {
+          return res.status(500).json({ status: "error", message: "Invalid mission ID" });
+        }
 
-      // retrieve record
-      if (req.method === "GET") {
-        try {
-          if (!intMissionId || _.isNaN(intMissionId)) {
-            return res.status(500).json({ status: "error", message: "Invalid mission ID" });
-          }
+        const records: Layer[] = await getLayers(intMissionId, layerUUID);
 
-          const records: Layer[] = await getLayers(intMissionId, layerUUID);
+        return res.status(200).json({
+          status: "success",
+          message: "layers retrieved",
+          data: records,
+        });
+      } catch (e) {
+        console.error(e);
+        return res
+          .status(500)
+          .json({ status: "error", message: "Error processing the GET request" });
+      }
+    }
 
+    //upsert a record
+    if (req.method === "POST") {
+      try {
+        //perform the upsert
+        const upsertObject: Layer = req.body.layer as Layer;
+        const upsertResponse: Layer = await upsertLayer(upsertObject);
+
+        //check response
+        if (!upsertResponse) {
+          return res.status(500).json({
+            status: "error",
+            message: "Upsert response did not return a value",
+            data: null,
+          });
+        } else {
           return res.status(200).json({
             status: "success",
-            message: "layers retrieved",
-            data: records,
+            message: `Layer upserted with ID ${upsertResponse.uuid}`,
+            data: upsertResponse,
           });
-        } catch (e) {
-          console.error(e);
+        }
+      } catch (e) {
+        console.error(e);
+        return res
+          .status(500)
+          .json({ status: "error", message: "Error processing the POST request" });
+      }
+    }
+
+    //delete a record
+    if (req.method === "DELETE") {
+      try {
+        const deletedUUID = await deleteLayer(layerUUID);
+
+        if (deletedUUID) {
+          return res.status(200).json({
+            status: "success",
+            message: "Layer Deleted",
+          });
+        } else {
+          return res.status(404).json({
+            status: "failure",
+            message: "Record not found. Nothing deleted",
+          });
+        }
+      } catch (e) {
+        console.error(e);
+        if (e instanceof ForeignKeyConstraintViolationException) {
+          return res.status(500).json({
+            status: "error",
+            message: "Cannot delete layer. This layer is referenced elsewhere",
+          });
+        } else {
           return res
             .status(500)
-            .json({ status: "error", message: "Error processing the GET request" });
+            .json({ status: "error", message: "Error processing the DELETE request" });
         }
       }
-
-      //upsert a record
-      if (req.method === "POST") {
-        try {
-          //perform the upsert
-          const upsertObject: Layer = req.body as Layer;
-          const upsertResponse: Layer = await upsertLayer(upsertObject);
-
-          //check response
-          if (!upsertResponse) {
-            return res.status(500).json({
-              status: "error",
-              message: "Upsert response did not return a value",
-              data: null,
-            });
-          } else {
-            return res.status(200).json({
-              status: "success",
-              message: `Layer upserted with ID ${upsertResponse.uuid}`,
-              data: upsertResponse,
-            });
-          }
-        } catch (e) {
-          console.error(e);
-          return res
-            .status(500)
-            .json({ status: "error", message: "Error processing the POST request" });
-        }
-      }
-
-      //delete a record
-      if (req.method === "DELETE" && isAdmin) {
-        try {
-          const deletedUUID = await deleteLayer(layerUUID);
-
-          if (deletedUUID) {
-            return res.status(200).json({
-              status: "success",
-              message: "Layer Deleted",
-            });
-          } else {
-            return res.status(404).json({
-              status: "failure",
-              message: "Record not found. Nothing deleted",
-            });
-          }
-        } catch (e) {
-          console.error(e);
-          if (e instanceof ForeignKeyConstraintViolationException) {
-            return res.status(500).json({
-              status: "error",
-              message: "Cannot delete layer. This layer is referenced elsewhere",
-            });
-          } else {
-            return res
-              .status(500)
-              .json({ status: "error", message: "Error processing the DELETE request" });
-          }
-        }
-      }
-    } else {
-      return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
   } catch (e) {
     console.error(e);

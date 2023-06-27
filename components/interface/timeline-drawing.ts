@@ -9,7 +9,6 @@ import { getSlope } from "utils/geoMath";
  * Draws the vertical line wtih the rotated time at the bottom.
  * @param paperDataRef object containing all the paper data
  * @param xLoc optional x location of the time marker
- * @param minutes optional minutes to place the time marker
  * @param customColor optional color to draw the line with
  * @param customTextColor optional color to draw the label with
  * @returns a paper group containing the line and time text
@@ -56,6 +55,7 @@ export function drawTimeMarker(
  * @param xLoc x location of the meter marker (for right or left y-axis)
  * @param yLoc y location of the meter marker
  * @param label label to display next to the meter marker
+ * @param color
  * @param align alignment of the label and tickmark when drawn on on the right or left y-axis
  * @returns
  */
@@ -89,7 +89,6 @@ export function drawMeterMarker(
 /**
  * Draws the graph axis, borders, and labels
  * @param paperDataRef
- * @param paperGroupsRef
  * @param storeRef
  */
 export function drawGraphAxis(
@@ -448,6 +447,7 @@ export function drawWalkbacks(
  * Draws the walkback elevations
  * @param paperDataRef
  * @param graphItems
+ * @param selectedEvaSequenceItemUuid
  */
 export function drawWalkbackElevations(
   paperDataRef: MutableRefObject<PaperData>,
@@ -646,7 +646,10 @@ export function drawSequenceBottomSection(
  * @param paperDataRef
  * @param paperGroupsRef
  * @param storeRef
+ * @param flattenedGraphData
  * @param xLoc
+ * @param setHoverValues
+ * @param landerElevationMeters
  * @returns
  */
 export const drawMouseHover = (

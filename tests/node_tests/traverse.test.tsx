@@ -16,7 +16,7 @@ import { Mission as Mission_db } from "server/database/models/mission.model";
 import MissionFactory from "../factories/MissionFactory";
 import { Traverse as Traverse_db } from "server/database/models/traverse.model";
 import TraverseFactory from "../factories/TraverseFactory";
-import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
+import { TextEncoder, TextDecoder } from "util";
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -27,8 +27,25 @@ let testTraverses: Traverse_db[];
 beforeAll(async () => {
   await getORM();
   const em = getEM();
-  testAdmin = await new UserFactory(em).createOne();
   testMission = await new MissionFactory(em).createOne();
+  testAdmin = await new UserFactory(em).createOne({
+    permissionList: [
+      {
+        missionId: testMission.id,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+      {
+        missionId: 99999,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+    ],
+  });
   testTraverses = await new TraverseFactory(em)
     .each((traverse) => {
       traverse.mission = testMission;
@@ -172,7 +189,7 @@ describe("EVA API Endpoint", () => {
     const reqOptions: RequestOptions = {
       method: "DELETE",
       headers: { cookie: loginCookie },
-      query: { uuid: `${newTraverse.uuid}` },
+      query: { uuid: `${newTraverse.uuid}`, missionId: testMission.id },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handleTraverse(req, res);

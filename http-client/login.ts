@@ -14,6 +14,13 @@ export async function isAdmin(): Promise<WrappedResponse<boolean>> {
   return response;
 }
 
+export async function adminRecovery(): Promise<WrappedResponse<void>> {
+  const res = await fetch(`/api/users/adminRecovery`);
+  const response: WrappedResponse<void> = await res.json();
+
+  return response;
+}
+
 export async function login(
   username: string,
   password: string

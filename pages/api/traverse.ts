@@ -17,12 +17,18 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
   req,
   res
 ): Promise<unknown> => {
-  if (req.session?.user) {
-    const isAdmin = req.session.user.permission.includes("admin"); // will evaluate true or false
-    const { missionId, uuid } = req.query;
-    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
-    const traverseUuid = Array.isArray(uuid) ? uuid[0] : uuid;
+  const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
+  const editPermission = req.session?.user?.permissionList.find(
+    (p) => p.missionId == parseInt(missionId)
+  )?.permissions.edit;
+  const viewPermission = req.session?.user?.permissionList.find(
+    (p) => p.missionId == parseInt(missionId)
+  )?.permissions.view;
+  const { uuid } = req.query;
+  const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+  const traverseUuid = Array.isArray(uuid) ? uuid[0] : uuid;
 
+  if (editPermission || viewPermission) {
     if (req.method === "GET") {
       //check for required mission id is valid
       if (!intMissionId || _.isNaN(intMissionId)) {
@@ -47,7 +53,7 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
     // upsert a traverse
     if (req.method === "POST") {
       try {
-        if (!isAdmin) {
+        if (!editPermission) {
           return res.status(401).json({ status: "failure", message: "Unauthorized" });
         }
         const traverseToUpsert: Traverse = req.body as Traverse;
@@ -78,7 +84,7 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
     // delete a record
     if (req.method === "DELETE") {
       try {
-        if (!isAdmin) {
+        if (!editPermission) {
           return res.status(401).json({ status: "failure", message: "Unauthorized" });
         }
         const deletedUUID = await deleteTraverse(traverseUuid);

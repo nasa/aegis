@@ -21,10 +21,21 @@ const StationEditorLeft: FunctionComponent = () => {
   const selectedStation = stations.find((station) => station.uuid === selectedStationUuid);
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
   const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, shallowEqual);
-  const isAdmin = useAppSelector(
-    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
+  //Get the permission list from the user object
+  const permissionList = useAppSelector(
+    (state) => state.user.ironSessionData?.user.permissionList,
     refEqual
   );
+  let isAdmin: boolean = false;
+  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
+
+  //Get the permission object with this mission id
+  const missionPermission: PermissionList = permissionList.find(
+    (permission) => permission.missionId === missionId
+  );
+  if (missionPermission.permissions.edit) {
+    isAdmin = true;
+  }
 
   return (
     <>

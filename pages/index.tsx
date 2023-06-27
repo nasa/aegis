@@ -112,15 +112,35 @@ const Login = () => {
 const MissionSelect = () => {
   const dispatch = useDispatch();
   const router = useRouter();
+  const [missions, setMissions] = useState<Mission[]>([]);
+  const currentUser = useAppSelector((state) => state.user, refEqual);
 
-  const [missions, setmissions] = useState<Mission[]>([]);
-
+  // Get Current logged in user
   useEffect(() => {
-    (async () => {
+    async function populateData() {
+      const permissionList: PermissionList[] = currentUser.ironSessionData.user?.permissionList;
+
+      if (!currentUser.isLoggedIn) {
+        return;
+      }
       const response = await getMissions();
-      setmissions(response.data);
-    })();
-  }, []);
+      // Filter out missions that the user does not have permission to view
+      const filteredMissions = response.data.filter((mission) => {
+        return permissionList.some((permission) => {
+          // Check if they can view or edit
+          return (
+            (permission.missionId === mission.id && permission.permissions.view === true) ||
+            (permission.missionId === mission.id && permission.permissions.edit === true)
+          );
+        });
+      });
+
+      setMissions(filteredMissions);
+    }
+    populateData().catch(() => {
+      // Something went wrong. Eventually would like a logger here.
+    });
+  }, [currentUser.ironSessionData.user?.permissionList, currentUser.isLoggedIn]);
 
   const handleLogoutButtonClick = async () => {
     const response = await logout();

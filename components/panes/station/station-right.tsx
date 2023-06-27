@@ -47,10 +47,46 @@ const StationEditorRight: FunctionComponent = () => {
     (state) => state.station.stations.find((station) => station.uuid === selectedStationUuid),
     shallowEqual
   );
-  const isAdmin = useAppSelector(
-    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
+  const selectedStationFromDb = useAppSelector(
+    (state) => state.station.stationsFromDb.find((station) => station.uuid === selectedStationUuid),
+    shallowEqual
+  );
+
+  const stationActions = useAppSelector(
+    (state) =>
+      state.action.actions.filter((storeAction) => storeAction.stationUuid === selectedStationUuid),
+    shallowEqual
+  );
+  const stationActionsFromDb = useAppSelector(
+    (state) =>
+      state.action.actionsFromDb.filter(
+        (storeAction) => storeAction.stationUuid === selectedStationUuid
+      ),
+    shallowEqual
+  );
+
+  const elevationPendingIndex = useAppSelector(
+    (state) =>
+      state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedStationUuid),
+    shallowEqual
+  );
+  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
+
+  //Get the permission list from the user object
+  const permissionList = useAppSelector(
+    (state) => state.user.ironSessionData?.user.permissionList,
     refEqual
   );
+  let isAdmin: boolean = false;
+
+  //Get the permission object with this mission id
+  const missionPermission: PermissionList = permissionList.find(
+    (permission) => permission.missionId === missionId
+  );
+  if (missionPermission.permissions.edit) {
+    isAdmin = true;
+  }
+
   const calculatedFields = useAppSelector(
     (state) =>
       state.station.calculatedFields.find((calculated) => calculated.uuid === selectedStationUuid),
@@ -95,30 +131,6 @@ const StationEditorRight: FunctionComponent = () => {
       icon: calculatedFields?.reportItems.length > 0 ? faTriangleExclamation : faCheck,
     },
   };
-
-  //these selectors from the store are only used to calculate modified. refactor?
-  const stationActionsFromDb = useAppSelector(
-    (state) =>
-      state.action.actionsFromDb.filter(
-        (storeAction) => storeAction.stationUuid === selectedStationUuid
-      ),
-    shallowEqual
-  );
-  const elevationPendingIndex = useAppSelector(
-    (state) =>
-      state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedStationUuid),
-    shallowEqual
-  );
-  const selectedStationFromDb = useAppSelector(
-    (state) => state.station.stationsFromDb.find((station) => station.uuid === selectedStationUuid),
-    shallowEqual
-  );
-
-  const stationActions = useAppSelector(
-    (state) =>
-      state.action.actions.filter((storeAction) => storeAction.stationUuid === selectedStationUuid),
-    shallowEqual
-  );
   //track modified
   useEffect(() => {
     if (elevationPendingIndex > -1) {

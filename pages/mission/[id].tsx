@@ -93,17 +93,35 @@ const Main: NextPage = () => {
    * Check if user is logged in.
    * If so, populate the user store data.
    * If not, redirect them to the login page.
+   *
+   * Then check if the user has permissions for this mission page
+   * If not, redirect them to the home page.
    */
 
   useEffect(() => {
     (async () => {
       const response = await InternalAPI.isLoggedIn();
+      //Check if user is logged in.
       if (response.status === "success") {
         dispatch(setIsLoggedIn(true));
         dispatch(setIronSessionData(response.data));
       } else {
         dispatch(setIsLoggedIn(false));
         dispatch(clearIronSessionData());
+        await router.push("/");
+      }
+
+      //Check if user has permissions for this mission page
+      const { id } = router.query;
+      const userPermissions = response.data.user.permissionList;
+      if (!id || !userPermissions) return;
+      const intMissionId = parseInt(Array.isArray(id) ? id[0] : id);
+      const missionPermissions = userPermissions.filter(
+        (permission) => permission.missionId === intMissionId
+      );
+
+      // User isn't allow to access this mission. Redirect them to the home page.
+      if (missionPermissions.length === 0) {
         await router.push("/");
       }
     })();

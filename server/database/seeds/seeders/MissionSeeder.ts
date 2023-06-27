@@ -5,6 +5,7 @@ import { Mission } from "../../models/mission.model";
 export class MissionSeeder extends Seeder {
   async run(em: EntityManager, context: Dictionary): Promise<void> {
     context.mission1 = em.create(Mission, {
+      id: 1,
       name: "Apollo_14",
       config: {
         msv: {
