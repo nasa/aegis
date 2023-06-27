@@ -113,7 +113,7 @@ interface MMGIS_Style {
   color: string;
   fillColor: string;
   weight: number;
-  fillOpacity?: any;
+  fillOpacity?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   opacity: number;
 }
 

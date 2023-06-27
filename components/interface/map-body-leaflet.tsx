@@ -225,6 +225,7 @@ const MapBody: FunctionComponent = () => {
       if (!isLayerOnMapByName(map, configSublayer.name)) {
         if (configSublayer.type === "tile") {
           const filter = makeTileLayerColorFilter(layerControls, configSublayer.name);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const tileLayer = (L.tileLayer as any).colorFilter(
             `${layerBaseURL}/${mission.id}/Layers/${configSublayer.aegisURL}`,
             {
@@ -308,6 +309,7 @@ const MapBody: FunctionComponent = () => {
    */
   useEffect(() => {
     if (!map.current || !layerControls) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     map.current.eachLayer((layer: any) => {
       for (const layerControl of Object.values(layerControls)) {
         if (layer.options.id === layerControl.name) {
@@ -583,6 +585,7 @@ const MapBody: FunctionComponent = () => {
         smoothFactor: 1,
         outlineColor: "#8b8680",
         raised: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any; //TODO: figure out the weird HighlightablePolyline typescript implementation
       polyline.uuid = uuid;
       polyline.mapItemType = mapItemType;
@@ -1483,6 +1486,7 @@ const MapBody: FunctionComponent = () => {
 
 export default MapBody;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const isLayerOnMapByName = (map: MutableRefObject<any>, name: string) => {
   let layerFound = false;
   map.current.eachLayer((layer) => {
@@ -1491,6 +1495,7 @@ const isLayerOnMapByName = (map: MutableRefObject<any>, name: string) => {
   return layerFound;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getLayerByName = (map: MutableRefObject<any>, name: string) => {
   let returnVal = null;
 

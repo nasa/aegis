@@ -51,7 +51,7 @@ export const Button: FunctionComponent<{
 };
 
 export const Dropdown: FunctionComponent<{
-  children: any;
+  children: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   selected: string;
   containerStyle?: CSSProperties;
   selectStyle?: CSSProperties;
@@ -85,7 +85,7 @@ export const Dropdown: FunctionComponent<{
 };
 
 export const IconDropdown: FunctionComponent<{
-  items: any[];
+  items: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
   editing: boolean;
   selected: string;
   setSelected: Function;
@@ -167,28 +167,35 @@ export const MultiButton: FunctionComponent<{
   return (
     <div className={styles.multiButtonGroup}>
       {/* Loop through the children and add the multibutton styling to each child depending on its position in the list */}
-      {Children.map(children, (child: any, idx) => {
-        let buttonStyle = styles.multiButton;
-        let selectedStyle = child.props.children === selected ? styles.multiButtonSelected : "";
-        if (editing) {
-          buttonStyle = styles.multiButtonEditing;
-          selectedStyle =
-            child.props.children === selected ? styles.multiButtonEditingSelected : "";
+      {Children.map(
+        children,
+        (
+          child: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+          idx
+        ) => {
+          let buttonStyle = styles.multiButton;
+          let selectedStyle = child.props.children === selected ? styles.multiButtonSelected : "";
+          if (editing) {
+            buttonStyle = styles.multiButtonEditing;
+            selectedStyle =
+              child.props.children === selected ? styles.multiButtonEditingSelected : "";
+          }
+
+          let style;
+          if (idx === 0) style = `${buttonStyle} ${selectedStyle} ${styles.multiButtonStart}`;
+          else if (idx === Children.count(children) - 1)
+            style = ` ${buttonStyle} ${selectedStyle} ${styles.multiButtonEnd}`;
+          else style = `${buttonStyle} ${selectedStyle} ${styles.multiButtonMiddle}`;
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return cloneElement(child as any, {
+            className: style,
+            onClick: () => {
+              if (editing) handleChange(child.props.children);
+            },
+          });
         }
-
-        let style;
-        if (idx === 0) style = `${buttonStyle} ${selectedStyle} ${styles.multiButtonStart}`;
-        else if (idx === Children.count(children) - 1)
-          style = ` ${buttonStyle} ${selectedStyle} ${styles.multiButtonEnd}`;
-        else style = `${buttonStyle} ${selectedStyle} ${styles.multiButtonMiddle}`;
-
-        return cloneElement(child as any, {
-          className: style,
-          onClick: () => {
-            if (editing) handleChange(child.props.children);
-          },
-        });
-      })}
+      )}
     </div>
   );
 };

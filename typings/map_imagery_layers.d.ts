@@ -3,6 +3,7 @@ interface MapLayerControl {
   uuid: string;
   visible: boolean;
   type: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mapLayerRef: any;
   style: MapLayerStyle;
 }

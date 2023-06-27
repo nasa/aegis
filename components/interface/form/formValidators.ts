@@ -76,7 +76,7 @@ export const validators = {
 // UseFieldConfig<any>.validate?: FieldValidator<any>
 export const composeValidators = (...validators: FieldValidator<unknown>[]) => {
   return (
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
     value: any,
     allValues: Record<string, unknown>
   ): string | undefined => {

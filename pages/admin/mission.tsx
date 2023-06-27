@@ -129,6 +129,7 @@ const Mission: NextPage = () => {
         setProgressBarText("Importing Layers");
         setProgressBarColor("#00ff00");
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         tempLayers.forEach((layer: any) => {
           // import the layer into the database
           const body = {
