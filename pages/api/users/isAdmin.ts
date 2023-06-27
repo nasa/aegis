@@ -6,13 +6,14 @@ import { IronSessionData } from "iron-session";
 
 export default withIronSessionApiRoute(handler, ironOptions);
 
-async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<WrappedResponse<IronSessionData>>
-) {
+function handler(req: NextApiRequest, res: NextApiResponse<WrappedResponse<IronSessionData>>) {
   try {
-    if (req.session.user && req.session.user.permission.includes("admin")) {
-      res.status(200).json({ status: "success", message: "Admin Verified", data: { admin: true } });
+    if (req.session.user && (req.session.user.id === 1 || req.session.user.adminPermission)) {
+      res.status(200).json({
+        status: "success",
+        message: "Admin Verified",
+        data: { admin: true, user: req.session.user },
+      });
     } else {
       res
         .status(200)

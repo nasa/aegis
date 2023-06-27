@@ -155,10 +155,10 @@ npm run dev # note: not docker:dev. Running node locally.
 npx mikro-orm migration:create <migration-name>
 
 # Run migrations
-npm run migration:up
+npm run migrate:up
 
 # Rollback migrations
-npm run migration:down
+npm run migrate:down
 
 # Seed the database
 npm run seed

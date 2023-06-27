@@ -57,10 +57,22 @@ const EvaRightTraverse: FunctionComponent = () => {
 
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = mapDirective?.uuid === selectedEvaSequenceItemUuid ? mapDirective : null;
-  const isAdmin = useAppSelector(
-    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
+  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
+
+  //Get the permission list from the user object
+  const permissionList = useAppSelector(
+    (state) => state.user.ironSessionData?.user.permissionList,
     refEqual
   );
+  let isAdmin: boolean = false;
+
+  //Get the permission object with this mission id
+  const missionPermission: PermissionList = permissionList.find(
+    (permission) => permission.missionId === missionId
+  );
+  if (missionPermission.permissions.edit) {
+    isAdmin = true;
+  }
 
   const calculatedFields = useAppSelector(
     (state) =>

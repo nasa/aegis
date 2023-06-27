@@ -4,7 +4,6 @@ import presetStyles from "./preset.module.css";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { setPresetEditMode, upsertPreset } from "store/preset";
-import _ from "lodash";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { Checkbox } from "components/interface/form/globalFields";
 import { SubpanelHeading } from "components/interface/_global-elements";

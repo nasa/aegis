@@ -35,10 +35,23 @@ const PoiEditorRight: FunctionComponent = () => {
     shallowEqual
   );
   const poisEditing = useAppSelector((state) => state.poi.poisEditing, shallowEqual);
-  const isAdmin = useAppSelector(
-    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
+  //Get the permission list from the user object
+  const permissionList = useAppSelector(
+    (state) => state.user.ironSessionData?.user.permissionList,
     refEqual
   );
+
+  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
+  let isAdmin: boolean = false;
+
+  //Get the permission object with this mission id
+  const missionPermission: PermissionList = permissionList.find(
+    (permission) => permission.missionId === missionId
+  );
+  if (missionPermission.permissions.edit) {
+    isAdmin = true;
+  }
+
   const calculatedFields = useAppSelector(
     (state) => state.poi.calculatedFields.find((calculated) => calculated.uuid === selectedPoiUuid),
     shallowEqual

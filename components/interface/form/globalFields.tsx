@@ -12,7 +12,6 @@ import {
 } from "react";
 
 import styles from "./globalFields.module.css";
-import _ from "lodash";
 import { TagsInput } from "react-tag-input-component";
 import { decodeEmoji } from "utils/formatting";
 import { Form } from "react-final-form";

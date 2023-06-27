@@ -18,7 +18,7 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
   res
 ): Promise<unknown> => {
   if (req.session?.user) {
-    const isAdmin = req.session.user.permission.includes("admin"); // will evaluate true or false
+    const isAdmin = req.session.user.id === 1 || req.session.user.adminPermission; // will evaluate true or false
     const { missionId, uuid, stationUuid, poiUuid } = req.query;
     const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
     const actionUUID = Array.isArray(uuid) ? uuid[0] : uuid;

@@ -17,98 +17,110 @@ const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
   req,
   res
 ): Promise<unknown> => {
-  if (req.session?.user) {
-    const isAdmin = req.session.user.permission.includes("admin"); // will evaluate true or false
-    const { missionId, uuid } = req.query;
-    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
-    const evaUuid = Array.isArray(uuid) ? uuid[0] : uuid;
+  try {
+    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
+    const editPermission = req.session?.user?.permissionList.find(
+      (p) => p.missionId == parseInt(missionId)
+    )?.permissions.edit;
+    const viewPermission = req.session?.user?.permissionList.find(
+      (p) => p.missionId == parseInt(missionId)
+    )?.permissions.view;
 
-    if (req.method === "GET") {
-      //check for required mission id is valid
-      if (!intMissionId || _.isNaN(intMissionId)) {
-        return res.status(500).json({ status: "error", message: "Invalid mission ID" });
-      }
-      try {
-        const evas: Eva[] = await getEVAs(intMissionId, evaUuid);
+    if (editPermission || viewPermission) {
+      const { uuid } = req.query;
+      const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+      const evaUuid = Array.isArray(uuid) ? uuid[0] : uuid;
 
-        return res.status(200).json({
-          status: "success",
-          message: "EVAs retrieved",
-          data: evas,
-        });
-      } catch (e) {
-        console.error(e);
-        return res
-          .status(500)
-          .json({ status: "error", message: "Error processing the GET request" });
-      }
-    }
-
-    // upsert a eva
-    if (req.method === "POST") {
-      try {
-        if (!isAdmin) {
-          return res.status(401).json({ status: "failure", message: "Unauthorized" });
+      if (req.method === "GET") {
+        //check for required mission id is valid
+        if (!intMissionId || _.isNaN(intMissionId)) {
+          return res.status(500).json({ status: "error", message: "Invalid mission ID" });
         }
-        const evaToUpsert: Eva = req.body as Eva;
-        const upsertResponse: Eva = await upsertEVAs(evaToUpsert);
+        try {
+          const evas: Eva[] = await getEVAs(intMissionId, evaUuid);
 
-        //check response
-        if (!upsertResponse) {
-          return res.status(500).json({
-            status: "error",
-            message: "Upsert response did not return a value",
-            data: null,
-          });
-        } else {
           return res.status(200).json({
             status: "success",
-            message: `EVA upserted with ID ${upsertResponse.uuid}`,
-            data: upsertResponse,
+            message: "EVAs retrieved",
+            data: evas,
           });
-        }
-      } catch (e) {
-        console.error(e);
-        return res
-          .status(500)
-          .json({ status: "error", message: "Error processing the POST request" });
-      }
-    }
-
-    // delete a record
-    if (req.method === "DELETE") {
-      try {
-        if (!isAdmin) {
-          return res.status(401).json({ status: "failure", message: "Unauthorized" });
-        }
-        const deletedUUID = await deleteEVA(evaUuid);
-        if (deletedUUID) {
-          return res.status(200).json({
-            status: "success",
-            message: "EVA Deleted",
-          });
-        } else {
-          return res.status(404).json({
-            status: "failure",
-            message: "Record not found. Nothing deleted",
-          });
-        }
-      } catch (e) {
-        console.error(e);
-        if (e instanceof ForeignKeyConstraintViolationException) {
-          return res.status(500).json({
-            status: "error",
-            message: "Cannot delete eva. This EVA is referenced elsewhere",
-          });
-        } else {
+        } catch (e) {
+          console.error(e);
           return res
             .status(500)
-            .json({ status: "error", message: "Error processing the DELETE request" });
+            .json({ status: "error", message: "Error processing the GET request" });
         }
       }
+
+      // upsert a eva
+      if (req.method === "POST") {
+        try {
+          if (!editPermission) {
+            return res.status(401).json({ status: "failure", message: "Unauthorized" });
+          }
+          const evaToUpsert: Eva = req.body as Eva;
+          const upsertResponse: Eva = await upsertEVAs(evaToUpsert);
+
+          //check response
+          if (!upsertResponse) {
+            return res.status(500).json({
+              status: "error",
+              message: "Upsert response did not return a value",
+              data: null,
+            });
+          } else {
+            return res.status(200).json({
+              status: "success",
+              message: `EVA upserted with ID ${upsertResponse.uuid}`,
+              data: upsertResponse,
+            });
+          }
+        } catch (e) {
+          console.error(e);
+          return res
+            .status(500)
+            .json({ status: "error", message: "Error processing the POST request" });
+        }
+      }
+
+      // delete a record
+      if (req.method === "DELETE") {
+        try {
+          if (!editPermission) {
+            return res.status(401).json({ status: "failure", message: "Unauthorized" });
+          }
+          const deletedUUID = await deleteEVA(evaUuid);
+          if (deletedUUID) {
+            return res.status(200).json({
+              status: "success",
+              message: "EVA Deleted",
+            });
+          } else {
+            return res.status(404).json({
+              status: "failure",
+              message: "Record not found. Nothing deleted",
+            });
+          }
+        } catch (e) {
+          console.error(e);
+          if (e instanceof ForeignKeyConstraintViolationException) {
+            return res.status(500).json({
+              status: "error",
+              message: "Cannot delete eva. This EVA is referenced elsewhere",
+            });
+          } else {
+            return res
+              .status(500)
+              .json({ status: "error", message: "Error processing the DELETE request" });
+          }
+        }
+      }
+    } else {
+      return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
-  } else {
-    return res.status(401).json({ status: "failure", message: "Unauthorized" });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ status: "error", message: "Error processing the POST request" });
   }
 };
 

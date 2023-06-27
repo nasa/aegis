@@ -18,10 +18,23 @@ const PresetEditorLeft: FunctionComponent = () => {
   const thunkDispatch = useAppDispatch();
   const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
-  const isAdmin = useAppSelector(
-    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
+  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
+
+  //Get the permission list from the user object
+  const permissionList = useAppSelector(
+    (state) => state.user.ironSessionData?.user.permissionList,
     refEqual
   );
+  let isAdmin: boolean = false;
+
+  //Get the permission object with this mission id
+  const missionPermission: PermissionList = permissionList.find(
+    (permission) => permission.missionId === missionId
+  );
+  if (missionPermission && missionPermission.permissions.edit) {
+    isAdmin = true;
+  }
+
   let selectedPreset: Preset;
   if (presets !== null) {
     selectedPreset = presets.find((preset: Preset) => preset.uuid === selectedPresetUuid);

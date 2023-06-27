@@ -9,7 +9,8 @@ export default class UserFactory extends Factory<User_db> {
       username: "testAdmin",
       password: "superSecretPassword",
       email: "gaia@nasa.gov",
-      permission: "admin",
+      adminPermission: true,
+      permissionList: [],
       createdAt: new Date(),
       updatedAt: new Date(),
     };

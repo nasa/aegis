@@ -215,18 +215,37 @@ const PoiPage: NextPage = () => {
             {!mission ? (
               <div className={styles.body}>
                 <div className={styles.missionList}>
-                  {missionList.map((mission) => (
-                    <div className={styles.mission} key={mission.id}>
-                      <div
-                        className={styles.missionName}
-                        onClick={() => {
-                          handleMissionSelect(mission);
-                        }}
-                      >
-                        <h3>{mission.name}</h3>
-                      </div>
-                    </div>
-                  ))}
+                  {missionList.map((mission) => {
+                    if (
+                      currentUser.permissionList.some(
+                        (p) => p.missionId === mission.id && p.permissions.edit === true
+                      )
+                    ) {
+                      return (
+                        <div className={styles.mission} key={mission.id}>
+                          <div
+                            className={styles.missionName}
+                            onClick={() => {
+                              handleMissionSelect(mission);
+                            }}
+                          >
+                            <h3>{mission.name}</h3>
+                          </div>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div className={styles.mission} key={mission.id}>
+                          <div className={styles.missionDisabled}>
+                            <h3>
+                              {mission.name}
+                              <span className={styles.smallGrey}>no edit permission</span>
+                            </h3>
+                          </div>
+                        </div>
+                      );
+                    }
+                  })}
                 </div>
               </div>
             ) : (
