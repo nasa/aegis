@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, useRef } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
@@ -84,6 +84,28 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const handleCancelEdit = () => {
     dispatchMissionMapAction("cancelEditMarker");
   };
+
+  const handleOnChangeSunAzimuth = useRef(
+    _.throttle((value: number) => {
+      dispatch(
+        setMission({
+          ...mission,
+          sunAzimuth: value,
+        })
+      );
+    }, 10)
+  );
+
+  const handleOnChangeEarthAzimuth = useRef(
+    _.throttle((value: number) => {
+      dispatch(
+        setMission({
+          ...mission,
+          earthAzimuth: value,
+        })
+      );
+    }, 10)
+  );
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
@@ -323,14 +345,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       <DegreesInputSlider
                         value={mission.sunAzimuth}
                         editable={editMode}
-                        label="Azimuth"
+                        label="Sun Azimuth"
                         onChange={(value) => {
-                          dispatch(
-                            setMission({
-                              ...mission,
-                              sunAzimuth: value,
-                            })
-                          );
+                          handleOnChangeSunAzimuth.current(value);
                         }}
                         icon={faSun}
                       />
@@ -375,14 +392,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       <DegreesInputSlider
                         value={mission.earthAzimuth}
                         editable={editMode}
-                        label="Azimuth"
+                        label="Earth Azimuth"
                         onChange={(value) => {
-                          dispatch(
-                            setMission({
-                              ...mission,
-                              earthAzimuth: value,
-                            })
-                          );
+                          handleOnChangeEarthAzimuth.current(value);
                         }}
                         icon={faEarthAmerica}
                       />
