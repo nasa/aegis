@@ -124,6 +124,12 @@ const MissionSelect = () => {
         return;
       }
       const response = await getMissions();
+      // if superadmin, show everything
+      if (currentUser.ironSessionData.user.id === 1) {
+        setMissions(response.data);
+        return;
+      }
+
       // Filter out missions that the user does not have permission to view
       const filteredMissions = response.data.filter((mission) => {
         return permissionList.some((permission) => {
@@ -140,7 +146,7 @@ const MissionSelect = () => {
     populateData().catch(() => {
       // Something went wrong. Eventually would like a logger here.
     });
-  }, [currentUser.ironSessionData.user?.permissionList, currentUser.isLoggedIn]);
+  }, [currentUser]);
 
   const handleLogoutButtonClick = async () => {
     const response = await logout();

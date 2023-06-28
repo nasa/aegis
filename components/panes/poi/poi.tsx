@@ -8,6 +8,7 @@ import PoiItem from "./poi-item";
 import _ from "lodash";
 import { thunkCreatePoi, thunkDuplicatePoi } from "store/thunk/thunkPoi";
 import { useAppDispatch } from "utils/useAppDispatch";
+import { hasEditPermissions } from "store/selectors";
 
 const PoiEditorLeft: FunctionComponent = () => {
   const thunkDispatch = useAppDispatch();
@@ -20,21 +21,7 @@ const PoiEditorLeft: FunctionComponent = () => {
 
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
   const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, shallowEqual);
-  //Get the permission list from the user object
-  const permissionList = useAppSelector(
-    (state) => state.user.ironSessionData?.user.permissionList,
-    refEqual
-  );
-  //Get the permission list from the user object
-  let isAdmin: boolean = false;
-
-  //Get the permission object with this mission id
-  const missionPermission: PermissionList = permissionList.find(
-    (permission) => permission.missionId === missionId
-  );
-  if (missionPermission.permissions.edit) {
-    isAdmin = true;
-  }
+  const isAdmin: boolean = useAppSelector(hasEditPermissions(missionId), refEqual);
 
   return (
     <>

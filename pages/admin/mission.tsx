@@ -48,7 +48,10 @@ const Mission: NextPage = () => {
     async function adminCheck() {
       const response = await isLoggedIn();
       //Check if user is logged in.
-      if (response.status === "success" && response.data.user.adminPermission) {
+      if (
+        response.status === "success" &&
+        (response.data.user.adminPermission || response.data.user.id === 1)
+      ) {
         dispatch(setIsLoggedIn(true));
         dispatch(setIronSessionData(response.data));
         setAdmin(true);
@@ -91,7 +94,7 @@ const Mission: NextPage = () => {
 
     async function updateTempMissionConfig(event: ChangeEvent<HTMLTextAreaElement>) {
       const { value } = event.target;
-      await setTempMission(value);
+      setTempMission(value);
     }
 
     async function handleMissionImport(): Promise<void> {
@@ -399,6 +402,7 @@ const MissionList = (props: {
       <ul>
         {props.missions.map((mission: Mission) => {
           if (
+            props.user.id === 1 ||
             permissionList.some((p) => p.missionId === mission.id && p.permissions.edit === true)
           ) {
             return (

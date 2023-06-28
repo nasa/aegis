@@ -227,11 +227,6 @@
   text-align: left;
 }
 
-.table tr:nth-child(even) {
-  background-color: #0b3d91;
-  color: white;
-}
-
 .table tr td.actionList svg {
   padding: 0.5rem;
   text-decoration: none;
@@ -266,7 +261,6 @@
 .form::-webkit-scrollbar-track {
   background: transparent;
 }
-
 
 .formGroup {
   display: flex;
@@ -879,7 +873,7 @@
 .checkbox {
   display: flex;
   justify-content: flex-end;
-  padding: .5em;
+  padding: 0.5em;
   width: 100%;
 }
 
@@ -894,7 +888,6 @@
   flex: 1 1;
   display: block;
 }
-
 
 .pageStyle .tooltip {
   z-index: 900;

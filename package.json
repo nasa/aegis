@@ -9,7 +9,7 @@
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "tsc": "tsc --pretty",
-    "test": "jest --runInBand --detectOpenHandles --forceExit",
+    "test": "jest --runInBand",
     "test:all": "npm run lint && npm run tsc && npm run build && npm run test",
     "test:coverage": "jest --runInBand --coverage --reporters=default --reporters=jest-junit",
     "postinstall": "rimraf node_modules/paper/dist/docs",

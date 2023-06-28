@@ -46,16 +46,28 @@ const User: NextPage = () => {
   }, [router]);
 
   const handleEdit = (user: User) => {
-    const permissionList = missionList.map((mission) => {
-      if (user.permissionList.find((p) => p.missionId === mission.id)) {
-        return user.permissionList.find((p) => p.missionId === mission.id);
-      } else {
+    let permissionList: PermissionList[];
+
+    // if superadmin, give all permissions
+    if (user.id === 1) {
+      permissionList = missionList.map((mission) => {
         return {
-          permissions: { edit: false, view: false },
+          permissions: { edit: true, view: true },
           missionId: mission.id,
         };
-      }
-    });
+      });
+    } else {
+      permissionList = missionList.map((mission) => {
+        if (user.permissionList.find((p) => p.missionId === mission.id)) {
+          return user.permissionList.find((p) => p.missionId === mission.id);
+        } else {
+          return {
+            permissions: { edit: false, view: false },
+            missionId: mission.id,
+          };
+        }
+      });
+    }
 
     setUser({ ...user, permissionList });
     setEditMode(!editMode);

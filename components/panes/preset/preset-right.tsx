@@ -20,6 +20,7 @@ import { Button, InLineEditInput } from "components/interface/form/globalFields"
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDeletePreset, thunkPresetCancel, thunkSavePreset } from "store/thunk/thunkPreset";
 import { validators } from "components/interface/form/formValidators";
+import { hasEditPermissions } from "store/selectors";
 
 const PresetEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -40,20 +41,7 @@ const PresetEditorRight: FunctionComponent = () => {
     shallowEqual
   );
   const presetsEditing = useAppSelector((state) => state.preset.presetsEditing, shallowEqual);
-  //Get the permission list from the user object
-  const permissionList = useAppSelector(
-    (state) => state.user.ironSessionData?.user.permissionList,
-    refEqual
-  );
-  let isAdmin: boolean = false;
-
-  //Get the permission object with this mission id
-  const missionPermission: PermissionList = permissionList.find(
-    (permission) => permission.missionId === missionId
-  );
-  if (missionPermission && missionPermission.permissions.edit) {
-    isAdmin = true;
-  }
+  const isAdmin: boolean = useAppSelector(hasEditPermissions(missionId), refEqual);
 
   const [modified, setModified] = useState(false);
   useEffect(() => {
