@@ -1,16 +1,27 @@
 import { Editable, RenderElementProps, RenderLeafProps, Slate, withReact } from "slate-react";
-import { createEditor, Descendant, Text, Editor } from "slate";
+import { createEditor, Descendant, Text, Editor, Transforms, Element as SlateElement } from "slate";
 import { CustomEditor } from "typings/wysiwyg";
 import { FunctionComponent, useCallback, useEffect, useState } from "react";
+import {
+  IconDefinition,
+  faBold,
+  faItalic,
+  faListOl,
+  faListUl,
+  faUnderline,
+} from "@fortawesome/free-solid-svg-icons";
 import styles from "./wysiwyg.module.css";
 import _ from "lodash";
 import isHotkey from "is-hotkey";
+import { Button } from "./globalFields";
 
 const HOTKEYS = {
-  "mod+b": "bold",
+  "mod+o": "bold",
   "mod+i": "italic",
   "mod+u": "underline",
 };
+
+const LIST_TYPES = ["numbered-list", "bulleted-list"];
 
 const Element = ({ attributes, children, element }: RenderElementProps) => {
   switch (element.type) {
@@ -130,7 +141,7 @@ function convertStringToNodes(stringValue: string, defaultValue: string = ""): D
   }
 }
 
-//used for toggling hot keys
+//used for toggling rich text
 const toggleMark = (editor: CustomEditor, format: string) => {
   const isActive = isMarkActive(editor, format);
 
@@ -141,10 +152,71 @@ const toggleMark = (editor: CustomEditor, format: string) => {
   }
 };
 
+//used for toggling rich blocks
+const toggleBlock = (editor: CustomEditor, format: string) => {
+  const isActive = isBlockActive(editor, format);
+  const isList = LIST_TYPES.includes(format);
+
+  Transforms.unwrapNodes(editor, {
+    match: (n) => !Editor.isEditor(n) && SlateElement.isElement(n) && LIST_TYPES.includes(n.type),
+    split: true,
+  });
+  let newProperties: Partial<SlateElement> = {
+    type: isActive ? "paragraph" : isList ? "list-item" : format,
+  };
+  Transforms.setNodes<SlateElement>(editor, newProperties);
+
+  if (!isActive && isList) {
+    const block = { type: format, children: [] };
+    Transforms.wrapNodes(editor, block);
+  }
+};
+
 //used for toggling hot keys
 const isMarkActive = (editor: CustomEditor, format: string) => {
   const marks = Editor.marks(editor);
   return marks ? marks[format] === true : false;
+};
+
+//used for toggling blocks
+const isBlockActive = (editor: CustomEditor, format: string, blockType: string = "type") => {
+  const { selection } = editor;
+  if (!selection) return false;
+
+  const [match] = Array.from(
+    Editor.nodes(editor, {
+      at: Editor.unhangRange(editor, selection),
+      match: (n) => !Editor.isEditor(n) && SlateElement.isElement(n) && n[blockType] === format,
+    })
+  );
+
+  return !!match;
+};
+
+const MarkButton = ({ editor, format, icon }) => {
+  return (
+    <div className={styles.wysiwygButton}>
+      <Button
+        icon={icon}
+        onClick={() => {
+          toggleMark(editor, format);
+        }}
+      />
+    </div>
+  );
+};
+
+const BlockButton = ({ editor, format, icon }) => {
+  return (
+    <div className={styles.wysiwygButton}>
+      <Button
+        icon={icon}
+        onClick={() => {
+          toggleBlock(editor, format);
+        }}
+      />
+    </div>
+  );
 };
 
 export const WysiwygTextArea: FunctionComponent<{
@@ -180,6 +252,18 @@ export const WysiwygTextArea: FunctionComponent<{
             }
           }}
         >
+          <div className={styles.wysiwygButtonSubcontainer}>
+            <div className={styles.wysiwygButtonSubcontainer}>
+              <MarkButton editor={editor} format="bold" icon={faBold} />
+              <MarkButton editor={editor} format="italic" icon={faItalic} />
+              <MarkButton editor={editor} format="underline" icon={faUnderline} />
+            </div>
+            <div className={styles.wysiwygButtonSubcontainer}>
+              <BlockButton editor={editor} format="bulleted-list" icon={faListUl} />
+              <BlockButton editor={editor} format="numbered-list" icon={faListOl} />
+            </div>
+          </div>
+
           <Editable
             renderElement={renderElement}
             renderLeaf={renderLeaf}
