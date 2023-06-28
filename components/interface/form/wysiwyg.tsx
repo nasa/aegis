@@ -1,6 +1,6 @@
 import { Editable, RenderElementProps, RenderLeafProps, Slate, withReact } from "slate-react";
 import { createEditor, Descendant, Text, Editor, Transforms, Element as SlateElement } from "slate";
-import { CustomEditor } from "typings/wysiwyg";
+import { BulletedListElement, CustomEditor, NumberedListElement } from "typings/wysiwyg";
 import { FunctionComponent, useCallback, useEffect, useState } from "react";
 import {
   IconDefinition,
@@ -153,7 +153,7 @@ const toggleMark = (editor: CustomEditor, format: string) => {
 };
 
 //used for toggling rich blocks
-const toggleBlock = (editor: CustomEditor, format: string) => {
+const toggleBlock = (editor: CustomEditor, format: "numbered-list" | "bulleted-list") => {
   const isActive = isBlockActive(editor, format);
   const isList = LIST_TYPES.includes(format);
 
@@ -176,7 +176,7 @@ const toggleBlock = (editor: CustomEditor, format: string) => {
   Transforms.setNodes<SlateElement>(editor, newProperties);
 
   if (!isActive && isList) {
-    const block = { type: format, children: [] };
+    const block: NumberedListElement | BulletedListElement = { type: format, children: [] };
     Transforms.wrapNodes(editor, block);
   }
 };
