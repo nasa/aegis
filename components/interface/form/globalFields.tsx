@@ -62,7 +62,7 @@ export const TextboxButton: FunctionComponent<{
   const enabledStyle = !enabled ? styles.iconButtonDisabled : "";
   return (
     <div
-      className={`${styles.button} ${enabledStyle} `}
+      className={`${styles.textboxButton} ${enabledStyle} `}
       data-tooltip-id="aegis-tooltip"
       data-tooltip-html={toolTip}
       onMouseDown={onMouseDown}

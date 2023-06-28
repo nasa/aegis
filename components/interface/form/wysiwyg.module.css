@@ -19,11 +19,13 @@
 }
 
 .wysiwygButtonSubcontainer {
-  display: inline-flex;
+  display: flex;
+  flex-direction: row;
 }
 
 .wysiwygButton {
-  display: inline;
+  display: flex;
+  flex-direction: row;
 }
 
 .notesText {

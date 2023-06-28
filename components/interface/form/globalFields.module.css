@@ -24,6 +24,26 @@
   color: var(--grey4);
 }
 
+.textboxButton {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+
+  height: 2em;
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.8em;
+  font-weight: 400;
+  margin-left: 2px;
+  padding-left: 8px;
+  padding-right: 8px;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .buttonIcon {
   margin-right: 3px;
 }

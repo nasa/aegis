@@ -263,7 +263,7 @@ export const WysiwygTextArea: FunctionComponent<{
             }
           }}
         >
-          <div className={styles.wysiwygButtonSubcontainer}>
+          <div className={styles.wysiwygButtonContainer}>
             <div className={styles.wysiwygButtonSubcontainer}>
               <MarkButton editor={editor} format="bold" icon={faBold} />
               <MarkButton editor={editor} format="italic" icon={faItalic} />
