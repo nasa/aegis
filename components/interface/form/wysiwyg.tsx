@@ -3,7 +3,6 @@ import { createEditor, Descendant, Text, Editor, Transforms, Element as SlateEle
 import { BulletedListElement, CustomEditor, NumberedListElement } from "typings/wysiwyg";
 import { FunctionComponent, useCallback, useEffect, useState } from "react";
 import {
-  IconDefinition,
   faBold,
   faItalic,
   faListOl,
@@ -13,7 +12,7 @@ import {
 import styles from "./wysiwyg.module.css";
 import _ from "lodash";
 import isHotkey from "is-hotkey";
-import { Button, TextboxButton } from "./globalFields";
+import { TextboxButton } from "./globalFields";
 
 const HOTKEYS = {
   "mod+o": "bold",

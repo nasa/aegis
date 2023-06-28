@@ -16,11 +16,13 @@
 
 .wysiwygButtonContainer {
   display: flex;
+  padding-top: 2px;
 }
 
 .wysiwygButtonSubcontainer {
   display: flex;
   flex-direction: row;
+  padding-right: 10px;
 }
 
 .wysiwygButton {
