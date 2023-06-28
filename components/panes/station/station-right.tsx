@@ -30,6 +30,7 @@ import emojiPickerData from "@emoji-mart/data";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDeleteStation, thunkSaveStation, thunkStationCancel } from "store/thunk/thunkStation";
 import { validators } from "components/interface/form/formValidators";
+import { hasEditPermissions } from "store/selectors";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -71,21 +72,7 @@ const StationEditorRight: FunctionComponent = () => {
     shallowEqual
   );
   const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
-
-  //Get the permission list from the user object
-  const permissionList = useAppSelector(
-    (state) => state.user.ironSessionData?.user.permissionList,
-    refEqual
-  );
-  let isAdmin: boolean = false;
-
-  //Get the permission object with this mission id
-  const missionPermission: PermissionList = permissionList.find(
-    (permission) => permission.missionId === missionId
-  );
-  if (missionPermission.permissions.edit) {
-    isAdmin = true;
-  }
+  const isAdmin: boolean = useAppSelector(hasEditPermissions(missionId), refEqual);
 
   const calculatedFields = useAppSelector(
     (state) =>

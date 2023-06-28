@@ -28,11 +28,14 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
   res
 ): Promise<unknown> => {
   try {
+    //missionId is optional
     const missionId = req.query.missionId ? req.query.missionId : req.body.id;
     const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
-    const editPermission = req.session?.user?.permissionList.find(
-      (p) => p.missionId == intMissionId
-    )?.permissions.edit;
+
+    //General login check. Individual view/edit depends on the method to account for mission create
+    if (!req.session?.user) {
+      return res.status(401).json({ status: "failure", message: "Unauthorized" });
+    }
 
     // retrieve record
     if (req.method === "GET") {
@@ -40,25 +43,35 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
         return res.status(500).json({ status: "error", message: "Invalid mission ID" });
       }
 
+      let viewPermission = false;
+      if (intMissionId) {
+        viewPermission = req.session?.user?.permissionList?.find((p) => p.missionId == intMissionId)
+          ?.permissions.view;
+      } else {
+        //no mission specified. check if they are allowed to view at least one mission
+        viewPermission = req.session?.user?.permissionList?.find((p) => p.permissions.view)
+          ?.permissions.view;
+      }
+      //super admin can always view
+      if (!viewPermission && !(req.session?.user?.id === 1))
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+
       try {
         //Check if they have permissions, then return the mission specified
         let records: Mission[];
         if (missionId) {
-          const viewPermission = req.session?.user?.permissionList.find(
-            (p) => p.missionId == intMissionId
-          )?.permissions.view;
-          if (!viewPermission) {
-            return res.status(401).json({ status: "failure", message: "Unauthorized" });
-          } else {
-            records = await getMission(intMissionId);
-          }
+          records = await getMission(intMissionId);
         } else {
-          //return all missions that they have permission for
-          if (!req.session.user) {
-            return res.status(401).json({ status: "failure", message: "Unauthorized" });
+          //super admin can see all missions
+          if (req.session.user.id === 1) {
+            records = await getMission();
+          } else {
+            //return all missions that they have permission for
+            const allViewMissions: number[] = req.session.user.permissionList.map((p) => {
+              if (p.permissions.view) return p.missionId;
+            });
+            records = await getMission(allViewMissions);
           }
-
-          records = await getMission();
         }
 
         return res.status(200).json({
@@ -74,10 +87,19 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
       }
     }
 
+    const editPermission =
+      req.session?.user?.id === 1 ||
+      req.session?.user?.permissionList?.find((p) => p.missionId == intMissionId)?.permissions.edit;
+
     //upsert a record
     if (req.method === "POST") {
       try {
-        if (missionId && !editPermission) {
+        //must have edit permission for a given mission id
+        //  or if no mission id (create mission) must be an admin to the back end or user 1
+        if (
+          (missionId && !editPermission) ||
+          (!missionId && !req.session.user.adminPermission && !editPermission)
+        ) {
           return res.status(401).json({ status: "failure", message: "Unauthorized" });
         }
         //perform the upsert

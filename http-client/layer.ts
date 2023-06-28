@@ -19,8 +19,11 @@ export async function upsertLayer(layer: Layer): Promise<WrappedResponse<Layer>>
   return response;
 }
 
-export async function deleteLayer(layerUuid: string): Promise<WrappedResponse<null>> {
-  const res = await fetch(`/api/layer?uuid=${layerUuid}`, {
+export async function deleteLayer(
+  layerUuid: string,
+  missionId: number
+): Promise<WrappedResponse<null>> {
+  const res = await fetch(`/api/layer?uuid=${layerUuid}&missionId=${missionId}`, {
     method: "DELETE",
   });
   const response: WrappedResponse<null> = await res.json();

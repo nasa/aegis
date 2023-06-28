@@ -25,6 +25,7 @@ import Report_Panel from "../report";
 import * as httpClient_Traverse from "http-client/traverse";
 import { updateMapDirective } from "store/map";
 import { getAlertColor } from "utils/component-helpers";
+import { hasEditPermissions } from "store/selectors";
 
 const EvaRightTraverse: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -59,20 +60,7 @@ const EvaRightTraverse: FunctionComponent = () => {
   const thisMapDirective = mapDirective?.uuid === selectedEvaSequenceItemUuid ? mapDirective : null;
   const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
 
-  //Get the permission list from the user object
-  const permissionList = useAppSelector(
-    (state) => state.user.ironSessionData?.user.permissionList,
-    refEqual
-  );
-  let isAdmin: boolean = false;
-
-  //Get the permission object with this mission id
-  const missionPermission: PermissionList = permissionList.find(
-    (permission) => permission.missionId === missionId
-  );
-  if (missionPermission.permissions.edit) {
-    isAdmin = true;
-  }
+  const isAdmin: boolean = useAppSelector(hasEditPermissions(missionId), refEqual);
 
   const calculatedFields = useAppSelector(
     (state) =>

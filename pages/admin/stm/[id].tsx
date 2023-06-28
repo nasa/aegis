@@ -56,7 +56,7 @@ const STM: NextPage = () => {
 
         //set mission name
         const mission = (await getMissions(+id)).data;
-        if (mission[0]) {
+        if (mission) {
           setMissionName(mission[0].name);
         }
       } else {

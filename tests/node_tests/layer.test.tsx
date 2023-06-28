@@ -51,6 +51,7 @@ beforeAll(async () => {
       },
     ],
   });
+
   testLayer = await new LayerFactory(em)
     .each((layer) => {
       layer.mission = testMission;
@@ -123,11 +124,10 @@ describe("Layer API Endpoint ", () => {
 
   //upsert and delete tests must occur in order
   test("Create new layer", async () => {
-    newLayer.missionId = testMission.id;
     const reqOptions: RequestOptions = {
       method: "POST",
       headers: { cookie: loginCookie },
-      body: { layer: newLayer, missionId: testMission.id },
+      body: { ...newLayer, missionId: testMission.id },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handleLayer(req, res);
@@ -154,7 +154,7 @@ describe("Layer API Endpoint ", () => {
     const reqOptions: RequestOptions = {
       method: "POST",
       headers: { cookie: loginCookie },
-      body: { layer: newLayer, missionId: testMission.id },
+      body: newLayer,
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handleLayer(req, res);

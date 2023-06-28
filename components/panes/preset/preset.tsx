@@ -13,27 +13,14 @@ import { setRightPanelOpen } from "store/interface";
 import { setAllLayerControlsInvisible } from "utils/store";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreatePreset, thunkDuplicatePreset } from "store/thunk/thunkPreset";
+import { hasEditPermissions } from "store/selectors";
 
 const PresetEditorLeft: FunctionComponent = () => {
   const thunkDispatch = useAppDispatch();
   const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
-
-  //Get the permission list from the user object
-  const permissionList = useAppSelector(
-    (state) => state.user.ironSessionData?.user.permissionList,
-    refEqual
-  );
-  let isAdmin: boolean = false;
-
-  //Get the permission object with this mission id
-  const missionPermission: PermissionList = permissionList.find(
-    (permission) => permission.missionId === missionId
-  );
-  if (missionPermission && missionPermission.permissions.edit) {
-    isAdmin = true;
-  }
+  const isAdmin: boolean = useAppSelector(hasEditPermissions(missionId), refEqual);
 
   let selectedPreset: Preset;
   if (presets !== null) {

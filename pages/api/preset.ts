@@ -12,12 +12,13 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
 ): Promise<unknown> => {
   try {
     const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-    const editPermission = req.session?.user?.permissionList.find(
-      (p) => p.missionId == parseInt(missionId)
-    )?.permissions.edit;
-    const viewPermission = req.session?.user?.permissionList.find(
-      (p) => p.missionId == parseInt(missionId)
-    )?.permissions.view;
+    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+    const editPermission =
+      req.session?.user?.id === 1 ||
+      req.session?.user?.permissionList.find((p) => p.missionId == intMissionId)?.permissions.edit;
+    const viewPermission =
+      req.session?.user?.id === 1 ||
+      req.session?.user?.permissionList.find((p) => p.missionId == intMissionId)?.permissions.view;
 
     if (editPermission || viewPermission) {
       //Gets all Presets for a mission
@@ -45,52 +46,48 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
       }
       // Upsert a Preset
       if (req.method === "POST") {
-        const presetBody = req.body.preset as Preset;
         if (!editPermission) {
           return res.status(401).json({ status: "failure", message: "Unauthorized" });
         }
-        if (req.session?.user) {
-          try {
-            const em = getEM();
-            const updateDateString = roundDateToSecond(new Date()).toISOString();
-            const convertedPreset: EntityData<Preset_db> = {
-              uuid: presetBody.uuid,
-              owner: presetBody.ownerId,
-              mission: presetBody.missionId,
-              name: presetBody.name,
-              description: presetBody.description,
-              missionPreset: presetBody.missionPreset,
-              missionPresetDefault: presetBody.missionPresetDefault,
-              mapLayerControls: presetBody.mapLayerControls,
-              layerOrder: presetBody.layerOrder,
-              createdAt: new Date(presetBody.createdAt || updateDateString),
-              updatedAt: new Date(updateDateString),
-            };
-            const upsertedPreset = await em.upsert(Preset_db, convertedPreset);
-            await em.persistAndFlush(upsertedPreset);
-            const responsePreset: Preset = {
-              uuid: upsertedPreset.uuid,
-              missionId: upsertedPreset.mission.id,
-              ownerId: upsertedPreset.owner.id,
-              name: upsertedPreset.name,
-              description: upsertedPreset.description,
-              missionPreset: upsertedPreset.missionPreset,
-              missionPresetDefault: upsertedPreset.missionPresetDefault,
-              mapLayerControls: upsertedPreset.mapLayerControls,
-              layerOrder: upsertedPreset.layerOrder,
-              createdAt: upsertedPreset.createdAt.toISOString(),
-              updatedAt: upsertedPreset.updatedAt.toISOString(),
-            };
-            return res.status(200).json({
-              status: "success",
-              message: "Preset upserted",
-              data: responsePreset,
-            });
-          } catch (error) {
-            return res.status(500).json({ status: "error", message: "Failed to upsert preset." });
-          }
-        } else {
-          return res.status(401).json({ status: "failure", message: "Unauthorized" });
+        const presetBody = req.body as Preset;
+        try {
+          const em = getEM();
+          const updateDateString = roundDateToSecond(new Date()).toISOString();
+          const convertedPreset: EntityData<Preset_db> = {
+            uuid: presetBody.uuid,
+            owner: presetBody.ownerId,
+            mission: presetBody.missionId,
+            name: presetBody.name,
+            description: presetBody.description,
+            missionPreset: presetBody.missionPreset,
+            missionPresetDefault: presetBody.missionPresetDefault,
+            mapLayerControls: presetBody.mapLayerControls,
+            layerOrder: presetBody.layerOrder,
+            createdAt: new Date(presetBody.createdAt || updateDateString),
+            updatedAt: new Date(updateDateString),
+          };
+          const upsertedPreset = await em.upsert(Preset_db, convertedPreset);
+          await em.persistAndFlush(upsertedPreset);
+          const responsePreset: Preset = {
+            uuid: upsertedPreset.uuid,
+            missionId: upsertedPreset.mission.id,
+            ownerId: upsertedPreset.owner.id,
+            name: upsertedPreset.name,
+            description: upsertedPreset.description,
+            missionPreset: upsertedPreset.missionPreset,
+            missionPresetDefault: upsertedPreset.missionPresetDefault,
+            mapLayerControls: upsertedPreset.mapLayerControls,
+            layerOrder: upsertedPreset.layerOrder,
+            createdAt: upsertedPreset.createdAt.toISOString(),
+            updatedAt: upsertedPreset.updatedAt.toISOString(),
+          };
+          return res.status(200).json({
+            status: "success",
+            message: "Preset upserted",
+            data: responsePreset,
+          });
+        } catch (error) {
+          return res.status(500).json({ status: "error", message: "Failed to upsert preset." });
         }
         // Deletes a preset
       }
@@ -101,23 +98,19 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
         const {
           query: { uuid },
         } = req;
-        if (req.session?.user) {
-          try {
-            const em = getEM();
-            const presetToDelete = await em.findOne(Preset_db, { uuid });
-            if (!presetToDelete) {
-              return res.status(404).json({ status: "failure", message: "Preset not found" });
-            }
-            await em.removeAndFlush(presetToDelete);
-            return res.status(200).json({
-              status: "success",
-              message: "Preset deleted",
-            });
-          } catch (error) {
-            return res.status(500).json({ status: "error", message: "Failed to delete preset." });
+        try {
+          const em = getEM();
+          const presetToDelete = await em.findOne(Preset_db, { uuid });
+          if (!presetToDelete) {
+            return res.status(404).json({ status: "failure", message: "Preset not found" });
           }
-        } else {
-          return res.status(401).json({ status: "failure", message: "Unauthorized" });
+          await em.removeAndFlush(presetToDelete);
+          return res.status(200).json({
+            status: "success",
+            message: "Preset deleted",
+          });
+        } catch (error) {
+          return res.status(500).json({ status: "error", message: "Failed to delete preset." });
         }
       } else {
         return res.status(405).json({ status: "failure", message: "Method not allowed" });

@@ -4,7 +4,7 @@ export async function getPOIs(mission: number): Promise<WrappedResponse<POI[]>> 
   return response;
 }
 
-export async function setPOI(poi: POI): Promise<WrappedResponse<POI>> {
+export async function upsertPOI(poi: POI): Promise<WrappedResponse<POI>> {
   const res = await fetch("/api/poi", {
     method: "POST",
     headers: {
@@ -16,8 +16,11 @@ export async function setPOI(poi: POI): Promise<WrappedResponse<POI>> {
   return response;
 }
 
-export async function deletePOI(poiUuid: string): Promise<WrappedResponse<null>> {
-  const res = await fetch(`/api/poi?uuid=${poiUuid}`, {
+export async function deletePOI(
+  poiUuid: string,
+  missionId: number
+): Promise<WrappedResponse<null>> {
+  const res = await fetch(`/api/poi?uuid=${poiUuid}&missionId=${missionId}`, {
     method: "DELETE",
   });
   const response: WrappedResponse<null> = await res.json();

@@ -11,13 +11,16 @@ export async function setPreset(preset: Preset): Promise<WrappedResponse<Preset>
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ preset }),
+    body: JSON.stringify(preset),
   });
   return await res.json();
 }
 
-export async function deletePreset(presetUuid: string): Promise<WrappedResponse<Preset>> {
-  const res = await fetch(`/api/preset?uuid=${presetUuid}`, {
+export async function deletePreset(
+  presetUuid: string,
+  missionId: number
+): Promise<WrappedResponse<Preset>> {
+  const res = await fetch(`/api/preset?uuid=${presetUuid}&missionId=${missionId}`, {
     method: "DELETE",
   });
   return await res.json();

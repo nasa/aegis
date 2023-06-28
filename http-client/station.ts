@@ -21,8 +21,11 @@ export async function upsertStation(stationObj: Station): Promise<WrappedRespons
   return response;
 }
 
-export async function deleteStation(stationUUID: string): Promise<WrappedResponse<number | null>> {
-  const res = await fetch(`/api/station?uuid=${stationUUID}`, {
+export async function deleteStation(
+  stationUUID: string,
+  missionId: number
+): Promise<WrappedResponse<number | null>> {
+  const res = await fetch(`/api/station?uuid=${stationUUID}&missionId=${missionId}`, {
     method: "DELETE",
   });
   const response: WrappedResponse<number | null> = await res.json();

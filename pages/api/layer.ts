@@ -39,16 +39,25 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
     const { uuid } = req.query;
     const layerUUID = Array.isArray(uuid) ? uuid[0] : uuid;
     const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
-    const isLoggedIn = req.session?.user?.id;
-    // retrieve record
-    if (!isLoggedIn) {
+
+    //General login check. Individual view/edit depends on the method to account for mission create
+    if (!req.session?.user) {
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
+
+    // retrieve record
     if (req.method === "GET") {
       try {
         if (!intMissionId || _.isNaN(intMissionId)) {
           return res.status(500).json({ status: "error", message: "Invalid mission ID" });
         }
+
+        const viewPermission =
+          req.session?.user?.id === 1 ||
+          req.session?.user?.permissionList.find((p) => p.missionId == parseInt(missionId))
+            ?.permissions.view;
+        if (!viewPermission)
+          return res.status(401).json({ status: "failure", message: "Unauthorized" });
 
         const records: Layer[] = await getLayers(intMissionId, layerUUID);
 
@@ -65,11 +74,20 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
       }
     }
 
+    const editPermission =
+      req.session?.user?.id === 1 ||
+      req.session?.user?.permissionList?.find((p) => p.missionId == intMissionId)?.permissions.edit;
+
     //upsert a record
     if (req.method === "POST") {
+      //must have edit permission for a given mission id or must be an admin to the back end (during mission create)
+      if (missionId && !editPermission && !req.session.user.adminPermission) {
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+      }
+
       try {
         //perform the upsert
-        const upsertObject: Layer = req.body.layer as Layer;
+        const upsertObject: Layer = req.body as Layer;
         const upsertResponse: Layer = await upsertLayer(upsertObject);
 
         //check response
@@ -96,6 +114,10 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
 
     //delete a record
     if (req.method === "DELETE") {
+      if (!editPermission) {
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+      }
+
       try {
         const deletedUUID = await deleteLayer(layerUUID);
 

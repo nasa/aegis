@@ -108,7 +108,6 @@ describe("Preset API Endpoint", () => {
       method: "GET",
       headers: { cookie: loginCookie },
       query: { missionId: testMission.id },
-      body: { user: { username: "testAdmin" } },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handlePreset(req, res);
@@ -125,7 +124,6 @@ describe("Preset API Endpoint", () => {
       method: "GET",
       headers: { cookie: loginCookie },
       query: { missionId: "99999" },
-      body: { user: { username: "testAdmin" } },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handlePreset(req, res);
@@ -142,11 +140,7 @@ describe("Preset API Endpoint", () => {
     const reqOptions: RequestOptions = {
       method: "POST",
       headers: { cookie: loginCookie },
-      body: {
-        preset: { ...newPreset, missionId: testMission.id, ownerId: testAdmin.id },
-        user: { username: "testAdmin" },
-        missionId: testMission.id,
-      },
+      body: { ...newPreset, missionId: testMission.id, ownerId: testAdmin.id },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handlePreset(req, res);
@@ -169,7 +163,7 @@ describe("Preset API Endpoint", () => {
     const reqOptions: RequestOptions = {
       method: "POST",
       headers: { cookie: loginCookie },
-      body: { preset: newPreset, user: { username: "testAdmin" }, missionId: testMission.id },
+      body: newPreset,
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handlePreset(req, res);
@@ -186,8 +180,7 @@ describe("Preset API Endpoint", () => {
     const reqOptions: RequestOptions = {
       method: "DELETE",
       headers: { cookie: loginCookie },
-      query: { uuid: `${newPreset.uuid}` },
-      body: { user: { username: "testAdmin" }, missionId: testMission.id },
+      query: { uuid: `${newPreset.uuid}`, missionId: testMission.id },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handlePreset(req, res);

@@ -21,10 +21,13 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
   const { uuid } = req.query;
   const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
   const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
-  const editPermission = req.session?.user?.permissionList.find((p) => p.missionId == intMissionId)
-    ?.permissions.edit;
-  const viewPermission = req.session?.user?.permissionList.find((p) => p.missionId == intMissionId)
-    ?.permissions.view;
+  const editPermission =
+    req.session?.user?.id === 1 ||
+    req.session?.user?.permissionList.find((p) => p.missionId == intMissionId)?.permissions.edit;
+  const viewPermission =
+    req.session?.user?.id === 1 ||
+    req.session?.user?.permissionList.find((p) => p.missionId == intMissionId)?.permissions.view;
+
   if (editPermission || viewPermission) {
     const stationUUID = Array.isArray(uuid) ? uuid[0] : uuid;
 

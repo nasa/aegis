@@ -51,7 +51,7 @@ const Layers: NextPage = () => {
 
         //set mission name
         const mission = (await getMissions(+id)).data;
-        if (mission[0]) {
+        if (mission) {
           setMissionName(mission[0].name);
         }
       }
@@ -317,7 +317,7 @@ const LayerList = (props: {
           `Error: Cannot delete layer ${layer.layerConfig.name}. This layer has sublayers. Delete sublayers first`
         );
       } else {
-        const res: WrappedResponse<null> = await deleteLayer(layer.uuid);
+        const res: WrappedResponse<null> = await deleteLayer(layer.uuid, props.missionId);
         alert(`Delete ${res.status} - ${res.message} for uuid ${layer.uuid}`);
         props.refreshLayerList(props.missionId); //reload layer listing in parent component.
       }
