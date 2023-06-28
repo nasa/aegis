@@ -175,7 +175,7 @@ const MissionEditor: FunctionComponent<{
                   <div id="bannerDiv">
                     <div className={adminStyles.editDiv}>
                       <FFInput
-                        name="config.missionBanner"
+                        name="missionBanner"
                         label={{ label: "Mission Banner", title: "Mission Banner" }}
                         initialValue={mission?.name}
                       />

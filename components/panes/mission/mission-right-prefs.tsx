@@ -147,18 +147,17 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             </div>
             <div className={paneStyles.descriptionContainer}>
               <InLineEditInput
-                value={mission.config.missionBanner}
+                value={mission.missionBanner}
                 editing={editMode}
                 fieldProps={{
                   name: "name",
                   ariaLabel: "Mission Banner",
                   style: { width: "100%" },
-                  validators: [validators.maxLength(50)],
+                  validators: [validators.maxLength(255)],
                 }}
                 styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                 onSubmit={(value) => {
-                  const newConfig = { ...mission.config, missionBanner: value };
-                  dispatch(setMission({ ...mission, config: newConfig }));
+                  dispatch(setMission({ ...mission, missionBanner: value }));
                 }}
               />
             </div>

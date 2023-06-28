@@ -5,6 +5,7 @@ interface Mission {
   id: number;
   name: string;
   description: string;
+  missionBanner: string;
   config: Config;
   version?: number;
   createdAt?: string;
@@ -37,7 +38,6 @@ interface Config {
   panelSettings: MMGIS_PanelSettings;
   tools: MMGIS_Tool[];
   time: MMGIS_ConfigTime;
-  missionBanner: string;
 }
 
 /**

@@ -9,6 +9,8 @@ export class Mission implements Mission_db_type {
   name!: string;
   @Property({ type: MikroTypes.text, nullable: true })
   description!: string;
+  @Property({ type: MikroTypes.text, nullable: true })
+  missionBanner: string;
   @Property({ type: MikroTypes.json, nullable: true })
   config!: Config;
   @Property({ type: MikroTypes.integer })

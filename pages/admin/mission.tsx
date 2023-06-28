@@ -74,6 +74,7 @@ const Mission: NextPage = () => {
       id: null,
       name: "",
       description: "",
+      missionBanner: "",
       config: createNewConfig(),
       landerLocation: null,
       traverseSpeed: 2,
