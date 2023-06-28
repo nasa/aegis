@@ -30,6 +30,7 @@ import {
   thunkSaveEva,
 } from "store/thunk/thunkEva";
 import { validators } from "components/interface/form/formValidators";
+import { hasEditPermissions } from "store/selectors";
 
 const EvaRightEva: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -58,11 +59,8 @@ const EvaRightEva: FunctionComponent = () => {
     (state) => state.station.calculatedFields,
     shallowEqual
   );
-
-  const isAdmin = useAppSelector(
-    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
-    refEqual
-  );
+  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
+  const isAdmin: boolean = useAppSelector(hasEditPermissions(missionId), refEqual);
 
   const calculatedFields = useAppSelector(
     (state) =>

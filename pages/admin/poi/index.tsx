@@ -2,7 +2,7 @@ import { NextPage } from "next";
 import { ChangeEvent, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { isAdmin, isLoggedIn } from "http-client/login";
-import { getPOIs, setPOI } from "http-client/poi";
+import { getPOIs, upsertPOI } from "http-client/poi";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";
 import { getMissions } from "http-client/mission";
@@ -66,7 +66,7 @@ const PoiPage: NextPage = () => {
       if (geoJsonPOIs.features.length > 0) {
         for (const poi of geoJsonPOIs.features) {
           //Assign a random emoji
-          let emoji;
+          let emoji: string;
 
           if (!poi.properties.emoji) {
             emoji = "26AA"; // Default to a white/grey dot.
@@ -91,7 +91,7 @@ const PoiPage: NextPage = () => {
             },
             icon: emoji,
           };
-          const poiSet = await setPOI(poiData);
+          const poiSet = await upsertPOI(poiData);
           if (poiSet.status !== "success") {
             if (poi.properties.name) {
               errorHolder.push(poi.properties.name);
@@ -215,18 +215,37 @@ const PoiPage: NextPage = () => {
             {!mission ? (
               <div className={styles.body}>
                 <div className={styles.missionList}>
-                  {missionList.map((mission) => (
-                    <div className={styles.mission} key={mission.id}>
-                      <div
-                        className={styles.missionName}
-                        onClick={() => {
-                          handleMissionSelect(mission);
-                        }}
-                      >
-                        <h3>{mission.name}</h3>
-                      </div>
-                    </div>
-                  ))}
+                  {missionList.map((mission) => {
+                    if (
+                      currentUser.permissionList.some(
+                        (p) => p.missionId === mission.id && p.permissions.edit === true
+                      )
+                    ) {
+                      return (
+                        <div className={styles.mission} key={mission.id}>
+                          <div
+                            className={styles.missionName}
+                            onClick={() => {
+                              handleMissionSelect(mission);
+                            }}
+                          >
+                            <h3>{mission.name}</h3>
+                          </div>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div className={styles.mission} key={mission.id}>
+                          <div className={styles.missionDisabled}>
+                            <h3>
+                              {mission.name}
+                              <span className={styles.smallGrey}>no edit permission</span>
+                            </h3>
+                          </div>
+                        </div>
+                      );
+                    }
+                  })}
                 </div>
               </div>
             ) : (

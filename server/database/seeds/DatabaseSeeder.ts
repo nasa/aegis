@@ -14,8 +14,8 @@ import { EVASeeder } from "./seeders/EVASeeder";
 export class DatabaseSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     return this.call(em, [
-      UserSeeder,
       MissionSeeder,
+      UserSeeder,
       LayerSeeder,
       PresetSeeder,
       STMSeeder,

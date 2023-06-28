@@ -22,9 +22,10 @@ export async function upsertTraverse(traverseObj: Traverse): Promise<WrappedResp
 }
 
 export async function deleteTraverse(
-  traverseUuid: string
+  traverseUuid: string,
+  missionId: number
 ): Promise<WrappedResponse<number | null>> {
-  const res = await fetch(`/api/traverse?uuid=${traverseUuid}`, {
+  const res = await fetch(`/api/traverse?uuid=${traverseUuid}&missionId=${missionId}`, {
     method: "DELETE",
   });
   const response: WrappedResponse<number | null> = await res.json();

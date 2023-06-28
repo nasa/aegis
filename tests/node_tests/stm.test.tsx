@@ -31,8 +31,25 @@ let stmObjectives: STM_Objective_db[];
 beforeAll(async () => {
   await getORM();
   const em = getEM();
-  testAdmin = await new UserFactory(em).createOne();
   testMission = await new MissionFactory(em).createOne();
+  testAdmin = await new UserFactory(em).createOne({
+    permissionList: [
+      {
+        missionId: testMission.id,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+      {
+        missionId: 99999,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+    ],
+  });
   //create 2 objectives. each objective has 2 child goals and each child goal has 2 child invstgs
   stmObjectives = await new STMObjectiveFactory(em)
     .each(async (objective) => {
@@ -308,7 +325,7 @@ describe("STM API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newObjective, missionId: testMission.id },
-        query: { stmType: "o" },
+        query: { stmType: "o", missionId: testMission.id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSTM(req, res);
@@ -333,7 +350,7 @@ describe("STM API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newGoal, objectiveUuid: newObjective.uuid },
-        query: { stmType: "g" },
+        query: { stmType: "g", missionId: testMission.id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSTM(req, res);
@@ -358,7 +375,7 @@ describe("STM API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newInvstg, goalUuid: newGoal.uuid },
-        query: { stmType: "i" },
+        query: { stmType: "i", missionId: testMission.id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSTM(req, res);
@@ -383,7 +400,7 @@ describe("STM API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        query: { stmType: "o" },
+        query: { stmType: "o", missionId: testMission.id },
         body: newObjective,
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -402,7 +419,7 @@ describe("STM API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        query: { stmType: "g" },
+        query: { stmType: "g", missionId: testMission.id },
         body: newGoal,
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -421,7 +438,7 @@ describe("STM API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        query: { stmType: "i" },
+        query: { stmType: "i", missionId: testMission.id },
         body: newInvstg,
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -439,7 +456,7 @@ describe("STM API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { stmType: "i", i: `${newInvstg.uuid}` },
+        query: { stmType: "i", i: `${newInvstg.uuid}`, missionId: testMission.id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSTM(req, res);
@@ -454,7 +471,7 @@ describe("STM API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { stmType: "g", g: `${newGoal.uuid}` },
+        query: { stmType: "g", g: `${newGoal.uuid}`, missionId: testMission.id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSTM(req, res);
@@ -469,7 +486,7 @@ describe("STM API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { stmType: "o", o: `${newObjective.uuid}` },
+        query: { stmType: "o", o: `${newObjective.uuid}`, missionId: testMission.id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSTM(req, res);

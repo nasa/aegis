@@ -15,7 +15,7 @@ const handleUser: NextApiHandler<WrappedResponse<User[] | User>> = async (
 ): Promise<unknown> => {
   try {
     const { userId } = req.query;
-    const isAdmin = req.session.user.permission.includes("admin"); // will evaluate true or false
+    const isAdmin = req.session.user.id === 1 || req.session.user.adminPermission; // will evaluate true or false
     let intUserId = null;
     if (req.method === "GET") {
       try {
@@ -101,9 +101,9 @@ async function upsertUser(user: User): Promise<User> {
   const em = getEM();
   const userCopy: User = _.cloneDeep(user);
   const salt = await bcrypt.genSalt();
+
   const upsertRecord: EntityData<User_db> = {
     ...userCopy,
-    password: bcrypt.hashSync(userCopy.password, salt),
     updatedAt: new Date(userCopy.updatedAt),
     createdAt: new Date(userCopy.createdAt),
   };
@@ -112,12 +112,22 @@ async function upsertUser(user: User): Promise<User> {
   upsertRecord.updatedAt = updateDate;
 
   if (userCopy.id) {
-    const upsertReference = await em.upsert(User_db, upsertRecord);
-    await em.persistAndFlush(upsertReference);
+    let existingUser = await em.findOne(User_db, { id: userCopy.id });
+
+    if (!existingUser) {
+      return null;
+    }
+
+    if (userCopy.password !== existingUser.password) {
+      upsertRecord.password = await bcrypt.hash(userCopy.password, salt);
+    }
+
+    existingUser = em.assign(existingUser, upsertRecord);
+    await em.persistAndFlush(existingUser);
     return {
       ...userCopy,
-      updatedAt: upsertReference.updatedAt.toISOString(),
-      createdAt: upsertReference.createdAt.toISOString(),
+      updatedAt: existingUser.updatedAt.toISOString(),
+      createdAt: existingUser.createdAt.toISOString(),
     } as User;
   } else {
     upsertRecord.createdAt = updateDate;

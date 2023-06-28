@@ -28,8 +28,25 @@ let testPresets: Preset_db[];
 beforeAll(async () => {
   await getORM();
   const em = getEM();
-  testAdmin = await new UserFactory(em).createOne();
   testMission = await new MissionFactory(em).createOne();
+  testAdmin = await new UserFactory(em).createOne({
+    permissionList: [
+      {
+        missionId: testMission.id,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+      {
+        missionId: 99999,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+    ],
+  });
   testPresets = await new PresetFactory(em)
     .each((preset) => {
       preset.mission = testMission;
@@ -91,7 +108,6 @@ describe("Preset API Endpoint", () => {
       method: "GET",
       headers: { cookie: loginCookie },
       query: { missionId: testMission.id },
-      body: { user: { username: "testAdmin" } },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handlePreset(req, res);
@@ -108,7 +124,6 @@ describe("Preset API Endpoint", () => {
       method: "GET",
       headers: { cookie: loginCookie },
       query: { missionId: "99999" },
-      body: { user: { username: "testAdmin" } },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handlePreset(req, res);
@@ -125,10 +140,7 @@ describe("Preset API Endpoint", () => {
     const reqOptions: RequestOptions = {
       method: "POST",
       headers: { cookie: loginCookie },
-      body: {
-        preset: { ...newPreset, missionId: testMission.id, ownerId: testAdmin.id },
-        user: { username: "testAdmin" },
-      },
+      body: { ...newPreset, missionId: testMission.id, ownerId: testAdmin.id },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handlePreset(req, res);
@@ -151,7 +163,7 @@ describe("Preset API Endpoint", () => {
     const reqOptions: RequestOptions = {
       method: "POST",
       headers: { cookie: loginCookie },
-      body: { preset: newPreset, user: { username: "testAdmin" } },
+      body: newPreset,
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handlePreset(req, res);
@@ -168,8 +180,7 @@ describe("Preset API Endpoint", () => {
     const reqOptions: RequestOptions = {
       method: "DELETE",
       headers: { cookie: loginCookie },
-      query: { uuid: `${newPreset.uuid}` },
-      body: { user: { username: "testAdmin" } },
+      query: { uuid: `${newPreset.uuid}`, missionId: testMission.id },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handlePreset(req, res);

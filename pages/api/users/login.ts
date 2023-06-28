@@ -52,7 +52,8 @@ async function login(
             id: user.id,
             username: user.username,
             email: user.email,
-            permission: user.permission,
+            permissionList: user.permissionList,
+            adminPermission: user.adminPermission,
           },
         },
       };

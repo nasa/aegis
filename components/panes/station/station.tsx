@@ -8,6 +8,7 @@ import StationItem from "./station-item";
 import _ from "lodash";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreateStation, thunkDuplicateStation } from "store/thunk/thunkStation";
+import { hasEditPermissions } from "store/selectors";
 
 const StationEditorLeft: FunctionComponent = () => {
   const thunkDispatch = useAppDispatch();
@@ -21,10 +22,8 @@ const StationEditorLeft: FunctionComponent = () => {
   const selectedStation = stations.find((station) => station.uuid === selectedStationUuid);
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
   const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, shallowEqual);
-  const isAdmin = useAppSelector(
-    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
-    refEqual
-  );
+  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
+  const isAdmin: boolean = useAppSelector(hasEditPermissions(missionId), refEqual);
 
   return (
     <>

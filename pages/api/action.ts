@@ -17,12 +17,18 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
   req,
   res
 ): Promise<unknown> => {
-  if (req.session?.user) {
-    const isAdmin = req.session.user.permission.includes("admin"); // will evaluate true or false
-    const { missionId, uuid, stationUuid, poiUuid } = req.query;
-    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
-    const actionUUID = Array.isArray(uuid) ? uuid[0] : uuid;
+  const { uuid, stationUuid, poiUuid } = req.query;
+  const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
+  const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+  const actionUUID = Array.isArray(uuid) ? uuid[0] : uuid;
+  const editPermission =
+    req.session?.user?.id === 1 ||
+    req.session?.user?.permissionList.find((p) => p.missionId == intMissionId)?.permissions.edit;
+  const viewPermission =
+    req.session?.user?.id === 1 ||
+    req.session?.user?.permissionList.find((p) => p.missionId == intMissionId)?.permissions.view;
 
+  if (editPermission || viewPermission) {
     if (req.method === "GET") {
       const station = Array.isArray(stationUuid) ? stationUuid[0] : stationUuid;
       const poi = Array.isArray(poiUuid) ? poiUuid[0] : poiUuid;
@@ -49,7 +55,10 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
     }
 
     // upsert a action
-    if (req.method === "POST" && isAdmin) {
+    if (req.method === "POST") {
+      if (!editPermission) {
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+      }
       try {
         const actionToUpsert: Action = req.body as Action;
         const upsertResponse: Action = await upsertAction(actionToUpsert);
@@ -77,7 +86,10 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
     }
 
     // delete a record
-    if (req.method === "DELETE" && isAdmin) {
+    if (req.method === "DELETE") {
+      if (!editPermission) {
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+      }
       try {
         const deletedUUID = await deleteAction(actionUUID);
         if (deletedUUID) {

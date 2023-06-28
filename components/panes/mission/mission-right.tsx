@@ -28,7 +28,8 @@ const MissionPrefsRight: FunctionComponent = () => {
   );
 
   const isAdmin = useAppSelector(
-    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
+    (state) =>
+      state.user.ironSessionData?.user.adminPermission || state.user.ironSessionData?.user.id === 1,
     refEqual
   );
 

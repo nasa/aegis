@@ -4,8 +4,7 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
-
-    // "strict": true,
+    "strict": false,
     "alwaysStrict": true,
     "strictBindCallApply": true,
     "noImplicitThis": true,
@@ -14,7 +13,6 @@
     "noImplicitAny": false, // causes type check errors = 82
     "strictNullChecks": false, // causes type check errors = 876
     "strictPropertyInitialization": false, // requires strictNullChecks=true, increased errors = 41
-
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "esModuleInterop": true,

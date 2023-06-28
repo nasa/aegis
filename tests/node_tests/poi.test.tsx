@@ -16,7 +16,7 @@ import { Poi as Poi_db } from "server/database/models/poi.model";
 import PoiFactory from "../factories/PoiFactory";
 import { Mission as Mission_db } from "server/database/models/mission.model";
 import MissionFactory from "../factories/MissionFactory";
-import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
+import { TextEncoder, TextDecoder } from "util";
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -27,8 +27,25 @@ let testPois: Poi_db[];
 beforeAll(async () => {
   await getORM();
   const em = getEM();
-  testAdmin = await new UserFactory(em).createOne();
   testMission = await new MissionFactory(em).createOne();
+  testAdmin = await new UserFactory(em).createOne({
+    permissionList: [
+      {
+        missionId: testMission.id,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+      {
+        missionId: 99999,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+    ],
+  });
   testPois = await new PoiFactory(em)
     .each((poi) => {
       poi.mission = testMission;
@@ -142,7 +159,7 @@ describe("Poi API Endpoint", () => {
     const reqOptions: RequestOptions = {
       method: "POST",
       headers: { cookie: loginCookie },
-      body: newPoi,
+      body: { ...newPoi, missionId: testMission.id },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handlePOI(req, res);
@@ -159,7 +176,7 @@ describe("Poi API Endpoint", () => {
     const reqOptions: RequestOptions = {
       method: "DELETE",
       headers: { cookie: loginCookie },
-      query: { uuid: `${newPoi.uuid}` },
+      query: { uuid: `${newPoi.uuid}`, missionId: testMission.id },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handlePOI(req, res);
