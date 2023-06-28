@@ -8,7 +8,7 @@ import {
   getRhumbLineBearing,
   getSlope,
   getTotalDistance,
-  traverseDurationMinutes,
+  calcPathDurationMins,
 } from "utils/geoMath";
 import { LatLng } from "leaflet";
 import {
@@ -311,35 +311,35 @@ describe("hhmmFromMinutes", () => {
 
 describe("traverseDurationMinutes", () => {
   test("returns 0 when segmentDistances is not provided", () => {
-    expect(traverseDurationMinutes(null, 10)).toBe(0);
+    expect(calcPathDurationMins(null, 10)).toBe(0);
   });
 
   test("returns 0 when traverseRate is not provided", () => {
-    expect(traverseDurationMinutes([1000, 2000], null)).toBe(0);
+    expect(calcPathDurationMins([1000, 2000], null)).toBe(0);
   });
 
   test("returns 0 when both segmentDistances and traverseRate are not provided", () => {
-    expect(traverseDurationMinutes(null, null)).toBe(0);
+    expect(calcPathDurationMins(null, null)).toBe(0);
   });
 
   test("returns correct duration for a single segment", () => {
-    expect(traverseDurationMinutes([1000], 10)).toBe(6);
+    expect(calcPathDurationMins([1000], 10)).toBe(6);
   });
 
   test("returns correct duration for multiple segments", () => {
-    expect(traverseDurationMinutes([500, 500], 1)).toBe(60);
+    expect(calcPathDurationMins([500, 500], 1)).toBe(60);
   });
 
   test("returns 0 when segmentDistances is an empty array", () => {
-    expect(traverseDurationMinutes([], 10)).toBe(0);
+    expect(calcPathDurationMins([], 10)).toBe(0);
   });
 
   test("returns 0 when traverseRate is 0", () => {
-    expect(traverseDurationMinutes([1000, 2000], 0)).toBe(0);
+    expect(calcPathDurationMins([1000, 2000], 0)).toBe(0);
   });
 
   test("returns 0 when segmentDistances and traverseRate are both 0", () => {
-    expect(traverseDurationMinutes([0, 0], 0)).toBe(0);
+    expect(calcPathDurationMins([0, 0], 0)).toBe(0);
   });
 });
 
