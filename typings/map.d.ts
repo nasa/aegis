@@ -31,8 +31,8 @@ interface MapDirective {
 
 type DrawControlItem = {
   uuid: string;
-  drawControl: any;
-  drawHandler: any;
-  drawnItemsFeatureGroup: any;
+  drawControl: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  drawHandler: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  drawnItemsFeatureGroup: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   mapItemType: MapItemType;
 };

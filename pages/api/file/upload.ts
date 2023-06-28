@@ -64,6 +64,7 @@ apiRoute.use(async (req, res, next) => {
 
     //upload a single file form field "uploadFile"
     //returns a middleware func to be called with args (req, res, callback)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const multerFunc = upload.single("uploadFile") as RequestHandler<unknown, any>;
 
     //pass in the req/res into the multer middelware

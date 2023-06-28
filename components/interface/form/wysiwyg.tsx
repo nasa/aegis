@@ -177,6 +177,7 @@ export const WysiwygTextArea: FunctionComponent<{
             className={styles.wysiwyg}
             onKeyDown={(event) => {
               for (const hotkey in HOTKEYS) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 if (isHotkey(hotkey, event as any)) {
                   event.preventDefault();
                   const mark = HOTKEYS[hotkey];
