@@ -14,7 +14,7 @@ import {
   calculateAscentAndDescent,
   getDistanceBetweenTwoCoordinates,
   getTotalDistance,
-  traverseDurationMinutes,
+  calcPathDurationMins,
 } from "utils/geoMath";
 import { thunkGetElevation } from "./thunkElevation";
 import _ from "lodash";
@@ -290,7 +290,7 @@ export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
       }
 
       // get walback duration minutes
-      const walkbackDurationMinutes = traverseDurationMinutes(
+      const walkbackDurationMinutes = calcPathDurationMins(
         station.walkbackPathSegmentDistances,
         missionTraverseRate
       );

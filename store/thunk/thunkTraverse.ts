@@ -6,11 +6,7 @@ import {
   upsertTraverse,
   upsertTraverseFromDb,
 } from "store/traverse";
-import {
-  calculateAscentAndDescent,
-  getTotalDistance,
-  traverseDurationMinutes,
-} from "utils/geoMath";
+import { calculateAscentAndDescent, getTotalDistance, calcPathDurationMins } from "utils/geoMath";
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkGetElevation } from "./thunkElevation";
 import { upsertTraverse as traverseToDB } from "http-client/traverse";
@@ -278,7 +274,7 @@ export const thunkCreateTraverseCalculatedFields = appCreateAsyncThunk<void>(
       }
 
       // get duration minutes
-      const durationMinutes = traverseDurationMinutes(traverse.pathSegmentDistances, traverseRate);
+      const durationMinutes = calcPathDurationMins(traverse.pathSegmentDistances, traverseRate);
 
       // get distance meters
       const distanceMeters = traverse.pathSegmentDistances?.reduce(
