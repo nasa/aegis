@@ -13,7 +13,7 @@ import {
 import styles from "./wysiwyg.module.css";
 import _ from "lodash";
 import isHotkey from "is-hotkey";
-import { Button } from "./globalFields";
+import { Button, TextboxButton } from "./globalFields";
 
 const HOTKEYS = {
   "mod+o": "bold",
@@ -161,8 +161,17 @@ const toggleBlock = (editor: CustomEditor, format: string) => {
     match: (n) => !Editor.isEditor(n) && SlateElement.isElement(n) && LIST_TYPES.includes(n.type),
     split: true,
   });
-  let newProperties: Partial<SlateElement> = {
-    type: isActive ? "paragraph" : isList ? "list-item" : format,
+
+  const newProperties: Partial<SlateElement> = {
+    type: isActive
+      ? "paragraph"
+      : isList
+      ? "list-item"
+      : format === "numbered-list"
+      ? "numbered-list"
+      : format === "bulleted-list"
+      ? "bulleted-list"
+      : "paragraph",
   };
   Transforms.setNodes<SlateElement>(editor, newProperties);
 
@@ -196,9 +205,10 @@ const isBlockActive = (editor: CustomEditor, format: string, blockType: string =
 const MarkButton = ({ editor, format, icon }) => {
   return (
     <div className={styles.wysiwygButton}>
-      <Button
+      <TextboxButton
         icon={icon}
-        onClick={() => {
+        onMouseDown={(e) => {
+          e.preventDefault();
           toggleMark(editor, format);
         }}
       />
@@ -209,9 +219,10 @@ const MarkButton = ({ editor, format, icon }) => {
 const BlockButton = ({ editor, format, icon }) => {
   return (
     <div className={styles.wysiwygButton}>
-      <Button
+      <TextboxButton
         icon={icon}
-        onClick={() => {
+        onMouseDown={(e) => {
+          e.preventDefault();
           toggleBlock(editor, format);
         }}
       />

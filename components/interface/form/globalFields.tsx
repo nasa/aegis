@@ -49,6 +49,31 @@ export const Button: FunctionComponent<{
   );
 };
 
+export const TextboxButton: FunctionComponent<{
+  onMouseDown: (event) => void;
+  label?: string;
+  toolTip?: string;
+  icon?: IconDefinition;
+  style?: CSSProperties;
+  labelStyle?: CSSProperties;
+  size?: "xs" | "lg";
+  enabled?: boolean;
+}> = ({ onMouseDown, label, toolTip, icon, style, labelStyle, size, enabled = true }) => {
+  const enabledStyle = !enabled ? styles.iconButtonDisabled : "";
+  return (
+    <div
+      className={`${styles.button} ${enabledStyle} `}
+      data-tooltip-id="aegis-tooltip"
+      data-tooltip-html={toolTip}
+      onMouseDown={onMouseDown}
+      style={style}
+    >
+      {icon && <FontAwesomeIcon icon={icon} size={size} className={styles.buttonLabelIcon} />}
+      <div style={labelStyle}>{label}</div>
+    </div>
+  );
+};
+
 export const Dropdown: FunctionComponent<{
   children: any;
   selected: string;
