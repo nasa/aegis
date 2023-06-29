@@ -44,9 +44,8 @@ export const SunEarthPosition: FunctionComponent = () => {
     updateSize();
   }, [containerRef, rightPanelOpen, updateSize]);
 
-  const chevronLength = 5;
-
   const generateLineWithChevrons = (i: number, x: number, color: string) => {
+    const chevronLength = 5;
     return (
       <React.Fragment key={i}>
         <line
@@ -77,6 +76,9 @@ export const SunEarthPosition: FunctionComponent = () => {
     );
   };
 
+  const pixelsPerLine = 15;
+  const numOfLines = Math.round(containerSize[0] / pixelsPerLine);
+
   return (
     <div ref={containerRef} className={styles.sunEarthPositionContainer}>
       <svg height={containerSize[1]} width={containerSize[0]} className={styles.svg}>
@@ -88,8 +90,8 @@ export const SunEarthPosition: FunctionComponent = () => {
           >
             {
               // draw vertical parallel lines across the screen. They are rotated in the group above
-              Array.from(Array(40).keys()).map((i) => {
-                const x = (i + 1) * ((containerSize[0] * 2) / 40) - containerSize[0];
+              Array.from(Array(numOfLines).keys()).map((i) => {
+                const x = (i + 1) * ((containerSize[0] * 4) / numOfLines) - containerSize[0] * 2;
                 return generateLineWithChevrons(i, x, "255,255,0");
               })
             }
@@ -103,8 +105,8 @@ export const SunEarthPosition: FunctionComponent = () => {
           >
             {
               // draw vertical parallel lines across the screen. They are rotated in the group above
-              Array.from(Array(40).keys()).map((i) => {
-                const x = (i + 1) * ((containerSize[0] * 2) / 40) - containerSize[0];
+              Array.from(Array(numOfLines).keys()).map((i) => {
+                const x = (i + 1) * ((containerSize[0] * 4) / numOfLines) - containerSize[0] * 2;
                 return generateLineWithChevrons(i, x, "0,255,255");
               })
             }
