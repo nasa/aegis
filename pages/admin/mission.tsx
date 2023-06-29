@@ -11,7 +11,7 @@ import { faArrowAltCircleLeft, faTimesCircle } from "@fortawesome/free-regular-s
 import { getLayers, upsertLayer } from "http-client/layer";
 import MissionEditor from "components/admin/missionEditor";
 import { isLoggedIn } from "http-client/login";
-import { validators } from "components/interface/form/formValidators";
+import { isValidJson } from "utils/formatting";
 import { Tooltip } from "react-tooltip";
 import { v4 as uuidv4 } from "uuid";
 import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "../../store/user";
@@ -26,7 +26,6 @@ const Mission: NextPage = () => {
   const [showImportMission, setShowImportMission] = useState<boolean>(false);
   const [user, setUser] = useState<User>(null);
   const dispatch = useAppDispatch();
-  const mustBeValidJSON = validators.mustBeValidJSON;
 
   async function loadMissionsFromDB() {
     const missionList = (await getMissions()).data;
@@ -285,7 +284,7 @@ const Mission: NextPage = () => {
                     type="button"
                     className={styles.importButton}
                     onClick={() => {
-                      if (mustBeValidJSON(tempMission)) {
+                      if (isValidJson(tempMission)) {
                         setProgressBarText("Importing Mission");
                         handleMissionImport();
                       } else {
