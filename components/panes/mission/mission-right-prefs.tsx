@@ -343,7 +343,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   <div className={paneStyles.degreesInputContainer}>
                     <div className={paneStyles.descriptionContainer}>
                       <DegreesInputSlider
-                        value={mission.sunAzimuth}
+                        value={!_.isNull(mission.sunAzimuth) ? mission.sunAzimuth : 360}
                         editable={editMode}
                         label="Azimuth"
                         onChange={(value) => {
@@ -390,7 +390,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   <div className={paneStyles.degreesInputContainer}>
                     <div className={paneStyles.descriptionContainer}>
                       <DegreesInputSlider
-                        value={mission.earthAzimuth}
+                        value={!_.isNull(mission.earthAzimuth) ? mission.earthAzimuth : 360}
                         editable={editMode}
                         label="Azimuth"
                         onChange={(value) => {
