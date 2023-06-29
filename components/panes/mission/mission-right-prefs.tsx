@@ -24,6 +24,7 @@ import { regExValidators, validators } from "components/interface/form/formValid
 import { setMission } from "store/mission";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { updateMapDirective } from "store/map";
+import { toDecimal } from "utils/formatting";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -267,7 +268,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                   ...mission,
                                   landerLocation: {
                                     ...mission.landerLocation,
-                                    lat: Number(val),
+                                    lat: toDecimal(val),
                                   },
                                 })
                               );
@@ -302,7 +303,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                   ...mission,
                                   landerLocation: {
                                     ...mission.landerLocation,
-                                    lng: Number(val),
+                                    lng: toDecimal(val),
                                   },
                                 })
                               );
@@ -463,7 +464,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           }}
                           value={mission.defaultEvaDuration?.toString()}
                           onSubmit={(val: string) => {
-                            dispatch(setMission({ ...mission, defaultEvaDuration: Number(val) }));
+                            dispatch(
+                              setMission({ ...mission, defaultEvaDuration: toDecimal(val) })
+                            );
                           }}
                         />
                       </div>
@@ -495,7 +498,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           }}
                           value={mission.traverseSpeed?.toString()}
                           onSubmit={(val: string) => {
-                            dispatch(setMission({ ...mission, traverseSpeed: Number(val) }));
+                            dispatch(setMission({ ...mission, traverseSpeed: toDecimal(val) }));
                           }}
                         />
                       </div>
@@ -527,7 +530,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           }}
                           value={mission.walkbackSpeed?.toString()}
                           onSubmit={(val: string) => {
-                            dispatch(setMission({ ...mission, walkbackSpeed: Number(val) }));
+                            dispatch(setMission({ ...mission, walkbackSpeed: toDecimal(val) }));
                           }}
                         />
                       </div>
