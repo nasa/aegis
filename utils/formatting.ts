@@ -211,12 +211,3 @@ export function formatNumberWithCommas(num: number): string {
   if (_.isNil(num)) return "";
   return num.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
-
-export function isValidJson(str: string): boolean {
-  try {
-    JSON.parse(str);
-  } catch (e) {
-    return false;
-  }
-  return true;
-}
