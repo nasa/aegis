@@ -185,6 +185,16 @@ export const DisplayTime: FunctionComponent<{ time: MMGIS_Time }> = (props: {
   );
 };
 
+export const isValidJSON = (string: string): boolean => {
+  try {
+    JSON.parse(string);
+  } catch (e) {
+    return false;
+  }
+
+  return true;
+};
+
 export const stringToJSON = (string: string): JSON | undefined => {
   try {
     return JSON.parse(string);
