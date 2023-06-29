@@ -45,16 +45,6 @@ const maxLength =
       : `Must be at no more than ${max} characters`;
   };
 
-const mustBeValidJSON = (value: Stringy): string | undefined => {
-  if (!value) return undefined;
-  try {
-    JSON.parse(value as string);
-  } catch (e) {
-    return "Must be valid JSON";
-  }
-  return undefined;
-};
-
 const mustBeInteger = (value: Stringy): string | undefined => {
   if (!value) return undefined;
   return isNaN(Number(value)) || Number(value) - Math.floor(Number(value)) === 0
@@ -69,7 +59,6 @@ export const validators = {
   maxValue,
   minLength,
   maxLength,
-  mustBeValidJSON,
   mustBeInteger,
 };
 

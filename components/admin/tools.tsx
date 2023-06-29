@@ -1,10 +1,8 @@
 import { Dispatch, FunctionComponent, SetStateAction, useEffect, useState } from "react";
 import styles from "./admin.module.css";
 import { FFCheckbox, FFTextArea, FFInput } from "components/interface/form/globalFields";
-import { validators } from "components/interface/form/formValidators";
 import { WrappedTool } from "./missionEditor";
-
-const { mustBeValidJSON } = validators;
+import { isValidJson } from "utils/formatting";
 
 interface ToolProps {
   config_tools: MMGIS_Tool[];
@@ -104,7 +102,7 @@ const EditTool = (props: {
       <FFTextArea
         name={`tools[${props.index}].variables`}
         initialValue={"awdwasd"}
-        validators={[mustBeValidJSON]}
+        validators={[isValidJson]}
       />
 
       <div className={styles.editDiv}>
