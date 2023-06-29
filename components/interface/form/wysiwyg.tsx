@@ -15,7 +15,7 @@ import isHotkey from "is-hotkey";
 import { TextboxButton } from "./globalFields";
 
 const HOTKEYS = {
-  "mod+o": "bold",
+  "mod+b": "bold",
   "mod+i": "italic",
   "mod+u": "underline",
 };
