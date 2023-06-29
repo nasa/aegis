@@ -49,6 +49,48 @@ export const Button: FunctionComponent<{
   );
 };
 
+export const TextboxButton: FunctionComponent<{
+  onMouseDown: (event) => void;
+  whiteOnToggle?: boolean;
+  label?: string;
+  toolTip?: string;
+  icon?: IconDefinition;
+  style?: CSSProperties;
+  labelStyle?: CSSProperties;
+  enabled?: boolean;
+  activated?: boolean;
+}> = ({
+  onMouseDown,
+  whiteOnToggle: blockButton,
+  label,
+  toolTip,
+  icon,
+  style,
+  labelStyle,
+  enabled = true,
+  activated = false,
+}) => {
+  const [isActive, setIsActive] = useState<boolean>(activated);
+  const enabledStyle = !enabled ? styles.iconButtonDisabled : "";
+  const colorStyle = !blockButton ? styles.textboxActiveGrey : styles.textboxActiveWhite;
+  const activeStyle = isActive ? colorStyle : "";
+  return (
+    <div
+      className={`${styles.textboxButton} ${enabledStyle} ${activeStyle}`}
+      data-tooltip-id="aegis-tooltip"
+      data-tooltip-html={toolTip}
+      onMouseDown={(e) => {
+        onMouseDown(e);
+        setIsActive(!isActive);
+      }}
+      style={style}
+    >
+      {icon && <FontAwesomeIcon icon={icon} size="lg" className={styles.buttonLabelIcon} />}
+      <div style={labelStyle}>{label}</div>
+    </div>
+  );
+};
+
 export const Dropdown: FunctionComponent<{
   children: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   selected: string;
