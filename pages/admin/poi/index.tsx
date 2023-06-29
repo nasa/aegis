@@ -8,11 +8,13 @@ import Header from "components/interface/header";
 import { getMissions } from "http-client/mission";
 import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { decodeEmoji, isValidJson } from "utils/formatting";
+import { decodeEmoji } from "utils/formatting";
 import { GeoJsonFeature, GeoJsonFile } from "typings/geojson";
+import { validators } from "components/interface/form/formValidators";
 
 const PoiPage: NextPage = () => {
   const router = useRouter();
+  const mustBeValidJSON = validators.mustBeValidJSON;
   const [missionList, setMissionList] = useState<Mission[]>([]);
   const [mission, setMission] = useState<Mission>();
   const [admin, setAdmin] = useState<boolean>(false);
@@ -287,7 +289,7 @@ const PoiPage: NextPage = () => {
                             type="button"
                             className={styles.importButton}
                             onClick={() => {
-                              if (isValidJson(tempPOI)) {
+                              if (mustBeValidJSON(tempPOI)) {
                                 setProgressBarText("Importing POIs");
                                 handlePOIImport();
                               } else {
