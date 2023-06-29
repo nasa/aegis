@@ -44,6 +44,15 @@
   user-select: none;
 }
 
+.textboxActiveGrey {
+  background-color: var(--grey1);
+}
+
+.textboxActiveWhite {
+  background-color: #ffffff;
+  color: #000000;
+}
+
 .buttonIcon {
   margin-right: 3px;
 }

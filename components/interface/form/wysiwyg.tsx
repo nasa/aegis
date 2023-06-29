@@ -210,6 +210,7 @@ const MarkButton = ({ editor, format, icon }) => {
           e.preventDefault();
           toggleMark(editor, format);
         }}
+        whiteOnToggle={false}
       />
     </div>
   );
@@ -224,6 +225,7 @@ const BlockButton = ({ editor, format, icon }) => {
           e.preventDefault();
           toggleBlock(editor, format);
         }}
+        whiteOnToggle={true}
       />
     </div>
   );
