@@ -22,7 +22,7 @@ export const SunEarthPosition: FunctionComponent = () => {
     setTimeout(() => {
       const container = containerRef.current;
       setContainerSize([container.clientWidth, container.clientHeight]);
-    }, 750);
+    }, 1000);
   }, [containerRef]);
 
   // update the container size immediately
