@@ -294,7 +294,7 @@ const Info_Panel: FunctionComponent<{
           </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-              <SubpanelHeading icon={faCalculator}>Totals</SubpanelHeading>
+              <SubpanelHeading icon={faCalculator}>Calculated Totals</SubpanelHeading>
             </div>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>
