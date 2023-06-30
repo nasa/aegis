@@ -5,8 +5,8 @@ import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import _, { round } from "lodash";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
 import {
-  faClock,
   faEarthAmerica,
+  faFileInvoice,
   faInfoCircle,
   faLocationDot,
   faMessage,
@@ -433,7 +433,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "6px" }}>
-              <SubpanelHeading icon={faClock}>Mission Defaults</SubpanelHeading>
+              <SubpanelHeading icon={faFileInvoice}>Mission Defaults</SubpanelHeading>
             </div>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>
