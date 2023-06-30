@@ -7,7 +7,7 @@ import { shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { formatNumberWithCommas, toDecimal } from "utils/formatting";
-import { faCalculator, faLightbulb, faMessage } from "@fortawesome/free-solid-svg-icons";
+import { faArrowsToCircle, faCalculator, faMessage } from "@fortawesome/free-solid-svg-icons";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { regExValidators, validators } from "components/interface/form/formValidators";
 
@@ -53,7 +53,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
           </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "3px" }}>
-              <SubpanelHeading icon={faLightbulb}>Estimations</SubpanelHeading>
+              <SubpanelHeading icon={faArrowsToCircle}>Estimations</SubpanelHeading>
             </div>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>

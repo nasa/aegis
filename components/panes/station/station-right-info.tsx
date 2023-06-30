@@ -2,8 +2,8 @@ import { FunctionComponent, useCallback, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
 import {
+  faArrowsToCircle,
   faCalculator,
-  faClock,
   faFloppyDisk,
   faLocationDot,
   faMessage,
@@ -207,7 +207,7 @@ const Info_Panel: FunctionComponent<{
           </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "6px" }}>
-              <SubpanelHeading icon={faClock}>Estimated Dwell Time</SubpanelHeading>
+              <SubpanelHeading icon={faArrowsToCircle}>Estimated Dwell Time</SubpanelHeading>
             </div>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>
