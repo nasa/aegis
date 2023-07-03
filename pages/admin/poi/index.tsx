@@ -290,7 +290,7 @@ const PoiPage: NextPage = () => {
                             type="button"
                             className={styles.importButton}
                             onClick={() => {
-                              if (mustBeValidJSON(tempPOI) === undefined) {
+                              if (tempPOI.length && mustBeValidJSON(tempPOI) === undefined) {
                                 setProgressBarText("Importing POIs");
                                 handlePOIImport();
                               } else {

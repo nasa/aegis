@@ -285,7 +285,7 @@ const Mission: NextPage = () => {
                     type="button"
                     className={styles.importButton}
                     onClick={() => {
-                      if (mustBeValidJSON(tempMission) === undefined) {
+                      if (tempMission.length && mustBeValidJSON(tempMission) === undefined) {
                         setProgressBarText("Importing Mission");
                         handleMissionImport();
                       } else {
