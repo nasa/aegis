@@ -88,6 +88,7 @@ const User: NextPage = () => {
     await getUsers().then((users) => {
       setUserList(users.data.sort((a, b) => a.id - b.id));
     });
+    setUser(undefined);
   };
 
   const handleSubmit = async () => {

@@ -45,6 +45,7 @@ const PoiPage: NextPage = () => {
   const handleBack = () => {
     if (mission) {
       setMission(undefined);
+      setTempPOI("");
     } else {
       router.push("/admin");
     }
