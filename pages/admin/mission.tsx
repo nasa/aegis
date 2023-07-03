@@ -11,7 +11,7 @@ import { faArrowAltCircleLeft, faTimesCircle } from "@fortawesome/free-regular-s
 import { getLayers, upsertLayer } from "http-client/layer";
 import MissionEditor from "components/admin/missionEditor";
 import { isLoggedIn } from "http-client/login";
-import { isValidJson } from "utils/formatting";
+import { validators } from "components/interface/form/formValidators";
 import { Tooltip } from "react-tooltip";
 import { v4 as uuidv4 } from "uuid";
 import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "../../store/user";
@@ -19,6 +19,7 @@ import { useAppDispatch } from "../../utils/useAppDispatch";
 
 const Mission: NextPage = () => {
   const router = useRouter();
+  const mustBeValidJSON = validators.mustBeValidJSON;
   const [missions, setMissions] = useState<Mission[]>([]);
   const [editMissionId, setEditMissionId] = useState<number>(); //track mission currently in edit
   const [mission, setMission] = useState<Mission>(); //current mission being edited
@@ -284,7 +285,7 @@ const Mission: NextPage = () => {
                     type="button"
                     className={styles.importButton}
                     onClick={() => {
-                      if (isValidJson(tempMission)) {
+                      if (tempMission.length && mustBeValidJSON(tempMission) === undefined) {
                         setProgressBarText("Importing Mission");
                         handleMissionImport();
                       } else {
