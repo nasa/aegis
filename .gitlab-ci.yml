@@ -358,11 +358,11 @@ make-dotenv:
     # Determine which docker image type (dev, int, or prod) to deploy based on branch
     - >
       if [ "${CI_COMMIT_REF_SLUG}" == "prod" ]; then
-        IMAGE_VERSION="prod"
+        IMAGE_VERSION="prod-${CI_COMMIT_SHORT_SHA}"
       elif [ "${CI_COMMIT_REF_SLUG}" == "int" ]; then
-        IMAGE_VERSION="int"
+        IMAGE_VERSION="int-${CI_COMMIT_SHORT_SHA}"
       else
-        IMAGE_VERSION="dev"
+        IMAGE_VERSION="dev-${CI_COMMIT_SHORT_SHA}"
       fi
 
     - export IMAGE_VERSION
