@@ -107,7 +107,11 @@ apiRoute.post(async (req, res: NextApiResponse) => {
       }
     }
   } catch (error) {
-    res.status(400).json(error.message);
+    if (error instanceof Error) {
+      res.status(400).json(error.message);
+    } else {
+      res.status(400).json("Error uploading file");
+    }
   }
 });
 
