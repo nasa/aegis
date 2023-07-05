@@ -230,6 +230,8 @@ export const WysiwygTextArea: FunctionComponent<{
   onChange: (value: string) => void;
   defaultValue?: string;
 }> = ({ value, editing, onChange, defaultValue }) => {
+  //start
+  const [editorChange, setEditorChange] = useState(false);
   const [editor] = useState(() => withReact(createEditor()));
 
   const renderElement = useCallback((props) => <Element {...props} />, []);
@@ -242,7 +244,9 @@ export const WysiwygTextArea: FunctionComponent<{
       anchor: { path: [0, 0], offset: 0 },
       focus: { path: [0, 0], offset: 0 },
     };
-  }, [editing, editor, editor.marks]);
+  }, [editing, editor]);
+
+  useEffect(() => {}, [editorChange]);
 
   return (
     <>
@@ -257,7 +261,13 @@ export const WysiwygTextArea: FunctionComponent<{
             }
           }}
         >
-          <div className={styles.wysiwygButtonContainer}>
+          <div
+            className={styles.wysiwygButtonContainer}
+            onClick={(e) => {
+              e.preventDefault();
+              setEditorChange(!editorChange);
+            }}
+          >
             <div className={styles.wysiwygButtonSubcontainer}>
               <MarkButton editor={editor} format="bold" icon={faBold} />
               <MarkButton editor={editor} format="italic" icon={faItalic} />
@@ -283,6 +293,10 @@ export const WysiwygTextArea: FunctionComponent<{
                   toggleMark(editor, mark);
                 }
               }
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              setEditorChange(!editorChange);
             }}
           />
         </Slate>
