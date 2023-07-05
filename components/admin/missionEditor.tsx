@@ -38,8 +38,9 @@ const MissionEditor: FunctionComponent<{
   }, [mission]);
 
   //save the mission and call and upsert
-  async function onSubmit(values) {
-    const panelArray = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async function onSubmit(values: Record<string, any>) {
+    const panelArray: string[] = [];
     forIn(values.panelValues, (value, key) => {
       if (value) {
         panelArray.push(key);
@@ -97,7 +98,7 @@ const MissionEditor: FunctionComponent<{
 
     const radius = parseFloat(mission?.config.msv.radius.minor);
     const measureJson = mission?.config.tools.find((tool) => tool.name === "Measure")?.variables;
-    const demFilepath: string = measureJson["dem"];
+    const demFilepath: string = measureJson.dem;
     const point: AEGISPoint = {
       lat: mission.landerLocation.lat,
       lng: mission.landerLocation.lng,

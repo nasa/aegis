@@ -3,7 +3,7 @@ import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual } from "utils/useAppSelector";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { FormEventHandler, useEffect, useState } from "react";
 import styles from "./index.module.css";
 import { login, isLoggedIn, logout } from "http-client/login";
 import { getMissions } from "http-client/mission";
@@ -50,7 +50,7 @@ const Login = () => {
     }
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault();
   };
 

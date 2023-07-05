@@ -105,19 +105,14 @@ const Mission: NextPage = () => {
       const tempMissionObj = JSON.parse(tempMission);
       const mmgisImport = typeof tempMissionObj.config === "undefined";
       //Make a copy of the layers array so we can delete it from the object
-      let tempLayers;
+      let tempLayers: LayerConfig[];
       if (mmgisImport) {
-        if (typeof tempMissionObj.msv.layers === "undefined") {
-          tempLayers = tempMissionObj.layers;
-        } else {
-          tempLayers = tempMissionObj.msv.layers;
-        }
-        delete tempMissionObj.msv.layers;
+        tempLayers = tempMissionObj.layers;
       } else {
         tempLayers = tempMissionObj.config.layers;
       }
 
-      let body;
+      let body: Mission;
       //We have to handle two different types of input, one from MMGIS and one from our own export
       if (mmgisImport) {
         //We can assume this is an MMGIS import
@@ -125,9 +120,17 @@ const Mission: NextPage = () => {
           id: null,
           config: tempMissionObj,
           name: tempMissionObj.msv.mission,
+          description: null,
+          missionBanner: "",
           landerLocation: null,
           traverseSpeed: 0,
+          walkbackSpeed: 0,
           landerElevationMeters: null,
+          sunAzimuth: null,
+          earthAzimuth: null,
+          sunAzimuthVisible: false,
+          earthAzimuthVisible: false,
+          defaultEvaDuration: 240,
         };
       } else {
         //We can assume this is an export from our own system
@@ -135,9 +138,17 @@ const Mission: NextPage = () => {
           id: null,
           config: tempMissionObj.config,
           name: tempMissionObj.name,
+          description: tempMissionObj.description,
+          missionBanner: tempMissionObj.missionBanner,
           landerLocation: tempMissionObj.landerLocation,
           traverseSpeed: tempMissionObj.traverseSpeed,
+          walkbackSpeed: tempMissionObj.walkbackSpeed,
           landerElevationMeters: tempMissionObj.landerElevationMeters,
+          sunAzimuth: tempMissionObj.sunAzimuth,
+          earthAzimuth: tempMissionObj.earthAzimuth,
+          sunAzimuthVisible: tempMissionObj.sunAzimuthVisible,
+          earthAzimuthVisible: tempMissionObj.earthAzimuthVisible,
+          defaultEvaDuration: tempMissionObj.defaultEvaDuration,
         };
       }
       setProgressBarWidth(0);
@@ -149,10 +160,9 @@ const Mission: NextPage = () => {
         setProgressBarText("Importing Layers");
         setProgressBarColor("#00ff00");
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        tempLayers.forEach((layer: any) => {
+        tempLayers.forEach((layer) => {
           // import the layer into the database
-          const body = {
+          const body: Layer = {
             uuid: uuidv4(),
             missionId: newMission.data.id,
             layerConfig: layer,

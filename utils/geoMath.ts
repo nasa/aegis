@@ -29,7 +29,7 @@ export function getDistanceBetweenTwoCoordinates(
  * @param {number} deg - degrees
  * @returns {number} radians
  */
-function deg2rad(deg) {
+function deg2rad(deg: number) {
   return deg * (Math.PI / 180);
 }
 
@@ -38,7 +38,7 @@ function deg2rad(deg) {
  * @param angle - radians
  * @returns  degrees
  */
-function rad2deg(angle) {
+function rad2deg(angle: number) {
   return angle * (180 / Math.PI);
 }
 

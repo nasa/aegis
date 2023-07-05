@@ -92,8 +92,8 @@ interface MMGIS_Tool {
   name: string;
   icon: string;
   js: string;
-  //variables: Variables;
-  variables: JSON;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  variables: { [prop: string]: any };
 }
 
 interface MMGIS_Time {

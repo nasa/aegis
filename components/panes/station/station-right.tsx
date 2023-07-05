@@ -182,7 +182,8 @@ const StationEditorRight: FunctionComponent = () => {
                       emojiSize={20}
                       perLine={10}
                       darkMode={true}
-                      onEmojiSelect={(e) => {
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      onEmojiSelect={(e: any) => {
                         dispatch(upsertStation({ ...selectedStation, icon: e.unified }));
                         setShowEmojiPicker(false);
                       }}

@@ -5,6 +5,8 @@ import { ReactEditor } from "slate-react";
 
 export type CustomText = { text: string; bold?: boolean; italic?: boolean; underline?: boolean };
 
+export type Marks = Omit<CustomText, "text"> | null;
+
 export type ParagraphElement = {
   type: "paragraph";
   children: CustomText[];

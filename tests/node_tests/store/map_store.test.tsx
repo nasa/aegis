@@ -104,7 +104,6 @@ describe("AEGIS Map Store Tests: ", () => {
         uuid: configLayer.uuid,
         visible: false,
         type: configLayer.layerConfig.type,
-        mapLayerRef: null,
         style: null,
       };
       if (configLayer.layerConfig.sublayers) {
@@ -114,7 +113,6 @@ describe("AEGIS Map Store Tests: ", () => {
             uuid: sublayer.uuid,
             visible: false,
             type: sublayer.type,
-            mapLayerRef: null,
             style: null,
           };
         });

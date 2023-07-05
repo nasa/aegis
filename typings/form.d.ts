@@ -18,7 +18,6 @@ interface FFSelectProps {
   label?: label | false;
   className?: string;
   searchable?: boolean;
-  style?: React.CSSProperties;
 }
 
 interface FFCheckboxProps {

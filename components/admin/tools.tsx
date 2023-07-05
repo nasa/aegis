@@ -103,7 +103,7 @@ const EditTool = (props: {
 
       <FFTextArea
         name={`tools[${props.index}].variables`}
-        initialValue={"awdwasd"}
+        initialValue={"some json here"}
         validators={[mustBeValidJSON]}
       />
 

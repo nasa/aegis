@@ -76,7 +76,7 @@ const EvaRightEva: FunctionComponent = () => {
   useEffect(() => {
     const evaEqual = _.isEqual(selectedEva, selectedEvaFromDb);
 
-    const traverseUuidsInThisEva = [];
+    const traverseUuidsInThisEva: string[] = [];
     selectedEva.sequence.forEach((sequenceItem) => {
       if (sequenceItem.type === "traverse") {
         traverseUuidsInThisEva.push(sequenceItem.uuid);
