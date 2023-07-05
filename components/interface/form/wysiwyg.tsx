@@ -14,7 +14,6 @@ import styles from "./wysiwyg.module.css";
 import _ from "lodash";
 import isHotkey from "is-hotkey";
 import { TextboxButton } from "./globalFields";
-import { isBlock } from "typescript";
 
 const HOTKEYS = {
   "mod+b": "bold",
