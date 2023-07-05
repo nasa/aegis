@@ -8,9 +8,9 @@
     "alwaysStrict": true,
     "strictBindCallApply": true,
     "noImplicitThis": true,
-    "useUnknownInCatchVariables": false, // causes type check errors = 3
+    "useUnknownInCatchVariables": true,
     "strictFunctionTypes": false, // causes type check errors = 81
-    "noImplicitAny": true, 
+    "noImplicitAny": true,
     "strictNullChecks": false, // causes type check errors = 876
     "strictPropertyInitialization": false, // requires strictNullChecks=true, increased errors = 41
     "forceConsistentCasingInFileNames": true,

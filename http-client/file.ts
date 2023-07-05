@@ -16,10 +16,14 @@ export async function uploadFile(
     return await axios.post("/api/file/upload", formData, config);
   } catch (e) {
     //axios rejects the promise if the response is an error. Just pass the response data through
-    if (e.name === "CanceledError") {
-      return { status: 499, data: "Client Closed Request" } as AxiosResponse;
+    if (axios.isAxiosError(e)) {
+      if (e.name === "CanceledError") {
+        return { status: 499, data: "Client Closed Request" } as AxiosResponse;
+      }
+      return { status: 500, data: e.message } as AxiosResponse;
+    } else {
+      return { status: 500, data: e } as AxiosResponse;
     }
-    return { status: 500, data: e.message } as AxiosResponse;
   }
 }
 
