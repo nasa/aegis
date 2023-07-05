@@ -51,6 +51,7 @@ export const Button: FunctionComponent<{
 
 export const TextboxButton: FunctionComponent<{
   onMouseDown: (event) => void;
+  active?: boolean;
   whiteOnToggle?: boolean;
   label?: string;
   toolTip?: string;
@@ -58,30 +59,28 @@ export const TextboxButton: FunctionComponent<{
   style?: CSSProperties;
   labelStyle?: CSSProperties;
   enabled?: boolean;
-  activated?: boolean;
 }> = ({
   onMouseDown,
-  whiteOnToggle: blockButton,
+  active,
+  whiteOnToggle,
   label,
   toolTip,
   icon,
   style,
   labelStyle,
   enabled = true,
-  activated = false,
 }) => {
-  const [isActive, setIsActive] = useState<boolean>(activated);
   const enabledStyle = !enabled ? styles.iconButtonDisabled : "";
-  const colorStyle = !blockButton ? styles.textboxActiveGrey : styles.textboxActiveWhite;
-  const activeStyle = isActive ? colorStyle : "";
   return (
     <div
-      className={`${styles.textboxButton} ${enabledStyle} ${activeStyle}`}
+      className={`${styles.textboxButton} ${enabledStyle} ${
+        active ? (!whiteOnToggle ? styles.textboxActiveGrey : styles.textboxActiveWhite) : ""
+      }`}
       data-tooltip-id="aegis-tooltip"
       data-tooltip-html={toolTip}
       onMouseDown={(e) => {
         onMouseDown(e);
-        setIsActive(!isActive);
+        console.log(active);
       }}
       style={style}
     >
