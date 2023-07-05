@@ -265,8 +265,6 @@ export const WysiwygTextArea: FunctionComponent<{
     };
   }, [editing, editor]);
 
-  useEffect(() => {}, [editorChange]);
-
   return (
     <>
       {editing ? (
