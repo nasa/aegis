@@ -3,10 +3,10 @@ import { withIronSessionApiRoute } from "iron-session/next";
 
 import { ironOptions } from "server/session/config";
 import { IronSessionData } from "iron-session";
-import { getEM } from "../../../utils/mikro";
+import { getEM, withORM } from "../../../utils/mikro";
 import { User } from "../../../server/database/models/user.model";
 
-export default withIronSessionApiRoute(handler, ironOptions);
+export default withIronSessionApiRoute(withORM(handler), ironOptions);
 async function handler(
   req: NextApiRequest,
   res: NextApiResponse<WrappedResponse<IronSessionData>>

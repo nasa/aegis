@@ -166,7 +166,7 @@ export function roundDateToSecond(date: Date): Date {
  */
 export function toDecimal(str: string): number {
   if (_.isEmpty(str)) return null;
-  const removedChars = str.replace(/[^0-9.]/g, "");
+  const removedChars = str.replace(/[^0-9.-]/g, "");
   // make sure string contains only one decimal point
   const decimalCount = (removedChars.match(/\./g) || []).length;
   let result;

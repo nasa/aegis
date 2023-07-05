@@ -175,7 +175,7 @@ const MissionEditor: FunctionComponent<{
                   <div id="bannerDiv">
                     <div className={adminStyles.editDiv}>
                       <FFInput
-                        name="config.missionBanner"
+                        name="missionBanner"
                         label={{ label: "Mission Banner", title: "Mission Banner" }}
                         initialValue={mission?.name}
                       />
@@ -239,6 +239,15 @@ const MissionEditor: FunctionComponent<{
                       <FFInput
                         name="traverseSpeed"
                         label={{ label: "Default Traverse Speed (km/h)" }}
+                        validators={[validators.mustBeNumber, validators.mustBeInteger]}
+                      />
+                    </div>
+                  </div>
+                  <div id="walkbackDiv">
+                    <div className={adminStyles.editDiv}>
+                      <FFInput
+                        name="walkbackSpeed"
+                        label={{ label: "Default Walkback Speed (km/h)" }}
                         validators={[validators.mustBeNumber, validators.mustBeInteger]}
                       />
                     </div>

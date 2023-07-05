@@ -41,7 +41,6 @@ import { thunkCreateEvasCalculatedFields } from "store/thunk/thunkEva";
 import { thunkCreatePoiCalculatedFields } from "store/thunk/thunkPoi";
 import { Tooltip } from "react-tooltip";
 import { thunkSavePreset } from "store/thunk/thunkPreset";
-import { SunEarthPosition } from "components/interface/map-sunearth";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -57,6 +56,9 @@ const RightControlPanel = dynamic(
   }
 );
 const MapBody = dynamic(import("components/interface/map-body-leaflet"), {
+  ssr: false,
+});
+const SunEarthPosition = dynamic(import("components/interface/map-sunearth"), {
   ssr: false,
 });
 const Header = dynamic(import("components/interface/header"), {
@@ -306,7 +308,7 @@ const Main: NextPage = () => {
         dispatch(setEvasFromDb(evaData.data));
       }
 
-      //Populate traverses //TODO: Does this have to load only current user's traverses?
+      //Populate traverses
       const traverseData = await getTraverses(intMissionId);
       if (traverseData.data) {
         dispatch(setTraverses(traverseData.data));

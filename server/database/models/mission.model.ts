@@ -9,6 +9,8 @@ export class Mission implements Mission_db_type {
   name!: string;
   @Property({ type: MikroTypes.text, nullable: true })
   description!: string;
+  @Property({ type: MikroTypes.text, nullable: true })
+  missionBanner: string;
   @Property({ type: MikroTypes.json, nullable: true })
   config!: Config;
   @Property({ type: MikroTypes.integer })
@@ -29,6 +31,8 @@ export class Mission implements Mission_db_type {
   earthAzimuthVisible: boolean;
   @Property({ type: MikroTypes.double, nullable: true })
   defaultEvaDuration: number;
+  @Property({ type: MikroTypes.double, nullable: true, default: 2 })
+  walkbackSpeed: number;
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;

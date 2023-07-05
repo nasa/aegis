@@ -5,6 +5,7 @@ interface Mission {
   id: number;
   name: string;
   description: string;
+  missionBanner: string;
   config: Config;
   version?: number;
   createdAt?: string;
@@ -17,6 +18,7 @@ interface Mission {
   sunAzimuthVisible: boolean;
   earthAzimuthVisible: boolean;
   defaultEvaDuration: number;
+  walkbackSpeed: number;
 }
 
 // No alteration needed to convert this store type to the database type
@@ -36,7 +38,6 @@ interface Config {
   panelSettings: MMGIS_PanelSettings;
   tools: MMGIS_Tool[];
   time: MMGIS_ConfigTime;
-  missionBanner: string;
 }
 
 /**

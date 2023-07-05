@@ -384,9 +384,9 @@ export const DegreesInputSlider: FunctionComponent<{
   label: string;
   editable: boolean;
   onChange: Function;
-}> = ({ value, label, editable = true, onChange }) => {
+  icon: IconDefinition;
+}> = ({ value, label, editable = true, onChange, icon }) => {
   const editableStyle = editable ? "" : styles.notEditable;
-  const knobColor = editable ? "white" : "var(--grey4)";
 
   return (
     <div className={`${styles.degreesInputSlider} ${editableStyle}`}>
@@ -402,7 +402,7 @@ export const DegreesInputSlider: FunctionComponent<{
         valueFontSize="1rem"
         verticalOffset="0.5rem"
         knobPosition="top"
-        knobColor={knobColor}
+        knobColor={"var(--grey3)"}
         knobSize={20}
         progressColorFrom="var(--grey3)"
         progressColorTo="var(--grey3)"
@@ -412,7 +412,7 @@ export const DegreesInputSlider: FunctionComponent<{
         trackDraggable={true}
         onChange={onChange}
       >
-        <div /> {/* empty div to get rid of the grips on the slider knob */}
+        <FontAwesomeIcon icon={icon} />
       </CircularSlider>
     </div>
   );
