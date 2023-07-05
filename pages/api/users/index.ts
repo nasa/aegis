@@ -121,9 +121,6 @@ export async function upsertUser(user: User): Promise<User> {
     if (userCopy.password !== existingUser.password) {
       upsertRecord.password = await bcrypt.hash(userCopy.password, salt);
     }
-    if (userCopy.id === 1 && String(upsertRecord.createdAt) === "Invalid Date") {
-      upsertRecord.createdAt = new Date("1969-07-20");
-    }
 
     existingUser = em.assign(existingUser, upsertRecord);
     await em.persistAndFlush(existingUser);
