@@ -658,7 +658,7 @@ export const thunkDuplicateStation = appCreateAsyncThunk<{ station: Station }>(
           })
         );
         if (thunkRes.payload) {
-          newActionOrderUuids.push(thunkRes.payload as String);
+          newActionOrderUuids.push(thunkRes.payload as string);
         }
       }
 
@@ -676,7 +676,7 @@ export const thunkDuplicateStation = appCreateAsyncThunk<{ station: Station }>(
             })
           );
           if (thunkRes.payload) {
-            newActionOrderUuids.push(thunkRes.payload as String);
+            newActionOrderUuids.push(thunkRes.payload as string);
           }
         }
       }
@@ -689,7 +689,7 @@ export const thunkDuplicateStation = appCreateAsyncThunk<{ station: Station }>(
           })
         );
         if (thunkRes.payload) {
-          newActionOrderUuids.push(thunkRes.payload as String);
+          newActionOrderUuids.push(thunkRes.payload as string);
         }
       }
     }

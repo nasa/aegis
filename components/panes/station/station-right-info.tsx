@@ -56,7 +56,7 @@ const Info_Panel: FunctionComponent<{
   );
 
   const evasUsingThisStation = useAppSelector((state) => {
-    const evasUsingThisStation = [];
+    const evasUsingThisStation: Eva[] = [];
     state.eva.evas.forEach((eva) => {
       eva.sequence.forEach((sequenceItem) => {
         if (sequenceItem.uuid === selectedStation.uuid) {

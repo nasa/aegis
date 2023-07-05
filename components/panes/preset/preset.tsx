@@ -109,8 +109,7 @@ const PresetList: FunctionComponent<{
 
   return (
     <div className={styles.layerGroup}>
-      {Object.keys(presets).map((key, index) => {
-        const currentPreset = presets[key];
+      {presets.map((currentPreset, index) => {
         let isSelectedOrHoveredStyle = null;
         if (currentPreset.uuid === selectedPresetUuid) {
           isSelectedOrHoveredStyle = styles.presetItemSelected;

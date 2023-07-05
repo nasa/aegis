@@ -113,7 +113,7 @@ const PoiEditorRight: FunctionComponent = () => {
           <IconDropdown
             selected={selectedPoi.icon}
             editing={poisEditing.includes(selectedPoiUuid)}
-            setSelected={(value) => {
+            setSelected={(value: string) => {
               dispatch(upsertPoi({ ...selectedPoi, icon: value }));
             }}
             items={[

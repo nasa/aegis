@@ -1,16 +1,7 @@
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
-import {
-  FunctionComponent,
-  Children,
-  cloneElement,
-  useState,
-  CSSProperties,
-  ChangeEvent,
-  ReactNode,
-} from "react";
-
+import { FunctionComponent, useState, CSSProperties, ChangeEvent, ReactNode } from "react";
 import styles from "./globalFields.module.css";
 import { TagsInput } from "react-tag-input-component";
 import { decodeEmoji } from "utils/formatting";
@@ -50,7 +41,7 @@ export const Button: FunctionComponent<{
 };
 
 export const TextboxButton: FunctionComponent<{
-  onMouseDown: (event) => void;
+  onMouseDown: React.MouseEventHandler<HTMLDivElement>;
   whiteOnToggle?: boolean;
   label?: string;
   toolTip?: string;
@@ -92,7 +83,7 @@ export const TextboxButton: FunctionComponent<{
 };
 
 export const Dropdown: FunctionComponent<{
-  children: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  children: ReactNode;
   selected: string;
   containerStyle?: CSSProperties;
   selectStyle?: CSSProperties;
@@ -126,7 +117,7 @@ export const Dropdown: FunctionComponent<{
 };
 
 export const IconDropdown: FunctionComponent<{
-  items: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  items: string[];
   editing: boolean;
   selected: string;
   setSelected: Function;
@@ -188,7 +179,6 @@ export const IconDropdown: FunctionComponent<{
                   onClick={() => setSelected(item)}
                 >
                   <div className={styles.itemIcon}>{decodeEmoji(item)}</div>
-                  <div className={styles.iconDropdownModalItemLabel}>{item.label}</div>
                 </div>
               );
             })}
@@ -197,48 +187,6 @@ export const IconDropdown: FunctionComponent<{
       </div>
     );
   }
-};
-
-export const MultiButton: FunctionComponent<{
-  children: ReactNode;
-  editing: boolean;
-  selected: string;
-  handleChange: Function;
-}> = ({ children, editing, selected, handleChange }) => {
-  return (
-    <div className={styles.multiButtonGroup}>
-      {/* Loop through the children and add the multibutton styling to each child depending on its position in the list */}
-      {Children.map(
-        children,
-        (
-          child: any, // eslint-disable-line @typescript-eslint/no-explicit-any
-          idx
-        ) => {
-          let buttonStyle = styles.multiButton;
-          let selectedStyle = child.props.children === selected ? styles.multiButtonSelected : "";
-          if (editing) {
-            buttonStyle = styles.multiButtonEditing;
-            selectedStyle =
-              child.props.children === selected ? styles.multiButtonEditingSelected : "";
-          }
-
-          let style;
-          if (idx === 0) style = `${buttonStyle} ${selectedStyle} ${styles.multiButtonStart}`;
-          else if (idx === Children.count(children) - 1)
-            style = ` ${buttonStyle} ${selectedStyle} ${styles.multiButtonEnd}`;
-          else style = `${buttonStyle} ${selectedStyle} ${styles.multiButtonMiddle}`;
-
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          return cloneElement(child as any, {
-            className: style,
-            onClick: () => {
-              if (editing) handleChange(child.props.children);
-            },
-          });
-        }
-      )}
-    </div>
-  );
 };
 
 /**
@@ -598,12 +546,12 @@ export const FFSelect: FunctionComponent<FFSelectProps> = ({
   className,
   label = false,
   searchable = false,
-  style = {},
   options,
 }) => {
-  const selectAdapter = ({ input, ...rest }) => (
-    <Select {...input} {...rest} className={className} style={style} searchable={searchable} />
-  );
+  const selectAdapter = (
+    { input, ...rest }: { input: any } // eslint-disable-line @typescript-eslint/no-explicit-any
+  ) => <Select {...input} {...rest} className={className} searchable={searchable} />;
+
   return (
     <Field name={name} component={selectAdapter} type="select" options={options}>
       {label ? (

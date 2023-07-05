@@ -1,5 +1,5 @@
 import { uploadFile } from "http-client/file";
-import { FunctionComponent, useState } from "react";
+import { ChangeEventHandler, FunctionComponent, useState } from "react";
 
 interface UploadProps {
   path: string;
@@ -16,7 +16,7 @@ const UploadFile: FunctionComponent<UploadProps> = (props: UploadProps) => {
   const [progressMsg, setProgressMsg] = useState("");
 
   //handle change when a new file is selected for upload
-  function fileChangeHandler(event) {
+  const fileChangeHandler: ChangeEventHandler<HTMLInputElement> = (event) => {
     if (event.target.files.length > 0) {
       setSelectedFile(event.target.files[0]); //put into state
       setIsFilePicked(true); //toggle to show file details
@@ -32,7 +32,7 @@ const UploadFile: FunctionComponent<UploadProps> = (props: UploadProps) => {
       setIsSubmitValid(false);
     }
     setProgressMsg(""); //clear message
-  }
+  };
 
   //sends file to be uploaded and sets progress message
   async function uploadFileToAPI() {

@@ -184,9 +184,9 @@ export const DisplayTime: FunctionComponent<{ time: MMGIS_Time }> = (props: {
   );
 };
 
-export const stringToJSON = (string: string): JSON | undefined => {
+export const stringToJSON = (string: string): unknown | undefined => {
   try {
-    return JSON.parse(string);
+    return JSON.parse(string) as unknown;
   } catch (e) {
     return undefined;
   }

@@ -695,7 +695,7 @@ export const drawMouseHover = (
   hoverPoint: paper.Point,
   setHoverValues: Function,
   landerElevationMeters: number
-): number => {
+): void => {
   //check if we're inside the bounds of the graph
   const paperVars = paperDataRef.current.paperVars;
   if (
@@ -843,13 +843,11 @@ export const drawMouseHover = (
     //save hover data to store
     dispatch(setLeftPanelHoverUuid(sequenceUuid));
     dispatch(setMapItemHover({ seconds, sequenceUuid, sequenceItemPercentElapsed }));
-    return sequenceUuid;
   } else {
     //mouse is outside of the graph area but is still inside paper canvas
     paperGroupsRef.current.hoverLine.visible = false;
     dispatch(setLeftPanelHoverUuid(null));
     dispatch(clearMapItemHover());
-    return null;
   }
 };
 

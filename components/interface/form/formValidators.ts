@@ -84,7 +84,7 @@ export const composeValidators = (...validators: FieldValidator<unknown>[]) => {
   };
 };
 
-// Regex validators to match characters NOT in the accepeted pattern
+// Regex validators to match characters NOT in the accepted pattern
 
 const regExNumber = /[^\d\.]/;
 

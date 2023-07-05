@@ -317,7 +317,7 @@ export const thunkDuplicatePoi = appCreateAsyncThunk<{ poi: POI }>(
           thunkDuplicateAction({ action: action, poiUuid: newPoi.uuid })
         );
         if (thunkRes.payload) {
-          newActionOrderUuids.push(thunkRes.payload as String);
+          newActionOrderUuids.push(thunkRes.payload as string);
         }
       }
     } else {
@@ -326,7 +326,7 @@ export const thunkDuplicatePoi = appCreateAsyncThunk<{ poi: POI }>(
           thunkDuplicateAction({ action: action, poiUuid: newPoi.uuid })
         );
         if (thunkRes.payload) {
-          newActionOrderUuids.push(thunkRes.payload as String);
+          newActionOrderUuids.push(thunkRes.payload as string);
         }
       }
     }

@@ -73,9 +73,10 @@ describe("Mission", () => {
   });
 
   test("Mission: Returns Single Mission", async () => {
-    fetchMock.mockResponseOnce(JSON.stringify([{ name: "Test mission", id: 123 }]));
+    const testMission = [{ name: "Test mission", id: 123 }];
+    fetchMock.mockResponseOnce(JSON.stringify(testMission));
     getMissions(123).then((res) => {
-      expect(res[0].id).toEqual(123);
+      expect(res).toEqual(testMission);
     });
   });
 });

@@ -1,8 +1,9 @@
 import { Editable, RenderElementProps, RenderLeafProps, Slate, withReact } from "slate-react";
 import { createEditor, Descendant, Text, Editor, Transforms, Element as SlateElement } from "slate";
-import { BulletedListElement, CustomEditor, NumberedListElement } from "typings/wysiwyg";
+import { BulletedListElement, CustomEditor, NumberedListElement, Marks } from "typings/wysiwyg";
 import { FunctionComponent, useCallback, useEffect, useState } from "react";
 import {
+  IconDefinition,
   faBold,
   faItalic,
   faListOl,
@@ -173,7 +174,7 @@ const toggleBlock = (editor: CustomEditor, format: "numbered-list" | "bulleted-l
 //used for toggling hot keys
 const isMarkActive = (editor: CustomEditor, format: string) => {
   const marks = Editor.marks(editor);
-  return marks ? marks[format] === true : false;
+  return marks ? marks[format as keyof Marks] === true : false;
 };
 
 //used for toggling blocks
@@ -184,14 +185,25 @@ const isBlockActive = (editor: CustomEditor, format: string, blockType: string =
   const [match] = Array.from(
     Editor.nodes(editor, {
       at: Editor.unhangRange(editor, selection),
-      match: (n) => !Editor.isEditor(n) && SlateElement.isElement(n) && n[blockType] === format,
+      match: (n) =>
+        !Editor.isEditor(n) &&
+        SlateElement.isElement(n) &&
+        n[blockType as keyof typeof n] === format,
     })
   );
 
   return !!match;
 };
 
-const MarkButton = ({ editor, format, icon }) => {
+const MarkButton = ({
+  editor,
+  format,
+  icon,
+}: {
+  editor: CustomEditor;
+  format: string;
+  icon: IconDefinition;
+}) => {
   return (
     <div className={styles.wysiwygButton}>
       <TextboxButton
@@ -206,7 +218,15 @@ const MarkButton = ({ editor, format, icon }) => {
   );
 };
 
-const BlockButton = ({ editor, format, icon }) => {
+const BlockButton = ({
+  editor,
+  format,
+  icon,
+}: {
+  editor: CustomEditor;
+  format: "numbered-list" | "bulleted-list";
+  icon: IconDefinition;
+}) => {
   return (
     <div className={styles.wysiwygButton}>
       <TextboxButton
@@ -229,8 +249,8 @@ export const WysiwygTextArea: FunctionComponent<{
 }> = ({ value, editing, onChange, defaultValue }) => {
   const [editor] = useState(() => withReact(createEditor()));
 
-  const renderElement = useCallback((props) => <Element {...props} />, []);
-  const renderLeaf = useCallback((props) => <Leaf {...props} />, []);
+  const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, []);
+  const renderLeaf = useCallback((props: RenderLeafProps) => <Leaf {...props} />, []);
 
   //reset the selector to prevent a bug where a previous edited field had more new lines
   //  than the new current field being edited. The selector will try to find the old location
@@ -273,10 +293,9 @@ export const WysiwygTextArea: FunctionComponent<{
             className={styles.wysiwyg}
             onKeyDown={(event) => {
               for (const hotkey in HOTKEYS) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                if (isHotkey(hotkey, event as any)) {
+                if (isHotkey(hotkey, event)) {
                   event.preventDefault();
-                  const mark = HOTKEYS[hotkey];
+                  const mark = HOTKEYS[hotkey as keyof typeof HOTKEYS];
                   toggleMark(editor, mark);
                 }
               }

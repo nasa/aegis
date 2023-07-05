@@ -82,14 +82,20 @@ const handleUser: NextApiHandler<WrappedResponse<User[] | User>> = async (
  */
 async function getUsers(userId: number = null): Promise<User[]> {
   const model = getEM();
-  let users;
+  let users: User_db[];
   if (userId == null) {
     users = await model.find(User_db, {});
   } else {
-    users = await model.findOne(User_db, { id: userId });
+    users = await model.find(User_db, { id: userId });
   }
 
-  return users;
+  return users.map((user: User_db) => {
+    return {
+      ...user,
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
+    } as User;
+  });
 }
 
 /**

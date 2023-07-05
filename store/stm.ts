@@ -17,7 +17,7 @@ export const stmSlice = createSlice({
     addObjective: (state, action: { payload: STMObjective }) => {
       state.objectives.push(action.payload);
     },
-    delObjective: (state, action: { payload: String }) => {
+    delObjective: (state, action: { payload: string }) => {
       const index = state.objectives.findIndex((obj) => obj.uuid === action.payload);
       if (index >= 0) {
         state.objectives.splice(index, 1); //delete this item from the array
@@ -30,7 +30,7 @@ export const stmSlice = createSlice({
     addGoal: (state, action: { payload: STMGoal }) => {
       state.goals.push(action.payload);
     },
-    delGoal: (state, action: { payload: String }) => {
+    delGoal: (state, action: { payload: string }) => {
       const index = state.goals.findIndex((obj) => obj.uuid === action.payload);
       if (index >= 0) {
         state.goals.splice(index, 1); //delete this item from the array
@@ -43,7 +43,7 @@ export const stmSlice = createSlice({
     addInvestigation: (state, action: { payload: STMInvestigation }) => {
       state.investigations.push(action.payload);
     },
-    delInvestigation: (state, action: { payload: String }) => {
+    delInvestigation: (state, action: { payload: string }) => {
       const index = state.investigations.findIndex((obj) => obj.uuid === action.payload);
       if (index >= 0) {
         state.investigations.splice(index, 1); //delete this item from the array

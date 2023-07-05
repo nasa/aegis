@@ -63,7 +63,7 @@ describe("Action Store Tests", () => {
           missionId: 5000,
           createdAt: "test",
           updatedAt: "test",
-        },
+        } as Action,
       };
 
       // Act
@@ -171,7 +171,7 @@ describe("Action Store Tests", () => {
           missionId: 5000,
           createdAt: "test",
           updatedAt: "test",
-        },
+        } as Action,
       };
 
       // Act

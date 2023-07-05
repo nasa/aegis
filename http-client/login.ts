@@ -7,9 +7,9 @@ export async function isLoggedIn(): Promise<WrappedResponse<AdminCheck>> {
   return response;
 }
 
-export async function isAdmin(): Promise<WrappedResponse<boolean>> {
+export async function isAdmin(): Promise<WrappedResponse<IronSessionData>> {
   const res = await fetch(`/api/users/isAdmin`);
-  const response: WrappedResponse<boolean> = await res.json();
+  const response: WrappedResponse<IronSessionData> = await res.json();
 
   return response;
 }

@@ -209,7 +209,7 @@ export const thunkSaveEva = appCreateAsyncThunk<{
   }
 
   // prune traverses from the db that are no longer in any EVA
-  const traverseUuidsInAnyEva = [];
+  const traverseUuidsInAnyEva: string[] = [];
   getState().eva.evas.forEach((eva) => {
     eva.sequence.forEach((sequenceItem) => {
       if (sequenceItem.type === "traverse") {
@@ -249,13 +249,13 @@ export const thunkEvaCancel = appCreateAsyncThunk<{
   const evaFromDb = getState().eva.evasFromDb.find((evaFromDb) => evaFromDb.uuid === eva.uuid);
   if (evaFromDb) {
     // delete the traverses that were added to the store are not in the copy from the db
-    const traverseUuidsInThisEva = [];
+    const traverseUuidsInThisEva: string[] = [];
     eva.sequence.forEach((sequenceItem) => {
       if (sequenceItem.type === "traverse") {
         traverseUuidsInThisEva.push(sequenceItem.uuid);
       }
     });
-    const traverseUuidsInThisEvaInDb = [];
+    const traverseUuidsInThisEvaInDb: string[] = [];
     evaFromDb.sequence.forEach((sequenceItem) => {
       if (sequenceItem.type === "traverse") {
         traverseUuidsInThisEvaInDb.push(sequenceItem.uuid);
@@ -309,7 +309,7 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
 }>("evaDelete", async ({ eva }, { dispatch, getState }) => {
   if (!eva) return;
   // delete all of the traverses used in this EVA sequence if they are in traversesFromDb
-  const traverseUuidsInThisEva = [];
+  const traverseUuidsInThisEva: string[] = [];
   eva.sequence.forEach((sequenceItem) => {
     if (sequenceItem.type === "traverse") {
       traverseUuidsInThisEva.push(sequenceItem.uuid);
@@ -422,7 +422,7 @@ export const thunkDuplicateEva = appCreateAsyncThunk<{ eva: Eva }>(
     );
 
     //find all the traverses from the original EVA
-    const evaTraverseUuids: String[] = eva.sequence
+    const evaTraverseUuids: string[] = eva.sequence
       .filter((seqItem) => seqItem.type === "traverse")
       .map((traverseSeqItem) => {
         return traverseSeqItem.uuid;
@@ -467,7 +467,7 @@ export const thunkAddStationToEva = appCreateAsyncThunk<{ eva: Eva }>(
       newEvaSequence.push(newStationSequenceItem);
     } else {
       // add a traverse before the station
-      const newTraverse = {
+      const newTraverse: Traverse = {
         missionId: getState().mission.mission?.id,
         uuid: uuidv4(),
         name: "",

@@ -111,10 +111,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   const measureJson = mission?.config.tools.find((tool) => tool.name === "Measure")?.variables;
-  const demConfig: DemConfig = {
-    dem: measureJson["dem"],
-    resolution: measureJson["resolution"],
-  };
 
   return (
     <div className={paneStyles.rightBody}>
@@ -552,7 +548,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       <div className={paneStyles.displayFieldLabel}>Filename:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>{demConfig.dem}</div>
+                      <div className={paneStyles.displayFieldValue}>{measureJson.dem}</div>
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
@@ -560,7 +556,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       <div className={paneStyles.displayFieldLabel}>Resolution (m):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>{demConfig.resolution}</div>
+                      <div className={paneStyles.displayFieldValue}>{measureJson.resolution}</div>
                     </div>
                   </div>
                 </div>

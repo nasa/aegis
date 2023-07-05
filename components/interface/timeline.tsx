@@ -215,9 +215,8 @@ const NavTimeline: FunctionComponent = () => {
     if (selectedEva?.sequence && mission) {
       const planetRadius = parseFloat(mission?.config.msv.radius.minor);
 
-      storeRef.current.elevationResolutionMeters = mission.config.tools.find(
-        (tool) => tool.name === "Measure"
-      )?.variables["resolution"];
+      const measureJson = mission.config.tools.find((tool) => tool.name === "Measure")?.variables;
+      storeRef.current.elevationResolutionMeters = measureJson?.resolution;
       storeRef.current.landerElevationMeters = mission.landerElevationMeters;
 
       for (const sequenceItem of selectedEva.sequence) {

@@ -20,19 +20,17 @@ export const LeftControlPanel: FunctionComponent = () => {
 
   let ActiveComponent = null;
   let title = null;
-  if (!_.isNil(paneTypes[interfaceStateLabel])) {
-    ActiveComponent = paneTypes[interfaceStateLabel].leftPane;
-    title = paneTypes[interfaceStateLabel].title;
+  const paneType: PaneType = paneTypes[interfaceStateLabel as keyof PaneTypes];
+  if (!_.isNil(paneType)) {
+    ActiveComponent = paneType.leftPane;
+    title = paneType.title;
   }
 
   return (
     <div className={styles.body}>
       <NavGutter selectedNavItem={interfaceStateLabel} />
       <div className={styles.activeComponent}>
-        <div
-          className={styles.activeComponentTitle}
-          style={{ color: paneTypes[interfaceStateLabel].color }}
-        >
+        <div className={styles.activeComponentTitle} style={{ color: paneType.color }}>
           {title}
         </div>
         <ActiveComponent />
@@ -72,8 +70,9 @@ export const RightControlPanel: FunctionComponent = () => {
   );
 
   let ActiveComponent = null;
-  if (!_.isNil(paneTypes[interfaceStateLabel])) {
-    ActiveComponent = paneTypes[interfaceStateLabel].rightPane;
+  const paneType: PaneType = paneTypes[interfaceStateLabel as keyof PaneTypes];
+  if (!_.isNil(paneType)) {
+    ActiveComponent = paneType.rightPane;
   }
 
   return (
@@ -164,6 +163,7 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
             break;
         }
 
+        const pane: PaneType = paneTypes[paneType as keyof PaneTypes];
         return (
           <div
             key={paneType}
@@ -173,9 +173,9 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
           >
             <div
               className={styles.icon}
-              style={{ color: paneTypes[paneType].color }}
+              style={{ color: pane.color }}
               data-tooltip-id="aegis-tooltip"
-              data-tooltip-html={paneTypes[paneType].title}
+              data-tooltip-html={pane.title}
               onClick={() => {
                 dispatch(setSectionSelected(paneType));
                 dispatch(setSelectedEvaUuid(null));
@@ -192,7 +192,7 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
                 }
               }}
             >
-              <FontAwesomeIcon icon={paneTypes[paneType].icon} size="lg" />
+              <FontAwesomeIcon icon={pane.icon} size="lg" />
               {itemModified && (
                 <svg height="6" width="6" style={{ position: "absolute", top: "31", left: "31" }}>
                   <circle cx="3" cy="3" r="3" fill="#ff0000" />

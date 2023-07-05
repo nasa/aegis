@@ -164,7 +164,6 @@ const Main: NextPage = () => {
             uuid: configLayer.uuid,
             visible: false,
             type: configLayer.layerConfig.type,
-            mapLayerRef: null,
             style: null,
           };
           flatLayerNamesAndUuids.push({
@@ -180,7 +179,6 @@ const Main: NextPage = () => {
                 uuid: sublayer.uuid,
                 visible: false,
                 type: sublayer.type,
-                mapLayerRef: null,
                 style: {
                   opacity: sublayer.style?.opacity || 1,
                   contrast: 1,
@@ -219,13 +217,28 @@ const Main: NextPage = () => {
 
             //convert the "enabled" property to "visible".
             //Once all presets in all environments are updated this if statement can be removed.
+            //cast as "any" since this is an old type definition
             if (
               Object.prototype.hasOwnProperty.call(preset.mapLayerControls[layerName], "enabled")
             ) {
               preset.mapLayerControls[layerName].visible =
-                preset.mapLayerControls[layerName]["enabled"];
-              delete preset.mapLayerControls[layerName]["enabled"]; //this property has been renamed to "visible"
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (preset.mapLayerControls[layerName] as any)["enabled"];
+
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              delete (preset.mapLayerControls[layerName] as any)["enabled"]; //this property has been renamed to "visible"
               modified = true;
+            }
+
+            //old unused property that was removed. Cleanup if it's on a preset
+            if (
+              Object.prototype.hasOwnProperty.call(
+                preset.mapLayerControls[layerName],
+                "mapLayerRef"
+              )
+            ) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              delete (preset.mapLayerControls[layerName] as any)["mapLayerRef"]; //this property has been renamed to "visible"
             }
 
             //add any UUIDs that are missing from preset's layer control

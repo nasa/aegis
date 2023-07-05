@@ -1,10 +1,10 @@
 import * as L from "leaflet";
 L.Icon.Default.imagePath = "/leaflet/images/";
 // Import the plugin libraries so they will modify L
-import "leaflet.tilelayer.colorfilter";
 import { HighlightablePolyline } from "leaflet-highlightable-layers";
 import DraggableLines from "leaflet-draggable-lines";
 import { antPath } from "leaflet-ant-path";
+import "leaflet.tilelayer.colorfilter";
 import "proj4leaflet";
 
 import styles from "components/interface/map-body.module.css";
@@ -1485,20 +1485,20 @@ const MapBody: FunctionComponent = () => {
 
 export default MapBody;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const isLayerOnMapByName = (map: MutableRefObject<any>, name: string) => {
+const isLayerOnMapByName = (map: MutableRefObject<L.Map>, name: string) => {
   let layerFound = false;
-  map.current.eachLayer((layer) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  map.current.eachLayer((layer: any) => {
     if (layer.options.id === name) layerFound = true;
   });
   return layerFound;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const getLayerByName = (map: MutableRefObject<any>, name: string) => {
+const getLayerByName = (map: MutableRefObject<L.Map>, name: string): any => {
   let returnVal = null;
-
-  map.current.eachLayer((layer) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  map.current.eachLayer((layer: any) => {
     if (layer.options.id === name) returnVal = layer;
   });
   return returnVal;
