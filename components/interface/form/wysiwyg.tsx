@@ -256,15 +256,10 @@ export const WysiwygTextArea: FunctionComponent<{
             if (isAstChange) {
               onChange(JSON.stringify(nodes));
             }
+            setEditorChange(!editorChange);
           }}
         >
-          <div
-            className={styles.wysiwygButtonContainer}
-            onClick={(e) => {
-              e.preventDefault();
-              setEditorChange(!editorChange);
-            }}
-          >
+          <div className={styles.wysiwygButtonContainer}>
             <div className={styles.wysiwygButtonSubcontainer}>
               <MarkButton editor={editor} format="bold" icon={faBold} />
               <MarkButton editor={editor} format="italic" icon={faItalic} />
@@ -290,10 +285,6 @@ export const WysiwygTextArea: FunctionComponent<{
                   toggleMark(editor, mark);
                 }
               }
-            }}
-            onClick={(e) => {
-              e.preventDefault();
-              setEditorChange(!editorChange);
             }}
           />
         </Slate>
