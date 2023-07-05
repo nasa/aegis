@@ -21,14 +21,6 @@ export async function upsertUser(userObj: User): Promise<WrappedResponse<User>> 
   return response;
 }
 
-export async function upsertAdmin(recoveryKey: string): Promise<WrappedResponse<User>> {
-  const res = await fetch(`/api/users/adminRecovery?recoveryKey=${recoveryKey}`, {
-    method: "GET",
-  });
-  const response: WrappedResponse<User> = await res.json();
-  return response;
-}
-
 export async function deleteUser(userId: number): Promise<WrappedResponse<User>> {
   const res = await fetch(`/api/users?userId=${userId}`, {
     method: "DELETE",
