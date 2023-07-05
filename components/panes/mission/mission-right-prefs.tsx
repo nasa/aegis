@@ -94,7 +94,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           sunAzimuth: value,
         })
       );
-    }, 10)
+    }, 50)
   );
 
   const handleOnChangeEarthAzimuth = useRef(
@@ -105,7 +105,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           earthAzimuth: value,
         })
       );
-    }, 10)
+    }, 50)
   );
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
@@ -343,10 +343,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   <div className={paneStyles.degreesInputContainer}>
                     <div className={paneStyles.descriptionContainer}>
                       <DegreesInputSlider
-                        value={!_.isNull(mission.sunAzimuth) ? mission.sunAzimuth : 360}
+                        value={mission.sunAzimuth}
                         editable={editMode}
                         label="Azimuth"
-                        onChange={(value) => {
+                        onChange={(value: number) => {
                           handleOnChangeSunAzimuth.current(mission, value);
                         }}
                         icon={faSun}
@@ -390,10 +390,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   <div className={paneStyles.degreesInputContainer}>
                     <div className={paneStyles.descriptionContainer}>
                       <DegreesInputSlider
-                        value={!_.isNull(mission.earthAzimuth) ? mission.earthAzimuth : 360}
+                        value={mission.earthAzimuth}
                         editable={editMode}
                         label="Azimuth"
-                        onChange={(value) => {
+                        onChange={(value: number) => {
                           handleOnChangeEarthAzimuth.current(mission, value);
                         }}
                         icon={faEarthAmerica}

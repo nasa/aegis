@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual } from "utils/useAppSelector";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -32,12 +32,7 @@ const MissionPrefsRight: FunctionComponent = () => {
       state.user.ironSessionData?.user.adminPermission || state.user.ironSessionData?.user.id === 1,
     refEqual
   );
-
-  const [modified, setModified] = useState(false);
-
-  useEffect(() => {
-    setModified(!_.isEqual(mission, missionFromDb));
-  }, [mission, missionFromDb]);
+  const modified = !_.isEqual(mission, missionFromDb);
 
   const panelTypes: PanelTypes = {
     prefs_panel: {

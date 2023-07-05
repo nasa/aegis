@@ -85,7 +85,7 @@ export const SunEarthPosition: FunctionComponent = () => {
         {mission?.sunAzimuthVisible && (
           <g
             transform={`translate(${containerSize[1] / 2},${containerSize[1] / 2}) rotate(${
-              mission?.sunAzimuth
+              mission?.sunAzimuth || 360
             })`}
           >
             {
@@ -100,7 +100,7 @@ export const SunEarthPosition: FunctionComponent = () => {
         {mission?.earthAzimuthVisible && (
           <g
             transform={`translate(${containerSize[1] / 2},${containerSize[1] / 2}) rotate(${
-              mission?.earthAzimuth
+              mission?.earthAzimuth || 360
             })`}
           >
             {
