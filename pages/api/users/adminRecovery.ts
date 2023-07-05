@@ -19,17 +19,14 @@ async function handler(
       if (recoveryKey === process.env.ADMIN_RECOVERY_KEY) {
         const adminUserDB = await getEM().findOne(User_db, { id: 1 });
         const adminUser: User = {
-          id: adminUserDB.id,
-          username: adminUserDB.username,
+          ...adminUserDB,
           password: "admin",
-          email: adminUserDB.email,
-          permissionList: adminUserDB.permissionList,
-          adminPermission: adminUserDB.adminPermission,
           createdAt:
             adminUserDB.createdAt instanceof Date &&
             String(adminUserDB.createdAt) !== "Invalid Date"
               ? String(new Date("1969-07-20"))
               : String(new Date(adminUserDB.createdAt)),
+          updatedAt: String(new Date()),
         };
         //Add default values back into admin user
         await upsertUser(adminUser);
