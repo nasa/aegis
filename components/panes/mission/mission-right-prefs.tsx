@@ -371,7 +371,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           </>
                         ) : (
                           <div style={{ marginTop: "3px" }}>
-                            {mission?.sunAzimuthVisible ? "Visible" : "Invisible"}
+                            {mission?.sunAzimuthVisible ? "Visible" : "Hidden"}
                           </div>
                         )}
                       </div>
@@ -421,7 +421,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           </>
                         ) : (
                           <div style={{ marginTop: "3px" }}>
-                            {mission?.earthAzimuthVisible ? "Visible" : "Invisible"}
+                            {mission?.earthAzimuthVisible ? "Visible" : "Hidden"}
                           </div>
                         )}
                       </div>
