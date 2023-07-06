@@ -1,7 +1,6 @@
 import { NextPage } from "next";
 import { ChangeEvent, Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { isAdmin, isLoggedIn } from "http-client/login";
 import { getMissions, deleteMission, upsertMission } from "http-client/mission";
 import styles from "components/admin/admin.module.css";
 import { createNewConfig } from "components/admin/helper";
@@ -11,19 +10,27 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowAltCircleLeft, faTimesCircle } from "@fortawesome/free-regular-svg-icons";
 import { getLayers, upsertLayer } from "http-client/layer";
 import MissionEditor from "components/admin/missionEditor";
-import { isValidJson } from "utils/formatting";
+import { isLoggedIn } from "http-client/login";
+import { validators } from "components/interface/form/formValidators";
 import { Tooltip } from "react-tooltip";
 import { v4 as uuidv4 } from "uuid";
+import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "../../store/user";
+import { useAppDispatch } from "../../utils/useAppDispatch";
 
 const Mission: NextPage = () => {
   const router = useRouter();
+  const mustBeValidJSON = validators.mustBeValidJSON;
   const [missions, setMissions] = useState<Mission[]>([]);
   const [editMissionId, setEditMissionId] = useState<number>(); //track mission currently in edit
   const [mission, setMission] = useState<Mission>(); //current mission being edited
   const [admin, setAdmin] = useState<boolean>(false);
   const [showImportMission, setShowImportMission] = useState<boolean>(false);
+  const [user, setUser] = useState<User>(null);
+  const dispatch = useAppDispatch();
+
   async function loadMissionsFromDB() {
     const missionList = (await getMissions()).data;
+
     setMissions(missionList);
   }
 
@@ -39,26 +46,45 @@ const Mission: NextPage = () => {
 
   //on load check login and mission id
   useEffect(() => {
-    (async () => {
-      const response = await isLoggedIn(); //check user is logged in
-      const adminResponse = await isAdmin(); //check user is admin
-      if (response.status !== "success" || !adminResponse.data["admin"]) {
-        await router.push("/"); //user is not logged in or an admin. Redirect to homepage
-      } else {
+    async function adminCheck() {
+      const response = await isLoggedIn();
+      //Check if user is logged in.
+      if (
+        response.status === "success" &&
+        (response.data.user.adminPermission || response.data.user.id === 1)
+      ) {
+        dispatch(setIsLoggedIn(true));
+        dispatch(setIronSessionData(response.data));
         setAdmin(true);
+        setUser(response.data.user);
+        await loadMissionsFromDB();
+      } else {
+        dispatch(setIsLoggedIn(false));
+        dispatch(clearIronSessionData());
+        await router.push("/");
       }
+    }
 
-      await loadMissionsFromDB();
-    })();
-  }, [router]);
+    adminCheck().catch(() => {
+      // Something went wrong. Eventually would like a logger here.
+    });
+  }, [router, dispatch]);
 
   function createNewMission() {
     setMission({
       id: null,
       name: "",
+      description: "",
+      missionBanner: "",
       config: createNewConfig(),
       landerLocation: null,
-      traverseSpeed: 0,
+      traverseSpeed: 2,
+      sunAzimuth: 0,
+      sunAzimuthVisible: false,
+      earthAzimuth: 0,
+      earthAzimuthVisible: false,
+      defaultEvaDuration: 240,
+      walkbackSpeed: 2,
     });
     setEditMissionId(null);
   }
@@ -79,19 +105,14 @@ const Mission: NextPage = () => {
       const tempMissionObj = JSON.parse(tempMission);
       const mmgisImport = typeof tempMissionObj.config === "undefined";
       //Make a copy of the layers array so we can delete it from the object
-      let tempLayers;
+      let tempLayers: LayerConfig[];
       if (mmgisImport) {
-        if (typeof tempMissionObj.msv.layers === "undefined") {
-          tempLayers = tempMissionObj.layers;
-        } else {
-          tempLayers = tempMissionObj.msv.layers;
-        }
-        delete tempMissionObj.msv.layers;
+        tempLayers = tempMissionObj.layers;
       } else {
         tempLayers = tempMissionObj.config.layers;
       }
 
-      let body;
+      let body: Mission;
       //We have to handle two different types of input, one from MMGIS and one from our own export
       if (mmgisImport) {
         //We can assume this is an MMGIS import
@@ -99,9 +120,17 @@ const Mission: NextPage = () => {
           id: null,
           config: tempMissionObj,
           name: tempMissionObj.msv.mission,
+          description: null,
+          missionBanner: "",
           landerLocation: null,
           traverseSpeed: 0,
+          walkbackSpeed: 0,
           landerElevationMeters: null,
+          sunAzimuth: null,
+          earthAzimuth: null,
+          sunAzimuthVisible: false,
+          earthAzimuthVisible: false,
+          defaultEvaDuration: 240,
         };
       } else {
         //We can assume this is an export from our own system
@@ -109,9 +138,17 @@ const Mission: NextPage = () => {
           id: null,
           config: tempMissionObj.config,
           name: tempMissionObj.name,
+          description: tempMissionObj.description,
+          missionBanner: tempMissionObj.missionBanner,
           landerLocation: tempMissionObj.landerLocation,
           traverseSpeed: tempMissionObj.traverseSpeed,
+          walkbackSpeed: tempMissionObj.walkbackSpeed,
           landerElevationMeters: tempMissionObj.landerElevationMeters,
+          sunAzimuth: tempMissionObj.sunAzimuth,
+          earthAzimuth: tempMissionObj.earthAzimuth,
+          sunAzimuthVisible: tempMissionObj.sunAzimuthVisible,
+          earthAzimuthVisible: tempMissionObj.earthAzimuthVisible,
+          defaultEvaDuration: tempMissionObj.defaultEvaDuration,
         };
       }
       setProgressBarWidth(0);
@@ -123,9 +160,9 @@ const Mission: NextPage = () => {
         setProgressBarText("Importing Layers");
         setProgressBarColor("#00ff00");
 
-        tempLayers.forEach((layer: any) => {
+        tempLayers.forEach((layer) => {
           // import the layer into the database
-          const body = {
+          const body: Layer = {
             uuid: uuidv4(),
             missionId: newMission.data.id,
             layerConfig: layer,
@@ -260,7 +297,7 @@ const Mission: NextPage = () => {
                     type="button"
                     className={styles.importButton}
                     onClick={() => {
-                      if (isValidJson(tempMission)) {
+                      if (tempMission.length && mustBeValidJSON(tempMission) === undefined) {
                         setProgressBarText("Importing Mission");
                         handleMissionImport();
                       } else {
@@ -314,6 +351,7 @@ const Mission: NextPage = () => {
             <h2>Missions</h2>
             <MissionList
               missions={missions}
+              user={user}
               refreshMissionList={loadMissionsFromDB}
               setEditMissionId={setEditMissionId}
             />
@@ -353,10 +391,12 @@ const Mission: NextPage = () => {
 //component to display the bulleted list of missions
 const MissionList = (props: {
   missions: Mission[];
+  user: User;
   refreshMissionList: () => {};
   setEditMissionId: Dispatch<SetStateAction<Number>>;
 }) => {
   const router = useRouter();
+  const permissionList = props.user.permissionList;
 
   async function delMission(id: number) {
     if (confirm("Are you sure you want to delete mission " + id)) {
@@ -375,49 +415,64 @@ const MissionList = (props: {
     return (
       <ul>
         {props.missions.map((mission: Mission) => {
-          return (
-            <li key={mission.id}>
-              <>
-                {mission.name} (v{mission.version})<br />
-                <button
-                  type="button"
-                  onClick={() => {
-                    props.setEditMissionId(mission.id);
-                  }}
-                >
-                  Edit Mission
-                </button>
-                &nbsp;
-                <button
-                  type="button"
-                  onClick={() => {
-                    router.push(`/admin/layers/${mission.id}`);
-                  }}
-                >
-                  Edit Layers
-                </button>
-                &nbsp;
-                <button
-                  type="button"
-                  onClick={() => {
-                    router.push(`/admin/stm/${mission.id}`);
-                  }}
-                >
-                  Edit STM
-                </button>
-                &nbsp;
-                <button
-                  className={styles.deleteButton}
-                  type="button"
-                  onClick={() => {
-                    delMission(mission.id);
-                  }}
-                >
-                  Delete Mission
-                </button>
-              </>
-            </li>
-          );
+          if (
+            props.user.id === 1 ||
+            permissionList.some((p) => p.missionId === mission.id && p.permissions.edit === true)
+          ) {
+            return (
+              <li key={mission.id}>
+                <>
+                  {mission.name} (v{mission.version})<br />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      props.setEditMissionId(mission.id);
+                    }}
+                  >
+                    Edit Mission
+                  </button>
+                  &nbsp;
+                  <button
+                    type="button"
+                    onClick={() => {
+                      router.push(`/admin/layers/${mission.id}`);
+                    }}
+                  >
+                    Edit Layers
+                  </button>
+                  &nbsp;
+                  <button
+                    type="button"
+                    onClick={() => {
+                      router.push(`/admin/stm/${mission.id}`);
+                    }}
+                  >
+                    Edit STM
+                  </button>
+                  &nbsp;
+                  <button
+                    className={styles.deleteButton}
+                    type="button"
+                    onClick={() => {
+                      delMission(mission.id);
+                    }}
+                  >
+                    Delete Mission
+                  </button>
+                </>
+              </li>
+            );
+          } else {
+            return (
+              <li key={mission.id}>
+                <>
+                  <span className={styles.noPermission}>
+                    {mission.name} (v{mission.version}) [No Edit Permissions]
+                  </span>
+                </>
+              </li>
+            );
+          }
         })}
       </ul>
     );

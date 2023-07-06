@@ -1,16 +1,27 @@
 import { Editable, RenderElementProps, RenderLeafProps, Slate, withReact } from "slate-react";
-import { createEditor, Descendant, Text, Editor } from "slate";
-import { CustomEditor } from "typings/wysiwyg";
+import { createEditor, Descendant, Text, Editor, Transforms, Element as SlateElement } from "slate";
+import { BulletedListElement, CustomEditor, NumberedListElement, Marks } from "typings/wysiwyg";
 import { FunctionComponent, useCallback, useEffect, useState } from "react";
+import {
+  IconDefinition,
+  faBold,
+  faItalic,
+  faListOl,
+  faListUl,
+  faUnderline,
+} from "@fortawesome/free-solid-svg-icons";
 import styles from "./wysiwyg.module.css";
 import _ from "lodash";
 import isHotkey from "is-hotkey";
+import { TextboxButton } from "./globalFields";
 
 const HOTKEYS = {
   "mod+b": "bold",
   "mod+i": "italic",
   "mod+u": "underline",
 };
+
+const LIST_TYPES = ["numbered-list", "bulleted-list"];
 
 const Element = ({ attributes, children, element }: RenderElementProps) => {
   switch (element.type) {
@@ -80,6 +91,8 @@ function convertNodeToHTML(node: Descendant): string {
       return `<ul>${children}</ul>`;
     case "list-item":
       return `<li>${children}</li>`;
+    case "numbered-list":
+      return `<ol>${children}</ol>`;
     default:
       return children;
   }
@@ -109,28 +122,18 @@ function convertStringToNodes(stringValue: string, defaultValue: string = ""): D
     } catch (e) {
       //If it's not in JSON form then it must be an old old pre-wysiwyg string
       if (e instanceof SyntaxError) {
-        const json: Descendant[] = [];
-        //these are very specific conversions targeted towards prod data at the time of this MR, and probably can be removed in the future
-        //clean and strip any html and put new cleaned string into a single paragraph
-        const splitByDiv = stringValue
-          .replaceAll("&nbsp;", " ")
-          .replaceAll(/^(<div>)+/gi, "") //remove leading divs
-          .replaceAll(/(<div>){2,}/gi, "<div>") //remove multiple divs to just a single div
-          .split("<div>"); //split on divs. Each new div goes into a new paragraph
-        const htmlRegex = /(<[\/a-z]([^>]+)>)/gi; //html tags
-        for (const paragraph of splitByDiv) {
-          json.push({
+        return [
+          {
             type: "paragraph",
-            children: [{ text: paragraph.replaceAll(htmlRegex, "") }],
-          });
-        }
-        return json;
+            children: [{ text: stringValue }],
+          },
+        ];
       }
     }
   }
 }
 
-//used for toggling hot keys
+//used for toggling rich text
 const toggleMark = (editor: CustomEditor, format: string) => {
   const isActive = isMarkActive(editor, format);
 
@@ -141,10 +144,105 @@ const toggleMark = (editor: CustomEditor, format: string) => {
   }
 };
 
+//used for toggling rich blocks
+const toggleBlock = (editor: CustomEditor, format: "numbered-list" | "bulleted-list") => {
+  const isActive = isBlockActive(editor, format);
+  const isList = LIST_TYPES.includes(format);
+
+  Transforms.unwrapNodes(editor, {
+    match: (n) => !Editor.isEditor(n) && SlateElement.isElement(n) && LIST_TYPES.includes(n.type),
+    split: true,
+  });
+
+  const newProperties: Partial<SlateElement> = {
+    type: isActive
+      ? "paragraph"
+      : isList
+      ? "list-item"
+      : format === "numbered-list"
+      ? "numbered-list"
+      : format === "bulleted-list"
+      ? "bulleted-list"
+      : "paragraph",
+  };
+  Transforms.setNodes<SlateElement>(editor, newProperties);
+
+  if (!isActive && isList) {
+    const block: NumberedListElement | BulletedListElement = { type: format, children: [] };
+    Transforms.wrapNodes(editor, block);
+  }
+};
+
 //used for toggling hot keys
 const isMarkActive = (editor: CustomEditor, format: string) => {
   const marks = Editor.marks(editor);
-  return marks ? marks[format] === true : false;
+  return marks ? marks[format as keyof Marks] === true : false;
+};
+
+//used for toggling blocks
+const isBlockActive = (editor: CustomEditor, format: string, blockType: string = "type") => {
+  const { selection } = editor;
+  if (!selection) return false;
+
+  const [match] = Array.from(
+    Editor.nodes(editor, {
+      at: Editor.unhangRange(editor, selection),
+      match: (n) =>
+        !Editor.isEditor(n) &&
+        SlateElement.isElement(n) &&
+        n[blockType as keyof typeof n] === format,
+    })
+  );
+
+  return !!match;
+};
+
+const MarkButton = ({
+  editor,
+  format,
+  icon,
+}: {
+  editor: CustomEditor;
+  format: string;
+  icon: IconDefinition;
+}) => {
+  return (
+    <div className={styles.wysiwygButton}>
+      <TextboxButton
+        active={isMarkActive(editor, format)}
+        icon={icon}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          toggleMark(editor, format);
+        }}
+        whiteOnToggle={false}
+      />
+    </div>
+  );
+};
+
+const BlockButton = ({
+  editor,
+  format,
+  icon,
+}: {
+  editor: CustomEditor;
+  format: "numbered-list" | "bulleted-list";
+  icon: IconDefinition;
+}) => {
+  return (
+    <div className={styles.wysiwygButton}>
+      <TextboxButton
+        active={isBlockActive(editor, format)}
+        icon={icon}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          toggleBlock(editor, format);
+        }}
+        whiteOnToggle={true}
+      />
+    </div>
+  );
 };
 
 export const WysiwygTextArea: FunctionComponent<{
@@ -153,10 +251,12 @@ export const WysiwygTextArea: FunctionComponent<{
   onChange: (value: string) => void;
   defaultValue?: string;
 }> = ({ value, editing, onChange, defaultValue }) => {
+  //start
+  const [editorChange, setEditorChange] = useState(false);
   const [editor] = useState(() => withReact(createEditor()));
 
-  const renderElement = useCallback((props) => <Element {...props} />, []);
-  const renderLeaf = useCallback((props) => <Leaf {...props} />, []);
+  const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, []);
+  const renderLeaf = useCallback((props: RenderLeafProps) => <Leaf {...props} />, []);
 
   //reset the selector to prevent a bug where a previous edited field had more new lines
   //  than the new current field being edited. The selector will try to find the old location
@@ -178,8 +278,21 @@ export const WysiwygTextArea: FunctionComponent<{
             if (isAstChange) {
               onChange(JSON.stringify(nodes));
             }
+            setEditorChange(!editorChange);
           }}
         >
+          <div className={styles.wysiwygButtonContainer}>
+            <div className={styles.wysiwygButtonSubcontainer}>
+              <MarkButton editor={editor} format="bold" icon={faBold} />
+              <MarkButton editor={editor} format="italic" icon={faItalic} />
+              <MarkButton editor={editor} format="underline" icon={faUnderline} />
+            </div>
+            <div className={styles.wysiwygButtonSubcontainer}>
+              <BlockButton editor={editor} format="bulleted-list" icon={faListUl} />
+              <BlockButton editor={editor} format="numbered-list" icon={faListOl} />
+            </div>
+          </div>
+
           <Editable
             renderElement={renderElement}
             renderLeaf={renderLeaf}
@@ -187,9 +300,9 @@ export const WysiwygTextArea: FunctionComponent<{
             className={styles.wysiwyg}
             onKeyDown={(event) => {
               for (const hotkey in HOTKEYS) {
-                if (isHotkey(hotkey, event as any)) {
+                if (isHotkey(hotkey, event)) {
                   event.preventDefault();
-                  const mark = HOTKEYS[hotkey];
+                  const mark = HOTKEYS[hotkey as keyof typeof HOTKEYS];
                   toggleMark(editor, mark);
                 }
               }

@@ -4,7 +4,7 @@ import FileManager from "./fileManager";
 import { createNewConfig, stringToJSON } from "./helper";
 import { Form } from "react-final-form";
 import { AnyObject } from "final-form";
-import { FFInput } from "components/interface/form/globalFields";
+import { FFCheckbox, FFInput, FFTextArea } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
 import Look from "./look";
 import MSV from "./msv";
@@ -38,8 +38,9 @@ const MissionEditor: FunctionComponent<{
   }, [mission]);
 
   //save the mission and call and upsert
-  async function onSubmit(values) {
-    const panelArray = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async function onSubmit(values: Record<string, any>) {
+    const panelArray: string[] = [];
     forIn(values.panelValues, (value, key) => {
       if (value) {
         panelArray.push(key);
@@ -97,7 +98,7 @@ const MissionEditor: FunctionComponent<{
 
     const radius = parseFloat(mission?.config.msv.radius.minor);
     const measureJson = mission?.config.tools.find((tool) => tool.name === "Measure")?.variables;
-    const demFilepath: string = measureJson["dem"];
+    const demFilepath: string = measureJson.dem;
     const point: AEGISPoint = {
       lat: mission.landerLocation.lat,
       lng: mission.landerLocation.lng,
@@ -175,8 +176,17 @@ const MissionEditor: FunctionComponent<{
                   <div id="bannerDiv">
                     <div className={adminStyles.editDiv}>
                       <FFInput
-                        name="config.missionBanner"
+                        name="missionBanner"
                         label={{ label: "Mission Banner", title: "Mission Banner" }}
+                        initialValue={mission?.name}
+                      />
+                    </div>
+                  </div>
+                  <div id="bannerDiv">
+                    <div className={adminStyles.editDiv}>
+                      <FFTextArea
+                        name="description"
+                        label={{ label: "Mission Description", title: "Mission Description" }}
                         initialValue={mission?.name}
                       />
                     </div>
@@ -216,12 +226,64 @@ const MissionEditor: FunctionComponent<{
                       </button>
                     </div>
                   </div>
+                  <div id="durationDiv">
+                    <div className={adminStyles.editDiv}>
+                      <FFInput
+                        name="defaultEvaDuration"
+                        label={{ label: "Default EVA Duration (mins)" }}
+                        validators={[validators.mustBeNumber, validators.mustBeInteger]}
+                      />
+                    </div>
+                  </div>
                   <div id="traverseDiv">
                     <div className={adminStyles.editDiv}>
                       <FFInput
                         name="traverseSpeed"
-                        label={{ label: "Default Traverse Speed" }}
-                        validators={[validators.mustBeNumber]}
+                        label={{ label: "Default Traverse Speed (km/h)" }}
+                        validators={[validators.mustBeNumber, validators.mustBeInteger]}
+                      />
+                    </div>
+                  </div>
+                  <div id="walkbackDiv">
+                    <div className={adminStyles.editDiv}>
+                      <FFInput
+                        name="walkbackSpeed"
+                        label={{ label: "Default Walkback Speed (km/h)" }}
+                        validators={[validators.mustBeNumber, validators.mustBeInteger]}
+                      />
+                    </div>
+                  </div>
+                  <div id="sunAzimuthDiv">
+                    <div className={adminStyles.editDiv}>
+                      <FFInput
+                        name="sunAzimuth"
+                        label={{ label: "Sun Azimuth (degrees)" }}
+                        validators={[validators.mustBeNumber, validators.mustBeInteger]}
+                      />
+                    </div>
+                  </div>
+                  <div id="sunAzimuthEnabled">
+                    <div className={adminStyles.editDiv}>
+                      <FFCheckbox
+                        name="sunAzimuthEnabled"
+                        label={{ label: "Sun Azimuth Enabled" }}
+                      />
+                    </div>
+                  </div>
+                  <div id="earthAzimuthDiv">
+                    <div className={adminStyles.editDiv}>
+                      <FFInput
+                        name="earthAzimuth"
+                        label={{ label: "Earth Azimuth (degrees)" }}
+                        validators={[validators.mustBeNumber, validators.mustBeInteger]}
+                      />
+                    </div>
+                  </div>
+                  <div id="earthAzimuthEnabled">
+                    <div className={adminStyles.editDiv}>
+                      <FFCheckbox
+                        name="earthAzimuthEnabled"
+                        label={{ label: "Earth Azimuth Enabled" }}
                       />
                     </div>
                   </div>

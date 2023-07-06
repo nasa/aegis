@@ -29,7 +29,7 @@ export function getDistanceBetweenTwoCoordinates(
  * @param {number} deg - degrees
  * @returns {number} radians
  */
-function deg2rad(deg) {
+function deg2rad(deg: number) {
   return deg * (Math.PI / 180);
 }
 
@@ -38,7 +38,7 @@ function deg2rad(deg) {
  * @param angle - radians
  * @returns  degrees
  */
-function rad2deg(angle) {
+function rad2deg(angle: number) {
   return angle * (180 / Math.PI);
 }
 
@@ -279,11 +279,9 @@ export const calculateAscentAndDescent = (elevations: number[][]): TotalAscentDe
  * Calculate the total duration of a pathSegmentDistances array given a traverse rate
  * @param segmentDistances an array of distances in meters
  * @param traverseRate the traverse rate in km/h
+ * @returns the duration in minutes
  */
-export const traverseDurationMinutes = (
-  segmentDistances: number[],
-  traverseRate: number
-): number => {
+export const calcPathDurationMins = (segmentDistances: number[], traverseRate: number): number => {
   if (!segmentDistances || !traverseRate) return 0;
   //convert meters to km, then divide by traverse speed to get minutes
   const distanceMeters = segmentDistances.reduce((accumulator, currentVal) => {

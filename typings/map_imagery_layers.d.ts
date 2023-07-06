@@ -3,7 +3,6 @@ interface MapLayerControl {
   uuid: string;
   visible: boolean;
   type: string;
-  mapLayerRef: any;
   style: MapLayerStyle;
 }
 

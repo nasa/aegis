@@ -8,7 +8,7 @@ import { FunctionComponent } from "react";
 const Header: FunctionComponent = () => {
   const router = useRouter();
   const missionName = useAppSelector((state) => state.mission.mission?.name, refEqual);
-  const banner = useAppSelector((state) => state.mission.mission?.config.missionBanner, refEqual);
+  const banner = useAppSelector((state) => state.mission.mission?.missionBanner, refEqual);
 
   return (
     <>

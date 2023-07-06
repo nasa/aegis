@@ -9,6 +9,7 @@ import { Button } from "components/interface/form/globalFields";
 import { faClone, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreateEva, thunkDuplicateEva } from "store/thunk/thunkEva";
+import { hasEditPermissions } from "store/selectors";
 
 const EvaPlannerLeft: FunctionComponent = () => {
   const thunkDispatch = useAppDispatch();
@@ -17,10 +18,8 @@ const EvaPlannerLeft: FunctionComponent = () => {
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
     shallowEqual
   );
-  const isAdmin = useAppSelector(
-    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
-    refEqual
-  );
+  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
+  const isAdmin: boolean = useAppSelector(hasEditPermissions(missionId), refEqual);
 
   return (
     <>

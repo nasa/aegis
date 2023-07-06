@@ -17,7 +17,7 @@ import {
   ResponseOptions,
 } from "node-mocks-http";
 import { NextApiRequest, NextApiResponse } from "next";
-import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
+import { TextEncoder, TextDecoder } from "util";
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -27,8 +27,18 @@ let testAdmin: User_db;
 beforeAll(async () => {
   await getORM();
   const em = getEM();
-  testAdmin = await new UserFactory(em).createOne();
   testMission = await new MissionFactory(em).createOne();
+  testAdmin = await new UserFactory(em).createOne({
+    permissionList: [
+      {
+        missionId: testMission.id,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+    ],
+  });
 });
 
 describe("AEGIS Map Store Tests: ", () => {
@@ -71,7 +81,7 @@ describe("AEGIS Map Store Tests: ", () => {
       method: "GET",
       headers: { cookie: loginCookie },
       query: { missionId: testMission.id.toString() },
-      body: { user: { username: "testAdmin" } },
+      body: { user: { username: "testAdmin" }, missionId: testMission.id.toString() },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handleLayer(req, res);
@@ -94,7 +104,6 @@ describe("AEGIS Map Store Tests: ", () => {
         uuid: configLayer.uuid,
         visible: false,
         type: configLayer.layerConfig.type,
-        mapLayerRef: null,
         style: null,
       };
       if (configLayer.layerConfig.sublayers) {
@@ -104,7 +113,6 @@ describe("AEGIS Map Store Tests: ", () => {
             uuid: sublayer.uuid,
             visible: false,
             type: sublayer.type,
-            mapLayerRef: null,
             style: null,
           };
         });

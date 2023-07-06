@@ -33,7 +33,7 @@ export const ModifiedIndicator: FunctionComponent<{
 export const LastEdited: FunctionComponent<{
   updatedAt: string;
 }> = ({ updatedAt }) => {
-  const returnDivContent = (updatedAt) => {
+  const returnDivContent = (updatedAt: string) => {
     if (!updatedAt) return <>N/A</>;
     const date = new Date(updatedAt);
     // calculate the difference between now and the last update

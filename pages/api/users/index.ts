@@ -15,7 +15,7 @@ const handleUser: NextApiHandler<WrappedResponse<User[] | User>> = async (
 ): Promise<unknown> => {
   try {
     const { userId } = req.query;
-    const isAdmin = req.session.user.permission.includes("admin"); // will evaluate true or false
+    const isAdmin = req.session.user.id === 1 || req.session.user.adminPermission; // will evaluate true or false
     let intUserId = null;
     if (req.method === "GET") {
       try {
@@ -82,14 +82,20 @@ const handleUser: NextApiHandler<WrappedResponse<User[] | User>> = async (
  */
 async function getUsers(userId: number = null): Promise<User[]> {
   const model = getEM();
-  let users;
+  let users: User_db[];
   if (userId == null) {
     users = await model.find(User_db, {});
   } else {
-    users = await model.findOne(User_db, { id: userId });
+    users = await model.find(User_db, { id: userId });
   }
 
-  return users;
+  return users.map((user: User_db) => {
+    return {
+      ...user,
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
+    } as User;
+  });
 }
 
 /**
@@ -97,13 +103,13 @@ async function getUsers(userId: number = null): Promise<User[]> {
  * @returns a copy of the user object that was upserted
  * @param user
  */
-async function upsertUser(user: User): Promise<User> {
+export async function upsertUser(user: User): Promise<User> {
   const em = getEM();
   const userCopy: User = _.cloneDeep(user);
   const salt = await bcrypt.genSalt();
+
   const upsertRecord: EntityData<User_db> = {
     ...userCopy,
-    password: bcrypt.hashSync(userCopy.password, salt),
     updatedAt: new Date(userCopy.updatedAt),
     createdAt: new Date(userCopy.createdAt),
   };
@@ -112,19 +118,29 @@ async function upsertUser(user: User): Promise<User> {
   upsertRecord.updatedAt = updateDate;
 
   if (userCopy.id) {
-    const upsertReference = await em.upsert(User_db, upsertRecord);
-    await em.persistAndFlush(upsertReference);
+    let existingUser = await em.findOne(User_db, { id: userCopy.id });
+
+    if (!existingUser) {
+      return null;
+    }
+
+    if (userCopy.password !== existingUser.password) {
+      upsertRecord.password = await bcrypt.hash(userCopy.password, salt);
+    }
+
+    existingUser = em.assign(existingUser, upsertRecord);
+    await em.persistAndFlush(existingUser);
     return {
-      ...userCopy,
-      updatedAt: upsertReference.updatedAt.toISOString(),
-      createdAt: upsertReference.createdAt.toISOString(),
+      ...existingUser,
+      updatedAt: existingUser.updatedAt.toISOString(),
+      createdAt: existingUser.createdAt.toISOString(),
     } as User;
   } else {
     upsertRecord.createdAt = updateDate;
     const createReference = em.create(User_db, upsertRecord);
     await em.persistAndFlush(createReference);
     return {
-      ...userCopy,
+      ...createReference,
       updatedAt: createReference.updatedAt.toISOString(),
       createdAt: createReference.createdAt.toISOString(),
     } as User;

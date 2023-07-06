@@ -166,7 +166,7 @@ export function roundDateToSecond(date: Date): Date {
  */
 export function toDecimal(str: string): number {
   if (_.isEmpty(str)) return null;
-  const removedChars = str.replace(/[^0-9.]/g, "");
+  const removedChars = str.replace(/[^0-9.-]/g, "");
   // make sure string contains only one decimal point
   const decimalCount = (removedChars.match(/\./g) || []).length;
   let result;
@@ -210,13 +210,4 @@ export const decodeEmoji = (str: string): string => {
 export function formatNumberWithCommas(num: number): string {
   if (_.isNil(num)) return "";
   return num.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-
-export function isValidJson(str: string): boolean {
-  try {
-    JSON.parse(str);
-  } catch (e) {
-    return false;
-  }
-  return true;
 }

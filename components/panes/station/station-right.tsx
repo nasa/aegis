@@ -30,6 +30,7 @@ import emojiPickerData from "@emoji-mart/data";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDeleteStation, thunkSaveStation, thunkStationCancel } from "store/thunk/thunkStation";
 import { validators } from "components/interface/form/formValidators";
+import { hasEditPermissions } from "store/selectors";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -47,10 +48,32 @@ const StationEditorRight: FunctionComponent = () => {
     (state) => state.station.stations.find((station) => station.uuid === selectedStationUuid),
     shallowEqual
   );
-  const isAdmin = useAppSelector(
-    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
-    refEqual
+  const selectedStationFromDb = useAppSelector(
+    (state) => state.station.stationsFromDb.find((station) => station.uuid === selectedStationUuid),
+    shallowEqual
   );
+
+  const stationActions = useAppSelector(
+    (state) =>
+      state.action.actions.filter((storeAction) => storeAction.stationUuid === selectedStationUuid),
+    shallowEqual
+  );
+  const stationActionsFromDb = useAppSelector(
+    (state) =>
+      state.action.actionsFromDb.filter(
+        (storeAction) => storeAction.stationUuid === selectedStationUuid
+      ),
+    shallowEqual
+  );
+
+  const elevationPendingIndex = useAppSelector(
+    (state) =>
+      state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedStationUuid),
+    shallowEqual
+  );
+  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
+  const isAdmin: boolean = useAppSelector(hasEditPermissions(missionId), refEqual);
+
   const calculatedFields = useAppSelector(
     (state) =>
       state.station.calculatedFields.find((calculated) => calculated.uuid === selectedStationUuid),
@@ -95,30 +118,6 @@ const StationEditorRight: FunctionComponent = () => {
       icon: calculatedFields?.reportItems.length > 0 ? faTriangleExclamation : faCheck,
     },
   };
-
-  //these selectors from the store are only used to calculate modified. refactor?
-  const stationActionsFromDb = useAppSelector(
-    (state) =>
-      state.action.actionsFromDb.filter(
-        (storeAction) => storeAction.stationUuid === selectedStationUuid
-      ),
-    shallowEqual
-  );
-  const elevationPendingIndex = useAppSelector(
-    (state) =>
-      state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedStationUuid),
-    shallowEqual
-  );
-  const selectedStationFromDb = useAppSelector(
-    (state) => state.station.stationsFromDb.find((station) => station.uuid === selectedStationUuid),
-    shallowEqual
-  );
-
-  const stationActions = useAppSelector(
-    (state) =>
-      state.action.actions.filter((storeAction) => storeAction.stationUuid === selectedStationUuid),
-    shallowEqual
-  );
   //track modified
   useEffect(() => {
     if (elevationPendingIndex > -1) {
@@ -183,7 +182,8 @@ const StationEditorRight: FunctionComponent = () => {
                       emojiSize={20}
                       perLine={10}
                       darkMode={true}
-                      onEmojiSelect={(e) => {
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      onEmojiSelect={(e: any) => {
                         dispatch(upsertStation({ ...selectedStation, icon: e.unified }));
                         setShowEmojiPicker(false);
                       }}

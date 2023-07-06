@@ -11,12 +11,16 @@ export class User implements User_db_type {
   username!: string;
   @Property({ type: MikroTypes.text })
   email: string;
-  @Property({ type: MikroTypes.text, hidden: true })
+  @Property({ type: MikroTypes.text })
   password!: string;
-  @Property({ type: MikroTypes.string })
-  permission: PermissionRole;
   @Property({ type: MikroTypes.string, length: 2048, nullable: true })
   token?: string;
+
+  @Property({ type: MikroTypes.boolean, nullable: true })
+  adminPermission: boolean;
+
+  @Property({ type: MikroTypes.json, nullable: true })
+  permissionList?: Permission[];
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;
@@ -26,6 +30,6 @@ export class User implements User_db_type {
   @BeforeCreate()
   async beforeCreate(): Promise<void> {
     const salt = await bcrypt.genSalt();
-    this.password = await bcrypt.hash(this.password, salt);
+    this.password = bcrypt.hashSync(this.password, salt);
   }
 }

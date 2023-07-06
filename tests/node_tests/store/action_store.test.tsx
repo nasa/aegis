@@ -8,7 +8,7 @@ import MissionFactory from "../../factories/MissionFactory";
 import makeTestStore from "../../factories/makeTestStore";
 import { Mission as Mission_db } from "server/database/models/mission.model";
 import { User as User_db } from "server/database/models/user.model";
-import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
+import { TextEncoder, TextDecoder } from "util";
 
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
@@ -19,8 +19,18 @@ let testAdmin: User_db;
 beforeAll(async () => {
   await getORM();
   const em = getEM();
-  testAdmin = await new UserFactory(em).createOne();
   testMission = await new MissionFactory(em).createOne();
+  testAdmin = await new UserFactory(em).createOne({
+    permissionList: [
+      {
+        missionId: testMission.id,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+    ],
+  });
 });
 
 describe("Action Store Tests", () => {
@@ -53,7 +63,7 @@ describe("Action Store Tests", () => {
           missionId: 5000,
           createdAt: "test",
           updatedAt: "test",
-        },
+        } as Action,
       };
 
       // Act
@@ -161,7 +171,7 @@ describe("Action Store Tests", () => {
           missionId: 5000,
           createdAt: "test",
           updatedAt: "test",
-        },
+        } as Action,
       };
 
       // Act

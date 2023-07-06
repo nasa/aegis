@@ -5,7 +5,7 @@ import { withORM, getEM } from "utils/mikro";
 
 import _ from "lodash";
 import { Mission as Mission_db } from "server/database/models/mission.model";
-import { EntityData, ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/core";
+import { EntityData, ForeignKeyConstraintViolationException } from "@mikro-orm/core";
 import { roundDateToSecond } from "utils/formatting";
 
 /**
@@ -28,96 +28,141 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
   res
 ): Promise<unknown> => {
   try {
-    if (req.session?.user) {
-      const { missionId } = req.query;
-      const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+    //missionId is optional
+    const missionId = req.query.missionId ? req.query.missionId : req.body.id;
+    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
 
-      // retrieve record
-      if (req.method === "GET") {
-        if (intMissionId && _.isNaN(intMissionId)) {
-          return res.status(500).json({ status: "error", message: "Invalid mission ID" });
+    //General login check. Individual view/edit depends on the method to account for mission create
+    if (!req.session?.user) {
+      return res.status(401).json({ status: "failure", message: "Unauthorized" });
+    }
+
+    // retrieve record
+    if (req.method === "GET") {
+      if (intMissionId && _.isNaN(intMissionId)) {
+        return res.status(500).json({ status: "error", message: "Invalid mission ID" });
+      }
+
+      let viewPermission = false;
+      if (intMissionId) {
+        viewPermission = req.session?.user?.permissionList?.find((p) => p.missionId == intMissionId)
+          ?.permissions.view;
+      } else {
+        //no mission specified. check if they are allowed to view at least one mission
+        viewPermission = req.session?.user?.permissionList?.find((p) => p.permissions.view)
+          ?.permissions.view;
+      }
+      //super admin can always view
+      if (!viewPermission && !(req.session?.user?.id === 1))
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+
+      try {
+        //Check if they have permissions, then return the mission specified
+        let records: Mission[];
+        if (missionId) {
+          records = await getMission(intMissionId);
+        } else {
+          //super admin can see all missions
+          if (req.session.user.id === 1) {
+            records = await getMission();
+          } else {
+            //return all missions that they have permission for
+            const allViewMissions: number[] = req.session.user.permissionList.map((p) => {
+              if (p.permissions.view) return p.missionId;
+            });
+            records = await getMission(allViewMissions);
+          }
         }
 
-        try {
-          const records: Mission[] = await getMissions(intMissionId);
+        return res.status(200).json({
+          status: "success",
+          message: "mission retrieved",
+          data: records,
+        });
+      } catch (e) {
+        console.error(e);
+        return res
+          .status(500)
+          .json({ status: "error", message: "Error processing the GET request" });
+      }
+    }
 
+    const editPermission =
+      req.session?.user?.id === 1 ||
+      req.session?.user?.permissionList?.find((p) => p.missionId == intMissionId)?.permissions.edit;
+
+    //upsert a record
+    if (req.method === "POST") {
+      try {
+        //must have edit permission for a given mission id
+        //  or if no mission id (create mission) must be an admin to the back end or user 1
+        if (
+          (missionId && !editPermission) ||
+          (!missionId && !req.session.user.adminPermission && !editPermission)
+        ) {
+          return res.status(401).json({ status: "failure", message: "Unauthorized" });
+        }
+        //perform the upsert
+        const upsertObject: Mission = req.body as Mission;
+        const upsertResponse: Mission = await upsertMission(upsertObject);
+
+        //check response
+        if (!upsertResponse) {
+          return res.status(500).json({
+            status: "error",
+            message: "Upsert response did not return a value",
+            data: null,
+          });
+        } else {
           return res.status(200).json({
             status: "success",
-            message: "mission retrieved",
-            data: records,
+            message: `Mission upserted with ID ${upsertResponse.id}`,
+            data: upsertResponse,
           });
-        } catch (e) {
-          console.error(e);
+        }
+      } catch (e) {
+        console.error(e);
+        return res
+          .status(500)
+          .json({ status: "error", message: "Error processing the POST request" });
+      }
+    }
+
+    //delete a mission record
+    if (req.method === "DELETE") {
+      if (!editPermission) {
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+      }
+      if (!intMissionId || _.isNaN(intMissionId)) {
+        return res.status(500).json({ status: "error", message: "Invalid mission ID" });
+      }
+
+      try {
+        const deletedMissionId: number = await deleteMission(intMissionId);
+        if (deletedMissionId) {
+          return res.status(200).json({
+            status: "success",
+            message: "Mission Deleted",
+          });
+        } else {
+          return res.status(404).json({
+            status: "failure",
+            message: "No record found. Nothing deleted",
+          });
+        }
+      } catch (e) {
+        console.error(e);
+        if (e instanceof ForeignKeyConstraintViolationException) {
+          return res.status(500).json({
+            status: "error",
+            message: "Cannot delete mission. This mission is referenced elsewhere",
+          });
+        } else {
           return res
             .status(500)
-            .json({ status: "error", message: "Error processing the GET request" });
+            .json({ status: "error", message: "Error processing the DELETE request" });
         }
       }
-
-      //upsert a record
-      if (req.method === "POST") {
-        try {
-          //perform the upsert
-          const upsertObject: Mission = req.body as Mission;
-          const upsertResponse: Mission = await upsertMission(upsertObject);
-
-          //check response
-          if (!upsertResponse) {
-            return res.status(500).json({
-              status: "error",
-              message: "Upsert response did not return a value",
-              data: null,
-            });
-          } else {
-            return res.status(200).json({
-              status: "success",
-              message: `Mission upserted with ID ${upsertResponse.id}`,
-              data: upsertResponse,
-            });
-          }
-        } catch (e) {
-          console.error(e);
-          return res
-            .status(500)
-            .json({ status: "error", message: "Error processing the POST request" });
-        }
-      }
-
-      //delete a mission record
-      if (req.method === "DELETE") {
-        if (!intMissionId || _.isNaN(intMissionId)) {
-          return res.status(500).json({ status: "error", message: "Invalid mission ID" });
-        }
-
-        try {
-          const deletedMissionId: number = await deleteMission(intMissionId);
-          if (deletedMissionId) {
-            return res.status(200).json({
-              status: "success",
-              message: "Mission Deleted",
-            });
-          } else {
-            return res.status(404).json({
-              status: "failure",
-              message: "No record found. Nothing deleted",
-            });
-          }
-        } catch (e) {
-          console.error(e);
-          if (e instanceof ForeignKeyConstraintViolationException) {
-            return res.status(500).json({
-              status: "error",
-              message: "Cannot delete mission. This mission is referenced elsewhere",
-            });
-          } else {
-            return res
-              .status(500)
-              .json({ status: "error", message: "Error processing the DELETE request" });
-          }
-        }
-      }
-    } else {
-      return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
   } catch (e) {
     console.error(e);
@@ -127,15 +172,17 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
 
 /**
  * get mission(s) from the database
- * @param missionId the mission id. null will return all missions
- * @returns array of missions
+ * @returns a mission
+ * @param missionIdList
  */
-async function getMissions(missionId: number = null): Promise<Mission[]> {
+async function getMission(missionIdList: number | number[] = null): Promise<Mission[]> {
   const em = getEM();
-
-  const missions: Mission_db[] = missionId
-    ? await em.find(Mission_db, { id: missionId })
-    : await em.find(Mission_db, {}, { orderBy: [{ name: QueryOrder.ASC }] });
+  let missions: Mission_db[];
+  if (!missionIdList) {
+    missions = await em.find(Mission_db, {});
+  } else {
+    missions = await em.find(Mission_db, { id: missionIdList });
+  }
 
   return missions.map((mission: Mission_db) => {
     return {
@@ -205,5 +252,4 @@ async function deleteMission(missionId: number): Promise<number | null> {
   }
   return returnVal;
 }
-
 export default withIronSessionApiRoute(withORM(handleMission), ironOptions);

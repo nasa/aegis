@@ -21,8 +21,11 @@ export async function upsertEva(evaObj: Eva): Promise<WrappedResponse<Eva>> {
   return response;
 }
 
-export async function deleteEva(evaUuid: string): Promise<WrappedResponse<number | null>> {
-  const res = await fetch(`/api/eva?uuid=${evaUuid}`, {
+export async function deleteEva(
+  evaUuid: string,
+  missionId: number
+): Promise<WrappedResponse<number | null>> {
+  const res = await fetch(`/api/eva?uuid=${evaUuid}&missionId=${missionId}`, {
     method: "DELETE",
   });
   const response: WrappedResponse<number | null> = await res.json();

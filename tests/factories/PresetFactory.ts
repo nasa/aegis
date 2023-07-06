@@ -25,7 +25,6 @@ export default class PresetFactory extends Factory<Preset_db> {
           },
           enabled: false,
           expanded: true,
-          mapLayerRef: null,
         },
       },
       createdAt: new Date(),

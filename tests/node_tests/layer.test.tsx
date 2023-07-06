@@ -21,7 +21,7 @@ import { Layer as Layer_db } from "server/database/models/layer.model";
 import { createNewLayer } from "components/admin/helper";
 import fetchMock from "jest-fetch-mock";
 import { v4 as uuidv4 } from "uuid";
-import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
+import { TextEncoder, TextDecoder } from "util";
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -32,8 +32,26 @@ let testLayer: Layer_db;
 beforeAll(async () => {
   await getORM();
   const em = getEM();
-  testAdmin = await new UserFactory(em).createOne();
   testMission = await new MissionFactory(em).createOne();
+  testAdmin = await new UserFactory(em).createOne({
+    permissionList: [
+      {
+        missionId: testMission.id,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+      {
+        missionId: 99999,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+    ],
+  });
+
   testLayer = await new LayerFactory(em)
     .each((layer) => {
       layer.mission = testMission;
@@ -131,6 +149,8 @@ describe("Layer API Endpoint ", () => {
 
   test("Update a layer", async () => {
     newLayer.layerConfig.name = "LayerConfig Jest Test Modified";
+    newLayer.missionId = testMission.id;
+
     const reqOptions: RequestOptions = {
       method: "POST",
       headers: { cookie: loginCookie },
@@ -148,10 +168,12 @@ describe("Layer API Endpoint ", () => {
   });
 
   test("Delete a layer", async () => {
+    newLayer.missionId = testMission.id;
+
     const reqOptions: RequestOptions = {
       method: "DELETE",
       headers: { cookie: loginCookie },
-      query: { uuid: `${newLayer.uuid}` },
+      query: { uuid: `${newLayer.uuid}`, missionId: testMission.id },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handleLayer(req, res);

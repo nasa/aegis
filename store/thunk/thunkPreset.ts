@@ -70,15 +70,16 @@ export const thunkDeletePreset = appCreateAsyncThunk<{
 
   // if the selected preset is in presetsFromDb then delete it from the db
   if (presetFromDb) {
+    const missionId = getState().mission.mission?.id;
     // delete the preset from the DB via internal API call
-    const deleteResponse = await InternalAPI.deletePreset(preset.uuid);
+    const deleteResponse = await InternalAPI.deletePreset(preset.uuid, missionId);
     if (deleteResponse.status === "success") {
       // remove the corresponding preset from the store
       dispatch(deletePreset(preset));
       dispatch(setSelectedPresetUuid(null));
 
       // get fresh copy of presets from DB
-      const presetData = await InternalAPI.getPresets(getState().mission.mission?.id);
+      const presetData = await InternalAPI.getPresets(missionId);
       if (presetData.data) {
         dispatch(setPresetsFromDb(presetData.data));
       }

@@ -3,7 +3,7 @@ import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual } from "utils/useAppSelector";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { FormEventHandler, useEffect, useState } from "react";
 import styles from "./index.module.css";
 import { login, isLoggedIn, logout } from "http-client/login";
 import { getMissions } from "http-client/mission";
@@ -50,7 +50,7 @@ const Login = () => {
     }
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault();
   };
 
@@ -112,15 +112,38 @@ const Login = () => {
 const MissionSelect = () => {
   const dispatch = useDispatch();
   const router = useRouter();
+  const [missions, setMissions] = useState<Mission[]>([]);
+  const currentUser = useAppSelector((state) => state.user, refEqual);
 
-  const [missions, setmissions] = useState<Mission[]>([]);
-
+  // Get Current logged in user
   useEffect(() => {
-    (async () => {
+    async function populateData() {
+      const permissionList: Permission[] = currentUser.ironSessionData.user?.permissionList;
+
+      if (!currentUser.isLoggedIn) {
+        return;
+      }
       const response = await getMissions();
-      setmissions(response.data);
-    })();
-  }, []);
+      // if superadmin, show everything
+      if (currentUser.ironSessionData.user.id === 1) {
+        setMissions(response.data);
+        return;
+      }
+
+      // Filter out missions that the user does not have permission to view
+      const filteredMissions = response.data.filter((mission) => {
+        return permissionList.some((permission) => {
+          // Check if they can view
+          return permission.missionId === mission.id && permission.permissions.view === true;
+        });
+      });
+
+      setMissions(filteredMissions);
+    }
+    populateData().catch(() => {
+      // Something went wrong. Eventually would like a logger here.
+    });
+  }, [currentUser]);
 
   const handleLogoutButtonClick = async () => {
     const response = await logout();

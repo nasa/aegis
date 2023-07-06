@@ -6,12 +6,21 @@ import EvaPlanner from "components/panes/eva/eva";
 import EvaPlannerRight from "components/panes/eva/eva-right";
 import StationEditor from "components/panes/station/station";
 import StationEditorRight from "components/panes/station/station-right";
+import MissionConfig from "components/panes/mission/mission";
+import MissionConfigRight from "components/panes/mission/mission-right";
 
-import { faGlobe, faLocationDot, faRoute } from "@fortawesome/free-solid-svg-icons";
+import { faGlobe, faLocationDot, faRocket, faRoute } from "@fortawesome/free-solid-svg-icons";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 
 export const paneTypes: PaneTypes = {
-  map_layer_selector: {
+  mission: {
+    title: "Mission Configuration",
+    leftPane: MissionConfig,
+    rightPane: MissionConfigRight,
+    color: "var(--mission)",
+    icon: faRocket,
+  },
+  preset: {
     title: "Map Display Presets",
     leftPane: MapSelector,
     rightPane: MapSelectorRight,

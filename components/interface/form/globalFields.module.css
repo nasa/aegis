@@ -24,6 +24,35 @@
   color: var(--grey4);
 }
 
+.textboxButton {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+
+  height: 2em;
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.8em;
+  font-weight: 400;
+  margin-left: 2px;
+  padding-left: 8px;
+  padding-right: 8px;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.textboxActiveGrey {
+  background-color: var(--grey1);
+}
+
+.textboxActiveWhite {
+  background-color: #ffffff;
+  color: #000000;
+}
+
 .buttonIcon {
   margin-right: 3px;
 }
@@ -74,70 +103,6 @@
   top: 2px;
   right: 8px;
   pointer-events: none;
-}
-
-.multiButtonGroup {
-  display: flex;
-  flex-direction: row;
-}
-
-.multiButton {
-  flex: 1;
-  height: 2em;
-  background-color: var(--grey2);
-  color: #ffffff;
-  border: none;
-  font-size: 0.9em;
-  font-weight: 400;
-  margin-top: 3px;
-  padding-left: 8px;
-  padding-right: 8px;
-  border-left: 1px solid var(--grey4);
-}
-
-.multiButtonSelected {
-  background-color: var(--grey4);
-  color: black;
-}
-
-.multiButtonEditing {
-  flex: 1;
-  height: 2em;
-  background-color: var(--grey3);
-  color: #ffffff;
-  border: none;
-  font-size: 0.9em;
-  font-weight: 400;
-  margin-top: 3px;
-  padding-left: 8px;
-  padding-right: 8px;
-  border-left: 1px solid var(--grey4);
-  cursor: pointer;
-}
-
-.multiButtonEditing:hover {
-  background-color: white;
-  color: black;
-}
-
-.multiButtonEditingSelected {
-  background-color: white;
-  color: black;
-}
-
-.multiButtonStart {
-  border-top-left-radius: var(--radius);
-  border-bottom-left-radius: var(--radius);
-  border-left: none;
-}
-
-.multiButtonMiddle {
-  border-radius: 0;
-}
-
-.multiButtonEnd {
-  border-top-right-radius: var(--radius);
-  border-bottom-right-radius: var(--radius);
 }
 
 .iconDropdownContainer {
@@ -315,7 +280,6 @@
 
 .checkboxContainer {
   display: flex;
-  align-self: center;
 }
 
 .checkboxContainer input[type="checkbox"] {
@@ -349,4 +313,16 @@
 .errorIcon {
   margin-left: -2em;
   outline: none;
+}
+
+.degreesInputSlider {
+  margin-top: 5px;
+}
+
+.degreesInputSlider :first-child {
+  transition: none !important; /* override the transition baked into the circular slider component */
+}
+
+.notEditable {
+  pointer-events: none !important;
 }

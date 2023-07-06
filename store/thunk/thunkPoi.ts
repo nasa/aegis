@@ -106,7 +106,7 @@ export const thunkSavePoi = appCreateAsyncThunk<{
   );
 
   //save poi to db
-  const poiUpsertResponse = await InternalAPI.setPOI(poi);
+  const poiUpsertResponse = await InternalAPI.upsertPOI(poi);
 
   if (poiUpsertResponse.status === "success") {
     // upsert the changed POI to the store
@@ -147,7 +147,10 @@ export const thunkSavePoi = appCreateAsyncThunk<{
     });
     // take array of deleted actions and delete them in the db
     for (const deletedAction of deletedStationActions) {
-      const actionDeleteResponse = await httpClient_action.deleteAction(deletedAction.uuid);
+      const actionDeleteResponse = await httpClient_action.deleteAction(
+        deletedAction.uuid,
+        getState().mission.mission.id
+      );
       if (actionDeleteResponse.status !== "success") {
         throw new Error("Error deleting poi actions " + actionDeleteResponse.message);
       }
@@ -155,6 +158,7 @@ export const thunkSavePoi = appCreateAsyncThunk<{
 
     // update the store copy of the db with a fresh copy from the DB
     const actionData = await httpClient_action.getActions({
+      missionId: getState().mission.mission?.id,
       poiUuid: poi.uuid,
     });
     if (actionData.data?.length > 0) {
@@ -206,10 +210,12 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
 
   // if the selected poi is in poisFromDb then delete it from the db
   if (poiFromDb) {
+    const missionId = getState().mission.mission.id;
     // delete actions from the db via internal api call
     for (const actionToDelete of poiActions) {
       const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteAction(
-        actionToDelete.uuid
+        actionToDelete.uuid,
+        missionId
       );
       if (actionDeleteResponse.status !== "success") {
         throw new Error("Error deleting actions for poi " + actionDeleteResponse.message);
@@ -224,7 +230,7 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
     }
 
     // delete the POI from the DB via internal API call
-    const deleteResponse = await InternalAPI.deletePOI(poi.uuid);
+    const deleteResponse = await InternalAPI.deletePOI(poi.uuid, missionId);
     if (deleteResponse.status === "success") {
       // remove the corresponding POI from the store
       dispatch(deletePoiByUuid(poi.uuid));
@@ -311,7 +317,7 @@ export const thunkDuplicatePoi = appCreateAsyncThunk<{ poi: POI }>(
           thunkDuplicateAction({ action: action, poiUuid: newPoi.uuid })
         );
         if (thunkRes.payload) {
-          newActionOrderUuids.push(thunkRes.payload as String);
+          newActionOrderUuids.push(thunkRes.payload as string);
         }
       }
     } else {
@@ -320,7 +326,7 @@ export const thunkDuplicatePoi = appCreateAsyncThunk<{ poi: POI }>(
           thunkDuplicateAction({ action: action, poiUuid: newPoi.uuid })
         );
         if (thunkRes.payload) {
-          newActionOrderUuids.push(thunkRes.payload as String);
+          newActionOrderUuids.push(thunkRes.payload as string);
         }
       }
     }

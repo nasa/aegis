@@ -14,18 +14,64 @@ import { Mission as Mission_db } from "server/database/models/mission.model";
 import MissionFactory from "../factories/MissionFactory";
 import { User as User_db } from "server/database/models/user.model";
 import UserFactory from "../factories/UserFactory";
-import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
+import { TextEncoder, TextDecoder } from "util";
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
 let testMissions: Mission_db[];
 let testAdmin: User_db;
+let newMission: Partial<Mission>;
 
 beforeAll(async () => {
   await getORM();
   const em = getEM();
-  testAdmin = await new UserFactory(em).createOne();
   testMissions = await new MissionFactory(em).create(5);
+  testAdmin = await new UserFactory(em).createOne({
+    permissionList: [
+      {
+        missionId: testMissions[0].id,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+      {
+        missionId: testMissions[1].id,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+      {
+        missionId: testMissions[2].id,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+      {
+        missionId: testMissions[3].id,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+      {
+        missionId: testMissions[4].id,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+      {
+        missionId: 99999,
+        permissions: {
+          edit: true,
+          view: true,
+        },
+      },
+    ],
+  });
 });
 
 describe("Mission API Endpoint", () => {
@@ -33,7 +79,7 @@ describe("Mission API Endpoint", () => {
   type ApiResponse = NextApiResponse & ReturnType<typeof createResponse>;
 
   let loginCookie: string;
-  let newMission: Partial<Mission> = {
+  newMission = {
     name: "Mission Jest Test",
     config: null,
   };
@@ -132,11 +178,10 @@ describe("Mission API Endpoint", () => {
   });
 
   test("Update a mission", async () => {
-    newMission.name = "Mission Jest Test Modified";
     const reqOptions: RequestOptions = {
       method: "POST",
       headers: { cookie: loginCookie },
-      body: newMission,
+      body: testMissions[0],
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handleMission(req, res);
@@ -147,14 +192,14 @@ describe("Mission API Endpoint", () => {
     const upsertedMission = res._getJSONData().data;
     expect(upsertedMission).not.toBeNull();
     expect(upsertedMission.version).toEqual(2);
-    expect(upsertedMission.name).toEqual("Mission Jest Test Modified");
+    expect(upsertedMission.name).toEqual("Gaia-1");
   });
 
   test("Delete a mission", async () => {
     const reqOptions: RequestOptions = {
       method: "DELETE",
       headers: { cookie: loginCookie },
-      query: { missionId: `${newMission.id}` },
+      query: { missionId: `${testMissions[0].id}` },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handleMission(req, res);
@@ -172,6 +217,7 @@ afterAll(async () => {
   await em.nativeDelete(User_db, { id: testAdmin.id });
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
+    await em.nativeDelete(Mission_db, { id: newMission.id });
   }
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();

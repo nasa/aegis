@@ -14,7 +14,7 @@ import {
   calculateAscentAndDescent,
   getDistanceBetweenTwoCoordinates,
   getTotalDistance,
-  traverseDurationMinutes,
+  calcPathDurationMins,
 } from "utils/geoMath";
 import { thunkGetElevation } from "./thunkElevation";
 import _ from "lodash";
@@ -290,7 +290,7 @@ export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
       }
 
       // get walback duration minutes
-      const walkbackDurationMinutes = traverseDurationMinutes(
+      const walkbackDurationMinutes = calcPathDurationMins(
         station.walkbackPathSegmentDistances,
         missionTraverseRate
       );
@@ -377,7 +377,10 @@ export const thunkSaveStation = appCreateAsyncThunk<{
     });
     // take array of deleted actions and delete them in the db
     for (const deletedAction of deletedStationActions) {
-      const actionDeleteResponse = await httpClient_action.deleteAction(deletedAction.uuid);
+      const actionDeleteResponse = await httpClient_action.deleteAction(
+        deletedAction.uuid,
+        getState().mission.mission.id
+      );
       if (actionDeleteResponse.status !== "success") {
         throw new Error("Error deleting station actions " + actionDeleteResponse.message);
       }
@@ -385,6 +388,7 @@ export const thunkSaveStation = appCreateAsyncThunk<{
 
     // update the store copy of the db with a fresh copy from the DB
     const actionData = await httpClient_action.getActions({
+      missionId: getState().mission.mission?.id,
       stationUuid: station.uuid,
     });
     if (actionData.data) {
@@ -536,10 +540,12 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
 
   // if the selected station is in stationsFromDb then delete it from the db
   if (stationFromDb) {
+    const missionId = getState().mission.mission.id;
     // delete actions from the db via internal api call
     for (const actionToDelete of stationActions) {
       const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteAction(
-        actionToDelete.uuid
+        actionToDelete.uuid,
+        missionId
       );
       if (actionDeleteResponse.status !== "success") {
         throw new Error("Error deleting actions for station " + actionDeleteResponse.message);
@@ -557,7 +563,8 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
 
     // delete the Station from the DB via internal API call
     const deleteResponse: WrappedResponse<number> = await httpClient_station.deleteStation(
-      station.uuid
+      station.uuid,
+      missionId
     );
     if (deleteResponse.status === "success") {
       // remove the corresponding Station from the store
@@ -651,7 +658,7 @@ export const thunkDuplicateStation = appCreateAsyncThunk<{ station: Station }>(
           })
         );
         if (thunkRes.payload) {
-          newActionOrderUuids.push(thunkRes.payload as String);
+          newActionOrderUuids.push(thunkRes.payload as string);
         }
       }
 
@@ -669,7 +676,7 @@ export const thunkDuplicateStation = appCreateAsyncThunk<{ station: Station }>(
             })
           );
           if (thunkRes.payload) {
-            newActionOrderUuids.push(thunkRes.payload as String);
+            newActionOrderUuids.push(thunkRes.payload as string);
           }
         }
       }
@@ -682,7 +689,7 @@ export const thunkDuplicateStation = appCreateAsyncThunk<{ station: Station }>(
           })
         );
         if (thunkRes.payload) {
-          newActionOrderUuids.push(thunkRes.payload as String);
+          newActionOrderUuids.push(thunkRes.payload as string);
         }
       }
     }

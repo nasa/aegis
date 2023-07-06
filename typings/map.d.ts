@@ -28,11 +28,3 @@ interface MapDirective {
   mapItemType: MapItemType;
   mapAction: MapAction;
 }
-
-type DrawControlItem = {
-  uuid: string;
-  drawControl: any;
-  drawHandler: any;
-  drawnItemsFeatureGroup: any;
-  mapItemType: MapItemType;
-};

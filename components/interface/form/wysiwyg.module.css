@@ -9,9 +9,25 @@
 }
 
 .wysiwygParagraph {
-  margin-top: 0px;
-  margin-bottom: 0px;
+  margin-top: 0;
+  margin-bottom: 0;
   min-height: 1rem;
+}
+
+.wysiwygButtonContainer {
+  display: flex;
+  padding-top: 2px;
+}
+
+.wysiwygButtonSubcontainer {
+  display: flex;
+  flex-direction: row;
+  padding-right: 10px;
+}
+
+.wysiwygButton {
+  display: flex;
+  flex-direction: row;
 }
 
 .notesText {

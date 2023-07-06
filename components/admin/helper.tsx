@@ -158,7 +158,6 @@ export function createNewConfig(): Config {
     tools: [],
     //layers: [],
     time: { enabled: false, visible: false, format: "" },
-    missionBanner: "",
     layers: [],
   };
 }
@@ -185,19 +184,9 @@ export const DisplayTime: FunctionComponent<{ time: MMGIS_Time }> = (props: {
   );
 };
 
-export const isValidJSON = (string: string): boolean => {
+export const stringToJSON = (string: string): unknown | undefined => {
   try {
-    JSON.parse(string);
-  } catch (e) {
-    return false;
-  }
-
-  return true;
-};
-
-export const stringToJSON = (string: string): JSON | undefined => {
-  try {
-    return JSON.parse(string);
+    return JSON.parse(string) as unknown;
   } catch (e) {
     return undefined;
   }

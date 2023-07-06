@@ -1,5 +1,4 @@
 import { createSlice } from "@reduxjs/toolkit";
-import _ from "lodash";
 import { upsertToArrayByUuid } from "utils/store";
 
 export const initialState: ActionState = {

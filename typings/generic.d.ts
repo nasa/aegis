@@ -4,6 +4,8 @@
 interface Mission {
   id: number;
   name: string;
+  description: string;
+  missionBanner: string;
   config: Config;
   version?: number;
   createdAt?: string;
@@ -11,6 +13,12 @@ interface Mission {
   landerLocation?: AEGISPoint;
   landerElevationMeters?: number;
   traverseSpeed?: number;
+  sunAzimuth: number;
+  earthAzimuth: number;
+  sunAzimuthVisible: boolean;
+  earthAzimuthVisible: boolean;
+  defaultEvaDuration: number;
+  walkbackSpeed: number;
 }
 
 // No alteration needed to convert this store type to the database type
@@ -29,10 +37,16 @@ interface Config {
   panels: string[];
   panelSettings: MMGIS_PanelSettings;
   tools: MMGIS_Tool[];
-  //layers: LayerConfig[];
   time: MMGIS_ConfigTime;
-  missionBanner: string;
 }
+
+/**
+ * The object we put in the "measure tool" area of MMGIS config about the dem
+ */
+type DemConfig = {
+  dem: string;
+  resolution: number;
+};
 
 type GISfile = {
   name: string;

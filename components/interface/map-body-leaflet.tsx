@@ -1,10 +1,10 @@
 import * as L from "leaflet";
 L.Icon.Default.imagePath = "/leaflet/images/";
 // Import the plugin libraries so they will modify L
-import "leaflet.tilelayer.colorfilter";
 import { HighlightablePolyline } from "leaflet-highlightable-layers";
 import DraggableLines from "leaflet-draggable-lines";
 import { antPath } from "leaflet-ant-path";
+import "leaflet.tilelayer.colorfilter";
 import "proj4leaflet";
 
 import styles from "components/interface/map-body.module.css";
@@ -47,6 +47,7 @@ import getPercentOrDefault from "utils/getPercentOrDefault";
 import { thunkUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { selectEVASequenceItem } from "store/cross-slice";
 import { thunkGetStationOrTraverse } from "store/thunk/thunkEva";
+import { thunkUpdateLanderLocation } from "store/thunk/thunkMission";
 
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
@@ -112,6 +113,8 @@ const MapBody: FunctionComponent = () => {
   const [traversesToShow, setTraversesToShow] = useState<Traverse[]>([]);
   const [showAllPois, setShowAllPois] = useState(true);
   const [showAllStations, setShowAllStations] = useState(true);
+
+  const [mapPosition, setMapPosition] = useState<string[]>([]);
 
   const [scale, setScale] = useState(0);
   const [mapZoom, setMapZoom] = useState(0); // value used to show correct scale bar
@@ -222,6 +225,7 @@ const MapBody: FunctionComponent = () => {
       if (!isLayerOnMapByName(map, configSublayer.name)) {
         if (configSublayer.type === "tile") {
           const filter = makeTileLayerColorFilter(layerControls, configSublayer.name);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const tileLayer = (L.tileLayer as any).colorFilter(
             `${layerBaseURL}/${mission.id}/Layers/${configSublayer.aegisURL}`,
             {
@@ -305,6 +309,7 @@ const MapBody: FunctionComponent = () => {
    */
   useEffect(() => {
     if (!map.current || !layerControls) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     map.current.eachLayer((layer: any) => {
       for (const layerControl of Object.values(layerControls)) {
         if (layer.options.id === layerControl.name) {
@@ -364,16 +369,16 @@ const MapBody: FunctionComponent = () => {
   }, [mission.config.msv.radius.minor]);
 
   useEffect(() => {
-    if (!mission || !map.current) return;
+    if (!map.current) return;
     calculateScale();
-  }, [mission, map, mapZoom, calculateScale]);
+  }, [map, mapZoom, calculateScale]);
 
   /**
    * Draw scale bar div.
    * Scale represents how many meters represents 100 pixels on the map
    */
   const drawScaleBarDiv = useCallback(() => {
-    if (!mission || !map.current) return;
+    if (!map.current) return;
 
     // round up the scale value to the nearest custom meter marks. Ex: if scale is 51 it will round to 100.
     let roundedScale: number;
@@ -399,7 +404,19 @@ const MapBody: FunctionComponent = () => {
         </div>
       </>
     );
-  }, [mission, map, scale]);
+  }, [map, scale]);
+
+  const drawLatLongDiv = useCallback(() => {
+    if (!map.current || mapPosition.length === 0) return;
+
+    const latLngStr = `${mapPosition[0]}, ${mapPosition[1]}`;
+
+    return (
+      <>
+        <div className={styles.positionValue}>{latLngStr}</div>
+      </>
+    );
+  }, [mapPosition]);
 
   /**
    * Draw or update markers on the map
@@ -568,6 +585,7 @@ const MapBody: FunctionComponent = () => {
         smoothFactor: 1,
         outlineColor: "#8b8680",
         raised: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any; //TODO: figure out the weird HighlightablePolyline typescript implementation
       polyline.uuid = uuid;
       polyline.mapItemType = mapItemType;
@@ -611,9 +629,11 @@ const MapBody: FunctionComponent = () => {
     [map, dispatch]
   );
 
-  const saveUpdatedPoiOrStationPosition = useCallback(
+  const saveUpdatedItemPosition = useCallback(
     async (uuid: string, mapItemType: MapItemType, location: AEGISPoint) => {
-      if (mapItemType === "poi") {
+      if (mapItemType === "lander") {
+        await thunkDispatch(thunkUpdateLanderLocation({ location }));
+      } else if (mapItemType === "poi") {
         await thunkDispatch(thunkUpdatePoiLocation({ location, poiUuid: uuid }));
       } else if (mapItemType === "station") {
         await thunkDispatch(thunkUpdateStationLocation({ location, stationUuid: uuid }));
@@ -666,7 +686,6 @@ const MapBody: FunctionComponent = () => {
 
     // Instantiate the map
     if (!map.current) {
-      // debugger;
       map.current = L.map(mapRef.current, {
         center: center,
         zoom: zoom,
@@ -688,19 +707,13 @@ const MapBody: FunctionComponent = () => {
         poiFeatureGroup.current = L.featureGroup().addTo(map.current);
       }
     }
-    return () => {
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-      }
-    };
-  }, [mapRef, map, draggableLines, mission]);
+  }, [mapRef, map, draggableLines, mission.config]);
 
   /**
    * Set the center of the map to the center of the selected mission (config.msv.view)
    */
   useEffect(() => {
-    if (!map.current || !mission) return;
+    if (!map.current || !mission?.config) return;
     const config = mission?.config;
 
     const center = [+config?.msv?.view[0], +config?.msv?.view[1]] as L.LatLngExpression;
@@ -708,7 +721,7 @@ const MapBody: FunctionComponent = () => {
     map.current.setView(center, zoom);
     //react does not detect a change to the map ref when setView is called. Manually re-calculate scale
     calculateScale();
-  }, [mission, map, calculateScale]);
+  }, [mission.config, map, calculateScale]);
 
   /**
    * Map event listeners, redefined when state values changes via useEffect to allow their functions to access the latest state values
@@ -720,10 +733,12 @@ const MapBody: FunctionComponent = () => {
       // if user is creating or updating a new poi or station, use the click update the location of the new poi/station
 
       if (
-        (mapDirective?.mapItemType === "station" || mapDirective?.mapItemType === "poi") &&
+        (mapDirective?.mapItemType === "station" ||
+          mapDirective?.mapItemType === "poi" ||
+          mapDirective?.mapItemType === "lander") &&
         (mapDirective?.mapAction === "editMarker" || mapDirective?.mapAction === "createMarker")
       ) {
-        saveUpdatedPoiOrStationPosition(
+        saveUpdatedItemPosition(
           mapDirective?.uuid,
           mapDirective.mapItemType,
           convertLeafletLatLngToAegisPoint(e.latlng)
@@ -736,6 +751,10 @@ const MapBody: FunctionComponent = () => {
       }
     });
 
+    map.current.on("mousemove", (e) => {
+      setMapPosition([e.latlng.lat.toFixed(6), e.latlng.lng.toFixed(6)]);
+    });
+
     map.current.on("zoomend", () => {
       setMapZoom(map.current.getZoom());
     });
@@ -745,7 +764,7 @@ const MapBody: FunctionComponent = () => {
         map.current.off("click");
       }
     };
-  }, [map, mapDirective, saveUpdatedPoiOrStationPosition, dispatch]);
+  }, [map, mapDirective, saveUpdatedItemPosition, dispatch]);
 
   /**
    * Listen for mapDirective for stations, pois, and traverses, and trigger map draw/edit modes appropriately
@@ -1003,12 +1022,28 @@ const MapBody: FunctionComponent = () => {
 
     drawOrUpdateMarkerOnMap({
       name: "Lander",
-      uuid: mission.id.toString(),
+      uuid: "lander",
       iconEmoji: "1F315",
       mapItemType: "lander",
       location: mission.landerLocation,
+      onClick: () => {
+        dispatch(setSectionSelected("mission"));
+        dispatch(setRightPanelOpen(true));
+      },
+      onDragEnd: (marker: AEGISMarker) => {
+        const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
+        saveUpdatedItemPosition("lander", "lander", newLocation);
+        dispatch(updateMapDirective(null));
+      },
     });
-  }, [map, mapDirective, mission.landerLocation, drawOrUpdateMarkerOnMap, mission.id]);
+  }, [
+    map,
+    mapDirective,
+    mission.landerLocation,
+    drawOrUpdateMarkerOnMap,
+    dispatch,
+    saveUpdatedItemPosition,
+  ]);
 
   /**
    * Draw or update POIs on the map when pois change. Serves as draw when page loads
@@ -1036,20 +1071,13 @@ const MapBody: FunctionComponent = () => {
           },
           onDragEnd: (marker: AEGISMarker) => {
             const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
-            saveUpdatedPoiOrStationPosition(poi.uuid, "poi", newLocation);
+            saveUpdatedItemPosition(poi.uuid, "poi", newLocation);
             dispatch(updateMapDirective(null));
           },
         });
       }
     });
-  }, [
-    map,
-    mapDirective,
-    drawOrUpdateMarkerOnMap,
-    saveUpdatedPoiOrStationPosition,
-    dispatch,
-    poisToShow,
-  ]);
+  }, [map, mapDirective, drawOrUpdateMarkerOnMap, saveUpdatedItemPosition, dispatch, poisToShow]);
 
   /**
    * Draw stationsToShow on the map when stations or selections change. Linked to checkbox at top of map.
@@ -1077,7 +1105,7 @@ const MapBody: FunctionComponent = () => {
           },
           onDragEnd: (marker: AEGISMarker) => {
             const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
-            saveUpdatedPoiOrStationPosition(station.uuid, "station", newLocation);
+            saveUpdatedItemPosition(station.uuid, "station", newLocation);
             dispatch(updateMapDirective(null));
           },
         });
@@ -1089,7 +1117,7 @@ const MapBody: FunctionComponent = () => {
     map,
     mapDirective,
     drawOrUpdateMarkerOnMap,
-    saveUpdatedPoiOrStationPosition,
+    saveUpdatedItemPosition,
     dispatch,
     stationsToShow,
   ]);
@@ -1450,24 +1478,27 @@ const MapBody: FunctionComponent = () => {
       </div>
 
       <div className={styles.mapScaleDisplay}>{drawScaleBarDiv()}</div>
+      <div className={styles.mapPositionDisplay}>{drawLatLongDiv()}</div>
     </div>
   );
 };
 
 export default MapBody;
 
-const isLayerOnMapByName = (map: MutableRefObject<any>, name: string) => {
+const isLayerOnMapByName = (map: MutableRefObject<L.Map>, name: string) => {
   let layerFound = false;
-  map.current.eachLayer((layer) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  map.current.eachLayer((layer: any) => {
     if (layer.options.id === name) layerFound = true;
   });
   return layerFound;
 };
 
-const getLayerByName = (map: MutableRefObject<any>, name: string) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getLayerByName = (map: MutableRefObject<L.Map>, name: string): any => {
   let returnVal = null;
-
-  map.current.eachLayer((layer) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  map.current.eachLayer((layer: any) => {
     if (layer.options.id === name) returnVal = layer;
   });
   return returnVal;

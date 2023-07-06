@@ -1,5 +1,5 @@
 import type { NextPage } from "next";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
@@ -25,7 +25,7 @@ import {
   setPresetsFromDb,
   setSelectedPresetUuid,
 } from "store/preset";
-import { setLayers, setMission } from "store/mission";
+import { setLayers, setMission, setMissionFromDb } from "store/mission";
 import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/user";
 import { setStations, setStationsFromDb } from "store/station";
 import { setActions, setActionsFromDb } from "store/action";
@@ -41,6 +41,7 @@ import { thunkCreateEvasCalculatedFields } from "store/thunk/thunkEva";
 import { thunkCreatePoiCalculatedFields } from "store/thunk/thunkPoi";
 import { Tooltip } from "react-tooltip";
 import { thunkSavePreset } from "store/thunk/thunkPreset";
+import _ from "lodash";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -56,6 +57,9 @@ const RightControlPanel = dynamic(
   }
 );
 const MapBody = dynamic(import("components/interface/map-body-leaflet"), {
+  ssr: false,
+});
+const SunEarthPosition = dynamic(import("components/interface/map-sunearth"), {
   ssr: false,
 });
 const Header = dynamic(import("components/interface/header"), {
@@ -89,38 +93,65 @@ const Main: NextPage = () => {
     shallowEqual
   );
 
+  //local state to ensure permissions have been checked first before populating
+  const [hasPermissions, setHasPermissions] = useState(false);
+
+  const { id } = router.query;
+  const intMissionId = parseInt(Array.isArray(id) ? id[0] : id);
+
   /**
-   * Check if user is logged in.
-   * If so, populate the user store data.
-   * If not, redirect them to the login page.
+   * Check if user is logged in and if the user has permissions for this mission page
+   * If not, redirect them to the home page.
    */
 
   useEffect(() => {
+    if (!intMissionId) return;
     (async () => {
       const response = await InternalAPI.isLoggedIn();
+      //Check if user is logged in.
       if (response.status === "success") {
         dispatch(setIsLoggedIn(true));
         dispatch(setIronSessionData(response.data));
+
+        //super admin always has permissions
+        if (response.data.user.id === 1) {
+          setHasPermissions(true);
+          return;
+        }
+
+        //Check if user has anything in their permission list
+        const userPermissions = response.data.user.permissionList;
+        if (!userPermissions) await router.push("/");
+
+        //Check if user can see this missions
+        const missionPermissions = userPermissions.filter(
+          (permission) => permission.missionId === intMissionId
+        );
+        if (missionPermissions.length === 0) {
+          await router.push("/"); //Redirect to homepage
+        } else {
+          setHasPermissions(true);
+        }
       } else {
+        //user is not logged in
         dispatch(setIsLoggedIn(false));
         dispatch(clearIronSessionData());
         await router.push("/");
       }
     })();
-  }, [dispatch, router]);
+  }, [dispatch, router, intMissionId]);
 
   /**
    * Populate the store
    */
   useEffect(() => {
-    const { id } = router.query;
-    if (!id || !dispatch) return;
-    const intMissionId = parseInt(Array.isArray(id) ? id[0] : id);
+    if (!hasPermissions) return;
     (async () => {
       //populate mission
       const missionData = await getMissions(intMissionId);
       if (missionData.data) {
         dispatch(setMission(missionData.data[0]));
+        dispatch(setMissionFromDb(missionData.data[0]));
       }
 
       //used to find uuids in preset map layer controls
@@ -142,7 +173,6 @@ const Main: NextPage = () => {
             uuid: configLayer.uuid,
             visible: false,
             type: configLayer.layerConfig.type,
-            mapLayerRef: null,
             style: null,
           };
           flatLayerNamesAndUuids.push({
@@ -158,7 +188,6 @@ const Main: NextPage = () => {
                 uuid: sublayer.uuid,
                 visible: false,
                 type: sublayer.type,
-                mapLayerRef: null,
                 style: {
                   opacity: sublayer.style?.opacity || 1,
                   contrast: 1,
@@ -197,13 +226,28 @@ const Main: NextPage = () => {
 
             //convert the "enabled" property to "visible".
             //Once all presets in all environments are updated this if statement can be removed.
+            //cast as "any" since this is an old type definition
             if (
               Object.prototype.hasOwnProperty.call(preset.mapLayerControls[layerName], "enabled")
             ) {
               preset.mapLayerControls[layerName].visible =
-                preset.mapLayerControls[layerName]["enabled"];
-              delete preset.mapLayerControls[layerName]["enabled"]; //this property has been renamed to "visible"
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (preset.mapLayerControls[layerName] as any)["enabled"];
+
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              delete (preset.mapLayerControls[layerName] as any)["enabled"]; //this property has been renamed to "visible"
               modified = true;
+            }
+
+            //old unused property that was removed. Cleanup if it's on a preset
+            if (
+              Object.prototype.hasOwnProperty.call(
+                preset.mapLayerControls[layerName],
+                "mapLayerRef"
+              )
+            ) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              delete (preset.mapLayerControls[layerName] as any)["mapLayerRef"]; //this property has been renamed to "visible"
             }
 
             //add any UUIDs that are missing from preset's layer control
@@ -286,7 +330,7 @@ const Main: NextPage = () => {
         dispatch(setEvasFromDb(evaData.data));
       }
 
-      //Populate traverses //TODO: Does this have to load only current user's traverses?
+      //Populate traverses
       const traverseData = await getTraverses(intMissionId);
       if (traverseData.data) {
         dispatch(setTraverses(traverseData.data));
@@ -301,67 +345,91 @@ const Main: NextPage = () => {
       const invstgData = await getInvestigations({ missionId: intMissionId });
       if (invstgData.data) dispatch(setInvestigations(invstgData.data));
     })();
-  }, [router, dispatch, thunkDispatch]);
+  }, [dispatch, thunkDispatch, hasPermissions, intMissionId]);
 
   //Generate poi calculated values
   useEffect(() => {
-    if (!pois || !actions) return;
+    if (_.isEmpty(pois) || _.isEmpty(actions) || !hasPermissions) return;
     thunkDispatch(thunkCreatePoiCalculatedFields());
-  }, [pois, actions, thunkDispatch]);
+  }, [pois, actions, thunkDispatch, hasPermissions]);
 
   //Generate station calculated values
   useEffect(() => {
-    if (!stations || !actions) return;
+    if (_.isEmpty(stations) || _.isEmpty(actions) || !hasPermissions) return;
     thunkDispatch(thunkCreateStationCalculatedFields());
-  }, [stations, actions, thunkDispatch]);
+  }, [stations, actions, thunkDispatch, hasPermissions]);
 
   //Generate traverse calculated values
   useEffect(() => {
-    if (!traverses) return;
+    if (_.isEmpty(traverses) || !hasPermissions) return;
     thunkDispatch(thunkCreateTraverseCalculatedFields());
-  }, [traverses, thunkDispatch]);
+  }, [traverses, thunkDispatch, hasPermissions]);
 
   //Generate eva calculated values. These are dependent on stations and traverses having had their calculated values generated
   useEffect(() => {
-    if (!evas || !stationsCalculatedFields || !traversesCalculatedFields) return;
+    if (
+      _.isEmpty(evas) ||
+      _.isEmpty(stationsCalculatedFields) ||
+      _.isEmpty(traversesCalculatedFields) ||
+      !hasPermissions
+    )
+      return;
     thunkDispatch(thunkCreateEvasCalculatedFields());
-  }, [evas, stationsCalculatedFields, traversesCalculatedFields, thunkDispatch]);
+  }, [evas, stationsCalculatedFields, traversesCalculatedFields, thunkDispatch, hasPermissions]);
 
   return (
-    <div className={styles.page}>
-      <Tooltip id="aegis-tooltip" className={styles.tooltip} clickable={true} delayShow={1000} />
-      <div className={styles.header}>
-        <Header />
-      </div>
-      <div className={styles.body}>
-        <div className={styles.leftControl}>
-          <LeftControlPanel />
-        </div>
-        <div className={styles.mapBody}>
-          {missionStore.mission && missionStore.layers && <MapBody />}
-        </div>
-        <div
-          className={styles.drawerSlider}
-          onClick={() => dispatch(setRightPanelOpen(!rightPanelOpen))}
-        >
-          <div className={styles.circle}>
-            {rightPanelOpen ? (
-              <FontAwesomeIcon className={styles.drawerIcon} color="white" icon={faChevronRight} />
-            ) : (
-              <FontAwesomeIcon className={styles.drawerIcon} color="white" icon={faChevronLeft} />
+    <>
+      {hasPermissions && (
+        <div className={styles.page}>
+          <Tooltip
+            id="aegis-tooltip"
+            className={styles.tooltip}
+            clickable={true}
+            delayShow={1000}
+          />
+          <div className={styles.header}>
+            <Header />
+          </div>
+          <div className={styles.body}>
+            <div className={styles.leftControl}>
+              <LeftControlPanel />
+            </div>
+            <div className={styles.mapBody}>
+              {missionStore.mission && missionStore.layers && <MapBody />}
+              {missionStore && <SunEarthPosition />}
+            </div>
+            <div
+              className={styles.drawerSlider}
+              onClick={() => dispatch(setRightPanelOpen(!rightPanelOpen))}
+            >
+              <div className={styles.circle}>
+                {rightPanelOpen ? (
+                  <FontAwesomeIcon
+                    className={styles.drawerIcon}
+                    color="white"
+                    icon={faChevronRight}
+                  />
+                ) : (
+                  <FontAwesomeIcon
+                    className={styles.drawerIcon}
+                    color="white"
+                    icon={faChevronLeft}
+                  />
+                )}
+              </div>
+            </div>
+            {rightPanelOpen && (
+              <div className={styles.rightControl}>
+                <RightControlPanel />
+              </div>
             )}
           </div>
-        </div>
-        {rightPanelOpen && (
-          <div className={styles.rightControl}>
-            <RightControlPanel />
+          <div className={styles.bottomControl}>
+            <BottomControlPanel />
           </div>
-        )}
-      </div>
-      <div className={styles.bottomControl}>
-        <BottomControlPanel />
-      </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 };
 

@@ -16,12 +16,16 @@ const mustBeNumber = (value: Stringy): string | undefined =>
 const minValue =
   (min: number) =>
   (value: Stringy): string | undefined =>
-    isNaN(Number(value)) || Number(value) >= min ? undefined : `Should be greater than ${min}`;
+    isNaN(Number(value)) || Number(value) >= min
+      ? undefined
+      : `Should be greater than or equal to ${min}`;
 
 const maxValue =
   (max: number) =>
   (value: Stringy): string | undefined =>
-    isNaN(Number(value)) || Number(value) <= max ? undefined : `Should be greater than ${max}`;
+    isNaN(Number(value)) || Number(value) <= max
+      ? undefined
+      : `Should be less than or equal to ${max}`;
 
 const minLength =
   (min: number) =>
@@ -51,6 +55,13 @@ const mustBeValidJSON = (value: Stringy): string | undefined => {
   return undefined;
 };
 
+const mustBeInteger = (value: Stringy): string | undefined => {
+  if (!value) return undefined;
+  return isNaN(Number(value)) || Number(value) - Math.floor(Number(value)) === 0
+    ? undefined
+    : "Must be an integer";
+};
+
 export const validators = {
   required,
   mustBeNumber,
@@ -59,12 +70,13 @@ export const validators = {
   minLength,
   maxLength,
   mustBeValidJSON,
+  mustBeInteger,
 };
 
 // UseFieldConfig<any>.validate?: FieldValidator<any>
 export const composeValidators = (...validators: FieldValidator<unknown>[]) => {
   return (
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
     value: any,
     allValues: Record<string, unknown>
   ): string | undefined => {
@@ -72,7 +84,7 @@ export const composeValidators = (...validators: FieldValidator<unknown>[]) => {
   };
 };
 
-// Regex validators to match characters NOT in the accepeted pattern
+// Regex validators to match characters NOT in the accepted pattern
 
 const regExNumber = /[^\d\.]/;
 

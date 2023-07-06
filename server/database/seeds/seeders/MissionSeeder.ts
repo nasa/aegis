@@ -5,6 +5,7 @@ import { Mission } from "../../models/mission.model";
 export class MissionSeeder extends Seeder {
   async run(em: EntityManager, context: Dictionary): Promise<void> {
     context.mission1 = em.create(Mission, {
+      id: 1,
       name: "Apollo_14",
       config: {
         msv: {
@@ -120,6 +121,10 @@ export class MissionSeeder extends Seeder {
       version: 4,
       landerLocation: { lat: -3.645421873728663, lng: -17.47186660766602 },
       landerElevationMeters: -1063.605,
+      sunAzimuth: 90,
+      sunAzimuthVisible: false,
+      earthAzimuth: 100,
+      earthAzimuthVisible: false,
       traverseSpeed: 3.4,
       createdAt: new Date(),
       updatedAt: new Date(),

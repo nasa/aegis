@@ -46,10 +46,18 @@ const handleSTM: NextApiHandler<
   >
 > = async (req, res): Promise<unknown> => {
   try {
-    if (req.session?.user) {
-      const isAdmin = req.session.user.permission.includes("admin"); // will evaluate true or false
-      const { missionId, stmType, o, g, i } = req.query;
+    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
+    const editPermission =
+      req.session?.user?.id === 1 ||
+      req.session?.user?.permissionList.find((p) => p.missionId == parseInt(missionId))?.permissions
+        .edit;
+    const viewPermission =
+      req.session?.user?.id === 1 ||
+      req.session?.user?.permissionList.find((p) => p.missionId == parseInt(missionId))?.permissions
+        .view;
+    const { stmType, o, g, i } = req.query;
 
+    if (editPermission || viewPermission) {
       //clean url params
       const queryParams: {
         missionId: number;
@@ -117,7 +125,7 @@ const handleSTM: NextApiHandler<
       //upsert a STM record
       if (req.method === "POST") {
         try {
-          if (!isAdmin) {
+          if (!editPermission) {
             return res.status(401).json({ status: "failure", message: "Unauthorized" });
           }
           let upsertResponse: STMObjective | STMGoal | STMInvestigation = null;
@@ -167,7 +175,7 @@ const handleSTM: NextApiHandler<
       //delete a STM record
       if (req.method === "DELETE") {
         try {
-          if (!isAdmin) {
+          if (!editPermission) {
             return res.status(401).json({ status: "failure", message: "Unauthorized" });
           }
           let deletedUUID: string | null;

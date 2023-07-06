@@ -1,18 +1,8 @@
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
-import {
-  FunctionComponent,
-  Children,
-  cloneElement,
-  useState,
-  CSSProperties,
-  ChangeEvent,
-  ReactNode,
-} from "react";
-
+import { FunctionComponent, useState, CSSProperties, ChangeEvent, ReactNode } from "react";
 import styles from "./globalFields.module.css";
-import _ from "lodash";
 import { TagsInput } from "react-tag-input-component";
 import { decodeEmoji } from "utils/formatting";
 import { Form } from "react-final-form";
@@ -23,6 +13,7 @@ import Select from "react-select";
 import { FFTextProps, FFCheckboxProps, FFSelectProps } from "typings/form";
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import formStyles from "./globalFields.module.css";
+import CircularSlider from "@fseehawer/react-circular-slider";
 
 export const Button: FunctionComponent<{
   onClick: () => void;
@@ -49,8 +40,48 @@ export const Button: FunctionComponent<{
   );
 };
 
+export const TextboxButton: FunctionComponent<{
+  onMouseDown: (event: React.MouseEvent) => void;
+  active?: boolean;
+  whiteOnToggle?: boolean;
+  label?: string;
+  toolTip?: string;
+  icon?: IconDefinition;
+  style?: CSSProperties;
+  labelStyle?: CSSProperties;
+  enabled?: boolean;
+}> = ({
+  onMouseDown,
+  active,
+  whiteOnToggle,
+  label,
+  toolTip,
+  icon,
+  style,
+  labelStyle,
+  enabled = true,
+}) => {
+  const enabledStyle = !enabled ? styles.iconButtonDisabled : "";
+  return (
+    <div
+      className={`${styles.textboxButton} ${enabledStyle} ${
+        active ? (!whiteOnToggle ? styles.textboxActiveGrey : styles.textboxActiveWhite) : ""
+      }`}
+      data-tooltip-id="aegis-tooltip"
+      data-tooltip-html={toolTip}
+      onMouseDown={(e) => {
+        onMouseDown(e);
+      }}
+      style={style}
+    >
+      {icon && <FontAwesomeIcon icon={icon} size="lg" className={styles.buttonLabelIcon} />}
+      <div style={labelStyle}>{label}</div>
+    </div>
+  );
+};
+
 export const Dropdown: FunctionComponent<{
-  children: any;
+  children: ReactNode;
   selected: string;
   containerStyle?: CSSProperties;
   selectStyle?: CSSProperties;
@@ -84,7 +115,7 @@ export const Dropdown: FunctionComponent<{
 };
 
 export const IconDropdown: FunctionComponent<{
-  items: any[];
+  items: string[];
   editing: boolean;
   selected: string;
   setSelected: Function;
@@ -146,7 +177,6 @@ export const IconDropdown: FunctionComponent<{
                   onClick={() => setSelected(item)}
                 >
                   <div className={styles.itemIcon}>{decodeEmoji(item)}</div>
-                  <div className={styles.iconDropdownModalItemLabel}>{item.label}</div>
                 </div>
               );
             })}
@@ -155,41 +185,6 @@ export const IconDropdown: FunctionComponent<{
       </div>
     );
   }
-};
-
-export const MultiButton: FunctionComponent<{
-  children: ReactNode;
-  editing: boolean;
-  selected: string;
-  handleChange: Function;
-}> = ({ children, editing, selected, handleChange }) => {
-  return (
-    <div className={styles.multiButtonGroup}>
-      {/* Loop through the children and add the multibutton styling to each child depending on its position in the list */}
-      {Children.map(children, (child: any, idx) => {
-        let buttonStyle = styles.multiButton;
-        let selectedStyle = child.props.children === selected ? styles.multiButtonSelected : "";
-        if (editing) {
-          buttonStyle = styles.multiButtonEditing;
-          selectedStyle =
-            child.props.children === selected ? styles.multiButtonEditingSelected : "";
-        }
-
-        let style;
-        if (idx === 0) style = `${buttonStyle} ${selectedStyle} ${styles.multiButtonStart}`;
-        else if (idx === Children.count(children) - 1)
-          style = ` ${buttonStyle} ${selectedStyle} ${styles.multiButtonEnd}`;
-        else style = `${buttonStyle} ${selectedStyle} ${styles.multiButtonMiddle}`;
-
-        return cloneElement(child as any, {
-          className: style,
-          onClick: () => {
-            if (editing) handleChange(child.props.children);
-          },
-        });
-      })}
-    </div>
-  );
 };
 
 /**
@@ -285,12 +280,15 @@ export const Tags: FunctionComponent<{
 
 export const Checkbox: FunctionComponent<{
   checked: boolean;
+  editable?: boolean;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
   toolTip?: string;
-}> = ({ checked, onChange, toolTip }) => {
+}> = ({ checked, editable = true, onChange, toolTip }) => {
+  const editableStyle = editable ? "null" : styles.notEditable;
+
   return (
     <div
-      className={styles.checkboxContainer}
+      className={`${styles.checkboxContainer} ${editableStyle}`}
       data-tooltip-id="aegis-tooltip"
       data-tooltip-html={toolTip}
     >
@@ -322,6 +320,48 @@ export const ValidationErrors: FunctionComponent<{
       />
     </div>
   ) : null;
+};
+
+/**
+ * This component wraps the CicrularSlider component from react-circular-slider
+ */
+export const DegreesInputSlider: FunctionComponent<{
+  value: number;
+  label: string;
+  editable: boolean;
+  onChange: Function;
+  icon: IconDefinition;
+}> = ({ value, label, editable = true, onChange, icon }) => {
+  const editableStyle = editable ? "" : styles.notEditable;
+
+  return (
+    <div className={`${styles.degreesInputSlider} ${editableStyle}`}>
+      <CircularSlider
+        width={100}
+        min={0}
+        max={360}
+        dataIndex={value}
+        appendToValue="°"
+        label={label}
+        labelColor="var(--grey4)"
+        labelFontSize="0.8rem"
+        valueFontSize="1rem"
+        verticalOffset="0.5rem"
+        knobPosition="top"
+        knobColor={"var(--grey3)"}
+        knobSize={20}
+        progressColorFrom="var(--grey3)"
+        progressColorTo="var(--grey3)"
+        progressSize={5}
+        trackColor="var(--grey3)"
+        trackSize={5}
+        trackDraggable={true}
+        onChange={onChange}
+      >
+        <FontAwesomeIcon icon={icon} />
+      </CircularSlider>
+    </div>
+  );
 };
 
 /**
@@ -504,12 +544,12 @@ export const FFSelect: FunctionComponent<FFSelectProps> = ({
   className,
   label = false,
   searchable = false,
-  style = {},
   options,
 }) => {
-  const selectAdapter = ({ input, ...rest }) => (
-    <Select {...input} {...rest} className={className} style={style} searchable={searchable} />
-  );
+  const selectAdapter = (
+    { input, ...rest }: { input: any } // eslint-disable-line @typescript-eslint/no-explicit-any
+  ) => <Select {...input} {...rest} className={className} searchable={searchable} />;
+
   return (
     <Field name={name} component={selectAdapter} type="select" options={options}>
       {label ? (

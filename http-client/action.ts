@@ -23,8 +23,11 @@ export async function upsertAction(actionObj: Action): Promise<WrappedResponse<A
   return response;
 }
 
-export async function deleteAction(actionUUID: string): Promise<WrappedResponse<number | null>> {
-  const res = await fetch(`/api/action?uuid=${actionUUID}`, {
+export async function deleteAction(
+  actionUUID: string,
+  missionId: number
+): Promise<WrappedResponse<number | null>> {
+  const res = await fetch(`/api/action?uuid=${actionUUID}&missionId=${missionId}`, {
     method: "DELETE",
   });
   const response: WrappedResponse<number | null> = await res.json();

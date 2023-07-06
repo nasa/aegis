@@ -5,6 +5,14 @@
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
+    "alwaysStrict": true,
+    "strictBindCallApply": true,
+    "noImplicitThis": true,
+    "useUnknownInCatchVariables": true,
+    "strictFunctionTypes": false, // causes type check errors = 81
+    "noImplicitAny": true,
+    "strictNullChecks": false, // causes type check errors = 876
+    "strictPropertyInitialization": false, // requires strictNullChecks=true, increased errors = 41
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "esModuleInterop": true,

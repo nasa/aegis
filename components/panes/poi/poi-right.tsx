@@ -19,7 +19,7 @@ import Info_Panel from "./poi-right-info";
 import Actions_Panel from "./poi-right-actions";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkSavePoi, thunkDeletePoi, thunkPoiCancel } from "store/thunk/thunkPoi";
-import { selectPoiActions } from "store/selectors";
+import { selectPoiActions, hasEditPermissions } from "store/selectors";
 import Report_Panel from "../report";
 import { getAlertColor } from "utils/component-helpers";
 import { useDispatch } from "react-redux";
@@ -35,10 +35,9 @@ const PoiEditorRight: FunctionComponent = () => {
     shallowEqual
   );
   const poisEditing = useAppSelector((state) => state.poi.poisEditing, shallowEqual);
-  const isAdmin = useAppSelector(
-    (state) => state.user.ironSessionData?.user.permission.includes("admin"),
-    refEqual
-  );
+  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
+  const isAdmin: boolean = useAppSelector(hasEditPermissions(missionId), refEqual);
+
   const calculatedFields = useAppSelector(
     (state) => state.poi.calculatedFields.find((calculated) => calculated.uuid === selectedPoiUuid),
     shallowEqual
@@ -114,7 +113,7 @@ const PoiEditorRight: FunctionComponent = () => {
           <IconDropdown
             selected={selectedPoi.icon}
             editing={poisEditing.includes(selectedPoiUuid)}
-            setSelected={(value) => {
+            setSelected={(value: string) => {
               dispatch(upsertPoi({ ...selectedPoi, icon: value }));
             }}
             items={[

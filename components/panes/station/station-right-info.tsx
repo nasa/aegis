@@ -2,8 +2,8 @@ import { FunctionComponent, useCallback, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
 import {
+  faArrowsToCircle,
   faCalculator,
-  faClock,
   faFloppyDisk,
   faLocationDot,
   faMessage,
@@ -56,7 +56,7 @@ const Info_Panel: FunctionComponent<{
   );
 
   const evasUsingThisStation = useAppSelector((state) => {
-    const evasUsingThisStation = [];
+    const evasUsingThisStation: Eva[] = [];
     state.eva.evas.forEach((eva) => {
       eva.sequence.forEach((sequenceItem) => {
         if (sequenceItem.uuid === selectedStation.uuid) {
@@ -207,7 +207,7 @@ const Info_Panel: FunctionComponent<{
           </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "6px" }}>
-              <SubpanelHeading icon={faClock}>Estimated Dwell Time</SubpanelHeading>
+              <SubpanelHeading icon={faArrowsToCircle}>Estimated Dwell Time</SubpanelHeading>
             </div>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>
@@ -224,7 +224,11 @@ const Info_Panel: FunctionComponent<{
                             name: "durationLower",
                             ariaLabel: "Minimum Time in minutes",
                             style: { width: "45px" },
-                            validators: [validators.mustBeNumber, validators.maxLength(4)],
+                            validators: [
+                              validators.mustBeNumber,
+                              validators.maxLength(4),
+                              validators.mustBeInteger,
+                            ],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                               e.target.value = e.target.value.replace(
                                 regExValidators.regExNumber,
@@ -260,7 +264,11 @@ const Info_Panel: FunctionComponent<{
                             name: "durationUpper",
                             ariaLabel: "Maximum Time in minutes",
                             style: { width: "45px" },
-                            validators: [validators.mustBeNumber, validators.maxLength(4)],
+                            validators: [
+                              validators.mustBeNumber,
+                              validators.maxLength(4),
+                              validators.mustBeInteger,
+                            ],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                               e.target.value = e.target.value.replace(
                                 regExValidators.regExNumber,
@@ -286,7 +294,7 @@ const Info_Panel: FunctionComponent<{
           </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-              <SubpanelHeading icon={faCalculator}>Totals</SubpanelHeading>
+              <SubpanelHeading icon={faCalculator}>Calculated Totals</SubpanelHeading>
             </div>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>
