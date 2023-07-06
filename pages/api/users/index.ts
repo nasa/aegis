@@ -103,7 +103,7 @@ async function getUsers(userId: number = null): Promise<User[]> {
  * @returns a copy of the user object that was upserted
  * @param user
  */
-async function upsertUser(user: User): Promise<User> {
+export async function upsertUser(user: User): Promise<User> {
   const em = getEM();
   const userCopy: User = _.cloneDeep(user);
   const salt = await bcrypt.genSalt();
