@@ -131,7 +131,7 @@ export async function upsertUser(user: User): Promise<User> {
     existingUser = em.assign(existingUser, upsertRecord);
     await em.persistAndFlush(existingUser);
     return {
-      ...userCopy,
+      ...existingUser,
       updatedAt: existingUser.updatedAt.toISOString(),
       createdAt: existingUser.createdAt.toISOString(),
     } as User;
@@ -140,7 +140,7 @@ export async function upsertUser(user: User): Promise<User> {
     const createReference = em.create(User_db, upsertRecord);
     await em.persistAndFlush(createReference);
     return {
-      ...userCopy,
+      ...createReference,
       updatedAt: createReference.updatedAt.toISOString(),
       createdAt: createReference.createdAt.toISOString(),
     } as User;

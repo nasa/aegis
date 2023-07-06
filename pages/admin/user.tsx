@@ -89,6 +89,7 @@ const User: NextPage = () => {
       setUserList(users.data.sort((a, b) => a.id - b.id));
     });
     setUser(undefined);
+    setInfoMessage("");
   };
 
   const handleSubmit = async () => {
@@ -109,6 +110,8 @@ const User: NextPage = () => {
       );
       setErrorMessage("");
       if (createMode) {
+        setCreateMode(!createMode);
+        handleEdit(updatedUser.data);
         setInfoMessage("User created successfully");
       } else {
         setInfoMessage("User updated successfully");
