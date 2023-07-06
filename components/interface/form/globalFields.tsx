@@ -71,7 +71,6 @@ export const TextboxButton: FunctionComponent<{
       data-tooltip-html={toolTip}
       onMouseDown={(e) => {
         onMouseDown(e);
-        console.log(active);
       }}
       style={style}
     >
