@@ -91,6 +91,8 @@ function convertNodeToHTML(node: Descendant): string {
       return `<ul>${children}</ul>`;
     case "list-item":
       return `<li>${children}</li>`;
+    case "numbered-list":
+      return `<ol>${children}</ol>`;
     default:
       return children;
   }
