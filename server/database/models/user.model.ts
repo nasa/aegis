@@ -20,7 +20,7 @@ export class User implements User_db_type {
   adminPermission: boolean;
 
   @Property({ type: MikroTypes.json, nullable: true })
-  permissionList?: PermissionList[];
+  permissionList?: Permission[];
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;

@@ -20,8 +20,3 @@ type ElevationGdalRequestBody = {
   path: AEGISPoint[];
   steps: string[];
 };
-
-interface AdminCheck {
-  admin: boolean;
-  user: User;
-}

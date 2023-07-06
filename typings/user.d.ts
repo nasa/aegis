@@ -1,6 +1,6 @@
 interface User {
   adminPermission: boolean | undefined;
-  permissionList?: PermissionList[];
+  permissionList?: Permission[];
   id: number;
   username: string;
   password?: string;
@@ -10,7 +10,7 @@ interface User {
   updatedAt?: string;
 }
 
-interface PermissionList {
+interface Permission {
   missionId: number;
   permissions: {
     view: boolean;

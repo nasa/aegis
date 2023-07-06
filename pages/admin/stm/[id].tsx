@@ -11,7 +11,7 @@ const STM: NextPage = () => {
   const router = useRouter();
   const [missionIdSlug, setMissionIdSlug] = useState<number>(null);
   const [message, setMessage] = useState("");
-  const [missionName, setMissionName] = useState<string>("");
+  const [mission, setMission] = useState<Mission>(null);
 
   //responses from the DB
   const [allObjectives, setAllObjectives] = useState<STMObjective[]>([]);
@@ -43,24 +43,32 @@ const STM: NextPage = () => {
   //on load check login and mission id
   useEffect(() => {
     (async () => {
-      const response = await isLoggedIn(); //check user is logged in
-      if (response.status !== "success") {
-        router.push("/"); //user is not logged in. Redirect to homepage
-      }
-
-      //set mission id state
       const { id } = router.query;
-      if (id) {
+      const response = await isLoggedIn();
+      //Check if user is logged in.
+      if (
+        response.status === "success" &&
+        (response.data.user.adminPermission || response.data.user.id === 1)
+      ) {
+        if (
+          response.data.user.id !== 1 &&
+          !response.data.user.permissionList.some((p) => p.missionId === +id && p.permissions.edit)
+        ) {
+          await router.push("/"); //no permissions to this mission
+        }
+        //set mission id state
         setMissionIdSlug(+id);
         setMessage("Loading mission ID " + id);
 
-        //set mission name
+        //set mission
         const mission = (await getMissions(+id)).data;
         if (mission) {
-          setMissionName(mission[0].name);
+          setMission(mission[0]);
+        } else {
+          setMessage("Cannot find mission ID " + id);
         }
       } else {
-        setMessage("No mission ID");
+        await router.push("/");
       }
     })();
   }, [router]);
@@ -102,35 +110,39 @@ const STM: NextPage = () => {
   }
 
   return (
-    <div>
-      Status: {message}
-      <h2>Mission: {missionName}</h2>
-      <button
-        type="button"
-        onClick={() => {
-          router.push("/admin/");
-        }}
-      >
-        Back to Mission
-      </button>
-      <h3>Science Tracability Matrix</h3>
-      <ObjectiveList
-        objectives={allObjectives}
-        goals={allGoals}
-        investigations={allInvestigations}
-        delSTM={delSTM}
-      />
-      <div id="editSTM_div">
-        <h3>Add/Delete STM</h3>
-        <STMEdit
-          missionId={missionIdSlug}
-          allObjectives={allObjectives}
-          allGoals={allGoals}
-          allInvestigations={allInvestigations}
-          reloadSTMfromDB={loadSTMfromDB}
-        />
-      </div>
-    </div>
+    <>
+      {mission && (
+        <div>
+          Status: {message}
+          <h2>Mission: {mission.name}</h2>
+          <button
+            type="button"
+            onClick={() => {
+              router.push("/admin/");
+            }}
+          >
+            Back to Mission
+          </button>
+          <h3>Science Tracability Matrix</h3>
+          <ObjectiveList
+            objectives={allObjectives}
+            goals={allGoals}
+            investigations={allInvestigations}
+            delSTM={delSTM}
+          />
+          <div id="editSTM_div">
+            <h3>Add/Delete STM</h3>
+            <STMEdit
+              missionId={missionIdSlug}
+              allObjectives={allObjectives}
+              allGoals={allGoals}
+              allInvestigations={allInvestigations}
+              reloadSTMfromDB={loadSTMfromDB}
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
