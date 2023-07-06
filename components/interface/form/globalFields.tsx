@@ -41,7 +41,7 @@ export const Button: FunctionComponent<{
 };
 
 export const TextboxButton: FunctionComponent<{
-  onMouseDown: (event) => void;
+  onMouseDown: (event: MouseEvent) => void;
   active?: boolean;
   whiteOnToggle?: boolean;
   label?: string;
