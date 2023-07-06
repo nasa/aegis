@@ -8,16 +8,8 @@ export class UserSeeder extends Seeder {
       username: "admin",
       password: "admin",
       email: "admin@nasa.gov",
-      permissionList: [
-        {
-          missionId: context.mission1.id,
-          permissions: {
-            view: true,
-            edit: true,
-          },
-        },
-      ],
-      adminPermission: true,
+      permissionList: null,
+      adminPermission: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

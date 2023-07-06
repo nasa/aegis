@@ -1,8 +1,8 @@
 import type { IronSessionData } from "iron-session";
 
-export async function isLoggedIn(): Promise<WrappedResponse<AdminCheck>> {
+export async function isLoggedIn(): Promise<WrappedResponse<IronSessionData>> {
   const res = await fetch(`/api/users/isLoggedIn`);
-  const response: WrappedResponse<AdminCheck> = await res.json();
+  const response: WrappedResponse<IronSessionData> = await res.json();
 
   return response;
 }

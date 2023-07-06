@@ -118,7 +118,7 @@ const MissionSelect = () => {
   // Get Current logged in user
   useEffect(() => {
     async function populateData() {
-      const permissionList: PermissionList[] = currentUser.ironSessionData.user?.permissionList;
+      const permissionList: Permission[] = currentUser.ironSessionData.user?.permissionList;
 
       if (!currentUser.isLoggedIn) {
         return;
@@ -133,11 +133,8 @@ const MissionSelect = () => {
       // Filter out missions that the user does not have permission to view
       const filteredMissions = response.data.filter((mission) => {
         return permissionList.some((permission) => {
-          // Check if they can view or edit
-          return (
-            (permission.missionId === mission.id && permission.permissions.view === true) ||
-            (permission.missionId === mission.id && permission.permissions.edit === true)
-          );
+          // Check if they can view
+          return permission.missionId === mission.id && permission.permissions.view === true;
         });
       });
 

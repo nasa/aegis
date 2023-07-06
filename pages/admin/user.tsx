@@ -30,7 +30,7 @@ const User: NextPage = () => {
       const adminResponse = await isAdmin(); //check user is admin
       const user: User = adminResponse.data["user"];
       if (user.id !== 1) {
-        await router.push("/"); //user is not logged in or an admin. Redirect to homepage
+        await router.push("/"); //not our super user. Redirect to homepage
       } else {
         setAdmin(true);
         // Get a list of users from the database
@@ -46,7 +46,7 @@ const User: NextPage = () => {
   }, [router]);
 
   const handleEdit = (user: User) => {
-    let permissionList: PermissionList[];
+    let permissionList: Permission[];
 
     // if superadmin, give all permissions
     if (user.id === 1) {
@@ -58,7 +58,7 @@ const User: NextPage = () => {
       });
     } else {
       permissionList = missionList.map((mission) => {
-        if (user.permissionList.find((p) => p.missionId === mission.id)) {
+        if (user.permissionList?.find((p) => p.missionId === mission.id)) {
           return user.permissionList.find((p) => p.missionId === mission.id);
         } else {
           return {
@@ -93,8 +93,8 @@ const User: NextPage = () => {
   };
 
   const handleSubmit = async () => {
-    if (user.username.length < 3 || user.password.length < 3 || user.email.length < 3) {
-      setErrorMessage("Username, password, and email must all be at least 3 characters long");
+    if (user.username.length < 3 || user.password.length < 3) {
+      setErrorMessage("Username and password must be at least 3 characters long");
       return;
     }
     const updatedUser = await upsertUser(user);
@@ -203,6 +203,7 @@ const User: NextPage = () => {
                         type="text"
                         id="username"
                         name="username"
+                        disabled={user.id === 2}
                       />
                     </div>
                     <div className={styles.formGroup}>
@@ -214,6 +215,7 @@ const User: NextPage = () => {
                         type="password"
                         id="password"
                         name="password"
+                        disabled={user.id === 2}
                       />
                     </div>
                     <div className={styles.formGroup}>
@@ -225,6 +227,7 @@ const User: NextPage = () => {
                         type="text"
                         id="email"
                         name="email"
+                        disabled={user.id === 2}
                       />
                     </div>
                     <div className={styles.formEnd}>
@@ -257,6 +260,7 @@ const User: NextPage = () => {
                                 onChange={(e) => {
                                   setUser({ ...user, adminPermission: e.target.checked });
                                 }}
+                                disabled={user.id === 1 || user.id === 2}
                               />
                             </td>
                           </tr>
@@ -295,6 +299,7 @@ const User: NextPage = () => {
                                         (p) => p.missionId === mission.id && p.permissions.view
                                       )
                                     }
+                                    disabled={user.id === 1}
                                   />
                                 </td>
                                 <td>
@@ -306,6 +311,10 @@ const User: NextPage = () => {
                                       const userPermissionUpdated = user.permissionList.map((p) => {
                                         if (p.missionId === mission.id) {
                                           p.permissions.edit = !p.permissions.edit;
+                                          if (p.permissions.edit) {
+                                            //edit automatically grants view
+                                            p.permissions.view = true;
+                                          }
                                         }
                                         return p;
                                       });
@@ -317,6 +326,7 @@ const User: NextPage = () => {
                                         (p) => p.missionId === mission.id && p.permissions.edit
                                       )
                                     }
+                                    disabled={user.id === 1 || user.id === 2}
                                   />
                                 </td>
                               </tr>
@@ -340,17 +350,6 @@ const User: NextPage = () => {
                 </thead>
                 <tbody>
                   {userList.map((user) => {
-                    // Skip if guest user
-                    if (user.username === "guest") {
-                      return (
-                        <tr key={user.id}>
-                          <th scope="row">{user.id}</th>
-                          <td>{user.username}</td>
-                          <td>{user.email}</td>
-                          <td className={styles.actionList}></td>
-                        </tr>
-                      );
-                    }
                     return (
                       <tr key={user.id}>
                         <th scope="row">{user.id}</th>
@@ -363,7 +362,7 @@ const User: NextPage = () => {
                               handleEdit(user);
                             }}
                           />
-                          {user.id !== 1 && (
+                          {user.id !== 1 && user.id !== 2 && (
                             <FontAwesomeIcon
                               icon={faTrashCan}
                               onClick={async () => {

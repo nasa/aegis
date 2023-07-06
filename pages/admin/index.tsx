@@ -47,7 +47,7 @@ const Index: NextPage = () => {
     },
     {
       title: "Users",
-      description: "Register new users, or edit the old ones",
+      description: "Register new users, or edit the old ones (super admin only)",
       button: "Register or Edit Users",
       onClick: navigateUser,
       userOneOnly: user && user.id === 1,

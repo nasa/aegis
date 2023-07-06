@@ -25,7 +25,7 @@ export const hasEditPermissions =
     //super admin always has permissions
     if (state.user.ironSessionData?.user.id === 1) return true;
 
-    const permissionList: PermissionList[] = state.user.ironSessionData?.user.permissionList;
+    const permissionList: Permission[] = state.user.ironSessionData?.user.permissionList;
     return permissionList.find((permission) => permission.missionId === missionId)?.permissions
       .edit;
   };
