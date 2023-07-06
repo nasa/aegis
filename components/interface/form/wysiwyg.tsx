@@ -91,6 +91,8 @@ function convertNodeToHTML(node: Descendant): string {
       return `<ul>${children}</ul>`;
     case "list-item":
       return `<li>${children}</li>`;
+    case "numbered-list":
+      return `<ol>${children}</ol>`;
     default:
       return children;
   }
@@ -207,6 +209,7 @@ const MarkButton = ({
   return (
     <div className={styles.wysiwygButton}>
       <TextboxButton
+        active={isMarkActive(editor, format)}
         icon={icon}
         onMouseDown={(e) => {
           e.preventDefault();
@@ -230,6 +233,7 @@ const BlockButton = ({
   return (
     <div className={styles.wysiwygButton}>
       <TextboxButton
+        active={isBlockActive(editor, format)}
         icon={icon}
         onMouseDown={(e) => {
           e.preventDefault();
@@ -247,6 +251,8 @@ export const WysiwygTextArea: FunctionComponent<{
   onChange: (value: string) => void;
   defaultValue?: string;
 }> = ({ value, editing, onChange, defaultValue }) => {
+  //start
+  const [editorChange, setEditorChange] = useState(false);
   const [editor] = useState(() => withReact(createEditor()));
 
   const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, []);
@@ -272,6 +278,7 @@ export const WysiwygTextArea: FunctionComponent<{
             if (isAstChange) {
               onChange(JSON.stringify(nodes));
             }
+            setEditorChange(!editorChange);
           }}
         >
           <div className={styles.wysiwygButtonContainer}>
