@@ -14,6 +14,7 @@ import styles from "./wysiwyg.module.css";
 import _ from "lodash";
 import isHotkey from "is-hotkey";
 import { TextboxButton } from "./globalFields";
+import { isBlock } from "typescript";
 
 const HOTKEYS = {
   "mod+b": "bold",
@@ -207,6 +208,7 @@ const MarkButton = ({
   return (
     <div className={styles.wysiwygButton}>
       <TextboxButton
+        active={isMarkActive(editor, format)}
         icon={icon}
         onMouseDown={(e) => {
           e.preventDefault();
@@ -230,6 +232,7 @@ const BlockButton = ({
   return (
     <div className={styles.wysiwygButton}>
       <TextboxButton
+        active={isBlockActive(editor, format)}
         icon={icon}
         onMouseDown={(e) => {
           e.preventDefault();
@@ -259,7 +262,7 @@ export const WysiwygTextArea: FunctionComponent<{
       anchor: { path: [0, 0], offset: 0 },
       focus: { path: [0, 0], offset: 0 },
     };
-  }, [editing, editor]);
+  }, [editing, editor, editor.marks]);
 
   return (
     <>
