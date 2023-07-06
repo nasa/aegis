@@ -210,7 +210,7 @@ export const thunkUpdateAllTraversesForEVA = appCreateAsyncThunk<{
             evaSequence: evaSequence,
           })
         );
-        dispatch(setTraverseEditMode({ uuid: thisTraverse.uuid, editMode: true }));
+        dispatch(setTraverseEditMode({ uuid: thisTraverse.uuid, editMode: false }));
       }
     }
   }
