@@ -132,6 +132,7 @@ export async function upsertUser(user: User): Promise<User> {
     await em.persistAndFlush(existingUser);
     return {
       ...userCopy,
+      id: existingUser.id,
       updatedAt: existingUser.updatedAt.toISOString(),
       createdAt: existingUser.createdAt.toISOString(),
     } as User;
@@ -141,6 +142,7 @@ export async function upsertUser(user: User): Promise<User> {
     await em.persistAndFlush(createReference);
     return {
       ...userCopy,
+      id: createReference.id,
       updatedAt: createReference.updatedAt.toISOString(),
       createdAt: createReference.createdAt.toISOString(),
     } as User;
