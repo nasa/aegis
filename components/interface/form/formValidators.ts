@@ -8,10 +8,12 @@ export type Stringy = string | string[] | number;
  *    they must be passed through the {@link composeValidators} function
  */
 
-const required = (value: Stringy): string | undefined => (value ? undefined : "Required");
+const required = (value: Stringy): string | undefined => (value ? undefined || null : "Required");
 
-const mustBeNumber = (value: Stringy): string | undefined =>
-  value && isNaN(Number(value)) ? "Must be a number" : undefined;
+const mustBeNumber = (value: Stringy): string | undefined => {
+  if (!value) return undefined;
+  return isNaN(Number(value)) ? "Must be a number" : undefined;
+};
 
 const minValue =
   (min: number) =>
@@ -57,9 +59,11 @@ const mustBeValidJSON = (value: Stringy): string | undefined => {
 
 const mustBeInteger = (value: Stringy): string | undefined => {
   if (!value) return undefined;
-  return isNaN(Number(value)) || Number(value) - Math.floor(Number(value)) === 0
-    ? undefined
-    : "Must be an integer";
+  if (!isNaN(Number(value)) && Number.isInteger(Number(value))) {
+    return undefined;
+  } else {
+    return "Must be an integer";
+  }
 };
 
 export const validators = {

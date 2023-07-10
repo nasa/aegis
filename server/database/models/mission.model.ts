@@ -33,6 +33,8 @@ export class Mission implements Mission_db_type {
   defaultEvaDuration: number;
   @Property({ type: MikroTypes.double, nullable: true, default: 2 })
   walkbackSpeed: number;
+  @Property({ type: MikroTypes.json, nullable: true })
+  equipmentItems: EquipmentItem[];
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;

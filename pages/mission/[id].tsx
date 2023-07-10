@@ -377,6 +377,10 @@ const Main: NextPage = () => {
     thunkDispatch(thunkCreateEvasCalculatedFields());
   }, [evas, stationsCalculatedFields, traversesCalculatedFields, thunkDispatch, hasPermissions]);
 
+  const showSunEarth: boolean =
+    missionStore.mission &&
+    (missionStore.mission.earthAzimuthVisible || missionStore.mission.sunAzimuthVisible);
+
   return (
     <>
       {hasPermissions && (
@@ -396,7 +400,7 @@ const Main: NextPage = () => {
             </div>
             <div className={styles.mapBody}>
               {missionStore.mission && missionStore.layers && <MapBody />}
-              {missionStore && <SunEarthPosition />}
+              {showSunEarth && <SunEarthPosition />}
             </div>
             <div
               className={styles.drawerSlider}

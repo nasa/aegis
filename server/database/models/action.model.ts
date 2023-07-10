@@ -37,7 +37,9 @@ export class Action implements Action_db_type {
   @Property({ type: MikroTypes.double, nullable: true })
   durationUpper: number;
   @Property({ type: MikroTypes.json, nullable: true })
-  inventoryItems: InventoryItem[];
+  equipmentItemsUsage: EquipmentItemUsage[];
+  @Property({ type: MikroTypes.double, nullable: true })
+  mass: number;
   @Property({ type: MikroTypes.string })
   status!: POIStatus;
 

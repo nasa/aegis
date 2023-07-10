@@ -19,6 +19,7 @@ export const SunEarthPosition: FunctionComponent = () => {
 
   // delay the update of the container size to give time for React to return the correct size
   const updateSizeDelay = useCallback(() => {
+    if (!containerRef.current) return;
     setTimeout(() => {
       const container = containerRef.current;
       setContainerSize([container.clientWidth, container.clientHeight]);
@@ -27,22 +28,22 @@ export const SunEarthPosition: FunctionComponent = () => {
 
   // update the container size immediately
   const updateSize = useCallback(() => {
+    if (!containerRef.current) return;
     const container = containerRef.current;
     setContainerSize([container.clientWidth, container.clientHeight]);
   }, [containerRef]);
 
   useLayoutEffect(() => {
+    if (!containerRef.current) return;
     // delay initial update of container size
     updateSizeDelay();
     window.addEventListener("resize", updateSize);
     return () => window.removeEventListener("resize", updateSize);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [containerRef, updateSizeDelay, updateSize]);
 
   useEffect(() => {
-    if (!containerRef.current) return;
     updateSize();
-  }, [containerRef, rightPanelOpen, updateSize]);
+  }, [rightPanelOpen, updateSize]);
 
   const generateLineWithChevrons = (i: number, x: number, color: string) => {
     const chevronLength = 5;
