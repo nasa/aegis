@@ -34,7 +34,9 @@ const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
   };
 
   const updateEquipmentItem = (equipmentItem: EquipmentItem) => {
-    const itemIndex = mission?.equipmentItems.findIndex((item) => item.uuid === equipmentItem.uuid);
+    const itemIndex = mission?.equipmentItems?.findIndex(
+      (item) => item.uuid === equipmentItem.uuid
+    );
     const newEquipmentItems = [...mission?.equipmentItems];
     newEquipmentItems[itemIndex] = equipmentItem;
     dispatch(setMission({ ...mission, equipmentItems: newEquipmentItems }));
@@ -73,7 +75,7 @@ const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
       return;
     }
 
-    const newEquipmentItems = mission?.equipmentItems.filter(
+    const newEquipmentItems = mission?.equipmentItems?.filter(
       (item) => item.uuid !== equipmentItemUuid
     );
     dispatch(setMission({ ...mission, equipmentItems: newEquipmentItems }));
@@ -104,7 +106,7 @@ const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                   </div>
                 </li>
 
-                {mission?.equipmentItems.map((item, index) => (
+                {mission?.equipmentItems?.map((item, index) => (
                   <li key={item.uuid} className={styles.equipmentListItem}>
                     <EquipmentItem
                       key={item.uuid}
