@@ -3,7 +3,13 @@ import { FunctionComponent, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBan, faEdit, faFloppyDisk, faSliders } from "@fortawesome/free-solid-svg-icons";
+import {
+  faBan,
+  faEdit,
+  faFloppyDisk,
+  faPersonWalkingLuggage,
+  faSliders,
+} from "@fortawesome/free-solid-svg-icons";
 
 import Prefs_panel from "./mission-right-prefs";
 import paneStyles from "../global-pane-styles.module.css";
@@ -11,6 +17,7 @@ import { Button } from "components/interface/form/globalFields";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { setMissionSectionEditing, setSelectedMissionRightNavItem } from "store/mission";
 import { thunkMissionCancel, thunkMissionSave } from "store/thunk/thunkMission";
+import Equipment_Panel from "./mission-right-equipment";
 
 const MissionPrefsRight: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -45,6 +52,12 @@ const MissionPrefsRight: FunctionComponent = () => {
       panel: Prefs_panel,
       selectedColor: "white",
       icon: faSliders,
+    },
+    equipment_panel: {
+      title: "Mission Equipment",
+      panel: Equipment_Panel,
+      selectedColor: "white",
+      icon: faPersonWalkingLuggage,
     },
   };
 

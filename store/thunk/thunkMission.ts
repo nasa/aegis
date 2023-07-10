@@ -11,12 +11,20 @@ export const thunkMissionSave = appCreateAsyncThunk<{}>(
   async ({}, { dispatch, getState }) => {
     const mission = getState().mission.mission;
 
+    //Alphabetize the equipmentItems by name
+    const sortedEquipmentItems = _.sortBy(mission.equipmentItems, "name");
+
     //save mission to db
-    const upsertResponse = await InternalAPI.upsertMission(mission);
+    const upsertResponse = await InternalAPI.upsertMission({
+      ...mission,
+      equipmentItems: sortedEquipmentItems,
+    });
 
     if (upsertResponse.status === "success") {
       // update the db copy in the store
+      const mission = upsertResponse.data;
       dispatch(setMissionFromDb(mission));
+      dispatch(setMission(mission));
     } else {
       throw new Error("Error saving mission: " + upsertResponse.message);
     }

@@ -4,15 +4,17 @@ import {
   faClock,
   faGripVertical,
   faMessage,
+  faPersonWalkingLuggage,
   faTableList,
   faTrashAlt,
+  faWeightHanging,
 } from "@fortawesome/free-solid-svg-icons";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
-import { Dropdown, InLineEditInput } from "components/interface/form/globalFields";
+import { Checkbox, Dropdown, InLineEditInput } from "components/interface/form/globalFields";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
-import { FunctionComponent, useState, CSSProperties } from "react";
+import { FunctionComponent, useState, CSSProperties, useCallback } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
 import { deleteActionByUuid, upsertAction } from "store/action";
@@ -22,6 +24,8 @@ import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import ReactDOMServer from "react-dom/server";
 import STMSelector from "./stm-selector";
 import { validators, regExValidators } from "components/interface/form/formValidators";
+import { RootState } from "store";
+import _ from "lodash";
 
 const RightAction: FunctionComponent<{
   editMode: boolean;
@@ -258,10 +262,66 @@ const RightAction: FunctionComponent<{
               </div>
             </div>
             <div className={paneStyles.panelSection}>
-              <div className={paneStyles.panelSectionTitle}>
+              <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+                <SubpanelHeading icon={faPersonWalkingLuggage}>Equipment Required</SubpanelHeading>
+              </div>
+              <div className={paneStyles.panelSectionRow}>
+                <EquipmentSelector action={action} editMode={editMode} />
+              </div>
+            </div>
+            <div className={paneStyles.panelSection}>
+              <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+                <SubpanelHeading icon={faWeightHanging}>Mass</SubpanelHeading>
+              </div>
+              <div className={paneStyles.panelSectionRow}>
+                <div className={paneStyles.panelSection2Column}>
+                  <div className={paneStyles.panelColumnTable}>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCellLeft}>
+                        <div className={paneStyles.inputFieldLabel}>Expected Sample Mass (g):</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.inputFieldValue}>
+                          <InLineEditInput
+                            value={action.mass?.toString()}
+                            editing={editMode}
+                            fieldProps={{
+                              name: "mass",
+                              ariaLabel: "Expected Sample Mass",
+                              style: { width: "45px" },
+                              validators: [
+                                validators.mustBeNumber,
+                                validators.maxLength(4),
+                                validators.mustBeInteger,
+                              ],
+                              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                                e.target.value = e.target.value.replace(
+                                  regExValidators.regExNumber,
+                                  ""
+                                );
+                              },
+                            }}
+                            onSubmit={(value: string) => {
+                              dispatch(
+                                upsertAction({
+                                  ...action,
+                                  durationLower: toDecimal(value),
+                                })
+                              );
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className={paneStyles.panelSection}>
+              <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
                 <SubpanelHeading icon={faTableList}>STM Coverage</SubpanelHeading>
               </div>
-              <div className={actionStyles.stmSelectorContainer}>
+              <div className={actionStyles.selectorContainer}>
                 <STMSelector
                   editMode={editMode}
                   action={action}
@@ -292,6 +352,141 @@ const RightAction: FunctionComponent<{
           </div>
         </>
       )}
+    </div>
+  );
+};
+
+const EquipmentSelector: FunctionComponent<{
+  action: Action;
+  editMode: boolean;
+}> = ({ action, editMode }) => {
+  const dispatch = useDispatch();
+  const equipmentItems = useAppSelector(
+    (state: RootState) => state.mission.mission.equipmentItems,
+    shallowEqual
+  );
+
+  const addEquipmentItem = (equipmentItemUuid: string, quantity: number) => {
+    const newEquipmentItemUsage: EquipmentItemUsage = {
+      uuid: equipmentItemUuid,
+      quantityUsed: quantity,
+    };
+
+    let newEquipmentItemsUsage: EquipmentItemUsage[] = [];
+    if (action.equipmentItemsUsage) {
+      // remove any existing equipment item usage with the same uuid
+      newEquipmentItemsUsage = action.equipmentItemsUsage.filter(
+        (equipmentItemUsage) => equipmentItemUsage.uuid !== equipmentItemUuid
+      );
+
+      newEquipmentItemsUsage = [...newEquipmentItemsUsage, newEquipmentItemUsage];
+    } else {
+      newEquipmentItemsUsage = [newEquipmentItemUsage];
+    }
+    dispatch(
+      upsertAction({
+        ...action,
+        equipmentItemsUsage: newEquipmentItemsUsage,
+      })
+    );
+  };
+
+  const removeEquipmentItem = useCallback(
+    (equipmentItemUuid: string) => {
+      const newEquipmentItemsUsage = action.equipmentItemsUsage.filter(
+        (equipmentItemUsage) => equipmentItemUsage.uuid !== equipmentItemUuid
+      );
+      dispatch(
+        upsertAction({
+          ...action,
+          equipmentItemsUsage: newEquipmentItemsUsage,
+        })
+      );
+    },
+    [dispatch, action]
+  );
+
+  if (editMode) {
+    // split equipment items into two columns
+    const equipmentItemsColumn1 = equipmentItems?.slice(0, Math.ceil(equipmentItems.length / 2));
+    const equipmentItemsColumn2 = equipmentItems?.slice(Math.ceil(equipmentItems.length / 2));
+
+    return (
+      <div className={actionStyles.equipmentListDoubleColumn}>
+        <div className={actionStyles.equipmentListColumn}>
+          {equipmentItemsColumn1 &&
+            equipmentItemsColumn1.map((equipmentItem) => {
+              return EquipmentCheckbox({
+                action,
+                editMode,
+                equipmentItem,
+                addEquipmentItem,
+                removeEquipmentItem,
+              });
+            })}
+        </div>
+        <div className={paneStyles.equipmentListColumn}>
+          {equipmentItemsColumn2 &&
+            equipmentItemsColumn2.map((equipmentItem) => {
+              return EquipmentCheckbox({
+                action,
+                editMode,
+                equipmentItem,
+                addEquipmentItem,
+                removeEquipmentItem,
+              });
+            })}
+        </div>
+      </div>
+    );
+  } else {
+    return (
+      <div className={actionStyles.equipmentList}>
+        {action.equipmentItemsUsage?.map((equipmentItemUsage) => {
+          const equipmentItem = equipmentItems?.find(
+            (equipmentItem) => equipmentItem.uuid === equipmentItemUsage.uuid
+          );
+          return (
+            <div key={equipmentItem?.uuid} className={actionStyles.equipmentItemLabel}>
+              {equipmentItem?.name}
+              {equipmentItemUsage.quantityUsed > 1 ? `(${equipmentItemUsage.quantityUsed})` : null}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+};
+
+const EquipmentCheckbox: FunctionComponent<{
+  action: Action;
+  editMode: boolean;
+  equipmentItem: EquipmentItem;
+  addEquipmentItem: (equipmentItemUuid: string, quantity: number) => void;
+  removeEquipmentItem: (equipmentItemUuid: string) => void;
+}> = ({ action, editMode, equipmentItem, addEquipmentItem, removeEquipmentItem }) => {
+  // return true if equipmentItem.uuid is in action.equipmentItems
+  let checked = false;
+  if (action.equipmentItemsUsage) {
+    checked = action.equipmentItemsUsage.some(
+      (equipmentItemUsage) => equipmentItemUsage.uuid === equipmentItem.uuid
+    );
+  }
+
+  return (
+    <div key={equipmentItem.uuid} className={actionStyles.equipmentItem}>
+      <Checkbox
+        checked={checked}
+        editable={editMode}
+        onChange={(e) => {
+          if (e.target.checked) {
+            addEquipmentItem(equipmentItem.uuid, 1);
+          } else {
+            removeEquipmentItem(equipmentItem.uuid);
+          }
+        }}
+      />
+      <div className={actionStyles.equipmentItemLabel}>{equipmentItem.name}</div>
     </div>
   );
 };

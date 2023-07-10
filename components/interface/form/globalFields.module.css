@@ -122,7 +122,6 @@
 }
 
 .notEditable {
-  background-color: var(--grey2);
   color: var(--grey4);
   cursor: not-allowed;
 }
@@ -284,8 +283,8 @@
 
 .checkboxContainer input[type="checkbox"] {
   appearance: none;
-  width: 1.2em;
-  height: 1.2em;
+  width: 1em;
+  height: 1em;
   background-color: var(--grey2);
   border: 1px solid var(--grey4);
   border-radius: var(--radius);
@@ -298,8 +297,8 @@
 }
 
 .checkboxChecked::before {
-  content: "\2714";
-  font-size: 1.2em;
+  content: "\2713";
+  font-size: 1em;
   color: #fff;
   position: absolute;
   right: 1px;

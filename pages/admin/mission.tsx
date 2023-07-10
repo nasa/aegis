@@ -85,6 +85,7 @@ const Mission: NextPage = () => {
       earthAzimuthVisible: false,
       defaultEvaDuration: 240,
       walkbackSpeed: 2,
+      equipmentItems: [],
     });
     setEditMissionId(null);
   }
@@ -131,6 +132,7 @@ const Mission: NextPage = () => {
           sunAzimuthVisible: false,
           earthAzimuthVisible: false,
           defaultEvaDuration: 240,
+          equipmentItems: [],
         };
       } else {
         //We can assume this is an export from our own system
@@ -149,6 +151,7 @@ const Mission: NextPage = () => {
           sunAzimuthVisible: tempMissionObj.sunAzimuthVisible,
           earthAzimuthVisible: tempMissionObj.earthAzimuthVisible,
           defaultEvaDuration: tempMissionObj.defaultEvaDuration,
+          equipmentItems: tempMissionObj.equipmentItems,
         };
       }
       setProgressBarWidth(0);

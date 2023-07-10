@@ -19,6 +19,7 @@ interface Mission {
   earthAzimuthVisible: boolean;
   defaultEvaDuration: number;
   walkbackSpeed: number;
+  equipmentItems: EquipmentItem[];
 }
 
 // No alteration needed to convert this store type to the database type
@@ -69,3 +70,13 @@ type POIExpandedSections = {
   pois: boolean;
 };
 type SetPOIExpandedSectionsFn = (poiExpandedSections: POIExpandedSections) => void;
+
+/**
+ * Equipment item
+ */
+interface EquipmentItem {
+  uuid: string;
+  name: string;
+  quantity: number;
+  singleUse: boolean;
+}
