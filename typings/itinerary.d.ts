@@ -218,8 +218,10 @@ type Action = {
   durationLower: number; // in minutes
   durationUpper?: number; // in minutes
 
-  // Inventory of items needed to perform this action.
-  inventoryItems: InventoryItem[];
+  // Equipment needed to perform this action.
+  equipmentItemsUsage: EquipmentItemUsage[];
+
+  mass: number; // grams
 
   status: ActionStatus;
   createdAt?: string;
@@ -262,12 +264,11 @@ type ActionParentUuid = {
 };
 
 /**
- * Inventory item needed to perform an action.
- * Inventory management and tracking still being defined.
+ * Equipment needed to perform an action.
  */
-type InventoryItem = {
-  name: string;
-  quantity: number;
+type EquipmentItemUsage = {
+  uuid: string;
+  quantityUsed: number;
 };
 
 type ActionType = "measurement" | "observation" | "sample" | "photo" | "other";

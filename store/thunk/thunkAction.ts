@@ -33,7 +33,8 @@ export const thunkCreateAction = appCreateAsyncThunk<{
       durationLower: 5,
       durationUpper: 6,
       stmUuidRefs: null,
-      inventoryItems: null,
+      equipmentItemsUsage: null,
+      mass: null,
       priorityOverride: null,
     };
 

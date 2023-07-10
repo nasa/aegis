@@ -25,6 +25,30 @@
   margin-left: 0;
 }
 
-.stmSelectorContainer {
+.selectorContainer {
   padding-left: 15px;
+}
+
+.equipmentItem {
+  display: flex;
+  flex-direction: row;
+}
+
+.equipmentItemLabel {
+  font-size: 0.8em;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.equipmentListDoubleColumn {
+  display: flex;
+  flex-direction: row;
+  padding-left: 15px;
+  width: 100%;
+}
+
+.equipmentListColumn {
+  flex: 0 0 50%;
 }
