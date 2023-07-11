@@ -35,7 +35,7 @@ interface MMGIS_Msv {
   layers?: object;
 }
 
-interface MMGIS_Metadata {
+interface Metadata {
   name: string;
   file_description: string;
   file_owner: string;
