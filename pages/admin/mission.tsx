@@ -214,6 +214,18 @@ const Mission: NextPage = () => {
           delete sublayer.uuid;
         });
       });
+      // Add Metadata to the mission config
+      setProgressBarWidth(50);
+      setProgressBarText("Creating Metadata");
+      setProgressBarColor("#00ff00");
+      mission._metadata = {
+        name: mission.name,
+        file_description: "Exported from AEGIS",
+        file_owner: "AEGIS",
+        public: true,
+        hidden: false,
+      };
+
       setTempMission(JSON.stringify(mission, null, 2));
       setProgressBarWidth(100);
       setProgressBarText("Export Finished!");

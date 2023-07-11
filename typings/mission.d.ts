@@ -20,6 +20,7 @@ interface Mission {
   defaultEvaDuration: number;
   walkbackSpeed: number;
   equipmentItems: EquipmentItem[];
+  _metadata?: MMGIS_Metadata; // Meant for JsonExport file export only
 }
 
 // No alteration needed to convert this store type to the database type
