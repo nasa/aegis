@@ -22,10 +22,10 @@ import {
   thunkUpdateAllTraversesForEVA,
   thunkUpdateTraverseNamesForStationInEVA,
 } from "./thunkTraverse";
-import { generateUniqueName } from "utils/unique-name";
+import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
 import { setRightPanelOpen } from "store/interface";
-import { makeUniqueStringCopy } from "utils/duplicate";
+import { makeUniqueStringCopy } from "utils/names/duplicate";
 import {
   deleteActionsByUuid,
   deleteActionsFromDbByUuid,
@@ -83,10 +83,7 @@ export const thunkUpdateWalkbackPath = appCreateAsyncThunk<{
   const pathSegmentDistances: number[] = [];
   for (let i = 1; i < path.length; i++) {
     pathSegmentDistances.push(
-      getTotalDistance(
-        [path[i - 1], path[i]],
-        parseFloat(getState().mission.mission.config.msv.radius.minor)
-      )
+      getTotalDistance([path[i - 1], path[i]], getState().mission.mission.planetRadius)
     );
   }
   //save walkback
@@ -143,10 +140,7 @@ export const thunkFullUpdateWalkback = appCreateAsyncThunk<
   const pathSegmentDistances: number[] = [];
   for (let i = 1; i < newPath.length; i++) {
     pathSegmentDistances.push(
-      getTotalDistance(
-        [newPath[i - 1], newPath[i]],
-        parseFloat(getState().mission.mission.config.msv.radius.minor)
-      )
+      getTotalDistance([newPath[i - 1], newPath[i]], getState().mission.mission.planetRadius)
     );
   }
 
@@ -193,7 +187,7 @@ export const thunkResetWalkback = appCreateAsyncThunk<{
     getDistanceBetweenTwoCoordinates(
       newPath[0],
       newPath[1],
-      parseFloat(getState().mission.mission.config.msv.radius.minor)
+      getState().mission.mission.planetRadius
     ),
   ];
 
@@ -600,7 +594,7 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
     });
 
     const blankStation: Station = {
-      ownerId: getState().user.ironSessionData?.user.id,
+      ownerId: null,
       missionId: getState().mission.mission?.id,
       uuid: uuidv4(),
       name: randomName,

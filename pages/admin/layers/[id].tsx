@@ -39,21 +39,32 @@ const Layers: NextPage = () => {
   //on load check login and mission id
   useEffect(() => {
     (async () => {
-      const response = await isLoggedIn(); //check user is logged in
-      if (response.status !== "success") {
-        await router.push("/"); //user is not logged in. Redirect to homepage
-      }
-
       //set mission id state
       const { id } = router.query;
-      if (id) {
+      const intMissionId = parseInt(Array.isArray(id) ? id[0] : id);
+      const response = await isLoggedIn(); //check user is logged in
+      if (
+        response.status === "success" &&
+        (response.data.user.isAdmin || response.data.user.isSuperAdmin)
+      ) {
+        if (
+          !response.data.user.isSuperAdmin &&
+          !response.data.user.permissionList.some(
+            (p) => p.missionId === intMissionId && p.permissions.edit
+          )
+        ) {
+          await router.push("/"); //no permissions to this mission
+        }
+
         setMissionIdSlug(+id);
 
         //set mission name
-        const mission = (await getMissions(+id)).data;
+        const mission = (await getMissions(intMissionId)).data;
         if (mission) {
           setMissionName(mission[0].name);
         }
+      } else {
+        await router.push("/");
       }
     })();
   }, [router]);
@@ -149,7 +160,7 @@ const Layers: NextPage = () => {
       <button
         type="button"
         onClick={() => {
-          router.push("/admin/");
+          router.push("/admin/mission");
         }}
       >
         Back to Mission

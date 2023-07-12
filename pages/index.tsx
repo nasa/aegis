@@ -1,52 +1,36 @@
 import type { NextPage } from "next";
 import { useDispatch } from "react-redux";
-import { useAppSelector, refEqual } from "utils/useAppSelector";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
-import { FormEventHandler, useEffect, useState } from "react";
+import { Dispatch, FormEventHandler, SetStateAction, useEffect, useState } from "react";
 import styles from "./index.module.css";
 import { login, isLoggedIn, logout } from "http-client/login";
 import { getMissions } from "http-client/mission";
-import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/user";
-import { useAppDispatch } from "utils/useAppDispatch";
 import { obliterateEntireStore } from "store/cross-slice";
+import { IronSessionData } from "iron-session";
 
 const Head = dynamic(import("next/head"), {
   ssr: false,
 });
 
-const Login = () => {
+const Login = ({ setUser }: { setUser: Dispatch<SetStateAction<User>> }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const dispatch = useAppDispatch();
 
-  const handleLoginButtonClick = async () => {
-    const response = await login(username, password);
-    if (response.status === "success") {
-      dispatch(setIsLoggedIn(true));
-      dispatch(setIronSessionData(response.data));
-      setErrorMessage("");
+  const handleLogin = async (guest: boolean = false) => {
+    let response: WrappedResponse<IronSessionData>;
+    if (guest) {
+      response = await login("guest", "guest");
     } else {
-      dispatch(setIsLoggedIn(false));
-      dispatch(clearIronSessionData());
-      setErrorMessage(response.message);
+      response = await login(username, password);
     }
-  };
-
-  const handleGuestLogin = async () => {
-    const username = "guest";
-    const password = "guest";
-
-    const response = await login(username, password);
     if (response.status === "success") {
-      dispatch(setIsLoggedIn(true));
-      dispatch(setIronSessionData(response.data));
       setErrorMessage("");
+      setUser(response.data.user);
     } else {
-      dispatch(setIsLoggedIn(false));
-      dispatch(clearIronSessionData());
       setErrorMessage(response.message);
+      setUser(null);
     }
   };
 
@@ -60,7 +44,7 @@ const Login = () => {
         type="button"
         value={"Login as Guest"}
         className={styles.guestButton}
-        onClick={handleGuestLogin}
+        onClick={() => handleLogin(true)}
       />
       <div className={styles.title}>Login to AEGIS</div>
       <form className={styles.login} onSubmit={handleSubmit}>
@@ -98,7 +82,7 @@ const Login = () => {
             className={styles.loginFormButton}
             type={"submit"}
             onClick={() => {
-              handleLoginButtonClick();
+              handleLogin();
             }}
           >
             Login
@@ -109,49 +93,55 @@ const Login = () => {
   );
 };
 
-const MissionSelect = () => {
-  const dispatch = useDispatch();
+const Logout = ({ setUser }: { setUser: Dispatch<SetStateAction<User>> }) => {
+  const handleLogoutButtonClick = async () => {
+    const response = await logout();
+    if (response.data) {
+      setUser(null);
+    }
+  };
+
+  return (
+    <div className={styles.login}>
+      <div className={styles.loginFormField}>
+        <button className={styles.logoutButton} onClick={handleLogoutButtonClick}>
+          Logout
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const MissionSelect = ({ user }: { user: User }) => {
   const router = useRouter();
   const [missions, setMissions] = useState<Mission[]>([]);
-  const currentUser = useAppSelector((state) => state.user, refEqual);
 
-  // Get Current logged in user
   useEffect(() => {
     async function populateData() {
-      const permissionList: Permission[] = currentUser.ironSessionData.user?.permissionList;
+      if (!user) return;
 
-      if (!currentUser.isLoggedIn) {
-        return;
-      }
-      const response = await getMissions();
+      const missionRes = await getMissions();
       // if superadmin, show everything
-      if (currentUser.ironSessionData.user.id === 1) {
-        setMissions(response.data);
+      if (user.isSuperAdmin) {
+        setMissions(missionRes.data);
         return;
       }
 
       // Filter out missions that the user does not have permission to view
-      const filteredMissions = response.data.filter((mission) => {
+      const permissionList: Permission[] = user.permissionList;
+      const filteredMissions = missionRes.data.filter((mission) => {
         return permissionList.some((permission) => {
           // Check if they can view
           return permission.missionId === mission.id && permission.permissions.view === true;
         });
       });
-
       setMissions(filteredMissions);
     }
+
     populateData().catch(() => {
       // Something went wrong. Eventually would like a logger here.
     });
-  }, [currentUser]);
-
-  const handleLogoutButtonClick = async () => {
-    const response = await logout();
-    if (response.data) {
-      dispatch(setIsLoggedIn(false));
-      dispatch(clearIronSessionData());
-    }
-  };
+  }, [user]);
 
   const handleMissionSelectClick = (missionId: number) => {
     router.push(`/mission/${missionId}`);
@@ -198,19 +188,25 @@ const MissionSelect = () => {
           </table>
         </div>
       </div>
-      <div className={styles.login}>
-        <div className={styles.loginFormField}>
-          <button className={styles.logoutButton} onClick={handleLogoutButtonClick}>
-            Logout
-          </button>
-        </div>
-      </div>
     </>
   );
 };
 
 const Left = () => {
-  const userIsLoggedIn = useAppSelector((state) => state.user.isLoggedIn, refEqual);
+  const [user, setUser] = useState<User>(null);
+
+  // Populate the user store with iron session login state via API call
+  useEffect(() => {
+    (async () => {
+      const response = await isLoggedIn();
+      if (response.status === "success") {
+        setUser(response.data.user);
+      } else {
+        setUser(null);
+      }
+    })();
+  }, []);
+
   return (
     <div className={styles.left}>
       <div className={styles.leftTop}>
@@ -249,7 +245,14 @@ const Left = () => {
             and JPL.
           </p>
         </div>
-        {userIsLoggedIn ? <MissionSelect /> : <Login />}
+        {user ? (
+          <>
+            <MissionSelect user={user} />
+            <Logout setUser={setUser} />
+          </>
+        ) : (
+          <Login setUser={setUser} />
+        )}
       </div>
       <div className={styles.leftBottom}>
         <div className={styles.aboutSection}>
@@ -377,19 +380,8 @@ const Inset: React.FunctionComponent = () => {
 const Home: NextPage = () => {
   const dispatch = useDispatch();
 
-  // Populate the user store with iron session login state via API call
   useEffect(() => {
     dispatch(obliterateEntireStore());
-    (async () => {
-      const response = await isLoggedIn();
-      if (response.status === "success") {
-        dispatch(setIsLoggedIn(true));
-        dispatch(setIronSessionData(response.data));
-      } else {
-        dispatch(setIsLoggedIn(false));
-        dispatch(clearIronSessionData());
-      }
-    })();
   }, [dispatch]);
 
   return (

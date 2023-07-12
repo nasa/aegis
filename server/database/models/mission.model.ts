@@ -35,6 +35,36 @@ export class Mission implements Mission_db_type {
   walkbackSpeed: number;
   @Property({ type: MikroTypes.json, nullable: true })
   equipmentItems: EquipmentItem[];
+  @Property({ type: MikroTypes.double, nullable: true })
+  planetRadius: number;
+  @Property({ type: MikroTypes.double, nullable: true })
+  initialZoom: number;
+  @Property({ type: MikroTypes.text, nullable: true })
+  demFilePath: string;
+  @Property({ type: MikroTypes.double, nullable: true })
+  demResolution: number;
+  @Property({ type: MikroTypes.boolean, default: false })
+  projIsCustom: boolean;
+  @Property({ type: MikroTypes.text, nullable: true })
+  projEpsg: string;
+  @Property({ type: MikroTypes.text, nullable: true })
+  projProj4String: string;
+  @Property({ type: MikroTypes.double, nullable: true })
+  projBoundsMinX: number;
+  @Property({ type: MikroTypes.double, nullable: true })
+  projBoundsMinY: number;
+  @Property({ type: MikroTypes.double, nullable: true })
+  projBoundsMaxX: number;
+  @Property({ type: MikroTypes.double, nullable: true })
+  projBoundsMaxY: number;
+  @Property({ type: MikroTypes.double, nullable: true })
+  projOriginX: number;
+  @Property({ type: MikroTypes.double, nullable: true })
+  projOriginY: number;
+  @Property({ type: MikroTypes.double, nullable: true })
+  projResZoomLevel: number;
+  @Property({ type: MikroTypes.double, nullable: true })
+  projResUnitsPerPixel: number;
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;

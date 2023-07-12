@@ -30,7 +30,6 @@ import {
   thunkSaveEva,
 } from "store/thunk/thunkEva";
 import { validators } from "components/interface/form/formValidators";
-import { hasEditPermissions } from "store/selectors";
 
 const EvaRightEva: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -59,19 +58,15 @@ const EvaRightEva: FunctionComponent = () => {
     (state) => state.station.calculatedFields,
     shallowEqual
   );
-  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
-  const isAdmin: boolean = useAppSelector(hasEditPermissions(missionId), refEqual);
-
   const calculatedFields = useAppSelector(
     (state) =>
       state.eva.calculatedFields.find((calculated) => calculated.uuid === selectedEva?.uuid),
     shallowEqual
   );
+  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   const [evaReportSequenceItems, setEvaReportSequenceItems] = useState<EvaReportSequenceItem[]>([]);
-
-  //track modified
-  const [modified, setModified] = useState(false);
+  const [modified, setModified] = useState(false); //track modified
 
   useEffect(() => {
     const evaEqual = _.isEqual(selectedEva, selectedEvaFromDb);
@@ -262,13 +257,15 @@ const EvaRightEva: FunctionComponent = () => {
               <Button
                 icon={faTrashAlt}
                 onClick={() => {
-                  thunkDispatch(thunkDeleteEva({ eva: selectedEva }));
+                  if (window.confirm("Are you sure you want to delete this EVA?")) {
+                    thunkDispatch(thunkDeleteEva({ eva: selectedEva }));
+                  }
                 }}
                 toolTip="Delete EVA"
                 style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
               />
             )}
-            {!evasEditing.includes(selectedEvaUuid) && isAdmin && (
+            {!evasEditing.includes(selectedEvaUuid) && editPerms && (
               <Button
                 icon={faEdit}
                 onClick={() => {

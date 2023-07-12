@@ -30,7 +30,6 @@ import emojiPickerData from "@emoji-mart/data";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDeleteStation, thunkSaveStation, thunkStationCancel } from "store/thunk/thunkStation";
 import { validators } from "components/interface/form/formValidators";
-import { hasEditPermissions } from "store/selectors";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -71,8 +70,7 @@ const StationEditorRight: FunctionComponent = () => {
       state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedStationUuid),
     shallowEqual
   );
-  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
-  const isAdmin: boolean = useAppSelector(hasEditPermissions(missionId), refEqual);
+  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   const calculatedFields = useAppSelector(
     (state) =>
@@ -254,11 +252,13 @@ const StationEditorRight: FunctionComponent = () => {
               <Button
                 icon={faTrashAlt}
                 onClick={() => {
-                  thunkDispatch(
-                    thunkDeleteStation({
-                      station: selectedStation,
-                    })
-                  );
+                  if (window.confirm("Are you sure you want to delete this Station?")) {
+                    thunkDispatch(
+                      thunkDeleteStation({
+                        station: selectedStation,
+                      })
+                    );
+                  }
                 }}
                 toolTip="Delete Station"
                 style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
@@ -266,7 +266,7 @@ const StationEditorRight: FunctionComponent = () => {
             ) : (
               <></>
             )}
-            {!stationsEditing.includes(selectedStationUuid) && isAdmin && (
+            {!stationsEditing.includes(selectedStationUuid) && editPerms && (
               <Button
                 icon={faEdit}
                 onClick={() => {

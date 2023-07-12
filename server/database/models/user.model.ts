@@ -10,15 +10,11 @@ export class User implements User_db_type {
   @Property({ type: MikroTypes.text })
   username!: string;
   @Property({ type: MikroTypes.text })
-  email: string;
-  @Property({ type: MikroTypes.text })
   password!: string;
-  @Property({ type: MikroTypes.string, length: 2048, nullable: true })
-  token?: string;
-
-  @Property({ type: MikroTypes.boolean, nullable: true })
-  adminPermission: boolean;
-
+  @Property({ type: MikroTypes.boolean, nullable: true, default: false })
+  isSuperAdmin: boolean;
+  @Property({ type: MikroTypes.boolean, nullable: true, default: false })
+  isAdmin: boolean;
   @Property({ type: MikroTypes.json, nullable: true })
   permissionList?: Permission[];
 

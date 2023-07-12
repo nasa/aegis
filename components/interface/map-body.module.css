@@ -31,20 +31,31 @@
   background-color: var(--grey2);
 }
 
-.control {
+.controlContainer {
   display: flex;
-  padding: 5px;
+  flex-direction: column;
   border: 1px solid var(--grey3);
+  padding: 3px 5px 3px 5px;
 }
 
-.controlCheckbox {
-  align-self: center;
-  margin-right: 4px;
+.control {
+  display: flex;
 }
 
 .controlTitle {
   align-self: center;
   font-size: 0.8em;
+}
+
+.subControl {
+  display: flex;
+  margin-left: 10px;
+  font-size: 0.9em;
+}
+
+.controlCheckbox {
+  align-self: center;
+  margin-right: 4px;
 }
 
 .mapScaleDisplay {

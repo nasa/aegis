@@ -18,14 +18,3 @@ export const selectMissionId = (state: RootState): number | false => {
     return false;
   }
 };
-
-export const hasEditPermissions =
-  (missionId: number) =>
-  (state: RootState): boolean => {
-    //super admin always has permissions
-    if (state.user.ironSessionData?.user.id === 1) return true;
-
-    const permissionList: Permission[] = state.user.ironSessionData?.user.permissionList;
-    return permissionList.find((permission) => permission.missionId === missionId)?.permissions
-      .edit;
-  };

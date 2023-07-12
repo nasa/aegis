@@ -14,6 +14,7 @@ import { STM_Investigation as STMInvestigation_db } from "server/database/models
 import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
 import { roundDateToSecond } from "utils/formatting";
+import { hasPerms } from "utils/permissions";
 
 /**
  * /api/stm?missionId=&stmType=
@@ -46,185 +47,184 @@ const handleSTM: NextApiHandler<
   >
 > = async (req, res): Promise<unknown> => {
   try {
-    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-    const editPermission =
-      req.session?.user?.id === 1 ||
-      req.session?.user?.permissionList.find((p) => p.missionId == parseInt(missionId))?.permissions
-        .edit;
-    const viewPermission =
-      req.session?.user?.id === 1 ||
-      req.session?.user?.permissionList.find((p) => p.missionId == parseInt(missionId))?.permissions
-        .view;
-    const { stmType, o, g, i } = req.query;
-
-    if (editPermission || viewPermission) {
-      //clean url params
-      const queryParams: {
-        missionId: number;
-        stmType: string;
-        o: string;
-        g: string;
-        i: string;
-      } = {
-        missionId: parseInt(Array.isArray(missionId) ? missionId[0] : missionId),
-        stmType: Array.isArray(stmType) ? stmType[0] : stmType,
-        o: Array.isArray(o) ? o[0] : o,
-        g: Array.isArray(g) ? g[0] : g,
-        i: Array.isArray(i) ? i[0] : i,
-      };
-
-      //required for all queries. validate.
-      if (!queryParams.stmType) {
-        return res.status(500).json({ status: "error", message: "Invalid stm type" });
-      }
-
-      const urlParamDict = {
-        o: "Objective",
-        g: "Goal",
-        i: "Investigation",
-        a: "ALL",
-      };
-      // retrieve a STM record. Mission and type are required query prams
-      if (req.method === "GET") {
-        //validation check for required mission id
-        if (!queryParams.missionId || _.isNaN(queryParams.missionId)) {
-          return res.status(500).json({ status: "error", message: "Invalid mission ID" });
-        }
-
-        try {
-          let records: STMObjective[] | STMGoal[] | STMInvestigation[] = [];
-
-          if (queryParams.stmType === "o") {
-            records = await getObjectives(queryParams.missionId, queryParams.o);
-          } else if (queryParams.stmType === "g") {
-            records = await getGoals(queryParams.missionId, queryParams.o, queryParams.g);
-          } else if (queryParams.stmType === "i") {
-            records = await getInvestigations(
-              queryParams.missionId,
-              queryParams.o,
-              queryParams.g,
-              queryParams.i
-            );
-          } else {
-            return res.status(500).json({ status: "error", message: "Invalid stm type" });
-          }
-
-          return res.status(200).json({
-            status: "success",
-            message: `${urlParamDict[queryParams.stmType]} retrieved`,
-            data: records,
-          });
-        } catch (e) {
-          console.error(e);
-          return res
-            .status(500)
-            .json({ status: "error", message: "Error processing the GET request" });
-        }
-      }
-
-      //upsert a STM record
-      if (req.method === "POST") {
-        try {
-          if (!editPermission) {
-            return res.status(401).json({ status: "failure", message: "Unauthorized" });
-          }
-          let upsertResponse: STMObjective | STMGoal | STMInvestigation = null;
-          let upsertObject: STMObjective | STMGoal | STMInvestigation;
-          let upsertType: "Objective" | "Goal" | "Investigation";
-
-          if (queryParams.stmType === "o") {
-            upsertObject = req.body as STMObjective;
-            upsertType = "Objective";
-          } else if (queryParams.stmType === "g") {
-            upsertObject = req.body as STMGoal;
-            upsertType = "Goal";
-          } else if (queryParams.stmType === "i") {
-            upsertObject = req.body as STMInvestigation;
-            upsertType = "Investigation";
-          } else {
-            return res.status(500).json({ status: "error", message: "Invalid type" });
-          }
-
-          //perform the upsert
-          upsertResponse = await upsertSTM(upsertObject, upsertType);
-
-          //check response
-          if (upsertResponse) {
-            return res.status(200).json({
-              status: "success",
-              message: `${urlParamDict[queryParams.stmType]} upserted with uuid ${
-                upsertResponse.uuid
-              }`,
-              data: upsertResponse,
-            });
-          } else {
-            return res.status(500).json({
-              status: "error",
-              message: "Upsert response did not return a value",
-              data: null,
-            });
-          }
-        } catch (e) {
-          console.error(e);
-          return res
-            .status(500)
-            .json({ status: "error", message: "Error processing the POST request" });
-        }
-      }
-
-      //delete a STM record
-      if (req.method === "DELETE") {
-        try {
-          if (!editPermission) {
-            return res.status(401).json({ status: "failure", message: "Unauthorized" });
-          }
-          let deletedUUID: string | null;
-          if (queryParams.stmType === "o" && queryParams.o) {
-            deletedUUID = await deleteSTM(queryParams.o, "Objective");
-          } else if (queryParams.stmType === "g" && queryParams.g) {
-            deletedUUID = await deleteSTM(queryParams.g, "Goal");
-          } else if (queryParams.stmType === "i" && queryParams.i) {
-            deletedUUID = await deleteSTM(queryParams.i, "Investigation");
-          } else if (queryParams.stmType === "a" && queryParams.missionId) {
-            deletedUUID = await deleteSTMTree(queryParams.missionId);
-          } else {
-            return res.status(500).json({ status: "error", message: "Invalid url parameters" });
-          }
-
-          if (deletedUUID) {
-            return res.status(200).json({
-              status: "success",
-              message: `${urlParamDict[queryParams.stmType]} deleted`,
-            });
-          } else {
-            return res.status(404).json({
-              status: "failure",
-              message: `Record not found. Nothing deleted`,
-            });
-          }
-        } catch (e) {
-          console.error(e);
-          if (e instanceof ForeignKeyConstraintViolationException) {
-            return res.status(500).json({
-              status: "error",
-              message: "Cannot delete mission. This mission is referenced elsewhere",
-              data: null,
-            });
-          } else {
-            return res.status(500).json({
-              status: "error",
-              message: "Error processing the DELETE request",
-              data: null,
-            });
-          }
-        }
-      }
-    } else {
+    //check logged in
+    if (!req.session?.user) {
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
+
+    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
+    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+    //check for required mission id is valid
+    if (!intMissionId || _.isNaN(intMissionId)) {
+      return res.status(500).json({ status: "error", message: "Invalid mission ID" });
+    }
+    const editPermission = await hasPerms(intMissionId, "edit", req.session?.user);
+
+    const { stmType, o, g, i } = req.query;
+
+    //clean url params
+    const queryParams: {
+      missionId: number;
+      stmType: string;
+      o: string;
+      g: string;
+      i: string;
+    } = {
+      missionId: intMissionId,
+      stmType: Array.isArray(stmType) ? stmType[0] : stmType,
+      o: Array.isArray(o) ? o[0] : o,
+      g: Array.isArray(g) ? g[0] : g,
+      i: Array.isArray(i) ? i[0] : i,
+    };
+
+    //required for all queries. validate.
+    if (!queryParams.stmType) {
+      return res.status(500).json({ status: "error", message: "Invalid stm type" });
+    }
+
+    const urlParamDict = {
+      o: "Objective",
+      g: "Goal",
+      i: "Investigation",
+      a: "ALL",
+    };
+    // retrieve a STM record. Mission and type are required query prams
+    if (req.method === "GET") {
+      const viewPermission = await hasPerms(intMissionId, "view", req.session.user);
+      if (!viewPermission && !editPermission) {
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+      }
+
+      try {
+        let records: STMObjective[] | STMGoal[] | STMInvestigation[] = [];
+
+        if (queryParams.stmType === "o") {
+          records = await getObjectives(queryParams.missionId, queryParams.o);
+        } else if (queryParams.stmType === "g") {
+          records = await getGoals(queryParams.missionId, queryParams.o, queryParams.g);
+        } else if (queryParams.stmType === "i") {
+          records = await getInvestigations(
+            queryParams.missionId,
+            queryParams.o,
+            queryParams.g,
+            queryParams.i
+          );
+        } else {
+          return res.status(500).json({ status: "error", message: "Invalid stm type" });
+        }
+
+        return res.status(200).json({
+          status: "success",
+          message: `${urlParamDict[queryParams.stmType]} retrieved`,
+          data: records,
+        });
+      } catch (e) {
+        console.error(e);
+        return res
+          .status(500)
+          .json({ status: "error", message: "Error processing the GET request" });
+      }
+    }
+
+    //upsert a STM record
+    if (req.method === "POST") {
+      if (!editPermission) {
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+      }
+      try {
+        let upsertResponse: STMObjective | STMGoal | STMInvestigation = null;
+        let upsertObject: STMObjective | STMGoal | STMInvestigation;
+        let upsertType: "Objective" | "Goal" | "Investigation";
+
+        if (queryParams.stmType === "o") {
+          upsertObject = req.body as STMObjective;
+          upsertType = "Objective";
+        } else if (queryParams.stmType === "g") {
+          upsertObject = req.body as STMGoal;
+          upsertType = "Goal";
+        } else if (queryParams.stmType === "i") {
+          upsertObject = req.body as STMInvestigation;
+          upsertType = "Investigation";
+        } else {
+          return res.status(500).json({ status: "error", message: "Invalid type" });
+        }
+
+        //perform the upsert
+        upsertResponse = await upsertSTM(upsertObject, upsertType);
+
+        //check response
+        if (upsertResponse) {
+          return res.status(200).json({
+            status: "success",
+            message: `${urlParamDict[queryParams.stmType]} upserted with uuid ${
+              upsertResponse.uuid
+            }`,
+            data: upsertResponse,
+          });
+        } else {
+          return res.status(500).json({
+            status: "error",
+            message: "Upsert response did not return a value",
+            data: null,
+          });
+        }
+      } catch (e) {
+        console.error(e);
+        return res
+          .status(500)
+          .json({ status: "error", message: "Error processing the POST request" });
+      }
+    }
+
+    //delete a STM record
+    if (req.method === "DELETE") {
+      if (!editPermission) {
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+      }
+      try {
+        let deletedUUID: string | null;
+        if (queryParams.stmType === "o" && queryParams.o) {
+          deletedUUID = await deleteSTM(queryParams.o, "Objective");
+        } else if (queryParams.stmType === "g" && queryParams.g) {
+          deletedUUID = await deleteSTM(queryParams.g, "Goal");
+        } else if (queryParams.stmType === "i" && queryParams.i) {
+          deletedUUID = await deleteSTM(queryParams.i, "Investigation");
+        } else if (queryParams.stmType === "a" && queryParams.missionId) {
+          deletedUUID = await deleteSTMTree(queryParams.missionId);
+        } else {
+          return res.status(500).json({ status: "error", message: "Invalid url parameters" });
+        }
+
+        if (deletedUUID) {
+          return res.status(200).json({
+            status: "success",
+            message: `${urlParamDict[queryParams.stmType]} deleted`,
+          });
+        } else {
+          return res.status(404).json({
+            status: "failure",
+            message: `Record not found. Nothing deleted`,
+          });
+        }
+      } catch (e) {
+        console.error(e);
+        if (e instanceof ForeignKeyConstraintViolationException) {
+          return res.status(500).json({
+            status: "error",
+            message: "Cannot delete mission. This mission is referenced elsewhere",
+            data: null,
+          });
+        } else {
+          return res.status(500).json({
+            status: "error",
+            message: "Error processing the DELETE request",
+            data: null,
+          });
+        }
+      }
+    }
   } catch (e) {
-    console.error(e);
-    return res.status(500).json({ status: "error", message: "Error in query" });
+    return res.status(500).json({ status: "error", message: "Error in query: " + e });
   }
 };
 

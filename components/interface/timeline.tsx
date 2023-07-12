@@ -213,10 +213,7 @@ const NavTimeline: FunctionComponent = () => {
     };
 
     if (selectedEva?.sequence && mission) {
-      const planetRadius = parseFloat(mission?.config.msv.radius.minor);
-
-      const measureJson = mission.config.tools.find((tool) => tool.name === "Measure")?.variables;
-      storeRef.current.elevationResolutionMeters = measureJson?.resolution;
+      storeRef.current.elevationResolutionMeters = mission.demResolution;
       storeRef.current.landerElevationMeters = mission.landerElevationMeters;
 
       for (const sequenceItem of selectedEva.sequence) {
@@ -259,7 +256,7 @@ const NavTimeline: FunctionComponent = () => {
             const landerDistance = getDistanceBetweenTwoCoordinates(
               station.location,
               mission.landerLocation,
-              planetRadius
+              mission.planetRadius
             );
 
             if (landerDistance > storeRef.current.maxDistFromLanderMeters)
@@ -281,7 +278,7 @@ const NavTimeline: FunctionComponent = () => {
               const newWalkbackPath: AEGISPoint[] = addPointsAtMeters(
                 station.walkbackPath,
                 150,
-                planetRadius
+                mission.planetRadius
               );
               walkback.subdividedPath = newWalkbackPath;
 
@@ -291,7 +288,7 @@ const NavTimeline: FunctionComponent = () => {
                 const landerDistance = getDistanceBetweenTwoCoordinates(
                   newWalkbackPath[i],
                   mission.landerLocation,
-                  planetRadius
+                  mission.planetRadius
                 );
 
                 if (landerDistance > storeRef.current.maxDistFromLanderMeters)
@@ -303,7 +300,7 @@ const NavTimeline: FunctionComponent = () => {
                   const distanceSegment = getDistanceBetweenTwoCoordinates(
                     newWalkbackPath[i],
                     newWalkbackPath[i + 1],
-                    planetRadius
+                    mission.planetRadius
                   );
                   walkback.subdividedDistMeters.push(distanceSegment);
                   const traverseRate = _.isNumber(evaTraverseRate)
@@ -360,7 +357,11 @@ const NavTimeline: FunctionComponent = () => {
           }
 
           //subdivide seach traverse segment by 150 meters for greater accuracy
-          const newTraverse: AEGISPoint[] = addPointsAtMeters(traverse.path, 150, planetRadius);
+          const newTraverse: AEGISPoint[] = addPointsAtMeters(
+            traverse.path,
+            150,
+            mission.planetRadius
+          );
           sequenceItemForPaperJS.traverse.subdividedPath = newTraverse;
 
           sequenceItemForPaperJS.totalDurationMins = 0;
@@ -371,7 +372,7 @@ const NavTimeline: FunctionComponent = () => {
               const landerDistance = getDistanceBetweenTwoCoordinates(
                 newTraverse[i],
                 mission.landerLocation,
-                planetRadius
+                mission.planetRadius
               );
               if (landerDistance > storeRef.current.maxDistFromLanderMeters)
                 storeRef.current.maxDistFromLanderMeters = landerDistance;
@@ -383,7 +384,7 @@ const NavTimeline: FunctionComponent = () => {
               const distanceSegment = getDistanceBetweenTwoCoordinates(
                 newTraverse[i],
                 newTraverse[i + 1],
-                planetRadius
+                mission.planetRadius
               );
               sequenceItemForPaperJS.traverse.subdividedDistMeters.push(distanceSegment);
               const duration = isNaN(traverseRate)

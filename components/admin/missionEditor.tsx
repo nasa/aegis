@@ -1,19 +1,14 @@
 import { getElevationSinglePoint } from "http-client/elevation";
 import { Dispatch, FunctionComponent, SetStateAction, useEffect, useState } from "react";
 import FileManager from "./fileManager";
-import { createNewConfig, stringToJSON } from "./helper";
+import { createNewConfig } from "./helper";
 import { Form } from "react-final-form";
 import { AnyObject } from "final-form";
 import { FFCheckbox, FFInput, FFTextArea } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
-import Look from "./look";
-import MSV from "./msv";
 import Projection from "components/admin/projection";
-import Panels from "./panels";
-import Time from "./time";
-import Tools, { createTools, initializeTools } from "./tools";
 import adminStyles from "components/admin/admin.module.css";
-import { forIn, pick, isEmpty } from "lodash";
+import { pick, isEmpty } from "lodash";
 import { upsertMission } from "http-client/mission";
 
 //Type used to track extra information about each tool needed to render the components
@@ -40,33 +35,6 @@ const MissionEditor: FunctionComponent<{
   //save the mission and call and upsert
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async function onSubmit(values: Record<string, any>) {
-    const panelArray: string[] = [];
-    forIn(values.panelValues, (value, key) => {
-      if (value) {
-        panelArray.push(key);
-      }
-    });
-
-    const configTools: MMGIS_Tool[] = [];
-    const defaultWrappedTools = createTools();
-
-    const allWrappedTools: WrappedTool[] = values.tools;
-
-    if (allWrappedTools?.length > 0) {
-      allWrappedTools.forEach((wrappedTool) => {
-        if (wrappedTool.active) {
-          const tool = wrappedTool.tool;
-          const toolVariables = stringToJSON(wrappedTool.variables);
-          configTools.push({
-            ...tool,
-            variables: toolVariables,
-          });
-        } else {
-          configTools.push(defaultWrappedTools.find((t) => t.name === wrappedTool.name).tool);
-        }
-      });
-    }
-
     const missionKeys = Object.keys(mission);
 
     const missionValues = pick(values, missionKeys) as Mission;
@@ -75,12 +43,6 @@ const MissionEditor: FunctionComponent<{
 
     const configToSave: Config = {
       ...missionValues.config,
-      tools: configTools,
-      panels: panelArray,
-      panelSettings: {
-        ...config.panelSettings,
-        ...values.panelSettings,
-      },
     };
     const missionToSave: Mission = { ...missionValues, config: configToSave };
     const res = await upsertMission(missionToSave);
@@ -96,14 +58,14 @@ const MissionEditor: FunctionComponent<{
       alert("invalid lander location, cannot calculate elevation");
     }
 
-    const radius = parseFloat(mission?.config.msv.radius.minor);
-    const measureJson = mission?.config.tools.find((tool) => tool.name === "Measure")?.variables;
-    const demFilepath: string = measureJson.dem;
     const point: AEGISPoint = {
       lat: mission.landerLocation.lat,
       lng: mission.landerLocation.lng,
     };
-    const elevation = (await getElevationSinglePoint(mission.id, demFilepath, point, radius)).data;
+    const elevation = (
+      await getElevationSinglePoint(mission.id, mission.demFilePath, point, mission.planetRadius)
+    ).data;
+
     setMission({
       ...mission,
       landerElevationMeters: elevation,
@@ -123,17 +85,6 @@ const MissionEditor: FunctionComponent<{
         initialValues={{
           ...mission,
           config: config,
-          panelValues: {
-            viewer: config.panels.includes("viewer"),
-            map: config.panels.includes("map"),
-            globe: config.panels.includes("globe"),
-          },
-          panelSettings: {
-            demFallbackPath: config.panelSettings.demFallbackPath,
-            demFallbackFormat: config.panelSettings.demFallbackFormat,
-            demFallbackType: config.panelSettings.demFallbackType,
-          },
-          tools: initializeTools(config.tools),
         }}
         render={({ handleSubmit, values, errors }) => {
           return (
@@ -191,6 +142,15 @@ const MissionEditor: FunctionComponent<{
                       />
                     </div>
                   </div>
+                  <div id="planetRadiusDiv">
+                    <div className={adminStyles.editDiv}>
+                      <FFInput
+                        name="planetRadius"
+                        label={{ label: "Planet Radius (m)" }}
+                        validators={[validators.mustBeNumber]}
+                      />
+                    </div>
+                  </div>
                   <div id="landerLatDiv">
                     <div className={adminStyles.editDiv}>
                       <FFInput
@@ -224,6 +184,15 @@ const MissionEditor: FunctionComponent<{
                       >
                         Calculate
                       </button>
+                    </div>
+                  </div>
+                  <div id="initialZoomDiv">
+                    <div className={adminStyles.editDiv}>
+                      <FFInput
+                        name="initialZoom"
+                        label={{ label: "Initial Zoom Level" }}
+                        validators={[validators.mustBeNumber]}
+                      />
                     </div>
                   </div>
                   <div id="durationDiv">
@@ -262,7 +231,7 @@ const MissionEditor: FunctionComponent<{
                       />
                     </div>
                   </div>
-                  <div id="sunAzimuthEnabled">
+                  <div id="sunAzimuthEnabledDiv">
                     <div className={adminStyles.editDiv}>
                       <FFCheckbox
                         name="sunAzimuthEnabled"
@@ -279,7 +248,7 @@ const MissionEditor: FunctionComponent<{
                       />
                     </div>
                   </div>
-                  <div id="earthAzimuthEnabled">
+                  <div id="earthAzimuthEnabledDiv">
                     <div className={adminStyles.editDiv}>
                       <FFCheckbox
                         name="earthAzimuthEnabled"
@@ -287,12 +256,28 @@ const MissionEditor: FunctionComponent<{
                       />
                     </div>
                   </div>
-                  <MSV />
-                  <Tools config_tools={config?.tools} setConfig={setConfig} />
+                  <h4>Digital Elevation Model (DEM)</h4>
+                  <div className={adminStyles.sectionDiv}>
+                    <div id="demFilePathDiv">
+                      <div className={adminStyles.editDiv}>
+                        <FFInput
+                          name="demFilePath"
+                          label={{ label: "DEM File Path" }}
+                          validators={[]}
+                        />
+                      </div>
+                    </div>
+                    <div id="demResolutionDiv">
+                      <div className={adminStyles.editDiv}>
+                        <FFInput
+                          name="demResolution"
+                          label={{ label: "DEM Resolution (m per pixel)" }}
+                          validators={[validators.mustBeNumber, validators.mustBeInteger]}
+                        />
+                      </div>
+                    </div>
+                  </div>
                   <Projection />
-                  <Look />
-                  <Panels />
-                  <Time />
                 </div>
               </div>
             </form>

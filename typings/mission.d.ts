@@ -7,12 +7,12 @@ interface Mission {
   description: string;
   missionBanner: string;
   config: Config;
-  version?: number;
-  createdAt?: string;
-  updatedAt?: string;
-  landerLocation?: AEGISPoint;
-  landerElevationMeters?: number;
-  traverseSpeed?: number;
+  version: number;
+  landerLocation: AEGISPoint;
+  landerElevationMeters: number;
+  planetRadius: number;
+  initialZoom: number;
+  traverseSpeed: number;
   sunAzimuth: number;
   earthAzimuth: number;
   sunAzimuthVisible: boolean;
@@ -20,6 +20,22 @@ interface Mission {
   defaultEvaDuration: number;
   walkbackSpeed: number;
   equipmentItems: EquipmentItem[];
+  _metadata?: Metadata; // Meant for JsonExport file export only
+  demFilePath: string;
+  demResolution: number;
+  projIsCustom: boolean;
+  projEpsg: string;
+  projProj4String: string;
+  projBoundsMinX: number;
+  projBoundsMinY: number;
+  projBoundsMaxX: number;
+  projBoundsMaxY: number;
+  projOriginX: number;
+  projOriginY: number;
+  projResZoomLevel: number;
+  projResUnitsPerPixel: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // No alteration needed to convert this store type to the database type

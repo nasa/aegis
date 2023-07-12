@@ -1,5 +1,5 @@
 import { NextPage } from "next";
-import { ChangeEvent, Dispatch, SetStateAction, useEffect, useState } from "react";
+import { ChangeEvent, Dispatch, SetStateAction, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { getMissions, deleteMission, upsertMission } from "http-client/mission";
 import styles from "components/admin/admin.module.css";
@@ -14,8 +14,7 @@ import { isLoggedIn } from "http-client/login";
 import { validators } from "components/interface/form/formValidators";
 import { Tooltip } from "react-tooltip";
 import { v4 as uuidv4 } from "uuid";
-import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "../../store/user";
-import { useAppDispatch } from "../../utils/useAppDispatch";
+import { portMissionFromMMGISFormat } from "utils/ports";
 
 const Mission: NextPage = () => {
   const router = useRouter();
@@ -23,19 +22,32 @@ const Mission: NextPage = () => {
   const [missions, setMissions] = useState<Mission[]>([]);
   const [editMissionId, setEditMissionId] = useState<number>(); //track mission currently in edit
   const [mission, setMission] = useState<Mission>(); //current mission being edited
-  const [admin, setAdmin] = useState<boolean>(false);
   const [showImportMission, setShowImportMission] = useState<boolean>(false);
   const [user, setUser] = useState<User>(null);
-  const dispatch = useAppDispatch();
 
-  async function loadMissionsFromDB() {
+  const loadMissionsFromDB = useCallback(async () => {
     const missionList = (await getMissions()).data;
 
-    setMissions(missionList);
-  }
+    const newMissionList: Mission[] = [];
+
+    for (const thisMission of missionList) {
+      // if planetRadius has a value, then this mission has already been ported
+      if (!thisMission.planetRadius) {
+        const newMission = portMissionFromMMGISFormat(thisMission);
+        newMissionList.push(newMission);
+
+        // persist changes back to the db
+        await upsertMission(newMission);
+      } else {
+        newMissionList.push(thisMission);
+      }
+    }
+
+    setMissions(newMissionList);
+  }, []);
 
   const handleBack = () => {
-    router.back();
+    router.push("/admin");
   };
 
   useEffect(() => {
@@ -48,19 +60,13 @@ const Mission: NextPage = () => {
   useEffect(() => {
     async function adminCheck() {
       const response = await isLoggedIn();
-      //Check if user is logged in.
       if (
         response.status === "success" &&
-        (response.data.user.adminPermission || response.data.user.id === 1)
+        (response.data.user.isAdmin || response.data.user.isSuperAdmin)
       ) {
-        dispatch(setIsLoggedIn(true));
-        dispatch(setIronSessionData(response.data));
-        setAdmin(true);
         setUser(response.data.user);
         await loadMissionsFromDB();
       } else {
-        dispatch(setIsLoggedIn(false));
-        dispatch(clearIronSessionData());
         await router.push("/");
       }
     }
@@ -68,16 +74,18 @@ const Mission: NextPage = () => {
     adminCheck().catch(() => {
       // Something went wrong. Eventually would like a logger here.
     });
-  }, [router, dispatch]);
+  }, [router, loadMissionsFromDB]);
 
   function createNewMission() {
-    setMission({
+    const newMission: Mission = {
       id: null,
+      version: 0,
       name: "",
       description: "",
       missionBanner: "",
       config: createNewConfig(),
       landerLocation: null,
+      landerElevationMeters: 0,
       traverseSpeed: 2,
       sunAzimuth: 0,
       sunAzimuthVisible: false,
@@ -86,7 +94,24 @@ const Mission: NextPage = () => {
       defaultEvaDuration: 240,
       walkbackSpeed: 2,
       equipmentItems: [],
-    });
+      planetRadius: 1737400, // moon
+      initialZoom: 14,
+      demFilePath: "",
+      demResolution: 0,
+      projIsCustom: false,
+      projEpsg: "",
+      projProj4String: "",
+      projBoundsMinX: 0,
+      projBoundsMinY: 0,
+      projBoundsMaxX: 0,
+      projBoundsMaxY: 0,
+      projOriginX: 0,
+      projOriginY: 0,
+      projResZoomLevel: 0,
+      projResUnitsPerPixel: 0,
+    };
+
+    setMission(newMission);
     setEditMissionId(null);
   }
 
@@ -119,6 +144,7 @@ const Mission: NextPage = () => {
         //We can assume this is an MMGIS import
         body = {
           id: null,
+          version: 0,
           config: tempMissionObj,
           name: tempMissionObj.msv.mission,
           description: null,
@@ -133,11 +159,27 @@ const Mission: NextPage = () => {
           earthAzimuthVisible: false,
           defaultEvaDuration: 240,
           equipmentItems: [],
+          planetRadius: 1737400, // moon
+          initialZoom: 14,
+          demFilePath: "",
+          demResolution: 0,
+          projIsCustom: false,
+          projEpsg: "",
+          projProj4String: "",
+          projBoundsMinX: 0,
+          projBoundsMinY: 0,
+          projBoundsMaxX: 0,
+          projBoundsMaxY: 0,
+          projOriginX: 0,
+          projOriginY: 0,
+          projResZoomLevel: 0,
+          projResUnitsPerPixel: 0,
         };
       } else {
         //We can assume this is an export from our own system
         body = {
           id: null,
+          version: tempMissionObj.version,
           config: tempMissionObj.config,
           name: tempMissionObj.name,
           description: tempMissionObj.description,
@@ -152,19 +194,32 @@ const Mission: NextPage = () => {
           earthAzimuthVisible: tempMissionObj.earthAzimuthVisible,
           defaultEvaDuration: tempMissionObj.defaultEvaDuration,
           equipmentItems: tempMissionObj.equipmentItems,
+          planetRadius: tempMissionObj.planetRadius,
+          initialZoom: tempMissionObj.initialZoom,
+          demFilePath: tempMissionObj.demFilePath,
+          demResolution: tempMissionObj.demResolution,
+          projIsCustom: tempMissionObj.projIsCustom,
+          projEpsg: tempMissionObj.projEpsg,
+          projProj4String: tempMissionObj.projProj4String,
+          projBoundsMinX: tempMissionObj.projBoundsMinX,
+          projBoundsMinY: tempMissionObj.projBoundsMinY,
+          projBoundsMaxX: tempMissionObj.projBoundsMaxX,
+          projBoundsMaxY: tempMissionObj.projBoundsMaxY,
+          projOriginX: tempMissionObj.projOriginX,
+          projOriginY: tempMissionObj.projOriginY,
+          projResZoomLevel: tempMissionObj.projResZoomLevel,
+          projResUnitsPerPixel: tempMissionObj.projResUnitsPerPixel,
         };
       }
-      setProgressBarWidth(0);
-      setProgressBarText("Importing Mission");
-      setProgressBarColor("#00ff00");
       try {
+        setProgressBarWidth(0);
+        setProgressBarText("Importing Mission");
         const newMission = await upsertMission(body);
+
         setProgressBarWidth(25);
         setProgressBarText("Importing Layers");
-        setProgressBarColor("#00ff00");
-
         tempLayers.forEach((layer) => {
-          // import the layer into the database
+          // import the layers
           const body: Layer = {
             uuid: uuidv4(),
             missionId: newMission.data.id,
@@ -175,12 +230,10 @@ const Mission: NextPage = () => {
           upsertLayer(body);
           setProgressBarWidth(50);
           setProgressBarText("Importing Layers");
-          setProgressBarColor("#00ff00");
         });
 
         setProgressBarWidth(100);
         setProgressBarText("Import Finished!");
-        setProgressBarColor("#00ff00");
       } catch (e) {
         console.log(e);
         setProgressBarWidth(100);
@@ -214,6 +267,18 @@ const Mission: NextPage = () => {
           delete sublayer.uuid;
         });
       });
+      // Add Metadata to the mission config
+      setProgressBarWidth(50);
+      setProgressBarText("Creating Metadata");
+      setProgressBarColor("#00ff00");
+      mission._metadata = {
+        name: mission.name,
+        file_description: "Exported from AEGIS",
+        file_owner: "AEGIS",
+        public: true,
+        hidden: false,
+      };
+
       setTempMission(JSON.stringify(mission, null, 2));
       setProgressBarWidth(100);
       setProgressBarText("Export Finished!");
@@ -341,52 +406,50 @@ const Mission: NextPage = () => {
 
   return (
     <>
-      {admin ? (
-        <div className={styles.pageStyle}>
-          <Tooltip id="aegis-tooltip" className={styles.tooltip} />
-          <div className={styles.header}>
-            <Header />
-          </div>
-          <div className={styles.bodyContent}>
-            <div className={styles.missionBack}>
-              <FontAwesomeIcon icon={faArrowAltCircleLeft} size="xl" onClick={handleBack} />
-            </div>
-            <h2>Missions</h2>
-            <MissionList
-              missions={missions}
-              user={user}
-              refreshMissionList={loadMissionsFromDB}
-              setEditMissionId={setEditMissionId}
-            />
-            <button
-              type="button"
-              onClick={() => {
-                createNewMission();
-              }}
-            >
-              Add New Mission (Clear Form)
-            </button>
-            <button
-              className={styles.importButton}
-              type="button"
-              onClick={() => {
-                //Show import Mission Form
-                setShowImportMission(!showImportMission);
-              }}
-            >
-              {showImportMission ? "Close Import/Export" : "Open Import/Export"}
-            </button>
-            <ImportMission />
-            <MissionEditor
-              refreshMissionList={loadMissionsFromDB}
-              mission={mission}
-              setMission={setMission}
-            />
-          </div>
+      <div className={styles.pageStyle}>
+        <Tooltip id="aegis-tooltip" className={styles.tooltip} />
+        <div className={styles.header}>
+          <Header />
         </div>
-      ) : (
-        <></>
-      )}
+        <div className={styles.bodyContent}>
+          <div className={styles.missionBack}>
+            <FontAwesomeIcon icon={faArrowAltCircleLeft} size="xl" onClick={handleBack} />
+          </div>
+          <h2>Missions</h2>
+          <MissionList
+            missions={missions}
+            user={user}
+            refreshMissionList={loadMissionsFromDB}
+            setEditMissionId={setEditMissionId}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              createNewMission();
+            }}
+            disabled={user?.id !== 1}
+          >
+            Add New Mission (Clear Form)
+          </button>
+          &nbsp;
+          <button
+            type="button"
+            onClick={() => {
+              //Show import Mission Form
+              setShowImportMission(!showImportMission);
+            }}
+            disabled={user?.id !== 1}
+          >
+            {showImportMission ? "Close Import/Export" : "Open Import/Export"}
+          </button>
+          <ImportMission />
+          <MissionEditor
+            refreshMissionList={loadMissionsFromDB}
+            mission={mission}
+            setMission={setMission}
+          />
+        </div>
+      </div>
     </>
   );
 };
@@ -399,7 +462,7 @@ const MissionList = (props: {
   setEditMissionId: Dispatch<SetStateAction<Number>>;
 }) => {
   const router = useRouter();
-  const permissionList = props.user.permissionList;
+  const permissionList = props.user?.permissionList;
 
   async function delMission(id: number) {
     if (confirm("Are you sure you want to delete mission " + id)) {
@@ -419,7 +482,7 @@ const MissionList = (props: {
       <ul>
         {props.missions.map((mission: Mission) => {
           if (
-            props.user.id === 1 ||
+            props.user.isSuperAdmin ||
             permissionList.some((p) => p.missionId === mission.id && p.permissions.edit === true)
           ) {
             return (

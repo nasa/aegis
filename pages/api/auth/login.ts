@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import bcrypt from "bcryptjs";
-
 import { ironOptions } from "server/session/config";
 import { User } from "server/database/models/user.model";
 import type { IronSessionData } from "iron-session";
@@ -19,7 +18,6 @@ async function handler(
       res.status(405).send({ status: "error", message: "Only POST requests allowed" });
       return;
     }
-
     const loginResult = await login(req.body.username as string, req.body.password as string);
     if (loginResult.status === "success") {
       req.session.user = loginResult.data.user;
@@ -51,9 +49,9 @@ async function login(
           user: {
             id: user.id,
             username: user.username,
-            email: user.email,
             permissionList: user.permissionList,
-            adminPermission: user.adminPermission,
+            isAdmin: user.isAdmin,
+            isSuperAdmin: user.isSuperAdmin,
           },
         },
       };

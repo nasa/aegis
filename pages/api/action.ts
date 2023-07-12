@@ -12,26 +12,36 @@ import { Action as Action_db } from "server/database/models/action.model";
 import _ from "lodash";
 import { roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
+import { hasPerms } from "utils/permissions";
 
 const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
   req,
   res
 ): Promise<unknown> => {
-  const { uuid, stationUuid, poiUuid } = req.query;
-  const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-  const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
-  const actionUUID = Array.isArray(uuid) ? uuid[0] : uuid;
-  const editPermission =
-    req.session?.user?.id === 1 ||
-    req.session?.user?.permissionList.find((p) => p.missionId == intMissionId)?.permissions.edit;
-  const viewPermission =
-    req.session?.user?.id === 1 ||
-    req.session?.user?.permissionList.find((p) => p.missionId == intMissionId)?.permissions.view;
+  try {
+    //check logged in
+    if (!req.session?.user) {
+      return res.status(401).json({ status: "failure", message: "Unauthorized" });
+    }
 
-  if (editPermission || viewPermission) {
+    const { uuid, stationUuid, poiUuid } = req.query;
+    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
+    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+    const actionUUID = Array.isArray(uuid) ? uuid[0] : uuid;
+    const station = Array.isArray(stationUuid) ? stationUuid[0] : stationUuid;
+    const poi = Array.isArray(poiUuid) ? poiUuid[0] : poiUuid;
+    //check for required mission id is valid
+    if (!intMissionId || _.isNaN(intMissionId)) {
+      return res.status(500).json({ status: "error", message: "Invalid mission ID" });
+    }
+
+    const editPermission = await hasPerms(intMissionId, "edit", req.session.user);
+
     if (req.method === "GET") {
-      const station = Array.isArray(stationUuid) ? stationUuid[0] : stationUuid;
-      const poi = Array.isArray(poiUuid) ? poiUuid[0] : poiUuid;
+      const viewPermission = await hasPerms(intMissionId, "view", req.session.user);
+      if (!viewPermission && !editPermission) {
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+      }
 
       try {
         const actions: Action[] = await getActions({
@@ -117,8 +127,8 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
         }
       }
     }
-  } else {
-    return res.status(401).json({ status: "failure", message: "Unauthorized" });
+  } catch (e) {
+    return res.status(500).json({ status: "error", message: "Error in query: " + e });
   }
 };
 

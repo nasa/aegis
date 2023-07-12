@@ -44,15 +44,17 @@ const STM: NextPage = () => {
   useEffect(() => {
     (async () => {
       const { id } = router.query;
-      const response = await isLoggedIn();
-      //Check if user is logged in.
+      const intMissionId = parseInt(Array.isArray(id) ? id[0] : id);
+      const response = await isLoggedIn(); //Check if user is logged in.
       if (
         response.status === "success" &&
-        (response.data.user.adminPermission || response.data.user.id === 1)
+        (response.data.user.isAdmin || response.data.user.isSuperAdmin)
       ) {
         if (
-          response.data.user.id !== 1 &&
-          !response.data.user.permissionList.some((p) => p.missionId === +id && p.permissions.edit)
+          !response.data.user.isSuperAdmin &&
+          !response.data.user.permissionList.some(
+            (p) => p.missionId === intMissionId && p.permissions.edit
+          )
         ) {
           await router.push("/"); //no permissions to this mission
         }
@@ -61,7 +63,7 @@ const STM: NextPage = () => {
         setMessage("Loading mission ID " + id);
 
         //set mission
-        const mission = (await getMissions(+id)).data;
+        const mission = (await getMissions(intMissionId)).data;
         if (mission) {
           setMission(mission[0]);
         } else {
@@ -118,7 +120,7 @@ const STM: NextPage = () => {
           <button
             type="button"
             onClick={() => {
-              router.push("/admin/");
+              router.push("/admin/mission");
             }}
           >
             Back to Mission

@@ -5,7 +5,7 @@ import { getEM, withORM } from "utils/mikro";
 import { ironOptions } from "server/session/config";
 import { IronSessionData } from "iron-session";
 import _ from "lodash";
-import { upsertUser } from "./index";
+import { upsertUser } from "../users";
 
 export default withIronSessionApiRoute(withORM(handler), ironOptions);
 
@@ -17,7 +17,7 @@ async function handler(
     if (req.method == "GET") {
       const recoveryKey = req.query.recoveryKey as string;
       if (recoveryKey === process.env.ADMIN_RECOVERY_KEY) {
-        const adminUserDB = await getEM().findOne(User_db, { id: 1 });
+        const adminUserDB = await getEM().findOne(User_db, { isSuperAdmin: true });
         const adminUser: User = {
           ...adminUserDB,
           password: "admin",

@@ -1,25 +1,29 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { IronSessionData } from "iron-session";
 
 export const initialState: UserState = {
   isLoggedIn: false,
-  ironSessionData: null,
+  user: null,
+  missionPerms: null,
 };
 
 export const userSlice = createSlice({
   name: "user",
   initialState,
   reducers: {
-    setIsLoggedIn: (state, action: { payload: boolean }) => {
-      state.isLoggedIn = action.payload;
+    setUserStore: (state, action: { payload: UserState }) => {
+      state.isLoggedIn = action.payload.isLoggedIn;
+      state.user = action.payload.user;
+      state.missionPerms = action.payload.missionPerms;
     },
-    setIronSessionData: (state, action: { payload: IronSessionData }) => {
-      state.ironSessionData = action.payload;
+    setMissionPerms: (state, action: { payload: Permission }) => {
+      state.missionPerms = action.payload;
     },
-    clearIronSessionData: (state) => {
-      state.ironSessionData = null;
+    clearUserStore: (state) => {
+      state.user = null;
+      state.isLoggedIn = false;
+      state.missionPerms = null;
     },
   },
 });
 
-export const { setIsLoggedIn, setIronSessionData, clearIronSessionData } = userSlice.actions;
+export const { setUserStore, setMissionPerms, clearUserStore } = userSlice.actions;

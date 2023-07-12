@@ -35,6 +35,14 @@ interface MMGIS_Msv {
   layers?: object;
 }
 
+interface Metadata {
+  name: string;
+  file_description: string;
+  file_owner: string;
+  public: boolean;
+  hidden: boolean;
+}
+
 interface MMGIS_Projection {
   custom: boolean;
   epsg: string;

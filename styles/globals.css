@@ -107,6 +107,10 @@ body {
   background-color: var(--grey2) !important;
 }
 
+.leaflet-tooltip-own {
+  padding: 2px 5px 2px 5px !important;
+}
+
 /* metatag component styling */
 .rti--container {
   --rti-bg: var(--grey1) !important;

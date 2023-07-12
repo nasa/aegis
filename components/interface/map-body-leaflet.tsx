@@ -43,7 +43,7 @@ import {
 } from "store/thunk/thunkStation";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkFullUpdateTraverse, thunkUpdateTraversePath } from "store/thunk/thunkTraverse";
-import getPercentOrDefault from "utils/getPercentOrDefault";
+import { getPercentOrDefault } from "utils/formatting";
 import { thunkUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { selectEVASequenceItem } from "store/cross-slice";
 import { thunkGetStationOrTraverse } from "store/thunk/thunkEva";
@@ -111,8 +111,14 @@ const MapBody: FunctionComponent = () => {
   const [poisToShow, setPoisToShow] = useState<POI[]>([]);
   const [stationsToShow, setStationsToShow] = useState<Station[]>([]);
   const [traversesToShow, setTraversesToShow] = useState<Traverse[]>([]);
-  const [showAllPois, setShowAllPois] = useState(true);
-  const [showAllStations, setShowAllStations] = useState(true);
+  const [mapDisplayPois, setMapDisplayPois] = useState<MapMarkersDisplay>({
+    show: true,
+    showLabels: false,
+  });
+  const [mapDisplayStations, setMapDisplayStations] = useState<MapMarkersDisplay>({
+    show: true,
+    showLabels: false,
+  });
 
   const [mapPosition, setMapPosition] = useState<string[]>([]);
 
@@ -363,10 +369,10 @@ const MapBody: FunctionComponent = () => {
     const distance = getDistanceBetweenTwoCoordinates(
       convertLeafletLatLngToAegisPoint(latLngC),
       convertLeafletLatLngToAegisPoint(latLngX),
-      parseFloat(mission.config.msv.radius.minor)
+      mission.planetRadius
     );
     setScale(distance);
-  }, [mission.config.msv.radius.minor]);
+  }, [mission.planetRadius]);
 
   useEffect(() => {
     if (!map.current) return;
@@ -430,6 +436,7 @@ const MapBody: FunctionComponent = () => {
       mapItemType,
       onClick = () => {},
       onDragEnd = () => {},
+      permanentLabel = false,
     }: {
       name: string;
       uuid: string;
@@ -438,6 +445,7 @@ const MapBody: FunctionComponent = () => {
       mapItemType: MapMarkerType;
       onClick?: Function;
       onDragEnd?: Function;
+      permanentLabel?: boolean;
     }) => {
       if (isNaN(location.lat) || isNaN(location.lng)) return;
 
@@ -470,7 +478,9 @@ const MapBody: FunctionComponent = () => {
         marker.bindTooltip(`${name} ${typeName}`, {
           sticky: true,
           direction: "top",
-          offset: new L.Point(0, -20),
+          offset: new L.Point(0, -10),
+          permanent: permanentLabel,
+          className: "leaflet-tooltip-own",
         });
         if (onClick) {
           marker
@@ -646,42 +656,25 @@ const MapBody: FunctionComponent = () => {
    * Map instantiation
    */
   useLayoutEffect(() => {
-    if (!mapRef.current || !map || !mission.config) return;
+    if (!mapRef.current || !map || !mission) return;
 
     // instantiate the prog4leaflet crs using the values in the mission config
-    if (mission.config.projection.custom === true) {
-      const baseRes =
-        mission.config.projection.resunitsperpixel *
-        Math.pow(2, mission.config.projection.reszoomlevel);
+    if (mission.projIsCustom === true) {
+      const baseRes = mission.projResUnitsPerPixel * Math.pow(2, mission.projResZoomLevel);
 
       const resolutions = [];
       for (let i = 0; i < 32; i++) {
         resolutions.push(baseRes / Math.pow(2, i));
       }
 
-      crs.current = new L.Proj.CRS(
-        Number.isFinite(parseInt(mission.config.projection.epsg[0]))
-          ? `EPSG:${mission.config.projection.epsg}`
-          : mission.config.projection.epsg,
-        mission.config.projection.proj,
-        {
-          origin: [
-            parseFloat(mission.config.projection.origin[0]),
-            parseFloat(mission.config.projection.origin[1]),
-          ],
-          resolutions,
-          bounds: L.bounds(
-            [
-              parseFloat(mission.config.projection.bounds[0]),
-              parseFloat(mission.config.projection.bounds[1]),
-            ],
-            [
-              parseFloat(mission.config.projection.bounds[2]),
-              parseFloat(mission.config.projection.bounds[3]),
-            ]
-          ),
-        }
-      );
+      crs.current = new L.Proj.CRS(mission.projEpsg, mission.projProj4String, {
+        origin: [mission.projOriginX, mission.projOriginY],
+        resolutions,
+        bounds: L.bounds(
+          [mission.projBoundsMinX, mission.projBoundsMinY],
+          [mission.projBoundsMaxX, mission.projBoundsMaxY]
+        ),
+      });
     }
 
     // Instantiate the map
@@ -707,21 +700,21 @@ const MapBody: FunctionComponent = () => {
         poiFeatureGroup.current = L.featureGroup().addTo(map.current);
       }
     }
-  }, [mapRef, map, draggableLines, mission.config]);
+  }, [mapRef, map, draggableLines, mission]);
 
   /**
-   * Set the center of the map to the center of the selected mission (config.msv.view)
+   * Set the center of the map to the center of the selected mission
    */
   useEffect(() => {
-    if (!map.current || !mission?.config) return;
-    const config = mission?.config;
+    if (!map.current || !mission) return;
 
-    const center = [+config?.msv?.view[0], +config?.msv?.view[1]] as L.LatLngExpression;
-    const zoom = +config?.msv?.view[2];
+    const center = [mission.landerLocation.lat, mission.landerLocation.lng] as L.LatLngExpression;
+    const zoom = mission.initialZoom;
+
     map.current.setView(center, zoom);
     //react does not detect a change to the map ref when setView is called. Manually re-calculate scale
     calculateScale();
-  }, [mission.config, map, calculateScale]);
+  }, [mission, map, calculateScale]);
 
   /**
    * Map event listeners, redefined when state values changes via useEffect to allow their functions to access the latest state values
@@ -938,21 +931,14 @@ const MapBody: FunctionComponent = () => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    map,
-    mission.config.msv.radius.minor,
-    draggableLines,
-    mapDirective,
-    dispatch,
-    getMapItemByUuid,
-  ]);
+  }, [map, mission.planetRadius, draggableLines, mapDirective, dispatch, getMapItemByUuid]);
 
   /**
    * Populate stationsToShow when stations or selections change
    */
   useEffect(() => {
     if (!stations) return;
-    if (showAllStations) {
+    if (mapDisplayStations.show) {
       setStationsToShow(stations);
     } else if (selectedStation) {
       if (sectionSelected === "station" || sectionSelected === "evas") {
@@ -969,14 +955,14 @@ const MapBody: FunctionComponent = () => {
     } else {
       setStationsToShow([]);
     }
-  }, [stations, selectedStation, selectedEva, showAllStations, sectionSelected]);
+  }, [stations, selectedStation, selectedEva, mapDisplayStations, sectionSelected]);
 
   /**
    * Populate POIs to show when POIs or selections change
    */
   useEffect(() => {
     if (!pois) return;
-    if (showAllPois) {
+    if (mapDisplayPois.show) {
       setPoisToShow(pois);
     } else if (selectedPoi) {
       if (sectionSelected === "poi") {
@@ -987,7 +973,7 @@ const MapBody: FunctionComponent = () => {
     } else {
       setPoisToShow([]);
     }
-  }, [pois, selectedPoi, showAllPois, sectionSelected]);
+  }, [pois, selectedPoi, mapDisplayPois, sectionSelected]);
 
   /**
    * Populate traverses to show when traverses or selections change
@@ -1051,7 +1037,7 @@ const MapBody: FunctionComponent = () => {
   useEffect(() => {
     if (!map.current || mapDirective) return;
 
-    // delete all poi in leaflet
+    // delete all pois in leaflet
     poiFeatureGroup.current.clearLayers();
 
     // draw or update all pois
@@ -1074,10 +1060,19 @@ const MapBody: FunctionComponent = () => {
             saveUpdatedItemPosition(poi.uuid, "poi", newLocation);
             dispatch(updateMapDirective(null));
           },
+          permanentLabel: mapDisplayPois.showLabels,
         });
       }
     });
-  }, [map, mapDirective, drawOrUpdateMarkerOnMap, saveUpdatedItemPosition, dispatch, poisToShow]);
+  }, [
+    map,
+    mapDirective,
+    drawOrUpdateMarkerOnMap,
+    saveUpdatedItemPosition,
+    dispatch,
+    poisToShow,
+    mapDisplayPois,
+  ]);
 
   /**
    * Draw stationsToShow on the map when stations or selections change. Linked to checkbox at top of map.
@@ -1108,6 +1103,7 @@ const MapBody: FunctionComponent = () => {
             saveUpdatedItemPosition(station.uuid, "station", newLocation);
             dispatch(updateMapDirective(null));
           },
+          permanentLabel: mapDisplayStations.showLabels,
         });
       }
     });
@@ -1120,6 +1116,7 @@ const MapBody: FunctionComponent = () => {
     saveUpdatedItemPosition,
     dispatch,
     stationsToShow,
+    mapDisplayStations,
   ]);
 
   /**
@@ -1450,29 +1447,65 @@ const MapBody: FunctionComponent = () => {
 
       <div className={styles.mapDisplayControls}>
         <div className={styles.controlsContainer}>
-          <div className={styles.control}>
-            <div className={styles.controlCheckbox}>
-              <Checkbox
-                checked={showAllPois}
-                onChange={(e) => {
-                  setShowAllPois(e.target.checked);
-                }}
-                toolTip="Show/Hide all POIs on map"
-              />
+          <div className={styles.controlContainer}>
+            <div className={styles.control}>
+              <div className={styles.controlCheckbox}>
+                <Checkbox
+                  checked={mapDisplayPois.show}
+                  onChange={(e) => {
+                    setMapDisplayPois({
+                      ...mapDisplayPois,
+                      show: e.target.checked,
+                      showLabels: false,
+                    });
+                  }}
+                  toolTip="Show/Hide all POIs on map"
+                />
+              </div>
+              <div className={styles.controlTitle}>POIs</div>
             </div>
-            <div className={styles.controlTitle}>All POIs</div>
+            <div className={styles.subControl}>
+              <div className={styles.controlCheckbox}>
+                <Checkbox
+                  checked={mapDisplayPois.showLabels}
+                  onChange={(e) => {
+                    setMapDisplayPois({ ...mapDisplayPois, showLabels: e.target.checked });
+                  }}
+                  toolTip="Show/Hide all POI labels on map"
+                />
+              </div>
+              <div className={styles.controlTitle}>Labels</div>
+            </div>
           </div>
-          <div className={styles.control}>
-            <div className={styles.controlCheckbox}>
-              <Checkbox
-                checked={showAllStations}
-                onChange={(e) => {
-                  setShowAllStations(e.target.checked);
-                }}
-                toolTip="Show/Hide all Stations on map"
-              />
+          <div className={styles.controlContainer}>
+            <div className={styles.control}>
+              <div className={styles.controlCheckbox}>
+                <Checkbox
+                  checked={mapDisplayStations.show}
+                  onChange={(e) => {
+                    setMapDisplayStations({
+                      ...mapDisplayStations,
+                      show: e.target.checked,
+                      showLabels: false,
+                    });
+                  }}
+                  toolTip="Show/Hide all Stations on map"
+                />
+              </div>
+              <div className={styles.controlTitle}>Stations</div>
             </div>
-            <div className={styles.controlTitle}>All Stations</div>
+            <div className={styles.subControl}>
+              <div className={styles.controlCheckbox}>
+                <Checkbox
+                  checked={mapDisplayStations.showLabels}
+                  onChange={(e) => {
+                    setMapDisplayStations({ ...mapDisplayStations, showLabels: e.target.checked });
+                  }}
+                  toolTip="Show/Hide all Station labels on map"
+                />
+              </div>
+              <div className={styles.controlTitle}>Labels</div>
+            </div>
           </div>
         </div>
       </div>

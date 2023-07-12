@@ -22,27 +22,25 @@ export const thunkGetElevation = appCreateAsyncThunk<
   const mission: Mission = getState().mission.mission;
 
   dispatch(insertElevationPending(uuid));
-  const radius = parseFloat(mission.config.msv.radius.minor);
-  const measureJson = mission.config.tools.find((tool) => tool.name === "Measure")?.variables;
 
   // generate new elevation profile via api
   let newElevationProfile: WrappedResponse<number[][] | number>;
   if (path.length === 1) {
     newElevationProfile = await getElevationSinglePoint(
       mission.id,
-      measureJson.dem,
+      mission.demFilePath,
       path[0],
-      radius
+      mission.planetRadius
     );
   } else {
-    const elevationResolutionMeters = measureJson.resolution || 10; // resolution in meters, default 10
+    const elevationResolutionMeters = mission.demResolution || 10; // resolution in meters, default 10
     newElevationProfile = await getElevationProfile(
       mission.id,
-      measureJson.dem,
+      mission.demFilePath,
       path,
       pathSegmentDistances,
       elevationResolutionMeters,
-      radius
+      mission.planetRadius
     );
   }
   dispatch(removeElevationPending(uuid));

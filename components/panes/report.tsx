@@ -12,12 +12,14 @@ const Report_Panel: FunctionComponent<{
   evaReportItems?: EvaReportSequenceItem[];
   reportTitle: string;
 }> = ({ reportItems, evaReportItems, reportTitle }) => {
+  const thisReportItems = reportItems || [];
+
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle}>{reportTitle}</div>
       <div className={paneStyles.rightBodyBody}>
-        {reportItems.length > 0 ? (
-          <ReportItems reportItems={reportItems} />
+        {thisReportItems.length > 0 ? (
+          <ReportItems reportItems={thisReportItems} />
         ) : (
           <div className={`${styles.noReportItem}`}>No report items</div>
         )}
