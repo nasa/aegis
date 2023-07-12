@@ -363,10 +363,10 @@ const MapBody: FunctionComponent = () => {
     const distance = getDistanceBetweenTwoCoordinates(
       convertLeafletLatLngToAegisPoint(latLngC),
       convertLeafletLatLngToAegisPoint(latLngX),
-      parseFloat(mission.config.msv.radius.minor)
+      mission.planetRadius
     );
     setScale(distance);
-  }, [mission.config.msv.radius.minor]);
+  }, [mission.planetRadius]);
 
   useEffect(() => {
     if (!map.current) return;
@@ -646,42 +646,25 @@ const MapBody: FunctionComponent = () => {
    * Map instantiation
    */
   useLayoutEffect(() => {
-    if (!mapRef.current || !map || !mission.config) return;
+    if (!mapRef.current || !map || !mission) return;
 
     // instantiate the prog4leaflet crs using the values in the mission config
-    if (mission.config.projection.custom === true) {
-      const baseRes =
-        mission.config.projection.resunitsperpixel *
-        Math.pow(2, mission.config.projection.reszoomlevel);
+    if (mission.projIsCustom === true) {
+      const baseRes = mission.projResUnitsPerPixel * Math.pow(2, mission.projResZoomLevel);
 
       const resolutions = [];
       for (let i = 0; i < 32; i++) {
         resolutions.push(baseRes / Math.pow(2, i));
       }
 
-      crs.current = new L.Proj.CRS(
-        Number.isFinite(parseInt(mission.config.projection.epsg[0]))
-          ? `EPSG:${mission.config.projection.epsg}`
-          : mission.config.projection.epsg,
-        mission.config.projection.proj,
-        {
-          origin: [
-            parseFloat(mission.config.projection.origin[0]),
-            parseFloat(mission.config.projection.origin[1]),
-          ],
-          resolutions,
-          bounds: L.bounds(
-            [
-              parseFloat(mission.config.projection.bounds[0]),
-              parseFloat(mission.config.projection.bounds[1]),
-            ],
-            [
-              parseFloat(mission.config.projection.bounds[2]),
-              parseFloat(mission.config.projection.bounds[3]),
-            ]
-          ),
-        }
-      );
+      crs.current = new L.Proj.CRS(mission.projEpsg, mission.projProj4String, {
+        origin: [mission.projOriginX, mission.projOriginY],
+        resolutions,
+        bounds: L.bounds(
+          [mission.projBoundsMinX, mission.projBoundsMinY],
+          [mission.projBoundsMaxX, mission.projBoundsMaxY]
+        ),
+      });
     }
 
     // Instantiate the map
@@ -707,21 +690,21 @@ const MapBody: FunctionComponent = () => {
         poiFeatureGroup.current = L.featureGroup().addTo(map.current);
       }
     }
-  }, [mapRef, map, draggableLines, mission.config]);
+  }, [mapRef, map, draggableLines, mission]);
 
   /**
-   * Set the center of the map to the center of the selected mission (config.msv.view)
+   * Set the center of the map to the center of the selected mission
    */
   useEffect(() => {
-    if (!map.current || !mission?.config) return;
-    const config = mission?.config;
+    if (!map.current || !mission) return;
 
-    const center = [+config?.msv?.view[0], +config?.msv?.view[1]] as L.LatLngExpression;
-    const zoom = +config?.msv?.view[2];
+    const center = [mission.landerLocation.lat, mission.landerLocation.lng] as L.LatLngExpression;
+    const zoom = mission.initialZoom;
+
     map.current.setView(center, zoom);
     //react does not detect a change to the map ref when setView is called. Manually re-calculate scale
     calculateScale();
-  }, [mission.config, map, calculateScale]);
+  }, [mission, map, calculateScale]);
 
   /**
    * Map event listeners, redefined when state values changes via useEffect to allow their functions to access the latest state values
@@ -938,14 +921,7 @@ const MapBody: FunctionComponent = () => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    map,
-    mission.config.msv.radius.minor,
-    draggableLines,
-    mapDirective,
-    dispatch,
-    getMapItemByUuid,
-  ]);
+  }, [map, mission.planetRadius, draggableLines, mapDirective, dispatch, getMapItemByUuid]);
 
   /**
    * Populate stationsToShow when stations or selections change

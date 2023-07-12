@@ -1,5 +1,5 @@
 import { NextPage } from "next";
-import { ChangeEvent, Dispatch, SetStateAction, useEffect, useState } from "react";
+import { ChangeEvent, Dispatch, SetStateAction, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { getMissions, deleteMission, upsertMission } from "http-client/mission";
 import styles from "components/admin/admin.module.css";
@@ -16,6 +16,7 @@ import { Tooltip } from "react-tooltip";
 import { v4 as uuidv4 } from "uuid";
 import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "../../store/user";
 import { useAppDispatch } from "../../utils/useAppDispatch";
+import { portMissionFromMMGISFormat } from "utils/ports";
 
 const Mission: NextPage = () => {
   const router = useRouter();
@@ -28,11 +29,26 @@ const Mission: NextPage = () => {
   const [user, setUser] = useState<User>(null);
   const dispatch = useAppDispatch();
 
-  async function loadMissionsFromDB() {
+  const loadMissionsFromDB = useCallback(async () => {
     const missionList = (await getMissions()).data;
 
-    setMissions(missionList);
-  }
+    const newMissionList: Mission[] = [];
+
+    for (const thisMission of missionList) {
+      // if planetRadius has a value, then this mission has already been ported
+      if (!thisMission.planetRadius) {
+        const newMission = portMissionFromMMGISFormat(thisMission);
+        newMissionList.push(newMission);
+
+        // persist changes back to the db
+        await upsertMission(newMission);
+      } else {
+        newMissionList.push(thisMission);
+      }
+    }
+
+    setMissions(newMissionList);
+  }, []);
 
   const handleBack = () => {
     router.back();
@@ -68,16 +84,18 @@ const Mission: NextPage = () => {
     adminCheck().catch(() => {
       // Something went wrong. Eventually would like a logger here.
     });
-  }, [router, dispatch]);
+  }, [router, dispatch, loadMissionsFromDB]);
 
   function createNewMission() {
-    setMission({
+    const newMission: Mission = {
       id: null,
+      version: 0,
       name: "",
       description: "",
       missionBanner: "",
       config: createNewConfig(),
       landerLocation: null,
+      landerElevationMeters: 0,
       traverseSpeed: 2,
       sunAzimuth: 0,
       sunAzimuthVisible: false,
@@ -86,7 +104,24 @@ const Mission: NextPage = () => {
       defaultEvaDuration: 240,
       walkbackSpeed: 2,
       equipmentItems: [],
-    });
+      planetRadius: 1737400, // moon
+      initialZoom: 14,
+      demFilePath: "",
+      demResolution: 0,
+      projIsCustom: false,
+      projEpsg: "",
+      projProj4String: "",
+      projBoundsMinX: 0,
+      projBoundsMinY: 0,
+      projBoundsMaxX: 0,
+      projBoundsMaxY: 0,
+      projOriginX: 0,
+      projOriginY: 0,
+      projResZoomLevel: 0,
+      projResUnitsPerPixel: 0,
+    };
+
+    setMission(newMission);
     setEditMissionId(null);
   }
 
@@ -119,6 +154,7 @@ const Mission: NextPage = () => {
         //We can assume this is an MMGIS import
         body = {
           id: null,
+          version: 0,
           config: tempMissionObj,
           name: tempMissionObj.msv.mission,
           description: null,
@@ -133,11 +169,27 @@ const Mission: NextPage = () => {
           earthAzimuthVisible: false,
           defaultEvaDuration: 240,
           equipmentItems: [],
+          planetRadius: 1737400, // moon
+          initialZoom: 14,
+          demFilePath: "",
+          demResolution: 0,
+          projIsCustom: false,
+          projEpsg: "",
+          projProj4String: "",
+          projBoundsMinX: 0,
+          projBoundsMinY: 0,
+          projBoundsMaxX: 0,
+          projBoundsMaxY: 0,
+          projOriginX: 0,
+          projOriginY: 0,
+          projResZoomLevel: 0,
+          projResUnitsPerPixel: 0,
         };
       } else {
         //We can assume this is an export from our own system
         body = {
           id: null,
+          version: tempMissionObj.version,
           config: tempMissionObj.config,
           name: tempMissionObj.name,
           description: tempMissionObj.description,
@@ -152,6 +204,21 @@ const Mission: NextPage = () => {
           earthAzimuthVisible: tempMissionObj.earthAzimuthVisible,
           defaultEvaDuration: tempMissionObj.defaultEvaDuration,
           equipmentItems: tempMissionObj.equipmentItems,
+          planetRadius: tempMissionObj.planetRadius,
+          initialZoom: tempMissionObj.initialZoom,
+          demFilePath: tempMissionObj.demFilePath,
+          demResolution: tempMissionObj.demResolution,
+          projIsCustom: tempMissionObj.projIsCustom,
+          projEpsg: tempMissionObj.projEpsg,
+          projProj4String: tempMissionObj.projProj4String,
+          projBoundsMinX: tempMissionObj.projBoundsMinX,
+          projBoundsMinY: tempMissionObj.projBoundsMinY,
+          projBoundsMaxX: tempMissionObj.projBoundsMaxX,
+          projBoundsMaxY: tempMissionObj.projBoundsMaxY,
+          projOriginX: tempMissionObj.projOriginX,
+          projOriginY: tempMissionObj.projOriginY,
+          projResZoomLevel: tempMissionObj.projResZoomLevel,
+          projResUnitsPerPixel: tempMissionObj.projResUnitsPerPixel,
         };
       }
       setProgressBarWidth(0);
