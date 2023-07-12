@@ -257,7 +257,9 @@ const EvaRightEva: FunctionComponent = () => {
               <Button
                 icon={faTrashAlt}
                 onClick={() => {
-                  thunkDispatch(thunkDeleteEva({ eva: selectedEva }));
+                  if (window.confirm("Are you sure you want to delete this EVA?")) {
+                    thunkDispatch(thunkDeleteEva({ eva: selectedEva }));
+                  }
                 }}
                 toolTip="Delete EVA"
                 style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}

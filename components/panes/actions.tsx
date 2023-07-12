@@ -154,8 +154,8 @@ const Actions: FunctionComponent<{
                         </div>
                       </div>
                       <div className={paneStyles.displayFieldValue}>
-                        {actionsCalculatedFields?.totalActionTime.durationLower === 0 &&
-                        actionsCalculatedFields?.totalActionTime.durationUpper === 0 ? (
+                        {actionsCalculatedFields?.totalActionTime?.durationLower === 0 &&
+                        actionsCalculatedFields?.totalActionTime?.durationUpper === 0 ? (
                           <>N/A</>
                         ) : (
                           <>

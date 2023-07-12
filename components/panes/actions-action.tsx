@@ -135,9 +135,11 @@ const RightAction: FunctionComponent<{
               icon={faTrashAlt}
               size="sm"
               onClick={(e) => {
-                dispatch(deleteActionByUuid(action.uuid));
-                setEditMode(true);
-                e.stopPropagation();
+                if (window.confirm("Are you sure you want to delete this Action?")) {
+                  dispatch(deleteActionByUuid(action.uuid));
+                  setEditMode(true);
+                  e.stopPropagation();
+                }
               }}
             />
           </div>

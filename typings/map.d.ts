@@ -28,3 +28,11 @@ interface MapDirective {
   mapItemType: MapItemType;
   mapAction: MapAction;
 }
+
+/**
+ * Station / POI map view state
+ */
+interface MapMarkersDisplay {
+  show: boolean;
+  showLabels: boolean;
+}
