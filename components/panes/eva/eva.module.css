@@ -66,6 +66,10 @@
   margin-right: 4px;
 }
 
+.nameItemsRightButton {
+  padding-right: 5px;
+}
+
 .nameItemRightSpacer {
   flex: 1;
 }

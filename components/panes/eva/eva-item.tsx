@@ -7,7 +7,12 @@ import { setSelectedEvaRightNavItem, setExpandedEvaUuids, setSelectedEvaUuid } f
 import evaStyles from "./eva.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCaretDown, faCaretRight, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCaretDown,
+  faCaretRight,
+  faPlusCircle,
+  faSliders,
+} from "@fortawesome/free-solid-svg-icons";
 import { setSelectedStationUuid } from "store/station";
 import EvaItemSequence from "./eva-item-sequence";
 import { setRightPanelOpen } from "store/interface";
@@ -64,10 +69,13 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
   }, [thisEvaFromDb, traverses]);
 
   let evaSelectionStyle = null;
+  let settingsIconColor = "var(--grey4)";
 
   // if this eva is selected, highlight or emphasize it
   if (eva.uuid === selectedEvaUuid) {
     evaSelectionStyle = evaStyles.nameSelected;
+    settingsIconColor = "var(--grey1)";
+
     // if there is a selected sequence item and it's in this eva, then only emphasize the eva name rather than highlighting it
     if (selectedEvaSequenceItemUuid) {
       const evaSequenceItem = eva.sequence.find(
@@ -95,11 +103,10 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
             }
           }}
         >
-          {expandedEvaUuids.find((uuid) => uuid === eva.uuid) ? (
-            <FontAwesomeIcon icon={faCaretDown} style={{ color: "var(--grey4)" }} />
-          ) : (
-            <FontAwesomeIcon icon={faCaretRight} style={{ color: "var(--grey4)" }} />
-          )}
+          <FontAwesomeIcon
+            icon={expandedEvaUuids.find((uuid) => uuid === eva.uuid) ? faCaretDown : faCaretRight}
+            style={{ color: "var(--grey4)" }}
+          />
         </div>
         <div
           className={`${evaStyles.name} ${evaSelectionStyle}`}
@@ -137,7 +144,11 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
               fill: "#ff0000",
             }}
           />
+
           <div className={evaStyles.nameItemRightSpacer} />
+          <div className={evaStyles.nameItemsRightButton}>
+            <FontAwesomeIcon icon={faSliders} style={{ color: settingsIconColor }} />
+          </div>
         </div>
       </div>
       {expandedEvaUuids.find((uuid) => uuid === eva.uuid) && (

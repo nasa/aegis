@@ -110,8 +110,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
-  const measureJson = mission?.config.tools.find((tool) => tool.name === "Measure")?.variables;
-
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle}>Mission Preferences</div>
@@ -249,12 +247,16 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           <>Not set</>
                         ) : (
                           <InLineEditInput
-                            value={round(mission.landerLocation.lat, 6).toString()}
+                            value={
+                              editMode
+                                ? mission.landerLocation.lat.toString()
+                                : round(mission.landerLocation.lat, 6).toString()
+                            }
                             editing={editMode}
                             fieldProps={{
                               name: "lat",
                               ariaLabel: "Latitude",
-                              style: { width: "100px" },
+                              style: { width: "150px" },
                               validators: [validators.mustBeNumber, validators.required],
                             }}
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
@@ -284,12 +286,16 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           <>Not set</>
                         ) : (
                           <InLineEditInput
-                            value={round(mission.landerLocation.lng, 6).toString()}
+                            value={
+                              editMode
+                                ? mission.landerLocation.lng.toString()
+                                : round(mission.landerLocation.lng, 6).toString()
+                            }
                             editing={editMode}
                             fieldProps={{
                               name: "Lng",
                               ariaLabel: "Longitude",
-                              style: { width: "100px" },
+                              style: { width: "150px" },
                               validators: [validators.mustBeNumber, validators.required],
                             }}
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
@@ -548,7 +554,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       <div className={paneStyles.displayFieldLabel}>Filename:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>{measureJson.dem}</div>
+                      <div className={paneStyles.displayFieldValue}>{mission.demFilePath}</div>
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
@@ -556,7 +562,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       <div className={paneStyles.displayFieldLabel}>Resolution (m):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>{measureJson.resolution}</div>
+                      <div className={paneStyles.displayFieldValue}>{mission.demResolution}</div>
                     </div>
                   </div>
                 </div>

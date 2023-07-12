@@ -23,10 +23,7 @@ export const thunkUpdateTraversePath = appCreateAsyncThunk<{
   const pathSegmentDistances: number[] = [];
   for (let i = 1; i < path.length; i++) {
     pathSegmentDistances.push(
-      getTotalDistance(
-        [path[i - 1], path[i]],
-        parseFloat(getState().mission.mission.config.msv.radius.minor)
-      )
+      getTotalDistance([path[i - 1], path[i]], getState().mission.mission.planetRadius)
     );
   }
   //save traverse
@@ -103,10 +100,7 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
     const pathSegmentDistances: number[] = [];
     for (let i = 1; i < newPath.length; i++) {
       pathSegmentDistances.push(
-        getTotalDistance(
-          [newPath[i - 1], newPath[i]],
-          parseFloat(getState().mission.mission.config.msv.radius.minor)
-        )
+        getTotalDistance([newPath[i - 1], newPath[i]], getState().mission.mission.planetRadius)
       );
     }
 
