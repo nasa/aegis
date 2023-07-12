@@ -19,9 +19,9 @@ import deepEqual from "lodash/isEqual";
 import { obliteratePoi } from "store/cross-slice";
 import { setPoiEditMode, setPoisFromDb, setSelectedPoiUuid, upsertPoi } from "store/poi";
 import { setRightPanelOpen } from "store/interface";
-import { generateUniqueName } from "utils/unique-name";
+import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
-import { makeUniqueStringCopy } from "utils/duplicate";
+import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { thunkCancelMarkerMapDirective } from "./thunkMap";
 import _ from "lodash";
 import { thunkDuplicateAction } from "./thunkAction";
@@ -268,7 +268,7 @@ export const thunkCreatePoi = appCreateAsyncThunk<void>(
     });
 
     const blankPoi: POI = {
-      ownerId: getState().user.ironSessionData?.user.id,
+      ownerId: null,
       missionId: getState().mission.mission?.id,
       uuid: uuidv4(),
       name: randomName,

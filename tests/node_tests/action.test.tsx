@@ -7,7 +7,7 @@ import {
 } from "node-mocks-http";
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { NextApiRequest, NextApiResponse } from "next";
-import Login from "pages/api/users/login";
+import login from "pages/api/auth/login";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import handleAction from "pages/api/action";
 import { User as User_db } from "server/database/models/user.model";
@@ -16,41 +16,65 @@ import { Action as Action_db } from "server/database/models/action.model";
 import ActionFactory from "../factories/ActionFactory";
 import { Mission as Mission_db } from "server/database/models/mission.model";
 import MissionFactory from "../factories/MissionFactory";
+import { Station as Station_db } from "server/database/models/station.model";
+import StationFactory from "../factories/StationFactory";
+import { Poi as Poi_db } from "server/database/models/poi.model";
+import PoiFactory from "../factories/PoiFactory";
+
 import { TextEncoder, TextDecoder } from "util";
+import { IronSessionData } from "iron-session";
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
-let testAdmin: User_db;
-let testMission: Mission_db;
-let testActions: Action_db[];
+let testUser: User_db;
+let testMissions: Mission_db[];
+const testActions: Action_db[] = [];
+let testStation: Station_db;
+let testPoi: Poi_db;
 
 beforeAll(async () => {
   await getORM();
   const em = getEM();
-  testMission = await new MissionFactory(em).createOne();
-  testAdmin = await new UserFactory(em).createOne({
+  testMissions = await new MissionFactory(em).create(3);
+  testUser = await new UserFactory(em).createOne({
     permissionList: [
       {
-        missionId: testMission.id,
+        missionId: testMissions[0].id,
         permissions: {
           edit: true,
           view: true,
         },
       },
       {
-        missionId: 99999,
+        missionId: testMissions[1].id,
         permissions: {
-          edit: true,
+          edit: false,
           view: true,
         },
       },
     ],
   });
-  testActions = await new ActionFactory(em)
-    .each((action) => {
-      action.mission = testMission;
+
+  testStation = await new StationFactory(em).createOne({
+    mission: testMissions[0],
+    owner: testUser,
+  });
+  testPoi = await new PoiFactory(em).createOne({
+    mission: testMissions[0],
+    owner: testUser,
+  });
+  testActions.push(
+    await new ActionFactory(em).createOne({
+      mission: testMissions[0],
+      station: testStation,
     })
-    .create(5);
+  );
+  testActions.push(
+    await new ActionFactory(em).createOne({
+      mission: testMissions[0],
+      poi: testPoi,
+    })
+  );
 });
 
 describe("Action API Endpoint", () => {
@@ -90,117 +114,219 @@ describe("Action API Endpoint", () => {
   test("Returns login session", async () => {
     const loginReqRes = mockRequestResponse({
       method: "POST",
-      body: { username: "testAdmin", password: "superSecretPassword" },
+      body: { username: testUser.username, password: "superSecretPassword" },
     });
-    await Login(loginReqRes.req, loginReqRes.res);
+    await login(loginReqRes.req, loginReqRes.res);
     expect(loginReqRes.res.statusCode).toBe(200); //check response from login
+    const response: WrappedResponse<IronSessionData> = loginReqRes.res._getJSONData();
+    expect(response.status).toEqual("success");
     loginCookie = loginReqRes.res._getHeaders()["set-cookie"][0];
   });
 
-  test("Returns single action Json", async () => {
-    const reqOptions: RequestOptions = {
-      method: "GET",
-      headers: { cookie: loginCookie },
-      query: { uuid: testActions[0].uuid, missionId: testMission.id },
-    };
-    const { req, res } = mockRequestResponse(reqOptions);
-    await handleAction(req, res);
-    expect(res.statusCode).toBe(200);
-    expect(res.statusMessage).toEqual("OK");
+  describe("GET request", () => {
+    test("No permissions", async () => {
+      const reqOptions: RequestOptions = {
+        method: "GET",
+        headers: { cookie: loginCookie },
+        query: { missionId: testMissions[2].id },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleAction(req, res);
+      expect(res.statusCode).toBe(401);
+      expect(res.statusMessage).toEqual("OK");
+    });
 
-    const wrappedResponse = res._getJSONData();
-    expect(wrappedResponse.status).toBe("success");
-    expect(wrappedResponse.data.length).toEqual(1);
-  });
+    test("Returns single action by action uuid", async () => {
+      const reqOptions: RequestOptions = {
+        method: "GET",
+        headers: { cookie: loginCookie },
+        query: { uuid: testActions[0].uuid, missionId: testMissions[0].id },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleAction(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
 
-  test("Returns all actions Json", async () => {
-    const reqOptions: RequestOptions = {
-      method: "GET",
-      headers: { cookie: loginCookie },
-      query: { missionId: testMission.id },
-    };
-    const { req, res } = mockRequestResponse(reqOptions);
-    await handleAction(req, res);
-    expect(res.statusCode).toBe(200);
-    expect(res.statusMessage).toEqual("OK");
+      const wrappedResponse = res._getJSONData();
+      expect(wrappedResponse.status).toBe("success");
+      expect(wrappedResponse.data.length).toEqual(1);
+    });
 
-    const wrappedResponse = res._getJSONData();
-    expect(wrappedResponse.status).toBe("success");
-    expect(wrappedResponse.data.length).toBeGreaterThan(1);
-  });
+    test("Returns single action by station uuid", async () => {
+      const reqOptions: RequestOptions = {
+        method: "GET",
+        headers: { cookie: loginCookie },
+        query: { stationUuid: testStation.uuid, missionId: testMissions[0].id },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleAction(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
 
-  test("Fails to find single action", async () => {
-    const reqOptions: RequestOptions = {
-      method: "GET",
-      headers: { cookie: loginCookie },
-      query: { missionId: "99999" },
-    };
-    const { req, res } = mockRequestResponse(reqOptions);
-    await handleAction(req, res);
-    expect(res.statusCode).toBe(200);
-    expect(res.statusMessage).toEqual("OK");
+      const wrappedResponse = res._getJSONData();
+      expect(wrappedResponse.status).toBe("success");
+      expect(wrappedResponse.data.length).toEqual(1);
+      expect(wrappedResponse.data[0].stationUuid).toEqual(testStation.uuid);
+    });
 
-    const wrappedResponse = res._getJSONData();
-    expect(wrappedResponse.status).toBe("success");
-    expect(wrappedResponse.data.length).toEqual(0);
+    test("Returns single action by poi uuid", async () => {
+      const reqOptions: RequestOptions = {
+        method: "GET",
+        headers: { cookie: loginCookie },
+        query: { poiUuid: testPoi.uuid, missionId: testMissions[0].id },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleAction(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
+
+      const wrappedResponse = res._getJSONData();
+      expect(wrappedResponse.status).toBe("success");
+      expect(wrappedResponse.data.length).toEqual(1);
+      expect(wrappedResponse.data[0].poiUuid).toEqual(testPoi.uuid);
+    });
+
+    test("Returns all actions for mission", async () => {
+      const reqOptions: RequestOptions = {
+        method: "GET",
+        headers: { cookie: loginCookie },
+        query: { missionId: testMissions[0].id },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleAction(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
+
+      const wrappedResponse = res._getJSONData();
+      expect(wrappedResponse.status).toBe("success");
+      expect(wrappedResponse.data.length).toBeGreaterThan(1);
+    });
+
+    test("No actions returned", async () => {
+      const reqOptions: RequestOptions = {
+        method: "GET",
+        headers: { cookie: loginCookie },
+        query: { missionId: testMissions[1].id },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleAction(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
+
+      const wrappedResponse = res._getJSONData();
+      expect(wrappedResponse.status).toBe("success");
+      expect(wrappedResponse.data.length).toEqual(0);
+    });
   });
 
   //upsert and delete tests must occur in order
-  test("Create new action", async () => {
-    const reqOptions: RequestOptions = {
-      method: "POST",
-      headers: { cookie: loginCookie },
-      body: { ...newAction, missionId: testMission.id },
-    };
-    const { req, res } = mockRequestResponse(reqOptions);
-    await handleAction(req, res);
-    expect(res.statusCode).toBe(200);
-    expect(res.statusMessage).toEqual("OK");
+  describe("POST request", () => {
+    test("No permissions", async () => {
+      const reqOptions: RequestOptions = {
+        method: "POST",
+        headers: { cookie: loginCookie },
+        body: { ...newAction, missionId: testMissions[2].id },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleAction(req, res);
+      expect(res.statusCode).toBe(401);
+      expect(res.statusMessage).toEqual("OK");
+    });
 
-    expect(res._getJSONData().data).not.toBeNull();
-    const upsertedAction = res._getJSONData().data;
-    expect(upsertedAction.uuid).not.toBeNull();
-    expect(upsertedAction.createdAt).not.toBeNull();
-    expect(upsertedAction.updatedAt).not.toBeNull();
-    newAction = { ...upsertedAction };
+    test("No permissions - View only", async () => {
+      const reqOptions: RequestOptions = {
+        method: "POST",
+        headers: { cookie: loginCookie },
+        body: { ...newAction, missionId: testMissions[1].id },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleAction(req, res);
+      expect(res.statusCode).toBe(401);
+      expect(res.statusMessage).toEqual("OK");
+    });
 
-    //check if it was added to the db
-    const em = getEM();
-    const actionReference = await em.findOne(Action_db, upsertedAction.uuid);
-    expect(actionReference).not.toBeNull();
+    test("Create new action", async () => {
+      const reqOptions: RequestOptions = {
+        method: "POST",
+        headers: { cookie: loginCookie },
+        body: { ...newAction, missionId: testMissions[0].id },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleAction(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
+
+      expect(res._getJSONData().data).not.toBeNull();
+      const upsertedAction = res._getJSONData().data;
+      expect(upsertedAction.uuid).not.toBeNull();
+      expect(upsertedAction.createdAt).not.toBeNull();
+      expect(upsertedAction.updatedAt).not.toBeNull();
+      newAction = { ...upsertedAction };
+
+      //check if it was added to the db
+      const em = getEM();
+      const actionReference = await em.findOne(Action_db, upsertedAction.uuid);
+      expect(actionReference).not.toBeNull();
+    });
+
+    test("Update a action", async () => {
+      newAction.name = "Jest Test New Action Modified";
+      const reqOptions: RequestOptions = {
+        method: "POST",
+        headers: { cookie: loginCookie },
+        body: newAction,
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleAction(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
+
+      expect(res._getJSONData().data).not.toBeNull();
+      const upsertedAction = res._getJSONData().data;
+      expect(upsertedAction).not.toBeNull();
+      expect(upsertedAction.name).toEqual("Jest Test New Action Modified");
+    });
   });
 
-  test("Update a action", async () => {
-    newAction.name = "Jest Test New Action Modified";
-    const reqOptions: RequestOptions = {
-      method: "POST",
-      headers: { cookie: loginCookie },
-      body: newAction,
-    };
-    const { req, res } = mockRequestResponse(reqOptions);
-    await handleAction(req, res);
-    expect(res.statusCode).toBe(200);
-    expect(res.statusMessage).toEqual("OK");
+  describe("DELETE request", () => {
+    test("No permissions", async () => {
+      const reqOptions: RequestOptions = {
+        method: "DELETE",
+        headers: { cookie: loginCookie },
+        query: { missionId: testMissions[2].id },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleAction(req, res);
+      expect(res.statusCode).toBe(401);
+      expect(res.statusMessage).toEqual("OK");
+    });
 
-    expect(res._getJSONData().data).not.toBeNull();
-    const upsertedAction = res._getJSONData().data;
-    expect(upsertedAction).not.toBeNull();
-    expect(upsertedAction.name).toEqual("Jest Test New Action Modified");
-  });
+    test("No permissions - View only", async () => {
+      const reqOptions: RequestOptions = {
+        method: "DELETE",
+        headers: { cookie: loginCookie },
+        query: { missionId: testMissions[1].id },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleAction(req, res);
+      expect(res.statusCode).toBe(401);
+      expect(res.statusMessage).toEqual("OK");
+    });
 
-  test("Delete a action", async () => {
-    const reqOptions: RequestOptions = {
-      method: "DELETE",
-      headers: { cookie: loginCookie },
-      query: { uuid: `${newAction.uuid}`, missionId: testMission.id },
-    };
-    const { req, res } = mockRequestResponse(reqOptions);
-    await handleAction(req, res);
-    expect(res.statusCode).toBe(200);
-    expect(res.statusMessage).toEqual("OK");
+    test("Delete a action", async () => {
+      const reqOptions: RequestOptions = {
+        method: "DELETE",
+        headers: { cookie: loginCookie },
+        query: { uuid: `${newAction.uuid}`, missionId: testMissions[0].id },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleAction(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
 
-    const wrappedResponse = res._getJSONData();
-    expect(wrappedResponse.status).toBe("success");
+      const wrappedResponse = res._getJSONData();
+      expect(wrappedResponse.status).toBe("success");
+    });
   });
 });
 
@@ -210,8 +336,12 @@ afterAll(async () => {
   for (let i = 0; i < testActions.length; i++) {
     await em.nativeDelete(Action_db, { uuid: testActions[i].uuid });
   }
-  await em.nativeDelete(Mission_db, { id: testMission.id });
-  await em.nativeDelete(User_db, { id: testAdmin.id });
+  await em.nativeDelete(Station_db, { uuid: testStation.uuid });
+  await em.nativeDelete(Poi_db, { uuid: testPoi.uuid });
+  for (let i = 0; i < testMissions.length; i++) {
+    await em.nativeDelete(Mission_db, { id: testMissions[i].id });
+  }
+  await em.nativeDelete(User_db, { id: testUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();

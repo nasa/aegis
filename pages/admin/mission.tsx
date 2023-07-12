@@ -14,8 +14,6 @@ import { isLoggedIn } from "http-client/login";
 import { validators } from "components/interface/form/formValidators";
 import { Tooltip } from "react-tooltip";
 import { v4 as uuidv4 } from "uuid";
-import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "../../store/user";
-import { useAppDispatch } from "../../utils/useAppDispatch";
 import { portMissionFromMMGISFormat } from "utils/ports";
 
 const Mission: NextPage = () => {
@@ -24,10 +22,8 @@ const Mission: NextPage = () => {
   const [missions, setMissions] = useState<Mission[]>([]);
   const [editMissionId, setEditMissionId] = useState<number>(); //track mission currently in edit
   const [mission, setMission] = useState<Mission>(); //current mission being edited
-  const [admin, setAdmin] = useState<boolean>(false);
   const [showImportMission, setShowImportMission] = useState<boolean>(false);
   const [user, setUser] = useState<User>(null);
-  const dispatch = useAppDispatch();
 
   const loadMissionsFromDB = useCallback(async () => {
     const missionList = (await getMissions()).data;
@@ -51,7 +47,7 @@ const Mission: NextPage = () => {
   }, []);
 
   const handleBack = () => {
-    router.back();
+    router.push("/admin");
   };
 
   useEffect(() => {
@@ -64,19 +60,13 @@ const Mission: NextPage = () => {
   useEffect(() => {
     async function adminCheck() {
       const response = await isLoggedIn();
-      //Check if user is logged in.
       if (
         response.status === "success" &&
-        (response.data.user.adminPermission || response.data.user.id === 1)
+        (response.data.user.isAdmin || response.data.user.isSuperAdmin)
       ) {
-        dispatch(setIsLoggedIn(true));
-        dispatch(setIronSessionData(response.data));
-        setAdmin(true);
         setUser(response.data.user);
         await loadMissionsFromDB();
       } else {
-        dispatch(setIsLoggedIn(false));
-        dispatch(clearIronSessionData());
         await router.push("/");
       }
     }
@@ -84,7 +74,7 @@ const Mission: NextPage = () => {
     adminCheck().catch(() => {
       // Something went wrong. Eventually would like a logger here.
     });
-  }, [router, dispatch, loadMissionsFromDB]);
+  }, [router, loadMissionsFromDB]);
 
   function createNewMission() {
     const newMission: Mission = {
@@ -221,17 +211,15 @@ const Mission: NextPage = () => {
           projResUnitsPerPixel: tempMissionObj.projResUnitsPerPixel,
         };
       }
-      setProgressBarWidth(0);
-      setProgressBarText("Importing Mission");
-      setProgressBarColor("#00ff00");
       try {
+        setProgressBarWidth(0);
+        setProgressBarText("Importing Mission");
         const newMission = await upsertMission(body);
+
         setProgressBarWidth(25);
         setProgressBarText("Importing Layers");
-        setProgressBarColor("#00ff00");
-
         tempLayers.forEach((layer) => {
-          // import the layer into the database
+          // import the layers
           const body: Layer = {
             uuid: uuidv4(),
             missionId: newMission.data.id,
@@ -242,12 +230,10 @@ const Mission: NextPage = () => {
           upsertLayer(body);
           setProgressBarWidth(50);
           setProgressBarText("Importing Layers");
-          setProgressBarColor("#00ff00");
         });
 
         setProgressBarWidth(100);
         setProgressBarText("Import Finished!");
-        setProgressBarColor("#00ff00");
       } catch (e) {
         console.log(e);
         setProgressBarWidth(100);
@@ -420,52 +406,50 @@ const Mission: NextPage = () => {
 
   return (
     <>
-      {admin ? (
-        <div className={styles.pageStyle}>
-          <Tooltip id="aegis-tooltip" className={styles.tooltip} />
-          <div className={styles.header}>
-            <Header />
-          </div>
-          <div className={styles.bodyContent}>
-            <div className={styles.missionBack}>
-              <FontAwesomeIcon icon={faArrowAltCircleLeft} size="xl" onClick={handleBack} />
-            </div>
-            <h2>Missions</h2>
-            <MissionList
-              missions={missions}
-              user={user}
-              refreshMissionList={loadMissionsFromDB}
-              setEditMissionId={setEditMissionId}
-            />
-            <button
-              type="button"
-              onClick={() => {
-                createNewMission();
-              }}
-            >
-              Add New Mission (Clear Form)
-            </button>
-            <button
-              className={styles.importButton}
-              type="button"
-              onClick={() => {
-                //Show import Mission Form
-                setShowImportMission(!showImportMission);
-              }}
-            >
-              {showImportMission ? "Close Import/Export" : "Open Import/Export"}
-            </button>
-            <ImportMission />
-            <MissionEditor
-              refreshMissionList={loadMissionsFromDB}
-              mission={mission}
-              setMission={setMission}
-            />
-          </div>
+      <div className={styles.pageStyle}>
+        <Tooltip id="aegis-tooltip" className={styles.tooltip} />
+        <div className={styles.header}>
+          <Header />
         </div>
-      ) : (
-        <></>
-      )}
+        <div className={styles.bodyContent}>
+          <div className={styles.missionBack}>
+            <FontAwesomeIcon icon={faArrowAltCircleLeft} size="xl" onClick={handleBack} />
+          </div>
+          <h2>Missions</h2>
+          <MissionList
+            missions={missions}
+            user={user}
+            refreshMissionList={loadMissionsFromDB}
+            setEditMissionId={setEditMissionId}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              createNewMission();
+            }}
+            disabled={user?.id !== 1}
+          >
+            Add New Mission (Clear Form)
+          </button>
+          &nbsp;
+          <button
+            type="button"
+            onClick={() => {
+              //Show import Mission Form
+              setShowImportMission(!showImportMission);
+            }}
+            disabled={user?.id !== 1}
+          >
+            {showImportMission ? "Close Import/Export" : "Open Import/Export"}
+          </button>
+          <ImportMission />
+          <MissionEditor
+            refreshMissionList={loadMissionsFromDB}
+            mission={mission}
+            setMission={setMission}
+          />
+        </div>
+      </div>
     </>
   );
 };
@@ -478,7 +462,7 @@ const MissionList = (props: {
   setEditMissionId: Dispatch<SetStateAction<Number>>;
 }) => {
   const router = useRouter();
-  const permissionList = props.user.permissionList;
+  const permissionList = props.user?.permissionList;
 
   async function delMission(id: number) {
     if (confirm("Are you sure you want to delete mission " + id)) {
@@ -498,7 +482,7 @@ const MissionList = (props: {
       <ul>
         {props.missions.map((mission: Mission) => {
           if (
-            props.user.id === 1 ||
+            props.user.isSuperAdmin ||
             permissionList.some((p) => p.missionId === mission.id && p.permissions.edit === true)
           ) {
             return (

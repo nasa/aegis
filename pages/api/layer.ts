@@ -12,6 +12,7 @@ import {
 } from "@mikro-orm/core";
 import { v4 as uuidv4 } from "uuid";
 import { roundDateToSecond } from "utils/formatting";
+import { hasPerms } from "utils/permissions";
 
 /**
  * /api/layer
@@ -35,15 +36,16 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
   res
 ): Promise<unknown> => {
   try {
-    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-    const { uuid } = req.query;
-    const layerUUID = Array.isArray(uuid) ? uuid[0] : uuid;
-    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
-
-    //General login check. Individual view/edit depends on the method to account for mission create
+    //check logged in
     if (!req.session?.user) {
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
+
+    const { uuid } = req.query;
+    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
+    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+    const layerUUID = Array.isArray(uuid) ? uuid[0] : uuid;
+    const editPermission = await hasPerms(intMissionId, "edit", req.session?.user);
 
     // retrieve record
     if (req.method === "GET") {
@@ -52,11 +54,8 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
           return res.status(500).json({ status: "error", message: "Invalid mission ID" });
         }
 
-        const viewPermission =
-          req.session?.user?.id === 1 ||
-          req.session?.user?.permissionList.find((p) => p.missionId == parseInt(missionId))
-            ?.permissions.view;
-        if (!viewPermission)
+        const viewPermission = await hasPerms(intMissionId, "view", req.session?.user);
+        if (!viewPermission && !editPermission)
           return res.status(401).json({ status: "failure", message: "Unauthorized" });
 
         const records: Layer[] = await getLayers(intMissionId, layerUUID);
@@ -74,14 +73,11 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
       }
     }
 
-    const editPermission =
-      req.session?.user?.id === 1 ||
-      req.session?.user?.permissionList?.find((p) => p.missionId == intMissionId)?.permissions.edit;
-
     //upsert a record
     if (req.method === "POST") {
-      //must have edit permission for a given mission id or must be an admin to the back end (during mission create)
-      if (missionId && !editPermission && !req.session.user.adminPermission) {
+      //must have edit permission for a given mission id
+      //  or must be an admin to the back end (during mission create)
+      if (missionId && !editPermission && !req.session.user.isAdmin) {
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
 
@@ -114,6 +110,10 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
 
     //delete a record
     if (req.method === "DELETE") {
+      if (!intMissionId || _.isNaN(intMissionId)) {
+        return res.status(500).json({ status: "error", message: "Invalid mission ID" });
+      }
+
       if (!editPermission) {
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
@@ -147,8 +147,7 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
       }
     }
   } catch (e) {
-    console.error(e);
-    return res.status(500).json({ status: "error", message: "Error in query" });
+    return res.status(500).json({ status: "error", message: "Error in query: " + e });
   }
 };
 

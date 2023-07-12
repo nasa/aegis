@@ -1,7 +1,7 @@
 import { NextPage } from "next";
 import { ChangeEvent, useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { isAdmin, isLoggedIn } from "http-client/login";
+import { isLoggedIn } from "http-client/login";
 import { getPOIs, upsertPOI } from "http-client/poi";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";
@@ -29,14 +29,19 @@ const PoiPage: NextPage = () => {
   //on load check login and mission id
   useEffect(() => {
     (async () => {
-      const response = await isLoggedIn(); //check user is logged in
-      const adminResponse = await isAdmin(); //check user is admin
-      if (response.status !== "success" || !adminResponse.data["admin"]) {
-        await router.push("/"); //user is not logged in or an admin. Redirect to homepage
+      const response = await isLoggedIn();
+      if (response.status === "success") {
+        const user = response.data.user;
+        if (user.isAdmin || user.isSuperAdmin) {
+          setAdmin(true);
+          setCurrentUser(user);
+        } else {
+          router.push("/"); //Redirect to homepage
+        }
       } else {
-        setAdmin(true);
-        setCurrentUser(response.data.user);
+        router.push("/");
       }
+
       const missions = (await getMissions()).data;
       setMissionList(missions);
     })();
@@ -218,9 +223,9 @@ const PoiPage: NextPage = () => {
             {!mission ? (
               <div className={styles.body}>
                 <div className={styles.missionList}>
-                  {missionList.map((mission) => {
+                  {missionList?.map((mission) => {
                     if (
-                      currentUser.id === 1 ||
+                      currentUser.isSuperAdmin ||
                       currentUser.permissionList.some(
                         (p) => p.missionId === mission.id && p.permissions.edit === true
                       )

@@ -4,7 +4,6 @@ import { createWrapper } from "next-redux-wrapper";
 import { playheadSlice, initialState as playheadInitialState } from "./playhead";
 import { playheadHoverSlice, initialState as playheadHoverInitialState } from "./playheadHover";
 import { missionSlice, initialState as missionInitialState } from "./mission";
-import { userSlice, initialState as userInitialState } from "./user";
 import { mapSlice, initialState as mapInitialState } from "./map";
 import { evaSlice, initialState as evaInitialState } from "./eva";
 import { poiSlice, initialState as poiInitialState } from "./poi";
@@ -14,6 +13,7 @@ import { presetSlice, initialState as presetInitialState } from "./preset";
 import { stationSlice, initialState as stationInitialState } from "./station";
 import { actionSlice, initialState as actionInitialState } from "./action";
 import { traverseSlice, initialState as traverseInitialState } from "./traverse";
+import { userSlice, initialState as userInitialState } from "./user";
 import { crossSlice } from "./cross-slice";
 
 export type StoreType = ReturnType<typeof configureStore<RootState>>;

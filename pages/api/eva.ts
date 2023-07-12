@@ -12,117 +12,116 @@ import { Eva as Eva_db } from "server/database/models/eva.model";
 import _ from "lodash";
 import { roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
+import { hasPerms } from "utils/permissions";
 
 const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
   req,
   res
 ): Promise<unknown> => {
   try {
-    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-    const editPermission =
-      req.session?.user?.id === 1 ||
-      req.session?.user?.permissionList.find((p) => p.missionId == parseInt(missionId))?.permissions
-        .edit;
-    const viewPermission =
-      req.session?.user?.id === 1 ||
-      req.session?.user?.permissionList.find((p) => p.missionId == parseInt(missionId))?.permissions
-        .view;
-
-    if (editPermission || viewPermission) {
-      const { uuid } = req.query;
-      const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
-      const evaUuid = Array.isArray(uuid) ? uuid[0] : uuid;
-
-      if (req.method === "GET") {
-        //check for required mission id is valid
-        if (!intMissionId || _.isNaN(intMissionId)) {
-          return res.status(500).json({ status: "error", message: "Invalid mission ID" });
-        }
-        try {
-          const evas: Eva[] = await getEVAs(intMissionId, evaUuid);
-
-          return res.status(200).json({
-            status: "success",
-            message: "EVAs retrieved",
-            data: evas,
-          });
-        } catch (e) {
-          console.error(e);
-          return res
-            .status(500)
-            .json({ status: "error", message: "Error processing the GET request" });
-        }
-      }
-
-      // upsert a eva
-      if (req.method === "POST") {
-        try {
-          if (!editPermission) {
-            return res.status(401).json({ status: "failure", message: "Unauthorized" });
-          }
-          const evaToUpsert: Eva = req.body as Eva;
-          const upsertResponse: Eva = await upsertEVAs(evaToUpsert);
-
-          //check response
-          if (!upsertResponse) {
-            return res.status(500).json({
-              status: "error",
-              message: "Upsert response did not return a value",
-              data: null,
-            });
-          } else {
-            return res.status(200).json({
-              status: "success",
-              message: `EVA upserted with ID ${upsertResponse.uuid}`,
-              data: upsertResponse,
-            });
-          }
-        } catch (e) {
-          console.error(e);
-          return res
-            .status(500)
-            .json({ status: "error", message: "Error processing the POST request" });
-        }
-      }
-
-      // delete a record
-      if (req.method === "DELETE") {
-        try {
-          if (!editPermission) {
-            return res.status(401).json({ status: "failure", message: "Unauthorized" });
-          }
-          const deletedUUID = await deleteEVA(evaUuid);
-          if (deletedUUID) {
-            return res.status(200).json({
-              status: "success",
-              message: "EVA Deleted",
-            });
-          } else {
-            return res.status(404).json({
-              status: "failure",
-              message: "Record not found. Nothing deleted",
-            });
-          }
-        } catch (e) {
-          console.error(e);
-          if (e instanceof ForeignKeyConstraintViolationException) {
-            return res.status(500).json({
-              status: "error",
-              message: "Cannot delete eva. This EVA is referenced elsewhere",
-            });
-          } else {
-            return res
-              .status(500)
-              .json({ status: "error", message: "Error processing the DELETE request" });
-          }
-        }
-      }
-    } else {
+    //check logged in
+    if (!req.session?.user) {
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
+
+    const { uuid } = req.query;
+    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
+    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+    const evaUuid = Array.isArray(uuid) ? uuid[0] : uuid;
+    //check for required mission id is valid
+    if (!intMissionId || _.isNaN(intMissionId)) {
+      return res.status(500).json({ status: "error", message: "Invalid mission ID" });
+    }
+
+    const editPermission = await hasPerms(intMissionId, "edit", req.session?.user);
+
+    if (req.method === "GET") {
+      const viewPermission = await hasPerms(intMissionId, "view", req.session.user);
+      if (!viewPermission && !editPermission) {
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+      }
+      try {
+        const evas: Eva[] = await getEVAs(intMissionId, evaUuid);
+
+        return res.status(200).json({
+          status: "success",
+          message: "EVAs retrieved",
+          data: evas,
+        });
+      } catch (e) {
+        console.error(e);
+        return res
+          .status(500)
+          .json({ status: "error", message: "Error processing the GET request" });
+      }
+    }
+
+    // upsert a eva
+    if (req.method === "POST") {
+      if (!editPermission) {
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+      }
+      try {
+        const evaToUpsert: Eva = req.body as Eva;
+        if (!evaToUpsert.ownerId) evaToUpsert.ownerId = req.session.user.id;
+        const upsertResponse: Eva = await upsertEVAs(evaToUpsert);
+
+        //check response
+        if (!upsertResponse) {
+          return res.status(500).json({
+            status: "error",
+            message: "Upsert response did not return a value",
+            data: null,
+          });
+        } else {
+          return res.status(200).json({
+            status: "success",
+            message: `EVA upserted with ID ${upsertResponse.uuid}`,
+            data: upsertResponse,
+          });
+        }
+      } catch (e) {
+        console.error(e);
+        return res
+          .status(500)
+          .json({ status: "error", message: "Error processing the POST request" });
+      }
+    }
+
+    // delete a record
+    if (req.method === "DELETE") {
+      if (!editPermission) {
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+      }
+      try {
+        const deletedUUID = await deleteEVA(evaUuid);
+        if (deletedUUID) {
+          return res.status(200).json({
+            status: "success",
+            message: "EVA Deleted",
+          });
+        } else {
+          return res.status(404).json({
+            status: "failure",
+            message: "Record not found. Nothing deleted",
+          });
+        }
+      } catch (e) {
+        console.error(e);
+        if (e instanceof ForeignKeyConstraintViolationException) {
+          return res.status(500).json({
+            status: "error",
+            message: "Cannot delete eva. This EVA is referenced elsewhere",
+          });
+        } else {
+          return res
+            .status(500)
+            .json({ status: "error", message: "Error processing the DELETE request" });
+        }
+      }
+    }
   } catch (e) {
-    console.error(e);
-    return res.status(500).json({ status: "error", message: "Error processing the POST request" });
+    return res.status(500).json({ status: "error", message: "Error in query: " + e });
   }
 };
 

@@ -1,7 +1,7 @@
 import { NextPage } from "next";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { isAdmin } from "http-client/login";
+import { isLoggedIn } from "http-client/login";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";
 import { deleteUser, getUsers, upsertUser } from "../../http-client/user";
@@ -9,7 +9,6 @@ import { faEdit, faTrashCan, faArrowAltCircleLeft } from "@fortawesome/free-regu
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { getMissions } from "../../http-client/mission";
-import { ChangeEvent } from "react";
 import React from "react";
 
 const User: NextPage = () => {
@@ -20,24 +19,23 @@ const User: NextPage = () => {
   const [infoMessage, setInfoMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [createMode, setCreateMode] = useState<boolean>(false);
-  const [admin, setAdmin] = useState<boolean>(false);
+  const [isSuperadmin, setIsSuperAdmin] = useState<boolean>(false);
   const [missionList, setMissionList] = useState<Mission[]>([]);
 
   //on load check login and mission id
   useEffect(() => {
     // This is a possible solution to the esllint error "No floating promises"
     async function adminCheck() {
-      const adminResponse = await isAdmin(); //check user is admin
-      const user: User = adminResponse.data["user"];
-      if (user.id !== 1) {
-        await router.push("/"); //not our super user. Redirect to homepage
-      } else {
-        setAdmin(true);
+      const response = await isLoggedIn();
+      if (response.status === "success" && response.data.user.isSuperAdmin) {
+        setIsSuperAdmin(true);
         // Get a list of users from the database
         const users: User[] = (await getUsers()).data;
         setUserList(users.sort((a, b) => a.id - b.id));
         const missions: Mission[] = (await getMissions()).data;
         setMissionList(missions);
+      } else {
+        router.push("/");
       }
     }
     adminCheck().catch(() => {
@@ -49,7 +47,7 @@ const User: NextPage = () => {
     let permissionList: Permission[];
 
     // if superadmin, give all permissions
-    if (user.id === 1) {
+    if (user.isSuperAdmin) {
       permissionList = missionList.map((mission) => {
         return {
           permissions: { edit: true, view: true },
@@ -70,7 +68,7 @@ const User: NextPage = () => {
     }
 
     setUser({ ...user, permissionList });
-    setEditMode(!editMode);
+    setEditMode(true);
   };
 
   const handleDelete = async (user: User) => {
@@ -85,29 +83,29 @@ const User: NextPage = () => {
   const handleBack = async () => {
     setEditMode(false);
     setCreateMode(false);
+    setUser(undefined);
+    setInfoMessage("");
     await getUsers().then((users) => {
       setUserList(users.data.sort((a, b) => a.id - b.id));
     });
-    setUser(undefined);
-    setInfoMessage("");
   };
 
   const handleSubmit = async () => {
+    //validate
     if (user.username.length < 3 || user.password.length < 3) {
       setErrorMessage("Username and password must be at least 3 characters long");
       return;
     }
+    //only save missions users has perms to
+    if (user.isSuperAdmin) {
+      user.permissionList = null; //super admin always has perms to everything. No need to set it
+    } else {
+      user.permissionList = user.permissionList.filter((p) => {
+        return p.permissions.view || p.permissions.edit;
+      });
+    }
     const updatedUser = await upsertUser(user);
     if (updatedUser.status === "success") {
-      setUserList(
-        userList.map((u) => {
-          if (u.id === updatedUser.data.id) {
-            return updatedUser.data;
-          } else {
-            return u;
-          }
-        })
-      );
       setErrorMessage("");
       if (createMode) {
         setCreateMode(!createMode);
@@ -118,14 +116,6 @@ const User: NextPage = () => {
       }
     } else {
       setErrorMessage("Error updating user");
-    }
-  };
-
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    switch (e.target.name) {
-      default:
-        setUser({ ...user, [e.target.name]: e.target.value });
-        break;
     }
   };
 
@@ -142,18 +132,17 @@ const User: NextPage = () => {
     // create a blank user
     setUser({
       ...user,
-      adminPermission: false,
-      token: "",
+      isAdmin: false,
+      isSuperAdmin: false,
       username: "",
       password: "",
-      email: "",
       permissionList,
     });
   };
 
   return (
     <>
-      {admin && (
+      {isSuperadmin && (
         <div className={styles.pageStyle}>
           <div className={styles.header}>
             <Header />
@@ -198,7 +187,9 @@ const User: NextPage = () => {
                       <label htmlFor="username">Username</label>
                       <input
                         className={styles.input}
-                        onChange={handleChange}
+                        onChange={(e) => {
+                          setUser({ ...user, username: e.target.value });
+                        }}
                         value={user.username}
                         type="text"
                         id="username"
@@ -210,23 +201,13 @@ const User: NextPage = () => {
                       <label htmlFor="password">Password</label>
                       <input
                         className={styles.input}
-                        onChange={handleChange}
+                        onChange={(e) => {
+                          setUser({ ...user, password: e.target.value });
+                        }}
                         value={user.password}
                         type="password"
                         id="password"
                         name="password"
-                        disabled={user.id === 2}
-                      />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label htmlFor="email">Email</label>
-                      <input
-                        className={styles.input}
-                        onChange={handleChange}
-                        value={user.email}
-                        type="text"
-                        id="email"
-                        name="email"
                         disabled={user.id === 2}
                       />
                     </div>
@@ -256,11 +237,11 @@ const User: NextPage = () => {
                                 id="admin"
                                 name="permission"
                                 value="admin"
-                                checked={user && user.adminPermission}
+                                checked={user.isSuperAdmin || user.isAdmin}
                                 onChange={(e) => {
-                                  setUser({ ...user, adminPermission: e.target.checked });
+                                  setUser({ ...user, isAdmin: e.target.checked });
                                 }}
-                                disabled={user.id === 1 || user.id === 2}
+                                disabled={user.isSuperAdmin || user.id === 2}
                               />
                             </td>
                           </tr>
@@ -299,7 +280,7 @@ const User: NextPage = () => {
                                         (p) => p.missionId === mission.id && p.permissions.view
                                       )
                                     }
-                                    disabled={user.id === 1}
+                                    disabled={user.isSuperAdmin}
                                   />
                                 </td>
                                 <td>
@@ -326,7 +307,7 @@ const User: NextPage = () => {
                                         (p) => p.missionId === mission.id && p.permissions.edit
                                       )
                                     }
-                                    disabled={user.id === 1 || user.id === 2}
+                                    disabled={user.isSuperAdmin || user.id === 2}
                                   />
                                 </td>
                               </tr>
@@ -344,7 +325,6 @@ const User: NextPage = () => {
                   <tr>
                     <th scope="col">ID</th>
                     <th scope="col">Name</th>
-                    <th scope="col">Email</th>
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>
@@ -354,7 +334,6 @@ const User: NextPage = () => {
                       <tr key={user.id}>
                         <th scope="row">{user.id}</th>
                         <td>{user.username}</td>
-                        <td>{user.email}</td>
                         <td className={styles.actionList}>
                           <FontAwesomeIcon
                             icon={faEdit}

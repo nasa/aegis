@@ -8,20 +8,18 @@ import PoiItem from "./poi-item";
 import _ from "lodash";
 import { thunkCreatePoi, thunkDuplicatePoi } from "store/thunk/thunkPoi";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { hasEditPermissions } from "store/selectors";
 
 const PoiEditorLeft: FunctionComponent = () => {
   const thunkDispatch = useAppDispatch();
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
   const poisFromDb = useAppSelector((state) => state.poi.poisFromDb, shallowEqual);
-  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
 
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
   const selectedPoi = pois.find((poi) => poi.uuid === selectedPoiUuid);
 
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
   const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, shallowEqual);
-  const isAdmin: boolean = useAppSelector(hasEditPermissions(missionId), refEqual);
+  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   return (
     <>
@@ -44,7 +42,7 @@ const PoiEditorLeft: FunctionComponent = () => {
           </div>
         </div>
       </div>
-      {isAdmin && (
+      {editPerms && (
         <div className={paneStyles.iconButtons}>
           <Button
             onClick={() => {

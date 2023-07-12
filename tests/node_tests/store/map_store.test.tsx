@@ -3,7 +3,7 @@ import { setLayers } from "store/mission";
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import handleLayer from "pages/api/layer";
-import Login from "pages/api/users/login";
+import Login from "pages/api/auth/login";
 
 import UserFactory from "../../factories/UserFactory";
 import MissionFactory from "../../factories/MissionFactory";
@@ -18,17 +18,18 @@ import {
 } from "node-mocks-http";
 import { NextApiRequest, NextApiResponse } from "next";
 import { TextEncoder, TextDecoder } from "util";
+import { IronSessionData } from "iron-session";
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
 let testMission: Mission_db;
-let testAdmin: User_db;
+let testUser: User_db;
 
 beforeAll(async () => {
   await getORM();
   const em = getEM();
   testMission = await new MissionFactory(em).createOne();
-  testAdmin = await new UserFactory(em).createOne({
+  testUser = await new UserFactory(em).createOne({
     permissionList: [
       {
         missionId: testMission.id,
@@ -68,10 +69,12 @@ describe("AEGIS Map Store Tests: ", () => {
   test("Returns login session", async () => {
     const loginReqRes = mockRequestResponse({
       method: "POST",
-      body: { username: "testAdmin", password: "superSecretPassword" },
+      body: { username: testUser.username, password: "superSecretPassword" },
     });
     await Login(loginReqRes.req, loginReqRes.res);
     expect(loginReqRes.res.statusCode).toBe(200); //check response from login
+    const response: WrappedResponse<IronSessionData> = loginReqRes.res._getJSONData();
+    expect(response.status).toEqual("success");
     loginCookie = loginReqRes.res._getHeaders()["set-cookie"][0];
   });
 
@@ -81,7 +84,6 @@ describe("AEGIS Map Store Tests: ", () => {
       method: "GET",
       headers: { cookie: loginCookie },
       query: { missionId: testMission.id.toString() },
-      body: { user: { username: "testAdmin" }, missionId: testMission.id.toString() },
     };
     const { req, res } = mockRequestResponse(reqOptions);
     await handleLayer(req, res);
@@ -173,7 +175,7 @@ afterAll(async () => {
   //Cleanup our Database
   const em = getEM();
   await em.nativeDelete(Mission_db, { id: testMission.id });
-  await em.nativeDelete(User_db, { id: testAdmin.id });
+  await em.nativeDelete(User_db, { id: testUser.id });
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
 });

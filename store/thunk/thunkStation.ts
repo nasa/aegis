@@ -22,10 +22,10 @@ import {
   thunkUpdateAllTraversesForEVA,
   thunkUpdateTraverseNamesForStationInEVA,
 } from "./thunkTraverse";
-import { generateUniqueName } from "utils/unique-name";
+import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
 import { setRightPanelOpen } from "store/interface";
-import { makeUniqueStringCopy } from "utils/duplicate";
+import { makeUniqueStringCopy } from "utils/names/duplicate";
 import {
   deleteActionsByUuid,
   deleteActionsFromDbByUuid,
@@ -594,7 +594,7 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
     });
 
     const blankStation: Station = {
-      ownerId: getState().user.ironSessionData?.user.id,
+      ownerId: null,
       missionId: getState().mission.mission?.id,
       uuid: uuidv4(),
       name: randomName,

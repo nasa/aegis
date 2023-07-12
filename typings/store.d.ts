@@ -31,7 +31,8 @@ interface MissionState {
 
 interface UserState {
   isLoggedIn: boolean;
-  ironSessionData: IronSessionData;
+  user: User;
+  missionPerms: Permission;
 }
 
 interface UserInterface {

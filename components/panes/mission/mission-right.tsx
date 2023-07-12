@@ -33,10 +33,10 @@ const MissionPrefsRight: FunctionComponent = () => {
     (state) => state.mission.missionSectionsEditing,
     refEqual
   );
-
-  const isAdmin = useAppSelector(
+  const editPerms = useAppSelector(
     (state) =>
-      state.user.ironSessionData?.user.adminPermission || state.user.ironSessionData?.user.id === 1,
+      (state.user.missionPerms.permissions.edit && state.user.user.isAdmin) ||
+      state.user.user.isSuperAdmin,
     refEqual
   );
 
@@ -102,7 +102,7 @@ const MissionPrefsRight: FunctionComponent = () => {
           })}
         </div>
         <div className={paneStyles.saveCancelContainer}>
-          {!missionSectionsEditing.includes("prefs") && isAdmin && (
+          {!missionSectionsEditing.includes("prefs") && editPerms && (
             <Button
               icon={faEdit}
               onClick={() => {
