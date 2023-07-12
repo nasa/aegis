@@ -252,11 +252,13 @@ const StationEditorRight: FunctionComponent = () => {
               <Button
                 icon={faTrashAlt}
                 onClick={() => {
-                  thunkDispatch(
-                    thunkDeleteStation({
-                      station: selectedStation,
-                    })
-                  );
+                  if (window.confirm("Are you sure you want to delete this Station?")) {
+                    thunkDispatch(
+                      thunkDeleteStation({
+                        station: selectedStation,
+                      })
+                    );
+                  }
                 }}
                 toolTip="Delete Station"
                 style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}

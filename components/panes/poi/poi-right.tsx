@@ -201,11 +201,13 @@ const PoiEditorRight: FunctionComponent = () => {
                 icon={faTrashAlt}
                 onClick={() => {
                   if (selectedPoi) {
-                    thunkDispatch(
-                      thunkDeletePoi({
-                        poi: selectedPoi,
-                      })
-                    );
+                    if (window.confirm("Are you sure you want to delete this POI?")) {
+                      thunkDispatch(
+                        thunkDeletePoi({
+                          poi: selectedPoi,
+                        })
+                      );
+                    }
                   }
                 }}
                 toolTip="Delete POI"

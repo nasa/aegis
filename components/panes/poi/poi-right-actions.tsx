@@ -40,8 +40,8 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   useEffect(() => {
     // create the calulated action fields for the action tab
     const newActionsCalculatedFields: ActionsCalculatedFields = {
-      actionCount: calculatedFields.actionCount,
-      totalActionTime: calculatedFields.totalTime,
+      actionCount: calculatedFields?.actionCount,
+      totalActionTime: calculatedFields?.totalTime,
     };
     setActionsCalculatedField(newActionsCalculatedFields);
   }, [calculatedFields]);

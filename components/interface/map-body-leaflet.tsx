@@ -111,8 +111,14 @@ const MapBody: FunctionComponent = () => {
   const [poisToShow, setPoisToShow] = useState<POI[]>([]);
   const [stationsToShow, setStationsToShow] = useState<Station[]>([]);
   const [traversesToShow, setTraversesToShow] = useState<Traverse[]>([]);
-  const [showAllPois, setShowAllPois] = useState(true);
-  const [showAllStations, setShowAllStations] = useState(true);
+  const [mapDisplayPois, setMapDisplayPois] = useState<MapMarkersDisplay>({
+    show: true,
+    showLabels: false,
+  });
+  const [mapDisplayStations, setMapDisplayStations] = useState<MapMarkersDisplay>({
+    show: true,
+    showLabels: false,
+  });
 
   const [mapPosition, setMapPosition] = useState<string[]>([]);
 
@@ -430,6 +436,7 @@ const MapBody: FunctionComponent = () => {
       mapItemType,
       onClick = () => {},
       onDragEnd = () => {},
+      permanentLabel = false,
     }: {
       name: string;
       uuid: string;
@@ -438,6 +445,7 @@ const MapBody: FunctionComponent = () => {
       mapItemType: MapMarkerType;
       onClick?: Function;
       onDragEnd?: Function;
+      permanentLabel?: boolean;
     }) => {
       if (isNaN(location.lat) || isNaN(location.lng)) return;
 
@@ -470,7 +478,9 @@ const MapBody: FunctionComponent = () => {
         marker.bindTooltip(`${name} ${typeName}`, {
           sticky: true,
           direction: "top",
-          offset: new L.Point(0, -20),
+          offset: new L.Point(0, -10),
+          permanent: permanentLabel,
+          className: "leaflet-tooltip-own",
         });
         if (onClick) {
           marker
@@ -928,7 +938,7 @@ const MapBody: FunctionComponent = () => {
    */
   useEffect(() => {
     if (!stations) return;
-    if (showAllStations) {
+    if (mapDisplayStations.show) {
       setStationsToShow(stations);
     } else if (selectedStation) {
       if (sectionSelected === "station" || sectionSelected === "evas") {
@@ -945,14 +955,14 @@ const MapBody: FunctionComponent = () => {
     } else {
       setStationsToShow([]);
     }
-  }, [stations, selectedStation, selectedEva, showAllStations, sectionSelected]);
+  }, [stations, selectedStation, selectedEva, mapDisplayStations, sectionSelected]);
 
   /**
    * Populate POIs to show when POIs or selections change
    */
   useEffect(() => {
     if (!pois) return;
-    if (showAllPois) {
+    if (mapDisplayPois.show) {
       setPoisToShow(pois);
     } else if (selectedPoi) {
       if (sectionSelected === "poi") {
@@ -963,7 +973,7 @@ const MapBody: FunctionComponent = () => {
     } else {
       setPoisToShow([]);
     }
-  }, [pois, selectedPoi, showAllPois, sectionSelected]);
+  }, [pois, selectedPoi, mapDisplayPois, sectionSelected]);
 
   /**
    * Populate traverses to show when traverses or selections change
@@ -1027,7 +1037,7 @@ const MapBody: FunctionComponent = () => {
   useEffect(() => {
     if (!map.current || mapDirective) return;
 
-    // delete all poi in leaflet
+    // delete all pois in leaflet
     poiFeatureGroup.current.clearLayers();
 
     // draw or update all pois
@@ -1050,10 +1060,19 @@ const MapBody: FunctionComponent = () => {
             saveUpdatedItemPosition(poi.uuid, "poi", newLocation);
             dispatch(updateMapDirective(null));
           },
+          permanentLabel: mapDisplayPois.showLabels,
         });
       }
     });
-  }, [map, mapDirective, drawOrUpdateMarkerOnMap, saveUpdatedItemPosition, dispatch, poisToShow]);
+  }, [
+    map,
+    mapDirective,
+    drawOrUpdateMarkerOnMap,
+    saveUpdatedItemPosition,
+    dispatch,
+    poisToShow,
+    mapDisplayPois,
+  ]);
 
   /**
    * Draw stationsToShow on the map when stations or selections change. Linked to checkbox at top of map.
@@ -1084,6 +1103,7 @@ const MapBody: FunctionComponent = () => {
             saveUpdatedItemPosition(station.uuid, "station", newLocation);
             dispatch(updateMapDirective(null));
           },
+          permanentLabel: mapDisplayStations.showLabels,
         });
       }
     });
@@ -1096,6 +1116,7 @@ const MapBody: FunctionComponent = () => {
     saveUpdatedItemPosition,
     dispatch,
     stationsToShow,
+    mapDisplayStations,
   ]);
 
   /**
@@ -1426,29 +1447,65 @@ const MapBody: FunctionComponent = () => {
 
       <div className={styles.mapDisplayControls}>
         <div className={styles.controlsContainer}>
-          <div className={styles.control}>
-            <div className={styles.controlCheckbox}>
-              <Checkbox
-                checked={showAllPois}
-                onChange={(e) => {
-                  setShowAllPois(e.target.checked);
-                }}
-                toolTip="Show/Hide all POIs on map"
-              />
+          <div className={styles.controlContainer}>
+            <div className={styles.control}>
+              <div className={styles.controlCheckbox}>
+                <Checkbox
+                  checked={mapDisplayPois.show}
+                  onChange={(e) => {
+                    setMapDisplayPois({
+                      ...mapDisplayPois,
+                      show: e.target.checked,
+                      showLabels: false,
+                    });
+                  }}
+                  toolTip="Show/Hide all POIs on map"
+                />
+              </div>
+              <div className={styles.controlTitle}>POIs</div>
             </div>
-            <div className={styles.controlTitle}>All POIs</div>
+            <div className={styles.subControl}>
+              <div className={styles.controlCheckbox}>
+                <Checkbox
+                  checked={mapDisplayPois.showLabels}
+                  onChange={(e) => {
+                    setMapDisplayPois({ ...mapDisplayPois, showLabels: e.target.checked });
+                  }}
+                  toolTip="Show/Hide all POI labels on map"
+                />
+              </div>
+              <div className={styles.controlTitle}>Labels</div>
+            </div>
           </div>
-          <div className={styles.control}>
-            <div className={styles.controlCheckbox}>
-              <Checkbox
-                checked={showAllStations}
-                onChange={(e) => {
-                  setShowAllStations(e.target.checked);
-                }}
-                toolTip="Show/Hide all Stations on map"
-              />
+          <div className={styles.controlContainer}>
+            <div className={styles.control}>
+              <div className={styles.controlCheckbox}>
+                <Checkbox
+                  checked={mapDisplayStations.show}
+                  onChange={(e) => {
+                    setMapDisplayStations({
+                      ...mapDisplayStations,
+                      show: e.target.checked,
+                      showLabels: false,
+                    });
+                  }}
+                  toolTip="Show/Hide all Stations on map"
+                />
+              </div>
+              <div className={styles.controlTitle}>Stations</div>
             </div>
-            <div className={styles.controlTitle}>All Stations</div>
+            <div className={styles.subControl}>
+              <div className={styles.controlCheckbox}>
+                <Checkbox
+                  checked={mapDisplayStations.showLabels}
+                  onChange={(e) => {
+                    setMapDisplayStations({ ...mapDisplayStations, showLabels: e.target.checked });
+                  }}
+                  toolTip="Show/Hide all Station labels on map"
+                />
+              </div>
+              <div className={styles.controlTitle}>Labels</div>
+            </div>
           </div>
         </div>
       </div>
