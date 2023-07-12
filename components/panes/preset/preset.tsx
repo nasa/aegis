@@ -13,14 +13,12 @@ import { setRightPanelOpen } from "store/interface";
 import { setAllLayerControlsInvisible } from "utils/store";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreatePreset, thunkDuplicatePreset } from "store/thunk/thunkPreset";
-import { hasEditPermissions } from "store/selectors";
 
 const PresetEditorLeft: FunctionComponent = () => {
   const thunkDispatch = useAppDispatch();
   const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
-  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
-  const isAdmin: boolean = useAppSelector(hasEditPermissions(missionId), refEqual);
+  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   let selectedPreset: Preset;
   if (presets !== null) {
@@ -53,7 +51,7 @@ const PresetEditorLeft: FunctionComponent = () => {
           )}
         </div>
       </div>
-      {isAdmin && (
+      {editPerms && (
         <div className={paneStyles.iconButtons}>
           <Button
             onClick={() => {

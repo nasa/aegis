@@ -43,7 +43,7 @@ import {
 } from "store/thunk/thunkStation";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkFullUpdateTraverse, thunkUpdateTraversePath } from "store/thunk/thunkTraverse";
-import getPercentOrDefault from "utils/getPercentOrDefault";
+import { getPercentOrDefault } from "utils/formatting";
 import { thunkUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { selectEVASequenceItem } from "store/cross-slice";
 import { thunkGetStationOrTraverse } from "store/thunk/thunkEva";

@@ -1,7 +1,7 @@
 import { NextPage } from "next";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { isAdmin } from "http-client/login";
+import { isLoggedIn } from "http-client/login";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";
 
@@ -24,12 +24,17 @@ const Index: NextPage = () => {
   //on load check login and mission id
   useEffect(() => {
     async function adminCheck() {
-      const adminResponse = await isAdmin(); //check user is admin
-      if (!adminResponse.data["admin"]) {
-        await router.push("/"); //user is not logged in or an admin. Redirect to homepage
+      const response = await isLoggedIn();
+      if (response.status === "success") {
+        const user = response.data.user;
+        if (user.isAdmin || user.isSuperAdmin) {
+          setAdmin(true);
+          setUser(user);
+        } else {
+          router.push("/"); //Redirect to homepage
+        }
       } else {
-        setAdmin(true);
-        setUser(adminResponse.data["user"]);
+        router.push("/");
       }
     }
     adminCheck().catch(() => {
@@ -50,7 +55,7 @@ const Index: NextPage = () => {
       description: "Register new users, or edit the old ones (super admin only)",
       button: "Register or Edit Users",
       onClick: navigateUser,
-      userOneOnly: user && user.id === 1,
+      userOneOnly: user && user.isSuperAdmin,
     },
     {
       title: "POIs",

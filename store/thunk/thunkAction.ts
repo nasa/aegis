@@ -1,9 +1,9 @@
 import { upsertAction } from "store/action";
 import appCreateAsyncThunk from "./thunkUtil";
-import { generateUniqueName } from "utils/unique-name";
+import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
 import _ from "lodash";
-import { makeUniqueStringCopy } from "utils/duplicate";
+import { makeUniqueStringCopy } from "utils/names/duplicate";
 
 export const thunkCreateAction = appCreateAsyncThunk<{
   actionParentUuid: ActionParentUuid;

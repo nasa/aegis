@@ -13,29 +13,34 @@ import { Poi as Poi_db } from "server/database/models/poi.model";
 import _ from "lodash";
 import { roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
+import { hasPerms } from "utils/permissions";
 
 const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = async (
   req,
   res
 ): Promise<unknown> => {
-  const { uuid } = req.query;
-  const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-  const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
-  const editPermission =
-    req.session?.user?.id === 1 ||
-    req.session?.user?.permissionList.find((p) => p.missionId == intMissionId)?.permissions.edit;
-  const viewPermission =
-    req.session?.user?.id === 1 ||
-    req.session?.user?.permissionList.find((p) => p.missionId == intMissionId)?.permissions.view;
+  try {
+    //check logged in
+    if (!req.session?.user) {
+      return res.status(401).json({ status: "failure", message: "Unauthorized" });
+    }
 
-  if (editPermission || viewPermission) {
+    const { uuid } = req.query;
+    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
+    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
     const stationUUID = Array.isArray(uuid) ? uuid[0] : uuid;
+    //check for required mission id is valid
+    if (!intMissionId || _.isNaN(intMissionId)) {
+      return res.status(500).json({ status: "error", message: "Invalid mission ID" });
+    }
+    const editPermission = await hasPerms(intMissionId, "edit", req.session?.user);
 
     if (req.method === "GET") {
-      //check for required mission id is valid
-      if (!intMissionId || _.isNaN(intMissionId)) {
-        return res.status(500).json({ status: "error", message: "Invalid mission ID" });
+      const viewPermission = await hasPerms(intMissionId, "view", req.session.user);
+      if (!viewPermission && !editPermission) {
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
+
       try {
         const stations: Station[] = await getStations(intMissionId, stationUUID);
 
@@ -54,11 +59,12 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
 
     // upsert a station
     if (req.method === "POST") {
+      if (!editPermission) {
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+      }
       try {
-        if (!editPermission) {
-          return res.status(401).json({ status: "failure", message: "Unauthorized" });
-        }
         const stationToUpsert: Station = req.body as Station;
+        if (!stationToUpsert.ownerId) stationToUpsert.ownerId = req.session.user.id;
         const upsertResponse: Station = await upsertStation(stationToUpsert);
 
         //check response
@@ -85,10 +91,10 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
 
     // delete a record
     if (req.method === "DELETE") {
+      if (!editPermission) {
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+      }
       try {
-        if (!editPermission) {
-          return res.status(401).json({ status: "failure", message: "Unauthorized" });
-        }
         const deletedUUID = await deleteStation(stationUUID);
         if (deletedUUID) {
           return res.status(200).json({
@@ -115,8 +121,8 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
         }
       }
     }
-  } else {
-    return res.status(401).json({ status: "failure", message: "Unauthorized" });
+  } catch (e) {
+    return res.status(500).json({ status: "error", message: "Error in query: " + e });
   }
 };
 

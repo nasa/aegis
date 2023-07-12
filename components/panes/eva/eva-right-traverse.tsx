@@ -25,7 +25,6 @@ import Report_Panel from "../report";
 import * as httpClient_Traverse from "http-client/traverse";
 import { updateMapDirective } from "store/map";
 import { getAlertColor } from "utils/component-helpers";
-import { hasEditPermissions } from "store/selectors";
 
 const EvaRightTraverse: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -58,9 +57,7 @@ const EvaRightTraverse: FunctionComponent = () => {
 
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = mapDirective?.uuid === selectedEvaSequenceItemUuid ? mapDirective : null;
-  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
-
-  const isAdmin: boolean = useAppSelector(hasEditPermissions(missionId), refEqual);
+  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   const calculatedFields = useAppSelector(
     (state) =>
@@ -197,7 +194,7 @@ const EvaRightTraverse: FunctionComponent = () => {
               })}
           </div>
           <div className={paneStyles.saveCancelContainer}>
-            {!traversesEditing.includes(selectedEvaSequenceItemUuid) && isAdmin && (
+            {!traversesEditing.includes(selectedEvaSequenceItemUuid) && editPerms && (
               <Button
                 icon={faEdit}
                 onClick={() => {

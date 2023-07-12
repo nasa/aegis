@@ -7,9 +7,9 @@ export class UserSeeder extends Seeder {
     context.user1 = em.create(User, {
       username: "admin",
       password: "admin",
-      email: "admin@nasa.gov",
       permissionList: null,
-      adminPermission: null,
+      isAdmin: null,
+      isSuperAdmin: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -25,8 +25,8 @@ export class UserSeeder extends Seeder {
           },
         },
       ],
-      adminPermission: false,
-      email: "",
+      isAdmin: false,
+      isSuperAdmin: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

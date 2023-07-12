@@ -6,10 +6,10 @@ export default class UserFactory extends Factory<User_db> {
   model = User_db;
   definition(): EntityData<User_db> {
     return {
-      username: "testAdmin",
+      username: "testUser",
       password: "superSecretPassword",
-      email: "gaia@nasa.gov",
-      adminPermission: true,
+      isAdmin: false,
+      isSuperAdmin: false,
       permissionList: [],
       createdAt: new Date(),
       updatedAt: new Date(),

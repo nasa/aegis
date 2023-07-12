@@ -20,7 +20,6 @@ import { Button, InLineEditInput } from "components/interface/form/globalFields"
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDeletePreset, thunkPresetCancel, thunkSavePreset } from "store/thunk/thunkPreset";
 import { validators } from "components/interface/form/formValidators";
-import { hasEditPermissions } from "store/selectors";
 
 const PresetEditorRight: FunctionComponent = () => {
   const dispatch = useDispatch();
@@ -29,8 +28,7 @@ const PresetEditorRight: FunctionComponent = () => {
     (state) => state.preset.selectedRightNavItem,
     refEqual
   );
-  const missionId = useAppSelector((state) => state.mission.mission?.id, refEqual);
-
+  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const selectedPreset = useAppSelector(
     (state) => state.preset.presets.find((preset) => preset.uuid === selectedPresetUuid),
@@ -41,9 +39,9 @@ const PresetEditorRight: FunctionComponent = () => {
     shallowEqual
   );
   const presetsEditing = useAppSelector((state) => state.preset.presetsEditing, shallowEqual);
-  const isAdmin: boolean = useAppSelector(hasEditPermissions(missionId), refEqual);
 
   const [modified, setModified] = useState(false);
+
   useEffect(() => {
     setModified(!_.isEqual(selectedPreset, selectedPresetFromDb));
   }, [selectedPreset, selectedPresetFromDb]);
@@ -135,7 +133,7 @@ const PresetEditorRight: FunctionComponent = () => {
                 style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
               />
             )}
-            {!presetsEditing.includes(selectedPresetUuid) && isAdmin && (
+            {!presetsEditing.includes(selectedPresetUuid) && editPerms && (
               <Button
                 icon={faEdit}
                 onClick={() => {

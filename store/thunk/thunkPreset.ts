@@ -1,4 +1,4 @@
-import { generateUniqueName } from "utils/unique-name";
+import { generateUniqueName } from "utils/names/unique-name";
 import appCreateAsyncThunk from "./thunkUtil";
 import { v4 as uuidv4 } from "uuid";
 import { setRightPanelOpen } from "store/interface";
@@ -13,7 +13,7 @@ import {
   resetAllPresetUIStates,
   setPresetsFromDb,
 } from "store/preset";
-import { makeUniqueStringCopy } from "utils/duplicate";
+import { makeUniqueStringCopy } from "utils/names/duplicate";
 import * as InternalAPI from "http-client/preset";
 import _ from "lodash";
 
@@ -119,7 +119,7 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
       uuid: uuidv4(),
       name: randomName,
       description: "",
-      ownerId: getState().user.ironSessionData?.user.id,
+      ownerId: null,
       missionId: getState().mission.mission?.id,
       missionPreset: false,
       missionPresetDefault: false,

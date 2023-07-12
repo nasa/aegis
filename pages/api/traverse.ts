@@ -12,30 +12,34 @@ import { Traverse as Traverse_db } from "server/database/models/traverse.model";
 import _ from "lodash";
 import { roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
+import { hasPerms } from "utils/permissions";
 
 const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = async (
   req,
   res
 ): Promise<unknown> => {
-  const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-  const { uuid } = req.query;
-  const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
-  const traverseUuid = Array.isArray(uuid) ? uuid[0] : uuid;
-  const editPermission =
-    req.session?.user?.id === 1 ||
-    req.session?.user?.permissionList.find((p) => p.missionId == parseInt(missionId))?.permissions
-      .edit;
-  const viewPermission =
-    req.session?.user?.id === 1 ||
-    req.session?.user?.permissionList.find((p) => p.missionId == parseInt(missionId))?.permissions
-      .view;
+  try {
+    //check logged in
+    if (!req.session?.user) {
+      return res.status(401).json({ status: "failure", message: "Unauthorized" });
+    }
 
-  if (editPermission || viewPermission) {
+    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
+    const { uuid } = req.query;
+    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+    const traverseUuid = Array.isArray(uuid) ? uuid[0] : uuid;
+    //check for required mission id is valid
+    if (!intMissionId || _.isNaN(intMissionId)) {
+      return res.status(500).json({ status: "error", message: "Invalid mission ID" });
+    }
+    const editPermission = await hasPerms(intMissionId, "edit", req.session?.user);
+
     if (req.method === "GET") {
-      //check for required mission id is valid
-      if (!intMissionId || _.isNaN(intMissionId)) {
-        return res.status(500).json({ status: "error", message: "Invalid mission ID" });
+      const viewPermission = await hasPerms(intMissionId, "view", req.session.user);
+      if (!viewPermission && !editPermission) {
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
+
       try {
         const traverses: Traverse[] = await getTraverses(intMissionId, traverseUuid);
 
@@ -54,10 +58,10 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
 
     // upsert a traverse
     if (req.method === "POST") {
+      if (!editPermission) {
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+      }
       try {
-        if (!editPermission) {
-          return res.status(401).json({ status: "failure", message: "Unauthorized" });
-        }
         const traverseToUpsert: Traverse = req.body as Traverse;
         const upsertResponse: Traverse = await upsertTraverses(traverseToUpsert);
 
@@ -85,10 +89,10 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
 
     // delete a record
     if (req.method === "DELETE") {
+      if (!editPermission) {
+        return res.status(401).json({ status: "failure", message: "Unauthorized" });
+      }
       try {
-        if (!editPermission) {
-          return res.status(401).json({ status: "failure", message: "Unauthorized" });
-        }
         const deletedUUID = await deleteTraverse(traverseUuid);
         if (deletedUUID) {
           return res.status(200).json({
@@ -115,8 +119,8 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
         }
       }
     }
-  } else {
-    return res.status(401).json({ status: "failure", message: "Unauthorized" });
+  } catch (e) {
+    return res.status(500).json({ status: "error", message: "Error in query: " + e });
   }
 };
 

@@ -9,7 +9,6 @@ import { useRouter } from "next/router";
 import styles from "./mission.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronRight, faChevronLeft } from "@fortawesome/free-solid-svg-icons";
-import * as InternalAPI from "http-client/login";
 import { getPresets } from "http-client/preset";
 import { getPOIs } from "http-client/poi";
 import { getMissions } from "http-client/mission";
@@ -26,7 +25,6 @@ import {
   setSelectedPresetUuid,
 } from "store/preset";
 import { setLayers, setMission, setMissionFromDb } from "store/mission";
-import { clearIronSessionData, setIronSessionData, setIsLoggedIn } from "store/user";
 import { setStations, setStationsFromDb } from "store/station";
 import { setActions, setActionsFromDb } from "store/action";
 import { setGoals, setInvestigations, setObjectives } from "store/stm";
@@ -35,6 +33,7 @@ import { setEvas, setEvasFromDb } from "store/eva";
 import { setTraversesFromDb, setTraverses } from "store/traverse";
 import { getTraverses } from "http-client/traverse";
 import { setRightPanelOpen } from "store/interface";
+import { setMissionPerms, setUserStore } from "store/user";
 import { thunkCreateStationCalculatedFields } from "store/thunk/thunkStation";
 import { thunkCreateTraverseCalculatedFields } from "store/thunk/thunkTraverse";
 import { thunkCreateEvasCalculatedFields } from "store/thunk/thunkEva";
@@ -42,6 +41,7 @@ import { thunkCreatePoiCalculatedFields } from "store/thunk/thunkPoi";
 import { Tooltip } from "react-tooltip";
 import { thunkSavePreset } from "store/thunk/thunkPreset";
 import _ from "lodash";
+import { isLoggedIn } from "http-client/login";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -84,6 +84,7 @@ const Main: NextPage = () => {
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
   const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
+
   const stationsCalculatedFields = useAppSelector(
     (state) => state.station.calculatedFields,
     shallowEqual
@@ -93,7 +94,7 @@ const Main: NextPage = () => {
     shallowEqual
   );
 
-  //local state to ensure permissions have been checked first before populating
+  //local state to ensure permissions have been checked first before running the other useEffects
   const [hasPermissions, setHasPermissions] = useState(false);
 
   const { id } = router.query;
@@ -107,39 +108,30 @@ const Main: NextPage = () => {
   useEffect(() => {
     if (!intMissionId) return;
     (async () => {
-      const response = await InternalAPI.isLoggedIn();
+      const response = await isLoggedIn();
       //Check if user is logged in.
       if (response.status === "success") {
-        dispatch(setIsLoggedIn(true));
-        dispatch(setIronSessionData(response.data));
+        dispatch(setUserStore({ isLoggedIn: true, user: response.data.user, missionPerms: null }));
 
-        //super admin always has permissions
-        if (response.data.user.id === 1) {
-          setHasPermissions(true);
-          return;
-        }
-
-        //Check if user has anything in their permission list
-        const userPermissions = response.data.user.permissionList;
-        if (!userPermissions) await router.push("/");
-
-        //Check if user can see this missions
-        const missionPermissions = userPermissions.filter(
-          (permission) => permission.missionId === intMissionId
-        );
-        if (missionPermissions.length === 0) {
-          await router.push("/"); //Redirect to homepage
+        //Check for permissions to this mission
+        if (response.data.user.isSuperAdmin) {
+          //super admin always has permissions
+          dispatch(
+            setMissionPerms({ missionId: intMissionId, permissions: { view: true, edit: true } })
+          );
         } else {
-          setHasPermissions(true);
+          const perms = response.data.user.permissionList?.find(
+            (permission) => permission.missionId === intMissionId
+          );
+          if (!perms || (!perms.permissions.view && !perms.permissions.edit)) router.push("/"); //Redirect to homepage
+          dispatch(setMissionPerms(perms));
         }
+        setHasPermissions(true);
       } else {
-        //user is not logged in
-        dispatch(setIsLoggedIn(false));
-        dispatch(clearIronSessionData());
-        await router.push("/");
+        router.push("/");
       }
     })();
-  }, [dispatch, router, intMissionId]);
+  }, [router, intMissionId, dispatch]);
 
   /**
    * Populate the store

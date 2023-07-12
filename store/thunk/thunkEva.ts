@@ -11,11 +11,11 @@ import {
   upsertEva,
 } from "store/eva";
 import appCreateAsyncThunk from "./thunkUtil";
-import { generateUniqueName } from "utils/unique-name";
+import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
 import { selectEVASequenceItem } from "store/cross-slice";
 import { setRightPanelOpen } from "store/interface";
-import { makeUniqueStringCopy } from "utils/duplicate";
+import { makeUniqueStringCopy } from "utils/names/duplicate";
 import {
   deleteTraverse,
   upsertTraverse,
@@ -169,9 +169,9 @@ export const thunkSaveEva = appCreateAsyncThunk<{
   const evaUpsertResponse = await httpClient_Eva.upsertEva(eva);
 
   if (evaUpsertResponse.status === "success") {
-    // upsert the changed Station (with new updated date) to the store
+    // upsert the changed eva (with new updated date) to the store
     dispatch(upsertEva(evaUpsertResponse.data));
-    // update the Station in the store with a fresh copy from the DB
+    // update the eva in the store with a fresh copy from the DB
     const evaData = await httpClient_Eva.getEvas(getState().mission.mission?.id);
     if (evaData.data) {
       dispatch(setEvasFromDb(evaData.data));
@@ -384,7 +384,7 @@ export const thunkCreateEva = appCreateAsyncThunk<void>(
     });
 
     const blankEva: Eva = {
-      ownerId: getState().user.ironSessionData?.user.id,
+      ownerId: null,
       missionId: getState().mission.mission?.id,
       uuid: uuidv4(),
       name: randomName,

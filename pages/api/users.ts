@@ -7,21 +7,28 @@ import _ from "lodash";
 import { EntityData } from "@mikro-orm/core";
 import { User as User_db } from "server/database/models/user.model";
 import bcrypt from "bcryptjs";
-import { roundDateToSecond } from "../../../utils/formatting";
+import { roundDateToSecond } from "utils/formatting";
 
 const handleUser: NextApiHandler<WrappedResponse<User[] | User>> = async (
   req,
   res
 ): Promise<unknown> => {
   try {
+    //check logged in
+    if (!req.session?.user) {
+      return res.status(401).json({ status: "failure", message: "Unauthorized" });
+    }
+
     const { userId } = req.query;
-    const isAdmin = req.session.user.id === 1 || req.session.user.adminPermission; // will evaluate true or false
-    let intUserId = null;
+    const intUserId = parseInt(Array.isArray(userId) ? userId[0] : userId);
+
+    //only super admin can edit users
+    if (!req.session.user.isSuperAdmin) {
+      return res.status(401).json({ status: "failure", message: "Unauthorized" });
+    }
+
     if (req.method === "GET") {
       try {
-        if (userId) {
-          intUserId = parseInt(userId as string);
-        }
         const users: User[] = await getUsers(intUserId);
 
         return res.status(200).json({
@@ -39,9 +46,7 @@ const handleUser: NextApiHandler<WrappedResponse<User[] | User>> = async (
     if (req.method == "POST") {
       const user: User = req.body;
       const upsert: User = await upsertUser(user);
-      if (!isAdmin) {
-        return res.status(401).json({ status: "failure", message: "Unauthorized" });
-      }
+
       if (!upsert) {
         return res.status(500).json({ status: "error", message: "Error in query" });
       } else {
@@ -52,13 +57,9 @@ const handleUser: NextApiHandler<WrappedResponse<User[] | User>> = async (
         });
       }
     }
+
     if (req.method == "DELETE") {
-      const { userId } = req.query;
-      const intUserId = parseInt(userId as string);
       const deleted: boolean = await deleteUser(intUserId);
-      if (!isAdmin) {
-        return res.status(401).json({ status: "failure", message: "Unauthorized" });
-      }
 
       if (!deleted) {
         return res.status(500).json({ status: "error", message: "Error in query" });
@@ -70,8 +71,7 @@ const handleUser: NextApiHandler<WrappedResponse<User[] | User>> = async (
       }
     }
   } catch (e) {
-    console.error(e);
-    return res.status(500).json({ status: "error", message: "Error in query" });
+    return res.status(500).json({ status: "error", message: "Error in query: " + e });
   }
 };
 
@@ -83,7 +83,7 @@ const handleUser: NextApiHandler<WrappedResponse<User[] | User>> = async (
 async function getUsers(userId: number = null): Promise<User[]> {
   const model = getEM();
   let users: User_db[];
-  if (userId == null) {
+  if (!userId) {
     users = await model.find(User_db, {});
   } else {
     users = await model.find(User_db, { id: userId });

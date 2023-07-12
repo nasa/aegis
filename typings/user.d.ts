@@ -1,11 +1,10 @@
 interface User {
-  adminPermission: boolean | undefined;
-  permissionList?: Permission[];
   id: number;
   username: string;
   password?: string;
-  email: string;
-  token?: string;
+  isSuperAdmin?: boolean;
+  isAdmin?: boolean;
+  permissionList?: Permission[];
   createdAt?: string;
   updatedAt?: string;
 }

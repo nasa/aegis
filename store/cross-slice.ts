@@ -50,11 +50,11 @@ export const crossSlice = createSlice({
       interfaceSlice.caseReducers.setRightPanelOpen(state.interface, { payload: false });
     },
     obliterateEntireStore(state) {
-      // everything except user
       const newInitialState = {
         playhead: initialState.playhead,
         playheadHover: initialState.playheadHover,
         mission: initialState.mission,
+        user: initialState.user,
         map: initialState.map,
         eva: initialState.eva,
         poi: initialState.poi,

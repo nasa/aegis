@@ -3,7 +3,7 @@ import styles from "./preset-right-layers-settings.module.css";
 import { Dropdown } from "components/interface/form/globalFields";
 import { useDispatch } from "react-redux";
 import { setPresetLayerStyle } from "store/preset";
-import getPercentOrDefault from "utils/getPercentOrDefault";
+import { getPercentOrDefault } from "utils/formatting";
 import { CompactPicker } from "react-color";
 
 const Slider: FunctionComponent<{

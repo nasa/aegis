@@ -211,3 +211,7 @@ export function formatNumberWithCommas(num: number): string {
   if (_.isNil(num)) return "";
   return num.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
+
+export const getPercentOrDefault = (value: number | undefined): number => {
+  return typeof value === "number" ? Math.round(value * 100) : 100;
+};

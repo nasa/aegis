@@ -1,12 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
-
 import { ironOptions } from "server/session/config";
 import { IronSessionData } from "iron-session";
 import { getEM, withORM } from "utils/mikro";
 import { User } from "server/database/models/user.model";
 
 export default withIronSessionApiRoute(withORM(handler), ironOptions);
+
 async function handler(
   req: NextApiRequest,
   res: NextApiResponse<WrappedResponse<IronSessionData>>
@@ -21,14 +21,14 @@ async function handler(
       req.session.user = {
         id: user.id,
         username: user.username,
-        email: user.email,
         permissionList: user.permissionList,
-        adminPermission: user.adminPermission,
+        isAdmin: user.isAdmin,
+        isSuperAdmin: user.isSuperAdmin,
       };
 
       res.status(200).json({
         status: "success",
-        message: "Login checked",
+        message: "Session updated",
         data: { user: req.session.user },
       });
     } else {
