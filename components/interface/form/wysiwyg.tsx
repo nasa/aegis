@@ -253,6 +253,7 @@ export const WysiwygTextArea: FunctionComponent<{
 }> = ({ value, editing, onChange, defaultValue }) => {
   //start
   const [editor] = useState(() => withReact(createEditor()));
+  const [editorChange, setEditorChange] = useState(false);
 
   const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, []);
   const renderLeaf = useCallback((props: RenderLeafProps) => <Leaf {...props} />, []);
@@ -274,6 +275,7 @@ export const WysiwygTextArea: FunctionComponent<{
             if (isAstChange) {
               onChange(JSON.stringify(nodes));
             }
+            setEditorChange(!editorChange);
           }}
         >
           <div className={styles.wysiwygButtonContainer}>
