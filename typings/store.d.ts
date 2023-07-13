@@ -24,7 +24,6 @@ interface MissionState {
   mission: Mission;
   missionFromDb: Mission;
   layers: Layer[];
-  userInterface: UserInterface;
   selectedRightNavItem: string;
   missionSectionsEditing: string[];
 }
@@ -33,11 +32,6 @@ interface UserState {
   isLoggedIn: boolean;
   user: User;
   missionPerms: Permission;
-}
-
-interface UserInterface {
-  navTimelineOpen: boolean;
-  rightDrawerOpen: boolean;
 }
 
 interface MapState {
@@ -91,6 +85,7 @@ interface InterfaceState {
   elevationPendingItemUuids: string[];
   timelineShowDistanceFromLander: boolean;
   timelineShowElevation: boolean;
+  actionsCollapsed: string[];
 }
 
 interface STMState {

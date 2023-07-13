@@ -1,4 +1,6 @@
 import {
+  faArrowsDownToLine,
+  faArrowsUpToLine,
   faCaretDown,
   faCaretRight,
   faClock,
@@ -12,9 +14,14 @@ import {
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
-import { Checkbox, Dropdown, InLineEditInput } from "components/interface/form/globalFields";
+import {
+  Button,
+  Checkbox,
+  Dropdown,
+  InLineEditInput,
+} from "components/interface/form/globalFields";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
-import { FunctionComponent, useState, CSSProperties, useCallback } from "react";
+import { FunctionComponent, CSSProperties, useCallback } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
 import { deleteActionByUuid, upsertAction } from "store/action";
@@ -26,6 +33,7 @@ import STMSelector from "./stm-selector";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import { RootState } from "store";
 import _ from "lodash";
+import { collapseActions, expandActions } from "store/interface";
 
 const RightAction: FunctionComponent<{
   editMode: boolean;
@@ -44,14 +52,18 @@ const RightAction: FunctionComponent<{
     (state) => state.poi.pois.find((storePoi) => storePoi.uuid === parentAction?.poiUuid),
     shallowEqual
   );
-  const [expanded, setExpanded] = useState(action.createdAt === undefined);
+
+  const actionsCollapsed = useAppSelector(
+    (state) => state.interface.actionsCollapsed,
+    shallowEqual
+  );
 
   const buildActionTooltip = () => {
     if (parentAction && parentPoi) {
       const dateString = longdateFromDateString(action.parentCopyDate) + "Z";
       return ReactDOMServer.renderToStaticMarkup(
         <>
-          Copied from {parentPoi.name} - {parentAction.name}
+          Copied from POI {parentPoi.name} - {parentAction.name}
           <br />
           on {dateString}
         </>
@@ -75,10 +87,14 @@ const RightAction: FunctionComponent<{
             editMode && actionStyles.actionsHeadingCaret
           } `}
           onClick={() => {
-            setExpanded(!expanded);
+            if (actionsCollapsed.includes(action.uuid)) {
+              dispatch(expandActions([action.uuid]));
+            } else {
+              dispatch(collapseActions([action.uuid]));
+            }
           }}
         >
-          {expanded ? (
+          {!actionsCollapsed.includes(action.uuid) ? (
             <FontAwesomeIcon icon={faCaretDown} size="sm" />
           ) : (
             <FontAwesomeIcon
@@ -93,7 +109,11 @@ const RightAction: FunctionComponent<{
             className={`${paneStyles.actionsHeadingTitle}`}
             style={actionColor}
             onClick={() => {
-              setExpanded(!expanded);
+              if (actionsCollapsed.includes(action.uuid)) {
+                dispatch(expandActions([action.uuid]));
+              } else {
+                dispatch(collapseActions([action.uuid]));
+              }
             }}
           >
             {action.type}
@@ -158,7 +178,7 @@ const RightAction: FunctionComponent<{
           )
         )}
       </div>
-      {expanded && (
+      {!actionsCollapsed.includes(action.uuid) && (
         <>
           <div className={paneStyles.actionIndent}>
             <div className={paneStyles.panelSection}>
@@ -494,3 +514,36 @@ const EquipmentCheckbox: FunctionComponent<{
 };
 
 export default RightAction;
+
+export const ExpandCollapseActionsButtons: FunctionComponent<{ actionList: Action[] }> = ({
+  actionList,
+}) => {
+  const dispatch = useDispatch();
+
+  return (
+    <div className={paneStyles.rightBodyTitleIcons}>
+      <Button
+        icon={faArrowsDownToLine}
+        onClick={() => {
+          const actionUuids = actionList.map((action) => {
+            return action.uuid;
+          });
+          dispatch(expandActions(actionUuids));
+        }}
+        toolTip="Expand all actions"
+        style={{ width: "30px", fontSize: "0.8em", paddingLeft: "8px" }}
+      />
+      <Button
+        icon={faArrowsUpToLine}
+        onClick={() => {
+          const actionUuids = actionList.map((action) => {
+            return action.uuid;
+          });
+          dispatch(collapseActions(actionUuids));
+        }}
+        toolTip="Collapse all actions"
+        style={{ width: "30px", fontSize: "0.8em", paddingLeft: "8px" }}
+      />
+    </div>
+  );
+};
