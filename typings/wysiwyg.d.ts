@@ -15,7 +15,7 @@ export type ParagraphElement = {
 
 export type BulletedListElement = {
   type: "bulleted-list";
-  children: CustomText[];
+  children: ListItemElement[];
 };
 
 export type ListItemElement = {
@@ -25,7 +25,7 @@ export type ListItemElement = {
 
 export type NumberedListElement = {
   type: "numbered-list";
-  children: CustomText[];
+  children: ListItemElement[];
 };
 
 export type CustomElement =

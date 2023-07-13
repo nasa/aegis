@@ -81,7 +81,7 @@
     "react-tooltip": "^5.18.0",
     "redux-mock-store": "^1.5.4",
     "reflect-metadata": "^0.1.13",
-    "slate-react": "^0.94.2",
+    "slate-react": "^0.97.2",
     "ts-node": "^10.9.1",
     "unique-names-generator": "^4.7.1",
     "uuid": "^9.0.0"
