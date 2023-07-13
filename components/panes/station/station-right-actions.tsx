@@ -11,6 +11,7 @@ import Actions from "../actions";
 import { setStationEditMode, upsertStation } from "store/station";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDuplicateAction } from "store/thunk/thunkAction";
+import { ExpandCollapseActionsButtons } from "../actions-action";
 
 const Actions_Panel: FunctionComponent<{
   editMode: boolean;
@@ -71,7 +72,10 @@ const Actions_Panel: FunctionComponent<{
 
   return (
     <div className={paneStyles.rightBody}>
-      <div className={`${paneStyles.rightBodyTitle}`}>Station Actions</div>
+      <div className={paneStyles.rightBodyTitleContainer}>
+        <div className={paneStyles.rightBodyTitle}>Station Actions</div>
+        <ExpandCollapseActionsButtons actionList={stationActions} />
+      </div>
       <div className={paneStyles.rightBodyBody}>
         <Actions
           editMode={editMode}

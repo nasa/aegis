@@ -92,7 +92,7 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
       try {
         //must have edit permission for a given mission id
         //  or if no mission id (create mission) must be an admin to the back end or user 1
-        if ((missionId && !editPermission) || (!missionId && !req.session.user.isAdmin)) {
+        if ((missionId && !editPermission) || (!missionId && !req.session.user.isSuperAdmin)) {
           return res.status(401).json({ status: "failure", message: "Unauthorized" });
         }
         //perform the upsert

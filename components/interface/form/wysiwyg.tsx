@@ -252,8 +252,8 @@ export const WysiwygTextArea: FunctionComponent<{
   defaultValue?: string;
 }> = ({ value, editing, onChange, defaultValue }) => {
   //start
-  const [editorChange, setEditorChange] = useState(false);
   const [editor] = useState(() => withReact(createEditor()));
+  const [editorChange, setEditorChange] = useState(false);
 
   const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, []);
   const renderLeaf = useCallback((props: RenderLeafProps) => <Leaf {...props} />, []);
@@ -261,10 +261,7 @@ export const WysiwygTextArea: FunctionComponent<{
   //reset the selector to prevent a bug where a previous edited field had more new lines
   //  than the new current field being edited. The selector will try to find the old location
   useEffect(() => {
-    editor.selection = {
-      anchor: { path: [0, 0], offset: 0 },
-      focus: { path: [0, 0], offset: 0 },
-    };
+    Transforms.deselect(editor);
   }, [editing, editor]);
 
   return (
@@ -272,7 +269,7 @@ export const WysiwygTextArea: FunctionComponent<{
       {editing ? (
         <Slate
           editor={editor}
-          value={convertStringToNodes(value, defaultValue)}
+          initialValue={convertStringToNodes(value, defaultValue)}
           onChange={(nodes: Descendant[]) => {
             const isAstChange = editor.operations.some((op) => "set_selection" !== op.type);
             if (isAstChange) {

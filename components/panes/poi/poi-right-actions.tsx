@@ -4,6 +4,7 @@ import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { setPoiEditMode, upsertPoi } from "store/poi";
 import Actions from "../actions";
+import { ExpandCollapseActionsButtons } from "../actions-action";
 
 const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useDispatch();
@@ -48,7 +49,10 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
 
   return (
     <div className={paneStyles.rightBody}>
-      <div className={paneStyles.rightBodyTitle}>POI Actions</div>
+      <div className={paneStyles.rightBodyTitleContainer}>
+        <div className={paneStyles.rightBodyTitle}>POI Actions</div>
+        <ExpandCollapseActionsButtons actionList={poiActions} />
+      </div>
       <div className={paneStyles.rightBodyBody}>
         <Actions
           editMode={editMode}

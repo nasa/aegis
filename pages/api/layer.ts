@@ -77,7 +77,12 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
     if (req.method === "POST") {
       //must have edit permission for a given mission id
       //  or must be an admin to the back end (during mission create)
-      if (missionId && !editPermission && !req.session.user.isAdmin) {
+      if (
+        missionId &&
+        !editPermission &&
+        !req.session.user.isAdmin &&
+        !req.session.user.isSuperAdmin
+      ) {
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
 
