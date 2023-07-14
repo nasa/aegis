@@ -220,6 +220,7 @@ const Main: NextPage = () => {
             //Once all presets in all environments are updated this if statement can be removed.
             //cast as "any" since this is an old type definition
             if (
+              preset.mapLayerControls[layerName] &&
               Object.prototype.hasOwnProperty.call(preset.mapLayerControls[layerName], "enabled")
             ) {
               preset.mapLayerControls[layerName].visible =
@@ -233,6 +234,7 @@ const Main: NextPage = () => {
 
             //old unused property that was removed. Cleanup if it's on a preset
             if (
+              preset.mapLayerControls[layerName] &&
               Object.prototype.hasOwnProperty.call(
                 preset.mapLayerControls[layerName],
                 "mapLayerRef"
@@ -245,7 +247,7 @@ const Main: NextPage = () => {
             //add any UUIDs that are missing from preset's layer control
             //  this happens when UUIDs are updated in admin after the preset was created
             //Once all presets in all environments have UUIDs this if statement can be removed.
-            if (!preset.mapLayerControls[layerName].uuid) {
+            if (preset.mapLayerControls[layerName] && !preset.mapLayerControls[layerName].uuid) {
               //find the layer from the mission to get the UUID
               for (const layerNameAndUuid of flatLayerNamesAndUuids) {
                 if (layerNameAndUuid.name === layerName) {
