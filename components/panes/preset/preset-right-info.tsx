@@ -1,7 +1,8 @@
 import { FunctionComponent, ChangeEvent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import presetStyles from "./preset.module.css";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "utils/useAppDispatch";
+
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { setPresetEditMode, upsertPreset } from "store/preset";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
@@ -10,7 +11,7 @@ import { SubpanelHeading } from "components/interface/_global-elements";
 import { faMessage } from "@fortawesome/free-solid-svg-icons";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const presets = useAppSelector((state) => state.preset.presets, shallowEqual);

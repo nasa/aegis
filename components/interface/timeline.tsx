@@ -13,7 +13,8 @@ import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 
 import styles from "./timeline.module.css";
 import { addPointsAtMeters, getDistanceBetweenTwoCoordinates } from "utils/geoMath";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "utils/useAppDispatch";
+
 import { clearMapItemHover } from "store/playheadHover";
 import _ from "lodash";
 import { STM_Coverage } from "components/panes/stm-coverage";
@@ -25,7 +26,7 @@ import { selectEVASequenceItem } from "store/cross-slice";
 import { initGraphItemsRef, initPaperRefs } from "./timeline-init";
 
 const TimelineHoverValues: FunctionComponent<{ hoverValues: HoverValues }> = ({ hoverValues }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const showDistanceFromLander = useAppSelector(
     (state) => state.interface.timelineShowDistanceFromLander,
     refEqual
@@ -143,7 +144,7 @@ const TimelineHoverValues: FunctionComponent<{ hoverValues: HoverValues }> = ({ 
  * Renders the navigation timeline presented at the bottom of the window
  */
 const NavTimeline: FunctionComponent = () => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const selectedEva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
     shallowEqual

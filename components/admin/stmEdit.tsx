@@ -1,8 +1,8 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import stmStyles from "./stmEdit.module.css";
 import { deleteSTM, upsertSTM } from "http-client/stm";
-import { useDispatch } from "react-redux";
 import { clearSTM, addObjective, addGoal, addInvestigation } from "store/stm";
+import { useAppDispatch } from "utils/useAppDispatch";
 
 interface STMProps {
   reloadSTMfromDB: (missionId: number) => void;
@@ -197,7 +197,7 @@ const ExportSTM = (props: {
 };
 
 const ImportSTM = (props: { missionId: number; reloadSTMfromDB: Function }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const [stmJson, setStmJson] = useState<string>(null);
 
   return (

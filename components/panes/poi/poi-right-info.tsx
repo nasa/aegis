@@ -3,7 +3,8 @@ import paneStyles from "../global-pane-styles.module.css";
 import { faCalculator, faLocationDot, faMessage, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "utils/useAppDispatch";
+
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { setSelectedPOIRightNavItem, upsertPoi } from "store/poi";
 import { updateMapDirective } from "store/map";
@@ -17,7 +18,7 @@ const Info_Panel: FunctionComponent<{
   totalPoiTime: TotalTimeObj;
   actionCount: number;
 }> = ({ editMode, totalPoiTime, actionCount }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const selectedPoi = useAppSelector(
     (state) => state.poi.pois.find((poi) => poi.uuid === state.poi.selectedPoiUuid),
     shallowEqual

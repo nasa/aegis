@@ -31,7 +31,7 @@ const Actions: FunctionComponent<{
   actionParentUuid,
   actionsCalculatedFields,
 }) => {
-  const thunkDispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
 
   const [wrappedActions, setWrappedActions] = useState<WrappedAction[]>(null); //contains all actions in order
 
@@ -192,7 +192,7 @@ const Actions: FunctionComponent<{
                 label="Add Action"
                 style={{ width: "100px" }}
                 onClick={() => {
-                  thunkDispatch(
+                  dispatch(
                     thunkCreateAction({
                       actionParentUuid,
                       actionOrderUuids,

@@ -1,6 +1,7 @@
 import { FunctionComponent, useRef } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "utils/useAppDispatch";
+
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import _, { round } from "lodash";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
@@ -27,7 +28,7 @@ import { updateMapDirective } from "store/map";
 import { toDecimal } from "utils/formatting";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
   const stationsEditing = useAppSelector((state) => state.station.stationsEditing, shallowEqual);

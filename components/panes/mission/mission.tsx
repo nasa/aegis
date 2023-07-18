@@ -3,7 +3,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import { FunctionComponent } from "react";
 import _ from "lodash";
 import { setSelectedMissionRightNavItem } from "store/mission";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "utils/useAppDispatch";
 
 const MissionConfigLeft: FunctionComponent = () => {
   return (
@@ -28,7 +28,7 @@ const MissionItem = ({
   sectionName: string;
   sectionTitle: string;
 }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   let missionSelectedStyle = null;
   if (sectionName === "prefs_panel") {

@@ -1,6 +1,5 @@
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -20,8 +19,7 @@ import { thunkMissionCancel, thunkMissionSave } from "store/thunk/thunkMission";
 import Equipment_Panel from "./mission-right-equipment";
 
 const MissionPrefsRight: FunctionComponent = () => {
-  const dispatch = useDispatch();
-  const thunkDispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector(
     (state) => state.mission.selectedRightNavItem,
     refEqual
@@ -119,7 +117,7 @@ const MissionPrefsRight: FunctionComponent = () => {
             <>
               <Button
                 onClick={() => {
-                  thunkDispatch(thunkMissionSave({}));
+                  dispatch(thunkMissionSave({}));
                 }}
                 icon={faFloppyDisk}
                 toolTip={`Save Preset${modified ? "" : " (nothing to save)"}`}
@@ -134,7 +132,7 @@ const MissionPrefsRight: FunctionComponent = () => {
               />
               <Button
                 onClick={() => {
-                  thunkDispatch(thunkMissionCancel({}));
+                  dispatch(thunkMissionCancel({}));
                 }}
                 icon={faBan}
                 toolTip="Cancel Edit"

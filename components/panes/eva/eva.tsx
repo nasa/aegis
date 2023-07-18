@@ -11,7 +11,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreateEva, thunkDuplicateEva } from "store/thunk/thunkEva";
 
 const EvaPlannerLeft: FunctionComponent = () => {
-  const thunkDispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
   const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
   const selectedEva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
@@ -35,7 +35,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
             <div className={paneStyles.iconButtons}>
               <Button
                 onClick={() => {
-                  thunkDispatch(thunkCreateEva());
+                  dispatch(thunkCreateEva());
                 }}
                 label="Add"
                 icon={faPlusCircle}
@@ -44,7 +44,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
               <Button
                 onClick={() => {
                   if (selectedEva) {
-                    thunkDispatch(thunkDuplicateEva({ eva: selectedEva }));
+                    dispatch(thunkDuplicateEva({ eva: selectedEva }));
                   }
                 }}
                 label="Duplicate"
