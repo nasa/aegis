@@ -9,7 +9,7 @@ import "proj4leaflet";
 
 import styles from "components/interface/map-body.module.css";
 
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 
 import {
   MutableRefObject,
@@ -48,6 +48,25 @@ import { selectEVASequenceItem } from "store/cross-slice";
 import { thunkGetStationOrTraverse } from "store/thunk/thunkEva";
 import { thunkUpdateLanderLocation } from "store/thunk/thunkMission";
 
+type MissionSelectProperties = Pick<
+  Mission,
+  | "id"
+  | "landerLocation"
+  | "initialZoom"
+  | "planetRadius"
+  | "projBoundsMaxX"
+  | "projBoundsMaxY"
+  | "projBoundsMinX"
+  | "projBoundsMinY"
+  | "projEpsg"
+  | "projProj4String"
+  | "projResZoomLevel"
+  | "projResUnitsPerPixel"
+  | "projIsCustom"
+  | "projOriginX"
+  | "projOriginY"
+>;
+
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
 const zoom = 13;
@@ -63,7 +82,27 @@ const MapBody: FunctionComponent = () => {
   const stationFeatureGroup = useRef<L.FeatureGroup>(null);
   const poiFeatureGroup = useRef<L.FeatureGroup>(null);
 
-  const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
+  const mission: MissionSelectProperties = useAppSelector(
+    (state) =>
+      _.pick(state.mission.mission, [
+        "id",
+        "landerLocation",
+        "initialZoom",
+        "planetRadius",
+        "projBoundsMaxX",
+        "projBoundsMaxY",
+        "projBoundsMinX",
+        "projBoundsMinY",
+        "projEpsg",
+        "projProj4String",
+        "projResZoomLevel",
+        "projResUnitsPerPixel",
+        "projIsCustom",
+        "projOriginX",
+        "projOriginY",
+      ]),
+    deepEqual
+  );
   const missionLayers = useAppSelector((state) => state.mission.layers, shallowEqual);
 
   const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, shallowEqual);
@@ -158,7 +197,7 @@ const MapBody: FunctionComponent = () => {
    * Map layers display management
    */
   useEffect(() => {
-    if (!mission || !layerControls || !map.current || !selectedPreset || !missionLayers) return;
+    if (!mission.id || !layerControls || !map.current || !selectedPreset || !missionLayers) return;
 
     // go through all layers in mission config,  add make a list of the ones that are enabled
     const layersToAdd: Sublayer[] = [];
@@ -306,7 +345,7 @@ const MapBody: FunctionComponent = () => {
         layer.bringToFront();
       }
     });
-  }, [mission, layerControls, map, layersOnMap, missionLayers, selectedPreset]);
+  }, [mission.id, layerControls, map, layersOnMap, missionLayers, selectedPreset]);
 
   /**
    * Update map with display adjustments for sublayers as sliders are moved
@@ -929,7 +968,7 @@ const MapBody: FunctionComponent = () => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, mission.planetRadius, draggableLines, mapDirective, dispatch, getMapItemByUuid]);
+  }, [map, draggableLines, mapDirective, dispatch, getMapItemByUuid]);
 
   /**
    * Populate stationsToShow when stations or selections change
