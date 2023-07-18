@@ -26,7 +26,8 @@ import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
 import { deleteActionByUuid, upsertAction } from "store/action";
 import { longdateFromDateString, toDecimal } from "utils/formatting";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "utils/useAppDispatch";
+
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import ReactDOMServer from "react-dom/server";
 import STMSelector from "./stm-selector";
@@ -42,7 +43,7 @@ const RightAction: FunctionComponent<{
   highlight: boolean;
   actionColor: CSSProperties;
 }> = ({ editMode, setEditMode, action, highlight, actionColor }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const parentAction = useAppSelector(
     (state) =>
       state.action.actions.find((storeAction) => storeAction.uuid === action.parentActionUuid),
@@ -382,7 +383,7 @@ const EquipmentSelector: FunctionComponent<{
   action: Action;
   editMode: boolean;
 }> = ({ action, editMode }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const equipmentItems = useAppSelector(
     (state: RootState) => state.mission.mission.equipmentItems,
     shallowEqual
@@ -518,7 +519,7 @@ export default RightAction;
 export const ExpandCollapseActionsButtons: FunctionComponent<{ actionList: Action[] }> = ({
   actionList,
 }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   return (
     <div className={paneStyles.rightBodyTitleIcons}>

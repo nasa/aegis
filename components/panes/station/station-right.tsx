@@ -2,7 +2,6 @@ import paneStyles from "components/panes/global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -32,8 +31,7 @@ import { thunkDeleteStation, thunkSaveStation, thunkStationCancel } from "store/
 import { validators } from "components/interface/form/formValidators";
 
 const StationEditorRight: FunctionComponent = () => {
-  const dispatch = useDispatch();
-  const thunkDispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector(
     (state) => state.station.selectedRightNavItem,
     shallowEqual
@@ -253,7 +251,7 @@ const StationEditorRight: FunctionComponent = () => {
                 icon={faTrashAlt}
                 onClick={() => {
                   if (window.confirm("Are you sure you want to delete this Station?")) {
-                    thunkDispatch(
+                    dispatch(
                       thunkDeleteStation({
                         station: selectedStation,
                       })
@@ -290,7 +288,7 @@ const StationEditorRight: FunctionComponent = () => {
                 <>
                   <Button
                     onClick={() => {
-                      thunkDispatch(
+                      dispatch(
                         thunkSaveStation({
                           station: selectedStation,
                         })
@@ -312,7 +310,7 @@ const StationEditorRight: FunctionComponent = () => {
                   />
                   <Button
                     onClick={() => {
-                      thunkDispatch(
+                      dispatch(
                         thunkStationCancel({
                           station: selectedStation,
                         })

@@ -8,7 +8,6 @@ import {
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
 import { upsertTraverse } from "store/traverse";
 import { updateMapDirective } from "store/map";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
@@ -21,8 +20,7 @@ import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 
 const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
-  const dispatch = useDispatch();
-  const thunkDispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
@@ -113,7 +111,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
 
   const handlePathReset = async () => {
     //reset path to stations endpoints
-    thunkDispatch(thunkResetTraverse({ traverseUuid: selectedTraverse.uuid }));
+    dispatch(thunkResetTraverse({ traverseUuid: selectedTraverse.uuid }));
   };
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;

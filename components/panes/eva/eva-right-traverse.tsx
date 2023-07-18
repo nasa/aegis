@@ -10,7 +10,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "components/interface/form/globalFields";
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "utils/useAppDispatch";
+
 import {
   setSelectedTraverseRightNavItem,
   setTraverseEditMode,
@@ -27,7 +28,7 @@ import { updateMapDirective } from "store/map";
 import { getAlertColor } from "utils/component-helpers";
 
 const EvaRightTraverse: FunctionComponent = () => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual

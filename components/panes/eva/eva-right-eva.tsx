@@ -1,7 +1,6 @@
 import paneStyles from "../global-pane-styles.module.css";
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -32,8 +31,7 @@ import {
 import { validators } from "components/interface/form/formValidators";
 
 const EvaRightEva: FunctionComponent = () => {
-  const dispatch = useDispatch();
-  const thunkDispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector(
     (state) => state.eva.selectedEvaRightNavItem,
     shallowEqual
@@ -96,9 +94,7 @@ const EvaRightEva: FunctionComponent = () => {
       const evaReportSequenceItems: EvaReportSequenceItem[] = [];
       if (selectedEva) {
         for (const sequenceItem of selectedEva.sequence) {
-          const seqItemRes = await thunkDispatch(
-            thunkGetStationOrTraverse({ uuid: sequenceItem.uuid })
-          );
+          const seqItemRes = await dispatch(thunkGetStationOrTraverse({ uuid: sequenceItem.uuid }));
           if (!seqItemRes.payload) continue;
 
           if (seqItemRes.payload.type === "traverse") {
@@ -133,7 +129,7 @@ const EvaRightEva: FunctionComponent = () => {
       }
       setEvaReportSequenceItems(evaReportSequenceItems);
     })();
-  }, [selectedEva, allTraverseCalculatedFields, allStationCalculatedFields, thunkDispatch]);
+  }, [selectedEva, allTraverseCalculatedFields, allStationCalculatedFields, dispatch]);
 
   const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--eva)");
   const [reportsTabIcon, setReportsTabIcon] = useState<IconDefinition>(faTriangleExclamation);
@@ -258,7 +254,7 @@ const EvaRightEva: FunctionComponent = () => {
                 icon={faTrashAlt}
                 onClick={() => {
                   if (window.confirm("Are you sure you want to delete this EVA?")) {
-                    thunkDispatch(thunkDeleteEva({ eva: selectedEva }));
+                    dispatch(thunkDeleteEva({ eva: selectedEva }));
                   }
                 }}
                 toolTip="Delete EVA"
@@ -282,7 +278,7 @@ const EvaRightEva: FunctionComponent = () => {
               <>
                 <Button
                   onClick={() => {
-                    thunkDispatch(thunkSaveEva({ eva: selectedEva }));
+                    dispatch(thunkSaveEva({ eva: selectedEva }));
                   }}
                   icon={faFloppyDisk}
                   toolTip={`Save EVA${modified ? "" : " (nothing to save)"}`}
@@ -297,7 +293,7 @@ const EvaRightEva: FunctionComponent = () => {
                 />
                 <Button
                   onClick={() => {
-                    thunkDispatch(thunkEvaCancel({ eva: selectedEva }));
+                    dispatch(thunkEvaCancel({ eva: selectedEva }));
                   }}
                   icon={faBan}
                   toolTip="Cancel Edit"

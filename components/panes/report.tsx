@@ -1,7 +1,8 @@
 import { FunctionComponent } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import styles from "./report.module.css";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "utils/useAppDispatch";
+
 import { faCircleInfo, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { decodeEmoji } from "utils/formatting";
@@ -48,7 +49,7 @@ const ReportItems: FunctionComponent<{
   reportItems: ReportItem[];
   evaReportSequenceItem?: EvaReportSequenceItem;
 }> = ({ reportItems, evaReportSequenceItem = null }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   return (
     <div className={paneStyles.panelContainer}>

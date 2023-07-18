@@ -1,7 +1,6 @@
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import { Dropdown } from "components/interface/form/globalFields";
 import { FunctionComponent } from "react";
-import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import { setSelectedEvaRightNavItem, setSelectedEvaUuid, setEvaSequence } from "store/eva";
 import evaStyles from "./eva.module.css";
@@ -20,8 +19,7 @@ const EvaItemSequence: FunctionComponent<{
   evaSequence: EvaSequenceItem[];
   editMode: boolean;
 }> = ({ evaUuid, evaSequence, editMode }) => {
-  const dispatch = useDispatch();
-  const thunkDispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
 
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
   const stationsFromDb = useAppSelector((state) => state.station.stationsFromDb, shallowEqual);
@@ -52,7 +50,7 @@ const EvaItemSequence: FunctionComponent<{
     newEvaSequence[index] = tempStation;
 
     dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
-    thunkDispatch(thunkUpdateAllTraversesForEVA({ evaSequence: newEvaSequence }));
+    dispatch(thunkUpdateAllTraversesForEVA({ evaSequence: newEvaSequence }));
   };
 
   const handleMoveStationDown = (index: number) => {
@@ -64,7 +62,7 @@ const EvaItemSequence: FunctionComponent<{
     newEvaSequence[stationBeforeIndex] = newEvaSequence[index];
     newEvaSequence[index] = tempStation;
     dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
-    thunkDispatch(thunkUpdateAllTraversesForEVA({ evaSequence: newEvaSequence }));
+    dispatch(thunkUpdateAllTraversesForEVA({ evaSequence: newEvaSequence }));
   };
 
   return (
@@ -166,7 +164,7 @@ const EvaItemSequence: FunctionComponent<{
                         arrowStyle={{ top: "1px" }}
                         containerStyle={{ width: "200px" }}
                         onChange={(val) => {
-                          thunkDispatch(
+                          dispatch(
                             thunkChangeStationInEva({
                               evaSequence,
                               sequenceIndex: index,
@@ -220,7 +218,7 @@ const EvaItemSequence: FunctionComponent<{
                         <div
                           className={evaStyles.evaItemNameButton}
                           onClick={() => {
-                            thunkDispatch(
+                            dispatch(
                               thunkDeleteStationFromEva({
                                 evaSequence,
                                 sequenceIndex: index,

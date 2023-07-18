@@ -1,7 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
-import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { faCaretDown, faCaretRight, faClone } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -16,8 +15,7 @@ import { ExpandCollapseActionsButtons } from "../actions-action";
 const Actions_Panel: FunctionComponent<{
   editMode: boolean;
 }> = ({ editMode }) => {
-  const dispatch = useDispatch();
-  const thunkDispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
     refEqual
@@ -169,7 +167,7 @@ const Actions_Panel: FunctionComponent<{
                                   size="xs"
                                   className={stationStyles.copyIcon}
                                   onClick={(e) => {
-                                    thunkDispatch(
+                                    dispatch(
                                       thunkDuplicateAction({
                                         action,
                                         stationUuid: selectedStationUuid,

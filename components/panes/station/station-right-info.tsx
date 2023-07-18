@@ -12,7 +12,6 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
-import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, upsertStation } from "store/station";
 import { updateMapDirective } from "store/map";
@@ -30,8 +29,7 @@ const Info_Panel: FunctionComponent<{
   totalStationTime: TotalTimeObj;
   actionCount: number;
 }> = ({ editMode, totalStationTime, actionCount }) => {
-  const dispatch = useDispatch();
-  const thunkDispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
 
   const selectedStation = useAppSelector(
@@ -131,9 +129,7 @@ const Info_Panel: FunctionComponent<{
       return poi.location;
     });
     const centroid = calcCentroidofCoordinates(poiLocs);
-    thunkDispatch(
-      thunkUpdateStationLocation({ location: centroid, stationUuid: selectedStation.uuid })
-    );
+    dispatch(thunkUpdateStationLocation({ location: centroid, stationUuid: selectedStation.uuid }));
   };
 
   const handleEditWalkback = () => {
@@ -167,8 +163,8 @@ const Info_Panel: FunctionComponent<{
   };
 
   const handleResetWalkback = useCallback(() => {
-    thunkDispatch(thunkResetWalkback({ stationUuid: selectedStation.uuid }));
-  }, [thunkDispatch, selectedStation.uuid]);
+    dispatch(thunkResetWalkback({ stationUuid: selectedStation.uuid }));
+  }, [dispatch, selectedStation.uuid]);
 
   useEffect(() => {
     if (!selectedStation.walkbackPath) {
@@ -387,7 +383,7 @@ const Info_Panel: FunctionComponent<{
                           <Button
                             onClick={async () => {
                               if (landerLocation?.lat && landerLocation?.lng) {
-                                await thunkDispatch(
+                                await dispatch(
                                   thunkUpdateStationLocation({
                                     location: landerLocation,
                                     stationUuid: selectedStation.uuid,

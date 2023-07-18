@@ -22,12 +22,10 @@ import { thunkSavePoi, thunkDeletePoi, thunkPoiCancel } from "store/thunk/thunkP
 import { selectPoiActions } from "store/selectors";
 import Report_Panel from "../report";
 import { getAlertColor } from "utils/component-helpers";
-import { useDispatch } from "react-redux";
 import { validators } from "components/interface/form/formValidators";
 
 const PoiEditorRight: FunctionComponent = () => {
-  const dispatch = useDispatch();
-  const thunkDispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector((state) => state.poi.selectedRightNavItem, refEqual);
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
   const selectedPoi = useAppSelector(
@@ -202,7 +200,7 @@ const PoiEditorRight: FunctionComponent = () => {
                 onClick={() => {
                   if (selectedPoi) {
                     if (window.confirm("Are you sure you want to delete this POI?")) {
-                      thunkDispatch(
+                      dispatch(
                         thunkDeletePoi({
                           poi: selectedPoi,
                         })
@@ -232,7 +230,7 @@ const PoiEditorRight: FunctionComponent = () => {
                 <Button
                   onClick={() => {
                     if (selectedPoi && modified) {
-                      thunkDispatch(
+                      dispatch(
                         thunkSavePoi({
                           poi: selectedPoi,
                         })
@@ -252,7 +250,7 @@ const PoiEditorRight: FunctionComponent = () => {
                 />
                 <Button
                   onClick={() => {
-                    thunkDispatch(
+                    dispatch(
                       thunkPoiCancel({
                         poi: selectedPoi,
                       })
