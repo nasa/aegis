@@ -502,6 +502,7 @@ deploy:prod:
 
 z:db-export:prod:
   extends: .db-export-template
+  when: always
   tags: ["emss-aegis-prod"]
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD
