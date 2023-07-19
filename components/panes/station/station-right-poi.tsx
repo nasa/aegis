@@ -1,6 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "utils/useAppDispatch";
+
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { upsertStation } from "store/station";
 import poiStyles from "../poi/poi.module.css";
@@ -16,7 +17,7 @@ import { setSectionSelected } from "store/interface";
 import { setSelectedPoiUuid } from "store/poi";
 
 const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
     refEqual

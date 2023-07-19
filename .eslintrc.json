@@ -69,6 +69,11 @@
             "name": "assert",
             "importNames": ["deepEqual"],
             "message": "Use 'useAppSelector.ts/deepEqual'."
+          },
+          {
+            "name": "react-redux",
+            "importNames": ["useDispatch"],
+            "message":"Use utils/useAppDispatch() instead of useDispatch(). This will allow usage of the full store types"
           }
         ]
       }

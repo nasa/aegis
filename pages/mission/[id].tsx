@@ -1,6 +1,5 @@
 import type { NextPage } from "next";
 import { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import dynamic from "next/dynamic";
@@ -74,8 +73,7 @@ const BottomControlPanel = dynamic(
 );
 
 const Main: NextPage = () => {
-  const dispatch = useDispatch();
-  const thunkDispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
   const router = useRouter();
   const missionStore = useAppSelector((state) => state.mission, shallowEqual);
   const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, refEqual);
@@ -283,7 +281,7 @@ const Main: NextPage = () => {
           );
 
           //update this preset in the DB if any layer control changes we made
-          if (modified) thunkDispatch(thunkSavePreset({ preset }));
+          if (modified) dispatch(thunkSavePreset({ preset }));
         });
 
         dispatch(setPresets(presetData));
@@ -339,25 +337,25 @@ const Main: NextPage = () => {
       const invstgData = await getInvestigations({ missionId: intMissionId });
       if (invstgData.data) dispatch(setInvestigations(invstgData.data));
     })();
-  }, [dispatch, thunkDispatch, hasPermissions, intMissionId]);
+  }, [dispatch, hasPermissions, intMissionId]);
 
   //Generate poi calculated values
   useEffect(() => {
     if (_.isEmpty(pois) || _.isEmpty(actions) || !hasPermissions) return;
-    thunkDispatch(thunkCreatePoiCalculatedFields());
-  }, [pois, actions, thunkDispatch, hasPermissions]);
+    dispatch(thunkCreatePoiCalculatedFields());
+  }, [pois, actions, dispatch, hasPermissions]);
 
   //Generate station calculated values
   useEffect(() => {
     if (_.isEmpty(stations) || _.isEmpty(actions) || !hasPermissions) return;
-    thunkDispatch(thunkCreateStationCalculatedFields());
-  }, [stations, actions, thunkDispatch, hasPermissions]);
+    dispatch(thunkCreateStationCalculatedFields());
+  }, [stations, actions, dispatch, hasPermissions]);
 
   //Generate traverse calculated values
   useEffect(() => {
     if (_.isEmpty(traverses) || !hasPermissions) return;
-    thunkDispatch(thunkCreateTraverseCalculatedFields());
-  }, [traverses, thunkDispatch, hasPermissions]);
+    dispatch(thunkCreateTraverseCalculatedFields());
+  }, [traverses, dispatch, hasPermissions]);
 
   //Generate eva calculated values. These are dependent on stations and traverses having had their calculated values generated
   useEffect(() => {
@@ -368,8 +366,8 @@ const Main: NextPage = () => {
       !hasPermissions
     )
       return;
-    thunkDispatch(thunkCreateEvasCalculatedFields());
-  }, [evas, stationsCalculatedFields, traversesCalculatedFields, thunkDispatch, hasPermissions]);
+    dispatch(thunkCreateEvasCalculatedFields());
+  }, [evas, stationsCalculatedFields, traversesCalculatedFields, dispatch, hasPermissions]);
 
   const showSunEarth: boolean =
     missionStore.mission &&

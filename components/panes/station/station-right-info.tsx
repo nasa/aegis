@@ -2,17 +2,16 @@ import { FunctionComponent, useCallback, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
 import {
-  faArrowsToCircle,
   faCalculator,
   faFloppyDisk,
   faLocationDot,
   faMessage,
+  faQuestionCircle,
   faRoute,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
-import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, upsertStation } from "store/station";
 import { updateMapDirective } from "store/map";
@@ -24,14 +23,13 @@ import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { round } from "lodash";
 import { validators, regExValidators } from "components/interface/form/formValidators";
+import CalculatedDwell from "../calculated-dwell";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
-  totalStationTime: TotalTimeObj;
   actionCount: number;
-}> = ({ editMode, totalStationTime, actionCount }) => {
-  const dispatch = useDispatch();
-  const thunkDispatch = useAppDispatch();
+}> = ({ editMode, actionCount }) => {
+  const dispatch = useAppDispatch();
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
 
   const selectedStation = useAppSelector(
@@ -131,9 +129,7 @@ const Info_Panel: FunctionComponent<{
       return poi.location;
     });
     const centroid = calcCentroidofCoordinates(poiLocs);
-    thunkDispatch(
-      thunkUpdateStationLocation({ location: centroid, stationUuid: selectedStation.uuid })
-    );
+    dispatch(thunkUpdateStationLocation({ location: centroid, stationUuid: selectedStation.uuid }));
   };
 
   const handleEditWalkback = () => {
@@ -167,8 +163,8 @@ const Info_Panel: FunctionComponent<{
   };
 
   const handleResetWalkback = useCallback(() => {
-    thunkDispatch(thunkResetWalkback({ stationUuid: selectedStation.uuid }));
-  }, [thunkDispatch, selectedStation.uuid]);
+    dispatch(thunkResetWalkback({ stationUuid: selectedStation.uuid }));
+  }, [dispatch, selectedStation.uuid]);
 
   useEffect(() => {
     if (!selectedStation.walkbackPath) {
@@ -207,7 +203,7 @@ const Info_Panel: FunctionComponent<{
           </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "6px" }}>
-              <SubpanelHeading icon={faArrowsToCircle}>Estimated Dwell Time</SubpanelHeading>
+              <SubpanelHeading icon={faQuestionCircle}>Estimated Dwell Time</SubpanelHeading>
             </div>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>
@@ -307,10 +303,24 @@ const Info_Panel: FunctionComponent<{
                     style={{ cursor: "pointer" }}
                   >
                     <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.displayFieldLabel}>Actions in this Station:</div>
+                      <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>{actionCount}</div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Total Action Time (mins):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {calculatedFields?.totalTime?.durationLower === 0 ? (
+                          <>0</>
+                        ) : (
+                          <>{displayFormattedTotalTimeObj(calculatedFields?.totalTime)}</>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
@@ -324,22 +334,9 @@ const Info_Panel: FunctionComponent<{
                     </div>
                   </div>
                 </div>
+
                 <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.displayFieldLabel}>Total Action Time (mins):</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {totalStationTime?.durationLower === 0 &&
-                        totalStationTime?.durationUpper === 0 ? (
-                          <>N/A</>
-                        ) : (
-                          <>{displayFormattedTotalTimeObj(totalStationTime)}</>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <CalculatedDwell actionsCalculatedFields={calculatedFields} />
                 </div>
               </div>
             </div>
@@ -387,7 +384,7 @@ const Info_Panel: FunctionComponent<{
                           <Button
                             onClick={async () => {
                               if (landerLocation?.lat && landerLocation?.lng) {
-                                await thunkDispatch(
+                                await dispatch(
                                   thunkUpdateStationLocation({
                                     location: landerLocation,
                                     stationUuid: selectedStation.uuid,

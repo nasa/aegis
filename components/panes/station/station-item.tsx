@@ -1,6 +1,7 @@
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import { FunctionComponent } from "react";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "utils/useAppDispatch";
+
 import { useAppSelector, refEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, setSelectedStationUuid } from "store/station";
 import stationStyles from "./station.module.css";
@@ -16,7 +17,7 @@ const StationItem: FunctionComponent<{
   stationActions: Action[];
   stationActionsFromDb: Action[];
 }> = ({ selectedStationUuid, station, stationFromDb, stationActions, stationActionsFromDb }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector(
     (state) => state.station.selectedRightNavItem,
     refEqual

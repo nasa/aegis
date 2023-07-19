@@ -196,34 +196,29 @@ type Action = {
    * Priority normally inferred by STM relationship, but can be overridden.
    */
   priorityOverride: number; // 2.7
-
   /**
    * Allow linkage to any part of the STM hierarchy
    */
   stmUuidRefs?: string[];
-
   /**
    * The type of action to be taken
    */
   type: ActionType;
-
   /**
    * Science explanation of details of the action. e.g. "Photograph contact point between two units."
    */
   description: string;
-
   /**
    * The duration of the action, in minutes.
    */
   durationLower: number; // in minutes
   durationUpper?: number; // in minutes
-
-  // Equipment needed to perform this action.
-  equipmentItemsUsage: EquipmentItemUsage[];
-
+  equipmentItemsUsage: EquipmentItemUsage[]; // Equipment needed to perform this action.
+  geographicUnitsUsage: string[]; // uuids of geographic units used in this action
   mass: number; // grams
-
   status: ActionStatus;
+  crewAssigned: Crew[];
+
   createdAt?: string;
   updatedAt?: string;
 };
@@ -242,6 +237,8 @@ type Action_db_type = Omit<
 };
 
 type ActionStatus = "Archived" | "Candidate" | "In Review" | "Approved";
+
+type Crew = "EV1" | "EV2";
 
 //Filter options when getting actions from the API endpoint
 interface ActionFilterOptions {

@@ -532,14 +532,15 @@ async function deleteSTMTree(missionId: number): Promise<string> {
       const investigations = await getInvestigations(missionId, null, goal.uuid);
       for (const investigation of investigations) {
         const entity = await em.findOne(STMInvestigation_db, investigation.uuid);
-        await em.removeAndFlush(entity);
+        em.remove(entity);
       }
       const entity = await em.findOne(STMGoal_db, goal.uuid);
-      await em.removeAndFlush(entity);
+      em.remove(entity);
     }
     const entity = await em.findOne(STMObjective_db, objective.uuid);
-    await em.removeAndFlush(entity);
+    em.remove(entity);
   }
+  await em.flush();
 
   return "all items deleted";
 }

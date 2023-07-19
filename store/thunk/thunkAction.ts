@@ -4,6 +4,7 @@ import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
 import _ from "lodash";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
+import { roundDateToSecond } from "utils/formatting";
 
 export const thunkCreateAction = appCreateAsyncThunk<{
   actionParentUuid: ActionParentUuid;
@@ -34,6 +35,8 @@ export const thunkCreateAction = appCreateAsyncThunk<{
       durationUpper: 6,
       stmUuidRefs: null,
       equipmentItemsUsage: null,
+      geographicUnitsUsage: null,
+      crewAssigned: [],
       mass: null,
       priorityOverride: null,
     };
@@ -104,6 +107,7 @@ export const thunkDuplicateAction = appCreateAsyncThunk<
 
     if (preserveParentUuid) {
       newAction.parentActionUuid = action.uuid;
+      newAction.parentCopyDate = roundDateToSecond(new Date()).toISOString();
     } else {
       newAction.parentActionUuid = null;
     }

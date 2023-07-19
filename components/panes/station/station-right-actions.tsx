@@ -1,7 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
-import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { faCaretDown, faCaretRight, faClone } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -16,8 +15,7 @@ import { ExpandCollapseActionsButtons } from "../actions-action";
 const Actions_Panel: FunctionComponent<{
   editMode: boolean;
 }> = ({ editMode }) => {
-  const dispatch = useDispatch();
-  const thunkDispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
     refEqual
@@ -62,10 +60,14 @@ const Actions_Panel: FunctionComponent<{
 
   useEffect(() => {
     if (!calculatedFields) return;
-    // create the calulated action fields for the action tab
+    // create the calculated action fields for the action tab
     const newActionsCalculatedFields: ActionsCalculatedFields = {
       actionCount: calculatedFields.actionCount,
-      totalActionTime: calculatedFields.totalTime,
+      totalTime: calculatedFields.totalTime,
+      totalEv1Time: calculatedFields.totalEv1Time,
+      totalEv2Time: calculatedFields.totalEv2Time,
+      totalUnassignedTime: calculatedFields.totalUnassignedTime,
+      totalDwellTime: calculatedFields.totalDwellTime,
     };
     setActionsCalculatedField(newActionsCalculatedFields);
   }, [calculatedFields]);
@@ -91,6 +93,7 @@ const Actions_Panel: FunctionComponent<{
             dispatch(upsertStation({ ...selectedStation, actionOrderUuids: actionOrderUuids }));
           }}
           actionParentUuid={{ stationUuid: selectedStationUuid }}
+          parentType="station"
           actionsCalculatedFields={actionsCalculatedFields}
         />
 
@@ -114,9 +117,9 @@ const Actions_Panel: FunctionComponent<{
             </div>
             <div className={`${stationStyles.stationPoiTitle}`}>Associated POI Actions</div>
           </div>
-          <div className={stationStyles.stationPoiSection}>
-            {poiExpanded &&
-              stationPois?.map((poi) => (
+          {poiExpanded && (
+            <div className={stationStyles.stationPoiSection}>
+              {stationPois?.map((poi) => (
                 <div key={poi.uuid}>
                   <div
                     className={stationStyles.stationPoiHeading}
@@ -169,7 +172,7 @@ const Actions_Panel: FunctionComponent<{
                                   size="xs"
                                   className={stationStyles.copyIcon}
                                   onClick={(e) => {
-                                    thunkDispatch(
+                                    dispatch(
                                       thunkDuplicateAction({
                                         action,
                                         stationUuid: selectedStationUuid,
@@ -187,7 +190,8 @@ const Actions_Panel: FunctionComponent<{
                   </div>
                 </div>
               ))}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

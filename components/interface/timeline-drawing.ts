@@ -755,7 +755,7 @@ export const drawMouseHover = (
     };
 
     // find the GraphDataItem of the distanceFromLander with the closest x value compared to xLoc
-    if (flattenedGraphData.current.distanceFromLanderXY) {
+    if (flattenedGraphData.current.distanceFromLanderXY?.length > 0) {
       const hoverData = getHoverValue(
         flattenedGraphData.current.distanceFromLanderXY,
         hoverPoint.x
@@ -771,7 +771,7 @@ export const drawMouseHover = (
     }
 
     // find the GraphDataItem of the elevation with the closest x value compared to xLoc
-    if (flattenedGraphData.current.elevationXY) {
+    if (flattenedGraphData.current.elevationXY?.length > 0) {
       const hoverData = getHoverValue(flattenedGraphData.current.elevationXY, hoverPoint.x);
       newHoverValues.elevationMeters = hoverData.val - landerElevationMeters;
       newHoverValues.slopeDegrees = hoverData.slope;
@@ -872,6 +872,10 @@ function getHoverValue(
       pointAfter = graphDataItem;
       break;
     }
+  }
+  if (!pointAfter) {
+    //we're past the end of the graph data. Use last point as pointAfter
+    pointAfter = graphArray.slice(-1)[0];
   }
 
   //extrapolate percentage between the nearest points for estimated value

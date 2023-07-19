@@ -1,8 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import stmStyles from "./stmEdit.module.css";
 import { deleteSTM, upsertSTM } from "http-client/stm";
-import { useDispatch } from "react-redux";
-import { clearSTM, addObjective, addGoal, addInvestigation } from "store/stm";
+import { v4 as uuidv4 } from "uuid";
 
 interface STMProps {
   reloadSTMfromDB: (missionId: number) => void;
@@ -88,18 +87,15 @@ const STMEdit: FunctionComponent<STMProps> = (props: STMProps) => {
   );
 };
 
-const destructiveImportSTM = async (dispatch: Function, stmJson: string, missionId: number) => {
+const destructiveImportSTM = async (stmJson: string, missionId: number) => {
   const stm = JSON.parse(stmJson);
-  // delete all existing STM items from the store
-  dispatch(clearSTM());
-
   // delete all esiting STM items for this mission from the db via the API
   deleteSTM(missionId, "ALL");
 
   // add all STM items from the imported JSON to the store
   stm.objectives.forEach(async (obj: STMObjective) => {
     const newObjective: STMObjective = {
-      uuid: obj.uuid,
+      uuid: uuidv4(),
       name: obj.name,
       numbering: obj.numbering,
       missionId,
@@ -107,33 +103,36 @@ const destructiveImportSTM = async (dispatch: Function, stmJson: string, mission
       updatedAt: new Date(Date.now()).toISOString(),
     };
     await upsertSTM(missionId, newObjective, "Objective");
-    dispatch(addObjective(newObjective));
-  });
 
-  stm.goals.forEach(async (goal: STMGoal) => {
-    const newGoal: STMGoal = {
-      uuid: goal.uuid,
-      name: goal.name,
-      numbering: goal.numbering,
-      objectiveUuid: goal.objectiveUuid,
-      createdAt: new Date(Date.now()).toISOString(),
-      updatedAt: new Date(Date.now()).toISOString(),
-    };
-    await upsertSTM(missionId, newGoal, "Goal");
-    dispatch(addGoal(newGoal));
-  });
+    //get nested goals
+    const childGoals = stm.goals.filter((g: STMGoal) => g.objectiveUuid === obj.uuid);
+    childGoals.forEach(async (goal: STMGoal) => {
+      const newGoal: STMGoal = {
+        uuid: uuidv4(),
+        name: goal.name,
+        numbering: goal.numbering,
+        objectiveUuid: newObjective.uuid,
+        createdAt: new Date(Date.now()).toISOString(),
+        updatedAt: new Date(Date.now()).toISOString(),
+      };
+      await upsertSTM(missionId, newGoal, "Goal");
 
-  stm.investigations.forEach(async (invstg: STMInvestigation) => {
-    const newInvstg: STMInvestigation = {
-      uuid: invstg.uuid,
-      name: invstg.name,
-      numbering: invstg.numbering,
-      goalUuid: invstg.goalUuid,
-      createdAt: new Date(Date.now()).toISOString(),
-      updatedAt: new Date(Date.now()).toISOString(),
-    };
-    await upsertSTM(missionId, newInvstg, "Investigation");
-    dispatch(addInvestigation(newInvstg));
+      //get nested invstg
+      const childInvstg = stm.investigations.filter(
+        (i: STMInvestigation) => i.goalUuid === goal.uuid
+      );
+      childInvstg.forEach(async (invstg: STMInvestigation) => {
+        const newInvstg: STMInvestigation = {
+          uuid: uuidv4(),
+          name: invstg.name,
+          numbering: invstg.numbering,
+          goalUuid: newGoal.uuid,
+          createdAt: new Date(Date.now()).toISOString(),
+          updatedAt: new Date(Date.now()).toISOString(),
+        };
+        await upsertSTM(missionId, newInvstg, "Investigation");
+      });
+    });
   });
 };
 
@@ -142,7 +141,8 @@ const ExportSTM = (props: {
   allGoals: STMGoal[];
   allInvestigations: STMInvestigation[];
 }) => {
-  // strip out missionId, createdAd, and updatedAd from all STM items
+  // strip out missionId, createdAt, and updatedAt from all STM items
+  // keep uuid in order to maintain relationship
   const objectives = props.allObjectives.map((obj: STMObjective) => {
     return {
       uuid: obj.uuid,
@@ -197,7 +197,6 @@ const ExportSTM = (props: {
 };
 
 const ImportSTM = (props: { missionId: number; reloadSTMfromDB: Function }) => {
-  const dispatch = useDispatch();
   const [stmJson, setStmJson] = useState<string>(null);
 
   return (
@@ -214,7 +213,7 @@ const ImportSTM = (props: { missionId: number; reloadSTMfromDB: Function }) => {
               "Are you sure you want to import? This will destroy all existing STM records for this mission"
             )
           ) {
-            destructiveImportSTM(dispatch, stmJson, props.missionId);
+            destructiveImportSTM(stmJson, props.missionId);
             props.reloadSTMfromDB(props.missionId);
           }
         }}

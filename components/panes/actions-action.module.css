@@ -29,12 +29,16 @@
   padding-left: 15px;
 }
 
-.equipmentItem {
+.propertyList {
+  margin-left: 18px;
+}
+
+.propertyItem {
   display: flex;
   flex-direction: row;
 }
 
-.equipmentItemLabel {
+.propertyItemLabel {
   font-size: 0.8em;
 
   display: flex;
@@ -42,13 +46,13 @@
   justify-content: space-around;
 }
 
-.equipmentListDoubleColumn {
+.propertyListDoubleColumn {
   display: flex;
   flex-direction: row;
   padding-left: 15px;
   width: 100%;
 }
 
-.equipmentListColumn {
+.propertyListColumn {
   flex: 0 0 50%;
 }

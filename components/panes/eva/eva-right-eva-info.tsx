@@ -1,18 +1,20 @@
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
 import { InLineEditInput } from "components/interface/form/globalFields";
 import { FunctionComponent } from "react";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "utils/useAppDispatch";
+
 import { upsertEva } from "store/eva";
 import { shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { formatNumberWithCommas, toDecimal } from "utils/formatting";
-import { faArrowsToCircle, faCalculator, faMessage } from "@fortawesome/free-solid-svg-icons";
+import { faCalculator, faMessage, faQuestionCircle } from "@fortawesome/free-solid-svg-icons";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { regExValidators, validators } from "components/interface/form/formValidators";
+import CalculatedDwell from "../calculated-dwell";
 
 const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, shallowEqual);
   const selectedEva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid),
@@ -53,7 +55,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
           </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "3px" }}>
-              <SubpanelHeading icon={faArrowsToCircle}>Estimations</SubpanelHeading>
+              <SubpanelHeading icon={faQuestionCircle}>Estimations</SubpanelHeading>
             </div>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>
@@ -136,82 +138,90 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
               <SubpanelHeading icon={faCalculator}>Calculated Totals</SubpanelHeading>
             </div>
-            <div className={paneStyles.panelSectionRow}>
-              <div className={paneStyles.panelSection2Column}>
-                <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.displayFieldLabel}>Action Time (mins):</div>
+            {evaCalculatedFields && (
+              <div className={paneStyles.panelSectionRow}>
+                <div className={paneStyles.panelSection2Column}>
+                  <div className={paneStyles.panelColumnTable}>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCellLeft}>
+                        <div className={paneStyles.displayFieldLabel}>EVA Duration (mins):</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {displayFormattedTotalTimeObj(evaCalculatedFields.totalEvaTime) || 0}
+                          {evaCalculatedFields.totalUnassignedTime.durationLower > 0 ? (
+                            <div
+                              className={paneStyles.valueTooltip}
+                              data-tooltip-id="aegis-tooltip"
+                              data-tooltip-html="Crew assignments incomplete"
+                            >
+                              &nbsp;(!)
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
                     </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {evaCalculatedFields?.totalStationTime?.durationLower === 0 &&
-                        evaCalculatedFields?.totalStationTime?.durationUpper === 0 ? (
-                          <>N/A</>
-                        ) : (
-                          displayFormattedTotalTimeObj(evaCalculatedFields?.totalStationTime)
-                        )}
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCellLeft}>
+                        <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {evaCalculatedFields.actionCount}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCellLeft}>
+                        <div className={paneStyles.displayFieldLabel}>
+                          Total Action Time (mins):
+                        </div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {evaCalculatedFields.totalTime?.durationLower === 0 ? (
+                            <>0</>
+                          ) : (
+                            displayFormattedTotalTimeObj(evaCalculatedFields.totalTime)
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCellLeft}>
+                        <div className={paneStyles.displayFieldLabel}>Traverse Time (mins):</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {evaCalculatedFields.totalTraverseTime === 0 ? (
+                            <>0</>
+                          ) : (
+                            evaCalculatedFields.totalTraverseTime.toFixed(0)
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCellLeft}>
+                        <div className={paneStyles.displayFieldLabel}>Traverse Distance (m):</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {evaCalculatedFields.totalTraverseDistanceMeters === 0 ? (
+                            <>0</>
+                          ) : (
+                            formatNumberWithCommas(evaCalculatedFields.totalTraverseDistanceMeters)
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.displayFieldLabel}>Traverse Time (mins):</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {evaCalculatedFields?.totalTraverseTime === 0 ? (
-                          <>N/A</>
-                        ) : (
-                          evaCalculatedFields?.totalTraverseTime.toFixed(0)
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.displayFieldLabel}>EVA Duration (mins):</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {evaCalculatedFields?.totalEvaTime?.durationLower === 0 &&
-                        evaCalculatedFields?.totalEvaTime?.durationUpper === 0 ? (
-                          <>N/A</>
-                        ) : (
-                          displayFormattedTotalTimeObj(evaCalculatedFields?.totalEvaTime)
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {evaCalculatedFields?.totalStationActionCount}
-                      </div>
-                    </div>
-                  </div>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.displayFieldLabel}>Traverse Distance (m):</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {evaCalculatedFields?.totalTraverseDistanceMeters === 0 ? (
-                          <>N/A</>
-                        ) : (
-                          formatNumberWithCommas(evaCalculatedFields?.totalTraverseDistanceMeters)
-                        )}
-                      </div>
-                    </div>
+                  <div className={paneStyles.panelColumnTable}>
+                    <CalculatedDwell actionsCalculatedFields={evaCalculatedFields} />
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSection2Column}>

@@ -1,9 +1,8 @@
 import _ from "lodash";
 import styles from "./side-controls.module.css";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
-
+import { useAppDispatch } from "utils/useAppDispatch";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setRightPanelOpen, setSectionSelected } from "store/interface";
 
@@ -87,7 +86,7 @@ export const RightControlPanel: FunctionComponent = () => {
 const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
   selectedNavItem,
 }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
   const poisFromDb = useAppSelector((state) => state.poi.poisFromDb, shallowEqual);
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);

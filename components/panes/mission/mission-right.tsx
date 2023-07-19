@@ -1,9 +1,9 @@
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
+  faAtlas,
   faBan,
   faEdit,
   faFloppyDisk,
@@ -18,10 +18,10 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { setMissionSectionEditing, setSelectedMissionRightNavItem } from "store/mission";
 import { thunkMissionCancel, thunkMissionSave } from "store/thunk/thunkMission";
 import Equipment_Panel from "./mission-right-equipment";
+import GeographiUnits_Panel from "./mission-right-geographicUnits";
 
 const MissionPrefsRight: FunctionComponent = () => {
-  const dispatch = useDispatch();
-  const thunkDispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector(
     (state) => state.mission.selectedRightNavItem,
     refEqual
@@ -58,6 +58,12 @@ const MissionPrefsRight: FunctionComponent = () => {
       panel: Equipment_Panel,
       selectedColor: "white",
       icon: faPersonWalkingLuggage,
+    },
+    geographicUnit: {
+      title: "Mission Geography",
+      panel: GeographiUnits_Panel,
+      selectedColor: "white",
+      icon: faAtlas,
     },
   };
 
@@ -119,7 +125,7 @@ const MissionPrefsRight: FunctionComponent = () => {
             <>
               <Button
                 onClick={() => {
-                  thunkDispatch(thunkMissionSave({}));
+                  dispatch(thunkMissionSave());
                 }}
                 icon={faFloppyDisk}
                 toolTip={`Save Preset${modified ? "" : " (nothing to save)"}`}
@@ -134,7 +140,7 @@ const MissionPrefsRight: FunctionComponent = () => {
               />
               <Button
                 onClick={() => {
-                  thunkDispatch(thunkMissionCancel({}));
+                  dispatch(thunkMissionCancel());
                 }}
                 icon={faBan}
                 toolTip="Cancel Edit"

@@ -3,7 +3,8 @@ import paneStyles from "../global-pane-styles.module.css";
 import { faCalculator, faLocationDot, faMessage, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "utils/useAppDispatch";
+
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { setSelectedPOIRightNavItem, upsertPoi } from "store/poi";
 import { updateMapDirective } from "store/map";
@@ -14,10 +15,9 @@ import { validators } from "components/interface/form/formValidators";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
-  totalPoiTime: TotalTimeObj;
   actionCount: number;
-}> = ({ editMode, totalPoiTime, actionCount }) => {
-  const dispatch = useDispatch();
+}> = ({ editMode, actionCount }) => {
+  const dispatch = useAppDispatch();
   const selectedPoi = useAppSelector(
     (state) => state.poi.pois.find((poi) => poi.uuid === state.poi.selectedPoiUuid),
     shallowEqual
@@ -30,6 +30,12 @@ const Info_Panel: FunctionComponent<{
   );
   const landerElevation = useAppSelector(
     (state) => state.mission.mission.landerElevationMeters,
+    shallowEqual
+  );
+
+  const calculatedFields = useAppSelector(
+    (state) =>
+      state.poi.calculatedFields.find((calculated) => calculated.uuid === selectedPoi.uuid),
     shallowEqual
   );
 
@@ -123,18 +129,6 @@ const Info_Panel: FunctionComponent<{
                       <div className={paneStyles.displayFieldValue}>{actionCount}</div>
                     </div>
                   </div>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.displayFieldLabel}>Stations using this POI:</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {stationsUsingThisPoi.length}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className={paneStyles.panelColumnTable}>
                   <div
                     className={paneStyles.panelColumnTableRow}
                     onClick={() => {
@@ -147,11 +141,23 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {totalPoiTime?.durationLower === 0 && totalPoiTime?.durationUpper === 0 ? (
-                          <>N/A</>
+                        {calculatedFields?.totalTime?.durationLower === 0 ? (
+                          <>0</>
                         ) : (
-                          <>{displayFormattedTotalTimeObj(totalPoiTime)}</>
+                          <>{displayFormattedTotalTimeObj(calculatedFields?.totalTime)}</>
                         )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Stations using this POI:</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {stationsUsingThisPoi.length}
                       </div>
                     </div>
                   </div>

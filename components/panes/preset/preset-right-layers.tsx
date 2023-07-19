@@ -10,7 +10,8 @@ import {
   faGripVertical,
   faSliders,
 } from "@fortawesome/free-solid-svg-icons";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "utils/useAppDispatch";
+
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setMapLayerControls } from "store/map";
@@ -26,7 +27,7 @@ import ReactDragListView from "react-drag-listview";
 import { cloneDeep } from "lodash";
 
 const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const missionLayers = useAppSelector((state) => state.mission.layers, shallowEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const selectedPreset = useAppSelector(
@@ -193,7 +194,7 @@ const Sublayer: FunctionComponent<{
   presetUIStates: PresetUIStates;
   editMode: boolean;
 }> = ({ sublayer, selectedPreset, presetUIStates, editMode }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const presetLayerControls = selectedPreset?.mapLayerControls;
 
   return (

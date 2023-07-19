@@ -1,6 +1,5 @@
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -22,8 +21,7 @@ import { thunkDeletePreset, thunkPresetCancel, thunkSavePreset } from "store/thu
 import { validators } from "components/interface/form/formValidators";
 
 const PresetEditorRight: FunctionComponent = () => {
-  const dispatch = useDispatch();
-  const thunkDispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector(
     (state) => state.preset.selectedRightNavItem,
     refEqual
@@ -127,7 +125,7 @@ const PresetEditorRight: FunctionComponent = () => {
               <Button
                 icon={faTrashAlt}
                 onClick={() => {
-                  thunkDispatch(thunkDeletePreset({ preset: selectedPreset }));
+                  dispatch(thunkDeletePreset({ preset: selectedPreset }));
                 }}
                 toolTip="Delete Preset"
                 style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
@@ -150,7 +148,7 @@ const PresetEditorRight: FunctionComponent = () => {
               <>
                 <Button
                   onClick={() => {
-                    thunkDispatch(thunkSavePreset({ preset: selectedPreset }));
+                    dispatch(thunkSavePreset({ preset: selectedPreset }));
                   }}
                   icon={faFloppyDisk}
                   toolTip={`Save Preset${modified ? "" : " (nothing to save)"}`}
@@ -165,7 +163,7 @@ const PresetEditorRight: FunctionComponent = () => {
                 />
                 <Button
                   onClick={() => {
-                    thunkDispatch(thunkPresetCancel({ preset: selectedPreset }));
+                    dispatch(thunkPresetCancel({ preset: selectedPreset }));
                   }}
                   icon={faBan}
                   toolTip="Cancel Edit"

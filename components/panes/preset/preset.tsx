@@ -2,7 +2,6 @@ import styles from "./preset.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faGlobe, faPlusCircle, faUser } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent, useState } from "react";
-import { useDispatch } from "react-redux";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { setMapLayerControls } from "store/map";
 import { setSelectedPresetUuid, setSelectedPresetRightNavItem } from "store/preset";
@@ -15,7 +14,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreatePreset, thunkDuplicatePreset } from "store/thunk/thunkPreset";
 
 const PresetEditorLeft: FunctionComponent = () => {
-  const thunkDispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
   const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
@@ -55,7 +54,7 @@ const PresetEditorLeft: FunctionComponent = () => {
         <div className={paneStyles.iconButtons}>
           <Button
             onClick={() => {
-              thunkDispatch(thunkCreatePreset());
+              dispatch(thunkCreatePreset());
             }}
             label="Add"
             icon={faPlusCircle}
@@ -64,7 +63,7 @@ const PresetEditorLeft: FunctionComponent = () => {
           <Button
             onClick={() => {
               if (selectedPresetUuid !== null) {
-                thunkDispatch(thunkDuplicatePreset({ preset: selectedPreset }));
+                dispatch(thunkDuplicatePreset({ preset: selectedPreset }));
               }
             }}
             label="Duplicate"
@@ -82,7 +81,7 @@ const PresetList: FunctionComponent<{
   presets: Preset[];
   selectedPresetUuid: string;
 }> = ({ presets, selectedPresetUuid }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const presetsFromDb = useAppSelector((state) => state.preset.presetsFromDb, shallowEqual);
   const selectedRightNavItem = useAppSelector(
     (state) => state.preset.selectedRightNavItem,

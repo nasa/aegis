@@ -9,8 +9,7 @@ import "proj4leaflet";
 
 import styles from "components/interface/map-body.module.css";
 
-import { useDispatch } from "react-redux";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 
 import {
   MutableRefObject,
@@ -49,6 +48,25 @@ import { selectEVASequenceItem } from "store/cross-slice";
 import { thunkGetStationOrTraverse } from "store/thunk/thunkEva";
 import { thunkUpdateLanderLocation } from "store/thunk/thunkMission";
 
+type MissionSelectProperties = Pick<
+  Mission,
+  | "id"
+  | "landerLocation"
+  | "initialZoom"
+  | "planetRadius"
+  | "projBoundsMaxX"
+  | "projBoundsMaxY"
+  | "projBoundsMinX"
+  | "projBoundsMinY"
+  | "projEpsg"
+  | "projProj4String"
+  | "projResZoomLevel"
+  | "projResUnitsPerPixel"
+  | "projIsCustom"
+  | "projOriginX"
+  | "projOriginY"
+>;
+
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
 const zoom = 13;
@@ -56,8 +74,7 @@ const zoom = 13;
 const layerBaseURL = "/static/missionFiles";
 
 const MapBody: FunctionComponent = () => {
-  const dispatch = useDispatch();
-  const thunkDispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
   const mapRef = useRef(null);
   const map = useRef<L.Map>(null);
   const crs = useRef<L.Proj.CRS>(null);
@@ -65,7 +82,27 @@ const MapBody: FunctionComponent = () => {
   const stationFeatureGroup = useRef<L.FeatureGroup>(null);
   const poiFeatureGroup = useRef<L.FeatureGroup>(null);
 
-  const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
+  const mission: MissionSelectProperties = useAppSelector(
+    (state) =>
+      _.pick(state.mission.mission, [
+        "id",
+        "landerLocation",
+        "initialZoom",
+        "planetRadius",
+        "projBoundsMaxX",
+        "projBoundsMaxY",
+        "projBoundsMinX",
+        "projBoundsMinY",
+        "projEpsg",
+        "projProj4String",
+        "projResZoomLevel",
+        "projResUnitsPerPixel",
+        "projIsCustom",
+        "projOriginX",
+        "projOriginY",
+      ]),
+    deepEqual
+  );
   const missionLayers = useAppSelector((state) => state.mission.layers, shallowEqual);
 
   const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, shallowEqual);
@@ -160,7 +197,7 @@ const MapBody: FunctionComponent = () => {
    * Map layers display management
    */
   useEffect(() => {
-    if (!mission || !layerControls || !map.current || !selectedPreset || !missionLayers) return;
+    if (!mission.id || !layerControls || !map.current || !selectedPreset || !missionLayers) return;
 
     // go through all layers in mission config,  add make a list of the ones that are enabled
     const layersToAdd: Sublayer[] = [];
@@ -308,7 +345,7 @@ const MapBody: FunctionComponent = () => {
         layer.bringToFront();
       }
     });
-  }, [mission, layerControls, map, layersOnMap, missionLayers, selectedPreset]);
+  }, [mission.id, layerControls, map, layersOnMap, missionLayers, selectedPreset]);
 
   /**
    * Update map with display adjustments for sublayers as sliders are moved
@@ -642,14 +679,14 @@ const MapBody: FunctionComponent = () => {
   const saveUpdatedItemPosition = useCallback(
     async (uuid: string, mapItemType: MapItemType, location: AEGISPoint) => {
       if (mapItemType === "lander") {
-        await thunkDispatch(thunkUpdateLanderLocation({ location }));
+        await dispatch(thunkUpdateLanderLocation({ location }));
       } else if (mapItemType === "poi") {
-        await thunkDispatch(thunkUpdatePoiLocation({ location, poiUuid: uuid }));
+        await dispatch(thunkUpdatePoiLocation({ location, poiUuid: uuid }));
       } else if (mapItemType === "station") {
-        await thunkDispatch(thunkUpdateStationLocation({ location, stationUuid: uuid }));
+        await dispatch(thunkUpdateStationLocation({ location, stationUuid: uuid }));
       }
     },
-    [thunkDispatch]
+    [dispatch]
   );
 
   /**
@@ -816,7 +853,7 @@ const MapBody: FunctionComponent = () => {
             if (e.layer.mapItemType === "traverse") {
               if (!saveElevation) {
                 //update just the path
-                await thunkDispatch(
+                await dispatch(
                   thunkUpdateTraversePath({
                     path,
                     traverseUuid: mapDirective.uuid,
@@ -824,7 +861,7 @@ const MapBody: FunctionComponent = () => {
                 );
               } else {
                 //update path, elevation, and snap endpoints
-                const response = await thunkDispatch(
+                const response = await dispatch(
                   thunkFullUpdateTraverse({
                     path,
                     traverseUuid: mapDirective.uuid,
@@ -842,7 +879,7 @@ const MapBody: FunctionComponent = () => {
             if (e.layer.mapItemType === "walkback") {
               if (!saveElevation) {
                 //update just the path
-                await thunkDispatch(
+                await dispatch(
                   thunkUpdateWalkbackPath({
                     path,
                     stationUuid: mapDirective.uuid,
@@ -850,7 +887,7 @@ const MapBody: FunctionComponent = () => {
                 );
               } else {
                 //update path, elevation, and snap endpoints
-                const response = await thunkDispatch(
+                const response = await dispatch(
                   thunkFullUpdateWalkback({
                     path,
                     stationUuid: mapDirective.uuid,
@@ -931,7 +968,7 @@ const MapBody: FunctionComponent = () => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, mission.planetRadius, draggableLines, mapDirective, dispatch, getMapItemByUuid]);
+  }, [map, draggableLines, mapDirective, dispatch, getMapItemByUuid]);
 
   /**
    * Populate stationsToShow when stations or selections change
@@ -1216,9 +1253,7 @@ const MapBody: FunctionComponent = () => {
       );
       if (sequenceItem) {
         let location: AEGISPoint = { lat: 0, lng: 0 };
-        const seqItemRes = await thunkDispatch(
-          thunkGetStationOrTraverse({ uuid: sequenceItem.uuid })
-        );
+        const seqItemRes = await dispatch(thunkGetStationOrTraverse({ uuid: sequenceItem.uuid }));
         if (!seqItemRes.payload) return location;
 
         if (seqItemRes.payload.type === "station") {
@@ -1277,7 +1312,7 @@ const MapBody: FunctionComponent = () => {
         }
       }
     })();
-  }, [playheadHover, getMapItemByUuid, mapDirective, selectedEva, thunkDispatch]);
+  }, [playheadHover, getMapItemByUuid, mapDirective, selectedEva, dispatch]);
 
   const removeSelectedMarker = useCallback(() => {
     // remove any existing highlight layers
@@ -1334,7 +1369,7 @@ const MapBody: FunctionComponent = () => {
         highlightLocation = selectedStation.location;
         panMapToLocation = selectedStation.location;
       } else if (sectionSelected === "evas" && selectedEvaSequenceItemUuid) {
-        const seqItemRes = await thunkDispatch(
+        const seqItemRes = await dispatch(
           thunkGetStationOrTraverse({ uuid: selectedEvaSequenceItemUuid })
         );
         if (seqItemRes.payload !== false) {
@@ -1365,7 +1400,7 @@ const MapBody: FunctionComponent = () => {
     map,
     selectedPoi,
     selectedStation,
-    thunkDispatch,
+    dispatch,
     showSelectedItemOnMap,
     sectionSelected,
     removeSelectedMarker,

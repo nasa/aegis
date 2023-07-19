@@ -1,5 +1,6 @@
 import type { NextPage } from "next";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "utils/useAppDispatch";
+
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { Dispatch, FormEventHandler, SetStateAction, useEffect, useState } from "react";
@@ -378,7 +379,7 @@ const Inset: React.FunctionComponent = () => {
 };
 
 const Home: NextPage = () => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     dispatch(obliterateEntireStore());

@@ -1,7 +1,8 @@
 import { FunctionComponent } from "react";
 import styles from "./preset-right-layers-settings.module.css";
 import { Dropdown } from "components/interface/form/globalFields";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "utils/useAppDispatch";
+
 import { setPresetLayerStyle } from "store/preset";
 import { getPercentOrDefault } from "utils/formatting";
 import { CompactPicker } from "react-color";
@@ -44,7 +45,7 @@ const Settings_subpanel: FunctionComponent<{
   sublayer: MMGIS_Sublayer;
   selectedPreset: Preset;
 }> = ({ sublayer, selectedPreset }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   const presetLayerStyle = selectedPreset.mapLayerControls[sublayer.name].style;
 

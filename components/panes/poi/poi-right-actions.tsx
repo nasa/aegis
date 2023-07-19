@@ -1,13 +1,14 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "utils/useAppDispatch";
+
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { setPoiEditMode, upsertPoi } from "store/poi";
 import Actions from "../actions";
 import { ExpandCollapseActionsButtons } from "../actions-action";
 
 const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
   const selectedPoi = useAppSelector(
@@ -41,8 +42,12 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   useEffect(() => {
     // create the calulated action fields for the action tab
     const newActionsCalculatedFields: ActionsCalculatedFields = {
-      actionCount: calculatedFields?.actionCount,
-      totalActionTime: calculatedFields?.totalTime,
+      actionCount: calculatedFields.actionCount,
+      totalTime: calculatedFields.totalTime,
+      totalEv1Time: calculatedFields.totalEv1Time,
+      totalEv2Time: calculatedFields.totalEv2Time,
+      totalUnassignedTime: calculatedFields.totalUnassignedTime,
+      totalDwellTime: calculatedFields.totalDwellTime,
     };
     setActionsCalculatedField(newActionsCalculatedFields);
   }, [calculatedFields]);
@@ -66,6 +71,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
             dispatch(upsertPoi({ ...selectedPoi, actionOrderUuids: actionOrderUuids }));
           }}
           actionParentUuid={{ poiUuid: selectedPoiUuid }}
+          parentType="poi"
           actionsCalculatedFields={actionsCalculatedFields}
         />
       </div>

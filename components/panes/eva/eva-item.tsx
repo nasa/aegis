@@ -1,7 +1,6 @@
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import { Button } from "components/interface/form/globalFields";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import { setSelectedEvaRightNavItem, setExpandedEvaUuids, setSelectedEvaUuid } from "store/eva";
 import evaStyles from "./eva.module.css";
@@ -21,8 +20,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkAddStationToEva } from "store/thunk/thunkEva";
 
 const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
-  const dispatch = useDispatch();
-  const thunkDispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, shallowEqual);
 
   const thisEvaFromDb = useAppSelector(
@@ -161,7 +159,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
           <div className={paneStyles.iconButtons}>
             <Button
               onClick={() => {
-                thunkDispatch(thunkAddStationToEva({ eva }));
+                dispatch(thunkAddStationToEva({ eva }));
               }}
               label="Add Station"
               icon={faPlusCircle}
