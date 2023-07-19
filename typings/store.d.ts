@@ -118,22 +118,23 @@ type CalculatedFields = {
   reportItems: ReportItem[];
 };
 
-type PoiCalculatedFields = CalculatedFields & {
+type ActionsCalculatedFields = {
   totalTime: TotalTimeObj;
+  totalEv1Time: TotalTimeObj;
+  totalEv2Time: TotalTimeObj;
+  totalUnassignedTime: TotalTimeObj;
+  totalDwellTime: TotalTimeObj;
   actionCount: number;
 };
 
-type StationCalculatedFields = CalculatedFields & {
-  totalTime: TotalTimeObj;
-  actionCount: number;
+type LocationCalculatedFields = CalculatedFields & ActionsCalculatedFields;
+
+type PoiCalculatedFields = LocationCalculatedFields;
+
+type StationCalculatedFields = LocationCalculatedFields & {
   walkbackDurationMinutes: number;
   walkbackDistanceMeters: number;
   walkbackAscentDescent: TotalAscentDescentObj;
-};
-
-type ActionsCalculatedFields = {
-  totalActionTime: TotalTimeObj;
-  actionCount: number;
 };
 
 type TraverseCalculatedFields = CalculatedFields & {
@@ -148,9 +149,7 @@ type EvaReportSequenceItem = EvaSequenceItem & {
   reportItems: ReportItem[];
 };
 
-type EvaCalculatedFields = CalculatedFields & {
-  totalStationTime: TotalTimeObj;
-  totalStationActionCount: number;
+type EvaCalculatedFields = LocationCalculatedFields & {
   totalTraverseTime: number;
   totalTraverseDistanceMeters: number;
   totalTraverseAscentDescent: TotalAscentDescentObj;

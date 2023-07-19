@@ -38,10 +38,14 @@ export class Action implements Action_db_type {
   durationUpper: number;
   @Property({ type: MikroTypes.json, nullable: true })
   equipmentItemsUsage: EquipmentItemUsage[];
+  @Property({ type: MikroTypes.json, nullable: true })
+  geographicUnitsUsage: string[];
   @Property({ type: MikroTypes.double, nullable: true })
   mass: number;
   @Property({ type: MikroTypes.string })
   status!: POIStatus;
+  @Property({ type: MikroTypes.json, nullable: true })
+  crewAssigned: Crew[];
 
   @Property({ type: MikroTypes.datetime })
   createdAt: Date;

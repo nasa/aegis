@@ -20,6 +20,7 @@ interface Mission {
   defaultEvaDuration: number;
   walkbackSpeed: number;
   equipmentItems: EquipmentItem[];
+  geographicUnits: GeographicUnit[];
   _metadata?: Metadata; // Meant for JsonExport file export only
   demFilePath: string;
   demResolution: number;
@@ -95,4 +96,12 @@ interface EquipmentItem {
   name: string;
   quantity: number;
   singleUse: boolean;
+}
+
+/**
+ * Geographic unit
+ */
+interface GeographicUnit {
+  uuid: string;
+  name: string;
 }

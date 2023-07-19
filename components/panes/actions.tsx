@@ -11,6 +11,8 @@ import { STM_Coverage } from "./stm-coverage";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreateAction } from "store/thunk/thunkAction";
+import { hhmmFromMinutes } from "utils/formatting";
+import CalculatedDwell from "./calculated-dwell";
 
 const Actions: FunctionComponent<{
   editMode: boolean;
@@ -20,6 +22,7 @@ const Actions: FunctionComponent<{
   actionOrderUuids: string[];
   setActionOrderUuids: (actionOrderUuids: string[]) => void;
   actionParentUuid: Pick<Action, "poiUuid" | "stationUuid">;
+  parentType: "poi" | "station" | "eva";
   actionsCalculatedFields: ActionsCalculatedFields;
 }> = ({
   editMode,
@@ -29,6 +32,7 @@ const Actions: FunctionComponent<{
   actionOrderUuids,
   setActionOrderUuids,
   actionParentUuid,
+  parentType,
   actionsCalculatedFields,
 }) => {
   const dispatch = useAppDispatch();
@@ -141,51 +145,92 @@ const Actions: FunctionComponent<{
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldValue}>
-                          {actionsCalculatedFields?.actionCount}
+                          {actionsCalculatedFields.actionCount}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCellLeft}>
+                        <div
+                          className={paneStyles.displayFieldLabel}
+                          data-tooltip-id="aegis-tooltip"
+                          data-tooltip-html="Sum of all action durations, nominal to max"
+                        >
+                          Total Action Time (mins):
+                        </div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {actionsCalculatedFields.totalTime.durationLower === 0 ? (
+                            <>0</>
+                          ) : (
+                            <>{displayFormattedTotalTimeObj(actionsCalculatedFields.totalTime)}</>
+                          )}
                         </div>
                       </div>
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTable}>
-                    <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
-                        <div className={paneStyles.displayFieldLabel}>
-                          Total Action Time (mins):
-                        </div>
-                      </div>
-                      <div className={paneStyles.displayFieldValue}>
-                        {actionsCalculatedFields?.totalActionTime?.durationLower === 0 &&
-                        actionsCalculatedFields?.totalActionTime?.durationUpper === 0 ? (
-                          <>N/A</>
-                        ) : (
-                          <>
-                            {displayFormattedTotalTimeObj(actionsCalculatedFields?.totalActionTime)}
-                          </>
-                        )}
-                      </div>
-                    </div>
+                    {parentType !== "poi" && (
+                      <>
+                        <CalculatedDwell actionsCalculatedFields={actionsCalculatedFields} />
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <ReactDragListView onDragEnd={reorder} nodeSelector="li" handleSelector="a">
-            <ul className={actionStyles.actionlist}>
-              {wrappedActions?.map((wrappedAction) => (
-                <li key={wrappedAction.action.uuid} className={actionStyles.actionlistitem}>
-                  <Action
-                    editMode={editMode}
-                    setEditMode={setEditMode}
-                    action={wrappedAction.action}
-                    highlight={wrappedAction.highlight}
-                    actionColor={actionColor}
-                  />
-                </li>
-              ))}
-            </ul>
-          </ReactDragListView>
-          <div className={actionStyles.rightBodyItem}>
+          <div className={actionStyles.actionListContainer}>
+            <div className={actionStyles.dragableActionList}>
+              <ReactDragListView onDragEnd={reorder} nodeSelector="li" handleSelector="a">
+                <ul className={actionStyles.actionlist}>
+                  {wrappedActions?.map((wrappedAction) => (
+                    <li key={wrappedAction.action.uuid} className={actionStyles.actionlistitem}>
+                      <Action
+                        editMode={editMode}
+                        setEditMode={setEditMode}
+                        action={wrappedAction.action}
+                        highlight={wrappedAction.highlight}
+                        actionColor={actionColor}
+                        parentType={parentType}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </ReactDragListView>
+            </div>
+            {wrappedActions?.length ? (
+              <div className={actionStyles.actionListRightTimeContainer}>
+                <div className={actionStyles.actionListRightTimeDot}></div>
+                <div className={actionStyles.actionListRightTimeDotted}></div>
+                <div className={actionStyles.actionListRightTime}>
+                  {parentType === "poi"
+                    ? hhmmFromMinutes(actionsCalculatedFields.totalTime.durationUpper).slice(1)
+                    : hhmmFromMinutes(actionsCalculatedFields.totalDwellTime.durationUpper).slice(
+                        1
+                      )}
+                  {actionsCalculatedFields.totalUnassignedTime.durationLower > 0 ||
+                  actionsCalculatedFields.totalUnassignedTime.durationUpper > 0 ? (
+                    <div
+                      className={paneStyles.valueTooltip}
+                      data-tooltip-id="aegis-tooltip"
+                      data-tooltip-html="Crew assignments incomplete"
+                    >
+                      &nbsp;(!)
+                    </div>
+                  ) : null}
+                </div>
+                <div className={actionStyles.actionListRightTimeDotted}></div>
+                <div className={actionStyles.actionListRightTimeDot}></div>
+              </div>
+            ) : (
+              <></>
+            )}
+          </div>
+
+          <div className={actionStyles.rightBodyItem} style={{ marginTop: "8px" }}>
             {editMode && (
               <Button
                 icon={faPlusCircle}

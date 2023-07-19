@@ -15,9 +15,8 @@ import { validators } from "components/interface/form/formValidators";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
-  totalPoiTime: TotalTimeObj;
   actionCount: number;
-}> = ({ editMode, totalPoiTime, actionCount }) => {
+}> = ({ editMode, actionCount }) => {
   const dispatch = useAppDispatch();
   const selectedPoi = useAppSelector(
     (state) => state.poi.pois.find((poi) => poi.uuid === state.poi.selectedPoiUuid),
@@ -31,6 +30,12 @@ const Info_Panel: FunctionComponent<{
   );
   const landerElevation = useAppSelector(
     (state) => state.mission.mission.landerElevationMeters,
+    shallowEqual
+  );
+
+  const calculatedFields = useAppSelector(
+    (state) =>
+      state.poi.calculatedFields.find((calculated) => calculated.uuid === selectedPoi.uuid),
     shallowEqual
   );
 
@@ -124,18 +129,6 @@ const Info_Panel: FunctionComponent<{
                       <div className={paneStyles.displayFieldValue}>{actionCount}</div>
                     </div>
                   </div>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.displayFieldLabel}>Stations using this POI:</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {stationsUsingThisPoi.length}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className={paneStyles.panelColumnTable}>
                   <div
                     className={paneStyles.panelColumnTableRow}
                     onClick={() => {
@@ -148,11 +141,23 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {totalPoiTime?.durationLower === 0 && totalPoiTime?.durationUpper === 0 ? (
-                          <>N/A</>
+                        {calculatedFields?.totalTime?.durationLower === 0 ? (
+                          <>0</>
                         ) : (
-                          <>{displayFormattedTotalTimeObj(totalPoiTime)}</>
+                          <>{displayFormattedTotalTimeObj(calculatedFields?.totalTime)}</>
                         )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Stations using this POI:</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {stationsUsingThisPoi.length}
                       </div>
                     </div>
                   </div>

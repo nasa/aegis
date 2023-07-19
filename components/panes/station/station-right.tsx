@@ -85,7 +85,6 @@ const StationEditorRight: FunctionComponent = () => {
       panel: (
         <Info_Panel
           editMode={stationsEditing.includes(selectedStationUuid)}
-          totalStationTime={calculatedFields?.totalTime}
           actionCount={calculatedFields?.actionCount}
         />
       ),

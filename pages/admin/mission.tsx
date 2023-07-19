@@ -94,6 +94,7 @@ const Mission: NextPage = () => {
       defaultEvaDuration: 240,
       walkbackSpeed: 2,
       equipmentItems: [],
+      geographicUnits: [],
       planetRadius: 1737400, // moon
       initialZoom: 14,
       demFilePath: "",
@@ -159,6 +160,7 @@ const Mission: NextPage = () => {
           earthAzimuthVisible: false,
           defaultEvaDuration: 240,
           equipmentItems: [],
+          geographicUnits: [],
           planetRadius: 1737400, // moon
           initialZoom: 14,
           demFilePath: "",
@@ -194,6 +196,7 @@ const Mission: NextPage = () => {
           earthAzimuthVisible: tempMissionObj.earthAzimuthVisible,
           defaultEvaDuration: tempMissionObj.defaultEvaDuration,
           equipmentItems: tempMissionObj.equipmentItems,
+          geographicUnits: tempMissionObj.geographicUnits,
           planetRadius: tempMissionObj.planetRadius,
           initialZoom: tempMissionObj.initialZoom,
           demFilePath: tempMissionObj.demFilePath,

@@ -165,6 +165,10 @@ const NavTimeline: FunctionComponent = () => {
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
+  const stationCalculatedFields = useAppSelector(
+    (state) => state.station.calculatedFields,
+    shallowEqual
+  );
 
   const showDistanceFromLander = useAppSelector(
     (state) => state.interface.timelineShowDistanceFromLander,
@@ -177,12 +181,7 @@ const NavTimeline: FunctionComponent = () => {
   const storeRef: MutableRefObject<EvaCalculated_PaperJS> = useRef(null);
   const paperGroupsRef: MutableRefObject<PaperGroups> = useRef(null);
   const graphSequenceItems: MutableRefObject<GraphSequenceItems> = useRef(null);
-  const flattenedGraphData: MutableRefObject<GraphData> = useRef({
-    distanceFromLanderXY: [],
-    elevationXY: [],
-    walkbackDistanceFromLanderXY: [],
-    walkbackElevationXY: [],
-  });
+  const flattenedGraphData: MutableRefObject<GraphData> = useRef(null);
 
   const initHoverValues: HoverValues = {
     distanceFromLanderMeters: null,
@@ -238,17 +237,15 @@ const NavTimeline: FunctionComponent = () => {
           const traverseRate = _.isNumber(evaTraverseRate) ? evaTraverseRate : missionTraverseRate;
           sequenceItemForPaperJS.traverseRateMSec = traverseRate * (1000 / 3600); //convert to m/sec
 
+          // get calculatedFieldValues for this station
+          const calculatedFields = stationCalculatedFields.find(
+            (calculated) => calculated.uuid === station.uuid
+          );
+
           //calculate duration from actions assigned to station
-          let durationMinutes = 0;
-          for (const action of actions) {
-            if (action.stationUuid === sequenceItem.uuid) {
-              //duration values come in as strings during edit mode
-              const upper = isNaN(action.durationUpper) ? null : +action.durationUpper;
-              const lower = isNaN(action.durationLower) ? null : +action.durationLower;
-              const actionDuration = upper || lower;
-              durationMinutes += isNaN(actionDuration) ? 0 : actionDuration;
-            }
-          }
+          // note: this is the "dwell time" which is crew member time spent at the station that is the longest
+          const durationMinutes = calculatedFields.totalDwellTime.durationUpper;
+
           sequenceItemForPaperJS.totalDurationMins = durationMinutes;
           storeRef.current.evaLengthCalculatedMins += durationMinutes; //add to sum for total length calculated
 
@@ -399,7 +396,15 @@ const NavTimeline: FunctionComponent = () => {
         storeRef.current.sequenceItems.push(sequenceItemForPaperJS);
       }
     }
-  }, [selectedEva, actions, evaTraverseRate, mission, missionTraverseRate, stations, traverses]);
+  }, [
+    selectedEva,
+    evaTraverseRate,
+    mission,
+    missionTraverseRate,
+    stations,
+    traverses,
+    stationCalculatedFields,
+  ]);
 
   //handles on mouse move over the paper canvas
   const onMouseMove = (event: paper.MouseEvent) => {

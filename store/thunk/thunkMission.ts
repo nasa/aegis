@@ -1,23 +1,25 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import * as InternalAPI from "http-client/mission";
-import _ from "lodash";
+import { sortBy } from "lodash";
 
 import { setMission, setMissionFromDb, setMissionSectionEditing } from "store/mission";
 import { thunkGetElevation } from "./thunkElevation";
 import { thunkFullUpdateWalkback, thunkSaveStation } from "./thunkStation";
 
-export const thunkMissionSave = appCreateAsyncThunk<{}>(
+export const thunkMissionSave = appCreateAsyncThunk<void>(
   "missionSave",
-  async ({}, { dispatch, getState }) => {
+  async (_, { dispatch, getState }) => {
     const mission = getState().mission.mission;
 
     //Alphabetize the equipmentItems by name
-    const sortedEquipmentItems = _.sortBy(mission.equipmentItems, "name");
+    const sortedEquipmentItems = sortBy(mission.equipmentItems, "name");
+    const sortedGeoUnits = sortBy(mission.geographicUnits, "name");
 
     //save mission to db
     const upsertResponse = await InternalAPI.upsertMission({
       ...mission,
       equipmentItems: sortedEquipmentItems,
+      geographicUnits: sortedGeoUnits,
     });
 
     if (upsertResponse.status === "success") {
@@ -33,9 +35,9 @@ export const thunkMissionSave = appCreateAsyncThunk<{}>(
   }
 );
 
-export const thunkMissionCancel = appCreateAsyncThunk<{}>(
+export const thunkMissionCancel = appCreateAsyncThunk<void>(
   "missionCancel",
-  async ({}, { dispatch, getState }) => {
+  async (_, { dispatch, getState }) => {
     const missionFromDb = getState().mission.missionFromDb;
     dispatch(setMission(missionFromDb));
     dispatch(setMissionSectionEditing({ section: "prefs", editMode: false }));

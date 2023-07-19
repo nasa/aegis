@@ -66,6 +66,15 @@ const mustBeInteger = (value: Stringy): string | undefined => {
   }
 };
 
+const mustBeNumberGTZero = (value: Stringy): string | undefined => {
+  if (!value) return undefined;
+  if (!isNaN(Number(value)) && Number(value) > 0) {
+    return undefined;
+  } else {
+    return "Must be an greater than 0";
+  }
+};
+
 export const validators = {
   required,
   mustBeNumber,
@@ -75,6 +84,7 @@ export const validators = {
   maxLength,
   mustBeValidJSON,
   mustBeInteger,
+  mustBeNumberGTZero,
 };
 
 // UseFieldConfig<any>.validate?: FieldValidator<any>
