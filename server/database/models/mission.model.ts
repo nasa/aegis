@@ -35,6 +35,8 @@ export class Mission implements Mission_db_type {
   walkbackSpeed: number;
   @Property({ type: MikroTypes.json, nullable: true })
   equipmentItems: EquipmentItem[];
+  @Property({ type: MikroTypes.json, nullable: true })
+  geographicUnits: GeographicUnit[];
   @Property({ type: MikroTypes.double, nullable: true })
   planetRadius: number;
   @Property({ type: MikroTypes.double, nullable: true })

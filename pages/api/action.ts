@@ -192,8 +192,10 @@ async function upsertAction(action: Action): Promise<Action> {
     durationLower: actionToUpsert.durationLower,
     durationUpper: actionToUpsert.durationUpper,
     equipmentItemsUsage: actionToUpsert.equipmentItemsUsage,
+    geographicUnitsUsage: actionToUpsert.geographicUnitsUsage,
     mass: actionToUpsert.mass,
     status: actionToUpsert.status,
+    crewAssigned: actionToUpsert.crewAssigned,
     createdAt: new Date(actionToUpsert.createdAt || updateDateString),
     updatedAt: new Date(updateDateString),
   };
@@ -247,8 +249,10 @@ function convertActions(dbactions: Action_db[]): Action[] {
       durationLower: dbaction.durationLower,
       durationUpper: dbaction.durationUpper,
       equipmentItemsUsage: dbaction.equipmentItemsUsage,
+      geographicUnitsUsage: dbaction.geographicUnitsUsage,
       mass: dbaction.mass,
       status: dbaction.status,
+      crewAssigned: dbaction.crewAssigned,
       createdAt: dbaction.createdAt?.toISOString(),
       updatedAt: dbaction.updatedAt?.toISOString(),
     };

@@ -42,8 +42,12 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   useEffect(() => {
     // create the calulated action fields for the action tab
     const newActionsCalculatedFields: ActionsCalculatedFields = {
-      actionCount: calculatedFields?.actionCount,
-      totalActionTime: calculatedFields?.totalTime,
+      actionCount: calculatedFields.actionCount,
+      totalTime: calculatedFields.totalTime,
+      totalEv1Time: calculatedFields.totalEv1Time,
+      totalEv2Time: calculatedFields.totalEv2Time,
+      totalUnassignedTime: calculatedFields.totalUnassignedTime,
+      totalDwellTime: calculatedFields.totalDwellTime,
     };
     setActionsCalculatedField(newActionsCalculatedFields);
   }, [calculatedFields]);
@@ -67,6 +71,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
             dispatch(upsertPoi({ ...selectedPoi, actionOrderUuids: actionOrderUuids }));
           }}
           actionParentUuid={{ poiUuid: selectedPoiUuid }}
+          parentType="poi"
           actionsCalculatedFields={actionsCalculatedFields}
         />
       </div>

@@ -2,6 +2,7 @@ import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import Actions from "../actions";
+import { ExpandCollapseActionsButtons } from "../actions-action";
 
 const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
@@ -52,15 +53,22 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   useEffect(() => {
     // create the calulated action fields for the action tab
     const newActionsCalculatedFields: ActionsCalculatedFields = {
-      actionCount: calculatedFields?.totalStationActionCount,
-      totalActionTime: calculatedFields?.totalStationTime,
+      actionCount: calculatedFields.actionCount,
+      totalTime: calculatedFields.totalTime,
+      totalEv1Time: calculatedFields.totalEv1Time,
+      totalEv2Time: calculatedFields.totalEv2Time,
+      totalUnassignedTime: calculatedFields.totalUnassignedTime,
+      totalDwellTime: calculatedFields.totalDwellTime,
     };
     setActionsCalculatedField(newActionsCalculatedFields);
   }, [calculatedFields]);
 
   return (
     <div className={paneStyles.rightBody}>
-      <div className={paneStyles.rightBodyTitle}>All EVA Actions</div>
+      <div className={paneStyles.rightBodyTitleContainer}>
+        <div className={paneStyles.rightBodyTitle}>All EVA Actions</div>
+        <ExpandCollapseActionsButtons actionList={evaActions} />
+      </div>
       <div className={paneStyles.rightBodyBody}>
         <Actions
           editMode={editMode}
@@ -71,6 +79,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
           setActionOrderUuids={() => {}}
           actionParentUuid={null}
           actionsCalculatedFields={actionsCalculatedFields}
+          parentType="eva"
         />
       </div>
     </div>

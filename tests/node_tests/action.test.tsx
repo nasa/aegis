@@ -93,8 +93,10 @@ describe("Action API Endpoint", () => {
     durationLower: 0,
     priorityOverride: null,
     equipmentItemsUsage: null,
+    geographicUnitsUsage: null,
     mass: null,
     status: "Candidate",
+    crewAssigned: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

@@ -55,11 +55,27 @@ export const thunkCreateEvasCalculatedFields = appCreateAsyncThunk<void>(
       const evaCalculatedFields: EvaCalculatedFields = {
         uuid: eva.uuid,
         reportItems: [], // report items for the eva itself
-        totalStationTime: {
+        totalTime: {
           durationLower: 0,
           durationUpper: 0,
         },
-        totalStationActionCount: 0,
+        totalEv1Time: {
+          durationLower: 0,
+          durationUpper: 0,
+        },
+        totalEv2Time: {
+          durationLower: 0,
+          durationUpper: 0,
+        },
+        totalUnassignedTime: {
+          durationLower: 0,
+          durationUpper: 0,
+        },
+        totalDwellTime: {
+          durationLower: 0,
+          durationUpper: 0,
+        },
+        actionCount: 0,
         totalTraverseTime: 0,
         totalTraverseDistanceMeters: 0,
         totalTraverseAscentDescent: {
@@ -80,11 +96,27 @@ export const thunkCreateEvasCalculatedFields = appCreateAsyncThunk<void>(
           (traverseCalculatedFields) => traverseCalculatedFields.uuid === seqItem.uuid
         );
         if (thisStationCalculatedFields) {
-          evaCalculatedFields.totalStationTime.durationLower +=
+          evaCalculatedFields.totalTime.durationLower +=
             thisStationCalculatedFields.totalTime.durationLower;
-          evaCalculatedFields.totalStationTime.durationUpper +=
+          evaCalculatedFields.totalTime.durationUpper +=
             thisStationCalculatedFields.totalTime.durationUpper;
-          evaCalculatedFields.totalStationActionCount += thisStationCalculatedFields.actionCount;
+          evaCalculatedFields.totalEv1Time.durationLower +=
+            thisStationCalculatedFields.totalEv1Time.durationLower;
+          evaCalculatedFields.totalEv1Time.durationUpper +=
+            thisStationCalculatedFields.totalEv1Time.durationUpper;
+          evaCalculatedFields.totalEv2Time.durationLower +=
+            thisStationCalculatedFields.totalEv2Time.durationLower;
+          evaCalculatedFields.totalEv2Time.durationUpper +=
+            thisStationCalculatedFields.totalEv2Time.durationUpper;
+          evaCalculatedFields.totalUnassignedTime.durationLower +=
+            thisStationCalculatedFields.totalUnassignedTime.durationLower;
+          evaCalculatedFields.totalUnassignedTime.durationUpper +=
+            thisStationCalculatedFields.totalUnassignedTime.durationUpper;
+          evaCalculatedFields.totalDwellTime.durationLower +=
+            thisStationCalculatedFields.totalDwellTime.durationLower;
+          evaCalculatedFields.totalDwellTime.durationUpper +=
+            thisStationCalculatedFields.totalDwellTime.durationUpper;
+          evaCalculatedFields.actionCount += thisStationCalculatedFields.actionCount;
         } else if (thisTraverseCalculatedFields) {
           evaCalculatedFields.totalTraverseTime += thisTraverseCalculatedFields.durationMinutes;
           evaCalculatedFields.totalTraverseDistanceMeters +=
@@ -96,9 +128,9 @@ export const thunkCreateEvasCalculatedFields = appCreateAsyncThunk<void>(
         }
       }
       evaCalculatedFields.totalEvaTime.durationLower =
-        evaCalculatedFields.totalStationTime.durationLower + evaCalculatedFields.totalTraverseTime;
+        evaCalculatedFields.totalDwellTime.durationLower + evaCalculatedFields.totalTraverseTime;
       evaCalculatedFields.totalEvaTime.durationUpper =
-        evaCalculatedFields.totalStationTime.durationUpper + evaCalculatedFields.totalTraverseTime;
+        evaCalculatedFields.totalDwellTime.durationUpper + evaCalculatedFields.totalTraverseTime;
 
       // check if max time exceeds limit
 

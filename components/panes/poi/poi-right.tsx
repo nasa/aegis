@@ -68,7 +68,6 @@ const PoiEditorRight: FunctionComponent = () => {
       panel: (
         <Info_Panel
           editMode={poisEditing.includes(selectedPoiUuid)}
-          totalPoiTime={calculatedFields?.totalTime}
           actionCount={calculatedFields?.actionCount}
         />
       ),

@@ -23,7 +23,7 @@
   flex: 0 0 20px;
   display: flex;
   gap: 2px;
-  margin: 8px 14px 0 0;
+  margin: 8px 3px 0 0;
 }
 
 .rightBodyBody {
@@ -372,8 +372,8 @@
   font-size: 0.8em;
   color: white;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  flex-direction: row;
+  justify-content: left;
   margin-left: 8px;
 }
 
@@ -385,8 +385,8 @@
 
 .actionsHeading {
   display: flex;
-  gap: 8px;
-  padding: 5px;
+  gap: 6px;
+  padding: 4px;
 }
 
 .actionsHeadingTitle {
@@ -412,13 +412,46 @@
 }
 
 .actionsHeadingCaretRight {
+  margin-top: 0;
   margin-right: 2px;
 }
 
-.actionHeadingIcons {
-  width: 18px;
+.actionsHeadingCaretDown {
+  margin-top: 0;
+}
+
+.actionHeadingRight {
+  display: flex;
   margin-top: 4px;
   user-select: none;
+}
+
+.actionHeadingRightItem {
+  font-size: 0.8em;
+  margin: 0 4px 0 4px;
+}
+
+.actionHeadingCrew {
+  display: flex;
+  flex-direction: row;
+}
+
+.actionHeadingCrewLeft {
+  background-color: var(--grey3);
+  border-top-left-radius: var(--panelRadius);
+  border-bottom-left-radius: var(--panelRadius);
+  padding: 3px 5px 3px 5px;
+  margin-right: 1px;
+}
+.actionHeadingCrewRight {
+  background-color: var(--grey3);
+  border-top-right-radius: var(--panelRadius);
+  border-bottom-right-radius: var(--panelRadius);
+  padding: 3px 5px 3px 5px;
+}
+.actionHeadingCrewSelected {
+  background-color: white;
+  color: var(--grey1);
 }
 
 .checkUneditable {
@@ -427,4 +460,24 @@
 
 .descriptionContainer {
   padding-left: 13px;
+}
+
+.crewSelectorContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 5px;
+  margin-left: 18px;
+}
+
+.lastEditedContainer {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin: 0 5px 10px 18px;
+}
+
+.valueTooltip {
+  display: inline-block;
+  cursor: default;
 }

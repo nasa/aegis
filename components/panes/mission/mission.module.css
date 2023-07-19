@@ -42,13 +42,13 @@
   color: white;
 }
 
-.equipmentRow {
+.propertyRow {
   display: flex;
   flex-direction: row;
   border-radius: var(--radius);
 }
 
-.equipmentRowHeader {
+.propertyRowHeader {
   display: flex;
   flex-direction: row;
   border-radius: var(--radius);
@@ -56,7 +56,7 @@
   border-bottom: 1px solid #fff;
 }
 
-.equipmentRowReorderIcon {
+.propertyRowReorderIcon {
   flex: 0;
   cursor: pointer;
 
@@ -65,7 +65,7 @@
   justify-content: space-around;
 }
 
-.equipmentRowName {
+.propertyRowName {
   width: 100%;
   border-radius: var(--radius);
   font-size: 0.9em;
@@ -73,14 +73,14 @@
   cursor: pointer;
 }
 
-.equipmentRowQuantity {
+.propertyRowQuantity {
   flex: 0 0 30px;
   font-size: 0.9em;
   padding: 3px 2px 3px 5px;
   cursor: pointer;
 }
 
-.equipmentRowSingleuse {
+.propertyRowSingleuse {
   flex: 0 0 80px;
   padding: 3px 2px 3px 5px;
   font-size: 0.9em;
@@ -90,13 +90,13 @@
   justify-content: space-around;
 }
 
-.equipmentRowSingleuseCheckbox {
+.propertyRowSingleuseCheckbox {
   display: flex;
   flex-direction: column;
   justify-content: space-around;
 }
 
-.equipmentRowTrash {
+.propertyRowTrash {
   flex: 0 0 20px;
   cursor: pointer;
 
@@ -105,14 +105,14 @@
   justify-content: space-around;
 }
 
-.equipmentList {
+.propertyList {
   list-style-type: bullet;
   margin-top: 4px;
   margin-bottom: 4px;
   padding: 0;
 }
 
-.equipmentListitem {
+.propertyListitem {
   border-color: var(--grey1);
   border-width: 4px 8px 4px 8px;
   border-style: solid;
