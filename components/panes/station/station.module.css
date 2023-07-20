@@ -70,6 +70,7 @@
 
 .associatedPoisContainer {
   overflow-y: auto;
+  padding-top: 5px;
 }
 
 .stationPoiSection {
@@ -173,4 +174,26 @@
 
   background-position: center;
   background-image: url(/images/icon_status_loading.svg);
+}
+
+.poiCheckboxLabel {
+  display: flex;
+}
+
+.poiIcon {
+  font-size: 16px;
+  margin: 0px 2px 0px 2px;
+}
+
+.poiLabel {
+  font-size: 0.9em;
+  padding-left: 2px;
+}
+
+.poiItem {
+  display: flex;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  -webkit-user-select: none;
+  user-select: none;
 }

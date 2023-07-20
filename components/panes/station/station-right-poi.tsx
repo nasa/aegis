@@ -55,10 +55,9 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 {selectedPois.map((poi) => {
                   return (
                     poi && (
-                      <>
+                      <div key={poi.uuid}>
                         <div
                           className={poiStyles.poiItem}
-                          key={poi.uuid}
                           onClick={() => {
                             dispatch(setSectionSelected("poi"));
                             dispatch(setSelectedPoiUuid(poi.uuid));
@@ -84,7 +83,7 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             />
                           </div>
                         </div>
-                      </>
+                      </div>
                     )
                   );
                 })}
@@ -96,7 +95,7 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   return (
                     poi && (
                       <div
-                        className={poiStyles.poiItem}
+                        className={stationStyles.poiItem}
                         key={poi.uuid}
                         onMouseEnter={() => dispatch(setMapItemHoverUuid(poi.uuid))}
                         onMouseLeave={() => dispatch(setMapItemHoverUuid(null))}
@@ -113,17 +112,18 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             dispatch(upsertStation(updatedStation));
                           }}
                           toolTip={`Link ${poi.name}`}
+                          label={
+                            <div className={stationStyles.poiCheckboxLabel}>
+                              {poi.icon && (
+                                <div className={stationStyles.poiIcon}>
+                                  {String.fromCodePoint(parseInt(poi.icon, 16))}
+                                </div>
+                              )}
+                              <div className={stationStyles.poiLabel}>{poi.name}</div>
+                            </div>
+                          }
+                          uniqueId={poi.uuid}
                         />
-
-                        {poi.icon && (
-                          <div className={poiStyles.itemIcon}>
-                            {String.fromCodePoint(parseInt(poi.icon, 16))}
-                          </div>
-                        )}
-                        <div className={`${poiStyles.name} ${poiStyles.nohover}`}>
-                          <div>{poi.name}</div>
-                          <div className={poiStyles.poiRightSpacer} />
-                        </div>
                       </div>
                     )
                   );

@@ -657,8 +657,10 @@ const EquipmentCheckbox: FunctionComponent<{
             removeEquipmentItem(equipmentItem.uuid);
           }
         }}
+        label={equipmentItem.name}
+        labelStyle={{ justifyContent: "space-around", display: "flex", flexDirection: "column" }}
+        uniqueId={`${equipmentItem.name}-${action.uuid}`}
       />
-      <div className={actionStyles.propertyItemLabel}>{equipmentItem.name}</div>
     </div>
   );
 };
@@ -806,8 +808,10 @@ const GeographicUnitCheckbox: FunctionComponent<{
             removegeographicUnit(geographicUnit.uuid);
           }
         }}
+        label={geographicUnit.name}
+        labelStyle={{ justifyContent: "space-around", display: "flex", flexDirection: "column" }}
+        uniqueId={`${geographicUnit.name}-${action.uuid}`}
       />
-      <div className={actionStyles.propertyItemLabel}>{geographicUnit.name}</div>
     </div>
   );
 };

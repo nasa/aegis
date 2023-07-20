@@ -42,11 +42,6 @@
   display: flex;
 }
 
-.controlTitle {
-  align-self: center;
-  font-size: 0.8em;
-}
-
 .subControl {
   display: flex;
   margin-left: 10px;
@@ -56,6 +51,7 @@
 .controlCheckbox {
   align-self: center;
   margin-right: 4px;
+  font-size: 0.8em;
 }
 
 .mapScaleDisplay {
