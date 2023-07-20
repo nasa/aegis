@@ -61,8 +61,14 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       }
                     }}
                     toolTip="Set preset visibility"
+                    label="Preset is visible to everyone"
+                    labelStyle={{
+                      justifyContent: "space-around",
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                    uniqueId="presetVisbility"
                   />
-                  <div className={paneStyles.verticalCenter}>Preset is visible to everyone</div>
                 </>
               ) : (
                 <span className={paneStyles.checkUneditable}>
@@ -89,10 +95,14 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         handleDefaultPresetChange(evt);
                       }}
                       toolTip="Set default preset"
+                      label="Preset is the mission's default"
+                      labelStyle={{
+                        justifyContent: "space-around",
+                        display: "flex",
+                        flexDirection: "column",
+                      }}
+                      uniqueId="presetDefault"
                     />
-                    <div className={paneStyles.verticalCenter}>
-                      Preset is the mission&apos;s default
-                    </div>
                   </>
                 ) : (
                   <span className={paneStyles.checkUneditable}>

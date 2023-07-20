@@ -280,10 +280,23 @@ export const Tags: FunctionComponent<{
 
 export const Checkbox: FunctionComponent<{
   checked: boolean;
-  editable?: boolean;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  editable?: boolean;
   toolTip?: string;
-}> = ({ checked, editable = true, onChange, toolTip }) => {
+  label?: string | ReactNode;
+  labelStyle?: CSSProperties;
+  labelPlacement?: "left" | "right";
+  uniqueId?: string;
+}> = ({
+  checked,
+  editable = true,
+  onChange,
+  toolTip,
+  label,
+  labelStyle,
+  labelPlacement = "right",
+  uniqueId,
+}) => {
   const editableStyle = editable ? "null" : styles.notEditable;
 
   return (
@@ -292,13 +305,28 @@ export const Checkbox: FunctionComponent<{
       data-tooltip-id="aegis-tooltip"
       data-tooltip-html={toolTip}
     >
+      {labelPlacement === "left" ? (
+        <label style={{ ...labelStyle, cursor: "pointer" }} htmlFor={uniqueId}>
+          {label}
+        </label>
+      ) : (
+        <></>
+      )}
       <input
         type="checkbox"
         aria-label="checkbox"
+        id={uniqueId}
         checked={checked}
         onChange={onChange}
         className={checked ? styles.checkboxChecked : ""}
       />
+      {labelPlacement === "right" ? (
+        <label style={{ ...labelStyle, cursor: "pointer" }} htmlFor={uniqueId}>
+          {label}
+        </label>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

@@ -1495,21 +1495,29 @@ const MapBody: FunctionComponent = () => {
                     });
                   }}
                   toolTip="Show/Hide all POIs on map"
+                  label="POIs"
+                  labelStyle={{ alignSelf: "center" }}
+                  uniqueId="showHidePoi"
                 />
               </div>
-              <div className={styles.controlTitle}>POIs</div>
             </div>
             <div className={styles.subControl}>
               <div className={styles.controlCheckbox}>
                 <Checkbox
                   checked={mapDisplayPois.showLabels}
                   onChange={(e) => {
-                    setMapDisplayPois({ ...mapDisplayPois, showLabels: e.target.checked });
+                    setMapDisplayPois({
+                      ...mapDisplayPois,
+                      showLabels: e.target.checked,
+                      ...(e.target.checked && { show: true }),
+                    });
                   }}
                   toolTip="Show/Hide all POI labels on map"
+                  label="Labels"
+                  labelStyle={{ alignSelf: "center" }}
+                  uniqueId="showHidePoiLabels"
                 />
               </div>
-              <div className={styles.controlTitle}>Labels</div>
             </div>
           </div>
           <div className={styles.controlContainer}>
@@ -1525,21 +1533,29 @@ const MapBody: FunctionComponent = () => {
                     });
                   }}
                   toolTip="Show/Hide all Stations on map"
+                  label="Stations"
+                  labelStyle={{ alignSelf: "center" }}
+                  uniqueId="showHideStations"
                 />
               </div>
-              <div className={styles.controlTitle}>Stations</div>
             </div>
             <div className={styles.subControl}>
               <div className={styles.controlCheckbox}>
                 <Checkbox
                   checked={mapDisplayStations.showLabels}
                   onChange={(e) => {
-                    setMapDisplayStations({ ...mapDisplayStations, showLabels: e.target.checked });
+                    setMapDisplayStations({
+                      ...mapDisplayStations,
+                      showLabels: e.target.checked,
+                      ...(e.target.checked && { show: true }),
+                    });
                   }}
                   toolTip="Show/Hide all Station labels on map"
+                  label="Labels"
+                  labelStyle={{ alignSelf: "center" }}
+                  uniqueId="showHideStationLabels"
                 />
               </div>
-              <div className={styles.controlTitle}>Labels</div>
             </div>
           </div>
         </div>
