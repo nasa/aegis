@@ -359,8 +359,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       <div style={{ display: "flex" }}>
                         {editMode ? (
                           <>
-                            <div style={{ marginTop: "3px" }}>Visible:</div>
-                            <div style={{ marginLeft: "3px" }}>
+                            <div>
                               <Checkbox
                                 checked={mission.sunAzimuthVisible}
                                 editable={editMode}
@@ -369,6 +368,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                     setMission({ ...mission, sunAzimuthVisible: e.target.checked })
                                   );
                                 }}
+                                label="Visible:"
+                                labelStyle={{ marginTop: 3, marginRight: 3 }}
+                                labelPlacement="left"
+                                uniqueId="sunCheckbox"
                               />
                             </div>
                           </>
@@ -406,8 +409,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       <div style={{ display: "flex" }}>
                         {editMode ? (
                           <>
-                            <div style={{ marginTop: "3px" }}>Visible:</div>
-                            <div style={{ marginLeft: "3px" }}>
+                            <div>
                               <Checkbox
                                 checked={mission.earthAzimuthVisible}
                                 editable={editMode}
@@ -419,6 +421,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                     })
                                   );
                                 }}
+                                label="Visible:"
+                                labelStyle={{ marginTop: 3, marginRight: 3 }}
+                                labelPlacement="left"
+                                uniqueId="earthCheckbox"
                               />
                             </div>
                           </>
