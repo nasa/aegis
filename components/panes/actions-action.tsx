@@ -523,8 +523,8 @@ const EquipmentSelector: FunctionComponent<{
         (equipmentItem) => equipmentItem.uuid === equipmentItemUsage.uuid
       );
       return {
-        name: equipmentItem.name,
-        quantityUsed: equipmentItemUsage.quantityUsed,
+        name: equipmentItem?.name ? equipmentItem.name : "",
+        quantityUsed: equipmentItemUsage?.quantityUsed,
       } as EquipmentItemDisplay;
     });
 
@@ -657,9 +657,9 @@ const EquipmentCheckbox: FunctionComponent<{
             removeEquipmentItem(equipmentItem.uuid);
           }
         }}
-        label={equipmentItem.name}
+        label={equipmentItem?.name}
         labelStyle={{ justifyContent: "space-around", display: "flex", flexDirection: "column" }}
-        uniqueId={`${equipmentItem.name}-${action.uuid}`}
+        uniqueId={`${equipmentItem?.name}-${action.uuid}`}
       />
     </div>
   );
