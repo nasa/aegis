@@ -16,15 +16,6 @@ export class UserSeeder extends Seeder {
     context.user2 = em.create(User, {
       username: "guest",
       password: "guest",
-      permissionList: [
-        {
-          missionId: context.mission1.id,
-          permissions: {
-            view: true,
-            edit: false,
-          },
-        },
-      ],
       isAdmin: false,
       isSuperAdmin: false,
       createdAt: new Date(),
