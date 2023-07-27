@@ -88,6 +88,7 @@ const MissionPrefsRight: FunctionComponent = () => {
                     ? paneStyles.rightIconContainerSelectedPreset
                     : paneStyles.rightIconContainer
                 }
+                onClick={() => dispatch(setSelectedMissionRightNavItem(panelType))}
               >
                 <div
                   className={paneStyles.rightIcon}
@@ -99,7 +100,6 @@ const MissionPrefsRight: FunctionComponent = () => {
                   }}
                   data-tooltip-id="aegis-tooltip"
                   data-tooltip-html={panelTypes[panelType].title}
-                  onClick={() => dispatch(setSelectedMissionRightNavItem(panelType))}
                 >
                   <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
                 </div>

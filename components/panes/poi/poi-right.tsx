@@ -173,6 +173,7 @@ const PoiEditorRight: FunctionComponent = () => {
                       ? paneStyles.rightIconContainerSelectedPoi
                       : paneStyles.rightIconContainer
                   }
+                  onClick={() => dispatch(setSelectedPOIRightNavItem(panelType))}
                 >
                   <div
                     className={paneStyles.rightIcon}
@@ -184,7 +185,6 @@ const PoiEditorRight: FunctionComponent = () => {
                     }}
                     data-tooltip-id="aegis-tooltip"
                     data-tooltip-html={panelTypes[panelType].title}
-                    onClick={() => dispatch(setSelectedPOIRightNavItem(panelType))}
                   >
                     <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
                   </div>
