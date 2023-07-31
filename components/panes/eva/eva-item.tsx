@@ -81,6 +81,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
       );
       if (evaSequenceItem) {
         evaSelectionStyle = evaStyles.nameEmphasized;
+        settingsIconColor = "var(--grey4)";
       }
     }
   }
