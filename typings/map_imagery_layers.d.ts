@@ -6,6 +6,13 @@ interface MapLayerControl {
   style: MapLayerStyle;
 }
 
+interface MapCircleControl {
+  uuid: string;
+  landerRadiusUuid: string;
+  visible: boolean;
+  style: MapLayerStyle;
+}
+
 interface MapLayerStyle {
   opacity: number; //Percent
   contrast: number; //Percent
@@ -20,6 +27,10 @@ interface MapLayerStyle {
 
 interface MapLayerControls {
   [key: string]: MapLayerControl; //name
+}
+
+interface MapCircleControls {
+  [key: string]: MapCircleControl; //uuid
 }
 
 interface PresetsUIStates {
@@ -71,6 +82,7 @@ type Preset = {
   missionPreset: boolean;
   missionPresetDefault: boolean;
   mapLayerControls: MapLayerControls; //flattened list of layers/sublayers
+  mapCircleControls: MapCircleControls;
   layerOrder: PresetLayerOrder[];
   createdAt?: string;
   updatedAt?: string;

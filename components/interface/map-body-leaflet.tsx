@@ -65,6 +65,7 @@ type MissionSelectProperties = Pick<
   | "projIsCustom"
   | "projOriginX"
   | "projOriginY"
+  | "landerRadii"
 >;
 
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
@@ -100,6 +101,7 @@ const MapBody: FunctionComponent = () => {
         "projIsCustom",
         "projOriginX",
         "projOriginY",
+        "landerRadii",
       ]),
     deepEqual
   );
@@ -1036,6 +1038,72 @@ const MapBody: FunctionComponent = () => {
       setTraversesToShow([]);
     }
   }, [traverses, selectedEvaSequenceItemUuid, selectedEva]);
+
+  /**
+   * Populate lander radii
+   */
+  useEffect(() => {
+    if (
+      !map ||
+      !mission?.landerLocation ||
+      !mission?.landerRadii ||
+      !selectedPreset?.mapCircleControls ||
+      !mission?.planetRadius
+    )
+      return;
+
+    const landerRadii = mission.landerRadii;
+    const landerLocation = mission.landerLocation;
+    const mapCircleControls = selectedPreset.mapCircleControls;
+
+    // remove any existing radii
+    map.current.eachLayer((layer: CircleWithUuid) => {
+      if (layer.mapItemType === "radius") {
+        map.current.removeLayer(layer);
+      }
+    });
+
+    landerRadii.forEach((landerRadius) => {
+      /*
+       * Map does NOT think in terms of planets for coordinates,
+       * and currently acts as if coordinates correspond to earth.
+       * Therefore, it is necessary to calculate distance in relation
+       * to the radius of the earth, and not in relation to the planet
+       * the mission is on for the projection.
+       *
+       * If this is in a non-equatorial landing location of a non-earth celestial body,
+       * a further adjustment will be made to the distance calculated that instead
+       * takes the integral of the ratio between the two planets.
+       */
+      const earthRadiusInMeters = 6378137;
+      let radiusAdjustment = earthRadiusInMeters / mission.planetRadius;
+
+      if (
+        earthRadiusInMeters !== mission.planetRadius &&
+        Math.abs(mission.landerLocation.lat) > 10
+      ) {
+        radiusAdjustment = radiusAdjustment * (earthRadiusInMeters / (2 * mission.planetRadius));
+      }
+
+      const distance = landerRadius.radius * radiusAdjustment;
+
+      if (mapCircleControls[landerRadius.uuid]?.visible) {
+        const circle: CircleWithUuid = L.circle(landerLocation, {
+          ...mapCircleControls[landerRadius.uuid].style,
+          radius: distance,
+          interactive: false,
+        });
+        circle.mapItemType = "radius";
+        circle.addTo(map.current);
+      }
+    });
+  }, [
+    mission?.landerLocation,
+    mission?.landerRadii,
+    map,
+    selectedPreset?.mapCircleControls,
+    mission?.planetRadius,
+  ]);
 
   /**
    * Draw or update lander

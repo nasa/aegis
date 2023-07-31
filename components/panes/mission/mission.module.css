@@ -56,15 +56,6 @@
   border-bottom: 1px solid #fff;
 }
 
-.propertyRowReorderIcon {
-  flex: 0;
-  cursor: pointer;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-}
-
 .propertyRowName {
   width: 100%;
   border-radius: var(--radius);
@@ -113,6 +104,12 @@
 }
 
 .propertyListitem {
+  border-color: var(--grey1);
+  border-width: 4px 8px 4px 8px;
+  border-style: solid;
+}
+
+.radiiListitem {
   border-color: var(--grey1);
   border-width: 4px 8px 4px 8px;
   border-style: solid;

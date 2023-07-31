@@ -67,6 +67,8 @@ export class Mission implements Mission_db_type {
   projResZoomLevel: number;
   @Property({ type: MikroTypes.double, nullable: true })
   projResUnitsPerPixel: number;
+  @Property({ type: MikroTypes.json, nullable: true })
+  landerRadii: LanderRadius[];
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;
