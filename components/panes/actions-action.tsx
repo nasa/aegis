@@ -56,10 +56,7 @@ const RightAction: FunctionComponent<{
     shallowEqual
   );
 
-  const actionsCollapsed = useAppSelector(
-    (state) => state.interface.actionsCollapsed,
-    shallowEqual
-  );
+  const actionsExpanded = useAppSelector((state) => state.interface.actionsExpanded, shallowEqual);
 
   const buildActionTooltip = () => {
     if (parentAction && parentPoi) {
@@ -121,14 +118,14 @@ const RightAction: FunctionComponent<{
             editMode && actionStyles.actionsHeadingCaret
           } `}
           onClick={() => {
-            if (actionsCollapsed.includes(action.uuid)) {
-              dispatch(expandActions([action.uuid]));
-            } else {
+            if (actionsExpanded.includes(action.uuid)) {
               dispatch(collapseActions([action.uuid]));
+            } else {
+              dispatch(expandActions([action.uuid]));
             }
           }}
         >
-          {!actionsCollapsed.includes(action.uuid) ? (
+          {actionsExpanded.includes(action.uuid) ? (
             <FontAwesomeIcon
               icon={faCaretDown}
               size="sm"
@@ -149,10 +146,10 @@ const RightAction: FunctionComponent<{
             className={`${paneStyles.actionsHeadingTitle}`}
             style={actionColor}
             onClick={() => {
-              if (actionsCollapsed.includes(action.uuid)) {
-                dispatch(expandActions([action.uuid]));
-              } else {
+              if (actionsExpanded.includes(action.uuid)) {
                 dispatch(collapseActions([action.uuid]));
+              } else {
+                dispatch(expandActions([action.uuid]));
               }
             }}
           >
@@ -240,7 +237,7 @@ const RightAction: FunctionComponent<{
           )}
         </div>
       </div>
-      {!actionsCollapsed.includes(action.uuid) && (
+      {actionsExpanded.includes(action.uuid) && (
         <>
           <div className={paneStyles.actionIndent}>
             <div className={paneStyles.panelSection}>

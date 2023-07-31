@@ -6,7 +6,7 @@ export const initialState: InterfaceState = {
   elevationPendingItemUuids: [],
   timelineShowDistanceFromLander: true,
   timelineShowElevation: true,
-  actionsCollapsed: [],
+  actionsExpanded: [],
 };
 
 export const interfaceSlice = createSlice({
@@ -34,16 +34,16 @@ export const interfaceSlice = createSlice({
     },
     collapseActions: (state, action: { payload: string[] }) => {
       action.payload.forEach((uuid) => {
-        if (!state.actionsCollapsed.includes(uuid)) {
-          state.actionsCollapsed.push(uuid);
-        }
+        state.actionsExpanded = state.actionsExpanded.filter(
+          (existingUuid) => existingUuid !== uuid
+        );
       });
     },
     expandActions: (state, action: { payload: string[] }) => {
       action.payload.forEach((uuid) => {
-        state.actionsCollapsed = state.actionsCollapsed.filter(
-          (existingUuid) => existingUuid !== uuid
-        );
+        if (!state.actionsExpanded.includes(uuid)) {
+          state.actionsExpanded.push(uuid);
+        }
       });
     },
   },

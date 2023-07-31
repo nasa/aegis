@@ -85,7 +85,7 @@ interface InterfaceState {
   elevationPendingItemUuids: string[];
   timelineShowDistanceFromLander: boolean;
   timelineShowElevation: boolean;
-  actionsCollapsed: string[];
+  actionsExpanded: string[];
 }
 
 interface STMState {
