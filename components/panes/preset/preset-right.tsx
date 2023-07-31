@@ -101,6 +101,7 @@ const PresetEditorRight: FunctionComponent = () => {
                       ? paneStyles.rightIconContainerSelectedPreset
                       : paneStyles.rightIconContainer
                   }
+                  onClick={() => dispatch(setSelectedPresetRightNavItem(panelType))}
                 >
                   <div
                     className={paneStyles.rightIcon}
@@ -112,7 +113,6 @@ const PresetEditorRight: FunctionComponent = () => {
                     }}
                     data-tooltip-id="aegis-tooltip"
                     data-tooltip-html={panelTypes[panelType].title}
-                    onClick={() => dispatch(setSelectedPresetRightNavItem(panelType))}
                   >
                     <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
                   </div>

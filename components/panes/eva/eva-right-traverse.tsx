@@ -175,6 +175,7 @@ const EvaRightTraverse: FunctionComponent = () => {
                         ? paneStyles.rightIconContainerSelectedTraverse
                         : paneStyles.rightIconContainer
                     }
+                    onClick={() => dispatch(setSelectedTraverseRightNavItem(panelType))}
                   >
                     <div
                       className={paneStyles.rightIcon}
@@ -186,7 +187,6 @@ const EvaRightTraverse: FunctionComponent = () => {
                       }}
                       data-tooltip-id="aegis-tooltip"
                       data-tooltip-html={panelTypes[panelType].title}
-                      onClick={() => dispatch(setSelectedTraverseRightNavItem(panelType))}
                     >
                       <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
                     </div>
