@@ -23,6 +23,8 @@ export class Preset implements Preset_db_type {
   @Property({ type: MikroTypes.json, nullable: true })
   mapLayerControls!: MapLayerControls;
   @Property({ type: MikroTypes.json, nullable: true })
+  mapCircleControls!: MapCircleControls;
+  @Property({ type: MikroTypes.json, nullable: true })
   layerOrder: PresetLayerOrder[];
 
   @Property({ type: MikroTypes.datetime })

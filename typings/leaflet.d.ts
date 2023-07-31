@@ -30,6 +30,7 @@ type AEGISCircleMarker = L.CircleMarker & {
 
 type CircleWithUuid = L.Circle & {
   uuid?: string;
+  mapItemType?: "radius";
 };
 
 type AEGISFeatureGroup = L.FeatureGroup & {

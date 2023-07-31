@@ -66,6 +66,14 @@
   padding-left: 10px;
 }
 
+.sublayerRadiiToolIcons {
+  display: flex;
+  flex-direction: row;
+  width: 60px;
+  flex: 0 0 50px;
+  padding-left: 0px;
+}
+
 .sublayerToolIcon {
   color: white;
   width: 20px;

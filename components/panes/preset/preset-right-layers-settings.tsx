@@ -3,7 +3,7 @@ import styles from "./preset-right-layers-settings.module.css";
 import { Dropdown } from "components/interface/form/globalFields";
 import { useAppDispatch } from "utils/useAppDispatch";
 
-import { setPresetLayerStyle } from "store/preset";
+import { setPresetCircleStyle, setPresetLayerStyle } from "store/preset";
 import { getPercentOrDefault } from "utils/formatting";
 import { CompactPicker } from "react-color";
 
@@ -44,10 +44,16 @@ const Slider: FunctionComponent<{
 const Settings_subpanel: FunctionComponent<{
   sublayer: MMGIS_Sublayer;
   selectedPreset: Preset;
-}> = ({ sublayer, selectedPreset }) => {
+  uuid?: string;
+}> = ({ sublayer, selectedPreset, uuid }) => {
   const dispatch = useAppDispatch();
 
-  const presetLayerStyle = selectedPreset.mapLayerControls[sublayer.name].style;
+  const identifier = sublayer.type === "circle" ? uuid : sublayer.name;
+
+  const presetLayerStyle =
+    sublayer.type === "circle"
+      ? selectedPreset.mapCircleControls[identifier].style
+      : selectedPreset.mapLayerControls[identifier].style;
 
   //default setting options to show
   let showSliders = {
@@ -74,6 +80,19 @@ const Settings_subpanel: FunctionComponent<{
     };
   }
 
+  if (sublayer.type === "circle") {
+    showSliders = {
+      opacity: true,
+      contrast: false,
+      brightness: false,
+      saturation: false,
+      blendMode: false,
+      colorPicker: true,
+      weight: true,
+      fillOpacity: false,
+    };
+  }
+
   const setStyle = (
     value: number | string,
     property:
@@ -86,13 +105,23 @@ const Settings_subpanel: FunctionComponent<{
       | "weight"
       | "fillOpacity"
   ) => {
-    dispatch(
-      setPresetLayerStyle({
-        presetUuid: selectedPreset.uuid,
-        layerName: sublayer.name,
-        style: { ...presetLayerStyle, [property]: value },
-      })
-    );
+    if (sublayer.type === "circle") {
+      dispatch(
+        setPresetCircleStyle({
+          presetUuid: selectedPreset.uuid,
+          radiusUuid: uuid,
+          style: { ...presetLayerStyle, [property]: value },
+        })
+      );
+    } else {
+      dispatch(
+        setPresetLayerStyle({
+          presetUuid: selectedPreset.uuid,
+          layerName: sublayer.name,
+          style: { ...presetLayerStyle, [property]: value },
+        })
+      );
+    }
   };
 
   return (

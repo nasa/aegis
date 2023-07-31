@@ -36,6 +36,7 @@ interface UserState {
 
 interface MapState {
   mapLayerControls: MapLayerControls;
+  mapCircleControls: MapCircleControls;
   activeSelectedName: string;
   mousePosition: LatLng;
   mapDirective: MapDirective;

@@ -138,7 +138,15 @@ interface MMGIS_LayerConfig {
   sublayers?: MMGIS_Sublayer[];
 }
 
-type MMGIS_layerTypes = "header" | "tile" | "vector" | "vectortile" | "query" | "data" | "model";
+type MMGIS_layerTypes =
+  | "header"
+  | "tile"
+  | "vector"
+  | "vectortile"
+  | "query"
+  | "data"
+  | "model"
+  | "circle";
 type MMGIS_tileFormats = "tms" | "wtms" | "wms";
 
 interface MMGIS_Sublayer {
