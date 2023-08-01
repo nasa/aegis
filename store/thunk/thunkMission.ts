@@ -39,24 +39,36 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
 
     getState().preset.presets.forEach((preset) => {
       const newPreset: Preset = { ...preset };
-      const presetUIStates: PresetUIStates = getState().preset.presetsUIStates[preset.uuid];
-      const newPresetUIState: PresetUIStates = {};
-      const updatedCircleControls: MapCircleControls = {};
+      const oldPresetUIStates: PresetUIStates = getState().preset.presetsUIStates[preset.uuid];
+      const newPresetUIState: PresetUIStates = { ...oldPresetUIStates };
+      const newMapCircleControls: MapCircleControls = {};
 
       sortedLanderRadii.forEach((landerRadius) => {
-        if (presetUIStates[landerRadius.uuid]) {
-          newPresetUIState[landerRadius.uuid] = presetUIStates[landerRadius.uuid];
+        //update ui states
+        if (oldPresetUIStates[landerRadius.uuid]) {
+          newPresetUIState[landerRadius.uuid] = oldPresetUIStates[landerRadius.uuid];
         } else {
           newPresetUIState[landerRadius.uuid] = {
             expanded: true,
             tabSelected: null,
           };
         }
+        //remove any radii that were deleted
+        for (const uuidOrName of Object.keys(newPresetUIState)) {
+          const isLayer = Object.keys(getState().map.mapLayerControls).some(
+            (name) => name === uuidOrName
+          );
+          const isCircle = sortedLanderRadii.some(
+            (landerRadius) => landerRadius.uuid === uuidOrName
+          );
+          if (!isLayer && !isCircle) delete newPresetUIState[uuidOrName];
+        }
 
+        //update map circle controls
         if (preset.mapCircleControls[landerRadius.uuid]) {
-          updatedCircleControls[landerRadius.uuid] = preset.mapCircleControls[landerRadius.uuid];
+          newMapCircleControls[landerRadius.uuid] = preset.mapCircleControls[landerRadius.uuid];
         } else {
-          updatedCircleControls[landerRadius.uuid] = {
+          newMapCircleControls[landerRadius.uuid] = {
             uuid: uuidv4(),
             landerRadiusUuid: landerRadius.uuid,
             visible: false,
@@ -75,15 +87,14 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
         }
       });
 
-      newPreset.mapCircleControls = updatedCircleControls;
-
       dispatch(
         setPresetUIStates({
           presetUuid: preset.uuid,
           presetUIStates: newPresetUIState,
         })
       );
-      dispatch(setMapCircleControls(updatedCircleControls));
+      newPreset.mapCircleControls = newMapCircleControls;
+      dispatch(setMapCircleControls(newMapCircleControls));
       dispatch(thunkSavePreset({ preset: newPreset }));
     });
 
