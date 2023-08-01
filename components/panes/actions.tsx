@@ -145,7 +145,7 @@ const Actions: FunctionComponent<{
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldValue}>
-                          {actionsCalculatedFields.actionCount}
+                          {actionsCalculatedFields?.actionCount}
                         </div>
                       </div>
                     </div>
@@ -161,10 +161,10 @@ const Actions: FunctionComponent<{
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldValue}>
-                          {actionsCalculatedFields.totalTime.durationLower === 0 ? (
+                          {actionsCalculatedFields?.totalTime.durationLower === 0 ? (
                             <>0</>
                           ) : (
-                            <>{displayFormattedTotalTimeObj(actionsCalculatedFields.totalTime)}</>
+                            <>{displayFormattedTotalTimeObj(actionsCalculatedFields?.totalTime)}</>
                           )}
                         </div>
                       </div>

@@ -40,6 +40,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   }, [selectedPoiUuid, actions, selectedPoi]);
 
   useEffect(() => {
+    if (!calculatedFields) return;
     // create the calulated action fields for the action tab
     const newActionsCalculatedFields: ActionsCalculatedFields = {
       actionCount: calculatedFields.actionCount,
