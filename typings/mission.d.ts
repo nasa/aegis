@@ -37,6 +37,7 @@ interface Mission {
   projResUnitsPerPixel: number;
   createdAt?: string;
   updatedAt?: string;
+  landerRadii: LanderRadius[];
 }
 
 // No alteration needed to convert this store type to the database type
@@ -105,3 +106,11 @@ interface GeographicUnit {
   uuid: string;
   name: string;
 }
+/*
+ * Vector circles around lander
+ */
+type LanderRadius = {
+  uuid: string;
+  name: string;
+  radius: number;
+};

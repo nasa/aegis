@@ -15,7 +15,7 @@ import { getLayers } from "http-client/layer";
 import { getStations } from "http-client/station";
 import { getActions } from "http-client/action";
 import { getGoals, getInvestigations, getObjectives } from "http-client/stm";
-import { setMapLayerControls } from "store/map";
+import { setMapCircleControls, setMapLayerControls } from "store/map";
 import { setPois, setPoisFromDb } from "store/poi";
 import {
   setPresetUIStates,
@@ -41,6 +41,7 @@ import { Tooltip } from "react-tooltip";
 import { thunkSavePreset } from "store/thunk/thunkPreset";
 import _ from "lodash";
 import { isLoggedIn } from "http-client/login";
+import { v4 as uuidv4 } from "uuid";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -140,6 +141,9 @@ const Main: NextPage = () => {
       //populate mission
       const missionData = await getMissions(intMissionId);
       if (missionData.data) {
+        if (!missionData.data[0].landerRadii) {
+          missionData.data[0].landerRadii = [];
+        }
         dispatch(setMission(missionData.data[0]));
         dispatch(setMissionFromDb(missionData.data[0]));
       }
@@ -201,7 +205,6 @@ const Main: NextPage = () => {
       const presetData: Preset[] = (await getPresets(intMissionId)).data;
       if (presetData) {
         const mapLayerControlKeys = Object.keys(mapLayerControls); //name of layer
-
         //fix and validate against modifications to layers made in admin since this preset was last saved
         presetData.forEach((preset) => {
           let modified = false;
@@ -217,6 +220,7 @@ const Main: NextPage = () => {
             //convert the "enabled" property to "visible".
             //Once all presets in all environments are updated this if statement can be removed.
             //cast as "any" since this is an old type definition
+
             if (
               preset.mapLayerControls[layerName] &&
               Object.prototype.hasOwnProperty.call(preset.mapLayerControls[layerName], "enabled")
@@ -272,6 +276,45 @@ const Main: NextPage = () => {
               modified = true;
             }
           }
+
+          const mapCircleControls: MapCircleControls = {};
+
+          if (!preset.mapCircleControls) {
+            preset.mapCircleControls = {};
+            modified = true;
+          }
+
+          missionData.data[0].landerRadii.forEach((landerRadius) => {
+            if (preset.mapCircleControls[landerRadius.uuid]) {
+              mapCircleControls[landerRadius.uuid] = preset.mapCircleControls[landerRadius.uuid];
+            } else {
+              modified = true;
+              mapCircleControls[landerRadius.uuid] = {
+                uuid: uuidv4(),
+                landerRadiusUuid: landerRadius.uuid,
+                visible: false,
+                style: {
+                  opacity: 1,
+                  contrast: 1,
+                  brightness: 1,
+                  saturation: 1,
+                  blendMode: "normal",
+                  color: "red",
+                  weight: 1,
+                  fillColor: "none",
+                  fillOpacity: 0,
+                },
+              };
+            }
+            presetUIStates[landerRadius.uuid] = {
+              expanded: true,
+              tabSelected: null,
+            };
+          });
+
+          preset.mapCircleControls = mapCircleControls;
+
+          dispatch(setMapCircleControls(preset.mapCircleControls));
 
           dispatch(
             setPresetUIStates({

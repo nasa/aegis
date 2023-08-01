@@ -26,6 +26,7 @@ import {
   toDecimal,
 } from "utils/formatting";
 import { getEM } from "utils/mikro";
+import { makeUniqueStringCopy } from "utils/names/duplicate";
 
 describe("Utilities Functions", () => {
   const earthRadius = 6371000; //6378137;
@@ -352,5 +353,25 @@ describe("formatNumberWithCommas", () => {
 
   it('returns "0.00" when given 0', () => {
     expect(formatNumberWithCommas(0)).toBe("0");
+  });
+});
+
+describe("makeUniqueStringCopy", () => {
+  it("should return a name with (copy 1)", () => {
+    const str = "test";
+    const strCopy = makeUniqueStringCopy(str, ["aaa", "bbb", "ccc", str]);
+    expect(strCopy).not.toBe(str);
+    expect(strCopy).toBe(`${str} (copy 1)`);
+  });
+  it("should return a name with (copy 2)", () => {
+    const str = "test";
+    const strCopy = makeUniqueStringCopy(str, ["aaa", "bbb", "ccc", str, `${str} (copy 1)`]);
+    expect(strCopy).not.toBe(str);
+    expect(strCopy).toBe(`${str} (copy 2)`);
+  });
+  it("should return a name with no (copy 1) appended", () => {
+    const str = "test";
+    const strCopy = makeUniqueStringCopy(str, ["aaa", "bbb", "ccc"]);
+    expect(strCopy).toBe(str);
   });
 });

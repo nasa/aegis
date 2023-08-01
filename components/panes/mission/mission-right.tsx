@@ -9,9 +9,11 @@ import {
   faFloppyDisk,
   faPersonWalkingLuggage,
   faSliders,
+  faBullseye,
 } from "@fortawesome/free-solid-svg-icons";
 
 import Prefs_panel from "./mission-right-prefs";
+import Layers_panel from "./mission-right-circles";
 import paneStyles from "../global-pane-styles.module.css";
 import { Button } from "components/interface/form/globalFields";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -59,6 +61,12 @@ const MissionPrefsRight: FunctionComponent = () => {
       selectedColor: "white",
       icon: faPersonWalkingLuggage,
     },
+    circle_panel: {
+      title: "Vector Layers",
+      panel: Layers_panel,
+      selectedColor: "white",
+      icon: faBullseye,
+    },
     geographicUnit: {
       title: "Mission Geography",
       panel: GeographiUnits_Panel,
@@ -88,6 +96,7 @@ const MissionPrefsRight: FunctionComponent = () => {
                     ? paneStyles.rightIconContainerSelectedPreset
                     : paneStyles.rightIconContainer
                 }
+                onClick={() => dispatch(setSelectedMissionRightNavItem(panelType))}
               >
                 <div
                   className={paneStyles.rightIcon}
@@ -99,7 +108,6 @@ const MissionPrefsRight: FunctionComponent = () => {
                   }}
                   data-tooltip-id="aegis-tooltip"
                   data-tooltip-html={panelTypes[panelType].title}
-                  onClick={() => dispatch(setSelectedMissionRightNavItem(panelType))}
                 >
                   <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
                 </div>
@@ -128,7 +136,7 @@ const MissionPrefsRight: FunctionComponent = () => {
                   dispatch(thunkMissionSave());
                 }}
                 icon={faFloppyDisk}
-                toolTip={`Save Preset${modified ? "" : " (nothing to save)"}`}
+                toolTip={`Save Mission${modified ? "" : " (nothing to save)"}`}
                 enabled={modified}
                 style={{
                   width: "30px",

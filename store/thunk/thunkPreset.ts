@@ -125,6 +125,7 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
       missionPresetDefault: false,
       layerOrder: defaultLayerOrder,
       mapLayerControls: getState().map.mapLayerControls,
+      mapCircleControls: getState().map.mapCircleControls,
     };
 
     dispatch(upsertPreset(blankPreset));
@@ -137,6 +138,12 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
     // create preset ui states entry
     const presetUIStates: PresetUIStates = {};
     for (const [key] of Object.entries(blankPreset.mapLayerControls)) {
+      presetUIStates[key] = {
+        expanded: true,
+        tabSelected: null,
+      };
+    }
+    for (const [key] of Object.entries(blankPreset.mapCircleControls)) {
       presetUIStates[key] = {
         expanded: true,
         tabSelected: null,

@@ -225,6 +225,7 @@ const StationEditorRight: FunctionComponent = () => {
                         ? paneStyles.rightIconContainerSelectedStation
                         : paneStyles.rightIconContainer
                     }
+                    onClick={() => dispatch(setSelectedStationRightNavItem(panelType))}
                   >
                     <div
                       className={paneStyles.rightIcon}
@@ -236,7 +237,6 @@ const StationEditorRight: FunctionComponent = () => {
                       }}
                       data-tooltip-id="aegis-tooltip"
                       data-tooltip-html={panelTypes[panelType].title}
-                      onClick={() => dispatch(setSelectedStationRightNavItem(panelType))}
                     >
                       <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
                     </div>

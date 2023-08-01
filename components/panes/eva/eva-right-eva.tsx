@@ -229,6 +229,7 @@ const EvaRightEva: FunctionComponent = () => {
                         ? paneStyles.rightIconContainerSelected
                         : paneStyles.rightIconContainer
                     }
+                    onClick={() => dispatch(setSelectedEvaRightNavItem(panelType))}
                   >
                     <div
                       className={paneStyles.rightIcon}
@@ -240,7 +241,6 @@ const EvaRightEva: FunctionComponent = () => {
                       }}
                       data-tooltip-id="aegis-tooltip"
                       data-tooltip-html={panelTypes[panelType].title}
-                      onClick={() => dispatch(setSelectedEvaRightNavItem(panelType))}
                     >
                       <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
                     </div>

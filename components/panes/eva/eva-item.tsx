@@ -81,6 +81,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
       );
       if (evaSequenceItem) {
         evaSelectionStyle = evaStyles.nameEmphasized;
+        settingsIconColor = "var(--grey4)";
       }
     }
   }
@@ -109,11 +110,9 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
         <div
           className={`${evaStyles.name} ${evaSelectionStyle}`}
           onClick={() => {
-            if (selectedEvaUuid === eva.uuid) {
-              if (selectedEvaSequenceItemUuid === null) {
-                dispatch(setSelectedEvaUuid(null));
-                dispatch(setRightPanelOpen(false));
-              }
+            if (selectedEvaUuid === eva.uuid && selectedEvaSequenceItemUuid === null) {
+              dispatch(setSelectedEvaUuid(null));
+              dispatch(setRightPanelOpen(false));
             } else {
               dispatch(setSelectedEvaUuid(eva.uuid));
 

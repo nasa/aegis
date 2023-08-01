@@ -29,7 +29,7 @@ export function copyStringFromObj<P extends string, T extends Record<P, string>>
     !duplicateItemNameRegex.test(duplicateItemName) &&
     !duplicateItems.some((s) => s[propName] === duplicateItemName)
   ) {
-    return duplicateItemName + " (copy 1)";
+    return duplicateItemName;
   } else {
     const duplicateItemNameCopy = duplicateItemName.split(duplicateItemNameRegex); // e.g. ["Station Name", " (copy 1)" "Modifer"]
     let highestStationDuplicateNumber = 0;

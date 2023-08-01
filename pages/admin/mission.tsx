@@ -110,6 +110,7 @@ const Mission: NextPage = () => {
       projOriginY: 0,
       projResZoomLevel: 0,
       projResUnitsPerPixel: 0,
+      landerRadii: [],
     };
 
     setMission(newMission);
@@ -176,6 +177,7 @@ const Mission: NextPage = () => {
           projOriginY: 0,
           projResZoomLevel: 0,
           projResUnitsPerPixel: 0,
+          landerRadii: [],
         };
       } else {
         //We can assume this is an export from our own system
@@ -212,6 +214,7 @@ const Mission: NextPage = () => {
           projOriginY: tempMissionObj.projOriginY,
           projResZoomLevel: tempMissionObj.projResZoomLevel,
           projResUnitsPerPixel: tempMissionObj.projResUnitsPerPixel,
+          landerRadii: tempMissionObj.landerRadii,
         };
       }
       try {

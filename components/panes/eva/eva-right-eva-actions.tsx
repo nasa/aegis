@@ -30,24 +30,26 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   useEffect(() => {
     if (!actions || !selectedEva || !stations) return;
     const allEvaActions: Action[] = [];
+    const actionOrderUuids: string[] = [];
 
     // loop though all eva sequence items and generate a collection of actions from all stations
 
     for (const sequenceItem of selectedEva.sequence) {
       if (sequenceItem.type !== "station") continue;
 
-      const stationName = stations.find((station) => station.uuid === sequenceItem.uuid)?.name;
+      const station = stations.find((station) => station.uuid === sequenceItem.uuid);
       let stationActions = actions.filter((action) => action.stationUuid === sequenceItem.uuid);
       // prepend the station name to each action name
       stationActions = stationActions.map((action) => {
-        return { ...action, name: `${stationName} - ${action.name}` };
+        return { ...action, name: `${station?.name} - ${action.name}` };
       });
       if (stationActions) allEvaActions.push(...stationActions);
+      if (station && station.actionOrderUuids) actionOrderUuids.push(...station.actionOrderUuids);
     }
     setEvaActions(allEvaActions);
 
     // set the action order uuids
-    setEvaActionOrderUuids(allEvaActions.map((action) => action.uuid));
+    setEvaActionOrderUuids(actionOrderUuids);
   }, [actions, selectedEva, stations]);
 
   useEffect(() => {

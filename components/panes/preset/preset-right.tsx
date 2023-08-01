@@ -4,6 +4,7 @@ import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBan,
+  faBullseye,
   faCircleInfo,
   faEdit,
   faFloppyDisk,
@@ -13,6 +14,7 @@ import {
 
 import Info_panel from "./preset-right-info";
 import Layers_Panel from "./preset-right-layers";
+import Circles_Panel from "./preset-right-circles";
 import paneStyles from "../global-pane-styles.module.css";
 import { setPresetEditMode, setSelectedPresetRightNavItem, upsertPreset } from "store/preset";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
@@ -56,6 +58,12 @@ const PresetEditorRight: FunctionComponent = () => {
       panel: Layers_Panel,
       selectedColor: "white",
       icon: faLayerGroup,
+    },
+    circle_panel: {
+      title: "Vector Layer Configuration",
+      panel: Circles_Panel,
+      selectedColor: "white",
+      icon: faBullseye,
     },
   };
 
@@ -101,6 +109,7 @@ const PresetEditorRight: FunctionComponent = () => {
                       ? paneStyles.rightIconContainerSelectedPreset
                       : paneStyles.rightIconContainer
                   }
+                  onClick={() => dispatch(setSelectedPresetRightNavItem(panelType))}
                 >
                   <div
                     className={paneStyles.rightIcon}
@@ -112,7 +121,6 @@ const PresetEditorRight: FunctionComponent = () => {
                     }}
                     data-tooltip-id="aegis-tooltip"
                     data-tooltip-html={panelTypes[panelType].title}
-                    onClick={() => dispatch(setSelectedPresetRightNavItem(panelType))}
                   >
                     <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
                   </div>

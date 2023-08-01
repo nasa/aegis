@@ -36,6 +36,7 @@ interface UserState {
 
 interface MapState {
   mapLayerControls: MapLayerControls;
+  mapCircleControls: MapCircleControls;
   activeSelectedName: string;
   mousePosition: LatLng;
   mapDirective: MapDirective;
@@ -85,7 +86,7 @@ interface InterfaceState {
   elevationPendingItemUuids: string[];
   timelineShowDistanceFromLander: boolean;
   timelineShowElevation: boolean;
-  actionsCollapsed: string[];
+  actionsExpanded: string[];
 }
 
 interface STMState {
