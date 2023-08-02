@@ -4,6 +4,7 @@ L.Icon.Default.imagePath = "/leaflet/images/";
 import { HighlightablePolyline } from "leaflet-highlightable-layers";
 import DraggableLines from "leaflet-draggable-lines";
 import { antPath } from "leaflet-ant-path";
+import "leaflet-textpath";
 import "leaflet.tilelayer.colorfilter";
 import "proj4leaflet";
 
@@ -163,6 +164,7 @@ const MapBody: FunctionComponent = () => {
 
   const [scale, setScale] = useState(0);
   const [mapZoom, setMapZoom] = useState(0); // value used to show correct scale bar
+  const [showArrows, setShowArrows] = useState(false);
 
   // make color filter settings for tile sublayer. This is the format of leaflet.tilelayer.colorfilter package
   const makeTileLayerColorFilter = (
@@ -639,6 +641,15 @@ const MapBody: FunctionComponent = () => {
       polyline.uuid = uuid;
       polyline.mapItemType = mapItemType;
 
+      // polyline arrows
+      if (showArrows) {
+        polyline.setText("➤             ", {
+          repeat: true,
+          offset: 6,
+          attributes: { fill: color, "font-weight": "bold", "font-size": "16" },
+        });
+      }
+
       // polyline handlers
       polyline
         .bindTooltip(`${name} ${typeName}`, {
@@ -658,7 +669,7 @@ const MapBody: FunctionComponent = () => {
 
       map.current.addLayer(polyline);
 
-      if (drawAntPath) {
+      if (drawAntPath && !showArrows) {
         const aPath = antPath(path, {
           delay: 9000,
           dashArray: [10, 20],
@@ -675,7 +686,7 @@ const MapBody: FunctionComponent = () => {
         map.current.addLayer(aPath);
       }
     },
-    [map, dispatch]
+    [map, dispatch, showArrows]
   );
 
   const saveUpdatedItemPosition = useCallback(
@@ -1255,7 +1266,15 @@ const MapBody: FunctionComponent = () => {
         drawAntPath: false,
       });
     }
-  }, [map, selectedStation, mapDirective, drawPolylineOnMap, dispatch, sectionSelected]);
+  }, [
+    map,
+    selectedStation,
+    mapDirective,
+    drawPolylineOnMap,
+    dispatch,
+    sectionSelected,
+    showArrows,
+  ]);
 
   /**
    * Draw or update traverses on the map when selections or traverses change. Serves as draw when page loads
@@ -1283,7 +1302,7 @@ const MapBody: FunctionComponent = () => {
             dispatch(setSectionSelected("evas"));
             dispatch(selectEVASequenceItem({ sequenceItemUuid: traverse.uuid }));
           },
-          color: "blue",
+          color: "#03adfc",
           mapItemType: "traverse",
           drawAntPath: selectedEvaSequenceItemUuid !== traverse.uuid, //make it an ant path if this is not the selected traverse
         });
@@ -1296,6 +1315,7 @@ const MapBody: FunctionComponent = () => {
     dispatch,
     traversesToShow,
     selectedEvaSequenceItemUuid,
+    showArrows,
   ]);
 
   /**
@@ -1622,6 +1642,22 @@ const MapBody: FunctionComponent = () => {
                   label="Labels"
                   labelStyle={{ alignSelf: "center" }}
                   uniqueId="showHideStationLabels"
+                />
+              </div>
+            </div>
+          </div>
+          <div className={styles.controlContainer}>
+            <div className={styles.control}>
+              <div className={styles.controlCheckbox}>
+                <Checkbox
+                  checked={showArrows}
+                  onChange={(e) => {
+                    setShowArrows(e.target.checked);
+                  }}
+                  toolTip="Show/Hide arrows on traverses"
+                  label="Arrows"
+                  labelStyle={{ alignSelf: "center" }}
+                  uniqueId="showHidePoi"
                 />
               </div>
             </div>
