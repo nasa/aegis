@@ -36,6 +36,7 @@
   flex-direction: column;
   border: 1px solid var(--grey3);
   padding: 3px 5px 3px 5px;
+  height: 47px;
 }
 
 .control {
@@ -45,7 +46,6 @@
 .subControl {
   display: flex;
   margin-left: 10px;
-  font-size: 0.9em;
 }
 
 .controlCheckbox {
