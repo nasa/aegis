@@ -1,58 +1,12 @@
-import reducer, { initialState, setMapLayerControls } from "store/map";
-import { setLayers } from "store/mission";
-import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
-import { getORM, getEM, closeORM } from "utils/mikro";
-import handleLayer from "pages/api/layer";
-import Login from "pages/api/auth/login";
-
-import UserFactory from "../../factories/UserFactory";
-import MissionFactory from "../../factories/MissionFactory";
-import { Mission as Mission_db } from "server/database/models/mission.model";
-import { User as User_db } from "server/database/models/user.model";
-import {
-  createMocks,
-  createRequest,
-  createResponse,
-  RequestOptions,
-  ResponseOptions,
-} from "node-mocks-http";
-import { NextApiRequest, NextApiResponse } from "next";
+import reducer, { initialState, setMapSublayerControls } from "store/map";
+import { describe, expect, it } from "@jest/globals";
 import { TextEncoder, TextDecoder } from "util";
-import { IronSessionData } from "iron-session";
+import { v4 as uuidv4 } from "uuid";
+
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
-let testMission: Mission_db;
-let testUser: User_db;
-
-beforeAll(async () => {
-  await getORM();
-  const em = getEM();
-  testMission = await new MissionFactory(em).createOne();
-  testUser = await new UserFactory(em).createOne({
-    permissionList: [
-      {
-        missionId: testMission.id,
-        permissions: {
-          edit: true,
-          view: true,
-        },
-      },
-    ],
-  });
-});
-
 describe("AEGIS Map Store Tests: ", () => {
-  type ApiRequest = NextApiRequest & ReturnType<typeof createRequest>;
-  type ApiResponse = NextApiResponse & ReturnType<typeof createResponse>;
-
-  let loginCookie: string;
-
-  function mockRequestResponse(reqOptions: RequestOptions, resOptions?: ResponseOptions) {
-    const { req, res }: { req: ApiRequest; res: ApiResponse } = createMocks(reqOptions, resOptions);
-    return { req, res };
-  }
-
   it("should return the initial state on first run", () => {
     // Arrange
     const nextState = initialState;
@@ -66,68 +20,26 @@ describe("AEGIS Map Store Tests: ", () => {
     expect(result).toEqual(nextState);
   });
 
-  test("Returns login session", async () => {
-    const loginReqRes = mockRequestResponse({
-      method: "POST",
-      body: { username: testUser.username, password: "superSecretPassword" },
-    });
-    await Login(loginReqRes.req, loginReqRes.res);
-    expect(loginReqRes.res.statusCode).toBe(200); //check response from login
-    const response: WrappedResponse<IronSessionData> = loginReqRes.res._getJSONData();
-    expect(response.status).toEqual("success");
-    loginCookie = loginReqRes.res._getHeaders()["set-cookie"][0];
-  });
-
-  it("Set the State when loading Map layer", async () => {
-    // Get layers
-    const reqOptions: RequestOptions = {
-      method: "GET",
-      headers: { cookie: loginCookie },
-      query: { missionId: testMission.id.toString() },
+  it("Set the State when loading Map sublayers", async () => {
+    //create dummy controls
+    const uuid1 = uuidv4();
+    const uuid2 = uuidv4();
+    const controls: MapSublayerControls = {};
+    controls[uuid1] = {
+      name: "sublayer1",
+      sublayerUuid: uuid1,
+      visible: false,
+      style: null,
     };
-    const { req, res } = mockRequestResponse(reqOptions);
-    await handleLayer(req, res);
-
-    expect(res.statusCode).toBe(200);
-    expect(res.statusMessage).toEqual("OK");
-
-    const wrappedResponse = res._getJSONData();
-    expect(wrappedResponse.status).toBe("success");
-    const layers: Layer[] = wrappedResponse.data;
-
-    // Arrange
-    const configLayers = setLayers(layers);
-    const controls: MapLayerControls = {};
-
-    // Act
-    configLayers.payload.map((configLayer) => {
-      controls[configLayer.layerConfig.name] = {
-        name: configLayer.layerConfig.name,
-        uuid: configLayer.uuid,
-        visible: false,
-        type: configLayer.layerConfig.type,
-        style: null,
-      };
-      if (configLayer.layerConfig.sublayers) {
-        configLayer.layerConfig.sublayers.map((sublayer) => {
-          controls[sublayer.name] = {
-            name: sublayer.name,
-            uuid: sublayer.uuid,
-            visible: false,
-            type: sublayer.type,
-            style: null,
-          };
-        });
-      }
-    });
-
-    const newControls = {
-      payload: controls,
-      type: "map/setMapLayerControls",
+    controls[uuid2] = {
+      name: "sublayer2",
+      sublayerUuid: uuid2,
+      visible: false,
+      style: null,
     };
 
-    const nextLayerControls = reducer(initialState, setMapLayerControls(controls));
-    expect(setMapLayerControls(nextLayerControls.mapLayerControls)).toMatchObject(newControls);
+    const mapState = reducer(initialState, setMapSublayerControls(controls));
+    expect(mapState.mapSublayerControls).toMatchObject(controls);
   });
 
   describe("Map Store: updateMapDirective", () => {
@@ -169,13 +81,4 @@ describe("AEGIS Map Store Tests: ", () => {
       expect(result.mapDirective).not.toEqual(initialState.mapDirective);
     });
   });
-});
-
-afterAll(async () => {
-  //Cleanup our Database
-  const em = getEM();
-  await em.nativeDelete(Mission_db, { id: testMission.id });
-  await em.nativeDelete(User_db, { id: testUser.id });
-  // Closing the DB connection allows Jest to exit successfully.
-  await closeORM();
 });

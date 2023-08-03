@@ -4,6 +4,7 @@ export const initialState: MissionState = {
   mission: null,
   missionFromDb: null,
   layers: null,
+  sublayers: null,
   selectedRightNavItem: "prefs_panel",
   missionSectionsEditing: [],
 };
@@ -20,6 +21,9 @@ export const missionSlice = createSlice({
     },
     setLayers: (state, action: { payload: Layer[] }) => {
       state.layers = action.payload;
+    },
+    setSublayers: (state, action: { payload: Sublayer[] }) => {
+      state.sublayers = action.payload;
     },
     setSelectedMissionRightNavItem: (state, action: { payload: string }) => {
       state.selectedRightNavItem = action.payload;
@@ -43,6 +47,7 @@ export const {
   setMission,
   setMissionFromDb,
   setLayers,
+  setSublayers,
   setSelectedMissionRightNavItem,
   setMissionSectionEditing,
 } = missionSlice.actions;

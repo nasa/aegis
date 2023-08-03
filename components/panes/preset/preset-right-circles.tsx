@@ -5,7 +5,7 @@ import { faEye, faEyeSlash, faSliders } from "@fortawesome/free-solid-svg-icons"
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { setPresetCircleUIState, togglePresetCircleVisible } from "store/preset";
+import { setPresetUIState, togglePresetCircleVisible } from "store/preset";
 import Settings_subpanel from "./preset-right-layers-settings";
 
 const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
@@ -119,11 +119,11 @@ const RadiusLayer: FunctionComponent<{
                 const tabSelected =
                   presetUIStates[radiusLayer.uuid].tabSelected === "sliders" ? null : "sliders";
                 dispatch(
-                  setPresetCircleUIState({
+                  setPresetUIState({
                     presetUuid: selectedPreset.uuid,
-                    radiusUuid: radiusLayer.uuid,
-                    presetLayerUIState: {
-                      ...presetUIStates[radiusLayer.name],
+                    uuid: radiusLayer.uuid,
+                    presetUIState: {
+                      ...presetUIStates[radiusLayer.uuid],
                       tabSelected,
                     },
                   })
@@ -138,8 +138,8 @@ const RadiusLayer: FunctionComponent<{
       {presetUIStates[radiusLayer.uuid].tabSelected === "sliders" && (
         <div className={styles.radiusLayerExpando}>
           <Settings_subpanel
-            sublayer={{ ...radiusLayer, type: "circle" }}
             selectedPreset={selectedPreset}
+            type="circle"
             uuid={radiusLayer.uuid}
           />
         </div>

@@ -24,6 +24,7 @@ interface MissionState {
   mission: Mission;
   missionFromDb: Mission;
   layers: Layer[];
+  sublayers: Sublayer[];
   selectedRightNavItem: string;
   missionSectionsEditing: string[];
 }
@@ -35,7 +36,7 @@ interface UserState {
 }
 
 interface MapState {
-  mapLayerControls: MapLayerControls;
+  mapSublayerControls: MapSublayerControls;
   mapCircleControls: MapCircleControls;
   activeSelectedName: string;
   mousePosition: LatLng;

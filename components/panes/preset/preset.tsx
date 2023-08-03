@@ -3,7 +3,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faGlobe, faPlusCircle, faUser } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent, useState } from "react";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
-import { setMapLayerControls } from "store/map";
+import { setMapSublayerControls } from "store/map";
 import { setSelectedPresetUuid, setSelectedPresetRightNavItem } from "store/preset";
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import { Button } from "components/interface/form/globalFields";
@@ -94,12 +94,14 @@ const PresetList: FunctionComponent<{
     if (currentPreset.uuid === selectedPresetUuid) {
       dispatch(setSelectedPresetUuid(null));
       dispatch(setRightPanelOpen(false));
-      dispatch(setMapLayerControls(setAllLayerControlsInvisible(currentPreset.mapLayerControls)));
+      dispatch(
+        setMapSublayerControls(setAllLayerControlsInvisible(currentPreset.mapSublayerControls))
+      );
       return;
     }
 
     dispatch(setSelectedPresetUuid(currentPreset.uuid));
-    dispatch(setMapLayerControls(currentPreset.mapLayerControls));
+    dispatch(setMapSublayerControls(currentPreset.mapSublayerControls));
     if (!selectedRightNavItem) dispatch(setSelectedPresetRightNavItem("info_panel"));
     dispatch(setRightPanelOpen(true));
   };

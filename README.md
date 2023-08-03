@@ -28,7 +28,7 @@ Perform "All install methods" instructions above before performing the following
 1. Run Docker Compose:
    1. Dev mode: `npm run docker:dev`
    2. Production preview: `npm run docker:preview`
-2. Seed the database with the `admin` user: `docker-compose exec nextjs npm run seed`. Alternatively, import a dump of the database from one of the environments using the instructions outlined in "Import a database dump from one of the AEGIS environments" below.
+2. Import a dump of the database from one of the environments using the instructions outlined in "Import a database dump from one of the AEGIS environments" below.
 3. Open [https://aegis-local.fit.nasa.gov](https://aegis-local.fit.nasa.gov) with your browser. In dev, username and password are both `admin`.
 
 To stop, run `docker compose down`.
@@ -39,7 +39,7 @@ Perform "All install methods" instructions above before performing the following
 
 1. Run Docker Compose: `docker-compose up -d database` to start only the database.
 2. Setup the database: `npm run migrate:up`
-3. Seed the database with the `admin` user: `npm run seed`. Alternatively, import a dump of the database from one of the environments using the instructions outlined in "Import a database dump from one of the AEGIS environments" below.
+3. Import a dump of the database from one of the environments using the instructions outlined in "Import a database dump from one of the AEGIS environments" below.
 4. Run `npm run dev` to start the frontend.
 5. Open [http://aegis-local.fit.nasa.gov:4000](http://aegis-local.fit.nasa.gov:4000) with your browser (lack of https). In dev, username and password are both `admin`.
 
@@ -153,7 +153,7 @@ npm run dev # note: not docker:dev. Running node locally.
 
 ```bash
 # Generate a migration
-npx mikro-orm migration:create <migration-name>
+npm run migrate:create
 
 # Run migrations
 npm run migrate:up
@@ -165,7 +165,7 @@ npm run migrate:down
 npm run seed
 
 # Fresh start (drop database, run migrations, seed)
-npx mikro-orm migration:fresh --seed
+npm run migrate:fresh
 ```
 
 ### In case of migration squash please do the following on production [This could be automated in the future]

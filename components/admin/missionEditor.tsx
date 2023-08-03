@@ -11,15 +11,6 @@ import adminStyles from "components/admin/admin.module.css";
 import { pick, isEmpty } from "lodash";
 import { upsertMission } from "http-client/mission";
 
-//Type used to track extra information about each tool needed to render the components
-export type WrappedTool = {
-  name: string;
-  tool?: MMGIS_Tool;
-  helpText: string;
-  active: boolean;
-  variables?: string;
-};
-
 const MissionEditor: FunctionComponent<{
   refreshMissionList: () => {};
   mission: Mission;

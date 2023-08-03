@@ -1,9 +1,6 @@
 /**
  * Leaflet marker with a uuid property
  */
-type FeatureGroupWithUuid = L.FeatureGroup & {
-  uuid?: string;
-};
 
 type AEGISMarker = L.Marker & {
   uuid?: string;
@@ -31,8 +28,4 @@ type AEGISCircleMarker = L.CircleMarker & {
 type CircleWithUuid = L.Circle & {
   uuid?: string;
   mapItemType?: "radius";
-};
-
-type AEGISFeatureGroup = L.FeatureGroup & {
-  id: string;
 };

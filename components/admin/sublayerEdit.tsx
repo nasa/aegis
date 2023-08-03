@@ -1,897 +1,349 @@
-import { Dispatch, SetStateAction, FunctionComponent, useState, useEffect } from "react";
+import { FunctionComponent, useState, useEffect } from "react";
 import styles from "./admin.module.css";
-import { JSONEditor } from "./helper";
-import { LayerPropertyListing, getLayerProperties } from "./layerProperties";
+import { upsertSublayer } from "http-client/sublayer";
 
 interface SublayerProps {
-  sublayerIndex: number;
   sublayer: Sublayer;
-  setLayer: Dispatch<SetStateAction<Layer>>;
-  missionId: number;
+  refreshLayerList: Function;
   fileList: GISfile[];
 }
 
-/** Render a single Layer record from the DB */
+/** Render a single sublayer record from the DB */
 const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) => {
-  const { sublayerIndex, sublayer, setLayer, missionId, fileList } = props;
-  const [sublayerView, setSublayerview] = useState<LayerPropertyListing>(null);
+  const [sublayer, setSublayer] = useState<Sublayer>(props.sublayer);
+  const [boundingBox, setBoundingBox] = useState<string>(props.sublayer.boundingBox?.toString());
 
-  //refresh the fields when the prop changes
   useEffect(() => {
-    if (sublayer) {
-      setSublayerview(getLayerProperties(sublayer.type));
-    } else {
-      setSublayerview(getLayerProperties("tile"));
-    }
-  }, [sublayer, missionId]);
+    setSublayer(props.sublayer);
+    setBoundingBox(props.sublayer.boundingBox?.toString());
+  }, [props.sublayer]);
 
-  function saveSublayer(sublayer: Sublayer) {
-    setLayer((prevLayer) => {
-      //replace our new sublayer into the existing sublayer array
-      const newSublayers: Sublayer[] = prevLayer.layerConfig.sublayers.map(
-        (element: Sublayer, index: number) => {
-          return index === sublayerIndex ? sublayer : element;
-        }
-      );
-
-      return {
-        ...prevLayer,
-        layerConfig: {
-          ...prevLayer.layerConfig,
-          sublayers: newSublayers,
-        },
-      };
-    });
+  //save the current editing sublayer to db
+  async function saveSublayer() {
+    const res: WrappedResponse<Sublayer> = await upsertSublayer(sublayer);
+    props.refreshLayerList();
+    alert(`${res.status} - ${res.message}`);
   }
 
-  if (sublayerView) {
-    return (
-      <>
+  return (
+    <>
+      {sublayer.name ? <h3>Edit Sublayer &quot;{sublayer.name}&quot;</h3> : <h3>Edit Sublayer</h3>}
+      <div id="readOnlyDiv" className={styles.divIndent}>
+        UUID: {sublayer.uuid}
         <br />
-        {sublayerView.type && (
-          <div id="typeDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="layerType">Layer Type</label>
-            </div>
-            <div className={styles.editDiv}>
-              <select
-                id="layerType"
-                onChange={(e) => {
-                  // setSublayerview(getLayerProperty(e.target.value as MMGIS_layerTypes));
-                  saveSublayer({ ...sublayer, type: e.target.value as MMGIS_layerTypes });
-                }}
-                value={sublayer.type}
-              >
-                <option value="tile">Tile</option>
-                <option value="vector">Vector</option>
-                <option value="vectortile">Vector Tile</option>
-                <option value="query">Query</option>
-                <option value="data">Data</option>
-                <option value="model">Model</option>
-              </select>
-            </div>
-          </div>
-        )}
+        MissionId: {sublayer.missionId}
+        <br />
+        Parent Layer: {sublayer.layerUuid}
+      </div>
+      <br />
 
-        {sublayerView.name && (
-          <div id="nameDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="name">Sublayer Name</label>
-            </div>
-            <div className={styles.editDiv}>
-              <input
-                id="name"
-                type="text"
-                onChange={(e) => {
-                  saveSublayer({ ...sublayer, name: e.target.value });
-                }}
-                value={sublayer.name || ""}
-              />
-            </div>
-          </div>
-        )}
+      <div id="nameDiv">
+        <div className={styles.editDiv}>
+          <label htmlFor="name">Sublayer Name</label>
+        </div>
+        <div className={styles.editDiv}>
+          <input
+            id="name"
+            type="text"
+            onChange={(e) => {
+              setSublayer({ ...sublayer, name: e.target.value });
+            }}
+            value={sublayer.name || ""}
+          />
+        </div>
+      </div>
 
-        <div id="descDiv">
+      <div id="descDiv">
+        <div className={styles.editDiv}>
+          <label htmlFor="desc">Sublayer Description</label>
+        </div>
+        <div className={styles.editDiv}>
+          <input
+            id="desc"
+            type="text"
+            onChange={(e) => {
+              setSublayer({ ...sublayer, description: e.target.value });
+            }}
+            value={sublayer.description || ""}
+          />
+        </div>
+      </div>
+
+      <div id="typeDiv">
+        <div className={styles.editDiv}>
+          <label htmlFor="layerType">Layer Type</label>
+        </div>
+        <div className={styles.editDiv}>
+          <select
+            id="layerType"
+            onChange={(e) => {
+              setSublayer({ ...sublayer, type: e.target.value as "vector" | "tile" });
+            }}
+            value={sublayer.type || "tile"}
+          >
+            <option value="tile">Tile</option>
+            <option value="vector">Vector</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="urlDiv">
+        <div className={styles.editDiv}>
+          <label htmlFor="url">URL</label>
+        </div>
+
+        <div className={styles.editDiv}>
+          <label htmlFor="folderNames">Folder </label>
+          <select
+            id="folderNames"
+            title="folder names"
+            onChange={(e) => {
+              const tilePattern = sublayer.url
+                ? sublayer.url.substring(sublayer.url.indexOf("/") + 1)
+                : "";
+              setSublayer({ ...sublayer, url: `${e.target.value}/${tilePattern}` });
+            }}
+            value={sublayer.url ? sublayer.url.substring(0, sublayer.url.indexOf("/")) : ""}
+          >
+            <option value="" />
+            {props.fileList?.map((file) => {
+              return (
+                <option value={file.name} key={file.name}>
+                  {file.name}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+        <div className={styles.editDiv}>
+          <label htmlFor="aegisUrl">Tile Pattern {`(eg. {z}/{x}/{y}.png)`}</label>
+          <input
+            id="aegisUrl"
+            type="text"
+            onChange={(e) => {
+              const folderName = sublayer.url
+                ? sublayer.url.substring(0, sublayer.url.indexOf("/"))
+                : "";
+              setSublayer({ ...sublayer, url: `${folderName}/${e.target.value}` });
+            }}
+            value={sublayer.url ? sublayer.url.substring(sublayer.url.indexOf("/") + 1) : ""}
+          />
+        </div>
+      </div>
+
+      <div id="fileDiv">
+        <div className={styles.editDiv}>
+          <label htmlFor="filePath">File Path (for vectors layers)</label>
+        </div>
+        <div className={styles.editDiv}>
+          <input
+            id="filePath"
+            type="text"
+            onChange={(e) => {
+              setSublayer({ ...sublayer, filePath: e.target.value });
+            }}
+            value={sublayer.filePath || ""}
+          />
+          Make sure this file is uploaded to mission/data
+        </div>
+      </div>
+
+      <div id="boundingDiv">
+        <div className={styles.editDiv}>
+          <label htmlFor="boundingbox">Bounding Box (minx, miny, maxx, maxy)</label>
+        </div>
+        <div className={styles.editDiv}>
+          <input
+            id="boundingbox"
+            type="text"
+            onBlur={(e) => {
+              setSublayer({
+                ...sublayer,
+                boundingBox: e.target.value.split(",").map((val) => parseFloat(val)),
+              });
+            }}
+            onChange={(e) => {
+              setBoundingBox(e.target.value);
+            }}
+            value={boundingBox || ""}
+          />
+        </div>
+      </div>
+
+      <div id="tileFormatDiv">
+        <div className={styles.editDiv}>
+          <label htmlFor="tileformat">Tile Format</label>
+        </div>
+        <div className={styles.editDiv}>
+          <select
+            id="tileformat"
+            onChange={(e) => {
+              setSublayer({ ...sublayer, tileFormat: e.target.value });
+            }}
+            value={sublayer.tileFormat || "TMS"}
+          >
+            <option value="tms">TMS</option>
+            <option value="wtms">WTMS</option>
+            <option value="wms">WMS</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="minZoomDiv">
+        <div className={styles.editDiv}>
+          <label htmlFor="minZoom">Minimum Zoom</label>
+        </div>
+        <div className={styles.editDiv}>
+          <input
+            id="minZoom"
+            type="text"
+            onChange={(e) => {
+              setSublayer({ ...sublayer, minZoom: +e.target.value });
+            }}
+            value={sublayer.minZoom || ""}
+          />
+        </div>
+      </div>
+
+      <div id="maxNativeDiv">
+        <div className={styles.editDiv}>
+          <label htmlFor="maxNative">Maximum Native Zoom</label>
+        </div>
+        <div className={styles.editDiv}>
+          <input
+            id="maxNative"
+            type="text"
+            onChange={(e) => {
+              setSublayer({ ...sublayer, maxNativeZoom: +e.target.value });
+            }}
+            value={sublayer.maxNativeZoom || ""}
+          />
+        </div>
+      </div>
+
+      <div id="maxZoomDiv">
+        <div className={styles.editDiv}>
+          <label htmlFor="maxZoom">Maximum Zoom</label>
+        </div>
+        <div className={styles.editDiv}>
+          <input
+            id="maxZoom"
+            type="text"
+            onChange={(e) => {
+              setSublayer({ ...sublayer, maxZoom: +e.target.value });
+            }}
+            value={sublayer.maxZoom || ""}
+          />
+        </div>
+      </div>
+
+      <div id="styleGenreicDiv">
+        <div id="strokeColorDiv">
           <div className={styles.editDiv}>
-            <label htmlFor="desc">Sublayer Description</label>
+            <label htmlFor="strokecolor">Stroke Color</label>
           </div>
           <div className={styles.editDiv}>
             <input
-              id="desc"
+              id="strokecolor"
               type="text"
               onChange={(e) => {
-                saveSublayer({ ...sublayer, description: e.target.value });
+                setSublayer({
+                  ...sublayer,
+                  color: e.target.value,
+                });
               }}
-              value={sublayer.description || ""}
+              value={sublayer.color || ""}
             />
           </div>
         </div>
 
-        {sublayerView.type && (
-          <div id="kindDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="kind">Layer Type</label>
-            </div>
-            <div className={styles.editDiv}>
-              <select
-                id="kind"
-                onChange={(e) => {
-                  saveSublayer({ ...sublayer, kind: e.target.value });
-                }}
-                value={sublayer.kind}
-              >
-                <option value="none">None</option>
-                <option value="info">Info</option>
-                <option value="waypoint">Waypoint</option>
-                <option value="chemistrytool">Chemistry Tool</option>
-                <option value="drawtool">Draw Tool</option>
-              </select>
-            </div>
+        <div id="opacityDiv">
+          <div className={styles.editDiv}>
+            <label htmlFor="opacity">Opacity</label>
           </div>
-        )}
-
-        {sublayerView.query && (
-          <div id="queryDiv" className={styles.divIndent}>
-            <h4>Query</h4>
-            <div className={styles.sectionDiv}>
-              <div id="queryendpointDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="queryendpoint">Endpoint</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="queryendpoint"
-                    type="text"
-                    onChange={(e) => {
-                      saveSublayer({
-                        ...sublayer,
-                        query: { ...sublayer.query, endpoint: e.target.value },
-                      });
-                    }}
-                    value={sublayer.query?.endpoint}
-                  />
-                </div>
-              </div>
-
-              <div id="querytypeDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="querytype">Type</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <select
-                    id="querytype"
-                    onChange={(e) => {
-                      saveSublayer({
-                        ...sublayer,
-                        query: { ...sublayer.query, type: e.target.value },
-                      });
-                    }}
-                    value={sublayer.query?.type}
-                  >
-                    <option value="elasticsearch">Elastic Search</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {sublayerView.url && (
-          <>
-            <div id="urlDiv">
-              <div className={styles.editDiv}>
-                <label htmlFor="url">URL</label>
-              </div>
-              <div className={styles.editDiv}>
-                <input
-                  id="url"
-                  type="text"
-                  onChange={(e) => {
-                    saveSublayer({ ...sublayer, url: e.target.value });
-                  }}
-                  value={sublayer.url}
-                />
-              </div>
-            </div>
-            <div id="aegisUrlDiv">
-              <div className={styles.editDiv}>
-                <label htmlFor="aegisUrl">AEGIS URL </label>
-              </div>
-
-              <div className={styles.editDiv}>
-                <label htmlFor="folderNames">Folder </label>
-                <select
-                  id="folderNames"
-                  title="folder names"
-                  onChange={(e) => {
-                    const tilePattern = sublayer.aegisURL
-                      ? sublayer.aegisURL.substring(sublayer.aegisURL.indexOf("/") + 1)
-                      : "";
-                    saveSublayer({ ...sublayer, aegisURL: `${e.target.value}/${tilePattern}` });
-                  }}
-                  value={
-                    sublayer.aegisURL
-                      ? sublayer.aegisURL.substring(0, sublayer.aegisURL.indexOf("/"))
-                      : ""
-                  }
-                >
-                  <option value="" />
-                  {fileList?.map((file) => {
-                    return (
-                      <option value={file.name} key={file.name}>
-                        {file.name}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-              <div className={styles.editDiv}>
-                <label htmlFor="aegisUrl">Tile Pattern {`(eg. {z}/{x}/{y}.png)`}</label>
-                <input
-                  id="aegisUrl"
-                  type="text"
-                  onChange={(e) => {
-                    const folderName = sublayer.aegisURL
-                      ? sublayer.aegisURL.substring(0, sublayer.aegisURL.indexOf("/"))
-                      : "";
-                    saveSublayer({ ...sublayer, aegisURL: `${folderName}/${e.target.value}` });
-                  }}
-                  value={
-                    sublayer.aegisURL
-                      ? sublayer.aegisURL.substring(sublayer.aegisURL.indexOf("/") + 1)
-                      : ""
-                  }
-                />
-              </div>
-            </div>
-          </>
-        )}
-
-        {sublayerView.position && (
-          <div id="positionDiv" className={styles.divIndent}>
-            <h4>Position</h4>
-            <div className={styles.sectionDiv}>
-              <div id="longDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="long">Longtitude</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="long"
-                    type="text"
-                    onChange={(e) => {
-                      saveSublayer({
-                        ...sublayer,
-                        position: { ...sublayer.position, longtitude: +e.target.value },
-                      });
-                    }}
-                    value={sublayer.position?.longtitude}
-                  />
-                </div>
-              </div>
-
-              <div id="latDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="lat">Latitude</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="lat"
-                    type="text"
-                    onChange={(e) => {
-                      saveSublayer({
-                        ...sublayer,
-                        position: { ...sublayer.position, latitude: +e.target.value },
-                      });
-                    }}
-                    value={sublayer.position?.latitude}
-                  />
-                </div>
-              </div>
-
-              <div id="eleDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="ele">Elevation (meters)</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="ele"
-                    type="text"
-                    onChange={(e) => {
-                      saveSublayer({
-                        ...sublayer,
-                        position: { ...sublayer.position, elevation: +e.target.value },
-                      });
-                    }}
-                    value={sublayer.position?.elevation}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {sublayerView.rotation && (
-          <div id="rotationDiv" className={styles.divIndent}>
-            <h4>Rotation</h4>
-            <div className={styles.sectionDiv}>
-              <div id="rotationXDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="rotX">Rotation X (radius)</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="rotX"
-                    type="text"
-                    onChange={(e) => {
-                      saveSublayer({
-                        ...sublayer,
-                        rotation: { ...sublayer.rotation, x: +e.target.value },
-                      });
-                    }}
-                    value={sublayer.rotation?.x}
-                  />
-                </div>
-              </div>
-
-              <div id="rotationYDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="rotY">Rotation Y</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="rotY"
-                    type="text"
-                    onChange={(e) => {
-                      saveSublayer({
-                        ...sublayer,
-                        rotation: { ...sublayer.rotation, y: +e.target.value },
-                      });
-                    }}
-                    value={sublayer.rotation?.y}
-                  />
-                </div>
-              </div>
-
-              <div id="rotationZDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="rotZ">Rotation Z</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="rotZ"
-                    type="text"
-                    onChange={(e) => {
-                      saveSublayer({
-                        ...sublayer,
-                        rotation: { ...sublayer.rotation, z: +e.target.value },
-                      });
-                    }}
-                    value={sublayer.rotation?.z}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        <br />
-
-        {sublayerView.scale && (
-          <div id="scaleDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="scale">Scale</label>
-            </div>
-            <div className={styles.editDiv}>
-              <input
-                id="scale"
-                type="text"
-                onChange={(e) => {
-                  saveSublayer({ ...sublayer, scale: +e.target.value });
-                }}
-                value={sublayer.scale}
-              />
-            </div>
-          </div>
-        )}
-
-        {sublayerView.tileformat && (
-          <div id="tileFormatDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="tileformat">Tile Format</label>
-            </div>
-            <div className={styles.editDiv}>
-              <select
-                id="tileformat"
-                onChange={(e) => {
-                  saveSublayer({ ...sublayer, tileformat: e.target.value as MMGIS_tileFormats });
-                }}
-                value={sublayer.tileformat}
-              >
-                <option value="tms">TMS</option>
-                <option value="wtms">WTMS</option>
-                <option value="wms">WMS</option>
-              </select>
-            </div>
-          </div>
-        )}
-
-        {sublayerView.demtileurl && (
-          <div id="demurlDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="demurl">DEM Tile URL</label>
-            </div>
-            <div className={styles.editDiv}>
-              <input
-                id="demurl"
-                type="text"
-                onChange={(e) => {
-                  saveSublayer({ ...sublayer, demtileurl: e.target.value });
-                }}
-                value={sublayer.demtileurl}
-              />
-            </div>
-          </div>
-        )}
-
-        {sublayerView.demparser && (
-          <div id="demparserDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="demparser">DEM Parser</label>
-            </div>
-            <div className={styles.editDiv}>
-              <select
-                id="demparser"
-                onChange={(e) => {
-                  saveSublayer({ ...sublayer, demparser: e.target.value });
-                }}
-                value={sublayer.demparser}
-              >
-                <option value="RGBA">RGBA</option>
-                <option value="TIF">TIF</option>
-              </select>
-            </div>
-          </div>
-        )}
-
-        {sublayerView.controlled && (
-          <div id="controlledDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="controlled">Controlled</label>
-            </div>
-            <div className={styles.editDiv}>
-              <input
-                id="controlled"
-                type="checkbox"
-                onChange={(e) => {
-                  saveSublayer({ ...sublayer, controlled: e.target.checked });
-                }}
-                checked={sublayer.controlled}
-              />
-            </div>
-          </div>
-        )}
-
-        {sublayerView.legend && (
-          <div id="legendURLDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="legend">Legend URL</label>
-            </div>
-            <div className={styles.editDiv}>
-              <input
-                id="legend"
-                type="text"
-                onChange={(e) => {
-                  saveSublayer({ ...sublayer, legend: e.target.value });
-                }}
-                value={sublayer.legend}
-              />
-            </div>
-          </div>
-        )}
-
-        {sublayerView.visibility && (
-          <div id="initVisDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="initVis">Initial Visibility</label>
-            </div>
-            <div className={styles.editDiv}>
-              <select
-                id="initVis"
-                onChange={(e) => {
-                  saveSublayer({ ...sublayer, visibility: e.target.value === "true" });
-                }}
-                value={sublayer.visibility ? "true" : "false"}
-              >
-                <option value="true">True</option>
-                <option value="false">False</option>
-              </select>
-            </div>
-          </div>
-        )}
-
-        {sublayerView.visibilitycutoff && (
-          <div id="visCutoffDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="visCutoff">Visibility Cutoff</label>
-            </div>
-            <div className={styles.editDiv}>
-              <input
-                id="visCutoff"
-                type="text"
-                onChange={(e) => {
-                  saveSublayer({ ...sublayer, visibilitycutoff: +e.target.value });
-                }}
-                value={sublayer.visibilitycutoff}
-              />
-            </div>
-          </div>
-        )}
-
-        {sublayerView.minZoom && (
-          <div id="minZoomDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="minZoom">Minimum Zoom</label>
-            </div>
-            <div className={styles.editDiv}>
-              <input
-                id="minZoom"
-                type="text"
-                onChange={(e) => {
-                  saveSublayer({ ...sublayer, minZoom: +e.target.value });
-                }}
-                value={sublayer.minZoom}
-              />
-            </div>
-          </div>
-        )}
-
-        {sublayerView.maxNativeZoom && (
-          <div id="maxNativeDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="maxNative">Maximum Native Zoom</label>
-            </div>
-            <div className={styles.editDiv}>
-              <input
-                id="maxNative"
-                type="text"
-                onChange={(e) => {
-                  saveSublayer({ ...sublayer, maxNativeZoom: +e.target.value });
-                }}
-                value={sublayer.maxNativeZoom}
-              />
-            </div>
-          </div>
-        )}
-
-        {sublayerView.maxZoom && (
-          <div id="maxZoomDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="maxZoom">Maximum Zoom</label>
-            </div>
-            <div className={styles.editDiv}>
-              <input
-                id="maxZoom"
-                type="text"
-                onChange={(e) => {
-                  saveSublayer({ ...sublayer, maxZoom: +e.target.value });
-                }}
-                value={sublayer.maxZoom}
-              />
-            </div>
-          </div>
-        )}
-
-        {sublayerView.initialOpacity && (
-          <div id="opacityDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="initialOpacity">Initial Opacity [0-1]</label>
-            </div>
-            <div className={styles.editDiv}>
-              <select
-                id="initialOpacity"
-                onChange={(e) => {
-                  saveSublayer({ ...sublayer, initialOpacity: +e.target.value });
-                }}
-                value={sublayer.initialOpacity}
-              >
-                <option value="1">True</option>
-                <option value="0">False</option>
-              </select>
-            </div>
-          </div>
-        )}
-
-        {sublayerView.boundingBox && (
-          <div id="boundingDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="boundingbox">Bounding Box [minx, miny, maxx, maxy]</label>
-            </div>
-            <div className={styles.editDiv}>
-              <input
-                id="boundingbox"
-                type="text"
-                onChange={(e) => {
-                  saveSublayer({
-                    ...sublayer,
-                    boundingBox: e.target.value.split(",").map((val) => parseFloat(val)),
-                  });
-                }}
-                value={sublayer.boundingBox?.toString()}
-              />
-            </div>
-          </div>
-        )}
-
-        {sublayerView.time && (
-          <div id="timeDiv" className={styles.divIndent}>
-            <h4>Time</h4>
-            <div className={styles.sectionDiv}>
-              <div id="timeenabledDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="timeenabled">Time Enabled</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <select
-                    id="timeenabled"
-                    onChange={(e) => {
-                      saveSublayer({
-                        ...sublayer,
-                        time: { ...sublayer.time, enabled: e.target.value === "true" },
-                      });
-                    }}
-                    value={sublayer.time?.enabled ? "true" : "false"}
-                  >
-                    <option value="true">True</option>
-                    <option value="false">False</option>
-                  </select>
-                </div>
-              </div>
-
-              <div id="timetypeDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="timetype">Time Type</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <select
-                    id="timetype"
-                    onChange={(e) => {
-                      saveSublayer({
-                        ...sublayer,
-                        time: { ...sublayer.time, type: e.target.value },
-                      });
-                    }}
-                    value={sublayer.time?.type}
-                  >
-                    <option value="global">Global</option>
-                    <option value="individual">Individual</option>
-                  </select>
-                </div>
-              </div>
-
-              <div id="timeformatDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="timeformat">Time Format</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="timeformat"
-                    type="text"
-                    onChange={(e) => {
-                      saveSublayer({
-                        ...sublayer,
-                        time: { ...sublayer.time, format: e.target.value },
-                      });
-                    }}
-                    value={sublayer.time?.format}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {(sublayerView.styleGeneric || sublayerView.stylevt) && (
-          <div id="styleDiv" className={styles.divIndent}>
-            <h4>Style</h4>
-            <div className={styles.sectionDiv}>
-              {sublayerView.stylevt && (
-                <div id="stylevtDiv" className={sublayerView.stylevt ? undefined : styles.hidden}>
-                  <div id="vtidDiv">
-                    <div className={styles.editDiv}>
-                      <label htmlFor="vtid">Vector Tile Feature Unique Id Key</label>
-                    </div>
-                    <div className={styles.editDiv}>
-                      <input
-                        id="vtid"
-                        type="text"
-                        onChange={(e) => {
-                          saveSublayer({
-                            ...sublayer,
-                            style: { ...sublayer.style, vtId: e.target.value },
-                          });
-                        }}
-                        value={sublayer.style?.vtId}
-                      />
-                    </div>
-                  </div>
-
-                  <div id="vtkeyDiv">
-                    <div className={styles.editDiv}>
-                      <label htmlFor="vtkey">Use Key As Name</label>
-                    </div>
-                    <div className={styles.editDiv}>
-                      <input
-                        id="vtkey"
-                        type="text"
-                        onChange={(e) => {
-                          saveSublayer({
-                            ...sublayer,
-                            style: { ...sublayer.style, vtKey: e.target.value },
-                          });
-                        }}
-                        value={sublayer.style?.vtKey}
-                      />
-                    </div>
-                  </div>
-
-                  <div id="vtlayerDiv">
-                    <JSONEditor
-                      fieldName="Vector Tile Stylings (JSON)"
-                      value={sublayer.style?.vtLayer}
-                      onChange={(value) => {
-                        saveSublayer({ ...sublayer, style: { ...sublayer.style, vtLayer: value } });
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {sublayerView.styleGeneric && (
-                <div id="styleGenreicDiv">
-                  <div id="strokeColorDiv">
-                    <div className={styles.editDiv}>
-                      <label htmlFor="strokecolor">Stroke Color</label>
-                    </div>
-                    <div className={styles.editDiv}>
-                      <input
-                        id="strokecolor"
-                        type="text"
-                        onChange={(e) => {
-                          saveSublayer({
-                            ...sublayer,
-                            style: { ...sublayer.style, color: e.target.value },
-                          });
-                        }}
-                        value={sublayer.style?.color}
-                      />
-                    </div>
-                  </div>
-
-                  <div id="fillColorDiv">
-                    <div className={styles.editDiv}>
-                      <label htmlFor="fillColor">Fill Color</label>
-                    </div>
-                    <div className={styles.editDiv}>
-                      <input
-                        id="fillColor"
-                        type="text"
-                        onChange={(e) => {
-                          saveSublayer({
-                            ...sublayer,
-                            style: { ...sublayer.style, fillColor: e.target.value },
-                          });
-                        }}
-                        value={sublayer.style?.fillColor}
-                      />
-                    </div>
-                  </div>
-
-                  <div id="strokeWeightDiv">
-                    <div className={styles.editDiv}>
-                      <label htmlFor="strokeweight">Stroke Weight</label>
-                    </div>
-                    <div className={styles.editDiv}>
-                      <input
-                        id="strokeweight"
-                        type="text"
-                        onChange={(e) => {
-                          saveSublayer({
-                            ...sublayer,
-                            style: { ...sublayer.style, weight: +e.target.value },
-                          });
-                        }}
-                        value={sublayer.style?.weight}
-                      />
-                    </div>
-                  </div>
-
-                  <div id="fillOpacityDiv">
-                    <div className={styles.editDiv}>
-                      <label htmlFor="fillOpacity">Fill Opacity</label>
-                    </div>
-                    <div className={styles.editDiv}>
-                      <input
-                        id="fillOpacity"
-                        type="text"
-                        onChange={(e) => {
-                          saveSublayer({
-                            ...sublayer,
-                            style: { ...sublayer.style, fillOpacity: +e.target.value },
-                          });
-                        }}
-                        value={sublayer.style?.fillOpacity}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        <br />
-        {sublayerView.radius && (
-          <div id="radiusDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="radius">Radius</label>
-            </div>
-            <div className={styles.editDiv}>
-              <input
-                id="radius"
-                type="text"
-                onChange={(e) => {
-                  saveSublayer({ ...sublayer, radius: +e.target.value });
-                }}
-                value={sublayer.radius}
-              />
-            </div>
-          </div>
-        )}
-
-        {sublayerView.shape && (
-          <div id="shapeDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="shape">Shape</label>
-            </div>
-            <div className={styles.editDiv}>
-              <select
-                id="shape"
-                onChange={(e) => {
-                  saveSublayer({ ...sublayer, shape: e.target.value });
-                }}
-                value={sublayer.shape}
-              >
-                <option value="default">Default</option>
-                <option value="circle">Circle</option>
-                <option value="triangle">Triangle</option>
-                <option value="triangleflipped">Triangle Flipped</option>
-                <option value="square">Square</option>
-                <option value="pentagon">Pentagon</option>
-                <option value="hexagon">Hexagon</option>
-                <option value="star">Star</option>
-                <option value="plus">Plus</option>
-                <option value="pin">Pin</option>
-              </select>
-            </div>
-          </div>
-        )}
-
-        {sublayerView.variables && (
-          <div id="varDiv">
-            <JSONEditor
-              fieldName="Raw Variables (JSON)"
-              value={sublayer.variables}
-              onChange={(value) => {
-                saveSublayer({ ...sublayer, variables: value });
+          <div className={styles.editDiv}>
+            <input
+              id="opacity"
+              type="text"
+              onChange={(e) => {
+                setSublayer({
+                  ...sublayer,
+                  opacity: +e.target.value,
+                });
               }}
+              value={sublayer.opacity || ""}
             />
           </div>
-        )}
-      </>
-    );
-  } else {
-    return <></>;
-  }
+        </div>
+
+        <div id="fillColorDiv">
+          <div className={styles.editDiv}>
+            <label htmlFor="fillColor">Fill Color</label>
+          </div>
+          <div className={styles.editDiv}>
+            <input
+              id="fillColor"
+              type="text"
+              onChange={(e) => {
+                setSublayer({
+                  ...sublayer,
+                  fillColor: e.target.value,
+                });
+              }}
+              value={sublayer.fillColor || ""}
+            />
+          </div>
+        </div>
+
+        <div id="fillOpacityDiv">
+          <div className={styles.editDiv}>
+            <label htmlFor="fillOpacity">Fill Opacity</label>
+          </div>
+          <div className={styles.editDiv}>
+            <input
+              id="fillOpacity"
+              type="text"
+              onChange={(e) => {
+                setSublayer({
+                  ...sublayer,
+                  fillOpacity: +e.target.value,
+                });
+              }}
+              value={sublayer.fillOpacity || ""}
+            />
+          </div>
+        </div>
+
+        <div id="strokeWeightDiv">
+          <div className={styles.editDiv}>
+            <label htmlFor="strokeweight">Stroke Weight</label>
+          </div>
+          <div className={styles.editDiv}>
+            <input
+              id="strokeweight"
+              type="text"
+              onChange={(e) => {
+                setSublayer({
+                  ...sublayer,
+                  weight: +e.target.value,
+                });
+              }}
+              value={sublayer.weight || ""}
+            />
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => {
+          saveSublayer();
+        }}
+      >
+        Save Sublayer
+      </button>
+    </>
+  );
 };
 
 export default SublayerEdit;

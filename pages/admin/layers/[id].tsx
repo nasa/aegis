@@ -1,16 +1,16 @@
 import { NextPage } from "next";
-import { useCallback, useEffect, useState } from "react";
+import { Dispatch, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { isLoggedIn } from "http-client/login";
 import adminStyles from "components/admin/admin.module.css";
 import LayerEdit from "components/admin/layerEdit";
 import SublayerEdit from "components/admin/sublayerEdit";
-import { deleteLayer, getLayers, upsertLayer } from "http-client/layer";
+import { deleteLayer, getLayers } from "http-client/layer";
 import { createNewLayer, createNewSublayer } from "components/admin/helper";
 import { getMissions } from "http-client/mission";
 import _ from "lodash";
-import { v4 as uuidv4 } from "uuid";
 import FileManager from "components/admin/fileManager";
+import { deleteSublayer, getSublayers } from "http-client/sublayer";
 
 const Layers: NextPage = () => {
   const router = useRouter();
@@ -18,23 +18,27 @@ const Layers: NextPage = () => {
   const [missionName, setMissionName] = useState<string>("");
 
   const [allLayers, setAllLayers] = useState<Layer[]>(null);
-  const [editLayer, setEditLayer] = useState<Layer>(null);
-
-  const [editSublayerIndex, setEditSublayerIndex] = useState<number>(null);
+  const [allSublayers, setAllSublayers] = useState<Sublayer[]>(null);
   const [editSublayerParentUUID, setEditSublayerParentUUID] = useState("0");
-
+  const [editComponent, setEditComponent] = useState<JSX.Element>(null);
   const [fileList, setFileList] = useState<GISfile[]>(null);
 
-  async function loadLayersfromDB(missionId: number) {
-    if (missionId) {
+  const reloadLayers = useCallback(() => {
+    (async () => {
       //load layers
-      const res = await getLayers(missionId);
-      if (res.data) {
-        setAllLayers(res.data);
-        if (res.data.length > 0) setEditSublayerParentUUID(res.data[0].uuid);
+      const resLayers = await getLayers(missionIdSlug);
+      if (resLayers.data) {
+        setAllLayers(resLayers.data);
+        if (resLayers.data.length > 0) setEditSublayerParentUUID(resLayers.data[0].uuid);
       }
-    }
-  }
+
+      //load sublayers
+      const resSublayer = await getSublayers(missionIdSlug);
+      if (resSublayer.data) {
+        setAllSublayers(resSublayer.data);
+      }
+    })();
+  }, [missionIdSlug]);
 
   //on load check login and mission id
   useEffect(() => {
@@ -71,87 +75,32 @@ const Layers: NextPage = () => {
 
   //realod db when mission id changes
   useEffect(() => {
-    (async () => {
-      if (missionIdSlug) {
-        await loadLayersfromDB(missionIdSlug);
-      }
-    })();
-  }, [missionIdSlug]);
-
-  //set the current layer and sublayer being edited
-  function setCurrentlyEditing(layer: Layer, sublayerIndex: number) {
-    setEditLayer(layer);
-    setEditSublayerIndex(sublayerIndex);
-  }
+    if (!missionIdSlug) return;
+    reloadLayers();
+  }, [missionIdSlug, reloadLayers]);
 
   //adds a new blank sublayer object to the parent layer and sets it for edit
   function addNewSublayer() {
-    const selectedParentLayer = _.cloneDeep(
-      allLayers.find((layer) => layer.uuid === editSublayerParentUUID)
-    ); //create copy to set in state
-    if (selectedParentLayer) {
-      selectedParentLayer.layerConfig.sublayers.push(createNewSublayer("tile")); //default new layer to a tile type
-      setCurrentlyEditing(
-        selectedParentLayer,
-        selectedParentLayer.layerConfig.sublayers.length - 1
-      );
-    } else {
-      alert("Error adding new sublayer");
-    }
+    const newSublayer = createNewSublayer(editSublayerParentUUID, missionIdSlug);
+    setEditComponent(
+      <SublayerEdit sublayer={newSublayer} refreshLayerList={reloadLayers} fileList={fileList} />
+    );
   }
 
-  //save the current editing layer to db
-  async function saveLayer() {
-    if (editLayer) {
-      //loop through sublayers and assign UUIDs if they don't already have one
-      for (const sublayer of editLayer.layerConfig.sublayers) {
-        if (!sublayer.uuid) sublayer.uuid = uuidv4();
-      }
-
-      const res: WrappedResponse<Layer> = await upsertLayer(editLayer);
-      await loadLayersfromDB(missionIdSlug);
-      alert(`${res.status} - ${res.message}`);
-    }
-  }
-
-  //inserts uuids for any layer/sublayer if it doesn't exist
-  //Once all presets in all environments have UUIDs this func and button can be removed.
-  async function fixLayerUuids() {
-    let totalCount = 0;
-    for (const layer of allLayers) {
-      let updateCount = 0;
-      if (!layer.uuid) {
-        layer.uuid = uuidv4();
-        updateCount++;
-      }
-      for (const sublayer of layer.layerConfig.sublayers) {
-        if (!sublayer.uuid) {
-          sublayer.uuid = uuidv4();
-          updateCount++;
-        }
-      }
-      if (updateCount > 0) {
-        await upsertLayer(layer);
-      }
-      totalCount += updateCount;
-    }
-    if (totalCount > 0) {
-      await loadLayersfromDB(missionIdSlug);
-    }
-    alert(`Complete - ${totalCount} layers/sublayers did not have UUIDs`);
+  function addNewLayer() {
+    const newLayer = createNewLayer(missionIdSlug);
+    setEditComponent(<LayerEdit layer={newLayer} refreshLayerList={reloadLayers} />);
   }
 
   const checkLayerUsesFolder = useCallback(
     (folderName: string) => {
-      for (const layer of allLayers) {
-        for (const sublayers of layer.layerConfig.sublayers) {
-          if (sublayers.aegisURL?.startsWith(folderName + "/")) {
-            return true;
-          }
+      for (const sublayer of allSublayers) {
+        if (sublayer.url?.startsWith(folderName + "/")) {
+          return true;
         }
       }
     },
-    [allLayers]
+    [allSublayers]
   );
 
   return (
@@ -167,26 +116,20 @@ const Layers: NextPage = () => {
       </button>
       <div id="layerList_div">
         <h3>Layers and Sublayers</h3>
-        <button
-          type="button"
-          onClick={() => {
-            fixLayerUuids();
-          }}
-        >
-          Fix Layer/Sublayer UUIDs
-        </button>
         <LayerList
           layers={allLayers}
+          sublayers={allSublayers}
           missionId={missionIdSlug}
-          refreshLayerList={loadLayersfromDB}
-          setEdit={setCurrentlyEditing}
+          refreshLayerList={reloadLayers}
+          setEditComponent={setEditComponent}
+          fileList={fileList}
         />
       </div>
       <div id="addLayer_div">
         <button
           type="button"
           onClick={() => {
-            setCurrentlyEditing(createNewLayer(missionIdSlug), null);
+            addNewLayer();
           }}
         >
           Add New Header Layer (Clear Form)
@@ -206,7 +149,7 @@ const Layers: NextPage = () => {
               {allLayers.map((layer: Layer) => {
                 return (
                   <option key={"select" + layer.uuid} value={layer.uuid}>
-                    {`${layer.layerConfig.name}`}
+                    {`${layer.name}`}
                   </option>
                 );
               })}
@@ -241,52 +184,7 @@ const Layers: NextPage = () => {
         )}
       </div>
       <div id="editLayer_div">
-        {editLayer && editSublayerIndex === null && (
-          <>
-            {editLayer.uuid ? (
-              <h3>Edit Header Layer &quot;{editLayer.layerConfig.name}&quot;</h3>
-            ) : (
-              <h3>Add Header Layer</h3>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                saveLayer();
-              }}
-            >
-              Save Header Layer
-            </button>
-            <LayerEdit layer={editLayer} setLayer={setEditLayer} />
-          </>
-        )}
-        {editSublayerIndex !== null && editLayer && (
-          <>
-            {editLayer.layerConfig.sublayers[editSublayerIndex].name ? (
-              <h3>
-                Edit Sublayer &quot;{editLayer.layerConfig.sublayers[editSublayerIndex].name}&quot;
-              </h3>
-            ) : (
-              <h3>Edit Sublayer</h3>
-            )}
-
-            <button
-              type="button"
-              onClick={() => {
-                saveLayer();
-              }}
-            >
-              Save Sublayer
-            </button>
-            <br />
-            <SublayerEdit
-              sublayerIndex={editSublayerIndex}
-              sublayer={editLayer.layerConfig.sublayers[editSublayerIndex]}
-              setLayer={setEditLayer}
-              missionId={missionIdSlug}
-              fileList={fileList}
-            />
-          </>
-        )}
+        <>{editComponent}</>
       </div>
     </div>
   );
@@ -294,58 +192,65 @@ const Layers: NextPage = () => {
 
 /**
  * Component to list out all the layers and sublayers in bulleted form
- * @param props
- *  layers: Array of Layers to render.
- *  missionId: Mission ID used tp refresh the layer list.
- *  refreshLayerList: function to refresh layer list. Takes in mission Id.
- *  setEditLayer: function to set the state of which layer is currently being edited.
  * @returns
  */
 const LayerList = (props: {
   layers: Layer[];
+  sublayers: Sublayer[];
   missionId: number;
-  refreshLayerList: (missionId: number) => {};
-  setEdit: (layer: Layer, sublayerIndex: number) => void;
+  refreshLayerList: Function;
+  setEditComponent: Dispatch<JSX.Element>;
+  fileList: GISfile[];
 }) => {
-  async function delSubLayer(layer: Layer, sublayerIndex: number) {
-    if (
-      confirm(
-        "Are you sure you want to delete sublayer " +
-          layer.layerConfig.sublayers[sublayerIndex].name
-      )
-    ) {
-      layer.layerConfig.sublayers.splice(sublayerIndex, 1);
-      const res: WrappedResponse<Layer> = await upsertLayer(layer);
+  async function delSubLayer(sublayer: Sublayer) {
+    if (confirm("Are you sure you want to delete sublayer " + sublayer.name)) {
+      const res: WrappedResponse<null> = await deleteSublayer(sublayer.uuid, props.missionId);
       alert(`Delete sublayer ${res.status} - ${res.message}`);
-      props.refreshLayerList(props.missionId); //reload layer listing in parent component.
+      props.refreshLayerList(); //reload layer listing in parent component.
     }
   }
 
   async function delLayer(layer: Layer) {
-    if (confirm("Are you sure you want to delete layer " + layer.layerConfig.name)) {
-      if (layer.layerConfig.sublayers?.length > 0) {
+    if (confirm("Are you sure you want to delete layer " + layer.name)) {
+      if (props.sublayers.some((sublayer) => sublayer.layerUuid === layer.uuid)) {
         alert(
-          `Error: Cannot delete layer ${layer.layerConfig.name}. This layer has sublayers. Delete sublayers first`
+          `Error: Cannot delete layer ${layer.name}. This layer has sublayers. Delete sublayers first`
         );
       } else {
         const res: WrappedResponse<null> = await deleteLayer(layer.uuid, props.missionId);
         alert(`Delete ${res.status} - ${res.message} for uuid ${layer.uuid}`);
-        props.refreshLayerList(props.missionId); //reload layer listing in parent component.
+        props.refreshLayerList(); //reload layer listing in parent component.
       }
     }
   }
+
+  const setEdit = (type: "layer" | "sublayer", layerOrSublayer: Layer | Sublayer) => {
+    if (type === "layer") {
+      props.setEditComponent(
+        <LayerEdit layer={layerOrSublayer as Layer} refreshLayerList={props.refreshLayerList} />
+      );
+    } else if (type === "sublayer") {
+      props.setEditComponent(
+        <SublayerEdit
+          sublayer={layerOrSublayer as Sublayer}
+          refreshLayerList={props.refreshLayerList}
+          fileList={props.fileList}
+        />
+      );
+    }
+  };
 
   if (props.layers?.length > 0) {
     return (
       <ul>
         {props.layers.map((layer) => {
           return (
-            <li key={"layer" + layer.uuid}>
-              {layer.layerConfig?.name}&nbsp;
+            <li key={layer.uuid}>
+              {layer.name}&nbsp;
               <button
                 type="button"
                 onClick={() => {
-                  props.setEdit(layer, null);
+                  setEdit("layer", layer);
                 }}
               >
                 Edit Header Layer
@@ -361,15 +266,16 @@ const LayerList = (props: {
                 Delete Layer
               </button>
               &nbsp; {layer.uuid ? "" : "Missing UUID"}
-              {layer.layerConfig?.sublayers.map((sublayer, index) => {
+              {props.sublayers?.map((sublayer) => {
+                if (sublayer.layerUuid !== layer.uuid) return;
                 return (
-                  <ul key={sublayer.name + index}>
+                  <ul key={sublayer.uuid}>
                     <li>
                       {sublayer.name}
                       <button
                         type="button"
                         onClick={() => {
-                          props.setEdit(layer, index);
+                          setEdit("sublayer", sublayer);
                         }}
                       >
                         Edit Sublayer
@@ -379,10 +285,10 @@ const LayerList = (props: {
                         className={adminStyles.deleteButton}
                         type="button"
                         onClick={() => {
-                          delSubLayer(layer, index);
+                          delSubLayer(sublayer);
                         }}
                       >
-                        Delete Layer
+                        Delete SubLayer
                       </button>
                       &nbsp;{sublayer.uuid ? "" : "Missing UUID"}
                     </li>

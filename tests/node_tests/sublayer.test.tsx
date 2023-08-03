@@ -1,3 +1,6 @@
+import { describe, expect, afterAll, beforeAll, test } from "@jest/globals";
+import "@testing-library/jest-dom";
+import { NextApiRequest, NextApiResponse } from "next";
 import {
   createMocks,
   createResponse,
@@ -5,26 +8,30 @@ import {
   RequestOptions,
   ResponseOptions,
 } from "node-mocks-http";
-import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
-import { NextApiRequest, NextApiResponse } from "next";
 import Login from "pages/api/auth/login";
+
 import { getORM, getEM, closeORM } from "utils/mikro";
-import handlePreset from "pages/api/preset";
-import { Mission as Mission_db } from "server/database/models/mission.model";
-import { Preset as Preset_db } from "server/database/models/preset.model";
-import { User as User_db } from "server/database/models/user.model";
-import MissionFactory from "../factories/MissionFactory";
-import PresetFactory from "../factories/PresetFactory";
 import UserFactory from "../factories/UserFactory";
+import MissionFactory from "../factories/MissionFactory";
+import LayerFactory from "../factories/LayerFactory";
+import SublayerFactory from "../factories/SublayerFactory";
+import handleSublayer from "pages/api/sublayer";
+import { Mission as Mission_db } from "server/database/models/mission.model";
+import { User as User_db } from "server/database/models/user.model";
+import { Layer as Layer_db } from "server/database/models/layer.model";
+import { Sublayer as Sublayer_db } from "server/database/models/sublayer.model";
+import { createNewSublayer } from "components/admin/helper";
+import fetchMock from "jest-fetch-mock";
 import { v4 as uuidv4 } from "uuid";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
-let testUser: User_db;
 let testMissions: Mission_db[];
-let testPresets: Preset_db[];
+let testUser: User_db;
+let testLayer: Layer_db;
+let testSublayers: Sublayer_db[];
 
 beforeAll(async () => {
   await getORM();
@@ -48,33 +55,25 @@ beforeAll(async () => {
       },
     ],
   });
-  testPresets = await new PresetFactory(em)
-    .each((preset) => {
-      preset.mission = testMissions[0];
-      preset.owner = testUser;
+  testLayer = await new LayerFactory(em).createOne({
+    mission: testMissions[0],
+  });
+  testSublayers = await new SublayerFactory(em)
+    .each((sublayer) => {
+      sublayer.mission = testMissions[0];
+      sublayer.layer = testLayer;
     })
     .create(2);
+
+  fetchMock.resetMocks();
 });
 
-describe("Preset API Endpoint", () => {
+describe("Layer API Endpoint ", () => {
   type ApiRequest = NextApiRequest & ReturnType<typeof createRequest>;
   type ApiResponse = NextApiResponse & ReturnType<typeof createResponse>;
 
   let loginCookie: string;
-  let newPreset: Preset = {
-    name: "Preset Jest Test",
-    uuid: uuidv4(),
-    ownerId: null,
-    missionId: null,
-    description: null,
-    missionPreset: false,
-    missionPresetDefault: false,
-    mapCircleControls: null,
-    mapSublayerControls: null,
-    layerOrder: null,
-    createdAt: null,
-    updatedAt: null,
-  };
+  let newSublayer: Sublayer = createNewSublayer(uuidv4());
 
   function mockRequestResponse(reqOptions: RequestOptions, resOptions?: ResponseOptions) {
     const { req, res }: { req: ApiRequest; res: ApiResponse } = createMocks(reqOptions, resOptions);
@@ -82,15 +81,8 @@ describe("Preset API Endpoint", () => {
   }
 
   test("Returns auth failure", async () => {
-    const reqOptions: RequestOptions = {
-      method: "GET",
-      headers: {
-        cookie: loginCookie,
-      },
-      query: { missionId: 1 },
-    };
-    const { req, res } = mockRequestResponse(reqOptions);
-    await handlePreset(req, res);
+    const { req, res } = mockRequestResponse({ method: "GET" });
+    await handleSublayer(req, res);
     expect(res.statusCode).toBe(401);
     expect(res.statusMessage).toEqual("OK");
   });
@@ -115,41 +107,57 @@ describe("Preset API Endpoint", () => {
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
+      await handleSublayer(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Returns all mission presets for mission", async () => {
+    test("Returns empty non-existant sublayer uuid for mission", async () => {
+      const reqOptions: RequestOptions = {
+        method: "GET",
+        headers: { cookie: loginCookie },
+        query: { missionId: testMissions[0].id, uuid: uuidv4() },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleSublayer(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
+
+      const sublayers: Sublayer[] = res._getJSONData().data;
+      expect(res._getJSONData().status).toBe("success");
+      expect(sublayers.length).toEqual(0);
+    });
+
+    test("Returns single sublayer by sublayer uuid", async () => {
+      const reqOptions: RequestOptions = {
+        method: "GET",
+        headers: { cookie: loginCookie },
+        query: { missionId: testMissions[0].id, uuid: testSublayers[0].uuid },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleSublayer(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
+
+      const sublayers: Sublayer[] = res._getJSONData().data;
+      expect(res._getJSONData().status).toBe("success");
+      expect(sublayers.length).toEqual(1);
+    });
+
+    test("Returns sublayers for mission", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
+      await handleSublayer(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
-      const wrappedResponse = res._getJSONData();
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toBeGreaterThanOrEqual(1);
-    });
-
-    test("No presets returned", async () => {
-      const reqOptions: RequestOptions = {
-        method: "GET",
-        headers: { cookie: loginCookie },
-        query: { missionId: testMissions[1].id },
-      };
-      const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
-      expect(res.statusCode).toBe(200);
-      expect(res.statusMessage).toEqual("OK");
-
-      const wrappedResponse = res._getJSONData();
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toEqual(0);
+      const sublayers: Sublayer[] = res._getJSONData().data;
+      expect(res._getJSONData().status).toBe("success");
+      expect(sublayers.length).toBeGreaterThan(1);
     });
   });
 
@@ -159,10 +167,10 @@ describe("Preset API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newPreset, missionId: testMissions[2].id },
+        body: { ...newSublayer, layerUuid: testLayer.uuid, missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
+      await handleSublayer(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -171,52 +179,56 @@ describe("Preset API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newPreset, missionId: testMissions[1].id },
+        body: { ...newSublayer, layerUuid: testLayer.uuid, missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
+      await handleSublayer(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Create new preset", async () => {
+    test("Create new sublayer", async () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newPreset, missionId: testMissions[0].id, ownerId: testUser.id },
+        body: { ...newSublayer, layerUuid: testLayer.uuid, missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
+      await handleSublayer(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedPreset = res._getJSONData().data;
-      expect(upsertedPreset.createdAt).not.toBeNull();
-      newPreset = { ...upsertedPreset };
+      const upsertedSublayer: Sublayer = res._getJSONData().data;
+      expect(upsertedSublayer.uuid).not.toBeNull();
+      expect(upsertedSublayer.createdAt).not.toBeNull();
+      expect(upsertedSublayer.updatedAt).not.toBeNull();
+      newSublayer = { ...upsertedSublayer };
 
       //check if it was added to the db
       const em = getEM();
-      const presetRef: Preset_db = await em.findOne(Preset_db, upsertedPreset.uuid);
-      expect(presetRef).not.toBeNull();
+      const sublayerRef: Sublayer_db = await em.findOne(Sublayer_db, upsertedSublayer.uuid);
+      expect(sublayerRef).not.toBeNull();
     });
 
-    test("Update a preset", async () => {
-      newPreset.name = "Preset Jest Test Modified";
+    test("Update a sublayer", async () => {
+      newSublayer.name = "Jest Test Sublayer Modified";
+      newSublayer.missionId = testMissions[0].id;
+
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newPreset,
+        body: newSublayer,
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
+      await handleSublayer(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedPreset = res._getJSONData().data;
-      expect(upsertedPreset).not.toBeNull();
-      expect(upsertedPreset.name).toEqual("Preset Jest Test Modified");
+      const upsertedSublayer: Sublayer = res._getJSONData().data;
+      expect(upsertedSublayer).not.toBeNull();
+      expect(upsertedSublayer.name).toEqual("Jest Test Sublayer Modified");
     });
   });
 
@@ -228,7 +240,7 @@ describe("Preset API Endpoint", () => {
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
+      await handleSublayer(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -240,19 +252,21 @@ describe("Preset API Endpoint", () => {
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
+      await handleSublayer(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Delete a preset", async () => {
+    test("Delete a sublayer", async () => {
+      newSublayer.missionId = testMissions[0].id;
+
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { uuid: `${newPreset.uuid}`, missionId: testMissions[0].id },
+        query: { uuid: `${newSublayer.uuid}`, missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
+      await handleSublayer(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -265,9 +279,10 @@ describe("Preset API Endpoint", () => {
 afterAll(async () => {
   //Cleanup our Database
   const em = getEM();
-  for (let i = 0; i < testPresets.length; i++) {
-    await em.nativeDelete(Preset_db, { uuid: testPresets[i].uuid });
+  for (let i = 0; i < testSublayers.length; i++) {
+    await em.nativeDelete(Sublayer_db, { uuid: testSublayers[i].uuid });
   }
+  await em.nativeDelete(Layer_db, { uuid: testLayer.uuid });
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }

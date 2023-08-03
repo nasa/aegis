@@ -30,7 +30,9 @@ export function upsertToArrayByUuid<T extends MustContain>(array: T[], element: 
 }
 
 // set map layerControls object to all layers invisible
-export function setAllLayerControlsInvisible(layerControls: MapLayerControls): MapLayerControls {
+export function setAllLayerControlsInvisible(
+  layerControls: MapSublayerControls
+): MapSublayerControls {
   const newLayerControls = _.cloneDeep(layerControls);
 
   Object.keys(newLayerControls).forEach((key) => {

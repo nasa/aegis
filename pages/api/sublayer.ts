@@ -3,7 +3,7 @@ import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 import { getEM, withORM } from "utils/mikro";
 import _ from "lodash";
-import { Layer as Layer_db } from "server/database/models/layer.model";
+import { Sublayer as Sublayer_db } from "server/database/models/sublayer.model";
 import {
   EntityData,
   ForeignKeyConstraintViolationException,
@@ -15,23 +15,23 @@ import { roundDateToSecond } from "utils/formatting";
 import { hasPerms } from "utils/permissions";
 
 /**
- * /api/layer
+ * /api/sublayer
  *
- * API endpoint for layer
+ * API endpoint for sublayer
  *
  * The request method will determine what action to perform
  *    GET = get all, subset, or single record
  *      Required URL parameters are:
  *        missionId=  mission ID number
  *      Opitonal URL parameters are:
- *        uuid= uuid of the layer to retrieve
- *    POST = upsert a layer (defined in POST body) into the DB
- *      A full layer object (with an uuid for new layers) should be specified in the request body
- *    DELETE = delete the layer for a given layer uuid
+ *        uuid= uuid of the sublayer to retrieve
+ *    POST = upsert a sublayer (defined in POST body) into the DB
+ *      A full sublayer object (with an uuid for new sublayers) should be specified in the request body
+ *    DELETE = delete the sublayer for a given sublayer uuid
  *       Required URL parameters are:
- *        uuid=  uuid of the layer to delete
+ *        uuid=  uuid of the sublayer to delete
  */
-const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
+const handleSublayer: NextApiHandler<WrappedResponse<Sublayer[] | Sublayer>> = async (
   req,
   res
 ): Promise<unknown> => {
@@ -44,7 +44,7 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
     const { uuid } = req.query;
     const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
     const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
-    const layerUUID = Array.isArray(uuid) ? uuid[0] : uuid;
+    const sublayerUUID = Array.isArray(uuid) ? uuid[0] : uuid;
     const editPermission = await hasPerms(intMissionId, "edit", req.session?.user);
 
     // retrieve record
@@ -58,11 +58,11 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
         if (!viewPermission && !editPermission)
           return res.status(401).json({ status: "failure", message: "Unauthorized" });
 
-        const records: Layer[] = await getLayers(intMissionId, layerUUID);
+        const records: Sublayer[] = await getSublayers(intMissionId, sublayerUUID);
 
         return res.status(200).json({
           status: "success",
-          message: "layers retrieved",
+          message: "sublayers retrieved",
           data: records,
         });
       } catch (e) {
@@ -88,8 +88,8 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
 
       try {
         //perform the upsert
-        const upsertObject: Layer = req.body as Layer;
-        const upsertResponse: Layer = await upsertLayer(upsertObject);
+        const upsertObject: Sublayer = req.body as Sublayer;
+        const upsertResponse: Sublayer = await upsertSublayer(upsertObject);
 
         //check response
         if (!upsertResponse) {
@@ -101,7 +101,7 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
         } else {
           return res.status(200).json({
             status: "success",
-            message: `Layer upserted with ID ${upsertResponse.uuid}`,
+            message: `Sublayer upserted with ID ${upsertResponse.uuid}`,
             data: upsertResponse,
           });
         }
@@ -124,12 +124,12 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
       }
 
       try {
-        const deletedUUID = await deleteLayer(layerUUID);
+        const deletedUUID = await deleteSublayer(sublayerUUID);
 
         if (deletedUUID) {
           return res.status(200).json({
             status: "success",
-            message: "Layer Deleted",
+            message: "Sublayer Deleted",
           });
         } else {
           return res.status(404).json({
@@ -142,7 +142,7 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
         if (e instanceof ForeignKeyConstraintViolationException) {
           return res.status(500).json({
             status: "error",
-            message: "Cannot delete layer. This layer is referenced elsewhere",
+            message: "Cannot delete sublayer. This sublayer is referenced elsewhere",
           });
         } else {
           return res
@@ -157,43 +157,57 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
 };
 
 /**
- * get layer(s) from the database
- * @param missionId required. Mission ID for the layers.
- * @param layerUUID optional. UUID of the layer to retrieve
- * @returns array of layers
+ * get sublayer(s) from the database
+ * @param missionId required. Mission ID for the sublayers.
+ * @param sublayerUUID optional. UUID of the sublayer to retrieve
+ * @returns array of sublayers
  */
-async function getLayers(missionId: number, layerUUID?: string): Promise<Layer[]> {
+async function getSublayers(missionId: number, sublayerUUID?: string): Promise<Sublayer[]> {
   const em = getEM();
 
-  let layers_db: Loaded<Layer_db, never>[];
-  if (layerUUID) {
-    //find by layer uuid
-    layers_db = await em.find(
-      Layer_db,
-      { uuid: layerUUID },
-      { orderBy: [{ name: QueryOrder.ASC }] }
+  let sublayers_db: Loaded<Sublayer_db, never>[];
+  if (sublayerUUID) {
+    //find by sublayer uuid
+    sublayers_db = await em.find(
+      Sublayer_db,
+      { uuid: sublayerUUID },
+      { orderBy: [{ layer: { uuid: QueryOrder.ASC }, name: QueryOrder.ASC }] }
     );
   } else {
     //find by mission id
-    layers_db = await em.find(
-      Layer_db,
+    sublayers_db = await em.find(
+      Sublayer_db,
       { mission: { id: missionId } },
-      { orderBy: [{ name: QueryOrder.ASC }] }
+      { orderBy: [{ layer: { uuid: QueryOrder.ASC }, name: QueryOrder.ASC }] }
     );
   }
 
-  if (layers_db) {
+  if (sublayers_db) {
     //convert fks
-    return layers_db.map((layer_db) => {
-      const layer: Layer = {
-        uuid: layer_db.uuid,
-        missionId: layer_db.mission.id,
-        layerConfig: { ...layer_db.layerConfig }, //remove once layer config is dropped
-        name: layer_db.name,
-        createdAt: layer_db.createdAt.toISOString(),
-        updatedAt: layer_db.updatedAt.toISOString(),
+    return sublayers_db.map((sublayer_db) => {
+      const sublayer: Sublayer = {
+        uuid: sublayer_db.uuid,
+        missionId: sublayer_db.mission.id,
+        layerUuid: sublayer_db.layer.uuid,
+        name: sublayer_db.name,
+        description: sublayer_db.description,
+        url: sublayer_db.url,
+        type: sublayer_db.type,
+        filePath: sublayer_db.filePath,
+        boundingBox: sublayer_db.boundingBox,
+        tileFormat: sublayer_db.tileFormat,
+        minZoom: sublayer_db.minZoom,
+        maxNativeZoom: sublayer_db.maxNativeZoom,
+        maxZoom: sublayer_db.maxZoom,
+        color: sublayer_db.color,
+        opacity: sublayer_db.opacity,
+        fillColor: sublayer_db.fillColor,
+        fillOpacity: sublayer_db.fillOpacity,
+        weight: sublayer_db.weight,
+        createdAt: sublayer_db.createdAt.toISOString(),
+        updatedAt: sublayer_db.updatedAt.toISOString(),
       };
-      return layer;
+      return sublayer;
     });
   } else {
     return [];
@@ -201,35 +215,63 @@ async function getLayers(missionId: number, layerUUID?: string): Promise<Layer[]
 }
 
 /**
- * Inserts or Updates a layer into the database
- * @param layer the layer object to upsert
- * @returns a copy of the layer object that was upserted
+ * Inserts or Updates a sublayer into the database
+ * @param sublayer the sublayer object to upsert
+ * @returns a copy of the sublayer object that was upserted
  */
-async function upsertLayer(layer: Layer): Promise<Layer> {
+async function upsertSublayer(sublayer: Sublayer): Promise<Sublayer> {
   const em = getEM();
-  const upsertRecord: Layer = _.cloneDeep(layer);
+  const upsertRecord: Sublayer = _.cloneDeep(sublayer);
 
   const updateDateString = roundDateToSecond(new Date()).toISOString();
 
   //convert fks and upsert
-  const convertedRecord: EntityData<Layer_db> = {
+  const convertedRecord: EntityData<Sublayer_db> = {
     uuid: upsertRecord.uuid || uuidv4(),
     mission: upsertRecord.missionId,
-    layerConfig: upsertRecord.layerConfig, //remove once layer config is dropped
+    layer: upsertRecord.layerUuid,
     name: upsertRecord.name,
+    description: upsertRecord.description,
+    type: upsertRecord.type,
+    url: upsertRecord.url,
+    filePath: upsertRecord.filePath,
+    boundingBox: upsertRecord.boundingBox,
+    tileFormat: upsertRecord.tileFormat,
+    minZoom: upsertRecord.minZoom,
+    maxNativeZoom: upsertRecord.maxNativeZoom,
+    maxZoom: upsertRecord.maxZoom,
+    color: upsertRecord.color,
+    opacity: upsertRecord.opacity,
+    fillColor: upsertRecord.fillColor,
+    fillOpacity: upsertRecord.fillOpacity,
+    weight: upsertRecord.weight,
     createdAt: new Date(upsertRecord.createdAt || updateDateString),
     updatedAt: new Date(updateDateString),
   };
-  const upsertReference = await em.upsert(Layer_db, convertedRecord);
+  const upsertReference = await em.upsert(Sublayer_db, convertedRecord);
 
   await em.persistAndFlush(upsertReference);
 
   //convert fks back
-  const result: Layer = {
+  const result: Sublayer = {
     uuid: upsertReference.uuid,
     missionId: upsertReference.mission.id,
-    layerConfig: upsertReference.layerConfig, //remove once layer config is dropped
+    layerUuid: upsertReference.layer.uuid,
     name: upsertReference.name,
+    description: upsertReference.description,
+    url: upsertReference.url,
+    type: upsertReference.type,
+    filePath: upsertReference.filePath,
+    boundingBox: upsertReference.boundingBox,
+    tileFormat: upsertReference.tileFormat,
+    minZoom: upsertReference.minZoom,
+    maxNativeZoom: upsertReference.maxNativeZoom,
+    maxZoom: upsertReference.maxZoom,
+    color: upsertReference.color,
+    opacity: upsertReference.opacity,
+    fillColor: upsertReference.fillColor,
+    fillOpacity: upsertReference.fillOpacity,
+    weight: upsertReference.weight,
     createdAt: upsertReference.createdAt.toISOString(),
     updatedAt: upsertReference.updatedAt.toISOString(),
   };
@@ -238,14 +280,14 @@ async function upsertLayer(layer: Layer): Promise<Layer> {
 }
 
 /**
- * Deletes a single layer
- * @param uuid layer uuid to delete
- * @returns the uuid of the deleted layer, or null if nothing was deleted
+ * Deletes a single sublayer
+ * @param uuid sublayer uuid to delete
+ * @returns the uuid of the deleted sublayer, or null if nothing was deleted
  */
-async function deleteLayer(uuid: string): Promise<string | null> {
+async function deleteSublayer(uuid: string): Promise<string | null> {
   const em = getEM();
   let returnVal = uuid;
-  const entity = await em.findOne(Layer_db, uuid);
+  const entity = await em.findOne(Sublayer_db, uuid);
   if (entity) {
     await em.removeAndFlush(entity);
   } else {
@@ -254,4 +296,4 @@ async function deleteLayer(uuid: string): Promise<string | null> {
   return returnVal;
 }
 
-export default withIronSessionApiRoute(withORM(handleLayer), ironOptions);
+export default withIronSessionApiRoute(withORM(handleSublayer), ironOptions);
