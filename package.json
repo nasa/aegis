@@ -53,6 +53,7 @@
     "leaflet-ant-path": "^1.3.0",
     "leaflet-draggable-lines": "^1.2.0",
     "leaflet-highlightable-layers": "^1.2.1",
+    "leaflet-textpath": "^1.2.3",
     "leaflet.tilelayer.colorfilter": "^1.2.5",
     "leo-profanity": "^1.7.0",
     "lodash": "^4.17.21",

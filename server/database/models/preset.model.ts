@@ -21,7 +21,7 @@ export class Preset implements Preset_db_type {
   @Property({ type: MikroTypes.boolean, default: false })
   missionPresetDefault: boolean;
   @Property({ type: MikroTypes.json, nullable: true })
-  mapLayerControls!: MapLayerControls;
+  mapSublayerControls!: MapSublayerControls;
   @Property({ type: MikroTypes.json, nullable: true })
   mapCircleControls!: MapCircleControls;
   @Property({ type: MikroTypes.json, nullable: true })

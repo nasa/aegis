@@ -3,7 +3,7 @@ import styles from "./preset-right-layers-settings.module.css";
 import { Dropdown } from "components/interface/form/globalFields";
 import { useAppDispatch } from "utils/useAppDispatch";
 
-import { setPresetCircleStyle, setPresetLayerStyle } from "store/preset";
+import { setPresetCircleStyle, setPresetSublayerStyle } from "store/preset";
 import { getPercentOrDefault } from "utils/formatting";
 import { CompactPicker } from "react-color";
 
@@ -42,18 +42,16 @@ const Slider: FunctionComponent<{
 };
 
 const Settings_subpanel: FunctionComponent<{
-  sublayer: MMGIS_Sublayer;
   selectedPreset: Preset;
-  uuid?: string;
-}> = ({ sublayer, selectedPreset, uuid }) => {
+  type: "vector" | "tile" | "circle";
+  uuid: string;
+}> = ({ selectedPreset, type, uuid }) => {
   const dispatch = useAppDispatch();
 
-  const identifier = sublayer.type === "circle" ? uuid : sublayer.name;
-
   const presetLayerStyle =
-    sublayer.type === "circle"
-      ? selectedPreset.mapCircleControls[identifier].style
-      : selectedPreset.mapLayerControls[identifier].style;
+    type === "circle"
+      ? selectedPreset.mapCircleControls[uuid].style
+      : selectedPreset.mapSublayerControls[uuid].style;
 
   //default setting options to show
   let showSliders = {
@@ -67,7 +65,7 @@ const Settings_subpanel: FunctionComponent<{
     fillOpacity: false,
   };
 
-  if (sublayer.type === "vector") {
+  if (type === "vector") {
     showSliders = {
       opacity: true,
       contrast: false,
@@ -78,9 +76,7 @@ const Settings_subpanel: FunctionComponent<{
       weight: true,
       fillOpacity: true,
     };
-  }
-
-  if (sublayer.type === "circle") {
+  } else if (type === "circle") {
     showSliders = {
       opacity: true,
       contrast: false,
@@ -105,7 +101,7 @@ const Settings_subpanel: FunctionComponent<{
       | "weight"
       | "fillOpacity"
   ) => {
-    if (sublayer.type === "circle") {
+    if (type === "circle") {
       dispatch(
         setPresetCircleStyle({
           presetUuid: selectedPreset.uuid,
@@ -115,9 +111,9 @@ const Settings_subpanel: FunctionComponent<{
       );
     } else {
       dispatch(
-        setPresetLayerStyle({
+        setPresetSublayerStyle({
           presetUuid: selectedPreset.uuid,
-          layerName: sublayer.name,
+          layerUuid: uuid,
           style: { ...presetLayerStyle, [property]: value },
         })
       );
@@ -129,7 +125,7 @@ const Settings_subpanel: FunctionComponent<{
       <div className={styles.sliderTitle}>Display Adjustments</div>
       {showSliders.opacity && (
         <Slider
-          display={sublayer.type === "vector" ? "Stroke Opacity" : "Opacity"}
+          display={type === "vector" ? "Stroke Opacity" : "Opacity"}
           name="opacity"
           value={getPercentOrDefault(presetLayerStyle?.opacity)}
           onChange={(e) => setStyle(Number(e.target.value) / 100, "opacity")}

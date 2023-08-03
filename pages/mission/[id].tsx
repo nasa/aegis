@@ -15,7 +15,7 @@ import { getLayers } from "http-client/layer";
 import { getStations } from "http-client/station";
 import { getActions } from "http-client/action";
 import { getGoals, getInvestigations, getObjectives } from "http-client/stm";
-import { setMapCircleControls, setMapLayerControls } from "store/map";
+import { setMapCircleControls, setMapSublayerControls } from "store/map";
 import { setPois, setPoisFromDb } from "store/poi";
 import {
   setPresetUIStates,
@@ -23,7 +23,7 @@ import {
   setPresetsFromDb,
   setSelectedPresetUuid,
 } from "store/preset";
-import { setLayers, setMission, setMissionFromDb } from "store/mission";
+import { setLayers, setMission, setMissionFromDb, setSublayers } from "store/mission";
 import { setStations, setStationsFromDb } from "store/station";
 import { setActions, setActionsFromDb } from "store/action";
 import { setGoals, setInvestigations, setObjectives } from "store/stm";
@@ -41,7 +41,8 @@ import { Tooltip } from "react-tooltip";
 import { thunkSavePreset } from "store/thunk/thunkPreset";
 import _ from "lodash";
 import { isLoggedIn } from "http-client/login";
-import { v4 as uuidv4 } from "uuid";
+import { getSublayers } from "http-client/sublayer";
+import { convertLayers, convertMapControls } from "utils/ports";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -148,132 +149,146 @@ const Main: NextPage = () => {
         dispatch(setMissionFromDb(missionData.data[0]));
       }
 
-      //used to find uuids in preset map layer controls
-      const flatLayerNamesAndUuids: { name: string; uuid: string }[] = [];
-
       //populate layers and layerControls
-      const layerData = await getLayers(intMissionId);
-      const mapLayerControls: MapLayerControls = {};
+      let layerData = (await getLayers(intMissionId)).data;
+      let sublayerData: Sublayer[] = (await getSublayers(intMissionId)).data;
+      //check for conversion. No sublayers mean this data is still in the old format
+      if (sublayerData.length === 0) {
+        //can be removed once data has been converted
+        for (const layer of layerData) {
+          await convertLayers(layer);
+        }
+        //requery the db with the updated record
+        layerData = (await getLayers(intMissionId)).data;
+        sublayerData = (await getSublayers(intMissionId)).data;
+      }
 
-      if (layerData.data) {
-        //populate mission layers
-        dispatch(setLayers(layerData.data));
+      const missionMapSublayerControls: MapSublayerControls = {}; //map sublayer controls generated from mission sublayers
+      if (layerData) {
+        //populate layers and sublayers to store
+        dispatch(setLayers(layerData));
+        dispatch(setSublayers(sublayerData));
 
-        //populate map layerControls
-        layerData.data.map((configLayer) => {
-          //add header layers
-          mapLayerControls[configLayer.layerConfig.name] = {
-            name: configLayer.layerConfig.name,
-            uuid: configLayer.uuid,
+        //build map sublayerControls from mission data
+        sublayerData.map((sublayer) => {
+          missionMapSublayerControls[sublayer.uuid] = {
+            name: sublayer.name,
+            sublayerUuid: sublayer.uuid,
             visible: false,
-            type: configLayer.layerConfig.type,
-            style: null,
+            style: {
+              opacity: sublayer.opacity || 1,
+              contrast: 1,
+              brightness: 1,
+              saturation: 1,
+              blendMode: "normal",
+              color: sublayer.color || "#FFFFFF",
+              weight: sublayer.weight || 1,
+              fillColor: sublayer.fillColor || "#FFFFFF",
+              fillOpacity: sublayer.fillOpacity || 0.2,
+            },
           };
-          flatLayerNamesAndUuids.push({
-            name: configLayer.layerConfig.name,
-            uuid: configLayer.uuid,
-          });
-
-          //add sublayers
-          if (configLayer.layerConfig.sublayers) {
-            configLayer.layerConfig.sublayers.map((sublayer) => {
-              mapLayerControls[sublayer.name] = {
-                name: sublayer.name,
-                uuid: sublayer.uuid,
-                visible: false,
-                type: sublayer.type,
-                style: {
-                  opacity: sublayer.style?.opacity || 1,
-                  contrast: 1,
-                  brightness: 1,
-                  saturation: 1,
-                  blendMode: "normal",
-                  color: sublayer.style?.color || "#FFFFFF",
-                  weight: sublayer.style?.weight || 1,
-                  fillColor: sublayer.style?.fillColor || "#FFFFFF",
-                  fillOpacity: sublayer.style?.fillOpacity || 0.2,
-                },
-              };
-              flatLayerNamesAndUuids.push({ name: sublayer.name, uuid: sublayer.uuid });
-            });
-          }
         });
-        dispatch(setMapLayerControls(mapLayerControls));
+        //save to store
+        dispatch(setMapSublayerControls(missionMapSublayerControls));
       }
 
       //Populate Presets
       const presetData: Preset[] = (await getPresets(intMissionId)).data;
       if (presetData) {
-        const mapLayerControlKeys = Object.keys(mapLayerControls); //name of layer
-        //fix and validate against modifications to layers made in admin since this preset was last saved
+        //fix and validate against modifications to layers/sublayers made in admin since this preset was last saved
         presetData.forEach((preset) => {
-          let modified = false;
+          //build preset ui states for the layer and sublayers
           const presetUIStates: PresetUIStates = {};
-          //loop through the layer controls from the map
-          for (const layerName of mapLayerControlKeys) {
-            //build preset ui states
-            presetUIStates[layerName] = {
+          for (const layer of layerData) {
+            presetUIStates[layer.uuid] = {
               expanded: true,
               tabSelected: null,
+              name: layer.name,
+              type: "layer",
             };
+          }
+          for (const sublayer of sublayerData) {
+            presetUIStates[sublayer.uuid] = {
+              expanded: true,
+              tabSelected: null,
+              name: sublayer.name,
+              type: "sublayer",
+            };
+          }
 
-            //convert the "enabled" property to "visible".
-            //Once all presets in all environments are updated this if statement can be removed.
-            //cast as "any" since this is an old type definition
+          //perform any conversions for map sublayer controls
+          //can be removed once data has been converted
+          preset.mapSublayerControls = convertMapControls(preset.mapSublayerControls);
 
-            if (
-              preset.mapLayerControls[layerName] &&
-              Object.prototype.hasOwnProperty.call(preset.mapLayerControls[layerName], "enabled")
-            ) {
-              preset.mapLayerControls[layerName].visible =
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                (preset.mapLayerControls[layerName] as any)["enabled"];
+          //sync up anything added/deleted missing from preset layer order
+          if (preset.layerOrder) {
+            //rename headerLayerUuid to just layerUuid
+            //this can be removed once data has been converted
+            let newLayerOrder: PresetLayerOrder[] = preset.layerOrder.map((oldLayerOrder) => {
+              return {
+                layerUuid:
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  ((oldLayerOrder as any).headerLayerUuid as string) || oldLayerOrder.layerUuid,
+                sublayerUuids: oldLayerOrder.sublayerUuids,
+              };
+            });
 
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              delete (preset.mapLayerControls[layerName] as any)["enabled"]; //this property has been renamed to "visible"
-              modified = true;
-            }
+            //delete any header layers in layerOrder removed from mission
+            const filteredNewLayerOrders = newLayerOrder.filter((layerOrder) =>
+              layerData.some((l) => l.uuid === layerOrder.layerUuid)
+            );
+            newLayerOrder = filteredNewLayerOrders;
 
-            //old unused property that was removed. Cleanup if it's on a preset
-            if (
-              preset.mapLayerControls[layerName] &&
-              Object.prototype.hasOwnProperty.call(
-                preset.mapLayerControls[layerName],
-                "mapLayerRef"
-              )
-            ) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              delete (preset.mapLayerControls[layerName] as any)["mapLayerRef"]; //this property has been renamed to "visible"
-            }
-
-            //add any UUIDs that are missing from preset's layer control
-            //  this happens when UUIDs are updated in admin after the preset was created
-            //Once all presets in all environments have UUIDs this if statement can be removed.
-            if (preset.mapLayerControls[layerName] && !preset.mapLayerControls[layerName].uuid) {
-              //find the layer from the mission to get the UUID
-              for (const layerNameAndUuid of flatLayerNamesAndUuids) {
-                if (layerNameAndUuid.name === layerName) {
-                  preset.mapLayerControls[layerName].uuid = layerNameAndUuid.uuid;
-                  modified = true;
-                  break;
+            //add any missing header layers and sublayers to layerOrder from mission
+            for (const headerLayer of layerData) {
+              const newHeaderLayerOrder = newLayerOrder.find(
+                (layerOrder) => layerOrder.layerUuid === headerLayer.uuid
+              );
+              const sublayers = sublayerData.filter(
+                (sublayer) => sublayer.layerUuid === headerLayer.uuid
+              );
+              if (newHeaderLayerOrder) {
+                //it exists, good. check sublayers
+                //add any missing sublayers
+                for (const sublayer of sublayers) {
+                  const hasSublayer = newHeaderLayerOrder.sublayerUuids.some(
+                    (uuid) => uuid === sublayer.uuid
+                  );
+                  if (!hasSublayer) newHeaderLayerOrder.sublayerUuids.push(sublayer.uuid);
                 }
+
+                //delete any removed sublayers
+                const newSublayerUuids = newHeaderLayerOrder.sublayerUuids.filter(
+                  (sublayerOrderUuid) => sublayers.some((s) => s.uuid === sublayerOrderUuid)
+                );
+                newHeaderLayerOrder.sublayerUuids = newSublayerUuids;
+              } else {
+                //add missing header layer and all it's sublayers
+                const tempLayerOrder = {
+                  layerUuid: headerLayer.uuid,
+                  sublayerUuids: sublayers.map((s) => s.uuid),
+                };
+                newLayerOrder.push(tempLayerOrder);
               }
             }
+            preset.layerOrder = newLayerOrder;
+          }
 
-            //add any layer controls that are missing from preset
-            //  this happens when layers are added in admin after the preset was created
-            if (!Object.keys(preset.mapLayerControls).includes(layerName)) {
-              preset.mapLayerControls[layerName] = mapLayerControls[layerName];
-              modified = true;
+          //loop through sublayers, add any sublayers that are missing from preset map controls
+          //  this happens when sublayers are added in mission after the preset was created
+          for (const sublayer of sublayerData) {
+            //add to sublayer control
+            if (!Object.keys(preset.mapSublayerControls).includes(sublayer.uuid)) {
+              preset.mapSublayerControls[sublayer.uuid] = missionMapSublayerControls[sublayer.uuid];
             }
           }
 
-          //loop through preset layer controls and delete any layer controls that no longer exist
-          //  this happens when layers are deleted in admin after the preset was created
-          for (const key of Object.keys(preset.mapLayerControls)) {
-            if (!mapLayerControlKeys.includes(key)) {
-              delete preset.mapLayerControls[key];
-              modified = true;
+          //loop through preset mapSublayerControls and delete any sublayer data that no longer exist in mission
+          //  this happens when sublayers are deleted in mission after the preset was created
+          for (const sublayerUuid of Object.keys(preset.mapSublayerControls)) {
+            //delete from sublayer control
+            if (!Object.keys(missionMapSublayerControls).includes(sublayerUuid)) {
+              delete preset.mapSublayerControls[sublayerUuid];
             }
           }
 
@@ -281,16 +296,25 @@ const Main: NextPage = () => {
 
           if (!preset.mapCircleControls) {
             preset.mapCircleControls = {};
-            modified = true;
+            // modified = true;
           }
 
           missionData.data[0].landerRadii.forEach((landerRadius) => {
             if (preset.mapCircleControls[landerRadius.uuid]) {
-              mapCircleControls[landerRadius.uuid] = preset.mapCircleControls[landerRadius.uuid];
-            } else {
-              modified = true;
+              //mapCircleControls[landerRadius.uuid] = preset.mapCircleControls[landerRadius.uuid];
+              //once all map circle controls have been updated to include name the above line can be uncommented
+              //  and the explicit assignment below removed //can be removed once data has been converted
+              const currentMapCircleControl = preset.mapCircleControls[landerRadius.uuid];
               mapCircleControls[landerRadius.uuid] = {
-                uuid: uuidv4(),
+                name: landerRadius.name,
+                landerRadiusUuid: currentMapCircleControl.landerRadiusUuid,
+                visible: currentMapCircleControl.visible,
+                style: currentMapCircleControl.style,
+              };
+            } else {
+              //   modified = true;
+              mapCircleControls[landerRadius.uuid] = {
+                name: landerRadius.name,
                 landerRadiusUuid: landerRadius.uuid,
                 visible: false,
                 style: {
@@ -309,6 +333,8 @@ const Main: NextPage = () => {
             presetUIStates[landerRadius.uuid] = {
               expanded: true,
               tabSelected: null,
+              name: landerRadius.name,
+              type: "circle",
             };
           });
 
@@ -316,6 +342,7 @@ const Main: NextPage = () => {
 
           dispatch(setMapCircleControls(preset.mapCircleControls));
 
+          //dispatch to store
           dispatch(
             setPresetUIStates({
               presetUuid: preset.uuid,
@@ -323,17 +350,19 @@ const Main: NextPage = () => {
             })
           );
 
-          //update this preset in the DB if any layer control changes we made
-          if (modified) dispatch(thunkSavePreset({ preset }));
+          //update this preset in the DB
+          dispatch(thunkSavePreset({ preset }));
         });
 
+        //save preset data to the store
         dispatch(setPresets(presetData));
         dispatch(setPresetsFromDb(presetData));
+
         // Set the default preset
         const defaultPreset = presetData.filter((preset) => preset.missionPresetDefault === true);
         if (defaultPreset.length > 0) {
           dispatch(setSelectedPresetUuid(defaultPreset[0].uuid));
-          dispatch(setMapLayerControls(defaultPreset[0].mapLayerControls));
+          dispatch(setMapSublayerControls(defaultPreset[0].mapSublayerControls));
         }
       }
 
