@@ -1,0 +1,73 @@
+/** Represents the DB structure for the Layer table */
+interface Layer {
+  uuid: string;
+  missionId: number;
+  layerConfig: LayerConfig; //remove once layer config is dropped
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+type Layer_db_type = Omit<Layer, "missionId" | "createdAt" | "updatedAt"> & {
+  mission: Mission_db_type;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
+//add a custom description field to MMGIS sublayers
+interface Sublayer {
+  uuid: string;
+  missionId: number;
+  layerUuid: string;
+  name: string;
+  description: string;
+  type: "vector" | "tile" | "circle";
+  url: string;
+  filePath: string; // for vector layers
+  boundingBox: number[];
+  tileFormat: string;
+  minZoom: number;
+  maxNativeZoom: number;
+  maxZoom: number;
+  color: string;
+  opacity: number;
+  fillColor: string;
+  fillOpacity: number;
+  weight: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+type Sublayer_db_type = Omit<Sublayer, "missionId" | "layerUuid" | "createdAt" | "updatedAt"> & {
+  mission: Mission_db_type;
+  layer: Layer_db_type;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+//Remove this once layer config is dropped
+type OldSublayer = {
+  uuid?: string;
+  name: string;
+  description?: string;
+  type: "vector" | "tile";
+  aegisURL?: string;
+  url: string; //filePath
+  boundingBox: number[];
+  tileformat: string;
+  minZoom: number;
+  maxNativeZoom: number;
+  maxZoom: number;
+  style: {
+    color: string;
+    opacity: number;
+    fillColor: string;
+    fillOpacity: number;
+    weight: number;
+  };
+};
+//Remove this once layer config is dropped
+type LayerConfig = {
+  name: string;
+  sublayers: OldSublayer[];
+};

@@ -11,6 +11,8 @@ export class Layer implements Layer_db_type {
 
   @Property({ type: MikroTypes.json, nullable: true })
   layerConfig!: LayerConfig;
+  @Property({ type: MikroTypes.text, nullable: true })
+  name!: string;
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;

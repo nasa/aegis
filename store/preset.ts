@@ -41,16 +41,16 @@ export const presetSlice = createSlice({
     setSelectedPresetRightNavItem: (state, action: { payload: string }) => {
       state.selectedRightNavItem = action.payload;
     },
-    togglePresetLayerVisible: (
+    togglePresetSublayerVisible: (
       state,
-      action: { payload: { presetUuid: string; layerName: string } }
+      action: { payload: { presetUuid: string; layerUuid: string } }
     ) => {
       const presetIndex = state.presets.findIndex(
         (preset) => preset.uuid === action.payload.presetUuid
       );
       if (presetIndex >= 0) {
-        state.presets[presetIndex].mapLayerControls[action.payload.layerName].visible =
-          !state.presets[presetIndex].mapLayerControls[action.payload.layerName].visible;
+        state.presets[presetIndex].mapSublayerControls[action.payload.layerUuid].visible =
+          !state.presets[presetIndex].mapSublayerControls[action.payload.layerUuid].visible;
       }
     },
     togglePresetCircleVisible: (
@@ -65,21 +65,21 @@ export const presetSlice = createSlice({
           !state.presets[presetIndex].mapCircleControls[action.payload.radiusUuid].visible;
       }
     },
-    setPresetLayerStyle: (
+    setPresetSublayerStyle: (
       state,
-      action: { payload: { presetUuid: string; layerName: string; style: MapLayerStyle } }
+      action: { payload: { presetUuid: string; layerUuid: string; style: MapSublayerStyle } }
     ) => {
       const presetIndex = state.presets.findIndex(
         (preset) => preset.uuid === action.payload.presetUuid
       );
       if (presetIndex >= 0) {
-        state.presets[presetIndex].mapLayerControls[action.payload.layerName].style =
+        state.presets[presetIndex].mapSublayerControls[action.payload.layerUuid].style =
           action.payload.style;
       }
     },
     setPresetCircleStyle: (
       state,
-      action: { payload: { presetUuid: string; radiusUuid: string; style: MapLayerStyle } }
+      action: { payload: { presetUuid: string; radiusUuid: string; style: MapSublayerStyle } }
     ) => {
       const presetIndex = state.presets.findIndex(
         (preset) => preset.uuid === action.payload.presetUuid
@@ -89,18 +89,13 @@ export const presetSlice = createSlice({
           action.payload.style;
       }
     },
-    togglePresetUIStateLayerExpanded: (
+    togglePresetUIStateExpanded: (
       state,
-      action: { payload: { presetUuid: string; layerName: string } }
+      action: { payload: { presetUuid: string; uuid: string } }
     ) => {
-      if (!_.isNil(state.presetsUIStates[action.payload.presetUuid][action.payload.layerName])) {
-        state.presetsUIStates[action.payload.presetUuid][action.payload.layerName].expanded =
-          !state.presetsUIStates[action.payload.presetUuid][action.payload.layerName].expanded;
-      } else {
-        state.presetsUIStates[action.payload.presetUuid][action.payload.layerName] = {
-          expanded: true,
-          tabSelected: null,
-        };
+      if (!_.isNil(state.presetsUIStates[action.payload.presetUuid][action.payload.uuid])) {
+        state.presetsUIStates[action.payload.presetUuid][action.payload.uuid].expanded =
+          !state.presetsUIStates[action.payload.presetUuid][action.payload.uuid].expanded;
       }
     },
     setPresetUIStates: (
@@ -114,39 +109,26 @@ export const presetSlice = createSlice({
     ) => {
       state.presetsUIStates[action.payload.presetUuid] = action.payload.presetUIStates;
     },
-    setPresetLayerUIState: (
+    setPresetUIState: (
       state,
       action: {
         payload: {
           presetUuid: string;
-          layerName: string;
-          presetLayerUIState: PresetLayerUIState;
+          uuid: string;
+          presetUIState: PresetUIState;
         };
       }
     ) => {
-      state.presetsUIStates[action.payload.presetUuid][action.payload.layerName] =
-        action.payload.presetLayerUIState;
-    },
-    setPresetCircleUIState: (
-      state,
-      action: {
-        payload: {
-          presetUuid: string;
-          radiusUuid: string;
-          presetLayerUIState: PresetLayerUIState;
-        };
-      }
-    ) => {
-      state.presetsUIStates[action.payload.presetUuid][action.payload.radiusUuid] =
-        action.payload.presetLayerUIState;
+      state.presetsUIStates[action.payload.presetUuid][action.payload.uuid] =
+        action.payload.presetUIState;
     },
     deletePresetUIStates: (state, action: { payload: { presetUuid: string } }) => {
       delete state.presetsUIStates[action.payload.presetUuid];
     },
     resetAllPresetUIStates: (state, action: { payload: { presetUuid: string } }) => {
       // set all tabSelected values to null
-      Object.keys(state.presetsUIStates[action.payload.presetUuid]).forEach((layerName) => {
-        state.presetsUIStates[action.payload.presetUuid][layerName].tabSelected = null;
+      Object.keys(state.presetsUIStates[action.payload.presetUuid]).forEach((uuid) => {
+        state.presetsUIStates[action.payload.presetUuid][uuid].tabSelected = null;
       });
     },
     setPresetEditMode: (state, action: { payload: { presetUuid: string; editMode: boolean } }) => {
@@ -180,14 +162,13 @@ export const {
   duplicatePreset,
   setSelectedPresetUuid,
   setSelectedPresetRightNavItem,
-  togglePresetLayerVisible,
+  togglePresetSublayerVisible,
   togglePresetCircleVisible,
-  setPresetLayerStyle,
+  setPresetSublayerStyle,
   setPresetCircleStyle,
-  togglePresetUIStateLayerExpanded,
+  togglePresetUIStateExpanded,
   setPresetUIStates,
-  setPresetLayerUIState,
-  setPresetCircleUIState,
+  setPresetUIState,
   deletePresetUIStates,
   setPresetEditMode,
   resetAllPresetUIStates,

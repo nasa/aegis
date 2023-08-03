@@ -15,7 +15,7 @@ import {
 } from "store/preset";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import * as InternalAPI from "http-client/preset";
-import _ from "lodash";
+import { sortBy, cloneDeep } from "lodash";
 
 export const thunkSavePreset = appCreateAsyncThunk<{
   preset: Preset;
@@ -103,17 +103,18 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
       existingNames: getState().preset.presets.map((item) => item.name),
     });
 
-    //flatten all layers uuids from mission for a default ordering
-    const defaultLayerOrder = getState().mission.layers.map((headerLayer) => {
-      const presetLayerOrder: PresetLayerOrder = {
-        headerLayerUuid: headerLayer.uuid,
-        sublayerUuids: [],
-      };
-      headerLayer.layerConfig.sublayers.forEach((sublayer) => {
-        presetLayerOrder.sublayerUuids.push(sublayer.uuid); //add sublayers
+    //create ordering by name
+    const defaultOrder: PresetLayerOrder[] = [];
+    for (const layer of sortBy(getState().mission.layers, ["name"])) {
+      const sublayers: Sublayer[] = sortBy(
+        getState().mission.sublayers.filter((s) => s.layerUuid === layer.uuid),
+        ["name"]
+      );
+      defaultOrder.push({
+        layerUuid: layer.uuid,
+        sublayerUuids: sublayers.map((s) => s.uuid),
       });
-      return presetLayerOrder;
-    });
+    }
 
     const blankPreset: Preset = {
       uuid: uuidv4(),
@@ -123,8 +124,8 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
       missionId: getState().mission.mission?.id,
       missionPreset: false,
       missionPresetDefault: false,
-      layerOrder: defaultLayerOrder,
-      mapLayerControls: getState().map.mapLayerControls,
+      layerOrder: defaultOrder,
+      mapSublayerControls: getState().map.mapSublayerControls,
       mapCircleControls: getState().map.mapCircleControls,
     };
 
@@ -137,16 +138,28 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
     dispatch(setRightPanelOpen(true));
     // create preset ui states entry
     const presetUIStates: PresetUIStates = {};
-    for (const [key] of Object.entries(blankPreset.mapLayerControls)) {
-      presetUIStates[key] = {
+    for (const layer of getState().mission.layers) {
+      presetUIStates[layer.uuid] = {
         expanded: true,
         tabSelected: null,
+        name: layer.name,
+        type: "layer",
       };
     }
-    for (const [key] of Object.entries(blankPreset.mapCircleControls)) {
-      presetUIStates[key] = {
+    for (const sublayer of getState().mission.sublayers) {
+      presetUIStates[sublayer.uuid] = {
         expanded: true,
         tabSelected: null,
+        name: sublayer.name,
+        type: "sublayer",
+      };
+    }
+    for (const landerRadius of getState().mission.mission.landerRadii) {
+      presetUIStates[landerRadius.uuid] = {
+        expanded: true,
+        tabSelected: null,
+        name: landerRadius.name,
+        type: "circle",
       };
     }
     dispatch(
@@ -163,7 +176,7 @@ export const thunkDuplicatePreset = appCreateAsyncThunk<{ preset: Preset }>(
   async ({ preset }, { dispatch, getState }) => {
     if (!preset) return;
     //duplicate preset
-    const newPreset: Preset = _.cloneDeep(preset);
+    const newPreset: Preset = cloneDeep(preset);
     newPreset.uuid = uuidv4();
     newPreset.name = makeUniqueStringCopy(
       preset.name,
@@ -173,7 +186,7 @@ export const thunkDuplicatePreset = appCreateAsyncThunk<{ preset: Preset }>(
     dispatch(duplicatePreset(newPreset));
 
     //dupcate preset ui state
-    const newUIState: PresetUIStates = _.cloneDeep(getState().preset.presetsUIStates[preset.uuid]);
+    const newUIState: PresetUIStates = cloneDeep(getState().preset.presetsUIStates[preset.uuid]);
     dispatch(setPresetUIStates({ presetUuid: newPreset.uuid, presetUIStates: newUIState }));
 
     // open right panel

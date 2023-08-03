@@ -7,20 +7,11 @@ import { v4 as uuidv4 } from "uuid";
  * @returns A new Layer object with required properties
  */
 export function createNewLayer(missionId?: number): Layer {
-  const layerConfig: MMGIS_LayerConfig = {
-    name: "",
-    type: "header",
-    sublayers: [],
-    demparser: "",
-    controlled: false,
-    tileformat: "tms",
-    time: createNewMMGIS_Time(),
-    shape: "none",
-  };
   return {
     uuid: null,
     missionId: missionId || null,
-    layerConfig: layerConfig,
+    layerConfig: null, //remove once layer config is dropped
+    name: "",
     createdAt: null,
     updatedAt: null,
   };
@@ -28,72 +19,32 @@ export function createNewLayer(missionId?: number): Layer {
 
 /**
  * Creates a new empty sublayer
- * @param layerType The type of layer
  * @returns A new Sublayer object with required properties
  */
-export function createNewSublayer(layerType: MMGIS_layerTypes): Sublayer {
+export function createNewSublayer(layerUuid?: string, missionId?: number): Sublayer {
   const sublayer: Sublayer = {
     uuid: uuidv4(),
+    missionId: missionId || null,
+    layerUuid: layerUuid || null,
     name: "",
-    type: layerType,
-    kind: "",
-    query: { endpoint: "", type: "elasticsearch" },
+    description: "",
     url: "",
-    position: { longtitude: 0, latitude: 0, elevation: 0 },
-    rotation: { x: 0, y: 0, z: 0 },
-    scale: 0,
-    tileformat: "tms",
-    demtileurl: "",
-    demparser: "",
-    controlled: false,
-    legend: "",
-    visibility: false,
-    visibilitycutoff: 0,
+    type: null,
+    filePath: "",
+    boundingBox: null,
+    tileFormat: null,
     minZoom: 0,
     maxNativeZoom: 0,
     maxZoom: 0,
-    initialOpacity: 0,
-    boundingBox: [],
-    time: createNewMMGIS_Time(),
-    style: createNewMMGIS_SublayerStyle(),
-    radius: 0,
-    shape: "",
-    variables: undefined,
-    togglesWithHeader: false,
+    color: "",
+    opacity: 0,
+    fillColor: "",
+    fillOpacity: 0,
+    weight: 0,
+    createdAt: null,
+    updatedAt: null,
   };
   return sublayer;
-}
-
-export function createNewMMGIS_SublayerStyle(): MMGIS_SublayerStyle {
-  return {
-    className: "",
-    color: "",
-    fillColor: "",
-    weight: 0,
-    fillOpacity: 0,
-    opacity: 0,
-    vtId: "",
-    vtKey: "",
-    vtLayer: undefined,
-  };
-}
-
-/**
- * Creates a new default MMGIS Time object
- * @returns A new MMGIS time object with the current date
- */
-export function createNewMMGIS_Time(): MMGIS_Time {
-  return {
-    enabled: false,
-    type: "global",
-    isRelative: true,
-    current: new Date(),
-    start: "",
-    end: "",
-    format: "%Y-%m-%dT%H:%M:%SZ",
-    refresh: "1 hours",
-    increment: "5 minutes",
-  };
 }
 
 /**
@@ -161,36 +112,6 @@ export function createNewConfig(): Config {
     layers: [],
   };
 }
-
-export const DisplayTime: FunctionComponent<{ time: MMGIS_Time }> = (props: {
-  time: MMGIS_Time;
-}) => {
-  return (
-    <div id="timeDisplay">
-      enabled: {props.time.enabled}
-      <br />
-      type: {props.time.type}
-      <br /> isRelative: {props.time.isRelative}
-      <br /> current:{" "}
-      {/* {typeof props.time.current === "string"
-        ? props.time.current
-        : props.time.current.toUTCString()} */}
-      <br /> start: {props.time.start}
-      <br /> end: {props.time.end}
-      <br /> format: {props.time.format}
-      <br /> refresh: {props.time.refresh}
-      <br /> increment: {props.time.increment}
-    </div>
-  );
-};
-
-export const stringToJSON = (string: string): unknown | undefined => {
-  try {
-    return JSON.parse(string) as unknown;
-  } catch (e) {
-    return undefined;
-  }
-};
 
 /**
  * A generic JSON Editor component with built in validation message

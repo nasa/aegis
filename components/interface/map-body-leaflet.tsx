@@ -107,10 +107,13 @@ const MapBody: FunctionComponent = () => {
     deepEqual
   );
   const missionLayers = useAppSelector((state) => state.mission.layers, shallowEqual);
-
+  const missionSublayers = useAppSelector((state) => state.mission.sublayers, shallowEqual);
   const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, shallowEqual);
 
-  const layerControls = useAppSelector((state) => state.map.mapLayerControls, shallowEqual);
+  const mapSublayerControls = useAppSelector(
+    (state) => state.map.mapSublayerControls,
+    shallowEqual
+  );
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
 
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
@@ -168,14 +171,14 @@ const MapBody: FunctionComponent = () => {
 
   // make color filter settings for tile sublayer. This is the format of leaflet.tilelayer.colorfilter package
   const makeTileLayerColorFilter = (
-    lControls: MapLayerControls,
-    sublayerName: string
+    lControls: MapSublayerControls,
+    sublayerUuid: string
   ): string[] => {
     return [
-      `brightness:${getPercentOrDefault(lControls[sublayerName].style?.brightness)}%`,
-      `contrast:${getPercentOrDefault(lControls[sublayerName].style?.contrast)}%`,
-      `opacity:${getPercentOrDefault(lControls[sublayerName].style?.opacity)}%`,
-      `saturate:${getPercentOrDefault(lControls[sublayerName].style?.saturation)}%`,
+      `brightness:${getPercentOrDefault(lControls[sublayerUuid].style?.brightness)}%`,
+      `contrast:${getPercentOrDefault(lControls[sublayerUuid].style?.contrast)}%`,
+      `opacity:${getPercentOrDefault(lControls[sublayerUuid].style?.opacity)}%`,
+      `saturate:${getPercentOrDefault(lControls[sublayerUuid].style?.saturation)}%`,
     ];
   };
 
@@ -201,42 +204,35 @@ const MapBody: FunctionComponent = () => {
    * Map layers display management
    */
   useEffect(() => {
-    if (!mission.id || !layerControls || !map.current || !selectedPreset || !missionLayers) return;
+    if (!mission.id || !mapSublayerControls || !map.current || !selectedPreset || !missionLayers)
+      return;
 
-    // go through all layers in mission config,  add make a list of the ones that are enabled
+    // go through all layers in mission config,  add make a list of the ones that are visible
     const layersToAdd: Sublayer[] = [];
 
-    //loop through layers in the preset using their ordering
+    //build layer list
+    //loop through layers in the preset in order
     if (selectedPreset.layerOrder) {
       for (const headerLayer of selectedPreset.layerOrder) {
         //loop through the sublayer uuids
         for (const sublayerUuid of headerLayer.sublayerUuids) {
           //check if sublayer is toggled visible in the preset
-          for (const layerName in selectedPreset.mapLayerControls) {
-            if (
-              selectedPreset.mapLayerControls[layerName].uuid === sublayerUuid &&
-              selectedPreset.mapLayerControls[layerName].visible
-            ) {
-              //this layer is visible - get the sublayer object from misson
-              for (const layer of missionLayers) {
-                for (const sublayer of layer.layerConfig.sublayers) {
-                  if (sublayer.uuid === sublayerUuid) {
-                    layersToAdd.push(sublayer); //add sublayer
-                  }
-                }
-              }
-            }
+          if (selectedPreset.mapSublayerControls[sublayerUuid].visible) {
+            //this layer is visible - get the sublayer object from misson
+            const sublayer = missionSublayers.find((sublayer) => sublayer.uuid === sublayerUuid);
+            layersToAdd.push(sublayer); //add sublayer
           }
         }
       }
     } else {
-      //preset does not have ordering, use the default order from mission
-      for (const configLayer of missionLayers) {
-        for (const configSublayer of configLayer.layerConfig.sublayers) {
-          if (configSublayer.type === "tile" || configSublayer.type === "vector") {
-            if (layerControls[configSublayer.name].visible) {
-              layersToAdd.push(configSublayer);
-            }
+      //preset does not have ordering, sort by name
+      for (const layer of _.sortBy(missionLayers, ["name"])) {
+        for (const sublayer of _.sortBy(
+          missionSublayers.filter((s) => s.layerUuid === layer.uuid),
+          ["name"]
+        )) {
+          if (mapSublayerControls[sublayer.uuid].visible) {
+            layersToAdd.push(sublayer);
           }
         }
       }
@@ -245,66 +241,62 @@ const MapBody: FunctionComponent = () => {
     // reverse the array to add the ones at the bottom of the tree first
     const layersToAddInOrder = layersToAdd.reverse();
 
-    // if there are no changes to the layers enabled, do nothing
+    // no new layers are newly visible/hidden or reordered. do nothing
     if (_.isEqual(layersToAddInOrder, layersOnMap)) {
       return;
     } else {
       setLayersOnMap(layersToAddInOrder);
     }
 
-    // remove map layers that are not enabled in layerControls
+    // remove map layers that are not visible in layerControls
     map.current.eachLayer((layer) => {
-      if ((layer as L.TileLayer).options.id) {
-        if (!layerControls[(layer as L.TileLayer).options.id].visible) {
-          map.current.removeLayer(layer);
-        }
-      }
-      if ((layer as AEGISFeatureGroup).id) {
-        if (!layerControls[(layer as AEGISFeatureGroup).id].visible) {
-          map.current.removeLayer(layer);
-        }
+      const uuid = (layer as L.TileLayer).options.uuid || (layer as L.FeatureGroup).uuid;
+      const sublayerControls = mapSublayerControls[uuid];
+      if (sublayerControls && !sublayerControls.visible) {
+        map.current.removeLayer(layer);
       }
     });
 
     // check map layers in order
-    layersToAddInOrder.map((configSublayer, index) => {
+    layersToAddInOrder.map((sublayer, index) => {
       // if layer isn't already on the map, add it
-      if (!isLayerOnMapByName(map, configSublayer.name)) {
-        if (configSublayer.type === "tile") {
-          const filter = makeTileLayerColorFilter(layerControls, configSublayer.name);
+      if (!isLayerOnMapByName(map, sublayer.name)) {
+        if (sublayer.type === "tile") {
+          const filter = makeTileLayerColorFilter(mapSublayerControls, sublayer.uuid);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const tileLayer = (L.tileLayer as any).colorFilter(
-            `${layerBaseURL}/${mission.id}/Layers/${configSublayer.aegisURL}`,
+            `${layerBaseURL}/${mission.id}/Layers/${sublayer.url}`,
             {
               //manually add id and type fields for tracking later on
-              id: `${configSublayer.name}`,
+              id: `${sublayer.name}`,
+              uuid: `${sublayer.uuid}`,
               type: "tile",
 
               tileSize: 256,
               bounds: [
-                [configSublayer.boundingBox[1], configSublayer.boundingBox[0]],
-                [configSublayer.boundingBox[3], configSublayer.boundingBox[2]],
+                [sublayer.boundingBox[1], sublayer.boundingBox[0]],
+                [sublayer.boundingBox[3], sublayer.boundingBox[2]],
               ],
-              tms: configSublayer.tileformat === "tms",
-              minZoom: 1,
-              minNativeZoom: configSublayer.minZoom,
-              maxZoom: configSublayer.maxZoom,
-              maxNativeZoom: configSublayer.maxNativeZoom,
-              opacity: layerControls[configSublayer.name].style?.opacity,
+              tms: sublayer.tileFormat === "tms",
+              minZoom: sublayer.minZoom || 1,
+              minNativeZoom: sublayer.minZoom,
+              maxZoom: sublayer.maxZoom,
+              maxNativeZoom: sublayer.maxNativeZoom,
+              opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
               zIndex: index,
               filter,
               // custom class name that we use to control mix-blend-mode
               className: `leaflet-layer leaflet-blend-${
-                layerControls[configSublayer.name].style?.blendMode
+                mapSublayerControls[sublayer.uuid].style?.blendMode
               }`,
             }
           );
           map.current.addLayer(tileLayer);
           tileLayer.bringToFront();
-        } else if (configSublayer.type === "vector") {
-          // fetch geojson object from aegisURL
+        } else if (sublayer.type === "vector") {
+          // fetch geojson object from url
           (async () => {
-            const res = await fetch(`${layerBaseURL}/${mission.id}/Data/${configSublayer.url}`, {
+            const res = await fetch(`${layerBaseURL}/${mission.id}/Data/${sublayer.filePath}`, {
               method: "GET",
               headers: {
                 "Content-Type": "application/json",
@@ -313,28 +305,29 @@ const MapBody: FunctionComponent = () => {
             const geojson = await res.json();
 
             // create a featureGroup for the layer
-            const featureGroup = L.featureGroup() as AEGISFeatureGroup;
-            featureGroup.id = configSublayer.name;
+            const featureGroup = L.featureGroup();
+            featureGroup.name = sublayer.name;
+            featureGroup.uuid = sublayer.uuid;
 
             const vectorLayer = L.geoJSON(geojson, {
               style: (geoJsonFeature) => {
                 //fill color defaults to color if not defined
-                let fillColor = layerControls[configSublayer.name].style?.color;
-                if (layerControls[configSublayer.name].style?.fillColor?.startsWith("prop:")) {
+                let fillColor = mapSublayerControls[sublayer.uuid].style?.color;
+                if (mapSublayerControls[sublayer.uuid].style?.fillColor?.startsWith("prop:")) {
                   const fillPropertyName =
-                    layerControls[configSublayer.name].style?.fillColor.slice(5);
+                    mapSublayerControls[sublayer.uuid].style?.fillColor.slice(5);
                   fillColor = geoJsonFeature.properties[fillPropertyName];
                 }
                 return {
                   //manually add id and type fields for tracking later on
-                  id: configSublayer.name,
+                  id: sublayer.name,
                   type: "vector",
                   //manually define defaults
-                  color: layerControls[configSublayer.name].style?.color,
-                  opacity: layerControls[configSublayer.name].style?.opacity,
-                  weight: layerControls[configSublayer.name].style?.weight,
+                  color: mapSublayerControls[sublayer.uuid].style?.color,
+                  opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
+                  weight: mapSublayerControls[sublayer.uuid].style?.weight,
                   fillColor: fillColor,
-                  fillOpacity: layerControls[configSublayer.name].style?.fillOpacity,
+                  fillOpacity: mapSublayerControls[sublayer.uuid].style?.fillOpacity,
                 };
               },
             });
@@ -345,39 +338,47 @@ const MapBody: FunctionComponent = () => {
         }
       } else {
         // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
-        const layer = getLayerByName(map, configSublayer.name);
+        const layer = getLayerByName(map, sublayer.name);
         layer.bringToFront();
       }
     });
-  }, [mission.id, layerControls, map, layersOnMap, missionLayers, selectedPreset]);
+  }, [
+    mission.id,
+    mapSublayerControls,
+    map,
+    layersOnMap,
+    missionLayers,
+    missionSublayers,
+    selectedPreset,
+  ]);
 
   /**
    * Update map with display adjustments for sublayers as sliders are moved
    */
   useEffect(() => {
-    if (!map.current || !layerControls) return;
+    if (!map.current || !mapSublayerControls) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     map.current.eachLayer((layer: any) => {
-      for (const layerControl of Object.values(layerControls)) {
-        if (layer.options.id === layerControl.name) {
+      for (const sublayerControl of Object.values(mapSublayerControls)) {
+        if (layer.options.id === sublayerControl.name) {
           if (layer.options.type === "tile") {
             (layer as L.TileLayer).updateFilter(
-              makeTileLayerColorFilter(layerControls, layerControl.name)
+              makeTileLayerColorFilter(mapSublayerControls, sublayerControl.sublayerUuid)
             );
             // custom class name that we use to control mix-blend-mode
-            layer.getContainer().className = `leaflet-layer leaflet-blend-${layerControl.style?.blendMode}`;
+            layer.getContainer().className = `leaflet-layer leaflet-blend-${sublayerControl.style?.blendMode}`;
           } else if (layer.options.type === "vector") {
             (layer as L.GeoJSON).setStyle({
-              color: layerControl.style?.color,
-              opacity: layerControl.style?.opacity,
-              weight: layerControl.style?.weight,
-              fillOpacity: layerControl.style?.fillOpacity,
+              color: sublayerControl.style?.color,
+              opacity: sublayerControl.style?.opacity,
+              weight: sublayerControl.style?.weight,
+              fillOpacity: sublayerControl.style?.fillOpacity,
             });
           }
         }
       }
     });
-  }, [layerControls, map]);
+  }, [mapSublayerControls, map]);
 
   /**
    * Get the map item by uuid

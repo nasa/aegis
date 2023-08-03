@@ -1,19 +1,18 @@
-interface MapLayerControl {
+interface MapSublayerControl {
   name: string;
-  uuid: string;
+  sublayerUuid: string;
   visible: boolean;
-  type: string;
-  style: MapLayerStyle;
+  style: MapSublayerStyle;
 }
 
 interface MapCircleControl {
-  uuid: string;
+  name: string;
   landerRadiusUuid: string;
   visible: boolean;
   style: MapLayerStyle;
 }
 
-interface MapLayerStyle {
+interface MapSublayerStyle {
   opacity: number; //Percent
   contrast: number; //Percent
   brightness: number; //Percent
@@ -25,8 +24,8 @@ interface MapLayerStyle {
   fillOpacity: number;
 }
 
-interface MapLayerControls {
-  [key: string]: MapLayerControl; //name
+interface MapSublayerControls {
+  [key: string]: MapSublayerControl; //uuid of sublayers
 }
 
 interface MapCircleControls {
@@ -34,43 +33,18 @@ interface MapCircleControls {
 }
 
 interface PresetsUIStates {
-  [key: string]: PresetUIStates; //uuid
+  [key: string]: PresetUIStates; //uuid of preset
 }
 
 interface PresetUIStates {
-  [key: string]: PresetLayerUIState; //name
+  [key: string]: PresetUIState; //flat uuid of layers and sublayers headers
 }
 
-interface PresetLayerUIState {
+interface PresetUIState {
   expanded: boolean;
   tabSelected: "info" | "sliders";
-}
-
-/** Represents the DB structure for the Layer table */
-interface Layer {
-  uuid: string;
-  missionId: number;
-  layerConfig: LayerConfig;
-  createdAt: string;
-  updatedAt: string;
-}
-
-type Layer_db_type = Omit<Layer, "missionId" | "createdAt" | "updatedAt"> & {
-  mission: Mission_db_type;
-  createdAt?: Date;
-  updatedAt?: Date;
-};
-
-//custom type based off of MMGIS type
-type LayerConfig = Omit<MMGIS_LayerConfig, "sublayers"> & {
-  sublayers?: Sublayer[];
-};
-
-//add a custom description field to MMGIS sublayers
-interface Sublayer extends MMGIS_Sublayer {
-  description?: string;
-  uuid?: string;
-  aegisURL?: string;
+  name: string;
+  type: "layer" | "sublayer" | "circle";
 }
 
 type Preset = {
@@ -81,7 +55,7 @@ type Preset = {
   description: string;
   missionPreset: boolean;
   missionPresetDefault: boolean;
-  mapLayerControls: MapLayerControls; //flattened list of layers/sublayers
+  mapSublayerControls: MapSublayerControls; //flattened list of layers/sublayers
   mapCircleControls: MapCircleControls;
   layerOrder: PresetLayerOrder[];
   createdAt?: string;
@@ -89,7 +63,7 @@ type Preset = {
 };
 
 type PresetLayerOrder = {
-  headerLayerUuid: string;
+  layerUuid: string;
   sublayerUuids: string[];
 };
 

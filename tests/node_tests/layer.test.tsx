@@ -206,7 +206,7 @@ describe("Layer API Endpoint ", () => {
     });
 
     test("Update a layer", async () => {
-      newLayer.layerConfig.name = "LayerConfig Jest Test Modified";
+      newLayer.name = "Jest Test Layer Modified";
       newLayer.missionId = testMissions[0].id;
 
       const reqOptions: RequestOptions = {
@@ -222,7 +222,7 @@ describe("Layer API Endpoint ", () => {
       expect(res._getJSONData().data).not.toBeNull();
       const upsertedLayer: Layer = res._getJSONData().data;
       expect(upsertedLayer).not.toBeNull();
-      expect(upsertedLayer.layerConfig.name).toEqual("LayerConfig Jest Test Modified");
+      expect(upsertedLayer.name).toEqual("Jest Test Layer Modified");
     });
   });
 

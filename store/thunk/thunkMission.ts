@@ -1,7 +1,6 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import * as InternalAPI from "http-client/mission";
 import { sortBy } from "lodash";
-import { v4 as uuidv4 } from "uuid";
 
 import { setMission, setMissionFromDb, setMissionSectionEditing } from "store/mission";
 import { thunkGetElevation } from "./thunkElevation";
@@ -51,17 +50,19 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
           newPresetUIState[landerRadius.uuid] = {
             expanded: true,
             tabSelected: null,
+            name: landerRadius.name,
+            type: "circle",
           };
         }
         //remove any radii that were deleted
-        for (const uuidOrName of Object.keys(newPresetUIState)) {
-          const isLayer = Object.keys(getState().map.mapLayerControls).some(
-            (name) => name === uuidOrName
+        for (const uuid of Object.keys(newPresetUIState)) {
+          const isSublayer = getState().mission.sublayers.some(
+            (sublayer) => sublayer.uuid === uuid
           );
-          const isCircle = sortedLanderRadii.some(
-            (landerRadius) => landerRadius.uuid === uuidOrName
-          );
-          if (!isLayer && !isCircle) delete newPresetUIState[uuidOrName];
+          const isHeaderLayer = getState().mission.layers.some((layer) => layer.uuid === uuid);
+          const isCircle = sortedLanderRadii.some((landerRadius) => landerRadius.uuid === uuid);
+
+          if (!isSublayer && !isHeaderLayer && !isCircle) delete newPresetUIState[uuid];
         }
 
         //update map circle controls
@@ -69,7 +70,7 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
           newMapCircleControls[landerRadius.uuid] = preset.mapCircleControls[landerRadius.uuid];
         } else {
           newMapCircleControls[landerRadius.uuid] = {
-            uuid: uuidv4(),
+            name: landerRadius.name,
             landerRadiusUuid: landerRadius.uuid,
             visible: false,
             style: {

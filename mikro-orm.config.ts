@@ -2,6 +2,7 @@ import { Options } from "@mikro-orm/core";
 import { Mission } from "./server/database/models/mission.model";
 import { User } from "./server/database/models/user.model";
 import { Layer } from "./server/database/models/layer.model";
+import { Sublayer } from "./server/database/models/sublayer.model";
 import { Preset } from "./server/database/models/preset.model";
 import { STM_Objective } from "./server/database/models/stm_objective.model";
 import { STM_Goal } from "./server/database/models/stm_goal.model";
@@ -30,6 +31,7 @@ const config: Options = {
     Mission,
     User,
     Layer,
+    Sublayer,
     Preset,
     STM_Objective,
     STM_Goal,
@@ -43,6 +45,7 @@ const config: Options = {
     Mission,
     User,
     Layer,
+    Sublayer,
     Preset,
     STM_Objective,
     STM_Goal,
