@@ -1658,7 +1658,7 @@ const MapBody: FunctionComponent = () => {
                   toolTip="Show/Hide arrows on traverses"
                   label="Arrows"
                   labelStyle={{ alignSelf: "center" }}
-                  uniqueId="showHidePoi"
+                  uniqueId="showHideArrows"
                 />
               </div>
             </div>
