@@ -231,6 +231,7 @@ test-node-next:
     name: gcr.io/kaniko-project/executor:debug
     # Entrypoint is overridden to allow a script to be run
     entrypoint: [""]
+  tags: ["docker", "linux", "current"]
   needs:
     - make-dotenv
   script:
@@ -350,6 +351,7 @@ docker:push:
 
 make-dotenv:
   stage: stageless
+  tags: ["openshift"]
   needs: []
   script:
     # Baseline .env from CI/CD file-variable
