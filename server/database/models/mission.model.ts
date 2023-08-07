@@ -11,8 +11,6 @@ export class Mission implements Mission_db_type {
   description!: string;
   @Property({ type: MikroTypes.text, nullable: true })
   missionBanner: string;
-  @Property({ type: MikroTypes.json, nullable: true })
-  config!: Config;
   @Property({ type: MikroTypes.integer })
   version!: number;
   @Property({ type: MikroTypes.json, nullable: true })
@@ -69,6 +67,8 @@ export class Mission implements Mission_db_type {
   projResUnitsPerPixel: number;
   @Property({ type: MikroTypes.json, nullable: true })
   landerRadii: LanderRadius[];
+  @Property({ type: MikroTypes.json, nullable: true })
+  actionTemplates: ActionTemplate[];
 
   @Property({ type: MikroTypes.datetime })
   createdAt!: Date;

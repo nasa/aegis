@@ -188,7 +188,6 @@ async function getLayers(missionId: number, layerUUID?: string): Promise<Layer[]
       const layer: Layer = {
         uuid: layer_db.uuid,
         missionId: layer_db.mission.id,
-        layerConfig: { ...layer_db.layerConfig }, //remove once layer config is dropped
         name: layer_db.name,
         createdAt: layer_db.createdAt.toISOString(),
         updatedAt: layer_db.updatedAt.toISOString(),
@@ -215,7 +214,6 @@ async function upsertLayer(layer: Layer): Promise<Layer> {
   const convertedRecord: EntityData<Layer_db> = {
     uuid: upsertRecord.uuid || uuidv4(),
     mission: upsertRecord.missionId,
-    layerConfig: upsertRecord.layerConfig, //remove once layer config is dropped
     name: upsertRecord.name,
     createdAt: new Date(upsertRecord.createdAt || updateDateString),
     updatedAt: new Date(updateDateString),
@@ -228,7 +226,6 @@ async function upsertLayer(layer: Layer): Promise<Layer> {
   const result: Layer = {
     uuid: upsertReference.uuid,
     missionId: upsertReference.mission.id,
-    layerConfig: upsertReference.layerConfig, //remove once layer config is dropped
     name: upsertReference.name,
     createdAt: upsertReference.createdAt.toISOString(),
     updatedAt: upsertReference.updatedAt.toISOString(),

@@ -9,8 +9,6 @@ export class Layer implements Layer_db_type {
   @ManyToOne(() => Mission, { unique: false, primary: false })
   mission!: Mission;
 
-  @Property({ type: MikroTypes.json, nullable: true })
-  layerConfig!: LayerConfig;
   @Property({ type: MikroTypes.text, nullable: true })
   name!: string;
 

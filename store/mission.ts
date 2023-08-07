@@ -40,6 +40,22 @@ export const missionSlice = createSlice({
         );
       }
     },
+    upsertActionTemplate: (state, action: { payload: ActionTemplate }) => {
+      const actionTemplates = state.mission.actionTemplates || [];
+      const index = actionTemplates.findIndex((t) => t.uuid === action.payload.uuid);
+      if (index >= 0) {
+        actionTemplates[index] = action.payload;
+      } else {
+        actionTemplates.push(action.payload);
+      }
+      state.mission.actionTemplates = actionTemplates;
+    },
+    deleteActionTemplateByUuid: (state, action: { payload: string }) => {
+      state.mission.actionTemplates.splice(
+        state.mission.actionTemplates.findIndex((template) => template.uuid === action.payload),
+        1
+      );
+    },
   },
 });
 
@@ -50,4 +66,6 @@ export const {
   setSublayers,
   setSelectedMissionRightNavItem,
   setMissionSectionEditing,
+  upsertActionTemplate,
+  deleteActionTemplateByUuid,
 } = missionSlice.actions;

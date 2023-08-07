@@ -147,17 +147,22 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         <div className={paneStyles.displayFieldLabel}>EVA Duration (mins):</div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
-                        <div className={paneStyles.displayFieldValue}>
+                        <div
+                          className={paneStyles.displayFieldValue}
+                          style={{
+                            color:
+                              evaCalculatedFields.totalUnassignedTime.durationLower > 0
+                                ? "var(--error)"
+                                : undefined,
+                          }}
+                          data-tooltip-id="aegis-tooltip"
+                          data-tooltip-html={
+                            evaCalculatedFields.totalUnassignedTime.durationLower > 0
+                              ? "Crew assignments incomplete"
+                              : undefined
+                          }
+                        >
                           {displayFormattedTotalTimeObj(evaCalculatedFields.totalEvaTime) || 0}
-                          {evaCalculatedFields.totalUnassignedTime.durationLower > 0 ? (
-                            <div
-                              className={paneStyles.valueTooltip}
-                              data-tooltip-id="aegis-tooltip"
-                              data-tooltip-html="Crew assignments incomplete"
-                            >
-                              &nbsp;(!)
-                            </div>
-                          ) : null}
                         </div>
                       </div>
                     </div>

@@ -192,10 +192,8 @@ type Action = {
 
   parentActionUuid?: string;
   parentCopyDate?: string;
-  /**
-   * Priority normally inferred by STM relationship, but can be overridden.
-   */
-  priorityOverride: number; // 2.7
+
+  priority: number; // 1-10
   /**
    * Allow linkage to any part of the STM hierarchy
    */

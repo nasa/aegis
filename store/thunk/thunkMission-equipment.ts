@@ -3,7 +3,7 @@ import { setMission } from "store/mission";
 import { v4 as uuidv4 } from "uuid";
 
 type PrintableListItem = {
-  parentType: "Station" | "POI";
+  parentType: "Station" | "POI" | "Template";
   parentName: string;
   actionName: string;
 };
@@ -23,14 +23,18 @@ export const thunkUpdateEquipment = appCreateAsyncThunk<{ equipmentItem: Equipme
 export const thunkDeleteEquipment = appCreateAsyncThunk<{ equipmentItemUuid: string }>(
   "deleteEquipment",
   async ({ equipmentItemUuid }, { dispatch, getState }) => {
-    // find all of the actions using this equipment item
+    // find all of the things that could be using this equipment item
     const actionsUsingEquipmentItem = getState().action.actions.filter((action) =>
       action.equipmentItemsUsage?.some((item) => item.uuid === equipmentItemUuid)
     );
+    const templatesUsingEquipmentItem = getState().mission.mission.actionTemplates.filter(
+      (template) => template.equipmentItemsUsage?.some((item) => item.uuid === equipmentItemUuid)
+    );
 
+    const printableList: PrintableListItem[] = [];
     if (actionsUsingEquipmentItem.length > 0) {
       // compile a list of the actions using this equipment item including their parent poi or station names
-      const printableList: PrintableListItem[] = actionsUsingEquipmentItem.map((action) => {
+      const actionsList: PrintableListItem[] = actionsUsingEquipmentItem.map((action) => {
         const parentType = action.poiUuid ? "POI" : "Station";
         let parentName = "";
         if (parentType === "POI") {
@@ -49,14 +53,30 @@ export const thunkDeleteEquipment = appCreateAsyncThunk<{ equipmentItemUuid: str
           actionName: action.name,
         };
       });
+      printableList.push(...actionsList);
+    }
+    if (templatesUsingEquipmentItem.length > 0) {
+      const templateList: PrintableListItem[] = templatesUsingEquipmentItem.map((template) => {
+        return {
+          parentType: "Template",
+          parentName: "Action",
+          actionName: template.templateName,
+        };
+      });
+      printableList.push(...templateList);
+    }
 
+    if (printableList.length > 0) {
       alert(
         "This equipment item is being used by one or more actions. Please remove it from the following actions before deleting.\n\n" +
-          printableList.map((item) => `${item.parentType}: ${item.parentName} - ${item.actionName}`)
+          printableList.map(
+            (item) => `${item.parentType}: ${item.parentName} - ${item.actionName}\n`
+          )
       );
       return;
     }
 
+    //this item is not being used. All good to delete it
     const newEquipmentItems = getState().mission.mission.equipmentItems?.filter(
       (item) => item.uuid !== equipmentItemUuid
     );

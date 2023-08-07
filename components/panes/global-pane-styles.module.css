@@ -3,7 +3,6 @@
   flex-direction: column;
   background-color: var(--grey1);
   flex: 1 1 auto;
-  overflow-y: hidden;
 }
 
 .rightBodyTitleContainer {
@@ -29,7 +28,9 @@
 .rightBodyBody {
   height: 0;
   flex: 1 1 auto;
-  overflow-y: scroll;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
 }
 .rightBodyFooter {
   flex: 0 0 20px;
@@ -52,7 +53,7 @@
 .leftBodyBody {
   height: 0;
   flex: 1 1 auto;
-  overflow-y: scroll;
+  overflow-y: auto;
 }
 .leftBodyFooter {
   flex: 0 0 20px;
@@ -212,7 +213,6 @@
   background-color: var(--grey2);
   margin: 8px;
   border-radius: var(--panelRadius);
-  overflow-y: hidden;
 }
 
 .panelSection {
@@ -263,11 +263,6 @@
   width: 100%;
 }
 
-.actionIndent {
-  padding-left: 25px;
-  width: 450px;
-}
-
 .sectionButtonRow {
   margin-top: 8px;
   margin-bottom: 8px;
@@ -308,6 +303,22 @@
 .panelColumnTableCellLeft {
   display: table-cell;
   /* text-align: right; */
+}
+
+.panelColumnTableCellLeftSurround {
+  border-top: 1px solid var(--grey4);
+  border-left: 1px solid var(--grey4);
+  border-bottom: 1px solid var(--grey4);
+  border-radius: 4px 0 0 4px;
+  padding: 2px 0 2px 5px;
+}
+
+.panelColumnTableCellRightSurround {
+  border-top: 1px solid var(--grey4);
+  border-right: 1px solid var(--grey4);
+  border-bottom: 1px solid var(--grey4);
+  border-radius: 0 4px 4px 0;
+  padding: 2px 5px 2px 0;
 }
 
 .panelColumnTableCell {
@@ -383,75 +394,24 @@
   align-items: center;
 }
 
-.actionsHeading {
+.bigHeading {
   display: flex;
-  gap: 6px;
-  padding: 4px;
+  gap: 4px;
+  padding: 1px;
 }
 
-.actionsHeadingTitle {
-  font-size: 0.9rem;
-  font-weight: 400;
-  width: 93px;
-  margin-top: 4px;
-  text-transform: capitalize;
-  cursor: pointer;
-}
-
-.actionsHeadingSubTitle {
-  flex-grow: 1;
-  max-width: 295px;
-  font-size: 0.8rem;
-  font-weight: 400;
-  margin-top: 4px;
-}
-
-.actionsHeadingCaret {
+.bigHeadingCaret {
   margin-left: 8px;
-  margin-top: 3px;
+  margin-top: 1px;
 }
 
-.actionsHeadingCaretRight {
+.bigHeadingCaretRight {
   margin-top: 0;
   margin-right: 2px;
 }
 
-.actionsHeadingCaretDown {
+.bigHeadingCaretDown {
   margin-top: 0;
-}
-
-.actionHeadingRight {
-  display: flex;
-  margin-top: 4px;
-  user-select: none;
-}
-
-.actionHeadingRightItem {
-  font-size: 0.8em;
-  margin: 0 4px 0 4px;
-}
-
-.actionHeadingCrew {
-  display: flex;
-  flex-direction: row;
-}
-
-.actionHeadingCrewLeft {
-  background-color: var(--grey3);
-  border-top-left-radius: var(--panelRadius);
-  border-bottom-left-radius: var(--panelRadius);
-  padding: 3px 5px 3px 5px;
-  margin-right: 1px;
-}
-.actionHeadingCrewRight {
-  background-color: var(--grey3);
-  border-top-right-radius: var(--panelRadius);
-  border-bottom-right-radius: var(--panelRadius);
-  padding: 3px 5px 3px 5px;
-}
-.actionHeadingCrewSelected {
-  background-color: white;
-  color: var(--grey1);
 }
 
 .checkUneditable {

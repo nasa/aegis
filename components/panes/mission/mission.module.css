@@ -121,3 +121,39 @@
   transform: scaleX(0.8);
   cursor: pointer;
 }
+
+.templateTitle {
+  font-size: 0.8em;
+  font-weight: 400;
+  color: var(--grey5);
+  -webkit-user-select: none;
+  user-select: none;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.templateActionTitle {
+  font-size: 0.9rem;
+  font-weight: 400;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-transform: capitalize;
+}
+
+.templateActionType {
+  font-size: 0.9rem;
+  font-weight: 400;
+  margin-top: 4px;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.templateActionTypeDropdown {
+  padding-top: 5px;
+}
+
+.templateActionListContainer {
+  padding-top: 5px;
+}

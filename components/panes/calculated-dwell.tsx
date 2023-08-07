@@ -9,7 +9,9 @@ const CalculatedDwell: FunctionComponent<{
     actionsCalculatedFields && (
       <>
         <div className={paneStyles.panelColumnTableRow}>
-          <div className={paneStyles.panelColumnTableCellLeft}>
+          <div
+            className={`${paneStyles.panelColumnTableCellLeft} ${paneStyles.panelColumnTableCellLeftSurround}`}
+          >
             <div
               className={paneStyles.displayFieldLabel}
               data-tooltip-id="aegis-tooltip"
@@ -18,24 +20,29 @@ const CalculatedDwell: FunctionComponent<{
               Total Dwell Time (mins):
             </div>
           </div>
-          <div className={paneStyles.panelColumnTableCell}>
-            <div className={paneStyles.displayFieldValue}>
+          <div
+            className={`${paneStyles.panelColumnTableCell} ${paneStyles.panelColumnTableCellRightSurround}`}
+          >
+            <div
+              className={paneStyles.displayFieldValue}
+              style={{
+                color:
+                  actionsCalculatedFields.totalUnassignedTime.durationLower > 0
+                    ? "var(--error)"
+                    : undefined,
+              }}
+              data-tooltip-id="aegis-tooltip"
+              data-tooltip-html={
+                actionsCalculatedFields.totalUnassignedTime.durationLower > 0
+                  ? "Crew assignments incomplete"
+                  : undefined
+              }
+            >
               {actionsCalculatedFields.totalDwellTime.durationLower === 0 &&
               actionsCalculatedFields.totalUnassignedTime.durationLower !== 0 ? (
-                <>Incomplete</>
+                <>Incompl.</>
               ) : (
-                <>
-                  {displayFormattedTotalTimeObj(actionsCalculatedFields.totalDwellTime) || "0"}
-                  {actionsCalculatedFields.totalUnassignedTime.durationLower > 0 ? (
-                    <div
-                      className={paneStyles.valueTooltip}
-                      data-tooltip-id="aegis-tooltip"
-                      data-tooltip-html="Crew assignments incomplete"
-                    >
-                      &nbsp;(!)
-                    </div>
-                  ) : null}
-                </>
+                <>{displayFormattedTotalTimeObj(actionsCalculatedFields.totalDwellTime) || "0"}</>
               )}
             </div>
           </div>
@@ -55,7 +62,7 @@ const CalculatedDwell: FunctionComponent<{
             <div className={paneStyles.displayFieldValue}>
               {actionsCalculatedFields.totalEv1Time.durationLower === 0 &&
               actionsCalculatedFields.totalUnassignedTime.durationLower !== 0 ? (
-                <>Incomplete</>
+                <>Incompl.</>
               ) : (
                 <>{displayFormattedTotalTimeObj(actionsCalculatedFields.totalEv1Time) || "0"}</>
               )}
@@ -77,7 +84,7 @@ const CalculatedDwell: FunctionComponent<{
             <div className={paneStyles.displayFieldValue}>
               {actionsCalculatedFields.totalEv2Time.durationLower === 0 &&
               actionsCalculatedFields.totalUnassignedTime.durationLower !== 0 ? (
-                <>Incomplete</>
+                <>Incompl.</>
               ) : (
                 <>{displayFormattedTotalTimeObj(actionsCalculatedFields.totalEv2Time) || "0"}</>
               )}

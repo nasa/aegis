@@ -1,9 +1,8 @@
 import { NextPage } from "next";
 import { Dispatch, SetStateAction, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { getMissions, deleteMission, upsertMission } from "http-client/mission";
+import { getMissions, deleteMission } from "http-client/mission";
 import styles from "components/admin/admin.module.css";
-import { createNewConfig } from "components/admin/helper";
 import Header from "components/interface/header";
 import { deleteFile } from "http-client/file";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -14,7 +13,6 @@ import { isLoggedIn } from "http-client/login";
 // import { validators } from "components/interface/form/formValidators";
 import { Tooltip } from "react-tooltip";
 // import { v4 as uuidv4 } from "uuid";
-import { portMissionFromMMGISFormat } from "utils/ports";
 
 const Mission: NextPage = () => {
   const router = useRouter();
@@ -27,20 +25,10 @@ const Mission: NextPage = () => {
 
   const loadMissionsFromDB = useCallback(async () => {
     const missionList = (await getMissions()).data;
-
     const newMissionList: Mission[] = [];
 
     for (const thisMission of missionList) {
-      // if planetRadius has a value, then this mission has already been ported
-      if (!thisMission.planetRadius) {
-        const newMission = portMissionFromMMGISFormat(thisMission);
-        newMissionList.push(newMission);
-
-        // persist changes back to the db
-        await upsertMission(newMission);
-      } else {
-        newMissionList.push(thisMission);
-      }
+      newMissionList.push(thisMission);
     }
 
     setMissions(newMissionList);
@@ -83,7 +71,6 @@ const Mission: NextPage = () => {
       name: "",
       description: "",
       missionBanner: "",
-      config: createNewConfig(),
       landerLocation: null,
       landerElevationMeters: 0,
       traverseSpeed: 2,
@@ -111,6 +98,7 @@ const Mission: NextPage = () => {
       projResZoomLevel: 0,
       projResUnitsPerPixel: 0,
       landerRadii: [],
+      actionTemplates: null,
     };
 
     setMission(newMission);

@@ -5,7 +5,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { setPoiEditMode, upsertPoi } from "store/poi";
 import Actions from "../actions";
-import { ExpandCollapseActionsButtons } from "../actions-action";
+import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
 
 const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -57,9 +57,9 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitleContainer}>
         <div className={paneStyles.rightBodyTitle}>POI Actions</div>
-        <ExpandCollapseActionsButtons actionList={poiActions} />
+        <ExpandCollapseActionsButtons actionUuids={poiActions?.map((action) => action.uuid)} />
       </div>
-      <div className={paneStyles.rightBodyBody}>
+      <div className={paneStyles.rightBodyBody} style={{ overflowY: "hidden" }}>
         <Actions
           editMode={editMode}
           setEditMode={(newEditMode: boolean) => {

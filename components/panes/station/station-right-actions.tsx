@@ -1,6 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
+import actionStyles from "../actions-action.module.css";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { faCaretDown, faCaretRight, faClone } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -10,7 +11,7 @@ import Actions from "../actions";
 import { setStationEditMode, upsertStation } from "store/station";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDuplicateAction } from "store/thunk/thunkAction";
-import { ExpandCollapseActionsButtons } from "../actions-action";
+import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
 
 const Actions_Panel: FunctionComponent<{
   editMode: boolean;
@@ -76,9 +77,9 @@ const Actions_Panel: FunctionComponent<{
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitleContainer}>
         <div className={paneStyles.rightBodyTitle}>Station Actions</div>
-        <ExpandCollapseActionsButtons actionList={stationActions} />
+        <ExpandCollapseActionsButtons actionUuids={stationActions?.map((action) => action.uuid)} />
       </div>
-      <div className={paneStyles.rightBodyBody}>
+      <div className={paneStyles.rightBodyBody} style={{ overflowY: "hidden" }}>
         <Actions
           editMode={editMode}
           setEditMode={(newEditMode: boolean) => {
@@ -99,19 +100,23 @@ const Actions_Panel: FunctionComponent<{
 
         <div className={paneStyles.panelContainer}>
           <div
-            className={paneStyles.actionsHeading}
+            className={paneStyles.bigHeading}
             onClick={() => {
               setPoiExpanded(!poiExpanded);
             }}
           >
-            <div className={`${paneStyles.actionsHeadingCaret} `}>
+            <div className={`${paneStyles.bigHeadingCaret} `}>
               {poiExpanded ? (
-                <FontAwesomeIcon icon={faCaretDown} size="sm" />
+                <FontAwesomeIcon
+                  icon={faCaretDown}
+                  size="sm"
+                  className={paneStyles.bigHeadingCaretDown}
+                />
               ) : (
                 <FontAwesomeIcon
                   icon={faCaretRight}
                   size="sm"
-                  className={paneStyles.actionsHeadingCaretRight}
+                  className={paneStyles.bigHeadingCaretRight}
                 />
               )}
             </div>
@@ -150,19 +155,19 @@ const Actions_Panel: FunctionComponent<{
                             key={action.uuid}
                           >
                             <div className={stationStyles.stationPoiActionItems}>
-                              <div className={paneStyles.actionsHeading}>
+                              <div className={actionStyles.actionsHeading}>
                                 <div
-                                  className={`${paneStyles.actionsHeadingTitle} ${stationStyles.stationActionsHeadingTitle}`}
+                                  className={`${actionStyles.actionsHeadingType} ${stationStyles.stationActionsHeadingTitle}`}
                                 >
                                   {action.type}
                                 </div>
-                                <div className={paneStyles.actionsHeadingSubTitle}>
+                                <div className={actionStyles.actionsHeadingTitle}>
                                   {action.name}
                                 </div>
                               </div>
                             </div>
                             <div
-                              className={paneStyles.actionHeadingIcons}
+                              className={actionStyles.actionHeadingIcons}
                               data-tooltip-id="aegis-tooltip"
                               data-tooltip-html="Copy this action to station"
                             >

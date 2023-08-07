@@ -10,7 +10,6 @@ export function createNewLayer(missionId?: number): Layer {
   return {
     uuid: null,
     missionId: missionId || null,
-    layerConfig: null, //remove once layer config is dropped
     name: "",
     createdAt: null,
     updatedAt: null,
@@ -45,72 +44,6 @@ export function createNewSublayer(layerUuid?: string, missionId?: number): Subla
     updatedAt: null,
   };
   return sublayer;
-}
-
-/**
- * Creates a new empty config object. Initilizes all booleans to false, strings to empty, and numbers to 0
- * @returns a empty config object
- */
-export function createNewConfig(): Config {
-  return {
-    msv: {
-      mission: "",
-      site: "",
-      masterdb: false,
-      view: ["", "", ""],
-      radius: { major: "", minor: "" },
-      mapscale: "",
-    },
-    projection: {
-      custom: false,
-      epsg: "",
-      proj: "",
-      xmlpath: "",
-      bounds: ["", "", "", ""],
-      origin: ["", ""],
-      reszoomlevel: 0,
-      resunitsperpixel: 0,
-    },
-    look: {
-      pagename: "",
-      minimalist: false,
-      zoomcontrol: false,
-      graticule: false,
-      coordll: false,
-      coorden: false,
-      coordrxy: false,
-      coordsite: false,
-      coordelev: false,
-      coordelevurl: "",
-      coordlngoffset: "",
-      coordlatoffset: "",
-      coordeastoffset: "",
-      coordnorthoffset: "",
-      coordeastmult: "",
-      coordnorthmult: "",
-      primarycolor: "",
-      secondarycolor: "",
-      tertiarycolor: "",
-      accentcolor: "",
-      bodycolor: "",
-      topbarcolor: "",
-      toolbarcolor: "",
-      mapcolor: "",
-      highlightcolor: "",
-      copylink: false,
-      screenshot: false,
-      fullscreen: false,
-      help: false,
-      logourl: "",
-      helpurl: "",
-    },
-    panels: [],
-    panelSettings: { demFallbackPath: "", demFallbackFormat: null, demFallbackType: null },
-    tools: [],
-    //layers: [],
-    time: { enabled: false, visible: false, format: "" },
-    layers: [],
-  };
 }
 
 /**

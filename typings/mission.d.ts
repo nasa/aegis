@@ -6,7 +6,6 @@ interface Mission {
   name: string;
   description: string;
   missionBanner: string;
-  config: Config;
   version: number;
   landerLocation: AEGISPoint;
   landerElevationMeters: number;
@@ -38,6 +37,7 @@ interface Mission {
   createdAt?: string;
   updatedAt?: string;
   landerRadii: LanderRadius[];
+  actionTemplates: ActionTemplate[];
 }
 
 // No alteration needed to convert this store type to the database type
@@ -46,18 +46,7 @@ type Mission_db_type = Omit<Mission, "createdAt" | "updatedAt"> & {
   updatedAt?: Date;
 };
 
-/** AEGIS version of Config JSON object from MMGIS.
- * Contains all the same properties with the exception of Layers */
-interface Config {
-  layers: (Omit<MMGIS_LayerConfig, "sublayers"> & { sublayers?: Sublayer[] })[]; //remove once layer config is dropped
-  msv: MMGIS_Msv;
-  projection: MMGIS_Projection;
-  look: MMGIS_Look;
-  panels: string[];
-  panelSettings: MMGIS_PanelSettings;
-  tools: MMGIS_Tool[];
-  time: MMGIS_ConfigTime;
-}
+type ActionTemplate = Partial<Action> & { templateName: string; uuid: string; type: string };
 
 /**
  * The object we put in the "measure tool" area of MMGIS config about the dem
