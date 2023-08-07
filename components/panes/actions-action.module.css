@@ -21,12 +21,17 @@
   outline: none;
 }
 
+.gripIcon {
+  margin-top: 3px;
+  margin-left: 2px;
+}
+
 .actionsHeadingCaret {
   margin-left: 0;
 }
 
 .selectorContainer {
-  padding-left: 15px;
+  padding-left: 0;
 }
 
 .propertyList {
@@ -56,4 +61,88 @@
 
 .propertyListColumn {
   flex: 0 0 50%;
+}
+
+.actionIndent {
+  padding-left: 25px;
+  padding-bottom: 5px;
+  width: 450px;
+}
+
+.actionsHeading {
+  display: flex;
+  gap: 4px;
+  padding: 1px;
+  margin-left: 3px;
+}
+
+.actionsHeadingType {
+  font-size: 0.8rem;
+  font-weight: 400;
+  min-width: 55px;
+  max-width: 55px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 4px;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.actionsHeadingTitle {
+  flex-grow: 1;
+  font-size: 0.8rem;
+  font-weight: 400;
+  margin-top: 3px;
+  color: var(--grey5);
+}
+
+.actionsHeadingCaret {
+  margin-left: 2px;
+  margin-top: 3px;
+}
+
+.actionsHeadingCaretRight {
+  margin-top: 0;
+  margin-right: 2px;
+}
+
+.actionsHeadingCaretDown {
+  margin-top: 0;
+}
+
+.actionHeadingRight {
+  display: flex;
+  margin-top: 2px;
+  user-select: none;
+}
+
+.actionHeadingRightItem {
+  font-size: 0.8em;
+  margin: 0 4px 0 4px;
+}
+
+.actionHeadingCrew {
+  display: flex;
+  flex-direction: row;
+}
+
+.actionHeadingCrewLeft {
+  font-size: 0.8rem;
+  background-color: var(--grey3);
+  border-top-left-radius: var(--panelRadius);
+  border-bottom-left-radius: var(--panelRadius);
+  padding: 2px 4px 2px 4px;
+  margin-right: 1px;
+}
+.actionHeadingCrewRight {
+  font-size: 0.8rem;
+  background-color: var(--grey3);
+  border-top-right-radius: var(--panelRadius);
+  border-bottom-right-radius: var(--panelRadius);
+  padding: 2px 4px 2px 4px;
+}
+.actionHeadingCrewSelected {
+  background-color: var(--eva);
+  color: var(--grey1);
+  font-weight: 600;
 }

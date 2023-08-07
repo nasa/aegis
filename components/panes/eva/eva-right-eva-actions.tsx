@@ -2,7 +2,7 @@ import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import Actions from "../actions";
-import { ExpandCollapseActionsButtons } from "../actions-action";
+import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
 
 const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
@@ -70,9 +70,9 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitleContainer}>
         <div className={paneStyles.rightBodyTitle}>All EVA Actions</div>
-        <ExpandCollapseActionsButtons actionList={evaActions} />
+        <ExpandCollapseActionsButtons actionUuids={evaActions?.map((action) => action.uuid)} />
       </div>
-      <div className={paneStyles.rightBodyBody}>
+      <div className={paneStyles.rightBodyBody} style={{ overflowY: "hidden" }}>
         <Actions
           editMode={editMode}
           setEditMode={() => {}}

@@ -94,7 +94,6 @@
 }
 .select_arrow {
   position: absolute;
-  top: 4px;
   right: 5px;
   pointer-events: none;
 }

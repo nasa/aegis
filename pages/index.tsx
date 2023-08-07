@@ -124,7 +124,7 @@ const MissionSelect = ({ user }: { user: User }) => {
       const missionRes = await getMissions();
       // if superadmin, show everything
       if (user.isSuperAdmin) {
-        setMissions(missionRes.data);
+        setMissions(missionRes.data.sort((a, b) => (b.name < a.name ? 1 : -1)));
         return;
       }
 
@@ -136,7 +136,7 @@ const MissionSelect = ({ user }: { user: User }) => {
           return permission.missionId === mission.id && permission.permissions.view === true;
         });
       });
-      setMissions(filteredMissions);
+      setMissions(filteredMissions.sort((a, b) => (b.name < a.name ? 1 : -1)));
     }
 
     populateData().catch(() => {
@@ -157,8 +157,6 @@ const MissionSelect = ({ user }: { user: User }) => {
             <tbody>
               <tr>
                 <td>Project Name</td>
-                <td>Version</td>
-                <td>Last Edited</td>
                 <td />
               </tr>
 
@@ -167,11 +165,7 @@ const MissionSelect = ({ user }: { user: User }) => {
                   return (
                     <tr key={mission.id}>
                       <td>{mission.name}</td>
-                      <td>{mission.version}</td>
-                      <td>
-                        {new Date(mission.createdAt).toLocaleDateString()}{" "}
-                        {new Date(mission.createdAt).toLocaleTimeString()}
-                      </td>
+
                       <td>
                         <button
                           className={styles.tableButton}

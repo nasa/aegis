@@ -31,7 +31,7 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
                 {mission?.landerRadii && presetUIStates && (
                   <div className={styles.layerGroup}>
                     <div className={styles.layer}>
-                      <div>Circle Layers</div>
+                      <div>Lander Radius Layers</div>
                     </div>
                     <div className={styles.sublayerGroup}>
                       {mission?.landerRadii &&

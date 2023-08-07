@@ -494,16 +494,6 @@ const MapBody: FunctionComponent = () => {
       const html = `<div class="leaflet-aegis-icon">${decodeEmoji(iconEmoji)}</div>`;
       const icon = L.divIcon({ html });
 
-      let typeName = "";
-      switch (mapItemType) {
-        case "poi":
-          typeName = "POI";
-          break;
-        case "station":
-          typeName = "Station";
-          break;
-      }
-
       const existingLayer = getMapItemByUuid(uuid, mapItemType) as AEGISMarker;
 
       if (existingLayer && existingLayer.mapItemType === mapItemType) {
@@ -517,7 +507,7 @@ const MapBody: FunctionComponent = () => {
         marker.mapItemType = mapItemType;
 
         // marker handlers
-        marker.bindTooltip(`${name} ${typeName}`, {
+        marker.bindTooltip(`${name}`, {
           sticky: true,
           direction: "top",
           offset: new L.Point(0, -10),

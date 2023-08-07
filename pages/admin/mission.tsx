@@ -98,6 +98,7 @@ const Mission: NextPage = () => {
       projResZoomLevel: 0,
       projResUnitsPerPixel: 0,
       landerRadii: [],
+      actionTemplates: null,
     };
 
     setMission(newMission);

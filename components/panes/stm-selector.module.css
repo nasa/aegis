@@ -2,8 +2,13 @@
   display: inline-block;
 }
 
+.stmHeading {
+  color: white;
+}
+
 .stmText {
   font-size: 0.8rem;
+  color: var(--grey4);
   cursor: text;
 }
 

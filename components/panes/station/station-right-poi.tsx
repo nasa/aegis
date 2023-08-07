@@ -44,92 +44,94 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle}>Station POIs</div>
-      <div className={paneStyles.panelContainer}>
-        <div className={paneStyles.panelSection} style={{ height: "100%" }}>
-          <div className={paneStyles.panelSectionTitle}>
-            <SubpanelHeading icon={faCircleDot}>POIs Linked to this Station</SubpanelHeading>
-          </div>
-          <div className={stationStyles.associatedPoisContainer}>
-            {!editMode ? (
-              <>
-                {selectedPois.map((poi) => {
-                  return (
-                    poi && (
-                      <div key={poi.uuid}>
-                        <div
-                          className={poiStyles.poiItem}
-                          onClick={() => {
-                            dispatch(setSectionSelected("poi"));
-                            dispatch(setSelectedPoiUuid(poi.uuid));
-                          }}
-                        >
-                          <div className={poiStyles.itemIcon}>
-                            {String.fromCodePoint(parseInt(poi.icon, 16))}
-                          </div>
-                          <div className={`${poiStyles.name}`}>
-                            <div>{poi.name}</div>
-                            <div className={poiStyles.poiRightSpacer} />
-                          </div>
-                        </div>
-                        <div className={poiStyles.poiAssocDescription}>
-                          <div className={paneStyles.panelSectionTitle}>
-                            <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
-                          </div>
-                          <div className={paneStyles.descriptionContainer}>
-                            <WysiwygTextArea
-                              value={poi.description}
-                              editing={false}
-                              onChange={() => {}}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  );
-                })}
-              </>
-            ) : (
-              <>
-                {_.sortBy(pois, "name").map((poi) => {
-                  const checked = selectedStation.poiUuids?.includes(poi.uuid);
-                  return (
-                    poi && (
-                      <div
-                        className={stationStyles.poiItem}
-                        key={poi.uuid}
-                        onMouseEnter={() => dispatch(setMapItemHoverUuid(poi.uuid))}
-                        onMouseLeave={() => dispatch(setMapItemHoverUuid(null))}
-                      >
-                        <Checkbox
-                          checked={checked}
-                          onChange={(e) => {
-                            const updatedStation: Station = {
-                              ...selectedStation,
-                              poiUuids: e.target.checked
-                                ? [...selectedStation?.poiUuids, poi.uuid]
-                                : selectedStation?.poiUuids.filter((uuid) => uuid !== poi.uuid),
-                            };
-                            dispatch(upsertStation(updatedStation));
-                          }}
-                          toolTip={`Link ${poi.name}`}
-                          label={
-                            <div className={stationStyles.poiCheckboxLabel}>
-                              {poi.icon && (
-                                <div className={stationStyles.poiIcon}>
-                                  {String.fromCodePoint(parseInt(poi.icon, 16))}
-                                </div>
-                              )}
-                              <div className={stationStyles.poiLabel}>{poi.name}</div>
+      <div className={paneStyles.rightBodyBody}>
+        <div className={paneStyles.panelContainer} style={{ height: "-webkit-fill-available" }}>
+          <div className={paneStyles.panelSection} style={{ height: "100%" }}>
+            <div className={paneStyles.panelSectionTitle}>
+              <SubpanelHeading icon={faCircleDot}>POIs Linked to this Station</SubpanelHeading>
+            </div>
+            <div className={stationStyles.associatedPoisContainer}>
+              {!editMode ? (
+                <>
+                  {selectedPois.map((poi) => {
+                    return (
+                      poi && (
+                        <div key={poi.uuid}>
+                          <div
+                            className={poiStyles.poiItem}
+                            onClick={() => {
+                              dispatch(setSectionSelected("poi"));
+                              dispatch(setSelectedPoiUuid(poi.uuid));
+                            }}
+                          >
+                            <div className={poiStyles.itemIcon}>
+                              {String.fromCodePoint(parseInt(poi.icon, 16))}
                             </div>
-                          }
-                          uniqueId={poi.uuid}
-                        />
-                      </div>
-                    )
-                  );
-                })}
-              </>
-            )}
+                            <div className={`${poiStyles.name}`}>
+                              <div>{poi.name}</div>
+                              <div className={poiStyles.poiRightSpacer} />
+                            </div>
+                          </div>
+                          <div className={poiStyles.poiAssocDescription}>
+                            <div className={paneStyles.panelSectionTitle}>
+                              <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
+                            </div>
+                            <div className={paneStyles.descriptionContainer}>
+                              <WysiwygTextArea
+                                value={poi.description}
+                                editing={false}
+                                onChange={() => {}}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    );
+                  })}
+                </>
+              ) : (
+                <>
+                  {_.sortBy(pois, "name").map((poi) => {
+                    const checked = selectedStation.poiUuids?.includes(poi.uuid);
+                    return (
+                      poi && (
+                        <div
+                          className={stationStyles.poiItem}
+                          key={poi.uuid}
+                          onMouseEnter={() => dispatch(setMapItemHoverUuid(poi.uuid))}
+                          onMouseLeave={() => dispatch(setMapItemHoverUuid(null))}
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onChange={(e) => {
+                              const updatedStation: Station = {
+                                ...selectedStation,
+                                poiUuids: e.target.checked
+                                  ? [...selectedStation?.poiUuids, poi.uuid]
+                                  : selectedStation?.poiUuids.filter((uuid) => uuid !== poi.uuid),
+                              };
+                              dispatch(upsertStation(updatedStation));
+                            }}
+                            toolTip={`Link ${poi.name}`}
+                            label={
+                              <div className={stationStyles.poiCheckboxLabel}>
+                                {poi.icon && (
+                                  <div className={stationStyles.poiIcon}>
+                                    {String.fromCodePoint(parseInt(poi.icon, 16))}
+                                  </div>
+                                )}
+                                <div className={stationStyles.poiLabel}>{poi.name}</div>
+                              </div>
+                            }
+                            uniqueId={poi.uuid}
+                          />
+                        </div>
+                      )
+                    );
+                  })}
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
