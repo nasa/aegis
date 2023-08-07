@@ -7,7 +7,6 @@ export default class MissionFactory extends Factory<Mission_db> {
   definition(): EntityData<Mission_db> {
     return {
       name: "Gaia-1",
-      config: {},
       version: 1,
       createdAt: new Date(),
       updatedAt: new Date(),

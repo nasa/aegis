@@ -2,7 +2,6 @@
 interface Layer {
   uuid: string;
   missionId: number;
-  layerConfig: LayerConfig; //remove once layer config is dropped
   name: string;
   createdAt: string;
   updatedAt: string;
@@ -43,31 +42,4 @@ type Sublayer_db_type = Omit<Sublayer, "missionId" | "layerUuid" | "createdAt" |
   layer: Layer_db_type;
   createdAt: Date;
   updatedAt: Date;
-};
-
-//Remove this once layer config is dropped
-type OldSublayer = {
-  uuid?: string;
-  name: string;
-  description?: string;
-  type: "vector" | "tile";
-  aegisURL?: string;
-  url: string; //filePath
-  boundingBox: number[];
-  tileformat: string;
-  minZoom: number;
-  maxNativeZoom: number;
-  maxZoom: number;
-  style: {
-    color: string;
-    opacity: number;
-    fillColor: string;
-    fillOpacity: number;
-    weight: number;
-  };
-};
-//Remove this once layer config is dropped
-type LayerConfig = {
-  name: string;
-  sublayers: OldSublayer[];
 };

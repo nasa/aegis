@@ -1,7 +1,6 @@
 import { getElevationSinglePoint } from "http-client/elevation";
-import { Dispatch, FunctionComponent, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, FunctionComponent, SetStateAction } from "react";
 import FileManager from "./fileManager";
-import { createNewConfig } from "./helper";
 import { Form } from "react-final-form";
 import { AnyObject } from "final-form";
 import { FFCheckbox, FFInput, FFTextArea } from "components/interface/form/globalFields";
@@ -16,13 +15,6 @@ const MissionEditor: FunctionComponent<{
   mission: Mission;
   setMission: Dispatch<SetStateAction<Mission>>;
 }> = ({ refreshMissionList, mission, setMission }) => {
-  const [config, setConfig] = useState<Config>(createNewConfig());
-  useEffect(() => {
-    if (mission) {
-      setConfig(mission.config);
-    }
-  }, [mission]);
-
   //save the mission and call and upsert
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async function onSubmit(values: Record<string, any>) {
@@ -32,10 +24,7 @@ const MissionEditor: FunctionComponent<{
 
     setMission(missionValues);
 
-    const configToSave: Config = {
-      ...missionValues.config,
-    };
-    const missionToSave: Mission = { ...missionValues, config: configToSave };
+    const missionToSave: Mission = { ...missionValues };
     const res = await upsertMission(missionToSave);
     if (res.status === "success") {
       refreshMissionList();
@@ -75,7 +64,6 @@ const MissionEditor: FunctionComponent<{
         onSubmit={(values) => onSubmit(values)}
         initialValues={{
           ...mission,
-          config: config,
         }}
         render={({ handleSubmit, values, errors }) => {
           return (
