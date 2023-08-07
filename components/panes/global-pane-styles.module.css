@@ -30,7 +30,7 @@
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  overflow-y: scroll;
+  overflow-y: auto;
 }
 .rightBodyFooter {
   flex: 0 0 20px;
@@ -53,7 +53,7 @@
 .leftBodyBody {
   height: 0;
   flex: 1 1 auto;
-  overflow-y: scroll;
+  overflow-y: auto;
 }
 .leftBodyFooter {
   flex: 0 0 20px;
