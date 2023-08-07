@@ -307,16 +307,18 @@ export const WysiwygTextArea: FunctionComponent<{
           />
         </Slate>
       ) : (
-        <div
-          className={styles.notesText}
-          dangerouslySetInnerHTML={{
-            __html: _.reduce(
-              convertStringToNodes(value),
-              (htmlString, decendant) => htmlString + convertNodeToHTML(decendant),
-              ""
-            ),
-          }}
-        />
+        value && (
+          <div
+            className={styles.notesText}
+            dangerouslySetInnerHTML={{
+              __html: _.reduce(
+                convertStringToNodes(value),
+                (htmlString, decendant) => htmlString + convertNodeToHTML(decendant),
+                ""
+              ),
+            }}
+          />
+        )
       )}
     </>
   );

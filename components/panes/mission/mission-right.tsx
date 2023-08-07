@@ -7,9 +7,10 @@ import {
   faBan,
   faEdit,
   faFloppyDisk,
-  faPersonWalkingLuggage,
+  faToolbox,
   faSliders,
   faBullseye,
+  faPersonDigging,
 } from "@fortawesome/free-solid-svg-icons";
 
 import Prefs_panel from "./mission-right-prefs";
@@ -21,6 +22,7 @@ import { setMissionSectionEditing, setSelectedMissionRightNavItem } from "store/
 import { thunkMissionCancel, thunkMissionSave } from "store/thunk/thunkMission";
 import Equipment_Panel from "./mission-right-equipment";
 import GeographiUnits_Panel from "./mission-right-geographicUnits";
+import ActionTemplates_Panel from "./mission-right-actionTemplates";
 
 const MissionPrefsRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -55,17 +57,23 @@ const MissionPrefsRight: FunctionComponent = () => {
       selectedColor: "white",
       icon: faSliders,
     },
+    circle_panel: {
+      title: "Map Vector Definitions",
+      panel: Layers_panel,
+      selectedColor: "white",
+      icon: faBullseye,
+    },
+    actionTemplate_panel: {
+      title: "Action Templates",
+      panel: ActionTemplates_Panel,
+      selectedColor: "white",
+      icon: faPersonDigging,
+    },
     equipment_panel: {
       title: "Mission Equipment",
       panel: Equipment_Panel,
       selectedColor: "white",
-      icon: faPersonWalkingLuggage,
-    },
-    circle_panel: {
-      title: "Vector Layers",
-      panel: Layers_panel,
-      selectedColor: "white",
-      icon: faBullseye,
+      icon: faToolbox,
     },
     geographicUnit: {
       title: "Mission Geography",

@@ -41,7 +41,7 @@ body {
   --errorText: #cb0000;
 
   --radius: 3px;
-  --panelRadius: 8px;
+  --panelRadius: 6px;
 }
 
 /* ===== Scrollbar CSS ===== */
@@ -160,9 +160,19 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  padding-bottom: 2px;
+}
+.rct-node-clickable:hover {
+  background-color: var(--grey1) !important;
+}
+.rct-node-clickable:focus {
+  background-color: var(--grey2) !important;
 }
 .react-checkbox-tree > ol {
   width: 0;
+}
+.react-checkbox-tree ol ol {
+  padding-left: 12px !important;
 }
 .rct-collapse,
 .rct-node-icon {

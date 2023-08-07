@@ -91,7 +91,7 @@ describe("Action API Endpoint", () => {
     type: "measurement",
     description: "",
     durationLower: 0,
-    priorityOverride: null,
+    priority: null,
     equipmentItemsUsage: null,
     geographicUnitsUsage: null,
     mass: null,

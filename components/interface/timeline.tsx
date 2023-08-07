@@ -550,9 +550,11 @@ const NavTimeline: FunctionComponent = () => {
       </div>
       <div className={styles.timelineRight}>
         <STM_Coverage
-          actions={actions.filter((action) =>
-            selectedEva?.sequence.some((sequenceItem) => sequenceItem.uuid === action.stationUuid)
-          )}
+          stmUuidRefs={actions
+            .filter((action) =>
+              selectedEva?.sequence.some((sequenceItem) => sequenceItem.uuid === action.stationUuid)
+            )
+            ?.map((a) => a.stmUuidRefs)}
           mini={true}
           horizontal={false}
         />

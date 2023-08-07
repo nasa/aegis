@@ -1,18 +1,17 @@
 import { FunctionComponent, useEffect, useState, CSSProperties } from "react";
 import paneStyles from "./global-pane-styles.module.css";
-import actionStyles from "./actions.module.css";
-import { SubpanelHeading } from "components/interface/_global-elements";
-import { Button } from "components/interface/form/globalFields";
+import actionsStyles from "./actions.module.css";
+import { Button, Dropdown } from "components/interface/form/globalFields";
 import Action from "./actions-action";
 import _ from "lodash";
-import { faPlusCircle, faTableList } from "@fortawesome/free-solid-svg-icons";
+import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import ReactDragListView from "react-drag-listview";
 import { STM_Coverage } from "./stm-coverage";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreateAction } from "store/thunk/thunkAction";
-import { hhmmFromMinutes } from "utils/formatting";
 import CalculatedDwell from "./calculated-dwell";
+import { shallowEqual, useAppSelector } from "utils/useAppSelector";
 
 const Actions: FunctionComponent<{
   editMode: boolean;
@@ -26,7 +25,6 @@ const Actions: FunctionComponent<{
   actionsCalculatedFields: ActionsCalculatedFields;
 }> = ({
   editMode,
-  setEditMode,
   actions,
   actionColor,
   actionOrderUuids,
@@ -37,7 +35,13 @@ const Actions: FunctionComponent<{
 }) => {
   const dispatch = useAppDispatch();
 
+  const actionTemplates = useAppSelector(
+    (state) => state.mission.mission.actionTemplates,
+    shallowEqual
+  );
+
   const [wrappedActions, setWrappedActions] = useState<WrappedAction[]>(null); //contains all actions in order
+  const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>("");
 
   //gather all actions, order, and wrap them. Calculate all calculated fields
   useEffect(() => {
@@ -124,18 +128,14 @@ const Actions: FunctionComponent<{
         <>
           <div className={paneStyles.panelContainer}>
             <div className={paneStyles.panelSection}>
-              <div className={paneStyles.panelSectionTitle}>
-                <SubpanelHeading icon={faTableList}>Total STM Coverage</SubpanelHeading>
-              </div>
-              <div className={actionStyles.stmCoverage}>
+              <div className={actionsStyles.stmCoverage}>
                 <STM_Coverage
-                  actions={actions}
+                  stmUuidRefs={actions.map((a) => a.stmUuidRefs)}
                   mini={true}
                   horizontal={true}
                   onInvstgHover={highlightActions}
                 />
               </div>
-
               <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
                 <div className={paneStyles.panelSection2Column}>
                   <div className={paneStyles.panelColumnTable}>
@@ -182,15 +182,42 @@ const Actions: FunctionComponent<{
             </div>
           </div>
 
-          <div className={actionStyles.actionListContainer}>
-            <div className={actionStyles.dragableActionList}>
+          <div className={actionsStyles.actionListContainer}>
+            <div className={actionsStyles.dragableActionList}>
+              {!editMode && (
+                <div className={actionsStyles.actionListHeader}>
+                  <div className={actionsStyles.actionListHeaderType}>
+                    <div className={actionsStyles.actionListHeaderLabel}>Type</div>
+                  </div>
+                  <div className={actionsStyles.actionListHeaderTitle}>
+                    <div className={actionsStyles.actionListHeaderLabel}>Title</div>
+                  </div>
+                  <div className={actionsStyles.actionListHeaderPriority}>
+                    <div className={actionsStyles.actionListHeaderLabel}>Pri</div>
+                  </div>
+                  <div className={actionsStyles.actionListHeaderTime}>
+                    <div className={actionsStyles.actionListHeaderLabel}>Max</div>
+                  </div>
+                  {parentType !== "poi" && (
+                    <div className={actionsStyles.actionListHeaderCrew}>
+                      <div className={actionsStyles.actionListHeaderLabel}>Crew</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <ReactDragListView onDragEnd={reorder} nodeSelector="li" handleSelector="a">
-                <ul className={actionStyles.actionlist}>
-                  {wrappedActions?.map((wrappedAction) => (
-                    <li key={wrappedAction.action.uuid} className={actionStyles.actionlistitem}>
+                <ul className={actionsStyles.actionlist}>
+                  {wrappedActions?.map((wrappedAction, index) => (
+                    <li key={wrappedAction.action.uuid} className={actionsStyles.actionlistitem}>
+                      <div
+                        className={actionsStyles.actionlistitemOrdinal}
+                        style={editMode ? { marginTop: "9px" } : undefined}
+                      >
+                        {index + 1}
+                      </div>
                       <Action
                         editMode={editMode}
-                        setEditMode={setEditMode}
                         action={wrappedAction.action}
                         highlight={wrappedAction.highlight}
                         actionColor={actionColor}
@@ -201,53 +228,48 @@ const Actions: FunctionComponent<{
                 </ul>
               </ReactDragListView>
             </div>
-            {wrappedActions?.length ? (
-              <div className={actionStyles.actionListRightTimeContainer}>
-                <div className={actionStyles.actionListRightTimeDot}></div>
-                <div className={actionStyles.actionListRightTimeDotted}></div>
-                <div className={actionStyles.actionListRightTime}>
-                  {parentType === "poi"
-                    ? hhmmFromMinutes(actionsCalculatedFields.totalTime.durationUpper).slice(1)
-                    : hhmmFromMinutes(actionsCalculatedFields.totalDwellTime.durationUpper).slice(
-                        1
-                      )}
-                  {actionsCalculatedFields.totalUnassignedTime.durationLower > 0 ||
-                  actionsCalculatedFields.totalUnassignedTime.durationUpper > 0 ? (
-                    <div
-                      className={paneStyles.valueTooltip}
-                      data-tooltip-id="aegis-tooltip"
-                      data-tooltip-html="Crew assignments incomplete"
-                    >
-                      &nbsp;(!)
-                    </div>
-                  ) : null}
-                </div>
-                <div className={actionStyles.actionListRightTimeDotted}></div>
-                <div className={actionStyles.actionListRightTimeDot}></div>
-              </div>
-            ) : (
-              <></>
-            )}
           </div>
 
-          <div className={actionStyles.rightBodyItem} style={{ marginTop: "8px" }}>
+          <div className={actionsStyles.rightBodyItem} style={{ marginTop: "8px" }}>
             {editMode && (
-              <Button
-                icon={faPlusCircle}
-                label="Add Action"
-                style={{ width: "100px" }}
-                onClick={() => {
-                  dispatch(
-                    thunkCreateAction({
-                      actionParentUuid,
-                      actionOrderUuids,
-                      setActionOrderUuids,
-                      setEditMode,
-                      actions,
-                    })
-                  );
-                }}
-              />
+              <div className={actionsStyles.addActionRow}>
+                <Button
+                  icon={faPlusCircle}
+                  label="Add Action"
+                  style={{ width: "100px" }}
+                  onClick={() => {
+                    const actionTemplate = selectedTemplateUuid
+                      ? actionTemplates.find((t) => t.uuid === selectedTemplateUuid)
+                      : null;
+                    dispatch(
+                      thunkCreateAction({
+                        actionParentUuid,
+                        actionOrderUuids,
+                        setActionOrderUuids,
+                        actions,
+                        actionTemplate,
+                      })
+                    );
+                  }}
+                />
+                <Dropdown
+                  selected={selectedTemplateUuid}
+                  onChange={(val) => {
+                    setSelectedTemplateUuid(val);
+                  }}
+                  selectStyle={{ height: "2em", fontSize: "0.8em" }}
+                  containerStyle={{ maxWidth: "200px" }}
+                >
+                  {actionTemplates?.map((template) => {
+                    return (
+                      <option key={template.uuid} value={template.uuid}>
+                        {_.capitalize(template.type)}: {template.templateName}
+                      </option>
+                    );
+                  })}
+                  <option value="">{`<Template>`}</option>
+                </Dropdown>
+              </div>
             )}
           </div>
         </>

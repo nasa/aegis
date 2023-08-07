@@ -10,12 +10,12 @@ export const thunkCreateAction = appCreateAsyncThunk<{
   actionParentUuid: ActionParentUuid;
   actionOrderUuids: string[];
   setActionOrderUuids: (actionOrderUuids: string[]) => void;
-  setEditMode: (newEditMode: boolean) => void;
   actions: Action[];
+  actionTemplate?: ActionTemplate;
 }>(
   "actionCreate",
   async (
-    { actionParentUuid, actionOrderUuids, setActionOrderUuids, setEditMode, actions },
+    { actionParentUuid, actionOrderUuids, setActionOrderUuids, actions, actionTemplate },
     { dispatch, getState }
   ) => {
     const randomName = generateUniqueName({
@@ -23,7 +23,7 @@ export const thunkCreateAction = appCreateAsyncThunk<{
       existingNames: getState().action.actions.map((a: Action) => a.name),
     });
 
-    const blankAction: Action = {
+    let blankAction: Action = {
       ...actionParentUuid,
       missionId: getState().mission.mission?.id,
       uuid: uuidv4(),
@@ -38,8 +38,14 @@ export const thunkCreateAction = appCreateAsyncThunk<{
       geographicUnitsUsage: null,
       crewAssigned: [],
       mass: null,
-      priorityOverride: null,
+      priority: null,
     };
+
+    if (actionTemplate) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { templateName, uuid, ...rest } = actionTemplate;
+      blankAction = { ...blankAction, ...rest };
+    }
 
     //upsert action
     dispatch(upsertAction(blankAction));
@@ -58,8 +64,6 @@ export const thunkCreateAction = appCreateAsyncThunk<{
 
     actionOrder.push(blankAction.uuid);
     setActionOrderUuids(actionOrder);
-
-    setEditMode(true);
   }
 );
 

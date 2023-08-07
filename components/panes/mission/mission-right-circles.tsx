@@ -21,12 +21,12 @@ const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => 
 
   return (
     <div className={paneStyles.rightBody}>
-      <div className={paneStyles.rightBodyTitle}>Vector Layers</div>
+      <div className={paneStyles.rightBodyTitle}>Vector Definitions</div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-              <SubpanelHeading icon={faList}>Circle Layers</SubpanelHeading>
+              <SubpanelHeading icon={faList}>Lander Radius Circles</SubpanelHeading>
             </div>
             <div className={paneStyles.panelSectionBody}>
               <ul className={styles.propertyList}>
@@ -37,7 +37,7 @@ const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => 
                       style={{ backgroundColor: "var(--grey2)" }}
                     >
                       <div className={styles.propertyRowName}>Name</div>
-                      <div className={styles.propertyRowSingleuse}>{"Range (m)"}</div>
+                      <div className={styles.propertyRowSingleuse}>{"Radius (m)"}</div>
                       <div className={styles.propertyRowTrash}></div>
                     </div>
                   </div>

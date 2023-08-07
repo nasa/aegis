@@ -5,12 +5,12 @@ import _ from "lodash";
 import ReactDOMServer from "react-dom/server";
 
 export const STM_Coverage: FunctionComponent<{
-  actions: Action[];
+  stmUuidRefs: string[][]; //2d array of action stmUuidRefs
   mini: boolean;
   horizontal: boolean;
   onInvstgHover?: (invstgUUID: string) => void;
 }> = (props: {
-  actions: Action[];
+  stmUuidRefs: string[][];
   mini: boolean;
   horizontal: boolean;
   onInvstgHover?: (invstgUUID: string) => void;
@@ -25,11 +25,10 @@ export const STM_Coverage: FunctionComponent<{
 
   //get all STM investigations
   useEffect(() => {
-    if (props.actions && allSTMInvstgs) {
+    if (props.stmUuidRefs && allSTMInvstgs) {
       const stms: STMInvestigation[] = [];
       //get all stms for actions
-      for (const action of props.actions) {
-        const stmUuidRefs = action.stmUuidRefs;
+      for (const stmUuidRefs of props.stmUuidRefs) {
         if (!stmUuidRefs || stmUuidRefs.length === 0) {
           continue; //no referenced uuids. skip to next action
         } else {
@@ -43,7 +42,7 @@ export const STM_Coverage: FunctionComponent<{
       //filter unique and sort
       setInvstgs(_.uniqBy(stms, "uuid"));
     }
-  }, [props.actions, allSTMInvstgs]);
+  }, [props.stmUuidRefs, allSTMInvstgs]);
 
   //determine highlighted objectives and goals. objectives and goals are highlighted only if all their children are highlighted.
   useEffect(() => {

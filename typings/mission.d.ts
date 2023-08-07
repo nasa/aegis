@@ -37,6 +37,7 @@ interface Mission {
   createdAt?: string;
   updatedAt?: string;
   landerRadii: LanderRadius[];
+  actionTemplates: ActionTemplate[];
 }
 
 // No alteration needed to convert this store type to the database type
@@ -44,6 +45,8 @@ type Mission_db_type = Omit<Mission, "createdAt" | "updatedAt"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };
+
+type ActionTemplate = Partial<Action> & { templateName: string; uuid: string; type: string };
 
 /**
  * The object we put in the "measure tool" area of MMGIS config about the dem
