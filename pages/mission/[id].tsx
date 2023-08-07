@@ -42,7 +42,6 @@ import { thunkSavePreset } from "store/thunk/thunkPreset";
 import _ from "lodash";
 import { isLoggedIn } from "http-client/login";
 import { getSublayers } from "http-client/sublayer";
-import { convertLayers, convertMapControls } from "utils/ports";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -150,18 +149,8 @@ const Main: NextPage = () => {
       }
 
       //populate layers and layerControls
-      let layerData = (await getLayers(intMissionId)).data;
-      let sublayerData: Sublayer[] = (await getSublayers(intMissionId)).data;
-      //check for conversion. No sublayers mean this data is still in the old format
-      if (sublayerData.length === 0) {
-        //can be removed once data has been converted
-        for (const layer of layerData) {
-          await convertLayers(layer);
-        }
-        //requery the db with the updated record
-        layerData = (await getLayers(intMissionId)).data;
-        sublayerData = (await getSublayers(intMissionId)).data;
-      }
+      const layerData = (await getLayers(intMissionId)).data;
+      const sublayerData: Sublayer[] = (await getSublayers(intMissionId)).data;
 
       const missionMapSublayerControls: MapSublayerControls = {}; //map sublayer controls generated from mission sublayers
       if (layerData) {
@@ -216,32 +205,19 @@ const Main: NextPage = () => {
             };
           }
 
-          //perform any conversions for map sublayer controls
-          //can be removed once data has been converted
-          preset.mapSublayerControls = convertMapControls(preset.mapSublayerControls);
-
+          let modified = false;
           //sync up anything added/deleted missing from preset layer order
           if (preset.layerOrder) {
-            //rename headerLayerUuid to just layerUuid
-            //this can be removed once data has been converted
-            let newLayerOrder: PresetLayerOrder[] = preset.layerOrder.map((oldLayerOrder) => {
-              return {
-                layerUuid:
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  ((oldLayerOrder as any).headerLayerUuid as string) || oldLayerOrder.layerUuid,
-                sublayerUuids: oldLayerOrder.sublayerUuids,
-              };
-            });
-
             //delete any header layers in layerOrder removed from mission
-            const filteredNewLayerOrders = newLayerOrder.filter((layerOrder) =>
+            const filteredNewLayerOrders = preset.layerOrder.filter((layerOrder) =>
               layerData.some((l) => l.uuid === layerOrder.layerUuid)
             );
-            newLayerOrder = filteredNewLayerOrders;
+            if (!_.isEqual(filteredNewLayerOrders, preset.layerOrder)) modified = true;
+            preset.layerOrder = filteredNewLayerOrders;
 
             //add any missing header layers and sublayers to layerOrder from mission
             for (const headerLayer of layerData) {
-              const newHeaderLayerOrder = newLayerOrder.find(
+              const newHeaderLayerOrder = preset.layerOrder.find(
                 (layerOrder) => layerOrder.layerUuid === headerLayer.uuid
               );
               const sublayers = sublayerData.filter(
@@ -254,13 +230,18 @@ const Main: NextPage = () => {
                   const hasSublayer = newHeaderLayerOrder.sublayerUuids.some(
                     (uuid) => uuid === sublayer.uuid
                   );
-                  if (!hasSublayer) newHeaderLayerOrder.sublayerUuids.push(sublayer.uuid);
+                  if (!hasSublayer) {
+                    newHeaderLayerOrder.sublayerUuids.push(sublayer.uuid);
+                    modified = true;
+                  }
                 }
 
                 //delete any removed sublayers
                 const newSublayerUuids = newHeaderLayerOrder.sublayerUuids.filter(
                   (sublayerOrderUuid) => sublayers.some((s) => s.uuid === sublayerOrderUuid)
                 );
+                if (!_.isEqual(newSublayerUuids, newHeaderLayerOrder.sublayerUuids))
+                  modified = true;
                 newHeaderLayerOrder.sublayerUuids = newSublayerUuids;
               } else {
                 //add missing header layer and all it's sublayers
@@ -268,10 +249,10 @@ const Main: NextPage = () => {
                   layerUuid: headerLayer.uuid,
                   sublayerUuids: sublayers.map((s) => s.uuid),
                 };
-                newLayerOrder.push(tempLayerOrder);
+                preset.layerOrder.push(tempLayerOrder);
+                modified = true;
               }
             }
-            preset.layerOrder = newLayerOrder;
           }
 
           //loop through sublayers, add any sublayers that are missing from preset map controls
@@ -280,6 +261,7 @@ const Main: NextPage = () => {
             //add to sublayer control
             if (!Object.keys(preset.mapSublayerControls).includes(sublayer.uuid)) {
               preset.mapSublayerControls[sublayer.uuid] = missionMapSublayerControls[sublayer.uuid];
+              modified = true;
             }
           }
 
@@ -289,30 +271,22 @@ const Main: NextPage = () => {
             //delete from sublayer control
             if (!Object.keys(missionMapSublayerControls).includes(sublayerUuid)) {
               delete preset.mapSublayerControls[sublayerUuid];
+              modified = true;
             }
           }
 
+          //set map circle controls
           const mapCircleControls: MapCircleControls = {};
-
           if (!preset.mapCircleControls) {
             preset.mapCircleControls = {};
-            // modified = true;
+            modified = true;
           }
 
           missionData.data[0].landerRadii.forEach((landerRadius) => {
             if (preset.mapCircleControls[landerRadius.uuid]) {
-              //mapCircleControls[landerRadius.uuid] = preset.mapCircleControls[landerRadius.uuid];
-              //once all map circle controls have been updated to include name the above line can be uncommented
-              //  and the explicit assignment below removed //can be removed once data has been converted
-              const currentMapCircleControl = preset.mapCircleControls[landerRadius.uuid];
-              mapCircleControls[landerRadius.uuid] = {
-                name: landerRadius.name,
-                landerRadiusUuid: currentMapCircleControl.landerRadiusUuid,
-                visible: currentMapCircleControl.visible,
-                style: currentMapCircleControl.style,
-              };
+              mapCircleControls[landerRadius.uuid] = preset.mapCircleControls[landerRadius.uuid];
             } else {
-              //   modified = true;
+              modified = true;
               mapCircleControls[landerRadius.uuid] = {
                 name: landerRadius.name,
                 landerRadiusUuid: landerRadius.uuid,
@@ -342,7 +316,7 @@ const Main: NextPage = () => {
 
           dispatch(setMapCircleControls(preset.mapCircleControls));
 
-          //dispatch to store
+          //dispatch ui states to store
           dispatch(
             setPresetUIStates({
               presetUuid: preset.uuid,
@@ -351,7 +325,7 @@ const Main: NextPage = () => {
           );
 
           //update this preset in the DB
-          dispatch(thunkSavePreset({ preset }));
+          if (modified) dispatch(thunkSavePreset({ preset }));
         });
 
         //save preset data to the store

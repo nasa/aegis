@@ -70,7 +70,6 @@ describe("Mission API Endpoint", () => {
 
   newMission = {
     name: "Mission Jest Test",
-    config: null,
   };
 
   function mockRequestResponse(reqOptions: RequestOptions, resOptions?: ResponseOptions) {
