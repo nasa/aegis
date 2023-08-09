@@ -29,11 +29,22 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
 
     // Listen for connection events
     io.on("connection", (socket) => {
-      console.log(`Socket ${socket.id} connected.`);
+      (async () => {
+        const sockets = await io.fetchSockets();
+        console.log(
+          `${new Date().toISOString()} Socket ${socket.id} connected. Count: ${sockets.length}`
+        );
+        io.emit("clientCount", sockets.length);
+      })();
 
-      // Clean up the socket on disconnect
       socket.on("disconnect", () => {
-        console.log(`Socket ${socket.id} disconnected.`);
+        (async () => {
+          const sockets = await io.fetchSockets();
+          console.log(
+            `${new Date().toISOString()} Socket ${socket.id} disconnected. Count: ${sockets.length}`
+          );
+          io.emit("clientCount", sockets.length);
+        })();
       });
     });
 

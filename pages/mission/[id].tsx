@@ -1,5 +1,5 @@
 import type { NextPage } from "next";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import dynamic from "next/dynamic";
@@ -84,8 +84,10 @@ import { thunkSavePreset } from "store/thunk/thunkPreset";
 import _ from "lodash";
 import { isLoggedIn } from "http-client/login";
 import { getSublayers } from "http-client/sublayer";
-import { io, Socket } from "socket.io-client";
 import { v4 as uuidv4 } from "uuid";
+import { io } from "socket.io-client";
+import type { Socket } from "socket.io-client";
+import fetchWithTimeout from "utils/fetch-with-timeout";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -143,7 +145,8 @@ const Main: NextPage = () => {
   const [hasPermissions, setHasPermissions] = useState(false);
 
   //socket connection
-  const socket = useRef<Socket<ServerToClientEvents, ClientToServerEvents>>();
+  const socket = useRef<Socket<ServerToClientEvents, ClientToServerEvents>>(null);
+  const [wakeFetchSent, setWakeFetchSent] = useState(false);
 
   const { id } = router.query;
   const intMissionId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -493,115 +496,106 @@ const Main: NextPage = () => {
     );
   };
 
-  //Handle socketio events
-  useEffect(() => {
-    // Create a socket connection
-    socket.current = io(process.env.BASE_URL, {
-      path: "/api/socketio",
-    });
-
-    // Listen for incoming store updates
-    socket.current.on(
-      "storeUpsert",
-      (storePayload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse>) => {
+  const storeUpsertEventHandler = useCallback(
+    (storePayload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse>) => {
+      console.log(
+        `Received storeUpsert from server. Mission: ${storePayload.missionId} uniqueClientId: ${storePayload.uniqueClientId} Type:${storePayload.type}`
+      );
+      // ignore all events that are not for the currently selected mission
+      if (storePayload.missionId !== intMissionId) {
         console.log(
-          `Received storeUpsert from server. Mission: ${storePayload.missionId} uniqueClientId: ${storePayload.uniqueClientId} Type:${storePayload.type}`
+          `Ignoring storeUpsert from server because this client is looking at a different mission. Mission: ${storePayload.missionId} uniqueClientId: ${storePayload.uniqueClientId} Type:${storePayload.type}`
         );
-        // ignore all events that are not for the currently selected mission
-        if (storePayload.missionId !== intMissionId) {
-          console.log(
-            `Ignoring storeUpsert from server because this client is looking at a different mission. Mission: ${storePayload.missionId} uniqueClientId: ${storePayload.uniqueClientId} Type:${storePayload.type}`
-          );
-          return;
-        }
-        if (storePayload.uniqueClientId === interfaceStore.uniqueClientId) {
-          console.log(
-            `Ignoring storeUpsert from server because it was sent by this client. Mission: ${storePayload.missionId} uniqueClientId: ${storePayload.uniqueClientId} Type:${storePayload.type}`
-          );
-          return;
-        }
-        if (storePayload.type === "preset") {
-          const newPresets = storePayload.data as Preset[];
-          preset.presets.forEach((thisPreset) => {
-            const newPreset = newPresets.find((newPreset) => newPreset.uuid === thisPreset.uuid);
-            if (newPreset) {
-              if (preset.presetsEditing.includes(thisPreset.uuid)) {
-                alertUpdatedEditing("preset", thisPreset.name);
-                return;
-              }
-            }
-            return preset;
-          });
-          dispatch(upsertPresets(storePayload.data as Preset[]));
-          dispatch(upsertPresetsFromDb(storePayload.data as Preset[]));
-        } else if (storePayload.type === "poi") {
-          const newPois = storePayload.data as POI[];
-          poi.pois.forEach((thisPoi) => {
-            const newPoi = newPois.find((newPoi) => newPoi.uuid === thisPoi.uuid);
-            if (newPoi) {
-              if (poi.poisEditing.includes(thisPoi.uuid)) {
-                alertUpdatedEditing("POI", thisPoi.name);
-                return;
-              }
-            }
-            return poi;
-          });
-          dispatch(upsertPois(storePayload.data as POI[]));
-          dispatch(upsertPoisFromDb(storePayload.data as POI[]));
-        } else if (storePayload.type === "station") {
-          const newStations = storePayload.data as Station[];
-          station.stations.forEach((thisStation) => {
-            const newStation = newStations.find(
-              (newStation) => newStation.uuid === thisStation.uuid
-            );
-            if (newStation) {
-              if (station.stationsEditing.includes(thisStation.uuid)) {
-                alertUpdatedEditing("station", thisStation.name);
-                return;
-              }
-            }
-            return station;
-          });
-          dispatch(upsertStations(storePayload.data as Station[]));
-          dispatch(upsertStationsFromDb(storePayload.data as Station[]));
-        } else if (storePayload.type === "eva") {
-          const newEvas = storePayload.data as Eva[];
-          eva.evas.forEach((thisEva) => {
-            const newEva = newEvas.find((newEva) => newEva.uuid === thisEva.uuid);
-            if (newEva) {
-              if (eva.evasEditing.includes(thisEva.uuid)) {
-                alertUpdatedEditing("EVA", thisEva.name);
-                return;
-              }
-            }
-            return eva;
-          });
-          dispatch(upsertEvas(storePayload.data as Eva[]));
-          dispatch(upsertEvasFromDb(storePayload.data as Eva[]));
-        } else if (storePayload.type === "action") {
-          dispatch(upsertActions(storePayload.data as Action[]));
-          dispatch(upsertActionsFromDb(storePayload.data as Action[]));
-        } else if (storePayload.type === "traverse") {
-          const newTraverses = storePayload.data as Traverse[];
-          traverse.traverses.forEach((thisTraverse) => {
-            const newTraverse = newTraverses.find(
-              (newTraverse) => newTraverse.uuid === thisTraverse.uuid
-            );
-            if (newTraverse) {
-              if (traverse.traversesEditing.includes(thisTraverse.uuid)) {
-                alertUpdatedEditing("traverse", thisTraverse.name);
-                return;
-              }
-            }
-            return traverse;
-          });
-          dispatch(upsertTraverses(storePayload.data as Traverse[]));
-          dispatch(upsertTraversesFromDb(storePayload.data as Traverse[]));
-        }
+        return;
       }
-    );
+      if (storePayload.uniqueClientId === interfaceStore.uniqueClientId) {
+        console.log(
+          `Ignoring storeUpsert from server because it was sent by this client. Mission: ${storePayload.missionId} uniqueClientId: ${storePayload.uniqueClientId} Type:${storePayload.type}`
+        );
+        return;
+      }
+      if (storePayload.type === "preset") {
+        const newPresets = storePayload.data as Preset[];
+        preset.presets.forEach((thisPreset) => {
+          const newPreset = newPresets.find((newPreset) => newPreset.uuid === thisPreset.uuid);
+          if (newPreset) {
+            if (preset.presetsEditing.includes(thisPreset.uuid)) {
+              alertUpdatedEditing("preset", thisPreset.name);
+              return;
+            }
+          }
+          return preset;
+        });
+        dispatch(upsertPresets(storePayload.data as Preset[]));
+        dispatch(upsertPresetsFromDb(storePayload.data as Preset[]));
+      } else if (storePayload.type === "poi") {
+        const newPois = storePayload.data as POI[];
+        poi.pois.forEach((thisPoi) => {
+          const newPoi = newPois.find((newPoi) => newPoi.uuid === thisPoi.uuid);
+          if (newPoi) {
+            if (poi.poisEditing.includes(thisPoi.uuid)) {
+              alertUpdatedEditing("POI", thisPoi.name);
+              return;
+            }
+          }
+          return poi;
+        });
+        dispatch(upsertPois(storePayload.data as POI[]));
+        dispatch(upsertPoisFromDb(storePayload.data as POI[]));
+      } else if (storePayload.type === "station") {
+        const newStations = storePayload.data as Station[];
+        station.stations.forEach((thisStation) => {
+          const newStation = newStations.find((newStation) => newStation.uuid === thisStation.uuid);
+          if (newStation) {
+            if (station.stationsEditing.includes(thisStation.uuid)) {
+              alertUpdatedEditing("station", thisStation.name);
+              return;
+            }
+          }
+          return station;
+        });
+        dispatch(upsertStations(storePayload.data as Station[]));
+        dispatch(upsertStationsFromDb(storePayload.data as Station[]));
+      } else if (storePayload.type === "eva") {
+        const newEvas = storePayload.data as Eva[];
+        eva.evas.forEach((thisEva) => {
+          const newEva = newEvas.find((newEva) => newEva.uuid === thisEva.uuid);
+          if (newEva) {
+            if (eva.evasEditing.includes(thisEva.uuid)) {
+              alertUpdatedEditing("EVA", thisEva.name);
+              return;
+            }
+          }
+          return eva;
+        });
+        dispatch(upsertEvas(storePayload.data as Eva[]));
+        dispatch(upsertEvasFromDb(storePayload.data as Eva[]));
+      } else if (storePayload.type === "action") {
+        dispatch(upsertActions(storePayload.data as Action[]));
+        dispatch(upsertActionsFromDb(storePayload.data as Action[]));
+      } else if (storePayload.type === "traverse") {
+        const newTraverses = storePayload.data as Traverse[];
+        traverse.traverses.forEach((thisTraverse) => {
+          const newTraverse = newTraverses.find(
+            (newTraverse) => newTraverse.uuid === thisTraverse.uuid
+          );
+          if (newTraverse) {
+            if (traverse.traversesEditing.includes(thisTraverse.uuid)) {
+              alertUpdatedEditing("traverse", thisTraverse.name);
+              return;
+            }
+          }
+          return traverse;
+        });
+        dispatch(upsertTraverses(storePayload.data as Traverse[]));
+        dispatch(upsertTraversesFromDb(storePayload.data as Traverse[]));
+      }
+    },
+    [dispatch, preset, poi, station, eva, traverse, intMissionId, interfaceStore.uniqueClientId]
+  );
 
-    socket.current.on("storeDelete", (storeDelete: StoreDelete) => {
+  const storeDeleteEventHandler = useCallback(
+    (storeDelete: StoreDelete) => {
       console.log(
         `Received delete event from server. Mission: ${storeDelete.missionId} uniqueClientId: ${storeDelete.uniqueClientId} Type:${storeDelete.type} uuid:${storeDelete.uuid}`
       );
@@ -680,23 +674,71 @@ const Main: NextPage = () => {
         dispatch(deleteTraverseByUuid(storeDelete.uuid));
         dispatch(deleteTraverseFromDbByUuid(storeDelete.uuid));
       }
+    },
+    [dispatch, preset, poi, station, eva, traverse, intMissionId, interfaceStore.uniqueClientId]
+  );
+
+  //Handle socketio events
+  useEffect(() => {
+    if (!wakeFetchSent) {
+      fetchWithTimeout(`${window.location.origin}/api/socketio`, { timeout: 5 });
+      setWakeFetchSent(true);
+      return;
+    }
+
+    if (!interfaceStore.uniqueClientId) return;
+
+    // Create a socket connection
+    if (!socket.current || (socket.current && !socket.current.connected)) {
+      socket.current = io(window.location.origin, {
+        transports: ["websocket"],
+        upgrade: true,
+        path: "/api/socketio",
+      });
+    }
+
+    socket.current.on("connect", () => {
+      console.log("Connected to socket.io server");
+    });
+    socket.current.on("disconnect", () => {
+      console.log("Disconnected from socket.io server");
+    });
+    socket.current.io.on("reconnect_attempt", () => {
+      console.log("Attempting to reconnect to socket.io server");
+    });
+    socket.current.io.on("reconnect", () => {
+      console.log("Reconnected to socket.io server");
+    });
+
+    // Incoming client counts
+    socket.current.on("clientCount", (clientCount: number) => {
+      console.log(`Client count: ${clientCount}`);
+    });
+
+    // Listen for incoming store updates
+    socket.current.on(
+      "storeUpsert",
+      (storePayload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse>) => {
+        storeUpsertEventHandler(storePayload);
+      }
+    );
+
+    // Incoming store deletes
+    socket.current.on("storeDelete", (storeDelete: StoreDelete) => {
+      storeDeleteEventHandler(storeDelete);
     });
 
     // Clean up the socket connection on unmount
     return () => {
+      socket.current.off("connect");
+      socket.current.io.off("reconnect_attempt");
+      socket.current.io.off("reconnect");
+      socket.current.off("storeUpsert");
+      socket.current.off("storeDelete");
       socket.current.disconnect();
     };
-  }, [
-    dispatch,
-    preset,
-    poi,
-    station,
-    eva,
-    actions,
-    traverse,
-    intMissionId,
-    interfaceStore.uniqueClientId,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, socket, interfaceStore.uniqueClientId, wakeFetchSent]);
 
   const showSunEarth: boolean =
     missionStore.mission &&
