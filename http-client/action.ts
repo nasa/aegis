@@ -11,10 +11,9 @@ export async function getActions(filter: ActionFilterOptions): Promise<WrappedRe
   return response;
 }
 
-export async function upsertAction(
-  actionObj: Action,
-  uniqueClientId: string
-): Promise<WrappedResponse<Action>> {
+export async function upsertAction(actionObj: Action): Promise<WrappedResponse<Action>> {
+  const uniqueClientId =
+    typeof window !== undefined ? window.sessionStorage.getItem("uniqueClientId") : null;
   const res = await fetch(`/api/action?uniqueClientId=${uniqueClientId}`, {
     method: "POST",
     headers: {
@@ -28,9 +27,10 @@ export async function upsertAction(
 
 export async function deleteAction(
   actionUUID: string,
-  missionId: number,
-  uniqueClientId: string
+  missionId: number
 ): Promise<WrappedResponse<number | null>> {
+  const uniqueClientId =
+    typeof window !== undefined ? window.sessionStorage.getItem("uniqueClientId") : null;
   const res = await fetch(
     `/api/action?uniqueClientId=${uniqueClientId}&uuid=${actionUUID}&missionId=${missionId}`,
     {

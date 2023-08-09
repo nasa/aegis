@@ -34,8 +34,13 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
         console.log(
           `${new Date().toISOString()} Socket ${socket.id} connected. Count: ${sockets.length}`
         );
-        io.emit("clientCount", sockets.length);
       })();
+
+      socket.on("joinRoom", (room) => {
+        socket.join(room);
+        console.log(`${new Date().toISOString()} Socket ${socket.id} joined room ${room}`);
+        socket.to(room).emit("roomSize", io.sockets.adapter.rooms.get(room).size);
+      });
 
       socket.on("disconnect", () => {
         (async () => {
@@ -43,7 +48,11 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
           console.log(
             `${new Date().toISOString()} Socket ${socket.id} disconnected. Count: ${sockets.length}`
           );
-          io.emit("clientCount", sockets.length);
+          // fire new counts to all rooms
+          const rooms = io.sockets.adapter.rooms;
+          rooms.forEach((value, key) => {
+            socket.to(key).emit("roomSize", value.size);
+          });
         })();
       });
     });

@@ -29,7 +29,6 @@ import { getAlertColor } from "utils/component-helpers";
 
 const EvaRightTraverse: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const missionId = useAppSelector((state) => state.mission.mission.id, refEqual);
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
@@ -104,10 +103,7 @@ const EvaRightTraverse: FunctionComponent = () => {
     dispatch(setTraverseEditMode({ uuid: selectedEvaSequenceItemUuid, editMode: false }));
 
     // save to db
-    const persistResponse = await httpClient_Traverse.upsertTraverse(
-      selectedTraverse,
-      missionId.toString()
-    );
+    const persistResponse = await httpClient_Traverse.upsertTraverse(selectedTraverse);
     if (persistResponse) {
       dispatch(upsertTraverse(persistResponse.data));
       dispatch(upsertTraverseFromDb(persistResponse.data));

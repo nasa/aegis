@@ -73,7 +73,7 @@ import {
   upsertTraversesFromDb,
 } from "store/traverse";
 import { getTraverses } from "http-client/traverse";
-import { setRightPanelOpen, setUniqueClientId } from "store/interface";
+import { setRightPanelOpen } from "store/interface";
 import { setMissionPerms, setUserStore } from "store/user";
 import { thunkCreateStationCalculatedFields } from "store/thunk/thunkStation";
 import { thunkCreateTraverseCalculatedFields } from "store/thunk/thunkTraverse";
@@ -119,6 +119,17 @@ const BottomControlPanel = dynamic(
   }
 );
 
+// create browser session storage variable with unique clientId in it
+let uniqueClientId: string = null;
+if (typeof window !== "undefined" && !window.sessionStorage.getItem("uniqueClientId")) {
+  const newUniqueClientId = uuidv4();
+  window.sessionStorage.setItem("uniqueClientId", newUniqueClientId);
+  uniqueClientId = newUniqueClientId;
+} else {
+  uniqueClientId =
+    typeof window !== "undefined" ? window.sessionStorage.getItem("uniqueClientId") : null;
+}
+
 const Main: NextPage = () => {
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -130,7 +141,6 @@ const Main: NextPage = () => {
   const traverse = useAppSelector((state) => state.traverse, shallowEqual);
   const eva = useAppSelector((state) => state.eva, shallowEqual);
   const preset = useAppSelector((state) => state.preset, shallowEqual);
-  const interfaceStore = useAppSelector((state) => state.interface, shallowEqual);
 
   const stationsCalculatedFields = useAppSelector(
     (state) => state.station.calculatedFields,
@@ -150,11 +160,6 @@ const Main: NextPage = () => {
 
   const { id } = router.query;
   const intMissionId = parseInt(Array.isArray(id) ? id[0] : id);
-
-  // on initial load, set the uniqueClientId in the store
-  useEffect(() => {
-    dispatch(setUniqueClientId(uuidv4()));
-  }, [dispatch]);
 
   /**
    * Check if user is logged in and if the user has permissions for this mission page
@@ -508,7 +513,7 @@ const Main: NextPage = () => {
         );
         return;
       }
-      if (storePayload.uniqueClientId === interfaceStore.uniqueClientId) {
+      if (uniqueClientId === storePayload.uniqueClientId) {
         console.log(
           `Ignoring storeUpsert from server because it was sent by this client. Mission: ${storePayload.missionId} uniqueClientId: ${storePayload.uniqueClientId} Type:${storePayload.type}`
         );
@@ -591,7 +596,7 @@ const Main: NextPage = () => {
         dispatch(upsertTraversesFromDb(storePayload.data as Traverse[]));
       }
     },
-    [dispatch, preset, poi, station, eva, traverse, intMissionId, interfaceStore.uniqueClientId]
+    [dispatch, preset, poi, station, eva, traverse, intMissionId]
   );
 
   const storeDeleteEventHandler = useCallback(
@@ -606,7 +611,7 @@ const Main: NextPage = () => {
         );
         return;
       }
-      if (storeDelete.uniqueClientId === interfaceStore.uniqueClientId) {
+      if (storeDelete.uniqueClientId === uniqueClientId) {
         console.log(
           `Ignoring delete event from server because it was sent by this client. Mission: ${storeDelete.missionId} uniqueClientId: ${storeDelete.uniqueClientId} Type:${storeDelete.type} uuid:${storeDelete.uuid}`
         );
@@ -675,7 +680,7 @@ const Main: NextPage = () => {
         dispatch(deleteTraverseFromDbByUuid(storeDelete.uuid));
       }
     },
-    [dispatch, preset, poi, station, eva, traverse, intMissionId, interfaceStore.uniqueClientId]
+    [dispatch, preset, poi, station, eva, traverse, intMissionId]
   );
 
   //Handle socketio events
@@ -686,7 +691,7 @@ const Main: NextPage = () => {
       return;
     }
 
-    if (!interfaceStore.uniqueClientId) return;
+    if (!uniqueClientId || !intMissionId) return;
 
     // Create a socket connection
     if (!socket.current || (socket.current && !socket.current.connected)) {
@@ -699,6 +704,7 @@ const Main: NextPage = () => {
 
     socket.current.on("connect", () => {
       console.log("Connected to socket.io server");
+      socket.current.emit("joinRoom", intMissionId.toString());
     });
     socket.current.on("disconnect", () => {
       console.log("Disconnected from socket.io server");
@@ -711,8 +717,8 @@ const Main: NextPage = () => {
     });
 
     // Incoming client counts
-    socket.current.on("clientCount", (clientCount: number) => {
-      console.log(`Client count: ${clientCount}`);
+    socket.current.on("roomSize", (count: number) => {
+      console.log(`Client count in this room: ${count}`);
     });
 
     // Listen for incoming store updates
@@ -738,7 +744,7 @@ const Main: NextPage = () => {
       socket.current.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, socket, interfaceStore.uniqueClientId, wakeFetchSent]);
+  }, [dispatch, socket, wakeFetchSent, intMissionId]);
 
   const showSunEarth: boolean =
     missionStore.mission &&

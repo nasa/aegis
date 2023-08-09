@@ -123,7 +123,6 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
         await em.removeAndFlush(presetToDelete);
 
         // emit the deleted preset to all clients via socket.io
-
         emitStoreDelete({
           missionId: intMissionId,
           uniqueClientId,

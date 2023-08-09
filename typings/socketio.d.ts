@@ -4,13 +4,14 @@ interface ServerToClientEvents {
   message: (message: string) => void;
   storeUpsert: (payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse>) => void;
   storeDelete: (payload: StoreDelete) => void;
-  clientCount: (count: number) => void;
+  roomSize: (count: number) => void;
 }
 
 interface ClientToServerEvents {
   message: (message: string) => void;
   storeUpsert: (payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse>) => void;
   storeDelete: (payload: StoreDelete) => void;
+  joinRoom: (room: string) => void;
 }
 
 interface InterServerEvents {

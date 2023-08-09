@@ -4,7 +4,9 @@ export async function getPOIs(mission: number): Promise<WrappedResponse<POI[]>> 
   return response;
 }
 
-export async function upsertPOI(poi: POI, uniqueClientId: string): Promise<WrappedResponse<POI>> {
+export async function upsertPOI(poi: POI): Promise<WrappedResponse<POI>> {
+  const uniqueClientId =
+    typeof window !== undefined ? window.sessionStorage.getItem("uniqueClientId") : null;
   const res = await fetch(`/api/poi?uniqueClientId=${uniqueClientId}`, {
     method: "POST",
     headers: {
@@ -18,9 +20,10 @@ export async function upsertPOI(poi: POI, uniqueClientId: string): Promise<Wrapp
 
 export async function deletePOI(
   poiUuid: string,
-  missionId: number,
-  uniqueClientId: string
+  missionId: number
 ): Promise<WrappedResponse<null>> {
+  const uniqueClientId =
+    typeof window !== undefined ? window.sessionStorage.getItem("uniqueClientId") : null;
   const res = await fetch(
     `/api/poi?uniqueClientId=${uniqueClientId}&uuid=${poiUuid}&missionId=${missionId}`,
     {

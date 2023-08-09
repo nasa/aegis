@@ -22,7 +22,7 @@ export const thunkSavePreset = appCreateAsyncThunk<{
 }>("presetSave", async ({ preset }, { dispatch, getState }) => {
   if (!preset) return;
   // upsert the changed Preset to the DB
-  const upsertReponse = await InternalAPI.setPreset(preset, getState().interface.uniqueClientId);
+  const upsertReponse = await InternalAPI.setPreset(preset);
 
   if (upsertReponse.status === "success") {
     // upsert the changed preset to the store
@@ -72,11 +72,7 @@ export const thunkDeletePreset = appCreateAsyncThunk<{
   if (presetFromDb) {
     const missionId = getState().mission.mission?.id;
     // delete the preset from the DB via internal API call
-    const deleteResponse = await InternalAPI.deletePreset(
-      preset.uuid,
-      missionId,
-      getState().interface.uniqueClientId
-    );
+    const deleteResponse = await InternalAPI.deletePreset(preset.uuid, missionId);
     if (deleteResponse.status === "success") {
       // remove the corresponding preset from the store
       dispatch(deletePresetByUuid(preset.uuid));
