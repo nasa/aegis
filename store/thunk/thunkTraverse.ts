@@ -233,7 +233,7 @@ export const thunkUpdateTraverseNamesForStationInEVA = appCreateAsyncThunk<{
             ...selectedTraverse,
             name: `${stationBefore.name} to ${stationAfter.name}`,
           };
-          await traverseToDB(newTraverse);
+          await traverseToDB(newTraverse, getState().interface.uniqueClientId);
           dispatch(upsertTraverse(newTraverse));
           dispatch(upsertTraverseFromDb(newTraverse));
         }

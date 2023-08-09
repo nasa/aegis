@@ -1,16 +1,16 @@
-/**
- * Upsert (update or insert) an element into any array of objects that contain a uuid field.
- * @param array The array the object is upserted into
- * @param element The element/object to upsert
- * @returns The modified array with the upserted element.
- */
-
 import _ from "lodash";
 
 interface MustContain {
   uuid: string;
   createdAt?: string;
 }
+
+/**
+ * Upsert (update or insert) an element into any array of objects that contain a uuid field.
+ * @param array The array the object is upserted into
+ * @param element The element/object to upsert
+ * @returns The modified array with the upserted element.
+ */
 export function upsertToArrayByUuid<T extends MustContain>(array: T[], element: T): T[] {
   // (1)
   const i = array?.findIndex((_element) => _element.uuid === element.uuid);

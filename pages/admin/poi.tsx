@@ -99,7 +99,7 @@ const PoiPage: NextPage = () => {
             },
             icon: emoji,
           };
-          const poiSet = await upsertPOI(poiData);
+          const poiSet = await upsertPOI(poiData, mission.id.toString());
           if (poiSet.status !== "success") {
             if (poi.properties.name) {
               errorHolder.push(poi.properties.name);

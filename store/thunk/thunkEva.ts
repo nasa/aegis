@@ -17,10 +17,10 @@ import { selectEVASequenceItem } from "store/cross-slice";
 import { setRightPanelOpen } from "store/interface";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import {
-  deleteTraverse,
+  deleteTraverseByUuid,
   upsertTraverse,
   setTraverseEditMode,
-  deleteTraverseFromDb,
+  deleteTraverseFromDbByUuid,
   setTraversesFromDb,
   duplicateTraverse,
 } from "store/traverse";
@@ -198,7 +198,10 @@ export const thunkSaveEva = appCreateAsyncThunk<{
 }>("evaSave", async ({ eva }, { dispatch, getState }) => {
   if (!eva) return;
   // upsert the changed Station to the DB via internal API call
-  const evaUpsertResponse = await httpClient_Eva.upsertEva(eva);
+  const evaUpsertResponse = await httpClient_Eva.upsertEva(
+    eva,
+    getState().interface.uniqueClientId
+  );
 
   if (evaUpsertResponse.status === "success") {
     // upsert the changed eva (with new updated date) to the store
@@ -232,7 +235,10 @@ export const thunkSaveEva = appCreateAsyncThunk<{
   if (!traversesEqual) {
     // upsert the traverses to the DB via internal API call
     for (const traverse of thisEvasTraverses) {
-      const traverseUpsertResponse = await httpClient_Traverse.upsertTraverse(traverse);
+      const traverseUpsertResponse = await httpClient_Traverse.upsertTraverse(
+        traverse,
+        getState().interface.uniqueClientId
+      );
       if (traverseUpsertResponse.status === "success") {
         // upsert the changed Traverse (with new updated date) to the store
         dispatch(upsertTraverse(traverseUpsertResponse.data));
@@ -255,14 +261,15 @@ export const thunkSaveEva = appCreateAsyncThunk<{
   for (const traverse of traversesToDelete) {
     const deleteResponse: WrappedResponse<number> = await httpClient_Traverse.deleteTraverse(
       traverse.uuid,
-      getState().mission.mission.id
+      getState().mission.mission.id,
+      getState().interface.uniqueClientId
     );
     if (deleteResponse.status === "success") {
       // remove the corresponding traverse from the store
       // TODO: investigate why this is needed.
       // The httpClient_Traverse.getTraverses(selectedMissionId) call below includes this deleted item
       // it's as though Mikro is not committing the delete in time to return the correct response for getTraverses.
-      dispatch(deleteTraverseFromDb({ uuid: traverse.uuid }));
+      dispatch(deleteTraverseFromDbByUuid(traverse.uuid));
     }
   }
 
@@ -300,7 +307,7 @@ export const thunkEvaCancel = appCreateAsyncThunk<{
     );
     // delete the traverses that were added during this edit to this EVA
     traverseUuidsInThisEvaNotInThisEvaFromDb.forEach((traverseUuid) => {
-      dispatch(deleteTraverse({ uuid: traverseUuid }));
+      dispatch(deleteTraverseByUuid(traverseUuid));
     });
 
     // revert the traverses used in this eva using copies from traversesFromDb and also disable edit mode of each
@@ -353,11 +360,12 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
   for (const traverse of thisEvasTraversesFromDb) {
     const deleteResponse: WrappedResponse<number> = await httpClient_Traverse.deleteTraverse(
       traverse.uuid,
-      getState().mission.mission.id
+      getState().mission.mission.id,
+      getState().interface.uniqueClientId
     );
     if (deleteResponse.status === "success") {
       // remove the corresponding traverse from the traversesFromDb store
-      dispatch(deleteTraverseFromDb({ uuid: traverse.uuid }));
+      dispatch(deleteTraverseFromDbByUuid(traverse.uuid));
     }
   }
   // get fresh copy of Traverses from DB
@@ -371,7 +379,7 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
     return traverseUuidsInThisEva.includes(traverse.uuid);
   });
   thisEvasTraverses.forEach((traverse) => {
-    dispatch(deleteTraverse({ uuid: traverse.uuid }));
+    dispatch(deleteTraverseByUuid(traverse.uuid));
   });
 
   // delete the eva from the DB or the store
@@ -381,7 +389,8 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
     // delete the Eva from the DB via internal API call
     const deleteResponse: WrappedResponse<number> = await httpClient_Eva.deleteEva(
       eva.uuid,
-      getState().mission.mission.id
+      getState().mission.mission.id,
+      getState().interface.uniqueClientId
     );
     if (deleteResponse.status === "success") {
       // remove the corresponding eva from the store
@@ -536,7 +545,7 @@ export const thunkDeleteStationFromEva = appCreateAsyncThunk<{
   const newEvaSequence = _.cloneDeep(evaSequence);
   // if there is a traverse after the station, delete it, if not delete the traverse before the station if there is one
   if (newEvaSequence[sequenceIndex + 1] && newEvaSequence[sequenceIndex + 1].type === "traverse") {
-    dispatch(deleteTraverse({ uuid: newEvaSequence[sequenceIndex + 1].uuid }));
+    dispatch(deleteTraverseByUuid(newEvaSequence[sequenceIndex + 1].uuid));
     // remove the station and this sequence from the newEvaSequence
     newEvaSequence.splice(sequenceIndex, 2);
   } else if (
@@ -544,7 +553,7 @@ export const thunkDeleteStationFromEva = appCreateAsyncThunk<{
     newEvaSequence[sequenceIndex - 1].type === "traverse"
   ) {
     // if there is a traverse before the station, delete it
-    dispatch(deleteTraverse({ uuid: newEvaSequence[sequenceIndex - 1].uuid }));
+    dispatch(deleteTraverseByUuid(newEvaSequence[sequenceIndex - 1].uuid));
     // remove the station and this sequence from the newEvaSequence
     newEvaSequence.splice(sequenceIndex - 1, 2);
   } else {

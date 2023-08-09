@@ -88,6 +88,7 @@ interface InterfaceState {
   timelineShowDistanceFromLander: boolean;
   timelineShowElevation: boolean;
   actionsExpanded: string[];
+  uniqueClientId: string;
 }
 
 interface STMState {

@@ -46,6 +46,8 @@ const EvaRightEva: FunctionComponent = () => {
     (state) => state.eva.evasFromDb.find((eva) => eva.uuid === selectedEvaUuid),
     shallowEqual
   );
+  const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
+  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
   const traversesFromDb = useAppSelector((state) => state.traverse.traversesFromDb, shallowEqual);
   const allTraverseCalculatedFields = useAppSelector(
@@ -86,7 +88,7 @@ const EvaRightEva: FunctionComponent = () => {
       _.sortBy(thisEvasTraversesFromDb, ["uuid"])
     );
     setModified(!evaEqual || !traversesEqual);
-  }, [selectedEva, selectedEvaFromDb, traverses, traversesFromDb]);
+  }, [evas, stations, selectedEva, selectedEvaFromDb, traverses, traversesFromDb]);
 
   // generate evaReportSequenceItems from the eva sequence
   useEffect(() => {
@@ -129,7 +131,15 @@ const EvaRightEva: FunctionComponent = () => {
       }
       setEvaReportSequenceItems(evaReportSequenceItems);
     })();
-  }, [selectedEva, allTraverseCalculatedFields, allStationCalculatedFields, dispatch]);
+  }, [
+    evas,
+    stations,
+    traverses,
+    selectedEva,
+    allTraverseCalculatedFields,
+    allStationCalculatedFields,
+    dispatch,
+  ]);
 
   const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--eva)");
   const [reportsTabIcon, setReportsTabIcon] = useState<IconDefinition>(faTriangleExclamation);

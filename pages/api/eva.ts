@@ -13,6 +13,7 @@ import _ from "lodash";
 import { roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
+import { emitStoreDelete, emitStoreUpsert } from "./socketio";
 
 const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
   req,
@@ -24,7 +25,7 @@ const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
 
-    const { uuid } = req.query;
+    const { uuid, uniqueClientId } = req.query;
     const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
     const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
     const evaUuid = Array.isArray(uuid) ? uuid[0] : uuid;
@@ -74,6 +75,14 @@ const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
             data: null,
           });
         } else {
+          // emit the upserted item to all clients via socket.io
+          emitStoreUpsert({
+            missionId: intMissionId,
+            uniqueClientId,
+            type: "eva",
+            data: [upsertResponse],
+          } as StoreUpsert<Eva>);
+
           return res.status(200).json({
             status: "success",
             message: `EVA upserted with ID ${upsertResponse.uuid}`,
@@ -96,6 +105,14 @@ const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
       try {
         const deletedUUID = await deleteEVA(evaUuid);
         if (deletedUUID) {
+          // emit the deleted item to all clients via socket.io
+          emitStoreDelete({
+            missionId: intMissionId,
+            uniqueClientId,
+            type: "eva",
+            uuid: deletedUUID,
+          } as StoreDelete);
+
           return res.status(200).json({
             status: "success",
             message: "EVA Deleted",

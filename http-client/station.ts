@@ -9,8 +9,11 @@ export async function getStations(missionId: number = null): Promise<WrappedResp
   return response;
 }
 
-export async function upsertStation(stationObj: Station): Promise<WrappedResponse<Station>> {
-  const res = await fetch(`/api/station`, {
+export async function upsertStation(
+  stationObj: Station,
+  uniqueClientId: string
+): Promise<WrappedResponse<Station>> {
+  const res = await fetch(`/api/station?uniqueClientId=${uniqueClientId}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -23,11 +26,15 @@ export async function upsertStation(stationObj: Station): Promise<WrappedRespons
 
 export async function deleteStation(
   stationUUID: string,
-  missionId: number
+  missionId: number,
+  uniqueClientId: string
 ): Promise<WrappedResponse<number | null>> {
-  const res = await fetch(`/api/station?uuid=${stationUUID}&missionId=${missionId}`, {
-    method: "DELETE",
-  });
+  const res = await fetch(
+    `/api/station?uniqueClientId=${uniqueClientId}&uuid=${stationUUID}&missionId=${missionId}`,
+    {
+      method: "DELETE",
+    }
+  );
   const response: WrappedResponse<number | null> = await res.json();
   return response;
 }

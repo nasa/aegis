@@ -13,6 +13,7 @@ import _ from "lodash";
 import { roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
+import { emitStoreDelete, emitStoreUpsert } from "./socketio";
 
 const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = async (
   req,
@@ -25,7 +26,7 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
     }
 
     const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-    const { uuid } = req.query;
+    const { uuid, uniqueClientId } = req.query;
     const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
     const traverseUuid = Array.isArray(uuid) ? uuid[0] : uuid;
     //check for required mission id is valid
@@ -63,7 +64,7 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
       }
       try {
         const traverseToUpsert: Traverse = req.body as Traverse;
-        const upsertResponse: Traverse = await upsertTraverses(traverseToUpsert);
+        const upsertResponse: Traverse = await upsertTraverse(traverseToUpsert);
 
         //check response
         if (!upsertResponse) {
@@ -73,6 +74,14 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
             data: null,
           });
         } else {
+          // emit the upserted item to all clients via socket.io
+          emitStoreUpsert({
+            missionId: intMissionId,
+            uniqueClientId,
+            type: "traverse",
+            data: [upsertResponse],
+          } as StoreUpsert<Traverse>);
+
           return res.status(200).json({
             status: "success",
             message: `Traverse upserted with ID ${upsertResponse.uuid}`,
@@ -95,6 +104,14 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
       try {
         const deletedUUID = await deleteTraverse(traverseUuid);
         if (deletedUUID) {
+          // emit the deleted item to all clients via socket.io
+          emitStoreDelete({
+            missionId: intMissionId,
+            uniqueClientId,
+            type: "traverse",
+            uuid: deletedUUID,
+          } as StoreDelete);
+
           return res.status(200).json({
             status: "success",
             message: "Traverse Deleted",
@@ -159,7 +176,7 @@ async function getTraverses(missionId: number, traverseUuid?: string): Promise<T
  * @param traverse the Traverse object to upsert
  * @returns a copy of the Traverse object that was upserted
  */
-async function upsertTraverses(traverse: Traverse): Promise<Traverse> {
+async function upsertTraverse(traverse: Traverse): Promise<Traverse> {
   const em = getEM();
 
   const traverseToUpsert = _.cloneDeep(traverse); //create a copy to manipulate

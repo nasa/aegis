@@ -1,7 +1,6 @@
 import { NextPage } from "next";
 import { useState, useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
-import type { ServerToClientEvents, ClientToServerEvents } from "typings/socketio";
 
 const Chat: NextPage = () => {
   // State to store the messages
@@ -13,7 +12,6 @@ const Chat: NextPage = () => {
   useEffect(() => {
     // Create a socket connection
     socket.current = io(process.env.BASE_URL, {
-      transports: ["websocket"],
       path: "/api/socketio",
     });
 

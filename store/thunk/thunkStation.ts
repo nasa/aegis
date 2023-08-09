@@ -384,7 +384,10 @@ export const thunkSaveStation = appCreateAsyncThunk<{
   );
 
   // upsert the changed Station to the DB via internal API call
-  const stationUpsertResponse = await httpClient_station.upsertStation(station);
+  const stationUpsertResponse = await httpClient_station.upsertStation(
+    station,
+    getState().interface.uniqueClientId
+  );
 
   if (stationUpsertResponse.status === "success") {
     // upsert the changed Station (with new updated date) to the store
@@ -404,7 +407,10 @@ export const thunkSaveStation = appCreateAsyncThunk<{
     //upsert Actions to db
     const upsertedStationActions: Action[] = [];
     for (const actionToUpsert of stationActions) {
-      const actionUpsertResponse = await httpClient_action.upsertAction(actionToUpsert);
+      const actionUpsertResponse = await httpClient_action.upsertAction(
+        actionToUpsert,
+        getState().interface.uniqueClientId
+      );
       if (actionUpsertResponse.status !== "success") {
         throw new Error("Error upserting station actions " + actionUpsertResponse.message);
       } else {
@@ -427,7 +433,8 @@ export const thunkSaveStation = appCreateAsyncThunk<{
     for (const deletedAction of deletedStationActions) {
       const actionDeleteResponse = await httpClient_action.deleteAction(
         deletedAction.uuid,
-        getState().mission.mission.id
+        getState().mission.mission.id,
+        getState().interface.uniqueClientId
       );
       if (actionDeleteResponse.status !== "success") {
         throw new Error("Error deleting station actions " + actionDeleteResponse.message);
@@ -593,7 +600,8 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
     for (const actionToDelete of stationActions) {
       const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteAction(
         actionToDelete.uuid,
-        missionId
+        missionId,
+        getState().interface.uniqueClientId
       );
       if (actionDeleteResponse.status !== "success") {
         throw new Error("Error deleting actions for station " + actionDeleteResponse.message);
@@ -612,7 +620,8 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
     // delete the Station from the DB via internal API call
     const deleteResponse: WrappedResponse<number> = await httpClient_station.deleteStation(
       station.uuid,
-      missionId
+      missionId,
+      getState().interface.uniqueClientId
     );
     if (deleteResponse.status === "success") {
       // remove the corresponding Station from the store

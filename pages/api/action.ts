@@ -13,6 +13,7 @@ import _ from "lodash";
 import { roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
+import { emitStoreDelete, emitStoreUpsert } from "./socketio";
 
 const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
   req,
@@ -24,7 +25,7 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
 
-    const { uuid, stationUuid, poiUuid } = req.query;
+    const { uuid, stationUuid, poiUuid, uniqueClientId } = req.query;
     const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
     const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
     const actionUUID = Array.isArray(uuid) ? uuid[0] : uuid;
@@ -81,6 +82,14 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
             data: null,
           });
         } else {
+          // emit the upserted item to all clients via socket.io
+          emitStoreUpsert({
+            missionId: intMissionId,
+            uniqueClientId,
+            type: "action",
+            data: [upsertResponse],
+          } as StoreUpsert<Action>);
+
           return res.status(200).json({
             status: "success",
             message: `Action upserted with ID ${upsertResponse.uuid}`,
@@ -103,6 +112,16 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
       try {
         const deletedUUID = await deleteAction(actionUUID);
         if (deletedUUID) {
+          // emit the deleted item to all clients via socket.io
+          setTimeout(() => {
+            emitStoreDelete({
+              missionId: intMissionId,
+              uniqueClientId,
+              type: "action",
+              uuid: deletedUUID,
+            } as StoreDelete);
+          }, 1000);
+
           return res.status(200).json({
             status: "success",
             message: "Action Deleted",

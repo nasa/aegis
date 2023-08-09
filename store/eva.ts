@@ -19,6 +19,12 @@ export const evaSlice = createSlice({
     upsertEva: (state, action: { payload: Eva }) => {
       upsertToArrayByUuid(state.evas, action.payload);
     },
+    upsertEvas: (state, action: { payload: Eva[] }) => {
+      action.payload.forEach((eva) => upsertToArrayByUuid(state.evas, eva));
+    },
+    upsertEvasFromDb: (state, action: { payload: Eva[] }) => {
+      action.payload.forEach((eva) => upsertToArrayByUuid(state.evasFromDb, eva));
+    },
     setEvas: (state, action: { payload: Eva[] }) => {
       state.evas = action.payload;
     },
@@ -27,6 +33,9 @@ export const evaSlice = createSlice({
     },
     deleteEvaByUuid: (state, action: { payload: string }) => {
       state.evas = state.evas.filter((eva) => eva.uuid !== action.payload);
+    },
+    deleteEvaFromDbByUuid: (state, action: { payload: string }) => {
+      state.evasFromDb = state.evasFromDb.filter((eva) => eva.uuid !== action.payload);
     },
     setSelectedEvaRightNavItem: (state, action: { payload: string }) => {
       state.selectedEvaRightNavItem = action.payload;
@@ -81,9 +90,12 @@ export const evaSlice = createSlice({
 
 export const {
   upsertEva,
+  upsertEvas,
+  upsertEvasFromDb,
   setEvas,
   setEvasFromDb,
   deleteEvaByUuid,
+  deleteEvaFromDbByUuid,
   duplicateEva,
   setSelectedEvaUuid,
   setSelectedEvaSequenceItemUuid,

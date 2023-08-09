@@ -151,7 +151,7 @@ export const thunkSavePoi = appCreateAsyncThunk<{
   );
 
   //save poi to db
-  const poiUpsertResponse = await InternalAPI.upsertPOI(poi);
+  const poiUpsertResponse = await InternalAPI.upsertPOI(poi, getState().interface.uniqueClientId);
 
   if (poiUpsertResponse.status === "success") {
     // upsert the changed POI to the store
@@ -171,7 +171,10 @@ export const thunkSavePoi = appCreateAsyncThunk<{
     //upsert Actions to db
     const upsertedPoiActions: Action[] = [];
     for (const actionToUpsert of poiActions) {
-      const actionUpsertResponse = await httpClient_action.upsertAction(actionToUpsert);
+      const actionUpsertResponse = await httpClient_action.upsertAction(
+        actionToUpsert,
+        getState().interface.uniqueClientId
+      );
       if (actionUpsertResponse.status !== "success") {
         throw new Error("Error upserting poi actions " + actionUpsertResponse.message);
       } else {
@@ -194,7 +197,8 @@ export const thunkSavePoi = appCreateAsyncThunk<{
     for (const deletedAction of deletedStationActions) {
       const actionDeleteResponse = await httpClient_action.deleteAction(
         deletedAction.uuid,
-        getState().mission.mission.id
+        getState().mission.mission.id,
+        getState().interface.uniqueClientId
       );
       if (actionDeleteResponse.status !== "success") {
         throw new Error("Error deleting poi actions " + actionDeleteResponse.message);
@@ -260,7 +264,8 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
     for (const actionToDelete of poiActions) {
       const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteAction(
         actionToDelete.uuid,
-        missionId
+        missionId,
+        getState().interface.uniqueClientId
       );
       if (actionDeleteResponse.status !== "success") {
         throw new Error("Error deleting actions for poi " + actionDeleteResponse.message);
@@ -275,7 +280,11 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
     }
 
     // delete the POI from the DB via internal API call
-    const deleteResponse = await InternalAPI.deletePOI(poi.uuid, missionId);
+    const deleteResponse = await InternalAPI.deletePOI(
+      poi.uuid,
+      missionId,
+      getState().interface.uniqueClientId
+    );
     if (deleteResponse.status === "success") {
       // remove the corresponding POI from the store
       dispatch(deletePoiByUuid(poi.uuid));

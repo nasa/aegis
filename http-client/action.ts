@@ -1,7 +1,7 @@
 export async function getActions(filter: ActionFilterOptions): Promise<WrappedResponse<Action[]>> {
   let urlParams = "";
 
-  if (filter.missionId) urlParams += `&missionId=${filter.missionId}`;
+  if (filter.missionId) urlParams += `missionId=${filter.missionId}`;
   if (filter.actionUuid) urlParams += `&uuid=${filter.actionUuid}`;
   if (filter.poiUuid) urlParams += `&poiUuid=${filter.poiUuid}`;
   if (filter.stationUuid) urlParams += `&stationUuid=${filter.stationUuid}`;
@@ -11,8 +11,11 @@ export async function getActions(filter: ActionFilterOptions): Promise<WrappedRe
   return response;
 }
 
-export async function upsertAction(actionObj: Action): Promise<WrappedResponse<Action>> {
-  const res = await fetch(`/api/action`, {
+export async function upsertAction(
+  actionObj: Action,
+  uniqueClientId: string
+): Promise<WrappedResponse<Action>> {
+  const res = await fetch(`/api/action?uniqueClientId=${uniqueClientId}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -25,11 +28,15 @@ export async function upsertAction(actionObj: Action): Promise<WrappedResponse<A
 
 export async function deleteAction(
   actionUUID: string,
-  missionId: number
+  missionId: number,
+  uniqueClientId: string
 ): Promise<WrappedResponse<number | null>> {
-  const res = await fetch(`/api/action?uuid=${actionUUID}&missionId=${missionId}`, {
-    method: "DELETE",
-  });
+  const res = await fetch(
+    `/api/action?uniqueClientId=${uniqueClientId}&uuid=${actionUUID}&missionId=${missionId}`,
+    {
+      method: "DELETE",
+    }
+  );
   const response: WrappedResponse<number | null> = await res.json();
   return response;
 }

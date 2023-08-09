@@ -31,6 +31,12 @@ export const actionSlice = createSlice({
         1
       );
     },
+    deleteActionFromDbByUuid: (state, action: { payload: string }) => {
+      state.actionsFromDb.splice(
+        state.actionsFromDb.findIndex((stateAction) => stateAction.uuid === action.payload),
+        1
+      );
+    },
     deleteActionsByUuid: (state, action: { payload: string[] }) => {
       action.payload.forEach((uuid) => {
         state.actions.splice(
@@ -57,6 +63,7 @@ export const {
   setActions,
   setActionsFromDb,
   deleteActionByUuid,
+  deleteActionFromDbByUuid,
   deleteActionsByUuid,
   deleteActionsFromDbByUuid,
 } = actionSlice.actions;

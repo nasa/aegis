@@ -9,7 +9,7 @@ import {
   setPresetUIStates,
   duplicatePreset,
   setSelectedPresetRightNavItem,
-  deletePreset,
+  deletePresetByUuid,
   resetAllPresetUIStates,
   setPresetsFromDb,
 } from "store/preset";
@@ -22,7 +22,7 @@ export const thunkSavePreset = appCreateAsyncThunk<{
 }>("presetSave", async ({ preset }, { dispatch, getState }) => {
   if (!preset) return;
   // upsert the changed Preset to the DB
-  const upsertReponse = await InternalAPI.setPreset(preset);
+  const upsertReponse = await InternalAPI.setPreset(preset, getState().interface.uniqueClientId);
 
   if (upsertReponse.status === "success") {
     // upsert the changed preset to the store
@@ -49,7 +49,7 @@ export const thunkPresetCancel = appCreateAsyncThunk<{
 
   // if selected preset isn't in the db, delete it from the store
   if (!presetFromDb) {
-    dispatch(deletePreset(preset));
+    dispatch(deletePresetByUuid(preset.uuid));
     dispatch(setSelectedPresetUuid(null));
     dispatch(setRightPanelOpen(false));
   } else {
@@ -72,10 +72,14 @@ export const thunkDeletePreset = appCreateAsyncThunk<{
   if (presetFromDb) {
     const missionId = getState().mission.mission?.id;
     // delete the preset from the DB via internal API call
-    const deleteResponse = await InternalAPI.deletePreset(preset.uuid, missionId);
+    const deleteResponse = await InternalAPI.deletePreset(
+      preset.uuid,
+      missionId,
+      getState().interface.uniqueClientId
+    );
     if (deleteResponse.status === "success") {
       // remove the corresponding preset from the store
-      dispatch(deletePreset(preset));
+      dispatch(deletePresetByUuid(preset.uuid));
       dispatch(setSelectedPresetUuid(null));
 
       // get fresh copy of presets from DB
@@ -88,7 +92,7 @@ export const thunkDeletePreset = appCreateAsyncThunk<{
     }
   } else {
     // if the selected preset is not in presetsFromDb then delete it from the store
-    dispatch(deletePreset(preset));
+    dispatch(deletePresetByUuid(preset.uuid));
     dispatch(setSelectedPresetUuid(null));
   }
   dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: false }));

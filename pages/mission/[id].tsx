@@ -1,5 +1,5 @@
 import type { NextPage } from "next";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import dynamic from "next/dynamic";
@@ -16,22 +16,64 @@ import { getStations } from "http-client/station";
 import { getActions } from "http-client/action";
 import { getGoals, getInvestigations, getObjectives } from "http-client/stm";
 import { setMapCircleControls, setMapSublayerControls } from "store/map";
-import { setPois, setPoisFromDb } from "store/poi";
 import {
+  deletePoiByUuid,
+  deletePoiFromDbByUuid,
+  setPois,
+  setPoisFromDb,
+  setSelectedPoiUuid,
+  upsertPois,
+  upsertPoisFromDb,
+} from "store/poi";
+import {
+  deletePresetByUuid,
+  deletePresetFromDbByUuid,
   setPresetUIStates,
   setPresets,
   setPresetsFromDb,
   setSelectedPresetUuid,
+  upsertPresets,
+  upsertPresetsFromDb,
 } from "store/preset";
 import { setLayers, setMission, setMissionFromDb, setSublayers } from "store/mission";
-import { setStations, setStationsFromDb } from "store/station";
-import { setActions, setActionsFromDb } from "store/action";
+import {
+  deleteStationByUuid,
+  deleteStationFromDbByUuid,
+  setSelectedStationUuid,
+  setStations,
+  setStationsFromDb,
+  upsertStations,
+  upsertStationsFromDb,
+} from "store/station";
+import {
+  deleteActionByUuid,
+  deleteActionFromDbByUuid,
+  setActions,
+  setActionsFromDb,
+  upsertActions,
+  upsertActionsFromDb,
+} from "store/action";
 import { setGoals, setInvestigations, setObjectives } from "store/stm";
 import { getEvas } from "http-client/eva";
-import { setEvas, setEvasFromDb } from "store/eva";
-import { setTraversesFromDb, setTraverses } from "store/traverse";
+import {
+  deleteEvaByUuid,
+  deleteEvaFromDbByUuid,
+  setEvas,
+  setEvasFromDb,
+  setSelectedEvaUuid,
+  upsertEvas,
+  upsertEvasFromDb,
+} from "store/eva";
+import {
+  setTraversesFromDb,
+  setTraverses,
+  deleteTraverseByUuid,
+  deleteTraverseFromDbByUuid,
+  upsertTraverses,
+  upsertTraversesFromDb,
+} from "store/traverse";
 import { getTraverses } from "http-client/traverse";
-import { setRightPanelOpen } from "store/interface";
+import { setRightPanelOpen, setUniqueClientId } from "store/interface";
 import { setMissionPerms, setUserStore } from "store/user";
 import { thunkCreateStationCalculatedFields } from "store/thunk/thunkStation";
 import { thunkCreateTraverseCalculatedFields } from "store/thunk/thunkTraverse";
@@ -42,6 +84,8 @@ import { thunkSavePreset } from "store/thunk/thunkPreset";
 import _ from "lodash";
 import { isLoggedIn } from "http-client/login";
 import { getSublayers } from "http-client/sublayer";
+import { io, Socket } from "socket.io-client";
+import { v4 as uuidv4 } from "uuid";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -78,11 +122,13 @@ const Main: NextPage = () => {
   const router = useRouter();
   const missionStore = useAppSelector((state) => state.mission, shallowEqual);
   const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, refEqual);
-  const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
-  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
+  const poi = useAppSelector((state) => state.poi, shallowEqual);
+  const station = useAppSelector((state) => state.station, shallowEqual);
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
-  const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
-  const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
+  const traverse = useAppSelector((state) => state.traverse, shallowEqual);
+  const eva = useAppSelector((state) => state.eva, shallowEqual);
+  const preset = useAppSelector((state) => state.preset, shallowEqual);
+  const interfaceStore = useAppSelector((state) => state.interface, shallowEqual);
 
   const stationsCalculatedFields = useAppSelector(
     (state) => state.station.calculatedFields,
@@ -96,8 +142,16 @@ const Main: NextPage = () => {
   //local state to ensure permissions have been checked first before running the other useEffects
   const [hasPermissions, setHasPermissions] = useState(false);
 
+  //socket connection
+  const socket = useRef<Socket<ServerToClientEvents, ClientToServerEvents>>();
+
   const { id } = router.query;
   const intMissionId = parseInt(Array.isArray(id) ? id[0] : id);
+
+  // on initial load, set the uniqueClientId in the store
+  useEffect(() => {
+    dispatch(setUniqueClientId(uuidv4()));
+  }, [dispatch]);
 
   /**
    * Check if user is logged in and if the user has permissions for this mission page
@@ -186,25 +240,6 @@ const Main: NextPage = () => {
       if (presetData) {
         //fix and validate against modifications to layers/sublayers made in admin since this preset was last saved
         presetData.forEach((preset) => {
-          //build preset ui states for the layer and sublayers
-          const presetUIStates: PresetUIStates = {};
-          for (const layer of layerData) {
-            presetUIStates[layer.uuid] = {
-              expanded: true,
-              tabSelected: null,
-              name: layer.name,
-              type: "layer",
-            };
-          }
-          for (const sublayer of sublayerData) {
-            presetUIStates[sublayer.uuid] = {
-              expanded: true,
-              tabSelected: null,
-              name: sublayer.name,
-              type: "sublayer",
-            };
-          }
-
           let modified = false;
           //sync up anything added/deleted missing from preset layer order
           if (preset.layerOrder) {
@@ -304,25 +339,11 @@ const Main: NextPage = () => {
                 },
               };
             }
-            presetUIStates[landerRadius.uuid] = {
-              expanded: true,
-              tabSelected: null,
-              name: landerRadius.name,
-              type: "circle",
-            };
           });
 
           preset.mapCircleControls = mapCircleControls;
 
           dispatch(setMapCircleControls(preset.mapCircleControls));
-
-          //dispatch ui states to store
-          dispatch(
-            setPresetUIStates({
-              presetUuid: preset.uuid,
-              presetUIStates: presetUIStates,
-            })
-          );
 
           //update this preset in the DB
           if (modified) dispatch(thunkSavePreset({ preset }));
@@ -385,35 +406,297 @@ const Main: NextPage = () => {
     })();
   }, [dispatch, hasPermissions, intMissionId]);
 
+  //Generate presetsUIStates
+  useEffect(() => {
+    preset.presets.forEach((thisPreset) => {
+      const layerData = missionStore.layers;
+      const sublayerData = missionStore.sublayers;
+      if (preset.presetsUIStates[thisPreset.uuid]) return; //already exists, don't overwrite
+
+      //build preset ui states for the layer and sublayers
+      const presetUIStates: PresetUIStates = {};
+      for (const layer of layerData) {
+        presetUIStates[layer.uuid] = {
+          expanded: true,
+          tabSelected: null,
+          name: layer.name,
+          type: "layer",
+        };
+      }
+      for (const sublayer of sublayerData) {
+        presetUIStates[sublayer.uuid] = {
+          expanded: true,
+          tabSelected: null,
+          name: sublayer.name,
+          type: "sublayer",
+        };
+      }
+
+      missionStore.mission?.landerRadii.forEach((landerRadius) => {
+        const presetUIStates: PresetUIStates = {};
+        presetUIStates[landerRadius.uuid] = {
+          expanded: true,
+          tabSelected: null,
+          name: landerRadius.name,
+          type: "circle",
+        };
+      });
+      //dispatch ui states to store
+      dispatch(
+        setPresetUIStates({
+          presetUuid: thisPreset.uuid,
+          presetUIStates: presetUIStates,
+        })
+      );
+    });
+  }, [preset, missionStore.layers, missionStore.sublayers, missionStore.mission, dispatch]);
+
   //Generate poi calculated values
   useEffect(() => {
-    if (_.isEmpty(pois) || _.isEmpty(actions) || !hasPermissions) return;
+    if (_.isEmpty(poi.pois) || _.isEmpty(actions) || !hasPermissions) return;
     dispatch(thunkCreatePoiCalculatedFields());
-  }, [pois, actions, dispatch, hasPermissions]);
+  }, [poi.pois, actions, dispatch, hasPermissions]);
 
   //Generate station calculated values
   useEffect(() => {
-    if (_.isEmpty(stations) || _.isEmpty(actions) || !hasPermissions) return;
+    if (_.isEmpty(station.stations) || _.isEmpty(actions) || !hasPermissions) return;
     dispatch(thunkCreateStationCalculatedFields());
-  }, [stations, actions, dispatch, hasPermissions]);
+  }, [station.stations, actions, dispatch, hasPermissions]);
 
   //Generate traverse calculated values
   useEffect(() => {
-    if (_.isEmpty(traverses) || !hasPermissions) return;
+    if (_.isEmpty(traverse.traverses) || !hasPermissions) return;
     dispatch(thunkCreateTraverseCalculatedFields());
-  }, [traverses, dispatch, hasPermissions]);
+  }, [traverse.traverses, dispatch, hasPermissions]);
 
   //Generate eva calculated values. These are dependent on stations and traverses having had their calculated values generated
   useEffect(() => {
     if (
-      _.isEmpty(evas) ||
+      _.isEmpty(eva.evas) ||
       _.isEmpty(stationsCalculatedFields) ||
       _.isEmpty(traversesCalculatedFields) ||
       !hasPermissions
     )
       return;
     dispatch(thunkCreateEvasCalculatedFields());
-  }, [evas, stationsCalculatedFields, traversesCalculatedFields, dispatch, hasPermissions]);
+  }, [eva.evas, stationsCalculatedFields, traversesCalculatedFields, dispatch, hasPermissions]);
+
+  const alertUpdatedEditing = (type: string, name: string) => {
+    alert(
+      `The ${type} ${name}, that you are editing has been updated by another user. Please refresh.`
+    );
+  };
+
+  const alertDeletedEditing = (type: string, name: string) => {
+    alert(
+      `The ${type} ${name}, that you are editing has been deleted by another user. Please refresh.`
+    );
+  };
+
+  //Handle socketio events
+  useEffect(() => {
+    // Create a socket connection
+    socket.current = io(process.env.BASE_URL, {
+      path: "/api/socketio",
+    });
+
+    // Listen for incoming store updates
+    socket.current.on(
+      "storeUpsert",
+      (storePayload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse>) => {
+        console.log(
+          `Received storeUpsert from server. Mission: ${storePayload.missionId} uniqueClientId: ${storePayload.uniqueClientId} Type:${storePayload.type}`
+        );
+        // ignore all events that are not for the currently selected mission
+        if (storePayload.missionId !== intMissionId) {
+          console.log(
+            `Ignoring storeUpsert from server because this client is looking at a different mission. Mission: ${storePayload.missionId} uniqueClientId: ${storePayload.uniqueClientId} Type:${storePayload.type}`
+          );
+          return;
+        }
+        if (storePayload.uniqueClientId === interfaceStore.uniqueClientId) {
+          console.log(
+            `Ignoring storeUpsert from server because it was sent by this client. Mission: ${storePayload.missionId} uniqueClientId: ${storePayload.uniqueClientId} Type:${storePayload.type}`
+          );
+          return;
+        }
+        if (storePayload.type === "preset") {
+          const newPresets = storePayload.data as Preset[];
+          preset.presets.forEach((thisPreset) => {
+            const newPreset = newPresets.find((newPreset) => newPreset.uuid === thisPreset.uuid);
+            if (newPreset) {
+              if (preset.presetsEditing.includes(thisPreset.uuid)) {
+                alertUpdatedEditing("preset", thisPreset.name);
+                return;
+              }
+            }
+            return preset;
+          });
+          dispatch(upsertPresets(storePayload.data as Preset[]));
+          dispatch(upsertPresetsFromDb(storePayload.data as Preset[]));
+        } else if (storePayload.type === "poi") {
+          const newPois = storePayload.data as POI[];
+          poi.pois.forEach((thisPoi) => {
+            const newPoi = newPois.find((newPoi) => newPoi.uuid === thisPoi.uuid);
+            if (newPoi) {
+              if (poi.poisEditing.includes(thisPoi.uuid)) {
+                alertUpdatedEditing("POI", thisPoi.name);
+                return;
+              }
+            }
+            return poi;
+          });
+          dispatch(upsertPois(storePayload.data as POI[]));
+          dispatch(upsertPoisFromDb(storePayload.data as POI[]));
+        } else if (storePayload.type === "station") {
+          const newStations = storePayload.data as Station[];
+          station.stations.forEach((thisStation) => {
+            const newStation = newStations.find(
+              (newStation) => newStation.uuid === thisStation.uuid
+            );
+            if (newStation) {
+              if (station.stationsEditing.includes(thisStation.uuid)) {
+                alertUpdatedEditing("station", thisStation.name);
+                return;
+              }
+            }
+            return station;
+          });
+          dispatch(upsertStations(storePayload.data as Station[]));
+          dispatch(upsertStationsFromDb(storePayload.data as Station[]));
+        } else if (storePayload.type === "eva") {
+          const newEvas = storePayload.data as Eva[];
+          eva.evas.forEach((thisEva) => {
+            const newEva = newEvas.find((newEva) => newEva.uuid === thisEva.uuid);
+            if (newEva) {
+              if (eva.evasEditing.includes(thisEva.uuid)) {
+                alertUpdatedEditing("EVA", thisEva.name);
+                return;
+              }
+            }
+            return eva;
+          });
+          dispatch(upsertEvas(storePayload.data as Eva[]));
+          dispatch(upsertEvasFromDb(storePayload.data as Eva[]));
+        } else if (storePayload.type === "action") {
+          dispatch(upsertActions(storePayload.data as Action[]));
+          dispatch(upsertActionsFromDb(storePayload.data as Action[]));
+        } else if (storePayload.type === "traverse") {
+          const newTraverses = storePayload.data as Traverse[];
+          traverse.traverses.forEach((thisTraverse) => {
+            const newTraverse = newTraverses.find(
+              (newTraverse) => newTraverse.uuid === thisTraverse.uuid
+            );
+            if (newTraverse) {
+              if (traverse.traversesEditing.includes(thisTraverse.uuid)) {
+                alertUpdatedEditing("traverse", thisTraverse.name);
+                return;
+              }
+            }
+            return traverse;
+          });
+          dispatch(upsertTraverses(storePayload.data as Traverse[]));
+          dispatch(upsertTraversesFromDb(storePayload.data as Traverse[]));
+        }
+      }
+    );
+
+    socket.current.on("storeDelete", (storeDelete: StoreDelete) => {
+      console.log(
+        `Received delete event from server. Mission: ${storeDelete.missionId} uniqueClientId: ${storeDelete.uniqueClientId} Type:${storeDelete.type} uuid:${storeDelete.uuid}`
+      );
+      // ignore all events that are not for the currently selected mission
+      if (storeDelete.missionId !== intMissionId) {
+        console.log(
+          `Ignoring delete event from server because this client is looking at a different mission. Mission: ${storeDelete.missionId} uniqueClientId: ${storeDelete.uniqueClientId} Type:${storeDelete.type} uuid:${storeDelete.uuid}`
+        );
+        return;
+      }
+      if (storeDelete.uniqueClientId === interfaceStore.uniqueClientId) {
+        console.log(
+          `Ignoring delete event from server because it was sent by this client. Mission: ${storeDelete.missionId} uniqueClientId: ${storeDelete.uniqueClientId} Type:${storeDelete.type} uuid:${storeDelete.uuid}`
+        );
+        return;
+      }
+
+      if (storeDelete.type === "preset") {
+        if (preset.presetsEditing.includes(storeDelete.uuid)) {
+          const deletedPreset = preset.presets.find((preset) => preset.uuid === storeDelete.uuid);
+          alertDeletedEditing("preset", deletedPreset.name);
+          return;
+        }
+        if (preset.selectedPresetUuid === storeDelete.uuid) {
+          // set the selected preset to the default preset
+          const defaultPreset = preset.presets.find(
+            (thisPreset) => thisPreset.missionPresetDefault === true
+          ) as Preset;
+          dispatch(setSelectedPresetUuid(defaultPreset.uuid));
+        }
+        dispatch(deletePresetByUuid(storeDelete.uuid));
+        dispatch(deletePresetFromDbByUuid(storeDelete.uuid));
+      } else if (storeDelete.type === "poi") {
+        if (poi.poisEditing.includes(storeDelete.uuid)) {
+          const poiDeleted = poi.pois.find((poi) => poi.uuid === storeDelete.uuid);
+          alertDeletedEditing("POI", poiDeleted.name);
+          return;
+        }
+        if (poi.selectedPoiUuid === storeDelete.uuid) dispatch(setSelectedPoiUuid(null));
+        dispatch(deletePoiByUuid(storeDelete.uuid));
+        dispatch(deletePoiFromDbByUuid(storeDelete.uuid));
+      } else if (storeDelete.type === "station") {
+        if (station.stationsEditing.includes(storeDelete.uuid)) {
+          const stationDeleted = station.stations.find(
+            (station) => station.uuid === storeDelete.uuid
+          );
+          alertDeletedEditing("station", stationDeleted.name);
+          return;
+        }
+        if (station.selectedStationUuid === storeDelete.uuid)
+          dispatch(setSelectedStationUuid(null));
+        dispatch(deleteStationByUuid(storeDelete.uuid));
+        dispatch(deleteStationFromDbByUuid(storeDelete.uuid));
+      } else if (storeDelete.type === "eva") {
+        if (eva.evasEditing.includes(storeDelete.uuid)) {
+          const evaDeleted = eva.evas.find((eva) => eva.uuid === storeDelete.uuid);
+          alertDeletedEditing("EVA", evaDeleted.name);
+          return;
+        }
+        if (eva.selectedEvaUuid === storeDelete.uuid) {
+          dispatch(setSelectedEvaUuid(null));
+        }
+        dispatch(deleteEvaByUuid(storeDelete.uuid));
+        dispatch(deleteEvaFromDbByUuid(storeDelete.uuid));
+      } else if (storeDelete.type === "action") {
+        dispatch(deleteActionByUuid(storeDelete.uuid));
+        dispatch(deleteActionFromDbByUuid(storeDelete.uuid));
+      } else if (storeDelete.type === "traverse") {
+        if (traverse.traversesEditing.includes(storeDelete.uuid)) {
+          const traverseDeleted = traverse.traverses.find(
+            (traverse) => traverse.uuid === storeDelete.uuid
+          );
+          alertDeletedEditing("traverse", traverseDeleted.name);
+          return;
+        }
+        dispatch(deleteTraverseByUuid(storeDelete.uuid));
+        dispatch(deleteTraverseFromDbByUuid(storeDelete.uuid));
+      }
+    });
+
+    // Clean up the socket connection on unmount
+    return () => {
+      socket.current.disconnect();
+    };
+  }, [
+    dispatch,
+    preset,
+    poi,
+    station,
+    eva,
+    actions,
+    traverse,
+    intMissionId,
+    interfaceStore.uniqueClientId,
+  ]);
 
   const showSunEarth: boolean =
     missionStore.mission &&

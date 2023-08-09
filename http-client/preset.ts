@@ -5,8 +5,11 @@ export async function getPresets(mission: number): Promise<WrappedResponse<Prese
   return response;
 }
 
-export async function setPreset(preset: Preset): Promise<WrappedResponse<Preset>> {
-  const res = await fetch(`/api/preset`, {
+export async function setPreset(
+  preset: Preset,
+  uniqueClientId: string
+): Promise<WrappedResponse<Preset>> {
+  const res = await fetch(`/api/preset?uniqueClientId=${uniqueClientId}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -18,10 +21,14 @@ export async function setPreset(preset: Preset): Promise<WrappedResponse<Preset>
 
 export async function deletePreset(
   presetUuid: string,
-  missionId: number
+  missionId: number,
+  uniqueClientId: string
 ): Promise<WrappedResponse<Preset>> {
-  const res = await fetch(`/api/preset?uuid=${presetUuid}&missionId=${missionId}`, {
-    method: "DELETE",
-  });
+  const res = await fetch(
+    `/api/preset?uniqueClientId=${uniqueClientId}&uuid=${presetUuid}&missionId=${missionId}`,
+    {
+      method: "DELETE",
+    }
+  );
   return await res.json();
 }

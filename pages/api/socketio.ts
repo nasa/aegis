@@ -1,14 +1,17 @@
 import { Server } from "socket.io";
 import _ from "lodash";
-import { NextApiRequest } from "next";
+import { NextApiRequest, NextApiResponse } from "next";
 import { Server as NetServer } from "http";
-import type {
-  NextApiResponseServerIO,
-  ClientToServerEvents,
-  ServerToClientEvents,
-  InterServerEvents,
-  SocketData,
-} from "typings/socketio";
+import { Socket } from "net";
+import type { Server as SocketIOServer } from "socket.io";
+
+type NextApiResponseServerIO = NextApiResponse & {
+  socket: Socket & {
+    server: NetServer & {
+      io: SocketIOServer;
+    };
+  };
+};
 
 const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void => {
   if (!res.socket.server.io) {
@@ -28,19 +31,38 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
     io.on("connection", (socket) => {
       console.log(`Socket ${socket.id} connected.`);
 
-      // Listen for incoming messages and broadcast to all clients
-      socket.on("message", (message) => {
-        io.emit("message", message);
-      });
-
       // Clean up the socket on disconnect
       socket.on("disconnect", () => {
         console.log(`Socket ${socket.id} disconnected.`);
       });
     });
+
     res.socket.server.io = io;
+
+    // store the io instance as a global variable so it can be accessed by other server endpoints
+    global.__socketio__ = io;
   }
   res.end();
 };
 
 export default SocketHandler;
+
+export const emitStoreUpsert = (
+  payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse>
+): void => {
+  const io = global.__socketio__;
+  if (io) {
+    io.emit("storeUpsert", payload);
+  } else {
+    console.log("Unable to emit upsert. Socket.io not initialized");
+  }
+};
+
+export const emitStoreDelete = (payload: StoreDelete): void => {
+  const io = global.__socketio__;
+  if (io) {
+    io.emit("storeDelete", payload);
+  } else {
+    console.log("Unable to emit delete. Socket.io not initialized");
+  }
+};
