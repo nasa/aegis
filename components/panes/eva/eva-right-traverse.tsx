@@ -25,7 +25,8 @@ import Info_Panel from "./eva-right-traverse-info";
 import Report_Panel from "../report";
 import * as httpClient_Traverse from "http-client/traverse";
 import { updateMapDirective } from "store/map";
-import { getAlertColor } from "utils/component-helpers";
+import { getAlertColor, isModified } from "utils/component-helpers";
+import { roundDateToSecond } from "utils/formatting";
 
 const EvaRightTraverse: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -74,8 +75,8 @@ const EvaRightTraverse: FunctionComponent = () => {
     if (elevationPendingIndex > -1) {
       setSaveButtonState("pending");
     } else {
-      const isModified = !_.isEqual(selectedTraverse, selectedTraverseFromDb);
-      setSaveButtonState(isModified ? "enabled" : "disabled");
+      const modified = isModified([selectedTraverse], [selectedTraverseFromDb]);
+      setSaveButtonState(modified ? "enabled" : "disabled");
     }
   }, [elevationPendingIndex, selectedTraverse, selectedTraverseFromDb]);
 
@@ -103,9 +104,12 @@ const EvaRightTraverse: FunctionComponent = () => {
     dispatch(setTraverseEditMode({ uuid: selectedEvaSequenceItemUuid, editMode: false }));
 
     // save to db
-    const persistResponse = await httpClient_Traverse.upsertTraverse(selectedTraverse);
+    const persistResponse = await httpClient_Traverse.upsertTraverse({
+      ...selectedTraverse,
+      updatedAt: roundDateToSecond(new Date()).toISOString(),
+    });
     if (persistResponse) {
-      dispatch(upsertTraverse(persistResponse.data));
+      dispatch(upsertTraverse(persistResponse.data, true));
       dispatch(upsertTraverseFromDb(persistResponse.data));
     }
 
@@ -134,7 +138,7 @@ const EvaRightTraverse: FunctionComponent = () => {
     }
     // revert to db version
     if (selectedTraverseFromDb) {
-      dispatch(upsertTraverse(selectedTraverseFromDb));
+      dispatch(upsertTraverse(selectedTraverseFromDb, true));
     }
   };
 

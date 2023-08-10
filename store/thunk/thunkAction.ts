@@ -1,10 +1,17 @@
-import { upsertAction } from "store/action";
+import {
+  deleteActionsFromDbByUuid,
+  upsertAction,
+  upsertActionFromDb,
+  upsertActionsFromDb,
+} from "store/action";
 import appCreateAsyncThunk from "./thunkUtil";
 import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
 import _ from "lodash";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { roundDateToSecond } from "utils/formatting";
+import { isModified } from "utils/component-helpers";
+import * as httpClient_action from "http-client/action";
 
 export const thunkCreateAction = appCreateAsyncThunk<{
   actionParentUuid: ActionParentUuid;
@@ -39,6 +46,8 @@ export const thunkCreateAction = appCreateAsyncThunk<{
       crewAssigned: [],
       mass: null,
       priority: null,
+      updatedAt: null,
+      createdAt: roundDateToSecond(new Date()).toISOString(),
     };
 
     if (actionTemplate) {
@@ -87,6 +96,8 @@ export const thunkDuplicateAction = appCreateAsyncThunk<
     const newActionUuid = uuidv4();
     const newAction: Action = _.cloneDeep(action);
     newAction.uuid = newActionUuid;
+    newAction.createdAt = roundDateToSecond(new Date()).toISOString();
+    newAction.updatedAt = null;
     newAction.stationUuid = stationUuid;
     newAction.poiUuid = poiUuid;
 
@@ -114,8 +125,65 @@ export const thunkDuplicateAction = appCreateAsyncThunk<
       newAction.parentCopyDate = roundDateToSecond(new Date()).toISOString();
     } else {
       newAction.parentActionUuid = null;
+      newAction.parentCopyDate = null;
     }
+
     dispatch(upsertAction(newAction));
     return newActionUuid;
+  }
+);
+
+/**
+ * Saves changed/added/deleted actions to the store, fromDB store, and the database
+ */
+export const thunkSaveActions = appCreateAsyncThunk<{
+  actions: Action[];
+  actionsFromDb: Action[];
+  stationUuid?: string;
+  poiUuid?: string;
+}>(
+  "actionSave",
+  async (
+    { actions, actionsFromDb, stationUuid = null, poiUuid = null },
+    { dispatch, getState }
+  ) => {
+    //upsert any changed or new Actions to db
+    for (const action of actions) {
+      if (isModified([action], [actionsFromDb.find((a) => a.uuid === action.uuid)])) {
+        //action changed. upsert to db
+        const actionUpsertResponse = await httpClient_action.upsertAction({
+          ...action,
+          updatedAt: roundDateToSecond(new Date()).toISOString(),
+        });
+        if (actionUpsertResponse.status === "success") {
+          //upsert to both stores
+          dispatch(upsertAction(actionUpsertResponse.data, true));
+          dispatch(upsertActionFromDb(actionUpsertResponse.data));
+        }
+      }
+    }
+
+    // filter out deleted actions using local state
+    const deletedActions: Action[] = actionsFromDb.filter((actionDb) => {
+      const found = actions.some((a) => {
+        return a.uuid === actionDb.uuid;
+      });
+      return !found;
+    });
+    // take array of deleted actions and delete them in the db
+    for (const deletedAction of deletedActions) {
+      await httpClient_action.deleteAction(deletedAction.uuid, getState().mission.mission.id);
+    }
+
+    // clear the store copy of the db and reload
+    dispatch(deleteActionsFromDbByUuid(actionsFromDb.map((a) => a.uuid)));
+    const actionData = await httpClient_action.getActions({
+      missionId: getState().mission.mission?.id,
+      stationUuid: stationUuid,
+      poiUuid: poiUuid,
+    });
+    if (actionData.data?.length > 0) {
+      dispatch(upsertActionsFromDb(actionData.data));
+    }
   }
 );

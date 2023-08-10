@@ -21,6 +21,7 @@ import { Button, InLineEditInput } from "components/interface/form/globalFields"
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDeletePreset, thunkPresetCancel, thunkSavePreset } from "store/thunk/thunkPreset";
 import { validators } from "components/interface/form/formValidators";
+import { isModified } from "utils/component-helpers";
 
 const PresetEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -43,7 +44,7 @@ const PresetEditorRight: FunctionComponent = () => {
   const [modified, setModified] = useState(false);
 
   useEffect(() => {
-    setModified(!_.isEqual(selectedPreset, selectedPresetFromDb));
+    setModified(isModified([selectedPreset], [selectedPresetFromDb]));
   }, [selectedPreset, selectedPresetFromDb]);
 
   const panelTypes: PanelTypes = {

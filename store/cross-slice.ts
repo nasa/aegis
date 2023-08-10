@@ -8,6 +8,7 @@ import { interfaceSlice } from "./interface";
 import { evaSlice } from "./eva";
 import { traverseSlice } from "./traverse";
 import { initialState } from "../store";
+import { presetSlice } from "./preset";
 
 export const crossSlice = createSlice({
   name: "cross-slice",
@@ -35,6 +36,58 @@ export const crossSlice = createSlice({
           payload: "info_panel",
         });
       }
+    },
+
+    saveNewEva: (state, action: { payload: Eva }) => {
+      //upsert to store
+      evaSlice.caseReducers.upsertEva(state.eva, {
+        payload: action.payload,
+      });
+      //set all the states
+      evaSlice.caseReducers.setStateForNewEva(state.eva, {
+        payload: { uuid: action.payload.uuid },
+      });
+      //open right panel
+      interfaceSlice.caseReducers.setRightPanelOpen(state.interface, { payload: true });
+    },
+
+    saveNewPoi: (state, action: { payload: POI }) => {
+      //upsert to store
+      poiSlice.caseReducers.upsertPoi(state.poi, {
+        payload: action.payload,
+      });
+      //set all the states
+      poiSlice.caseReducers.setStateForNewPoi(state.poi, {
+        payload: { uuid: action.payload.uuid },
+      });
+      //open right panel
+      interfaceSlice.caseReducers.setRightPanelOpen(state.interface, { payload: true });
+    },
+
+    saveNewPreset: (state, action: { payload: Preset }) => {
+      //upsert to store
+      presetSlice.caseReducers.upsertPreset(state.preset, {
+        payload: action.payload,
+      });
+      //set all the states
+      presetSlice.caseReducers.setStateForNewPreset(state.preset, {
+        payload: { uuid: action.payload.uuid },
+      });
+      //open right panel
+      interfaceSlice.caseReducers.setRightPanelOpen(state.interface, { payload: true });
+    },
+
+    saveNewStation: (state, action: { payload: Station }) => {
+      //upsert to store
+      stationSlice.caseReducers.upsertStation(state.station, {
+        payload: action.payload,
+      });
+      //set all the states
+      stationSlice.caseReducers.setStateForNewStation(state.station, {
+        payload: { uuid: action.payload.uuid },
+      });
+      //open right panel
+      interfaceSlice.caseReducers.setRightPanelOpen(state.interface, { payload: true });
     },
 
     obliteratePoi(state, action: PayloadAction<{ poiUuid: string }>) {
@@ -84,4 +137,12 @@ function isRejectedAction(action: AnyAction): action is RejectedAction {
   return action.type.endsWith("rejected");
 }
 
-export const { selectEVASequenceItem, obliteratePoi, obliterateEntireStore } = crossSlice.actions;
+export const {
+  selectEVASequenceItem,
+  saveNewEva,
+  saveNewPoi,
+  saveNewPreset,
+  saveNewStation,
+  obliteratePoi,
+  obliterateEntireStore,
+} = crossSlice.actions;

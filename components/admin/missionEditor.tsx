@@ -9,6 +9,7 @@ import Projection from "components/admin/projection";
 import adminStyles from "components/admin/admin.module.css";
 import { pick, isEmpty } from "lodash";
 import { upsertMission } from "http-client/mission";
+import { roundDateToSecond } from "utils/formatting";
 
 const MissionEditor: FunctionComponent<{
   refreshMissionList: () => {};
@@ -24,7 +25,10 @@ const MissionEditor: FunctionComponent<{
 
     setMission(missionValues);
 
-    const missionToSave: Mission = { ...missionValues };
+    const missionToSave: Mission = {
+      ...missionValues,
+      updatedAt: roundDateToSecond(new Date()).toISOString(),
+    };
     const res = await upsertMission(missionToSave);
     if (res.status === "success") {
       refreshMissionList();

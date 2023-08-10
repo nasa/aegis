@@ -22,6 +22,7 @@ import STMObjectiveFactory from "../factories/STMObjectiveFactory";
 import STMInvestigationFactory from "../factories/STMInvestigationFactory";
 import STMGoalFactory from "../factories/STMGoalFactory";
 import { IronSessionData } from "iron-session";
+import { roundDateToSecond } from "utils/formatting";
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -320,18 +321,24 @@ describe("STM API Endpoint", () => {
     numbering: "1",
     name: "Jest Test STM Objective",
     missionId: null,
+    createdAt: roundDateToSecond(new Date()).toISOString(),
+    updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
   let newGoal: STMGoal = {
     uuid: null,
     numbering: "a",
     name: "Jest Test STM Goal",
     objectiveUuid: null,
+    createdAt: roundDateToSecond(new Date()).toISOString(),
+    updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
   let newInvstg: STMInvestigation = {
     uuid: null,
     numbering: "1",
     name: "Jest Test STM Investigation",
     goalUuid: null,
+    createdAt: roundDateToSecond(new Date()).toISOString(),
+    updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
   describe("POST requests", () => {
     test("No permissions", async () => {

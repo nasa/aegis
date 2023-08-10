@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
 
 export const initialState: TraverseState = {
@@ -13,19 +14,30 @@ export const traverseSlice = createSlice({
   name: "traverse",
   initialState,
   reducers: {
-    upsertTraverse: (state, action: { payload: Traverse }) => {
-      upsertToArrayByUuid(state.traverses, action.payload);
+    upsertTraverse: {
+      reducer: (state, action: { payload: Traverse }) => {
+        upsertToArrayByUuid(state.traverses, action.payload);
+      },
+      prepare: (traverse: Traverse, preserveModifiedDate: boolean = false) => {
+        if (preserveModifiedDate) {
+          return { payload: traverse };
+        } else {
+          return {
+            payload: { ...traverse, updatedAt: roundDateToSecond(new Date()).toISOString() },
+          };
+        }
+      },
     },
     upsertTraverseFromDb: (state, action: { payload: Traverse }) => {
       upsertToArrayByUuid(state.traversesFromDb, action.payload);
     },
+    /* only called for populating store  */
     setTraverses: (state, action: { payload: Traverse[] }) => {
       state.traverses = action.payload;
     },
     setTraversesFromDb: (state, action: { payload: Traverse[] }) => {
       state.traversesFromDb = action.payload;
     },
-
     deleteTraverse: (state, action: { payload: { uuid: string } }) => {
       state.traverses = state.traverses.filter((traverse) => traverse.uuid !== action.payload.uuid);
     },
@@ -46,26 +58,6 @@ export const traverseSlice = createSlice({
         );
       }
     },
-    updateTraversePath: (
-      state,
-      action: {
-        payload: {
-          uuid: string;
-          path: AEGISPoint[];
-          pathSegmentDistances: number[];
-          pathSegmentElevations?: number[][];
-        };
-      }
-    ) => {
-      const traverse = state.traverses.find((traverse) => traverse.uuid === action.payload.uuid);
-      if (traverse) {
-        traverse.path = action.payload.path;
-        traverse.pathSegmentDistances = action.payload.pathSegmentDistances;
-        if (action.payload.pathSegmentElevations) {
-          traverse.pathSegmentElevations = action.payload.pathSegmentElevations;
-        }
-      }
-    },
     revertTraversePath: (state, action: { payload: { uuid: string } }) => {
       const traverse = state.traverses.find((traverse) => traverse.uuid === action.payload.uuid);
       const traverseFromDb = state.traversesFromDb.find(
@@ -83,11 +75,6 @@ export const traverseSlice = createSlice({
     ) => {
       state.calculatedFields = action.payload.calculatedFields;
     },
-    duplicateTraverse: (state, action: { payload: Traverse }) => {
-      state.traverses.push(action.payload);
-      // turn on edit mode for the new traverse
-      state.traversesEditing.push(action.payload.uuid);
-    },
   },
 });
 
@@ -100,8 +87,6 @@ export const {
   deleteTraverseFromDb,
   setSelectedTraverseRightNavItem,
   setTraverseEditMode,
-  updateTraversePath,
   revertTraversePath,
   setTraverseCalculatedFields,
-  duplicateTraverse,
 } = traverseSlice.actions;

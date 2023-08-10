@@ -7,10 +7,6 @@
 
 import _ from "lodash";
 
-interface MustContain {
-  uuid: string;
-  createdAt?: string;
-}
 export function upsertToArrayByUuid<T extends MustContain>(array: T[], element: T): T[] {
   // (1)
   const i = array?.findIndex((_element) => _element.uuid === element.uuid);

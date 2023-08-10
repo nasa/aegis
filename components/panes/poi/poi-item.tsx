@@ -77,18 +77,7 @@ const PoiItem: FunctionComponent<{
       <div className={poiStyles.itemIcon}>{decodeEmoji(poi.icon)}</div>
       <div className={`${poiStyles.name} ${isPoiSelectedOrHoveredStyle}`}>
         <div>{poi.name}</div>
-        <ModifiedIndicator
-          obj1={[poi, ...poiActions]}
-          obj2={[poiFromDb, ...poiActionsFromDb]}
-          svgStyle={{
-            width: "15",
-            height: "12",
-            cx: "5",
-            cy: "9",
-            r: "3",
-            fill: "#ff0000",
-          }}
-        />
+        <ModifiedIndicator obj1={[poi, ...poiActions]} obj2={[poiFromDb, ...poiActionsFromDb]} />
         <div className={poiStyles.poiRightSpacer} />
       </div>
     </div>

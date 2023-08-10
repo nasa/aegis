@@ -1,5 +1,5 @@
 import appCreateAsyncThunk from "./thunkUtil";
-import { setMission } from "store/mission";
+import { upsertMission } from "store/mission";
 import { v4 as uuidv4 } from "uuid";
 
 export const thunkUpdateLanderRadius = appCreateAsyncThunk<{ landerRadius: LanderRadius }>(
@@ -10,7 +10,7 @@ export const thunkUpdateLanderRadius = appCreateAsyncThunk<{ landerRadius: Lande
     );
     const newLanderRadii = [...getState().mission.mission.landerRadii];
     newLanderRadii[itemIndex] = landerRadius;
-    dispatch(setMission({ ...getState().mission.mission, landerRadii: newLanderRadii }));
+    dispatch(upsertMission({ ...getState().mission.mission, landerRadii: newLanderRadii }));
   }
 );
 
@@ -20,7 +20,7 @@ export const thunkDeleteLanderRadius = appCreateAsyncThunk<{ landerRadiusUuid: s
     const newRadii = getState().mission.mission.landerRadii?.filter(
       (item) => item.uuid !== landerRadiusUuid
     );
-    dispatch(setMission({ ...getState().mission.mission, landerRadii: newRadii }));
+    dispatch(upsertMission({ ...getState().mission.mission, landerRadii: newRadii }));
   }
 );
 
@@ -36,6 +36,6 @@ export const thunkCreateLanderRadius = appCreateAsyncThunk<void>(
     const landerRadii = getState().mission.mission.landerRadii || [];
     const landerRadius = blankLanderRadius;
     const newLanderRadii = [...landerRadii, landerRadius];
-    dispatch(setMission({ ...getState().mission.mission, landerRadii: newLanderRadii }));
+    dispatch(upsertMission({ ...getState().mission.mission, landerRadii: newLanderRadii }));
   }
 );

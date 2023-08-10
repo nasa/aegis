@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
 
 export const initialState: PoiState = {
@@ -14,9 +15,22 @@ export const poiSlice = createSlice({
   name: "poi",
   initialState,
   reducers: {
-    upsertPoi: (state, action: { payload: POI }) => {
-      upsertToArrayByUuid(state.pois, action.payload);
+    upsertPoi: {
+      reducer: (state, action: { payload: POI }) => {
+        upsertToArrayByUuid(state.pois, action.payload);
+      },
+      prepare: (poi: POI, preserveModifiedDate: boolean = false) => {
+        if (preserveModifiedDate) {
+          return { payload: poi };
+        } else {
+          return { payload: { ...poi, updatedAt: roundDateToSecond(new Date()).toISOString() } };
+        }
+      },
     },
+    upsertPoiFromDb: (state, action: { payload: POI }) => {
+      upsertToArrayByUuid(state.poisFromDb, action.payload);
+    },
+    /* only called for populating store  */
     setPois: (state, action: { payload: POI[] }) => {
       state.pois = action.payload;
     },
@@ -32,12 +46,10 @@ export const poiSlice = createSlice({
     setSelectedPoiUuid: (state, action: { payload: string }) => {
       state.selectedPoiUuid = action.payload;
     },
-    duplicatePoi: (state, action: { payload: POI }) => {
-      state.pois.push(action.payload);
-      // turn on edit mode for the new POI
-      state.poisEditing.push(action.payload.uuid);
-      // select the newly created POI
-      state.selectedPoiUuid = action.payload.uuid;
+    setStateForNewPoi: (state, action: { payload: { uuid: string } }) => {
+      state.poisEditing.push(action.payload.uuid); // turn on edit mode for the new POI
+      state.selectedPoiUuid = action.payload.uuid; // select the newly created POI
+      state.selectedRightNavItem = "info_panel";
     },
     setPoiEditMode: (state, action: { payload: { poiUuid: string; editMode: boolean } }) => {
       const poi = state.pois.find((poi) => poi.uuid === action.payload.poiUuid);
@@ -60,12 +72,13 @@ export const poiSlice = createSlice({
 
 export const {
   upsertPoi,
+  upsertPoiFromDb,
   setPois,
   setPoisFromDb,
   deletePoiByUuid,
   setSelectedPOIRightNavItem,
   setSelectedPoiUuid,
-  duplicatePoi,
+  setStateForNewPoi,
   setPoiEditMode,
   setPoiCalculatedFields,
 } = poiSlice.actions;

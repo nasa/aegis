@@ -1,5 +1,5 @@
 import appCreateAsyncThunk from "./thunkUtil";
-import { setMission } from "store/mission";
+import { upsertMission } from "store/mission";
 import { v4 as uuidv4 } from "uuid";
 
 type PrintableListItem = {
@@ -16,7 +16,7 @@ export const thunkUpdateGeoUnit = appCreateAsyncThunk<{ geographicUnit: Geograph
     );
     const newGeographicUnits = [...getState().mission.mission.geographicUnits];
     newGeographicUnits[itemIndex] = geographicUnit;
-    dispatch(setMission({ ...getState().mission.mission, geographicUnits: newGeographicUnits }));
+    dispatch(upsertMission({ ...getState().mission.mission, geographicUnits: newGeographicUnits }));
   }
 );
 
@@ -79,7 +79,7 @@ export const thunkDeleteGeoUnit = appCreateAsyncThunk<{ geographicUnitUuid: stri
     const newGeographicUnits = getState().mission.mission.geographicUnits?.filter(
       (item) => item.uuid !== geographicUnitUuid
     );
-    dispatch(setMission({ ...getState().mission.mission, geographicUnits: newGeographicUnits }));
+    dispatch(upsertMission({ ...getState().mission.mission, geographicUnits: newGeographicUnits }));
   }
 );
 
@@ -93,6 +93,6 @@ export const thunkCreateGeoUnit = appCreateAsyncThunk<void>(
 
     const geographicUnits = getState().mission.mission.geographicUnits || [];
     const newGeographicUnits = [...geographicUnits, blankItem];
-    dispatch(setMission({ ...getState().mission.mission, geographicUnits: newGeographicUnits }));
+    dispatch(upsertMission({ ...getState().mission.mission, geographicUnits: newGeographicUnits }));
   }
 );

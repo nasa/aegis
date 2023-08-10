@@ -157,3 +157,9 @@ type EvaCalculatedFields = LocationCalculatedFields & {
   totalTraverseAscentDescent: TotalAscentDescentObj;
   totalEvaTime: TotalTimeObj;
 };
+
+interface MustContain {
+  uuid: string;
+  createdAt?: string;
+  updatedAt?: string;
+}

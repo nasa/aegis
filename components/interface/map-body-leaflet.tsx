@@ -867,8 +867,8 @@ const MapBody: FunctionComponent = () => {
                 //update path, elevation, and snap endpoints
                 const response = await dispatch(
                   thunkFullUpdateTraverse({
-                    path,
                     traverseUuid: mapDirective.uuid,
+                    path,
                   })
                 );
 

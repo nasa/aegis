@@ -21,7 +21,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkSavePoi, thunkDeletePoi, thunkPoiCancel } from "store/thunk/thunkPoi";
 import { selectPoiActions } from "store/selectors";
 import Report_Panel from "../report";
-import { getAlertColor } from "utils/component-helpers";
+import { getAlertColor, isModified } from "utils/component-helpers";
 import { validators } from "components/interface/form/formValidators";
 
 const PoiEditorRight: FunctionComponent = () => {
@@ -54,12 +54,9 @@ const PoiEditorRight: FunctionComponent = () => {
     shallowEqual
   );
   useEffect(() => {
-    const poiEqual = _.isEqual(selectedPoi, selectedPoiFromDb);
-    const actionEqual = _.isEqual(
-      _.sortBy(poiActions, ["uuid"]),
-      _.sortBy(poiActionsFromDb, ["uuid"])
-    );
-    setModified(!poiEqual || !actionEqual);
+    const poiEqual = isModified([selectedPoi], [selectedPoiFromDb]);
+    const actionEqual = isModified(poiActions, poiActionsFromDb);
+    setModified(poiEqual || actionEqual);
   }, [selectedPoi, selectedPoiFromDb, poiActions, poiActionsFromDb]);
 
   const panelTypes: PanelTypes = {
