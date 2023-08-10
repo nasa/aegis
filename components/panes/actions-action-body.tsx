@@ -3,8 +3,8 @@ import {
   faClock,
   faListOl,
   faMessage,
-  faPersonWalkingLuggage,
   faTableList,
+  faToolbox,
   faUser,
   faWeightHanging,
 } from "@fortawesome/free-solid-svg-icons";
@@ -307,7 +307,7 @@ export const RightActionBody: FunctionComponent<{
       </div>
       <div className={paneStyles.panelSection}>
         <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-          <SubpanelHeading icon={faPersonWalkingLuggage}>Equipment Required</SubpanelHeading>
+          <SubpanelHeading icon={faToolbox}>Equipment Required</SubpanelHeading>
         </div>
         <div className={paneStyles.panelSectionRow}>
           <EquipmentSelector
