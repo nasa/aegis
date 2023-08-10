@@ -138,18 +138,7 @@ const PresetList: FunctionComponent<{
               <span className={styles.defaultText}>
                 {currentPreset.missionPresetDefault ? "(Default)" : ""}
               </span>
-              <ModifiedIndicator
-                obj1={[currentPreset]}
-                obj2={[presetFromDb]}
-                svgStyle={{
-                  width: "15",
-                  height: "12",
-                  cx: "5",
-                  cy: "9",
-                  r: "3",
-                  fill: "#ff0000",
-                }}
-              />
+              <ModifiedIndicator obj1={[currentPreset]} obj2={[presetFromDb]} />
             </div>
             <div className={`${styles.presetIcon} ${iconSelectedStyle}`}>
               {currentPreset.missionPreset ? (

@@ -354,12 +354,13 @@ export const ValidationErrors: FunctionComponent<{
  * This component wraps the CicrularSlider component from react-circular-slider
  */
 export const DegreesInputSlider: FunctionComponent<{
-  value: number;
+  value?: number;
   label: string;
   editable: boolean;
   onChange: Function;
   icon: IconDefinition;
-}> = ({ value, label, editable = true, onChange, icon }) => {
+  isDragging?: Function;
+}> = ({ value, label, editable = true, onChange, icon, isDragging }) => {
   const editableStyle = editable ? "" : styles.notEditable;
 
   return (
@@ -385,6 +386,8 @@ export const DegreesInputSlider: FunctionComponent<{
         trackSize={5}
         trackDraggable={true}
         onChange={onChange}
+        isDragging={isDragging}
+        initialValue={value}
       >
         <FontAwesomeIcon icon={icon} />
       </CircularSlider>

@@ -10,6 +10,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { getMissions } from "../../http-client/mission";
 import React from "react";
+import { roundDateToSecond } from "utils/formatting";
 
 const User: NextPage = () => {
   const router = useRouter();
@@ -96,15 +97,20 @@ const User: NextPage = () => {
       setErrorMessage("Username and password must be at least 3 characters long");
       return;
     }
-    //only save missions users has perms to
-    if (user.isSuperAdmin) {
-      user.permissionList = null; //super admin always has perms to everything. No need to set it
-    } else {
-      user.permissionList = user.permissionList.filter((p) => {
+
+    //only save missions a users has perms to
+    //super admin always has perms to everything. No need to set it
+    let permList = null;
+    if (!user.isSuperAdmin) {
+      permList = user.permissionList.filter((p) => {
         return p.permissions.view || p.permissions.edit;
       });
     }
-    const updatedUser = await upsertUser(user);
+    const updatedUser = await upsertUser({
+      ...user,
+      permissionList: permList,
+      updatedAt: roundDateToSecond(new Date()).toISOString(),
+    });
     if (updatedUser.status === "success") {
       setErrorMessage("");
       if (createMode) {
@@ -137,6 +143,8 @@ const User: NextPage = () => {
       username: "",
       password: "",
       permissionList,
+      createdAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: roundDateToSecond(new Date()).toISOString(),
     });
   };
 

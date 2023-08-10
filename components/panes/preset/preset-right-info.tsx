@@ -2,13 +2,14 @@ import { FunctionComponent, ChangeEvent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import presetStyles from "./preset.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
-
+import * as httpClient_Preset from "http-client/preset";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
-import { setPresetEditMode, upsertPreset } from "store/preset";
+import { setPresetEditMode, upsertPreset, upsertPresetFromDb } from "store/preset";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { Checkbox } from "components/interface/form/globalFields";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faMessage } from "@fortawesome/free-solid-svg-icons";
+import { roundDateToSecond } from "utils/formatting";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -20,15 +21,20 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const handleDefaultPresetChange = (evt: ChangeEvent<HTMLInputElement>) => {
     // If the preset is being set as the default, then we need to unset the default flag on all other presets
     if (evt.target.checked) {
+      dispatch(upsertPreset({ ...selectedPreset, missionPresetDefault: true }));
+      //check the other presets
       const otherPresets = presets.filter((preset) => preset.uuid !== selectedPresetUuid);
       otherPresets.forEach((preset) => {
         if (preset.missionPresetDefault) {
-          // add the preset to the edit mode list because we are changing the default and the user will have to save the changes
-          dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: true }));
+          // save the preset to the store and db
+          const modifiedDate = roundDateToSecond(new Date()).toISOString();
+          const updatedPreset = { ...preset, missionPresetDefault: false, updatedAt: modifiedDate };
+          dispatch(upsertPreset(updatedPreset, true));
+          dispatch(upsertPresetFromDb(updatedPreset));
+          httpClient_Preset.upsertPreset(updatedPreset);
+          dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: false }));
         }
-        dispatch(upsertPreset({ ...preset, missionPresetDefault: false }));
       });
-      dispatch(upsertPreset({ ...selectedPreset, missionPresetDefault: true }));
     } else {
       dispatch(upsertPreset({ ...selectedPreset, missionPresetDefault: false }));
     }

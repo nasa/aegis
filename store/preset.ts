@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { upsertToArrayByUuid } from "../utils/store";
 import _ from "lodash";
+import { roundDateToSecond } from "utils/formatting";
 export const initialState: PresetState = {
   presets: [],
   presetsFromDb: [],
@@ -14,15 +15,22 @@ export const presetSlice = createSlice({
   name: "preset",
   initialState,
   reducers: {
-    upsertPreset: (state, action: { payload: Preset }) => {
-      upsertToArrayByUuid(state.presets, action.payload);
+    upsertPreset: {
+      reducer: (state, action: { payload: Preset }) => {
+        upsertToArrayByUuid(state.presets, action.payload);
+      },
+      prepare: (preset: Preset, preserveModifiedDate: boolean = false) => {
+        if (preserveModifiedDate) {
+          return { payload: preset };
+        } else {
+          return { payload: { ...preset, updatedAt: roundDateToSecond(new Date()).toISOString() } };
+        }
+      },
     },
-    upsertPresets: (state, action: { payload: Preset[] }) => {
-      action.payload.forEach((preset) => upsertToArrayByUuid(state.presets, preset));
+    upsertPresetFromDb: (state, action: { payload: Preset }) => {
+      upsertToArrayByUuid(state.presetsFromDb, action.payload);
     },
-    upsertPresetsFromDb: (state, action: { payload: Preset[] }) => {
-      action.payload.forEach((preset) => upsertToArrayByUuid(state.presetsFromDb, preset));
-    },
+    /* only called for populating store  */
     setPresets: (state, action: { payload: Preset[] }) => {
       state.presets = action.payload;
     },
@@ -54,6 +62,7 @@ export const presetSlice = createSlice({
       if (presetIndex >= 0) {
         state.presets[presetIndex].mapSublayerControls[action.payload.layerUuid].visible =
           !state.presets[presetIndex].mapSublayerControls[action.payload.layerUuid].visible;
+        state.presets[presetIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
       }
     },
     togglePresetCircleVisible: (
@@ -66,6 +75,7 @@ export const presetSlice = createSlice({
       if (presetIndex >= 0) {
         state.presets[presetIndex].mapCircleControls[action.payload.radiusUuid].visible =
           !state.presets[presetIndex].mapCircleControls[action.payload.radiusUuid].visible;
+        state.presets[presetIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
       }
     },
     setPresetSublayerStyle: (
@@ -78,6 +88,7 @@ export const presetSlice = createSlice({
       if (presetIndex >= 0) {
         state.presets[presetIndex].mapSublayerControls[action.payload.layerUuid].style =
           action.payload.style;
+        state.presets[presetIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
       }
     },
     setPresetCircleStyle: (
@@ -90,6 +101,7 @@ export const presetSlice = createSlice({
       if (presetIndex >= 0) {
         state.presets[presetIndex].mapCircleControls[action.payload.radiusUuid].style =
           action.payload.style;
+        state.presets[presetIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
       }
     },
     togglePresetUIStateExpanded: (
@@ -144,26 +156,23 @@ export const presetSlice = createSlice({
         }
       }
     },
-    duplicatePreset: (state, action: { payload: Preset }) => {
-      state.presets.push(action.payload);
-      // turn on edit mode for the new Preset
-      state.presetsEditing.push(action.payload.uuid);
-      // select the newly created Preset
-      state.selectedPresetUuid = action.payload.uuid;
+    setStateForNewPreset: (state, action: { payload: { uuid: string } }) => {
+      state.presetsEditing.push(action.payload.uuid); // turn on edit mode for the new Preset
+      state.selectedPresetUuid = action.payload.uuid; // select the newly created Preset
+      state.selectedRightNavItem = "info_panel";
     },
   },
 });
 
 export const {
   upsertPreset,
-  upsertPresets,
-  upsertPresetsFromDb,
+  upsertPresetFromDb,
   setPresets,
   setPresetsFromDb,
   deletePresetByUuid,
   deletePresetFromDbByUuid,
   deleteAllPresetsFromDb,
-  duplicatePreset,
+  setStateForNewPreset,
   setSelectedPresetUuid,
   setSelectedPresetRightNavItem,
   togglePresetSublayerVisible,

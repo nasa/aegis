@@ -7,32 +7,33 @@ import {
   setPresetEditMode,
   setSelectedPresetUuid,
   setPresetUIStates,
-  duplicatePreset,
-  setSelectedPresetRightNavItem,
   deletePresetByUuid,
   resetAllPresetUIStates,
   setPresetsFromDb,
+  upsertPresetFromDb,
 } from "store/preset";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import * as InternalAPI from "http-client/preset";
 import { sortBy, cloneDeep } from "lodash";
+import { roundDateToSecond } from "utils/formatting";
+import { saveNewPreset } from "store/cross-slice";
 
 export const thunkSavePreset = appCreateAsyncThunk<{
   preset: Preset;
-}>("presetSave", async ({ preset }, { dispatch, getState }) => {
+}>("presetSave", async ({ preset }, { dispatch }) => {
   if (!preset) return;
+
   // upsert the changed Preset to the DB
-  const upsertReponse = await InternalAPI.setPreset(preset);
+  const upsertReponse = await InternalAPI.upsertPreset({
+    ...preset,
+    updatedAt: roundDateToSecond(new Date()).toISOString(),
+  });
 
   if (upsertReponse.status === "success") {
     // upsert the changed preset to the store
-    dispatch(upsertPreset(upsertReponse.data));
+    dispatch(upsertPreset(upsertReponse.data, true));
     // update the preset in the store from the DB
-    // get fresh copy of presets from DB
-    const presetData = await InternalAPI.getPresets(getState().mission.mission?.id);
-    if (presetData.data) {
-      dispatch(setPresetsFromDb(presetData.data));
-    }
+    dispatch(upsertPresetFromDb(upsertReponse.data));
   } else {
     throw new Error("Error upserting Presets: " + upsertReponse.message);
   }
@@ -54,7 +55,7 @@ export const thunkPresetCancel = appCreateAsyncThunk<{
     dispatch(setRightPanelOpen(false));
   } else {
     // if selected Preset is in the db, replace it with the one from the db (undoing any changes)
-    dispatch(upsertPreset(presetFromDb));
+    dispatch(upsertPreset(presetFromDb, true));
   }
   dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: false }));
   dispatch(resetAllPresetUIStates({ presetUuid: preset.uuid }));
@@ -127,15 +128,11 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
       layerOrder: defaultOrder,
       mapSublayerControls: getState().map.mapSublayerControls,
       mapCircleControls: getState().map.mapCircleControls,
+      updatedAt: null,
+      createdAt: roundDateToSecond(new Date()).toISOString(),
     };
+    dispatch(saveNewPreset(blankPreset));
 
-    dispatch(upsertPreset(blankPreset));
-    // turn on edit mode for the new POI
-    dispatch(setPresetEditMode({ presetUuid: blankPreset.uuid, editMode: true }));
-    // select the newly created POI
-    dispatch(setSelectedPresetUuid(blankPreset.uuid));
-    // open right panel
-    dispatch(setRightPanelOpen(true));
     // create preset ui states entry
     const presetUIStates: PresetUIStates = {};
     for (const layer of getState().mission.layers) {
@@ -178,20 +175,17 @@ export const thunkDuplicatePreset = appCreateAsyncThunk<{ preset: Preset }>(
     //duplicate preset
     const newPreset: Preset = cloneDeep(preset);
     newPreset.uuid = uuidv4();
+    newPreset.createdAt = roundDateToSecond(new Date()).toISOString();
+    newPreset.updatedAt = null;
     newPreset.name = makeUniqueStringCopy(
       preset.name,
       getState().preset.presets.map((item) => item.name)
     );
     newPreset.missionPresetDefault = false; //never make a duplicate the default preset
-    dispatch(duplicatePreset(newPreset));
+    dispatch(saveNewPreset(newPreset));
 
     //dupcate preset ui state
     const newUIState: PresetUIStates = cloneDeep(getState().preset.presetsUIStates[preset.uuid]);
     dispatch(setPresetUIStates({ presetUuid: newPreset.uuid, presetUIStates: newUIState }));
-
-    // open right panel
-    dispatch(setRightPanelOpen(true));
-    // set the selected tab to the POI's info tab
-    dispatch(setSelectedPresetRightNavItem("info_panel"));
   }
 );

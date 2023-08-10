@@ -5,7 +5,7 @@ export async function getPresets(mission: number): Promise<WrappedResponse<Prese
   return response;
 }
 
-export async function setPreset(preset: Preset): Promise<WrappedResponse<Preset>> {
+export async function upsertPreset(preset: Preset): Promise<WrappedResponse<Preset>> {
   const uniqueClientId =
     typeof window !== undefined ? window.sessionStorage.getItem("uniqueClientId") : null;
   const res = await fetch(`/api/preset?uniqueClientId=${uniqueClientId}`, {

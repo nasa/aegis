@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
 
 export const initialState: ActionState = {
@@ -10,15 +11,40 @@ export const actionSlice = createSlice({
   name: "action",
   initialState,
   reducers: {
-    upsertAction: (state, action: { payload: Action }) => {
-      upsertToArrayByUuid(state.actions, action.payload);
+    upsertAction: {
+      reducer: (state, action: { payload: Action }) => {
+        upsertToArrayByUuid(state.actions, action.payload);
+      },
+      prepare: (action: Action, preserveModifiedDate: boolean = false) => {
+        if (preserveModifiedDate) {
+          return { payload: action };
+        } else {
+          return { payload: { ...action, updatedAt: roundDateToSecond(new Date()).toISOString() } };
+        }
+      },
     },
-    upsertActions: (state, action: { payload: Action[] }) => {
-      action.payload.forEach((action) => upsertToArrayByUuid(state.actions, action));
+    upsertActions: {
+      reducer: (state, action: { payload: Action[] }) => {
+        action.payload.forEach((action) => upsertToArrayByUuid(state.actions, action));
+      },
+      prepare: (actions: Action[], preserveModifiedDate: boolean = false) => {
+        if (preserveModifiedDate) {
+          return { payload: actions };
+        } else {
+          const updatedActions = actions.map((a) => {
+            return { ...a, updatedAt: roundDateToSecond(new Date()).toISOString() };
+          });
+          return { payload: updatedActions };
+        }
+      },
+    },
+    upsertActionFromDb: (state, action: { payload: Action }) => {
+      upsertToArrayByUuid(state.actionsFromDb, action.payload);
     },
     upsertActionsFromDb: (state, action: { payload: Action[] }) => {
       action.payload.forEach((action) => upsertToArrayByUuid(state.actionsFromDb, action));
     },
+    /* only called for populating store  */
     setActions: (state, action: { payload: Action[] }) => {
       state.actions = action.payload;
     },
@@ -59,6 +85,7 @@ export const actionSlice = createSlice({
 export const {
   upsertAction,
   upsertActions,
+  upsertActionFromDb,
   upsertActionsFromDb,
   setActions,
   setActionsFromDb,

@@ -19,6 +19,7 @@ import UserFactory from "../factories/UserFactory";
 import { v4 as uuidv4 } from "uuid";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
+import { roundDateToSecond } from "utils/formatting";
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -72,8 +73,8 @@ describe("Preset API Endpoint", () => {
     mapCircleControls: null,
     mapSublayerControls: null,
     layerOrder: null,
-    createdAt: null,
-    updatedAt: null,
+    createdAt: roundDateToSecond(new Date()).toISOString(),
+    updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
 
   function mockRequestResponse(reqOptions: RequestOptions, resOptions?: ResponseOptions) {

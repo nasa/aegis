@@ -20,7 +20,7 @@ import Info_Panel from "./eva-right-eva-info";
 import Actions_Panel from "./eva-right-eva-actions";
 import Report_Panel from "../report";
 import { setEvaEditMode, setSelectedEvaRightNavItem, upsertEva } from "store/eva";
-import { getAlertColor } from "utils/component-helpers";
+import { getAlertColor, isModified } from "utils/component-helpers";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
   thunkDeleteEva,
@@ -69,7 +69,7 @@ const EvaRightEva: FunctionComponent = () => {
   const [modified, setModified] = useState(false); //track modified
 
   useEffect(() => {
-    const evaEqual = _.isEqual(selectedEva, selectedEvaFromDb);
+    const evaEqual = isModified([selectedEva], [selectedEvaFromDb]);
 
     const traverseUuidsInThisEva: string[] = [];
     selectedEva.sequence.forEach((sequenceItem) => {
@@ -83,12 +83,9 @@ const EvaRightEva: FunctionComponent = () => {
     const thisEvasTraversesFromDb = traversesFromDb.filter((traverse) => {
       return traverseUuidsInThisEva.includes(traverse.uuid);
     });
-    const traversesEqual = _.isEqual(
-      _.sortBy(thisEvasTraverses, ["uuid"]),
-      _.sortBy(thisEvasTraversesFromDb, ["uuid"])
-    );
-    setModified(!evaEqual || !traversesEqual);
-  }, [evas, stations, selectedEva, selectedEvaFromDb, traverses, traversesFromDb]);
+    const traversesEqual = isModified(thisEvasTraverses, thisEvasTraversesFromDb);
+    setModified(evaEqual || traversesEqual);
+  }, [selectedEva, selectedEvaFromDb, traverses, traversesFromDb]);
 
   // generate evaReportSequenceItems from the eva sequence
   useEffect(() => {

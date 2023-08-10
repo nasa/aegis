@@ -23,7 +23,7 @@ import Poi_Panel from "./station-right-poi";
 import Actions_Panel from "./station-right-actions";
 import Report_Panel from "../report";
 import { decodeEmoji } from "utils/formatting";
-import { getAlertColor } from "utils/component-helpers";
+import { getAlertColor, isModified } from "utils/component-helpers";
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -118,13 +118,10 @@ const StationEditorRight: FunctionComponent = () => {
     if (elevationPendingIndex > -1) {
       setSaveButtonState("pending");
     } else {
-      const stationEqual = _.isEqual(selectedStation, selectedStationFromDb);
-      const actionEqual = _.isEqual(
-        _.sortBy(stationActions, ["uuid"]),
-        _.sortBy(stationActionsFromDb, ["uuid"])
-      );
-      const isModified = !stationEqual || !actionEqual;
-      setSaveButtonState(isModified ? "enabled" : "disabled");
+      const stationEqual = isModified([selectedStation], [selectedStationFromDb]);
+      const actionEqual = isModified(stationActions, stationActionsFromDb);
+      const modified = stationEqual || actionEqual;
+      setSaveButtonState(modified ? "enabled" : "disabled");
     }
   }, [
     elevationPendingIndex,

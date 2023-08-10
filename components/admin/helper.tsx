@@ -1,6 +1,5 @@
-import { FunctionComponent, useEffect, useState } from "react";
-import styles from "./admin.module.css";
 import { v4 as uuidv4 } from "uuid";
+import { roundDateToSecond } from "utils/formatting";
 
 /**
  * Creates a new emptyLayer object with no mission and no sublayers
@@ -11,8 +10,8 @@ export function createNewLayer(missionId?: number): Layer {
     uuid: null,
     missionId: missionId || null,
     name: "",
-    createdAt: null,
-    updatedAt: null,
+    createdAt: roundDateToSecond(new Date()).toISOString(),
+    updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
 }
 
@@ -40,62 +39,8 @@ export function createNewSublayer(layerUuid?: string, missionId?: number): Subla
     fillColor: "",
     fillOpacity: 0,
     weight: 0,
-    createdAt: null,
-    updatedAt: null,
+    createdAt: roundDateToSecond(new Date()).toISOString(),
+    updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
   return sublayer;
 }
-
-/**
- * A generic JSON Editor component with built in validation message
- * @param props fieldName: name of the label for the JSON editor.
- * @returns
- */
-export const JSONEditor: FunctionComponent<{
-  fieldName: string;
-  value: JSON;
-  onChange: (jsonValue: JSON) => void;
-}> = (props: { fieldName: string; value: JSON; onChange: (jsonValue: JSON) => void }) => {
-  const [jsonValidMsg, setJsonValidMsg] = useState("");
-  const [jsonString, setJsonString] = useState<string>();
-
-  useEffect(() => {
-    setJsonValidMsg("");
-    const json = JSON.stringify(props.value);
-    if (json) {
-      setJsonString(json);
-    } else {
-      setJsonString("");
-    }
-  }, [props.value]);
-
-  return (
-    <>
-      <div className={styles.editDiv}>
-        <label htmlFor="jsonField">{props.fieldName}</label>
-      </div>
-      <div className={styles.editDiv}>
-        <textarea
-          id="jsonField"
-          onChange={(e) => {
-            setJsonString(e.target.value);
-            setJsonValidMsg("");
-            if (e.target.value === "") {
-              props.onChange(undefined);
-            } else {
-              try {
-                props.onChange(JSON.parse(e.target.value));
-              } catch (e) {
-                setJsonValidMsg("Invalid JSON");
-              }
-            }
-          }}
-          value={jsonString}
-          title={props.fieldName}
-        />
-        <br />
-        <span className={styles.validation}>{jsonValidMsg}</span>
-      </div>
-    </>
-  );
-};

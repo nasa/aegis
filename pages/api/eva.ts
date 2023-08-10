@@ -10,7 +10,6 @@ import {
 } from "@mikro-orm/core";
 import { Eva as Eva_db } from "server/database/models/eva.model";
 import _ from "lodash";
-import { roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
 import { emitStoreDelete, emitStoreUpsert } from "./socketio";
@@ -177,8 +176,6 @@ async function upsertEVAs(eva: Eva): Promise<Eva> {
   const em = getEM();
 
   const evaToUpsert = _.cloneDeep(eva); //create a copy to manipulate
-
-  const updateDateString = roundDateToSecond(new Date()).toISOString();
   const convertedEva: EntityData<Eva_db> = {
     uuid: evaToUpsert.uuid || uuidv4(),
     owner: evaToUpsert.ownerId,
@@ -189,8 +186,8 @@ async function upsertEVAs(eva: Eva): Promise<Eva> {
     description: evaToUpsert.description,
     maxDuration: evaToUpsert.maxDuration,
     traverseRate: evaToUpsert.traverseRate,
-    updatedAt: new Date(evaToUpsert.createdAt || updateDateString),
-    createdAt: new Date(updateDateString),
+    updatedAt: new Date(evaToUpsert.updatedAt),
+    createdAt: new Date(evaToUpsert.createdAt),
   };
 
   //upsert eva

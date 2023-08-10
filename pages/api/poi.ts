@@ -3,7 +3,6 @@ import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 import { withORM, getEM } from "utils/mikro";
 import { EntityData, QueryOrder } from "@mikro-orm/core";
-import { roundDateToSecond } from "utils/formatting";
 import { Poi as Poi_db } from "server/database/models/poi.model";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
@@ -55,7 +54,6 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
 
         const validPoiBody: POI = req.body as POI;
         //build poi to upsert
-        const updateDateString = roundDateToSecond(new Date()).toISOString();
         //convert fks
         const convertedPoi: EntityData<Poi_db> = {
           uuid: validPoiBody.uuid || uuidv4(),
@@ -71,8 +69,8 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
           icon: validPoiBody.icon,
           tags: validPoiBody.tags,
           status: validPoiBody.status,
-          createdAt: new Date(validPoiBody.createdAt || updateDateString),
-          updatedAt: new Date(updateDateString),
+          createdAt: new Date(validPoiBody.createdAt),
+          updatedAt: new Date(validPoiBody.updatedAt),
         };
         const poiUpsertReference: Poi_db = await em.upsert(Poi_db, convertedPoi);
         await em.persistAndFlush(poiUpsertReference);

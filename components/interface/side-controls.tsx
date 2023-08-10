@@ -9,6 +9,7 @@ import { setRightPanelOpen, setSectionSelected } from "store/interface";
 import { paneTypes } from "components/interface/_paneTypes";
 import { setSelectedEvaUuid } from "store/eva";
 import NavTimeline from "components/interface/timeline";
+import { isModified } from "utils/component-helpers";
 
 /* This control sits at the left side of the screen and loads the selected component based on the NavGutter icon selected */
 export const LeftControlPanel: FunctionComponent = () => {
@@ -87,6 +88,8 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
   selectedNavItem,
 }) => {
   const dispatch = useAppDispatch();
+  const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
+  const missionFromDb = useAppSelector((state) => state.mission.missionFromDb, shallowEqual);
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
   const poisFromDb = useAppSelector((state) => state.poi.poisFromDb, shallowEqual);
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
@@ -126,39 +129,41 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
       {Object.keys(paneTypes).map((paneType: InterfaceSection) => {
         let itemModified = false;
         switch (paneType) {
+          case "mission":
+            itemModified = mission?.updatedAt !== missionFromDb?.updatedAt;
+            break;
           case "preset":
-            itemModified = !_.isEqual(
-              _.sortBy(presets, ["uuid"]),
-              _.sortBy(presetsFromDb, ["uuid"])
-            );
+            itemModified = isModified(presets, presetsFromDb);
             break;
           case "poi":
-            const poiEqual = _.isEqual(_.sortBy(pois, ["uuid"]), _.sortBy(poisFromDb, ["uuid"]));
-            const poiActionEqual = _.isEqual(
-              _.sortBy(poiActions, ["uuid"]),
-              _.sortBy(poiActionsFromDb, ["uuid"])
-            );
-            itemModified = !poiEqual || !poiActionEqual;
+            const poiEqual = isModified(pois, poisFromDb);
+            const poiActionEqual = isModified(poiActions, poiActionsFromDb);
+            itemModified = poiEqual || poiActionEqual;
             break;
           case "station":
-            const stationsEqual = _.isEqual(
-              _.sortBy(stations, ["uuid"]),
-              _.sortBy(stationsFromDb, ["uuid"])
-            );
-            const stationActionEqual = _.isEqual(
-              _.sortBy(stationActions, ["uuid"]),
-              _.sortBy(stationActionsFromDb, ["uuid"])
-            );
-            itemModified = !stationsEqual || !stationActionEqual;
+            const stationsEqual = isModified(stations, stationsFromDb);
+            const stationActionEqual = isModified(stationActions, stationActionsFromDb);
+            itemModified = stationsEqual || stationActionEqual;
             break;
           case "evas":
-            const evasEqual = _.isEqual(_.sortBy(evas, ["uuid"]), _.sortBy(evasFromDb, ["uuid"]));
-            const traversesEqual = _.isEqual(
-              _.sortBy(traverses, ["uuid"]),
-              _.sortBy(traversesFromDb, ["uuid"])
+            const evasEqual = isModified(evas, evasFromDb);
+            const traversesEqual = isModified(traverses, traversesFromDb);
+            const evaStationUuids = _.uniq(
+              _.flatten(
+                evas.map((eva) => {
+                  const stationSeqItems = eva.sequence.filter(
+                    (seqItem) => seqItem.type === "station"
+                  );
+                  return stationSeqItems.map((s) => s.uuid);
+                })
+              )
             );
-
-            itemModified = !evasEqual || !traversesEqual;
+            const evaStations = stations.filter((s) => evaStationUuids.includes(s.uuid));
+            const evaStationsFromDb = stationsFromDb.filter((s) =>
+              evaStationUuids.includes(s.uuid)
+            );
+            const evaStationsEqual = isModified(evaStations, evaStationsFromDb);
+            itemModified = evasEqual || traversesEqual || evaStationsEqual;
             break;
         }
 

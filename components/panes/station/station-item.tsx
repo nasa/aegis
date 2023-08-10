@@ -60,14 +60,6 @@ const StationItem: FunctionComponent<{
         <ModifiedIndicator
           obj1={[station, ...stationActions]}
           obj2={[stationFromDb, ...stationActionsFromDb]}
-          svgStyle={{
-            width: "15",
-            height: "12",
-            cx: "5",
-            cy: "9",
-            r: "3",
-            fill: "#ff0000",
-          }}
         />
         <div className={stationStyles.stationRightSpacer} />
       </div>

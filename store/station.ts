@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
 
 export const initialState: StationState = {
@@ -14,8 +15,19 @@ export const stationSlice = createSlice({
   name: "station",
   initialState,
   reducers: {
-    upsertStation: (state, action: { payload: Station }) => {
-      upsertToArrayByUuid(state.stations, action.payload);
+    upsertStation: {
+      reducer: (state, action: { payload: Station }) => {
+        upsertToArrayByUuid(state.stations, action.payload);
+      },
+      prepare: (station: Station, preserveModifiedDate: boolean = false) => {
+        if (preserveModifiedDate) {
+          return { payload: station };
+        } else {
+          return {
+            payload: { ...station, updatedAt: roundDateToSecond(new Date()).toISOString() },
+          };
+        }
+      },
     },
     upsertStations: (state, action: { payload: Station[] }) => {
       action.payload.forEach((station) => upsertToArrayByUuid(state.stations, station));
@@ -23,6 +35,10 @@ export const stationSlice = createSlice({
     upsertStationsFromDb: (state, action: { payload: Station[] }) => {
       action.payload.forEach((station) => upsertToArrayByUuid(state.stationsFromDb, station));
     },
+    upsertStationFromDb: (state, action: { payload: Station }) => {
+      upsertToArrayByUuid(state.stationsFromDb, action.payload);
+    },
+    /* only called for populating store  */
     setStations: (state, action: { payload: Station[] }) => {
       state.stations = action.payload;
     },
@@ -43,12 +59,10 @@ export const stationSlice = createSlice({
     setSelectedStationUuid: (state, action: { payload: string }) => {
       state.selectedStationUuid = action.payload;
     },
-    duplicateStation: (state, action: { payload: Station }) => {
-      state.stations.push(action.payload);
-      // turn on edit mode for the new station
-      state.stationsEditing.push(action.payload.uuid);
-      // select the newly created station
-      state.selectedStationUuid = action.payload.uuid;
+    setStateForNewStation: (state, action: { payload: { uuid: string } }) => {
+      state.stationsEditing.push(action.payload.uuid); // turn on edit mode for the new station
+      state.selectedStationUuid = action.payload.uuid; // select the newly created station
+      state.selectedRightNavItem = "info_panel";
     },
     setStationEditMode: (
       state,
@@ -60,26 +74,6 @@ export const stationSlice = createSlice({
         state.stationsEditing = state.stationsEditing.filter(
           (uuid) => uuid !== action.payload.stationUuid
         );
-      }
-    },
-    updateWalkbackPath: (
-      state,
-      action: {
-        payload: {
-          uuid: string;
-          walkbackPath: AEGISPoint[];
-          walkbackPathSegmentDistances: number[];
-          walkbackPathSegmentElevations?: number[][];
-        };
-      }
-    ) => {
-      const station = state.stations.find((station) => station.uuid === action.payload.uuid);
-      if (station) {
-        station.walkbackPath = action.payload.walkbackPath;
-        station.walkbackPathSegmentDistances = action.payload.walkbackPathSegmentDistances;
-        if (action.payload.walkbackPathSegmentElevations) {
-          station.walkbackPathSegmentElevations = action.payload.walkbackPathSegmentElevations;
-        }
       }
     },
     revertWalkbackPath: (state, action: { payload: { uuid: string } }) => {
@@ -106,15 +100,15 @@ export const {
   upsertStation,
   upsertStations,
   upsertStationsFromDb,
+  upsertStationFromDb,
   setStations,
   setStationsFromDb,
   deleteStationByUuid,
   deleteStationFromDbByUuid,
   setSelectedStationRightNavItem,
   setSelectedStationUuid,
-  duplicateStation,
+  setStateForNewStation,
   setStationEditMode,
-  updateWalkbackPath,
   revertWalkbackPath,
   setStationCalculatedFields,
 } = stationSlice.actions;

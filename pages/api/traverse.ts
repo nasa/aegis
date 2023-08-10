@@ -10,7 +10,6 @@ import {
 } from "@mikro-orm/core";
 import { Traverse as Traverse_db } from "server/database/models/traverse.model";
 import _ from "lodash";
-import { roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
 import { emitStoreDelete, emitStoreUpsert } from "./socketio";
@@ -181,7 +180,6 @@ async function upsertTraverse(traverse: Traverse): Promise<Traverse> {
 
   const traverseToUpsert = _.cloneDeep(traverse); //create a copy to manipulate
 
-  const updateDateString = roundDateToSecond(new Date()).toISOString();
   const convertedTraverse: EntityData<Traverse_db> = {
     uuid: traverseToUpsert.uuid || uuidv4(),
     mission: traverseToUpsert.missionId,
@@ -194,8 +192,8 @@ async function upsertTraverse(traverse: Traverse): Promise<Traverse> {
     predictedDurationUpper: traverseToUpsert.predictedDurationUpper,
     description: traverseToUpsert.description,
     traverseRate: traverseToUpsert.traverseRate,
-    updatedAt: new Date(traverseToUpsert.createdAt || updateDateString),
-    createdAt: new Date(updateDateString),
+    updatedAt: new Date(traverseToUpsert.updatedAt),
+    createdAt: new Date(traverseToUpsert.createdAt),
   };
 
   //upsert traverse

@@ -1,5 +1,5 @@
 import appCreateAsyncThunk from "./thunkUtil";
-import { setMission } from "store/mission";
+import { upsertMission } from "store/mission";
 import { v4 as uuidv4 } from "uuid";
 
 type PrintableListItem = {
@@ -16,7 +16,7 @@ export const thunkUpdateEquipment = appCreateAsyncThunk<{ equipmentItem: Equipme
     );
     const newEquipmentItems = [...getState().mission.mission.equipmentItems];
     newEquipmentItems[itemIndex] = equipmentItem;
-    dispatch(setMission({ ...getState().mission.mission, equipmentItems: newEquipmentItems }));
+    dispatch(upsertMission({ ...getState().mission.mission, equipmentItems: newEquipmentItems }));
   }
 );
 
@@ -80,7 +80,7 @@ export const thunkDeleteEquipment = appCreateAsyncThunk<{ equipmentItemUuid: str
     const newEquipmentItems = getState().mission.mission.equipmentItems?.filter(
       (item) => item.uuid !== equipmentItemUuid
     );
-    dispatch(setMission({ ...getState().mission.mission, equipmentItems: newEquipmentItems }));
+    dispatch(upsertMission({ ...getState().mission.mission, equipmentItems: newEquipmentItems }));
   }
 );
 
@@ -96,6 +96,6 @@ export const thunkCreateEquipment = appCreateAsyncThunk<void>(
 
     const equipmentItems = getState().mission.mission.equipmentItems || [];
     const newEquipmentItems = [...equipmentItems, blankEquipmentItem];
-    dispatch(setMission({ ...getState().mission.mission, equipmentItems: newEquipmentItems }));
+    dispatch(upsertMission({ ...getState().mission.mission, equipmentItems: newEquipmentItems }));
   }
 );

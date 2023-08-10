@@ -12,6 +12,7 @@ import MissionEditor from "components/admin/missionEditor";
 import { isLoggedIn } from "http-client/login";
 // import { validators } from "components/interface/form/formValidators";
 import { Tooltip } from "react-tooltip";
+import { roundDateToSecond } from "utils/formatting";
 // import { v4 as uuidv4 } from "uuid";
 
 const Mission: NextPage = () => {
@@ -99,6 +100,8 @@ const Mission: NextPage = () => {
       projResUnitsPerPixel: 0,
       landerRadii: [],
       actionTemplates: null,
+      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      createdAt: roundDateToSecond(new Date()).toISOString(),
     };
 
     setMission(newMission);

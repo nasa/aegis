@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
 
 export const initialState: EvaState = {
@@ -16,8 +17,17 @@ export const evaSlice = createSlice({
   name: "eva",
   initialState,
   reducers: {
-    upsertEva: (state, action: { payload: Eva }) => {
-      upsertToArrayByUuid(state.evas, action.payload);
+    upsertEva: {
+      reducer: (state, action: { payload: Eva }) => {
+        upsertToArrayByUuid(state.evas, action.payload);
+      },
+      prepare: (eva: Eva, preserveModifiedDate: boolean = false) => {
+        if (preserveModifiedDate) {
+          return { payload: eva };
+        } else {
+          return { payload: { ...eva, updatedAt: roundDateToSecond(new Date()).toISOString() } };
+        }
+      },
     },
     upsertEvas: (state, action: { payload: Eva[] }) => {
       action.payload.forEach((eva) => upsertToArrayByUuid(state.evas, eva));
@@ -25,6 +35,10 @@ export const evaSlice = createSlice({
     upsertEvasFromDb: (state, action: { payload: Eva[] }) => {
       action.payload.forEach((eva) => upsertToArrayByUuid(state.evasFromDb, eva));
     },
+    upsertEvaFromDb: (state, action: { payload: Eva }) => {
+      upsertToArrayByUuid(state.evasFromDb, action.payload);
+    },
+    /* only called for populating store  */
     setEvas: (state, action: { payload: Eva[] }) => {
       state.evas = action.payload;
     },
@@ -33,6 +47,7 @@ export const evaSlice = createSlice({
     },
     deleteEvaByUuid: (state, action: { payload: string }) => {
       state.evas = state.evas.filter((eva) => eva.uuid !== action.payload);
+      state.selectedEvaUuid = null;
     },
     deleteEvaFromDbByUuid: (state, action: { payload: string }) => {
       state.evasFromDb = state.evasFromDb.filter((eva) => eva.uuid !== action.payload);
@@ -49,14 +64,25 @@ export const evaSlice = createSlice({
     setExpandedEvaUuids: (state, action: { payload: string[] }) => {
       state.expandedEvaUuids = action.payload;
     },
-    setEvaSequence: (
-      state,
-      action: { payload: { evaUuid: string; sequence: EvaSequenceItem[] } }
-    ) => {
-      const eva = state.evas.find((eva) => eva.uuid === action.payload.evaUuid);
-      if (eva) {
-        eva.sequence = action.payload.sequence;
-      }
+    setEvaSequence: {
+      reducer: (
+        state,
+        action: { payload: { evaUuid: string; sequence: EvaSequenceItem[]; updatedAt: string } }
+      ) => {
+        const eva = state.evas.find((eva) => eva.uuid === action.payload.evaUuid);
+        if (eva) {
+          eva.sequence = action.payload.sequence;
+        }
+      },
+      prepare: (payload: { evaUuid: string; sequence: EvaSequenceItem[] }) => {
+        return {
+          payload: {
+            evaUuid: payload.evaUuid,
+            sequence: payload.sequence,
+            updatedAt: roundDateToSecond(new Date()).toISOString(),
+          },
+        };
+      },
     },
     setEvaEditMode: (state, action: { payload: { evaUuid: string; editMode: boolean } }) => {
       if (action.payload.editMode) {
@@ -65,14 +91,11 @@ export const evaSlice = createSlice({
         state.evasEditing = state.evasEditing.filter((uuid) => uuid !== action.payload.evaUuid);
       }
     },
-    duplicateEva: (state, action: { payload: Eva }) => {
-      state.evas.push(action.payload);
-      // turn on edit mode for the new eva
-      state.evasEditing.push(action.payload.uuid);
-      // select the newly created eva
-      state.selectedEvaUuid = action.payload.uuid;
-      // expand the newly created eva
-      state.expandedEvaUuids.push(action.payload.uuid);
+    setStateForNewEva: (state, action: { payload: { uuid: string } }) => {
+      state.evasEditing.push(action.payload.uuid); // turn on edit mode for the new eva
+      state.selectedEvaUuid = action.payload.uuid; // select the newly created eva
+      state.expandedEvaUuids.push(action.payload.uuid); // expand the newly created eva
+      state.selectedEvaRightNavItem = "info_panel"; // set the selected tab to the EVA's info tab
     },
     setEvasCalculatedFields: (
       state,
@@ -96,7 +119,7 @@ export const {
   setEvasFromDb,
   deleteEvaByUuid,
   deleteEvaFromDbByUuid,
-  duplicateEva,
+  setStateForNewEva,
   setSelectedEvaUuid,
   setSelectedEvaSequenceItemUuid,
   setSelectedEvaRightNavItem,

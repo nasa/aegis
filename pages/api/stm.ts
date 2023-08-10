@@ -13,7 +13,6 @@ import { STM_Goal as STMGoal_db } from "server/database/models/stm_goal.model";
 import { STM_Investigation as STMInvestigation_db } from "server/database/models/stm_investigation.model";
 import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
-import { roundDateToSecond } from "utils/formatting";
 import { hasPerms } from "utils/permissions";
 
 /**
@@ -391,21 +390,14 @@ async function upsertSTM(
 ): Promise<STMObjective | STMGoal | STMInvestigation> {
   const em = getEM();
 
-  //add on additonal fields the db tracks
-  const updateDateString = roundDateToSecond(new Date()).toISOString();
-  const upsertRecord: STMObjective | STMGoal | STMInvestigation = {
-    ...stmObject,
-    updatedAt: updateDateString,
-  };
   //we're creating a new record
   if (!stmObject.uuid) {
-    upsertRecord.uuid = uuidv4();
-    upsertRecord.createdAt = updateDateString;
+    stmObject.uuid = uuidv4();
   }
 
   //determine the db table and perform upsert
   if (stmType === "Objective") {
-    const objective = upsertRecord as STMObjective;
+    const objective = stmObject as STMObjective;
     const convertedObjective: EntityData<STMObjective_db> = {
       uuid: objective.uuid,
       numbering: objective.numbering,
@@ -428,7 +420,7 @@ async function upsertSTM(
     };
     return upsertedObjective;
   } else if (stmType === "Goal") {
-    const goal = upsertRecord as STMGoal;
+    const goal = stmObject as STMGoal;
     const convertedGoal: EntityData<STMGoal_db> = {
       uuid: goal.uuid,
       numbering: goal.numbering,
@@ -451,7 +443,7 @@ async function upsertSTM(
     };
     return upsertedGoal;
   } else {
-    const invstg = upsertRecord as STMInvestigation;
+    const invstg = stmObject as STMInvestigation;
     const convertedInvstg: EntityData<STMInvestigation_db> = {
       uuid: invstg.uuid,
       numbering: invstg.numbering,

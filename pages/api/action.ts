@@ -10,7 +10,6 @@ import {
 } from "@mikro-orm/core";
 import { Action as Action_db } from "server/database/models/action.model";
 import _ from "lodash";
-import { roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
 import { emitStoreDelete, emitStoreUpsert } from "./socketio";
@@ -191,10 +190,6 @@ async function upsertAction(action: Action): Promise<Action> {
   const em = getEM();
 
   const actionToUpsert = _.cloneDeep(action); //create a copy to manipulate
-  const updateDateString = roundDateToSecond(new Date()).toISOString(); //db does not store miliseconds
-  if (actionToUpsert.parentActionUuid && !actionToUpsert.parentCopyDate)
-    actionToUpsert.parentCopyDate = updateDateString;
-
   //convert fks
   const convertedRecord: EntityData<Action_db> = {
     uuid: actionToUpsert.uuid || uuidv4(),
@@ -215,8 +210,8 @@ async function upsertAction(action: Action): Promise<Action> {
     mass: actionToUpsert.mass,
     status: actionToUpsert.status,
     crewAssigned: actionToUpsert.crewAssigned,
-    createdAt: new Date(actionToUpsert.createdAt || updateDateString),
-    updatedAt: new Date(updateDateString),
+    updatedAt: new Date(actionToUpsert.updatedAt),
+    createdAt: new Date(actionToUpsert.createdAt),
   };
 
   const upsertReference: Action_db = await em.upsert(Action_db, convertedRecord);
