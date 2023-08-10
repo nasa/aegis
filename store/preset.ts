@@ -27,8 +27,28 @@ export const presetSlice = createSlice({
         }
       },
     },
+    upsertPresets: {
+      reducer: (state, action: { payload: Preset[] }) => {
+        action.payload.forEach((preset) => upsertToArrayByUuid(state.presets, preset));
+      },
+      prepare: (presets: Preset[], preserveModifiedDate: boolean = false) => {
+        if (preserveModifiedDate) {
+          return { payload: presets };
+        } else {
+          return {
+            payload: presets.map((preset) => ({
+              ...preset,
+              updatedAt: roundDateToSecond(new Date()).toISOString(),
+            })),
+          };
+        }
+      },
+    },
     upsertPresetFromDb: (state, action: { payload: Preset }) => {
       upsertToArrayByUuid(state.presetsFromDb, action.payload);
+    },
+    upsertPresetsFromDb: (state, action: { payload: Preset[] }) => {
+      action.payload.forEach((preset) => upsertToArrayByUuid(state.presetsFromDb, preset));
     },
     /* only called for populating store  */
     setPresets: (state, action: { payload: Preset[] }) => {
@@ -166,7 +186,9 @@ export const presetSlice = createSlice({
 
 export const {
   upsertPreset,
+  upsertPresets,
   upsertPresetFromDb,
+  upsertPresetsFromDb,
   setPresets,
   setPresetsFromDb,
   deletePresetByUuid,
