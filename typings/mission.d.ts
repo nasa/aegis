@@ -88,6 +88,19 @@ interface EquipmentItem {
   singleUse: boolean;
 }
 
+type EquipmentItemDisplay = {
+  name: string;
+  quantityUsed: number;
+};
+
+/**
+ * Equipment needed to perform an action.
+ */
+type EquipmentItemUsage = {
+  uuid: string;
+  quantityUsed: number;
+};
+
 /**
  * Geographic unit
  */

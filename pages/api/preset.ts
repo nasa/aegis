@@ -3,7 +3,6 @@ import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 import { withORM, getEM } from "utils/mikro";
 import { Preset as Preset_db } from "server/database/models/preset.model";
-import { roundDateToSecond } from "utils/formatting";
 import { EntityData } from "@mikro-orm/core";
 import { hasPerms } from "utils/permissions";
 
@@ -55,7 +54,6 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
       const presetBody = req.body as Preset;
       try {
         const em = getEM();
-        const updateDateString = roundDateToSecond(new Date()).toISOString();
         const convertedPreset: EntityData<Preset_db> = {
           uuid: presetBody.uuid,
           owner: presetBody.ownerId || req.session.user.id,
@@ -67,8 +65,8 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
           mapSublayerControls: presetBody.mapSublayerControls,
           mapCircleControls: presetBody.mapCircleControls,
           layerOrder: presetBody.layerOrder,
-          createdAt: new Date(presetBody.createdAt || updateDateString),
-          updatedAt: new Date(updateDateString),
+          createdAt: new Date(presetBody.createdAt),
+          updatedAt: new Date(presetBody.updatedAt),
         };
         const upsertedPreset = await em.upsert(Preset_db, convertedPreset);
         await em.persistAndFlush(upsertedPreset);

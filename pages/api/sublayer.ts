@@ -11,7 +11,6 @@ import {
   QueryOrder,
 } from "@mikro-orm/core";
 import { v4 as uuidv4 } from "uuid";
-import { roundDateToSecond } from "utils/formatting";
 import { hasPerms } from "utils/permissions";
 
 /**
@@ -223,8 +222,6 @@ async function upsertSublayer(sublayer: Sublayer): Promise<Sublayer> {
   const em = getEM();
   const upsertRecord: Sublayer = _.cloneDeep(sublayer);
 
-  const updateDateString = roundDateToSecond(new Date()).toISOString();
-
   //convert fks and upsert
   const convertedRecord: EntityData<Sublayer_db> = {
     uuid: upsertRecord.uuid || uuidv4(),
@@ -245,8 +242,8 @@ async function upsertSublayer(sublayer: Sublayer): Promise<Sublayer> {
     fillColor: upsertRecord.fillColor,
     fillOpacity: upsertRecord.fillOpacity,
     weight: upsertRecord.weight,
-    createdAt: new Date(upsertRecord.createdAt || updateDateString),
-    updatedAt: new Date(updateDateString),
+    createdAt: new Date(upsertRecord.createdAt),
+    updatedAt: new Date(upsertRecord.updatedAt),
   };
   const upsertReference = await em.upsert(Sublayer_db, convertedRecord);
 

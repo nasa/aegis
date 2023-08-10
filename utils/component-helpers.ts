@@ -1,3 +1,5 @@
+import _ from "lodash";
+
 export const getAlertColor = (
   reportItems: ReportItem[],
   evaReportSequenceItems?: EvaReportSequenceItem[]
@@ -45,4 +47,31 @@ export const displayFormattedTotalTimeObj = (totalTimeObj: TotalTimeObj): string
   } else {
     return `${Math.round(totalTimeObj.durationLower)} - ${Math.round(totalTimeObj.durationUpper)}`;
   }
+};
+
+/**
+ * Compares two arrays of objects that must contain at least uuid and updated at.
+ * Objects in array are sorted by uuid before compared
+ * @param obj1
+ * @param obj2
+ * @returns
+ */
+export const isModified = <T extends MustContain>(obj1: T[], obj2: T[]): boolean => {
+  let isDiff = false;
+  //check length
+  if (obj1.length === obj2.length) {
+    //sort before comparing indexes
+    const sortedObjs1 = _.sortBy(obj1, ["uuid"]);
+    const sortedObjs2 = _.sortBy(obj2, ["uuid"]);
+    for (let i = 0; i < sortedObjs1.length; i++) {
+      //check updatedAt strings
+      isDiff = sortedObjs1[i]?.updatedAt !== sortedObjs2[i]?.updatedAt;
+      if (isDiff) {
+        break;
+      }
+    }
+  } else {
+    isDiff = true;
+  }
+  return isDiff;
 };

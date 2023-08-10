@@ -11,7 +11,6 @@ import {
   QueryOrder,
 } from "@mikro-orm/core";
 import { v4 as uuidv4 } from "uuid";
-import { roundDateToSecond } from "utils/formatting";
 import { hasPerms } from "utils/permissions";
 
 /**
@@ -208,15 +207,13 @@ async function upsertLayer(layer: Layer): Promise<Layer> {
   const em = getEM();
   const upsertRecord: Layer = _.cloneDeep(layer);
 
-  const updateDateString = roundDateToSecond(new Date()).toISOString();
-
   //convert fks and upsert
   const convertedRecord: EntityData<Layer_db> = {
     uuid: upsertRecord.uuid || uuidv4(),
     mission: upsertRecord.missionId,
     name: upsertRecord.name,
-    createdAt: new Date(upsertRecord.createdAt || updateDateString),
-    updatedAt: new Date(updateDateString),
+    createdAt: new Date(upsertRecord.createdAt),
+    updatedAt: new Date(upsertRecord.updatedAt),
   };
   const upsertReference = await em.upsert(Layer_db, convertedRecord);
 

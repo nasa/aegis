@@ -137,6 +137,7 @@ type StationCalculatedFields = LocationCalculatedFields & {
   walkbackDurationMinutes: number;
   walkbackDistanceMeters: number;
   walkbackAscentDescent: TotalAscentDescentObj;
+  equipmentItems: EquipmentItemUsage[];
 };
 
 type TraverseCalculatedFields = CalculatedFields & {
@@ -156,4 +157,11 @@ type EvaCalculatedFields = LocationCalculatedFields & {
   totalTraverseDistanceMeters: number;
   totalTraverseAscentDescent: TotalAscentDescentObj;
   totalEvaTime: TotalTimeObj;
+  equipmentItems: EquipmentItemUsage[];
 };
+
+interface MustContain {
+  uuid: string;
+  createdAt?: string;
+  updatedAt?: string;
+}

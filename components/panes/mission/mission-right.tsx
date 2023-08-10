@@ -22,6 +22,7 @@ import { setMissionSectionEditing, setSelectedMissionRightNavItem } from "store/
 import { thunkMissionCancel, thunkMissionSave } from "store/thunk/thunkMission";
 import Equipment_Panel from "./mission-right-equipment";
 import GeographiUnits_Panel from "./mission-right-geographicUnits";
+import { isModified } from "utils/component-helpers";
 import ActionTemplates_Panel from "./mission-right-actionTemplates";
 
 const MissionPrefsRight: FunctionComponent = () => {
@@ -47,7 +48,7 @@ const MissionPrefsRight: FunctionComponent = () => {
   const [modified, setModified] = useState(false);
 
   useEffect(() => {
-    setModified(!_.isEqual(mission, missionFromDb));
+    setModified(isModified([{ ...mission, uuid: null }], [{ ...missionFromDb, uuid: null }]));
   }, [mission, missionFromDb]);
 
   const panelTypes: PanelTypes = {

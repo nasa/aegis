@@ -2,6 +2,7 @@ import { FunctionComponent, useEffect, useState } from "react";
 import stmStyles from "./stmEdit.module.css";
 import { deleteSTM, upsertSTM } from "http-client/stm";
 import { v4 as uuidv4 } from "uuid";
+import { roundDateToSecond } from "utils/formatting";
 
 interface STMProps {
   reloadSTMfromDB: (missionId: number) => void;
@@ -322,7 +323,12 @@ const NewObjectiveFields = (props: { missionId: number; reloadSTM: (id: number) 
 
   //add new objective
   async function addNewObjective() {
-    const upsertRecord: STMObjective = { ...newObjective, missionId: props.missionId };
+    const upsertRecord: STMObjective = {
+      ...newObjective,
+      missionId: props.missionId,
+      createdAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: roundDateToSecond(new Date()).toISOString(),
+    };
     await upsertSTM(props.missionId, upsertRecord, "Objective");
     setNewObjective({
       uuid: null,
@@ -384,7 +390,12 @@ const NewGoalFields = (props: {
 
   //add new goal
   async function addNewGoal() {
-    const upsertRecord: STMGoal = { ...newGoal, objectiveUuid: props.objectiveUUID };
+    const upsertRecord: STMGoal = {
+      ...newGoal,
+      objectiveUuid: props.objectiveUUID,
+      createdAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: roundDateToSecond(new Date()).toISOString(),
+    };
     await upsertSTM(props.missionId, upsertRecord, "Goal");
     setNewGoal({
       uuid: null,
@@ -448,7 +459,12 @@ const NewInvstgFields = (props: {
 
   //add new investigation
   async function addNewInvstg() {
-    const upsertRecord: STMInvestigation = { ...newInvstg, goalUuid: props.goalUUID };
+    const upsertRecord: STMInvestigation = {
+      ...newInvstg,
+      goalUuid: props.goalUUID,
+      createdAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: roundDateToSecond(new Date()).toISOString(),
+    };
     await upsertSTM(props.missionId, upsertRecord, "Investigation");
     setNewInvstg({
       uuid: null,

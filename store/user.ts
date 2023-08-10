@@ -10,20 +10,17 @@ export const userSlice = createSlice({
   name: "user",
   initialState,
   reducers: {
+    /* only called for populating store  */
     setUserStore: (state, action: { payload: UserState }) => {
       state.isLoggedIn = action.payload.isLoggedIn;
       state.user = action.payload.user;
       state.missionPerms = action.payload.missionPerms;
     },
+    /* only called for populating store  */
     setMissionPerms: (state, action: { payload: Permission }) => {
       state.missionPerms = action.payload;
-    },
-    clearUserStore: (state) => {
-      state.user = null;
-      state.isLoggedIn = false;
-      state.missionPerms = null;
     },
   },
 });
 
-export const { setUserStore, setMissionPerms, clearUserStore } = userSlice.actions;
+export const { setUserStore, setMissionPerms } = userSlice.actions;

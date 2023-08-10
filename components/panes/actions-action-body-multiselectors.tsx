@@ -17,14 +17,9 @@ export const EquipmentSelector: FunctionComponent<{
   uniqueId: string;
 }> = ({ equipmentItemsUsage, editMode, onChange, uniqueId }) => {
   const equipmentItems = useAppSelector(
-    (state: RootState) => state.mission.mission.equipmentItems,
+    (state) => state.mission.mission.equipmentItems,
     shallowEqual
   );
-
-  type EquipmentItemDisplay = {
-    name: string;
-    quantityUsed: number;
-  };
 
   const [equipmentItemDisplayList, setEquipmentItemDisplayList] = useState<EquipmentItemDisplay[]>(
     []

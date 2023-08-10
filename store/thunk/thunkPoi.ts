@@ -1,22 +1,10 @@
-import {
-  deletePoiByUuid,
-  duplicatePoi,
-  setPoiCalculatedFields,
-  setSelectedPOIRightNavItem,
-} from "store/poi";
+import { deletePoiByUuid, setPoiCalculatedFields, upsertPoiFromDb } from "store/poi";
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkGetElevation } from "./thunkElevation";
 import * as InternalAPI from "http-client/poi";
 import * as httpClient_action from "http-client/action";
-import {
-  deleteActionsFromDbByUuid,
-  upsertActions,
-  upsertActionsFromDb,
-  deleteActionsByUuid,
-  setActionsFromDb,
-} from "store/action";
-import deepEqual from "lodash/isEqual";
-import { obliteratePoi } from "store/cross-slice";
+import { upsertActions, deleteActionsByUuid, setActionsFromDb } from "store/action";
+import { obliteratePoi, saveNewPoi } from "store/cross-slice";
 import { setPoiEditMode, setPoisFromDb, setSelectedPoiUuid, upsertPoi } from "store/poi";
 import { setRightPanelOpen } from "store/interface";
 import { generateUniqueName } from "utils/names/unique-name";
@@ -24,7 +12,9 @@ import { v4 as uuidv4 } from "uuid";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { thunkCancelMarkerMapDirective } from "./thunkMap";
 import _ from "lodash";
-import { thunkDuplicateAction } from "./thunkAction";
+import { thunkDuplicateAction, thunkSaveActions } from "./thunkAction";
+import { roundDateToSecond } from "utils/formatting";
+import { isModified } from "utils/component-helpers";
 
 export const thunkUpdatePoiLocation = appCreateAsyncThunk<{
   location: AEGISPoint;
@@ -151,64 +141,26 @@ export const thunkSavePoi = appCreateAsyncThunk<{
   );
 
   //save poi to db
-  const poiUpsertResponse = await InternalAPI.upsertPOI(poi);
+  const poiUpsertResponse = await InternalAPI.upsertPOI({
+    ...poi,
+    updatedAt: roundDateToSecond(new Date()).toISOString(),
+  });
 
   if (poiUpsertResponse.status === "success") {
     // upsert the changed POI to the store
-    dispatch(upsertPoi(poiUpsertResponse.data));
+    dispatch(upsertPoi(poiUpsertResponse.data, true));
     // update the POI in the store with a  fresh copy of POIs from DB
-    const poiData = await InternalAPI.getPOIs(getState().mission.mission?.id);
-    if (poiData.data) {
-      dispatch(setPoisFromDb(poiData.data));
-    }
+    dispatch(upsertPoiFromDb(poiUpsertResponse.data));
   } else {
     throw new Error("Error upserting POI: " + poiUpsertResponse.message);
   }
 
   // find out if the actions in this poi have been modified and need to be persisted
-  const actionsModified = !deepEqual(poiActions, poiActionsFromDb);
+  const actionsModified = isModified(poiActions, poiActionsFromDb);
   if (actionsModified) {
-    //upsert Actions to db
-    const upsertedPoiActions: Action[] = [];
-    for (const actionToUpsert of poiActions) {
-      const actionUpsertResponse = await httpClient_action.upsertAction(actionToUpsert);
-      if (actionUpsertResponse.status !== "success") {
-        throw new Error("Error upserting poi actions " + actionUpsertResponse.message);
-      } else {
-        upsertedPoiActions.push(actionUpsertResponse.data);
-      }
-    }
-    // upsert the changed Action (with new updated dates) to the store
-    dispatch(upsertActions(upsertedPoiActions));
-
-    // clear the store copy of the db
-    dispatch(deleteActionsFromDbByUuid(poiActionsFromDb.map((a) => a.uuid)));
-    // filter out deleted actions using local state
-    const deletedStationActions: Action[] = poiActionsFromDb.filter((actionDb) => {
-      const found = poiActions.some((poiAction) => {
-        return poiAction.uuid === actionDb.uuid;
-      });
-      return !found;
-    });
-    // take array of deleted actions and delete them in the db
-    for (const deletedAction of deletedStationActions) {
-      const actionDeleteResponse = await httpClient_action.deleteAction(
-        deletedAction.uuid,
-        getState().mission.mission.id
-      );
-      if (actionDeleteResponse.status !== "success") {
-        throw new Error("Error deleting poi actions " + actionDeleteResponse.message);
-      }
-    }
-
-    // update the store copy of the db with a fresh copy from the DB
-    const actionData = await httpClient_action.getActions({
-      missionId: getState().mission.mission?.id,
-      poiUuid: poi.uuid,
-    });
-    if (actionData.data?.length > 0) {
-      dispatch(upsertActionsFromDb(actionData.data));
-    }
+    dispatch(
+      thunkSaveActions({ actions: poiActions, actionsFromDb: poiActionsFromDb, poiUuid: poi.uuid })
+    );
   }
 
   dispatch(setPoiEditMode({ poiUuid: poi.uuid, editMode: false }));
@@ -227,8 +179,8 @@ export const thunkPoiCancel = appCreateAsyncThunk<{
 
   if (poiFromDb) {
     // if selected poi is in the db, replace it with the one from the db (undoing any changes)
-    dispatch(upsertPoi(poiFromDb));
-    dispatch(upsertActions(poiActionsFromDb));
+    dispatch(upsertPoi(poiFromDb, true));
+    dispatch(upsertActions(poiActionsFromDb, true));
 
     //delete newly added actions that user doesn't want to save
     const addedActionsToDelete: Action[] = poiActions.filter(
@@ -325,16 +277,10 @@ export const thunkCreatePoi = appCreateAsyncThunk<void>(
       icon: "1F534",
       tags: [],
       status: "Candidate",
+      updatedAt: null,
+      createdAt: roundDateToSecond(new Date()).toISOString(),
     };
-    dispatch(upsertPoi(blankPoi));
-    // turn on edit mode for the new POI
-    dispatch(setPoiEditMode({ poiUuid: blankPoi.uuid, editMode: true }));
-    // select the newly created POI
-    dispatch(setSelectedPoiUuid(blankPoi.uuid));
-    // open right panel
-    dispatch(setRightPanelOpen(true));
-    // set the selected tab to the POI's info tab
-    dispatch(setSelectedPOIRightNavItem("info_panel"));
+    dispatch(saveNewPoi(blankPoi));
   }
 );
 
@@ -345,6 +291,8 @@ export const thunkDuplicatePoi = appCreateAsyncThunk<{ poi: POI }>(
     //duplicate poi
     const newPoi: POI = _.cloneDeep(poi);
     newPoi.uuid = uuidv4();
+    newPoi.updatedAt = null;
+    newPoi.createdAt = roundDateToSecond(new Date()).toISOString();
     newPoi.name = makeUniqueStringCopy(
       poi.name,
       getState().poi.pois.map((item) => item.name)
@@ -352,7 +300,6 @@ export const thunkDuplicatePoi = appCreateAsyncThunk<{ poi: POI }>(
 
     //duplicate actions
     const poiActions = getState().action.actions.filter((action) => action.poiUuid === poi?.uuid);
-
     const newActionOrderUuids = [];
     //if there's an order, preserve it.
     if (poi.actionOrderUuids) {
@@ -376,11 +323,6 @@ export const thunkDuplicatePoi = appCreateAsyncThunk<{ poi: POI }>(
       }
     }
     newPoi.actionOrderUuids = newActionOrderUuids; //save new order
-    dispatch(duplicatePoi(newPoi));
-
-    // open right panel
-    dispatch(setRightPanelOpen(true));
-    // set the selected tab to the POI's info tab
-    dispatch(setSelectedPOIRightNavItem("info_panel"));
+    dispatch(saveNewPoi(newPoi));
   }
 );

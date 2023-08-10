@@ -8,7 +8,7 @@ import Header from "components/interface/header";
 import { getMissions } from "http-client/mission";
 import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { decodeEmoji } from "utils/formatting";
+import { decodeEmoji, roundDateToSecond } from "utils/formatting";
 import { GeoJsonFeature, GeoJsonFile } from "typings/geojson";
 import { validators } from "components/interface/form/formValidators";
 
@@ -98,6 +98,8 @@ const PoiPage: NextPage = () => {
               lng: poi.properties.x ? poi.properties.x : poi.geometry.coordinates[0],
             },
             icon: emoji,
+            updatedAt: roundDateToSecond(new Date()).toISOString(),
+            createdAt: roundDateToSecond(new Date()).toISOString(),
           };
           const poiSet = await upsertPOI(poiData);
           if (poiSet.status !== "success") {

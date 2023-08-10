@@ -27,14 +27,17 @@ import {
   ExpandCollapseActionsButtons,
   GeographicUnitSelector,
 } from "../actions-action-body-multiselectors";
-import { thunkCreateActionTemplate } from "store/thunk/thunkMission";
+import {
+  thunkCreateActionTemplate,
+  thunkDeleteActionTemplate,
+  thunkUpdateActionTemplate,
+} from "store/thunk/thunkMission";
 import { collapseActions, expandActions } from "store/interface";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { toDecimal } from "utils/formatting";
 import STMSelector from "../stm-selector";
-import { deleteActionTemplateByUuid, upsertActionTemplate } from "store/mission";
 
 const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -122,7 +125,9 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                           }}
                           onSubmit={(value: string) => {
                             dispatch(
-                              upsertActionTemplate({ ...actionTemplate, templateName: value })
+                              thunkUpdateActionTemplate({
+                                actionTemplate: { ...actionTemplate, templateName: value },
+                              })
                             );
                           }}
                         />
@@ -136,7 +141,11 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                           size="sm"
                           onClick={(e) => {
                             if (window.confirm("Are you sure you want to delete this Template?")) {
-                              dispatch(deleteActionTemplateByUuid(actionTemplate.uuid));
+                              dispatch(
+                                thunkDeleteActionTemplate({
+                                  actionTemplateUuid: actionTemplate.uuid,
+                                })
+                              );
                               e.stopPropagation();
                             }
                           }}
@@ -167,9 +176,11 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                           selected={actionTemplate.type}
                                           onChange={(val) => {
                                             dispatch(
-                                              upsertActionTemplate({
-                                                ...actionTemplate,
-                                                type: val as ActionType,
+                                              thunkUpdateActionTemplate({
+                                                actionTemplate: {
+                                                  ...actionTemplate,
+                                                  type: val as ActionType,
+                                                },
                                               })
                                             );
                                           }}
@@ -210,9 +221,11 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                         }}
                                         onSubmit={(value: string) => {
                                           dispatch(
-                                            upsertActionTemplate({
-                                              ...actionTemplate,
-                                              name: value,
+                                            thunkUpdateActionTemplate({
+                                              actionTemplate: {
+                                                ...actionTemplate,
+                                                name: value,
+                                              },
                                             })
                                           );
                                         }}
@@ -237,7 +250,9 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                   ...actionTemplate,
                                   description: value,
                                 };
-                                dispatch(upsertActionTemplate(updatedAction));
+                                dispatch(
+                                  thunkUpdateActionTemplate({ actionTemplate: updatedAction })
+                                );
                               }}
                             />
                           </div>
@@ -281,9 +296,11 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                         }}
                                         onSubmit={(value: string) => {
                                           dispatch(
-                                            upsertActionTemplate({
-                                              ...actionTemplate,
-                                              durationLower: toDecimal(value),
+                                            thunkUpdateActionTemplate({
+                                              actionTemplate: {
+                                                ...actionTemplate,
+                                                durationLower: toDecimal(value),
+                                              },
                                             })
                                           );
                                         }}
@@ -322,9 +339,11 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                         }}
                                         onSubmit={(value: string) => {
                                           dispatch(
-                                            upsertActionTemplate({
-                                              ...actionTemplate,
-                                              durationUpper: toDecimal(value),
+                                            thunkUpdateActionTemplate({
+                                              actionTemplate: {
+                                                ...actionTemplate,
+                                                durationUpper: toDecimal(value),
+                                              },
                                             })
                                           );
                                         }}
@@ -374,9 +393,11 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                         }}
                                         onSubmit={(value: string) => {
                                           dispatch(
-                                            upsertActionTemplate({
-                                              ...actionTemplate,
-                                              priority: toDecimal(value),
+                                            thunkUpdateActionTemplate({
+                                              actionTemplate: {
+                                                ...actionTemplate,
+                                                priority: toDecimal(value),
+                                              },
                                             })
                                           );
                                         }}
@@ -424,9 +445,11 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                         }}
                                         onSubmit={(value: string) => {
                                           dispatch(
-                                            upsertActionTemplate({
-                                              ...actionTemplate,
-                                              mass: toDecimal(value),
+                                            thunkUpdateActionTemplate({
+                                              actionTemplate: {
+                                                ...actionTemplate,
+                                                mass: toDecimal(value),
+                                              },
                                             })
                                           );
                                         }}
@@ -453,9 +476,11 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                               editMode={editMode}
                               onChange={(e) => {
                                 dispatch(
-                                  upsertActionTemplate({
-                                    ...actionTemplate,
-                                    equipmentItemsUsage: e,
+                                  thunkUpdateActionTemplate({
+                                    actionTemplate: {
+                                      ...actionTemplate,
+                                      equipmentItemsUsage: e,
+                                    },
                                   })
                                 );
                               }}
@@ -478,9 +503,11 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                               editMode={editMode}
                               onChange={(e) => {
                                 dispatch(
-                                  upsertActionTemplate({
-                                    ...actionTemplate,
-                                    geographicUnitsUsage: e,
+                                  thunkUpdateActionTemplate({
+                                    actionTemplate: {
+                                      ...actionTemplate,
+                                      geographicUnitsUsage: e,
+                                    },
                                   })
                                 );
                               }}
@@ -505,7 +532,9 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                   ...actionTemplate,
                                   stmUuidRefs: stmUuidRefs,
                                 };
-                                dispatch(upsertActionTemplate(updatedAction));
+                                dispatch(
+                                  thunkUpdateActionTemplate({ actionTemplate: updatedAction })
+                                );
                               }}
                             />
                           </div>

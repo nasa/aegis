@@ -17,6 +17,7 @@ import { User as User_db } from "server/database/models/user.model";
 import UserFactory from "../factories/UserFactory";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
+import { roundDateToSecond } from "utils/formatting";
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -70,6 +71,8 @@ describe("Mission API Endpoint", () => {
 
   newMission = {
     name: "Mission Jest Test",
+    createdAt: roundDateToSecond(new Date()).toISOString(),
+    updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
 
   function mockRequestResponse(reqOptions: RequestOptions, resOptions?: ResponseOptions) {
