@@ -113,6 +113,7 @@ export const evaSlice = createSlice({
 
 export const {
   upsertEva,
+  upsertEvaFromDb,
   upsertEvas,
   upsertEvasFromDb,
   setEvas,
