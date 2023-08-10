@@ -15,6 +15,7 @@ import UserFactory from "../factories/UserFactory";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
 import logout from "pages/api/auth/logout";
+import { roundDateToSecond } from "utils/formatting";
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -41,6 +42,8 @@ describe("User API Endpoint", () => {
   let newUser: Partial<User> = {
     username: "Jest new user",
     password: "password",
+    createdAt: roundDateToSecond(new Date()).toISOString(),
+    updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
   function mockRequestResponse(reqOptions: RequestOptions, resOptions?: ResponseOptions) {
     const { req, res }: { req: ApiRequest; res: ApiResponse } = createMocks(reqOptions, resOptions);

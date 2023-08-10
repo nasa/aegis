@@ -23,6 +23,7 @@ import PoiFactory from "../factories/PoiFactory";
 
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
+import { roundDateToSecond } from "utils/formatting";
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -97,8 +98,8 @@ describe("Action API Endpoint", () => {
     mass: null,
     status: "Candidate",
     crewAssigned: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: roundDateToSecond(new Date()).toISOString(),
+    updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
 
   function mockRequestResponse(reqOptions: RequestOptions, resOptions?: ResponseOptions) {

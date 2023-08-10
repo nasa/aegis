@@ -11,7 +11,6 @@ import {
 import { Station as Station_db } from "server/database/models/station.model";
 import { Poi as Poi_db } from "server/database/models/poi.model";
 import _ from "lodash";
-import { roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
 
@@ -172,7 +171,6 @@ async function upsertStation(station: Station): Promise<Station> {
 
   const stationToUpsert = _.cloneDeep(station); //create a copy to manipulate
 
-  const updateDateString = roundDateToSecond(new Date()).toISOString();
   const convertedStation: EntityData<Station_db> = {
     uuid: stationToUpsert.uuid || uuidv4(),
     owner: stationToUpsert.ownerId,
@@ -190,8 +188,8 @@ async function upsertStation(station: Station): Promise<Station> {
     durationLower: stationToUpsert.durationLower,
     durationUpper: stationToUpsert.durationUpper,
     icon: stationToUpsert.icon,
-    updatedAt: new Date(stationToUpsert.createdAt || updateDateString),
-    createdAt: new Date(updateDateString),
+    updatedAt: new Date(stationToUpsert.updatedAt),
+    createdAt: new Date(stationToUpsert.createdAt),
   };
 
   //upsert station

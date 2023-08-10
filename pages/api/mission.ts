@@ -6,7 +6,6 @@ import { withORM, getEM } from "utils/mikro";
 import _ from "lodash";
 import { Mission as Mission_db } from "server/database/models/mission.model";
 import { EntityData, ForeignKeyConstraintViolationException } from "@mikro-orm/core";
-import { roundDateToSecond } from "utils/formatting";
 import { hasPerms } from "utils/permissions";
 
 /**
@@ -199,33 +198,25 @@ async function upsertMission(mission: Mission): Promise<Mission> {
     updatedAt: new Date(missionCopy.updatedAt),
     createdAt: new Date(missionCopy.createdAt),
   };
-  const updateDate = roundDateToSecond(new Date());
-  upsertRecord.updatedAt = updateDate;
 
+  let dbReferece: Mission_db;
   if (mission.id) {
     //update record
     upsertRecord.version++;
-    const upsertReference = await em.upsert(Mission_db, upsertRecord);
-    await em.persistAndFlush(upsertReference);
-    return {
-      ...upsertReference,
-      updatedAt: upsertReference.updatedAt.toISOString(),
-      createdAt: upsertReference.createdAt.toISOString(),
-    } as Mission;
+    dbReferece = await em.upsert(Mission_db, upsertRecord);
   } else {
     //insert record.
     //Can't use "upsert" to insert a new record if there's no other unique column in the table
     delete upsertRecord.id; //attempting to insert with an id of null will throw a mikro error. remove the property completely so mikro can give us a new id.
     upsertRecord.version = 1;
-    upsertRecord.createdAt = updateDate;
-    const createReference = em.create(Mission_db, upsertRecord);
-    await em.persistAndFlush(createReference);
-    return {
-      ...createReference,
-      updatedAt: createReference.updatedAt.toISOString(),
-      createdAt: createReference.createdAt.toISOString(),
-    } as Mission;
+    dbReferece = em.create(Mission_db, upsertRecord);
   }
+  await em.persistAndFlush(dbReferece);
+  return {
+    ...dbReferece,
+    updatedAt: dbReferece.updatedAt.toISOString(),
+    createdAt: dbReferece.createdAt.toISOString(),
+  } as Mission;
 }
 
 /**

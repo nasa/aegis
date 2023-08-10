@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { roundDateToSecond } from "utils/formatting";
 
 export const initialState: MissionState = {
   mission: null,
@@ -13,15 +14,32 @@ export const missionSlice = createSlice({
   name: "mission",
   initialState,
   reducers: {
+    upsertMission: {
+      reducer: (state, action: { payload: Mission }) => {
+        state.mission = action.payload;
+      },
+      prepare: (mission: Mission, preserveModifiedDate: boolean = false) => {
+        if (preserveModifiedDate) {
+          return { payload: mission };
+        } else {
+          return {
+            payload: { ...mission, updatedAt: roundDateToSecond(new Date()).toISOString() },
+          };
+        }
+      },
+    },
+    /* only called for populating store  */
     setMission: (state, action: { payload: Mission }) => {
       state.mission = action.payload;
     },
     setMissionFromDb: (state, action: { payload: Mission }) => {
       state.missionFromDb = action.payload;
     },
+    /* only called for populating store  */
     setLayers: (state, action: { payload: Layer[] }) => {
       state.layers = action.payload;
     },
+    /* only called for populating store  */
     setSublayers: (state, action: { payload: Sublayer[] }) => {
       state.sublayers = action.payload;
     },
@@ -40,32 +58,15 @@ export const missionSlice = createSlice({
         );
       }
     },
-    upsertActionTemplate: (state, action: { payload: ActionTemplate }) => {
-      const actionTemplates = state.mission.actionTemplates || [];
-      const index = actionTemplates.findIndex((t) => t.uuid === action.payload.uuid);
-      if (index >= 0) {
-        actionTemplates[index] = action.payload;
-      } else {
-        actionTemplates.push(action.payload);
-      }
-      state.mission.actionTemplates = actionTemplates;
-    },
-    deleteActionTemplateByUuid: (state, action: { payload: string }) => {
-      state.mission.actionTemplates.splice(
-        state.mission.actionTemplates.findIndex((template) => template.uuid === action.payload),
-        1
-      );
-    },
   },
 });
 
 export const {
+  upsertMission,
   setMission,
   setMissionFromDb,
   setLayers,
   setSublayers,
   setSelectedMissionRightNavItem,
   setMissionSectionEditing,
-  upsertActionTemplate,
-  deleteActionTemplateByUuid,
 } = missionSlice.actions;

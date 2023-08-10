@@ -2,7 +2,7 @@ import { ModifiedIndicator } from "components/interface/_global-elements";
 import { Dropdown } from "components/interface/form/globalFields";
 import { FunctionComponent } from "react";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
-import { setSelectedEvaRightNavItem, setSelectedEvaUuid, setEvaSequence } from "store/eva";
+import { setSelectedEvaRightNavItem, setSelectedEvaUuid } from "store/eva";
 import evaStyles from "./eva.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowDown, faArrowUp, faTrash } from "@fortawesome/free-solid-svg-icons";
@@ -10,9 +10,12 @@ import { decodeEmoji, hhmmFromMinutes } from "utils/formatting";
 import { setRightPanelOpen } from "store/interface";
 import { setAllHoverUuids } from "store/playheadHover";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkUpdateAllTraversesForEVA } from "store/thunk/thunkTraverse";
 import { selectEVASequenceItem } from "store/cross-slice";
-import { thunkChangeStationInEva, thunkDeleteStationFromEva } from "store/thunk/thunkEva";
+import {
+  thunkChangeStationInEva,
+  thunkDeleteStationFromEva,
+  thunkReorderStationInEva,
+} from "store/thunk/thunkEva";
 
 const EvaItemSequence: FunctionComponent<{
   evaUuid: string;
@@ -41,28 +44,25 @@ const EvaItemSequence: FunctionComponent<{
   const hoverItemUuid = useAppSelector((state) => state.playheadHover.leftPanelItemUuid, refEqual);
 
   const handleMoveStationUp = (index: number) => {
-    const newEvaSequence = [...evaSequence];
-
-    // swap the item at index -2 with the item at index
-    const stationBeforeIndex = index - 2;
-    const tempStation = newEvaSequence[stationBeforeIndex];
-    newEvaSequence[stationBeforeIndex] = newEvaSequence[index];
-    newEvaSequence[index] = tempStation;
-
-    dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
-    dispatch(thunkUpdateAllTraversesForEVA({ evaSequence: newEvaSequence }));
+    dispatch(
+      thunkReorderStationInEva({
+        direction: "up",
+        evaSequence: evaSequence,
+        stationIndex: index,
+        evaUuid: evaUuid,
+      })
+    );
   };
 
   const handleMoveStationDown = (index: number) => {
-    const newEvaSequence = [...evaSequence];
-
-    // swap the item at index +2 with the item at index
-    const stationBeforeIndex = index + 2;
-    const tempStation = newEvaSequence[stationBeforeIndex];
-    newEvaSequence[stationBeforeIndex] = newEvaSequence[index];
-    newEvaSequence[index] = tempStation;
-    dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
-    dispatch(thunkUpdateAllTraversesForEVA({ evaSequence: newEvaSequence }));
+    dispatch(
+      thunkReorderStationInEva({
+        direction: "down",
+        evaSequence: evaSequence,
+        stationIndex: index,
+        evaUuid: evaUuid,
+      })
+    );
   };
 
   return (
@@ -138,14 +138,6 @@ const EvaItemSequence: FunctionComponent<{
                         obj2={[
                           stationsFromDb.find((station) => station.uuid === sequenceItem.uuid),
                         ]}
-                        svgStyle={{
-                          width: "15",
-                          height: "12",
-                          cx: "5",
-                          cy: "9",
-                          r: "3",
-                          fill: "#ff0000",
-                        }}
                       />
                       <div className={evaStyles.evaItemDuration}>
                         {hhmmFromMinutes(
@@ -247,14 +239,6 @@ const EvaItemSequence: FunctionComponent<{
                       obj2={[
                         traversesFromDb.find((traverse) => traverse.uuid === sequenceItem.uuid),
                       ]}
-                      svgStyle={{
-                        width: "15",
-                        height: "12",
-                        cx: "5",
-                        cy: "9",
-                        r: "3",
-                        fill: "#ff0000",
-                      }}
                     />
                     <div className={evaStyles.evaItemDuration}>
                       {hhmmFromMinutes(

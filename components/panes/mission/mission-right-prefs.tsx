@@ -1,4 +1,4 @@
-import { FunctionComponent, useRef } from "react";
+import { FunctionComponent, useCallback, useRef, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 
@@ -22,7 +22,7 @@ import {
   InLineEditInput,
 } from "components/interface/form/globalFields";
 import { regExValidators, validators } from "components/interface/form/formValidators";
-import { setMission } from "store/mission";
+import { upsertMission } from "store/mission";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { updateMapDirective } from "store/map";
 import { toDecimal } from "utils/formatting";
@@ -32,6 +32,8 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
   const stationsEditing = useAppSelector((state) => state.station.stationsEditing, shallowEqual);
+
+  const [isDragging, setIsDragging] = useState(false);
 
   const thisMapDirective = mapDirective?.uuid === "lander" ? mapDirective : null;
 
@@ -87,10 +89,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     dispatchMissionMapAction("cancelEditMarker");
   };
 
-  const handleOnChangeSunAzimuth = useRef(
+  const sunThrottledFunc = useRef(
     _.throttle((mission: Mission, value: number) => {
       dispatch(
-        setMission({
+        upsertMission({
           ...mission,
           sunAzimuth: value,
         })
@@ -98,15 +100,30 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     }, 50)
   );
 
-  const handleOnChangeEarthAzimuth = useRef(
+  const handleOnChangeSunAzimuth = useCallback(
+    (mission: Mission, value: number) => {
+      //hook into isDragging to prevent this from triggering when values are reset via "Cancel" button
+      if (isDragging) sunThrottledFunc.current(mission, value);
+    },
+    [sunThrottledFunc, isDragging]
+  );
+
+  const earthThrottledFunc = useRef(
     _.throttle((mission: Mission, value: number) => {
       dispatch(
-        setMission({
+        upsertMission({
           ...mission,
           earthAzimuth: value,
         })
       );
     }, 50)
+  );
+
+  const handleOnChangeEarthAzimuth = useCallback(
+    (mission: Mission, value: number) => {
+      if (isDragging) earthThrottledFunc.current(mission, value);
+    },
+    [earthThrottledFunc, isDragging]
   );
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
@@ -132,7 +149,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 }}
                 styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                 onSubmit={(value) => {
-                  dispatch(setMission({ ...mission, name: value }));
+                  dispatch(upsertMission({ ...mission, name: value }));
                 }}
               />
             </div>
@@ -153,7 +170,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 }}
                 styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                 onSubmit={(value) => {
-                  dispatch(setMission({ ...mission, missionBanner: value }));
+                  dispatch(upsertMission({ ...mission, missionBanner: value }));
                 }}
               />
             </div>
@@ -168,7 +185,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 editing={editMode}
                 onChange={(value) => {
                   dispatch(
-                    setMission({
+                    upsertMission({
                       ...mission,
                       description: value,
                     })
@@ -263,7 +280,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
                               dispatch(
-                                setMission({
+                                upsertMission({
                                   ...mission,
                                   landerLocation: {
                                     ...mission.landerLocation,
@@ -302,7 +319,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
                               dispatch(
-                                setMission({
+                                upsertMission({
                                   ...mission,
                                   landerLocation: {
                                     ...mission.landerLocation,
@@ -350,7 +367,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         editable={editMode}
                         label="Azimuth"
                         onChange={(value: number) => {
-                          handleOnChangeSunAzimuth.current(mission, value);
+                          handleOnChangeSunAzimuth(mission, value);
+                        }}
+                        isDragging={(value: boolean) => {
+                          setIsDragging(value);
                         }}
                         icon={faSun}
                       />
@@ -365,7 +385,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                 editable={editMode}
                                 onChange={(e) => {
                                   dispatch(
-                                    setMission({ ...mission, sunAzimuthVisible: e.target.checked })
+                                    upsertMission({
+                                      ...mission,
+                                      sunAzimuthVisible: e.target.checked,
+                                    })
                                   );
                                 }}
                                 label="Visible:"
@@ -400,9 +423,12 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         editable={editMode}
                         label="Azimuth"
                         onChange={(value: number) => {
-                          handleOnChangeEarthAzimuth.current(mission, value);
+                          handleOnChangeEarthAzimuth(mission, value);
                         }}
                         icon={faEarthAmerica}
+                        isDragging={(value: boolean) => {
+                          setIsDragging(value);
+                        }}
                       />
                     </div>
                     <div className={paneStyles.displayFieldLabel} style={{ marginLeft: "18px" }}>
@@ -415,7 +441,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                 editable={editMode}
                                 onChange={(e) => {
                                   dispatch(
-                                    setMission({
+                                    upsertMission({
                                       ...mission,
                                       earthAzimuthVisible: e.target.checked,
                                     })
@@ -474,7 +500,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           value={mission.defaultEvaDuration?.toString()}
                           onSubmit={(val: string) => {
                             dispatch(
-                              setMission({ ...mission, defaultEvaDuration: toDecimal(val) })
+                              upsertMission({ ...mission, defaultEvaDuration: toDecimal(val) })
                             );
                           }}
                         />
@@ -507,7 +533,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           }}
                           value={mission.traverseSpeed?.toString()}
                           onSubmit={(val: string) => {
-                            dispatch(setMission({ ...mission, traverseSpeed: toDecimal(val) }));
+                            dispatch(upsertMission({ ...mission, traverseSpeed: toDecimal(val) }));
                           }}
                         />
                       </div>
@@ -539,7 +565,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           }}
                           value={mission.walkbackSpeed?.toString()}
                           onSubmit={(val: string) => {
-                            dispatch(setMission({ ...mission, walkbackSpeed: toDecimal(val) }));
+                            dispatch(upsertMission({ ...mission, walkbackSpeed: toDecimal(val) }));
                           }}
                         />
                       </div>

@@ -132,14 +132,6 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
           <ModifiedIndicator
             obj1={[eva, ...traversesInEva]}
             obj2={[thisEvaFromDb, ...traversesInEvaFromDb]}
-            svgStyle={{
-              width: "15",
-              height: "12",
-              cx: "5",
-              cy: "9",
-              r: "3",
-              fill: "#ff0000",
-            }}
           />
 
           <div className={evaStyles.nameItemRightSpacer} />

@@ -18,6 +18,7 @@ import { Traverse as Traverse_db } from "server/database/models/traverse.model";
 import TraverseFactory from "../factories/TraverseFactory";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
+import { roundDateToSecond } from "utils/formatting";
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -70,8 +71,8 @@ describe("EVA API Endpoint", () => {
     predictedDurationUpper: 0,
     status: "Candidate",
     description: "",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: roundDateToSecond(new Date()).toISOString(),
+    updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
   function mockRequestResponse(reqOptions: RequestOptions, resOptions?: ResponseOptions) {
     const { req, res }: { req: ApiRequest; res: ApiResponse } = createMocks(reqOptions, resOptions);

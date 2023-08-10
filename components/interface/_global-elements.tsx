@@ -5,15 +5,29 @@ import styles from "./_global-elements.module.css";
 import _ from "lodash";
 import { longdateFromDateString } from "utils/formatting";
 import React from "react";
+import { isModified } from "utils/component-helpers";
+
+type UuidObject = Object & MustContain;
 
 export const ModifiedIndicator: FunctionComponent<{
-  obj1: Object;
-  obj2: Object;
-  svgStyle: { width: string; height: string; cx: string; cy: string; r: string; fill: string };
-}> = ({ obj1, obj2, svgStyle }) => {
-  const diff = _.differenceWith(_.sortBy(obj2, ["uuid"]), _.sortBy(obj1, ["uuid"]), _.isEqual);
+  obj1: UuidObject[];
+  obj2: UuidObject[];
+  svgStyle?: { width: string; height: string; cx: string; cy: string; r: string; fill: string };
+}> = ({
+  obj1,
+  obj2,
+  svgStyle = {
+    width: "15",
+    height: "12",
+    cx: "5",
+    cy: "9",
+    r: "3",
+    fill: "#ff0000",
+  },
+}) => {
+  const isDiff = isModified(obj1, obj2);
 
-  if (diff && diff.length === 0) {
+  if (!isDiff) {
     return <></>;
   } else {
     return (

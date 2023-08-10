@@ -1,17 +1,13 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import * as InternalAPI from "http-client/mission";
-import { sortBy } from "lodash";
-import {
-  setMission,
-  setMissionFromDb,
-  setMissionSectionEditing,
-  upsertActionTemplate,
-} from "store/mission";
+import { cloneDeep, sortBy } from "lodash";
+import { upsertMission, setMissionFromDb, setMissionSectionEditing } from "store/mission";
 import { thunkGetElevation } from "./thunkElevation";
 import { thunkFullUpdateWalkback, thunkSaveStation } from "./thunkStation";
 import { setPresetUIStates } from "store/preset";
 import { thunkSavePreset } from "./thunkPreset";
 import { setMapCircleControls } from "store/map";
+import { roundDateToSecond } from "utils/formatting";
 import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
 
@@ -20,7 +16,7 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
   async (_, { dispatch, getState }) => {
     const mission = getState().mission.mission;
 
-    //Alphabetize the equipmentItems by name
+    //Alphabetize the items by name
     const sortedEquipmentItems = sortBy(mission.equipmentItems, "name");
     const sortedGeoUnits = sortBy(mission.geographicUnits, "name");
     const sortedLanderRadii = sortBy(mission.landerRadii, "radius");
@@ -33,17 +29,19 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
       geographicUnits: sortedGeoUnits,
       landerRadii: sortedLanderRadii,
       actionTemplates: sortedTemplates,
+      updatedAt: roundDateToSecond(new Date()).toISOString(),
     });
 
     if (upsertResponse.status === "success") {
       // update the db copy in the store
       const mission = upsertResponse.data;
+      dispatch(upsertMission(mission, true));
       dispatch(setMissionFromDb(mission));
-      dispatch(setMission(mission));
     } else {
       throw new Error("Error saving mission: " + upsertResponse.message);
     }
 
+    //sync up presets circle layers
     getState().preset.presets.forEach((preset) => {
       const newPreset: Preset = { ...preset };
       const oldPresetUIStates: PresetUIStates = getState().preset.presetsUIStates[preset.uuid];
@@ -115,7 +113,7 @@ export const thunkMissionCancel = appCreateAsyncThunk<void>(
   "missionCancel",
   async (_, { dispatch, getState }) => {
     const missionFromDb = getState().mission.missionFromDb;
-    dispatch(setMission(missionFromDb));
+    dispatch(upsertMission(missionFromDb, true));
     dispatch(setMissionSectionEditing({ section: "prefs", editMode: false }));
   }
 );
@@ -137,7 +135,7 @@ export const thunkUpdateLanderLocation = appCreateAsyncThunk<{
     const elevation = thunkResponse.payload as number;
     //upsert lander location and elevation
     dispatch(
-      setMission({
+      upsertMission({
         ...getState().mission.mission,
         landerLocation: location,
         landerElevationMeters: elevation,
@@ -191,11 +189,37 @@ export const thunkCreateActionTemplate = appCreateAsyncThunk<void>(
       crewAssigned: [],
       mass: null,
       priority: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
 
-    //upsert action
-    dispatch(upsertActionTemplate(blankActionTemplate));
+    //upsert action template
+    const actionTemplates = cloneDeep(getState().mission.mission.actionTemplates) || [];
+    actionTemplates.push(blankActionTemplate);
+    dispatch(upsertMission({ ...getState().mission.mission, actionTemplates: actionTemplates }));
+  }
+);
+
+export const thunkUpdateActionTemplate = appCreateAsyncThunk<{ actionTemplate: ActionTemplate }>(
+  "updateActionTemplate",
+  async ({ actionTemplate }, { dispatch, getState }) => {
+    const actionTemplates = cloneDeep(getState().mission.mission.actionTemplates) || [];
+    const index = actionTemplates.findIndex((t) => t.uuid === actionTemplate.uuid);
+    if (index >= 0) {
+      actionTemplate.updatedAt = roundDateToSecond(new Date()).toISOString();
+      actionTemplates[index] = actionTemplate;
+    }
+
+    dispatch(upsertMission({ ...getState().mission.mission, actionTemplates: actionTemplates }));
+  }
+);
+
+export const thunkDeleteActionTemplate = appCreateAsyncThunk<{ actionTemplateUuid: string }>(
+  "deleteActionTemplate",
+  async ({ actionTemplateUuid }, { dispatch, getState }) => {
+    const newActionTemplates = getState().mission.mission.actionTemplates?.filter(
+      (item) => item.uuid !== actionTemplateUuid
+    );
+    dispatch(upsertMission({ ...getState().mission.mission, actionTemplates: newActionTemplates }));
   }
 );

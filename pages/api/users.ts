@@ -7,7 +7,6 @@ import _ from "lodash";
 import { EntityData } from "@mikro-orm/core";
 import { User as User_db } from "server/database/models/user.model";
 import bcrypt from "bcryptjs";
-import { roundDateToSecond } from "utils/formatting";
 
 const handleUser: NextApiHandler<WrappedResponse<User[] | User>> = async (
   req,
@@ -114,9 +113,6 @@ export async function upsertUser(user: User): Promise<User> {
     createdAt: new Date(userCopy.createdAt),
   };
 
-  const updateDate = roundDateToSecond(new Date());
-  upsertRecord.updatedAt = updateDate;
-
   if (userCopy.id) {
     let existingUser = await em.findOne(User_db, { id: userCopy.id });
 
@@ -136,7 +132,6 @@ export async function upsertUser(user: User): Promise<User> {
       createdAt: existingUser.createdAt.toISOString(),
     } as User;
   } else {
-    upsertRecord.createdAt = updateDate;
     const createReference = em.create(User_db, upsertRecord);
     await em.persistAndFlush(createReference);
     return {
