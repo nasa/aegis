@@ -643,7 +643,7 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
   "stationCreate",
   async (_, { dispatch, getState }) => {
     const randomName = generateUniqueName({
-      dictName: "countries",
+      dictName: "lotr",
       existingNames: getState().station.stations.map((item) => item.name),
     });
 

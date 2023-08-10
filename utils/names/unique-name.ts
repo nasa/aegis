@@ -8,6 +8,7 @@ import {
   starWars,
 } from "unique-names-generator";
 import starTrek from "./star-trek";
+import lotr from "./lotr";
 const profanityFilter = require("leo-profanity");
 
 type DictName =
@@ -17,7 +18,8 @@ type DictName =
   | "countries"
   | "names"
   | "starWars"
-  | "starTrek";
+  | "starTrek"
+  | "lotr";
 
 export function generateUniqueName({
   dictName,
@@ -50,6 +52,9 @@ export function generateUniqueName({
         break;
       case "starTrek":
         dict = starTrek;
+        break;
+      case "lotr":
+        dict = lotr;
         break;
       default:
         break;
