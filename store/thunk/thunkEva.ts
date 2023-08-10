@@ -28,6 +28,7 @@ import _ from "lodash";
 import { thunkFullUpdateTraverse, thunkUpdateTraversesAroundStation } from "./thunkTraverse";
 import { roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
+import { mergeEquipmentItems } from "utils/store";
 
 export const thunkCreateEvasCalculatedFields = appCreateAsyncThunk<void>(
   "createEvasCalculatedFields",
@@ -86,6 +87,7 @@ export const thunkCreateEvasCalculatedFields = appCreateAsyncThunk<void>(
           durationLower: 0,
           durationUpper: 0,
         },
+        equipmentItems: [],
       };
 
       for (const seqItem of evaSequence) {
@@ -117,6 +119,10 @@ export const thunkCreateEvasCalculatedFields = appCreateAsyncThunk<void>(
           evaCalculatedFields.totalDwellTime.durationUpper +=
             thisStationCalculatedFields.totalDwellTime.durationUpper;
           evaCalculatedFields.actionCount += thisStationCalculatedFields.actionCount;
+          evaCalculatedFields.equipmentItems = mergeEquipmentItems(
+            thisStationCalculatedFields.equipmentItems,
+            evaCalculatedFields.equipmentItems
+          );
         } else if (thisTraverseCalculatedFields) {
           evaCalculatedFields.totalTraverseTime += thisTraverseCalculatedFields.durationMinutes;
           evaCalculatedFields.totalTraverseDistanceMeters +=

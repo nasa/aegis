@@ -258,14 +258,6 @@ type ActionParentUuid = {
   stationUuid?: string;
 };
 
-/**
- * Equipment needed to perform an action.
- */
-type EquipmentItemUsage = {
-  uuid: string;
-  quantityUsed: number;
-};
-
 type ActionType = "measurement" | "observation" | "sample" | "photo" | "other";
 
 // used for display of time ranges

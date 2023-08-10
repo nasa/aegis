@@ -1,6 +1,6 @@
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
 import { InLineEditInput } from "components/interface/form/globalFields";
-import { FunctionComponent } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { upsertEva } from "store/eva";
@@ -8,7 +8,12 @@ import { shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { formatNumberWithCommas, toDecimal } from "utils/formatting";
-import { faCalculator, faMessage, faQuestionCircle } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCalculator,
+  faMessage,
+  faQuestionCircle,
+  faToolbox,
+} from "@fortawesome/free-solid-svg-icons";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { regExValidators, validators } from "components/interface/form/formValidators";
 import CalculatedDwell from "../calculated-dwell";
@@ -28,6 +33,39 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     (state) => state.eva.calculatedFields.find((calculated) => calculated.uuid === selectedEvaUuid),
     shallowEqual
   );
+  const missionEquipItems = useAppSelector(
+    (state) => state.mission.mission.equipmentItems,
+    shallowEqual
+  );
+
+  const [consumablesCol1, setConsumablesCol1] = useState<EquipmentItemDisplay[]>(null);
+  const [consumablesCol2, setConsumablesCol2] = useState<EquipmentItemDisplay[]>(null);
+
+  //split, sort, and pull names for each equipment item
+  useEffect(() => {
+    if (!evaCalculatedFields.equipmentItems || !missionEquipItems) return;
+    //get names
+    const consumablesDisplay: EquipmentItemDisplay[] = [];
+    evaCalculatedFields.equipmentItems?.forEach((equipItem) => {
+      //find item in mission
+      const missionEquipItem = missionEquipItems.find((item) => item.uuid === equipItem.uuid);
+      if (missionEquipItem.singleUse) {
+        consumablesDisplay.push({
+          name: missionEquipItem.name,
+          quantityUsed: equipItem.quantityUsed,
+        });
+      }
+    });
+
+    //sort by name
+    consumablesDisplay.sort((a, b) => {
+      return a.name.localeCompare(b.name);
+    });
+
+    //split
+    setConsumablesCol1(consumablesDisplay.slice(0, Math.ceil(consumablesDisplay.length / 2)));
+    setConsumablesCol2(consumablesDisplay.slice(Math.ceil(consumablesDisplay.length / 2)));
+  }, [evaCalculatedFields.equipmentItems, missionEquipItems]);
 
   return (
     <div className={paneStyles.rightBody}>
@@ -134,6 +172,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               </div>
             </div>
           </div>
+
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
               <SubpanelHeading icon={faCalculator}>Calculated Totals</SubpanelHeading>
@@ -228,6 +267,58 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               </div>
             )}
           </div>
+
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+              <SubpanelHeading icon={faToolbox}>Consumable Equipment Totals</SubpanelHeading>
+            </div>
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable}>
+                  {consumablesCol1 &&
+                    consumablesCol1.map((equipmentItem, index) => {
+                      return (
+                        <div
+                          className={paneStyles.panelColumnTableRow}
+                          key={`${equipmentItem.name}${index}`}
+                        >
+                          <div className={paneStyles.panelColumnTableCellLeft}>
+                            <div className={paneStyles.displayFieldLabel}>{equipmentItem.name}</div>
+                          </div>
+                          <div className={paneStyles.panelColumnTableCell}>
+                            <div className={paneStyles.displayFieldValue}>
+                              {equipmentItem.quantityUsed ? `${equipmentItem.quantityUsed}` : null}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                <div className={paneStyles.panelColumnTable}>
+                  {consumablesCol2 &&
+                    consumablesCol2.map((equipmentItem, index) => {
+                      return (
+                        <div
+                          className={paneStyles.panelColumnTableRow}
+                          key={`${equipmentItem.name}${index}`}
+                        >
+                          <div className={paneStyles.panelColumnTableCellLeft}>
+                            <div className={paneStyles.displayFieldLabel}>{equipmentItem.name}</div>
+                          </div>
+                          <div className={paneStyles.panelColumnTableCell}>
+                            <div className={paneStyles.displayFieldValue}>
+                              {equipmentItem.quantityUsed ? `${equipmentItem.quantityUsed}` : null}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSection2Column}>
               <div className={paneStyles.panelColumnTable}>
