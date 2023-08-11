@@ -43,10 +43,10 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
 
   //split, sort, and pull names for each equipment item
   useEffect(() => {
-    if (!evaCalculatedFields.equipmentItems || !missionEquipItems) return;
+    if (!evaCalculatedFields?.equipmentItems || !missionEquipItems) return;
     //get names
     const consumablesDisplay: EquipmentItemDisplay[] = [];
-    evaCalculatedFields.equipmentItems?.forEach((equipItem) => {
+    evaCalculatedFields?.equipmentItems?.forEach((equipItem) => {
       //find item in mission
       const missionEquipItem = missionEquipItems.find((item) => item.uuid === equipItem.uuid);
       if (missionEquipItem.singleUse) {
@@ -65,7 +65,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     //split
     setConsumablesCol1(consumablesDisplay.slice(0, Math.ceil(consumablesDisplay.length / 2)));
     setConsumablesCol2(consumablesDisplay.slice(Math.ceil(consumablesDisplay.length / 2)));
-  }, [evaCalculatedFields.equipmentItems, missionEquipItems]);
+  }, [evaCalculatedFields?.equipmentItems, missionEquipItems]);
 
   return (
     <div className={paneStyles.rightBody}>
