@@ -8,6 +8,7 @@ import {
   faMessage,
   faQuestionCircle,
   faRoute,
+  faToolbox,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
@@ -70,8 +71,40 @@ const Info_Panel: FunctionComponent<{
       state.station.calculatedFields.find((calculated) => calculated.uuid === selectedStation.uuid),
     shallowEqual
   );
+  const missionEquipItems = useAppSelector(
+    (state) => state.mission.mission.equipmentItems,
+    shallowEqual
+  );
 
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
+  const [consumablesCol1, setConsumablesCol1] = useState<EquipmentItemDisplay[]>(null);
+  const [consumablesCol2, setConsumablesCol2] = useState<EquipmentItemDisplay[]>(null);
+
+  //split, sort, and pull names for each equipment item
+  useEffect(() => {
+    if (!calculatedFields.equipmentItems || !missionEquipItems) return;
+    //get names
+    const consumablesDisplay: EquipmentItemDisplay[] = [];
+    calculatedFields.equipmentItems?.forEach((equipItem) => {
+      //find item in mission
+      const missionEquipItem = missionEquipItems.find((item) => item.uuid === equipItem.uuid);
+      if (missionEquipItem.singleUse) {
+        consumablesDisplay.push({
+          name: missionEquipItem.name,
+          quantityUsed: equipItem.quantityUsed,
+        });
+      }
+    });
+
+    //sort by name
+    consumablesDisplay.sort((a, b) => {
+      return a.name.localeCompare(b.name);
+    });
+
+    //split
+    setConsumablesCol1(consumablesDisplay.slice(0, Math.ceil(consumablesDisplay.length / 2)));
+    setConsumablesCol2(consumablesDisplay.slice(Math.ceil(consumablesDisplay.length / 2)));
+  }, [calculatedFields.equipmentItems, missionEquipItems]);
 
   useEffect(() => {
     if (elevationPendingIndex > -1) {
@@ -201,6 +234,7 @@ const Info_Panel: FunctionComponent<{
               />
             </div>
           </div>
+
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "6px" }}>
               <SubpanelHeading icon={faQuestionCircle}>Estimated Dwell Time</SubpanelHeading>
@@ -288,6 +322,7 @@ const Info_Panel: FunctionComponent<{
               </div>
             </div>
           </div>
+
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
               <SubpanelHeading icon={faCalculator}>Calculated Totals</SubpanelHeading>
@@ -373,31 +408,31 @@ const Info_Panel: FunctionComponent<{
                     )}
                     {selectedStation.poiUuids?.length > 0 ? (
                       saveButtonState !== "pending" && (
-                        <>
-                          <Button
-                            onClick={() => {
-                              handleCalcCentroid();
-                            }}
-                            label="POIs Centroid"
-                            style={{ width: "95px" }}
-                          />
-                          <Button
-                            onClick={async () => {
-                              if (landerLocation?.lat && landerLocation?.lng) {
-                                await dispatch(
-                                  thunkUpdateStationLocation({
-                                    location: landerLocation,
-                                    stationUuid: selectedStation.uuid,
-                                  })
-                                );
-                              } else {
-                                alert("No lander location specified for this mission");
-                              }
-                            }}
-                            label="Set to Lander"
-                            style={{ width: "95px" }}
-                          />
-                        </>
+                        <Button
+                          onClick={() => {
+                            handleCalcCentroid();
+                          }}
+                          label="POIs Centroid"
+                          style={{ width: "95px" }}
+                        />
+                      )
+                    ) : (
+                      <></>
+                    )}
+                    {landerLocation?.lat && landerLocation?.lng ? (
+                      saveButtonState !== "pending" && (
+                        <Button
+                          onClick={async () => {
+                            await dispatch(
+                              thunkUpdateStationLocation({
+                                location: landerLocation,
+                                stationUuid: selectedStation.uuid,
+                              })
+                            );
+                          }}
+                          label="Set to Lander"
+                          style={{ width: "95px" }}
+                        />
                       )
                     ) : (
                       <></>
@@ -671,6 +706,58 @@ const Info_Panel: FunctionComponent<{
               </div>
             </div>
           </div>
+
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+              <SubpanelHeading icon={faToolbox}>Consumable Equipment Totals</SubpanelHeading>
+            </div>
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable}>
+                  {consumablesCol1 &&
+                    consumablesCol1.map((equipmentItem, index) => {
+                      return (
+                        <div
+                          className={paneStyles.panelColumnTableRow}
+                          key={`${equipmentItem.name}${index}`}
+                        >
+                          <div className={paneStyles.panelColumnTableCellLeft}>
+                            <div className={paneStyles.displayFieldLabel}>{equipmentItem.name}</div>
+                          </div>
+                          <div className={paneStyles.panelColumnTableCell}>
+                            <div className={paneStyles.displayFieldValue}>
+                              {equipmentItem.quantityUsed ? `${equipmentItem.quantityUsed}` : null}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                <div className={paneStyles.panelColumnTable}>
+                  {consumablesCol2 &&
+                    consumablesCol2.map((equipmentItem, index) => {
+                      return (
+                        <div
+                          className={paneStyles.panelColumnTableRow}
+                          key={`${equipmentItem.name}${index}`}
+                        >
+                          <div className={paneStyles.panelColumnTableCellLeft}>
+                            <div className={paneStyles.displayFieldLabel}>{equipmentItem.name}</div>
+                          </div>
+                          <div className={paneStyles.panelColumnTableCell}>
+                            <div className={paneStyles.displayFieldValue}>
+                              {equipmentItem.quantityUsed ? `${equipmentItem.quantityUsed}` : null}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSection2Column}>
               <div className={paneStyles.panelColumnTable}>

@@ -40,3 +40,30 @@ export function setAllLayerControlsInvisible(
   });
   return newLayerControls;
 }
+
+/**
+ * Add items if they don't exist. If they do, increments quantity
+ * @param equipItemUsage items to add in
+ * @param totalEquipItems the array to add the items into
+ * @returns
+ */
+export function mergeEquipmentItems(
+  equipItemUsage: EquipmentItemUsage[],
+  totalEquipItems: EquipmentItemUsage[]
+): EquipmentItemUsage[] {
+  if (!equipItemUsage) return totalEquipItems;
+
+  for (const itemUsage of equipItemUsage) {
+    const indexFound = totalEquipItems.findIndex((i) => i.uuid === itemUsage.uuid);
+    if (indexFound >= 0) {
+      totalEquipItems[indexFound].quantityUsed += itemUsage.quantityUsed;
+    } else {
+      totalEquipItems.push({
+        uuid: itemUsage.uuid,
+        quantityUsed: itemUsage.quantityUsed,
+      });
+    }
+  }
+
+  return totalEquipItems;
+}

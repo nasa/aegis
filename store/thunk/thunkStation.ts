@@ -34,6 +34,7 @@ import { thunkDuplicateAction, thunkSaveActions } from "./thunkAction";
 import { roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import { saveNewStation } from "store/cross-slice";
+import { mergeEquipmentItems } from "utils/store";
 
 export const thunkUpdateStationLocation = appCreateAsyncThunk<{
   location: AEGISPoint;
@@ -234,6 +235,7 @@ export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
       let totalDwellTimeLower = 0;
       let totalDwellTimeUpper = 0;
       let actionCount = 0;
+      let totalEquipmentItems: EquipmentItemUsage[] = [];
       stationActions.forEach((action) => {
         totalDurationLower += action.durationLower;
         totalDurationUpper += action.durationUpper;
@@ -258,6 +260,8 @@ export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
           totalEv1DurationUpper > totalEv2DurationUpper
             ? totalEv1DurationUpper
             : totalEv2DurationUpper;
+
+        totalEquipmentItems = mergeEquipmentItems(action.equipmentItemsUsage, totalEquipmentItems);
         actionCount++;
       });
 
@@ -357,6 +361,7 @@ export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
         walkbackDurationMinutes,
         walkbackDistanceMeters,
         walkbackAscentDescent,
+        equipmentItems: totalEquipmentItems,
       };
       allCalculatedFields.push(newCalculatedFields);
     }
