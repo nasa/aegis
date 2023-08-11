@@ -82,10 +82,10 @@ const Info_Panel: FunctionComponent<{
 
   //split, sort, and pull names for each equipment item
   useEffect(() => {
-    if (!calculatedFields.equipmentItems || !missionEquipItems) return;
+    if (!calculatedFields?.equipmentItems || !missionEquipItems) return;
     //get names
     const consumablesDisplay: EquipmentItemDisplay[] = [];
-    calculatedFields.equipmentItems?.forEach((equipItem) => {
+    calculatedFields?.equipmentItems?.forEach((equipItem) => {
       //find item in mission
       const missionEquipItem = missionEquipItems.find((item) => item.uuid === equipItem.uuid);
       if (missionEquipItem.singleUse) {
@@ -104,7 +104,7 @@ const Info_Panel: FunctionComponent<{
     //split
     setConsumablesCol1(consumablesDisplay.slice(0, Math.ceil(consumablesDisplay.length / 2)));
     setConsumablesCol2(consumablesDisplay.slice(Math.ceil(consumablesDisplay.length / 2)));
-  }, [calculatedFields.equipmentItems, missionEquipItems]);
+  }, [calculatedFields?.equipmentItems, missionEquipItems]);
 
   useEffect(() => {
     if (elevationPendingIndex > -1) {
