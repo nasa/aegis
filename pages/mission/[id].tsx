@@ -142,6 +142,7 @@ const Main: NextPage = () => {
   const eva = useAppSelector((state) => state.eva, shallowEqual);
   const preset = useAppSelector((state) => state.preset, shallowEqual);
   const user = useAppSelector((state) => state.user, shallowEqual);
+  const interfaceStore = useAppSelector((state) => state.interface, shallowEqual);
 
   const stationsCalculatedFields = useAppSelector(
     (state) => state.station.calculatedFields,
@@ -158,6 +159,7 @@ const Main: NextPage = () => {
   const traversesEditingRef = useRef<string[]>(traverse.traversesEditing);
   const presetsEditingRef = useRef<string[]>(preset.presetsEditing);
   const userRef = useRef(user);
+  const interfaceStoreRef = useRef(interfaceStore);
 
   //local state to ensure permissions have been checked first before running the other useEffects
   const [hasPermissions, setHasPermissions] = useState(false);
@@ -758,6 +760,7 @@ const Main: NextPage = () => {
       console.log(
         `In this room: ${visitorCounts?.editors} editors, ${visitorCounts?.viewers} viewers`
       );
+      if (_.isEqual(visitorCounts, interfaceStoreRef.current.visitorCounts)) return;
       dispatch(setVisitorCounts(visitorCounts));
     });
 
@@ -797,7 +800,8 @@ const Main: NextPage = () => {
     traversesEditingRef.current = traverse.traversesEditing;
     presetsEditingRef.current = preset.presetsEditing;
     userRef.current = user;
-  }, [poi, station, eva, traverse, preset, user]);
+    interfaceStoreRef.current = interfaceStore;
+  }, [poi, station, eva, traverse, preset, user, interfaceStore]);
 
   const showSunEarth: boolean =
     missionStore.mission &&

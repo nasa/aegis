@@ -64,11 +64,8 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
         visitorTracking.push(visitorData);
 
         const visitorCounts = getVisitorCounts(visitorJoin.missionId);
-
         // emit visitor count to all clients in this room
-        setTimeout(() => {
-          socket.to(visitorJoin?.missionId.toString()).emit("visitorCounts", visitorCounts);
-        }, 1000);
+        socket.to(visitorJoin?.missionId.toString()).emit("visitorCounts", visitorCounts);
 
         console.log(
           `${new Date().toISOString()} Socket ${socket.id} visitorJoin. Editors: ${
@@ -78,6 +75,7 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
       });
 
       socket.on("disconnect", () => {
+        console.log(`${new Date().toISOString()} Socket ${socket.id} disconnected.`);
         const visitorDataItemBeingRemoved = _.find(visitorTracking, {
           socketId: socket.id,
         });
@@ -86,17 +84,16 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
         _.remove(visitorTracking, (item) => {
           return item.uniqueClientId === visitorDataItemBeingRemoved.uniqueClientId;
         });
-
-        console.log(
-          `${new Date().toISOString()} Socket ${socket.id} disconnected. Editors: ${
-            visitorTracking.map((item) => item.type.includes("editor")).length
-          } Viewers: ${visitorTracking.map((item) => item.type.includes("viewer")).length}.`
-        );
+        const visitorCounts = getVisitorCounts(visitorDataItemBeingRemoved.missionId);
+        // emit visitor count to all clients in this room
+        socket
+          .to(visitorDataItemBeingRemoved.missionId.toString())
+          .emit("visitorCounts", visitorCounts);
       });
 
       // sent visitor counts to all clients in every room every 10 seconds
       setInterval(() => {
-        // get unique missionIds from visitorTracking
+        // get unique missionIds from visitorTracking. These are used as room names
         const missionIds = _.uniq(visitorTracking.map((item) => item.missionId));
         for (const missionId of missionIds) {
           const visitorCounts = getVisitorCounts(missionId);
