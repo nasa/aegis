@@ -5,6 +5,7 @@ interface ServerToClientEvents {
   storeUpsert: (payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse>) => void;
   storeDelete: (payload: StoreDelete) => void;
   roomSize: (count: number) => void;
+  version: (version: string) => void;
 }
 
 interface ClientToServerEvents {

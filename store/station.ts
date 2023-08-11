@@ -29,8 +29,22 @@ export const stationSlice = createSlice({
         }
       },
     },
-    upsertStations: (state, action: { payload: Station[] }) => {
-      action.payload.forEach((station) => upsertToArrayByUuid(state.stations, station));
+    upsertStations: {
+      reducer: (state, action: { payload: Station[] }) => {
+        action.payload.forEach((station) => upsertToArrayByUuid(state.stations, station));
+      },
+      prepare: (stations: Station[], preserveModifiedDate: boolean = false) => {
+        if (preserveModifiedDate) {
+          return { payload: stations };
+        } else {
+          return {
+            payload: stations.map((station) => ({
+              ...station,
+              updatedAt: roundDateToSecond(new Date()).toISOString(),
+            })),
+          };
+        }
+      },
     },
     upsertStationsFromDb: (state, action: { payload: Station[] }) => {
       action.payload.forEach((station) => upsertToArrayByUuid(state.stationsFromDb, station));

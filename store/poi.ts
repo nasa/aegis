@@ -27,8 +27,22 @@ export const poiSlice = createSlice({
         }
       },
     },
-    upsertPois: (state, action: { payload: POI[] }) => {
-      action.payload.forEach((poi) => upsertToArrayByUuid(state.pois, poi));
+    upsertPois: {
+      reducer: (state, action: { payload: POI[] }) => {
+        action.payload.forEach((poi) => upsertToArrayByUuid(state.pois, poi));
+      },
+      prepare: (pois: POI[], preserveModifiedDate: boolean = false) => {
+        if (preserveModifiedDate) {
+          return { payload: pois };
+        } else {
+          return {
+            payload: pois.map((poi) => ({
+              ...poi,
+              updatedAt: roundDateToSecond(new Date()).toISOString(),
+            })),
+          };
+        }
+      },
     },
     upsertPoisFromDb: (state, action: { payload: POI[] }) => {
       action.payload.forEach((poi) => upsertToArrayByUuid(state.poisFromDb, poi));

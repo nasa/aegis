@@ -4,6 +4,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { Server as NetServer } from "http";
 import { Socket } from "net";
 import type { Server as SocketIOServer } from "socket.io";
+import packagejson from "../../package.json";
 
 type NextApiResponseServerIO = NextApiResponse & {
   socket: Socket & {
@@ -32,13 +33,21 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
       (async () => {
         const sockets = await io.fetchSockets();
         console.log(
-          `${new Date().toISOString()} Socket ${socket.id} connected. Count: ${sockets.length}`
+          `${new Date().toISOString()} Socket ${socket.id} connected. Count across missions: ${
+            sockets.length
+          }`
         );
       })();
+      // emit AEGIS app version to client that just connected
+      socket.emit("version", packagejson.version || "unknown version");
 
       socket.on("joinRoom", (room) => {
         socket.join(room);
-        console.log(`${new Date().toISOString()} Socket ${socket.id} joined room ${room}`);
+        console.log(
+          `${new Date().toISOString()} Socket ${socket.id} joined room ${room}. Room size: ${
+            io.sockets.adapter.rooms.get(room).size
+          }`
+        );
         socket.to(room).emit("roomSize", io.sockets.adapter.rooms.get(room).size);
       });
 
@@ -46,11 +55,14 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
         (async () => {
           const sockets = await io.fetchSockets();
           console.log(
-            `${new Date().toISOString()} Socket ${socket.id} disconnected. Count: ${sockets.length}`
+            `${new Date().toISOString()} Socket ${socket.id} disconnected. Count across missions: ${
+              sockets.length
+            }`
           );
           // fire new counts to all rooms
           const rooms = io.sockets.adapter.rooms;
           rooms.forEach((value, key) => {
+            console.log(`${new Date().toISOString()} Room ${value} size: ${value.size}`);
             socket.to(key).emit("roomSize", value.size);
           });
         })();

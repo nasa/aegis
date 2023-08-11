@@ -531,7 +531,7 @@ const Main: NextPage = () => {
           }
           return preset;
         });
-        dispatch(upsertPresets(storePayload.data as Preset[]));
+        dispatch(upsertPresets(storePayload.data as Preset[], true));
         dispatch(upsertPresetsFromDb(storePayload.data as Preset[]));
       } else if (storePayload.type === "poi") {
         const newPois = storePayload.data as POI[];
@@ -545,7 +545,7 @@ const Main: NextPage = () => {
           }
           return poi;
         });
-        dispatch(upsertPois(storePayload.data as POI[]));
+        dispatch(upsertPois(storePayload.data as POI[], true));
         dispatch(upsertPoisFromDb(storePayload.data as POI[]));
       } else if (storePayload.type === "station") {
         const newStations = storePayload.data as Station[];
@@ -559,7 +559,7 @@ const Main: NextPage = () => {
           }
           return station;
         });
-        dispatch(upsertStations(storePayload.data as Station[]));
+        dispatch(upsertStations(storePayload.data as Station[], true));
         dispatch(upsertStationsFromDb(storePayload.data as Station[]));
       } else if (storePayload.type === "eva") {
         const newEvas = storePayload.data as Eva[];
@@ -573,10 +573,10 @@ const Main: NextPage = () => {
           }
           return eva;
         });
-        dispatch(upsertEvas(storePayload.data as Eva[]));
+        dispatch(upsertEvas(storePayload.data as Eva[], true));
         dispatch(upsertEvasFromDb(storePayload.data as Eva[]));
       } else if (storePayload.type === "action") {
-        dispatch(upsertActions(storePayload.data as Action[]));
+        dispatch(upsertActions(storePayload.data as Action[], true));
         dispatch(upsertActionsFromDb(storePayload.data as Action[]));
       } else if (storePayload.type === "traverse") {
         const newTraverses = storePayload.data as Traverse[];
@@ -592,7 +592,7 @@ const Main: NextPage = () => {
           }
           return traverse;
         });
-        dispatch(upsertTraverses(storePayload.data as Traverse[]));
+        dispatch(upsertTraverses(storePayload.data as Traverse[], true));
         dispatch(upsertTraversesFromDb(storePayload.data as Traverse[]));
       }
     },
@@ -706,6 +706,19 @@ const Main: NextPage = () => {
       console.log("Connected to socket.io server");
       socket.current.emit("joinRoom", intMissionId.toString());
     });
+    socket.current.on("version", (version: string) => {
+      console.log(`Server version: ${version}`);
+      const currentVersion = window.sessionStorage.getItem("AEGISversion") || null;
+      if (currentVersion !== version) {
+        if (currentVersion !== null) {
+          alert(
+            `A new version of AEGIS is available. Please refresh your browser to get the latest version.`
+          );
+        }
+        window.sessionStorage.setItem("AEGISversion", version);
+      }
+    });
+
     socket.current.on("disconnect", () => {
       console.log("Disconnected from socket.io server");
     });

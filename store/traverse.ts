@@ -28,12 +28,27 @@ export const traverseSlice = createSlice({
         }
       },
     },
+    upsertTraverses: {
+      reducer: (state, action: { payload: Traverse[] }) => {
+        action.payload.forEach((traverse) => upsertToArrayByUuid(state.traverses, traverse));
+      },
+      prepare: (traverses: Traverse[], preserveModifiedDate: boolean = false) => {
+        if (preserveModifiedDate) {
+          return { payload: traverses };
+        } else {
+          return {
+            payload: traverses.map((traverse) => ({
+              ...traverse,
+              updatedAt: roundDateToSecond(new Date()).toISOString(),
+            })),
+          };
+        }
+      },
+    },
     upsertTraverseFromDb: (state, action: { payload: Traverse }) => {
       upsertToArrayByUuid(state.traversesFromDb, action.payload);
     },
-    upsertTraverses: (state, action: { payload: Traverse[] }) => {
-      action.payload.forEach((traverse) => upsertToArrayByUuid(state.traverses, traverse));
-    },
+
     upsertTraversesFromDb: (state, action: { payload: Traverse[] }) => {
       action.payload.forEach((traverse) => upsertToArrayByUuid(state.traversesFromDb, traverse));
     },
@@ -87,8 +102,8 @@ export const traverseSlice = createSlice({
 
 export const {
   upsertTraverse,
-  upsertTraverseFromDb,
   upsertTraverses,
+  upsertTraverseFromDb,
   upsertTraversesFromDb,
   setTraverses,
   setTraversesFromDb,

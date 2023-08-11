@@ -22,7 +22,7 @@ import {
   useLayoutEffect,
 } from "react";
 import _ from "lodash";
-import { updateMapDirective } from "store/map";
+import { setMapSublayerControls, updateMapDirective } from "store/map";
 import { setSelectedPoiUuid } from "store/poi";
 import { setRightPanelOpen, setSectionSelected } from "store/interface";
 import { revertWalkbackPath, setSelectedStationUuid } from "store/station";
@@ -360,6 +360,15 @@ const MapBody: FunctionComponent = () => {
     selectedPreset,
     presets,
   ]);
+
+  /**
+   * Update sublayer controls if presets change
+   * This happens if presets are changed via incoming socket update
+   */
+  useEffect(() => {
+    if (!selectedPreset) return;
+    dispatch(setMapSublayerControls(selectedPreset.mapSublayerControls));
+  }, [selectedPreset, dispatch, presets]);
 
   /**
    * Update map with display adjustments for sublayers as sliders are moved

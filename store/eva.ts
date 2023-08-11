@@ -29,8 +29,22 @@ export const evaSlice = createSlice({
         }
       },
     },
-    upsertEvas: (state, action: { payload: Eva[] }) => {
-      action.payload.forEach((eva) => upsertToArrayByUuid(state.evas, eva));
+    upsertEvas: {
+      reducer: (state, action: { payload: Eva[] }) => {
+        action.payload.forEach((eva) => upsertToArrayByUuid(state.evas, eva));
+      },
+      prepare: (evas: Eva[], preserveModifiedDate: boolean = false) => {
+        if (preserveModifiedDate) {
+          return { payload: evas };
+        } else {
+          return {
+            payload: evas.map((eva) => ({
+              ...eva,
+              updatedAt: roundDateToSecond(new Date()).toISOString(),
+            })),
+          };
+        }
+      },
     },
     upsertEvasFromDb: (state, action: { payload: Eva[] }) => {
       action.payload.forEach((eva) => upsertToArrayByUuid(state.evasFromDb, eva));
