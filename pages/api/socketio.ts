@@ -14,6 +14,8 @@ type NextApiResponseServerIO = NextApiResponse & {
   };
 };
 
+global.__visitorTracking__ = [];
+
 const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void => {
   if (!res.socket.server.io) {
     console.log("*First use, starting Socket.IO");
@@ -28,6 +30,8 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
       path: "/api/socketio",
     });
 
+    const visitorTracking: VisitorData[] = global.__visitorTracking__;
+
     // Listen for connection events
     io.on("connection", (socket) => {
       (async () => {
@@ -41,31 +45,75 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
       // emit AEGIS app version to client that just connected
       socket.emit("version", packagejson.version || "unknown version");
 
-      socket.on("joinRoom", (room) => {
-        socket.join(room);
+      socket.on("visitorJoin", (visitorJoin) => {
+        // join the room for this mission
+        socket.join(visitorJoin.missionId.toString());
+
+        const visitorData: VisitorData = {
+          socketId: socket.id,
+          uniqueClientId: visitorJoin.uniqueClientId,
+          missionId: visitorJoin.missionId,
+          type: visitorJoin.type,
+        };
+
+        // remove this socket from tracking list if it exists
+        _.remove(visitorTracking, (item) => {
+          return item.uniqueClientId === visitorData.uniqueClientId;
+        });
+        visitorTracking.push(visitorData);
+
+        // emit visitor count to all clients in this room
+        setTimeout(() => {
+          socket.to(visitorJoin.missionId.toString()).emit("visitorCounts", {
+            editors: _.filter(
+              visitorTracking,
+              (item) => !item.type.includes("editor") || item.missionId !== visitorData.missionId
+            ).length,
+            viewers: _.filter(
+              visitorTracking,
+              (item) => !item.type.includes("viewer") || item.missionId !== visitorData.missionId
+            ).length,
+          });
+        }, 1000);
+
+        const visitorCounts = getVisitorCounts(visitorTracking, visitorJoin.missionId);
+
         console.log(
-          `${new Date().toISOString()} Socket ${socket.id} joined room ${room}. Room size: ${
-            io.sockets.adapter.rooms.get(room).size
-          }`
+          `${new Date().toISOString()} Socket ${socket.id} visitorJoin. Editors: ${
+            visitorCounts.editors
+          } Viewers: ${visitorCounts.viewers}.`,
+          visitorTracking
         );
-        socket.to(room).emit("roomSize", io.sockets.adapter.rooms.get(room).size);
       });
 
       socket.on("disconnect", () => {
-        (async () => {
-          const sockets = await io.fetchSockets();
-          console.log(
-            `${new Date().toISOString()} Socket ${socket.id} disconnected. Count across missions: ${
-              sockets.length
-            }`
-          );
-          // fire new counts to all rooms
-          const rooms = io.sockets.adapter.rooms;
-          rooms.forEach((value, key) => {
-            console.log(`${new Date().toISOString()} Room ${value} size: ${value.size}`);
-            socket.to(key).emit("roomSize", value.size);
-          });
-        })();
+        const visitorDataItemBeingRemoved = _.find(visitorTracking, {
+          socketId: socket.id,
+        });
+
+        // remove this socket from the visitor tracking
+        _.remove(visitorTracking, (item) => {
+          return item.uniqueClientId === visitorDataItemBeingRemoved.uniqueClientId;
+        });
+
+        const visitorCounts = getVisitorCounts(
+          visitorTracking,
+          visitorDataItemBeingRemoved.missionId
+        );
+
+        // emit visitor counts for this room to all clients in this room
+        setTimeout(() => {
+          socket
+            .to(visitorDataItemBeingRemoved?.missionId.toString())
+            .emit("visitorCounts", visitorCounts);
+        }, 1000);
+
+        console.log(
+          `${new Date().toISOString()} Socket ${socket.id} disconnected. Editors: ${
+            visitorTracking.map((item) => item.type.includes("editor")).length
+          } Viewers: ${visitorTracking.map((item) => item.type.includes("viewer")).length}.`,
+          visitorTracking
+        );
       });
     });
 
@@ -78,6 +126,23 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
 };
 
 export default SocketHandler;
+
+const getVisitorCounts = (visitorTracking: VisitorData[], missionId: number): VisitorCounts => {
+  let editorCounts = 0;
+  let viewerCounts = 0;
+  for (const trackingItem of visitorTracking) {
+    if (trackingItem.type.includes("editor") && trackingItem.missionId === missionId) {
+      editorCounts++;
+    }
+    if (trackingItem.type.includes("viewer") && trackingItem.missionId === missionId) {
+      viewerCounts++;
+    }
+  }
+  return {
+    editors: editorCounts,
+    viewers: viewerCounts,
+  };
+};
 
 export const emitStoreUpsert = (
   payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse>

@@ -73,7 +73,7 @@ import {
   upsertTraversesFromDb,
 } from "store/traverse";
 import { getTraverses } from "http-client/traverse";
-import { setRightPanelOpen } from "store/interface";
+import { setRightPanelOpen, setVisitorCounts } from "store/interface";
 import { setMissionPerms, setUserStore } from "store/user";
 import { thunkCreateStationCalculatedFields } from "store/thunk/thunkStation";
 import { thunkCreateTraverseCalculatedFields } from "store/thunk/thunkTraverse";
@@ -141,6 +141,7 @@ const Main: NextPage = () => {
   const traverse = useAppSelector((state) => state.traverse, shallowEqual);
   const eva = useAppSelector((state) => state.eva, shallowEqual);
   const preset = useAppSelector((state) => state.preset, shallowEqual);
+  const user = useAppSelector((state) => state.user, shallowEqual);
 
   const stationsCalculatedFields = useAppSelector(
     (state) => state.station.calculatedFields,
@@ -156,6 +157,7 @@ const Main: NextPage = () => {
   const evasEditingRef = useRef<string[]>(eva.evasEditing);
   const traversesEditingRef = useRef<string[]>(traverse.traversesEditing);
   const presetsEditingRef = useRef<string[]>(preset.presetsEditing);
+  const userRef = useRef(user);
 
   //local state to ensure permissions have been checked first before running the other useEffects
   const [hasPermissions, setHasPermissions] = useState(false);
@@ -697,7 +699,7 @@ const Main: NextPage = () => {
       return;
     }
 
-    if (!uniqueClientId || !intMissionId) return;
+    if (!uniqueClientId || !intMissionId || !user?.missionPerms) return;
 
     // Create a socket connection
     if (!socket.current || (socket.current && !socket.current.connected)) {
@@ -709,9 +711,35 @@ const Main: NextPage = () => {
     }
 
     socket.current.on("connect", () => {
-      console.log("Connected to socket.io server");
-      socket.current.emit("joinRoom", intMissionId.toString());
+      // Get current user permissions on this mission
+      const permissionType: "viewer" | "editor" = userRef.current.missionPerms.permissions.edit
+        ? "editor"
+        : "viewer";
+
+      const visitorJoin: VisitorJoin = {
+        missionId: intMissionId,
+        uniqueClientId: uniqueClientId,
+        type: permissionType,
+      };
+
+      socket.current.emit("visitorJoin", visitorJoin);
+
+      console.log(
+        `Connected to socket.io server. Joining Mission: ${intMissionId} uniqueClientId: ${uniqueClientId}. Type: ${permissionType}.`
+      );
     });
+
+    socket.current.on("disconnect", () => {
+      console.log("Disconnected from socket.io server");
+    });
+    socket.current.io.on("reconnect_attempt", () => {
+      console.log("Attempting to reconnect to socket.io server");
+    });
+    socket.current.io.on("reconnect", () => {
+      console.log("Reconnected to socket.io server");
+    });
+
+    // Incoming AEGIS version number
     socket.current.on("version", (version: string) => {
       console.log(`Server version: ${version}`);
       const currentVersion = window.sessionStorage.getItem("AEGISversion") || null;
@@ -725,19 +753,11 @@ const Main: NextPage = () => {
       }
     });
 
-    socket.current.on("disconnect", () => {
-      console.log("Disconnected from socket.io server");
-    });
-    socket.current.io.on("reconnect_attempt", () => {
-      console.log("Attempting to reconnect to socket.io server");
-    });
-    socket.current.io.on("reconnect", () => {
-      console.log("Reconnected to socket.io server");
-    });
-
     // Incoming client counts
-    socket.current.on("roomSize", (count: number) => {
-      console.log(`Client count in this room: ${count}`);
+    socket.current.on("visitorCounts", (visitorCounts: VisitorCounts) => {
+      console.log(`Editors in this room: ${visitorCounts.editors}`);
+      console.log(`Viewers in this room: ${visitorCounts.viewers}`);
+      dispatch(setVisitorCounts(visitorCounts));
     });
 
     // Listen for incoming store updates
@@ -756,14 +776,27 @@ const Main: NextPage = () => {
     // Clean up the socket connection on unmount
     return () => {
       socket.current.off("connect");
+      socket.current.off("disconnect");
       socket.current.io.off("reconnect_attempt");
       socket.current.io.off("reconnect");
+      socket.current.off("version");
+      socket.current.off("visitorCounts");
       socket.current.off("storeUpsert");
       socket.current.off("storeDelete");
       socket.current.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, socket, wakeFetchSent, intMissionId]);
+  }, [dispatch, socket, wakeFetchSent, intMissionId, user]);
+
+  // Keep refs up to date from store
+  useEffect(() => {
+    poisEditingRef.current = poi.poisEditing;
+    stationsEditingRef.current = station.stationsEditing;
+    evasEditingRef.current = eva.evasEditing;
+    traversesEditingRef.current = traverse.traversesEditing;
+    presetsEditingRef.current = preset.presetsEditing;
+    userRef.current = user;
+  }, [poi, station, eva, traverse, preset, user]);
 
   const showSunEarth: boolean =
     missionStore.mission &&

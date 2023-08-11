@@ -9,7 +9,7 @@
 .header {
   display: flex;
   justify-content: space-between;
-  height: 50px;
+  height: 40px;
   padding-top: 6px;
   padding-bottom: 6px;
   background-color: var(--grey1);

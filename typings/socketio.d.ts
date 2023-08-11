@@ -1,18 +1,16 @@
 /** Socket.io Server instantiation types */
 interface ServerToClientEvents {
   noArg: () => void;
-  message: (message: string) => void;
   storeUpsert: (payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse>) => void;
   storeDelete: (payload: StoreDelete) => void;
-  roomSize: (count: number) => void;
+  visitorCounts: (VisitorCounts: VisitorCounts) => void;
   version: (version: string) => void;
 }
 
 interface ClientToServerEvents {
-  message: (message: string) => void;
   storeUpsert: (payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse>) => void;
   storeDelete: (payload: StoreDelete) => void;
-  joinRoom: (room: string) => void;
+  visitorJoin: (visitorJoin: VisitorJoin) => void;
 }
 
 interface InterServerEvents {
@@ -39,6 +37,24 @@ interface StoreDelete {
   missionId: number;
   type: StoreType;
   uuid: string;
+}
+
+interface VisitorJoin {
+  uniqueClientId: string;
+  missionId: number;
+  type: "editor" | "viewer";
+}
+
+interface VisitorData {
+  socketId: string;
+  uniqueClientId: string;
+  missionId: number;
+  type: "editor" | "viewer";
+}
+
+interface VisitorCounts {
+  editors: number;
+  viewers: number;
 }
 
 type TimestampCheck = {

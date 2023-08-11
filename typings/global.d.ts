@@ -6,4 +6,5 @@ declare module globalThis {
     InterServerEvents,
     SocketData
   >;
+  var __visitorTracking__: VisitorData[];
 }

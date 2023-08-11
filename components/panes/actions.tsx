@@ -184,7 +184,7 @@ const Actions: FunctionComponent<{
 
           <div className={actionsStyles.actionListContainer}>
             <div className={actionsStyles.dragableActionList}>
-              {!editMode && (
+              {!editMode && actions.length > 0 ? (
                 <div className={actionsStyles.actionListHeader}>
                   <div className={actionsStyles.actionListHeaderType}>
                     <div className={actionsStyles.actionListHeaderLabel}>Type</div>
@@ -204,7 +204,7 @@ const Actions: FunctionComponent<{
                     </div>
                   )}
                 </div>
-              )}
+              ) : null}
 
               <ReactDragListView onDragEnd={reorder} nodeSelector="li" handleSelector="a">
                 <ul className={actionsStyles.actionlist}>

@@ -7,6 +7,7 @@ export const initialState: InterfaceState = {
   timelineShowDistanceFromLander: true,
   timelineShowElevation: true,
   actionsExpanded: [],
+  visitorCounts: null,
 };
 
 export const interfaceSlice = createSlice({
@@ -46,6 +47,9 @@ export const interfaceSlice = createSlice({
         }
       });
     },
+    setVisitorCounts: (state, action: { payload: VisitorCounts }) => {
+      state.visitorCounts = action.payload;
+    },
   },
 });
 
@@ -58,4 +62,5 @@ export const {
   setShowElevation,
   collapseActions,
   expandActions,
+  setVisitorCounts,
 } = interfaceSlice.actions;
