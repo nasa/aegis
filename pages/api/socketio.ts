@@ -14,11 +14,11 @@ type NextApiResponseServerIO = NextApiResponse & {
   };
 };
 
-global.__visitorTracking__ = [];
-
 const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void => {
   if (!res.socket.server.io) {
     console.log("*First use, starting Socket.IO");
+    global.__visitorTracking__ = [];
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const httpServer: NetServer = res.socket.server as any;
     const io = new Server<
@@ -27,6 +27,7 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
       InterServerEvents,
       SocketData
     >(httpServer, {
+      transports: ["websocket"],
       path: "/api/socketio",
     });
 
@@ -62,7 +63,7 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
         });
         visitorTracking.push(visitorData);
 
-        const visitorCounts = getVisitorCounts(visitorTracking, visitorJoin.missionId);
+        const visitorCounts = getVisitorCounts(visitorJoin.missionId);
 
         // emit visitor count to all clients in this room
         setTimeout(() => {
@@ -72,8 +73,7 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
         console.log(
           `${new Date().toISOString()} Socket ${socket.id} visitorJoin. Editors: ${
             visitorCounts.editors
-          } Viewers: ${visitorCounts.viewers}.`,
-          visitorTracking
+          } Viewers: ${visitorCounts.viewers}.`
         );
       });
 
@@ -87,25 +87,22 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
           return item.uniqueClientId === visitorDataItemBeingRemoved.uniqueClientId;
         });
 
-        const visitorCounts = getVisitorCounts(
-          visitorTracking,
-          visitorDataItemBeingRemoved.missionId
-        );
-
-        // emit visitor counts for this room to all clients in this room
-        setTimeout(() => {
-          socket
-            .to(visitorDataItemBeingRemoved?.missionId.toString())
-            .emit("visitorCounts", visitorCounts);
-        }, 1000);
-
         console.log(
           `${new Date().toISOString()} Socket ${socket.id} disconnected. Editors: ${
             visitorTracking.map((item) => item.type.includes("editor")).length
-          } Viewers: ${visitorTracking.map((item) => item.type.includes("viewer")).length}.`,
-          visitorTracking
+          } Viewers: ${visitorTracking.map((item) => item.type.includes("viewer")).length}.`
         );
       });
+
+      // sent visitor counts to all clients in every room every 10 seconds
+      setInterval(() => {
+        // get unique missionIds from visitorTracking
+        const missionIds = _.uniq(visitorTracking.map((item) => item.missionId));
+        for (const missionId of missionIds) {
+          const visitorCounts = getVisitorCounts(missionId);
+          io.to(missionId.toString()).emit("visitorCounts", visitorCounts);
+        }
+      }, 10000);
     });
 
     res.socket.server.io = io;
@@ -118,9 +115,10 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
 
 export default SocketHandler;
 
-const getVisitorCounts = (visitorTracking: VisitorData[], missionId: number): VisitorCounts => {
+const getVisitorCounts = (missionId: number): VisitorCounts => {
   let editorCounts = 0;
   let viewerCounts = 0;
+  const visitorTracking = global.__visitorTracking__;
   for (const trackingItem of visitorTracking) {
     if (trackingItem.type.includes("editor") && trackingItem.missionId === missionId) {
       editorCounts++;

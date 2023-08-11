@@ -105,6 +105,7 @@
   border: 1px solid var(--grey3);
   border-radius: var(--radius);
   padding: 4px;
+  margin-right: 10px;
   cursor: pointer;
 }
 

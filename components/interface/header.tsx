@@ -9,7 +9,7 @@ const Header: FunctionComponent = () => {
   const router = useRouter();
   const missionName = useAppSelector((state) => state.mission.mission?.name, refEqual);
   const banner = useAppSelector((state) => state.mission.mission?.missionBanner, refEqual);
-  const visitorCounts = useAppSelector((state) => state.interface.visitorCounts, shallowEqual);
+  const interfaceStore = useAppSelector((state) => state.interface, shallowEqual);
 
   return (
     <>
@@ -52,15 +52,19 @@ const Header: FunctionComponent = () => {
             data-tooltip-id="aegis-tooltip"
             data-tooltip-html={
               `Users active in this Mission:<br>` +
-              `Editors: ${visitorCounts?.editors || 0}<br>` +
-              `Visitors: ${visitorCounts?.visitors || 0}<br>` +
+              `Editors: ${interfaceStore?.visitorCounts?.editors || 0}<br>` +
+              `Visitors: ${interfaceStore?.visitorCounts?.visitors || 0}<br>` +
               `These numbers include you.`
             }
           >
             <FontAwesomeIcon icon={faPen} className={styles.icon} />
-            <div className={styles.userCountText}>{visitorCounts?.editors || 0}</div>
+            <div className={styles.userCountText}>
+              {interfaceStore?.visitorCounts?.editors || 0}
+            </div>
             <FontAwesomeIcon icon={faEye} className={styles.icon} style={{ marginLeft: "6px" }} />
-            <div className={styles.userCountText}>{visitorCounts?.viewers || 0}</div>
+            <div className={styles.userCountText}>
+              {interfaceStore?.visitorCounts?.viewers || 0}
+            </div>
           </div>
         </div>
         <div className={styles.verticalCenter}>

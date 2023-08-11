@@ -755,8 +755,9 @@ const Main: NextPage = () => {
 
     // Incoming client counts
     socket.current.on("visitorCounts", (visitorCounts: VisitorCounts) => {
-      console.log(`Editors in this room: ${visitorCounts.editors}`);
-      console.log(`Viewers in this room: ${visitorCounts.viewers}`);
+      console.log(
+        `In this room: ${visitorCounts?.editors} editors, ${visitorCounts?.viewers} viewers`
+      );
       dispatch(setVisitorCounts(visitorCounts));
     });
 
