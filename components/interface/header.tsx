@@ -2,7 +2,7 @@ import styles from "./header.module.css";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import { useRouter } from "next/router";
 
-import { faBars, faPen, faUser } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faEye, faPen } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { FunctionComponent } from "react";
 const Header: FunctionComponent = () => {
@@ -59,8 +59,8 @@ const Header: FunctionComponent = () => {
           >
             <FontAwesomeIcon icon={faPen} className={styles.icon} />
             <div className={styles.userCountText}>{visitorCounts?.editors || 0}</div>
-            <FontAwesomeIcon icon={faUser} className={styles.icon} style={{ marginLeft: "6px" }} />
-            <div className={styles.userCountText}>{visitorCounts?.visitors || 0}</div>
+            <FontAwesomeIcon icon={faEye} className={styles.icon} style={{ marginLeft: "6px" }} />
+            <div className={styles.userCountText}>{visitorCounts?.viewers || 0}</div>
           </div>
         </div>
         <div className={styles.verticalCenter}>

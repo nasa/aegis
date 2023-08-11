@@ -62,21 +62,12 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
         });
         visitorTracking.push(visitorData);
 
+        const visitorCounts = getVisitorCounts(visitorTracking, visitorJoin.missionId);
+
         // emit visitor count to all clients in this room
         setTimeout(() => {
-          socket.to(visitorJoin.missionId.toString()).emit("visitorCounts", {
-            editors: _.filter(
-              visitorTracking,
-              (item) => !item.type.includes("editor") || item.missionId !== visitorData.missionId
-            ).length,
-            viewers: _.filter(
-              visitorTracking,
-              (item) => !item.type.includes("viewer") || item.missionId !== visitorData.missionId
-            ).length,
-          });
+          socket.to(visitorJoin?.missionId.toString()).emit("visitorCounts", visitorCounts);
         }, 1000);
-
-        const visitorCounts = getVisitorCounts(visitorTracking, visitorJoin.missionId);
 
         console.log(
           `${new Date().toISOString()} Socket ${socket.id} visitorJoin. Editors: ${
