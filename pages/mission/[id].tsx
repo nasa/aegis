@@ -151,6 +151,12 @@ const Main: NextPage = () => {
     shallowEqual
   );
 
+  const poisEditingRef = useRef<string[]>(poi.poisEditing);
+  const stationsEditingRef = useRef<string[]>(station.stationsEditing);
+  const evasEditingRef = useRef<string[]>(eva.evasEditing);
+  const traversesEditingRef = useRef<string[]>(traverse.traversesEditing);
+  const presetsEditingRef = useRef<string[]>(preset.presetsEditing);
+
   //local state to ensure permissions have been checked first before running the other useEffects
   const [hasPermissions, setHasPermissions] = useState(false);
 
@@ -524,7 +530,7 @@ const Main: NextPage = () => {
         preset.presets.forEach((thisPreset) => {
           const newPreset = newPresets.find((newPreset) => newPreset.uuid === thisPreset.uuid);
           if (newPreset) {
-            if (preset.presetsEditing.includes(thisPreset.uuid)) {
+            if (presetsEditingRef.current.includes(thisPreset.uuid)) {
               alertUpdatedEditing("preset", thisPreset.name);
               return;
             }
@@ -534,69 +540,56 @@ const Main: NextPage = () => {
         dispatch(upsertPresets(storePayload.data as Preset[], true));
         dispatch(upsertPresetsFromDb(storePayload.data as Preset[]));
       } else if (storePayload.type === "poi") {
-        const newPois = storePayload.data as POI[];
-        poi.pois.forEach((thisPoi) => {
-          const newPoi = newPois.find((newPoi) => newPoi.uuid === thisPoi.uuid);
-          if (newPoi) {
-            if (poi.poisEditing.includes(thisPoi.uuid)) {
-              alertUpdatedEditing("POI", thisPoi.name);
-              return;
-            }
+        const changedPois = storePayload.data as POI[];
+        for (const changedPoi of changedPois) {
+          if (poisEditingRef.current.includes(changedPoi.uuid)) {
+            alertUpdatedEditing("POI", changedPoi.name);
           }
-          return poi;
-        });
+        }
         dispatch(upsertPois(storePayload.data as POI[], true));
         dispatch(upsertPoisFromDb(storePayload.data as POI[]));
       } else if (storePayload.type === "station") {
-        const newStations = storePayload.data as Station[];
-        station.stations.forEach((thisStation) => {
-          const newStation = newStations.find((newStation) => newStation.uuid === thisStation.uuid);
-          if (newStation) {
-            if (station.stationsEditing.includes(thisStation.uuid)) {
-              alertUpdatedEditing("station", thisStation.name);
-              return;
-            }
+        const changedStations = storePayload.data as Station[];
+        for (const changedStation of changedStations) {
+          if (stationsEditingRef.current.includes(changedStation.uuid)) {
+            alertUpdatedEditing("Station", changedStation.name);
           }
-          return station;
-        });
+        }
         dispatch(upsertStations(storePayload.data as Station[], true));
         dispatch(upsertStationsFromDb(storePayload.data as Station[]));
       } else if (storePayload.type === "eva") {
-        const newEvas = storePayload.data as Eva[];
-        eva.evas.forEach((thisEva) => {
-          const newEva = newEvas.find((newEva) => newEva.uuid === thisEva.uuid);
-          if (newEva) {
-            if (eva.evasEditing.includes(thisEva.uuid)) {
-              alertUpdatedEditing("EVA", thisEva.name);
-              return;
-            }
+        const changedEvas = storePayload.data as Eva[];
+        for (const changedEva of changedEvas) {
+          if (evasEditingRef.current.includes(changedEva.uuid)) {
+            alertUpdatedEditing("EVA", changedEva.name);
           }
-          return eva;
-        });
+        }
         dispatch(upsertEvas(storePayload.data as Eva[], true));
         dispatch(upsertEvasFromDb(storePayload.data as Eva[]));
       } else if (storePayload.type === "action") {
         dispatch(upsertActions(storePayload.data as Action[], true));
         dispatch(upsertActionsFromDb(storePayload.data as Action[]));
       } else if (storePayload.type === "traverse") {
-        const newTraverses = storePayload.data as Traverse[];
-        traverse.traverses.forEach((thisTraverse) => {
-          const newTraverse = newTraverses.find(
-            (newTraverse) => newTraverse.uuid === thisTraverse.uuid
-          );
-          if (newTraverse) {
-            if (traverse.traversesEditing.includes(thisTraverse.uuid)) {
-              alertUpdatedEditing("traverse", thisTraverse.name);
-              return;
-            }
+        const changedTraverses = storePayload.data as Traverse[];
+        for (const changedTraverse of changedTraverses) {
+          if (traversesEditingRef.current.includes(changedTraverse.uuid)) {
+            alertUpdatedEditing("traverse", changedTraverse.name);
           }
-          return traverse;
-        });
+        }
         dispatch(upsertTraverses(storePayload.data as Traverse[], true));
         dispatch(upsertTraversesFromDb(storePayload.data as Traverse[]));
       }
     },
-    [dispatch, preset, poi, station, eva, traverse, intMissionId]
+    [
+      dispatch,
+      preset,
+      intMissionId,
+      presetsEditingRef,
+      poisEditingRef,
+      stationsEditingRef,
+      evasEditingRef,
+      traversesEditingRef,
+    ]
   );
 
   const storeDeleteEventHandler = useCallback(
@@ -619,7 +612,7 @@ const Main: NextPage = () => {
       }
 
       if (storeDelete.type === "preset") {
-        if (preset.presetsEditing.includes(storeDelete.uuid)) {
+        if (presetsEditingRef.current.includes(storeDelete.uuid)) {
           const deletedPreset = preset.presets.find((preset) => preset.uuid === storeDelete.uuid);
           alertDeletedEditing("preset", deletedPreset.name);
           return;
@@ -634,7 +627,7 @@ const Main: NextPage = () => {
         dispatch(deletePresetByUuid(storeDelete.uuid));
         dispatch(deletePresetFromDbByUuid(storeDelete.uuid));
       } else if (storeDelete.type === "poi") {
-        if (poi.poisEditing.includes(storeDelete.uuid)) {
+        if (poisEditingRef.current.includes(storeDelete.uuid)) {
           const poiDeleted = poi.pois.find((poi) => poi.uuid === storeDelete.uuid);
           alertDeletedEditing("POI", poiDeleted.name);
           return;
@@ -643,7 +636,7 @@ const Main: NextPage = () => {
         dispatch(deletePoiByUuid(storeDelete.uuid));
         dispatch(deletePoiFromDbByUuid(storeDelete.uuid));
       } else if (storeDelete.type === "station") {
-        if (station.stationsEditing.includes(storeDelete.uuid)) {
+        if (stationsEditingRef.current.includes(storeDelete.uuid)) {
           const stationDeleted = station.stations.find(
             (station) => station.uuid === storeDelete.uuid
           );
@@ -655,7 +648,7 @@ const Main: NextPage = () => {
         dispatch(deleteStationByUuid(storeDelete.uuid));
         dispatch(deleteStationFromDbByUuid(storeDelete.uuid));
       } else if (storeDelete.type === "eva") {
-        if (eva.evasEditing.includes(storeDelete.uuid)) {
+        if (evasEditingRef.current.includes(storeDelete.uuid)) {
           const evaDeleted = eva.evas.find((eva) => eva.uuid === storeDelete.uuid);
           alertDeletedEditing("EVA", evaDeleted.name);
           return;
@@ -669,7 +662,7 @@ const Main: NextPage = () => {
         dispatch(deleteActionByUuid(storeDelete.uuid));
         dispatch(deleteActionFromDbByUuid(storeDelete.uuid));
       } else if (storeDelete.type === "traverse") {
-        if (traverse.traversesEditing.includes(storeDelete.uuid)) {
+        if (traversesEditingRef.current.includes(storeDelete.uuid)) {
           const traverseDeleted = traverse.traverses.find(
             (traverse) => traverse.uuid === storeDelete.uuid
           );
@@ -680,7 +673,20 @@ const Main: NextPage = () => {
         dispatch(deleteTraverseFromDbByUuid(storeDelete.uuid));
       }
     },
-    [dispatch, preset, poi, station, eva, traverse, intMissionId]
+    [
+      dispatch,
+      preset,
+      poi,
+      station,
+      eva,
+      traverse,
+      intMissionId,
+      presetsEditingRef,
+      poisEditingRef,
+      stationsEditingRef,
+      evasEditingRef,
+      traversesEditingRef,
+    ]
   );
 
   //Handle socketio events
