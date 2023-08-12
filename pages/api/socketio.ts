@@ -149,23 +149,22 @@ const getStatusFromServer = (missionId: number): StatusFromServer => {
 export const emitStoreUpsert = (
   payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse>
 ): void => {
-  const io = global.__socketio__;
-  payload = addLastEditEvent(payload) as StoreUpsert<
-    POI | Preset | Station | Eva | Action | Traverse
-  >;
-
+  const io = global?.__socketio__;
   if (io) {
     io.emit("storeUpsert", payload);
+    payload = addLastEditEvent(payload) as StoreUpsert<
+      POI | Preset | Station | Eva | Action | Traverse
+    >;
   } else {
     console.log("Unable to emit upsert. Socket.io not initialized");
   }
 };
 
 export const emitStoreDelete = (payload: StoreDelete): void => {
-  const io = global.__socketio__;
-  payload = addLastEditEvent(payload) as StoreDelete;
+  const io = global?.__socketio__;
   if (io) {
     io.emit("storeDelete", payload);
+    payload = addLastEditEvent(payload) as StoreDelete;
   } else {
     console.log("Unable to emit delete. Socket.io not initialized");
   }
