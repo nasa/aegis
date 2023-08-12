@@ -79,11 +79,11 @@ const Main: NextPage = () => {
   const router = useRouter();
   const missionStore = useAppSelector((state) => state.mission, shallowEqual);
   const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, refEqual);
-  const poi = useAppSelector((state) => state.poi, shallowEqual);
-  const station = useAppSelector((state) => state.station, shallowEqual);
+  const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
+  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
-  const traverse = useAppSelector((state) => state.traverse, shallowEqual);
-  const eva = useAppSelector((state) => state.eva, shallowEqual);
+  const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
+  const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
   const preset = useAppSelector((state) => state.preset, shallowEqual);
 
   const stationsCalculatedFields = useAppSelector(
@@ -401,33 +401,33 @@ const Main: NextPage = () => {
 
   //Generate poi calculated values
   useEffect(() => {
-    if (_.isEmpty(poi.pois) || _.isEmpty(actions) || !hasPermissions) return;
+    if (_.isEmpty(pois) || _.isEmpty(actions) || !hasPermissions) return;
     dispatch(thunkCreatePoiCalculatedFields());
-  }, [poi.pois, actions, dispatch, hasPermissions]);
+  }, [pois, actions, dispatch, hasPermissions]);
 
   //Generate station calculated values
   useEffect(() => {
-    if (_.isEmpty(station.stations) || _.isEmpty(actions) || !hasPermissions) return;
+    if (_.isEmpty(stations) || _.isEmpty(actions) || !hasPermissions) return;
     dispatch(thunkCreateStationCalculatedFields());
-  }, [station.stations, actions, dispatch, hasPermissions]);
+  }, [stations, actions, dispatch, hasPermissions]);
 
   //Generate traverse calculated values
   useEffect(() => {
-    if (_.isEmpty(traverse.traverses) || !hasPermissions) return;
+    if (_.isEmpty(traverses) || !hasPermissions) return;
     dispatch(thunkCreateTraverseCalculatedFields());
-  }, [traverse.traverses, dispatch, hasPermissions]);
+  }, [traverses, dispatch, hasPermissions]);
 
   //Generate eva calculated values. These are dependent on stations and traverses having had their calculated values generated
   useEffect(() => {
     if (
-      _.isEmpty(eva.evas) ||
+      _.isEmpty(evas) ||
       _.isEmpty(stationsCalculatedFields) ||
       _.isEmpty(traversesCalculatedFields) ||
       !hasPermissions
     )
       return;
     dispatch(thunkCreateEvasCalculatedFields());
-  }, [eva.evas, stationsCalculatedFields, traversesCalculatedFields, dispatch, hasPermissions]);
+  }, [evas, stationsCalculatedFields, traversesCalculatedFields, dispatch, hasPermissions]);
 
   const showSunEarth: boolean =
     missionStore.mission &&
