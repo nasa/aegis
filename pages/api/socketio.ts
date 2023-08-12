@@ -68,27 +68,32 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
         socket.to(visitorJoin?.missionId.toString()).emit("visitorCounts", visitorCounts);
 
         console.log(
-          `${new Date().toISOString()} Socket ${socket.id} visitorJoin. Editors: ${
+          `${new Date().toISOString()} Socket ${
+            socket.id
+          } visitorJoin. ClientId: ${visitorJoin.uniqueClientId.slice(-4)} Editors: ${
             visitorCounts.editors
           } Viewers: ${visitorCounts.viewers}.`
         );
       });
 
       socket.on("disconnect", () => {
-        console.log(`${new Date().toISOString()} Socket ${socket.id} disconnected.`);
-        const visitorDataItemBeingRemoved = _.find(visitorTracking, {
+        const visitorBeingRemoved = _.find(visitorTracking, {
           socketId: socket.id,
         });
 
         // remove this socket from the visitor tracking
         _.remove(visitorTracking, (item) => {
-          return item.uniqueClientId === visitorDataItemBeingRemoved.uniqueClientId;
+          return item.uniqueClientId === visitorBeingRemoved.uniqueClientId;
         });
-        const visitorCounts = getVisitorCounts(visitorDataItemBeingRemoved.missionId);
+        const visitorCounts = getVisitorCounts(visitorBeingRemoved.missionId);
         // emit visitor count to all clients in this room
-        socket
-          .to(visitorDataItemBeingRemoved.missionId.toString())
-          .emit("visitorCounts", visitorCounts);
+        socket.to(visitorBeingRemoved.missionId.toString()).emit("visitorCounts", visitorCounts);
+
+        console.log(
+          `${new Date().toISOString()} Socket ${
+            socket.id
+          } ClientId: ${visitorBeingRemoved.uniqueClientId.slice(-4)} disconnected.`
+        );
       });
 
       // sent visitor counts to all clients in every room every 10 seconds

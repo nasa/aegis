@@ -7,7 +7,13 @@ export const initialState: InterfaceState = {
   timelineShowDistanceFromLander: true,
   timelineShowElevation: true,
   actionsExpanded: [],
-  visitorCounts: null,
+  socketStatus: {
+    visitorCounts: {
+      editors: 0,
+      viewers: 0,
+    },
+    connectionStatus: "disconnected",
+  },
 };
 
 export const interfaceSlice = createSlice({
@@ -48,7 +54,10 @@ export const interfaceSlice = createSlice({
       });
     },
     setVisitorCounts: (state, action: { payload: VisitorCounts }) => {
-      state.visitorCounts = action.payload;
+      state.socketStatus.visitorCounts = action.payload;
+    },
+    setSocketConnectionStatus: (state, action: { payload: ConnectionStatus }) => {
+      state.socketStatus.connectionStatus = action.payload;
     },
   },
 });
@@ -63,4 +72,5 @@ export const {
   collapseActions,
   expandActions,
   setVisitorCounts,
+  setSocketConnectionStatus,
 } = interfaceSlice.actions;

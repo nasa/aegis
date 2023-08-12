@@ -23,6 +23,13 @@ interface SocketData {
 }
 /** */
 
+type ConnectionStatus = "connected" | "disconnected" | "connecting" | "reconnecting";
+
+interface SocketStatus {
+  visitorCounts: visitorCounts;
+  connectionStatus: ConnectionStatus;
+}
+
 type StoreType = "preset" | "poi" | "station" | "eva" | "action" | "traverse";
 
 interface StoreUpsert<T> {

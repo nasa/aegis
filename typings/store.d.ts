@@ -88,7 +88,7 @@ interface InterfaceState {
   timelineShowDistanceFromLander: boolean;
   timelineShowElevation: boolean;
   actionsExpanded: string[];
-  visitorCounts: visitorCounts;
+  socketStatus: SocketStatus;
 }
 
 interface STMState {

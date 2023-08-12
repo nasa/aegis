@@ -6,10 +6,6 @@
   overflow: hidden;
 }
 
-.icon {
-  cursor: pointer;
-}
-
 .homeIcon:hover {
   opacity: 0.6;
   color: #fff;
@@ -111,5 +107,4 @@
 
 .userCountText {
   font-weight: 400;
-  color: var(--grey5);
 }

@@ -45,6 +45,7 @@ const Header: FunctionComponent = () => {
           </div>
         </div>
       </div>
+
       <div className={styles.right}>
         <div className={styles.verticalCenter}>
           <div
@@ -52,18 +53,23 @@ const Header: FunctionComponent = () => {
             data-tooltip-id="aegis-tooltip"
             data-tooltip-html={
               `Users active in this Mission:<br>` +
-              `Editors: ${interfaceStore?.visitorCounts?.editors || 0}<br>` +
-              `Visitors: ${interfaceStore?.visitorCounts?.visitors || 0}<br>` +
-              `These numbers include you.`
+              `Editors: ${interfaceStore?.socketStatus?.visitorCounts?.editors || 0}<br>` +
+              `Visitors: ${interfaceStore?.socketStatus?.visitorCounts?.visitors || 0}<br>` +
+              `These numbers include you`
+            }
+            style={
+              interfaceStore?.socketStatus?.connectionStatus === "connected"
+                ? { color: "var(--grey5)" }
+                : { color: "var(--grey3)" }
             }
           >
-            <FontAwesomeIcon icon={faPen} className={styles.icon} />
+            <FontAwesomeIcon icon={faPen} />
             <div className={styles.userCountText}>
-              {interfaceStore?.visitorCounts?.editors || 0}
+              {interfaceStore?.socketStatus?.visitorCounts?.editors || 0}
             </div>
-            <FontAwesomeIcon icon={faEye} className={styles.icon} style={{ marginLeft: "6px" }} />
+            <FontAwesomeIcon icon={faEye} style={{ marginLeft: "6px" }} />
             <div className={styles.userCountText}>
-              {interfaceStore?.visitorCounts?.viewers || 0}
+              {interfaceStore?.socketStatus?.visitorCounts?.viewers || 0}
             </div>
           </div>
         </div>

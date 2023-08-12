@@ -1,5 +1,5 @@
 import type { NextPage } from "next";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import dynamic from "next/dynamic";
@@ -16,64 +16,22 @@ import { getStations } from "http-client/station";
 import { getActions } from "http-client/action";
 import { getGoals, getInvestigations, getObjectives } from "http-client/stm";
 import { setMapCircleControls, setMapSublayerControls } from "store/map";
+import { setPois, setPoisFromDb } from "store/poi";
 import {
-  deletePoiByUuid,
-  deletePoiFromDbByUuid,
-  setPois,
-  setPoisFromDb,
-  setSelectedPoiUuid,
-  upsertPois,
-  upsertPoisFromDb,
-} from "store/poi";
-import {
-  deletePresetByUuid,
-  deletePresetFromDbByUuid,
   setPresetUIStates,
   setPresets,
   setPresetsFromDb,
   setSelectedPresetUuid,
-  upsertPresets,
-  upsertPresetsFromDb,
 } from "store/preset";
 import { setLayers, setMission, setMissionFromDb, setSublayers } from "store/mission";
-import {
-  deleteStationByUuid,
-  deleteStationFromDbByUuid,
-  setSelectedStationUuid,
-  setStations,
-  setStationsFromDb,
-  upsertStations,
-  upsertStationsFromDb,
-} from "store/station";
-import {
-  deleteActionByUuid,
-  deleteActionFromDbByUuid,
-  setActions,
-  setActionsFromDb,
-  upsertActions,
-  upsertActionsFromDb,
-} from "store/action";
+import { setStations, setStationsFromDb } from "store/station";
+import { setActions, setActionsFromDb } from "store/action";
 import { setGoals, setInvestigations, setObjectives } from "store/stm";
 import { getEvas } from "http-client/eva";
-import {
-  deleteEvaByUuid,
-  deleteEvaFromDbByUuid,
-  setEvas,
-  setEvasFromDb,
-  setSelectedEvaUuid,
-  upsertEvas,
-  upsertEvasFromDb,
-} from "store/eva";
-import {
-  setTraversesFromDb,
-  setTraverses,
-  deleteTraverseByUuid,
-  deleteTraverseFromDbByUuid,
-  upsertTraverses,
-  upsertTraversesFromDb,
-} from "store/traverse";
+import { setEvas, setEvasFromDb } from "store/eva";
+import { setTraversesFromDb, setTraverses } from "store/traverse";
 import { getTraverses } from "http-client/traverse";
-import { setRightPanelOpen, setVisitorCounts } from "store/interface";
+import { setRightPanelOpen } from "store/interface";
 import { setMissionPerms, setUserStore } from "store/user";
 import { thunkCreateStationCalculatedFields } from "store/thunk/thunkStation";
 import { thunkCreateTraverseCalculatedFields } from "store/thunk/thunkTraverse";
@@ -84,10 +42,7 @@ import { thunkSavePreset } from "store/thunk/thunkPreset";
 import _ from "lodash";
 import { isLoggedIn } from "http-client/login";
 import { getSublayers } from "http-client/sublayer";
-import { v4 as uuidv4 } from "uuid";
-import { io } from "socket.io-client";
-import type { Socket } from "socket.io-client";
-import fetchWithTimeout from "utils/fetch-with-timeout";
+import SocketClient from "./socketClient";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -119,17 +74,6 @@ const BottomControlPanel = dynamic(
   }
 );
 
-// create browser session storage variable with unique clientId in it
-let uniqueClientId: string = null;
-if (typeof window !== "undefined" && !window.sessionStorage.getItem("uniqueClientId")) {
-  const newUniqueClientId = uuidv4();
-  window.sessionStorage.setItem("uniqueClientId", newUniqueClientId);
-  uniqueClientId = newUniqueClientId;
-} else {
-  uniqueClientId =
-    typeof window !== "undefined" ? window.sessionStorage.getItem("uniqueClientId") : null;
-}
-
 const Main: NextPage = () => {
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -141,8 +85,6 @@ const Main: NextPage = () => {
   const traverse = useAppSelector((state) => state.traverse, shallowEqual);
   const eva = useAppSelector((state) => state.eva, shallowEqual);
   const preset = useAppSelector((state) => state.preset, shallowEqual);
-  const user = useAppSelector((state) => state.user, shallowEqual);
-  const interfaceStore = useAppSelector((state) => state.interface, shallowEqual);
 
   const stationsCalculatedFields = useAppSelector(
     (state) => state.station.calculatedFields,
@@ -153,20 +95,8 @@ const Main: NextPage = () => {
     shallowEqual
   );
 
-  const poisEditingRef = useRef<string[]>(poi.poisEditing);
-  const stationsEditingRef = useRef<string[]>(station.stationsEditing);
-  const evasEditingRef = useRef<string[]>(eva.evasEditing);
-  const traversesEditingRef = useRef<string[]>(traverse.traversesEditing);
-  const presetsEditingRef = useRef<string[]>(preset.presetsEditing);
-  const userRef = useRef(user);
-  const interfaceStoreRef = useRef(interfaceStore);
-
   //local state to ensure permissions have been checked first before running the other useEffects
   const [hasPermissions, setHasPermissions] = useState(false);
-
-  //socket connection
-  const socket = useRef<Socket<ServerToClientEvents, ClientToServerEvents>>(null);
-  const [wakeFetchSent, setWakeFetchSent] = useState(false);
 
   const { id } = router.query;
   const intMissionId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -499,310 +429,6 @@ const Main: NextPage = () => {
     dispatch(thunkCreateEvasCalculatedFields());
   }, [eva.evas, stationsCalculatedFields, traversesCalculatedFields, dispatch, hasPermissions]);
 
-  const alertUpdatedEditing = (type: string, name: string) => {
-    alert(
-      `The ${type} ${name}, that you are editing has been updated by another user. Please refresh.`
-    );
-  };
-
-  const alertDeletedEditing = (type: string, name: string) => {
-    alert(
-      `The ${type} ${name}, that you are editing has been deleted by another user. Please refresh.`
-    );
-  };
-
-  const storeUpsertEventHandler = useCallback(
-    (storePayload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse>) => {
-      console.log(
-        `Received storeUpsert from server. Mission: ${storePayload.missionId} uniqueClientId: ${storePayload.uniqueClientId} Type:${storePayload.type}`
-      );
-      // ignore all events that are not for the currently selected mission
-      if (storePayload.missionId !== intMissionId) {
-        console.log(
-          `Ignoring storeUpsert from server because this client is looking at a different mission. Mission: ${storePayload.missionId} uniqueClientId: ${storePayload.uniqueClientId} Type:${storePayload.type}`
-        );
-        return;
-      }
-      if (uniqueClientId === storePayload.uniqueClientId) {
-        console.log(
-          `Ignoring storeUpsert from server because it was sent by this client. Mission: ${storePayload.missionId} uniqueClientId: ${storePayload.uniqueClientId} Type:${storePayload.type}`
-        );
-        return;
-      }
-      if (storePayload.type === "preset") {
-        const newPresets = storePayload.data as Preset[];
-        preset.presets.forEach((thisPreset) => {
-          const newPreset = newPresets.find((newPreset) => newPreset.uuid === thisPreset.uuid);
-          if (newPreset) {
-            if (presetsEditingRef.current.includes(thisPreset.uuid)) {
-              alertUpdatedEditing("preset", thisPreset.name);
-              return;
-            }
-          }
-          return preset;
-        });
-        dispatch(upsertPresets(storePayload.data as Preset[], true));
-        dispatch(upsertPresetsFromDb(storePayload.data as Preset[]));
-      } else if (storePayload.type === "poi") {
-        const changedPois = storePayload.data as POI[];
-        for (const changedPoi of changedPois) {
-          if (poisEditingRef.current.includes(changedPoi.uuid)) {
-            alertUpdatedEditing("POI", changedPoi.name);
-          }
-        }
-        dispatch(upsertPois(storePayload.data as POI[], true));
-        dispatch(upsertPoisFromDb(storePayload.data as POI[]));
-      } else if (storePayload.type === "station") {
-        const changedStations = storePayload.data as Station[];
-        for (const changedStation of changedStations) {
-          if (stationsEditingRef.current.includes(changedStation.uuid)) {
-            alertUpdatedEditing("Station", changedStation.name);
-          }
-        }
-        dispatch(upsertStations(storePayload.data as Station[], true));
-        dispatch(upsertStationsFromDb(storePayload.data as Station[]));
-      } else if (storePayload.type === "eva") {
-        const changedEvas = storePayload.data as Eva[];
-        for (const changedEva of changedEvas) {
-          if (evasEditingRef.current.includes(changedEva.uuid)) {
-            alertUpdatedEditing("EVA", changedEva.name);
-          }
-        }
-        dispatch(upsertEvas(storePayload.data as Eva[], true));
-        dispatch(upsertEvasFromDb(storePayload.data as Eva[]));
-      } else if (storePayload.type === "action") {
-        dispatch(upsertActions(storePayload.data as Action[], true));
-        dispatch(upsertActionsFromDb(storePayload.data as Action[]));
-      } else if (storePayload.type === "traverse") {
-        const changedTraverses = storePayload.data as Traverse[];
-        for (const changedTraverse of changedTraverses) {
-          if (traversesEditingRef.current.includes(changedTraverse.uuid)) {
-            alertUpdatedEditing("traverse", changedTraverse.name);
-          }
-        }
-        dispatch(upsertTraverses(storePayload.data as Traverse[], true));
-        dispatch(upsertTraversesFromDb(storePayload.data as Traverse[]));
-      }
-    },
-    [
-      dispatch,
-      preset,
-      intMissionId,
-      presetsEditingRef,
-      poisEditingRef,
-      stationsEditingRef,
-      evasEditingRef,
-      traversesEditingRef,
-    ]
-  );
-
-  const storeDeleteEventHandler = useCallback(
-    (storeDelete: StoreDelete) => {
-      console.log(
-        `Received delete event from server. Mission: ${storeDelete.missionId} uniqueClientId: ${storeDelete.uniqueClientId} Type:${storeDelete.type} uuid:${storeDelete.uuid}`
-      );
-      // ignore all events that are not for the currently selected mission
-      if (storeDelete.missionId !== intMissionId) {
-        console.log(
-          `Ignoring delete event from server because this client is looking at a different mission. Mission: ${storeDelete.missionId} uniqueClientId: ${storeDelete.uniqueClientId} Type:${storeDelete.type} uuid:${storeDelete.uuid}`
-        );
-        return;
-      }
-      if (storeDelete.uniqueClientId === uniqueClientId) {
-        console.log(
-          `Ignoring delete event from server because it was sent by this client. Mission: ${storeDelete.missionId} uniqueClientId: ${storeDelete.uniqueClientId} Type:${storeDelete.type} uuid:${storeDelete.uuid}`
-        );
-        return;
-      }
-
-      if (storeDelete.type === "preset") {
-        if (presetsEditingRef.current.includes(storeDelete.uuid)) {
-          const deletedPreset = preset.presets.find((preset) => preset.uuid === storeDelete.uuid);
-          alertDeletedEditing("preset", deletedPreset.name);
-          return;
-        }
-        if (preset.selectedPresetUuid === storeDelete.uuid) {
-          // set the selected preset to the default preset
-          const defaultPreset = preset.presets.find(
-            (thisPreset) => thisPreset.missionPresetDefault === true
-          ) as Preset;
-          dispatch(setSelectedPresetUuid(defaultPreset.uuid));
-        }
-        dispatch(deletePresetByUuid(storeDelete.uuid));
-        dispatch(deletePresetFromDbByUuid(storeDelete.uuid));
-      } else if (storeDelete.type === "poi") {
-        if (poisEditingRef.current.includes(storeDelete.uuid)) {
-          const poiDeleted = poi.pois.find((poi) => poi.uuid === storeDelete.uuid);
-          alertDeletedEditing("POI", poiDeleted.name);
-          return;
-        }
-        if (poi.selectedPoiUuid === storeDelete.uuid) dispatch(setSelectedPoiUuid(null));
-        dispatch(deletePoiByUuid(storeDelete.uuid));
-        dispatch(deletePoiFromDbByUuid(storeDelete.uuid));
-      } else if (storeDelete.type === "station") {
-        if (stationsEditingRef.current.includes(storeDelete.uuid)) {
-          const stationDeleted = station.stations.find(
-            (station) => station.uuid === storeDelete.uuid
-          );
-          alertDeletedEditing("station", stationDeleted.name);
-          return;
-        }
-        if (station.selectedStationUuid === storeDelete.uuid)
-          dispatch(setSelectedStationUuid(null));
-        dispatch(deleteStationByUuid(storeDelete.uuid));
-        dispatch(deleteStationFromDbByUuid(storeDelete.uuid));
-      } else if (storeDelete.type === "eva") {
-        if (evasEditingRef.current.includes(storeDelete.uuid)) {
-          const evaDeleted = eva.evas.find((eva) => eva.uuid === storeDelete.uuid);
-          alertDeletedEditing("EVA", evaDeleted.name);
-          return;
-        }
-        if (eva.selectedEvaUuid === storeDelete.uuid) {
-          dispatch(setSelectedEvaUuid(null));
-        }
-        dispatch(deleteEvaByUuid(storeDelete.uuid));
-        dispatch(deleteEvaFromDbByUuid(storeDelete.uuid));
-      } else if (storeDelete.type === "action") {
-        dispatch(deleteActionByUuid(storeDelete.uuid));
-        dispatch(deleteActionFromDbByUuid(storeDelete.uuid));
-      } else if (storeDelete.type === "traverse") {
-        if (traversesEditingRef.current.includes(storeDelete.uuid)) {
-          const traverseDeleted = traverse.traverses.find(
-            (traverse) => traverse.uuid === storeDelete.uuid
-          );
-          alertDeletedEditing("traverse", traverseDeleted.name);
-          return;
-        }
-        dispatch(deleteTraverseByUuid(storeDelete.uuid));
-        dispatch(deleteTraverseFromDbByUuid(storeDelete.uuid));
-      }
-    },
-    [
-      dispatch,
-      preset,
-      poi,
-      station,
-      eva,
-      traverse,
-      intMissionId,
-      presetsEditingRef,
-      poisEditingRef,
-      stationsEditingRef,
-      evasEditingRef,
-      traversesEditingRef,
-    ]
-  );
-
-  //Handle socketio events
-  useEffect(() => {
-    if (!wakeFetchSent) {
-      fetchWithTimeout(`${window.location.origin}/api/socketio`, { timeout: 5 });
-      setWakeFetchSent(true);
-      return;
-    }
-
-    if (!uniqueClientId || !intMissionId || !user?.missionPerms) return;
-
-    // Create a socket connection
-    if (!socket.current || (socket.current && !socket.current.connected)) {
-      socket.current = io(window.location.origin, {
-        transports: ["websocket"],
-        upgrade: true,
-        path: "/api/socketio",
-      });
-    }
-
-    socket.current.on("connect", () => {
-      // Get current user permissions on this mission
-      const permissionType: "viewer" | "editor" = userRef.current.missionPerms.permissions.edit
-        ? "editor"
-        : "viewer";
-
-      const visitorJoin: VisitorJoin = {
-        missionId: intMissionId,
-        uniqueClientId: uniqueClientId,
-        type: permissionType,
-      };
-
-      socket.current.emit("visitorJoin", visitorJoin);
-
-      console.log(
-        `Connected to socket.io server. Joining Mission: ${intMissionId} uniqueClientId: ${uniqueClientId}. Type: ${permissionType}.`
-      );
-    });
-
-    socket.current.on("disconnect", () => {
-      console.log("Disconnected from socket.io server");
-    });
-    socket.current.io.on("reconnect_attempt", () => {
-      console.log("Attempting to reconnect to socket.io server");
-    });
-    socket.current.io.on("reconnect", () => {
-      console.log("Reconnected to socket.io server");
-    });
-
-    // Incoming AEGIS version number
-    socket.current.on("version", (version: string) => {
-      console.log(`Server version: ${version}`);
-      const currentVersion = window.sessionStorage.getItem("AEGISversion") || null;
-      if (currentVersion !== version) {
-        if (currentVersion !== null) {
-          alert(
-            `A new version of AEGIS is available. Please refresh your browser to get the latest version.`
-          );
-        }
-        window.sessionStorage.setItem("AEGISversion", version);
-      }
-    });
-
-    // Incoming client counts
-    socket.current.on("visitorCounts", (visitorCounts: VisitorCounts) => {
-      console.log(
-        `In this room: ${visitorCounts?.editors} editors, ${visitorCounts?.viewers} viewers`
-      );
-      if (_.isEqual(visitorCounts, interfaceStoreRef.current.visitorCounts)) return;
-      dispatch(setVisitorCounts(visitorCounts));
-    });
-
-    // Listen for incoming store updates
-    socket.current.on(
-      "storeUpsert",
-      (storePayload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse>) => {
-        storeUpsertEventHandler(storePayload);
-      }
-    );
-
-    // Incoming store deletes
-    socket.current.on("storeDelete", (storeDelete: StoreDelete) => {
-      storeDeleteEventHandler(storeDelete);
-    });
-
-    // Clean up the socket connection on unmount
-    return () => {
-      socket.current.off("connect");
-      socket.current.off("disconnect");
-      socket.current.io.off("reconnect_attempt");
-      socket.current.io.off("reconnect");
-      socket.current.off("version");
-      socket.current.off("visitorCounts");
-      socket.current.off("storeUpsert");
-      socket.current.off("storeDelete");
-      socket.current.disconnect();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, socket, wakeFetchSent, intMissionId, user]);
-
-  // Keep refs up to date from store
-  useEffect(() => {
-    poisEditingRef.current = poi.poisEditing;
-    stationsEditingRef.current = station.stationsEditing;
-    evasEditingRef.current = eva.evasEditing;
-    traversesEditingRef.current = traverse.traversesEditing;
-    presetsEditingRef.current = preset.presetsEditing;
-    userRef.current = user;
-    interfaceStoreRef.current = interfaceStore;
-  }, [poi, station, eva, traverse, preset, user, interfaceStore]);
-
   const showSunEarth: boolean =
     missionStore.mission &&
     (missionStore.mission.earthAzimuthVisible || missionStore.mission.sunAzimuthVisible);
@@ -857,6 +483,7 @@ const Main: NextPage = () => {
           <div className={styles.bottomControl}>
             <BottomControlPanel />
           </div>
+          <SocketClient missionId={intMissionId} />
         </div>
       )}
     </>
