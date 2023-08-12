@@ -3,7 +3,7 @@ interface ServerToClientEvents {
   noArg: () => void;
   storeUpsert: (payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse>) => void;
   storeDelete: (payload: StoreDelete) => void;
-  visitorCounts: (VisitorCounts: VisitorCounts) => void;
+  statusFromServer: (payload: StatusFromServer) => void;
   version: (version: string) => void;
 }
 
@@ -28,6 +28,22 @@ type ConnectionStatus = "connected" | "disconnected" | "connecting" | "reconnect
 interface SocketStatus {
   visitorCounts: visitorCounts;
   connectionStatus: ConnectionStatus;
+  lastEditEvent: EditEvent | null;
+}
+
+interface ServerSocketStatus {
+  visitorsData: VisitorData[];
+  lastEditEvents: EditEvents;
+}
+
+interface EditEvent {
+  uniqueClientId: string;
+  type: StoreType;
+  datestamp: string;
+}
+
+interface EditEvents {
+  [missionId: number]: EditEvent;
 }
 
 type StoreType = "preset" | "poi" | "station" | "eva" | "action" | "traverse";
@@ -37,6 +53,7 @@ interface StoreUpsert<T> {
   missionId: number;
   type: StoreType;
   data: T[];
+  lastEditEvent?: EditEvent;
 }
 
 interface StoreDelete {
@@ -44,6 +61,7 @@ interface StoreDelete {
   missionId: number;
   type: StoreType;
   uuid: string;
+  lastEditEvent?: EditEvent;
 }
 
 interface VisitorJoin {
@@ -64,12 +82,6 @@ interface VisitorCounts {
   viewers: number;
 }
 
-type TimestampCheck = {
-  uuid: string;
-  updatedAt: string;
-};
-
-interface StoreTimestampAudit {
-  type: StoreType;
-  timestampChecks: TimestampCheck[];
+interface StatusFromServer {
+  visitorCounts: VisitorCounts;
 }

@@ -13,6 +13,7 @@ export const initialState: InterfaceState = {
       viewers: 0,
     },
     connectionStatus: "disconnected",
+    lastEditEvent: null,
   },
 };
 
@@ -59,6 +60,9 @@ export const interfaceSlice = createSlice({
     setSocketConnectionStatus: (state, action: { payload: ConnectionStatus }) => {
       state.socketStatus.connectionStatus = action.payload;
     },
+    setLastEditEvent: (state, action: { payload: EditEvent }) => {
+      state.socketStatus.lastEditEvent = action.payload;
+    },
   },
 });
 
@@ -73,4 +77,5 @@ export const {
   expandActions,
   setVisitorCounts,
   setSocketConnectionStatus,
+  setLastEditEvent,
 } = interfaceSlice.actions;

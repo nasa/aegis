@@ -6,5 +6,6 @@ declare module globalThis {
     InterServerEvents,
     SocketData
   >;
-  var __visitorTracking__: VisitorData[];
+  var __serverSocketStatus__: ServerSocketStatus;
+  var __socketInterval__: NodeJS.Timeout;
 }

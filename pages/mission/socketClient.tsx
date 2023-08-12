@@ -39,7 +39,7 @@ import {
   upsertTraverses,
   upsertTraversesFromDb,
 } from "store/traverse";
-import { setSocketConnectionStatus, setVisitorCounts } from "store/interface";
+import { setLastEditEvent, setSocketConnectionStatus, setVisitorCounts } from "store/interface";
 import { shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
@@ -106,6 +106,9 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
         );
         return;
       }
+      // update the last edit event in the store
+      dispatch(setLastEditEvent(storePayload?.lastEditEvent));
+
       if (uniqueClientId === storePayload.uniqueClientId) {
         console.log(
           `Ignoring storeUpsert from server because it was sent by this client. Mission: ${storePayload.missionId} uniqueClientId: ${storePayload.uniqueClientId} Type:${storePayload.type}`
@@ -182,6 +185,9 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
         );
         return;
       }
+      // update the last edit event in the store
+      dispatch(setLastEditEvent(storeDelete?.lastEditEvent));
+
       if (storeDelete.uniqueClientId === uniqueClientId) {
         console.log(
           `Ignoring delete event from server because it was sent by this client. Mission: ${storeDelete.missionId} uniqueClientId: ${storeDelete.uniqueClientId} Type:${storeDelete.type} uuid:${storeDelete.uuid}`
@@ -306,6 +312,30 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
     socket.current.io.on("reconnect", () => {
       console.log("Reconnected to socket.io server");
       dispatch(setSocketConnectionStatus("connected"));
+
+      // hit the API to get the lastest edit event and compare it to the one in the store
+      // if they are different, then alert the user and refresh the page
+      (async () => {
+        const wrappedLastEditResponse = await fetchWithTimeout(
+          `${window.location.origin}/api/socketLastEditEvent?missionId=${missionId}`,
+          { timeout: 2000 }
+        );
+
+        if (wrappedLastEditResponse.status === 200) {
+          const lastEditResponse = await wrappedLastEditResponse.json();
+          if (
+            interfaceStoreRef.current.socketStatus.lastEditEvent &&
+            lastEditResponse &&
+            _.isEqual(lastEditResponse, interfaceStoreRef.current.socketStatus.lastEditEvent) ===
+              false
+          ) {
+            alert(
+              `The mission you are editing has been updated by another user while you were disconnected.\n
+              Please refresh your browser to get the latest version.`
+            );
+          }
+        }
+      })();
     });
 
     // Incoming AEGIS version number
@@ -323,12 +353,18 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
     });
 
     // Incoming client counts
-    socket.current.on("visitorCounts", (visitorCounts: VisitorCounts) => {
+    socket.current.on("statusFromServer", (statusFromServer: StatusFromServer) => {
       console.log(
-        `In this room: ${visitorCounts?.editors} editors, ${visitorCounts?.viewers} viewers`
+        `In this room: ${statusFromServer?.visitorCounts.editors} editors, ${statusFromServer?.visitorCounts.viewers} viewers`
       );
-      if (_.isEqual(visitorCounts, interfaceStoreRef.current.socketStatus?.visitorCounts)) return;
-      dispatch(setVisitorCounts(visitorCounts));
+      if (
+        !_.isEqual(
+          statusFromServer.visitorCounts,
+          interfaceStoreRef.current.socketStatus.visitorCounts
+        )
+      ) {
+        dispatch(setVisitorCounts(statusFromServer.visitorCounts));
+      }
     });
 
     // Listen for incoming store updates
@@ -351,7 +387,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
       socket.current.io.off("reconnect_attempt");
       socket.current.io.off("reconnect");
       socket.current.off("version");
-      socket.current.off("visitorCounts");
+      socket.current.off("statusFromServer");
       socket.current.off("storeUpsert");
       socket.current.off("storeDelete");
       socket.current.disconnect();

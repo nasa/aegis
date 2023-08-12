@@ -42,7 +42,6 @@ import { thunkSavePreset } from "store/thunk/thunkPreset";
 import _ from "lodash";
 import { isLoggedIn } from "http-client/login";
 import { getSublayers } from "http-client/sublayer";
-import SocketClient from "./socketClient";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -73,6 +72,10 @@ const BottomControlPanel = dynamic(
     ssr: false,
   }
 );
+
+const SocketClient = dynamic(import("./socketClient"), {
+  ssr: false,
+});
 
 const Main: NextPage = () => {
   const dispatch = useAppDispatch();
