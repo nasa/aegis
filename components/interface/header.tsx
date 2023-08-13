@@ -52,10 +52,12 @@ const Header: FunctionComponent = () => {
             className={styles.userCount}
             data-tooltip-id="aegis-tooltip"
             data-tooltip-html={
-              `Users active in this Mission:<br>` +
-              `Editors: ${interfaceStore?.socketStatus?.visitorCounts?.editors || 0}<br>` +
-              `Visitors: ${interfaceStore?.socketStatus?.visitorCounts?.visitors || 0}<br>` +
-              `These numbers include you`
+              interfaceStore?.socketStatus?.connectionStatus === "connected"
+                ? `Users active in this Mission:<br>` +
+                  `Editors: ${interfaceStore?.socketStatus?.visitorCounts?.editors || 0}<br>` +
+                  `Visitors: ${interfaceStore?.socketStatus?.visitorCounts?.visitors || 0}<br>` +
+                  `These numbers include you`
+                : "Connection to server lost"
             }
             style={
               interfaceStore?.socketStatus?.connectionStatus === "connected"
