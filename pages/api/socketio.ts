@@ -70,6 +70,7 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
         visitorsData.push(visitorData);
 
         const statusFromServer = getStatusFromServer(visitorJoin.missionId);
+
         // emit visitor count to all clients in this room
         socket.to(visitorJoin?.missionId.toString()).emit("statusFromServer", statusFromServer);
 
@@ -151,10 +152,10 @@ export const emitStoreUpsert = (
 ): void => {
   const io = global?.__socketio__;
   if (io) {
-    io.emit("storeUpsert", payload);
     payload = addLastEditEvent(payload) as StoreUpsert<
       POI | Preset | Station | Eva | Action | Traverse
     >;
+    io.to(payload.missionId.toString()).emit("storeUpsert", payload);
   } else {
     console.log("Unable to emit upsert. Socket.io not initialized");
   }
@@ -163,8 +164,8 @@ export const emitStoreUpsert = (
 export const emitStoreDelete = (payload: StoreDelete): void => {
   const io = global?.__socketio__;
   if (io) {
-    io.emit("storeDelete", payload);
     payload = addLastEditEvent(payload) as StoreDelete;
+    io.to(payload.missionId.toString()).emit("storeDelete", payload);
   } else {
     console.log("Unable to emit delete. Socket.io not initialized");
   }

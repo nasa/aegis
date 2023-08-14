@@ -112,14 +112,12 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
         const deletedUUID = await deleteAction(actionUUID);
         if (deletedUUID) {
           // emit the deleted item to all clients via socket.io
-          setTimeout(() => {
-            emitStoreDelete({
-              missionId: intMissionId,
-              uniqueClientId,
-              type: "action",
-              uuid: deletedUUID,
-            } as StoreDelete);
-          }, 1000);
+          emitStoreDelete({
+            missionId: intMissionId,
+            uniqueClientId,
+            type: "action",
+            uuid: deletedUUID,
+          } as StoreDelete);
 
           return res.status(200).json({
             status: "success",

@@ -53,7 +53,7 @@ interface StoreUpsert<T> {
   missionId: number;
   type: StoreType;
   data: T[];
-  lastEditEvent?: EditEvent;
+  lastEditEvent: EditEvent;
 }
 
 interface StoreDelete {
