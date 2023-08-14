@@ -148,12 +148,12 @@ const getStatusFromServer = (missionId: number): StatusFromServer => {
 };
 
 export const emitStoreUpsert = (
-  payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse>
+  payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission>
 ): void => {
   const io = global?.__socketio__;
   if (io) {
     payload = addLastEditEvent(payload) as StoreUpsert<
-      POI | Preset | Station | Eva | Action | Traverse
+      POI | Preset | Station | Eva | Action | Traverse | Mission
     >;
     io.to(payload.missionId.toString()).emit("storeUpsert", payload);
   } else {
@@ -172,7 +172,7 @@ export const emitStoreDelete = (payload: StoreDelete): void => {
 };
 
 const addLastEditEvent = (
-  payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse> | StoreDelete
+  payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission> | StoreDelete
 ) => {
   // store the last edit event for this mission
   global.__serverSocketStatus__.lastEditEvents[payload.missionId] = {

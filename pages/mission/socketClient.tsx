@@ -35,7 +35,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
   const [wakeFetchSent, setWakeFetchSent] = useState(false);
 
   const storeUpsertEventHandler = useCallback(
-    (storePayload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse>) => {
+    (storePayload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission>) => {
       console.log(
         `${new Date().toISOString()} Received storeUpsert from server. Mission: ${
           storePayload.missionId
@@ -238,7 +238,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
     // Listen for incoming store updates
     socket.current.on(
       "storeUpsert",
-      (storePayload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse>) => {
+      (storePayload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission>) => {
         storeUpsertEventHandler(storePayload);
       }
     );

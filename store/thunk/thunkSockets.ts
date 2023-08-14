@@ -40,13 +40,14 @@ import {
   upsertTraverses,
   upsertTraversesFromDb,
 } from "store/traverse";
+import { setMission, setMissionFromDb } from "store/mission";
 
 /**
  * Handles the storeUpsert socket event
  */
 export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
   {
-    storeUpsert: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse>;
+    storeUpsert: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission>;
   },
   string[],
   false
@@ -105,6 +106,9 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     }
     dispatch(upsertTraverses(storeUpsert.data as Traverse[], true));
     dispatch(upsertTraversesFromDb(storeUpsert.data as Traverse[]));
+  } else if (storeUpsert.type === "mission") {
+    dispatch(setMission(storeUpsert.data[0] as Mission));
+    dispatch(setMissionFromDb(storeUpsert.data[0] as Mission));
   }
   return upsertMessages;
 });

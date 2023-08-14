@@ -10,7 +10,9 @@ export async function getMissions(missionId: number = null): Promise<WrappedResp
 }
 
 export async function upsertMission(missionObj: Mission): Promise<WrappedResponse<Mission>> {
-  const res = await fetch(`/api/mission`, {
+  const uniqueClientId =
+    typeof window !== undefined ? window.sessionStorage.getItem("uniqueClientId") : null;
+  const res = await fetch(`/api/mission?uniqueClientId=${uniqueClientId}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
