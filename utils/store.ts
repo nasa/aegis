@@ -1,10 +1,5 @@
 import _ from "lodash";
 
-interface MustContain {
-  uuid: string;
-  createdAt?: string;
-}
-
 /**
  * Upsert (update or insert) an element into any array of objects that contain a uuid field.
  * @param array The array the object is upserted into
