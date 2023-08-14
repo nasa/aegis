@@ -57,7 +57,7 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     const changedPresets = storeUpsert.data as Preset[];
     for (const changedPreset of changedPresets) {
       if (getState().preset.presetsEditing.includes(changedPreset.uuid)) {
-        upsertMessages.push(getUpsertedConflictMessage("preset", changedPreset.name));
+        upsertMessages.push(getConflictMessage("preset", changedPreset.name, "upsert"));
       }
     }
     dispatch(upsertPresets(storeUpsert.data as Preset[], true));
@@ -66,7 +66,7 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     const changedPois = storeUpsert.data as POI[];
     for (const changedPoi of changedPois) {
       if (getState().poi.poisEditing.includes(changedPoi.uuid)) {
-        upsertMessages.push(getUpsertedConflictMessage("POI", changedPoi.name));
+        upsertMessages.push(getConflictMessage("POI", changedPoi.name, "upsert"));
       }
     }
     dispatch(upsertPois(storeUpsert.data as POI[], true));
@@ -75,7 +75,7 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     const changedStations = storeUpsert.data as Station[];
     for (const changedStation of changedStations) {
       if (getState().station.stationsEditing.includes(changedStation.uuid)) {
-        upsertMessages.push(getUpsertedConflictMessage("Station", changedStation.name));
+        upsertMessages.push(getConflictMessage("Station", changedStation.name, "upsert"));
       }
     }
     dispatch(upsertStations(storeUpsert.data as Station[], true));
@@ -84,7 +84,7 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     const changedEvas = storeUpsert.data as Eva[];
     for (const changedEva of changedEvas) {
       if (getState().eva.evasEditing.includes(changedEva.uuid)) {
-        upsertMessages.push(getUpsertedConflictMessage("EVA", changedEva.name));
+        upsertMessages.push(getConflictMessage("EVA", changedEva.name, "upsert"));
       }
       // if the eva being upserted is the selected eva, then nullify the selectedSequenceItemUuid
       if (getState().eva.selectedEvaUuid === changedEva.uuid) {
@@ -100,7 +100,7 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     const changedTraverses = storeUpsert.data as Traverse[];
     for (const changedTraverse of changedTraverses) {
       if (getState().traverse.traversesEditing.includes(changedTraverse.uuid)) {
-        upsertMessages.push(getUpsertedConflictMessage("traverse", changedTraverse.name));
+        upsertMessages.push(getConflictMessage("traverse", changedTraverse.name, "upsert"));
       }
     }
     dispatch(upsertTraverses(storeUpsert.data as Traverse[], true));
@@ -126,8 +126,7 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
       const deletedPreset = getState().preset.presets.find(
         (preset) => preset.uuid === storeDelete.uuid
       );
-      deletedMessages.push(getDeletedConflictMessage("preset", deletedPreset.name));
-      return;
+      deletedMessages.push(getConflictMessage("preset", deletedPreset.name, "delete"));
     }
     if (getState().preset.selectedPresetUuid === storeDelete.uuid) {
       // set the selected preset to the default preset
@@ -141,8 +140,7 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
   } else if (storeDelete.type === "poi") {
     if (getState().poi.poisEditing.includes(storeDelete.uuid)) {
       const poiDeleted = getState().poi.pois.find((poi) => poi.uuid === storeDelete.uuid);
-      deletedMessages.push(getDeletedConflictMessage("POI", poiDeleted.name));
-      return;
+      deletedMessages.push(getConflictMessage("POI", poiDeleted.name, "delete"));
     }
     if (getState().poi.selectedPoiUuid === storeDelete.uuid) dispatch(setSelectedPoiUuid(null));
     dispatch(deletePoiByUuid(storeDelete.uuid));
@@ -152,8 +150,7 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
       const stationDeleted = getState().station.stations.find(
         (station) => station.uuid === storeDelete.uuid
       );
-      deletedMessages.push(getDeletedConflictMessage("station", stationDeleted.name));
-      return;
+      deletedMessages.push(getConflictMessage("station", stationDeleted.name, "delete"));
     }
     if (getState().station.selectedStationUuid === storeDelete.uuid)
       dispatch(setSelectedStationUuid(null));
@@ -162,8 +159,7 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
   } else if (storeDelete.type === "eva") {
     if (getState().eva.evasEditing.includes(storeDelete.uuid)) {
       const evaDeleted = getState().eva.evas.find((eva) => eva.uuid === storeDelete.uuid);
-      deletedMessages.push(getDeletedConflictMessage("EVA", evaDeleted.name));
-      return;
+      deletedMessages.push(getConflictMessage("EVA", evaDeleted.name, "delete"));
     }
     if (getState().eva.selectedEvaUuid === storeDelete.uuid) {
       dispatch(setSelectedEvaUuid(null));
@@ -179,8 +175,7 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
       const traverseDeleted = getState().traverse.traverses.find(
         (traverse) => traverse.uuid === storeDelete.uuid
       );
-      deletedMessages.push(getDeletedConflictMessage("traverse", traverseDeleted.name));
-      return;
+      deletedMessages.push(getConflictMessage("traverse", traverseDeleted.name, "delete"));
     }
     dispatch(deleteTraverseByUuid(storeDelete.uuid));
     dispatch(deleteTraverseFromDbByUuid(storeDelete.uuid));
@@ -188,10 +183,7 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
   return deletedMessages;
 });
 
-const getUpsertedConflictMessage = (type: string, name: string): string => {
-  return `The ${type} ${name}, that you are editing has been edited by another user. Please refresh.`;
-};
-
-const getDeletedConflictMessage = (type: string, name: string): string => {
-  return `The ${type} ${name}, that you are editing has been deleted by another user. Please refresh.`;
+const getConflictMessage = (type: string, name: string, action: string): string => {
+  const actionPastTense = action === "upsert" ? "upserted" : "deleted";
+  return `The ${type} ${name}, that you are editing has been ${actionPastTense} by another user.`;
 };
