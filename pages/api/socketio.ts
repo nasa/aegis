@@ -71,8 +71,8 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
 
         const statusFromServer = getStatusFromServer(visitorJoin.missionId);
 
-        // emit visitor count to all clients in this room
-        socket.to(visitorJoin.missionId.toString()).emit("statusFromServer", statusFromServer);
+        // emit visitor count to all clients in this room including this client
+        io.to(visitorJoin.missionId.toString()).emit("statusFromServer", statusFromServer);
 
         // console.log(
         //   `${new Date().toISOString()} Socket ${
