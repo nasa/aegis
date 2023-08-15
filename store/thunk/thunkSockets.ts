@@ -108,9 +108,7 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     dispatch(upsertTraversesFromDb(storeUpsert.data as Traverse[]));
   } else if (storeUpsert.type === "mission") {
     if (getState().mission.missionSectionsEditing.length > 0) {
-      upsertMessages.push(
-        "The mission that you are editing has been changed by another user. Your changes have been discarded."
-      );
+      upsertMessages.push("The mission that you are editing has been changed by another user.");
     }
     dispatch(setMission(storeUpsert.data[0] as Mission));
     dispatch(setMissionFromDb(storeUpsert.data[0] as Mission));
