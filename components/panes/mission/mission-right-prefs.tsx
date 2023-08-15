@@ -51,7 +51,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     // if another mapAction is underway, fire an alert and return false
     if (mapDirective && mapDirective.mapAction !== null) {
       alert(
-        "Another map action is underway. Please cancel or complete that action before creating a new one."
+        "Another map action is underway. Please cancel or complete that map action before starting a new one."
       );
       return false;
     } else {

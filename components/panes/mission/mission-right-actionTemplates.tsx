@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import missionStyles from "./mission.module.css";
 import actionStyles from "../actions.module.css";
@@ -12,6 +12,7 @@ import {
   faClock,
   faDigging,
   faFont,
+  faIcons,
   faListOl,
   faMessage,
   faPersonWalkingLuggage,
@@ -36,13 +37,17 @@ import { collapseActions, expandActions } from "store/interface";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
-import { toDecimal } from "utils/formatting";
+import { decodeEmoji, toDecimal } from "utils/formatting";
+import Picker from "@emoji-mart/react";
+import emojiPickerData from "@emoji-mart/data";
 import STMSelector from "../stm-selector";
 
 const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
   const actionsExpanded = useAppSelector((state) => state.interface.actionsExpanded, shallowEqual);
+
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   return (
     <div className={paneStyles.rightBody}>
@@ -537,6 +542,61 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                 );
                               }}
                             />
+                          </div>
+                        </div>
+
+                        <div className={paneStyles.panelSection}>
+                          <div
+                            className={paneStyles.panelSectionTitle}
+                            style={{ marginBottom: "8px" }}
+                          >
+                            <SubpanelHeading icon={faIcons}>Icon</SubpanelHeading>
+                          </div>
+
+                          <div
+                            className={paneStyles.panelSectionRow}
+                            style={{ marginLeft: "18px" }}
+                          >
+                            <div className={paneStyles.rightTopTitleIcon}>
+                              <>{decodeEmoji(actionTemplate.icon ? actionTemplate.icon : "2754")}</>
+                            </div>
+                            {editMode && (
+                              <>
+                                <div className={actionActionStyles.iconDisplayButton}>
+                                  <Button
+                                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                    label={!showEmojiPicker ? "Pick Icon" : "Close"}
+                                    style={{ width: "75px" }}
+                                  />
+                                </div>
+                                <div className={actionActionStyles.iconPickerContainer}>
+                                  {showEmojiPicker && (
+                                    <div className={actionActionStyles.iconPicker}>
+                                      <Picker
+                                        data={emojiPickerData}
+                                        emojiButtonSize={30}
+                                        emojiSize={20}
+                                        perLine={10}
+                                        darkMode={true}
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                        onEmojiSelect={(e: any) => {
+                                          const updatedAction: ActionTemplate = {
+                                            ...actionTemplate,
+                                            icon: e.unified,
+                                          };
+                                          dispatch(
+                                            thunkUpdateActionTemplate({
+                                              actionTemplate: updatedAction,
+                                            })
+                                          );
+                                          setShowEmojiPicker(false);
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              </>
+                            )}
                           </div>
                         </div>
 

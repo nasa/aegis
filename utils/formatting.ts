@@ -215,3 +215,11 @@ export function formatNumberWithCommas(num: number): string {
 export const getPercentOrDefault = (value: number | undefined): number => {
   return typeof value === "number" ? Math.round(value * 100) : 100;
 };
+
+export const titleCase = (str: string): string => {
+  return str
+    .toLowerCase()
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};

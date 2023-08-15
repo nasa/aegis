@@ -72,8 +72,9 @@
 .actionsHeading {
   display: flex;
   gap: 4px;
-  padding: 1px;
-  margin-left: 3px;
+  padding: 1px 1px 1px 3px;
+  margin-left: 0;
+  margin-right: 1px;
 }
 
 .actionsHeadingType {
@@ -145,4 +146,34 @@
   background-color: var(--eva);
   color: var(--grey1);
   font-weight: 600;
+}
+
+.statusLoading {
+  width: 18px;
+  min-height: 18px;
+  display: inline-block;
+  margin-left: 0.1em;
+  padding-right: 0.4em;
+
+  background-size: 18px 18px;
+  background-repeat: no-repeat;
+
+  background-position: center;
+  background-image: url(/images/icon_status_loading.svg);
+}
+
+.iconDisplayButton {
+  cursor: pointer;
+  margin-right: 5px;
+}
+
+.iconPickerContainer {
+  position: relative;
+}
+
+.iconPicker {
+  position: absolute;
+  left: -60px;
+  top: -440px;
+  z-index: 100;
 }
