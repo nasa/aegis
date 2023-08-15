@@ -2,6 +2,7 @@ import appCreateAsyncThunk from "./thunkUtil";
 import {
   deletePresetByUuid,
   deletePresetFromDbByUuid,
+  setPresetEditMode,
   setSelectedPresetUuid,
   upsertPresets,
   upsertPresetsFromDb,
@@ -9,6 +10,7 @@ import {
 import {
   deletePoiByUuid,
   deletePoiFromDbByUuid,
+  setPoiEditMode,
   setSelectedPoiUuid,
   upsertPois,
   upsertPoisFromDb,
@@ -17,12 +19,14 @@ import {
   deleteStationByUuid,
   deleteStationFromDbByUuid,
   setSelectedStationUuid,
+  setStationEditMode,
   upsertStations,
   upsertStationsFromDb,
 } from "store/station";
 import {
   deleteEvaByUuid,
   deleteEvaFromDbByUuid,
+  setEvaEditMode,
   setSelectedEvaSequenceItemUuid,
   setSelectedEvaUuid,
   upsertEvas,
@@ -37,10 +41,11 @@ import {
 import {
   deleteTraverseByUuid,
   deleteTraverseFromDbByUuid,
+  setTraverseEditMode,
   upsertTraverses,
   upsertTraversesFromDb,
 } from "store/traverse";
-import { setMission, setMissionFromDb } from "store/mission";
+import { setMission, setMissionFromDb, setMissionSectionEditing } from "store/mission";
 
 /**
  * Handles the storeUpsert socket event
@@ -59,6 +64,7 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     for (const changedPreset of changedPresets) {
       if (getState().preset.presetsEditing.includes(changedPreset.uuid)) {
         upsertMessages.push(getConflictMessage("preset", changedPreset.name, "upsert"));
+        dispatch(setPresetEditMode({ presetUuid: changedPreset.uuid, editMode: false }));
       }
     }
     dispatch(upsertPresets(storeUpsert.data as Preset[], true));
@@ -68,6 +74,7 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     for (const changedPoi of changedPois) {
       if (getState().poi.poisEditing.includes(changedPoi.uuid)) {
         upsertMessages.push(getConflictMessage("POI", changedPoi.name, "upsert"));
+        dispatch(setPoiEditMode({ poiUuid: changedPoi.uuid, editMode: false }));
       }
     }
     dispatch(upsertPois(storeUpsert.data as POI[], true));
@@ -77,6 +84,7 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     for (const changedStation of changedStations) {
       if (getState().station.stationsEditing.includes(changedStation.uuid)) {
         upsertMessages.push(getConflictMessage("Station", changedStation.name, "upsert"));
+        dispatch(setStationEditMode({ stationUuid: changedStation.uuid, editMode: false }));
       }
     }
     dispatch(upsertStations(storeUpsert.data as Station[], true));
@@ -86,6 +94,7 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     for (const changedEva of changedEvas) {
       if (getState().eva.evasEditing.includes(changedEva.uuid)) {
         upsertMessages.push(getConflictMessage("EVA", changedEva.name, "upsert"));
+        dispatch(setEvaEditMode({ evaUuid: changedEva.uuid, editMode: false }));
       }
       // if the eva being upserted is the selected eva, then nullify the selectedSequenceItemUuid
       if (getState().eva.selectedEvaUuid === changedEva.uuid) {
@@ -102,6 +111,7 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     for (const changedTraverse of changedTraverses) {
       if (getState().traverse.traversesEditing.includes(changedTraverse.uuid)) {
         upsertMessages.push(getConflictMessage("traverse", changedTraverse.name, "upsert"));
+        dispatch(setTraverseEditMode({ uuid: changedTraverse.uuid, editMode: false }));
       }
     }
     dispatch(upsertTraverses(storeUpsert.data as Traverse[], true));
@@ -109,6 +119,7 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
   } else if (storeUpsert.type === "mission") {
     if (getState().mission.missionSectionsEditing.length > 0) {
       upsertMessages.push("The mission that you are editing has been changed by another user.");
+      dispatch(setMissionSectionEditing({ section: "prefs", editMode: false }));
     }
     dispatch(setMission(storeUpsert.data[0] as Mission));
     dispatch(setMissionFromDb(storeUpsert.data[0] as Mission));

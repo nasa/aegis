@@ -181,7 +181,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             </div>
             <div className={paneStyles.descriptionContainer}>
               <WysiwygTextArea
-                componentUuid={mission.id.toString()}
+                key={mission.id.toString()}
                 value={mission.description}
                 editing={editMode}
                 onChange={(value) => {
@@ -191,7 +191,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       description: value,
                     })
                   );
-                }} // handle innerHTML change
+                }}
               />
             </div>
           </div>

@@ -1,7 +1,7 @@
 import { Editable, RenderElementProps, RenderLeafProps, Slate, withReact } from "slate-react";
 import { createEditor, Descendant, Text, Editor, Transforms, Element as SlateElement } from "slate";
 import { BulletedListElement, CustomEditor, NumberedListElement, Marks } from "typings/wysiwyg";
-import { FunctionComponent, useCallback, useEffect, useState } from "react";
+import { FunctionComponent, useCallback, useState } from "react";
 import {
   IconDefinition,
   faBold,
@@ -249,25 +249,14 @@ export const WysiwygTextArea: FunctionComponent<{
   value: string;
   editing: boolean;
   onChange: (value: string) => void;
-  componentUuid: string;
-  defaultValue?: string;
-}> = ({ value, editing, onChange, defaultValue, componentUuid }) => {
+  defaultValue?: string; //string to show if value is empty
+}> = ({ value, editing, onChange, defaultValue }) => {
   //start
   const [editor] = useState(() => withReact(createEditor()));
   const [editorChange, setEditorChange] = useState(false);
 
   const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, []);
   const renderLeaf = useCallback((props: RenderLeafProps) => <Leaf {...props} />, []);
-
-  useEffect(() => {
-    editor.children = convertStringToNodes(value, defaultValue); // if the value changes out from under the component, update it manually
-
-    //reset the selector to prevent a bug where a previous edited field had more new lines
-    //  than the new current field being edited. The selector will try to find the old location
-    Transforms.deselect(editor);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [componentUuid, editor]);
 
   return (
     <>
@@ -308,6 +297,9 @@ export const WysiwygTextArea: FunctionComponent<{
                   toggleMark(editor, mark);
                 }
               }
+            }}
+            onFocus={() => {
+              Transforms.deselect(editor);
             }}
           />
         </Slate>

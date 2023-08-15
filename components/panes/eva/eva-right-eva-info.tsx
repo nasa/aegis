@@ -78,7 +78,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
             </div>
             <div className={paneStyles.descriptionContainer}>
               <WysiwygTextArea
-                componentUuid={selectedEva.uuid}
+                key={selectedEva.uuid}
                 value={selectedEva.description}
                 editing={editMode}
                 onChange={(value) => {
@@ -88,7 +88,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                       description: value,
                     })
                   );
-                }} // handle innerHTML change
+                }}
               />
             </div>
           </div>

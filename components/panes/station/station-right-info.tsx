@@ -221,7 +221,7 @@ const Info_Panel: FunctionComponent<{
             </div>
             <div className={paneStyles.descriptionContainer}>
               <WysiwygTextArea
-                componentUuid={selectedStation.uuid}
+                key={selectedStation.uuid}
                 value={selectedStation.description}
                 editing={editMode}
                 onChange={(value) => {
@@ -231,7 +231,7 @@ const Info_Panel: FunctionComponent<{
                       description: value,
                     })
                   );
-                }} // handle innerHTML change
+                }}
               />
             </div>
           </div>

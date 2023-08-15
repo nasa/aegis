@@ -129,7 +129,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           </div>
           <div className={paneStyles.descriptionContainer}>
             <WysiwygTextArea
-              componentUuid={selectedPreset?.uuid}
+              key={selectedPreset?.uuid}
               value={selectedPreset?.description}
               defaultValue="Enter description here"
               editing={editMode}
