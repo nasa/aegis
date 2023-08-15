@@ -145,6 +145,7 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
         (preset) => preset.uuid === storeDelete.uuid
       );
       deletedMessages.push(getConflictMessage("preset", deletedPreset.name, "delete"));
+      dispatch(setPresetEditMode({ presetUuid: deletedPreset.uuid, editMode: false }));
     }
     if (getState().preset.selectedPresetUuid === storeDelete.uuid) {
       // set the selected preset to the default preset
@@ -159,6 +160,7 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
     if (getState().poi.poisEditing.includes(storeDelete.uuid)) {
       const poiDeleted = getState().poi.pois.find((poi) => poi.uuid === storeDelete.uuid);
       deletedMessages.push(getConflictMessage("POI", poiDeleted.name, "delete"));
+      dispatch(setPoiEditMode({ poiUuid: poiDeleted.uuid, editMode: false }));
     }
     if (getState().poi.selectedPoiUuid === storeDelete.uuid) dispatch(setSelectedPoiUuid(null));
     dispatch(deletePoiByUuid(storeDelete.uuid));
@@ -169,6 +171,7 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
         (station) => station.uuid === storeDelete.uuid
       );
       deletedMessages.push(getConflictMessage("station", stationDeleted.name, "delete"));
+      dispatch(setStationEditMode({ stationUuid: stationDeleted.uuid, editMode: false }));
     }
     if (getState().station.selectedStationUuid === storeDelete.uuid)
       dispatch(setSelectedStationUuid(null));
@@ -178,6 +181,7 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
     if (getState().eva.evasEditing.includes(storeDelete.uuid)) {
       const evaDeleted = getState().eva.evas.find((eva) => eva.uuid === storeDelete.uuid);
       deletedMessages.push(getConflictMessage("EVA", evaDeleted.name, "delete"));
+      dispatch(setEvaEditMode({ evaUuid: evaDeleted.uuid, editMode: false }));
     }
     if (getState().eva.selectedEvaUuid === storeDelete.uuid) {
       dispatch(setSelectedEvaUuid(null));
@@ -194,6 +198,7 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
         (traverse) => traverse.uuid === storeDelete.uuid
       );
       deletedMessages.push(getConflictMessage("traverse", traverseDeleted.name, "delete"));
+      dispatch(setTraverseEditMode({ uuid: traverseDeleted.uuid, editMode: false }));
     }
     dispatch(deleteTraverseByUuid(storeDelete.uuid));
     dispatch(deleteTraverseFromDbByUuid(storeDelete.uuid));
