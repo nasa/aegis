@@ -12,6 +12,7 @@ import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import * as httpClient_action from "http-client/action";
+import { thunkGetElevation } from "./thunkElevation";
 
 export const thunkCreateAction = appCreateAsyncThunk<{
   actionParentUuid: ActionParentUuid;
@@ -36,6 +37,9 @@ export const thunkCreateAction = appCreateAsyncThunk<{
       uuid: uuidv4(),
       name: randomName,
       description: "",
+      icon: "26cf-fe0f", //default pickaxe icon
+      location: null,
+      elevation: null,
       status: "Candidate",
       type: "other",
       durationLower: 5,
@@ -187,3 +191,24 @@ export const thunkSaveActions = appCreateAsyncThunk<{
     }
   }
 );
+
+export const thunkUpdateActionLocation = appCreateAsyncThunk<{
+  location: AEGISPoint;
+  actionUuid: string;
+}>("updateActionLocation", async ({ location, actionUuid }, { dispatch, getState }) => {
+  const elevation = await dispatch(
+    thunkGetElevation({
+      path: [location],
+      pathSegmentDistances: [0],
+      uuid: actionUuid,
+    })
+  );
+
+  const action = getState().action.actions.find((s) => s.uuid === actionUuid);
+  if (elevation.payload === false) {
+    //gracefully reject?
+  } else {
+    //upsert location and elevation
+    dispatch(upsertAction({ ...action, location, elevation: elevation.payload as number }));
+  }
+});

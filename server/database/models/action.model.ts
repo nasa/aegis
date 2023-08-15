@@ -32,6 +32,12 @@ export class Action implements Action_db_type {
   type!: ActionType;
   @Property({ type: MikroTypes.text })
   description!: string;
+  @Property({ type: MikroTypes.string, nullable: true })
+  icon: string;
+  @Property({ type: MikroTypes.json, nullable: true })
+  location: AEGISPoint;
+  @Property({ type: MikroTypes.float, nullable: true })
+  elevation!: number;
   @Property({ type: MikroTypes.double, nullable: true })
   durationLower!: number;
   @Property({ type: MikroTypes.double, nullable: true })

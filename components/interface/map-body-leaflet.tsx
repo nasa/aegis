@@ -33,7 +33,7 @@ import {
   getDistanceBetweenTwoCoordinates,
   getMidpoint,
 } from "utils/geoMath";
-import { decodeEmoji } from "utils/formatting";
+import { decodeEmoji, titleCase } from "utils/formatting";
 import { Checkbox } from "components/interface/form/globalFields";
 import { setAllHoverUuids } from "store/playheadHover";
 import {
@@ -48,6 +48,7 @@ import { thunkUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { selectEVASequenceItem } from "store/cross-slice";
 import { thunkGetStationOrTraverse } from "store/thunk/thunkEva";
 import { thunkUpdateLanderLocation } from "store/thunk/thunkMission";
+import { thunkUpdateActionLocation } from "store/thunk/thunkAction";
 
 type MissionSelectProperties = Pick<
   Mission,
@@ -83,6 +84,7 @@ const MapBody: FunctionComponent = () => {
   const draggableLines: MutableRefObject<DraggableLines> = useRef(null);
   const stationFeatureGroup = useRef<L.FeatureGroup>(null);
   const poiFeatureGroup = useRef<L.FeatureGroup>(null);
+  const actionFeatureGroup = useRef<L.FeatureGroup>(null);
 
   const mission: MissionSelectProperties = useAppSelector(
     (state) =>
@@ -124,6 +126,7 @@ const MapBody: FunctionComponent = () => {
 
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
+  const actions = useAppSelector((state) => state.action.actions, shallowEqual);
   const selectedPoi = useAppSelector(
     (state) => state.poi.pois.find((poi) => poi.uuid === state.poi.selectedPoiUuid),
     refEqual
@@ -154,11 +157,16 @@ const MapBody: FunctionComponent = () => {
   const [poisToShow, setPoisToShow] = useState<POI[]>([]);
   const [stationsToShow, setStationsToShow] = useState<Station[]>([]);
   const [traversesToShow, setTraversesToShow] = useState<Traverse[]>([]);
+  const [actionsToShow, setActionsToShow] = useState<Action[]>([]);
   const [mapDisplayPois, setMapDisplayPois] = useState<MapMarkersDisplay>({
     show: true,
     showLabels: false,
   });
   const [mapDisplayStations, setMapDisplayStations] = useState<MapMarkersDisplay>({
+    show: true,
+    showLabels: false,
+  });
+  const [mapDisplayActions, setMapDisplayActions] = useState<MapMarkersDisplay>({
     show: true,
     showLabels: false,
   });
@@ -539,6 +547,8 @@ const MapBody: FunctionComponent = () => {
           stationFeatureGroup.current.addLayer(marker);
         } else if (mapItemType === "poi") {
           poiFeatureGroup.current.addLayer(marker);
+        } else if (mapItemType === "action") {
+          actionFeatureGroup.current.addLayer(marker);
         } else {
           map.current.addLayer(marker);
         }
@@ -688,6 +698,8 @@ const MapBody: FunctionComponent = () => {
         await dispatch(thunkUpdatePoiLocation({ location, poiUuid: uuid }));
       } else if (mapItemType === "station") {
         await dispatch(thunkUpdateStationLocation({ location, stationUuid: uuid }));
+      } else if (mapItemType === "action") {
+        await dispatch(thunkUpdateActionLocation({ location, actionUuid: uuid }));
       }
     },
     [dispatch]
@@ -740,6 +752,10 @@ const MapBody: FunctionComponent = () => {
       if (!poiFeatureGroup.current) {
         poiFeatureGroup.current = L.featureGroup().addTo(map.current);
       }
+
+      if (!actionFeatureGroup.current) {
+        actionFeatureGroup.current = L.featureGroup().addTo(map.current);
+      }
     }
   }, [mapRef, map, draggableLines, mission]);
 
@@ -769,7 +785,8 @@ const MapBody: FunctionComponent = () => {
       if (
         (mapDirective?.mapItemType === "station" ||
           mapDirective?.mapItemType === "poi" ||
-          mapDirective?.mapItemType === "lander") &&
+          mapDirective?.mapItemType === "lander" ||
+          mapDirective?.mapItemType === "action") &&
         (mapDirective?.mapAction === "editMarker" || mapDirective?.mapAction === "createMarker")
       ) {
         saveUpdatedItemPosition(
@@ -801,7 +818,7 @@ const MapBody: FunctionComponent = () => {
   }, [map, mapDirective, saveUpdatedItemPosition, dispatch]);
 
   /**
-   * Listen for mapDirective for stations, pois, and traverses, and trigger map draw/edit modes appropriately
+   * Listen for mapDirective for stations, pois, actions, and traverses, and trigger map draw/edit modes appropriately
    */
   useEffect(() => {
     if (!map.current || !draggableLines || !mapDirective) return;
@@ -981,22 +998,46 @@ const MapBody: FunctionComponent = () => {
     if (!stations) return;
     if (mapDisplayStations.show) {
       setStationsToShow(stations);
-    } else if (selectedStation) {
-      if (sectionSelected === "station" || sectionSelected === "evas") {
-        setStationsToShow([selectedStation]);
-      } else {
-        setStationsToShow([]);
-      }
-    } else if (selectedEva) {
+      return;
+    }
+    if (selectedEva) {
       const stationSequenceItems = selectedEva.sequence.filter((item) => item.type === "station");
       const stationsInEva = stations.filter((station) =>
         stationSequenceItems.find((item) => item.uuid === station.uuid)
       );
       setStationsToShow(stationsInEva);
-    } else {
-      setStationsToShow([]);
+      return;
     }
-  }, [stations, selectedStation, selectedEva, mapDisplayStations, sectionSelected]);
+    if (selectedStation && (sectionSelected === "station" || sectionSelected === "evas")) {
+      setStationsToShow([selectedStation]);
+      return;
+    }
+    setStationsToShow([]);
+  }, [stations, selectedStation, selectedEva, mapDisplayStations, sectionSelected, actions]);
+
+  /**
+   * Populate actions to show when actions or selections change
+   */
+  useEffect(() => {
+    if (!actions) return;
+    if (!mapDisplayActions.show) {
+      setActionsToShow([]);
+      return;
+    }
+    if ((sectionSelected === "station" || sectionSelected === "evas") && selectedStation) {
+      // set actions to show
+      const actionsInStation = actions.filter(
+        (action) => action.stationUuid === selectedStation.uuid
+      );
+      setActionsToShow(actionsInStation);
+    } else if (sectionSelected === "poi" && selectedPoi) {
+      // set actions to show
+      const actionsInPoi = actions.filter((action) => action.poiUuid === selectedPoi.uuid);
+      setActionsToShow(actionsInPoi);
+    } else {
+      setActionsToShow([]);
+    }
+  }, [actions, selectedStation, selectedPoi, mapDisplayActions, sectionSelected]);
 
   /**
    * Populate POIs to show when POIs or selections change
@@ -1005,16 +1046,14 @@ const MapBody: FunctionComponent = () => {
     if (!pois) return;
     if (mapDisplayPois.show) {
       setPoisToShow(pois);
-    } else if (selectedPoi) {
-      if (sectionSelected === "poi") {
-        setPoisToShow([selectedPoi]);
-      } else {
-        setPoisToShow([]);
-      }
-    } else {
-      setPoisToShow([]);
+      return;
     }
-  }, [pois, selectedPoi, mapDisplayPois, sectionSelected]);
+    if (selectedPoi && sectionSelected === "poi") {
+      setPoisToShow([selectedPoi]);
+      return;
+    }
+    setPoisToShow([]);
+  }, [pois, selectedPoi, mapDisplayPois, sectionSelected, actions]);
 
   /**
    * Populate traverses to show when traverses or selections change
@@ -1179,6 +1218,46 @@ const MapBody: FunctionComponent = () => {
     dispatch,
     poisToShow,
     mapDisplayPois,
+  ]);
+
+  /**
+   * Draw or update actions on the map when actions change. Serves as draw when page loads
+   */
+  useEffect(() => {
+    if (!map.current || mapDirective) return;
+
+    // delete all actions in leaflet
+    actionFeatureGroup.current.clearLayers();
+
+    // draw or update all actions
+    actionsToShow.forEach((action) => {
+      if (action.location) {
+        drawOrUpdateMarkerOnMap({
+          name: `${titleCase(action.type)}: ${action.name}`,
+          uuid: action.uuid,
+          iconEmoji: action.icon ? action.icon : "2754", //default to question mark
+          mapItemType: "action",
+          location: action.location,
+          onDragEnd: (marker: AEGISMarker) => {
+            const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
+            saveUpdatedItemPosition(action.uuid, "action", newLocation);
+            dispatch(updateMapDirective(null));
+          },
+          permanentLabel: mapDisplayActions.showLabels,
+        });
+      }
+    });
+  }, [
+    map,
+    mapDirective,
+    drawOrUpdateMarkerOnMap,
+    saveUpdatedItemPosition,
+    dispatch,
+    actionsToShow,
+    mapDisplayActions,
+    selectedPoi,
+    selectedStation,
+    actions,
   ]);
 
   /**
@@ -1637,6 +1716,45 @@ const MapBody: FunctionComponent = () => {
               </div>
             </div>
           </div>
+          <div className={styles.controlContainer}>
+            <div className={styles.control}>
+              <div className={styles.controlCheckbox}>
+                <Checkbox
+                  checked={mapDisplayActions.show}
+                  onChange={(e) => {
+                    setMapDisplayActions({
+                      ...mapDisplayActions,
+                      show: e.target.checked,
+                      showLabels: false,
+                    });
+                  }}
+                  toolTip="Show/Hide Actions on map"
+                  label="Actions"
+                  labelStyle={{ alignSelf: "center" }}
+                  uniqueId="showHideActions"
+                />
+              </div>
+            </div>
+            <div className={styles.subControl}>
+              <div className={styles.controlCheckbox}>
+                <Checkbox
+                  checked={mapDisplayActions.showLabels}
+                  onChange={(e) => {
+                    setMapDisplayActions({
+                      ...mapDisplayActions,
+                      showLabels: e.target.checked,
+                      ...(e.target.checked && { show: true }),
+                    });
+                  }}
+                  toolTip="Show/Hide Actions labels on map"
+                  label="Labels"
+                  labelStyle={{ alignSelf: "center" }}
+                  uniqueId="showHideActionLabels"
+                />
+              </div>
+            </div>
+          </div>
+
           <div className={styles.controlContainer}>
             <div className={styles.control}>
               <div className={styles.controlCheckbox}>

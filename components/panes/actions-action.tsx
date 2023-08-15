@@ -25,7 +25,8 @@ const RightAction: FunctionComponent<{
   highlight: boolean;
   actionColor: CSSProperties;
   parentType: "station" | "poi" | "eva";
-}> = ({ editMode, action, highlight, actionColor, parentType }) => {
+  parentLocation: AEGISPoint | null;
+}> = ({ editMode, action, highlight, actionColor, parentType, parentLocation }) => {
   const dispatch = useAppDispatch();
 
   const actionsExpanded = useAppSelector((state) => state.interface.actionsExpanded, shallowEqual);
@@ -199,7 +200,12 @@ const RightAction: FunctionComponent<{
         </div>
       </div>
       {actionsExpanded.includes(action.uuid) && (
-        <RightActionBody action={action} editMode={editMode} parentType={parentType} />
+        <RightActionBody
+          action={action}
+          editMode={editMode}
+          parentType={parentType}
+          parentLocation={parentLocation}
+        />
       )}
     </div>
   );
