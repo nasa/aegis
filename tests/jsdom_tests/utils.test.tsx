@@ -23,6 +23,7 @@ import {
   isoStringFromAnyDateString,
   padZeros,
   shortdateFromDateString,
+  titleCase,
   toDecimal,
 } from "utils/formatting";
 import { getEM } from "utils/mikro";
@@ -373,5 +374,25 @@ describe("makeUniqueStringCopy", () => {
     const str = "test";
     const strCopy = makeUniqueStringCopy(str, ["aaa", "bbb", "ccc"]);
     expect(strCopy).toBe(str);
+  });
+});
+
+describe("titleCase", () => {
+  it("should return an empty string when given an empty string", () => {
+    expect(titleCase("")).toBe("");
+  });
+
+  it("should capitalize the first letter of each word in a string", () => {
+    expect(titleCase("hello world")).toBe("Hello World");
+    expect(titleCase("the quick brown fox")).toBe("The Quick Brown Fox");
+  });
+
+  it("should handle strings with leading/trailing whitespace", () => {
+    expect(titleCase("  hello world  ")).toBe("  Hello World  ");
+  });
+
+  it("should handle strings with non-letter characters", () => {
+    expect(titleCase("123 hello world!")).toBe("123 Hello World!");
+    expect(titleCase("the_quick_brown_fox")).toBe("The_quick_brown_fox");
   });
 });

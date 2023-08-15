@@ -40,6 +40,16 @@ const Actions: FunctionComponent<{
     shallowEqual
   );
 
+  const parentLocation = useAppSelector((state) => {
+    switch (parentType) {
+      case "station":
+        return state.station.stations.find((s) => s.uuid === actionParentUuid.stationUuid)
+          ?.location;
+      case "poi":
+        return state.poi.pois.find((p) => p.uuid === actionParentUuid.poiUuid)?.location;
+    }
+  }, shallowEqual);
+
   const [wrappedActions, setWrappedActions] = useState<WrappedAction[]>(null); //contains all actions in order
   const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>("");
 
@@ -222,6 +232,7 @@ const Actions: FunctionComponent<{
                         highlight={wrappedAction.highlight}
                         actionColor={actionColor}
                         parentType={parentType}
+                        parentLocation={parentLocation}
                       />
                     </li>
                   ))}
