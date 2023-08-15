@@ -243,6 +243,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                           </div>
                           <div className={paneStyles.descriptionContainer}>
                             <WysiwygTextArea
+                              componentUuid={actionTemplate.uuid}
                               value={actionTemplate.description}
                               editing={editMode}
                               onChange={(value) => {

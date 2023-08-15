@@ -221,6 +221,7 @@ const Info_Panel: FunctionComponent<{
             </div>
             <div className={paneStyles.descriptionContainer}>
               <WysiwygTextArea
+                componentUuid={selectedStation.uuid}
                 value={selectedStation.description}
                 editing={editMode}
                 onChange={(value) => {

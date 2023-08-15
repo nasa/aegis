@@ -249,8 +249,9 @@ export const WysiwygTextArea: FunctionComponent<{
   value: string;
   editing: boolean;
   onChange: (value: string) => void;
+  componentUuid: string;
   defaultValue?: string;
-}> = ({ value, editing, onChange, defaultValue }) => {
+}> = ({ value, editing, onChange, defaultValue, componentUuid }) => {
   //start
   const [editor] = useState(() => withReact(createEditor()));
   const [editorChange, setEditorChange] = useState(false);
@@ -258,11 +259,15 @@ export const WysiwygTextArea: FunctionComponent<{
   const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, []);
   const renderLeaf = useCallback((props: RenderLeafProps) => <Leaf {...props} />, []);
 
-  //reset the selector to prevent a bug where a previous edited field had more new lines
-  //  than the new current field being edited. The selector will try to find the old location
   useEffect(() => {
+    editor.children = convertStringToNodes(value, defaultValue); // if the value changes out from under the component, update it manually
+
+    //reset the selector to prevent a bug where a previous edited field had more new lines
+    //  than the new current field being edited. The selector will try to find the old location
     Transforms.deselect(editor);
-  }, [editing, editor]);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [componentUuid, editor]);
 
   return (
     <>

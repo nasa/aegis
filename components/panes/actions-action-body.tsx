@@ -88,12 +88,13 @@ export const RightActionBody: FunctionComponent<{
         </div>
         <div className={paneStyles.descriptionContainer}>
           <WysiwygTextArea
+            componentUuid={action.uuid}
             value={action.description}
             editing={editMode}
             onChange={(value) => {
               const updatedAction: Action = { ...action, description: value };
               dispatch(upsertAction(updatedAction));
-            }} // handle innerHTML change
+            }}
           />
         </div>
       </div>

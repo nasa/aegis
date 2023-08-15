@@ -127,6 +127,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
             </div>
             <div className={paneStyles.descriptionContainer}>
               <WysiwygTextArea
+                componentUuid={selectedTraverse.uuid}
                 value={selectedTraverse.description}
                 editing={editMode}
                 onChange={(value) => {
