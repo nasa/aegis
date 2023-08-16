@@ -4,6 +4,12 @@
   height: 100%;
 }
 
+.verticalCenter {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 .body {
   margin-top: 5px;
   margin-left: 5px;
@@ -62,50 +68,9 @@
   vertical-align: top;
 }
 
-.copyIcon {
-  padding-top: 7px;
-  width: 18px;
-  cursor: pointer;
-}
-
 .associatedPoisContainer {
   overflow-y: auto;
   padding-top: 5px;
-}
-
-.stationPoiSection {
-  padding: 0 5px 5px 5px;
-  max-height: 200px;
-  overflow-y: scroll;
-}
-
-.stationPoiTitle {
-  font-size: 1.1em;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.stationPoiHeading {
-  display: flex;
-  gap: 8px;
-  padding: 5px;
-  cursor: pointer;
-}
-
-.stationPoiSubheading {
-  font-size: 0.9em;
-  font-weight: 400;
-}
-
-.stationPoiActions {
-  padding-left: 20px;
-}
-
-.stationPoiActionItems {
-  background-color: var(--grey3);
-  margin: 4px;
-  border-radius: var(--radius);
-  flex-grow: 1;
 }
 
 .stationActionsHeadingTitle {
@@ -114,10 +79,6 @@
 
 .actionsHeading {
   display: flex;
-}
-
-.actionHeadingFaded {
-  opacity: 0.3;
 }
 
 .itemIcon {
@@ -184,7 +145,7 @@
 
 .poiIcon {
   font-size: 16px;
-  margin: 0px 2px 0px 2px;
+  margin: 0px 0px 0px 8px;
 }
 
 .poiLabel {

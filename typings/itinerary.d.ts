@@ -209,14 +209,20 @@ type Action = {
   /**
    * The duration of the action, in minutes.
    */
+  icon: string;
+  /**
+   * The coordinates or series of coordinates of the Action.
+   */
+  location: AEGISPoint | null;
+  elevation: number | null;
   durationLower: number; // in minutes
   durationUpper?: number; // in minutes
   equipmentItemsUsage: EquipmentItemUsage[]; // Equipment needed to perform this action.
   geographicUnitsUsage: string[]; // uuids of geographic units used in this action
   mass: number; // grams
   status: ActionStatus;
+  enabled: boolean;
   crewAssigned: Crew[];
-
   createdAt?: string;
   updatedAt?: string;
 };

@@ -14,8 +14,12 @@ export default class ActionFactory extends Factory<Action_db> {
       name: "Jest Action-1",
       type: "measurement",
       description: "",
+      icon: "",
+      location: null,
+      elevation: 0,
       durationLower: 0,
       status: "Candidate",
+      enabled: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

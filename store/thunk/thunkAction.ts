@@ -12,6 +12,9 @@ import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import * as httpClient_action from "http-client/action";
+import { thunkGetElevation } from "./thunkElevation";
+import { upsertStation } from "store/station";
+import { upsertPoi } from "store/poi";
 
 export const thunkCreateAction = appCreateAsyncThunk<{
   actionParentUuid: ActionParentUuid;
@@ -36,7 +39,11 @@ export const thunkCreateAction = appCreateAsyncThunk<{
       uuid: uuidv4(),
       name: randomName,
       description: "",
+      icon: "26cf-fe0f", //default pickaxe icon
+      location: null,
+      elevation: null,
       status: "Candidate",
+      enabled: true,
       type: "other",
       durationLower: 5,
       durationUpper: 6,
@@ -110,6 +117,13 @@ export const thunkDuplicateAction = appCreateAsyncThunk<
         newAction.name,
         stationActions.map((a) => a.name)
       );
+
+      // append new action to the end of the station's action order
+      const station = getState().station.stations.find((s) => s.uuid === stationUuid);
+      let actionOrderUuids = _.cloneDeep(station.actionOrderUuids);
+      if (!actionOrderUuids) actionOrderUuids = [];
+      actionOrderUuids.push(newActionUuid);
+      dispatch(upsertStation({ ...station, actionOrderUuids }, true));
     } else if (poiUuid) {
       const poiActions = getState().action.actions.filter(
         (storeAction: Action) => storeAction.poiUuid === poiUuid
@@ -118,6 +132,13 @@ export const thunkDuplicateAction = appCreateAsyncThunk<
         newAction.name,
         poiActions.map((a) => a.name)
       );
+
+      // append new action to the end of the poi's action order
+      const poi = getState().poi.pois.find((p) => p.uuid === poiUuid);
+      let actionOrderUuids = _.cloneDeep(poi.actionOrderUuids);
+      if (!actionOrderUuids) actionOrderUuids = [];
+      actionOrderUuids.push(newActionUuid);
+      dispatch(upsertPoi({ ...poi, actionOrderUuids }, true));
     }
 
     if (preserveParentUuid) {
@@ -187,3 +208,24 @@ export const thunkSaveActions = appCreateAsyncThunk<{
     }
   }
 );
+
+export const thunkUpdateActionLocation = appCreateAsyncThunk<{
+  location: AEGISPoint;
+  actionUuid: string;
+}>("updateActionLocation", async ({ location, actionUuid }, { dispatch, getState }) => {
+  const elevation = await dispatch(
+    thunkGetElevation({
+      path: [location],
+      pathSegmentDistances: [0],
+      uuid: actionUuid,
+    })
+  );
+
+  const action = getState().action.actions.find((s) => s.uuid === actionUuid);
+  if (elevation.payload === false) {
+    //gracefully reject?
+  } else {
+    //upsert location and elevation
+    dispatch(upsertAction({ ...action, location, elevation: elevation.payload as number }));
+  }
+});

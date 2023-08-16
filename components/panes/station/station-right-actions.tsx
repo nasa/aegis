@@ -1,16 +1,9 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import stationStyles from "./station.module.css";
-import actionStyles from "../actions-action.module.css";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
-import { faCaretDown, faCaretRight, faClone } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { setSelectedPoiUuid } from "store/poi";
-import { setSectionSelected } from "store/interface";
 import Actions from "../actions";
 import { setStationEditMode, upsertStation } from "store/station";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkDuplicateAction } from "store/thunk/thunkAction";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
 
 const Actions_Panel: FunctionComponent<{
@@ -31,7 +24,6 @@ const Actions_Panel: FunctionComponent<{
     shallowEqual
   );
   const [stationActions, setStationActions] = useState<Action[]>(null); //contains all station actions
-  const [poiExpanded, setPoiExpanded] = useState(false);
 
   const calculatedFields = useAppSelector(
     (state) =>
@@ -88,7 +80,6 @@ const Actions_Panel: FunctionComponent<{
             );
           }}
           actions={stationActions}
-          actionColor={{ color: "white" }}
           actionOrderUuids={selectedStation.actionOrderUuids}
           setActionOrderUuids={(actionOrderUuids) => {
             dispatch(upsertStation({ ...selectedStation, actionOrderUuids: actionOrderUuids }));
@@ -97,107 +88,6 @@ const Actions_Panel: FunctionComponent<{
           parentType="station"
           actionsCalculatedFields={actionsCalculatedFields}
         />
-
-        <div className={paneStyles.panelContainer}>
-          <div
-            className={paneStyles.bigHeading}
-            onClick={() => {
-              setPoiExpanded(!poiExpanded);
-            }}
-          >
-            <div className={`${paneStyles.bigHeadingCaret} `}>
-              {poiExpanded ? (
-                <FontAwesomeIcon
-                  icon={faCaretDown}
-                  size="sm"
-                  className={paneStyles.bigHeadingCaretDown}
-                />
-              ) : (
-                <FontAwesomeIcon
-                  icon={faCaretRight}
-                  size="sm"
-                  className={paneStyles.bigHeadingCaretRight}
-                />
-              )}
-            </div>
-            <div className={`${stationStyles.stationPoiTitle}`}>Associated POI Actions</div>
-          </div>
-          {poiExpanded && (
-            <div className={stationStyles.stationPoiSection}>
-              {stationPois?.map((poi) => (
-                <div key={poi.uuid}>
-                  <div
-                    className={stationStyles.stationPoiHeading}
-                    onClick={() => {
-                      dispatch(setSelectedPoiUuid(poi.uuid));
-                      // set the active section to the POI section
-                      dispatch(setSectionSelected("poi"));
-                    }}
-                  >
-                    <div className={stationStyles.poiIcon}>
-                      {String.fromCodePoint(parseInt(poi.icon, 16))}
-                    </div>
-                    <div className={stationStyles.stationPoiSubheading}>{poi.name}</div>
-                  </div>
-                  <div className={stationStyles.stationPoiActions}>
-                    {actions
-                      .filter((action) => action.poiUuid === poi.uuid)
-                      .map((action) => {
-                        const inStation: boolean =
-                          stationActions.findIndex(
-                            (stationAction) => stationAction.parentActionUuid === action.uuid
-                          ) > -1;
-                        return (
-                          <div
-                            className={`${stationStyles.actionsHeading} ${
-                              inStation && stationStyles.actionHeadingFaded
-                            }`}
-                            key={action.uuid}
-                          >
-                            <div className={stationStyles.stationPoiActionItems}>
-                              <div className={actionStyles.actionsHeading}>
-                                <div
-                                  className={`${actionStyles.actionsHeadingType} ${stationStyles.stationActionsHeadingTitle}`}
-                                >
-                                  {action.type}
-                                </div>
-                                <div className={actionStyles.actionsHeadingTitle}>
-                                  {action.name}
-                                </div>
-                              </div>
-                            </div>
-                            <div
-                              className={actionStyles.actionHeadingIcons}
-                              data-tooltip-id="aegis-tooltip"
-                              data-tooltip-html="Copy this action to station"
-                            >
-                              {!inStation && editMode && (
-                                <FontAwesomeIcon
-                                  icon={faClone}
-                                  size="xs"
-                                  className={stationStyles.copyIcon}
-                                  onClick={(e) => {
-                                    dispatch(
-                                      thunkDuplicateAction({
-                                        action,
-                                        stationUuid: selectedStationUuid,
-                                        preserveParentUuid: true,
-                                      })
-                                    );
-                                    e.stopPropagation();
-                                  }}
-                                />
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ import { getStations } from "http-client/station";
 import { getActions } from "http-client/action";
 import { getGoals, getInvestigations, getObjectives } from "http-client/stm";
 import { setMapCircleControls, setMapSublayerControls } from "store/map";
-import { setPois, setPoisFromDb } from "store/poi";
+import { setPois, setPoisFromDb, upsertPoi, upsertPoiFromDb } from "store/poi";
 import {
   setPresetUIStates,
   setPresets,
@@ -24,7 +24,7 @@ import {
   setSelectedPresetUuid,
 } from "store/preset";
 import { setLayers, setMission, setMissionFromDb, setSublayers } from "store/mission";
-import { setStations, setStationsFromDb } from "store/station";
+import { setStations, setStationsFromDb, upsertStation, upsertStationFromDb } from "store/station";
 import { setActions, setActionsFromDb } from "store/action";
 import { setGoals, setInvestigations, setObjectives } from "store/stm";
 import { getEvas } from "http-client/eva";
@@ -42,6 +42,8 @@ import { thunkSavePreset } from "store/thunk/thunkPreset";
 import _ from "lodash";
 import { isLoggedIn } from "http-client/login";
 import { getSublayers } from "http-client/sublayer";
+import * as httpClient_station from "http-client/station";
+import * as httpClient_poi from "http-client/poi";
 
 /** Dynamically import the whole framework because nothing likes NextJS */
 const LeftControlPanel = dynamic(
@@ -431,6 +433,46 @@ const Main: NextPage = () => {
       return;
     dispatch(thunkCreateEvasCalculatedFields());
   }, [evas, stationsCalculatedFields, traversesCalculatedFields, dispatch, hasPermissions]);
+
+  // Audit actionOrderUuid values and update if necessary
+  useEffect(() => {
+    if (!stations || !pois || !actions) return;
+    for (const station of stations) {
+      const actionsInStation = actions.filter((action) => action.stationUuid === station.uuid);
+      const newActionOrderUuids = _.cloneDeep(station.actionOrderUuids);
+      for (const action of actionsInStation) {
+        if (!station.actionOrderUuids.includes(action.uuid)) {
+          newActionOrderUuids.push(action.uuid);
+        }
+      }
+      if (!_.isEqual(newActionOrderUuids, station.actionOrderUuids)) {
+        httpClient_station.upsertStation({
+          ...station,
+          actionOrderUuids: newActionOrderUuids,
+        });
+        dispatch(upsertStation({ ...station, actionOrderUuids: newActionOrderUuids }, true));
+        dispatch(upsertStationFromDb({ ...station, actionOrderUuids: newActionOrderUuids }));
+      }
+    }
+
+    for (const poi of pois) {
+      const actionsInPoi = actions.filter((action) => action.poiUuid === poi.uuid);
+      const newActionOrderUuids = _.cloneDeep(poi.actionOrderUuids);
+      for (const action of actionsInPoi) {
+        if (!poi.actionOrderUuids.includes(action.uuid)) {
+          newActionOrderUuids.push(action.uuid);
+        }
+      }
+      if (!_.isEqual(newActionOrderUuids, poi.actionOrderUuids)) {
+        httpClient_poi.upsertPOI({
+          ...poi,
+          actionOrderUuids: newActionOrderUuids,
+        });
+        dispatch(upsertPoi({ ...poi, actionOrderUuids: newActionOrderUuids }, true));
+        dispatch(upsertPoiFromDb({ ...poi, actionOrderUuids: newActionOrderUuids }));
+      }
+    }
+  }, [stations, pois, actions, dispatch]);
 
   const showSunEarth: boolean =
     missionStore.mission &&

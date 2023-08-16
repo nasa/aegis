@@ -1,16 +1,11 @@
-import {
-  faCaretDown,
-  faCaretRight,
-  faGripVertical,
-  faTrashAlt,
-} from "@fortawesome/free-solid-svg-icons";
+import { faCaretDown, faCaretRight, faGripVertical } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Dropdown, InLineEditInput } from "components/interface/form/globalFields";
-import { FunctionComponent, CSSProperties } from "react";
+import { FunctionComponent } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionsStyles from "./actions.module.css";
 import actionStyles from "./actions-action.module.css";
-import { deleteActionByUuid, upsertAction } from "store/action";
+import { upsertAction } from "store/action";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { hhmmFromMinutes } from "utils/formatting";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
@@ -18,14 +13,16 @@ import { validators } from "components/interface/form/formValidators";
 import _ from "lodash";
 import { collapseActions, expandActions } from "store/interface";
 import { RightActionBody } from "./actions-action-body";
+import { ActionMenu } from "./actions-action-menu";
 
 const RightAction: FunctionComponent<{
   editMode: boolean;
   action: Action;
   highlight: boolean;
-  actionColor: CSSProperties;
   parentType: "station" | "poi" | "eva";
-}> = ({ editMode, action, highlight, actionColor, parentType }) => {
+  parentLocation: AEGISPoint | null;
+  parentElevation: number | null;
+}> = ({ editMode, action, highlight, parentType, parentLocation, parentElevation }) => {
   const dispatch = useAppDispatch();
 
   const actionsExpanded = useAppSelector((state) => state.interface.actionsExpanded, shallowEqual);
@@ -59,18 +56,18 @@ const RightAction: FunctionComponent<{
       className={`${paneStyles.panelContainer} ${actionStyles.actionPanelContainer} ${actionsStyles.actionlistitemAction}`}
     >
       <div
-        className={`${actionStyles.actionsHeading} ${highlight && actionStyles.highlightAction}`}
+        className={`${actionStyles.actionsHeading} ${highlight && actionStyles.highlightAction} ${
+          !action.enabled && actionStyles.actionsHeadingDisabled
+        }`}
       >
         {editMode && (
-          <a className={actionStyles.gripIcon}>
+          <a className={actionStyles.verticalCenter}>
             <FontAwesomeIcon icon={faGripVertical} className={actionStyles.reorderIcon} size="sm" />
           </a>
         )}
 
         <div
-          className={`${actionStyles.actionsHeadingCaret} ${
-            editMode && actionStyles.actionsHeadingCaret
-          } `}
+          className={`${actionStyles.actionsHeadingCaret} ${actionStyles.verticalCenter}`}
           onClick={() => {
             if (actionsExpanded.includes(action.uuid)) {
               dispatch(collapseActions([action.uuid]));
@@ -84,30 +81,29 @@ const RightAction: FunctionComponent<{
               icon={faCaretDown}
               size="sm"
               className={actionStyles.actionsHeadingCaretDown}
-              style={editMode && { marginTop: "5px" }}
             />
           ) : (
             <FontAwesomeIcon
               icon={faCaretRight}
               size="sm"
               className={actionStyles.actionsHeadingCaretRight}
-              style={editMode && { marginTop: "5px" }}
             />
           )}
         </div>
         {!editMode ? (
-          <div
-            className={`${actionStyles.actionsHeadingType}`}
-            style={actionColor}
-            onClick={() => {
-              if (actionsExpanded.includes(action.uuid)) {
-                dispatch(collapseActions([action.uuid]));
-              } else {
-                dispatch(expandActions([action.uuid]));
-              }
-            }}
-          >
-            {action.type}
+          <div className={actionStyles.verticalCenter}>
+            <div
+              className={actionStyles.actionsHeadingType}
+              onClick={() => {
+                if (actionsExpanded.includes(action.uuid)) {
+                  dispatch(collapseActions([action.uuid]));
+                } else {
+                  dispatch(expandActions([action.uuid]));
+                }
+              }}
+            >
+              {action.type}
+            </div>
           </div>
         ) : (
           <Dropdown
@@ -116,6 +112,7 @@ const RightAction: FunctionComponent<{
               dispatch(upsertAction({ ...action, type: val as ActionType }));
             }}
             toolTip="Action Type"
+            arrowStyle={{ color: "var(--grey5)" }}
           >
             <option value="measurement">Measurement</option>
             <option value="observation">Observation</option>
@@ -145,7 +142,7 @@ const RightAction: FunctionComponent<{
         >
           <div
             className={actionStyles.actionHeadingRightItem}
-            style={{ marginTop: "3px", width: "15px", textAlign: "right" }}
+            style={{ width: "15px", textAlign: "right" }}
             data-tooltip-id="aegis-tooltip"
             data-tooltip-html={"Priority"}
           >
@@ -153,7 +150,6 @@ const RightAction: FunctionComponent<{
           </div>
           <div
             className={actionStyles.actionHeadingRightItem}
-            style={{ marginTop: "3px" }}
             data-tooltip-id="aegis-tooltip"
             data-tooltip-html={"Max Duration (mins)"}
           >
@@ -162,44 +158,44 @@ const RightAction: FunctionComponent<{
           {parentType !== "poi" && (
             <div className={actionStyles.actionHeadingRightItem}>
               <div className={actionStyles.actionHeadingCrew}>
-                <div
-                  className={`${actionStyles.actionHeadingCrewLeft} ${crewLeftStyle}`}
-                  onClick={() => {
-                    if (editMode) toggleCrewAssigned("EV1");
-                  }}
-                >
-                  1
-                </div>
+                {action.enabled ? (
+                  <>
+                    <div
+                      className={`${actionStyles.actionHeadingCrewLeft} ${crewLeftStyle}`}
+                      onClick={() => {
+                        if (editMode) toggleCrewAssigned("EV1");
+                      }}
+                    >
+                      1
+                    </div>
 
-                <div
-                  className={`${actionStyles.actionHeadingCrewRight} ${crewRightStyle}`}
-                  onClick={() => {
-                    if (editMode) toggleCrewAssigned("EV2");
-                  }}
-                >
-                  2
-                </div>
+                    <div
+                      className={`${actionStyles.actionHeadingCrewRight} ${crewRightStyle}`}
+                      onClick={() => {
+                        if (editMode) toggleCrewAssigned("EV2");
+                      }}
+                    >
+                      2
+                    </div>
+                  </>
+                ) : (
+                  <div className={actionStyles.actionHeadingCrewDisabled}></div>
+                )}
               </div>
             </div>
           )}
 
-          {editMode && (
-            <FontAwesomeIcon
-              icon={faTrashAlt}
-              size="sm"
-              onClick={(e) => {
-                if (window.confirm("Are you sure you want to delete this Action?")) {
-                  dispatch(deleteActionByUuid(action.uuid));
-                  e.stopPropagation();
-                }
-              }}
-              style={{ marginTop: "3px" }}
-            />
-          )}
+          {editMode && <ActionMenu action={action} />}
         </div>
       </div>
       {actionsExpanded.includes(action.uuid) && (
-        <RightActionBody action={action} editMode={editMode} parentType={parentType} />
+        <RightActionBody
+          action={action}
+          editMode={editMode}
+          parentType={parentType}
+          parentLocation={parentLocation}
+          parentElevation={parentElevation}
+        />
       )}
     </div>
   );
