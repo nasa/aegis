@@ -19,7 +19,7 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
     }
 
     const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-    const uniqueClientId = req.query.uniqueClientId;
+    const socketId = req.query.socketId;
     const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
     if (isNaN(intMissionId) || typeof intMissionId !== "number") {
       return res.status(500).json({ status: "error", message: "Mission ID must be integer." });
@@ -96,7 +96,7 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
         // emit the upserted item to all clients via socket.io
         emitStoreUpsert({
           missionId: intMissionId,
-          uniqueClientId,
+          socketId,
           type: "poi",
           data: [responsePoi],
         } as StoreUpsert<POI>);
@@ -129,7 +129,7 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
           // emit the deleted item to all clients via socket.io
           emitStoreDelete({
             missionId: intMissionId,
-            uniqueClientId,
+            socketId,
             type: "poi",
             uuid: poiToDelete.uuid,
           } as StoreDelete);

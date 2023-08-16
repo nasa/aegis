@@ -23,14 +23,17 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
     const sortedTemplates = sortBy(mission.actionTemplates, ["type", "templateName"]);
 
     //save mission to db
-    const upsertResponse = await InternalAPI.upsertMission({
-      ...mission,
-      equipmentItems: sortedEquipmentItems,
-      geographicUnits: sortedGeoUnits,
-      landerRadii: sortedLanderRadii,
-      actionTemplates: sortedTemplates,
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
-    });
+    const upsertResponse = await InternalAPI.upsertMission(
+      {
+        ...mission,
+        equipmentItems: sortedEquipmentItems,
+        geographicUnits: sortedGeoUnits,
+        landerRadii: sortedLanderRadii,
+        actionTemplates: sortedTemplates,
+        updatedAt: roundDateToSecond(new Date()).toISOString(),
+      },
+      getState().interface.socketStatus.socketId
+    );
 
     if (upsertResponse.status === "success") {
       // update the db copy in the store

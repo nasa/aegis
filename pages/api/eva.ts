@@ -24,7 +24,7 @@ const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
 
-    const { uuid, uniqueClientId } = req.query;
+    const { uuid, socketId } = req.query;
     const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
     const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
     const evaUuid = Array.isArray(uuid) ? uuid[0] : uuid;
@@ -77,7 +77,7 @@ const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
           // emit the upserted item to all clients via socket.io
           emitStoreUpsert({
             missionId: intMissionId,
-            uniqueClientId,
+            socketId,
             type: "eva",
             data: [upsertResponse],
           } as StoreUpsert<Eva>);
@@ -107,7 +107,7 @@ const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
           // emit the deleted item to all clients via socket.io
           emitStoreDelete({
             missionId: intMissionId,
-            uniqueClientId,
+            socketId,
             type: "eva",
             uuid: deletedUUID,
           } as StoreDelete);

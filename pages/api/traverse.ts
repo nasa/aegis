@@ -25,7 +25,7 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
     }
 
     const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-    const { uuid, uniqueClientId } = req.query;
+    const { uuid, socketId } = req.query;
     const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
     const traverseUuid = Array.isArray(uuid) ? uuid[0] : uuid;
     //check for required mission id is valid
@@ -76,7 +76,7 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
           // emit the upserted item to all clients via socket.io
           emitStoreUpsert({
             missionId: intMissionId,
-            uniqueClientId,
+            socketId,
             type: "traverse",
             data: [upsertResponse],
           } as StoreUpsert<Traverse>);
@@ -106,7 +106,7 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
           // emit the deleted item to all clients via socket.io
           emitStoreDelete({
             missionId: intMissionId,
-            uniqueClientId,
+            socketId,
             type: "traverse",
             uuid: deletedUUID,
           } as StoreDelete);

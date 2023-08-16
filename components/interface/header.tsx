@@ -54,8 +54,8 @@ const Header: FunctionComponent = () => {
             data-tooltip-html={
               interfaceStore?.socketStatus?.connectionStatus === "connected"
                 ? `Users active in this Mission:<br>` +
-                  `Editors: ${interfaceStore?.socketStatus?.visitorCounts?.editors || 0}<br>` +
-                  `Visitors: ${interfaceStore?.socketStatus?.visitorCounts?.visitors || 0}<br>` +
+                  `Editors: ${interfaceStore?.socketStatus.visitorCounts.editors || 0}<br>` +
+                  `Visitors: ${interfaceStore?.socketStatus.visitorCounts.viewers || 0}<br>` +
                   `These numbers include you`
                 : "Connection to server lost"
             }

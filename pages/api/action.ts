@@ -24,7 +24,7 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
 
-    const { uuid, stationUuid, poiUuid, uniqueClientId } = req.query;
+    const { uuid, stationUuid, poiUuid, socketId } = req.query;
     const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
     const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
     const actionUUID = Array.isArray(uuid) ? uuid[0] : uuid;
@@ -84,7 +84,7 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
           // emit the upserted item to all clients via socket.io
           emitStoreUpsert({
             missionId: intMissionId,
-            uniqueClientId,
+            socketId,
             type: "action",
             data: [upsertResponse],
           } as StoreUpsert<Action>);
@@ -114,7 +114,7 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
           // emit the deleted item to all clients via socket.io
           emitStoreDelete({
             missionId: intMissionId,
-            uniqueClientId,
+            socketId,
             type: "action",
             uuid: deletedUUID,
           } as StoreDelete);

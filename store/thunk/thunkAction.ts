@@ -172,10 +172,13 @@ export const thunkSaveActions = appCreateAsyncThunk<{
     for (const action of actions) {
       if (isModified([action], [actionsFromDb.find((a) => a.uuid === action.uuid)])) {
         //action changed. upsert to db
-        const actionUpsertResponse = await httpClient_action.upsertAction({
-          ...action,
-          updatedAt: roundDateToSecond(new Date()).toISOString(),
-        });
+        const actionUpsertResponse = await httpClient_action.upsertAction(
+          {
+            ...action,
+            updatedAt: roundDateToSecond(new Date()).toISOString(),
+          },
+          getState().interface.socketStatus.socketId
+        );
         if (actionUpsertResponse.status === "success") {
           //upsert to both stores
           dispatch(upsertAction(actionUpsertResponse.data, true));

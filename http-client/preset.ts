@@ -5,10 +5,11 @@ export async function getPresets(mission: number): Promise<WrappedResponse<Prese
   return response;
 }
 
-export async function upsertPreset(preset: Preset): Promise<WrappedResponse<Preset>> {
-  const uniqueClientId =
-    typeof window !== undefined ? window.sessionStorage.getItem("uniqueClientId") : null;
-  const res = await fetch(`/api/preset?uniqueClientId=${uniqueClientId}`, {
+export async function upsertPreset(
+  preset: Preset,
+  socketId: string
+): Promise<WrappedResponse<Preset>> {
+  const res = await fetch(`/api/preset?socketId=${socketId}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -20,12 +21,11 @@ export async function upsertPreset(preset: Preset): Promise<WrappedResponse<Pres
 
 export async function deletePreset(
   presetUuid: string,
-  missionId: number
+  missionId: number,
+  socketId: string
 ): Promise<WrappedResponse<Preset>> {
-  const uniqueClientId =
-    typeof window !== undefined ? window.sessionStorage.getItem("uniqueClientId") : null;
   const res = await fetch(
-    `/api/preset?uniqueClientId=${uniqueClientId}&uuid=${presetUuid}&missionId=${missionId}`,
+    `/api/preset?socketId=${socketId}&uuid=${presetUuid}&missionId=${missionId}`,
     {
       method: "DELETE",
     }

@@ -36,7 +36,7 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
 
     //missionId is optional, except when deleting
     const missionId = req.query.missionId ? req.query.missionId : req.body.id;
-    const uniqueClientId = req.query.uniqueClientId;
+    const socketId = req.query.socketId;
     const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
 
     if (req.method === "GET") {
@@ -111,7 +111,7 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
           // emit the upserted item to all clients via socket.io
           emitStoreUpsert({
             missionId: intMissionId,
-            uniqueClientId,
+            socketId,
             type: "mission",
             data: [upsertResponse],
           } as StoreUpsert<Mission>);

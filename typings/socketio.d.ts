@@ -30,6 +30,7 @@ interface SocketData {
 type ConnectionStatus = "connected" | "disconnected" | "connecting" | "reconnecting";
 
 interface SocketStatus {
+  socketId: string;
   visitorCounts: visitorCounts;
   connectionStatus: ConnectionStatus;
   lastEditEvent: EditEvent | null;
@@ -41,7 +42,7 @@ interface ServerSocketStatus {
 }
 
 interface EditEvent {
-  uniqueClientId: string;
+  socketId: string;
   type: StoreType;
   datestamp: string;
 }
@@ -53,7 +54,7 @@ interface EditEvents {
 type StoreType = "preset" | "poi" | "station" | "eva" | "action" | "traverse" | "mission";
 
 interface StoreUpsert<T> {
-  uniqueClientId: string;
+  socketId: string;
   missionId: number;
   type: StoreType;
   data: T[];
@@ -61,7 +62,7 @@ interface StoreUpsert<T> {
 }
 
 interface StoreDelete {
-  uniqueClientId: string;
+  socketId: string;
   missionId: number;
   type: StoreType;
   uuid: string;
@@ -69,14 +70,13 @@ interface StoreDelete {
 }
 
 interface VisitorJoin {
-  uniqueClientId: string;
+  socketId: string;
   missionId: number;
   type: "editor" | "viewer";
 }
 
 interface VisitorData {
   socketId: string;
-  uniqueClientId: string;
   missionId: number;
   type: "editor" | "viewer";
 }

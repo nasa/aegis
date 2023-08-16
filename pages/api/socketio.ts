@@ -40,14 +40,14 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
 
     // Listen for connection events
     io.on("connection", (socket) => {
-      // (async () => {
-      //   const sockets = await io.fetchSockets();
-      //   console.log(
-      //     `${new Date().toISOString()} Socket ${socket.id} connected. Count across missions: ${
-      //       sockets.length
-      //     }`
-      //   );
-      // })();
+      (async () => {
+        const sockets = await io.fetchSockets();
+        console.log(
+          `${new Date().toISOString()} Socket ${socket.id} connected. Count across missions: ${
+            sockets.length
+          }`
+        );
+      })();
 
       // emit AEGIS app version to client that just connected
       socket.emit("version", packagejson.version || "unknown version");
@@ -58,14 +58,13 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
 
         const visitorData: VisitorData = {
           socketId: socket.id,
-          uniqueClientId: visitorJoin.uniqueClientId,
           missionId: visitorJoin.missionId,
           type: visitorJoin.type,
         };
 
         // remove this socket from tracking list if it exists
         _.remove(visitorsData, (item) => {
-          return item.uniqueClientId === visitorData.uniqueClientId;
+          return item.socketId === visitorData.socketId;
         });
         visitorsData.push(visitorData);
 
@@ -74,13 +73,11 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
         // emit visitor count to all clients in this room including this client
         io.to(visitorJoin.missionId.toString()).emit("statusFromServer", statusFromServer);
 
-        // console.log(
-        //   `${new Date().toISOString()} Socket ${
-        //     socket.id
-        //   } visitorJoin. ClientId: ${visitorJoin.uniqueClientId.slice(-4)} Editors: ${
-        //     statusFromServer.visitorCounts.editors
-        //   } Viewers: ${statusFromServer.visitorCounts.viewers}.`
-        // );
+        console.log(
+          `${new Date().toISOString()} Socket ${socket.id} visitorJoin. Editors: ${
+            statusFromServer.visitorCounts.editors
+          } Viewers: ${statusFromServer.visitorCounts.viewers}.`
+        );
       });
 
       socket.on("disconnect", () => {
@@ -90,7 +87,7 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
 
         // remove this socket from the visitor tracking
         _.remove(visitorsData, (item) => {
-          return item.uniqueClientId === visitorBeingRemoved.uniqueClientId;
+          return item.socketId === visitorBeingRemoved.socketId;
         });
         const statusFromServer = getStatusFromServer(visitorBeingRemoved.missionId);
         // emit visitor count to all clients in this room
@@ -98,11 +95,7 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
           .to(visitorBeingRemoved.missionId.toString())
           .emit("statusFromServer", statusFromServer);
 
-        // console.log(
-        //   `${new Date().toISOString()} Socket ${
-        //     socket.id
-        //   } ClientId: ${visitorBeingRemoved.uniqueClientId.slice(-4)} disconnected.`
-        // );
+        console.log(`${new Date().toISOString()} Socket ${socket.id} disconnected.`);
       });
 
       // sent visitor counts to all clients in every room every 10 seconds
@@ -176,7 +169,7 @@ const addLastEditEvent = (
 ) => {
   // store the last edit event for this mission
   global.__serverSocketStatus__.lastEditEvents[payload.missionId] = {
-    uniqueClientId: payload.uniqueClientId,
+    socketId: payload.socketId,
     type: payload.type,
     datestamp: new Date().toISOString(),
   };

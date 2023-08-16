@@ -18,7 +18,7 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
     }
 
     const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-    const uniqueClientId = req.query.uniqueClientId;
+    const socketId = req.query.socketId;
     const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
     if (typeof intMissionId !== "number") {
       return res.status(500).json({ status: "error", message: "Mission ID must be integer." });
@@ -90,7 +90,7 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
         // emit the upserted preset to all clients via socket.io
         emitStoreUpsert({
           missionId: intMissionId,
-          uniqueClientId,
+          socketId,
           type: "preset",
           data: [responsePreset],
         } as StoreUpsert<Preset>);
@@ -123,7 +123,7 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
         // emit the deleted preset to all clients via socket.io
         emitStoreDelete({
           missionId: intMissionId,
-          uniqueClientId,
+          socketId,
           type: "preset",
           uuid: presetToDelete.uuid,
         } as StoreDelete);

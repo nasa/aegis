@@ -8,6 +8,7 @@ export const initialState: InterfaceState = {
   timelineShowElevation: true,
   actionsExpanded: [],
   socketStatus: {
+    socketId: null,
     visitorCounts: {
       editors: 0,
       viewers: 0,
@@ -63,6 +64,9 @@ export const interfaceSlice = createSlice({
     setLastEditEvent: (state, action: { payload: EditEvent }) => {
       state.socketStatus.lastEditEvent = action.payload;
     },
+    setSocketId: (state, action: { payload: string }) => {
+      state.socketStatus.socketId = action.payload;
+    },
   },
 });
 
@@ -78,4 +82,5 @@ export const {
   setVisitorCounts,
   setSocketConnectionStatus,
   setLastEditEvent,
+  setSocketId,
 } = interfaceSlice.actions;

@@ -141,10 +141,13 @@ export const thunkSavePoi = appCreateAsyncThunk<{
   );
 
   //save poi to db
-  const poiUpsertResponse = await InternalAPI.upsertPOI({
-    ...poi,
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
-  });
+  const poiUpsertResponse = await InternalAPI.upsertPOI(
+    {
+      ...poi,
+      updatedAt: roundDateToSecond(new Date()).toISOString(),
+    },
+    getState().interface.socketStatus.socketId
+  );
 
   if (poiUpsertResponse.status === "success") {
     // upsert the changed POI to the store
@@ -227,7 +230,11 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
     }
 
     // delete the POI from the DB via internal API call
-    const deleteResponse = await InternalAPI.deletePOI(poi.uuid, missionId);
+    const deleteResponse = await InternalAPI.deletePOI(
+      poi.uuid,
+      missionId,
+      getState().interface.socketStatus.socketId
+    );
     if (deleteResponse.status === "success") {
       // remove the corresponding POI from the store
       dispatch(deletePoiByUuid(poi.uuid));

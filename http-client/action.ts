@@ -11,10 +11,11 @@ export async function getActions(filter: ActionFilterOptions): Promise<WrappedRe
   return response;
 }
 
-export async function upsertAction(actionObj: Action): Promise<WrappedResponse<Action>> {
-  const uniqueClientId =
-    typeof window !== undefined ? window.sessionStorage.getItem("uniqueClientId") : null;
-  const res = await fetch(`/api/action?uniqueClientId=${uniqueClientId}`, {
+export async function upsertAction(
+  actionObj: Action,
+  socketId: string
+): Promise<WrappedResponse<Action>> {
+  const res = await fetch(`/api/action?socketId=${socketId}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

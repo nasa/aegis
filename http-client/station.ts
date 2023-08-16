@@ -9,10 +9,11 @@ export async function getStations(missionId: number = null): Promise<WrappedResp
   return response;
 }
 
-export async function upsertStation(stationObj: Station): Promise<WrappedResponse<Station>> {
-  const uniqueClientId =
-    typeof window !== undefined ? window.sessionStorage.getItem("uniqueClientId") : null;
-  const res = await fetch(`/api/station?uniqueClientId=${uniqueClientId}`, {
+export async function upsertStation(
+  stationObj: Station,
+  socketId: string
+): Promise<WrappedResponse<Station>> {
+  const res = await fetch(`/api/station?socketId=${socketId}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -25,12 +26,11 @@ export async function upsertStation(stationObj: Station): Promise<WrappedRespons
 
 export async function deleteStation(
   stationUUID: string,
-  missionId: number
+  missionId: number,
+  socketId: string
 ): Promise<WrappedResponse<number | null>> {
-  const uniqueClientId =
-    typeof window !== undefined ? window.sessionStorage.getItem("uniqueClientId") : null;
   const res = await fetch(
-    `/api/station?uniqueClientId=${uniqueClientId}&uuid=${stationUUID}&missionId=${missionId}`,
+    `/api/station?socketId=${socketId}&uuid=${stationUUID}&missionId=${missionId}`,
     {
       method: "DELETE",
     }

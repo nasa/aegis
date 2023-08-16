@@ -4,10 +4,8 @@ export async function getPOIs(mission: number): Promise<WrappedResponse<POI[]>> 
   return response;
 }
 
-export async function upsertPOI(poi: POI): Promise<WrappedResponse<POI>> {
-  const uniqueClientId =
-    typeof window !== undefined ? window.sessionStorage.getItem("uniqueClientId") : null;
-  const res = await fetch(`/api/poi?uniqueClientId=${uniqueClientId}`, {
+export async function upsertPOI(poi: POI, socketId: string): Promise<WrappedResponse<POI>> {
+  const res = await fetch(`/api/poi?socketId=${socketId}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -20,16 +18,12 @@ export async function upsertPOI(poi: POI): Promise<WrappedResponse<POI>> {
 
 export async function deletePOI(
   poiUuid: string,
-  missionId: number
+  missionId: number,
+  socketId: string
 ): Promise<WrappedResponse<null>> {
-  const uniqueClientId =
-    typeof window !== undefined ? window.sessionStorage.getItem("uniqueClientId") : null;
-  const res = await fetch(
-    `/api/poi?uniqueClientId=${uniqueClientId}&uuid=${poiUuid}&missionId=${missionId}`,
-    {
-      method: "DELETE",
-    }
-  );
+  const res = await fetch(`/api/poi?socketId=${socketId}&uuid=${poiUuid}&missionId=${missionId}`, {
+    method: "DELETE",
+  });
   const response: WrappedResponse<null> = await res.json();
   return response;
 }

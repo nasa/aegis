@@ -411,10 +411,13 @@ export const thunkSaveStation = appCreateAsyncThunk<{
   }
 
   // upsert the changed Station to the DB via internal API call
-  const stationUpsertResponse = await httpClient_station.upsertStation({
-    ...station,
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
-  });
+  const stationUpsertResponse = await httpClient_station.upsertStation(
+    {
+      ...station,
+      updatedAt: roundDateToSecond(new Date()).toISOString(),
+    },
+    getState().interface.socketStatus.socketId
+  );
 
   if (stationUpsertResponse.status === "success") {
     // upsert the changed Station (with new updated date) to the store
@@ -582,7 +585,8 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
     // delete the Station from the DB via internal API call
     const deleteResponse: WrappedResponse<number> = await httpClient_station.deleteStation(
       station.uuid,
-      missionId
+      missionId,
+      getState().interface.socketStatus.socketId
     );
     if (deleteResponse.status === "success") {
       // remove the corresponding Station from the store

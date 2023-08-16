@@ -1,25 +1,18 @@
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from "react";
 
-import { setLastEditEvent, setSocketConnectionStatus, setVisitorCounts } from "store/interface";
+import {
+  setLastEditEvent,
+  setSocketConnectionStatus,
+  setSocketId,
+  setVisitorCounts,
+} from "store/interface";
 import { shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
 import fetchWithTimeout from "utils/fetch-with-timeout";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { v4 as uuidv4 } from "uuid";
 import _ from "lodash";
 import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/thunkSockets";
-
-// create browser session storage variable with unique clientId in it
-let uniqueClientId: string = null;
-if (typeof window !== "undefined" && !window.sessionStorage.getItem("uniqueClientId")) {
-  const newUniqueClientId = uuidv4();
-  window.sessionStorage.setItem("uniqueClientId", newUniqueClientId);
-  uniqueClientId = newUniqueClientId;
-} else {
-  uniqueClientId =
-    typeof window !== "undefined" ? window.sessionStorage.getItem("uniqueClientId") : null;
-}
 
 const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
   const dispatch = useAppDispatch();
@@ -39,25 +32,25 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
       console.log(
         `${new Date().toISOString()} Received storeUpsert from server. Mission: ${
           storePayload.missionId
-        } uniqueClientId: ${storePayload.uniqueClientId} Type:${storePayload.type}`
+        } socketId: ${storePayload.socketId} Type:${storePayload.type}`
       );
       // ignore all events that are not for the currently selected mission
       if (storePayload.missionId !== missionId) {
         console.log(
           `${new Date().toISOString()} Ignoring storeUpsert from server because this client is looking at a different mission. Mission: ${
             storePayload.missionId
-          } uniqueClientId: ${storePayload.uniqueClientId} Type:${storePayload.type}`
+          } socketId: ${storePayload.socketId} Type:${storePayload.type}`
         );
         return;
       }
       // update the last edit event in the store
       dispatch(setLastEditEvent(storePayload?.lastEditEvent));
 
-      if (uniqueClientId === storePayload.uniqueClientId) {
+      if (interfaceStoreRef.current.socketStatus.socketId === storePayload.socketId) {
         console.log(
           `${new Date().toISOString()} Ignoring storeUpsert from server because it was sent by this client. Mission: ${
             storePayload.missionId
-          } uniqueClientId: ${storePayload.uniqueClientId} Type:${storePayload.type}`
+          } socketId: ${storePayload.socketId} Type:${storePayload.type}`
         );
         return;
       }
@@ -76,7 +69,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
         }
       })();
     },
-    [dispatch, missionId]
+    [dispatch, missionId, interfaceStoreRef]
   );
 
   const storeDeleteEventHandler = useCallback(
@@ -84,31 +77,25 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
       console.log(
         `${new Date().toISOString()} Received delete event from server. Mission: ${
           storeDelete.missionId
-        } uniqueClientId: ${storeDelete.uniqueClientId} Type:${storeDelete.type} uuid:${
-          storeDelete.uuid
-        }`
+        } socketId: ${storeDelete.socketId} Type:${storeDelete.type} uuid:${storeDelete.uuid}`
       );
       // ignore all events that are not for the currently selected mission
       if (storeDelete.missionId !== missionId) {
         console.log(
           `${new Date().toISOString()} Ignoring delete event from server because this client is looking at a different mission. Mission: ${
             storeDelete.missionId
-          } uniqueClientId: ${storeDelete.uniqueClientId} Type:${storeDelete.type} uuid:${
-            storeDelete.uuid
-          }`
+          } socketId: ${storeDelete.socketId} Type:${storeDelete.type} uuid:${storeDelete.uuid}`
         );
         return;
       }
       // update the last edit event in the store
       dispatch(setLastEditEvent(storeDelete?.lastEditEvent));
 
-      if (storeDelete.uniqueClientId === uniqueClientId) {
+      if (interfaceStoreRef.current.socketStatus.socketId === storeDelete.socketId) {
         console.log(
           `${new Date().toISOString()} Ignoring delete event from server because it was sent by this client. Mission: ${
             storeDelete.missionId
-          } uniqueClientId: ${storeDelete.uniqueClientId} Type:${storeDelete.type} uuid:${
-            storeDelete.uuid
-          }`
+          } socketId: ${storeDelete.socketId} Type:${storeDelete.type} uuid:${storeDelete.uuid}`
         );
         return;
       }
@@ -125,18 +112,22 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
         }
       })();
     },
-    [dispatch, missionId]
+    [dispatch, missionId, interfaceStoreRef]
   );
 
   //Handle socketio events
   useEffect(() => {
     if (!wakeFetchSent) {
-      fetchWithTimeout(`${window.location.origin}/api/socketio`, { timeout: 5 });
+      try {
+        fetchWithTimeout(`${window.location.origin}/api/socketio`, { timeout: 5 });
+      } catch (error) {
+        // ignore
+      }
       setWakeFetchSent(true);
       return;
     }
 
-    if (!uniqueClientId || !missionId || !user?.missionPerms) return;
+    if (!missionId || !user?.missionPerms) return;
 
     // Create a socket connection
     if (!socket.current || (socket.current && !socket.current.connected)) {
@@ -155,14 +146,16 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
 
       const visitorJoin: VisitorJoin = {
         missionId: missionId,
-        uniqueClientId: uniqueClientId,
+        socketId: socket.current.id,
         type: permissionType,
       };
-
+      dispatch(setSocketId(socket.current.id));
       socket.current.emit("visitorJoin", visitorJoin);
 
       console.log(
-        `${new Date().toISOString()} Connected to socket.io server. Joining Mission: ${missionId} uniqueClientId: ${uniqueClientId}. Type: ${permissionType}.`
+        `${new Date().toISOString()} Connected to socket.io server. Joining Mission: ${missionId} socketId: ${
+          socket.current.id
+        }. Type: ${permissionType}.`
       );
       dispatch(setSocketConnectionStatus("connected"));
     });
@@ -170,6 +163,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
     socket.current.on("disconnect", () => {
       console.log(`${new Date().toISOString()} Disconnected from socket.io server`);
       dispatch(setSocketConnectionStatus("disconnected"));
+      dispatch(setSocketId(null));
     });
     socket.current.io.on("reconnect_attempt", () => {
       console.log(`${new Date().toISOString()} Attempting to reconnect to socket.io server`);

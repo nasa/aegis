@@ -208,5 +208,5 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
 
 const getConflictMessage = (type: string, name: string, action: string): string => {
   const actionPastTense = action === "upsert" ? "changed" : "deleted";
-  return `The ${type} ${name} that you are editing has been ${actionPastTense} by another user.`;
+  return `The ${type} ${name} that you were editing has been ${actionPastTense} by another user. Your unsaved changes have been discarded.`;
 };
