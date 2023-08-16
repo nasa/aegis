@@ -34,6 +34,7 @@ interface SocketStatus {
   visitorCounts: visitorCounts;
   connectionStatus: ConnectionStatus;
   lastEditEvent: EditEvent | null;
+  AEGISVersion: string;
 }
 
 interface ServerSocketStatus {

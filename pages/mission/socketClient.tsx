@@ -1,6 +1,7 @@
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  setAEGISVersion,
   setLastEditEvent,
   setSocketConnectionStatus,
   setSocketId,
@@ -201,14 +202,14 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
     // Incoming AEGIS version number
     socket.current.on("version", (version: string) => {
       console.log(`Server version: ${version}`);
-      const currentVersion = window.sessionStorage.getItem("AEGISversion") || null;
-      if (currentVersion !== version) {
-        if (currentVersion !== null) {
+
+      if (interfaceStoreRef.current.socketStatus.AEGISVersion !== version) {
+        if (interfaceStoreRef.current.socketStatus.AEGISVersion !== null) {
           alert(
             `A new version of AEGIS is available. Please refresh your browser to get the latest version.`
           );
         }
-        window.sessionStorage.setItem("AEGISversion", version);
+        dispatch(setAEGISVersion(version));
       }
     });
 

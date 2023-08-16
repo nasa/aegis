@@ -15,6 +15,7 @@ export const initialState: InterfaceState = {
     },
     connectionStatus: "disconnected",
     lastEditEvent: null,
+    AEGISVersion: null,
   },
 };
 
@@ -67,6 +68,9 @@ export const interfaceSlice = createSlice({
     setSocketId: (state, action: { payload: string }) => {
       state.socketStatus.socketId = action.payload;
     },
+    setAEGISVersion: (state, action: { payload: string }) => {
+      state.socketStatus.AEGISVersion = action.payload;
+    },
   },
 });
 
@@ -83,4 +87,5 @@ export const {
   setSocketConnectionStatus,
   setLastEditEvent,
   setSocketId,
+  setAEGISVersion,
 } = interfaceSlice.actions;

@@ -17,6 +17,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
   const selectedPreset = presets.find((preset) => preset.uuid === selectedPresetUuid);
+  const socketId = useAppSelector((state) => state.interface.socketStatus.socketId, refEqual);
 
   const handleDefaultPresetChange = (evt: ChangeEvent<HTMLInputElement>) => {
     // If the preset is being set as the default, then we need to unset the default flag on all other presets
@@ -31,7 +32,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           const updatedPreset = { ...preset, missionPresetDefault: false, updatedAt: modifiedDate };
           dispatch(upsertPreset(updatedPreset, true));
           dispatch(upsertPresetFromDb(updatedPreset));
-          httpClient_Preset.upsertPreset(updatedPreset);
+          httpClient_Preset.upsertPreset(updatedPreset, socketId);
           dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: false }));
         }
       });
