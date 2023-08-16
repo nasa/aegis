@@ -221,8 +221,8 @@ type Action = {
   geographicUnitsUsage: string[]; // uuids of geographic units used in this action
   mass: number; // grams
   status: ActionStatus;
+  enabled: boolean;
   crewAssigned: Crew[];
-
   createdAt?: string;
   updatedAt?: string;
 };

@@ -1,6 +1,7 @@
 .actionPanelContainer {
   margin: 0;
-  padding: 0;
+
+  padding: 1px 0 1px 0px;
 }
 
 .highlightAction {
@@ -8,10 +9,15 @@
   border-radius: var(--panelRadius);
 }
 
+.verticalCenter {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 .reorderIcon {
   display: flex;
-  margin-top: 5px;
-  margin-left: 3px;
+  margin-left: 5px;
   transform: scaleX(0.8);
   cursor: pointer;
 }
@@ -19,15 +25,6 @@
 .iconFaded {
   color: var(--grey4);
   outline: none;
-}
-
-.gripIcon {
-  margin-top: 3px;
-  margin-left: 2px;
-}
-
-.actionsHeadingCaret {
-  margin-left: 0;
 }
 
 .selectorContainer {
@@ -67,24 +64,29 @@
   padding-left: 25px;
   padding-bottom: 5px;
   width: 450px;
+  border-left: 1px solid var(--grey2);
 }
 
 .actionsHeading {
   display: flex;
   gap: 4px;
   padding: 1px 1px 1px 3px;
-  margin-left: 0;
+  margin-left: 1px;
   margin-right: 1px;
+}
+
+.actionsHeadingDisabled {
+  background-color: var(--grey1);
+  color: var(--grey3);
 }
 
 .actionsHeadingType {
   font-size: 0.8rem;
   font-weight: 400;
-  min-width: 55px;
-  max-width: 55px;
+  min-width: 58px;
+  max-width: 58px;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-top: 4px;
   text-transform: capitalize;
   cursor: pointer;
 }
@@ -93,13 +95,15 @@
   flex-grow: 1;
   font-size: 0.8rem;
   font-weight: 400;
-  margin-top: 3px;
-  color: var(--grey5);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .actionsHeadingCaret {
   margin-left: 2px;
-  margin-top: 3px;
+  margin-top: 1px;
+  cursor: pointer;
 }
 
 .actionsHeadingCaretRight {
@@ -113,13 +117,15 @@
 
 .actionHeadingRight {
   display: flex;
-  margin-top: 2px;
   user-select: none;
 }
 
 .actionHeadingRightItem {
   font-size: 0.8em;
   margin: 0 4px 0 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .actionHeadingCrew {
@@ -146,6 +152,9 @@
   background-color: var(--eva);
   color: var(--grey1);
   font-weight: 600;
+}
+.actionHeadingCrewDisabled {
+  width: 31px;
 }
 
 .statusLoading {
@@ -176,4 +185,47 @@
   left: -60px;
   top: -440px;
   z-index: 100;
+}
+
+.menuContainer {
+  position: relative;
+  padding: 0;
+  border: none;
+  /* border-radius: var(--radius); */
+  background-color: rgb(0, 0, 0, 0);
+}
+
+.menu {
+  position: fixed;
+  width: 130px;
+  z-index: 100;
+  background-color: var(--grey3);
+  color: var(--grey5);
+  border-radius: var(--radius);
+  font-size: 0.8em;
+  display: flex;
+  flex-direction: column;
+}
+
+.menuItem {
+  display: flex;
+  flex-direction: row;
+  padding: 5px;
+  cursor: pointer;
+}
+
+.menuItem:hover {
+  background-color: var(--grey2);
+}
+
+.menuItem:not(:last-child) {
+  border-bottom: 1px solid var(--grey4);
+}
+
+.menuItemIcon {
+  flex: 0 0 18px;
+}
+
+.menuItemText {
+  flex: 1 1 auto;
 }

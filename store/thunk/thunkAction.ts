@@ -13,6 +13,8 @@ import { roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import * as httpClient_action from "http-client/action";
 import { thunkGetElevation } from "./thunkElevation";
+import { upsertStation } from "store/station";
+import { upsertPoi } from "store/poi";
 
 export const thunkCreateAction = appCreateAsyncThunk<{
   actionParentUuid: ActionParentUuid;
@@ -41,6 +43,7 @@ export const thunkCreateAction = appCreateAsyncThunk<{
       location: null,
       elevation: null,
       status: "Candidate",
+      enabled: true,
       type: "other",
       durationLower: 5,
       durationUpper: 6,
@@ -114,6 +117,13 @@ export const thunkDuplicateAction = appCreateAsyncThunk<
         newAction.name,
         stationActions.map((a) => a.name)
       );
+
+      // append new action to the end of the station's action order
+      const station = getState().station.stations.find((s) => s.uuid === stationUuid);
+      let actionOrderUuids = _.cloneDeep(station.actionOrderUuids);
+      if (!actionOrderUuids) actionOrderUuids = [];
+      actionOrderUuids.push(newActionUuid);
+      dispatch(upsertStation({ ...station, actionOrderUuids }, true));
     } else if (poiUuid) {
       const poiActions = getState().action.actions.filter(
         (storeAction: Action) => storeAction.poiUuid === poiUuid
@@ -122,6 +132,13 @@ export const thunkDuplicateAction = appCreateAsyncThunk<
         newAction.name,
         poiActions.map((a) => a.name)
       );
+
+      // append new action to the end of the poi's action order
+      const poi = getState().poi.pois.find((p) => p.uuid === poiUuid);
+      let actionOrderUuids = _.cloneDeep(poi.actionOrderUuids);
+      if (!actionOrderUuids) actionOrderUuids = [];
+      actionOrderUuids.push(newActionUuid);
+      dispatch(upsertPoi({ ...poi, actionOrderUuids }, true));
     }
 
     if (preserveParentUuid) {

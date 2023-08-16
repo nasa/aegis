@@ -220,7 +220,7 @@ export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
     for (const station of stations) {
       //get station actions
       const stationActions = getState().action.actions.filter(
-        (storeAction) => storeAction.stationUuid === station.uuid
+        (storeAction) => storeAction.stationUuid === station.uuid && storeAction.enabled
       );
 
       //calculate total station time

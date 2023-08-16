@@ -1,0 +1,96 @@
+.poiActionsSectionContainer {
+  overflow-y: auto;
+}
+
+.stationPoiSection {
+  padding: 0 5px 5px 5px;
+}
+
+.stationPoiTitle {
+  font-size: 1.1em;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.stationPoiHeading {
+  display: flex;
+  gap: 8px;
+  padding: 5px 0 0 5px;
+  cursor: pointer;
+}
+
+.stationPoiSubheading {
+  font-size: 0.9em;
+  font-weight: 400;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.stationPoiActions {
+  padding-left: 20px;
+}
+
+.stationPoiActionItemsWrapper {
+  display: flex;
+  gap: 4px;
+  padding: 0 1px 0 3px;
+  margin-left: 1px;
+  margin-right: 1px;
+}
+
+.stationPoiActionItems {
+  background-color: var(--grey3);
+  margin: 2px 0 3px 0;
+  padding: 1px 0 1px 0;
+  border-radius: var(--radius);
+  flex-grow: 1;
+  border: 1px solid var(--grey3);
+}
+
+.stationPoiActionItemsDisabled {
+  background-color: var(--grey2);
+  color: var(--grey3);
+}
+
+.actionListHeader {
+  display: flex;
+  flex-direction: row;
+  padding: 0 21px 0 0;
+  font-size: 0.8rem;
+  color: var(--grey4);
+  margin-bottom: 2px;
+  height: 22px;
+  align-items: flex-end;
+  cursor: default;
+}
+
+.actionListHeaderType {
+  flex: 0 0 60px;
+  margin-left: 27px;
+}
+
+.actionListHeaderTitle {
+  flex-grow: 1;
+}
+
+.actionListHeaderPriority {
+  flex: 0 0 22px;
+  transform-origin: 25%;
+  transform: rotate(-35deg);
+}
+
+.actionListHeaderTime {
+  flex: 0 0 30px;
+  transform-origin: 25%;
+  transform: rotate(-35deg);
+}
+
+.copyIcon {
+  padding-top: 7px;
+  width: 18px;
+}
+
+.copyIconSpacer {
+  width: 18px;
+}

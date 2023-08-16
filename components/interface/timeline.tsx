@@ -554,7 +554,10 @@ const NavTimeline: FunctionComponent = () => {
             .filter((action) =>
               selectedEva?.sequence.some((sequenceItem) => sequenceItem.uuid === action.stationUuid)
             )
-            ?.map((a) => a.stmUuidRefs)}
+            ?.map((a) => {
+              if (a.enabled === false) return null;
+              return a.stmUuidRefs;
+            })}
           mini={true}
           horizontal={false}
         />
