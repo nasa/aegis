@@ -108,8 +108,10 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                           }
                         }}
                       >
-                        <span style={{ textTransform: "capitalize" }}>{actionTemplate.type}</span> :{" "}
-                        {actionTemplate.templateName}
+                        <div>
+                          <span style={{ textTransform: "capitalize" }}>{actionTemplate.type}</span>{" "}
+                          : {actionTemplate.templateName}
+                        </div>
                       </div>
                     ) : (
                       <>

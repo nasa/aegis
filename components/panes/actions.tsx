@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState, CSSProperties } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionsStyles from "./actions.module.css";
 import { Button, Dropdown } from "components/interface/form/globalFields";
@@ -12,21 +12,21 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreateAction } from "store/thunk/thunkAction";
 import CalculatedDwell from "./calculated-dwell";
 import { shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { Assoc_POIs } from "./actions-assocpois";
 
 const Actions: FunctionComponent<{
   editMode: boolean;
   setEditMode: (newEditMode: boolean) => void;
   actions: Action[];
-  actionColor: CSSProperties;
   actionOrderUuids: string[];
   setActionOrderUuids: (actionOrderUuids: string[]) => void;
   actionParentUuid: Pick<Action, "poiUuid" | "stationUuid">;
   parentType: "poi" | "station" | "eva";
+  parentStation?: Station;
   actionsCalculatedFields: ActionsCalculatedFields;
 }> = ({
   editMode,
   actions,
-  actionColor,
   actionOrderUuids,
   setActionOrderUuids,
   actionParentUuid,
@@ -40,15 +40,26 @@ const Actions: FunctionComponent<{
     shallowEqual
   );
 
-  const parentLocation = useAppSelector((state) => {
+  const parentPoiOrStation: POI | Station = useAppSelector((state) => {
     switch (parentType) {
       case "station":
-        return state.station.stations.find((s) => s.uuid === actionParentUuid.stationUuid)
-          ?.location;
+        return state.station.stations.find((s) => s.uuid === actionParentUuid.stationUuid);
       case "poi":
-        return state.poi.pois.find((p) => p.uuid === actionParentUuid.poiUuid)?.location;
+        return state.poi.pois.find((p) => p.uuid === actionParentUuid.poiUuid);
     }
   }, shallowEqual);
+
+  const parentStation = useAppSelector(
+    (state) => state.station.stations.find((s) => s.uuid === actionParentUuid?.stationUuid),
+    shallowEqual
+  );
+  const stationPois = useAppSelector(
+    (state) => state.poi.pois.filter((poi) => parentStation?.poiUuids?.includes(poi.uuid)),
+    shallowEqual
+  );
+
+  const parentLocation = parentPoiOrStation?.location;
+  const parentElevation = parentPoiOrStation?.elevation;
 
   const [wrappedActions, setWrappedActions] = useState<WrappedAction[]>(null); //contains all actions in order
   const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>("");
@@ -134,157 +145,160 @@ const Actions: FunctionComponent<{
 
   return (
     <>
-      {actions && (
-        <>
-          <div className={paneStyles.panelContainer}>
-            <div className={paneStyles.panelSection}>
-              <div className={actionsStyles.stmCoverage}>
-                <STM_Coverage
-                  stmUuidRefs={actions.map((a) => a.stmUuidRefs)}
-                  mini={true}
-                  horizontal={true}
-                  onInvstgHover={highlightActions}
-                />
-              </div>
-              <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
-                <div className={paneStyles.panelSection2Column}>
-                  <div className={paneStyles.panelColumnTable}>
-                    <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
-                        <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
-                      </div>
-                      <div className={paneStyles.panelColumnTableCell}>
-                        <div className={paneStyles.displayFieldValue}>
-                          {actionsCalculatedFields?.actionCount}
-                        </div>
-                      </div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
-                        <div
-                          className={paneStyles.displayFieldLabel}
-                          data-tooltip-id="aegis-tooltip"
-                          data-tooltip-html="Sum of all action durations, nominal to max"
-                        >
-                          Total Action Time (mins):
-                        </div>
-                      </div>
-                      <div className={paneStyles.panelColumnTableCell}>
-                        <div className={paneStyles.displayFieldValue}>
-                          {actionsCalculatedFields?.totalTime.durationLower === 0 ? (
-                            <>0</>
-                          ) : (
-                            <>{displayFormattedTotalTimeObj(actionsCalculatedFields?.totalTime)}</>
-                          )}
-                        </div>
-                      </div>
+      <div className={paneStyles.panelContainer}>
+        <div className={paneStyles.panelSection}>
+          <div className={actionsStyles.stmCoverage}>
+            <STM_Coverage
+              stmUuidRefs={actions?.map((a) => {
+                if (a.enabled === false) return null;
+                return a.stmUuidRefs;
+              })}
+              mini={true}
+              horizontal={true}
+              onInvstgHover={highlightActions}
+            />
+          </div>
+          <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
+            <div className={paneStyles.panelSection2Column}>
+              <div className={paneStyles.panelColumnTable}>
+                <div className={paneStyles.panelColumnTableRow}>
+                  <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={paneStyles.displayFieldValue}>
+                      {actionsCalculatedFields?.actionCount}
                     </div>
                   </div>
-                  <div className={paneStyles.panelColumnTable}>
-                    {parentType !== "poi" && (
-                      <>
-                        <CalculatedDwell actionsCalculatedFields={actionsCalculatedFields} />
-                      </>
-                    )}
+                </div>
+                <div className={paneStyles.panelColumnTableRow}>
+                  <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div
+                      className={paneStyles.displayFieldLabel}
+                      data-tooltip-id="aegis-tooltip"
+                      data-tooltip-html="Sum of all action durations, nominal to max"
+                    >
+                      Total Action Time (mins):
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={paneStyles.displayFieldValue}>
+                      {actionsCalculatedFields?.totalTime.durationLower === 0 ? (
+                        <>0</>
+                      ) : (
+                        <>{displayFormattedTotalTimeObj(actionsCalculatedFields?.totalTime)}</>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
+              <div className={paneStyles.panelColumnTable}>
+                {parentType !== "poi" && (
+                  <>
+                    <CalculatedDwell actionsCalculatedFields={actionsCalculatedFields} />
+                  </>
+                )}
+              </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div className={actionsStyles.actionListContainer}>
-            <div className={actionsStyles.dragableActionList}>
-              {!editMode && (
-                <div className={actionsStyles.actionListHeader}>
-                  <div className={actionsStyles.actionListHeaderType}>
-                    <div className={actionsStyles.actionListHeaderLabel}>Type</div>
-                  </div>
-                  <div className={actionsStyles.actionListHeaderTitle}>
-                    <div className={actionsStyles.actionListHeaderLabel}>Title</div>
-                  </div>
-                  <div className={actionsStyles.actionListHeaderPriority}>
-                    <div className={actionsStyles.actionListHeaderLabel}>Pri</div>
-                  </div>
-                  <div className={actionsStyles.actionListHeaderTime}>
-                    <div className={actionsStyles.actionListHeaderLabel}>Max</div>
-                  </div>
-                  {parentType !== "poi" && (
-                    <div className={actionsStyles.actionListHeaderCrew}>
-                      <div className={actionsStyles.actionListHeaderLabel}>Crew</div>
-                    </div>
-                  )}
+      <div className={actionsStyles.actionListContainer}>
+        <div className={actionsStyles.dragableActionList}>
+          {!editMode && wrappedActions?.length > 0 && (
+            <div className={actionsStyles.actionListHeader}>
+              <div className={actionsStyles.actionListHeaderType}>
+                <div className={actionsStyles.actionListHeaderLabel}>Type</div>
+              </div>
+              <div className={actionsStyles.actionListHeaderTitle}>
+                <div className={actionsStyles.actionListHeaderLabel}>Title</div>
+              </div>
+              <div className={actionsStyles.actionListHeaderPriority}>
+                <div className={actionsStyles.actionListHeaderLabel}>Pri</div>
+              </div>
+              <div className={actionsStyles.actionListHeaderTime}>
+                <div className={actionsStyles.actionListHeaderLabel}>Max</div>
+              </div>
+              {parentType !== "poi" && (
+                <div className={actionsStyles.actionListHeaderCrew}>
+                  <div className={actionsStyles.actionListHeaderLabel}>Crew</div>
                 </div>
               )}
-
-              <ReactDragListView onDragEnd={reorder} nodeSelector="li" handleSelector="a">
-                <ul className={actionsStyles.actionlist}>
-                  {wrappedActions?.map((wrappedAction, index) => (
-                    <li key={wrappedAction.action.uuid} className={actionsStyles.actionlistitem}>
-                      <div
-                        className={actionsStyles.actionlistitemOrdinal}
-                        style={editMode ? { marginTop: "9px" } : undefined}
-                      >
-                        {index + 1}
-                      </div>
-                      <Action
-                        editMode={editMode}
-                        action={wrappedAction.action}
-                        highlight={wrappedAction.highlight}
-                        actionColor={actionColor}
-                        parentType={parentType}
-                        parentLocation={parentLocation}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              </ReactDragListView>
             </div>
-          </div>
+          )}
 
-          <div className={actionsStyles.rightBodyItem} style={{ marginTop: "8px" }}>
-            {editMode && (
-              <div className={actionsStyles.addActionRow}>
-                <Button
-                  icon={faPlusCircle}
-                  label="Add Action"
-                  style={{ width: "100px" }}
-                  onClick={() => {
-                    const actionTemplate = selectedTemplateUuid
-                      ? actionTemplates.find((t) => t.uuid === selectedTemplateUuid)
-                      : null;
-                    dispatch(
-                      thunkCreateAction({
-                        actionParentUuid,
-                        actionOrderUuids,
-                        setActionOrderUuids,
-                        actions,
-                        actionTemplate,
-                      })
-                    );
-                  }}
-                />
-                <Dropdown
-                  selected={selectedTemplateUuid}
-                  onChange={(val) => {
-                    setSelectedTemplateUuid(val);
-                  }}
-                  selectStyle={{ height: "2em", fontSize: "0.8em" }}
-                  containerStyle={{ maxWidth: "200px" }}
-                >
-                  {actionTemplates?.map((template) => {
-                    return (
-                      <option key={template.uuid} value={template.uuid}>
-                        {_.capitalize(template.type)}: {template.templateName}
-                      </option>
-                    );
-                  })}
-                  <option value="">{`<Template>`}</option>
-                </Dropdown>
-              </div>
-            )}
-          </div>
-        </>
+          <ReactDragListView onDragEnd={reorder} nodeSelector="li" handleSelector="a">
+            <ul className={actionsStyles.actionlist}>
+              {wrappedActions?.map((wrappedAction, index) => (
+                <li key={wrappedAction.action.uuid} className={actionsStyles.actionlistitem}>
+                  <div
+                    className={actionsStyles.actionlistitemOrdinal}
+                    style={editMode ? { marginTop: "9px" } : undefined}
+                  >
+                    {index + 1}
+                  </div>
+                  <Action
+                    editMode={editMode}
+                    action={wrappedAction.action}
+                    highlight={wrappedAction.highlight}
+                    parentType={parentType}
+                    parentLocation={parentLocation}
+                    parentElevation={parentElevation}
+                  />
+                </li>
+              ))}
+            </ul>
+          </ReactDragListView>
+        </div>
+      </div>
+
+      {parentType === "station" && (
+        <Assoc_POIs stationPois={stationPois} stationActions={actions} editMode={editMode} />
       )}
+
+      <div className={actionsStyles.rightBodyItem} style={{ marginTop: "8px" }}>
+        {editMode && (
+          <div className={actionsStyles.addActionRow}>
+            <Button
+              icon={faPlusCircle}
+              label="Add Action"
+              style={{ width: "100px" }}
+              onClick={() => {
+                const actionTemplate = selectedTemplateUuid
+                  ? actionTemplates.find((t) => t.uuid === selectedTemplateUuid)
+                  : null;
+                dispatch(
+                  thunkCreateAction({
+                    actionParentUuid,
+                    actionOrderUuids,
+                    setActionOrderUuids,
+                    actions,
+                    actionTemplate,
+                  })
+                );
+              }}
+            />
+            <Dropdown
+              selected={selectedTemplateUuid}
+              onChange={(val) => {
+                setSelectedTemplateUuid(val);
+              }}
+              selectStyle={{ height: "2em", fontSize: "0.8em" }}
+              containerStyle={{ maxWidth: "200px" }}
+            >
+              {actionTemplates?.map((template) => {
+                return (
+                  <option key={template.uuid} value={template.uuid}>
+                    {_.capitalize(template.type)}: {template.templateName}
+                  </option>
+                );
+              })}
+              <option value="">{`<Template>`}</option>
+            </Dropdown>
+          </div>
+        )}
+      </div>
     </>
   );
 };

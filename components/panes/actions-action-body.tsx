@@ -38,7 +38,8 @@ export const RightActionBody: FunctionComponent<{
   action: Action;
   parentType: "station" | "poi" | "eva";
   parentLocation: AEGISPoint;
-}> = ({ editMode, action, parentType, parentLocation }) => {
+  parentElevation: number;
+}> = ({ editMode, action, parentType, parentLocation, parentElevation }) => {
   const dispatch = useAppDispatch();
   const parentAction = useAppSelector(
     (state) =>
@@ -56,10 +57,6 @@ export const RightActionBody: FunctionComponent<{
   const elevationPendingIndex = useAppSelector(
     (state) => state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === action.uuid),
     refEqual
-  );
-  const landerElevation = useAppSelector(
-    (state) => state.mission.mission.landerElevationMeters,
-    shallowEqual
   );
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -124,7 +121,10 @@ export const RightActionBody: FunctionComponent<{
   };
 
   return (
-    <div className={actionStyles.actionIndent}>
+    <div
+      className={actionStyles.actionIndent}
+      style={{ backgroundColor: action.enabled ? "" : "var(--grey1)" }}
+    >
       <div className={paneStyles.panelSection}>
         <div className={paneStyles.panelSectionTitle}>
           <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
@@ -437,7 +437,7 @@ export const RightActionBody: FunctionComponent<{
         )}
         <div className={paneStyles.panelSectionRow}>
           <div className={paneStyles.panelSection2Column}>
-            <div className={paneStyles.panelColumnTable} style={{ flex: "0 0 180px" }}>
+            <div className={paneStyles.panelColumnTable} style={{ flex: "0 0 160px" }}>
               <div className={paneStyles.panelColumnTableRow}>
                 <div className={paneStyles.panelColumnTableCellLeft}>
                   <div className={paneStyles.displayFieldLabel}>Lat:</div>
@@ -512,14 +512,16 @@ export const RightActionBody: FunctionComponent<{
             <div className={paneStyles.panelColumnTable}>
               <div className={paneStyles.panelColumnTableRow}>
                 <div className={paneStyles.panelColumnTableCellLeft}>
-                  <div className={paneStyles.displayFieldLabel}>Relative Elevation (m):</div>
+                  <div className={paneStyles.displayFieldLabel}>
+                    Elevation Relative to {parentType === "station" ? "Station" : "POI"} (m):
+                  </div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.displayFieldValue}>
                     {!action.elevation ? (
                       <>Not set</>
                     ) : (
-                      (action.elevation - landerElevation).toFixed(0)
+                      (action.elevation - parentElevation).toFixed(0)
                     )}
                   </div>
                 </div>
@@ -527,7 +529,7 @@ export const RightActionBody: FunctionComponent<{
               <div className={paneStyles.panelColumnTableRow}>
                 <div className={paneStyles.panelColumnTableCellLeft}>
                   <div className={paneStyles.displayFieldLabel}>
-                    Distance from {parentType === "station" ? "Station" : "POI"} (m):
+                    Distance to {parentType === "station" ? "Station" : "POI"} (m):
                   </div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>

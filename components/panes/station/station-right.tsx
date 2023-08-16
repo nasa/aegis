@@ -149,13 +149,9 @@ const StationEditorRight: FunctionComponent = () => {
     selectedStation && (
       <>
         <div className={paneStyles.rightTopTitle}>
-          {selectedStation.icon ? (
-            <div className={paneStyles.rightTopTitleIcon}>{decodeEmoji(selectedStation.icon)}</div>
-          ) : (
-            <div className={paneStyles.rightTopTitleIcon}>
-              <div className={paneStyles.rightTopTitleNoIcon} />
-            </div>
-          )}
+          <div className={paneStyles.rightTopTitleIcon}>
+            {decodeEmoji(selectedStation.icon ? selectedStation.icon : "2754")}
+          </div>
           {stationsEditing.includes(selectedStationUuid) && (
             <>
               <div className={stationStyles.iconDisplayButton}>

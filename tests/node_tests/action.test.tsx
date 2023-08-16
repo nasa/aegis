@@ -101,6 +101,7 @@ describe("Action API Endpoint", () => {
     geographicUnitsUsage: null,
     mass: null,
     status: "Candidate",
+    enabled: true,
     crewAssigned: [],
     createdAt: roundDateToSecond(new Date()).toISOString(),
     updatedAt: roundDateToSecond(new Date()).toISOString(),
