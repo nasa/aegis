@@ -214,11 +214,11 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
 
     // Incoming client counts
     socket.current.on("statusFromServer", (statusFromServer: StatusFromServer) => {
-      console.log(
-        `${new Date().toISOString()} In this room: ${
-          statusFromServer?.visitorCounts.editors
-        } editors, ${statusFromServer?.visitorCounts.viewers} viewers`
-      );
+      // console.log(
+      //   `${new Date().toISOString()} In this room: ${
+      //     statusFromServer?.visitorCounts.editors
+      //   } editors, ${statusFromServer?.visitorCounts.viewers} viewers`
+      // );
       if (
         !_.isEqual(
           statusFromServer.visitorCounts,
