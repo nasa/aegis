@@ -1,7 +1,7 @@
 import _ from "lodash";
 import {
   setTraverseCalculatedFields,
-  setTraversesFromDb,
+  setTraverseEditMode,
   upsertTraverse,
   upsertTraverseFromDb,
 } from "store/traverse";
@@ -57,12 +57,16 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
     path?: AEGISPoint[];
     rename?: boolean;
     evaSequence?: EvaSequenceItem[];
+    saveToDb?: boolean;
   },
   AEGISPoint[],
   false
 >(
   "fullUpdateTraverse",
-  async ({ path, traverseUuid, rename = false, evaSequence }, { dispatch, getState }) => {
+  async (
+    { path, traverseUuid, rename = false, evaSequence, saveToDb = false },
+    { dispatch, getState }
+  ) => {
     const traverse = getState().traverse.traverses.find((t) => t.uuid === traverseUuid);
 
     //make a copy
@@ -137,7 +141,6 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
       newElevationProfile = elevationResponse.payload as number[][];
     }
 
-    //update the store
     const newTraverse: Traverse = {
       ...traverse,
       name: rename ? stationBefore.name + " to " + stationAfter.name : traverse.name,
@@ -146,6 +149,12 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
       pathSegmentElevations: newElevationProfile,
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
+    if (saveToDb) {
+      httpClient_Traverse.upsertTraverse(newTraverse);
+      dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: false }));
+      dispatch(upsertTraverseFromDb(newTraverse));
+    }
+    //update the store
     dispatch(upsertTraverse(newTraverse, true));
 
     return newPath;
@@ -186,58 +195,60 @@ export const thunkResetTraverse = appCreateAsyncThunk<{
 });
 
 /**
- * Full update for traverses attached to a given station
+ * Full update for traverses attached to a given station.
+ * Save to DB.
  * Optional: only update for a single EVA, or if none is provided update all EVAs
  */
 export const thunkUpdateTraversesAroundStation = appCreateAsyncThunk<{
   stationUuid: string;
   evaUuid?: string;
-}>("updateTraversesAroundStation", async ({ stationUuid, evaUuid }, { dispatch, getState }) => {
-  //get evas to update
-  const evas = evaUuid
-    ? [getState().eva.evas.find((e) => e.uuid === evaUuid)]
-    : getState().eva.evas;
-  for (const eva of evas) {
-    for (let i = 0; i < eva.sequence.length; i++) {
-      if (eva.sequence[i].uuid === stationUuid) {
-        //get traverse before
-        if (i > 0) {
-          const traverseBefore = getState().traverse.traverses.find(
-            (t) => t.uuid === eva.sequence[i - 1].uuid
-          );
-          //update traverse in store
-          await dispatch(
-            thunkFullUpdateTraverse({
-              traverseUuid: traverseBefore.uuid,
-              rename: true,
-              evaSequence: eva.sequence,
-            })
-          );
+  saveToDb?: boolean;
+}>(
+  "updateTraversesAroundStation",
+  async ({ stationUuid, evaUuid, saveToDb = false }, { dispatch, getState }) => {
+    //get evas to update
+    const evas = evaUuid
+      ? [getState().eva.evas.find((e) => e.uuid === evaUuid)]
+      : getState().eva.evas;
+    for (const eva of evas) {
+      for (let i = 0; i < eva.sequence.length; i++) {
+        if (eva.sequence[i].uuid === stationUuid) {
+          //get traverse before
+          if (i > 0) {
+            const traverseBefore = getState().traverse.traverses.find(
+              (t) => t.uuid === eva.sequence[i - 1].uuid
+            );
+            //update traverse in store
+            await dispatch(
+              thunkFullUpdateTraverse({
+                traverseUuid: traverseBefore.uuid,
+                rename: true,
+                evaSequence: eva.sequence,
+                saveToDb,
+              })
+            );
+          }
+          //get traverse after
+          if (i < eva.sequence.length - 1) {
+            const traverseAfter = getState().traverse.traverses.find(
+              (t) => t.uuid === eva.sequence[i + 1].uuid
+            );
+            //update traverse in store
+            await dispatch(
+              thunkFullUpdateTraverse({
+                traverseUuid: traverseAfter.uuid,
+                rename: true,
+                evaSequence: eva.sequence,
+                saveToDb,
+              })
+            );
+          }
+          break;
         }
-        //get traverse after
-        if (i < eva.sequence.length - 1) {
-          const traverseAfter = getState().traverse.traverses.find(
-            (t) => t.uuid === eva.sequence[i + 1].uuid
-          );
-          //update traverse in store
-          await dispatch(
-            thunkFullUpdateTraverse({
-              traverseUuid: traverseAfter.uuid,
-              rename: true,
-              evaSequence: eva.sequence,
-            })
-          );
-        }
-        break;
       }
     }
   }
-  // reset the traversesFromDB in the store with a fresh copy from the DB
-  const traverseData = await httpClient_Traverse.getTraverses(getState().mission.mission?.id);
-  if (traverseData.data) {
-    dispatch(setTraversesFromDb(traverseData.data));
-  }
-});
+);
 
 /**
  * Update traverse names surrounding a given station in a given EVA

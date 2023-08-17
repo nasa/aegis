@@ -27,7 +27,7 @@ export const thunkDeleteGeoUnit = appCreateAsyncThunk<{ geographicUnitUuid: stri
     const actionsUsingGeographicUnit = getState().action.actions.filter((action) =>
       action.geographicUnitsUsage?.some((uuid) => uuid === geographicUnitUuid)
     );
-    const templatesUsingGeographicUnit = getState().mission.mission.actionTemplates.filter(
+    const templatesUsingGeographicUnit = getState().mission.mission.actionTemplates?.filter(
       (template) => template.geographicUnitsUsage?.some((uuid) => uuid === geographicUnitUuid)
     );
 
@@ -55,7 +55,7 @@ export const thunkDeleteGeoUnit = appCreateAsyncThunk<{ geographicUnitUuid: stri
       });
       printableList.push(...actionsList);
     }
-    if (templatesUsingGeographicUnit.length > 0) {
+    if (templatesUsingGeographicUnit?.length > 0) {
       const templateList: PrintableListItem[] = templatesUsingGeographicUnit.map((template) => {
         return {
           parentType: "Template",
