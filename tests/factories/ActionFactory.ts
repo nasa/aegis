@@ -19,6 +19,7 @@ export default class ActionFactory extends Factory<Action_db> {
       elevation: 0,
       durationLower: 0,
       status: "Candidate",
+      enabled: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

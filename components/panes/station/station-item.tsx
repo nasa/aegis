@@ -54,7 +54,9 @@ const StationItem: FunctionComponent<{
         dispatch(setAllHoverUuids(null));
       }}
     >
-      <div className={stationStyles.itemIcon}>{decodeEmoji(station.icon)}</div>
+      <div className={stationStyles.itemIcon}>
+        {decodeEmoji(station.icon ? station.icon : "2754")}
+      </div>
       <div className={`${stationStyles.name} ${isStationSelectedOrHoveredStyle}`}>
         <div>{station.name}</div>
         <ModifiedIndicator

@@ -50,6 +50,8 @@ export class Action implements Action_db_type {
   mass: number;
   @Property({ type: MikroTypes.string })
   status!: POIStatus;
+  @Property({ type: MikroTypes.boolean, default: true })
+  enabled: boolean;
   @Property({ type: MikroTypes.json, nullable: true })
   crewAssigned: Crew[];
 

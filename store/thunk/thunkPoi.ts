@@ -48,7 +48,7 @@ export const thunkCreatePoiCalculatedFields = appCreateAsyncThunk<void>(
     for (const poi of pois) {
       //get poi actions
       const poiActions = getState().action.actions.filter(
-        (storeAction) => storeAction.poiUuid === poi.uuid
+        (storeAction) => storeAction.poiUuid === poi.uuid && storeAction.enabled
       );
 
       //calculate total time
