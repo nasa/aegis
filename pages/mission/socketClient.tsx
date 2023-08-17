@@ -199,6 +199,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
           if (
             interfaceStoreRef.current.socketStatus.lastEditEvent &&
             lastEditResponse &&
+            lastEditResponse.data &&
             _.isEqual(lastEditResponse, interfaceStoreRef.current.socketStatus.lastEditEvent) ===
               false
           ) {
