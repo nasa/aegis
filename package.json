@@ -21,7 +21,10 @@
     "docker:dev": "cross-env DOCKER_SCAN_SUGGEST=false docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d",
     "docker:dev:rebuild": "cross-env DOCKER_SCAN_SUGGEST=false docker-compose -f docker-compose.yml -f docker-compose.dev.yml build --no-cache",
     "docker:preview": "cross-env DOCKER_SCAN_SUGGEST=false docker-compose -f docker-compose.yml -f docker-compose.preview.yml up --build -d",
-    "docker:preview:rebuild": "cross-env DOCKER_SCAN_SUGGEST=false docker-compose -f docker-compose.yml -f docker-compose.preview.yml build --no-cache"
+    "docker:preview:rebuild": "cross-env DOCKER_SCAN_SUGGEST=false docker-compose -f docker-compose.yml -f docker-compose.preview.yml build --no-cache",
+    "version:patch": "npm version patch && git push && git push --tags",
+    "version:minor": "npm version minor && git push && git push --tags",
+    "version:major": "npm version major && git push && git push --tags"
   },
   "dependencies": {
     "@babel/plugin-proposal-class-properties": "^7.18.6",
