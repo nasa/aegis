@@ -439,6 +439,7 @@ make-dotenv:
     - sudo /usr/bin/docker image prune -af
 
     # hit the aegis socket.io endpoint to start up the socket server
+    - sleep 20
     - curl -k --silent --connect-timeout 1 $URL/api/socketio || true
 
 deploy:dev1:
