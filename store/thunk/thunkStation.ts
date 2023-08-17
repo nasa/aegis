@@ -28,7 +28,6 @@ import { deleteActionsByUuid, setActionsFromDb, upsertActions } from "store/acti
 import * as httpClient_station from "http-client/station";
 import * as httpClient_action from "http-client/action";
 import { updateMapDirective } from "store/map";
-import { setTraverseEditMode, upsertTraverse } from "store/traverse";
 import { thunkCancelMarkerMapDirective } from "./thunkMap";
 import { thunkDuplicateAction, thunkSaveActions } from "./thunkAction";
 import { roundDateToSecond } from "utils/formatting";
@@ -60,7 +59,7 @@ export const thunkUpdateStationLocation = appCreateAsyncThunk<{
   dispatch(thunkFullUpdateWalkback({ path: station.walkbackPath, stationUuid }));
 
   //update any eva traverses connected to this station
-  dispatch(thunkUpdateTraversesAroundStation({ stationUuid }));
+  dispatch(thunkUpdateTraversesAroundStation({ stationUuid, saveToDb: true }));
 });
 
 /**
@@ -121,11 +120,11 @@ export const thunkFullUpdateWalkback = appCreateAsyncThunk<
   const station = getState().station.stations.find((s) => s.uuid === stationUuid);
   const landerLocation = getState().mission.mission.landerLocation;
   //set starting station
-  if (station && !_.isEqual(path.at(0), station.location)) {
+  if (station && !_.isEqual(newPath.at(0), station.location)) {
     newPath[0] = station.location;
   }
   //set ending lander
-  if (landerLocation && !_.isEqual(path.at(-1), landerLocation)) {
+  if (landerLocation && !_.isEqual(newPath.at(-1), landerLocation)) {
     newPath[newPath.length - 1] = landerLocation;
   }
 
@@ -383,14 +382,8 @@ export const thunkSaveStation = appCreateAsyncThunk<{
   //if existing station, update traverses for any EVAs
   const stationFromDb = getState().station.stationsFromDb.find((s) => s.uuid === station.uuid);
   if (stationFromDb) {
-    //check if location changed
-    if (station.location !== stationFromDb.location) {
-      // full traverse update (including name) for all EVAs
-      await dispatch(thunkUpdateTraversesAroundStation({ stationUuid: station.uuid }));
-    }
-
-    // check if only station name changed
-    else if (station.name !== stationFromDb.name) {
+    // check if station name changed
+    if (station.name !== stationFromDb.name) {
       // We've changed a station name, so get all Evas using this station
       const evasUsingThisStation: Eva[] = getState().eva.evas.filter((eva) => {
         return eva.sequence.some((sequence) => {
@@ -469,38 +462,18 @@ export const thunkStationCancel = appCreateAsyncThunk<{
   );
 
   // find out if this station is already on the map
-  const traverseUUIDs: string[] = [];
   if (stationFromDb) {
-    // station is already saved once to the db, replace it with the one from the db (undoing any changes)
+    //station is already saved once to the db,
+    // replace it with the one from the db (undoing any changes)
     dispatch(upsertStation(stationFromDb, true));
-    dispatch(upsertActions(stationActionsFromDb, true));
 
-    const evasUsingThisStationFromDb: Eva[] = [];
-    getState().eva.evasFromDb.forEach((eva) => {
-      eva.sequence.forEach((sequenceItem) => {
-        if (sequenceItem.uuid === station?.uuid) {
-          evasUsingThisStationFromDb.push(eva);
-        }
-      });
-    });
-    for (const eva of evasUsingThisStationFromDb) {
-      // Get all Traverses in this EVA
-      eva.sequence.forEach((sequenceItem) => {
-        if (sequenceItem.type === "traverse") {
-          traverseUUIDs.push(sequenceItem.uuid);
-        }
-      });
-
-      traverseUUIDs.forEach((traverseUUID) => {
-        const traverseFromDb = getState().traverse.traversesFromDb.find(
-          (traverseFromDb) => traverseFromDb.uuid === traverseUUID
-        );
-        if (traverseFromDb) {
-          dispatch(upsertTraverse(traverseFromDb, true));
-          dispatch(setTraverseEditMode({ uuid: traverseUUID, editMode: false }));
-        }
-      });
+    //check if location was changed. if so, revert back traverses
+    if (station.location !== stationFromDb.location) {
+      // Update traverses surrounding this station
+      dispatch(thunkUpdateTraversesAroundStation({ stationUuid: station.uuid, saveToDb: true }));
     }
+
+    dispatch(upsertActions(stationActionsFromDb, true));
     //delete newly added actions that user doesn't want to save
     const addedActionsToDelete: Action[] = stationActions.filter(
       // only delete actions that don't exist in the db

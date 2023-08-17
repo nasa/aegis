@@ -88,7 +88,7 @@ const Info_Panel: FunctionComponent<{
     calculatedFields?.equipmentItems?.forEach((equipItem) => {
       //find item in mission
       const missionEquipItem = missionEquipItems.find((item) => item.uuid === equipItem.uuid);
-      if (missionEquipItem.singleUse) {
+      if (missionEquipItem?.singleUse) {
         consumablesDisplay.push({
           name: missionEquipItem.name,
           quantityUsed: equipItem.quantityUsed,

@@ -27,7 +27,7 @@ export const thunkDeleteEquipment = appCreateAsyncThunk<{ equipmentItemUuid: str
     const actionsUsingEquipmentItem = getState().action.actions.filter((action) =>
       action.equipmentItemsUsage?.some((item) => item.uuid === equipmentItemUuid)
     );
-    const templatesUsingEquipmentItem = getState().mission.mission.actionTemplates.filter(
+    const templatesUsingEquipmentItem = getState().mission.mission.actionTemplates?.filter(
       (template) => template.equipmentItemsUsage?.some((item) => item.uuid === equipmentItemUuid)
     );
 
@@ -55,7 +55,7 @@ export const thunkDeleteEquipment = appCreateAsyncThunk<{ equipmentItemUuid: str
       });
       printableList.push(...actionsList);
     }
-    if (templatesUsingEquipmentItem.length > 0) {
+    if (templatesUsingEquipmentItem?.length > 0) {
       const templateList: PrintableListItem[] = templatesUsingEquipmentItem.map((template) => {
         return {
           parentType: "Template",

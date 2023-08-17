@@ -13,7 +13,7 @@ import { getPOIs } from "http-client/poi";
 import { getMissions } from "http-client/mission";
 import { getLayers } from "http-client/layer";
 import { getStations } from "http-client/station";
-import { getActions } from "http-client/action";
+import * as httpClient_action from "http-client/action";
 import { getGoals, getInvestigations, getObjectives } from "http-client/stm";
 import { setMapCircleControls, setMapSublayerControls } from "store/map";
 import { setPois, setPoisFromDb, upsertPoi, upsertPoiFromDb } from "store/poi";
@@ -25,7 +25,7 @@ import {
 } from "store/preset";
 import { setLayers, setMission, setMissionFromDb, setSublayers } from "store/mission";
 import { setStations, setStationsFromDb, upsertStation, upsertStationFromDb } from "store/station";
-import { setActions, setActionsFromDb } from "store/action";
+import { setActions, setActionsFromDb, upsertAction, upsertActionFromDb } from "store/action";
 import { setGoals, setInvestigations, setObjectives } from "store/stm";
 import { getEvas } from "http-client/eva";
 import { setEvas, setEvasFromDb } from "store/eva";
@@ -329,7 +329,7 @@ const Main: NextPage = () => {
       }
 
       //Populate actions
-      const actionData = await getActions({ missionId: intMissionId });
+      const actionData = await httpClient_action.getActions({ missionId: intMissionId });
       if (actionData.data) {
         dispatch(setActions(actionData.data));
         dispatch(setActionsFromDb(actionData.data));
@@ -403,6 +403,29 @@ const Main: NextPage = () => {
       );
     });
   }, [preset, missionStore.layers, missionStore.sublayers, missionStore.mission, dispatch]);
+
+  //check if any mission equipment items don't exist in mission. For some reason there were orphaned uuids?!
+  //possibly can remove this in the future. Not sure how some actions got into this state.
+  useEffect(() => {
+    if (!missionStore.mission?.equipmentItems || !actions) return;
+
+    //loop through all equipment items in each action
+    for (const action of actions) {
+      if (!action.equipmentItemsUsage) continue;
+      for (const equipItem of action.equipmentItemsUsage) {
+        const found = missionStore.mission.equipmentItems.find((e) => e.uuid === equipItem.uuid);
+        if (!found) {
+          const newEquipItemUsage = action.equipmentItemsUsage.filter((i) =>
+            missionStore.mission.equipmentItems.some((e) => e.uuid === i.uuid)
+          );
+          httpClient_action.upsertAction({ ...action, equipmentItemsUsage: newEquipItemUsage }); //update the database
+          dispatch(upsertAction(action, true));
+          dispatch(upsertActionFromDb(action));
+          break;
+        }
+      }
+    }
+  }, [actions, missionStore.mission?.equipmentItems, dispatch]);
 
   //Generate poi calculated values
   useEffect(() => {
