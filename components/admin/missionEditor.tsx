@@ -190,8 +190,8 @@ const MissionEditor: FunctionComponent<{
                   <div id="traverseDiv">
                     <div className={adminStyles.editDiv}>
                       <FFInput
-                        name="traverseSpeed"
-                        label={{ label: "Default Traverse Speed (km/h)" }}
+                        name="traverseRate"
+                        label={{ label: "Default Traverse Rate (km/h)" }}
                         validators={[validators.mustBeNumber, validators.mustBeInteger]}
                       />
                     </div>
@@ -199,8 +199,8 @@ const MissionEditor: FunctionComponent<{
                   <div id="walkbackDiv">
                     <div className={adminStyles.editDiv}>
                       <FFInput
-                        name="walkbackSpeed"
-                        label={{ label: "Default Walkback Speed (km/h)" }}
+                        name="walkbackRate"
+                        label={{ label: "Default Walkback Rate (km/h)" }}
                         validators={[validators.mustBeNumber, validators.mustBeInteger]}
                       />
                     </div>

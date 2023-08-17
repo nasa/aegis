@@ -215,7 +215,7 @@ export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
   async (_, { dispatch, getState }) => {
     const stations = getState().station.stations;
     const allCalculatedFields: StationCalculatedFields[] = [];
-    const missionTraverseRate = getState().mission.mission?.traverseSpeed;
+    const missionTraverseRate = getState().mission.mission?.traverseRate;
     for (const station of stations) {
       //get station actions
       const stationActions = getState().action.actions.filter(

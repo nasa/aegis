@@ -386,7 +386,6 @@ const Main: NextPage = () => {
       }
 
       missionStore.mission?.landerRadii.forEach((landerRadius) => {
-        const presetUIStates: PresetUIStates = {};
         presetUIStates[landerRadius.uuid] = {
           expanded: true,
           tabSelected: null,

@@ -36,7 +36,7 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
 
     //missionId is optional, except when deleting
     const { missionId, socketId } = req.query;
-    const intMissionId = parseInt(missionId as string);
+    const intMissionId = missionId ? parseInt(missionId as string) : null;
 
     if (req.method === "GET") {
       if (intMissionId && _.isNaN(intMissionId)) {

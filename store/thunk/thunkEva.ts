@@ -396,7 +396,7 @@ export const thunkCreateEva = appCreateAsyncThunk<void>(
       status: "Candidate",
       sequence: [],
       description: "",
-      traverseRate: 3.2, // default to 3.2 km/hr
+      traverseRate: getState().mission.mission.traverseRate,
       maxDuration: getState().mission.mission.defaultEvaDuration,
       createdAt: roundDateToSecond(new Date()).toISOString(),
       updatedAt: null,

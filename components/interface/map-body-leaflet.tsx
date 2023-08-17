@@ -1210,7 +1210,7 @@ const MapBody: FunctionComponent = () => {
         drawOrUpdateMarkerOnMap({
           name: poi.name,
           uuid: poi.uuid,
-          iconEmoji: poi.icon ? poi.icon : "1F3F4",
+          iconEmoji: poi.icon, // no default because object always starts red circle
           mapItemType: "poi",
           location: poi.location,
           onClick: () => {
@@ -1293,7 +1293,7 @@ const MapBody: FunctionComponent = () => {
         drawOrUpdateMarkerOnMap({
           name: station.name,
           uuid: station.uuid,
-          iconEmoji: station.icon,
+          iconEmoji: station.icon ? station.icon : "2754", //default to question mark
           mapItemType: "station",
           location: station.location,
           onClick: () => {

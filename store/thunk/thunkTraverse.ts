@@ -290,7 +290,7 @@ export const thunkCreateTraverseCalculatedFields = appCreateAsyncThunk<void>(
   "createTraverseCalculatedFields",
   async (_, { dispatch, getState }) => {
     const traverses = getState().traverse.traverses;
-    const missionTraverseRate = getState().mission.mission?.traverseSpeed;
+    const missionTraverseRate = getState().mission.mission?.traverseRate;
     const allCalculatedFields: TraverseCalculatedFields[] = [];
 
     for (const traverse of traverses) {

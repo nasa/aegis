@@ -26,7 +26,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     shallowEqual
   );
   const missionTraverseRate = useAppSelector(
-    (state) => state.mission.mission?.traverseSpeed,
+    (state) => state.mission.mission?.traverseRate,
     shallowEqual
   );
   const evaCalculatedFields = useAppSelector(
@@ -143,6 +143,8 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         } Default: ${selectedEva?.traverseRate || missionTraverseRate} km/hr`}
                       >
                         Traverse Rate (km/hr):
+                        <br />
+                        (Mission Default: {missionTraverseRate})
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>

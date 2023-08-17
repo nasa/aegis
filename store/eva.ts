@@ -86,6 +86,7 @@ export const evaSlice = createSlice({
         const eva = state.evas.find((eva) => eva.uuid === action.payload.evaUuid);
         if (eva) {
           eva.sequence = action.payload.sequence;
+          eva.updatedAt = action.payload.updatedAt;
         }
       },
       prepare: (payload: { evaUuid: string; sequence: EvaSequenceItem[] }) => {
