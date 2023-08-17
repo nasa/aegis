@@ -24,12 +24,11 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
 
-    const { uuid, stationUuid, poiUuid, socketId } = req.query;
-    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
-    const actionUUID = Array.isArray(uuid) ? uuid[0] : uuid;
-    const station = Array.isArray(stationUuid) ? stationUuid[0] : stationUuid;
-    const poi = Array.isArray(poiUuid) ? poiUuid[0] : poiUuid;
+    const { uuid, stationUuid, poiUuid, socketId, missionId } = req.query;
+    const intMissionId = parseInt(missionId as string);
+    const actionUUID = uuid as string;
+    const station = stationUuid as string;
+    const poi = poiUuid as string;
     //check for required mission id is valid
     if (!intMissionId || _.isNaN(intMissionId)) {
       return res.status(500).json({ status: "error", message: "Invalid mission ID" });

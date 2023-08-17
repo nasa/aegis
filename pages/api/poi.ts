@@ -18,9 +18,8 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
 
-    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-    const socketId = req.query.socketId;
-    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+    const { missionId, socketId } = req.query;
+    const intMissionId = parseInt(missionId as string);
     if (isNaN(intMissionId) || typeof intMissionId !== "number") {
       return res.status(500).json({ status: "error", message: "Mission ID must be integer." });
     }

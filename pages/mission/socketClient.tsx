@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback, useEffect, useRef } from "react";
+import { FunctionComponent, useCallback, useEffect, useRef, useState } from "react";
 
 import {
   setAEGISVersion,
@@ -22,6 +22,8 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
   // all stores are stored in refs so that the socket event handlers can access the latest values
   const userRef = useRef(user);
   const interfaceStoreRef = useRef(interfaceStore);
+
+  const [wakeFetchSent, setWakeFetchSent] = useState(false);
 
   //socket connection
   const socket = useRef<Socket<ServerToClientEvents, ClientToServerEvents>>(null);
@@ -121,6 +123,17 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
   //Handle socketio events
   useEffect(() => {
     if (!missionId || !user?.missionPerms) return;
+
+    // if running local environment (no CI/CD), hit the API to wake it up
+    if (!wakeFetchSent && process.env.NEXT_PUBLIC_IN_CI_ENVIRONMENT === "false") {
+      try {
+        fetchWithTimeout(`${window.location.origin}/api/socketio`, { timeout: 5 });
+      } catch (error) {
+        // ignore
+      }
+      setWakeFetchSent(true);
+      return;
+    }
 
     // Create a socket connection
     if (!socket.current || (socket.current && !socket.current.connected)) {
@@ -255,7 +268,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
       socket.current.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, socket, missionId, user]);
+  }, [dispatch, socket, missionId, user, wakeFetchSent]);
 
   // Keep refs up to date from store
   useEffect(() => {

@@ -24,10 +24,9 @@ const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
 
-    const { uuid, socketId } = req.query;
-    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
-    const evaUuid = Array.isArray(uuid) ? uuid[0] : uuid;
+    const { uuid, socketId, missionId } = req.query;
+    const intMissionId = parseInt(missionId as string);
+    const evaUuid = uuid as string;
     //check for required mission id is valid
     if (!intMissionId || _.isNaN(intMissionId)) {
       return res.status(500).json({ status: "error", message: "Invalid mission ID" });

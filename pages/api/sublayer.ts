@@ -40,10 +40,9 @@ const handleSublayer: NextApiHandler<WrappedResponse<Sublayer[] | Sublayer>> = a
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
 
-    const { uuid } = req.query;
-    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
-    const sublayerUUID = Array.isArray(uuid) ? uuid[0] : uuid;
+    const { uuid, missionId } = req.query;
+    const intMissionId = parseInt(missionId as string);
+    const sublayerUUID = uuid as string;
     const editPermission = await hasPerms(intMissionId, "edit", req.session?.user);
 
     // retrieve record
