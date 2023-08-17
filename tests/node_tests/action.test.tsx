@@ -234,6 +234,7 @@ describe("Action API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newAction, missionId: testMissions[2].id },
+        query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleAction(req, res);
@@ -246,6 +247,7 @@ describe("Action API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newAction, missionId: testMissions[1].id },
+        query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleAction(req, res);
@@ -258,6 +260,7 @@ describe("Action API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newAction, missionId: testMissions[0].id },
+        query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleAction(req, res);
@@ -283,6 +286,7 @@ describe("Action API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: newAction,
+        query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleAction(req, res);

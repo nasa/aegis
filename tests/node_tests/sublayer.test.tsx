@@ -168,6 +168,7 @@ describe("Layer API Endpoint ", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newSublayer, layerUuid: testLayer.uuid, missionId: testMissions[2].id },
+        query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSublayer(req, res);
@@ -180,6 +181,7 @@ describe("Layer API Endpoint ", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newSublayer, layerUuid: testLayer.uuid, missionId: testMissions[1].id },
+        query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSublayer(req, res);
@@ -192,6 +194,7 @@ describe("Layer API Endpoint ", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newSublayer, layerUuid: testLayer.uuid, missionId: testMissions[0].id },
+        query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSublayer(req, res);
@@ -219,6 +222,7 @@ describe("Layer API Endpoint ", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: newSublayer,
+        query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSublayer(req, res);
