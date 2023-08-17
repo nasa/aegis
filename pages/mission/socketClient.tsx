@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback, useEffect, useRef, useState } from "react";
+import { FunctionComponent, useCallback, useEffect, useRef } from "react";
 
 import {
   setAEGISVersion,
@@ -25,7 +25,6 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
 
   //socket connection
   const socket = useRef<Socket<ServerToClientEvents, ClientToServerEvents>>(null);
-  const [wakeFetchSent, setWakeFetchSent] = useState(false);
 
   const storeUpsertEventHandler = useCallback(
     (storePayload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission>) => {
@@ -121,16 +120,6 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
 
   //Handle socketio events
   useEffect(() => {
-    if (!wakeFetchSent) {
-      try {
-        fetchWithTimeout(`${window.location.origin}/api/socketio`, { timeout: 5 });
-      } catch (error) {
-        // ignore
-      }
-      setWakeFetchSent(true);
-      return;
-    }
-
     if (!missionId || !user?.missionPerms) return;
 
     // Create a socket connection
@@ -266,7 +255,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
       socket.current.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, socket, wakeFetchSent, missionId, user]);
+  }, [dispatch, socket, missionId, user]);
 
   // Keep refs up to date from store
   useEffect(() => {
