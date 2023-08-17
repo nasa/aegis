@@ -266,10 +266,7 @@ export const thunkUpdateTraverseNamesForStationInEVA = appCreateAsyncThunk<{
             name: `${stationBefore.name} to ${stationAfter.name}`,
             updatedAt: roundDateToSecond(new Date()).toISOString(),
           };
-          await httpClient_Traverse.upsertTraverse(
-            newTraverse,
-            getState().interface.socketStatus.socketId
-          );
+          await httpClient_Traverse.upsertTraverse(newTraverse);
           dispatch(upsertTraverse(newTraverse, true));
           dispatch(upsertTraverseFromDb(newTraverse));
         }

@@ -141,13 +141,10 @@ export const thunkSavePoi = appCreateAsyncThunk<{
   );
 
   //save poi to db
-  const poiUpsertResponse = await InternalAPI.upsertPOI(
-    {
-      ...poi,
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
-    },
-    getState().interface.socketStatus.socketId
-  );
+  const poiUpsertResponse = await InternalAPI.upsertPOI({
+    ...poi,
+    updatedAt: roundDateToSecond(new Date()).toISOString(),
+  });
 
   if (poiUpsertResponse.status === "success") {
     // upsert the changed POI to the store
@@ -210,12 +207,10 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
 
   // if the selected poi is in poisFromDb then delete it from the db
   if (poiFromDb) {
-    const missionId = getState().mission.mission.id;
     // delete actions from the db via internal api call
     for (const actionToDelete of poiActions) {
       const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteAction(
-        actionToDelete.uuid,
-        missionId
+        actionToDelete.uuid
       );
       if (actionDeleteResponse.status !== "success") {
         throw new Error("Error deleting actions for poi " + actionDeleteResponse.message);
@@ -230,11 +225,7 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
     }
 
     // delete the POI from the DB via internal API call
-    const deleteResponse = await InternalAPI.deletePOI(
-      poi.uuid,
-      missionId,
-      getState().interface.socketStatus.socketId
-    );
+    const deleteResponse = await InternalAPI.deletePOI(poi.uuid);
     if (deleteResponse.status === "success") {
       // remove the corresponding POI from the store
       dispatch(deletePoiByUuid(poi.uuid));

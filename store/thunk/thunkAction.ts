@@ -172,13 +172,10 @@ export const thunkSaveActions = appCreateAsyncThunk<{
     for (const action of actions) {
       if (isModified([action], [actionsFromDb.find((a) => a.uuid === action.uuid)])) {
         //action changed. upsert to db
-        const actionUpsertResponse = await httpClient_action.upsertAction(
-          {
-            ...action,
-            updatedAt: roundDateToSecond(new Date()).toISOString(),
-          },
-          getState().interface.socketStatus.socketId
-        );
+        const actionUpsertResponse = await httpClient_action.upsertAction({
+          ...action,
+          updatedAt: roundDateToSecond(new Date()).toISOString(),
+        });
         if (actionUpsertResponse.status === "success") {
           //upsert to both stores
           dispatch(upsertAction(actionUpsertResponse.data, true));
@@ -196,7 +193,7 @@ export const thunkSaveActions = appCreateAsyncThunk<{
     });
     // take array of deleted actions and delete them in the db
     for (const deletedAction of deletedActions) {
-      await httpClient_action.deleteAction(deletedAction.uuid, getState().mission.mission.id);
+      await httpClient_action.deleteAction(deletedAction.uuid);
     }
 
     // clear the store copy of the db and reload

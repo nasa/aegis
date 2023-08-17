@@ -101,7 +101,7 @@ const PoiPage: NextPage = () => {
             updatedAt: roundDateToSecond(new Date()).toISOString(),
             createdAt: roundDateToSecond(new Date()).toISOString(),
           };
-          const poiSet = await upsertPOI(poiData, null);
+          const poiSet = await upsertPOI(poiData);
           if (poiSet.status !== "success") {
             if (poi.properties.name) {
               errorHolder.push(poi.properties.name);

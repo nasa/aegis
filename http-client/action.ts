@@ -11,11 +11,11 @@ export async function getActions(filter: ActionFilterOptions): Promise<WrappedRe
   return response;
 }
 
-export async function upsertAction(
-  actionObj: Action,
-  socketId: string
-): Promise<WrappedResponse<Action>> {
-  const res = await fetch(`/api/action?socketId=${socketId}`, {
+export async function upsertAction(actionObj: Action): Promise<WrappedResponse<Action>> {
+  const missionId =
+    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
+  const res = await fetch(`/api/action?socketId=${socketId}&missionId=${missionId}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -26,14 +26,12 @@ export async function upsertAction(
   return response;
 }
 
-export async function deleteAction(
-  actionUUID: string,
-  missionId: number
-): Promise<WrappedResponse<number | null>> {
-  const uniqueClientId =
-    typeof window !== undefined ? window.sessionStorage.getItem("uniqueClientId") : null;
+export async function deleteAction(actionUUID: string): Promise<WrappedResponse<number | null>> {
+  const missionId =
+    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const res = await fetch(
-    `/api/action?uniqueClientId=${uniqueClientId}&uuid=${actionUUID}&missionId=${missionId}`,
+    `/api/action?socketId=${socketId}&uuid=${actionUUID}&missionId=${missionId}`,
     {
       method: "DELETE",
     }

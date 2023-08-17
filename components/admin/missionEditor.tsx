@@ -29,7 +29,7 @@ const MissionEditor: FunctionComponent<{
       ...missionValues,
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
-    const res = await upsertMission(missionToSave, null);
+    const res = await upsertMission(missionToSave);
     if (res.status === "success") {
       refreshMissionList();
     }

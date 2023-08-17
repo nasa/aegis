@@ -4,7 +4,6 @@ import {
   setAEGISVersion,
   setLastEditEvent,
   setSocketConnectionStatus,
-  setSocketId,
   setVisitorCounts,
 } from "store/interface";
 import { shallowEqual, useAppSelector } from "utils/useAppSelector";
@@ -47,7 +46,9 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
       // update the last edit event in the store
       dispatch(setLastEditEvent(storePayload?.lastEditEvent));
 
-      if (interfaceStoreRef.current.socketStatus.socketId === storePayload.socketId) {
+      const sessionSocketId =
+        typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
+      if (sessionSocketId === storePayload.socketId) {
         console.log(
           `${new Date().toISOString()} Ignoring storeUpsert from server because it was sent by this client. Mission: ${
             storePayload.missionId
@@ -70,7 +71,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
         }
       })();
     },
-    [dispatch, missionId, interfaceStoreRef]
+    [dispatch, missionId]
   );
 
   const storeDeleteEventHandler = useCallback(
@@ -92,7 +93,9 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
       // update the last edit event in the store
       dispatch(setLastEditEvent(storeDelete?.lastEditEvent));
 
-      if (interfaceStoreRef.current.socketStatus.socketId === storeDelete.socketId) {
+      const sessionSocketId =
+        typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
+      if (sessionSocketId === storeDelete.socketId) {
         console.log(
           `${new Date().toISOString()} Ignoring delete event from server because it was sent by this client. Mission: ${
             storeDelete.missionId
@@ -113,7 +116,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
         }
       })();
     },
-    [dispatch, missionId, interfaceStoreRef]
+    [dispatch, missionId]
   );
 
   //Handle socketio events
@@ -145,12 +148,20 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
         ? "editor"
         : "viewer";
 
+      // put socketId in sessionStorage so that it persists across page refreshes
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem("socketId", socket.current.id);
+      }
+      // put missionId in sessionStorage so that it persists across page refreshes
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem("missionId", missionId.toString());
+      }
+
       const visitorJoin: VisitorJoin = {
         missionId: missionId,
         socketId: socket.current.id,
         type: permissionType,
       };
-      dispatch(setSocketId(socket.current.id));
       socket.current.emit("visitorJoin", visitorJoin);
 
       console.log(
@@ -164,7 +175,6 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
     socket.current.on("disconnect", () => {
       console.log(`${new Date().toISOString()} Disconnected from socket.io server`);
       dispatch(setSocketConnectionStatus("disconnected"));
-      dispatch(setSocketId(null));
     });
     socket.current.io.on("reconnect_attempt", () => {
       console.log(`${new Date().toISOString()} Attempting to reconnect to socket.io server`);

@@ -84,7 +84,6 @@ const Main: NextPage = () => {
   const router = useRouter();
   const missionStore = useAppSelector((state) => state.mission, shallowEqual);
   const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, refEqual);
-  const socketId = useAppSelector((state) => state.interface.socketStatus.socketId, refEqual);
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
@@ -447,13 +446,10 @@ const Main: NextPage = () => {
         }
       }
       if (!_.isEqual(newActionOrderUuids, station.actionOrderUuids)) {
-        httpClient_station.upsertStation(
-          {
-            ...station,
-            actionOrderUuids: newActionOrderUuids,
-          },
-          socketId
-        );
+        httpClient_station.upsertStation({
+          ...station,
+          actionOrderUuids: newActionOrderUuids,
+        });
         dispatch(upsertStation({ ...station, actionOrderUuids: newActionOrderUuids }, true));
         dispatch(upsertStationFromDb({ ...station, actionOrderUuids: newActionOrderUuids }));
       }
@@ -468,18 +464,15 @@ const Main: NextPage = () => {
         }
       }
       if (!_.isEqual(newActionOrderUuids, poi.actionOrderUuids)) {
-        httpClient_poi.upsertPOI(
-          {
-            ...poi,
-            actionOrderUuids: newActionOrderUuids,
-          },
-          socketId
-        );
+        httpClient_poi.upsertPOI({
+          ...poi,
+          actionOrderUuids: newActionOrderUuids,
+        });
         dispatch(upsertPoi({ ...poi, actionOrderUuids: newActionOrderUuids }, true));
         dispatch(upsertPoiFromDb({ ...poi, actionOrderUuids: newActionOrderUuids }));
       }
     }
-  }, [stations, pois, actions, dispatch, socketId]);
+  }, [stations, pois, actions, dispatch]);
 
   const showSunEarth: boolean =
     missionStore.mission &&

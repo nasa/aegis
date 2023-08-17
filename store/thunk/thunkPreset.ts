@@ -20,17 +20,14 @@ import { saveNewPreset } from "store/cross-slice";
 
 export const thunkSavePreset = appCreateAsyncThunk<{
   preset: Preset;
-}>("presetSave", async ({ preset }, { dispatch, getState }) => {
+}>("presetSave", async ({ preset }, { dispatch }) => {
   if (!preset) return;
 
   // upsert the changed Preset to the DB
-  const upsertReponse = await InternalAPI.upsertPreset(
-    {
-      ...preset,
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
-    },
-    getState().interface.socketStatus.socketId
-  );
+  const upsertReponse = await InternalAPI.upsertPreset({
+    ...preset,
+    updatedAt: roundDateToSecond(new Date()).toISOString(),
+  });
 
   if (upsertReponse.status === "success") {
     // upsert the changed preset to the store
@@ -76,11 +73,7 @@ export const thunkDeletePreset = appCreateAsyncThunk<{
   if (presetFromDb) {
     const missionId = getState().mission.mission?.id;
     // delete the preset from the DB via internal API call
-    const deleteResponse = await InternalAPI.deletePreset(
-      preset.uuid,
-      missionId,
-      getState().interface.socketStatus.socketId
-    );
+    const deleteResponse = await InternalAPI.deletePreset(preset.uuid);
     if (deleteResponse.status === "success") {
       // remove the corresponding preset from the store
       dispatch(deletePresetByUuid(preset.uuid));

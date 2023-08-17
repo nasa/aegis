@@ -30,7 +30,6 @@ interface SocketData {
 type ConnectionStatus = "connected" | "disconnected" | "connecting" | "reconnecting";
 
 interface SocketStatus {
-  socketId: string;
   visitorCounts: visitorCounts;
   connectionStatus: ConnectionStatus;
   lastEditEvent: EditEvent | null;

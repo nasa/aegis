@@ -9,10 +9,8 @@ export async function getMissions(missionId: number = null): Promise<WrappedResp
   return response;
 }
 
-export async function upsertMission(
-  missionObj: Mission,
-  socketId: string
-): Promise<WrappedResponse<Mission>> {
+export async function upsertMission(missionObj: Mission): Promise<WrappedResponse<Mission>> {
+  const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const res = await fetch(`/api/mission?socketId=${socketId}`, {
     method: "POST",
     headers: {

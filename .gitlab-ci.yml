@@ -438,6 +438,9 @@ make-dotenv:
     # remove any images no longer in use
     - sudo /usr/bin/docker image prune -af
 
+    # hit the aegis socket.io endpoint to start up the socket server
+    - curl -k --silent --connect-timeout 1 $URL/api/socketio || true
+
 deploy:dev1:
   extends: .deploy-template
   tags: ["emss-aegis-dev1"]
@@ -446,9 +449,10 @@ deploy:dev1:
     - docker:push
   environment:
     name: development1
-    url: https://aegis-dev1.fit.nasa.gov
+    url: $URL
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1
+    URL: https://aegis-dev1.fit.nasa.gov
   when: manual
 
 deploy:int:

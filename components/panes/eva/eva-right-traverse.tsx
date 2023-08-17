@@ -56,7 +56,6 @@ const EvaRightTraverse: FunctionComponent = () => {
       state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedTraverse.uuid),
     refEqual
   );
-  const socketId = useAppSelector((state) => state.interface.socketStatus.socketId, refEqual);
 
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = mapDirective?.uuid === selectedEvaSequenceItemUuid ? mapDirective : null;
@@ -105,13 +104,10 @@ const EvaRightTraverse: FunctionComponent = () => {
     dispatch(setTraverseEditMode({ uuid: selectedEvaSequenceItemUuid, editMode: false }));
 
     // save to db
-    const persistResponse = await httpClient_Traverse.upsertTraverse(
-      {
-        ...selectedTraverse,
-        updatedAt: roundDateToSecond(new Date()).toISOString(),
-      },
-      socketId
-    );
+    const persistResponse = await httpClient_Traverse.upsertTraverse({
+      ...selectedTraverse,
+      updatedAt: roundDateToSecond(new Date()).toISOString(),
+    });
     if (persistResponse) {
       dispatch(upsertTraverse(persistResponse.data, true));
       dispatch(upsertTraverseFromDb(persistResponse.data));

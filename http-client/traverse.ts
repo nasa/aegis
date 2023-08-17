@@ -9,11 +9,11 @@ export async function getTraverses(missionId: number = null): Promise<WrappedRes
   return response;
 }
 
-export async function upsertTraverse(
-  traverseObj: Traverse,
-  socketId: string
-): Promise<WrappedResponse<Traverse>> {
-  const res = await fetch(`/api/traverse?socketId=${socketId}`, {
+export async function upsertTraverse(traverseObj: Traverse): Promise<WrappedResponse<Traverse>> {
+  const missionId =
+    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
+  const res = await fetch(`/api/traverse?socketId=${socketId}&missionId=${missionId}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -25,10 +25,11 @@ export async function upsertTraverse(
 }
 
 export async function deleteTraverse(
-  traverseUuid: string,
-  missionId: number,
-  socketId: string
+  traverseUuid: string
 ): Promise<WrappedResponse<number | null>> {
+  const missionId =
+    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const res = await fetch(
     `/api/traverse?socketId=${socketId}&uuid=${traverseUuid}&missionId=${missionId}`,
     {
