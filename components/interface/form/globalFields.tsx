@@ -439,8 +439,8 @@ export const FFInput: FunctionComponent<FFTextProps> = ({
               aria-label={ariaLabel}
               style={style}
               onChange={(event) => {
-                if (onChange) onChange(event); //call custom on change
                 input.onChange(event); //call native on change
+                if (onChange) onChange(event); //call custom on change
               }}
               onBlur={(event) => {
                 if (onBlur) onBlur(event);
