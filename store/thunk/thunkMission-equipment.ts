@@ -1,5 +1,6 @@
+import { cloneDeep } from "lodash";
 import appCreateAsyncThunk from "./thunkUtil";
-import { upsertMission } from "store/mission";
+import { upsertMission, upsertMissionByField } from "store/mission";
 import { v4 as uuidv4 } from "uuid";
 
 type PrintableListItem = {
@@ -8,17 +9,20 @@ type PrintableListItem = {
   actionName: string;
 };
 
-export const thunkUpdateEquipment = appCreateAsyncThunk<{ equipmentItem: EquipmentItem }>(
-  "updateEquipment",
-  async ({ equipmentItem }, { dispatch, getState }) => {
-    const itemIndex = getState().mission.mission.equipmentItems?.findIndex(
-      (item) => item.uuid === equipmentItem.uuid
-    );
-    const newEquipmentItems = [...getState().mission.mission.equipmentItems];
-    newEquipmentItems[itemIndex] = equipmentItem;
-    dispatch(upsertMission({ ...getState().mission.mission, equipmentItems: newEquipmentItems }));
+export const thunkUpdateEquipment = appCreateAsyncThunk<{
+  uuid: string;
+  fieldName: keyof EquipmentItem;
+  value: EquipmentItem[keyof EquipmentItem];
+}>("updateEquipment", async ({ uuid, fieldName, value }, { dispatch, getState }) => {
+  const newEquipmentItems = cloneDeep(getState().mission.mission.equipmentItems);
+  const itemIndex = newEquipmentItems?.findIndex((item) => item.uuid === uuid);
+  if (itemIndex >= 0) {
+    (newEquipmentItems[itemIndex] as Record<typeof fieldName, EquipmentItem[keyof EquipmentItem]>)[
+      fieldName
+    ] = value;
+    dispatch(upsertMissionByField("equipmentItems", newEquipmentItems));
   }
-);
+});
 
 export const thunkDeleteEquipment = appCreateAsyncThunk<{ equipmentItemUuid: string }>(
   "deleteEquipment",

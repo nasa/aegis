@@ -100,7 +100,13 @@ const RadiusItem: FunctionComponent<{
             }}
             value={landerRadius.name}
             onSubmit={(val: string) => {
-              dispatch(thunkUpdateLanderRadius({ landerRadius: { ...landerRadius, name: val } }));
+              dispatch(
+                thunkUpdateLanderRadius({
+                  uuid: landerRadius.uuid,
+                  fieldName: "name",
+                  value: val,
+                })
+              );
             }}
           />
         </div>
@@ -124,7 +130,11 @@ const RadiusItem: FunctionComponent<{
             value={landerRadius.radius?.toString()}
             onSubmit={(val: string) => {
               dispatch(
-                thunkUpdateLanderRadius({ landerRadius: { ...landerRadius, radius: Number(val) } })
+                thunkUpdateLanderRadius({
+                  uuid: landerRadius.uuid,
+                  fieldName: "radius",
+                  value: Number(val),
+                })
               );
             }}
           />

@@ -16,7 +16,12 @@ import {
   faCheck,
 } from "@fortawesome/free-solid-svg-icons";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
-import { setSelectedStationRightNavItem, setStationEditMode, upsertStation } from "store/station";
+import {
+  setSelectedStationRightNavItem,
+  setStationEditMode,
+  upsertStation,
+  upsertStationByField,
+} from "store/station";
 
 import Info_Panel from "./station-right-info";
 import Poi_Panel from "./station-right-poi";
@@ -198,8 +203,9 @@ const StationEditorRight: FunctionComponent = () => {
               styleValue={{ padding: 0, height: "auto" }}
               styleContainer={{ paddingLeft: 0 }}
               onSubmit={(val) => {
-                dispatch(upsertStation({ ...selectedStation, name: val }));
+                dispatch(upsertStationByField(selectedStation.uuid, "name", val));
               }}
+              key={`${selectedStation.uuid}-name`}
             />
           </div>
         </div>
@@ -280,11 +286,13 @@ const StationEditorRight: FunctionComponent = () => {
                 <>
                   <Button
                     onClick={() => {
-                      dispatch(
-                        thunkSaveStation({
-                          station: selectedStation,
-                        })
-                      );
+                      if (saveButtonState === "enabled") {
+                        dispatch(
+                          thunkSaveStation({
+                            station: selectedStation,
+                          })
+                        );
+                      }
                     }}
                     icon={faFloppyDisk}
                     toolTip={`Save Station${

@@ -98,7 +98,7 @@ const GeographicUnit: FunctionComponent<{
             }}
             value={item.name}
             onSubmit={(val: string) => {
-              dispatch(thunkUpdateGeoUnit({ geographicUnit: { ...item, name: val } }));
+              dispatch(thunkUpdateGeoUnit({ uuid: item.uuid, fieldName: "name", value: val }));
             }}
           />
         </div>

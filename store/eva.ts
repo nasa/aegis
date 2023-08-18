@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { cloneDeep } from "lodash";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
 
@@ -18,9 +19,6 @@ export const evaSlice = createSlice({
   initialState,
   reducers: {
     upsertEva: {
-      reducer: (state, action: { payload: Eva }) => {
-        upsertToArrayByUuid(state.evas, action.payload);
-      },
       prepare: (eva: Eva, preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
           return { payload: eva };
@@ -30,11 +28,11 @@ export const evaSlice = createSlice({
           };
         }
       },
+      reducer: (state, action: { payload: Eva }) => {
+        upsertToArrayByUuid(state.evas, action.payload);
+      },
     },
     upsertEvas: {
-      reducer: (state, action: { payload: Eva[] }) => {
-        action.payload.forEach((eva) => upsertToArrayByUuid(state.evas, eva));
-      },
       prepare: (evas: Eva[], preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
           return { payload: evas };
@@ -47,12 +45,56 @@ export const evaSlice = createSlice({
           };
         }
       },
+      reducer: (state, action: { payload: Eva[] }) => {
+        action.payload.forEach((eva) => upsertToArrayByUuid(state.evas, eva));
+      },
     },
     upsertEvasFromDb: (state, action: { payload: Eva[] }) => {
       action.payload.forEach((eva) => upsertToArrayByUuid(state.evasFromDb, eva));
     },
     upsertEvaFromDb: (state, action: { payload: Eva }) => {
       upsertToArrayByUuid(state.evasFromDb, action.payload);
+    },
+    upsertEvaByField: {
+      prepare: (
+        evaUuid: string,
+        fieldName: keyof Eva,
+        value: Eva[keyof Eva],
+        preserveModifiedDate: boolean = false
+      ) => {
+        if (preserveModifiedDate) {
+          return {
+            payload: { evaUuid, fieldName, value, updatedAt: null },
+          };
+        } else {
+          return {
+            payload: {
+              evaUuid,
+              fieldName,
+              value,
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+            },
+          };
+        }
+      },
+      reducer: (
+        state,
+        action: {
+          payload: {
+            evaUuid: string;
+            fieldName: keyof Eva;
+            value: Eva[keyof Eva];
+            updatedAt: string;
+          };
+        }
+      ) => {
+        const eva = state.evas.find((s) => s.uuid === action.payload.evaUuid);
+        const newEva: Eva = cloneDeep(eva);
+        newEva.updatedAt = action.payload.updatedAt || eva.updatedAt;
+        const key = action.payload.fieldName;
+        (newEva as Record<typeof key, Eva[keyof Eva]>)[key] = action.payload.value;
+        upsertToArrayByUuid(state.evas, newEva);
+      },
     },
     /* only called for populating store  */
     setEvas: (state, action: { payload: Eva[] }) => {
@@ -133,6 +175,7 @@ export const {
   upsertEvaFromDb,
   upsertEvas,
   upsertEvasFromDb,
+  upsertEvaByField,
   setEvas,
   setEvasFromDb,
   deleteEvaByUuid,

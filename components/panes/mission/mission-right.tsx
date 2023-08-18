@@ -142,7 +142,9 @@ const MissionPrefsRight: FunctionComponent = () => {
             <>
               <Button
                 onClick={() => {
-                  dispatch(thunkMissionSave());
+                  if (modified) {
+                    dispatch(thunkMissionSave());
+                  }
                 }}
                 icon={faFloppyDisk}
                 toolTip={`Save Mission${modified ? "" : " (nothing to save)"}`}

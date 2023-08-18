@@ -123,16 +123,16 @@ const MissionEditor: FunctionComponent<{
                       <FFInput
                         name="missionBanner"
                         label={{ label: "Mission Banner", title: "Mission Banner" }}
-                        initialValue={mission?.name}
+                        initialValue={mission?.missionBanner}
                       />
                     </div>
                   </div>
-                  <div id="bannerDiv">
+                  <div id="descriptionDiv">
                     <div className={adminStyles.editDiv}>
                       <FFTextArea
                         name="description"
                         label={{ label: "Mission Description", title: "Mission Description" }}
-                        initialValue={mission?.name}
+                        initialValue={mission?.description}
                       />
                     </div>
                   </div>

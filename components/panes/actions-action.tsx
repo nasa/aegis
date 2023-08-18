@@ -5,7 +5,7 @@ import { FunctionComponent } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionsStyles from "./actions.module.css";
 import actionStyles from "./actions-action.module.css";
-import { upsertAction } from "store/action";
+import { upsertAction, upsertActionByField } from "store/action";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { hhmmFromMinutes } from "utils/formatting";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
@@ -132,7 +132,7 @@ const RightAction: FunctionComponent<{
               validators: [validators.required, validators.maxLength(255)],
             }}
             onSubmit={(value: string) => {
-              dispatch(upsertAction({ ...action, name: value }));
+              dispatch(upsertActionByField(action.uuid, "name", value));
             }}
           />
         </div>

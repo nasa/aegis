@@ -221,7 +221,9 @@ const EvaRightTraverse: FunctionComponent = () => {
                 <>
                   <Button
                     onClick={() => {
-                      handleSave();
+                      if (saveButtonState === "enabled") {
+                        handleSave();
+                      }
                     }}
                     icon={faFloppyDisk}
                     toolTip={`Save Traverse${
