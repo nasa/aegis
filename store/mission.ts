@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { roundDateToSecond } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 
 export const initialState: MissionState = {
   mission: null,
@@ -23,7 +23,7 @@ export const missionSlice = createSlice({
           return { payload: mission };
         } else {
           return {
-            payload: { ...mission, updatedAt: roundDateToSecond(new Date()).toISOString() },
+            payload: { ...mission, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() },
           };
         }
       },

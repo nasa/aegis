@@ -9,7 +9,7 @@ import { calculateAscentAndDescent, getTotalDistance, calcPathDurationMins } fro
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkGetElevation } from "./thunkElevation";
 import * as httpClient_Traverse from "http-client/traverse";
-import { roundDateToSecond } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 
 /**
  * Only updates traverse path and distances
@@ -147,7 +147,7 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
       path: newPath,
       pathSegmentDistances: pathSegmentDistances,
       pathSegmentElevations: newElevationProfile,
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     if (saveToDb) {
       httpClient_Traverse.upsertTraverse(newTraverse);
@@ -275,7 +275,7 @@ export const thunkUpdateTraverseNamesForStationInEVA = appCreateAsyncThunk<{
           const newTraverse = {
             ...selectedTraverse,
             name: `${stationBefore.name} to ${stationAfter.name}`,
-            updatedAt: roundDateToSecond(new Date()).toISOString(),
+            updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
           };
           await httpClient_Traverse.upsertTraverse(newTraverse);
           dispatch(upsertTraverse(newTraverse, true));
@@ -290,7 +290,7 @@ export const thunkCreateTraverseCalculatedFields = appCreateAsyncThunk<void>(
   "createTraverseCalculatedFields",
   async (_, { dispatch, getState }) => {
     const traverses = getState().traverse.traverses;
-    const missionTraverseRate = getState().mission.mission?.traverseSpeed;
+    const missionTraverseRate = getState().mission.mission?.traverseRate;
     const allCalculatedFields: TraverseCalculatedFields[] = [];
 
     for (const traverse of traverses) {

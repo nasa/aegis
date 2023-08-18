@@ -7,6 +7,15 @@ export const initialState: InterfaceState = {
   timelineShowDistanceFromLander: true,
   timelineShowElevation: true,
   actionsExpanded: [],
+  socketStatus: {
+    visitorCounts: {
+      editors: 0,
+      viewers: 0,
+    },
+    connectionStatus: "disconnected",
+    lastEditEvent: null,
+    AEGISVersion: null,
+  },
 };
 
 export const interfaceSlice = createSlice({
@@ -46,6 +55,19 @@ export const interfaceSlice = createSlice({
         }
       });
     },
+    setVisitorCounts: (state, action: { payload: VisitorCounts }) => {
+      state.socketStatus.visitorCounts = action.payload;
+    },
+    setSocketConnectionStatus: (state, action: { payload: ConnectionStatus }) => {
+      state.socketStatus.connectionStatus = action.payload;
+    },
+    setLastEditEvent: (state, action: { payload: EditEvent }) => {
+      state.socketStatus.lastEditEvent = action.payload;
+    },
+
+    setAEGISVersion: (state, action: { payload: string }) => {
+      state.socketStatus.AEGISVersion = action.payload;
+    },
   },
 });
 
@@ -58,4 +80,8 @@ export const {
   setShowElevation,
   collapseActions,
   expandActions,
+  setVisitorCounts,
+  setSocketConnectionStatus,
+  setLastEditEvent,
+  setAEGISVersion,
 } = interfaceSlice.actions;

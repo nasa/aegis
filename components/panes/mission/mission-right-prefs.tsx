@@ -181,6 +181,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             </div>
             <div className={paneStyles.descriptionContainer}>
               <WysiwygTextArea
+                key={mission.id.toString()}
                 value={mission.description}
                 editing={editMode}
                 onChange={(value) => {
@@ -190,7 +191,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       description: value,
                     })
                   );
-                }} // handle innerHTML change
+                }}
               />
             </div>
           </div>
@@ -509,21 +510,17 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.inputFieldLabel}>Traverse Speed (km/h):</div>
+                      <div className={paneStyles.inputFieldLabel}>Traverse Rate (km/h):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         <InLineEditInput
                           editing={editMode}
                           fieldProps={{
-                            name: "defaultTraverseSpeed",
-                            ariaLabel: "Default traverse speed",
+                            name: "defaultTraverseRate",
+                            ariaLabel: "Default traverse rate",
                             style: { width: "45px" },
-                            validators: [
-                              validators.mustBeNumber,
-                              validators.maxLength(2),
-                              validators.mustBeInteger,
-                            ],
+                            validators: [validators.mustBeNumber],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                               e.target.value = e.target.value.replace(
                                 regExValidators.regExNumber,
@@ -531,9 +528,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                               );
                             },
                           }}
-                          value={mission.traverseSpeed?.toString()}
+                          value={mission.traverseRate?.toString()}
                           onSubmit={(val: string) => {
-                            dispatch(upsertMission({ ...mission, traverseSpeed: toDecimal(val) }));
+                            dispatch(upsertMission({ ...mission, traverseRate: toDecimal(val) }));
                           }}
                         />
                       </div>
@@ -541,21 +538,17 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.inputFieldLabel}>Walkback Speed (km/h):</div>
+                      <div className={paneStyles.inputFieldLabel}>Walkback Rate (km/h):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         <InLineEditInput
                           editing={editMode}
                           fieldProps={{
-                            name: "defaultWalkbackSpeed",
-                            ariaLabel: "Default walkback speed",
+                            name: "defaultWalkbackRate",
+                            ariaLabel: "Default walkback rate",
                             style: { width: "45px" },
-                            validators: [
-                              validators.mustBeNumber,
-                              validators.maxLength(2),
-                              validators.mustBeInteger,
-                            ],
+                            validators: [validators.mustBeNumber],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                               e.target.value = e.target.value.replace(
                                 regExValidators.regExNumber,
@@ -563,9 +556,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                               );
                             },
                           }}
-                          value={mission.walkbackSpeed?.toString()}
+                          value={mission.walkbackRate?.toString()}
                           onSubmit={(val: string) => {
-                            dispatch(upsertMission({ ...mission, walkbackSpeed: toDecimal(val) }));
+                            dispatch(upsertMission({ ...mission, walkbackRate: toDecimal(val) }));
                           }}
                         />
                       </div>

@@ -26,7 +26,7 @@ import Report_Panel from "../report";
 import * as httpClient_Traverse from "http-client/traverse";
 import { updateMapDirective } from "store/map";
 import { getAlertColor, isModified } from "utils/component-helpers";
-import { roundDateToSecond } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 
 const EvaRightTraverse: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -106,7 +106,7 @@ const EvaRightTraverse: FunctionComponent = () => {
     // save to db
     const persistResponse = await httpClient_Traverse.upsertTraverse({
       ...selectedTraverse,
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     });
     if (persistResponse) {
       dispatch(upsertTraverse(persistResponse.data, true));

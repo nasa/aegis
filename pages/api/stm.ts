@@ -51,8 +51,9 @@ const handleSTM: NextApiHandler<
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
 
-    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+    const { missionId } = req.query;
+    const intMissionId = parseInt(missionId as string);
+
     //check for required mission id is valid
     if (!intMissionId || _.isNaN(intMissionId)) {
       return res.status(500).json({ status: "error", message: "Invalid mission ID" });

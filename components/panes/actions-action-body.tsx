@@ -136,7 +136,8 @@ export const RightActionBody: FunctionComponent<{
             onChange={(value) => {
               const updatedAction: Action = { ...action, description: value };
               dispatch(upsertAction(updatedAction));
-            }} // handle innerHTML change
+            }}
+            key={action.uuid}
           />
         </div>
       </div>

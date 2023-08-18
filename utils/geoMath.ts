@@ -283,7 +283,7 @@ export const calculateAscentAndDescent = (elevations: number[][]): TotalAscentDe
  */
 export const calcPathDurationMins = (segmentDistances: number[], traverseRate: number): number => {
   if (!segmentDistances || !traverseRate) return 0;
-  //convert meters to km, then divide by traverse speed to get minutes
+  //convert meters to km, then divide by traverse rate to get minutes
   const distanceMeters = segmentDistances.reduce((accumulator, currentVal) => {
     return accumulator + currentVal;
   }, 0);

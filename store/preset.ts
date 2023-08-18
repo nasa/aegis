@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { upsertToArrayByUuid } from "../utils/store";
 import _ from "lodash";
-import { roundDateToSecond } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 export const initialState: PresetState = {
   presets: [],
   presetsFromDb: [],
@@ -23,12 +23,34 @@ export const presetSlice = createSlice({
         if (preserveModifiedDate) {
           return { payload: preset };
         } else {
-          return { payload: { ...preset, updatedAt: roundDateToSecond(new Date()).toISOString() } };
+          return {
+            payload: { ...preset, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() },
+          };
+        }
+      },
+    },
+    upsertPresets: {
+      reducer: (state, action: { payload: Preset[] }) => {
+        action.payload.forEach((preset) => upsertToArrayByUuid(state.presets, preset));
+      },
+      prepare: (presets: Preset[], preserveModifiedDate: boolean = false) => {
+        if (preserveModifiedDate) {
+          return { payload: presets };
+        } else {
+          return {
+            payload: presets.map((preset) => ({
+              ...preset,
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+            })),
+          };
         }
       },
     },
     upsertPresetFromDb: (state, action: { payload: Preset }) => {
       upsertToArrayByUuid(state.presetsFromDb, action.payload);
+    },
+    upsertPresetsFromDb: (state, action: { payload: Preset[] }) => {
+      action.payload.forEach((preset) => upsertToArrayByUuid(state.presetsFromDb, preset));
     },
     /* only called for populating store  */
     setPresets: (state, action: { payload: Preset[] }) => {
@@ -37,8 +59,11 @@ export const presetSlice = createSlice({
     setPresetsFromDb: (state, action: { payload: Preset[] }) => {
       state.presetsFromDb = action.payload;
     },
-    deletePreset: (state, action: { payload: Preset }) => {
-      state.presets = state.presets.filter((preset) => preset.uuid !== action.payload.uuid);
+    deletePresetByUuid: (state, action: { payload: string }) => {
+      state.presets = state.presets.filter((preset) => preset.uuid !== action.payload);
+    },
+    deletePresetFromDbByUuid: (state, action: { payload: string }) => {
+      state.presetsFromDb = state.presetsFromDb.filter((preset) => preset.uuid !== action.payload);
     },
     deleteAllPresetsFromDb: (state) => {
       state.presetsFromDb = [];
@@ -163,10 +188,13 @@ export const presetSlice = createSlice({
 
 export const {
   upsertPreset,
+  upsertPresets,
   upsertPresetFromDb,
+  upsertPresetsFromDb,
   setPresets,
   setPresetsFromDb,
-  deletePreset,
+  deletePresetByUuid,
+  deletePresetFromDbByUuid,
   deleteAllPresetsFromDb,
   setStateForNewPreset,
   setSelectedPresetUuid,

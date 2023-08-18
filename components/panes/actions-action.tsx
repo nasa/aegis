@@ -157,7 +157,10 @@ const RightAction: FunctionComponent<{
           </div>
           {parentType !== "poi" && (
             <div className={actionStyles.actionHeadingRightItem}>
-              <div className={actionStyles.actionHeadingCrew}>
+              <div
+                className={actionStyles.actionHeadingCrew}
+                style={{ cursor: editMode ? "pointer" : "default" }}
+              >
                 {action.enabled ? (
                   <>
                     <div

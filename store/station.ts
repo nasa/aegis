@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { roundDateToSecond } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
 
 export const initialState: StationState = {
@@ -24,10 +24,30 @@ export const stationSlice = createSlice({
           return { payload: station };
         } else {
           return {
-            payload: { ...station, updatedAt: roundDateToSecond(new Date()).toISOString() },
+            payload: { ...station, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() },
           };
         }
       },
+    },
+    upsertStations: {
+      reducer: (state, action: { payload: Station[] }) => {
+        action.payload.forEach((station) => upsertToArrayByUuid(state.stations, station));
+      },
+      prepare: (stations: Station[], preserveModifiedDate: boolean = false) => {
+        if (preserveModifiedDate) {
+          return { payload: stations };
+        } else {
+          return {
+            payload: stations.map((station) => ({
+              ...station,
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+            })),
+          };
+        }
+      },
+    },
+    upsertStationsFromDb: (state, action: { payload: Station[] }) => {
+      action.payload.forEach((station) => upsertToArrayByUuid(state.stationsFromDb, station));
     },
     upsertStationFromDb: (state, action: { payload: Station }) => {
       upsertToArrayByUuid(state.stationsFromDb, action.payload);
@@ -41,6 +61,11 @@ export const stationSlice = createSlice({
     },
     deleteStationByUuid: (state, action: { payload: string }) => {
       state.stations = state.stations.filter((station) => station.uuid !== action.payload);
+    },
+    deleteStationFromDbByUuid: (state, action: { payload: string }) => {
+      state.stationsFromDb = state.stationsFromDb.filter(
+        (station) => station.uuid !== action.payload
+      );
     },
     setSelectedStationRightNavItem: (state, action: { payload: string }) => {
       state.selectedRightNavItem = action.payload;
@@ -87,10 +112,13 @@ export const stationSlice = createSlice({
 
 export const {
   upsertStation,
+  upsertStations,
+  upsertStationsFromDb,
   upsertStationFromDb,
   setStations,
   setStationsFromDb,
   deleteStationByUuid,
+  deleteStationFromDbByUuid,
   setSelectedStationRightNavItem,
   setSelectedStationUuid,
   setStateForNewStation,

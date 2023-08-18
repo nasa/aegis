@@ -1,14 +1,15 @@
 import styles from "./header.module.css";
-import { useAppSelector, refEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import { useRouter } from "next/router";
 
-import { faHome } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faEye, faPen } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { FunctionComponent } from "react";
 const Header: FunctionComponent = () => {
   const router = useRouter();
   const missionName = useAppSelector((state) => state.mission.mission?.name, refEqual);
   const banner = useAppSelector((state) => state.mission.mission?.missionBanner, refEqual);
+  const interfaceStore = useAppSelector((state) => state.interface, shallowEqual);
 
   return (
     <>
@@ -17,8 +18,8 @@ const Header: FunctionComponent = () => {
           <div className={styles.helpMenu}>
             <div className={styles.verticalCenter}>
               <FontAwesomeIcon
-                icon={faHome}
-                className={styles.homeIcon}
+                icon={faBars}
+                className={styles.icon}
                 onClick={() => {
                   router.push("/");
                 }}
@@ -44,7 +45,36 @@ const Header: FunctionComponent = () => {
           </div>
         </div>
       </div>
+
       <div className={styles.right}>
+        <div className={styles.verticalCenter}>
+          <div
+            className={styles.userCount}
+            data-tooltip-id="aegis-tooltip"
+            data-tooltip-html={
+              interfaceStore?.socketStatus?.connectionStatus === "connected"
+                ? `Users active in this Mission:<br>` +
+                  `Editors: ${interfaceStore?.socketStatus.visitorCounts.editors || 0}<br>` +
+                  `Visitors: ${interfaceStore?.socketStatus.visitorCounts.viewers || 0}<br>` +
+                  `These numbers include you`
+                : "Connection to server lost"
+            }
+            style={
+              interfaceStore?.socketStatus?.connectionStatus === "connected"
+                ? { color: "var(--grey5)" }
+                : { color: "var(--grey3)" }
+            }
+          >
+            <FontAwesomeIcon icon={faPen} />
+            <div className={styles.userCountText}>
+              {interfaceStore?.socketStatus?.visitorCounts?.editors || 0}
+            </div>
+            <FontAwesomeIcon icon={faEye} style={{ marginLeft: "6px" }} />
+            <div className={styles.userCountText}>
+              {interfaceStore?.socketStatus?.visitorCounts?.viewers || 0}
+            </div>
+          </div>
+        </div>
         <div className={styles.verticalCenter}>
           <span className={styles.wordMark}>AEGIS</span>
         </div>

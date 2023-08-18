@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { roundDateToSecond } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
 
 export const initialState: ActionState = {
@@ -19,7 +19,9 @@ export const actionSlice = createSlice({
         if (preserveModifiedDate) {
           return { payload: action };
         } else {
-          return { payload: { ...action, updatedAt: roundDateToSecond(new Date()).toISOString() } };
+          return {
+            payload: { ...action, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() },
+          };
         }
       },
     },
@@ -32,7 +34,7 @@ export const actionSlice = createSlice({
           return { payload: actions };
         } else {
           const updatedActions = actions.map((a) => {
-            return { ...a, updatedAt: roundDateToSecond(new Date()).toISOString() };
+            return { ...a, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() };
           });
           return { payload: updatedActions };
         }
@@ -54,6 +56,12 @@ export const actionSlice = createSlice({
     deleteActionByUuid: (state, action: { payload: string }) => {
       state.actions.splice(
         state.actions.findIndex((stateAction) => stateAction.uuid === action.payload),
+        1
+      );
+    },
+    deleteActionFromDbByUuid: (state, action: { payload: string }) => {
+      state.actionsFromDb.splice(
+        state.actionsFromDb.findIndex((stateAction) => stateAction.uuid === action.payload),
         1
       );
     },
@@ -84,6 +92,7 @@ export const {
   setActions,
   setActionsFromDb,
   deleteActionByUuid,
+  deleteActionFromDbByUuid,
   deleteActionsByUuid,
   deleteActionsFromDbByUuid,
 } = actionSlice.actions;

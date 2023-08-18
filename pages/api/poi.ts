@@ -6,6 +6,7 @@ import { EntityData, QueryOrder } from "@mikro-orm/core";
 import { Poi as Poi_db } from "server/database/models/poi.model";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
+import { emitStoreDelete, emitStoreUpsert } from "./socketio";
 
 const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
   req,
@@ -17,8 +18,8 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
 
-    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+    const { missionId, socketId } = req.query;
+    const intMissionId = parseInt(missionId as string);
     if (isNaN(intMissionId) || typeof intMissionId !== "number") {
       return res.status(500).json({ status: "error", message: "Mission ID must be integer." });
     }
@@ -91,6 +92,14 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
           updatedAt: poiUpsertReference.updatedAt.toISOString(),
         };
 
+        // emit the upserted item to all clients via socket.io
+        emitStoreUpsert({
+          missionId: intMissionId,
+          socketId,
+          type: "poi",
+          data: [responsePoi],
+        } as StoreUpsert<POI>);
+
         return res.status(200).json({
           status: "success",
           message: "POI upserted",
@@ -115,6 +124,15 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
         if (poiToDelete) {
           // delete the POI
           await em.removeAndFlush(poiToDelete);
+
+          // emit the deleted item to all clients via socket.io
+          emitStoreDelete({
+            missionId: intMissionId,
+            socketId,
+            type: "poi",
+            uuid: poiToDelete.uuid,
+          } as StoreDelete);
+
           return res.status(200).json({
             status: "success",
             message: "POI deleted",

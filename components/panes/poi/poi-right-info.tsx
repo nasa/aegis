@@ -104,7 +104,8 @@ const Info_Panel: FunctionComponent<{
                       description: value,
                     })
                   );
-                }} // handle innerHTML change
+                }}
+                key={selectedPoi.uuid}
               />
             </div>
           </div>

@@ -167,6 +167,7 @@ describe("EVA API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newTraverse, missionId: testMissions[2].id },
+        query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleTraverse(req, res);
@@ -179,6 +180,7 @@ describe("EVA API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newTraverse, missionId: testMissions[1].id },
+        query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleTraverse(req, res);
@@ -191,6 +193,7 @@ describe("EVA API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newTraverse, missionId: testMissions[0].id, ownerId: testUser.id },
+        query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleTraverse(req, res);
@@ -216,6 +219,7 @@ describe("EVA API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: newTraverse,
+        query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleTraverse(req, res);

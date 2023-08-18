@@ -7,7 +7,7 @@ import { thunkFullUpdateWalkback, thunkSaveStation } from "./thunkStation";
 import { setPresetUIStates } from "store/preset";
 import { thunkSavePreset } from "./thunkPreset";
 import { setMapCircleControls } from "store/map";
-import { roundDateToSecond } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
 
@@ -29,7 +29,7 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
       geographicUnits: sortedGeoUnits,
       landerRadii: sortedLanderRadii,
       actionTemplates: sortedTemplates,
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     });
 
     if (upsertResponse.status === "success") {
@@ -189,8 +189,8 @@ export const thunkCreateActionTemplate = appCreateAsyncThunk<void>(
       crewAssigned: [],
       mass: null,
       priority: null,
-      createdAt: roundDateToSecond(new Date()).toISOString(),
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
 
     //upsert action template
@@ -206,7 +206,7 @@ export const thunkUpdateActionTemplate = appCreateAsyncThunk<{ actionTemplate: A
     const actionTemplates = cloneDeep(getState().mission.mission.actionTemplates) || [];
     const index = actionTemplates.findIndex((t) => t.uuid === actionTemplate.uuid);
     if (index >= 0) {
-      actionTemplate.updatedAt = roundDateToSecond(new Date()).toISOString();
+      actionTemplate.updatedAt = roundDateToSecond(getAccurateNow()).toISOString();
       actionTemplates[index] = actionTemplate;
     }
 

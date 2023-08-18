@@ -58,6 +58,8 @@ const PoiPage: NextPage = () => {
 
   const handleMissionSelect = async (mission: Mission) => {
     setMission(mission);
+    // put mission id in session so api endpoints don't fail
+    sessionStorage.setItem("missionId", mission.id.toString());
     // get POIS from mission
     const pois = await getPOIs(mission.id);
     setPoiList(pois.data);
