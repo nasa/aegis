@@ -22,7 +22,7 @@ import {
   InLineEditInput,
 } from "components/interface/form/globalFields";
 import { regExValidators, validators } from "components/interface/form/formValidators";
-import { upsertMission } from "store/mission";
+import { upsertMission, upsertMissionByField } from "store/mission";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { updateMapDirective } from "store/map";
 import { toDecimal } from "utils/formatting";
@@ -149,7 +149,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 }}
                 styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                 onSubmit={(value) => {
-                  dispatch(upsertMission({ ...mission, name: value }));
+                  dispatch(upsertMissionByField("name", value));
                 }}
               />
             </div>
@@ -170,7 +170,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 }}
                 styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                 onSubmit={(value) => {
-                  dispatch(upsertMission({ ...mission, missionBanner: value }));
+                  dispatch(upsertMissionByField("missionBanner", value));
                 }}
               />
             </div>
@@ -181,6 +181,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             </div>
             <div className={paneStyles.descriptionContainer}>
               <WysiwygTextArea
+                key={mission.id.toString()}
                 value={mission.description}
                 editing={editMode}
                 onChange={(value) => {
@@ -190,7 +191,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       description: value,
                     })
                   );
-                }} // handle innerHTML change
+                }}
               />
             </div>
           </div>
@@ -280,12 +281,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
                               dispatch(
-                                upsertMission({
-                                  ...mission,
-                                  landerLocation: {
-                                    ...mission.landerLocation,
-                                    lat: toDecimal(val),
-                                  },
+                                upsertMissionByField("landerLocation", {
+                                  ...mission.landerLocation,
+                                  lat: toDecimal(val),
                                 })
                               );
                             }}
@@ -319,12 +317,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
                               dispatch(
-                                upsertMission({
-                                  ...mission,
-                                  landerLocation: {
-                                    ...mission.landerLocation,
-                                    lng: toDecimal(val),
-                                  },
+                                upsertMissionByField("landerLocation", {
+                                  ...mission.landerLocation,
+                                  lng: toDecimal(val),
                                 })
                               );
                             }}
@@ -499,9 +494,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           }}
                           value={mission.defaultEvaDuration?.toString()}
                           onSubmit={(val: string) => {
-                            dispatch(
-                              upsertMission({ ...mission, defaultEvaDuration: toDecimal(val) })
-                            );
+                            dispatch(upsertMissionByField("defaultEvaDuration", toDecimal(val)));
                           }}
                         />
                       </div>
@@ -509,21 +502,17 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.inputFieldLabel}>Traverse Speed (km/h):</div>
+                      <div className={paneStyles.inputFieldLabel}>Traverse Rate (km/h):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         <InLineEditInput
                           editing={editMode}
                           fieldProps={{
-                            name: "defaultTraverseSpeed",
-                            ariaLabel: "Default traverse speed",
+                            name: "defaultTraverseRate",
+                            ariaLabel: "Default traverse rate",
                             style: { width: "45px" },
-                            validators: [
-                              validators.mustBeNumber,
-                              validators.maxLength(2),
-                              validators.mustBeInteger,
-                            ],
+                            validators: [validators.mustBeNumber],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                               e.target.value = e.target.value.replace(
                                 regExValidators.regExNumber,
@@ -531,9 +520,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                               );
                             },
                           }}
-                          value={mission.traverseSpeed?.toString()}
+                          value={mission.traverseRate?.toString()}
                           onSubmit={(val: string) => {
-                            dispatch(upsertMission({ ...mission, traverseSpeed: toDecimal(val) }));
+                            dispatch(upsertMissionByField("traverseRate", toDecimal(val)));
                           }}
                         />
                       </div>
@@ -541,21 +530,17 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.inputFieldLabel}>Walkback Speed (km/h):</div>
+                      <div className={paneStyles.inputFieldLabel}>Walkback Rate (km/h):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         <InLineEditInput
                           editing={editMode}
                           fieldProps={{
-                            name: "defaultWalkbackSpeed",
-                            ariaLabel: "Default walkback speed",
+                            name: "defaultWalkbackRate",
+                            ariaLabel: "Default walkback rate",
                             style: { width: "45px" },
-                            validators: [
-                              validators.mustBeNumber,
-                              validators.maxLength(2),
-                              validators.mustBeInteger,
-                            ],
+                            validators: [validators.mustBeNumber],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                               e.target.value = e.target.value.replace(
                                 regExValidators.regExNumber,
@@ -563,9 +548,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                               );
                             },
                           }}
-                          value={mission.walkbackSpeed?.toString()}
+                          value={mission.walkbackRate?.toString()}
                           onSubmit={(val: string) => {
-                            dispatch(upsertMission({ ...mission, walkbackSpeed: toDecimal(val) }));
+                            dispatch(upsertMissionByField("walkbackRate", toDecimal(val)));
                           }}
                         />
                       </div>

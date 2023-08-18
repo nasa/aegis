@@ -14,7 +14,7 @@ import {
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
-import { setSelectedStationRightNavItem, upsertStation } from "store/station";
+import { setSelectedStationRightNavItem, upsertStation, upsertStationByField } from "store/station";
 import { updateMapDirective } from "store/map";
 import { calcCentroidofCoordinates } from "utils/geoMath";
 import { formatNumberWithCommas, toDecimal } from "utils/formatting";
@@ -88,7 +88,7 @@ const Info_Panel: FunctionComponent<{
     calculatedFields?.equipmentItems?.forEach((equipItem) => {
       //find item in mission
       const missionEquipItem = missionEquipItems.find((item) => item.uuid === equipItem.uuid);
-      if (missionEquipItem.singleUse) {
+      if (missionEquipItem?.singleUse) {
         consumablesDisplay.push({
           name: missionEquipItem.name,
           quantityUsed: equipItem.quantityUsed,
@@ -221,6 +221,7 @@ const Info_Panel: FunctionComponent<{
             </div>
             <div className={paneStyles.descriptionContainer}>
               <WysiwygTextArea
+                key={selectedStation.uuid}
                 value={selectedStation.description}
                 editing={editMode}
                 onChange={(value) => {
@@ -230,7 +231,7 @@ const Info_Panel: FunctionComponent<{
                       description: value,
                     })
                   );
-                }} // handle innerHTML change
+                }}
               />
             </div>
           </div>
@@ -269,12 +270,14 @@ const Info_Panel: FunctionComponent<{
                           value={selectedStation.durationLower?.toString()}
                           onSubmit={(val: string) => {
                             dispatch(
-                              upsertStation({
-                                ...selectedStation,
-                                durationLower: toDecimal(val),
-                              })
+                              upsertStationByField(
+                                selectedStation.uuid,
+                                "durationLower",
+                                toDecimal(val)
+                              )
                             );
                           }}
+                          key={`${selectedStation.uuid}-durLower`}
                         />
                       </div>
                     </div>
@@ -306,12 +309,13 @@ const Info_Panel: FunctionComponent<{
                               );
                             },
                           }}
-                          onSubmit={(val: string) => {
+                          onSubmit={(val) => {
                             dispatch(
-                              upsertStation({
-                                ...selectedStation,
-                                durationUpper: toDecimal(val),
-                              })
+                              upsertStationByField(
+                                selectedStation.uuid,
+                                "durationUpper",
+                                toDecimal(val)
+                              )
                             );
                           }}
                         />
@@ -489,12 +493,9 @@ const Info_Panel: FunctionComponent<{
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
                               dispatch(
-                                upsertStation({
-                                  ...selectedStation,
-                                  location: {
-                                    lat: parseFloat(val),
-                                    lng: selectedStation.location.lng,
-                                  },
+                                upsertStationByField(selectedStation.uuid, "location", {
+                                  lat: parseFloat(val),
+                                  lng: selectedStation.location.lng,
                                 })
                               );
                             }}
@@ -524,12 +525,9 @@ const Info_Panel: FunctionComponent<{
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
                               dispatch(
-                                upsertStation({
-                                  ...selectedStation,
-                                  location: {
-                                    lat: selectedStation.location.lat,
-                                    lng: parseFloat(val),
-                                  },
+                                upsertStationByField(selectedStation.uuid, "location", {
+                                  lat: selectedStation.location.lat,
+                                  lng: parseFloat(val),
                                 })
                               );
                             }}

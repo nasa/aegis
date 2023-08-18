@@ -438,6 +438,10 @@ make-dotenv:
     # remove any images no longer in use
     - sudo /usr/bin/docker image prune -af
 
+    # hit the aegis socket.io endpoint to start up the socket server
+    - sleep 10
+    - curl -k --silent --connect-timeout 1 $URL/api/socketio || true
+
 deploy:dev1:
   extends: .deploy-template
   tags: ["emss-aegis-dev1"]
@@ -446,9 +450,10 @@ deploy:dev1:
     - docker:push
   environment:
     name: development1
-    url: https://aegis-dev1.fit.nasa.gov
+    url: $URL
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1
+    URL: https://aegis-dev1.fit.nasa.gov
   when: manual
 
 deploy:int:
@@ -459,9 +464,10 @@ deploy:int:
     - docker:push
   environment:
     name: integration
-    url: https://aegis-int.fit.nasa.gov
+    url: $URL
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT
+    URL: https://aegis-int.fit.nasa.gov
   only:
     - int
 
@@ -473,9 +479,10 @@ deploy:prod:
     - docker:push
   environment:
     name: production
-    url: https://aegis.fit.nasa.gov
+    url: $URL
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD
+    URL: https://aegis.fit.nasa.gov
   when: manual
   only:
     - prod
@@ -545,6 +552,10 @@ z:db-export:dev1:
     # Run any migrations the dump didn't have in place
     - docker compose exec nextjs npm run migrate:up
 
+    # hit the aegis socket.io endpoint to start up the socket server
+    - sleep 10
+    - curl -k --silent --connect-timeout 1 $URL/api/socketio || true
+
 z:db-import:dev1:
   extends: .db-import-template
   tags: ["emss-aegis-dev1"]
@@ -586,23 +597,6 @@ z:db-nuke:dev1:
     - sudo rm -rf /d1/postgres
     - sudo /usr/bin/docker compose up -d
     - docker compose exec nextjs npm run migrate:up
-
-z:db-seed:dev1:
-  tags: ["emss-aegis-dev1"]
-  needs: []
-  environment:
-    name: development1
-    url: https://aegis-dev1.fit.nasa.gov
-  when: manual
-  stage: stageless
-  timeout: 10 minutes
-  variables:
-    GIT_STRATEGY: none
-
-  script:
-    - cd /opt/aegis
-    # wipe all tables, run all migrations, run the seeder
-    - docker compose exec nextjs npm run seed
 
 .container-logs-template:
   when: manual

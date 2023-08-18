@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { roundDateToSecond } from "utils/formatting";
+import { cloneDeep } from "lodash";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
 
 export const initialState: ActionState = {
@@ -12,30 +13,32 @@ export const actionSlice = createSlice({
   initialState,
   reducers: {
     upsertAction: {
-      reducer: (state, action: { payload: Action }) => {
-        upsertToArrayByUuid(state.actions, action.payload);
-      },
       prepare: (action: Action, preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
           return { payload: action };
         } else {
-          return { payload: { ...action, updatedAt: roundDateToSecond(new Date()).toISOString() } };
+          return {
+            payload: { ...action, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() },
+          };
         }
+      },
+      reducer: (state, action: { payload: Action }) => {
+        upsertToArrayByUuid(state.actions, action.payload);
       },
     },
     upsertActions: {
-      reducer: (state, action: { payload: Action[] }) => {
-        action.payload.forEach((action) => upsertToArrayByUuid(state.actions, action));
-      },
       prepare: (actions: Action[], preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
           return { payload: actions };
         } else {
           const updatedActions = actions.map((a) => {
-            return { ...a, updatedAt: roundDateToSecond(new Date()).toISOString() };
+            return { ...a, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() };
           });
           return { payload: updatedActions };
         }
+      },
+      reducer: (state, action: { payload: Action[] }) => {
+        action.payload.forEach((action) => upsertToArrayByUuid(state.actions, action));
       },
     },
     upsertActionFromDb: (state, action: { payload: Action }) => {
@@ -43,6 +46,47 @@ export const actionSlice = createSlice({
     },
     upsertActionsFromDb: (state, action: { payload: Action[] }) => {
       action.payload.forEach((action) => upsertToArrayByUuid(state.actionsFromDb, action));
+    },
+    upsertActionByField: {
+      prepare: (
+        actionUuid: string,
+        fieldName: keyof Action,
+        value: Action[keyof Action],
+        preserveModifiedDate: boolean = false
+      ) => {
+        if (preserveModifiedDate) {
+          return {
+            payload: { actionUuid, fieldName, value, updatedAt: null },
+          };
+        } else {
+          return {
+            payload: {
+              actionUuid,
+              fieldName,
+              value,
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+            },
+          };
+        }
+      },
+      reducer: (
+        state,
+        action: {
+          payload: {
+            actionUuid: string;
+            fieldName: keyof Action;
+            value: Action[keyof Action];
+            updatedAt: string;
+          };
+        }
+      ) => {
+        const actionItem = state.actions.find((s) => s.uuid === action.payload.actionUuid);
+        const newAction: Action = cloneDeep(actionItem);
+        newAction.updatedAt = action.payload.updatedAt || actionItem.updatedAt;
+        const key = action.payload.fieldName;
+        (newAction as Record<typeof key, Action[keyof Action]>)[key] = action.payload.value;
+        upsertToArrayByUuid(state.actions, newAction);
+      },
     },
     /* only called for populating store  */
     setActions: (state, action: { payload: Action[] }) => {
@@ -54,6 +98,12 @@ export const actionSlice = createSlice({
     deleteActionByUuid: (state, action: { payload: string }) => {
       state.actions.splice(
         state.actions.findIndex((stateAction) => stateAction.uuid === action.payload),
+        1
+      );
+    },
+    deleteActionFromDbByUuid: (state, action: { payload: string }) => {
+      state.actionsFromDb.splice(
+        state.actionsFromDb.findIndex((stateAction) => stateAction.uuid === action.payload),
         1
       );
     },
@@ -81,9 +131,11 @@ export const {
   upsertActions,
   upsertActionFromDb,
   upsertActionsFromDb,
+  upsertActionByField,
   setActions,
   setActionsFromDb,
   deleteActionByUuid,
+  deleteActionFromDbByUuid,
   deleteActionsByUuid,
   deleteActionsFromDbByUuid,
 } = actionSlice.actions;

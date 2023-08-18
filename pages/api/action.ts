@@ -12,6 +12,7 @@ import { Action as Action_db } from "server/database/models/action.model";
 import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
+import { emitStoreDelete, emitStoreUpsert } from "./socketio";
 
 const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
   req,
@@ -23,12 +24,11 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
 
-    const { uuid, stationUuid, poiUuid } = req.query;
-    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
-    const actionUUID = Array.isArray(uuid) ? uuid[0] : uuid;
-    const station = Array.isArray(stationUuid) ? stationUuid[0] : stationUuid;
-    const poi = Array.isArray(poiUuid) ? poiUuid[0] : poiUuid;
+    const { uuid, stationUuid, poiUuid, socketId, missionId } = req.query;
+    const intMissionId = parseInt(missionId as string);
+    const actionUUID = uuid as string;
+    const station = stationUuid as string;
+    const poi = poiUuid as string;
     //check for required mission id is valid
     if (!intMissionId || _.isNaN(intMissionId)) {
       return res.status(500).json({ status: "error", message: "Invalid mission ID" });
@@ -80,6 +80,14 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
             data: null,
           });
         } else {
+          // emit the upserted item to all clients via socket.io
+          emitStoreUpsert({
+            missionId: intMissionId,
+            socketId,
+            type: "action",
+            data: [upsertResponse],
+          } as StoreUpsert<Action>);
+
           return res.status(200).json({
             status: "success",
             message: `Action upserted with ID ${upsertResponse.uuid}`,
@@ -102,6 +110,14 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
       try {
         const deletedUUID = await deleteAction(actionUUID);
         if (deletedUUID) {
+          // emit the deleted item to all clients via socket.io
+          emitStoreDelete({
+            missionId: intMissionId,
+            socketId,
+            type: "action",
+            uuid: deletedUUID,
+          } as StoreDelete);
+
           return res.status(200).json({
             status: "success",
             message: "Action Deleted",

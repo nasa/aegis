@@ -5,9 +5,9 @@ import { FunctionComponent } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionsStyles from "./actions.module.css";
 import actionStyles from "./actions-action.module.css";
-import { upsertAction } from "store/action";
+import { upsertAction, upsertActionByField } from "store/action";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { hhmmFromMinutes } from "utils/formatting";
+import { decodeEmoji, hhmmFromMinutes } from "utils/formatting";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { validators } from "components/interface/form/formValidators";
 import _ from "lodash";
@@ -43,6 +43,14 @@ const RightAction: FunctionComponent<{
     );
   };
 
+  const toggleActionExpanded = (actionUuid: string) => {
+    if (actionsExpanded.includes(actionUuid)) {
+      dispatch(collapseActions([actionUuid]));
+    } else {
+      dispatch(expandActions([actionUuid]));
+    }
+  };
+
   const crewLeftStyle = action.crewAssigned?.includes("EV1")
     ? actionStyles.actionHeadingCrewSelected
     : undefined;
@@ -69,11 +77,7 @@ const RightAction: FunctionComponent<{
         <div
           className={`${actionStyles.actionsHeadingCaret} ${actionStyles.verticalCenter}`}
           onClick={() => {
-            if (actionsExpanded.includes(action.uuid)) {
-              dispatch(collapseActions([action.uuid]));
-            } else {
-              dispatch(expandActions([action.uuid]));
-            }
+            toggleActionExpanded(action.uuid);
           }}
         >
           {actionsExpanded.includes(action.uuid) ? (
@@ -90,16 +94,13 @@ const RightAction: FunctionComponent<{
             />
           )}
         </div>
+
         {!editMode ? (
           <div className={actionStyles.verticalCenter}>
             <div
               className={actionStyles.actionsHeadingType}
               onClick={() => {
-                if (actionsExpanded.includes(action.uuid)) {
-                  dispatch(collapseActions([action.uuid]));
-                } else {
-                  dispatch(expandActions([action.uuid]));
-                }
+                toggleActionExpanded(action.uuid);
               }}
             >
               {action.type}
@@ -123,19 +124,27 @@ const RightAction: FunctionComponent<{
         )}
 
         <div className={actionStyles.actionsHeadingTitle}>
-          <InLineEditInput
-            value={action.name}
-            editing={editMode}
-            fieldProps={{
-              name: "Name",
-              style: { width: "100%" },
-              validators: [validators.required, validators.maxLength(255)],
-            }}
-            onSubmit={(value: string) => {
-              dispatch(upsertAction({ ...action, name: value }));
-            }}
-          />
+          <div className={actionStyles.verticalCenter}>
+            <div className={actionStyles.actionsHeadingTitleIcon}>
+              {decodeEmoji(action.icon ? action.icon : "2754")}
+            </div>
+          </div>
+          <div className={actionStyles.verticalCenter}>
+            <InLineEditInput
+              value={action.name}
+              editing={editMode}
+              fieldProps={{
+                name: "Name",
+                style: { width: "100%" },
+                validators: [validators.required, validators.maxLength(255)],
+              }}
+              onSubmit={(value: string) => {
+                dispatch(upsertActionByField(action.uuid, "name", value));
+              }}
+            />
+          </div>
         </div>
+
         <div
           className={actionStyles.actionHeadingRight}
           style={editMode ? { marginTop: "5px" } : undefined}
@@ -157,7 +166,10 @@ const RightAction: FunctionComponent<{
           </div>
           {parentType !== "poi" && (
             <div className={actionStyles.actionHeadingRightItem}>
-              <div className={actionStyles.actionHeadingCrew}>
+              <div
+                className={actionStyles.actionHeadingCrew}
+                style={{ cursor: editMode ? "pointer" : "default" }}
+              >
                 {action.enabled ? (
                   <>
                     <div

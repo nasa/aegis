@@ -13,7 +13,7 @@ import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { thunkCancelMarkerMapDirective } from "./thunkMap";
 import _ from "lodash";
 import { thunkDuplicateAction, thunkSaveActions } from "./thunkAction";
-import { roundDateToSecond } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 
 export const thunkUpdatePoiLocation = appCreateAsyncThunk<{
@@ -143,7 +143,7 @@ export const thunkSavePoi = appCreateAsyncThunk<{
   //save poi to db
   const poiUpsertResponse = await InternalAPI.upsertPOI({
     ...poi,
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
+    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   });
 
   if (poiUpsertResponse.status === "success") {
@@ -207,12 +207,10 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
 
   // if the selected poi is in poisFromDb then delete it from the db
   if (poiFromDb) {
-    const missionId = getState().mission.mission.id;
     // delete actions from the db via internal api call
     for (const actionToDelete of poiActions) {
       const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteAction(
-        actionToDelete.uuid,
-        missionId
+        actionToDelete.uuid
       );
       if (actionDeleteResponse.status !== "success") {
         throw new Error("Error deleting actions for poi " + actionDeleteResponse.message);
@@ -227,7 +225,7 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
     }
 
     // delete the POI from the DB via internal API call
-    const deleteResponse = await InternalAPI.deletePOI(poi.uuid, missionId);
+    const deleteResponse = await InternalAPI.deletePOI(poi.uuid);
     if (deleteResponse.status === "success") {
       // remove the corresponding POI from the store
       dispatch(deletePoiByUuid(poi.uuid));
@@ -278,7 +276,7 @@ export const thunkCreatePoi = appCreateAsyncThunk<void>(
       tags: [],
       status: "Candidate",
       updatedAt: null,
-      createdAt: roundDateToSecond(new Date()).toISOString(),
+      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     dispatch(saveNewPoi(blankPoi));
   }
@@ -292,7 +290,7 @@ export const thunkDuplicatePoi = appCreateAsyncThunk<{ poi: POI }>(
     const newPoi: POI = _.cloneDeep(poi);
     newPoi.uuid = uuidv4();
     newPoi.updatedAt = null;
-    newPoi.createdAt = roundDateToSecond(new Date()).toISOString();
+    newPoi.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
     newPoi.name = makeUniqueStringCopy(
       poi.name,
       getState().poi.pois.map((item) => item.name)
@@ -302,26 +300,22 @@ export const thunkDuplicatePoi = appCreateAsyncThunk<{ poi: POI }>(
     const poiActions = getState().action.actions.filter((action) => action.poiUuid === poi?.uuid);
     const newActionOrderUuids = [];
     //if there's an order, preserve it.
-    if (poi.actionOrderUuids) {
-      for (const actionUuid of poi.actionOrderUuids) {
-        const action = poiActions.find((a) => a.uuid === actionUuid);
-        const thunkRes = await dispatch(
-          thunkDuplicateAction({ action: action, poiUuid: newPoi.uuid })
-        );
-        if (thunkRes.payload) {
-          newActionOrderUuids.push(thunkRes.payload as string);
-        }
-      }
-    } else {
-      for (const action of poiActions) {
-        const thunkRes = await dispatch(
-          thunkDuplicateAction({ action: action, poiUuid: newPoi.uuid })
-        );
-        if (thunkRes.payload) {
-          newActionOrderUuids.push(thunkRes.payload as string);
-        }
+
+    for (const actionUuid of poi.actionOrderUuids) {
+      const action = poiActions.find((a) => a.uuid === actionUuid);
+      const thunkRes = await dispatch(
+        thunkDuplicateAction({
+          action: action,
+          poiUuid: newPoi.uuid,
+          promotingFromPoi: false,
+          handleActionOrderProcessing: false,
+        })
+      );
+      if (thunkRes.payload) {
+        newActionOrderUuids.push(thunkRes.payload as string);
       }
     }
+
     newPoi.actionOrderUuids = newActionOrderUuids; //save new order
     dispatch(saveNewPoi(newPoi));
   }

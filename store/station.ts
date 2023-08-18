@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { roundDateToSecond } from "utils/formatting";
+import { cloneDeep } from "lodash";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
 
 export const initialState: StationState = {
@@ -16,21 +17,82 @@ export const stationSlice = createSlice({
   initialState,
   reducers: {
     upsertStation: {
-      reducer: (state, action: { payload: Station }) => {
-        upsertToArrayByUuid(state.stations, action.payload);
-      },
       prepare: (station: Station, preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
           return { payload: station };
         } else {
           return {
-            payload: { ...station, updatedAt: roundDateToSecond(new Date()).toISOString() },
+            payload: { ...station, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() },
           };
         }
       },
+      reducer: (state, action: { payload: Station }) => {
+        upsertToArrayByUuid(state.stations, action.payload);
+      },
+    },
+    upsertStations: {
+      prepare: (stations: Station[], preserveModifiedDate: boolean = false) => {
+        if (preserveModifiedDate) {
+          return { payload: stations };
+        } else {
+          return {
+            payload: stations.map((station) => ({
+              ...station,
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+            })),
+          };
+        }
+      },
+      reducer: (state, action: { payload: Station[] }) => {
+        action.payload.forEach((station) => upsertToArrayByUuid(state.stations, station));
+      },
+    },
+    upsertStationsFromDb: (state, action: { payload: Station[] }) => {
+      action.payload.forEach((station) => upsertToArrayByUuid(state.stationsFromDb, station));
     },
     upsertStationFromDb: (state, action: { payload: Station }) => {
       upsertToArrayByUuid(state.stationsFromDb, action.payload);
+    },
+    upsertStationByField: {
+      prepare: (
+        stationUuid: string,
+        fieldName: keyof Station,
+        value: Station[keyof Station],
+        preserveModifiedDate: boolean = false
+      ) => {
+        if (preserveModifiedDate) {
+          return {
+            payload: { stationUuid, fieldName, value, updatedAt: null },
+          };
+        } else {
+          return {
+            payload: {
+              stationUuid,
+              fieldName,
+              value,
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+            },
+          };
+        }
+      },
+      reducer: (
+        state,
+        action: {
+          payload: {
+            stationUuid: string;
+            fieldName: keyof Station;
+            value: Station[keyof Station];
+            updatedAt: string;
+          };
+        }
+      ) => {
+        const station = state.stations.find((s) => s.uuid === action.payload.stationUuid);
+        const newStation: Station = cloneDeep(station);
+        newStation.updatedAt = action.payload.updatedAt || station.updatedAt;
+        const key = action.payload.fieldName;
+        (newStation as Record<typeof key, Station[keyof Station]>)[key] = action.payload.value;
+        upsertToArrayByUuid(state.stations, newStation);
+      },
     },
     /* only called for populating store  */
     setStations: (state, action: { payload: Station[] }) => {
@@ -41,6 +103,11 @@ export const stationSlice = createSlice({
     },
     deleteStationByUuid: (state, action: { payload: string }) => {
       state.stations = state.stations.filter((station) => station.uuid !== action.payload);
+    },
+    deleteStationFromDbByUuid: (state, action: { payload: string }) => {
+      state.stationsFromDb = state.stationsFromDb.filter(
+        (station) => station.uuid !== action.payload
+      );
     },
     setSelectedStationRightNavItem: (state, action: { payload: string }) => {
       state.selectedRightNavItem = action.payload;
@@ -87,10 +154,14 @@ export const stationSlice = createSlice({
 
 export const {
   upsertStation,
+  upsertStations,
+  upsertStationsFromDb,
   upsertStationFromDb,
+  upsertStationByField,
   setStations,
   setStationsFromDb,
   deleteStationByUuid,
+  deleteStationFromDbByUuid,
   setSelectedStationRightNavItem,
   setSelectedStationUuid,
   setStateForNewStation,

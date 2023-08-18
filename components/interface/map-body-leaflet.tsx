@@ -22,7 +22,7 @@ import {
   useLayoutEffect,
 } from "react";
 import _ from "lodash";
-import { updateMapDirective } from "store/map";
+import { setMapSublayerControls, updateMapDirective } from "store/map";
 import { setSelectedPoiUuid } from "store/poi";
 import { setRightPanelOpen, setSectionSelected } from "store/interface";
 import { revertWalkbackPath, setSelectedStationUuid } from "store/station";
@@ -123,6 +123,7 @@ const MapBody: FunctionComponent = () => {
     (state) => state.preset.presets.find((p) => p.uuid === selectedPresetUuid),
     shallowEqual
   );
+  const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
 
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
@@ -267,87 +268,94 @@ const MapBody: FunctionComponent = () => {
 
     // check map layers in order
     layersToAddInOrder.map((sublayer, index) => {
-      // if layer isn't already on the map, add it
-      if (!isLayerOnMapByName(map, sublayer.name)) {
-        if (sublayer.type === "tile") {
-          const filter = makeTileLayerColorFilter(mapSublayerControls, sublayer.uuid);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const tileLayer = (L.tileLayer as any).colorFilter(
-            `${layerBaseURL}/${mission.id}/Layers/${sublayer.url}`,
-            {
-              //manually add id and type fields for tracking later on
-              id: `${sublayer.name}`,
-              uuid: `${sublayer.uuid}`,
-              type: "tile",
+      if (sublayer.type === "tile") {
+        const filter = makeTileLayerColorFilter(mapSublayerControls, sublayer.uuid);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const tileLayer = (L.tileLayer as any).colorFilter(
+          `${layerBaseURL}/${mission.id}/Layers/${sublayer.url}`,
+          {
+            //manually add id and type fields for tracking later on
+            id: `${sublayer.name}`,
+            uuid: `${sublayer.uuid}`,
+            type: "tile",
 
-              tileSize: 256,
-              bounds: [
-                [sublayer.boundingBox[1], sublayer.boundingBox[0]],
-                [sublayer.boundingBox[3], sublayer.boundingBox[2]],
-              ],
-              tms: sublayer.tileFormat === "tms",
-              minZoom: sublayer.minZoom || 1,
-              minNativeZoom: sublayer.minZoom,
-              maxZoom: sublayer.maxZoom,
-              maxNativeZoom: sublayer.maxNativeZoom,
-              opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
-              zIndex: index,
-              filter,
-              // custom class name that we use to control mix-blend-mode
-              className: `leaflet-layer leaflet-blend-${
-                mapSublayerControls[sublayer.uuid].style?.blendMode
-              }`,
-            }
-          );
+            tileSize: 256,
+            bounds: [
+              [sublayer.boundingBox[1], sublayer.boundingBox[0]],
+              [sublayer.boundingBox[3], sublayer.boundingBox[2]],
+            ],
+            tms: sublayer.tileFormat === "tms",
+            minZoom: sublayer.minZoom || 1,
+            minNativeZoom: sublayer.minZoom,
+            maxZoom: sublayer.maxZoom,
+            maxNativeZoom: sublayer.maxNativeZoom,
+            opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
+            zIndex: index,
+            filter,
+            // custom class name that we use to control mix-blend-mode
+            className: `leaflet-layer leaflet-blend-${
+              mapSublayerControls[sublayer.uuid].style?.blendMode
+            }`,
+          }
+        );
+        // if layer isn't already on the map, add it
+        if (!isLayerOnMapByName(map, sublayer.name)) {
           map.current.addLayer(tileLayer);
+
           tileLayer.bringToFront();
-        } else if (sublayer.type === "vector") {
-          // fetch geojson object from url
-          (async () => {
-            const res = await fetch(`${layerBaseURL}/${mission.id}/Data/${sublayer.filePath}`, {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-              },
-            });
-            const geojson = await res.json();
-
-            // create a featureGroup for the layer
-            const featureGroup = L.featureGroup();
-            featureGroup.name = sublayer.name;
-            featureGroup.uuid = sublayer.uuid;
-
-            const vectorLayer = L.geoJSON(geojson, {
-              style: (geoJsonFeature) => {
-                //fill color defaults to color if not defined
-                let fillColor = mapSublayerControls[sublayer.uuid].style?.color;
-                if (mapSublayerControls[sublayer.uuid].style?.fillColor?.startsWith("prop:")) {
-                  const fillPropertyName =
-                    mapSublayerControls[sublayer.uuid].style?.fillColor.slice(5);
-                  fillColor = geoJsonFeature.properties[fillPropertyName];
-                }
-                return {
-                  //manually add id and type fields for tracking later on
-                  id: sublayer.name,
-                  type: "vector",
-                  //manually define defaults
-                  color: mapSublayerControls[sublayer.uuid].style?.color,
-                  opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
-                  weight: mapSublayerControls[sublayer.uuid].style?.weight,
-                  fillColor: fillColor,
-                  fillOpacity: mapSublayerControls[sublayer.uuid].style?.fillOpacity,
-                };
-              },
-            });
-            featureGroup.addLayer(vectorLayer);
-
-            map.current.addLayer(featureGroup);
-          })();
+        } else {
+          // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
+          const layer = getLayerByName(map, sublayer.name);
+          layer.bringToFront();
         }
-      } else {
-        // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
-        const layer = getLayerByName(map, sublayer.name);
-        layer.bringToFront();
+      } else if (sublayer.type === "vector") {
+        // fetch geojson object from url
+        (async () => {
+          const res = await fetch(`${layerBaseURL}/${mission.id}/Data/${sublayer.filePath}`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+          const geojson = await res.json();
+
+          // create a featureGroup for the layer
+          const featureGroup = L.featureGroup();
+          featureGroup.name = sublayer.name;
+          featureGroup.uuid = sublayer.uuid;
+
+          const vectorLayer = L.geoJSON(geojson, {
+            style: (geoJsonFeature) => {
+              //fill color defaults to color if not defined
+              let fillColor = mapSublayerControls[sublayer.uuid].style?.color;
+              if (mapSublayerControls[sublayer.uuid].style?.fillColor?.startsWith("prop:")) {
+                const fillPropertyName =
+                  mapSublayerControls[sublayer.uuid].style?.fillColor.slice(5);
+                fillColor = geoJsonFeature.properties[fillPropertyName];
+              }
+              return {
+                //manually add id and type fields for tracking later on
+                id: sublayer.name,
+                type: "vector",
+                //manually define defaults
+                color: mapSublayerControls[sublayer.uuid].style?.color,
+                opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
+                weight: mapSublayerControls[sublayer.uuid].style?.weight,
+                fillColor: fillColor,
+                fillOpacity: mapSublayerControls[sublayer.uuid].style?.fillOpacity,
+              };
+            },
+          });
+          // if layer isn't already on the map, add it
+          if (!isLayerOnMapByName(map, sublayer.name)) {
+            featureGroup.addLayer(vectorLayer);
+            map.current.addLayer(featureGroup);
+          } else {
+            // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
+            const layer = getLayerByName(map, sublayer.name);
+            layer.bringToFront();
+          }
+        })();
       }
     });
   }, [
@@ -358,7 +366,17 @@ const MapBody: FunctionComponent = () => {
     missionLayers,
     missionSublayers,
     selectedPreset,
+    presets,
   ]);
+
+  /**
+   * Update sublayer controls if presets change
+   * This happens if presets are changed via incoming socket update
+   */
+  useEffect(() => {
+    if (!selectedPreset) return;
+    dispatch(setMapSublayerControls(selectedPreset.mapSublayerControls));
+  }, [selectedPreset, dispatch, presets]);
 
   /**
    * Update map with display adjustments for sublayers as sliders are moved
@@ -1192,7 +1210,7 @@ const MapBody: FunctionComponent = () => {
         drawOrUpdateMarkerOnMap({
           name: poi.name,
           uuid: poi.uuid,
-          iconEmoji: poi.icon ? poi.icon : "1F3F4",
+          iconEmoji: poi.icon, // no default because object always starts red circle
           mapItemType: "poi",
           location: poi.location,
           onClick: () => {
@@ -1275,7 +1293,7 @@ const MapBody: FunctionComponent = () => {
         drawOrUpdateMarkerOnMap({
           name: station.name,
           uuid: station.uuid,
-          iconEmoji: station.icon,
+          iconEmoji: station.icon ? station.icon : "2754", //default to question mark
           mapItemType: "station",
           location: station.location,
           onClick: () => {
@@ -1649,7 +1667,6 @@ const MapBody: FunctionComponent = () => {
                     setMapDisplayPois({
                       ...mapDisplayPois,
                       show: e.target.checked,
-                      showLabels: false,
                     });
                   }}
                   toolTip="Show/Hide all POIs on map"
@@ -1687,7 +1704,6 @@ const MapBody: FunctionComponent = () => {
                     setMapDisplayStations({
                       ...mapDisplayStations,
                       show: e.target.checked,
-                      showLabels: false,
                     });
                   }}
                   toolTip="Show/Hide all Stations on map"
@@ -1705,7 +1721,6 @@ const MapBody: FunctionComponent = () => {
                     setMapDisplayStations({
                       ...mapDisplayStations,
                       showLabels: e.target.checked,
-                      ...(e.target.checked && { show: true }),
                     });
                   }}
                   toolTip="Show/Hide all Station labels on map"

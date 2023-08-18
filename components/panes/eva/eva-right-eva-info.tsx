@@ -3,7 +3,7 @@ import { InLineEditInput } from "components/interface/form/globalFields";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 
-import { upsertEva } from "store/eva";
+import { upsertEva, upsertEvaByField } from "store/eva";
 import { shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
@@ -26,7 +26,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     shallowEqual
   );
   const missionTraverseRate = useAppSelector(
-    (state) => state.mission.mission?.traverseSpeed,
+    (state) => state.mission.mission?.traverseRate,
     shallowEqual
   );
   const evaCalculatedFields = useAppSelector(
@@ -78,6 +78,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
             </div>
             <div className={paneStyles.descriptionContainer}>
               <WysiwygTextArea
+                key={selectedEva.uuid}
                 value={selectedEva.description}
                 editing={editMode}
                 onChange={(value) => {
@@ -87,7 +88,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                       description: value,
                     })
                   );
-                }} // handle innerHTML change
+                }}
               />
             </div>
           </div>
@@ -124,7 +125,9 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             },
                           }}
                           onSubmit={(val: string) => {
-                            dispatch(upsertEva({ ...selectedEva, maxDuration: toDecimal(val) }));
+                            dispatch(
+                              upsertEvaByField(selectedEva.uuid, "maxDuration", toDecimal(val))
+                            );
                           }}
                         />
                       </div>
@@ -142,6 +145,8 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         } Default: ${selectedEva?.traverseRate || missionTraverseRate} km/hr`}
                       >
                         Traverse Rate (km/hr):
+                        <br />
+                        (Mission Default: {missionTraverseRate})
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -162,7 +167,9 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             },
                           }}
                           onSubmit={(val: string) => {
-                            dispatch(upsertEva({ ...selectedEva, traverseRate: toDecimal(val) }));
+                            dispatch(
+                              upsertEvaByField(selectedEva.uuid, "traverseRate", toDecimal(val))
+                            );
                           }}
                         />
                       </div>
@@ -191,7 +198,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                           style={{
                             color:
                               evaCalculatedFields.totalUnassignedTime.durationLower > 0
-                                ? "var(--error)"
+                                ? "var(--warning)"
                                 : undefined,
                           }}
                           data-tooltip-id="aegis-tooltip"

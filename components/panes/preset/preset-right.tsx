@@ -16,7 +16,11 @@ import Info_panel from "./preset-right-info";
 import Layers_Panel from "./preset-right-layers";
 import Circles_Panel from "./preset-right-circles";
 import paneStyles from "../global-pane-styles.module.css";
-import { setPresetEditMode, setSelectedPresetRightNavItem, upsertPreset } from "store/preset";
+import {
+  setPresetEditMode,
+  setSelectedPresetRightNavItem,
+  upsertPresetByField,
+} from "store/preset";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDeletePreset, thunkPresetCancel, thunkSavePreset } from "store/thunk/thunkPreset";
@@ -94,7 +98,7 @@ const PresetEditorRight: FunctionComponent = () => {
               styleContainer={{ paddingLeft: 0 }}
               styleValue={{ padding: 0, height: "auto" }}
               onSubmit={(val) => {
-                dispatch(upsertPreset({ ...selectedPreset, name: val }));
+                dispatch(upsertPresetByField(selectedPreset.uuid, "name", val));
               }}
             />
           </div>
@@ -157,7 +161,9 @@ const PresetEditorRight: FunctionComponent = () => {
               <>
                 <Button
                   onClick={() => {
-                    dispatch(thunkSavePreset({ preset: selectedPreset }));
+                    if (modified) {
+                      dispatch(thunkSavePreset({ preset: selectedPreset }));
+                    }
                   }}
                   icon={faFloppyDisk}
                   toolTip={`Save Preset${modified ? "" : " (nothing to save)"}`}

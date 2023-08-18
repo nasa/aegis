@@ -19,7 +19,7 @@ import { Button, InLineEditInput } from "components/interface/form/globalFields"
 import Info_Panel from "./eva-right-eva-info";
 import Actions_Panel from "./eva-right-eva-actions";
 import Report_Panel from "../report";
-import { setEvaEditMode, setSelectedEvaRightNavItem, upsertEva } from "store/eva";
+import { setEvaEditMode, setSelectedEvaRightNavItem, upsertEvaByField } from "store/eva";
 import { getAlertColor, isModified } from "utils/component-helpers";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
@@ -206,7 +206,7 @@ const EvaRightEva: FunctionComponent = () => {
               styleValue={{ padding: 0, height: "auto" }}
               styleContainer={{ paddingLeft: 0 }}
               onSubmit={(val) => {
-                dispatch(upsertEva({ ...selectedEva, name: val }));
+                dispatch(upsertEvaByField(selectedEva.uuid, "name", val));
               }}
             />
           </div>
@@ -275,7 +275,9 @@ const EvaRightEva: FunctionComponent = () => {
               <>
                 <Button
                   onClick={() => {
-                    dispatch(thunkSaveEva({ eva: selectedEva }));
+                    if (modified) {
+                      dispatch(thunkSaveEva({ eva: selectedEva }));
+                    }
                   }}
                   icon={faFloppyDisk}
                   toolTip={`Save EVA${modified ? "" : " (nothing to save)"}`}

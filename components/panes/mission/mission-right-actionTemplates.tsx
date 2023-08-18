@@ -108,36 +108,56 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                           }
                         }}
                       >
-                        <div>
-                          <span style={{ textTransform: "capitalize" }}>{actionTemplate.type}</span>{" "}
-                          : {actionTemplate.templateName}
+                        <div className={actionActionStyles.verticalCenter}>
+                          <div className={actionActionStyles.actionsHeadingTitleIcon}>
+                            {decodeEmoji(actionTemplate.icon ? actionTemplate.icon : "2754")}
+                          </div>
+                        </div>
+                        <div className={actionActionStyles.verticalCenter}>
+                          <div style={{ marginLeft: "5px" }}>
+                            <span style={{ textTransform: "capitalize" }}>
+                              {actionTemplate.type}
+                            </span>{" "}
+                            : {actionTemplate.templateName}
+                          </div>
                         </div>
                       </div>
                     ) : (
                       <>
-                        <div
-                          className={missionStyles.templateActionTitle}
-                          style={{ textTransform: "capitalize" }}
-                        >
-                          {actionTemplate.type}:&nbsp;
+                        <div className={actionActionStyles.verticalCenter}>
+                          <div className={actionActionStyles.actionsHeadingTitleIcon}>
+                            {decodeEmoji(actionTemplate.icon ? actionTemplate.icon : "2754")}
+                          </div>
                         </div>
-                        <InLineEditInput
-                          value={actionTemplate.templateName}
-                          editing={editMode}
-                          fieldProps={{
-                            name: "type",
-                            ariaLabel: "Template Name",
-                            style: { width: "100%" },
-                            validators: [validators.maxLength(255)],
-                          }}
-                          onSubmit={(value: string) => {
-                            dispatch(
-                              thunkUpdateActionTemplate({
-                                actionTemplate: { ...actionTemplate, templateName: value },
-                              })
-                            );
-                          }}
-                        />
+                        <div className={actionActionStyles.verticalCenter}>
+                          <div
+                            className={missionStyles.templateActionTitle}
+                            style={{ textTransform: "capitalize", marginLeft: "2px" }}
+                          >
+                            {actionTemplate.type}:&nbsp;
+                          </div>
+                        </div>
+                        <div className={actionActionStyles.verticalCenter}>
+                          <InLineEditInput
+                            value={actionTemplate.templateName}
+                            editing={editMode}
+                            fieldProps={{
+                              name: "type",
+                              ariaLabel: "Template Name",
+                              style: { width: "100%" },
+                              validators: [validators.maxLength(255)],
+                            }}
+                            onSubmit={(value: string) => {
+                              dispatch(
+                                thunkUpdateActionTemplate({
+                                  uuid: actionTemplate.uuid,
+                                  fieldName: "templateName",
+                                  value: value,
+                                })
+                              );
+                            }}
+                          />
+                        </div>
                       </>
                     )}
                     <div className={actionActionStyles.actionsHeadingTitle}></div>
@@ -184,10 +204,9 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                           onChange={(val) => {
                                             dispatch(
                                               thunkUpdateActionTemplate({
-                                                actionTemplate: {
-                                                  ...actionTemplate,
-                                                  type: val as ActionType,
-                                                },
+                                                uuid: actionTemplate.uuid,
+                                                fieldName: "type",
+                                                value: val as ActionType,
                                               })
                                             );
                                           }}
@@ -229,10 +248,9 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                         onSubmit={(value: string) => {
                                           dispatch(
                                             thunkUpdateActionTemplate({
-                                              actionTemplate: {
-                                                ...actionTemplate,
-                                                name: value,
-                                              },
+                                              uuid: actionTemplate.uuid,
+                                              fieldName: "name",
+                                              value: value,
                                             })
                                           );
                                         }}
@@ -250,15 +268,16 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                           </div>
                           <div className={paneStyles.descriptionContainer}>
                             <WysiwygTextArea
+                              key={actionTemplate.uuid}
                               value={actionTemplate.description}
                               editing={editMode}
                               onChange={(value) => {
-                                const updatedAction: ActionTemplate = {
-                                  ...actionTemplate,
-                                  description: value,
-                                };
                                 dispatch(
-                                  thunkUpdateActionTemplate({ actionTemplate: updatedAction })
+                                  thunkUpdateActionTemplate({
+                                    uuid: actionTemplate.uuid,
+                                    fieldName: "description",
+                                    value: value,
+                                  })
                                 );
                               }}
                             />
@@ -304,10 +323,9 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                         onSubmit={(value: string) => {
                                           dispatch(
                                             thunkUpdateActionTemplate({
-                                              actionTemplate: {
-                                                ...actionTemplate,
-                                                durationLower: toDecimal(value),
-                                              },
+                                              uuid: actionTemplate.uuid,
+                                              fieldName: "durationLower",
+                                              value: toDecimal(value),
                                             })
                                           );
                                         }}
@@ -347,10 +365,9 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                         onSubmit={(value: string) => {
                                           dispatch(
                                             thunkUpdateActionTemplate({
-                                              actionTemplate: {
-                                                ...actionTemplate,
-                                                durationUpper: toDecimal(value),
-                                              },
+                                              uuid: actionTemplate.uuid,
+                                              fieldName: "durationUpper",
+                                              value: toDecimal(value),
                                             })
                                           );
                                         }}
@@ -401,10 +418,9 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                         onSubmit={(value: string) => {
                                           dispatch(
                                             thunkUpdateActionTemplate({
-                                              actionTemplate: {
-                                                ...actionTemplate,
-                                                priority: toDecimal(value),
-                                              },
+                                              uuid: actionTemplate.uuid,
+                                              fieldName: "priority",
+                                              value: toDecimal(value),
                                             })
                                           );
                                         }}
@@ -453,10 +469,9 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                         onSubmit={(value: string) => {
                                           dispatch(
                                             thunkUpdateActionTemplate({
-                                              actionTemplate: {
-                                                ...actionTemplate,
-                                                mass: toDecimal(value),
-                                              },
+                                              uuid: actionTemplate.uuid,
+                                              fieldName: "mass",
+                                              value: toDecimal(value),
                                             })
                                           );
                                         }}
@@ -484,10 +499,9 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                               onChange={(e) => {
                                 dispatch(
                                   thunkUpdateActionTemplate({
-                                    actionTemplate: {
-                                      ...actionTemplate,
-                                      equipmentItemsUsage: e,
-                                    },
+                                    uuid: actionTemplate.uuid,
+                                    fieldName: "equipmentItemsUsage",
+                                    value: e,
                                   })
                                 );
                               }}
@@ -511,10 +525,9 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                               onChange={(e) => {
                                 dispatch(
                                   thunkUpdateActionTemplate({
-                                    actionTemplate: {
-                                      ...actionTemplate,
-                                      geographicUnitsUsage: e,
-                                    },
+                                    uuid: actionTemplate.uuid,
+                                    fieldName: "geographicUnitsUsage",
+                                    value: e,
                                   })
                                 );
                               }}
@@ -535,12 +548,12 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                               editMode={editMode}
                               stmUuidRefs={actionTemplate.stmUuidRefs}
                               onSTMChange={(stmUuidRefs: string[]) => {
-                                const updatedAction: ActionTemplate = {
-                                  ...actionTemplate,
-                                  stmUuidRefs: stmUuidRefs,
-                                };
                                 dispatch(
-                                  thunkUpdateActionTemplate({ actionTemplate: updatedAction })
+                                  thunkUpdateActionTemplate({
+                                    uuid: actionTemplate.uuid,
+                                    fieldName: "stmUuidRefs",
+                                    value: stmUuidRefs,
+                                  })
                                 );
                               }}
                             />
@@ -582,13 +595,11 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                         darkMode={true}
                                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         onEmojiSelect={(e: any) => {
-                                          const updatedAction: ActionTemplate = {
-                                            ...actionTemplate,
-                                            icon: e.unified,
-                                          };
                                           dispatch(
                                             thunkUpdateActionTemplate({
-                                              actionTemplate: updatedAction,
+                                              uuid: actionTemplate.uuid,
+                                              fieldName: "icon",
+                                              value: e.unified,
                                             })
                                           );
                                           setShowEmojiPicker(false);

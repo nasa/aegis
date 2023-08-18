@@ -14,7 +14,7 @@ import {
   faCheck,
 } from "@fortawesome/free-solid-svg-icons";
 import { Button, IconDropdown, InLineEditInput } from "components/interface/form/globalFields";
-import { setSelectedPOIRightNavItem, setPoiEditMode, upsertPoi } from "store/poi";
+import { setSelectedPOIRightNavItem, setPoiEditMode, upsertPoi, upsertPoiByField } from "store/poi";
 import Info_Panel from "./poi-right-info";
 import Actions_Panel from "./poi-right-actions";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -151,7 +151,7 @@ const PoiEditorRight: FunctionComponent = () => {
               styleValue={{ padding: 0, height: "auto" }}
               styleContainer={{ paddingRight: "10px" }}
               onSubmit={(val: string) => {
-                dispatch(upsertPoi({ ...selectedPoi, name: val }));
+                dispatch(upsertPoiByField(selectedPoi.uuid, "name", val));
               }}
             />
           </div>

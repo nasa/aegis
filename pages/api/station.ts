@@ -13,6 +13,7 @@ import { Poi as Poi_db } from "server/database/models/poi.model";
 import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
+import { emitStoreDelete, emitStoreUpsert } from "./socketio";
 
 const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = async (
   req,
@@ -24,10 +25,10 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
 
-    const { uuid } = req.query;
-    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
-    const stationUUID = Array.isArray(uuid) ? uuid[0] : uuid;
+    const { uuid, socketId, missionId } = req.query;
+    const intMissionId = parseInt(missionId as string);
+    const stationUUID = uuid as string;
+
     //check for required mission id is valid
     if (!intMissionId || _.isNaN(intMissionId)) {
       return res.status(500).json({ status: "error", message: "Invalid mission ID" });
@@ -74,6 +75,14 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
             data: null,
           });
         } else {
+          // emit the upserted item to all clients via socket.io
+          emitStoreUpsert({
+            missionId: intMissionId,
+            socketId,
+            type: "station",
+            data: [upsertResponse],
+          } as StoreUpsert<Station>);
+
           return res.status(200).json({
             status: "success",
             message: `Station upserted with ID ${upsertResponse.uuid}`,
@@ -96,6 +105,14 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
       try {
         const deletedUUID = await deleteStation(stationUUID);
         if (deletedUUID) {
+          // emit the deleted item to all clients via socket.io
+          emitStoreDelete({
+            missionId: intMissionId,
+            socketId,
+            type: "station",
+            uuid: deletedUUID,
+          } as StoreDelete);
+
           return res.status(200).json({
             status: "success",
             message: "Station Deleted",

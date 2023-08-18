@@ -18,7 +18,7 @@ import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { FunctionComponent, useState } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
-import { upsertAction } from "store/action";
+import { upsertAction, upsertActionByField } from "store/action";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { decodeEmoji, longdateFromDateString, toDecimal } from "utils/formatting";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
@@ -136,7 +136,8 @@ export const RightActionBody: FunctionComponent<{
             onChange={(value) => {
               const updatedAction: Action = { ...action, description: value };
               dispatch(upsertAction(updatedAction));
-            }} // handle innerHTML change
+            }}
+            key={action.uuid}
           />
         </div>
       </div>
@@ -172,10 +173,7 @@ export const RightActionBody: FunctionComponent<{
                       }}
                       onSubmit={(value: string) => {
                         dispatch(
-                          upsertAction({
-                            ...action,
-                            durationLower: toDecimal(value),
-                          })
+                          upsertActionByField(action.uuid, "durationLower", toDecimal(value))
                         );
                       }}
                     />
@@ -209,10 +207,7 @@ export const RightActionBody: FunctionComponent<{
                       }}
                       onSubmit={(value: string) => {
                         dispatch(
-                          upsertAction({
-                            ...action,
-                            durationUpper: toDecimal(value),
-                          })
+                          upsertActionByField(action.uuid, "durationUpper", toDecimal(value))
                         );
                       }}
                     />
@@ -250,12 +245,7 @@ export const RightActionBody: FunctionComponent<{
                         },
                       }}
                       onSubmit={(value: string) => {
-                        dispatch(
-                          upsertAction({
-                            ...action,
-                            priority: toDecimal(value),
-                          })
-                        );
+                        dispatch(upsertActionByField(action.uuid, "priority", toDecimal(value)));
                       }}
                     />
                   </div>
@@ -295,12 +285,7 @@ export const RightActionBody: FunctionComponent<{
                         },
                       }}
                       onSubmit={(value: string) => {
-                        dispatch(
-                          upsertAction({
-                            ...action,
-                            mass: toDecimal(value),
-                          })
-                        );
+                        dispatch(upsertActionByField(action.uuid, "mass", toDecimal(value)));
                       }}
                     />
                   </div>
@@ -459,12 +444,9 @@ export const RightActionBody: FunctionComponent<{
                         styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                         onSubmit={(val: string) => {
                           dispatch(
-                            upsertAction({
-                              ...action,
-                              location: {
-                                lat: parseFloat(val),
-                                lng: action.location.lng,
-                              },
+                            upsertActionByField(action.uuid, "location", {
+                              lat: parseFloat(val),
+                              lng: action.location.lng,
                             })
                           );
                         }}
@@ -494,12 +476,9 @@ export const RightActionBody: FunctionComponent<{
                         styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                         onSubmit={(val: string) => {
                           dispatch(
-                            upsertAction({
-                              ...action,
-                              location: {
-                                lat: action.location.lat,
-                                lng: parseFloat(val),
-                              },
+                            upsertActionByField(action.uuid, "location", {
+                              lat: action.location.lat,
+                              lng: parseFloat(val),
                             })
                           );
                         }}

@@ -5,6 +5,7 @@ import { withORM, getEM } from "utils/mikro";
 import { Preset as Preset_db } from "server/database/models/preset.model";
 import { EntityData } from "@mikro-orm/core";
 import { hasPerms } from "utils/permissions";
+import { emitStoreDelete, emitStoreUpsert } from "./socketio";
 
 const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
   req,
@@ -16,8 +17,9 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
 
-    const missionId = req.query.missionId ? req.query.missionId : req.body.missionId;
-    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+    const { missionId, socketId } = req.query;
+    const intMissionId = parseInt(missionId as string);
+
     if (typeof intMissionId !== "number") {
       return res.status(500).json({ status: "error", message: "Mission ID must be integer." });
     }
@@ -84,6 +86,15 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
           createdAt: upsertedPreset.createdAt.toISOString(),
           updatedAt: upsertedPreset.updatedAt.toISOString(),
         };
+
+        // emit the upserted preset to all clients via socket.io
+        emitStoreUpsert({
+          missionId: intMissionId,
+          socketId,
+          type: "preset",
+          data: [responsePreset],
+        } as StoreUpsert<Preset>);
+
         return res.status(200).json({
           status: "success",
           message: "Preset upserted",
@@ -108,6 +119,15 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
           return res.status(404).json({ status: "failure", message: "Preset not found" });
         }
         await em.removeAndFlush(presetToDelete);
+
+        // emit the deleted preset to all clients via socket.io
+        emitStoreDelete({
+          missionId: intMissionId,
+          socketId,
+          type: "preset",
+          uuid: presetToDelete.uuid,
+        } as StoreDelete);
+
         return res.status(200).json({
           status: "success",
           message: "Preset deleted",

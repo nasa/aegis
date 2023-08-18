@@ -1,5 +1,6 @@
+import { cloneDeep } from "lodash";
 import appCreateAsyncThunk from "./thunkUtil";
-import { upsertMission } from "store/mission";
+import { upsertMission, upsertMissionByField } from "store/mission";
 import { v4 as uuidv4 } from "uuid";
 
 type PrintableListItem = {
@@ -8,17 +9,18 @@ type PrintableListItem = {
   actionName: string;
 };
 
-export const thunkUpdateGeoUnit = appCreateAsyncThunk<{ geographicUnit: GeographicUnit }>(
-  "updateGeoUnit",
-  async ({ geographicUnit }, { dispatch, getState }) => {
-    const itemIndex = getState().mission.mission.geographicUnits?.findIndex(
-      (item) => item.uuid === geographicUnit.uuid
-    );
-    const newGeographicUnits = [...getState().mission.mission.geographicUnits];
-    newGeographicUnits[itemIndex] = geographicUnit;
-    dispatch(upsertMission({ ...getState().mission.mission, geographicUnits: newGeographicUnits }));
+export const thunkUpdateGeoUnit = appCreateAsyncThunk<{
+  uuid: string;
+  fieldName: keyof GeographicUnit;
+  value: GeographicUnit[keyof GeographicUnit];
+}>("updateGeoUnit", async ({ uuid, fieldName, value }, { dispatch, getState }) => {
+  const newGeographicUnits = cloneDeep(getState().mission.mission.geographicUnits);
+  const itemIndex = newGeographicUnits?.findIndex((item) => item.uuid === uuid);
+  if (itemIndex >= 0) {
+    newGeographicUnits[itemIndex][fieldName] = value;
+    dispatch(upsertMissionByField("geographicUnits", newGeographicUnits));
   }
-);
+});
 
 export const thunkDeleteGeoUnit = appCreateAsyncThunk<{ geographicUnitUuid: string }>(
   "deleteGeoUnit",
@@ -27,7 +29,7 @@ export const thunkDeleteGeoUnit = appCreateAsyncThunk<{ geographicUnitUuid: stri
     const actionsUsingGeographicUnit = getState().action.actions.filter((action) =>
       action.geographicUnitsUsage?.some((uuid) => uuid === geographicUnitUuid)
     );
-    const templatesUsingGeographicUnit = getState().mission.mission.actionTemplates.filter(
+    const templatesUsingGeographicUnit = getState().mission.mission.actionTemplates?.filter(
       (template) => template.geographicUnitsUsage?.some((uuid) => uuid === geographicUnitUuid)
     );
 
@@ -55,7 +57,7 @@ export const thunkDeleteGeoUnit = appCreateAsyncThunk<{ geographicUnitUuid: stri
       });
       printableList.push(...actionsList);
     }
-    if (templatesUsingGeographicUnit.length > 0) {
+    if (templatesUsingGeographicUnit?.length > 0) {
       const templateList: PrintableListItem[] = templatesUsingGeographicUnit.map((template) => {
         return {
           parentType: "Template",

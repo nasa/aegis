@@ -1,18 +1,22 @@
+import { cloneDeep } from "lodash";
 import appCreateAsyncThunk from "./thunkUtil";
-import { upsertMission } from "store/mission";
+import { upsertMission, upsertMissionByField } from "store/mission";
 import { v4 as uuidv4 } from "uuid";
 
-export const thunkUpdateLanderRadius = appCreateAsyncThunk<{ landerRadius: LanderRadius }>(
-  "updateLanderRadius",
-  async ({ landerRadius }, { dispatch, getState }) => {
-    const itemIndex = getState().mission.mission.landerRadii?.findIndex(
-      (item) => item.uuid === landerRadius.uuid
-    );
-    const newLanderRadii = [...getState().mission.mission.landerRadii];
-    newLanderRadii[itemIndex] = landerRadius;
-    dispatch(upsertMission({ ...getState().mission.mission, landerRadii: newLanderRadii }));
+export const thunkUpdateLanderRadius = appCreateAsyncThunk<{
+  uuid: string;
+  fieldName: keyof LanderRadius;
+  value: LanderRadius[keyof LanderRadius];
+}>("updateLanderRadius", async ({ uuid, fieldName, value }, { dispatch, getState }) => {
+  const newLanderRadii = cloneDeep(getState().mission.mission.landerRadii);
+  const itemIndex = newLanderRadii?.findIndex((item) => item.uuid === uuid);
+  if (itemIndex >= 0) {
+    (newLanderRadii[itemIndex] as Record<typeof fieldName, LanderRadius[keyof LanderRadius]>)[
+      fieldName
+    ] = value;
+    dispatch(upsertMissionByField("equipmentItems", newLanderRadii));
   }
-);
+});
 
 export const thunkDeleteLanderRadius = appCreateAsyncThunk<{ landerRadiusUuid: string }>(
   "deleteLanderRadius",

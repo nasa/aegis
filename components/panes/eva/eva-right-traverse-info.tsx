@@ -8,7 +8,7 @@ import {
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { FunctionComponent, useEffect, useState } from "react";
-import { upsertTraverse } from "store/traverse";
+import { upsertTraverse, upsertTraverseByField } from "store/traverse";
 import { updateMapDirective } from "store/map";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
@@ -32,7 +32,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
   );
 
   const missionTraverseRate = useAppSelector(
-    (state) => state.mission.mission?.traverseSpeed,
+    (state) => state.mission.mission?.traverseRate,
     refEqual
   );
   const selectedEvaTraverseRate = useAppSelector(
@@ -127,6 +127,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
             </div>
             <div className={paneStyles.descriptionContainer}>
               <WysiwygTextArea
+                key={selectedTraverse.uuid}
                 value={selectedTraverse.description}
                 editing={editMode}
                 onChange={(value) => {
@@ -136,7 +137,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                       description: value,
                     })
                   );
-                }} // handle innerHTML change
+                }}
               />
             </div>
           </div>
@@ -174,59 +175,17 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                           }}
                           onSubmit={(val) => {
                             dispatch(
-                              upsertTraverse({
-                                ...selectedTraverse,
-                                predictedDurationLower: toDecimal(val),
-                              })
+                              upsertTraverseByField(
+                                selectedTraverse.uuid,
+                                "predictedDurationLower",
+                                toDecimal(val)
+                              )
                             );
                           }}
                         />
                       </div>
                     </div>
                   </div>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div
-                        className={paneStyles.inputFieldLabel}
-                        data-tooltip-id="aegis-tooltip"
-                        data-tooltip-html={`${
-                          selectedEvaTraverseRate ? "EVA" : "Mission"
-                        } Default: ${selectedEvaTraverseRate || missionTraverseRate} km/hr`}
-                      >
-                        Traverse Rate (km/hr):
-                      </div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldValue}>
-                        <InLineEditInput
-                          value={selectedTraverse.traverseRate?.toString()}
-                          editing={editMode}
-                          fieldProps={{
-                            name: "traverseRate",
-                            ariaLabel: "Traverse Rate",
-                            style: { width: "55px" },
-                            validators: [validators.mustBeNumber, validators.maxLength(4)],
-                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                              e.target.value = e.target.value.replace(
-                                regExValidators.regExNumber,
-                                ""
-                              );
-                            },
-                          }}
-                          onSubmit={(val: string) => {
-                            dispatch(
-                              upsertTraverse({
-                                ...selectedTraverse,
-                                traverseRate: toDecimal(val),
-                              })
-                            );
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
                       <div className={paneStyles.inputFieldLabel}>Max Duration (mins):</div>
@@ -254,10 +213,59 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                           }}
                           onSubmit={(val: string) => {
                             dispatch(
-                              upsertTraverse({
-                                ...selectedTraverse,
-                                predictedDurationUpper: toDecimal(val),
-                              })
+                              upsertTraverseByField(
+                                selectedTraverse.uuid,
+                                "predictedDurationUpper",
+                                toDecimal(val)
+                              )
+                            );
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div
+                        className={paneStyles.inputFieldLabel}
+                        data-tooltip-id="aegis-tooltip"
+                        data-tooltip-html={`${
+                          selectedEvaTraverseRate ? "EVA" : "Mission"
+                        } Default: ${selectedEvaTraverseRate || missionTraverseRate} km/hr`}
+                      >
+                        Traverse Rate (km/hr):
+                        <br />
+                        (EVA Default: {selectedEvaTraverseRate})
+                        <br />
+                        (Mission Default: {missionTraverseRate})
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.inputFieldValue}>
+                        <InLineEditInput
+                          value={selectedTraverse.traverseRate?.toString()}
+                          editing={editMode}
+                          fieldProps={{
+                            name: "traverseRate",
+                            ariaLabel: "Traverse Rate",
+                            style: { width: "55px" },
+                            validators: [validators.mustBeNumber, validators.maxLength(4)],
+                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                              e.target.value = e.target.value.replace(
+                                regExValidators.regExNumber,
+                                ""
+                              );
+                            },
+                          }}
+                          onSubmit={(val: string) => {
+                            dispatch(
+                              upsertTraverseByField(
+                                selectedTraverse.uuid,
+                                "traverseRate",
+                                toDecimal(val)
+                              )
                             );
                           }}
                         />

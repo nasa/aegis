@@ -6,7 +6,10 @@ export async function getPresets(mission: number): Promise<WrappedResponse<Prese
 }
 
 export async function upsertPreset(preset: Preset): Promise<WrappedResponse<Preset>> {
-  const res = await fetch(`/api/preset`, {
+  const missionId =
+    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
+  const res = await fetch(`/api/preset?socketId=${socketId}&missionId=${missionId}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -16,12 +19,15 @@ export async function upsertPreset(preset: Preset): Promise<WrappedResponse<Pres
   return await res.json();
 }
 
-export async function deletePreset(
-  presetUuid: string,
-  missionId: number
-): Promise<WrappedResponse<Preset>> {
-  const res = await fetch(`/api/preset?uuid=${presetUuid}&missionId=${missionId}`, {
-    method: "DELETE",
-  });
+export async function deletePreset(presetUuid: string): Promise<WrappedResponse<Preset>> {
+  const missionId =
+    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
+  const res = await fetch(
+    `/api/preset?socketId=${socketId}&uuid=${presetUuid}&missionId=${missionId}`,
+    {
+      method: "DELETE",
+    }
+  );
   return await res.json();
 }

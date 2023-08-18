@@ -7,6 +7,7 @@ import _ from "lodash";
 import { Mission as Mission_db } from "server/database/models/mission.model";
 import { EntityData, ForeignKeyConstraintViolationException } from "@mikro-orm/core";
 import { hasPerms } from "utils/permissions";
+import { emitStoreUpsert } from "./socketio";
 
 /**
  * /api/mission?missionId=
@@ -34,8 +35,8 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
     }
 
     //missionId is optional, except when deleting
-    const missionId = req.query.missionId ? req.query.missionId : req.body.id;
-    const intMissionId = parseInt(Array.isArray(missionId) ? missionId[0] : missionId);
+    const { missionId, socketId } = req.query;
+    const intMissionId = missionId ? parseInt(missionId as string) : null;
 
     if (req.method === "GET") {
       if (intMissionId && _.isNaN(intMissionId)) {
@@ -106,6 +107,14 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
             data: null,
           });
         } else {
+          // emit the upserted item to all clients via socket.io
+          emitStoreUpsert({
+            missionId: intMissionId,
+            socketId,
+            type: "mission",
+            data: [upsertResponse],
+          } as StoreUpsert<Mission>);
+
           return res.status(200).json({
             status: "success",
             message: `Mission upserted with ID ${upsertResponse.id}`,

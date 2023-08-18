@@ -28,10 +28,9 @@ import { deleteActionsByUuid, setActionsFromDb, upsertActions } from "store/acti
 import * as httpClient_station from "http-client/station";
 import * as httpClient_action from "http-client/action";
 import { updateMapDirective } from "store/map";
-import { setTraverseEditMode, upsertTraverse } from "store/traverse";
 import { thunkCancelMarkerMapDirective } from "./thunkMap";
 import { thunkDuplicateAction, thunkSaveActions } from "./thunkAction";
-import { roundDateToSecond } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import { saveNewStation } from "store/cross-slice";
 import { mergeEquipmentItems } from "utils/store";
@@ -60,7 +59,7 @@ export const thunkUpdateStationLocation = appCreateAsyncThunk<{
   dispatch(thunkFullUpdateWalkback({ path: station.walkbackPath, stationUuid }));
 
   //update any eva traverses connected to this station
-  dispatch(thunkUpdateTraversesAroundStation({ stationUuid }));
+  dispatch(thunkUpdateTraversesAroundStation({ stationUuid, saveToDb: true }));
 });
 
 /**
@@ -121,11 +120,11 @@ export const thunkFullUpdateWalkback = appCreateAsyncThunk<
   const station = getState().station.stations.find((s) => s.uuid === stationUuid);
   const landerLocation = getState().mission.mission.landerLocation;
   //set starting station
-  if (station && !_.isEqual(path.at(0), station.location)) {
+  if (station && !_.isEqual(newPath.at(0), station.location)) {
     newPath[0] = station.location;
   }
   //set ending lander
-  if (landerLocation && !_.isEqual(path.at(-1), landerLocation)) {
+  if (landerLocation && !_.isEqual(newPath.at(-1), landerLocation)) {
     newPath[newPath.length - 1] = landerLocation;
   }
 
@@ -216,7 +215,7 @@ export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
   async (_, { dispatch, getState }) => {
     const stations = getState().station.stations;
     const allCalculatedFields: StationCalculatedFields[] = [];
-    const missionTraverseRate = getState().mission.mission?.traverseSpeed;
+    const missionTraverseRate = getState().mission.mission?.traverseRate;
     for (const station of stations) {
       //get station actions
       const stationActions = getState().action.actions.filter(
@@ -383,14 +382,8 @@ export const thunkSaveStation = appCreateAsyncThunk<{
   //if existing station, update traverses for any EVAs
   const stationFromDb = getState().station.stationsFromDb.find((s) => s.uuid === station.uuid);
   if (stationFromDb) {
-    //check if location changed
-    if (station.location !== stationFromDb.location) {
-      // full traverse update (including name) for all EVAs
-      await dispatch(thunkUpdateTraversesAroundStation({ stationUuid: station.uuid }));
-    }
-
-    // check if only station name changed
-    else if (station.name !== stationFromDb.name) {
+    // check if station name changed
+    if (station.name !== stationFromDb.name) {
       // We've changed a station name, so get all Evas using this station
       const evasUsingThisStation: Eva[] = getState().eva.evas.filter((eva) => {
         return eva.sequence.some((sequence) => {
@@ -413,7 +406,7 @@ export const thunkSaveStation = appCreateAsyncThunk<{
   // upsert the changed Station to the DB via internal API call
   const stationUpsertResponse = await httpClient_station.upsertStation({
     ...station,
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
+    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   });
 
   if (stationUpsertResponse.status === "success") {
@@ -469,38 +462,18 @@ export const thunkStationCancel = appCreateAsyncThunk<{
   );
 
   // find out if this station is already on the map
-  const traverseUUIDs: string[] = [];
   if (stationFromDb) {
-    // station is already saved once to the db, replace it with the one from the db (undoing any changes)
+    //station is already saved once to the db,
+    // replace it with the one from the db (undoing any changes)
     dispatch(upsertStation(stationFromDb, true));
-    dispatch(upsertActions(stationActionsFromDb, true));
 
-    const evasUsingThisStationFromDb: Eva[] = [];
-    getState().eva.evasFromDb.forEach((eva) => {
-      eva.sequence.forEach((sequenceItem) => {
-        if (sequenceItem.uuid === station?.uuid) {
-          evasUsingThisStationFromDb.push(eva);
-        }
-      });
-    });
-    for (const eva of evasUsingThisStationFromDb) {
-      // Get all Traverses in this EVA
-      eva.sequence.forEach((sequenceItem) => {
-        if (sequenceItem.type === "traverse") {
-          traverseUUIDs.push(sequenceItem.uuid);
-        }
-      });
-
-      traverseUUIDs.forEach((traverseUUID) => {
-        const traverseFromDb = getState().traverse.traversesFromDb.find(
-          (traverseFromDb) => traverseFromDb.uuid === traverseUUID
-        );
-        if (traverseFromDb) {
-          dispatch(upsertTraverse(traverseFromDb, true));
-          dispatch(setTraverseEditMode({ uuid: traverseUUID, editMode: false }));
-        }
-      });
+    //check if location was changed. if so, revert back traverses
+    if (station.location !== stationFromDb.location) {
+      // Update traverses surrounding this station
+      dispatch(thunkUpdateTraversesAroundStation({ stationUuid: station.uuid, saveToDb: true }));
     }
+
+    dispatch(upsertActions(stationActionsFromDb, true));
     //delete newly added actions that user doesn't want to save
     const addedActionsToDelete: Action[] = stationActions.filter(
       // only delete actions that don't exist in the db
@@ -558,12 +531,10 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
 
   // if the selected station is in stationsFromDb then delete it from the db
   if (stationFromDb) {
-    const missionId = getState().mission.mission.id;
     // delete actions from the db via internal api call
     for (const actionToDelete of stationActions) {
       const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteAction(
-        actionToDelete.uuid,
-        missionId
+        actionToDelete.uuid
       );
       if (actionDeleteResponse.status !== "success") {
         throw new Error("Error deleting actions for station " + actionDeleteResponse.message);
@@ -581,8 +552,7 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
 
     // delete the Station from the DB via internal API call
     const deleteResponse: WrappedResponse<number> = await httpClient_station.deleteStation(
-      station.uuid,
-      missionId
+      station.uuid
     );
     if (deleteResponse.status === "success") {
       // remove the corresponding Station from the store
@@ -613,7 +583,7 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
   "stationCreate",
   async (_, { dispatch, getState }) => {
     const randomName = generateUniqueName({
-      dictName: "countries",
+      dictName: "lotr",
       existingNames: getState().station.stations.map((item) => item.name),
     });
 
@@ -635,7 +605,7 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
       icon: null,
       poiUuids: [],
       updatedAt: null,
-      createdAt: roundDateToSecond(new Date()).toISOString(),
+      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     dispatch(saveNewStation(blankStation));
   }
@@ -649,7 +619,7 @@ export const thunkDuplicateStation = appCreateAsyncThunk<{ station: Station }>(
     const newStation: Station = _.cloneDeep(station);
     newStation.uuid = uuidv4();
     newStation.updatedAt = null;
-    newStation.createdAt = roundDateToSecond(new Date()).toISOString();
+    newStation.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
     newStation.name = makeUniqueStringCopy(
       station.name,
       getState().station.stations.map((s) => s.name)
@@ -660,53 +630,23 @@ export const thunkDuplicateStation = appCreateAsyncThunk<{ station: Station }>(
       (action) => action.stationUuid === station.uuid
     );
 
+    // preserve actionOrderUuids from old station using new action uuids from new station
     const newActionOrderUuids = [];
-    //if there's an order, preserve it.
-    if (station.actionOrderUuids) {
-      for (const actionUuid of station.actionOrderUuids) {
-        const action = stationActions.find((a) => a.uuid === actionUuid);
-        const thunkRes = await dispatch(
-          thunkDuplicateAction({
-            action: action,
-            stationUuid: newStation.uuid,
-          })
-        );
-        if (thunkRes.payload) {
-          newActionOrderUuids.push(thunkRes.payload as string);
-        }
-      }
-
-      //in some environments we somehow got into a state where not all actions are listed (???)
-      if (station.actionOrderUuids.length !== stationActions.length) {
-        //add the leftover actions at the bottom
-        const leftoverActions = stationActions.filter(
-          (a) => !station.actionOrderUuids.includes(a.uuid)
-        );
-        for (const action of leftoverActions) {
-          const thunkRes = await dispatch(
-            thunkDuplicateAction({
-              action: action,
-              stationUuid: newStation.uuid,
-            })
-          );
-          if (thunkRes.payload) {
-            newActionOrderUuids.push(thunkRes.payload as string);
-          }
-        }
-      }
-    } else {
-      for (const action of stationActions) {
-        const thunkRes = await dispatch(
-          thunkDuplicateAction({
-            action: action,
-            stationUuid: newStation.uuid,
-          })
-        );
-        if (thunkRes.payload) {
-          newActionOrderUuids.push(thunkRes.payload as string);
-        }
+    for (const actionUuid of station.actionOrderUuids) {
+      const action = stationActions.find((a) => a.uuid === actionUuid);
+      const thunkRes = await dispatch(
+        thunkDuplicateAction({
+          action: action,
+          stationUuid: newStation.uuid,
+          promotingFromPoi: false,
+          handleActionOrderProcessing: false,
+        })
+      );
+      if (thunkRes.payload) {
+        newActionOrderUuids.push(thunkRes.payload as string);
       }
     }
+
     newStation.actionOrderUuids = newActionOrderUuids; //save new order
     dispatch(saveNewStation(newStation));
   }

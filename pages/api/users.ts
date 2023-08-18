@@ -19,7 +19,7 @@ const handleUser: NextApiHandler<WrappedResponse<User[] | User>> = async (
     }
 
     const { userId } = req.query;
-    const intUserId = parseInt(Array.isArray(userId) ? userId[0] : userId);
+    const intUserId = parseInt(userId as string);
 
     //only super admin can edit users
     if (!req.session.user.isSuperAdmin) {

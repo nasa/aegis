@@ -170,6 +170,7 @@ describe("Mission API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: testMissions[2],
+        query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleMission(req, res);
@@ -182,6 +183,7 @@ describe("Mission API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: testMissions[1],
+        query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleMission(req, res);
@@ -194,6 +196,7 @@ describe("Mission API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: newMission,
+        query: { missionId: null },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleMission(req, res);
@@ -207,6 +210,7 @@ describe("Mission API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: testMissions[0],
+        query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleMission(req, res);
@@ -308,6 +312,7 @@ describe("Mission API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: newMission,
+        query: { missionId: newMission.id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleMission(req, res);

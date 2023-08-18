@@ -15,10 +15,10 @@ import { selectEVASequenceItem, saveNewEva } from "store/cross-slice";
 import { setRightPanelOpen } from "store/interface";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import {
-  deleteTraverse,
+  deleteTraverseByUuid,
   upsertTraverse,
   setTraverseEditMode,
-  deleteTraverseFromDb,
+  deleteTraverseFromDbByUuid,
   setTraversesFromDb,
   upsertTraverseFromDb,
 } from "store/traverse";
@@ -26,7 +26,7 @@ import * as httpClient_Eva from "http-client/eva";
 import * as httpClient_Traverse from "http-client/traverse";
 import _ from "lodash";
 import { thunkFullUpdateTraverse, thunkUpdateTraversesAroundStation } from "./thunkTraverse";
-import { roundDateToSecond } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import { mergeEquipmentItems } from "utils/store";
 
@@ -206,7 +206,7 @@ export const thunkSaveEva = appCreateAsyncThunk<{
   // upsert the changed Station to the DB via internal API call
   const evaUpsertResponse = await httpClient_Eva.upsertEva({
     ...eva,
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
+    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   });
 
   if (evaUpsertResponse.status === "success") {
@@ -235,7 +235,7 @@ export const thunkSaveEva = appCreateAsyncThunk<{
     if (isModified([traverse], [thisEvasTraversesFromDb.find((t) => t.uuid === traverse.uuid)])) {
       const traverseUpsertResponse = await httpClient_Traverse.upsertTraverse({
         ...traverse,
-        updatedAt: roundDateToSecond(new Date()).toISOString(),
+        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
       });
       if (traverseUpsertResponse.status === "success") {
         // upsert the changed Traverse (with new updated date) to the store
@@ -258,7 +258,7 @@ export const thunkSaveEva = appCreateAsyncThunk<{
     return !traverseUuidsInAnyEva.includes(traverse.uuid);
   });
   for (const traverse of traversesToDelete) {
-    await httpClient_Traverse.deleteTraverse(traverse.uuid, getState().mission.mission.id);
+    await httpClient_Traverse.deleteTraverse(traverse.uuid);
   }
 
   // reset the traversesFromDB in the store with a fresh copy from the DB
@@ -293,7 +293,7 @@ export const thunkEvaCancel = appCreateAsyncThunk<{
     });
     // delete the traverses that were added during this edit to this EVA
     traverseUuidsNotFromDb.forEach((traverseUuid) => {
-      dispatch(deleteTraverse({ uuid: traverseUuid }));
+      dispatch(deleteTraverseByUuid(traverseUuid));
     });
 
     // copy back alltraverses for this eva defined in selectedEvaFromDb
@@ -331,12 +331,11 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
   });
   for (const traverse of thisEvasTraversesFromDb) {
     const deleteResponse: WrappedResponse<number> = await httpClient_Traverse.deleteTraverse(
-      traverse.uuid,
-      getState().mission.mission.id
+      traverse.uuid
     );
     if (deleteResponse.status === "success") {
       // remove the corresponding traverse from the traversesFromDb store
-      dispatch(deleteTraverseFromDb({ uuid: traverse.uuid }));
+      dispatch(deleteTraverseFromDbByUuid(traverse.uuid));
     }
   }
   // get fresh copy of Traverses from DB
@@ -350,7 +349,7 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
     return traverseUuidsInThisEva.includes(traverse.uuid);
   });
   thisEvasTraverses.forEach((traverse) => {
-    dispatch(deleteTraverse({ uuid: traverse.uuid }));
+    dispatch(deleteTraverseByUuid(traverse.uuid));
   });
 
   // delete the eva from the DB or the store
@@ -358,10 +357,7 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
   const evaFromDb = getState().eva.evasFromDb.find((evaFromDb) => evaFromDb.uuid === eva.uuid);
   if (evaFromDb) {
     // delete the Eva from the DB via internal API call
-    const deleteResponse: WrappedResponse<number> = await httpClient_Eva.deleteEva(
-      eva.uuid,
-      getState().mission.mission.id
-    );
+    const deleteResponse: WrappedResponse<number> = await httpClient_Eva.deleteEva(eva.uuid);
     if (deleteResponse.status === "success") {
       // remove the corresponding eva from the store
       dispatch(deleteEvaByUuid(eva.uuid));
@@ -400,9 +396,9 @@ export const thunkCreateEva = appCreateAsyncThunk<void>(
       status: "Candidate",
       sequence: [],
       description: "",
-      traverseRate: 3.2, // default to 3.2 km/hr
+      traverseRate: getState().mission.mission.traverseRate,
       maxDuration: getState().mission.mission.defaultEvaDuration,
-      createdAt: roundDateToSecond(new Date()).toISOString(),
+      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
       updatedAt: null,
     };
     dispatch(saveNewEva(blankEva));
@@ -418,7 +414,7 @@ export const thunkDuplicateEva = appCreateAsyncThunk<{ eva: Eva }>(
     const newEva: Eva = _.cloneDeep(eva);
     newEva.uuid = uuidv4();
     newEva.updatedAt = null;
-    newEva.createdAt = roundDateToSecond(new Date()).toISOString();
+    newEva.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
     newEva.name = makeUniqueStringCopy(
       eva.name,
       getState().eva.evas.map((item) => item.name)
@@ -443,7 +439,7 @@ export const thunkDuplicateEva = appCreateAsyncThunk<{ eva: Eva }>(
 
       //make a copy
       const newTraverse: Traverse = _.cloneDeep(traverse);
-      newTraverse.createdAt = roundDateToSecond(new Date()).toISOString();
+      newTraverse.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
       newTraverse.updatedAt = null;
       newTraverse.uuid = newUuid;
       dispatch(upsertTraverse(newTraverse));
@@ -480,7 +476,7 @@ export const thunkAddStationToEva = appCreateAsyncThunk<{ eva: Eva }>(
         pathSegmentElevations: null,
         status: null,
         updatedAt: null,
-        createdAt: roundDateToSecond(new Date()).toISOString(),
+        createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
       };
       dispatch(upsertTraverse(newTraverse));
 
@@ -510,7 +506,7 @@ export const thunkDeleteStationFromEva = appCreateAsyncThunk<{
   if (newEvaSequence[sequenceIndex + 1] && newEvaSequence[sequenceIndex + 1].type === "traverse") {
     if (sequenceIndex >= 2) traverseUuidToUpdate = newEvaSequence[sequenceIndex - 1].uuid;
     // remove the station and this sequence from the newEvaSequence
-    dispatch(deleteTraverse({ uuid: newEvaSequence[sequenceIndex + 1].uuid }));
+    dispatch(deleteTraverseByUuid(newEvaSequence[sequenceIndex + 1].uuid));
     newEvaSequence.splice(sequenceIndex, 2);
   } else if (
     newEvaSequence[sequenceIndex - 1] &&
@@ -518,7 +514,7 @@ export const thunkDeleteStationFromEva = appCreateAsyncThunk<{
   ) {
     //there's no traverse after the station, this must be the last station in the sequence.
     //if there is a traverse before the station, delete station and this sequence from the newEvaSequence
-    dispatch(deleteTraverse({ uuid: newEvaSequence[sequenceIndex - 1].uuid }));
+    dispatch(deleteTraverseByUuid(newEvaSequence[sequenceIndex - 1].uuid));
     newEvaSequence.splice(sequenceIndex - 1, 2);
   } else {
     // remove the station alone
