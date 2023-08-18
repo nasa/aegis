@@ -15,9 +15,6 @@ export const missionSlice = createSlice({
   initialState,
   reducers: {
     upsertMission: {
-      reducer: (state, action: { payload: Mission }) => {
-        state.mission = action.payload;
-      },
       prepare: (mission: Mission, preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
           return { payload: mission };
@@ -27,7 +24,46 @@ export const missionSlice = createSlice({
           };
         }
       },
+      reducer: (state, action: { payload: Mission }) => {
+        state.mission = action.payload;
+      },
     },
+    upsertMissionByField: {
+      prepare: (
+        fieldName: keyof Mission,
+        value: Mission[keyof Mission],
+        preserveModifiedDate: boolean = false
+      ) => {
+        if (preserveModifiedDate) {
+          return {
+            payload: { fieldName, value, updatedAt: null },
+          };
+        } else {
+          return {
+            payload: {
+              fieldName,
+              value,
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+            },
+          };
+        }
+      },
+      reducer: (
+        state,
+        action: {
+          payload: {
+            fieldName: keyof Mission;
+            value: Mission[keyof Mission];
+            updatedAt: string;
+          };
+        }
+      ) => {
+        state.mission.updatedAt = action.payload.updatedAt || state.mission.updatedAt;
+        const key = action.payload.fieldName;
+        (state.mission as Record<typeof key, Mission[keyof Mission]>)[key] = action.payload.value;
+      },
+    },
+
     /* only called for populating store  */
     setMission: (state, action: { payload: Mission }) => {
       state.mission = action.payload;
@@ -63,6 +99,7 @@ export const missionSlice = createSlice({
 
 export const {
   upsertMission,
+  upsertMissionByField,
   setMission,
   setMissionFromDb,
   setLayers,

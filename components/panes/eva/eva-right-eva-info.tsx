@@ -3,7 +3,7 @@ import { InLineEditInput } from "components/interface/form/globalFields";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 
-import { upsertEva } from "store/eva";
+import { upsertEva, upsertEvaByField } from "store/eva";
 import { shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
@@ -125,7 +125,9 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             },
                           }}
                           onSubmit={(val: string) => {
-                            dispatch(upsertEva({ ...selectedEva, maxDuration: toDecimal(val) }));
+                            dispatch(
+                              upsertEvaByField(selectedEva.uuid, "maxDuration", toDecimal(val))
+                            );
                           }}
                         />
                       </div>
@@ -165,7 +167,9 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             },
                           }}
                           onSubmit={(val: string) => {
-                            dispatch(upsertEva({ ...selectedEva, traverseRate: toDecimal(val) }));
+                            dispatch(
+                              upsertEvaByField(selectedEva.uuid, "traverseRate", toDecimal(val))
+                            );
                           }}
                         />
                       </div>

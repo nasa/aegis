@@ -1,7 +1,7 @@
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
-import { FunctionComponent, useState, CSSProperties, ChangeEvent, ReactNode } from "react";
+import { FunctionComponent, useState, CSSProperties, ChangeEvent, ReactNode, useRef } from "react";
 import styles from "./globalFields.module.css";
 import { TagsInput } from "react-tag-input-component";
 import { decodeEmoji } from "utils/formatting";
@@ -14,6 +14,7 @@ import { FFTextProps, FFCheckboxProps, FFSelectProps } from "typings/form";
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import formStyles from "./globalFields.module.css";
 import CircularSlider from "@fseehawer/react-circular-slider";
+import _ from "lodash";
 
 export const Button: FunctionComponent<{
   onClick: () => void;
@@ -190,7 +191,7 @@ export const IconDropdown: FunctionComponent<{
 /**
  * This component wraps the {@link FFInput} component inside a react-final-form {@link Form}
  *    to allow each input to validate and submit individually (no singular save button for the entire page)
- * The onSubmit function is called onBlur. This is where the redux store update action should be defined
+ * The onSubmit function is called onchange. This is where the redux store update action should be defined
  * To use validators with this component, import validators from /utils/formValidator.ts and
  *    pass them them in as an array in the fieldProps.validators property.
  * New validators can be added and exported from /utils/formValidators
@@ -203,12 +204,19 @@ export const InLineEditInput: FunctionComponent<{
   styleContainer?: CSSProperties;
   onSubmit?: (value: string) => void;
 }> = ({ value, editing, styleValue, styleContainer, onSubmit, fieldProps }) => {
+  const throttleSubmitRef = useRef(
+    _.throttle((formValue) => {
+      if (onSubmit) onSubmit(formValue);
+    }, 500)
+  );
+
   return (
     <div style={styleContainer}>
       {editing && (
         <Form
+          //only called if all validation passes
           onSubmit={(formValues) => {
-            if (onSubmit) onSubmit(formValues[fieldProps.name]);
+            throttleSubmitRef.current(formValues[fieldProps.name]);
           }}
           initialValues={{ [fieldProps.name]: value }}
           render={({ handleSubmit, form }) => {
@@ -218,9 +226,8 @@ export const InLineEditInput: FunctionComponent<{
                   {...fieldProps}
                   className={styles.inLineEditInput}
                   classNameError={styles.inLineEditInputError}
-                  onBlur={(event: React.FocusEvent) => {
-                    if (fieldProps.onBlur) fieldProps.onBlur(event);
-                    form.submit(); //also submit the form so it saves data
+                  onChange={() => {
+                    form.submit();
                   }}
                 />
               </form>
@@ -443,8 +450,8 @@ export const FFInput: FunctionComponent<FFTextProps> = ({
                 if (onChange) onChange(event); //call custom on change
               }}
               onBlur={(event) => {
-                if (onBlur) onBlur(event);
                 input.onBlur(event);
+                if (onBlur) onBlur(event);
               }}
               onClick={(event) => {
                 event.stopPropagation();
@@ -500,12 +507,12 @@ export const FFTextArea: FunctionComponent<FFTextProps> = ({
             aria-label={ariaLabel}
             style={style}
             onChange={(event) => {
-              if (onChange) onChange(event); //call custom on change
               input.onChange(event); //call native on change
+              if (onChange) onChange(event); //call custom on change
             }}
             onBlur={(event) => {
-              if (onBlur) onBlur(event);
               input.onBlur(event);
+              if (onBlur) onBlur(event);
             }}
             onClick={(event) => {
               event.stopPropagation();

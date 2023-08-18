@@ -22,7 +22,7 @@ import {
   InLineEditInput,
 } from "components/interface/form/globalFields";
 import { regExValidators, validators } from "components/interface/form/formValidators";
-import { upsertMission } from "store/mission";
+import { upsertMission, upsertMissionByField } from "store/mission";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { updateMapDirective } from "store/map";
 import { toDecimal } from "utils/formatting";
@@ -149,7 +149,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 }}
                 styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                 onSubmit={(value) => {
-                  dispatch(upsertMission({ ...mission, name: value }));
+                  dispatch(upsertMissionByField("name", value));
                 }}
               />
             </div>
@@ -170,7 +170,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 }}
                 styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                 onSubmit={(value) => {
-                  dispatch(upsertMission({ ...mission, missionBanner: value }));
+                  dispatch(upsertMissionByField("missionBanner", value));
                 }}
               />
             </div>
@@ -281,12 +281,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
                               dispatch(
-                                upsertMission({
-                                  ...mission,
-                                  landerLocation: {
-                                    ...mission.landerLocation,
-                                    lat: toDecimal(val),
-                                  },
+                                upsertMissionByField("landerLocation", {
+                                  ...mission.landerLocation,
+                                  lat: toDecimal(val),
                                 })
                               );
                             }}
@@ -320,12 +317,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
                               dispatch(
-                                upsertMission({
-                                  ...mission,
-                                  landerLocation: {
-                                    ...mission.landerLocation,
-                                    lng: toDecimal(val),
-                                  },
+                                upsertMissionByField("landerLocation", {
+                                  ...mission.landerLocation,
+                                  lng: toDecimal(val),
                                 })
                               );
                             }}
@@ -500,9 +494,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           }}
                           value={mission.defaultEvaDuration?.toString()}
                           onSubmit={(val: string) => {
-                            dispatch(
-                              upsertMission({ ...mission, defaultEvaDuration: toDecimal(val) })
-                            );
+                            dispatch(upsertMissionByField("defaultEvaDuration", toDecimal(val)));
                           }}
                         />
                       </div>
@@ -530,7 +522,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           }}
                           value={mission.traverseRate?.toString()}
                           onSubmit={(val: string) => {
-                            dispatch(upsertMission({ ...mission, traverseRate: toDecimal(val) }));
+                            dispatch(upsertMissionByField("traverseRate", toDecimal(val)));
                           }}
                         />
                       </div>
@@ -558,7 +550,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           }}
                           value={mission.walkbackRate?.toString()}
                           onSubmit={(val: string) => {
-                            dispatch(upsertMission({ ...mission, walkbackRate: toDecimal(val) }));
+                            dispatch(upsertMissionByField("walkbackRate", toDecimal(val)));
                           }}
                         />
                       </div>

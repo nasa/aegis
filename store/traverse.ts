@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { cloneDeep } from "lodash";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
 
@@ -15,9 +16,6 @@ export const traverseSlice = createSlice({
   initialState,
   reducers: {
     upsertTraverse: {
-      reducer: (state, action: { payload: Traverse }) => {
-        upsertToArrayByUuid(state.traverses, action.payload);
-      },
       prepare: (traverse: Traverse, preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
           return { payload: traverse };
@@ -27,11 +25,11 @@ export const traverseSlice = createSlice({
           };
         }
       },
+      reducer: (state, action: { payload: Traverse }) => {
+        upsertToArrayByUuid(state.traverses, action.payload);
+      },
     },
     upsertTraverses: {
-      reducer: (state, action: { payload: Traverse[] }) => {
-        action.payload.forEach((traverse) => upsertToArrayByUuid(state.traverses, traverse));
-      },
       prepare: (traverses: Traverse[], preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
           return { payload: traverses };
@@ -44,13 +42,56 @@ export const traverseSlice = createSlice({
           };
         }
       },
+      reducer: (state, action: { payload: Traverse[] }) => {
+        action.payload.forEach((traverse) => upsertToArrayByUuid(state.traverses, traverse));
+      },
     },
     upsertTraverseFromDb: (state, action: { payload: Traverse }) => {
       upsertToArrayByUuid(state.traversesFromDb, action.payload);
     },
-
     upsertTraversesFromDb: (state, action: { payload: Traverse[] }) => {
       action.payload.forEach((traverse) => upsertToArrayByUuid(state.traversesFromDb, traverse));
+    },
+    upsertTraverseByField: {
+      prepare: (
+        traverseUuid: string,
+        fieldName: keyof Traverse,
+        value: Traverse[keyof Traverse],
+        preserveModifiedDate: boolean = false
+      ) => {
+        if (preserveModifiedDate) {
+          return {
+            payload: { traverseUuid, fieldName, value, updatedAt: null },
+          };
+        } else {
+          return {
+            payload: {
+              traverseUuid,
+              fieldName,
+              value,
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+            },
+          };
+        }
+      },
+      reducer: (
+        state,
+        action: {
+          payload: {
+            traverseUuid: string;
+            fieldName: keyof Traverse;
+            value: Traverse[keyof Traverse];
+            updatedAt: string;
+          };
+        }
+      ) => {
+        const traverse = state.traverses.find((s) => s.uuid === action.payload.traverseUuid);
+        const newTraverse: Traverse = cloneDeep(traverse);
+        newTraverse.updatedAt = action.payload.updatedAt || traverse.updatedAt;
+        const key = action.payload.fieldName;
+        (newTraverse as Record<typeof key, Traverse[keyof Traverse]>)[key] = action.payload.value;
+        upsertToArrayByUuid(state.traverses, newTraverse);
+      },
     },
     /* only called for populating store  */
     setTraverses: (state, action: { payload: Traverse[] }) => {
@@ -105,6 +146,7 @@ export const {
   upsertTraverses,
   upsertTraverseFromDb,
   upsertTraversesFromDb,
+  upsertTraverseByField,
   setTraverses,
   setTraversesFromDb,
   deleteTraverseByUuid,

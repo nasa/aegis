@@ -6,7 +6,7 @@ import { Button, InLineEditInput } from "components/interface/form/globalFields"
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
-import { setSelectedPOIRightNavItem, upsertPoi } from "store/poi";
+import { setSelectedPOIRightNavItem, upsertPoi, upsertPoiByField } from "store/poi";
 import { updateMapDirective } from "store/map";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
@@ -247,12 +247,9 @@ const Info_Panel: FunctionComponent<{
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
                               dispatch(
-                                upsertPoi({
-                                  ...selectedPoi,
-                                  location: {
-                                    lat: parseFloat(val),
-                                    lng: selectedPoi.location.lng,
-                                  },
+                                upsertPoiByField(selectedPoi.uuid, "location", {
+                                  lat: parseFloat(val),
+                                  lng: selectedPoi.location.lng,
                                 })
                               );
                             }}
@@ -282,12 +279,9 @@ const Info_Panel: FunctionComponent<{
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
                               dispatch(
-                                upsertPoi({
-                                  ...selectedPoi,
-                                  location: {
-                                    lat: selectedPoi.location.lat,
-                                    lng: parseFloat(val),
-                                  },
+                                upsertPoiByField(selectedPoi.uuid, "location", {
+                                  lat: selectedPoi.location.lat,
+                                  lng: parseFloat(val),
                                 })
                               );
                             }}

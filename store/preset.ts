@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { upsertToArrayByUuid } from "../utils/store";
-import _ from "lodash";
+import _, { cloneDeep } from "lodash";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 export const initialState: PresetState = {
   presets: [],
@@ -16,9 +16,6 @@ export const presetSlice = createSlice({
   initialState,
   reducers: {
     upsertPreset: {
-      reducer: (state, action: { payload: Preset }) => {
-        upsertToArrayByUuid(state.presets, action.payload);
-      },
       prepare: (preset: Preset, preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
           return { payload: preset };
@@ -28,11 +25,11 @@ export const presetSlice = createSlice({
           };
         }
       },
+      reducer: (state, action: { payload: Preset }) => {
+        upsertToArrayByUuid(state.presets, action.payload);
+      },
     },
     upsertPresets: {
-      reducer: (state, action: { payload: Preset[] }) => {
-        action.payload.forEach((preset) => upsertToArrayByUuid(state.presets, preset));
-      },
       prepare: (presets: Preset[], preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
           return { payload: presets };
@@ -45,6 +42,9 @@ export const presetSlice = createSlice({
           };
         }
       },
+      reducer: (state, action: { payload: Preset[] }) => {
+        action.payload.forEach((preset) => upsertToArrayByUuid(state.presets, preset));
+      },
     },
     upsertPresetFromDb: (state, action: { payload: Preset }) => {
       upsertToArrayByUuid(state.presetsFromDb, action.payload);
@@ -52,6 +52,48 @@ export const presetSlice = createSlice({
     upsertPresetsFromDb: (state, action: { payload: Preset[] }) => {
       action.payload.forEach((preset) => upsertToArrayByUuid(state.presetsFromDb, preset));
     },
+    upsertPresetByField: {
+      prepare: (
+        presetUuid: string,
+        fieldName: keyof Preset,
+        value: Preset[keyof Preset],
+        preserveModifiedDate: boolean = false
+      ) => {
+        if (preserveModifiedDate) {
+          return {
+            payload: { presetUuid, fieldName, value, updatedAt: null },
+          };
+        } else {
+          return {
+            payload: {
+              presetUuid,
+              fieldName,
+              value,
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+            },
+          };
+        }
+      },
+      reducer: (
+        state,
+        action: {
+          payload: {
+            presetUuid: string;
+            fieldName: keyof Preset;
+            value: Preset[keyof Preset];
+            updatedAt: string;
+          };
+        }
+      ) => {
+        const preset = state.presets.find((p) => p.uuid === action.payload.presetUuid);
+        const newPreset: Preset = cloneDeep(preset);
+        newPreset.updatedAt = action.payload.updatedAt || preset.updatedAt;
+        const key = action.payload.fieldName;
+        (newPreset as Record<typeof key, Preset[keyof Preset]>)[key] = action.payload.value;
+        upsertToArrayByUuid(state.presets, newPreset);
+      },
+    },
+
     /* only called for populating store  */
     setPresets: (state, action: { payload: Preset[] }) => {
       state.presets = action.payload;
@@ -191,6 +233,7 @@ export const {
   upsertPresets,
   upsertPresetFromDb,
   upsertPresetsFromDb,
+  upsertPresetByField,
   setPresets,
   setPresetsFromDb,
   deletePresetByUuid,

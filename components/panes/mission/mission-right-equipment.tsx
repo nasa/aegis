@@ -101,7 +101,13 @@ const EquipmentItem: FunctionComponent<{
             }}
             value={item.name}
             onSubmit={(val: string) => {
-              dispatch(thunkUpdateEquipment({ equipmentItem: { ...item, name: val } }));
+              dispatch(
+                thunkUpdateEquipment({
+                  uuid: item.uuid,
+                  fieldName: "name",
+                  value: val,
+                })
+              );
             }}
           />
         </div>
@@ -125,7 +131,11 @@ const EquipmentItem: FunctionComponent<{
             value={item.quantity?.toString()}
             onSubmit={(val: string) => {
               dispatch(
-                thunkUpdateEquipment({ equipmentItem: { ...item, quantity: toDecimal(val) } })
+                thunkUpdateEquipment({
+                  uuid: item.uuid,
+                  fieldName: "quantity",
+                  value: toDecimal(val),
+                })
               );
             }}
           />
@@ -139,7 +149,9 @@ const EquipmentItem: FunctionComponent<{
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   dispatch(
                     thunkUpdateEquipment({
-                      equipmentItem: { ...item, singleUse: e.target.checked },
+                      uuid: item.uuid,
+                      fieldName: "singleUse",
+                      value: e.target.checked,
                     })
                   );
                 }}

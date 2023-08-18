@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { cloneDeep } from "lodash";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
 
@@ -16,9 +17,6 @@ export const stationSlice = createSlice({
   initialState,
   reducers: {
     upsertStation: {
-      reducer: (state, action: { payload: Station }) => {
-        upsertToArrayByUuid(state.stations, action.payload);
-      },
       prepare: (station: Station, preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
           return { payload: station };
@@ -28,11 +26,11 @@ export const stationSlice = createSlice({
           };
         }
       },
+      reducer: (state, action: { payload: Station }) => {
+        upsertToArrayByUuid(state.stations, action.payload);
+      },
     },
     upsertStations: {
-      reducer: (state, action: { payload: Station[] }) => {
-        action.payload.forEach((station) => upsertToArrayByUuid(state.stations, station));
-      },
       prepare: (stations: Station[], preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
           return { payload: stations };
@@ -45,12 +43,56 @@ export const stationSlice = createSlice({
           };
         }
       },
+      reducer: (state, action: { payload: Station[] }) => {
+        action.payload.forEach((station) => upsertToArrayByUuid(state.stations, station));
+      },
     },
     upsertStationsFromDb: (state, action: { payload: Station[] }) => {
       action.payload.forEach((station) => upsertToArrayByUuid(state.stationsFromDb, station));
     },
     upsertStationFromDb: (state, action: { payload: Station }) => {
       upsertToArrayByUuid(state.stationsFromDb, action.payload);
+    },
+    upsertStationByField: {
+      prepare: (
+        stationUuid: string,
+        fieldName: keyof Station,
+        value: Station[keyof Station],
+        preserveModifiedDate: boolean = false
+      ) => {
+        if (preserveModifiedDate) {
+          return {
+            payload: { stationUuid, fieldName, value, updatedAt: null },
+          };
+        } else {
+          return {
+            payload: {
+              stationUuid,
+              fieldName,
+              value,
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+            },
+          };
+        }
+      },
+      reducer: (
+        state,
+        action: {
+          payload: {
+            stationUuid: string;
+            fieldName: keyof Station;
+            value: Station[keyof Station];
+            updatedAt: string;
+          };
+        }
+      ) => {
+        const station = state.stations.find((s) => s.uuid === action.payload.stationUuid);
+        const newStation: Station = cloneDeep(station);
+        newStation.updatedAt = action.payload.updatedAt || station.updatedAt;
+        const key = action.payload.fieldName;
+        (newStation as Record<typeof key, Station[keyof Station]>)[key] = action.payload.value;
+        upsertToArrayByUuid(state.stations, newStation);
+      },
     },
     /* only called for populating store  */
     setStations: (state, action: { payload: Station[] }) => {
@@ -115,6 +157,7 @@ export const {
   upsertStations,
   upsertStationsFromDb,
   upsertStationFromDb,
+  upsertStationByField,
   setStations,
   setStationsFromDb,
   deleteStationByUuid,
