@@ -93,11 +93,17 @@
 
 .actionsHeadingTitle {
   flex-grow: 1;
+  display: flex;
+  flex-direction: row;
   font-size: 0.8rem;
   font-weight: 400;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+}
+
+.actionsHeadingTitleIcon {
+  width: 17px;
+  font-size: 0.8rem;
+  text-align: center;
+  cursor: pointer;
 }
 
 .actionsHeadingCaret {

@@ -108,38 +108,56 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                           }
                         }}
                       >
-                        <div>
-                          <span style={{ textTransform: "capitalize" }}>{actionTemplate.type}</span>{" "}
-                          : {actionTemplate.templateName}
+                        <div className={actionActionStyles.verticalCenter}>
+                          <div className={actionActionStyles.actionsHeadingTitleIcon}>
+                            {decodeEmoji(actionTemplate.icon ? actionTemplate.icon : "2754")}
+                          </div>
+                        </div>
+                        <div className={actionActionStyles.verticalCenter}>
+                          <div style={{ marginLeft: "5px" }}>
+                            <span style={{ textTransform: "capitalize" }}>
+                              {actionTemplate.type}
+                            </span>{" "}
+                            : {actionTemplate.templateName}
+                          </div>
                         </div>
                       </div>
                     ) : (
                       <>
-                        <div
-                          className={missionStyles.templateActionTitle}
-                          style={{ textTransform: "capitalize" }}
-                        >
-                          {actionTemplate.type}:&nbsp;
+                        <div className={actionActionStyles.verticalCenter}>
+                          <div className={actionActionStyles.actionsHeadingTitleIcon}>
+                            {decodeEmoji(actionTemplate.icon ? actionTemplate.icon : "2754")}
+                          </div>
                         </div>
-                        <InLineEditInput
-                          value={actionTemplate.templateName}
-                          editing={editMode}
-                          fieldProps={{
-                            name: "type",
-                            ariaLabel: "Template Name",
-                            style: { width: "100%" },
-                            validators: [validators.maxLength(255)],
-                          }}
-                          onSubmit={(value: string) => {
-                            dispatch(
-                              thunkUpdateActionTemplate({
-                                uuid: actionTemplate.uuid,
-                                fieldName: "templateName",
-                                value: value,
-                              })
-                            );
-                          }}
-                        />
+                        <div className={actionActionStyles.verticalCenter}>
+                          <div
+                            className={missionStyles.templateActionTitle}
+                            style={{ textTransform: "capitalize", marginLeft: "2px" }}
+                          >
+                            {actionTemplate.type}:&nbsp;
+                          </div>
+                        </div>
+                        <div className={actionActionStyles.verticalCenter}>
+                          <InLineEditInput
+                            value={actionTemplate.templateName}
+                            editing={editMode}
+                            fieldProps={{
+                              name: "type",
+                              ariaLabel: "Template Name",
+                              style: { width: "100%" },
+                              validators: [validators.maxLength(255)],
+                            }}
+                            onSubmit={(value: string) => {
+                              dispatch(
+                                thunkUpdateActionTemplate({
+                                  uuid: actionTemplate.uuid,
+                                  fieldName: "templateName",
+                                  value: value,
+                                })
+                              );
+                            }}
+                          />
+                        </div>
                       </>
                     )}
                     <div className={actionActionStyles.actionsHeadingTitle}></div>

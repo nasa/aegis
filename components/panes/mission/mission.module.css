@@ -137,9 +137,6 @@
   font-size: 0.9rem;
   font-weight: 400;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-transform: capitalize;
 }
 
 .templateActionType {
