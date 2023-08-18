@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { roundDateToSecond } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
 
 export const initialState: PoiState = {
@@ -23,9 +23,31 @@ export const poiSlice = createSlice({
         if (preserveModifiedDate) {
           return { payload: poi };
         } else {
-          return { payload: { ...poi, updatedAt: roundDateToSecond(new Date()).toISOString() } };
+          return {
+            payload: { ...poi, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() },
+          };
         }
       },
+    },
+    upsertPois: {
+      reducer: (state, action: { payload: POI[] }) => {
+        action.payload.forEach((poi) => upsertToArrayByUuid(state.pois, poi));
+      },
+      prepare: (pois: POI[], preserveModifiedDate: boolean = false) => {
+        if (preserveModifiedDate) {
+          return { payload: pois };
+        } else {
+          return {
+            payload: pois.map((poi) => ({
+              ...poi,
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+            })),
+          };
+        }
+      },
+    },
+    upsertPoisFromDb: (state, action: { payload: POI[] }) => {
+      action.payload.forEach((poi) => upsertToArrayByUuid(state.poisFromDb, poi));
     },
     upsertPoiFromDb: (state, action: { payload: POI }) => {
       upsertToArrayByUuid(state.poisFromDb, action.payload);
@@ -39,6 +61,9 @@ export const poiSlice = createSlice({
     },
     deletePoiByUuid: (state, action: { payload: string }) => {
       state.pois = state.pois.filter((poi) => poi.uuid !== action.payload);
+    },
+    deletePoiFromDbByUuid: (state, action: { payload: string }) => {
+      state.poisFromDb = state.poisFromDb.filter((poi) => poi.uuid !== action.payload);
     },
     setSelectedPOIRightNavItem: (state, action: { payload: string }) => {
       state.selectedRightNavItem = action.payload;
@@ -72,10 +97,13 @@ export const poiSlice = createSlice({
 
 export const {
   upsertPoi,
+  upsertPois,
+  upsertPoisFromDb,
   upsertPoiFromDb,
   setPois,
   setPoisFromDb,
   deletePoiByUuid,
+  deletePoiFromDbByUuid,
   setSelectedPOIRightNavItem,
   setSelectedPoiUuid,
   setStateForNewPoi,

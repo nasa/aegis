@@ -78,6 +78,7 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             </div>
                             <div className={paneStyles.descriptionContainer}>
                               <WysiwygTextArea
+                                key={poi.uuid}
                                 value={poi.description}
                                 editing={false}
                                 onChange={() => {}}

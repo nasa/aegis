@@ -7,7 +7,7 @@ import {
   setPresetEditMode,
   setSelectedPresetUuid,
   setPresetUIStates,
-  deletePreset,
+  deletePresetByUuid,
   resetAllPresetUIStates,
   setPresetsFromDb,
   upsertPresetFromDb,
@@ -15,7 +15,7 @@ import {
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import * as InternalAPI from "http-client/preset";
 import { sortBy, cloneDeep } from "lodash";
-import { roundDateToSecond } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { saveNewPreset } from "store/cross-slice";
 
 export const thunkSavePreset = appCreateAsyncThunk<{
@@ -26,7 +26,7 @@ export const thunkSavePreset = appCreateAsyncThunk<{
   // upsert the changed Preset to the DB
   const upsertReponse = await InternalAPI.upsertPreset({
     ...preset,
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
+    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   });
 
   if (upsertReponse.status === "success") {
@@ -50,7 +50,7 @@ export const thunkPresetCancel = appCreateAsyncThunk<{
 
   // if selected preset isn't in the db, delete it from the store
   if (!presetFromDb) {
-    dispatch(deletePreset(preset));
+    dispatch(deletePresetByUuid(preset.uuid));
     dispatch(setSelectedPresetUuid(null));
     dispatch(setRightPanelOpen(false));
   } else {
@@ -73,10 +73,10 @@ export const thunkDeletePreset = appCreateAsyncThunk<{
   if (presetFromDb) {
     const missionId = getState().mission.mission?.id;
     // delete the preset from the DB via internal API call
-    const deleteResponse = await InternalAPI.deletePreset(preset.uuid, missionId);
+    const deleteResponse = await InternalAPI.deletePreset(preset.uuid);
     if (deleteResponse.status === "success") {
       // remove the corresponding preset from the store
-      dispatch(deletePreset(preset));
+      dispatch(deletePresetByUuid(preset.uuid));
       dispatch(setSelectedPresetUuid(null));
 
       // get fresh copy of presets from DB
@@ -89,7 +89,7 @@ export const thunkDeletePreset = appCreateAsyncThunk<{
     }
   } else {
     // if the selected preset is not in presetsFromDb then delete it from the store
-    dispatch(deletePreset(preset));
+    dispatch(deletePresetByUuid(preset.uuid));
     dispatch(setSelectedPresetUuid(null));
   }
   dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: false }));
@@ -129,7 +129,7 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
       mapSublayerControls: getState().map.mapSublayerControls,
       mapCircleControls: getState().map.mapCircleControls,
       updatedAt: null,
-      createdAt: roundDateToSecond(new Date()).toISOString(),
+      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     dispatch(saveNewPreset(blankPreset));
 
@@ -175,7 +175,7 @@ export const thunkDuplicatePreset = appCreateAsyncThunk<{ preset: Preset }>(
     //duplicate preset
     const newPreset: Preset = cloneDeep(preset);
     newPreset.uuid = uuidv4();
-    newPreset.createdAt = roundDateToSecond(new Date()).toISOString();
+    newPreset.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
     newPreset.updatedAt = null;
     newPreset.name = makeUniqueStringCopy(
       preset.name,

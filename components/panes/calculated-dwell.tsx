@@ -28,7 +28,7 @@ const CalculatedDwell: FunctionComponent<{
               style={{
                 color:
                   actionsCalculatedFields.totalUnassignedTime.durationLower > 0
-                    ? "var(--error)"
+                    ? "var(--warning)"
                     : undefined,
               }}
               data-tooltip-id="aegis-tooltip"

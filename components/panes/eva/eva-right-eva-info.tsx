@@ -26,7 +26,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     shallowEqual
   );
   const missionTraverseRate = useAppSelector(
-    (state) => state.mission.mission?.traverseSpeed,
+    (state) => state.mission.mission?.traverseRate,
     shallowEqual
   );
   const evaCalculatedFields = useAppSelector(
@@ -78,6 +78,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
             </div>
             <div className={paneStyles.descriptionContainer}>
               <WysiwygTextArea
+                key={selectedEva.uuid}
                 value={selectedEva.description}
                 editing={editMode}
                 onChange={(value) => {
@@ -87,7 +88,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                       description: value,
                     })
                   );
-                }} // handle innerHTML change
+                }}
               />
             </div>
           </div>
@@ -142,6 +143,8 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         } Default: ${selectedEva?.traverseRate || missionTraverseRate} km/hr`}
                       >
                         Traverse Rate (km/hr):
+                        <br />
+                        (Mission Default: {missionTraverseRate})
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -191,7 +194,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                           style={{
                             color:
                               evaCalculatedFields.totalUnassignedTime.durationLower > 0
-                                ? "var(--error)"
+                                ? "var(--warning)"
                                 : undefined,
                           }}
                           data-tooltip-id="aegis-tooltip"

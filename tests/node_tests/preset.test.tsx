@@ -161,6 +161,7 @@ describe("Preset API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newPreset, missionId: testMissions[2].id },
+        query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handlePreset(req, res);
@@ -173,6 +174,7 @@ describe("Preset API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newPreset, missionId: testMissions[1].id },
+        query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handlePreset(req, res);
@@ -185,6 +187,7 @@ describe("Preset API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newPreset, missionId: testMissions[0].id, ownerId: testUser.id },
+        query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handlePreset(req, res);
@@ -208,6 +211,7 @@ describe("Preset API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: newPreset,
+        query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handlePreset(req, res);

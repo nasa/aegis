@@ -65,6 +65,20 @@ const EvaItemSequence: FunctionComponent<{
     );
   };
 
+  const displayTraverseDuration = (thisTraverse: Traverse) => {
+    const durationMinutes =
+      traverseCalculatedFields.find((traverseData) => traverseData.uuid === thisTraverse?.uuid)
+        ?.durationMinutes || null;
+    return !isNaN(durationMinutes) ? hhmmFromMinutes(durationMinutes) : "N/A";
+  };
+
+  const displayStationDuration = (thisStation: Station) => {
+    const durationMinutes =
+      stationCalculatedFields.find((stationData) => stationData.uuid === thisStation?.uuid)
+        ?.totalTime.durationUpper || null;
+    return !isNaN(durationMinutes) ? hhmmFromMinutes(durationMinutes) : "N/A";
+  };
+
   return (
     <div className={evaStyles.evaSequence}>
       {evaSequence &&
@@ -140,11 +154,7 @@ const EvaItemSequence: FunctionComponent<{
                         ]}
                       />
                       <div className={evaStyles.evaItemDuration}>
-                        {hhmmFromMinutes(
-                          stationCalculatedFields.find(
-                            (stationData) => stationData.uuid === thisStation.uuid
-                          )?.totalTime.durationUpper
-                        )}
+                        {displayStationDuration(thisStation)}
                       </div>
                     </div>
                   ) : (
@@ -155,6 +165,7 @@ const EvaItemSequence: FunctionComponent<{
                         selected={sequenceItem.uuid}
                         arrowStyle={{ top: "1px" }}
                         containerStyle={{ width: "200px" }}
+                        selectStyle={{ width: "100%" }}
                         onChange={(val) => {
                           dispatch(
                             thunkChangeStationInEva({
@@ -241,11 +252,7 @@ const EvaItemSequence: FunctionComponent<{
                       ]}
                     />
                     <div className={evaStyles.evaItemDuration}>
-                      {hhmmFromMinutes(
-                        traverseCalculatedFields.find(
-                          (traverseData) => traverseData.uuid === thisTraverse?.uuid
-                        )?.durationMinutes
-                      )}
+                      {displayTraverseDuration(thisTraverse)}
                     </div>
                   </div>
                 </>

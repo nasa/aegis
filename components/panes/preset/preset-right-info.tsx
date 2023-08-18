@@ -9,7 +9,7 @@ import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { Checkbox } from "components/interface/form/globalFields";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faMessage } from "@fortawesome/free-solid-svg-icons";
-import { roundDateToSecond } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -27,7 +27,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       otherPresets.forEach((preset) => {
         if (preset.missionPresetDefault) {
           // save the preset to the store and db
-          const modifiedDate = roundDateToSecond(new Date()).toISOString();
+          const modifiedDate = roundDateToSecond(getAccurateNow()).toISOString();
           const updatedPreset = { ...preset, missionPresetDefault: false, updatedAt: modifiedDate };
           dispatch(upsertPreset(updatedPreset, true));
           dispatch(upsertPresetFromDb(updatedPreset));
@@ -129,6 +129,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           </div>
           <div className={paneStyles.descriptionContainer}>
             <WysiwygTextArea
+              key={selectedPreset?.uuid}
               value={selectedPreset?.description}
               defaultValue="Enter description here"
               editing={editMode}

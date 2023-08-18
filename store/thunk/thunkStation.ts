@@ -30,7 +30,7 @@ import * as httpClient_action from "http-client/action";
 import { updateMapDirective } from "store/map";
 import { thunkCancelMarkerMapDirective } from "./thunkMap";
 import { thunkDuplicateAction, thunkSaveActions } from "./thunkAction";
-import { roundDateToSecond } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import { saveNewStation } from "store/cross-slice";
 import { mergeEquipmentItems } from "utils/store";
@@ -215,7 +215,7 @@ export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
   async (_, { dispatch, getState }) => {
     const stations = getState().station.stations;
     const allCalculatedFields: StationCalculatedFields[] = [];
-    const missionTraverseRate = getState().mission.mission?.traverseSpeed;
+    const missionTraverseRate = getState().mission.mission?.traverseRate;
     for (const station of stations) {
       //get station actions
       const stationActions = getState().action.actions.filter(
@@ -406,7 +406,7 @@ export const thunkSaveStation = appCreateAsyncThunk<{
   // upsert the changed Station to the DB via internal API call
   const stationUpsertResponse = await httpClient_station.upsertStation({
     ...station,
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
+    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   });
 
   if (stationUpsertResponse.status === "success") {
@@ -531,12 +531,10 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
 
   // if the selected station is in stationsFromDb then delete it from the db
   if (stationFromDb) {
-    const missionId = getState().mission.mission.id;
     // delete actions from the db via internal api call
     for (const actionToDelete of stationActions) {
       const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteAction(
-        actionToDelete.uuid,
-        missionId
+        actionToDelete.uuid
       );
       if (actionDeleteResponse.status !== "success") {
         throw new Error("Error deleting actions for station " + actionDeleteResponse.message);
@@ -554,8 +552,7 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
 
     // delete the Station from the DB via internal API call
     const deleteResponse: WrappedResponse<number> = await httpClient_station.deleteStation(
-      station.uuid,
-      missionId
+      station.uuid
     );
     if (deleteResponse.status === "success") {
       // remove the corresponding Station from the store
@@ -586,7 +583,7 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
   "stationCreate",
   async (_, { dispatch, getState }) => {
     const randomName = generateUniqueName({
-      dictName: "countries",
+      dictName: "lotr",
       existingNames: getState().station.stations.map((item) => item.name),
     });
 
@@ -608,7 +605,7 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
       icon: null,
       poiUuids: [],
       updatedAt: null,
-      createdAt: roundDateToSecond(new Date()).toISOString(),
+      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     dispatch(saveNewStation(blankStation));
   }
@@ -622,7 +619,7 @@ export const thunkDuplicateStation = appCreateAsyncThunk<{ station: Station }>(
     const newStation: Station = _.cloneDeep(station);
     newStation.uuid = uuidv4();
     newStation.updatedAt = null;
-    newStation.createdAt = roundDateToSecond(new Date()).toISOString();
+    newStation.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
     newStation.name = makeUniqueStringCopy(
       station.name,
       getState().station.stations.map((s) => s.name)

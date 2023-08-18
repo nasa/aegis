@@ -16,7 +16,7 @@ export class Mission implements Mission_db_type {
   @Property({ type: MikroTypes.json, nullable: true })
   landerLocation: AEGISPoint;
   @Property({ type: MikroTypes.double, nullable: true })
-  traverseSpeed: number;
+  traverseRate: number;
   @Property({ type: MikroTypes.double, nullable: true })
   landerElevationMeters: number;
   @Property({ type: MikroTypes.double, nullable: true })
@@ -30,7 +30,7 @@ export class Mission implements Mission_db_type {
   @Property({ type: MikroTypes.double, nullable: true })
   defaultEvaDuration: number;
   @Property({ type: MikroTypes.double, nullable: true, default: 2 })
-  walkbackSpeed: number;
+  walkbackRate: number;
   @Property({ type: MikroTypes.json, nullable: true })
   equipmentItems: EquipmentItem[];
   @Property({ type: MikroTypes.json, nullable: true })

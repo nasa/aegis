@@ -223,3 +223,19 @@ export const titleCase = (str: string): string => {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 };
+
+/**
+ * Get accurate time using timeOffsetMs stored in sessionStorage (if it exists)
+ */
+export function getAccurateNow(): Date {
+  if (typeof window === "undefined") return new Date();
+  const timeOffsetMs = Number(sessionStorage.getItem("timeOffsetMs"));
+  if (timeOffsetMs === null || isNaN(timeOffsetMs)) return new Date();
+  if (Math.abs(timeOffsetMs) < 1000) return new Date(); // if timeOffsetMs is less than 1 second, don't bother adjusting time
+
+  if (timeOffsetMs > 0) {
+    return new Date(Date.now() - timeOffsetMs);
+  } else {
+    return new Date(Date.now() + timeOffsetMs);
+  }
+}

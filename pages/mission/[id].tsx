@@ -75,6 +75,10 @@ const BottomControlPanel = dynamic(
   }
 );
 
+const SocketClient = dynamic(import("./socketClient"), {
+  ssr: false,
+});
+
 const Main: NextPage = () => {
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -85,6 +89,7 @@ const Main: NextPage = () => {
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
   const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
+  const preset = useAppSelector((state) => state.preset, shallowEqual);
 
   const stationsCalculatedFields = useAppSelector(
     (state) => state.station.calculatedFields,
@@ -100,6 +105,16 @@ const Main: NextPage = () => {
 
   const { id } = router.query;
   const intMissionId = parseInt(Array.isArray(id) ? id[0] : id);
+
+  /**
+   * On initial load, set the missionId and sessionId in sessionStorage
+   */
+  useEffect(() => {
+    //put missionId in sessionStorage
+    window.sessionStorage.setItem("missionId", intMissionId.toString());
+    //put a null socketId in sessionStorage
+    window.sessionStorage.setItem("socketId", "null");
+  }, [intMissionId]);
 
   /**
    * Check if user is logged in and if the user has permissions for this mission page
@@ -188,25 +203,6 @@ const Main: NextPage = () => {
       if (presetData) {
         //fix and validate against modifications to layers/sublayers made in admin since this preset was last saved
         presetData.forEach((preset) => {
-          //build preset ui states for the layer and sublayers
-          const presetUIStates: PresetUIStates = {};
-          for (const layer of layerData) {
-            presetUIStates[layer.uuid] = {
-              expanded: true,
-              tabSelected: null,
-              name: layer.name,
-              type: "layer",
-            };
-          }
-          for (const sublayer of sublayerData) {
-            presetUIStates[sublayer.uuid] = {
-              expanded: true,
-              tabSelected: null,
-              name: sublayer.name,
-              type: "sublayer",
-            };
-          }
-
           let modified = false;
           //sync up anything added/deleted missing from preset layer order
           if (preset.layerOrder) {
@@ -306,25 +302,11 @@ const Main: NextPage = () => {
                 },
               };
             }
-            presetUIStates[landerRadius.uuid] = {
-              expanded: true,
-              tabSelected: null,
-              name: landerRadius.name,
-              type: "circle",
-            };
           });
 
           preset.mapCircleControls = mapCircleControls;
 
           dispatch(setMapCircleControls(preset.mapCircleControls));
-
-          //dispatch ui states to store
-          dispatch(
-            setPresetUIStates({
-              presetUuid: preset.uuid,
-              presetUIStates: presetUIStates,
-            })
-          );
 
           //update this preset in the DB
           if (modified) dispatch(thunkSavePreset({ preset }));
@@ -386,6 +368,53 @@ const Main: NextPage = () => {
       if (invstgData.data) dispatch(setInvestigations(invstgData.data));
     })();
   }, [dispatch, hasPermissions, intMissionId]);
+
+  //Generate presetsUIStates
+  useEffect(() => {
+    preset.presets.forEach((thisPreset) => {
+      //build preset ui states for the layer and sublayers
+      const presetUIStates: PresetUIStates = {};
+      for (const layer of missionStore?.layers) {
+        if (!layer.uuid) continue;
+        presetUIStates[layer.uuid] = {
+          expanded: true,
+          tabSelected: null,
+          name: layer.name,
+          type: "layer",
+        };
+      }
+      for (const sublayer of missionStore?.sublayers) {
+        presetUIStates[sublayer.uuid] = {
+          expanded: true,
+          tabSelected: null,
+          name: sublayer.name,
+          type: "sublayer",
+        };
+      }
+
+      missionStore.mission?.landerRadii.forEach((landerRadius) => {
+        presetUIStates[landerRadius.uuid] = {
+          expanded: true,
+          tabSelected: null,
+          name: landerRadius.name,
+          type: "circle",
+        };
+      });
+      //dispatch ui states to store
+      dispatch(
+        setPresetUIStates({
+          presetUuid: thisPreset.uuid,
+          presetUIStates: presetUIStates,
+        })
+      );
+    });
+  }, [
+    preset.presets,
+    missionStore.layers,
+    missionStore.sublayers,
+    missionStore.mission?.landerRadii,
+    dispatch,
+  ]);
 
   //check if any mission equipment items don't exist in mission. For some reason there were orphaned uuids?!
   //possibly can remove this in the future. Not sure how some actions got into this state.
@@ -534,6 +563,7 @@ const Main: NextPage = () => {
           <div className={styles.bottomControl}>
             <BottomControlPanel />
           </div>
+          <SocketClient missionId={intMissionId} />
         </div>
       )}
     </>

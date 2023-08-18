@@ -153,7 +153,8 @@ describe("Poi API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        query: { ...newPoi, missionId: testMissions[2].id },
+        body: { ...newPoi, missionId: testMissions[2].id },
+        query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handlePOI(req, res);
@@ -166,6 +167,7 @@ describe("Poi API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newPoi, missionId: testMissions[1].id },
+        query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handlePOI(req, res);
@@ -178,6 +180,7 @@ describe("Poi API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newPoi, missionId: testMissions[0].id, ownerId: testUser.id },
+        query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handlePOI(req, res);
@@ -203,6 +206,7 @@ describe("Poi API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newPoi, missionId: testMissions[0].id },
+        query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handlePOI(req, res);

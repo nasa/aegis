@@ -173,6 +173,7 @@ describe("Station API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newStation, missionId: testMissions[2].id },
+        query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleStation(req, res);
@@ -185,6 +186,7 @@ describe("Station API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newStation, missionId: testMissions[1].id },
+        query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleStation(req, res);
@@ -197,6 +199,7 @@ describe("Station API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: { ...newStation, missionId: testMissions[0].id, ownerId: testUser.id },
+        query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleStation(req, res);
@@ -222,6 +225,7 @@ describe("Station API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         body: newStation,
+        query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleStation(req, res);

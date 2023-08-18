@@ -11,13 +11,13 @@ interface Mission {
   landerElevationMeters: number;
   planetRadius: number;
   initialZoom: number;
-  traverseSpeed: number;
+  traverseRate: number;
   sunAzimuth: number;
   earthAzimuth: number;
   sunAzimuthVisible: boolean;
   earthAzimuthVisible: boolean;
   defaultEvaDuration: number;
-  walkbackSpeed: number;
+  walkbackRate: number;
   equipmentItems: EquipmentItem[];
   geographicUnits: GeographicUnit[];
   _metadata?: Metadata; // Meant for JsonExport file export only

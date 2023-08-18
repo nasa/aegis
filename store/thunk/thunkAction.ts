@@ -9,7 +9,7 @@ import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
 import _ from "lodash";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
-import { roundDateToSecond } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import * as httpClient_action from "http-client/action";
 import { thunkGetElevation } from "./thunkElevation";
@@ -54,7 +54,7 @@ export const thunkCreateAction = appCreateAsyncThunk<{
       mass: null,
       priority: null,
       updatedAt: null,
-      createdAt: roundDateToSecond(new Date()).toISOString(),
+      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
 
     if (actionTemplate) {
@@ -103,7 +103,7 @@ export const thunkDuplicateAction = appCreateAsyncThunk<
     const newActionUuid = uuidv4();
     const newAction: Action = _.cloneDeep(action);
     newAction.uuid = newActionUuid;
-    newAction.createdAt = roundDateToSecond(new Date()).toISOString();
+    newAction.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
     newAction.updatedAt = null;
     newAction.stationUuid = stationUuid;
     newAction.poiUuid = poiUuid;
@@ -143,7 +143,7 @@ export const thunkDuplicateAction = appCreateAsyncThunk<
 
     if (preserveParentUuid) {
       newAction.parentActionUuid = action.uuid;
-      newAction.parentCopyDate = roundDateToSecond(new Date()).toISOString();
+      newAction.parentCopyDate = roundDateToSecond(getAccurateNow()).toISOString();
     } else {
       newAction.parentActionUuid = null;
       newAction.parentCopyDate = null;
@@ -193,7 +193,7 @@ export const thunkSaveActions = appCreateAsyncThunk<{
     });
     // take array of deleted actions and delete them in the db
     for (const deletedAction of deletedActions) {
-      await httpClient_action.deleteAction(deletedAction.uuid, getState().mission.mission.id);
+      await httpClient_action.deleteAction(deletedAction.uuid);
     }
 
     // clear the store copy of the db and reload
