@@ -92,13 +92,17 @@ export const thunkDuplicateAction = appCreateAsyncThunk<
     action: Action;
     stationUuid?: string;
     poiUuid?: string;
-    preserveParentUuid?: boolean;
+    promotingFromPoi?: boolean;
+    handleActionOrderProcessing?: boolean;
   },
   string,
   false
 >(
   "actionDuplicate",
-  async ({ action, stationUuid, poiUuid, preserveParentUuid }, { dispatch, getState }) => {
+  async (
+    { action, stationUuid, poiUuid, promotingFromPoi, handleActionOrderProcessing = true },
+    { dispatch, getState }
+  ) => {
     if (!action) return;
     const newActionUuid = uuidv4();
     const newAction: Action = _.cloneDeep(action);
@@ -119,11 +123,13 @@ export const thunkDuplicateAction = appCreateAsyncThunk<
       );
 
       // append new action to the end of the station's action order
-      const station = getState().station.stations.find((s) => s.uuid === stationUuid);
-      let actionOrderUuids = _.cloneDeep(station.actionOrderUuids);
-      if (!actionOrderUuids) actionOrderUuids = [];
-      actionOrderUuids.push(newActionUuid);
-      dispatch(upsertStation({ ...station, actionOrderUuids }, true));
+      if (handleActionOrderProcessing) {
+        const station = getState().station.stations.find((s) => s.uuid === stationUuid);
+        let actionOrderUuids = _.cloneDeep(station.actionOrderUuids);
+        if (!actionOrderUuids) actionOrderUuids = [];
+        actionOrderUuids.push(newActionUuid);
+        dispatch(upsertStation({ ...station, actionOrderUuids }, true));
+      }
     } else if (poiUuid) {
       const poiActions = getState().action.actions.filter(
         (storeAction: Action) => storeAction.poiUuid === poiUuid
@@ -134,19 +140,21 @@ export const thunkDuplicateAction = appCreateAsyncThunk<
       );
 
       // append new action to the end of the poi's action order
-      const poi = getState().poi.pois.find((p) => p.uuid === poiUuid);
-      let actionOrderUuids = _.cloneDeep(poi.actionOrderUuids);
-      if (!actionOrderUuids) actionOrderUuids = [];
-      actionOrderUuids.push(newActionUuid);
-      dispatch(upsertPoi({ ...poi, actionOrderUuids }, true));
+      if (handleActionOrderProcessing) {
+        const poi = getState().poi.pois.find((p) => p.uuid === poiUuid);
+        let actionOrderUuids = _.cloneDeep(poi.actionOrderUuids);
+        if (!actionOrderUuids) actionOrderUuids = [];
+        actionOrderUuids.push(newActionUuid);
+        dispatch(upsertPoi({ ...poi, actionOrderUuids }, true));
+      }
     }
 
-    if (preserveParentUuid) {
+    if (promotingFromPoi) {
       newAction.parentActionUuid = action.uuid;
       newAction.parentCopyDate = roundDateToSecond(getAccurateNow()).toISOString();
     } else {
-      newAction.parentActionUuid = null;
-      newAction.parentCopyDate = null;
+      newAction.parentActionUuid = action.parentActionUuid;
+      newAction.parentCopyDate = action.parentCopyDate;
     }
 
     dispatch(upsertAction(newAction));

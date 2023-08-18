@@ -630,53 +630,23 @@ export const thunkDuplicateStation = appCreateAsyncThunk<{ station: Station }>(
       (action) => action.stationUuid === station.uuid
     );
 
+    // preserve actionOrderUuids from old station using new action uuids from new station
     const newActionOrderUuids = [];
-    //if there's an order, preserve it.
-    if (station.actionOrderUuids) {
-      for (const actionUuid of station.actionOrderUuids) {
-        const action = stationActions.find((a) => a.uuid === actionUuid);
-        const thunkRes = await dispatch(
-          thunkDuplicateAction({
-            action: action,
-            stationUuid: newStation.uuid,
-          })
-        );
-        if (thunkRes.payload) {
-          newActionOrderUuids.push(thunkRes.payload as string);
-        }
-      }
-
-      //in some environments we somehow got into a state where not all actions are listed (???)
-      if (station.actionOrderUuids.length !== stationActions.length) {
-        //add the leftover actions at the bottom
-        const leftoverActions = stationActions.filter(
-          (a) => !station.actionOrderUuids.includes(a.uuid)
-        );
-        for (const action of leftoverActions) {
-          const thunkRes = await dispatch(
-            thunkDuplicateAction({
-              action: action,
-              stationUuid: newStation.uuid,
-            })
-          );
-          if (thunkRes.payload) {
-            newActionOrderUuids.push(thunkRes.payload as string);
-          }
-        }
-      }
-    } else {
-      for (const action of stationActions) {
-        const thunkRes = await dispatch(
-          thunkDuplicateAction({
-            action: action,
-            stationUuid: newStation.uuid,
-          })
-        );
-        if (thunkRes.payload) {
-          newActionOrderUuids.push(thunkRes.payload as string);
-        }
+    for (const actionUuid of station.actionOrderUuids) {
+      const action = stationActions.find((a) => a.uuid === actionUuid);
+      const thunkRes = await dispatch(
+        thunkDuplicateAction({
+          action: action,
+          stationUuid: newStation.uuid,
+          promotingFromPoi: false,
+          handleActionOrderProcessing: false,
+        })
+      );
+      if (thunkRes.payload) {
+        newActionOrderUuids.push(thunkRes.payload as string);
       }
     }
+
     newStation.actionOrderUuids = newActionOrderUuids; //save new order
     dispatch(saveNewStation(newStation));
   }
