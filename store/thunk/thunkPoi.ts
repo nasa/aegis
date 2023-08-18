@@ -300,26 +300,22 @@ export const thunkDuplicatePoi = appCreateAsyncThunk<{ poi: POI }>(
     const poiActions = getState().action.actions.filter((action) => action.poiUuid === poi?.uuid);
     const newActionOrderUuids = [];
     //if there's an order, preserve it.
-    if (poi.actionOrderUuids) {
-      for (const actionUuid of poi.actionOrderUuids) {
-        const action = poiActions.find((a) => a.uuid === actionUuid);
-        const thunkRes = await dispatch(
-          thunkDuplicateAction({ action: action, poiUuid: newPoi.uuid })
-        );
-        if (thunkRes.payload) {
-          newActionOrderUuids.push(thunkRes.payload as string);
-        }
-      }
-    } else {
-      for (const action of poiActions) {
-        const thunkRes = await dispatch(
-          thunkDuplicateAction({ action: action, poiUuid: newPoi.uuid })
-        );
-        if (thunkRes.payload) {
-          newActionOrderUuids.push(thunkRes.payload as string);
-        }
+
+    for (const actionUuid of poi.actionOrderUuids) {
+      const action = poiActions.find((a) => a.uuid === actionUuid);
+      const thunkRes = await dispatch(
+        thunkDuplicateAction({
+          action: action,
+          poiUuid: newPoi.uuid,
+          promotingFromPoi: false,
+          handleActionOrderProcessing: false,
+        })
+      );
+      if (thunkRes.payload) {
+        newActionOrderUuids.push(thunkRes.payload as string);
       }
     }
+
     newPoi.actionOrderUuids = newActionOrderUuids; //save new order
     dispatch(saveNewPoi(newPoi));
   }

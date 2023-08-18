@@ -40,14 +40,14 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
 
     // Listen for connection events
     io.on("connection", (socket) => {
-      (async () => {
-        const sockets = await io.fetchSockets();
-        console.log(
-          `${new Date().toISOString()} Socket ${socket.id} connected. Count across missions: ${
-            sockets.length
-          }`
-        );
-      })();
+      // (async () => {
+      //   const sockets = await io.fetchSockets();
+      //   console.log(
+      //     `${new Date().toISOString()} Socket ${socket.id} connected. Count across missions: ${
+      //       sockets.length
+      //     }`
+      //   );
+      // })();
 
       // emit AEGIS app version to client that just connected
       socket.emit("version", packagejson.version || "unknown version");
@@ -73,11 +73,11 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
         // emit visitor count to all clients in this room including this client
         io.to(visitorJoin.missionId.toString()).emit("statusFromServer", statusFromServer);
 
-        console.log(
-          `${new Date().toISOString()} Socket ${socket.id} visitorJoin. Editors: ${
-            statusFromServer.visitorCounts.editors
-          } Viewers: ${statusFromServer.visitorCounts.viewers}.`
-        );
+        // console.log(
+        //   `${new Date().toISOString()} Socket ${socket.id} visitorJoin. Editors: ${
+        //     statusFromServer.visitorCounts.editors
+        //   } Viewers: ${statusFromServer.visitorCounts.viewers}.`
+        // );
       });
 
       socket.on("disconnect", () => {
@@ -95,7 +95,7 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
           .to(visitorBeingRemoved.missionId.toString())
           .emit("statusFromServer", statusFromServer);
 
-        console.log(`${new Date().toISOString()} Socket ${socket.id} disconnected.`);
+        // console.log(`${new Date().toISOString()} Socket ${socket.id} disconnected.`);
       });
 
       // sent visitor counts to all clients in every room every 10 seconds

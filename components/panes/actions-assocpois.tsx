@@ -187,7 +187,7 @@ const Assoc_POI: FunctionComponent<{
                             thunkDuplicateAction({
                               action: poiAction,
                               stationUuid: selectedStationUuid,
-                              preserveParentUuid: true,
+                              promotingFromPoi: true,
                             })
                           );
                           e.stopPropagation();
