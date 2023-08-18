@@ -552,6 +552,10 @@ z:db-export:dev1:
     # Run any migrations the dump didn't have in place
     - docker compose exec nextjs npm run migrate:up
 
+    # hit the aegis socket.io endpoint to start up the socket server
+    - sleep 10
+    - curl -k --silent --connect-timeout 1 $URL/api/socketio || true
+
 z:db-import:dev1:
   extends: .db-import-template
   tags: ["emss-aegis-dev1"]

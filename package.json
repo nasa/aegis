@@ -1,6 +1,6 @@
 {
   "name": "aegis-zero",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_OPTIONS='--inspect' next dev -p 4000",
