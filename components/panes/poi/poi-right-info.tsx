@@ -253,6 +253,7 @@ const Info_Panel: FunctionComponent<{
                                 })
                               );
                             }}
+                            key={`${selectedPoi.uuid}-lat`}
                           />
                         )}
                       </div>
@@ -285,6 +286,7 @@ const Info_Panel: FunctionComponent<{
                                 })
                               );
                             }}
+                            key={`${selectedPoi.uuid}-lng`}
                           />
                         )}
                       </div>

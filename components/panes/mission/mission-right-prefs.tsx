@@ -151,6 +151,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 onSubmit={(value) => {
                   dispatch(upsertMissionByField("name", value));
                 }}
+                key={`${mission.id}-name`}
               />
             </div>
           </div>
@@ -172,6 +173,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 onSubmit={(value) => {
                   dispatch(upsertMissionByField("missionBanner", value));
                 }}
+                key={`${mission.id}-banner`}
               />
             </div>
           </div>
@@ -287,6 +289,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                 })
                               );
                             }}
+                            key={`${mission.id}-lat`}
                           />
                         )}
                       </div>
@@ -323,6 +326,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                 })
                               );
                             }}
+                            key={`${mission.id}-lng`}
                           />
                         )}
                       </div>
@@ -496,6 +500,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           onSubmit={(val: string) => {
                             dispatch(upsertMissionByField("defaultEvaDuration", toDecimal(val)));
                           }}
+                          key={`${mission.id}-defaultEvaDuration`}
                         />
                       </div>
                     </div>
@@ -524,6 +529,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           onSubmit={(val: string) => {
                             dispatch(upsertMissionByField("traverseRate", toDecimal(val)));
                           }}
+                          key={`${mission.id}-defaultTraverseRate`}
                         />
                       </div>
                     </div>
@@ -552,6 +558,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           onSubmit={(val: string) => {
                             dispatch(upsertMissionByField("walkbackRate", toDecimal(val)));
                           }}
+                          key={`${mission.id}-defaultWalkbackRate`}
                         />
                       </div>
                     </div>

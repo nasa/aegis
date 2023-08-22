@@ -153,6 +153,7 @@ const PoiEditorRight: FunctionComponent = () => {
               onSubmit={(val: string) => {
                 dispatch(upsertPoiByField(selectedPoi.uuid, "name", val));
               }}
+              key={`${selectedPoi.uuid}-name`}
             />
           </div>
         </div>

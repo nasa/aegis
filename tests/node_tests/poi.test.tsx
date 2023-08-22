@@ -67,6 +67,7 @@ describe("Poi API Endpoint", () => {
     ownerId: null,
     name: "Jest Test New Poi",
     description: "",
+    actionOrderUuids: [],
     priorityOverride: null,
     radius: 0,
     location: null,

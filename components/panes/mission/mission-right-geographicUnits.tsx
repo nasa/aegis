@@ -100,6 +100,7 @@ const GeographicUnit: FunctionComponent<{
             onSubmit={(val: string) => {
               dispatch(thunkUpdateGeoUnit({ uuid: item.uuid, fieldName: "name", value: val }));
             }}
+            key={`${item.uuid}-name`}
           />
         </div>
 

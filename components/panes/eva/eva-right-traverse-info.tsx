@@ -182,6 +182,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                               )
                             );
                           }}
+                          key={`${selectedTraverse.uuid}-predictedDurationLower`}
                         />
                       </div>
                     </div>
@@ -220,6 +221,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                               )
                             );
                           }}
+                          key={`${selectedTraverse.uuid}-predictedDurationUpper`}
                         />
                       </div>
                     </div>
@@ -268,6 +270,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                               )
                             );
                           }}
+                          key={`${selectedTraverse.uuid}-traverseRate`}
                         />
                       </div>
                     </div>

@@ -109,6 +109,7 @@ const EquipmentItem: FunctionComponent<{
                 })
               );
             }}
+            key={`${item.uuid}-name`}
           />
         </div>
         <div className={styles.propertyRowQuantity}>
@@ -138,6 +139,7 @@ const EquipmentItem: FunctionComponent<{
                 })
               );
             }}
+            key={`${item.uuid}-quantity`}
           />
         </div>
         <div className={styles.propertyRowSingleuse}>

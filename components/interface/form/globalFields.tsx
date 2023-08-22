@@ -204,19 +204,19 @@ export const InLineEditInput: FunctionComponent<{
   styleContainer?: CSSProperties;
   onSubmit?: (value: string) => void;
 }> = ({ value, editing, styleValue, styleContainer, onSubmit, fieldProps }) => {
-  const throttleSubmitRef = useRef(
-    _.throttle((formValue) => {
+  const debouncedSubmitRef = useRef(
+    _.debounce((formValue) => {
       if (onSubmit) onSubmit(formValue);
-    }, 500)
+    }, 50)
   );
 
   return (
     <div style={styleContainer}>
-      {editing && (
+      {debouncedSubmitRef.current && editing && (
         <Form
           //only called if all validation passes
           onSubmit={(formValues) => {
-            throttleSubmitRef.current(formValues[fieldProps.name]);
+            debouncedSubmitRef.current(formValues[fieldProps.name]);
           }}
           initialValues={{ [fieldProps.name]: value }}
           render={({ handleSubmit, form }) => {

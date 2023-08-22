@@ -208,6 +208,7 @@ const EvaRightEva: FunctionComponent = () => {
               onSubmit={(val) => {
                 dispatch(upsertEvaByField(selectedEva.uuid, "name", val));
               }}
+              key={`${selectedEva.uuid}-name`}
             />
           </div>
         </div>

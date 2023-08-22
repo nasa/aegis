@@ -68,6 +68,7 @@ describe("Station API Endpoint", () => {
     name: "Jest Station-1",
     status: "Candidate",
     description: "",
+    actionOrderUuids: [],
     radius: 0,
     location: null,
     elevation: null,

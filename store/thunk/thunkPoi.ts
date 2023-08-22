@@ -268,6 +268,7 @@ export const thunkCreatePoi = appCreateAsyncThunk<void>(
       uuid: uuidv4(),
       name: randomName,
       description: "",
+      actionOrderUuids: [],
       priorityOverride: 0,
       radius: 5,
       location: null,
