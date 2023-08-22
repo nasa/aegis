@@ -76,7 +76,6 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
         <Actions
           editMode={editMode}
           setEditMode={() => {}}
-          actions={evaActions}
           actionOrderUuids={evaActionOrderUuids}
           setActionOrderUuids={() => {}}
           actionParentUuid={null}

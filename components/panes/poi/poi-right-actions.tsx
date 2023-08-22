@@ -65,7 +65,6 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
           setEditMode={(newEditMode: boolean) => {
             dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: newEditMode }));
           }}
-          actions={poiActions}
           actionOrderUuids={selectedPoi.actionOrderUuids}
           setActionOrderUuids={(actionOrderUuids) => {
             dispatch(upsertPoi({ ...selectedPoi, actionOrderUuids: actionOrderUuids }));

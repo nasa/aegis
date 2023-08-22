@@ -78,7 +78,7 @@ interface Station {
   ownerId: number;
   missionId: number;
   poiUuids?: string[];
-  actionOrderUuids?: string[];
+  actionOrderUuids: string[];
 
   name: string;
   status: StationStatus;
@@ -120,7 +120,7 @@ interface POI {
   uuid: string;
   ownerId: number;
   missionId: number;
-  actionOrderUuids?: string[];
+  actionOrderUuids: string[];
 
   /**
    * The name of the POI, e.g. "M-19"
@@ -252,16 +252,15 @@ interface ActionFilterOptions {
   stationUuid?: string;
 }
 
-//Action wrapper to track highlighted states in the action panels
-interface WrappedAction {
-  action: Action;
-  highlight: boolean;
-}
-
 //Contians both parent uuid types for Action
 type ActionParentUuid = {
   poiUuid?: string;
   stationUuid?: string;
+};
+
+type ActionHighlight = {
+  uuid: string;
+  highlight: boolean;
 };
 
 type ActionType = "measurement" | "observation" | "sample" | "photo" | "other";

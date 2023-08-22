@@ -108,6 +108,7 @@ const RadiusItem: FunctionComponent<{
                 })
               );
             }}
+            key={`${landerRadius.uuid}-name`}
           />
         </div>
         <div className={styles.propertyRowQuantity}>
@@ -137,6 +138,7 @@ const RadiusItem: FunctionComponent<{
                 })
               );
             }}
+            key={`${landerRadius.uuid}-radius`}
           />
         </div>
 

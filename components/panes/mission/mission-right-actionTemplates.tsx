@@ -156,6 +156,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                 })
                               );
                             }}
+                            key={`${actionTemplate.uuid}-templateName`}
                           />
                         </div>
                       </>
@@ -254,6 +255,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                             })
                                           );
                                         }}
+                                        key={`${actionTemplate.uuid}-name`}
                                       />
                                     </div>
                                   </div>
@@ -329,6 +331,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                             })
                                           );
                                         }}
+                                        key={`${actionTemplate.uuid}-durationLower`}
                                       />
                                     </div>
                                   </div>
@@ -371,6 +374,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                             })
                                           );
                                         }}
+                                        key={`${actionTemplate.uuid}-durationUpper`}
                                       />
                                     </div>
                                   </div>
@@ -424,6 +428,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                             })
                                           );
                                         }}
+                                        key={`${actionTemplate.uuid}-priority`}
                                       />
                                     </div>
                                   </div>
@@ -475,6 +480,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                             })
                                           );
                                         }}
+                                        key={`${actionTemplate.uuid}-mass`}
                                       />
                                     </div>
                                   </div>

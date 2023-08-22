@@ -318,6 +318,7 @@ const Info_Panel: FunctionComponent<{
                               )
                             );
                           }}
+                          key={`${selectedStation.uuid}-durationUpper`}
                         />
                       </div>
                     </div>
@@ -499,6 +500,7 @@ const Info_Panel: FunctionComponent<{
                                 })
                               );
                             }}
+                            key={`${selectedStation.uuid}-lat`}
                           />
                         )}
                       </div>
@@ -531,6 +533,7 @@ const Info_Panel: FunctionComponent<{
                                 })
                               );
                             }}
+                            key={`${selectedStation.uuid}-lng`}
                           />
                         )}
                       </div>

@@ -129,6 +129,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                               upsertEvaByField(selectedEva.uuid, "maxDuration", toDecimal(val))
                             );
                           }}
+                          key={`${selectedEva.uuid}-maxDuration`}
                         />
                       </div>
                     </div>
@@ -171,6 +172,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                               upsertEvaByField(selectedEva.uuid, "traverseRate", toDecimal(val))
                             );
                           }}
+                          key={`${selectedEva.uuid}-traverseRate`}
                         />
                       </div>
                     </div>

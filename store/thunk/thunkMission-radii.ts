@@ -14,7 +14,7 @@ export const thunkUpdateLanderRadius = appCreateAsyncThunk<{
     (newLanderRadii[itemIndex] as Record<typeof fieldName, LanderRadius[keyof LanderRadius]>)[
       fieldName
     ] = value;
-    dispatch(upsertMissionByField("equipmentItems", newLanderRadii));
+    dispatch(upsertMissionByField("landerRadii", newLanderRadii));
   }
 });
 
