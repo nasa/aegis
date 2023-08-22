@@ -79,7 +79,6 @@ const Actions_Panel: FunctionComponent<{
               setStationEditMode({ stationUuid: selectedStationUuid, editMode: newEditMode })
             );
           }}
-          actions={stationActions}
           actionOrderUuids={selectedStation.actionOrderUuids}
           setActionOrderUuids={(actionOrderUuids) => {
             dispatch(upsertStation({ ...selectedStation, actionOrderUuids: actionOrderUuids }));

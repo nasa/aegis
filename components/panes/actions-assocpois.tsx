@@ -12,10 +12,10 @@ import { thunkDuplicateAction } from "store/thunk/thunkAction";
 import { hhmmFromMinutes } from "utils/formatting";
 
 export const Assoc_POIs: FunctionComponent<{
-  stationPois: POI[];
-  stationActions: Action[];
+  stationPoiUuids: string[];
+  stationActionUuids: string[];
   editMode: boolean;
-}> = ({ stationPois, stationActions, editMode }) => {
+}> = ({ stationPoiUuids, stationActionUuids, editMode }) => {
   const [poiExpanded, setPoiExpanded] = useState(false);
 
   return (
@@ -52,11 +52,11 @@ export const Assoc_POIs: FunctionComponent<{
         </div>
         {poiExpanded && (
           <div className={assocPoisStyles.stationPoiSection}>
-            {stationPois?.map((poi) => (
+            {stationPoiUuids?.map((poiUuid) => (
               <Assoc_POI
-                key={poi.uuid}
-                poi={poi}
-                stationActions={stationActions}
+                key={poiUuid}
+                poiUuid={poiUuid}
+                stationActionUuids={stationActionUuids}
                 editMode={editMode}
               />
             ))}
@@ -68,32 +68,45 @@ export const Assoc_POIs: FunctionComponent<{
 };
 
 const Assoc_POI: FunctionComponent<{
-  poi: POI;
-  stationActions: Action[];
+  poiUuid: string;
+  stationActionUuids: string[];
   editMode: boolean;
-}> = ({ poi, stationActions, editMode }) => {
+}> = ({ poiUuid, stationActionUuids, editMode }) => {
   const dispatch = useAppDispatch();
 
-  const actions = useAppSelector((state) => state.action.actions, shallowEqual);
+  const stationActions = useAppSelector((state) => state.action.actions, shallowEqual).filter(
+    (action) => stationActionUuids.includes(action.uuid)
+  );
+
+  const poiActions = useAppSelector((state) => state.action.actions, shallowEqual).filter(
+    (action) => action.poiUuid === poiUuid
+  );
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
     refEqual
   );
+  const poiActionOrderUuids = useAppSelector(
+    (state) => state.poi.pois.find((poi) => poi.uuid === poiUuid).actionOrderUuids,
+    shallowEqual
+  );
+  const poi = useAppSelector(
+    (state) => state.poi.pois.find((poi) => poi.uuid === poiUuid),
+    shallowEqual
+  );
 
-  const poiActions = actions.filter((action) => action.poiUuid === poi.uuid);
   // sort the actions by the order in the POI
   poiActions.sort((action1: Action, action2: Action) => {
-    const index1 = poi.actionOrderUuids.indexOf(action1.uuid);
-    const index2 = poi.actionOrderUuids.indexOf(action2.uuid);
+    const index1 = poiActionOrderUuids.indexOf(action1.uuid);
+    const index2 = poiActionOrderUuids.indexOf(action2.uuid);
     return (index1 > -1 ? index1 : Infinity) - (index2 > -1 ? index2 : Infinity);
   });
 
   return (
-    <div key={poi.uuid}>
+    <div key={poiUuid}>
       <div
         className={assocPoisStyles.stationPoiHeading}
         onClick={() => {
-          dispatch(setSelectedPoiUuid(poi.uuid));
+          dispatch(setSelectedPoiUuid(poiUuid));
           // set the active section to the POI section
           dispatch(setSectionSelected("poi"));
         }}

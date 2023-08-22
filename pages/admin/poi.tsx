@@ -87,6 +87,7 @@ const PoiPage: NextPage = () => {
           const poiData: POI = {
             missionId: mission.id,
             ownerId: currentUser.id,
+            actionOrderUuids: [],
             priorityOverride: 0,
             elevation: null,
             radius: 5,

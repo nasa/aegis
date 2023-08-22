@@ -594,6 +594,7 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
       name: randomName,
       status: "Candidate",
       description: "",
+      actionOrderUuids: [],
       radius: 5,
       location: null,
       elevation: null,

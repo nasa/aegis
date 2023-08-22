@@ -100,6 +100,7 @@ const PresetEditorRight: FunctionComponent = () => {
               onSubmit={(val) => {
                 dispatch(upsertPresetByField(selectedPreset.uuid, "name", val));
               }}
+              key={`${selectedPreset.uuid}-name`}
             />
           </div>
         </div>

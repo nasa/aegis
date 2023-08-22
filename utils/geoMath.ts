@@ -12,6 +12,7 @@ export function getDistanceBetweenTwoCoordinates(
   point2: AEGISPoint,
   radius: number
 ): number {
+  if (!point1 || !point2) return null;
   const dLat = deg2rad(point2.lat - point1.lat); // deg2rad below
   const dLon = deg2rad(point2.lng - point1.lng);
   const a =

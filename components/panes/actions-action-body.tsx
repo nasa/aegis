@@ -18,7 +18,7 @@ import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { FunctionComponent, useState } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
-import { upsertAction, upsertActionByField } from "store/action";
+import { upsertActionByField } from "store/action";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { decodeEmoji, longdateFromDateString, toDecimal } from "utils/formatting";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
@@ -46,8 +46,8 @@ export const RightActionBody: FunctionComponent<{
       state.action.actions.find((storeAction) => storeAction.uuid === action.parentActionUuid),
     shallowEqual
   );
-  const parentPoi = useAppSelector(
-    (state) => state.poi.pois.find((storePoi) => storePoi.uuid === parentAction?.poiUuid),
+  const parentPoiName = useAppSelector(
+    (state) => state.poi.pois.find((storePoi) => storePoi.uuid === parentAction?.poiUuid)?.name,
     shallowEqual
   );
 
@@ -62,11 +62,11 @@ export const RightActionBody: FunctionComponent<{
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const buildActionTooltip = () => {
-    if (parentAction && parentPoi) {
+    if (parentAction && parentPoiName) {
       const dateString = longdateFromDateString(action.parentCopyDate) + "Z";
       return ReactDOMServer.renderToStaticMarkup(
         <>
-          Copied from POI {parentPoi.name} - {parentAction.name}
+          Copied from POI {parentPoiName} - {parentAction.name}
           <br />
           on {dateString}
         </>
@@ -134,8 +134,7 @@ export const RightActionBody: FunctionComponent<{
             value={action.description}
             editing={editMode}
             onChange={(value) => {
-              const updatedAction: Action = { ...action, description: value };
-              dispatch(upsertAction(updatedAction));
+              dispatch(upsertActionByField(action.uuid, "description", value));
             }}
             key={action.uuid}
           />
@@ -176,6 +175,7 @@ export const RightActionBody: FunctionComponent<{
                           upsertActionByField(action.uuid, "durationLower", toDecimal(value))
                         );
                       }}
+                      key={`${action.uuid}-durationLower`}
                     />
                   </div>
                 </div>
@@ -210,6 +210,7 @@ export const RightActionBody: FunctionComponent<{
                           upsertActionByField(action.uuid, "durationUpper", toDecimal(value))
                         );
                       }}
+                      key={`${action.uuid}-durationUpper`}
                     />
                   </div>
                 </div>
@@ -247,6 +248,7 @@ export const RightActionBody: FunctionComponent<{
                       onSubmit={(value: string) => {
                         dispatch(upsertActionByField(action.uuid, "priority", toDecimal(value)));
                       }}
+                      key={`${action.uuid}-priority`}
                     />
                   </div>
                 </div>
@@ -287,6 +289,7 @@ export const RightActionBody: FunctionComponent<{
                       onSubmit={(value: string) => {
                         dispatch(upsertActionByField(action.uuid, "mass", toDecimal(value)));
                       }}
+                      key={`${action.uuid}-mass`}
                     />
                   </div>
                 </div>
@@ -304,12 +307,7 @@ export const RightActionBody: FunctionComponent<{
             equipmentItemsUsage={action.equipmentItemsUsage}
             editMode={editMode}
             onChange={(e) => {
-              dispatch(
-                upsertAction({
-                  ...action,
-                  equipmentItemsUsage: e,
-                })
-              );
+              dispatch(upsertActionByField(action.uuid, "equipmentItemsUsage", e));
             }}
             uniqueId={action.uuid}
           />
@@ -324,12 +322,7 @@ export const RightActionBody: FunctionComponent<{
             geographicUnitsUsage={action.geographicUnitsUsage}
             editMode={editMode}
             onChange={(e) => {
-              dispatch(
-                upsertAction({
-                  ...action,
-                  geographicUnitsUsage: e,
-                })
-              );
+              dispatch(upsertActionByField(action.uuid, "geographicUnitsUsage", e));
             }}
             uniqueId={action.uuid}
           />
@@ -344,8 +337,7 @@ export const RightActionBody: FunctionComponent<{
             editMode={editMode}
             stmUuidRefs={action.stmUuidRefs}
             onSTMChange={(stmUuidRefs: string[]) => {
-              const updatedAction: Action = { ...action, stmUuidRefs: stmUuidRefs };
-              dispatch(upsertAction(updatedAction));
+              dispatch(upsertActionByField(action.uuid, "stmUuidRefs", stmUuidRefs));
             }}
           />
         </div>
@@ -450,6 +442,7 @@ export const RightActionBody: FunctionComponent<{
                             })
                           );
                         }}
+                        key={`${action.uuid}-lat`}
                       />
                     )}
                   </div>
@@ -482,6 +475,7 @@ export const RightActionBody: FunctionComponent<{
                             })
                           );
                         }}
+                        key={`${action.uuid}-lng`}
                       />
                     )}
                   </div>
@@ -497,7 +491,7 @@ export const RightActionBody: FunctionComponent<{
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.displayFieldValue}>
-                    {!action.elevation ? (
+                    {!action.elevation || !parentElevation ? (
                       <>Not set</>
                     ) : (
                       (action.elevation - parentElevation).toFixed(0)
@@ -513,7 +507,7 @@ export const RightActionBody: FunctionComponent<{
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.displayFieldValue}>
-                    {!action.location ? (
+                    {!action.location || !parentLocation ? (
                       <>Not set</>
                     ) : (
                       <>
@@ -563,7 +557,7 @@ export const RightActionBody: FunctionComponent<{
                       darkMode={true}
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       onEmojiSelect={(e: any) => {
-                        dispatch(upsertAction({ ...action, icon: e.unified }));
+                        dispatch(upsertActionByField(action.uuid, "icon", e.unified));
                         setShowEmojiPicker(false);
                       }}
                     />

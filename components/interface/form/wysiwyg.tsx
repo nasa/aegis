@@ -1,7 +1,7 @@
 import { Editable, RenderElementProps, RenderLeafProps, Slate, withReact } from "slate-react";
 import { createEditor, Descendant, Text, Editor, Transforms, Element as SlateElement } from "slate";
 import { BulletedListElement, CustomEditor, NumberedListElement, Marks } from "typings/wysiwyg";
-import { FunctionComponent, useCallback, useState } from "react";
+import { FunctionComponent, useCallback, useRef, useState } from "react";
 import {
   IconDefinition,
   faBold,
@@ -255,6 +255,12 @@ export const WysiwygTextArea: FunctionComponent<{
   const [editor] = useState(() => withReact(createEditor()));
   const [editorChange, setEditorChange] = useState(false);
 
+  const debouncedSubmitRef = useRef(
+    _.debounce((value) => {
+      if (onChange) onChange(value);
+    }, 50)
+  );
+
   const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, []);
   const renderLeaf = useCallback((props: RenderLeafProps) => <Leaf {...props} />, []);
 
@@ -267,7 +273,7 @@ export const WysiwygTextArea: FunctionComponent<{
           onChange={(nodes: Descendant[]) => {
             const isAstChange = editor.operations.some((op) => "set_selection" !== op.type);
             if (isAstChange) {
-              onChange(JSON.stringify(nodes));
+              debouncedSubmitRef.current(JSON.stringify(nodes));
             }
             setEditorChange(!editorChange);
           }}

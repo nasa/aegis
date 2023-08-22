@@ -20,12 +20,11 @@ export const thunkCreateAction = appCreateAsyncThunk<{
   actionParentUuid: ActionParentUuid;
   actionOrderUuids: string[];
   setActionOrderUuids: (actionOrderUuids: string[]) => void;
-  actions: Action[];
   actionTemplate?: ActionTemplate;
 }>(
   "actionCreate",
   async (
-    { actionParentUuid, actionOrderUuids, setActionOrderUuids, actions, actionTemplate },
+    { actionParentUuid, actionOrderUuids, setActionOrderUuids, actionTemplate },
     { dispatch, getState }
   ) => {
     const randomName = generateUniqueName({
@@ -66,18 +65,8 @@ export const thunkCreateAction = appCreateAsyncThunk<{
     //upsert action
     dispatch(upsertAction(blankAction));
 
-    //upsert action order. new action goes on the end.
-    let actionOrder: string[];
-    if (actionOrderUuids && actionOrderUuids.length > 0) {
-      actionOrder = _.cloneDeep(actionOrderUuids);
-    } else {
-      //no order defined. build a new one based on whats already there
-      actionOrder = [];
-      for (const action of actions) {
-        actionOrder.push(action.uuid);
-      }
-    }
-
+    //upsert action order to the parent. new action goes on the end.
+    const actionOrder = _.cloneDeep(actionOrderUuids);
     actionOrder.push(blankAction.uuid);
     setActionOrderUuids(actionOrder);
   }
@@ -236,4 +225,25 @@ export const thunkUpdateActionLocation = appCreateAsyncThunk<{
     //upsert location and elevation
     dispatch(upsertAction({ ...action, location, elevation: elevation.payload as number }));
   }
+});
+
+export const thunkGetHighlightedActions = appCreateAsyncThunk<
+  { actionUuids: string[]; stmUuid: string },
+  ActionHighlight[],
+  undefined
+>("actionGetHighlightedActions", async ({ actionUuids, stmUuid }, { getState }) => {
+  const actions = getState().action.actions.filter((a) => actionUuids.includes(a.uuid));
+  const actionHighlights = [];
+  for (const action of actions) {
+    const highlight = { uuid: action.uuid, highlight: false };
+    if (action.stmUuidRefs && stmUuid) {
+      for (const actionSTMUuid of action.stmUuidRefs) {
+        if (actionSTMUuid === stmUuid) {
+          highlight.highlight = true;
+        }
+      }
+    }
+    actionHighlights.push(highlight);
+  }
+  return actionHighlights;
 });
