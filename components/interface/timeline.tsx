@@ -272,6 +272,26 @@ const NavTimeline: FunctionComponent = () => {
                 segmentedDistancesMeters: station.walkbackPathSegmentDistances,
               };
 
+              //find max/min of elevation
+              if (station.walkbackPathSegmentElevations) {
+                for (const elevationSegment of station.walkbackPathSegmentElevations) {
+                  for (const elevation of elevationSegment) {
+                    if (
+                      !storeRef.current.maxElevationMeters ||
+                      storeRef.current.maxElevationMeters < elevation
+                    ) {
+                      storeRef.current.maxElevationMeters = elevation;
+                    }
+                    if (
+                      !storeRef.current.minElevationMeters ||
+                      storeRef.current.minElevationMeters > elevation
+                    ) {
+                      storeRef.current.minElevationMeters = elevation;
+                    }
+                  }
+                }
+              }
+
               // subdivide seach segment by 150 meters for greater accuracy
               const newWalkbackPath: AEGISPoint[] = addPointsAtMeters(
                 station.walkbackPath,
