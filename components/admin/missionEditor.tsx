@@ -32,6 +32,7 @@ const MissionEditor: FunctionComponent<{
     const res = await upsertMission(missionToSave);
     if (res.status === "success") {
       refreshMissionList();
+      setMission(res.data);
     }
     alert(`${res.status} - ${res.message}`);
   }
@@ -68,7 +69,7 @@ const MissionEditor: FunctionComponent<{
   useEffect(() => {
     if (!mission) return;
     //put missionId in sessionStorage
-    window.sessionStorage.setItem("missionId", mission.id.toString());
+    window.sessionStorage.setItem("missionId", mission.id?.toString()); //there's no id on a new mission
     //put a null socketId in sessionStorage
     window.sessionStorage.setItem("socketId", "null");
   }, [mission]);
