@@ -79,6 +79,28 @@ const EvaItemSequence: FunctionComponent<{
     return !isNaN(durationMinutes) ? hhmmFromMinutes(durationMinutes) : "N/A";
   };
 
+  const getTraverseDisplay = (name: string) => {
+    if (!name) {
+      return "No traverse name";
+    }
+    const traverseNameParts: string[] = name.split(" to ", 2);
+    let beforeTraverseName: string = traverseNameParts[0];
+    let afterTraverseName: string = traverseNameParts[1];
+    if (beforeTraverseName.length + afterTraverseName.length >= 30) {
+      if (beforeTraverseName.length < 15) {
+        afterTraverseName =
+          afterTraverseName.substring(0, 12 + (15 - beforeTraverseName.length)) + "...";
+      } else if (afterTraverseName.length < 15) {
+        beforeTraverseName =
+          traverseNameParts[0].substring(0, 12 + (15 - afterTraverseName.length)) + "...";
+      } else {
+        beforeTraverseName = beforeTraverseName.substring(0, 12) + "...";
+        afterTraverseName = afterTraverseName.substring(0, 12) + "...";
+      }
+    }
+    return `${beforeTraverseName} to ${afterTraverseName}`;
+  };
+
   return (
     <div className={evaStyles.evaSequence}>
       {evaSequence &&
@@ -244,7 +266,9 @@ const EvaItemSequence: FunctionComponent<{
                       editMode && evaStyles.editMode
                     }  ${isEvaSequenceItemSelectedOrHoveredStyle}`}
                   >
-                    <div className={evaStyles.evaItemNameText}>{thisTraverse?.name}</div>
+                    <div className={evaStyles.evaTraverseNameText}>
+                      {getTraverseDisplay(thisTraverse?.name)}
+                    </div>
                     <ModifiedIndicator
                       obj1={[thisTraverse]}
                       obj2={[
