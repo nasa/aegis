@@ -34,7 +34,6 @@ import {
   getMidpoint,
 } from "utils/geoMath";
 import { decodeEmoji, titleCase } from "utils/formatting";
-import { Checkbox } from "components/interface/form/globalFields";
 import { setAllHoverUuids } from "store/playheadHover";
 import {
   thunkUpdateStationLocation,
@@ -49,6 +48,7 @@ import { selectEVASequenceItem } from "store/cross-slice";
 import { thunkGetStationOrTraverse } from "store/thunk/thunkEva";
 import { thunkUpdateLanderLocation } from "store/thunk/thunkMission";
 import { thunkUpdateActionLocation } from "store/thunk/thunkAction";
+import { MapMenu } from "./map-body-leaflet-menu";
 
 type MissionSelectProperties = Pick<
   Mission,
@@ -1656,139 +1656,18 @@ const MapBody: FunctionComponent = () => {
     <div className={styles.mapContainer}>
       <div className={styles.map} ref={mapRef} />
 
-      <div className={styles.mapDisplayControls}>
-        <div className={styles.controlsContainer}>
-          <div className={styles.controlContainer}>
-            <div className={styles.control}>
-              <div className={styles.controlCheckbox}>
-                <Checkbox
-                  checked={mapDisplayPois.show}
-                  onChange={(e) => {
-                    setMapDisplayPois({
-                      ...mapDisplayPois,
-                      show: e.target.checked,
-                    });
-                  }}
-                  toolTip="Show/Hide all POIs on map"
-                  label="POIs"
-                  labelStyle={{ alignSelf: "center" }}
-                  uniqueId="showHidePoi"
-                />
-              </div>
-            </div>
-            <div className={styles.subControl}>
-              <div className={styles.controlCheckbox}>
-                <Checkbox
-                  checked={mapDisplayPois.showLabels}
-                  onChange={(e) => {
-                    setMapDisplayPois({
-                      ...mapDisplayPois,
-                      showLabels: e.target.checked,
-                      ...(e.target.checked && { show: true }),
-                    });
-                  }}
-                  toolTip="Show/Hide all POI labels on map"
-                  label="Labels"
-                  labelStyle={{ alignSelf: "center" }}
-                  uniqueId="showHidePoiLabels"
-                />
-              </div>
-            </div>
-          </div>
-          <div className={styles.controlContainer}>
-            <div className={styles.control}>
-              <div className={styles.controlCheckbox}>
-                <Checkbox
-                  checked={mapDisplayStations.show}
-                  onChange={(e) => {
-                    setMapDisplayStations({
-                      ...mapDisplayStations,
-                      show: e.target.checked,
-                    });
-                  }}
-                  toolTip="Show/Hide all Stations on map"
-                  label="Stations"
-                  labelStyle={{ alignSelf: "center" }}
-                  uniqueId="showHideStations"
-                />
-              </div>
-            </div>
-            <div className={styles.subControl}>
-              <div className={styles.controlCheckbox}>
-                <Checkbox
-                  checked={mapDisplayStations.showLabels}
-                  onChange={(e) => {
-                    setMapDisplayStations({
-                      ...mapDisplayStations,
-                      showLabels: e.target.checked,
-                    });
-                  }}
-                  toolTip="Show/Hide all Station labels on map"
-                  label="Labels"
-                  labelStyle={{ alignSelf: "center" }}
-                  uniqueId="showHideStationLabels"
-                />
-              </div>
-            </div>
-          </div>
-          <div className={styles.controlContainer}>
-            <div className={styles.control}>
-              <div className={styles.controlCheckbox}>
-                <Checkbox
-                  checked={mapDisplayActions.show}
-                  onChange={(e) => {
-                    setMapDisplayActions({
-                      ...mapDisplayActions,
-                      show: e.target.checked,
-                      showLabels: false,
-                    });
-                  }}
-                  toolTip="Show/Hide Actions on map"
-                  label="Actions"
-                  labelStyle={{ alignSelf: "center" }}
-                  uniqueId="showHideActions"
-                />
-              </div>
-            </div>
-            <div className={styles.subControl}>
-              <div className={styles.controlCheckbox}>
-                <Checkbox
-                  checked={mapDisplayActions.showLabels}
-                  onChange={(e) => {
-                    setMapDisplayActions({
-                      ...mapDisplayActions,
-                      showLabels: e.target.checked,
-                      ...(e.target.checked && { show: true }),
-                    });
-                  }}
-                  toolTip="Show/Hide Actions labels on map"
-                  label="Labels"
-                  labelStyle={{ alignSelf: "center" }}
-                  uniqueId="showHideActionLabels"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.controlContainer}>
-            <div className={styles.control}>
-              <div className={styles.controlCheckbox}>
-                <Checkbox
-                  checked={showArrows}
-                  onChange={(e) => {
-                    setShowArrows(e.target.checked);
-                  }}
-                  toolTip="Show/Hide arrows on traverses"
-                  label="Arrows"
-                  labelStyle={{ alignSelf: "center" }}
-                  uniqueId="showHideArrows"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className={styles.mapControlDisplay}>
+        <MapMenu
+          mapDisplayPois={mapDisplayPois}
+          setMapDisplayPois={setMapDisplayPois}
+          mapDisplayStations={mapDisplayStations}
+          setMapDisplayStations={setMapDisplayStations}
+          mapDisplayActions={mapDisplayActions}
+          setMapDisplayActions={setMapDisplayActions}
+          showArrows={showArrows}
+          setShowArrows={setShowArrows}
+        />
       </div>
-
       <div className={styles.mapScaleDisplay}>{drawScaleBarDiv()}</div>
       <div className={styles.mapPositionDisplay}>{drawLatLongDiv()}</div>
     </div>
