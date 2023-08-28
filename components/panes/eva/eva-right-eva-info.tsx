@@ -232,10 +232,10 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldValue}>
-                          {evaCalculatedFields.totalTime?.durationLower === 0 ? (
+                          {evaCalculatedFields.totalActionTime?.durationLower === 0 ? (
                             <>0</>
                           ) : (
-                            displayFormattedTotalTimeObj(evaCalculatedFields.totalTime)
+                            displayFormattedTotalTimeObj(evaCalculatedFields.totalActionTime)
                           )}
                         </div>
                       </div>

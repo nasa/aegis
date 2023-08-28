@@ -104,7 +104,7 @@ export const thunkCreatePoiCalculatedFields = appCreateAsyncThunk<void>(
       const newCalculatedFields: PoiCalculatedFields = {
         uuid: poi.uuid,
         reportItems: newReportItems,
-        totalTime: {
+        totalActionTime: {
           durationLower: totalDurationLower,
           durationUpper: totalDurationUpper,
         },

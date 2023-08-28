@@ -1045,12 +1045,14 @@ const MapBody: FunctionComponent = () => {
     if ((sectionSelected === "station" || sectionSelected === "evas") && selectedStation) {
       // set actions to show
       const actionsInStation = actions.filter(
-        (action) => action.stationUuid === selectedStation.uuid
+        (action) => action.stationUuid === selectedStation.uuid && action.enabled
       );
       setActionsToShow(actionsInStation);
     } else if (sectionSelected === "poi" && selectedPoi) {
       // set actions to show
-      const actionsInPoi = actions.filter((action) => action.poiUuid === selectedPoi.uuid);
+      const actionsInPoi = actions.filter(
+        (action) => action.poiUuid === selectedPoi.uuid && action.enabled
+      );
       setActionsToShow(actionsInPoi);
     } else {
       setActionsToShow([]);
