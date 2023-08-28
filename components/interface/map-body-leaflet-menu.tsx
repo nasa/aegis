@@ -45,7 +45,7 @@ export const MapMenu: FunctionComponent<{
         <div className={styles.bottomTriangle} />
       </div>
 
-      <div className={`${styles.menu} ${showMenu && styles.hideMenu}`}>
+      <div className={`${styles.menu} ${!showMenu && styles.hideMenu}`}>
         <div className={styles.mapDisplay}>
           <div className={styles.controlsContainer}>
             <div className={styles.controlContainer}>
