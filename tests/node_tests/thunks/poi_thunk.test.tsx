@@ -397,7 +397,7 @@ describe("Thunk POI Tests", () => {
     //check poi with actions
     const poiCalcField = storeState.poi.calculatedFields.find((c) => c.uuid === poi.uuid);
     expect(poiCalcField.uuid).toEqual(poi.uuid);
-    expect(poiCalcField.totalTime).toEqual({
+    expect(poiCalcField.totalActionTime).toEqual({
       durationLower: 8,
       durationUpper: 15,
     });
