@@ -119,13 +119,10 @@ export const poiSlice = createSlice({
       state.selectedRightNavItem = "info_panel";
     },
     setPoiEditMode: (state, action: { payload: { poiUuid: string; editMode: boolean } }) => {
-      const poi = state.pois.find((poi) => poi.uuid === action.payload.poiUuid);
-      if (poi) {
-        if (action.payload.editMode) {
-          state.poisEditing.push(poi.uuid);
-        } else {
-          state.poisEditing = state.poisEditing.filter((uuid) => uuid !== poi.uuid);
-        }
+      if (action.payload.editMode) {
+        state.poisEditing.push(action.payload.poiUuid);
+      } else {
+        state.poisEditing = state.poisEditing.filter((uuid) => uuid !== action.payload.poiUuid);
       }
     },
     setPoiCalculatedFields: (

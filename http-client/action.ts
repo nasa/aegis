@@ -26,7 +26,7 @@ export async function upsertAction(actionObj: Action): Promise<WrappedResponse<A
   return response;
 }
 
-export async function deleteAction(actionUUID: string): Promise<WrappedResponse<number | null>> {
+export async function deleteAction(actionUUID: string): Promise<WrappedResponse<null>> {
   const missionId =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
@@ -36,6 +36,6 @@ export async function deleteAction(actionUUID: string): Promise<WrappedResponse<
       method: "DELETE",
     }
   );
-  const response: WrappedResponse<number | null> = await res.json();
+  const response: WrappedResponse<null> = await res.json();
   return response;
 }

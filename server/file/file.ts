@@ -75,7 +75,7 @@ export async function deleteFile(path: string): Promise<boolean> {
       throw new Error(`File/directory does not exist ${destRoot}/${path}`);
     }
   } catch (e) {
-    console.log(`Error in deleteFile: ${e}`);
+    console.error(`Error in deleteFile: ${e}`);
     return false;
   }
 }
@@ -103,7 +103,7 @@ export async function listFiles(path: string): Promise<GISfile[]> {
       throw new Error(`Path does not exist: ${destRoot}/${path}`);
     }
   } catch (e) {
-    console.log(`Error in listfiles: ${e}`);
+    console.error(`Error in listfiles: ${e}`);
     return null;
   }
 }
@@ -139,7 +139,7 @@ export async function renameFile(path: string, oldName: string, newName: string)
     console.log(`Path renamed in ${destRoot}/${path} from ${oldName} to ${newName}`);
     return true;
   } catch (e) {
-    console.log(`Error in renameFile: ${e}`);
+    console.error(`Error in renameFile: ${e}`);
     return false;
   }
 }
