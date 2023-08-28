@@ -9,18 +9,13 @@ import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { NextApiRequest, NextApiResponse } from "next";
 import login from "pages/api/auth/login";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import handleAction from "pages/api/action";
+import handleEva from "pages/api/eva";
 import { User as User_db } from "server/database/models/user.model";
-import UserFactory from "../factories/UserFactory";
-import { Action as Action_db } from "server/database/models/action.model";
-import ActionFactory from "../factories/ActionFactory";
+import UserFactory from "../../factories/UserFactory";
 import { Mission as Mission_db } from "server/database/models/mission.model";
-import MissionFactory from "../factories/MissionFactory";
-import { Station as Station_db } from "server/database/models/station.model";
-import StationFactory from "../factories/StationFactory";
-import { Poi as Poi_db } from "server/database/models/poi.model";
-import PoiFactory from "../factories/PoiFactory";
-
+import MissionFactory from "../../factories/MissionFactory";
+import { Eva as Eva_db } from "server/database/models/eva.model";
+import EvaFactory from "../../factories/EVAFactory";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
 import { roundDateToSecond } from "utils/formatting";
@@ -29,9 +24,7 @@ global.TextDecoder = TextDecoder;
 
 let testUser: User_db;
 let testMissions: Mission_db[];
-const testActions: Action_db[] = [];
-let testStation: Station_db;
-let testPoi: Poi_db;
+let testEvas: Eva_db[];
 
 beforeAll(async () => {
   await getORM();
@@ -55,58 +48,32 @@ beforeAll(async () => {
       },
     ],
   });
-
-  testStation = await new StationFactory(em).createOne({
-    mission: testMissions[0],
-    owner: testUser,
-  });
-  testPoi = await new PoiFactory(em).createOne({
-    mission: testMissions[0],
-    owner: testUser,
-  });
-  testActions.push(
-    await new ActionFactory(em).createOne({
-      mission: testMissions[0],
-      station: testStation,
+  testEvas = await new EvaFactory(em)
+    .each((eva) => {
+      eva.mission = testMissions[0];
+      eva.owner = testUser;
     })
-  );
-  testActions.push(
-    await new ActionFactory(em).createOne({
-      mission: testMissions[0],
-      poi: testPoi,
-    })
-  );
+    .create(2);
 });
 
-describe("Action API Endpoint", () => {
+describe("EVA API Endpoint", () => {
   type ApiRequest = NextApiRequest & ReturnType<typeof createRequest>;
   type ApiResponse = NextApiResponse & ReturnType<typeof createResponse>;
 
   let loginCookie: string;
-  let newAction: Action = {
+  let newEVA: Eva = {
     uuid: null,
+    ownerId: null,
     missionId: null,
-    poiUuid: null,
-    stationUuid: null,
-    name: "Jest Test New Action",
-    type: "measurement",
-    description: "",
-    location: null,
-    elevation: null,
-    icon: null,
-    durationUpper: 0,
-    durationLower: 0,
-    priority: null,
-    equipmentItemsUsage: null,
-    geographicUnitsUsage: null,
-    mass: null,
+    name: "Jest Eva-1",
     status: "Candidate",
-    enabled: true,
-    crewAssigned: [],
+    sequence: null,
+    description: "",
+    maxDuration: null,
+    traverseRate: null,
     createdAt: roundDateToSecond(new Date()).toISOString(),
     updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
-
   function mockRequestResponse(reqOptions: RequestOptions, resOptions?: ResponseOptions) {
     const { req, res }: { req: ApiRequest; res: ApiResponse } = createMocks(reqOptions, resOptions);
     return { req, res };
@@ -114,7 +81,7 @@ describe("Action API Endpoint", () => {
 
   test("Returns auth failure", async () => {
     const { req, res } = mockRequestResponse({ method: "GET" });
-    await handleAction(req, res);
+    await handleEva(req, res);
     expect(res.statusCode).toBe(401);
     expect(res.statusMessage).toEqual("OK");
   });
@@ -139,19 +106,19 @@ describe("Action API Endpoint", () => {
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleAction(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Returns single action by action uuid", async () => {
+    test("Returns single EVA by eva uuid", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
-        query: { uuid: testActions[0].uuid, missionId: testMissions[0].id },
+        query: { missionId: testMissions[0].id, uuid: testEvas[0].uuid },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleAction(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -160,48 +127,14 @@ describe("Action API Endpoint", () => {
       expect(wrappedResponse.data.length).toEqual(1);
     });
 
-    test("Returns single action by station uuid", async () => {
-      const reqOptions: RequestOptions = {
-        method: "GET",
-        headers: { cookie: loginCookie },
-        query: { stationUuid: testStation.uuid, missionId: testMissions[0].id },
-      };
-      const { req, res } = mockRequestResponse(reqOptions);
-      await handleAction(req, res);
-      expect(res.statusCode).toBe(200);
-      expect(res.statusMessage).toEqual("OK");
-
-      const wrappedResponse = res._getJSONData();
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toEqual(1);
-      expect(wrappedResponse.data[0].stationUuid).toEqual(testStation.uuid);
-    });
-
-    test("Returns single action by poi uuid", async () => {
-      const reqOptions: RequestOptions = {
-        method: "GET",
-        headers: { cookie: loginCookie },
-        query: { poiUuid: testPoi.uuid, missionId: testMissions[0].id },
-      };
-      const { req, res } = mockRequestResponse(reqOptions);
-      await handleAction(req, res);
-      expect(res.statusCode).toBe(200);
-      expect(res.statusMessage).toEqual("OK");
-
-      const wrappedResponse = res._getJSONData();
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toEqual(1);
-      expect(wrappedResponse.data[0].poiUuid).toEqual(testPoi.uuid);
-    });
-
-    test("Returns all actions for mission", async () => {
+    test("Returns all EVAs for mission", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleAction(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -210,14 +143,14 @@ describe("Action API Endpoint", () => {
       expect(wrappedResponse.data.length).toBeGreaterThan(1);
     });
 
-    test("No actions returned", async () => {
+    test("No EVAs returned", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleAction(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -233,11 +166,11 @@ describe("Action API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newAction, missionId: testMissions[2].id },
+        body: { ...newEVA, missionId: testMissions[2].id },
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleAction(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -246,57 +179,57 @@ describe("Action API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newAction, missionId: testMissions[1].id },
+        body: { ...newEVA, missionId: testMissions[1].id },
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleAction(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Create new action", async () => {
+    test("Create new EVA", async () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newAction, missionId: testMissions[0].id },
+        body: { ...newEVA, missionId: testMissions[0].id, ownerId: testUser.id },
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleAction(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedAction = res._getJSONData().data;
-      expect(upsertedAction.uuid).not.toBeNull();
-      expect(upsertedAction.createdAt).not.toBeNull();
-      expect(upsertedAction.updatedAt).not.toBeNull();
-      newAction = { ...upsertedAction };
+      const upsertedEVA = res._getJSONData().data;
+      expect(upsertedEVA.uuid).not.toBeNull();
+      expect(upsertedEVA.createdAt).not.toBeNull();
+      expect(upsertedEVA.updatedAt).not.toBeNull();
+      newEVA = { ...upsertedEVA };
 
       //check if it was added to the db
       const em = getEM();
-      const actionReference = await em.findOne(Action_db, upsertedAction.uuid);
-      expect(actionReference).not.toBeNull();
+      const evaReference = await em.findOne(Eva_db, upsertedEVA.uuid);
+      expect(evaReference).not.toBeNull();
     });
 
-    test("Update a action", async () => {
-      newAction.name = "Jest Test New Action Modified";
+    test("Update a EVA", async () => {
+      newEVA.name = "Jest Test New EVA Modified";
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newAction,
+        body: newEVA,
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleAction(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedAction = res._getJSONData().data;
-      expect(upsertedAction).not.toBeNull();
-      expect(upsertedAction.name).toEqual("Jest Test New Action Modified");
+      const upsertedEVA = res._getJSONData().data;
+      expect(upsertedEVA).not.toBeNull();
+      expect(upsertedEVA.name).toEqual("Jest Test New EVA Modified");
     });
   });
 
@@ -308,7 +241,7 @@ describe("Action API Endpoint", () => {
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleAction(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -320,19 +253,19 @@ describe("Action API Endpoint", () => {
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleAction(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Delete a action", async () => {
+    test("Delete a EVA", async () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { uuid: `${newAction.uuid}`, missionId: testMissions[0].id },
+        query: { uuid: `${newEVA.uuid}`, missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleAction(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -345,16 +278,14 @@ describe("Action API Endpoint", () => {
 afterAll(async () => {
   //Cleanup our Database
   const em = getEM();
-  for (let i = 0; i < testActions.length; i++) {
-    await em.nativeDelete(Action_db, { uuid: testActions[i].uuid });
+  for (let i = 0; i < testEvas.length; i++) {
+    await em.nativeDelete(Eva_db, { uuid: testEvas[i].uuid });
   }
-  await em.nativeDelete(Station_db, { uuid: testStation.uuid });
-  await em.nativeDelete(Poi_db, { uuid: testPoi.uuid });
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
   await em.nativeDelete(User_db, { id: testUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
-  await closeORM();
+  closeORM();
 });

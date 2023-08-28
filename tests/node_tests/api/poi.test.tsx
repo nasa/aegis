@@ -1,6 +1,3 @@
-import { describe, expect, afterAll, beforeAll, test } from "@jest/globals";
-import "@testing-library/jest-dom";
-import { NextApiRequest, NextApiResponse } from "next";
 import {
   createMocks,
   createResponse,
@@ -8,30 +5,26 @@ import {
   RequestOptions,
   ResponseOptions,
 } from "node-mocks-http";
+import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
+import { NextApiRequest, NextApiResponse } from "next";
 import Login from "pages/api/auth/login";
-
 import { getORM, getEM, closeORM } from "utils/mikro";
-import UserFactory from "../factories/UserFactory";
-import MissionFactory from "../factories/MissionFactory";
-import LayerFactory from "../factories/LayerFactory";
-import SublayerFactory from "../factories/SublayerFactory";
-import handleSublayer from "pages/api/sublayer";
-import { Mission as Mission_db } from "server/database/models/mission.model";
+import handlePOI from "pages/api/poi";
 import { User as User_db } from "server/database/models/user.model";
-import { Layer as Layer_db } from "server/database/models/layer.model";
-import { Sublayer as Sublayer_db } from "server/database/models/sublayer.model";
-import { createNewSublayer } from "components/admin/helper";
-import fetchMock from "jest-fetch-mock";
-import { v4 as uuidv4 } from "uuid";
+import UserFactory from "../../factories/UserFactory";
+import { Poi as Poi_db } from "server/database/models/poi.model";
+import PoiFactory from "../../factories/PoiFactory";
+import { Mission as Mission_db } from "server/database/models/mission.model";
+import MissionFactory from "../../factories/MissionFactory";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
+import { roundDateToSecond } from "utils/formatting";
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
-let testMissions: Mission_db[];
 let testUser: User_db;
-let testLayer: Layer_db;
-let testSublayers: Sublayer_db[];
+let testMissions: Mission_db[];
+let testPois: Poi_db[];
 
 beforeAll(async () => {
   await getORM();
@@ -55,26 +48,36 @@ beforeAll(async () => {
       },
     ],
   });
-  testLayer = await new LayerFactory(em).createOne({
-    mission: testMissions[0],
-  });
-  testSublayers = await new SublayerFactory(em)
-    .each((sublayer) => {
-      sublayer.mission = testMissions[0];
-      sublayer.layer = testLayer;
+  testPois = await new PoiFactory(em)
+    .each((poi) => {
+      poi.mission = testMissions[0];
+      poi.owner = testUser;
     })
     .create(2);
-
-  fetchMock.resetMocks();
 });
 
-describe("Layer API Endpoint ", () => {
+describe("Poi API Endpoint", () => {
   type ApiRequest = NextApiRequest & ReturnType<typeof createRequest>;
   type ApiResponse = NextApiResponse & ReturnType<typeof createResponse>;
 
   let loginCookie: string;
-  let newSublayer: Sublayer = createNewSublayer(uuidv4());
-
+  let newPoi: POI = {
+    uuid: null,
+    missionId: null,
+    ownerId: null,
+    name: "Jest Test New Poi",
+    description: "",
+    actionOrderUuids: [],
+    priorityOverride: null,
+    radius: 0,
+    location: null,
+    elevation: null,
+    icon: null,
+    tags: null,
+    status: "Candidate",
+    createdAt: roundDateToSecond(new Date()).toISOString(),
+    updatedAt: roundDateToSecond(new Date()).toISOString(),
+  };
   function mockRequestResponse(reqOptions: RequestOptions, resOptions?: ResponseOptions) {
     const { req, res }: { req: ApiRequest; res: ApiResponse } = createMocks(reqOptions, resOptions);
     return { req, res };
@@ -82,7 +85,7 @@ describe("Layer API Endpoint ", () => {
 
   test("Returns auth failure", async () => {
     const { req, res } = mockRequestResponse({ method: "GET" });
-    await handleSublayer(req, res);
+    await handlePOI(req, res);
     expect(res.statusCode).toBe(401);
     expect(res.statusMessage).toEqual("OK");
   });
@@ -107,57 +110,41 @@ describe("Layer API Endpoint ", () => {
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleSublayer(req, res);
+      await handlePOI(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Returns empty non-existant sublayer uuid for mission", async () => {
-      const reqOptions: RequestOptions = {
-        method: "GET",
-        headers: { cookie: loginCookie },
-        query: { missionId: testMissions[0].id, uuid: uuidv4() },
-      };
-      const { req, res } = mockRequestResponse(reqOptions);
-      await handleSublayer(req, res);
-      expect(res.statusCode).toBe(200);
-      expect(res.statusMessage).toEqual("OK");
-
-      const sublayers: Sublayer[] = res._getJSONData().data;
-      expect(res._getJSONData().status).toBe("success");
-      expect(sublayers.length).toEqual(0);
-    });
-
-    test("Returns single sublayer by sublayer uuid", async () => {
-      const reqOptions: RequestOptions = {
-        method: "GET",
-        headers: { cookie: loginCookie },
-        query: { missionId: testMissions[0].id, uuid: testSublayers[0].uuid },
-      };
-      const { req, res } = mockRequestResponse(reqOptions);
-      await handleSublayer(req, res);
-      expect(res.statusCode).toBe(200);
-      expect(res.statusMessage).toEqual("OK");
-
-      const sublayers: Sublayer[] = res._getJSONData().data;
-      expect(res._getJSONData().status).toBe("success");
-      expect(sublayers.length).toEqual(1);
-    });
-
-    test("Returns sublayers for mission", async () => {
+    test("Returns all Pois for mission", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleSublayer(req, res);
+      await handlePOI(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
-      const sublayers: Sublayer[] = res._getJSONData().data;
-      expect(res._getJSONData().status).toBe("success");
-      expect(sublayers.length).toBeGreaterThan(1);
+      const wrappedResponse = res._getJSONData();
+      expect(wrappedResponse.status).toBe("success");
+      expect(wrappedResponse.data.length).toBeGreaterThan(1);
+    });
+
+    test("No Pois returned", async () => {
+      const reqOptions: RequestOptions = {
+        method: "GET",
+        headers: { cookie: loginCookie },
+        query: { missionId: testMissions[1].id },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handlePOI(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
+
+      const wrappedResponse = res._getJSONData();
+      expect(wrappedResponse.status).toBe("success");
+      expect(wrappedResponse.data.length).toEqual(0);
     });
   });
 
@@ -167,11 +154,11 @@ describe("Layer API Endpoint ", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newSublayer, layerUuid: testLayer.uuid, missionId: testMissions[2].id },
+        body: { ...newPoi, missionId: testMissions[2].id },
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleSublayer(req, res);
+      await handlePOI(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -180,59 +167,57 @@ describe("Layer API Endpoint ", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newSublayer, layerUuid: testLayer.uuid, missionId: testMissions[1].id },
+        body: { ...newPoi, missionId: testMissions[1].id },
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleSublayer(req, res);
+      await handlePOI(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Create new sublayer", async () => {
+    test("Create new Poi", async () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newSublayer, layerUuid: testLayer.uuid, missionId: testMissions[0].id },
+        body: { ...newPoi, missionId: testMissions[0].id, ownerId: testUser.id },
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleSublayer(req, res);
+      await handlePOI(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedSublayer: Sublayer = res._getJSONData().data;
-      expect(upsertedSublayer.uuid).not.toBeNull();
-      expect(upsertedSublayer.createdAt).not.toBeNull();
-      expect(upsertedSublayer.updatedAt).not.toBeNull();
-      newSublayer = { ...upsertedSublayer };
+      const upsertedPoi: POI = res._getJSONData().data;
+      expect(upsertedPoi.uuid).not.toBeNull();
+      expect(upsertedPoi.createdAt).not.toBeNull();
+      expect(upsertedPoi.updatedAt).not.toBeNull();
+      newPoi = { ...upsertedPoi };
 
       //check if it was added to the db
       const em = getEM();
-      const sublayerRef: Sublayer_db = await em.findOne(Sublayer_db, upsertedSublayer.uuid);
-      expect(sublayerRef).not.toBeNull();
+      const poiReference = await em.findOne(Poi_db, upsertedPoi.uuid);
+      expect(poiReference).not.toBeNull();
     });
 
-    test("Update a sublayer", async () => {
-      newSublayer.name = "Jest Test Sublayer Modified";
-      newSublayer.missionId = testMissions[0].id;
-
+    test("Update a Poi", async () => {
+      newPoi.name = "Jest New Poi Modified";
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newSublayer,
+        body: { ...newPoi, missionId: testMissions[0].id },
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleSublayer(req, res);
+      await handlePOI(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedSublayer: Sublayer = res._getJSONData().data;
-      expect(upsertedSublayer).not.toBeNull();
-      expect(upsertedSublayer.name).toEqual("Jest Test Sublayer Modified");
+      const upsertedPoi = res._getJSONData().data;
+      expect(upsertedPoi).not.toBeNull();
+      expect(upsertedPoi.name).toEqual("Jest New Poi Modified");
     });
   });
 
@@ -244,7 +229,7 @@ describe("Layer API Endpoint ", () => {
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleSublayer(req, res);
+      await handlePOI(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -256,21 +241,19 @@ describe("Layer API Endpoint ", () => {
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleSublayer(req, res);
+      await handlePOI(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Delete a sublayer", async () => {
-      newSublayer.missionId = testMissions[0].id;
-
+    test("Delete a Poi", async () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { uuid: `${newSublayer.uuid}`, missionId: testMissions[0].id },
+        query: { uuid: `${newPoi.uuid}`, missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleSublayer(req, res);
+      await handlePOI(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -283,14 +266,14 @@ describe("Layer API Endpoint ", () => {
 afterAll(async () => {
   //Cleanup our Database
   const em = getEM();
-  for (let i = 0; i < testSublayers.length; i++) {
-    await em.nativeDelete(Sublayer_db, { uuid: testSublayers[i].uuid });
+  for (let i = 0; i < testPois.length; i++) {
+    await em.nativeDelete(Poi_db, { uuid: testPois[i].uuid });
   }
-  await em.nativeDelete(Layer_db, { uuid: testLayer.uuid });
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
   await em.nativeDelete(User_db, { id: testUser.id });
+
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
 });
