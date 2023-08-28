@@ -471,10 +471,8 @@ function calcElevation(
             accumuatliveSegmentDistance += segmentedDistancesMeters[i];
           }
           xLoc =
-            xLocStart +
-            Math.round(accumuatliveSegmentDistance / traverseRateMSecRounded / 60) *
-              60 *
-              paperVars.pixelsPerSecondX; //round to the nearest minute
+            xLocStartRounded +
+            (accumuatliveSegmentDistance / traverseRateMSecRounded) * paperVars.pixelsPerSecondX;
         }
       } else if (elevationIndex !== segment.length - 1) {
         //increment x unless we're at the last point in this segment.
@@ -483,7 +481,6 @@ function calcElevation(
       }
     }
   }
-
   return graphData_elevation;
 }
 

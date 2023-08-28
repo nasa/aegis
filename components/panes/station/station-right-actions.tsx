@@ -56,7 +56,7 @@ const Actions_Panel: FunctionComponent<{
     // create the calculated action fields for the action tab
     const newActionsCalculatedFields: ActionsCalculatedFields = {
       actionCount: calculatedFields.actionCount,
-      totalTime: calculatedFields.totalTime,
+      totalActionTime: calculatedFields.totalActionTime,
       totalEv1Time: calculatedFields.totalEv1Time,
       totalEv2Time: calculatedFields.totalEv2Time,
       totalUnassignedTime: calculatedFields.totalUnassignedTime,

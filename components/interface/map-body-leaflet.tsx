@@ -7,6 +7,7 @@ import { antPath } from "leaflet-ant-path";
 import "leaflet-textpath";
 import "leaflet.tilelayer.colorfilter";
 import "proj4leaflet";
+import * as geojson from "geojson";
 
 import styles from "components/interface/map-body.module.css";
 
@@ -34,7 +35,6 @@ import {
   getMidpoint,
 } from "utils/geoMath";
 import { decodeEmoji, titleCase } from "utils/formatting";
-import { Checkbox } from "components/interface/form/globalFields";
 import { setAllHoverUuids } from "store/playheadHover";
 import {
   thunkUpdateStationLocation,
@@ -49,6 +49,7 @@ import { selectEVASequenceItem } from "store/cross-slice";
 import { thunkGetStationOrTraverse } from "store/thunk/thunkEva";
 import { thunkUpdateLanderLocation } from "store/thunk/thunkMission";
 import { thunkUpdateActionLocation } from "store/thunk/thunkAction";
+import { MapMenu } from "./map-body-leaflet-menu";
 
 type MissionSelectProperties = Pick<
   Mission,
@@ -269,39 +270,39 @@ const MapBody: FunctionComponent = () => {
     // check map layers in order
     layersToAddInOrder.map((sublayer, index) => {
       if (sublayer.type === "tile") {
-        const filter = makeTileLayerColorFilter(mapSublayerControls, sublayer.uuid);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const tileLayer = (L.tileLayer as any).colorFilter(
-          `${layerBaseURL}/${mission.id}/Layers/${sublayer.url}`,
-          {
-            //manually add id and type fields for tracking later on
-            id: `${sublayer.name}`,
-            uuid: `${sublayer.uuid}`,
-            type: "tile",
-
-            tileSize: 256,
-            bounds: [
-              [sublayer.boundingBox[1], sublayer.boundingBox[0]],
-              [sublayer.boundingBox[3], sublayer.boundingBox[2]],
-            ],
-            tms: sublayer.tileFormat === "tms",
-            minZoom: sublayer.minZoom || 1,
-            minNativeZoom: sublayer.minZoom,
-            maxZoom: sublayer.maxZoom,
-            maxNativeZoom: sublayer.maxNativeZoom,
-            opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
-            zIndex: index,
-            filter,
-            // custom class name that we use to control mix-blend-mode
-            className: `leaflet-layer leaflet-blend-${
-              mapSublayerControls[sublayer.uuid].style?.blendMode
-            }`,
-          }
-        );
         // if layer isn't already on the map, add it
         if (!isLayerOnMapByName(map, sublayer.name)) {
-          map.current.addLayer(tileLayer);
+          const filter = makeTileLayerColorFilter(mapSublayerControls, sublayer.uuid);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const tileLayer = (L.tileLayer as any).colorFilter(
+            `${layerBaseURL}/${mission.id}/Layers/${sublayer.url}`,
+            {
+              //manually add id and type fields for tracking later on
+              id: `${sublayer.name}`,
+              uuid: `${sublayer.uuid}`,
+              type: "tile",
 
+              tileSize: 256,
+              bounds: [
+                [sublayer.boundingBox[1], sublayer.boundingBox[0]],
+                [sublayer.boundingBox[3], sublayer.boundingBox[2]],
+              ],
+              tms: sublayer.tileFormat === "tms",
+              minZoom: sublayer.minZoom || 1,
+              minNativeZoom: sublayer.minZoom,
+              maxZoom: sublayer.maxZoom,
+              maxNativeZoom: sublayer.maxNativeZoom,
+              opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
+              zIndex: index,
+              filter,
+              // custom class name that we use to control mix-blend-mode
+              className: `leaflet-layer leaflet-blend-${
+                mapSublayerControls[sublayer.uuid].style?.blendMode
+              }`,
+            }
+          );
+
+          map.current.addLayer(tileLayer);
           tileLayer.bringToFront();
         } else {
           // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
@@ -309,53 +310,78 @@ const MapBody: FunctionComponent = () => {
           layer.bringToFront();
         }
       } else if (sublayer.type === "vector") {
-        // fetch geojson object from url
-        (async () => {
-          const res = await fetch(`${layerBaseURL}/${mission.id}/Data/${sublayer.filePath}`, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
-          const geojson = await res.json();
+        // if layer isn't already on the map, add it
+        if (!isLayerOnMapByName(map, sublayer.name)) {
+          // fetch geojson object from url
+          (async () => {
+            const res = await fetch(`${layerBaseURL}/${mission.id}/Data/${sublayer.filePath}`, {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            });
+            const geojson = await res.json();
 
-          // create a featureGroup for the layer
-          const featureGroup = L.featureGroup();
-          featureGroup.name = sublayer.name;
-          featureGroup.uuid = sublayer.uuid;
+            // create a featureGroup for the layer
+            const featureGroup = L.featureGroup();
+            featureGroup.name = sublayer.name;
+            featureGroup.uuid = sublayer.uuid;
 
-          const vectorLayer = L.geoJSON(geojson, {
-            style: (geoJsonFeature) => {
-              //fill color defaults to color if not defined
-              let fillColor = mapSublayerControls[sublayer.uuid].style?.color;
-              if (mapSublayerControls[sublayer.uuid].style?.fillColor?.startsWith("prop:")) {
-                const fillPropertyName =
-                  mapSublayerControls[sublayer.uuid].style?.fillColor.slice(5);
-                fillColor = geoJsonFeature.properties[fillPropertyName];
-              }
-              return {
-                //manually add id and type fields for tracking later on
-                id: sublayer.name,
-                type: "vector",
-                //manually define defaults
-                color: mapSublayerControls[sublayer.uuid].style?.color,
-                opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
-                weight: mapSublayerControls[sublayer.uuid].style?.weight,
-                fillColor: fillColor,
-                fillOpacity: mapSublayerControls[sublayer.uuid].style?.fillOpacity,
-              };
-            },
-          });
-          // if layer isn't already on the map, add it
-          if (!isLayerOnMapByName(map, sublayer.name)) {
+            const vectorLayer = L.geoJSON(geojson, {
+              style: (geoJsonFeature) => {
+                //fill color defaults to color if not defined
+                let fillColor = mapSublayerControls[sublayer.uuid].style?.color;
+                if (mapSublayerControls[sublayer.uuid].style?.fillColor?.startsWith("prop:")) {
+                  const fillPropertyName =
+                    mapSublayerControls[sublayer.uuid].style?.fillColor.slice(5);
+                  fillColor = geoJsonFeature.properties[fillPropertyName];
+                }
+                return {
+                  //manually add id and type fields for tracking later on
+                  id: sublayer.name,
+                  type: "vector",
+                  //manually define defaults
+                  color: mapSublayerControls[sublayer.uuid].style?.color,
+                  opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
+                  weight: mapSublayerControls[sublayer.uuid].style?.weight,
+                  fillColor: fillColor,
+                  fillOpacity: mapSublayerControls[sublayer.uuid].style?.fillOpacity,
+                };
+              },
+              onEachFeature: (
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                feature: geojson.Feature<geojson.GeometryObject, any>
+              ) => {
+                if (feature.properties["CELL_ID"]) {
+                  const multiPolygon: geojson.MultiPolygon =
+                    feature.geometry as geojson.MultiPolygon;
+                  const latLng = new L.LatLng(
+                    multiPolygon.coordinates[0][0][0][1],
+                    multiPolygon.coordinates[0][0][0][0]
+                  );
+
+                  const gridLabel = L.tooltip({
+                    sticky: false,
+                    direction: "left",
+                    offset: new L.Point(0, -8),
+                    permanent: true,
+                    className: "leaflet-tooltip-gridLabels",
+                  })
+                    .setLatLng(latLng)
+                    .setContent(feature.properties["CELL_ID"]);
+                  featureGroup.addLayer(gridLabel);
+                }
+              },
+              interactive: false,
+            });
             featureGroup.addLayer(vectorLayer);
             map.current.addLayer(featureGroup);
-          } else {
-            // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
-            const layer = getLayerByName(map, sublayer.name);
-            layer.bringToFront();
-          }
-        })();
+          })();
+        } else {
+          // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
+          const layer = getLayerByName(map, sublayer.name);
+          layer.bringToFront();
+        }
       }
     });
   }, [
@@ -1045,12 +1071,14 @@ const MapBody: FunctionComponent = () => {
     if ((sectionSelected === "station" || sectionSelected === "evas") && selectedStation) {
       // set actions to show
       const actionsInStation = actions.filter(
-        (action) => action.stationUuid === selectedStation.uuid
+        (action) => action.stationUuid === selectedStation.uuid && action.enabled
       );
       setActionsToShow(actionsInStation);
     } else if (sectionSelected === "poi" && selectedPoi) {
       // set actions to show
-      const actionsInPoi = actions.filter((action) => action.poiUuid === selectedPoi.uuid);
+      const actionsInPoi = actions.filter(
+        (action) => action.poiUuid === selectedPoi.uuid && action.enabled
+      );
       setActionsToShow(actionsInPoi);
     } else {
       setActionsToShow([]);
@@ -1656,139 +1684,18 @@ const MapBody: FunctionComponent = () => {
     <div className={styles.mapContainer}>
       <div className={styles.map} ref={mapRef} />
 
-      <div className={styles.mapDisplayControls}>
-        <div className={styles.controlsContainer}>
-          <div className={styles.controlContainer}>
-            <div className={styles.control}>
-              <div className={styles.controlCheckbox}>
-                <Checkbox
-                  checked={mapDisplayPois.show}
-                  onChange={(e) => {
-                    setMapDisplayPois({
-                      ...mapDisplayPois,
-                      show: e.target.checked,
-                    });
-                  }}
-                  toolTip="Show/Hide all POIs on map"
-                  label="POIs"
-                  labelStyle={{ alignSelf: "center" }}
-                  uniqueId="showHidePoi"
-                />
-              </div>
-            </div>
-            <div className={styles.subControl}>
-              <div className={styles.controlCheckbox}>
-                <Checkbox
-                  checked={mapDisplayPois.showLabels}
-                  onChange={(e) => {
-                    setMapDisplayPois({
-                      ...mapDisplayPois,
-                      showLabels: e.target.checked,
-                      ...(e.target.checked && { show: true }),
-                    });
-                  }}
-                  toolTip="Show/Hide all POI labels on map"
-                  label="Labels"
-                  labelStyle={{ alignSelf: "center" }}
-                  uniqueId="showHidePoiLabels"
-                />
-              </div>
-            </div>
-          </div>
-          <div className={styles.controlContainer}>
-            <div className={styles.control}>
-              <div className={styles.controlCheckbox}>
-                <Checkbox
-                  checked={mapDisplayStations.show}
-                  onChange={(e) => {
-                    setMapDisplayStations({
-                      ...mapDisplayStations,
-                      show: e.target.checked,
-                    });
-                  }}
-                  toolTip="Show/Hide all Stations on map"
-                  label="Stations"
-                  labelStyle={{ alignSelf: "center" }}
-                  uniqueId="showHideStations"
-                />
-              </div>
-            </div>
-            <div className={styles.subControl}>
-              <div className={styles.controlCheckbox}>
-                <Checkbox
-                  checked={mapDisplayStations.showLabels}
-                  onChange={(e) => {
-                    setMapDisplayStations({
-                      ...mapDisplayStations,
-                      showLabels: e.target.checked,
-                    });
-                  }}
-                  toolTip="Show/Hide all Station labels on map"
-                  label="Labels"
-                  labelStyle={{ alignSelf: "center" }}
-                  uniqueId="showHideStationLabels"
-                />
-              </div>
-            </div>
-          </div>
-          <div className={styles.controlContainer}>
-            <div className={styles.control}>
-              <div className={styles.controlCheckbox}>
-                <Checkbox
-                  checked={mapDisplayActions.show}
-                  onChange={(e) => {
-                    setMapDisplayActions({
-                      ...mapDisplayActions,
-                      show: e.target.checked,
-                      showLabels: false,
-                    });
-                  }}
-                  toolTip="Show/Hide Actions on map"
-                  label="Actions"
-                  labelStyle={{ alignSelf: "center" }}
-                  uniqueId="showHideActions"
-                />
-              </div>
-            </div>
-            <div className={styles.subControl}>
-              <div className={styles.controlCheckbox}>
-                <Checkbox
-                  checked={mapDisplayActions.showLabels}
-                  onChange={(e) => {
-                    setMapDisplayActions({
-                      ...mapDisplayActions,
-                      showLabels: e.target.checked,
-                      ...(e.target.checked && { show: true }),
-                    });
-                  }}
-                  toolTip="Show/Hide Actions labels on map"
-                  label="Labels"
-                  labelStyle={{ alignSelf: "center" }}
-                  uniqueId="showHideActionLabels"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.controlContainer}>
-            <div className={styles.control}>
-              <div className={styles.controlCheckbox}>
-                <Checkbox
-                  checked={showArrows}
-                  onChange={(e) => {
-                    setShowArrows(e.target.checked);
-                  }}
-                  toolTip="Show/Hide arrows on traverses"
-                  label="Arrows"
-                  labelStyle={{ alignSelf: "center" }}
-                  uniqueId="showHideArrows"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className={styles.mapControlDisplay}>
+        <MapMenu
+          mapDisplayPois={mapDisplayPois}
+          setMapDisplayPois={setMapDisplayPois}
+          mapDisplayStations={mapDisplayStations}
+          setMapDisplayStations={setMapDisplayStations}
+          mapDisplayActions={mapDisplayActions}
+          setMapDisplayActions={setMapDisplayActions}
+          showArrows={showArrows}
+          setShowArrows={setShowArrows}
+        />
       </div>
-
       <div className={styles.mapScaleDisplay}>{drawScaleBarDiv()}</div>
       <div className={styles.mapPositionDisplay}>{drawLatLongDiv()}</div>
     </div>

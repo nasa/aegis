@@ -1,7 +1,7 @@
 import { deletePoiByUuid, setPoiCalculatedFields, upsertPoiFromDb } from "store/poi";
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkGetElevation } from "./thunkElevation";
-import * as InternalAPI from "http-client/poi";
+import * as httpClient_poi from "http-client/poi";
 import * as httpClient_action from "http-client/action";
 import { upsertActions, deleteActionsByUuid, setActionsFromDb } from "store/action";
 import { obliteratePoi, saveNewPoi } from "store/cross-slice";
@@ -30,7 +30,8 @@ export const thunkUpdatePoiLocation = appCreateAsyncThunk<{
 
   const poi = getState().poi.pois.find((s) => s.uuid === poiUuid);
   if (elevation.payload === false) {
-    //gracefully reject?
+    //elevation failed - upsert without it
+    dispatch(upsertPoi({ ...poi, location }));
   } else {
     //upsert location and elevation
     dispatch(upsertPoi({ ...poi, location, elevation: elevation.payload as number }));
@@ -104,7 +105,7 @@ export const thunkCreatePoiCalculatedFields = appCreateAsyncThunk<void>(
       const newCalculatedFields: PoiCalculatedFields = {
         uuid: poi.uuid,
         reportItems: newReportItems,
-        totalTime: {
+        totalActionTime: {
           durationLower: totalDurationLower,
           durationUpper: totalDurationUpper,
         },
@@ -141,7 +142,7 @@ export const thunkSavePoi = appCreateAsyncThunk<{
   );
 
   //save poi to db
-  const poiUpsertResponse = await InternalAPI.upsertPOI({
+  const poiUpsertResponse = await httpClient_poi.upsertPOI({
     ...poi,
     updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   });
@@ -225,14 +226,14 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
     }
 
     // delete the POI from the DB via internal API call
-    const deleteResponse = await InternalAPI.deletePOI(poi.uuid);
+    const deleteResponse = await httpClient_poi.deletePOI(poi.uuid);
     if (deleteResponse.status === "success") {
       // remove the corresponding POI from the store
       dispatch(deletePoiByUuid(poi.uuid));
       dispatch(setSelectedPoiUuid(null));
 
       // get fresh copy of POIs from DB
-      const poiData = await InternalAPI.getPOIs(selectedMissionId);
+      const poiData = await httpClient_poi.getPOIs(selectedMissionId);
       if (poiData.data) {
         dispatch(setPoisFromDb(poiData.data));
       }
@@ -297,10 +298,9 @@ export const thunkDuplicatePoi = appCreateAsyncThunk<{ poi: POI }>(
       getState().poi.pois.map((item) => item.name)
     );
 
-    //duplicate actions
+    //duplicate actions, in order
     const poiActions = getState().action.actions.filter((action) => action.poiUuid === poi?.uuid);
     const newActionOrderUuids = [];
-    //if there's an order, preserve it.
 
     for (const actionUuid of poi.actionOrderUuids) {
       const action = poiActions.find((a) => a.uuid === actionUuid);
@@ -312,7 +312,7 @@ export const thunkDuplicatePoi = appCreateAsyncThunk<{ poi: POI }>(
           handleActionOrderProcessing: false,
         })
       );
-      if (thunkRes.payload) {
+      if (thunkRes?.payload) {
         newActionOrderUuids.push(thunkRes.payload as string);
       }
     }

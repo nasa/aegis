@@ -20,8 +20,44 @@ export default class ActionFactory extends Factory<Action_db> {
       durationLower: 0,
       status: "Candidate",
       enabled: true,
+      equipmentItemsUsage: [],
+      geographicUnitsUsage: [],
+      crewAssigned: null,
+      priority: null,
+      mass: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
   }
 }
+
+export const createTestAction = ({
+  poiUuid,
+  stationUuid,
+}: {
+  poiUuid?: string;
+  stationUuid?: string;
+}): Action => {
+  return {
+    uuid: uuidv4(),
+    missionId: null,
+    poiUuid: poiUuid,
+    stationUuid: stationUuid,
+    name: "Jest Action-1",
+    type: "measurement",
+    description: "",
+    icon: "",
+    location: null,
+    elevation: 0,
+    durationLower: 0,
+    status: "Candidate",
+    enabled: true,
+    equipmentItemsUsage: [],
+    geographicUnitsUsage: [],
+    crewAssigned: null,
+    priority: null,
+    mass: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+};

@@ -12,6 +12,7 @@ export default class PoiFactory extends Factory<Poi_db> {
       owner: null,
       name: "Jest Poi-1",
       description: "",
+      actionOrderUuids: [],
       priorityOverride: null,
       radius: 0,
       location: null,
@@ -24,3 +25,23 @@ export default class PoiFactory extends Factory<Poi_db> {
     };
   }
 }
+
+export const createTestPoi = (): POI => {
+  return {
+    uuid: uuidv4(),
+    missionId: null,
+    ownerId: null,
+    name: "Jest Poi-1",
+    description: "",
+    actionOrderUuids: [],
+    priorityOverride: null,
+    radius: 0,
+    location: null,
+    elevation: null,
+    icon: null,
+    tags: null,
+    status: "Candidate",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+};

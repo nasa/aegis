@@ -1,10 +1,6 @@
 import reducer, { initialState, setMapSublayerControls } from "store/map";
 import { describe, expect, it } from "@jest/globals";
-import { TextEncoder, TextDecoder } from "util";
 import { v4 as uuidv4 } from "uuid";
-
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
 
 describe("AEGIS Map Store Tests: ", () => {
   it("should return the initial state on first run", () => {

@@ -111,6 +111,16 @@ body {
   padding: 2px 5px 2px 5px !important;
 }
 
+.leaflet-tooltip-gridLabels {
+  padding: 0px 2px 0px 2px !important;
+  border-radius: 0px !important;
+  font-size: 0.6rem;
+  margin-left: 0px !important;
+}
+.leaflet-tooltip-gridLabels::before {
+  display: none;
+}
+
 /* metatag component styling */
 .rti--container {
   --rti-bg: var(--grey1) !important;

@@ -355,10 +355,10 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {calculatedFields?.totalTime?.durationLower === 0 ? (
+                        {calculatedFields?.totalActionTime?.durationLower === 0 ? (
                           <>0</>
                         ) : (
-                          <>{displayFormattedTotalTimeObj(calculatedFields?.totalTime)}</>
+                          <>{displayFormattedTotalTimeObj(calculatedFields?.totalActionTime)}</>
                         )}
                       </div>
                     </div>
