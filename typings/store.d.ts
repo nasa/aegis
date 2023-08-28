@@ -122,7 +122,7 @@ type CalculatedFields = {
 };
 
 type ActionsCalculatedFields = {
-  totalTime: TotalTimeObj;
+  totalActionTime: TotalTimeObj;
   totalEv1Time: TotalTimeObj;
   totalEv2Time: TotalTimeObj;
   totalUnassignedTime: TotalTimeObj;

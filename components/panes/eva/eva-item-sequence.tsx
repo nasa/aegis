@@ -75,7 +75,7 @@ const EvaItemSequence: FunctionComponent<{
   const displayStationDuration = (thisStation: Station) => {
     const durationMinutes =
       stationCalculatedFields.find((stationData) => stationData.uuid === thisStation?.uuid)
-        ?.totalTime.durationUpper || null;
+        ?.totalDwellTime.durationUpper || null;
     return !isNaN(durationMinutes) ? hhmmFromMinutes(durationMinutes) : "N/A";
   };
 

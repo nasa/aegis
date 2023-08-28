@@ -56,7 +56,7 @@ export const thunkCreateEvasCalculatedFields = appCreateAsyncThunk<void>(
       const evaCalculatedFields: EvaCalculatedFields = {
         uuid: eva.uuid,
         reportItems: [], // report items for the eva itself
-        totalTime: {
+        totalActionTime: {
           durationLower: 0,
           durationUpper: 0,
         },
@@ -98,10 +98,10 @@ export const thunkCreateEvasCalculatedFields = appCreateAsyncThunk<void>(
           (traverseCalculatedFields) => traverseCalculatedFields.uuid === seqItem.uuid
         );
         if (thisStationCalculatedFields) {
-          evaCalculatedFields.totalTime.durationLower +=
-            thisStationCalculatedFields.totalTime.durationLower;
-          evaCalculatedFields.totalTime.durationUpper +=
-            thisStationCalculatedFields.totalTime.durationUpper;
+          evaCalculatedFields.totalActionTime.durationLower +=
+            thisStationCalculatedFields.totalActionTime.durationLower;
+          evaCalculatedFields.totalActionTime.durationUpper +=
+            thisStationCalculatedFields.totalActionTime.durationUpper;
           evaCalculatedFields.totalEv1Time.durationLower +=
             thisStationCalculatedFields.totalEv1Time.durationLower;
           evaCalculatedFields.totalEv1Time.durationUpper +=

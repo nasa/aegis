@@ -336,7 +336,7 @@ export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
       const newCalculatedFields: StationCalculatedFields = {
         uuid: station.uuid,
         reportItems: newReportItems,
-        totalTime: {
+        totalActionTime: {
           durationLower: totalDurationLower,
           durationUpper: totalDurationUpper,
         },
