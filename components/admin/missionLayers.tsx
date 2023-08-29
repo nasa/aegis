@@ -1,19 +1,14 @@
-import { NextPage } from "next";
-import { Dispatch, useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/router";
-import { isLoggedIn } from "http-client/login";
-import adminStyles from "components/admin/admin.module.css";
+import { Dispatch, FunctionComponent, useCallback, useEffect, useState } from "react";
+import adminStyles from "./admin.module.css";
 import LayerEdit from "components/admin/layerEdit";
 import SublayerEdit from "components/admin/sublayerEdit";
 import { deleteLayer, getLayers } from "http-client/layer";
 import { createNewLayer, createNewSublayer } from "components/admin/helper";
-import { getMissions } from "http-client/mission";
 import _ from "lodash";
 import FileManager from "components/admin/fileManager";
 import { deleteSublayer, getSublayers } from "http-client/sublayer";
 
-const Layers: NextPage = () => {
-  const router = useRouter();
+const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission: Mission }) => {
   const [missionIdSlug, setMissionIdSlug] = useState<number>(null);
   const [missionName, setMissionName] = useState<string>("");
 
@@ -22,6 +17,8 @@ const Layers: NextPage = () => {
   const [editSublayerParentUUID, setEditSublayerParentUUID] = useState("0");
   const [editComponent, setEditComponent] = useState<JSX.Element>(null);
   const [fileList, setFileList] = useState<GISfile[]>(null);
+
+  const mission = props.mission;
 
   const reloadLayers = useCallback(() => {
     (async () => {
@@ -39,39 +36,6 @@ const Layers: NextPage = () => {
       }
     })();
   }, [missionIdSlug]);
-
-  //on load check login and mission id
-  useEffect(() => {
-    (async () => {
-      //set mission id state
-      const { id } = router.query;
-      const intMissionId = parseInt(Array.isArray(id) ? id[0] : id);
-      const response = await isLoggedIn(); //check user is logged in
-      if (
-        response.status === "success" &&
-        (response.data.user.isAdmin || response.data.user.isSuperAdmin)
-      ) {
-        if (
-          !response.data.user.isSuperAdmin &&
-          !response.data.user.permissionList.some(
-            (p) => p.missionId === intMissionId && p.permissions.edit
-          )
-        ) {
-          await router.push("/"); //no permissions to this mission
-        }
-
-        setMissionIdSlug(+id);
-
-        //set mission name
-        const mission = (await getMissions(intMissionId)).data;
-        if (mission) {
-          setMissionName(mission[0].name);
-        }
-      } else {
-        await router.push("/");
-      }
-    })();
-  }, [router]);
 
   //realod db when mission id changes
   useEffect(() => {
@@ -103,17 +67,16 @@ const Layers: NextPage = () => {
     [allSublayers]
   );
 
+  useEffect(() => {
+    if (!mission) return;
+
+    setMissionIdSlug(mission.id);
+    setMissionName(mission.name);
+  }, [mission]);
+
   return (
     <div>
       <h2>Mission: {missionName}</h2>
-      <button
-        type="button"
-        onClick={() => {
-          router.push("/admin/mission");
-        }}
-      >
-        Back to Mission
-      </button>
       <div id="layerList_div">
         <h3>Layers and Sublayers</h3>
         <LayerList
@@ -305,4 +268,4 @@ const LayerList = (props: {
   }
 };
 
-export default Layers;
+export default MissionLayers;
