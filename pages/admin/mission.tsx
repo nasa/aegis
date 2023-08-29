@@ -13,6 +13,8 @@ import { isLoggedIn } from "http-client/login";
 // import { validators } from "components/interface/form/formValidators";
 import { Tooltip } from "react-tooltip";
 import { roundDateToSecond } from "utils/formatting";
+import MissionLayers from "components/admin/missionLayers";
+import MissionSTM from "components/admin/missionSTM";
 // import { v4 as uuidv4 } from "uuid";
 
 const Mission: NextPage = () => {
@@ -23,6 +25,7 @@ const Mission: NextPage = () => {
   const [mission, setMission] = useState<Mission>(); //current mission being edited
   // const [showImportMission, setShowImportMission] = useState<boolean>(false);
   const [user, setUser] = useState<User>(null);
+  const [editingAttr, setEditingAttr] = useState<"Mission" | "Layers" | "STM">(undefined);
 
   const loadMissionsFromDB = useCallback(async () => {
     const missionList = (await getMissions()).data;
@@ -105,6 +108,7 @@ const Mission: NextPage = () => {
     };
 
     setMission(newMission);
+    setEditingAttr("Mission");
     setEditMissionId(null);
   }
 
@@ -416,6 +420,7 @@ const Mission: NextPage = () => {
             user={user}
             refreshMissionList={loadMissionsFromDB}
             setEditMissionId={setEditMissionId}
+            setEditingAttr={setEditingAttr}
           />
           <button
             type="button"
@@ -438,11 +443,15 @@ const Mission: NextPage = () => {
             {showImportMission ? "Close Import/Export" : "Open Import/Export"}
           </button>
           <ImportMission /> */}
-          <MissionEditor
-            refreshMissionList={loadMissionsFromDB}
-            mission={mission}
-            setMission={setMission}
-          />
+          {editingAttr === "Mission" && (
+            <MissionEditor
+              refreshMissionList={loadMissionsFromDB}
+              mission={mission}
+              setMission={setMission}
+            />
+          )}
+          {editingAttr === "Layers" && <MissionLayers mission={mission} />}
+          {editingAttr === "STM" && <MissionSTM mission={mission} />}
         </div>
       </div>
     </>
@@ -455,8 +464,8 @@ const MissionList = (props: {
   user: User;
   refreshMissionList: () => {};
   setEditMissionId: Dispatch<SetStateAction<Number>>;
+  setEditingAttr: Dispatch<SetStateAction<string>>;
 }) => {
-  const router = useRouter();
   const permissionList = props.user?.permissionList;
 
   async function delMission(id: number) {
@@ -488,6 +497,7 @@ const MissionList = (props: {
                     type="button"
                     onClick={() => {
                       props.setEditMissionId(mission.id);
+                      props.setEditingAttr("Mission");
                     }}
                   >
                     Edit Mission
@@ -496,7 +506,8 @@ const MissionList = (props: {
                   <button
                     type="button"
                     onClick={() => {
-                      router.push(`/admin/layers/${mission.id}`);
+                      props.setEditMissionId(mission.id);
+                      props.setEditingAttr("Layers");
                     }}
                   >
                     Edit Layers
@@ -505,7 +516,8 @@ const MissionList = (props: {
                   <button
                     type="button"
                     onClick={() => {
-                      router.push(`/admin/stm/${mission.id}`);
+                      props.setEditMissionId(mission.id);
+                      props.setEditingAttr("STM");
                     }}
                   >
                     Edit STM
@@ -515,6 +527,7 @@ const MissionList = (props: {
                     className={styles.deleteButton}
                     type="button"
                     onClick={() => {
+                      props.setEditingAttr(undefined);
                       delMission(mission.id);
                     }}
                   >

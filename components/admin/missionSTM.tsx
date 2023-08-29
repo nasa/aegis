@@ -1,22 +1,18 @@
-import { NextPage } from "next";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
-import { isLoggedIn } from "http-client/login";
-import adminStyles from "components/admin/admin.module.css";
+import { FunctionComponent, useEffect, useState } from "react";
+import adminStyles from "./admin.module.css";
 import { getObjectives, getGoals, getInvestigations, deleteSTM } from "http-client/stm";
-import { getMissions } from "http-client/mission";
 import STMEdit from "components/admin/stmEdit";
 
-const STM: NextPage = () => {
-  const router = useRouter();
+const MissionSTM: FunctionComponent<{ mission: Mission }> = (props: { mission: Mission }) => {
   const [missionIdSlug, setMissionIdSlug] = useState<number>(null);
   const [message, setMessage] = useState("");
-  const [mission, setMission] = useState<Mission>(null);
 
   //responses from the DB
   const [allObjectives, setAllObjectives] = useState<STMObjective[]>([]);
   const [allGoals, setAllGoals] = useState<STMGoal[]>([]);
   const [allInvestigations, setAllInvestigations] = useState<STMInvestigation[]>([]);
+
+  const mission = props.mission;
 
   async function loadSTMfromDB(missionId: number) {
     if (missionId) {
@@ -40,40 +36,11 @@ const STM: NextPage = () => {
     }
   }
 
-  //on load check login and mission id
   useEffect(() => {
-    (async () => {
-      const { id } = router.query;
-      const intMissionId = parseInt(Array.isArray(id) ? id[0] : id);
-      const response = await isLoggedIn(); //Check if user is logged in.
-      if (
-        response.status === "success" &&
-        (response.data.user.isAdmin || response.data.user.isSuperAdmin)
-      ) {
-        if (
-          !response.data.user.isSuperAdmin &&
-          !response.data.user.permissionList.some(
-            (p) => p.missionId === intMissionId && p.permissions.edit
-          )
-        ) {
-          await router.push("/"); //no permissions to this mission
-        }
-        //set mission id state
-        setMissionIdSlug(+id);
-        setMessage("Loading mission ID " + id);
+    if (!mission) return;
 
-        //set mission
-        const mission = (await getMissions(intMissionId)).data;
-        if (mission) {
-          setMission(mission[0]);
-        } else {
-          setMessage("Cannot find mission ID " + id);
-        }
-      } else {
-        await router.push("/");
-      }
-    })();
-  }, [router]);
+    setMissionIdSlug(mission.id);
+  }, [mission]);
 
   //realod db when mission id changes
   useEffect(() => {
@@ -115,16 +82,8 @@ const STM: NextPage = () => {
     <>
       {mission && (
         <div>
-          Status: {message}
           <h2>Mission: {mission.name}</h2>
-          <button
-            type="button"
-            onClick={() => {
-              router.push("/admin/mission");
-            }}
-          >
-            Back to Mission
-          </button>
+          Status: {message}
           <h3>Science Tracability Matrix</h3>
           <ObjectiveList
             objectives={allObjectives}
@@ -266,4 +225,4 @@ const InvestigationList = (props: {
   }
 };
 
-export default STM;
+export default MissionSTM;
