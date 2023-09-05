@@ -1,10 +1,10 @@
 import { faEllipsisV, faEye, faEyeSlash, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { FunctionComponent, useRef } from "react";
-import { deleteActionByUuid } from "store/action";
 import { useAppDispatch } from "utils/useAppDispatch";
 import actionStyles from "./actions-action.module.css";
 import { upsertAction } from "store/action";
+import { thunkDeleteAction } from "store/thunk/thunkAction";
 
 export const ActionMenu: FunctionComponent<{
   action: Action;
@@ -47,7 +47,7 @@ export const ActionMenu: FunctionComponent<{
             className={actionStyles.menuItem}
             onClick={(e) => {
               if (window.confirm("Are you sure you want to delete this Action?")) {
-                dispatch(deleteActionByUuid(action.uuid));
+                dispatch(thunkDeleteAction({ uuid: action.uuid }));
                 e.stopPropagation();
               }
               dialogRef.current?.close();
