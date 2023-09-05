@@ -1,6 +1,6 @@
 import { NextPage } from "next";
 import { Dispatch, SetStateAction, useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/router";
+import router, { useRouter } from "next/router";
 import { getMissions, deleteMission } from "http-client/mission";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";
@@ -34,6 +34,17 @@ const Mission: NextPage = () => {
     for (const thisMission of missionList) {
       newMissionList.push(thisMission);
     }
+
+    //Sort by name
+    newMissionList.sort((a, b) => {
+      if (a.name.toLowerCase() < b.name.toLowerCase()) {
+        return -1;
+      } else if (a.name.toLowerCase() > b.name.toLowerCase()) {
+        return 1;
+      } else {
+        return 0;
+      }
+    });
 
     setMissions(newMissionList);
   }, []);
@@ -521,6 +532,15 @@ const MissionList = (props: {
                     }}
                   >
                     Edit STM
+                  </button>
+                  &nbsp;
+                  <button
+                    type="button"
+                    onClick={() => {
+                      router.push(`export?missionId=${mission.id}`);
+                    }}
+                  >
+                    Export
                   </button>
                   &nbsp;
                   <button
