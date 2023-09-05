@@ -71,6 +71,11 @@ type MissionSelectProperties = Pick<
   | "landerRadii"
 >;
 
+type GridLabelItem = {
+  id: string;
+  latLng: L.LatLngExpression;
+};
+
 // const center = [51.505, -0.09] as L.LatLngExpression; // London
 const center = [64.833445, -16.378351] as L.LatLngExpression; // Iceland
 const zoom = 13;
@@ -86,6 +91,7 @@ const MapBody: FunctionComponent = () => {
   const stationFeatureGroup = useRef<L.FeatureGroup>(null);
   const poiFeatureGroup = useRef<L.FeatureGroup>(null);
   const actionFeatureGroup = useRef<L.FeatureGroup>(null);
+  const gridLabelFeatureGroup = useRef<L.FeatureGroup>(null);
 
   const mission: MissionSelectProperties = useAppSelector(
     (state) =>
@@ -176,7 +182,9 @@ const MapBody: FunctionComponent = () => {
   const [mapPosition, setMapPosition] = useState<string[]>([]);
 
   const [scale, setScale] = useState(0);
-  const [mapZoom, setMapZoom] = useState(0); // value used to show correct scale bar
+  const [mapZoom, setMapZoom] = useState(null); // value used to show correct scale bar
+  const [mapBounds, setMapBounds] = useState<L.LatLngBoundsLiteral>(null);
+  const [gridLabels, setGridLabels] = useState<GridLabelItem[]>([]);
   const [showArrows, setShowArrows] = useState(false);
 
   // make color filter settings for tile sublayer. This is the format of leaflet.tilelayer.colorfilter package
@@ -264,6 +272,12 @@ const MapBody: FunctionComponent = () => {
       const sublayerControls = mapSublayerControls[uuid];
       if (sublayerControls && !sublayerControls.visible) {
         map.current.removeLayer(layer);
+
+        // remove grid labels if grid layer is removed
+        //TODO: this is a hacky way to check if it's a grid layer
+        if (sublayerControls.name.includes("Grid")) {
+          setGridLabels([]);
+        }
       }
     });
 
@@ -278,8 +292,8 @@ const MapBody: FunctionComponent = () => {
             `${layerBaseURL}/${mission.id}/Layers/${sublayer.url}`,
             {
               //manually add id and type fields for tracking later on
-              id: `${sublayer.name}`,
-              uuid: `${sublayer.uuid}`,
+              id: sublayer.name,
+              uuid: sublayer.uuid,
               type: "tile",
 
               tileSize: 256,
@@ -327,6 +341,26 @@ const MapBody: FunctionComponent = () => {
             featureGroup.name = sublayer.name;
             featureGroup.uuid = sublayer.uuid;
 
+            const newGridLabels: GridLabelItem[] = [];
+
+            const gridLayerOnEachFeature = (
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              feature: geojson.Feature<geojson.GeometryObject, any>
+            ) => {
+              if (feature.properties["CELL_ID"]) {
+                const multiPolygon = feature.geometry as geojson.MultiPolygon;
+                const latLng = new L.LatLng(
+                  multiPolygon.coordinates[0][0][1][1],
+                  multiPolygon.coordinates[0][0][1][0]
+                );
+
+                newGridLabels.push({
+                  id: feature.properties["CELL_ID"],
+                  latLng: { lat: latLng.lat, lng: latLng.lng },
+                });
+              }
+            };
+
             const vectorLayer = L.geoJSON(geojson, {
               style: (geoJsonFeature) => {
                 //fill color defaults to color if not defined
@@ -337,8 +371,9 @@ const MapBody: FunctionComponent = () => {
                   fillColor = geoJsonFeature.properties[fillPropertyName];
                 }
                 return {
-                  //manually add id and type fields for tracking later on
+                  //manually add uuid and type fields for tracking later on
                   id: sublayer.name,
+                  uuid: sublayer.uuid,
                   type: "vector",
                   //manually define defaults
                   color: mapSublayerControls[sublayer.uuid].style?.color,
@@ -348,34 +383,14 @@ const MapBody: FunctionComponent = () => {
                   fillOpacity: mapSublayerControls[sublayer.uuid].style?.fillOpacity,
                 };
               },
-              onEachFeature: (
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                feature: geojson.Feature<geojson.GeometryObject, any>
-              ) => {
-                if (feature.properties["CELL_ID"]) {
-                  const multiPolygon: geojson.MultiPolygon =
-                    feature.geometry as geojson.MultiPolygon;
-                  const latLng = new L.LatLng(
-                    multiPolygon.coordinates[0][0][0][1],
-                    multiPolygon.coordinates[0][0][0][0]
-                  );
-
-                  const gridLabel = L.tooltip({
-                    sticky: false,
-                    direction: "left",
-                    offset: new L.Point(0, -8),
-                    permanent: true,
-                    className: "leaflet-tooltip-gridLabels",
-                  })
-                    .setLatLng(latLng)
-                    .setContent(feature.properties["CELL_ID"]);
-                  featureGroup.addLayer(gridLabel);
-                }
-              },
+              onEachFeature: sublayer.name.includes("Grid") ? gridLayerOnEachFeature : null, //TODO: this is a hacky way to check if it's a grid layer
               interactive: false,
             });
             featureGroup.addLayer(vectorLayer);
             map.current.addLayer(featureGroup);
+            if (sublayer.name.includes("Grid")) {
+              setGridLabels(newGridLabels);
+            }
           })();
         } else {
           // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
@@ -396,6 +411,52 @@ const MapBody: FunctionComponent = () => {
   ]);
 
   /**
+   * Update which grid labels are visible based on map zoom level
+   */
+  useEffect(() => {
+    if (!mapZoom || !mapBounds) return;
+
+    let modulo = 1;
+    if (mapZoom < 15) {
+      modulo = 10;
+    } else if (mapZoom < 16) {
+      modulo = 5;
+    } else if (mapZoom < 18) {
+      modulo = 2;
+    }
+
+    // clear all grid labels
+    gridLabelFeatureGroup.current.clearLayers();
+
+    // loop through all grid labels and draw tooltips for the ones that match the modulo
+    gridLabels.forEach((gridLabel) => {
+      // ignore the label if it's not in the current map bounds
+      const bounds = new L.LatLngBounds(mapBounds);
+      if (!bounds.contains(gridLabel.latLng)) return;
+
+      // get the label name and check the numbers to see if they match the modulo
+      const labelNumberX = parseInt(gridLabel.id.split(" ")[0].slice(1));
+      const labelNumberY = parseInt(gridLabel.id.split(" ")[1].slice(1));
+
+      if (!(labelNumberX % modulo !== 0 || labelNumberY % modulo !== 0)) {
+        // make a new tooltip for this grid label
+        const tooltip = new L.Tooltip({
+          sticky: false,
+          direction: "right",
+          offset: new L.Point(0, -8),
+          permanent: true,
+          className: "leaflet-tooltip-gridLabels",
+          interactive: false,
+          opacity: 0.8,
+        });
+        tooltip.setLatLng(gridLabel.latLng);
+        tooltip.setContent(gridLabel.id);
+        tooltip.addTo(gridLabelFeatureGroup.current);
+      }
+    });
+  }, [mapBounds, mapZoom, gridLabels]);
+
+  /**
    * Update sublayer controls if presets change
    * This happens if presets are changed via incoming socket update
    */
@@ -411,8 +472,8 @@ const MapBody: FunctionComponent = () => {
     if (!map.current || !mapSublayerControls) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     map.current.eachLayer((layer: any) => {
-      for (const sublayerControl of Object.values(mapSublayerControls)) {
-        if (layer.options.id === sublayerControl.name) {
+      for (const [uuid, sublayerControl] of Object.entries(mapSublayerControls)) {
+        if (layer.options.uuid === uuid) {
           if (layer.options.type === "tile") {
             (layer as L.TileLayer).updateFilter(
               makeTileLayerColorFilter(mapSublayerControls, sublayerControl.sublayerUuid)
@@ -781,25 +842,30 @@ const MapBody: FunctionComponent = () => {
         zoom: zoom,
         fadeAnimation: true,
       });
-      if (crs.current) {
-        map.current.options.crs = crs.current;
-      }
+    }
 
-      if (!draggableLines.current) {
-        draggableLines.current = new DraggableLines(map.current, { allowExtendingLine: false });
-      }
+    if (crs.current) {
+      map.current.options.crs = crs.current;
+    }
 
-      if (!stationFeatureGroup.current) {
-        stationFeatureGroup.current = L.featureGroup().addTo(map.current);
-      }
+    if (!draggableLines.current) {
+      draggableLines.current = new DraggableLines(map.current, { allowExtendingLine: false });
+    }
 
-      if (!poiFeatureGroup.current) {
-        poiFeatureGroup.current = L.featureGroup().addTo(map.current);
-      }
+    if (!stationFeatureGroup.current) {
+      stationFeatureGroup.current = L.featureGroup().addTo(map.current);
+    }
 
-      if (!actionFeatureGroup.current) {
-        actionFeatureGroup.current = L.featureGroup().addTo(map.current);
-      }
+    if (!poiFeatureGroup.current) {
+      poiFeatureGroup.current = L.featureGroup().addTo(map.current);
+    }
+
+    if (!actionFeatureGroup.current) {
+      actionFeatureGroup.current = L.featureGroup().addTo(map.current);
+    }
+
+    if (!gridLabelFeatureGroup.current) {
+      gridLabelFeatureGroup.current = L.featureGroup().addTo(map.current);
     }
   }, [mapRef, map, draggableLines, mission]);
 
@@ -815,6 +881,17 @@ const MapBody: FunctionComponent = () => {
     map.current.setView(center, zoom);
     //react does not detect a change to the map ref when setView is called. Manually re-calculate scale
     calculateScale();
+
+    // set the map zoom
+    setMapZoom(map.current.getZoom());
+
+    // set the map bounds
+    const bounds = map.current.getBounds();
+    const boundsArray: L.LatLngBoundsLiteral = [
+      [bounds.getSouthWest().lat, bounds.getSouthWest().lng],
+      [bounds.getNorthEast().lat, bounds.getNorthEast().lng],
+    ];
+    setMapBounds(boundsArray);
   }, [mission, map, calculateScale]);
 
   /**
@@ -851,7 +928,39 @@ const MapBody: FunctionComponent = () => {
     });
 
     map.current.on("zoomend", () => {
+      // set the map zoom
       setMapZoom(map.current.getZoom());
+
+      // set the map bounds
+      const bounds = map.current.getBounds();
+      const boundsArray: L.LatLngBoundsLiteral = [
+        [bounds.getSouthWest().lat, bounds.getSouthWest().lng],
+        [bounds.getNorthEast().lat, bounds.getNorthEast().lng],
+      ];
+      setMapBounds(boundsArray);
+    });
+
+    map.current.on("moveend", () => {
+      // set the map bounds
+      const bounds = map.current.getBounds();
+      const boundsArray: L.LatLngBoundsLiteral = [
+        [bounds.getSouthWest().lat, bounds.getSouthWest().lng],
+        [bounds.getNorthEast().lat, bounds.getNorthEast().lng],
+      ];
+      setMapBounds(boundsArray);
+    });
+
+    map.current.on("load", () => {
+      // set the map zoom
+      setMapZoom(map.current.getZoom());
+
+      // set the map bounds
+      const bounds = map.current.getBounds();
+      const boundsArray: L.LatLngBoundsLiteral = [
+        [bounds.getSouthWest().lat, bounds.getSouthWest().lng],
+        [bounds.getNorthEast().lat, bounds.getNorthEast().lng],
+      ];
+      setMapBounds(boundsArray);
     });
 
     return () => {
