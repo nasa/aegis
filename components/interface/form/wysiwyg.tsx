@@ -67,7 +67,7 @@ const Leaf = ({ attributes, children, leaf }: RenderLeafProps) => {
  * @param node
  * @returns HTML string
  */
-function convertNodeToHTML(node: Descendant): string {
+export function convertNodeToHTML(node: Descendant): string {
   if (Text.isText(node)) {
     let string = _.escape(node.text);
     if (node.bold) {
@@ -105,7 +105,7 @@ function convertNodeToHTML(node: Descendant): string {
  * @param defaultValue
  * @returns
  */
-function convertStringToNodes(stringValue: string, defaultValue: string = ""): Descendant[] {
+export function convertStringToNodes(stringValue: string, defaultValue: string = ""): Descendant[] {
   //if no description then use default value
   if (!stringValue) {
     return [
