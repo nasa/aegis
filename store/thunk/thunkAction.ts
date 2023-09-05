@@ -1,5 +1,8 @@
 import {
+  deleteActionByUuid,
   deleteActionsFromDbByUuid,
+  setActions,
+  setActionsFromDb,
   upsertAction,
   upsertActionFromDb,
   upsertActionsFromDb,
@@ -11,10 +14,12 @@ import _ from "lodash";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
-import * as httpClient_action from "http-client/action";
 import { thunkGetElevation } from "./thunkElevation";
-import { upsertStation } from "store/station";
-import { upsertPoi } from "store/poi";
+import { setStations, setStationsFromDb, upsertStation } from "store/station";
+import { setPois, setPoisFromDb, upsertPoi } from "store/poi";
+import * as httpClient_action from "http-client/action";
+import * as httpClient_station from "http-client/station";
+import * as httpClient_poi from "http-client/poi";
 
 export const thunkCreateAction = appCreateAsyncThunk<{
   actionParentUuid: ActionParentUuid;
@@ -195,6 +200,7 @@ export const thunkSaveActions = appCreateAsyncThunk<{
 
     // clear the store copy of the db and reload
     dispatch(deleteActionsFromDbByUuid(actionsFromDb.map((a) => a.uuid)));
+
     const actionData = await httpClient_action.getActions({
       missionId: getState().mission.mission?.id,
       stationUuid: stationUuid,
@@ -247,3 +253,276 @@ export const thunkGetHighlightedActions = appCreateAsyncThunk<
   }
   return actionHighlights;
 });
+
+export const thunkDeleteAction = appCreateAsyncThunk<{
+  uuid: string;
+}>("deleteAction", async ({ uuid }, { dispatch, getState }) => {
+  // look for the action in stations and remove it from the station's action order
+  getState().station.stations.forEach((station) => {
+    const actionOrderUuids = _.cloneDeep(station.actionOrderUuids);
+    if (actionOrderUuids) {
+      const actionIndex = actionOrderUuids.findIndex((actionUuid) => actionUuid === uuid);
+      if (actionIndex >= 0) {
+        // delete the action from the station
+        actionOrderUuids.splice(actionIndex, 1);
+        dispatch(upsertStation({ ...station, actionOrderUuids }, false));
+      }
+    }
+  });
+
+  // look for the action in pois and remove it from the poi's action order
+  getState().poi.pois.forEach((poi) => {
+    const actionOrderUuids = _.cloneDeep(poi.actionOrderUuids);
+    if (actionOrderUuids) {
+      const actionIndex = actionOrderUuids.findIndex((actionUuid) => actionUuid === uuid);
+      if (actionIndex >= 0) {
+        // delete the action from the poi
+        actionOrderUuids.splice(actionIndex, 1);
+        dispatch(upsertPoi({ ...poi, actionOrderUuids }, false));
+      }
+    }
+  });
+
+  // delete the action from the store
+  dispatch(deleteActionByUuid(uuid));
+});
+
+/**
+ * Audits and rectonciles the actionOrderUuids in stations and pois with the actions table
+ */
+export const thunkAuditActions = appCreateAsyncThunk<void>(
+  "auditActions",
+  async (__, { dispatch, getState }) => {
+    // new stores to hold the updated values to be persisted at the end of all the audits
+    const newStations = _.cloneDeep(getState().station.stations);
+    const newPois = _.cloneDeep(getState().poi.pois);
+    const newActions = _.cloneDeep(getState().action.actions);
+
+    /**
+     * ActionOrderUuid Audit #1
+     * Audit actionOrderUuid values and append any action uuids that are not in the actionOrderUuids
+     * but listed the station or poi as their stationUuid or poiUuid
+     * This is needed because actionOrderUuids was not mandatory in the database until recently
+     */
+    for (const action of newActions) {
+      if (action.stationUuid) {
+        const station = newStations.find((station) => station.uuid === action.stationUuid);
+        if (station) {
+          const actionOrderUuids = station.actionOrderUuids || [];
+          if (!actionOrderUuids.some((actionOrderUuid) => actionOrderUuid === action.uuid)) {
+            console.log(`Adding action ${action.name} to station ${station.name}`);
+            newStations.forEach((newStation) => {
+              if (newStation.uuid === station.uuid) {
+                newStation.actionOrderUuids = [...actionOrderUuids, action.uuid];
+              }
+            });
+          }
+        }
+      } else if (action.poiUuid) {
+        const poi = newPois.find((poi) => poi.uuid === action.poiUuid);
+        if (poi) {
+          const actionOrderUuids = poi.actionOrderUuids || [];
+          if (!actionOrderUuids.some((actionOrderUuid) => actionOrderUuid === action.uuid)) {
+            console.log(`Adding action ${action.name} to poi ${poi.name}`);
+            newPois.forEach((newPoi) => {
+              if (newPoi.uuid === poi.uuid) {
+                newPoi.actionOrderUuids = [...actionOrderUuids, action.uuid];
+              }
+            });
+          }
+        }
+      }
+    }
+
+    /**
+     * ActionOrderUuid Audit #2
+     * Ensure that each action's stationUuid or poiUuid is correct based on the list in station or poi actionOrderUuids
+     * This is needed because the JETT3 mission contains a bunch of actions that are referenced in multiple stations and pois actionOrderUuids lists
+     */
+    for (const station of newStations) {
+      const newActionOrderUuids = _.cloneDeep(station.actionOrderUuids);
+      station.actionOrderUuids.forEach((actionOrderUuid, orderIdIndex) => {
+        const action = newActions.find((action) => action.uuid === actionOrderUuid);
+        if (action) {
+          if (action.stationUuid !== station.uuid) {
+            // duplicate this action and make its stationUuid match the station. Also update actionOrderUuids to use the new action uuid instead of the old one
+            const oldStationName = newStations.find((s) => s.uuid === action.stationUuid)?.name;
+            console.log(
+              `Duplicating action ${action.name} that was associated with ${oldStationName} to associate with station ${station.name}`
+            );
+
+            // duplicate the action manually
+            const newActionUuid = uuidv4();
+            const newAction = _.cloneDeep(action);
+            newAction.uuid = newActionUuid;
+            newAction.stationUuid = station.uuid;
+            newActions.push(newAction);
+
+            newActionOrderUuids.splice(orderIdIndex, 1, newActionUuid);
+            newStations.forEach((newStation) => {
+              if (newStation.uuid === station.uuid) {
+                newStation.actionOrderUuids = newActionOrderUuids;
+              }
+            });
+          }
+        }
+      });
+    }
+    for (const poi of newPois) {
+      const newActionOrderUuids = _.cloneDeep(poi.actionOrderUuids);
+      poi.actionOrderUuids.forEach(async (actionOrderUuid, orderIdIndex) => {
+        const action = newActions.find((action) => action.uuid === actionOrderUuid);
+        if (action) {
+          if (action.poiUuid !== poi.uuid) {
+            // duplicate this action and make its poiUuid match the poi. Also update actionOrderUuids to use the new action uuid instead of the old one
+            const oldPoiName = newPois.find((p) => p.uuid === action.poiUuid)?.name;
+            console.log(
+              `Duplicating action ${action.name} that was associated with ${oldPoiName} to associate with poi ${poi.name}`
+            );
+
+            // duplicate the action manually
+            const newActionUuid = uuidv4();
+            const newAction = _.cloneDeep(action);
+            newAction.uuid = newActionUuid;
+            newAction.poiUuid = poi.uuid;
+            newActions.push(newAction);
+
+            newActionOrderUuids.splice(orderIdIndex, 1, newActionUuid);
+            newPois.forEach((newPoi) => {
+              if (newPoi.uuid === poi.uuid) {
+                newPoi.actionOrderUuids = newActionOrderUuids;
+              }
+            });
+          }
+        }
+      });
+    }
+
+    /**
+     * ActionOrderUuid Audit #3
+     * Audit actionOrderUuid values and remove any that don't exist in the actions table for this mission
+     * This fixes the remnants of the bug #424 that was leaving action uuids in the actionOrderUuids list after the action was deleted
+     */
+    for (const station of newStations) {
+      const stationActions = newActions.filter((action) => action.stationUuid === station.uuid);
+      const actionOrderUuids = station.actionOrderUuids || [];
+      const newActionOrderUuids = _.cloneDeep(actionOrderUuids);
+      // check for actions in newActionOrderUuids that are not in stationActions and remove them
+      actionOrderUuids.forEach((actionOrderUuid) => {
+        if (!stationActions.some((action) => action.uuid === actionOrderUuid)) {
+          newActionOrderUuids.splice(newActionOrderUuids.indexOf(actionOrderUuid), 1);
+        }
+      });
+      if (!_.isEqual(newActionOrderUuids, actionOrderUuids)) {
+        console.log(
+          `updating station actionOrderUuids for station ${station.name} because actionOrderUuids contained non-existent actions`
+        );
+        newStations.forEach((newStation) => {
+          if (newStation.uuid === station.uuid) {
+            newStation.actionOrderUuids = newActionOrderUuids;
+          }
+        });
+      }
+    }
+    for (const poi of newPois) {
+      const poiActions = newActions.filter((action) => action.poiUuid === poi.uuid);
+      const actionOrderUuids = poi.actionOrderUuids || [];
+      const newActionOrderUuids = _.cloneDeep(actionOrderUuids);
+      // check for actions in newActionOrderUuids that are not in poiActions and remove them
+      actionOrderUuids.forEach((actionOrderUuid) => {
+        if (!poiActions.some((action) => action.uuid === actionOrderUuid)) {
+          newActionOrderUuids.splice(newActionOrderUuids.indexOf(actionOrderUuid), 1);
+        }
+      });
+      if (!_.isEqual(newActionOrderUuids, actionOrderUuids)) {
+        console.log(
+          `updating poi actionOrderUuids for poi ${poi.name} because actionOrderUuids contained non-existent actions`
+        );
+        newPois.forEach((newPoi) => {
+          if (newPoi.uuid === poi.uuid) {
+            newPoi.actionOrderUuids = newActionOrderUuids;
+          }
+        });
+      }
+    }
+
+    /**
+     * ActionOrderUuid Audit #4
+     * Audit the actions table for this mission and remove any actions that are not in the station or poi actionOrderUuids
+     * Generally added to make sure there are no orphans in the database. None have been found.
+     */
+    const actionsToDelete = _.cloneDeep(newActions);
+    for (const station of newStations) {
+      const actionOrderUuids = station.actionOrderUuids || [];
+      actionOrderUuids.forEach((actionOrderUuid) => {
+        const action = actionsToDelete.find((action) => action.uuid === actionOrderUuid);
+        if (action) {
+          actionsToDelete.splice(actionsToDelete.indexOf(action), 1);
+        }
+      });
+    }
+    for (const thisPoi of newPois) {
+      const actionOrderUuids = thisPoi.actionOrderUuids || [];
+      actionOrderUuids.forEach((actionOrderUuid) => {
+        const action = actionsToDelete.find((action) => action.uuid === actionOrderUuid);
+        if (action) {
+          actionsToDelete.splice(actionsToDelete.indexOf(action), 1);
+        }
+      });
+    }
+    if (actionsToDelete.length > 0) {
+      console.log("deleting actions that are not in any station or poi actionOrderUuids");
+      actionsToDelete.forEach((action) => {
+        console.log("deleting action " + action.name);
+        newActions.forEach((newAction) => {
+          if (newAction.uuid === action.uuid) {
+            newActions.splice(newActions.indexOf(newAction), 1);
+          }
+        });
+      });
+    }
+
+    // update the store and db with the new values
+    if (!_.isEqual(newStations, getState().station.stations)) {
+      newStations.forEach((station) => {
+        if (
+          !_.isEqual(
+            station,
+            getState().station.stations.find((s) => s.uuid === station.uuid)
+          )
+        ) {
+          httpClient_station.upsertStation(station);
+        }
+      });
+      dispatch(setStations(newStations));
+      dispatch(setStationsFromDb(newStations));
+    }
+    if (!_.isEqual(newPois, getState().poi.pois)) {
+      newPois.forEach((poi) => {
+        if (
+          !_.isEqual(
+            poi,
+            getState().poi.pois.find((p) => p.uuid === poi.uuid)
+          )
+        ) {
+          httpClient_poi.upsertPOI(poi);
+        }
+      });
+      dispatch(setPois(newPois));
+      dispatch(setPoisFromDb(newPois));
+    }
+    if (!_.isEqual(newActions, getState().action.actions)) {
+      newActions.forEach((action) => {
+        if (
+          !_.isEqual(
+            action,
+            getState().action.actions.find((a) => a.uuid === action.uuid)
+          )
+        )
+          httpClient_action.upsertAction(action);
+      });
+      dispatch(setActions(newActions));
+      dispatch(setActionsFromDb(newActions));
+    }
+  }
+);

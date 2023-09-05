@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 
@@ -10,7 +10,7 @@ import { getStations } from "http-client/station";
 import * as httpClient_action from "http-client/action";
 import { getGoals, getInvestigations, getObjectives } from "http-client/stm";
 import { setMapCircleControls, setMapSublayerControls } from "store/map";
-import { setPois, setPoisFromDb, upsertPoi, upsertPoiFromDb } from "store/poi";
+import { setPois, setPoisFromDb } from "store/poi";
 import {
   setPresetUIStates,
   setPresets,
@@ -18,7 +18,7 @@ import {
   setSelectedPresetUuid,
 } from "store/preset";
 import { setLayers, setMission, setMissionFromDb, setSublayers } from "store/mission";
-import { setStations, setStationsFromDb, upsertStation, upsertStationFromDb } from "store/station";
+import { setStations, setStationsFromDb } from "store/station";
 import { setActions, setActionsFromDb, upsertAction, upsertActionFromDb } from "store/action";
 import { setGoals, setInvestigations, setObjectives } from "store/stm";
 import { getEvas } from "http-client/eva";
@@ -32,8 +32,7 @@ import { thunkCreatePoiCalculatedFields } from "store/thunk/thunkPoi";
 import { thunkSavePreset } from "store/thunk/thunkPreset";
 import _ from "lodash";
 import { getSublayers } from "http-client/sublayer";
-import * as httpClient_station from "http-client/station";
-import * as httpClient_poi from "http-client/poi";
+import { thunkAuditActions } from "store/thunk/thunkAction";
 
 const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: boolean }> = ({
   missionId,
@@ -58,6 +57,8 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
     (state) => state.traverse.calculatedFields,
     shallowEqual
   );
+
+  const [actionsAudited, setActionsAudited] = useState(false);
 
   const dispatch = useAppDispatch();
 
@@ -381,45 +382,18 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
     dispatch(thunkCreateEvasCalculatedFields());
   }, [evas, stationsCalculatedFields, traversesCalculatedFields, dispatch, hasPermissions]);
 
-  // Audit actionOrderUuid values and update if necessary
+  /**
+   * Audit actions
+   * TODO: This is a temporary fix to audit actions. This won't be needed forever but has written to be harmless if it is run more than once and everything is in order
+   */
   useEffect(() => {
-    if (!stations || !pois || !actions) return;
-    for (const station of stations) {
-      const actionsInStation = actions.filter((action) => action.stationUuid === station.uuid);
-      const newActionOrderUuids = _.cloneDeep(station.actionOrderUuids) || [];
-      for (const action of actionsInStation) {
-        if (!station.actionOrderUuids?.includes(action.uuid)) {
-          newActionOrderUuids.push(action.uuid);
-        }
-      }
-      if (!_.isEqual(newActionOrderUuids, station.actionOrderUuids)) {
-        httpClient_station.upsertStation({
-          ...station,
-          actionOrderUuids: newActionOrderUuids,
-        });
-        dispatch(upsertStation({ ...station, actionOrderUuids: newActionOrderUuids }, true));
-        dispatch(upsertStationFromDb({ ...station, actionOrderUuids: newActionOrderUuids }));
-      }
-    }
+    if (stations.length === 0 || pois.length === 0 || actions.length === 0 || actionsAudited)
+      return;
 
-    for (const poi of pois) {
-      const actionsInPoi = actions.filter((action) => action.poiUuid === poi.uuid);
-      const newActionOrderUuids = _.cloneDeep(poi.actionOrderUuids) || [];
-      for (const action of actionsInPoi) {
-        if (!poi.actionOrderUuids?.includes(action.uuid)) {
-          newActionOrderUuids.push(action.uuid);
-        }
-      }
-      if (!_.isEqual(newActionOrderUuids, poi.actionOrderUuids)) {
-        httpClient_poi.upsertPOI({
-          ...poi,
-          actionOrderUuids: newActionOrderUuids,
-        });
-        dispatch(upsertPoi({ ...poi, actionOrderUuids: newActionOrderUuids }, true));
-        dispatch(upsertPoiFromDb({ ...poi, actionOrderUuids: newActionOrderUuids }));
-      }
-    }
-  }, [stations, pois, actions, dispatch]);
+    //audit actions
+    dispatch(thunkAuditActions());
+    setActionsAudited(true);
+  }, [stations, pois, actions, dispatch, actionsAudited]);
 
   return <></>;
 };
