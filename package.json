@@ -1,6 +1,6 @@
 {
   "name": "aegis-zero",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_OPTIONS='--inspect' next dev -p 4000",
@@ -53,6 +53,7 @@
     "iron-session": "^6.3.1",
     "is-hotkey": "^0.2.0",
     "jest-fetch-mock": "^3.0.3",
+    "json-keys-sort": "^2.1.0",
     "leaflet": "^1.9.3",
     "leaflet-ant-path": "^1.3.0",
     "leaflet-draggable-lines": "^1.2.0",
@@ -89,6 +90,7 @@
     "slate-react": "^0.97.2",
     "socket.io": "^4.7.2",
     "socket.io-client": "^4.7.2",
+    "string-strip-html": "^13.4.2",
     "ts-node": "^10.9.1",
     "unique-names-generator": "^4.7.1",
     "uuid": "^9.0.0"

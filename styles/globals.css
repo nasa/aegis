@@ -112,10 +112,13 @@ body {
 }
 
 .leaflet-tooltip-gridLabels {
+  position: relative;
   padding: 0px 2px 0px 2px !important;
   border-radius: 0px !important;
   font-size: 0.6rem;
   margin-left: 0px !important;
+  box-shadow: none !important;
+  overflow: hidden;
 }
 .leaflet-tooltip-gridLabels::before {
   display: none;

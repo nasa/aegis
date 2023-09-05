@@ -1,6 +1,6 @@
 import { NextPage } from "next";
 import { Dispatch, SetStateAction, useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/router";
+import router, { useRouter } from "next/router";
 import { getMissions, deleteMission } from "http-client/mission";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";
@@ -13,6 +13,8 @@ import { isLoggedIn } from "http-client/login";
 // import { validators } from "components/interface/form/formValidators";
 import { Tooltip } from "react-tooltip";
 import { roundDateToSecond } from "utils/formatting";
+import MissionLayers from "components/admin/missionLayers";
+import MissionSTM from "components/admin/missionSTM";
 // import { v4 as uuidv4 } from "uuid";
 
 const Mission: NextPage = () => {
@@ -23,6 +25,7 @@ const Mission: NextPage = () => {
   const [mission, setMission] = useState<Mission>(); //current mission being edited
   // const [showImportMission, setShowImportMission] = useState<boolean>(false);
   const [user, setUser] = useState<User>(null);
+  const [editingAttr, setEditingAttr] = useState<"Mission" | "Layers" | "STM">(undefined);
 
   const loadMissionsFromDB = useCallback(async () => {
     const missionList = (await getMissions()).data;
@@ -31,6 +34,17 @@ const Mission: NextPage = () => {
     for (const thisMission of missionList) {
       newMissionList.push(thisMission);
     }
+
+    //Sort by name
+    newMissionList.sort((a, b) => {
+      if (a.name.toLowerCase() < b.name.toLowerCase()) {
+        return -1;
+      } else if (a.name.toLowerCase() > b.name.toLowerCase()) {
+        return 1;
+      } else {
+        return 0;
+      }
+    });
 
     setMissions(newMissionList);
   }, []);
@@ -105,6 +119,7 @@ const Mission: NextPage = () => {
     };
 
     setMission(newMission);
+    setEditingAttr("Mission");
     setEditMissionId(null);
   }
 
@@ -416,6 +431,7 @@ const Mission: NextPage = () => {
             user={user}
             refreshMissionList={loadMissionsFromDB}
             setEditMissionId={setEditMissionId}
+            setEditingAttr={setEditingAttr}
           />
           <button
             type="button"
@@ -438,11 +454,15 @@ const Mission: NextPage = () => {
             {showImportMission ? "Close Import/Export" : "Open Import/Export"}
           </button>
           <ImportMission /> */}
-          <MissionEditor
-            refreshMissionList={loadMissionsFromDB}
-            mission={mission}
-            setMission={setMission}
-          />
+          {editingAttr === "Mission" && (
+            <MissionEditor
+              refreshMissionList={loadMissionsFromDB}
+              mission={mission}
+              setMission={setMission}
+            />
+          )}
+          {editingAttr === "Layers" && <MissionLayers mission={mission} />}
+          {editingAttr === "STM" && <MissionSTM mission={mission} />}
         </div>
       </div>
     </>
@@ -455,8 +475,8 @@ const MissionList = (props: {
   user: User;
   refreshMissionList: () => {};
   setEditMissionId: Dispatch<SetStateAction<Number>>;
+  setEditingAttr: Dispatch<SetStateAction<string>>;
 }) => {
-  const router = useRouter();
   const permissionList = props.user?.permissionList;
 
   async function delMission(id: number) {
@@ -488,6 +508,7 @@ const MissionList = (props: {
                     type="button"
                     onClick={() => {
                       props.setEditMissionId(mission.id);
+                      props.setEditingAttr("Mission");
                     }}
                   >
                     Edit Mission
@@ -496,7 +517,8 @@ const MissionList = (props: {
                   <button
                     type="button"
                     onClick={() => {
-                      router.push(`/admin/layers/${mission.id}`);
+                      props.setEditMissionId(mission.id);
+                      props.setEditingAttr("Layers");
                     }}
                   >
                     Edit Layers
@@ -505,16 +527,27 @@ const MissionList = (props: {
                   <button
                     type="button"
                     onClick={() => {
-                      router.push(`/admin/stm/${mission.id}`);
+                      props.setEditMissionId(mission.id);
+                      props.setEditingAttr("STM");
                     }}
                   >
                     Edit STM
                   </button>
                   &nbsp;
                   <button
+                    type="button"
+                    onClick={() => {
+                      router.push(`export?missionId=${mission.id}`);
+                    }}
+                  >
+                    Export
+                  </button>
+                  &nbsp;
+                  <button
                     className={styles.deleteButton}
                     type="button"
                     onClick={() => {
+                      props.setEditingAttr(undefined);
                       delMission(mission.id);
                     }}
                   >

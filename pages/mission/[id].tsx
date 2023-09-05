@@ -125,12 +125,19 @@ const Main: NextPage = () => {
             <Header />
           </div>
           <div className={styles.body}>
-            <div className={styles.leftControl}>
-              <LeftControlPanel />
-            </div>
-            <div className={styles.mapBody}>
-              {missionStore.mission && missionStore.layers && <MapBody />}
-              {showSunEarth && <SunEarthPosition />}
+            <div className={styles.bodyLeft}>
+              <div className={styles.leftUpper}>
+                <div className={styles.leftControl}>
+                  <LeftControlPanel />
+                </div>
+                <div className={styles.mapBody}>
+                  {missionStore.mission && missionStore.layers && <MapBody />}
+                  {showSunEarth && <SunEarthPosition />}
+                </div>
+              </div>
+              <div className={styles.bottomControl}>
+                <BottomControlPanel />
+              </div>
             </div>
             <div
               className={styles.drawerSlider}
@@ -152,15 +159,14 @@ const Main: NextPage = () => {
                 )}
               </div>
             </div>
+
             {rightPanelOpen && (
               <div className={styles.rightControl}>
                 <RightControlPanel />
               </div>
             )}
           </div>
-          <div className={styles.bottomControl}>
-            <BottomControlPanel />
-          </div>
+
           <SocketClient missionId={intMissionId} />
           <PopulateStore missionId={intMissionId} hasPermissions={hasPermissions} />
         </div>
