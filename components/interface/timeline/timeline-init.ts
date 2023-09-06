@@ -13,6 +13,7 @@ export function initPaperRefs(
   paperGroupsRef.current = {
     graphBkg: new paper.Group(),
     hoverLine: new paper.Group(),
+    petLine: new paper.Group(),
   };
 
   //init paper vars and styles
@@ -22,6 +23,7 @@ export function initPaperRefs(
       blue: new paper.Color("#93AFD7"),
       brightBlue: new paper.Color("#00C2FF"),
       green: new paper.Color("#8fae95"),
+      brightGreen: new paper.Color("#52f075"),
       yellow: new paper.Color("#ffc700"),
       lightYellow: new paper.Color("#41403B"),
       grey1: new paper.Color("#616574"),
