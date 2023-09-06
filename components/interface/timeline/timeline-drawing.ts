@@ -674,6 +674,35 @@ function drawSequenceTraverse(
 }
 
 /**
+ * Draw the pet line for rex
+ * @param paperDataRef
+ * @param paperGroupsRef
+ * @param petSeconds
+ */
+export const drawPetLine = (
+  paperDataRef: MutableRefObject<PaperData>,
+  paperGroupsRef: MutableRefObject<PaperGroups>,
+  petSeconds: number
+): void => {
+  const paperVars = paperDataRef.current.paperVars;
+  const xLoc = paperVars.timelineLeft + petSeconds * paperVars.pixelsPerSecondX;
+  //remove old line, draw new line
+  paperGroupsRef.current.petLine.removeChildren();
+  if (xLoc <= paperVars.timelineLeft + paperVars.timelineWidth) {
+    paperGroupsRef.current.petLine.addChild(
+      drawTimeMarker(
+        paperDataRef,
+        xLoc,
+        paperDataRef.current.styles.brightGreen,
+        paperDataRef.current.styles.brightGreen
+      )
+    );
+    paperGroupsRef.current.petLine.bringToFront();
+    paperGroupsRef.current.petLine.visible = true;
+  }
+};
+
+/**
  * Draw the mouse hover line. Also dispatch information about where the
  * mouse is to the store
  * @param dispatch

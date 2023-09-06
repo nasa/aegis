@@ -8,7 +8,7 @@ import { setRightPanelOpen, setSectionSelected } from "store/interface";
 
 import { paneTypes } from "components/interface/_paneTypes";
 import { setSelectedEvaUuid } from "store/eva";
-import NavTimeline from "components/interface/timeline";
+import NavTimeline from "components/interface/timeline/timeline";
 import { isModified } from "utils/component-helpers";
 
 /* This control sits at the left side of the screen and loads the selected component based on the NavGutter icon selected */
