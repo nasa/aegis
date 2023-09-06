@@ -20,12 +20,13 @@ interface Sublayer {
   layerUuid: string;
   name: string;
   description: string;
+  legend: Legend;
   type: "vector" | "tile" | "circle";
   url: string;
   filePath: string; // for vector layers
   boundingBox: number[];
   tileFormat: string;
-  minZoom: number;
+  minNativeZoom: number;
   maxNativeZoom: number;
   maxZoom: number;
   color: string;
@@ -43,3 +44,15 @@ type Sublayer_db_type = Omit<Sublayer, "missionId" | "layerUuid" | "createdAt" |
   createdAt: Date;
   updatedAt: Date;
 };
+
+interface Legend {
+  legend: LegendItem[];
+  unitsName: string;
+  unitsAbbr: string;
+}
+interface LegendItem {
+  color: string;
+  strokecolor: string;
+  shape: string;
+  value: string;
+}
