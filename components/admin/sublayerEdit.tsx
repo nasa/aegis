@@ -2,21 +2,26 @@ import { FunctionComponent, useState, useEffect } from "react";
 import styles from "./admin.module.css";
 import { upsertSublayer } from "http-client/sublayer";
 import { roundDateToSecond } from "utils/formatting";
-
+import { validators } from "components/interface/form/formValidators";
 interface SublayerProps {
   sublayer: Sublayer;
   refreshLayerList: Function;
   fileList: GISfile[];
+  missionId: number;
 }
 
 /** Render a single sublayer record from the DB */
 const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) => {
   const [sublayer, setSublayer] = useState<Sublayer>(props.sublayer);
   const [boundingBox, setBoundingBox] = useState<string>(props.sublayer.boundingBox?.toString());
+  const [legend, setLegend] = useState<string>(
+    props.sublayer.legend ? JSON.stringify(props.sublayer.legend) : ""
+  );
 
   useEffect(() => {
     setSublayer(props.sublayer);
     setBoundingBox(props.sublayer.boundingBox?.toString());
+    setLegend(props.sublayer.legend ? JSON.stringify(props.sublayer.legend) : "");
   }, [props.sublayer]);
 
   //save the current editing sublayer to db
@@ -27,6 +32,65 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
     });
     props.refreshLayerList();
     alert(`${res.status} - ${res.message}`);
+  }
+
+  async function loadLegendFromFile(folderName: string) {
+    //read in the legend
+    const res = await fetch(
+      `/static/missionFiles/${props.missionId.toString()}/Layers/${folderName}/legend.json`
+    );
+    if (res.status === 200) {
+      const legendJson = await res.json();
+      //set values
+      setSublayer((state) => {
+        return { ...state, legend: legendJson };
+      });
+      setLegend(JSON.stringify(legendJson));
+    }
+  }
+
+  async function loadTileMapResourceFromFile(folderName: string) {
+    //read in the timemapresource.xml
+    const res = await fetch(
+      `/static/missionFiles/${props.missionId.toString()}/Layers/${folderName}/tilemapresource.xml`
+    );
+    const xmlFileContent = await res.text();
+    if (xmlFileContent) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xmlFileContent, "application/xml");
+
+      //get bounding box
+      const xmlBoundingBox = doc.querySelector("BoundingBox");
+      const boxArray = [
+        parseFloat(xmlBoundingBox.getAttribute("minx")),
+        parseFloat(xmlBoundingBox.getAttribute("miny")),
+        parseFloat(xmlBoundingBox.getAttribute("maxy")),
+        parseFloat(xmlBoundingBox.getAttribute("maxy")),
+      ];
+      setBoundingBox(boxArray.toString());
+
+      //get min/max zoom
+      const xmlTileSets = doc.querySelector("TileSets").children;
+      let maxZoom: number = null;
+      let minZoom: number = null;
+      for (const xmltileset of xmlTileSets) {
+        const zoom = +xmltileset.getAttribute("href");
+        if (!maxZoom) {
+          maxZoom = zoom;
+        } else {
+          if (zoom > maxZoom) maxZoom = zoom;
+        }
+        if (!minZoom) {
+          minZoom = zoom;
+        } else {
+          if (zoom < minZoom) minZoom = zoom;
+        }
+      }
+      //set values
+      setSublayer((state) => {
+        return { ...state, minNativeZoom: minZoom, maxNativeZoom: maxZoom, boundingBox: boxArray };
+      });
+    }
   }
 
   return (
@@ -40,7 +104,6 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
         Parent Layer: {sublayer.layerUuid}
       </div>
       <br />
-
       <div id="nameDiv">
         <div className={styles.editDiv}>
           <label htmlFor="name">Sublayer Name</label>
@@ -56,7 +119,6 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
           />
         </div>
       </div>
-
       <div id="descDiv">
         <div className={styles.editDiv}>
           <label htmlFor="desc">Sublayer Description</label>
@@ -72,7 +134,29 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
           />
         </div>
       </div>
-
+      <div id="legendDiv">
+        <div className={styles.editDiv}>
+          <label htmlFor="legend">Legend</label>
+        </div>
+        <div className={styles.editDiv}>
+          <textarea
+            id="legend"
+            onBlur={(e) => {
+              if (e.target.value === "") {
+                setSublayer({ ...sublayer, legend: null });
+              } else {
+                if (validators.mustBeValidJSON(e.target.value) === undefined) {
+                  setSublayer({ ...sublayer, legend: JSON.parse(e.target.value) });
+                }
+              }
+            }}
+            onChange={(e) => {
+              setLegend(e.target.value);
+            }}
+            value={legend || ""}
+          />
+        </div>
+      </div>
       <div id="typeDiv">
         <div className={styles.editDiv}>
           <label htmlFor="layerType">Layer Type</label>
@@ -90,71 +174,83 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
           </select>
         </div>
       </div>
+      {(!sublayer.type || sublayer.type === "tile") && (
+        <div id="urlDiv">
+          <div className={styles.editDiv}>
+            <label htmlFor="url">URL</label>
+          </div>
 
-      <div id="urlDiv">
-        <div className={styles.editDiv}>
-          <label htmlFor="url">URL</label>
-        </div>
+          <div className={styles.editDiv}>
+            <label htmlFor="folderNames">Folder </label>
+            <select
+              id="folderNames"
+              title="folder names"
+              onChange={(e) => {
+                //get existing tilepattern
+                const tilePattern = sublayer.url
+                  ? sublayer.url.substring(sublayer.url.indexOf("/") + 1)
+                  : "";
+                //prepend the folder name to the URL.
+                //use callback method to set state or else it will conflict with the setState in loadXML
+                setSublayer((state) => {
+                  return { ...state, url: `${e.target.value}/${tilePattern}` };
+                });
 
-        <div className={styles.editDiv}>
-          <label htmlFor="folderNames">Folder </label>
-          <select
-            id="folderNames"
-            title="folder names"
-            onChange={(e) => {
-              const tilePattern = sublayer.url
-                ? sublayer.url.substring(sublayer.url.indexOf("/") + 1)
-                : "";
-              setSublayer({ ...sublayer, url: `${e.target.value}/${tilePattern}` });
-            }}
-            value={sublayer.url ? sublayer.url.substring(0, sublayer.url.indexOf("/")) : ""}
-          >
-            <option value="" />
-            {props.fileList?.map((file) => {
-              return (
-                <option value={file.name} key={file.name}>
-                  {file.name}
-                </option>
-              );
-            })}
-          </select>
+                //attempt to pre-load all other fields
+                loadTileMapResourceFromFile(e.target.value);
+                loadLegendFromFile(e.target.value);
+              }}
+              value={sublayer.url ? sublayer.url.substring(0, sublayer.url.indexOf("/")) : ""}
+            >
+              <option value="" />
+              {props.fileList?.map((file) => {
+                return (
+                  <option value={file.name} key={file.name}>
+                    {file.name}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+          <div className={styles.editDiv}>
+            <label htmlFor="aegisUrl">Tile Pattern {`(eg. {z}/{x}/{y}.png)`}</label>
+            <input
+              id="aegisUrl"
+              type="text"
+              onChange={(e) => {
+                //get existing foldername
+                const folderName = sublayer.url
+                  ? sublayer.url.substring(0, sublayer.url.indexOf("/"))
+                  : "";
+                //append new tile pattern to the URL
+                setSublayer({ ...sublayer, url: `${folderName}/${e.target.value}` });
+              }}
+              value={sublayer.url ? sublayer.url.substring(sublayer.url.indexOf("/") + 1) : ""}
+            />
+          </div>
         </div>
-        <div className={styles.editDiv}>
-          <label htmlFor="aegisUrl">Tile Pattern {`(eg. {z}/{x}/{y}.png)`}</label>
-          <input
-            id="aegisUrl"
-            type="text"
-            onChange={(e) => {
-              const folderName = sublayer.url
-                ? sublayer.url.substring(0, sublayer.url.indexOf("/"))
-                : "";
-              setSublayer({ ...sublayer, url: `${folderName}/${e.target.value}` });
-            }}
-            value={sublayer.url ? sublayer.url.substring(sublayer.url.indexOf("/") + 1) : ""}
-          />
+      )}
+      {sublayer.type === "vector" && (
+        <div id="fileDiv">
+          <div className={styles.editDiv}>
+            <label htmlFor="filePath">File Path (for vectors layers)</label>
+          </div>
+          <div className={styles.editDiv}>
+            <input
+              id="filePath"
+              type="text"
+              onChange={(e) => {
+                setSublayer({ ...sublayer, filePath: e.target.value });
+              }}
+              value={sublayer.filePath || ""}
+            />
+            Make sure this file is uploaded to mission/data
+          </div>
         </div>
-      </div>
-
-      <div id="fileDiv">
-        <div className={styles.editDiv}>
-          <label htmlFor="filePath">File Path (for vectors layers)</label>
-        </div>
-        <div className={styles.editDiv}>
-          <input
-            id="filePath"
-            type="text"
-            onChange={(e) => {
-              setSublayer({ ...sublayer, filePath: e.target.value });
-            }}
-            value={sublayer.filePath || ""}
-          />
-          Make sure this file is uploaded to mission/data
-        </div>
-      </div>
-
+      )}
       <div id="boundingDiv">
         <div className={styles.editDiv}>
-          <label htmlFor="boundingbox">Bounding Box (minx, miny, maxx, maxy)</label>
+          <label htmlFor="boundingbox">*Bounding Box (minx, miny, maxx, maxy)</label>
         </div>
         <div className={styles.editDiv}>
           <input
@@ -173,7 +269,6 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
           />
         </div>
       </div>
-
       <div id="tileFormatDiv">
         <div className={styles.editDiv}>
           <label htmlFor="tileformat">Tile Format</label>
@@ -192,26 +287,24 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
           </select>
         </div>
       </div>
-
-      <div id="minZoomDiv">
+      <div id="minNativeDiv">
         <div className={styles.editDiv}>
-          <label htmlFor="minZoom">Minimum Zoom</label>
+          <label htmlFor="minNative">*Minimum Native Zoom</label>
         </div>
         <div className={styles.editDiv}>
           <input
-            id="minZoom"
+            id="minNative"
             type="text"
             onChange={(e) => {
-              setSublayer({ ...sublayer, minZoom: +e.target.value });
+              setSublayer({ ...sublayer, minNativeZoom: +e.target.value });
             }}
-            value={sublayer.minZoom || ""}
+            value={sublayer.minNativeZoom || ""}
           />
         </div>
       </div>
-
       <div id="maxNativeDiv">
         <div className={styles.editDiv}>
-          <label htmlFor="maxNative">Maximum Native Zoom</label>
+          <label htmlFor="maxNative">*Maximum Native Zoom</label>
         </div>
         <div className={styles.editDiv}>
           <input
@@ -224,7 +317,6 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
           />
         </div>
       </div>
-
       <div id="maxZoomDiv">
         <div className={styles.editDiv}>
           <label htmlFor="maxZoom">Maximum Zoom</label>
@@ -240,7 +332,6 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
           />
         </div>
       </div>
-
       <div id="styleGenreicDiv">
         <div id="strokeColorDiv">
           <div className={styles.editDiv}>
@@ -337,7 +428,9 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
           </div>
         </div>
       </div>
-
+      <br />
+      * = values pulled from tilemapresource.xml
+      <br />
       <button
         type="button"
         onClick={() => {

@@ -246,7 +246,7 @@ const Sublayer: FunctionComponent<{
           <div className={styles.visibility} />
         )}
         <div className={styles.sublayerTitle}>
-          {sublayer.name} ({sublayer.type})
+          {sublayer.name} {sublayer.type && `(${sublayer.type})`}
         </div>
         <div className={styles.sublayerToolIcons}>
           <div

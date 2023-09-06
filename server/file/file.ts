@@ -1,5 +1,5 @@
 import StreamZip from "node-stream-zip";
-import fs, { RmOptions } from "fs";
+import * as fs from "fs";
 import { readdir, mkdir, rm, rename } from "node:fs/promises";
 
 const destRoot = process.env.PUBLIC_STATIC_DIR;
@@ -8,7 +8,7 @@ const destRoot = process.env.PUBLIC_STATIC_DIR;
  * [missionId]/
  *    Data/
  *    Layers/
- *        [layerUuid]/
+ *        [layerName]/
  */
 
 /**
@@ -65,10 +65,7 @@ export async function unzip(
 export async function deleteFile(path: string): Promise<boolean> {
   try {
     if (fs.existsSync(`${destRoot}/${path}`)) {
-      const options: RmOptions = {
-        recursive: true,
-      };
-      await rm(`${destRoot}/${path}`, options); //delete file or folder
+      await rm(`${destRoot}/${path}`, { recursive: true }); //delete file or folder
       console.log(`File/directory deleted ${destRoot}/${path}`);
       return true;
     } else {

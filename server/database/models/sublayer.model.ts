@@ -16,6 +16,8 @@ export class Sublayer implements Sublayer_db_type {
   name!: string;
   @Property({ type: MikroTypes.text, nullable: true })
   description: string;
+  @Property({ type: MikroTypes.json, nullable: true })
+  legend: Legend;
   @Property({ type: MikroTypes.text, nullable: true })
   url: string;
   @Property({ type: MikroTypes.text, nullable: true })
@@ -27,7 +29,7 @@ export class Sublayer implements Sublayer_db_type {
   @Property({ type: MikroTypes.text, nullable: true })
   tileFormat: string;
   @Property({ type: MikroTypes.double, nullable: true })
-  minZoom: number;
+  minNativeZoom: number;
   @Property({ type: MikroTypes.double, nullable: true })
   maxNativeZoom: number;
   @Property({ type: MikroTypes.double, nullable: true })
