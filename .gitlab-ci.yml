@@ -46,6 +46,11 @@ include:
   # A11y tests. Disabled for now.
   # - template: "Verify/Accessibility.gitlab-ci.yml"
 
+  #code quality checks
+  - project: "emss/gitlab-templates"
+    ref: main
+    file: "/jobs/code-quality.gitlab-ci.yml"
+
 # Overrride some properties on FIT jobs. Unfortunately using a template for these
 # make GitLab angry, so a lot of repetition
 project-check:
