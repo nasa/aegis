@@ -9,7 +9,7 @@ import "leaflet.tilelayer.colorfilter";
 import "proj4leaflet";
 import * as geojson from "geojson";
 
-import styles from "components/interface/map-body.module.css";
+import styles from "components/interface/map/map-body.module.css";
 
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 
@@ -28,14 +28,16 @@ import { setSelectedPoiUuid } from "store/poi";
 import { setRightPanelOpen, setSectionSelected } from "store/interface";
 import { revertWalkbackPath, setSelectedStationUuid } from "store/station";
 import { revertTraversePath } from "store/traverse";
+import { setSelectedCrewPosUuid } from "store/rex";
 import {
   convertLeafletLatLngsToAegisPoints,
   convertLeafletLatLngToAegisPoint,
   getDistanceBetweenTwoCoordinates,
   getMidpoint,
 } from "utils/geoMath";
-import { decodeEmoji, titleCase } from "utils/formatting";
-import { setAllHoverUuids } from "store/playheadHover";
+import { decodeEmoji, secondsFromhhmmss, hhmmssFromSeconds, titleCase } from "utils/formatting";
+import { clearMapItemHover, setHoverUuidsForSequence, setHoverUuidsForCrewPos } from "store/hover";
+
 import {
   thunkUpdateStationLocation,
   thunkFullUpdateWalkback,
@@ -49,7 +51,11 @@ import { selectEVASequenceItem } from "store/cross-slice";
 import { thunkGetStationOrTraverse } from "store/thunk/thunkEva";
 import { thunkUpdateLanderLocation } from "store/thunk/thunkMission";
 import { thunkUpdateActionLocation } from "store/thunk/thunkAction";
-import { MapMenu } from "./map-body-leaflet-menu";
+import { MapViewMenu } from "./map-menu-view";
+import { MapCrewPositionMenu } from "./map-menu-crewPos";
+import { thunkUpdateCrewPosLocation } from "store/thunk/thunkRex";
+import PetInterval from "../page/petInterval";
+import ReactDOMServer from "react-dom/server";
 
 type MissionSelectProperties = Pick<
   Mission,
@@ -92,6 +98,7 @@ const MapBody: FunctionComponent = () => {
   const poiFeatureGroup = useRef<L.FeatureGroup>(null);
   const actionFeatureGroup = useRef<L.FeatureGroup>(null);
   const gridLabelFeatureGroup = useRef<L.FeatureGroup>(null);
+  const crewPosFeatureGroup = useRef<L.FeatureGroup>(null);
 
   const mission: MissionSelectProperties = useAppSelector(
     (state) =>
@@ -118,6 +125,7 @@ const MapBody: FunctionComponent = () => {
   const missionLayers = useAppSelector((state) => state.mission.layers, shallowEqual);
   const missionSublayers = useAppSelector((state) => state.mission.sublayers, shallowEqual);
   const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, shallowEqual);
+  const sectionSelected = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
 
   const mapSublayerControls = useAppSelector(
     (state) => state.map.mapSublayerControls,
@@ -125,12 +133,12 @@ const MapBody: FunctionComponent = () => {
   );
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
 
+  const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const selectedPreset = useAppSelector(
     (state) => state.preset.presets.find((p) => p.uuid === selectedPresetUuid),
     shallowEqual
   );
-  const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
 
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
@@ -148,16 +156,25 @@ const MapBody: FunctionComponent = () => {
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
     refEqual
   );
+  const selectedOrRunningRex = useAppSelector((state) => {
+    //if a rex is running, show that one. If not, just show whatever rex is selected
+    const runningRexFromDb = state.rex.rexesFromDb.find((r) => r.rexRunning);
+    if (runningRexFromDb) {
+      return runningRexFromDb;
+    } else {
+      return state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid);
+    }
+  }, shallowEqual);
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
-  const playheadHover = useAppSelector((state) => state.playheadHover, shallowEqual); //astronaut hover timeline
+  const hover = useAppSelector((state) => state.hover, shallowEqual); //astronaut hover timeline
 
+  const selectedCrewPosUuid = useAppSelector((state) => state.rex.selectedCrewPosUuid, refEqual);
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
-  const sectionSelected = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
 
-  const mapHoverItemUuid = useAppSelector((state) => state.playheadHover.mapItemUuid, refEqual);
+  const mapHoverItemUuid = useAppSelector((state) => state.hover.mapItemUuid, refEqual);
 
   const [layersOnMap, setLayersOnMap] = useState([]);
   const [showSelectedItemOnMap, setShowSelectedItemOnMap] = useState(true); //click selected items
@@ -166,6 +183,7 @@ const MapBody: FunctionComponent = () => {
   const [stationsToShow, setStationsToShow] = useState<Station[]>([]);
   const [traversesToShow, setTraversesToShow] = useState<Traverse[]>([]);
   const [actionsToShow, setActionsToShow] = useState<Action[]>([]);
+  const [crewPosToShow, setCrewPosToShow] = useState<CrewPos[]>([]);
   const [mapDisplayPois, setMapDisplayPois] = useState<MapMarkersDisplay>({
     show: true,
     showLabels: false,
@@ -178,6 +196,11 @@ const MapBody: FunctionComponent = () => {
     show: true,
     showLabels: false,
   });
+  const [mapDisplayCrewPos, setMapDisplayCrewPos] = useState<MapCrewPosDisplay>({
+    show: true,
+    showAllLabels: true,
+    showLatestLabels: true,
+  });
 
   const [mapPosition, setMapPosition] = useState<string[]>([]);
 
@@ -185,7 +208,7 @@ const MapBody: FunctionComponent = () => {
   const [mapZoom, setMapZoom] = useState(null); // value used to show correct scale bar
   const [mapBounds, setMapBounds] = useState<L.LatLngBoundsLiteral>(null);
   const [gridLabels, setGridLabels] = useState<GridLabelItem[]>([]);
-  const [showArrows, setShowArrows] = useState(false);
+  const [showArrows, setShowArrows] = useState(true);
 
   // make color filter settings for tile sublayer. This is the format of leaflet.tilelayer.colorfilter package
   const makeTileLayerColorFilter = (
@@ -499,15 +522,15 @@ const MapBody: FunctionComponent = () => {
    */
   const getMapItemByUuid = useCallback(
     (uuid: string, mapItemType?: MapItemType): AEGISMarker | AEGISPolyline => {
-      let itemToSave: AEGISMarker | AEGISPolyline = null;
+      let mapItem: AEGISMarker | AEGISPolyline = null;
 
       map.current.eachLayer((layer: AEGISMarker | AEGISPolyline) => {
         if (layer.uuid === uuid) {
           if (mapItemType && layer.mapItemType !== mapItemType) return null;
-          itemToSave = layer;
+          mapItem = layer;
         }
       });
-      return itemToSave;
+      return mapItem;
     },
     [map]
   );
@@ -579,6 +602,129 @@ const MapBody: FunctionComponent = () => {
     );
   }, [mapPosition]);
 
+  const drawOrUpdateCrewPosOnMap = useCallback(
+    ({
+      crewPos,
+      permanentLabel,
+      onClick = () => {},
+      onDragEnd = () => {},
+      markerOptions,
+      tooltipOptions = {},
+    }: {
+      crewPos: CrewPos;
+
+      permanentLabel: boolean;
+      onClick: Function;
+      onDragEnd: Function;
+      markerOptions: L.MarkerOptions;
+      tooltipOptions: L.TooltipOptions;
+    }) => {
+      const { uuid, location, crew } = crewPos;
+      if (isNaN(crewPos?.location?.lat) || isNaN(crewPos?.location?.lng)) return;
+      const mapItemType = "crewPos";
+
+      // make html for all permutations of crew loc crewItem types
+      const crewEmoji = "1f468-200d-1f680"; //crew
+      const cartEmoji = "1f6d2"; //cart
+
+      let jsx = null;
+      // if only cart is in the item, show a cart emoji only
+      if (crew.find((crewType) => crewType === "Cart") && crew.length === 1) {
+        jsx = (
+          <div className={styles.crewPosWrapper}>
+            <div className={styles.crewPosCart}>{decodeEmoji(cartEmoji)}</div>
+          </div>
+        );
+      } else if (
+        crew.find((crewType) => crewType === "EV1") &&
+        !crew.find((crewType) => crewType === "EV2")
+      ) {
+        // if only EV1 is in the item, show a full bar with EV1 color and optionally show cart dot if a cart is in the item
+        jsx = (
+          <div className={styles.crewPosWrapper}>
+            <div className={styles.crewPosIcon}>{decodeEmoji(crewEmoji)}</div>
+            <div className={`${styles.crewPosBarFull} ${styles.crewPosBarEv1}`}></div>
+            {crew.find((crewType) => crewType === "Cart") && (
+              <div className={`${styles.crewPosMiniCart}`}>{decodeEmoji(cartEmoji)}</div>
+            )}
+          </div>
+        );
+      } else if (
+        crew.find((crewType) => crewType === "EV2") &&
+        !crew.find((crewType) => crewType === "EV1")
+      ) {
+        // if only EV2 is in the item, show a full bar with EV2 color and optionally show cart dot if a cart is in the item
+        jsx = (
+          <div className={styles.crewPosWrapper}>
+            <div className={styles.crewPosIcon}>{decodeEmoji(crewEmoji)}</div>
+            <div className={`${styles.crewPosBarFull} ${styles.crewPosBarEv2}`}></div>
+            {crew.find((crewType) => crewType === "Cart") && (
+              <div className={`${styles.crewPosMiniCart}`}>{decodeEmoji(cartEmoji)}</div>
+            )}
+          </div>
+        );
+      } else {
+        // show EV1 and EV2 half bars and optionally show cart dot if a cart is in the item
+        jsx = (
+          <div className={styles.crewPosWrapper}>
+            <div className={styles.crewPosIcon}>{decodeEmoji(crewEmoji)}</div>
+            <div className={`${styles.crewPosBarLeft} ${styles.crewPosBarEv1}`}></div>
+            <div className={`${styles.crewPosBarRight} ${styles.crewPosBarEv2}`}></div>
+            {crew.find((crewType) => crewType === "Cart") && (
+              <div className={`${styles.crewPosMiniCart}`}>{decodeEmoji(cartEmoji)}</div>
+            )}
+          </div>
+        );
+      }
+
+      const html = ReactDOMServer.renderToString(jsx);
+      const icon = L.divIcon({ html });
+
+      const existingLayer = getMapItemByUuid(uuid, mapItemType) as AEGISMarker;
+      if (existingLayer && existingLayer.mapItemType === mapItemType) {
+        existingLayer.setLatLng(location as L.LatLng);
+        existingLayer.setIcon(icon);
+      } else {
+        const marker = L.marker(location as AEGISPoint, {
+          icon,
+          ...markerOptions,
+        }) as AEGISMarker;
+        marker.uuid = uuid;
+        marker.mapItemType = mapItemType;
+
+        // marker handlers
+        marker.bindTooltip(``, {
+          sticky: false,
+          direction: "top",
+          offset: new L.Point(0, -10),
+          permanent: permanentLabel,
+          className: "leaflet-tooltip-own",
+          ...tooltipOptions,
+        });
+
+        marker
+          .on("click", () => {
+            onClick();
+          })
+          .on("mouseover", () => {
+            dispatch(setHoverUuidsForCrewPos(marker.uuid));
+          })
+          .on("mouseout", () => {
+            dispatch(clearMapItemHover());
+          });
+        if (onDragEnd) {
+          // dragend handler that causes edit to be saved on mouseup
+          marker.on("dragend", (e) => {
+            map.current.getContainer().style.cursor = "grab";
+            onDragEnd(e.target as AEGISMarker);
+          });
+        }
+        crewPosFeatureGroup.current.addLayer(marker);
+      }
+    },
+    [map, getMapItemByUuid, dispatch]
+  );
+
   /**
    * Draw or update markers on the map
    */
@@ -592,6 +738,8 @@ const MapBody: FunctionComponent = () => {
       onClick = () => {},
       onDragEnd = () => {},
       permanentLabel = false,
+      markerOptions = {},
+      tooltipOptions = {},
     }: {
       name: string;
       uuid: string;
@@ -601,10 +749,14 @@ const MapBody: FunctionComponent = () => {
       onClick?: Function;
       onDragEnd?: Function;
       permanentLabel?: boolean;
+      markerOptions?: L.MarkerOptions;
+      tooltipOptions?: L.TooltipOptions;
     }) => {
       if (isNaN(location.lat) || isNaN(location.lng)) return;
 
-      const html = `<div class="leaflet-aegis-icon">${decodeEmoji(iconEmoji)}</div>`;
+      const html = ReactDOMServer.renderToString(
+        <div className={styles.mapIcon}>{decodeEmoji(iconEmoji)}</div>
+      );
       const icon = L.divIcon({ html });
 
       const existingLayer = getMapItemByUuid(uuid, mapItemType) as AEGISMarker;
@@ -615,17 +767,19 @@ const MapBody: FunctionComponent = () => {
       } else {
         const marker = L.marker(location as AEGISPoint, {
           icon,
+          ...markerOptions,
         }) as AEGISMarker;
         marker.uuid = uuid;
         marker.mapItemType = mapItemType;
 
         // marker handlers
         marker.bindTooltip(`${name}`, {
-          sticky: true,
+          sticky: false,
           direction: "top",
           offset: new L.Point(0, -10),
           permanent: permanentLabel,
           className: "leaflet-tooltip-own",
+          ...tooltipOptions,
         });
         if (onClick) {
           marker
@@ -633,10 +787,14 @@ const MapBody: FunctionComponent = () => {
               onClick();
             })
             .on("mouseover", () => {
-              dispatch(setAllHoverUuids(marker.uuid));
+              if (mapItemType === "crewPos") {
+                dispatch(setHoverUuidsForCrewPos(marker.uuid));
+              } else {
+                dispatch(setHoverUuidsForSequence(marker.uuid));
+              }
             })
             .on("mouseout", () => {
-              dispatch(setAllHoverUuids(null));
+              dispatch(clearMapItemHover());
             });
         }
         if (onDragEnd) {
@@ -654,6 +812,8 @@ const MapBody: FunctionComponent = () => {
           poiFeatureGroup.current.addLayer(marker);
         } else if (mapItemType === "action") {
           actionFeatureGroup.current.addLayer(marker);
+        } else if (mapItemType === "crewPos") {
+          crewPosFeatureGroup.current.addLayer(marker);
         } else {
           map.current.addLayer(marker);
         }
@@ -737,7 +897,7 @@ const MapBody: FunctionComponent = () => {
       const polyline = new HighlightablePolyline(path as AEGISPoint[], {
         color: color,
         weight: 3,
-        dashArray: dashArray,
+        dashArray,
         opacity: 0.5,
         smoothFactor: 1,
         outlineColor: "#8b8680",
@@ -767,10 +927,10 @@ const MapBody: FunctionComponent = () => {
           onClick();
         })
         .on("mouseover", () => {
-          dispatch(setAllHoverUuids(polyline.uuid));
+          dispatch(setHoverUuidsForSequence(polyline.uuid));
         })
         .on("mouseout", () => {
-          dispatch(setAllHoverUuids(null));
+          dispatch(clearMapItemHover());
         });
 
       map.current.addLayer(polyline);
@@ -797,14 +957,22 @@ const MapBody: FunctionComponent = () => {
 
   const saveUpdatedItemPosition = useCallback(
     async (uuid: string, mapItemType: MapItemType, location: AEGISPoint) => {
-      if (mapItemType === "lander") {
-        await dispatch(thunkUpdateLanderLocation({ location }));
-      } else if (mapItemType === "poi") {
-        await dispatch(thunkUpdatePoiLocation({ location, poiUuid: uuid }));
-      } else if (mapItemType === "station") {
-        await dispatch(thunkUpdateStationLocation({ location, stationUuid: uuid }));
-      } else if (mapItemType === "action") {
-        await dispatch(thunkUpdateActionLocation({ location, actionUuid: uuid }));
+      switch (mapItemType) {
+        case "lander":
+          await dispatch(thunkUpdateLanderLocation({ location }));
+          break;
+        case "poi":
+          await dispatch(thunkUpdatePoiLocation({ location, poiUuid: uuid }));
+          break;
+        case "station":
+          await dispatch(thunkUpdateStationLocation({ location, stationUuid: uuid }));
+          break;
+        case "action":
+          await dispatch(thunkUpdateActionLocation({ location, actionUuid: uuid }));
+          break;
+        case "crewPos":
+          await dispatch(thunkUpdateCrewPosLocation({ location, crewPosUuid: uuid }));
+          break;
       }
     },
     [dispatch]
@@ -867,6 +1035,10 @@ const MapBody: FunctionComponent = () => {
     if (!gridLabelFeatureGroup.current) {
       gridLabelFeatureGroup.current = L.featureGroup().addTo(map.current);
     }
+
+    if (!crewPosFeatureGroup.current) {
+      crewPosFeatureGroup.current = L.featureGroup().addTo(map.current);
+    }
   }, [mapRef, map, draggableLines, mission]);
 
   /**
@@ -902,16 +1074,17 @@ const MapBody: FunctionComponent = () => {
 
     map.current.on("click", (e) => {
       // if user is creating or updating a new poi or station, use the click update the location of the new poi/station
-
+      if (!mapDirective) return;
       if (
-        (mapDirective?.mapItemType === "station" ||
-          mapDirective?.mapItemType === "poi" ||
-          mapDirective?.mapItemType === "lander" ||
-          mapDirective?.mapItemType === "action") &&
-        (mapDirective?.mapAction === "editMarker" || mapDirective?.mapAction === "createMarker")
+        (mapDirective.mapItemType === "station" ||
+          mapDirective.mapItemType === "poi" ||
+          mapDirective.mapItemType === "lander" ||
+          mapDirective.mapItemType === "action" ||
+          mapDirective.mapItemType === "crewPos") &&
+        (mapDirective.mapAction === "editMarker" || mapDirective.mapAction === "createMarker")
       ) {
         saveUpdatedItemPosition(
-          mapDirective?.uuid,
+          mapDirective.uuid,
           mapDirective.mapItemType,
           convertLeafletLatLngToAegisPoint(e.latlng)
         );
@@ -1141,8 +1314,7 @@ const MapBody: FunctionComponent = () => {
         draggableLines.current.off("drag");
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, draggableLines, mapDirective, dispatch, getMapItemByUuid]);
+  }, [map, draggableLines, mapDirective, dispatch, getMapItemByUuid, updatePolylineOnMap]);
 
   /**
    * Populate stationsToShow when stations or selections change
@@ -1234,6 +1406,19 @@ const MapBody: FunctionComponent = () => {
       setTraversesToShow([]);
     }
   }, [traverses, selectedEvaSequenceItemUuid, selectedEva]);
+
+  /**
+   * Populate Crew positions to show when crew pos or selections change
+   */
+  useEffect(() => {
+    setCrewPosToShow([]);
+    if (mapDisplayCrewPos.show) {
+      //if there is a running rex, or no running rex but we're on the rex section and there's a rex selected
+      if (selectedOrRunningRex?.rexRunning || (sectionSelected === "rex" && selectedOrRunningRex)) {
+        setCrewPosToShow(_.orderBy(selectedOrRunningRex.crewPos, ["createdAt"], "desc"));
+      }
+    }
+  }, [selectedOrRunningRex, sectionSelected, mapDisplayCrewPos]);
 
   /**
    * Populate lander radii
@@ -1526,8 +1711,9 @@ const MapBody: FunctionComponent = () => {
           onClick: () => {
             dispatch(setSectionSelected("evas"));
             dispatch(selectEVASequenceItem({ sequenceItemUuid: traverse.uuid }));
+            dispatch(setSelectedCrewPosUuid(null));
           },
-          color: "#03adfc",
+          color: selectedEvaSequenceItemUuid === traverse.uuid ? "#64ceff" : "#03adfc",
           mapItemType: "traverse",
           drawAntPath: selectedEvaSequenceItemUuid !== traverse.uuid, //make it an ant path if this is not the selected traverse
         });
@@ -1544,6 +1730,109 @@ const MapBody: FunctionComponent = () => {
   ]);
 
   /**
+   * Draw or update crew positions on the map when crew pos change. Serves as draw when page loads
+   */
+  useEffect(() => {
+    if (!map.current || mapDirective) return;
+
+    // delete all crew pos in leaflet
+    crewPosFeatureGroup.current.clearLayers();
+
+    // draw or update all crew pos
+    crewPosToShow.forEach((crewPos, index, array) => {
+      if (crewPos.location) {
+        //if this is the most recent crew pos, add a circle around it
+        if (index === 0) {
+          // highlight current crew pos
+          const marker = L.circleMarker(
+            { lat: crewPos.location.lat, lng: crewPos.location.lng },
+            {
+              radius: 25,
+              color: "#52f075",
+              stroke: true,
+              weight: 2,
+              fill: false,
+            }
+          ) as AEGISCircleMarker;
+          marker.bringToFront();
+          crewPosFeatureGroup.current.addLayer(marker);
+        }
+
+        //set opacity for historic crew pos. No less than 0.3
+        let opacity = 1 - index / (array.length - 1);
+        if (opacity <= 0.3) opacity = 0.3;
+
+        drawOrUpdateCrewPosOnMap({
+          crewPos,
+          onClick: () => {
+            setShowSelectedItemOnMap(true);
+            dispatch(setSelectedCrewPosUuid(crewPos.uuid));
+            dispatch(selectEVASequenceItem({ sequenceItemUuid: null }));
+          },
+          onDragEnd: (marker: AEGISMarker) => {
+            const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
+            saveUpdatedItemPosition(crewPos.uuid, "crewPos", newLocation);
+            dispatch(updateMapDirective(null));
+          },
+          permanentLabel: mapDisplayCrewPos.showAllLabels,
+          markerOptions: { opacity },
+          tooltipOptions: { opacity },
+        });
+      }
+    });
+  }, [
+    map,
+    mapDirective,
+    drawOrUpdateCrewPosOnMap,
+    saveUpdatedItemPosition,
+    dispatch,
+    crewPosToShow,
+    mapDisplayCrewPos,
+  ]);
+
+  // used to update the PET value via the PetInterval component
+  const [rexPetTime, setRexPetTime] = useState("");
+
+  //handle when rex is ticking
+  useEffect(() => {
+    if (!crewPosToShow || crewPosToShow.length === 0) return;
+    for (let i = 0; i < crewPosToShow.length; i++) {
+      const crewPosMarker = getMapItemByUuid(crewPosToShow[i].uuid) as AEGISMarker;
+      if (crewPosMarker) {
+        const rexPetSeconds = secondsFromhhmmss(rexPetTime);
+        const timeToShow = hhmmssFromSeconds(rexPetSeconds - crewPosToShow[i].seconds);
+        const newLabel = `<div style="text-align: center">${timeToShow}</div>`;
+        crewPosMarker.setTooltipContent(newLabel);
+      }
+    }
+    if (mapDisplayCrewPos.showLatestLabels) {
+      const crewPosToShowSortedByTime = _.orderBy(crewPosToShow, ["createdAt"], ["desc"]);
+      const latestCrewPosMarkerWithEv1 = crewPosToShowSortedByTime.find((crewPos) =>
+        crewPos.crew.includes("EV1")
+      );
+      const latestCrewPosMarkerWithEv2 = crewPosToShowSortedByTime.find((crewPos) =>
+        crewPos.crew.includes("EV2")
+      );
+      const latestCrewPosMarkerWithCart = crewPosToShowSortedByTime.find((crewPos) =>
+        crewPos.crew.includes("Cart")
+      );
+      // open the tooltip for each latest crew pos
+      if (latestCrewPosMarkerWithEv1) {
+        const crewPosMarker = getMapItemByUuid(latestCrewPosMarkerWithEv1.uuid) as AEGISMarker;
+        if (crewPosMarker) crewPosMarker.openTooltip();
+      }
+      if (latestCrewPosMarkerWithEv2) {
+        const crewPosMarker = getMapItemByUuid(latestCrewPosMarkerWithEv2.uuid) as AEGISMarker;
+        if (crewPosMarker) crewPosMarker.openTooltip();
+      }
+      if (latestCrewPosMarkerWithCart) {
+        const crewPosMarker = getMapItemByUuid(latestCrewPosMarkerWithCart.uuid) as AEGISMarker;
+        if (crewPosMarker) crewPosMarker.openTooltip();
+      }
+    }
+  }, [rexPetTime, getMapItemByUuid, crewPosToShow, mapDisplayCrewPos]);
+
+  /**
    * Draw or update hover timeline marker (astronaut) on the map when the hover seconds change.
    */
   useEffect(() => {
@@ -1554,7 +1843,7 @@ const MapBody: FunctionComponent = () => {
       const existingLayer = getMapItemByUuid("hover-marker-uuid") as AEGISMarker;
 
       //hoverSeconds is null meaning we're not hovering.
-      if (!playheadHover.evaSecondsElapsed || !selectedEva) {
+      if (!hover.evaSecondsElapsed || !selectedEva) {
         //Also remove the marker from map if exists
         if (existingLayer) map.current.removeLayer(existingLayer);
         return;
@@ -1562,7 +1851,7 @@ const MapBody: FunctionComponent = () => {
 
       //find where this point should be drawn on the eva
       const sequenceItem = selectedEva.sequence.find(
-        (seqItem) => seqItem.uuid === playheadHover.mapItemUuid
+        (seqItem) => seqItem.uuid === hover.mapItemUuid
       );
       if (sequenceItem) {
         let location: AEGISPoint = { lat: 0, lng: 0 };
@@ -1579,7 +1868,7 @@ const MapBody: FunctionComponent = () => {
             traverse.pathSegmentDistances.reduce(
               (accumulator, currentValue) => accumulator + currentValue,
               0
-            ) * playheadHover.sequenceItemPercentElapsed;
+            ) * hover.sequenceItemPercentElapsed;
           //determine which segment we are in
           let cumulativePrevSegDistances = 0;
           for (let i = 0; i < traverse.pathSegmentDistances.length; i++) {
@@ -1604,7 +1893,9 @@ const MapBody: FunctionComponent = () => {
             }
           }
         }
-        const html = `<div class="leaflet-aegis-icon">${decodeEmoji("1f468-200d-1f680")}</div>`;
+        const html = ReactDOMServer.renderToString(
+          <div className={styles.mapIcon}>{decodeEmoji("1f468-200d-1f680")}</div>
+        );
         const icon = L.divIcon({ html });
 
         if (isNaN(location.lat) || isNaN(location.lng)) return;
@@ -1625,7 +1916,7 @@ const MapBody: FunctionComponent = () => {
         }
       }
     })();
-  }, [playheadHover, getMapItemByUuid, mapDirective, selectedEva, dispatch]);
+  }, [hover, getMapItemByUuid, mapDirective, selectedEva, dispatch]);
 
   const removeSelectedMarker = useCallback(() => {
     // remove any existing highlight layers
@@ -1695,6 +1986,16 @@ const MapBody: FunctionComponent = () => {
             panMapToLocation = selectedStation.location;
           }
         }
+      } else if (
+        sectionSelected === "rex" &&
+        selectedOrRunningRex?.crewPos &&
+        selectedCrewPosUuid
+      ) {
+        const crewPosLocation = selectedOrRunningRex.crewPos.find(
+          (c) => c.uuid === selectedCrewPosUuid
+        )?.location;
+        highlightLocation = crewPosLocation;
+        panMapToLocation = crewPosLocation;
       }
 
       if (highlightLocation) {
@@ -1720,16 +2021,18 @@ const MapBody: FunctionComponent = () => {
     drawSelectedMarker,
     mapDirective,
     selectedEvaSequenceItemUuid,
+    selectedCrewPosUuid,
+    selectedOrRunningRex,
   ]);
 
   /**
-   * if selected Poi or Station changes, then show the highlight on the map
+   * if selected marker changes, then show the highlight on the map
    */
   useEffect(() => {
-    if (selectedPoi || selectedStation) {
+    if (selectedPoi || selectedStation || selectedCrewPosUuid) {
       setShowSelectedItemOnMap(true);
     }
-  }, [selectedPoi, selectedStation]);
+  }, [selectedPoi, selectedStation, selectedCrewPosUuid]);
 
   /**
    * If hover uuid changes, show a hover highlight on the map
@@ -1750,7 +2053,9 @@ const MapBody: FunctionComponent = () => {
       map.current.eachLayer((layer: AEGISMapLayer) => {
         if (
           layer?.uuid === mapHoverItemUuid &&
-          (layer.mapItemType === "poi" || layer.mapItemType === "station")
+          (layer.mapItemType === "poi" ||
+            layer.mapItemType === "station" ||
+            layer.mapItemType === "crewPos")
         ) {
           const markerLayer = layer as AEGISMarker;
           latLngs.push(markerLayer.getLatLng());
@@ -1791,10 +2096,15 @@ const MapBody: FunctionComponent = () => {
 
   return (
     <div className={styles.mapContainer}>
+      <PetInterval
+        runningRex={selectedOrRunningRex}
+        rexPetTime={rexPetTime}
+        setRexPetTime={setRexPetTime}
+      />
       <div className={styles.map} ref={mapRef} />
 
-      <div className={styles.mapControlDisplay}>
-        <MapMenu
+      <div className={styles.mapViewDisplay}>
+        <MapViewMenu
           mapDisplayPois={mapDisplayPois}
           setMapDisplayPois={setMapDisplayPois}
           mapDisplayStations={mapDisplayStations}
@@ -1803,8 +2113,11 @@ const MapBody: FunctionComponent = () => {
           setMapDisplayActions={setMapDisplayActions}
           showArrows={showArrows}
           setShowArrows={setShowArrows}
+          mapDisplayCrewPos={mapDisplayCrewPos}
+          setMapDisplayCrewPos={setMapDisplayCrewPos}
         />
       </div>
+      {sectionSelected === "rex" && selectedOrRunningRex && <MapCrewPositionMenu />}
       <div className={styles.mapScaleDisplay}>{drawScaleBarDiv()}</div>
       <div className={styles.mapPositionDisplay}>{drawLatLongDiv()}</div>
     </div>

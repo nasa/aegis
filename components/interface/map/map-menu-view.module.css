@@ -50,15 +50,18 @@
 }
 
 .control {
+  flex: 0 0 80px;
   display: flex;
 }
 
 .subControl {
   display: flex;
+  flex-direction: column;
+  width: 120px;
 }
 
 .controlCheckbox {
-  align-self: center;
+  align-self: flex-start;
   margin-right: 4px;
   font-size: 0.8em;
 }

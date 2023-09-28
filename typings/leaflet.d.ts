@@ -7,7 +7,7 @@ type AEGISMarker = L.Marker & {
   mapItemType: MapMarkerType;
 };
 
-type MapMarkerType = "poi" | "station" | "lander" | "hover" | "action";
+type MapMarkerType = "poi" | "station" | "lander" | "hover" | "action" | "crewPos";
 
 type AEGISPolyline = L.Polyline & {
   uuid?: string;

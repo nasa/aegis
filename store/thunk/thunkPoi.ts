@@ -12,7 +12,7 @@ import { v4 as uuidv4 } from "uuid";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { thunkCancelMarkerMapDirective } from "./thunkMap";
 import _ from "lodash";
-import { thunkDuplicateAction, thunkSaveActions } from "./thunkAction";
+import { thunkDuplicateActions, thunkSaveActions } from "./thunkAction";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 
@@ -140,12 +140,17 @@ export const thunkSavePoi = appCreateAsyncThunk<{
   const poiActionsFromDb = getState().action.actionsFromDb.filter(
     (action) => action.poiUuid === poi.uuid
   );
+  //rex active?
+  const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
 
   //save poi to db
-  const poiUpsertResponse = await httpClient_poi.upsertPOI({
-    ...poi,
-    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-  });
+  const poiUpsertResponse = await httpClient_poi.upsertPOI(
+    {
+      ...poi,
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    },
+    rexRunning
+  );
 
   if (poiUpsertResponse.status === "success") {
     // upsert the changed POI to the store
@@ -205,13 +210,16 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
   const selectedMissionId = getState().mission.mission?.id;
   const poiActions = getState().action.actions.filter((action) => action.poiUuid === poi.uuid);
   const poiFromDb = getState().poi.poisFromDb.find((poiFromDb) => poiFromDb.uuid === poi.uuid);
+  //rex active?
+  const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
 
   // if the selected poi is in poisFromDb then delete it from the db
   if (poiFromDb) {
     // delete actions from the db via internal api call
     for (const actionToDelete of poiActions) {
       const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteAction(
-        actionToDelete.uuid
+        actionToDelete.uuid,
+        rexRunning
       );
       if (actionDeleteResponse.status !== "success") {
         throw new Error("Error deleting actions for poi " + actionDeleteResponse.message);
@@ -226,7 +234,7 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
     }
 
     // delete the POI from the DB via internal API call
-    const deleteResponse = await httpClient_poi.deletePOI(poi.uuid);
+    const deleteResponse = await httpClient_poi.deletePOI(poi.uuid, rexRunning);
     if (deleteResponse.status === "success") {
       // remove the corresponding POI from the store
       dispatch(deletePoiByUuid(poi.uuid));
@@ -297,27 +305,23 @@ export const thunkDuplicatePoi = appCreateAsyncThunk<{ poi: POI }>(
       poi.name,
       getState().poi.pois.map((item) => item.name)
     );
+    newPoi.actionOrderUuids = [];
+    dispatch(saveNewPoi(newPoi));
 
     //duplicate actions, in order
-    const poiActions = getState().action.actions.filter((action) => action.poiUuid === poi?.uuid);
-    const newActionOrderUuids = [];
-
-    for (const actionUuid of poi.actionOrderUuids) {
-      const action = poiActions.find((a) => a.uuid === actionUuid);
-      const thunkRes = await dispatch(
-        thunkDuplicateAction({
-          action: action,
-          poiUuid: newPoi.uuid,
-          promotingFromPoi: false,
-          handleActionOrderProcessing: false,
-        })
+    const poiActions = getState()
+      .action.actions.filter((action) => action.poiUuid === poi?.uuid)
+      .sort(
+        (a, b) =>
+          poi.actionOrderUuids.findIndex((o) => o === a.uuid) -
+          poi.actionOrderUuids.findIndex((o) => o === b.uuid)
       );
-      if (thunkRes?.payload) {
-        newActionOrderUuids.push(thunkRes.payload as string);
-      }
-    }
-
-    newPoi.actionOrderUuids = newActionOrderUuids; //save new order
-    dispatch(saveNewPoi(newPoi));
+    await dispatch(
+      thunkDuplicateActions({
+        actions: poiActions,
+        poiUuid: newPoi.uuid,
+        promotingFromPoi: false,
+      })
+    );
   }
 );

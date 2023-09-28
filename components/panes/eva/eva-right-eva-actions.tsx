@@ -1,15 +1,23 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, useCallback, useEffect, useState } from "react";
+import actionsStyles from "../actions.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
-import Actions from "../actions";
+import { ActionsTopSection, ActionsListHeadings, ActionList } from "../actions";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
+import { thunkGetHighlightedActions } from "store/thunk/thunkAction";
+import { useAppDispatch } from "utils/useAppDispatch";
 
 const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
+  const dispatch = useAppDispatch();
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
-  const actions = useAppSelector((state) => state.action.actions, shallowEqual);
   const selectedEva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid),
     shallowEqual
+  );
+  const thisEvaRexRunning = useAppSelector(
+    (state) =>
+      state.rex.rexes.find((rex) => rex.selectedRexEvaUuid === selectedEvaUuid)?.rexRunning,
+    refEqual
   );
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
 
@@ -21,36 +29,31 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     shallowEqual
   );
 
-  const [evaActions, setEvaActions] = useState<Action[]>(null); //contains all EVA actions
-  const [evaActionOrderUuids, setEvaActionOrderUuids] = useState<string[]>(null); //contains all EVA actions
+  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+
   const [actionsCalculatedFields, setActionsCalculatedField] =
     useState<ActionsCalculatedFields>(null);
 
-  //gather all actions, then order them
-  useEffect(() => {
-    if (!actions || !selectedEva || !stations) return;
-    const allEvaActions: Action[] = [];
-    const actionOrderUuids: string[] = [];
+  const evaActionOrderUuids = selectedEva?.sequence.flatMap((sequenceItem) => {
+    if (sequenceItem.type !== "station") return null;
+    return stations.find((station) => station.uuid === sequenceItem.uuid)?.actionOrderUuids;
+  });
 
-    // loop though all eva sequence items and generate a collection of actions from all stations
+  const [isActionHiglighted, setIsActionHighlighted] = useState<ActionHighlight[]>([]);
 
-    for (const sequenceItem of selectedEva.sequence) {
-      if (sequenceItem.type !== "station") continue;
-
-      const station = stations.find((station) => station.uuid === sequenceItem.uuid);
-      let stationActions = actions.filter((action) => action.stationUuid === sequenceItem.uuid);
-      // prepend the station name to each action name
-      stationActions = stationActions.map((action) => {
-        return { ...action, name: `${station?.name} - ${action.name}` };
-      });
-      if (stationActions) allEvaActions.push(...stationActions);
-      if (station && station.actionOrderUuids) actionOrderUuids.push(...station.actionOrderUuids);
-    }
-    setEvaActions(allEvaActions);
-
-    // set the action order uuids
-    setEvaActionOrderUuids(actionOrderUuids);
-  }, [actions, selectedEva, stations]);
+  //set state of highlighted actions when the STM is hovered over
+  const highlightActions = useCallback(
+    async (invstgUUID: string) => {
+      if (!evaActionOrderUuids) return;
+      const resHighlightActions = await dispatch(
+        thunkGetHighlightedActions({ actionUuids: evaActionOrderUuids, stmUuid: invstgUUID })
+      );
+      if (resHighlightActions.payload) {
+        setIsActionHighlighted(resHighlightActions.payload);
+      }
+    },
+    [evaActionOrderUuids, dispatch]
+  );
 
   useEffect(() => {
     if (!calculatedFields) return;
@@ -70,21 +73,60 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitleContainer}>
         <div className={paneStyles.rightBodyTitle}>All EVA Actions</div>
-        <ExpandCollapseActionsButtons actionUuids={evaActions?.map((action) => action.uuid)} />
+        <ExpandCollapseActionsButtons actionUuids={evaActionOrderUuids} />
       </div>
       <div className={paneStyles.rightBodyBody} style={{ overflowY: "hidden" }}>
-        <Actions
-          editMode={editMode}
-          setEditMode={() => {}}
+        <ActionsTopSection
           actionOrderUuids={evaActionOrderUuids}
-          setActionOrderUuids={() => {}}
-          actionParentUuid={null}
-          actionsCalculatedFields={actionsCalculatedFields}
           parentType="eva"
+          highlightActions={highlightActions}
+          actionsCalculatedFields={actionsCalculatedFields}
         />
+        <ActionsListHeadings
+          editMode={editMode}
+          parentType="eva"
+          editPerms={editPerms}
+          rexRunning={thisEvaRexRunning}
+        />
+        <div className={actionsStyles.actionListContainer}>
+          {selectedEva.sequence.map((sequenceItem) => {
+            if (sequenceItem.type !== "station") return null;
+            const actionOrderUuids = stations.find(
+              (station) => station.uuid === sequenceItem.uuid
+            )?.actionOrderUuids;
+            return (
+              <div key={sequenceItem.uuid}>
+                <Actions_Station_Heading stationUuid={sequenceItem.uuid} />
+                <ActionList
+                  editMode={editMode}
+                  actionOrderUuids={actionOrderUuids}
+                  highlightActions={highlightActions}
+                  isActionHiglighted={isActionHiglighted}
+                  stations={stations}
+                  pois={null}
+                  rexRunning={thisEvaRexRunning}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 };
 
 export default Actions_Panel;
+
+const Actions_Station_Heading: FunctionComponent<{ stationUuid: string }> = ({ stationUuid }) => {
+  const stationName = useAppSelector(
+    (state) => state.station.stations.find((station) => station.uuid === stationUuid)?.name,
+    refEqual
+  );
+
+  return (
+    <div className={actionsStyles.evaActionsStationTitleContainer}>
+      <div>{stationName}</div>
+      <div className={actionsStyles.evaActionsStationTitleLine}></div>
+    </div>
+  );
+};

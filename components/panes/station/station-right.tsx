@@ -4,7 +4,6 @@ import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCircleInfo,
   faPersonDigging,
@@ -34,6 +33,7 @@ import emojiPickerData from "@emoji-mart/data";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDeleteStation, thunkSaveStation, thunkStationCancel } from "store/thunk/thunkStation";
 import { validators } from "components/interface/form/formValidators";
+import { RightTabs } from "components/interface/side-controls";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -210,39 +210,11 @@ const StationEditorRight: FunctionComponent = () => {
           </div>
         </div>
         <div className={paneStyles.rightSubTray}>
-          <div className={paneStyles.rightIconRow}>
-            {panelTypes &&
-              Object.keys(panelTypes).map((panelType) => {
-                const unselectedColor = _.has(panelTypes[panelType], "unselectedColor")
-                  ? panelTypes[panelType].unselectedColor
-                  : "white";
-                return (
-                  <div
-                    key={panelType}
-                    className={
-                      selectedRightNavItem === panelType
-                        ? paneStyles.rightIconContainerSelectedStation
-                        : paneStyles.rightIconContainer
-                    }
-                    onClick={() => dispatch(setSelectedStationRightNavItem(panelType))}
-                  >
-                    <div
-                      className={paneStyles.rightIcon}
-                      style={{
-                        color:
-                          selectedRightNavItem === panelType
-                            ? panelTypes[panelType].selectedColor
-                            : unselectedColor,
-                      }}
-                      data-tooltip-id="aegis-tooltip"
-                      data-tooltip-html={panelTypes[panelType].title}
-                    >
-                      <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
+          <RightTabs
+            selectedRightNavItem={selectedRightNavItem}
+            panelTypes={panelTypes}
+            dispatchFunction={setSelectedStationRightNavItem}
+          />
           <div className={paneStyles.saveCancelContainer}>
             {stationsEditing.includes(selectedStationUuid) && !(saveButtonState === "pending") ? (
               <Button

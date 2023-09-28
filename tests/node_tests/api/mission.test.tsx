@@ -18,6 +18,8 @@ import UserFactory from "../../factories/UserFactory";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
 import { roundDateToSecond } from "utils/formatting";
+import * as SocketIo from "pages/api/socketio";
+
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -61,6 +63,10 @@ beforeAll(async () => {
     username: "testSuperAdmin",
     isSuperAdmin: true,
   });
+
+  // suppress socketio calls because they won't work during jest testing
+  jest.spyOn(SocketIo, "emitStoreUpsert").mockImplementation(() => {});
+  jest.spyOn(SocketIo, "emitStoreDelete").mockImplementation(() => {});
 });
 
 describe("Mission API Endpoint", () => {
@@ -354,4 +360,6 @@ afterAll(async () => {
 
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
+
+  jest.resetAllMocks();
 });

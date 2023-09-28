@@ -13,6 +13,7 @@ import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
 import { emitStoreDelete, emitStoreUpsert } from "./socketio";
+import { upsertLog } from "./log";
 
 const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
   req,
@@ -24,9 +25,10 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
 
-    const { uuid, stationUuid, poiUuid, socketId, missionId } = req.query;
+    const { uuid, stationUuid, poiUuid, socketId, missionId, log } = req.query;
+    const logAction = log === "true";
     const intMissionId = parseInt(missionId as string);
-    const actionUUID = uuid as string;
+    const actionUuid = uuid as string;
     const station = stationUuid as string;
     const poi = poiUuid as string;
     //check for required mission id is valid
@@ -45,7 +47,7 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
       try {
         const actions: Action[] = await getActions({
           missionId: intMissionId,
-          actionUuid: actionUUID,
+          actionUuid: actionUuid,
           stationUuid: station,
           poiUuid: poi,
         });
@@ -69,31 +71,33 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
       try {
-        const actionToUpsert: Action = req.body as Action;
-        const upsertResponse: Action = await upsertAction(actionToUpsert);
+        const actionsToUpsert: Action[] = req.body as Action[];
+        await upsertActions(actionsToUpsert);
 
-        //check response
-        if (!upsertResponse) {
-          return res.status(500).json({
-            status: "error",
-            message: "Upsert response did not return a value",
-            data: null,
-          });
-        } else {
-          // emit the upserted item to all clients via socket.io
-          emitStoreUpsert({
+        // emit the upserted item to all clients via socket.io
+        emitStoreUpsert({
+          missionId: intMissionId,
+          socketId,
+          type: "action",
+          data: actionsToUpsert,
+        } as StoreUpsert<Action>);
+
+        if (logAction) {
+          // log this upsert to the log table
+          upsertLog({
+            uuid: uuidv4(),
             missionId: intMissionId,
-            socketId,
-            type: "action",
-            data: [upsertResponse],
-          } as StoreUpsert<Action>);
-
-          return res.status(200).json({
-            status: "success",
-            message: `Action upserted with ID ${upsertResponse.uuid}`,
-            data: upsertResponse,
-          });
+            type: "actionUpsert",
+            payloadJson: JSON.stringify(actionsToUpsert),
+            createdAt: new Date().toISOString(),
+          } as Log);
         }
+
+        return res.status(200).json({
+          status: "success",
+          message: `Action(s) upserted with Uuids ${actionsToUpsert.map((a) => a.uuid)}`,
+          data: actionsToUpsert,
+        });
       } catch (e) {
         console.error(e);
         return res
@@ -108,15 +112,26 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
       try {
-        const deletedUUID = await deleteAction(actionUUID);
-        if (deletedUUID) {
+        const deletedUuid = await deleteAction(actionUuid);
+        if (deletedUuid) {
           // emit the deleted item to all clients via socket.io
           emitStoreDelete({
             missionId: intMissionId,
             socketId,
             type: "action",
-            uuid: deletedUUID,
+            uuid: deletedUuid,
           } as StoreDelete);
+
+          if (logAction) {
+            // log this deletion to the log table
+            upsertLog({
+              uuid: uuidv4(),
+              missionId: intMissionId,
+              type: "actionDelete",
+              payloadJson: JSON.stringify({ actionUuid }),
+              createdAt: new Date().toISOString(),
+            } as Log);
+          }
 
           return res.status(200).json({
             status: "success",
@@ -180,46 +195,50 @@ async function getActions(filter: ActionFilterOptions): Promise<Action[]> {
 
 /**
  * Inserts or Updates a action into the database
- * @param action the action object to upsert
- * @returns a copy of the action object that was upserted
+ * @param actions array of actions upsert
+ * @returns a copy of the array of actions that was upserted
  */
-async function upsertAction(action: Action): Promise<Action> {
+async function upsertActions(actions: Action[]) {
   const em = getEM();
 
-  const actionToUpsert = _.cloneDeep(action); //create a copy to manipulate
+  const actionsToUpsert = _.cloneDeep(actions); //create a copy to manipulate
   //convert fks
-  const convertedRecord: EntityData<Action_db> = {
-    uuid: actionToUpsert.uuid || uuidv4(),
-    name: actionToUpsert.name,
-    mission: actionToUpsert.missionId,
-    poi: actionToUpsert.poiUuid,
-    station: actionToUpsert.stationUuid,
-    parentAction: actionToUpsert.parentActionUuid,
-    parentCopyDate: actionToUpsert.parentCopyDate ? new Date(actionToUpsert.parentCopyDate) : null,
-    priority: actionToUpsert.priority,
-    stmUuidRefs: actionToUpsert.stmUuidRefs,
-    type: actionToUpsert.type,
-    description: actionToUpsert.description,
-    icon: actionToUpsert.icon,
-    location: actionToUpsert.location,
-    elevation: actionToUpsert.elevation,
-    durationLower: actionToUpsert.durationLower,
-    durationUpper: actionToUpsert.durationUpper,
-    equipmentItemsUsage: actionToUpsert.equipmentItemsUsage,
-    geographicUnitsUsage: actionToUpsert.geographicUnitsUsage,
-    mass: actionToUpsert.mass,
-    status: actionToUpsert.status,
-    enabled: actionToUpsert.enabled,
-    crewAssigned: actionToUpsert.crewAssigned,
-    updatedAt: new Date(actionToUpsert.updatedAt),
-    createdAt: new Date(actionToUpsert.createdAt),
-  };
+  for (const actionToUpsert of actionsToUpsert) {
+    const convertedRecord: EntityData<Action_db> = {
+      uuid: actionToUpsert.uuid || uuidv4(),
+      name: actionToUpsert.name,
+      mission: actionToUpsert.missionId,
+      poi: actionToUpsert.poiUuid,
+      station: actionToUpsert.stationUuid,
+      parentAction: actionToUpsert.parentActionUuid,
+      parentCopyDate: actionToUpsert.parentCopyDate
+        ? new Date(actionToUpsert.parentCopyDate)
+        : null,
+      priority: actionToUpsert.priority,
+      stmUuidRefs: actionToUpsert.stmUuidRefs,
+      type: actionToUpsert.type,
+      description: actionToUpsert.description,
+      icon: actionToUpsert.icon,
+      location: actionToUpsert.location,
+      elevation: actionToUpsert.elevation,
+      durationLower: actionToUpsert.durationLower,
+      durationUpper: actionToUpsert.durationUpper,
+      equipmentItemsUsage: actionToUpsert.equipmentItemsUsage,
+      geographicUnitsUsage: actionToUpsert.geographicUnitsUsage,
+      mass: actionToUpsert.mass,
+      status: actionToUpsert.status,
+      enabled: actionToUpsert.enabled,
+      crewAssigned: actionToUpsert.crewAssigned,
+      rexStatus: actionToUpsert.rexStatus,
+      updatedAt: new Date(actionToUpsert.updatedAt),
+      createdAt: new Date(actionToUpsert.createdAt),
+    };
 
-  const upsertReference: Action_db = await em.upsert(Action_db, convertedRecord);
-  await em.persistAndFlush(upsertReference);
+    const upsertReference: Action_db = await em.upsert(Action_db, convertedRecord);
+    em.persist(upsertReference);
+  }
 
-  //convert foreign keys
-  return convertActions([upsertReference])[0];
+  await em.flush();
 }
 
 /**
@@ -272,6 +291,7 @@ function convertActions(dbactions: Action_db[]): Action[] {
       status: dbaction.status,
       enabled: dbaction.enabled,
       crewAssigned: dbaction.crewAssigned,
+      rexStatus: dbaction.rexStatus,
       createdAt: dbaction.createdAt?.toISOString(),
       updatedAt: dbaction.updatedAt?.toISOString(),
     };

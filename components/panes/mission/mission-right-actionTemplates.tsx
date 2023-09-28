@@ -40,7 +40,7 @@ import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { decodeEmoji, toDecimal } from "utils/formatting";
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
-import STMSelector from "../stm-selector";
+import STMSelector from "../stm/stm-selector";
 
 const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -68,9 +68,9 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                   className={`${paneStyles.panelContainer} ${actionActionStyles.actionPanelContainer}  ${actionStyles.actionlistitemAction}`}
                   style={{ marginLeft: "6px" }}
                 >
-                  <div className={actionActionStyles.actionsHeading}>
+                  <div className={actionActionStyles.actionHeading}>
                     <div
-                      className={actionActionStyles.actionsHeadingCaret}
+                      className={actionActionStyles.actionHeadingCaret}
                       onClick={() => {
                         if (actionsExpanded.includes(actionTemplate.uuid)) {
                           dispatch(collapseActions([actionTemplate.uuid]));
@@ -84,21 +84,21 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                         <FontAwesomeIcon
                           icon={faCaretDown}
                           size="sm"
-                          className={actionActionStyles.actionsHeadingCaretDown}
+                          className={actionActionStyles.actionHeadingCaretDown}
                           style={editMode && { marginTop: "5px" }}
                         />
                       ) : (
                         <FontAwesomeIcon
                           icon={faCaretRight}
                           size="sm"
-                          className={actionActionStyles.actionsHeadingCaretRight}
+                          className={actionActionStyles.actionHeadingCaretRight}
                           style={editMode && { marginTop: "5px" }}
                         />
                       )}
                     </div>
                     {!editMode ? (
                       <div
-                        className={actionActionStyles.actionsHeadingTitle}
+                        className={actionActionStyles.actionHeadingTitle}
                         style={{ color: "white", width: "100%", fontSize: "0.85rem" }}
                         onClick={() => {
                           if (actionsExpanded.includes(actionTemplate.uuid)) {
@@ -313,7 +313,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                           validators: [
                                             validators.maxLength(4),
                                             validators.mustBeInteger,
-                                            validators.mustBeNumberGTZero,
+                                            // validators.mustBeNumberGTZero,
                                           ],
                                           onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                                             e.target.value = e.target.value.replace(
@@ -356,7 +356,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                           validators: [
                                             validators.maxLength(4),
                                             validators.mustBeInteger,
-                                            validators.mustBeNumberGTZero,
+                                            // validators.mustBeNumberGTZero,
                                           ],
                                           onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                                             e.target.value = e.target.value.replace(

@@ -15,6 +15,7 @@ export default class TraverseFactory extends Factory<Traverse_db> {
       predictedDurationLower: 0,
       predictedDurationUpper: 0,
       status: "Candidate",
+      rexStatus: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

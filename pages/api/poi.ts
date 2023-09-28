@@ -7,6 +7,7 @@ import { Poi as Poi_db } from "server/database/models/poi.model";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
 import { emitStoreDelete, emitStoreUpsert } from "./socketio";
+import { upsertLog } from "./log";
 
 const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
   req,
@@ -18,8 +19,10 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
 
-    const { missionId, socketId } = req.query;
+    const { missionId, socketId, log } = req.query;
     const intMissionId = parseInt(missionId as string);
+    const logAction = log === "true";
+
     if (isNaN(intMissionId) || typeof intMissionId !== "number") {
       return res.status(500).json({ status: "error", message: "Mission ID must be integer." });
     }
@@ -51,25 +54,25 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
       try {
         const em = getEM();
 
-        const validPoiBody: POI = req.body as POI;
+        const poiToUpsert: POI = req.body as POI;
         //build poi to upsert
         //convert fks
         const convertedPoi: EntityData<Poi_db> = {
-          uuid: validPoiBody.uuid || uuidv4(),
-          owner: validPoiBody.ownerId || req.session.user.id,
-          mission: validPoiBody.missionId,
-          actionOrderUuids: validPoiBody.actionOrderUuids,
-          name: validPoiBody.name,
-          description: validPoiBody.description,
-          priorityOverride: validPoiBody.priorityOverride,
-          radius: validPoiBody.radius,
-          location: validPoiBody.location,
-          elevation: validPoiBody.elevation,
-          icon: validPoiBody.icon,
-          tags: validPoiBody.tags,
-          status: validPoiBody.status,
-          createdAt: new Date(validPoiBody.createdAt),
-          updatedAt: new Date(validPoiBody.updatedAt),
+          uuid: poiToUpsert.uuid || uuidv4(),
+          owner: poiToUpsert.ownerId || req.session.user.id,
+          mission: poiToUpsert.missionId,
+          actionOrderUuids: poiToUpsert.actionOrderUuids,
+          name: poiToUpsert.name,
+          description: poiToUpsert.description,
+          priorityOverride: poiToUpsert.priorityOverride,
+          radius: poiToUpsert.radius,
+          location: poiToUpsert.location,
+          elevation: poiToUpsert.elevation,
+          icon: poiToUpsert.icon,
+          tags: poiToUpsert.tags,
+          status: poiToUpsert.status,
+          createdAt: new Date(poiToUpsert.createdAt),
+          updatedAt: new Date(poiToUpsert.updatedAt),
         };
         const poiUpsertReference: Poi_db = await em.upsert(Poi_db, convertedPoi);
         await em.persistAndFlush(poiUpsertReference);
@@ -99,6 +102,17 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
           type: "poi",
           data: [responsePoi],
         } as StoreUpsert<POI>);
+
+        if (logAction) {
+          // log this upsert to the log table
+          upsertLog({
+            uuid: uuidv4(),
+            missionId: intMissionId,
+            type: "poiUpsert",
+            payloadJson: JSON.stringify(poiToUpsert),
+            createdAt: new Date().toISOString(),
+          } as Log);
+        }
 
         return res.status(200).json({
           status: "success",
@@ -132,6 +146,17 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
             type: "poi",
             uuid: poiToDelete.uuid,
           } as StoreDelete);
+
+          if (logAction) {
+            // log this deletion to the log table
+            upsertLog({
+              uuid: uuidv4(),
+              missionId: intMissionId,
+              type: "poiDelete",
+              payloadJson: JSON.stringify({ poiUuid: poiToDelete.uuid }),
+              createdAt: new Date().toISOString(),
+            } as Log);
+          }
 
           return res.status(200).json({
             status: "success",

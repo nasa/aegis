@@ -8,8 +8,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setSelectedPoiUuid } from "store/poi";
 import { setSectionSelected } from "store/interface";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkDuplicateAction } from "store/thunk/thunkAction";
-import { hhmmFromMinutes } from "utils/formatting";
+import { thunkDuplicateActions } from "store/thunk/thunkAction";
+import { hmmFromMinutes } from "utils/formatting";
 
 export const Assoc_POIs: FunctionComponent<{
   stationPoiUuids: string[];
@@ -157,9 +157,15 @@ const Assoc_POI: FunctionComponent<{
                   !poiAction.enabled ? assocPoisStyles.stationPoiActionItemsDisabled : ""
                 }`}
               >
-                <div className={actionStyles.actionsHeading}>
-                  <div className={actionStyles.actionsHeadingType}>{poiAction.type}</div>
-                  <div className={actionStyles.actionsHeadingTitle}>{poiAction.name}</div>
+                <div className={actionStyles.actionHeading}>
+                  <div className={actionStyles.verticalCenter}>
+                    <div className={`${actionStyles.actionHeadingType} `}>{poiAction.type}</div>
+                  </div>
+                  <div
+                    className={`${actionStyles.actionHeadingTitleTextonly} ${actionStyles.verticalCenter}`}
+                  >
+                    {poiAction.name}
+                  </div>
                   <div className={actionStyles.actionHeadingRight}>
                     <div
                       className={actionStyles.actionHeadingRightItem}
@@ -174,7 +180,7 @@ const Assoc_POI: FunctionComponent<{
                       data-tooltip-id="aegis-tooltip"
                       data-tooltip-html={"Max Duration (mins)"}
                     >
-                      {hhmmFromMinutes(poiAction.durationUpper).slice(1)}
+                      {hmmFromMinutes(poiAction.durationUpper)}
                     </div>
                   </div>
                 </div>
@@ -197,8 +203,8 @@ const Assoc_POI: FunctionComponent<{
                         className={assocPoisStyles.copyIcon}
                         onClick={(e) => {
                           dispatch(
-                            thunkDuplicateAction({
-                              action: poiAction,
+                            thunkDuplicateActions({
+                              actions: [poiAction],
                               stationUuid: selectedStationUuid,
                               promotingFromPoi: true,
                             })

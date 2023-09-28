@@ -13,6 +13,7 @@ import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
 import { emitStoreDelete, emitStoreUpsert } from "./socketio";
+import { upsertLog } from "./log";
 
 const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = async (
   req,
@@ -24,9 +25,10 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
 
-    const { uuid, socketId, missionId } = req.query;
+    const { uuid, socketId, missionId, log } = req.query;
     const intMissionId = parseInt(missionId as string);
     const traverseUuid = uuid as string;
+    const logAction = log === "true";
 
     //check for required mission id is valid
     if (!intMissionId || _.isNaN(intMissionId)) {
@@ -81,6 +83,17 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
             data: [upsertResponse],
           } as StoreUpsert<Traverse>);
 
+          if (logAction) {
+            // log this upsert to the log table
+            upsertLog({
+              uuid: uuidv4(),
+              missionId: intMissionId,
+              type: "traverseUpsert",
+              payloadJson: JSON.stringify(traverseToUpsert),
+              createdAt: new Date().toISOString(),
+            } as Log);
+          }
+
           return res.status(200).json({
             status: "success",
             message: `Traverse upserted with ID ${upsertResponse.uuid}`,
@@ -101,15 +114,26 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
       try {
-        const deletedUUID = await deleteTraverse(traverseUuid);
-        if (deletedUUID) {
+        const deletedUuid = await deleteTraverse(traverseUuid);
+        if (deletedUuid) {
           // emit the deleted item to all clients via socket.io
           emitStoreDelete({
             missionId: intMissionId,
             socketId,
             type: "traverse",
-            uuid: deletedUUID,
+            uuid: deletedUuid,
           } as StoreDelete);
+
+          if (logAction) {
+            // log this deletion to the log table
+            upsertLog({
+              uuid: uuidv4(),
+              missionId: intMissionId,
+              type: "traverseDelete",
+              payloadJson: JSON.stringify({ traverseUuid }),
+              createdAt: new Date().toISOString(),
+            } as Log);
+          }
 
           return res.status(200).json({
             status: "success",
@@ -192,6 +216,7 @@ async function upsertTraverse(traverse: Traverse): Promise<Traverse> {
     predictedDurationUpper: traverseToUpsert.predictedDurationUpper,
     description: traverseToUpsert.description,
     traverseRate: traverseToUpsert.traverseRate,
+    rexStatus: traverseToUpsert.rexStatus,
     updatedAt: new Date(traverseToUpsert.updatedAt),
     createdAt: new Date(traverseToUpsert.createdAt),
   };
@@ -244,6 +269,7 @@ function convertTraverses(dbTraverses: Traverse_db[]): Traverse[] {
       predictedDurationUpper: dbtraverse.predictedDurationUpper,
       description: dbtraverse.description,
       traverseRate: dbtraverse.traverseRate,
+      rexStatus: dbtraverse.rexStatus,
       createdAt: dbtraverse.createdAt.toISOString(),
       updatedAt: dbtraverse.updatedAt.toISOString(),
     };

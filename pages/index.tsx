@@ -3,12 +3,21 @@ import { useAppDispatch } from "utils/useAppDispatch";
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
-import { Dispatch, FormEventHandler, SetStateAction, useEffect, useState } from "react";
+import {
+  Dispatch,
+  FormEventHandler,
+  FunctionComponent,
+  SetStateAction,
+  useEffect,
+  useState,
+} from "react";
 import styles from "./index.module.css";
 import { login, isLoggedIn, logout } from "http-client/login";
-import { getMissions } from "http-client/mission";
+import { getMissionHomepageItems } from "http-client/mission";
 import { obliterateEntireStore } from "store/cross-slice";
 import { IronSessionData } from "iron-session";
+import _ from "lodash";
+import PetInterval from "components/interface/page/petInterval";
 
 const Head = dynamic(import("next/head"), {
   ssr: false,
@@ -115,28 +124,14 @@ const Logout = ({ setUser }: { setUser: Dispatch<SetStateAction<User>> }) => {
 
 const MissionSelect = ({ user }: { user: User }) => {
   const router = useRouter();
-  const [missions, setMissions] = useState<Mission[]>([]);
+  const [missionHomepageItems, setMissionHomepageItems] = useState<MissionHomepageItem[]>([]);
 
   useEffect(() => {
     async function populateData() {
       if (!user) return;
 
-      const missionRes = await getMissions();
-      // if superadmin, show everything
-      if (user.isSuperAdmin) {
-        setMissions(missionRes.data.sort((a, b) => (b.name < a.name ? 1 : -1)));
-        return;
-      }
-
-      // Filter out missions that the user does not have permission to view
-      const permissionList: Permission[] = user.permissionList;
-      const filteredMissions = missionRes.data.filter((mission) => {
-        return permissionList.some((permission) => {
-          // Check if they can view
-          return permission.missionId === mission.id && permission.permissions.view === true;
-        });
-      });
-      setMissions(filteredMissions.sort((a, b) => (b.name < a.name ? 1 : -1)));
+      const missionHomepageItemsRes = await getMissionHomepageItems();
+      setMissionHomepageItems(missionHomepageItemsRes.data);
     }
 
     populateData().catch(() => {
@@ -155,28 +150,14 @@ const MissionSelect = ({ user }: { user: User }) => {
         <div className={`${styles.container}`}>
           <table className={styles.table}>
             <tbody>
-              <tr>
-                <td>Project Name</td>
-                <td />
-              </tr>
-
-              {missions &&
-                missions.map((mission) => {
+              {missionHomepageItems &&
+                missionHomepageItems.map((missionHomepageItem) => {
                   return (
-                    <tr key={mission.id}>
-                      <td>{mission.name}</td>
-
-                      <td>
-                        <button
-                          className={styles.tableButton}
-                          onClick={() => {
-                            handleMissionSelectClick(mission.id);
-                          }}
-                        >
-                          Select
-                        </button>
-                      </td>
-                    </tr>
+                    <MissionHomepageItem
+                      key={missionHomepageItem.id}
+                      missionHomepageItem={missionHomepageItem}
+                      handleMissionSelectClick={handleMissionSelectClick}
+                    />
                   );
                 })}
             </tbody>
@@ -187,7 +168,48 @@ const MissionSelect = ({ user }: { user: User }) => {
   );
 };
 
-const Left = () => {
+const MissionHomepageItem = ({
+  missionHomepageItem,
+  handleMissionSelectClick,
+}: {
+  missionHomepageItem: MissionHomepageItem;
+  handleMissionSelectClick: (missionId: number) => void;
+}) => {
+  // used to update the PET value via the PetInterval component
+  const [rexPetTime, setRexPetTime] = useState("");
+
+  return (
+    <>
+      <PetInterval
+        runningRex={missionHomepageItem.runningRex}
+        rexPetTime={rexPetTime}
+        setRexPetTime={setRexPetTime}
+      />
+      <tr key={missionHomepageItem.id}>
+        <td>{missionHomepageItem.name}</td>
+        {missionHomepageItem.runningRex ? (
+          <td>
+            EVA Executing <span className={styles.petTime}>{rexPetTime}</span> PET
+          </td>
+        ) : (
+          <td></td>
+        )}
+        <td>
+          <button
+            className={styles.tableButton}
+            onClick={() => {
+              handleMissionSelectClick(missionHomepageItem.id);
+            }}
+          >
+            Select
+          </button>
+        </td>
+      </tr>
+    </>
+  );
+};
+
+const Left: FunctionComponent = () => {
   const [user, setUser] = useState<User>(null);
 
   // Populate the user store with iron session login state via API call
@@ -360,7 +382,7 @@ const Left = () => {
   );
 };
 
-const Inset: React.FunctionComponent = () => {
+const Inset: FunctionComponent = () => {
   return (
     <div className={styles.insetContainer}>
       <a href="https://svs.gsfc.nasa.gov/5074" target="_blank" rel="noopener">

@@ -1,7 +1,6 @@
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faAtlas,
   faBan,
@@ -24,6 +23,7 @@ import Equipment_Panel from "./mission-right-equipment";
 import GeographiUnits_Panel from "./mission-right-geographicUnits";
 import { isModified } from "utils/component-helpers";
 import ActionTemplates_Panel from "./mission-right-actionTemplates";
+import { RightTabs } from "components/interface/side-controls";
 
 const MissionPrefsRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -76,7 +76,7 @@ const MissionPrefsRight: FunctionComponent = () => {
       selectedColor: "white",
       icon: faToolbox,
     },
-    geographicUnit: {
+    geographicUnit_panel: {
       title: "Mission Geography",
       panel: GeographiUnits_Panel,
       selectedColor: "white",
@@ -95,35 +95,11 @@ const MissionPrefsRight: FunctionComponent = () => {
         <div className={paneStyles.rightTopTitleText}>Mission Configuration</div>
       </div>
       <div className={paneStyles.rightSubTray}>
-        <div className={paneStyles.rightIconRow}>
-          {Object.keys(panelTypes).map((panelType) => {
-            return (
-              <div
-                key={panelType}
-                className={
-                  selectedRightNavItem === panelType
-                    ? paneStyles.rightIconContainerSelectedPreset
-                    : paneStyles.rightIconContainer
-                }
-                onClick={() => dispatch(setSelectedMissionRightNavItem(panelType))}
-              >
-                <div
-                  className={paneStyles.rightIcon}
-                  style={{
-                    color:
-                      selectedRightNavItem === panelType
-                        ? panelTypes[panelType].selectedColor
-                        : "white",
-                  }}
-                  data-tooltip-id="aegis-tooltip"
-                  data-tooltip-html={panelTypes[panelType].title}
-                >
-                  <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <RightTabs
+          selectedRightNavItem={selectedRightNavItem}
+          panelTypes={panelTypes}
+          dispatchFunction={setSelectedMissionRightNavItem}
+        />
         <div className={paneStyles.saveCancelContainer}>
           {!missionSectionsEditing.includes("prefs") && editPerms && (
             <Button

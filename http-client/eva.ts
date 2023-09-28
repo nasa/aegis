@@ -9,11 +9,12 @@ export async function getEvas(missionId: number = null): Promise<WrappedResponse
   return response;
 }
 
-export async function upsertEva(evaObj: Eva): Promise<WrappedResponse<Eva>> {
+export async function upsertEva(evaObj: Eva, log: boolean = false): Promise<WrappedResponse<Eva>> {
   const missionId =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-  const res = await fetch(`/api/eva?socketId=${socketId}&missionId=${missionId}`, {
+  const logStr = log ? "&log=true" : "";
+  const res = await fetch(`/api/eva?socketId=${socketId}&missionId=${missionId}${logStr}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -25,13 +26,20 @@ export async function upsertEva(evaObj: Eva): Promise<WrappedResponse<Eva>> {
   return response;
 }
 
-export async function deleteEva(evaUuid: string): Promise<WrappedResponse<number | null>> {
+export async function deleteEva(
+  evaUuid: string,
+  log: boolean = false
+): Promise<WrappedResponse<number | null>> {
   const missionId =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-  const res = await fetch(`/api/eva?socketId=${socketId}&uuid=${evaUuid}&missionId=${missionId}`, {
-    method: "DELETE",
-  });
+  const logStr = log ? "&log=true" : "";
+  const res = await fetch(
+    `/api/eva?socketId=${socketId}&uuid=${evaUuid}&missionId=${missionId}${logStr}`,
+    {
+      method: "DELETE",
+    }
+  );
   const response: WrappedResponse<number | null> = await res.json();
   return response;
 }

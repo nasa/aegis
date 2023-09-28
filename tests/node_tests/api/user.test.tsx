@@ -16,6 +16,7 @@ import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
 import logout from "pages/api/auth/logout";
 import { roundDateToSecond } from "utils/formatting";
+
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -228,4 +229,6 @@ afterAll(async () => {
 
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
+
+  jest.resetAllMocks();
 });

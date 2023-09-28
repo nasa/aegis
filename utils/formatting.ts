@@ -1,5 +1,4 @@
 import _ from "lodash";
-import { add } from "store/playhead";
 
 /**
  * Return a zero padded string of a number
@@ -35,16 +34,19 @@ export function hhmmssFromDateString(dateStringParam: string): string {
 }
 
 /**
- * Formats any appSeconds value into hh:mm:ss equivalent
+ * Formats any appSeconds value into +hh:mm:ss equivalent
  */
 export function hhmmssFromSeconds(secondsParam: number): string {
-  const hours = Math.abs(Math.trunc(secondsParam / 3600));
-  const minutes = (Math.abs(Math.trunc(secondsParam / 60)) % 60) % 60;
-  let seconds = Math.abs(Math.trunc(secondsParam)) % 60;
+  const posSeconds = Math.abs(secondsParam);
+  const hours = Math.abs(Math.trunc(posSeconds / 3600));
+  const minutes = (Math.abs(Math.trunc(posSeconds / 60)) % 60) % 60;
+  let seconds = Math.abs(Math.trunc(posSeconds)) % 60;
   seconds = Math.floor(seconds);
   let timeStr = padZeros(hours, 2) + ":" + padZeros(minutes, 2) + ":" + padZeros(seconds, 2);
   if (secondsParam < 0) {
     timeStr = "-" + timeStr;
+  } else {
+    timeStr = "+" + timeStr;
   }
   return timeStr;
 }
@@ -78,6 +80,19 @@ export function hhmmFromMinutes(minutesParam: number): string {
   const hours = Math.abs(Math.trunc(minutesParam / 60));
   const minutes = Math.abs(Math.round(minutesParam)) % 60;
   let timeStr = padZeros(hours, 2) + ":" + padZeros(minutes, 2);
+  if (minutesParam < 0) {
+    timeStr = "-" + timeStr;
+  }
+  return timeStr;
+}
+
+/**
+ * Formats any minutes into h:mm equivalent
+ */
+export function hmmFromMinutes(minutesParam: number): string {
+  const hours = Math.abs(Math.trunc(minutesParam / 60));
+  const minutes = Math.abs(Math.round(minutesParam)) % 60;
+  let timeStr = padZeros(hours, 1) + ":" + padZeros(minutes, 2);
   if (minutesParam < 0) {
     timeStr = "-" + timeStr;
   }
@@ -133,12 +148,6 @@ export function isoStringFromAnyDateString(dateString: string): string {
     throw new Error("The date string couldn't be converted into a Date");
   }
   return tempDate.toISOString(); // guaranteed to have an ISO string. safe to string parse it
-}
-
-export function getPlayheadISOString(playheadDate: string, playheadSeconds: number): string {
-  const date = new Date(playheadDate);
-  const withSeconds = add(date, playheadSeconds * 1000);
-  return withSeconds.toISOString();
 }
 
 /** Get a formatted pseudo-julian date */
@@ -239,3 +248,39 @@ export function getAccurateNow(): Date {
     return new Date(Date.now() + timeOffsetMs);
   }
 }
+
+/**
+ * @param hhmmss string in +hh:mm:ss format
+ * @returns number of seconds
+ */
+export function secondsFromhhmmss(hhmmss: string): number {
+  const [hhStr, mm, ss] = hhmmss.split(":");
+  const sign = hhStr.substring(0, 1);
+  const hh = hhStr.substring(1);
+  const seconds = +ss + 60 * +mm + 3600 * +hh;
+  return sign === "-" && seconds !== 0 ? -seconds : seconds;
+}
+
+/**
+ * calculate PET seconds from rex record
+ * @param rex rex record
+ * @returns string in hh:mm:ss format
+ */
+
+export const calculatePetValue = ({
+  petStartStopTimestamp,
+  petValueAtStartStop,
+}: {
+  petStartStopTimestamp: string;
+  petValueAtStartStop: string;
+}): string => {
+  const accurateNow = getAccurateNow().getTime();
+  const datePetStartStopTimestamp = Date.parse(petStartStopTimestamp) || 0;
+  const petSecondsAtStartStop = secondsFromhhmmss(petValueAtStartStop);
+
+  let newPetSeconds = accurateNow - datePetStartStopTimestamp;
+  newPetSeconds = newPetSeconds + petSecondsAtStartStop * 1000;
+  newPetSeconds = Math.floor(newPetSeconds / 1000);
+
+  return hhmmssFromSeconds(newPetSeconds);
+};

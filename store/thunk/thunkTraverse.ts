@@ -68,6 +68,8 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
     { dispatch, getState }
   ) => {
     const traverse = getState().traverse.traverses.find((t) => t.uuid === traverseUuid);
+    // any rex running?
+    const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
 
     //make a copy
     let newPath: AEGISPoint[];
@@ -150,7 +152,7 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
       updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     if (saveToDb) {
-      httpClient_Traverse.upsertTraverse(newTraverse);
+      httpClient_Traverse.upsertTraverse(newTraverse, rexRunning);
       dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: false }));
       dispatch(upsertTraverseFromDb(newTraverse));
     }
@@ -256,15 +258,18 @@ export const thunkUpdateTraversesAroundStation = appCreateAsyncThunk<{
  **/
 export const thunkUpdateTraverseNamesForStationInEVA = appCreateAsyncThunk<{
   evaSequence: EvaSequenceItem[];
-  stationUUID: string;
+  stationUuid: string;
 }>(
   "updateTraverseNamesForStationInEVA",
-  async ({ evaSequence, stationUUID }, { dispatch, getState }) => {
+  async ({ evaSequence, stationUuid }, { dispatch, getState }) => {
+    // any rex running?
+    const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+
     for (const [index, sequenceItem] of evaSequence.entries()) {
       if (sequenceItem.type === "traverse") {
         const stationUuidBefore = evaSequence[index - 1].uuid;
         const stationUuidAfter = evaSequence[index + 1].uuid;
-        if (stationUUID === stationUuidBefore || stationUUID === stationUuidAfter) {
+        if (stationUuid === stationUuidBefore || stationUuid === stationUuidAfter) {
           const stationBefore = getState().station.stations.find(
             (s) => s.uuid === stationUuidBefore
           );
@@ -277,7 +282,7 @@ export const thunkUpdateTraverseNamesForStationInEVA = appCreateAsyncThunk<{
             name: `${stationBefore.name} to ${stationAfter.name}`,
             updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
           };
-          await httpClient_Traverse.upsertTraverse(newTraverse);
+          await httpClient_Traverse.upsertTraverse(newTraverse, rexRunning);
           dispatch(upsertTraverse(newTraverse, true));
           dispatch(upsertTraverseFromDb(newTraverse));
         }
@@ -349,5 +354,39 @@ export const thunkCreateTraverseCalculatedFields = appCreateAsyncThunk<void>(
       allCalculatedFields.push(newCalculatedFields);
     }
     dispatch(setTraverseCalculatedFields({ calculatedFields: allCalculatedFields }));
+  }
+);
+
+export const thunkCycleTraverseRexToNextStatus = appCreateAsyncThunk<{ traverseUuid: string }>(
+  "cycleTraverseRexToNextStatus",
+  async ({ traverseUuid }, { dispatch, getState }) => {
+    const traverse = getState().traverse.traverses.find((s) => s.uuid === traverseUuid);
+    // any rex running?
+    const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+
+    let lastStatus: RexStatus = "pending";
+    if (traverse.rexStatus) {
+      lastStatus = traverse.rexStatus;
+    }
+
+    // cycle the status to the next one
+    let rexStatus: RexStatus;
+    if (!lastStatus) {
+      rexStatus = "in-progress";
+    } else if (lastStatus === "in-progress") {
+      rexStatus = "complete";
+    } else if (lastStatus === "complete") {
+      rexStatus = "skipped";
+    } else if (lastStatus === "skipped") {
+      rexStatus = "pending";
+    } else if (lastStatus === "pending") {
+      rexStatus = "in-progress";
+    }
+
+    dispatch(upsertTraverse({ ...traverse, rexStatus }, true));
+    dispatch(upsertTraverseFromDb({ ...traverse, rexStatus }));
+
+    // update the station in the database
+    httpClient_Traverse.upsertTraverse({ ...traverse, rexStatus }, rexRunning);
   }
 );

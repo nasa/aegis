@@ -31,6 +31,9 @@ body {
   /* --station: #db84ec; */
   --station: #61ff8d;
   --eva: #ffc700;
+  /* --rex: #db84ec; */
+  --rex: #52f075;
+  --rexDim: #39634d;
 
   --alert: #cb0000;
   --alert-disabled: #650000;
@@ -47,7 +50,7 @@ body {
 /* ===== Scrollbar CSS ===== */
 /* Firefox */
 * {
-  scrollbar-width: auto;
+  scrollbar-width: thin;
   scrollbar-color: var(--grey4) #eeeeee10;
 }
 
@@ -79,12 +82,6 @@ body {
   margin-left: -10px !important;
   margin-top: -10px !important;
   outline: none;
-}
-
-/* emoji icon wrapper */
-.leaflet-aegis-icon {
-  color: rgba(0, 0, 0, 1);
-  font-size: 1.2em;
 }
 
 /* zoom control color */

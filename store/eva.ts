@@ -4,9 +4,9 @@ import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
 
 export const initialState: EvaState = {
-  selectedEvaRightNavItem: "",
-  selectedEvaUuid: "",
-  selectedEvaSequenceItemUuid: "",
+  selectedEvaRightNavItem: null,
+  selectedEvaUuid: null,
+  selectedEvaSequenceItemUuid: null,
   expandedEvaUuids: [],
   evas: [],
   evasFromDb: [],

@@ -33,6 +33,9 @@ import { thunkSavePreset } from "store/thunk/thunkPreset";
 import _ from "lodash";
 import { getSublayers } from "http-client/sublayer";
 import { thunkAuditActions } from "store/thunk/thunkAction";
+import { getRexes } from "http-client/rex";
+import { setRexes, setRexesFromDb } from "store/rex";
+import { setRunningRexView } from "store/cross-slice";
 
 const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: boolean }> = ({
   missionId,
@@ -279,6 +282,19 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
       if (goalData.data) dispatch(setGoals(goalData.data));
       const invstgData = await getInvestigations({ missionId: missionId });
       if (invstgData.data) dispatch(setInvestigations(invstgData.data));
+
+      //Populate rex
+      const rexData = await getRexes(missionId);
+      if (rexData.data) {
+        dispatch(setRexes(rexData.data));
+        dispatch(setRexesFromDb(rexData.data));
+      }
+
+      //If REX is happening, then switch the interface to show the rex pane and EVA actions right panel
+      const runningRex = rexData.data?.find((rex) => rex.rexRunning === true);
+      if (runningRex) {
+        dispatch(setRunningRexView({ runningRexUuid: runningRex.uuid }));
+      }
     })();
   }, [dispatch, hasPermissions, missionId]);
 
@@ -343,7 +359,7 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
           const newEquipItemUsage = action.equipmentItemsUsage.filter((i) =>
             missionStore.mission.equipmentItems.some((e) => e.uuid === i.uuid)
           );
-          httpClient_action.upsertAction({ ...action, equipmentItemsUsage: newEquipItemUsage }); //update the database
+          httpClient_action.upsertActions([{ ...action, equipmentItemsUsage: newEquipItemUsage }]); //update the database
           dispatch(upsertAction(action, true));
           dispatch(upsertActionFromDb(action));
           break;

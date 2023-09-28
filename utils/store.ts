@@ -7,11 +7,15 @@ import _ from "lodash";
  * @returns The modified array with the upserted element.
  */
 export function upsertToArrayByUuid<T extends MustContain>(array: T[], element: T): T[] {
-  // (1)
   const i = array?.findIndex((_element) => _element.uuid === element.uuid);
-  if (i > -1) array[i] = element;
-  // (2)
-  else array.push(element);
+  // (1) upsert
+  if (i > -1) {
+    array[i] = element;
+  }
+  // (2) insert
+  else {
+    array.push(element);
+  }
 
   // sort by createdAt, then by uuid -- item arrays in every store will be sorted this way for easy array comparison
   array.sort((a, b) => {

@@ -50,6 +50,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
   }
 
   async function loadTileMapResourceFromFile(folderName: string) {
+    if (!folderName) return;
     //read in the timemapresource.xml
     const res = await fetch(
       `/static/missionFiles/${props.missionId.toString()}/Layers/${folderName}/tilemapresource.xml`
@@ -64,7 +65,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
       const boxArray = [
         parseFloat(xmlBoundingBox.getAttribute("minx")),
         parseFloat(xmlBoundingBox.getAttribute("miny")),
-        parseFloat(xmlBoundingBox.getAttribute("maxy")),
+        parseFloat(xmlBoundingBox.getAttribute("maxx")),
         parseFloat(xmlBoundingBox.getAttribute("maxy")),
       ];
       setBoundingBox(boxArray.toString());

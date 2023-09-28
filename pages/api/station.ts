@@ -14,6 +14,7 @@ import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
 import { emitStoreDelete, emitStoreUpsert } from "./socketio";
+import { upsertLog } from "./log";
 
 const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = async (
   req,
@@ -25,9 +26,10 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
 
-    const { uuid, socketId, missionId } = req.query;
+    const { uuid, socketId, missionId, log } = req.query;
     const intMissionId = parseInt(missionId as string);
-    const stationUUID = uuid as string;
+    const stationUuid = uuid as string;
+    const logAction = log === "true";
 
     //check for required mission id is valid
     if (!intMissionId || _.isNaN(intMissionId)) {
@@ -42,7 +44,7 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
       }
 
       try {
-        const stations: Station[] = await getStations(intMissionId, stationUUID);
+        const stations: Station[] = await getStations(intMissionId, stationUuid);
 
         return res.status(200).json({
           status: "success",
@@ -83,6 +85,17 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
             data: [upsertResponse],
           } as StoreUpsert<Station>);
 
+          if (logAction) {
+            // log this upsert to the log table
+            upsertLog({
+              uuid: uuidv4(),
+              missionId: intMissionId,
+              type: "stationUpsert",
+              payloadJson: JSON.stringify(stationToUpsert),
+              createdAt: new Date().toISOString(),
+            } as Log);
+          }
+
           return res.status(200).json({
             status: "success",
             message: `Station upserted with ID ${upsertResponse.uuid}`,
@@ -103,15 +116,26 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
       try {
-        const deletedUUID = await deleteStation(stationUUID);
-        if (deletedUUID) {
+        const deletedUuid = await deleteStation(stationUuid);
+        if (deletedUuid) {
           // emit the deleted item to all clients via socket.io
           emitStoreDelete({
             missionId: intMissionId,
             socketId,
             type: "station",
-            uuid: deletedUUID,
+            uuid: deletedUuid,
           } as StoreDelete);
+
+          if (logAction) {
+            // log this deletion to the log table
+            upsertLog({
+              uuid: uuidv4(),
+              missionId: intMissionId,
+              type: "stationDelete",
+              payloadJson: JSON.stringify({ stationUuid }),
+              createdAt: new Date().toISOString(),
+            } as Log);
+          }
 
           return res.status(200).json({
             status: "success",
@@ -205,6 +229,7 @@ async function upsertStation(station: Station): Promise<Station> {
     durationLower: stationToUpsert.durationLower,
     durationUpper: stationToUpsert.durationUpper,
     icon: stationToUpsert.icon,
+    rexStatus: stationToUpsert.rexStatus,
     updatedAt: new Date(stationToUpsert.updatedAt),
     createdAt: new Date(stationToUpsert.createdAt),
   };
@@ -275,6 +300,7 @@ function convertStations(dbstations: Station_db[]): Station[] {
       durationLower: dbstation.durationLower,
       durationUpper: dbstation.durationUpper,
       icon: dbstation.icon,
+      rexStatus: dbstation.rexStatus,
       createdAt: dbstation.createdAt.toISOString(),
       updatedAt: dbstation.updatedAt.toISOString(),
     };
