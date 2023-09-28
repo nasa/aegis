@@ -14,6 +14,8 @@ export default class EvaFactory extends Factory<Eva_db> {
       status: "Candidate",
       sequence: [],
       description: "",
+      maxDuration: null,
+      traverseRate: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

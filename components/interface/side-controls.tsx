@@ -7,9 +7,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setRightPanelOpen, setSectionSelected } from "store/interface";
 
 import { paneTypes } from "components/interface/_paneTypes";
-import { setSelectedEvaUuid } from "store/eva";
+import { setSelectedEvaUuid, setSelectedEvaRightNavItem } from "store/eva";
 import NavTimeline from "components/interface/timeline/timeline";
 import { isModified } from "utils/component-helpers";
+import paneStyles from "../panes/global-pane-styles.module.css";
 
 /* This control sits at the left side of the screen and loads the selected component based on the NavGutter icon selected */
 export const LeftControlPanel: FunctionComponent = () => {
@@ -122,6 +123,14 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
   const evasFromDb = useAppSelector((state) => state.eva.evasFromDb, shallowEqual);
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
   const traversesFromDb = useAppSelector((state) => state.traverse.traversesFromDb, shallowEqual);
+  const rexes = useAppSelector((state) => state.rex.rexes, shallowEqual);
+  const rexesFromDb = useAppSelector((state) => state.rex.rexesFromDb, shallowEqual);
+  const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
+
+  const selectedEvaRightNavItem = useAppSelector(
+    (state) => state.eva.selectedEvaRightNavItem,
+    refEqual
+  );
 
   return (
     <div className={styles.iconGutter}>
@@ -165,6 +174,9 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
             const evaStationsEqual = isModified(evaStations, evaStationsFromDb);
             itemModified = evasEqual || traversesEqual || evaStationsEqual;
             break;
+          case "rex":
+            itemModified = isModified(rexes, rexesFromDb);
+            break;
         }
 
         const pane: PaneType = paneTypes[paneType as keyof PaneTypes];
@@ -182,17 +194,30 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
               data-tooltip-html={pane.title}
               onClick={() => {
                 dispatch(setSectionSelected(paneType));
-                dispatch(setSelectedEvaUuid(null));
                 switch (paneType) {
+                  case "mission":
+                    dispatch(setRightPanelOpen(true));
+                    break;
                   case "preset":
                     dispatch(setRightPanelOpen(selectedPresetUuid !== null));
+                    dispatch(setSelectedEvaUuid(null));
                     break;
                   case "poi":
                     dispatch(setRightPanelOpen(selectedPoiUuid !== null));
+                    dispatch(setSelectedEvaUuid(null));
                     break;
                   case "station":
                     dispatch(setRightPanelOpen(selectedStationUuid !== null));
+                    dispatch(setSelectedEvaUuid(null));
                     break;
+                  case "evas":
+                    dispatch(setRightPanelOpen(false));
+                    break;
+                  case "rex":
+                    dispatch(setSelectedEvaUuid(null));
+                    dispatch(setRightPanelOpen(selectedRexUuid !== null));
+                    if (!selectedEvaRightNavItem)
+                      dispatch(setSelectedEvaRightNavItem("info_panel"));
                 }
               }}
             >
@@ -202,6 +227,45 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
                   <circle cx="3" cy="3" r="3" fill="#ff0000" />
                 </svg>
               )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+export const RightTabs: FunctionComponent<{
+  selectedRightNavItem: string;
+  panelTypes: PanelTypes;
+  dispatchFunction: Function;
+}> = ({ selectedRightNavItem, panelTypes, dispatchFunction }) => {
+  const dispatch = useAppDispatch();
+  return (
+    <div className={paneStyles.rightIconRow}>
+      {Object.keys(panelTypes).map((panelType) => {
+        return (
+          <div
+            key={panelType}
+            className={
+              selectedRightNavItem === panelType
+                ? paneStyles.rightIconContainerSelectedPreset
+                : paneStyles.rightIconContainer
+            }
+            onClick={() => dispatch(dispatchFunction(panelType))}
+          >
+            <div
+              className={paneStyles.rightIcon}
+              style={{
+                color:
+                  selectedRightNavItem === panelType
+                    ? panelTypes[panelType].selectedColor
+                    : "white",
+              }}
+              data-tooltip-id="aegis-tooltip"
+              data-tooltip-html={panelTypes[panelType].title}
+            >
+              <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
             </div>
           </div>
         );

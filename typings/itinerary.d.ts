@@ -41,6 +41,22 @@ type Eva_db_type = Omit<Eva, "ownerId" | "missionId" | "createdAt" | "updatedAt"
 
 type EVAStatus = "Archived" | "Candidate" | "In Review" | "Approved";
 
+type EvaRexEvent = {
+  uuid: string;
+  creationDate: string;
+};
+type RexCrewType = Crew | "Cart";
+
+interface CrewPos {
+  uuid: string;
+  location: AEGISPoint;
+  elevation: number;
+  seconds: number;
+  crew: RexCrewType[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 type TraverseStatus = "Archived" | "Candidate" | "In Review" | "Approved";
 
 interface Traverse {
@@ -56,6 +72,8 @@ interface Traverse {
   predictedDurationUpper: number; //minutes
   description: string;
   traverseRate?: number; // km/hour
+
+  rexStatus: RexStatus;
 
   createdAt?: string;
   updatedAt?: string;
@@ -96,6 +114,8 @@ interface Station {
    */
   durationLower: number; // in minutes
   durationUpper?: number; // in minutes
+
+  rexStatus: RexStatus;
 
   createdAt?: string;
   updatedAt?: string;
@@ -223,9 +243,12 @@ type Action = {
   status: ActionStatus;
   enabled: boolean;
   crewAssigned: Crew[];
+  rexStatus: RexStatus;
   createdAt?: string;
   updatedAt?: string;
 };
+
+type RexStatus = "pending" | "in-progress" | "complete" | "skipped";
 
 type Action_db_type = Omit<
   Action,
@@ -274,4 +297,59 @@ type TotalTimeObj = {
 type TotalAscentDescentObj = {
   totalMetersClimbed: number;
   totalMetersDescended: number;
+};
+
+type Rex = {
+  missionId: number;
+  uuid: string;
+  name: string;
+  description: string;
+  petStartStopTimestamp: string; // the timestamp the play/pause button was clicked
+  petValueAtStartStop: string; // the value of the pet timer when the play/pause button was clicked in "+hh:mm:ss"
+  petRunning: boolean; // whether the timer is currently running
+  selectedRexEvaUuid: string;
+  rexRunning: boolean;
+  crewPos: CrewPos[];
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type Rex_db_type = Omit<Rex, "missionId" | "createdAt" | "updatedAt"> & {
+  mission: Mission_db_type;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
+type LogType =
+  | "missionUpsert"
+  | "missionDelete"
+  | "presetUpsert"
+  | "presetDelete"
+  | "poiUpsert"
+  | "poiDelete"
+  | "stationUpsert"
+  | "stationDelete"
+  | "traverseUpsert"
+  | "traverseDelete"
+  | "actionUpsert"
+  | "actionDelete"
+  | "evaUpsert"
+  | "evaDelete"
+  | "rexUpsert"
+  | "rexDelete"
+  | "fullRexStart"
+  | "fullRexStop";
+
+type Log = {
+  uuid: string;
+  missionId: number;
+  type: LogType;
+
+  payloadJson: string;
+  createdAt: string;
+};
+
+type Log_db_type = Omit<Log, "missionId" | "createdAt"> & {
+  mission: Mission_db_type;
+  createdAt: Date;
 };

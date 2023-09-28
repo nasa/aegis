@@ -27,10 +27,10 @@ const RightControlPanel = dynamic(
     ssr: false,
   }
 );
-const MapBody = dynamic(import("components/interface/map-body-leaflet"), {
+const MapBody = dynamic(import("components/interface/map/map-body-leaflet"), {
   ssr: false,
 });
-const SunEarthPosition = dynamic(import("components/interface/map-sunearth"), {
+const SunEarthPosition = dynamic(import("components/interface/map/map-sunearth"), {
   ssr: false,
 });
 const Header = dynamic(import("components/interface/header"), {

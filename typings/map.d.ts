@@ -36,3 +36,12 @@ interface MapMarkersDisplay {
   show: boolean;
   showLabels: boolean;
 }
+
+/**
+ * CrewPos map view state
+ */
+interface MapCrewPosDisplay {
+  show: boolean;
+  showAllLabels: boolean;
+  showLatestLabels: boolean;
+}

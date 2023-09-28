@@ -9,6 +9,7 @@ import { evaSlice } from "./eva";
 import { traverseSlice } from "./traverse";
 import { initialState } from "../store";
 import { presetSlice } from "./preset";
+import { rexSlice } from "./rex";
 
 export const crossSlice = createSlice({
   name: "cross-slice",
@@ -90,6 +91,19 @@ export const crossSlice = createSlice({
       interfaceSlice.caseReducers.setRightPanelOpen(state.interface, { payload: true });
     },
 
+    saveNewRex: (state, action: { payload: Rex }) => {
+      //upsert to store
+      rexSlice.caseReducers.upsertRex(state.rex, {
+        payload: action.payload,
+      });
+      //set all the states
+      rexSlice.caseReducers.setStateForNewRex(state.rex, {
+        payload: { rexUuid: action.payload.uuid },
+      });
+      //open right panel
+      interfaceSlice.caseReducers.setRightPanelOpen(state.interface, { payload: true });
+    },
+
     obliteratePoi(state, action: PayloadAction<{ poiUuid: string }>) {
       const poiUuid = action.payload.poiUuid;
 
@@ -104,8 +118,7 @@ export const crossSlice = createSlice({
     },
     obliterateEntireStore(state) {
       const newInitialState = {
-        playhead: initialState.playhead,
-        playheadHover: initialState.playheadHover,
+        hover: initialState.hover,
         mission: initialState.mission,
         user: initialState.user,
         map: initialState.map,
@@ -120,6 +133,23 @@ export const crossSlice = createSlice({
       };
 
       Object.assign(state, newInitialState);
+    },
+    setRunningRexView(state, action: PayloadAction<{ runningRexUuid: string }>) {
+      rexSlice.caseReducers.setSelectedRexUuid(state.rex, {
+        payload: action.payload.runningRexUuid,
+      });
+      rexSlice.caseReducers.setExpandedRexUuids(state.rex, {
+        payload: [action.payload.runningRexUuid],
+      });
+      evaSlice.caseReducers.setSelectedEvaRightNavItem(state.eva, {
+        payload: "actions_panel",
+      });
+      interfaceSlice.caseReducers.setRightPanelOpen(state.interface, { payload: true });
+      interfaceSlice.caseReducers.setSectionSelected(state.interface, { payload: "rex" });
+      evaSlice.caseReducers.setSelectedEvaUuid(state.eva, {
+        payload: state.rex.rexes.find((rex) => rex.uuid === action.payload.runningRexUuid)
+          .selectedRexEvaUuid,
+      });
     },
   },
   extraReducers: (builder) =>
@@ -143,6 +173,8 @@ export const {
   saveNewPoi,
   saveNewPreset,
   saveNewStation,
+  saveNewRex,
   obliteratePoi,
   obliterateEntireStore,
+  setRunningRexView,
 } = crossSlice.actions;

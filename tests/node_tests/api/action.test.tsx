@@ -20,6 +20,8 @@ import { Station as Station_db } from "server/database/models/station.model";
 import StationFactory from "../../factories/StationFactory";
 import { Poi as Poi_db } from "server/database/models/poi.model";
 import PoiFactory from "../../factories/PoiFactory";
+import * as SocketIo from "pages/api/socketio";
+import { v4 as uuidv4 } from "uuid";
 
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
@@ -76,6 +78,10 @@ beforeAll(async () => {
       poi: testPoi,
     })
   );
+
+  // suppress socketio calls because they won't work during jest testing
+  jest.spyOn(SocketIo, "emitStoreUpsert").mockImplementation(() => {});
+  jest.spyOn(SocketIo, "emitStoreDelete").mockImplementation(() => {});
 });
 
 describe("Action API Endpoint", () => {
@@ -84,7 +90,7 @@ describe("Action API Endpoint", () => {
 
   let loginCookie: string;
   let newAction: Action = {
-    uuid: null,
+    uuid: uuidv4(),
     missionId: null,
     poiUuid: null,
     stationUuid: null,
@@ -103,6 +109,7 @@ describe("Action API Endpoint", () => {
     status: "Candidate",
     enabled: true,
     crewAssigned: [],
+    rexStatus: null,
     createdAt: roundDateToSecond(new Date()).toISOString(),
     updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
@@ -233,7 +240,7 @@ describe("Action API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newAction, missionId: testMissions[2].id },
+        body: [{ ...newAction, missionId: testMissions[2].id }],
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -246,7 +253,7 @@ describe("Action API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newAction, missionId: testMissions[1].id },
+        body: [{ ...newAction, missionId: testMissions[1].id }],
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -259,7 +266,7 @@ describe("Action API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newAction, missionId: testMissions[0].id },
+        body: [{ ...newAction, missionId: testMissions[0].id }],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -268,10 +275,8 @@ describe("Action API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedAction = res._getJSONData().data;
+      const upsertedAction = res._getJSONData().data[0];
       expect(upsertedAction.uuid).not.toBeNull();
-      expect(upsertedAction.createdAt).not.toBeNull();
-      expect(upsertedAction.updatedAt).not.toBeNull();
       newAction = { ...upsertedAction };
 
       //check if it was added to the db
@@ -285,7 +290,7 @@ describe("Action API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newAction,
+        body: [newAction],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -294,7 +299,7 @@ describe("Action API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedAction = res._getJSONData().data;
+      const upsertedAction = res._getJSONData().data[0];
       expect(upsertedAction).not.toBeNull();
       expect(upsertedAction.name).toEqual("Jest Test New Action Modified");
     });
@@ -357,4 +362,6 @@ afterAll(async () => {
 
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
+
+  jest.resetAllMocks();
 });

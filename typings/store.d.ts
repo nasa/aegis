@@ -1,21 +1,8 @@
-/**
- * Playhead stores
- */
-interface PlayheadState {
-  /** Seconds representing the time into the mission day, eg. `0` is 00:00:00Z, `86399` is 23:59:59Z */
-  seconds: number;
-  /** UTC date being viewed */
-  date: string;
-  /** Whether the playhead actually is running */
-  isRunning: boolean;
-  /** Whether the user wants the playhead to be running */
-  ready: boolean;
-}
-
-interface PlayheadHoverState {
+interface HoverState {
   timelineSeqItemUuid: string; //when hovering over the timeline
   leftPanelItemUuid: string;
   mapItemUuid: string;
+  crewPosItemUuid: string;
   evaSecondsElapsed: number /** Seconds representing the time into the mission that the mouse is hovering on via the nav-timeline */;
   sequenceItemPercentElapsed: number; //when hovering over the timline, represents % duration elapsed for that sequence item at that point in time
 }
@@ -80,7 +67,7 @@ interface PresetState {
   presetsEditing: string[];
 }
 
-type InterfaceSection = "mission" | "preset" | "poi" | "station" | "evas";
+type InterfaceSection = "mission" | "preset" | "poi" | "station" | "evas" | "rex";
 interface InterfaceState {
   sectionSelectedLabel: InterfaceSection;
   rightPanelOpen: boolean;
@@ -111,6 +98,18 @@ interface ActionState {
   actionsFromDb: Action[];
 }
 
+interface RexState {
+  rexes: Rex[];
+  rexesFromDb: Rex[];
+  selectedRexUuid: string;
+  expandedRexUuids: string[];
+  selectedRexRightNavItem: string;
+  rexesEditing: string[];
+  rexesCrewPosEditing: string[];
+  selectedCrewPosUuid: string;
+  crewPosEditingUuid: string; //only one can be in edit mode at a time
+}
+
 type ReportItem = {
   message: string;
   type: "error" | "warning" | "info";
@@ -139,6 +138,9 @@ type StationCalculatedFields = LocationCalculatedFields & {
   walkbackDistanceMeters: number;
   walkbackAscentDescent: TotalAscentDescentObj;
   equipmentItems: EquipmentItemUsage[];
+  totalCompletedEv1Time: TotalTimeObj;
+  totalCompletedEv2Time: TotalTimeObj;
+  totalCompletedDwellTime: TotalTimeObj;
 };
 
 type TraverseCalculatedFields = CalculatedFields & {
@@ -153,12 +155,19 @@ type EvaReportSequenceItem = EvaSequenceItem & {
   reportItems: ReportItem[];
 };
 
+type EvaSequenceItemCalculatedData = {
+  uuid: string;
+  startSeconds: number;
+  endSeconds: number;
+};
+
 type EvaCalculatedFields = LocationCalculatedFields & {
   totalTraverseTime: number;
   totalTraverseDistanceMeters: number;
   totalTraverseAscentDescent: TotalAscentDescentObj;
   totalEvaTime: TotalTimeObj;
   equipmentItems: EquipmentItemUsage[];
+  sequenceItemsCalculatedData: EvaSequenceItemCalculatedData[];
 };
 
 interface MustContain {

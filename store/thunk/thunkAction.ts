@@ -5,6 +5,7 @@ import {
   setActionsFromDb,
   upsertAction,
   upsertActionFromDb,
+  upsertActions,
   upsertActionsFromDb,
 } from "store/action";
 import appCreateAsyncThunk from "./thunkUtil";
@@ -58,6 +59,7 @@ export const thunkCreateAction = appCreateAsyncThunk<{
       mass: null,
       priority: null,
       updatedAt: null,
+      rexStatus: null,
       createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
 
@@ -78,81 +80,81 @@ export const thunkCreateAction = appCreateAsyncThunk<{
 );
 
 /**
- * Duplicates an action and then calls {@link upsertAction} reducer
+ * Duplicates an actions and then calls {@link upsertAction} reducer
+ * @param actions array of actions to duplicate
+ * @param stationUuid the station the duplicated action belongs to
+ * @param poiUuid the poi the duplicated action belongs to
+ * @param promotingFromPoi whether or not this action is duplicated because it's being promoted from a poi to a station
  * @Returns the new action UUID created
  */
-export const thunkDuplicateAction = appCreateAsyncThunk<
-  {
-    action: Action;
-    stationUuid?: string;
-    poiUuid?: string;
-    promotingFromPoi?: boolean;
-    handleActionOrderProcessing?: boolean;
-  },
-  string,
-  false
->(
-  "actionDuplicate",
-  async (
-    { action, stationUuid, poiUuid, promotingFromPoi, handleActionOrderProcessing = true },
-    { dispatch, getState }
-  ) => {
-    if (!action) return;
-    const newActionUuid = uuidv4();
-    const newAction: Action = _.cloneDeep(action);
-    newAction.uuid = newActionUuid;
-    newAction.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
-    newAction.updatedAt = null;
-    newAction.stationUuid = stationUuid;
-    newAction.poiUuid = poiUuid;
+export const thunkDuplicateActions = appCreateAsyncThunk<{
+  actions: Action[];
+  stationUuid?: string;
+  poiUuid?: string;
+  promotingFromPoi?: boolean;
+}>(
+  "actionsDuplicate",
+  async ({ actions, stationUuid, poiUuid, promotingFromPoi }, { dispatch, getState }) => {
+    if (!actions || actions.length === 0) return;
+    const stationActions = getState().action.actions.filter(
+      (storeAction: Action) => storeAction.stationUuid === stationUuid
+    );
+    const poiActions = getState().action.actions.filter(
+      (storeAction: Action) => storeAction.poiUuid === poiUuid
+    );
 
-    //set new duplicated name in the scope of the station or poi
+    const newActions: Action[] = _.cloneDeep(actions);
+    //set values for the duplicated action
+    for (let i = 0; i < newActions.length; i++) {
+      const newAction = newActions[i];
+      const newActionUuid = uuidv4();
+      newAction.uuid = newActionUuid;
+      newAction.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
+      newAction.updatedAt = null;
+      newAction.stationUuid = stationUuid;
+      newAction.poiUuid = poiUuid;
+
+      //set name
+      if (stationUuid) {
+        newAction.name = makeUniqueStringCopy(
+          newAction.name,
+          stationActions.map((a) => a.name)
+        );
+      } else if (poiUuid) {
+        newAction.name = makeUniqueStringCopy(
+          newAction.name,
+          poiActions.map((a) => a.name)
+        );
+      }
+
+      //set parent info
+      if (promotingFromPoi) {
+        newAction.parentActionUuid = actions[i].uuid;
+        newAction.parentCopyDate = roundDateToSecond(getAccurateNow()).toISOString();
+      } else {
+        newAction.parentActionUuid = actions[i].parentActionUuid;
+        newAction.parentCopyDate = actions[i].parentCopyDate;
+      }
+    }
+
+    // append new action to the end of the station's action order
     if (stationUuid) {
-      const stationActions = getState().action.actions.filter(
-        (storeAction: Action) => storeAction.stationUuid === stationUuid
-      );
-      newAction.name = makeUniqueStringCopy(
-        newAction.name,
-        stationActions.map((a) => a.name)
-      );
-
-      // append new action to the end of the station's action order
-      if (handleActionOrderProcessing) {
-        const station = getState().station.stations.find((s) => s.uuid === stationUuid);
-        let actionOrderUuids = _.cloneDeep(station.actionOrderUuids);
-        if (!actionOrderUuids) actionOrderUuids = [];
-        actionOrderUuids.push(newActionUuid);
-        dispatch(upsertStation({ ...station, actionOrderUuids }, true));
-      }
+      const station = getState().station.stations.find((s) => s.uuid === stationUuid);
+      let actionOrderUuids = _.cloneDeep(station.actionOrderUuids);
+      if (!actionOrderUuids) actionOrderUuids = [];
+      actionOrderUuids = actionOrderUuids.concat(newActions.map((a) => a.uuid));
+      dispatch(upsertStation({ ...station, actionOrderUuids }, true));
     } else if (poiUuid) {
-      const poiActions = getState().action.actions.filter(
-        (storeAction: Action) => storeAction.poiUuid === poiUuid
-      );
-      newAction.name = makeUniqueStringCopy(
-        newAction.name,
-        poiActions.map((a) => a.name)
-      );
-
       // append new action to the end of the poi's action order
-      if (handleActionOrderProcessing) {
-        const poi = getState().poi.pois.find((p) => p.uuid === poiUuid);
-        let actionOrderUuids = _.cloneDeep(poi.actionOrderUuids);
-        if (!actionOrderUuids) actionOrderUuids = [];
-        actionOrderUuids.push(newActionUuid);
-        dispatch(upsertPoi({ ...poi, actionOrderUuids }, true));
-      }
+      const poi = getState().poi.pois.find((p) => p.uuid === poiUuid);
+      let actionOrderUuids = _.cloneDeep(poi.actionOrderUuids);
+      if (!actionOrderUuids) actionOrderUuids = [];
+      actionOrderUuids = actionOrderUuids.concat(newActions.map((a) => a.uuid));
+      dispatch(upsertPoi({ ...poi, actionOrderUuids }, true));
     }
 
-    if (promotingFromPoi) {
-      newAction.parentActionUuid = action.uuid;
-      newAction.parentCopyDate = roundDateToSecond(getAccurateNow()).toISOString();
-    } else {
-      newAction.parentActionUuid = action.parentActionUuid;
-      newAction.parentCopyDate = action.parentCopyDate;
-    }
-
-    dispatch(upsertAction(newAction));
-    return newActionUuid;
+    //upsert new actions
+    dispatch(upsertActions(newActions));
   }
 );
 
@@ -170,20 +172,24 @@ export const thunkSaveActions = appCreateAsyncThunk<{
     { actions, actionsFromDb, stationUuid = null, poiUuid = null },
     { dispatch, getState }
   ) => {
+    //rex active?
+    const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
     //upsert any changed or new Actions to db
+    const changedActions: Action[] = [];
     for (const action of actions) {
       if (isModified([action], [actionsFromDb.find((a) => a.uuid === action.uuid)])) {
-        //action changed. upsert to db
-        const actionUpsertResponse = await httpClient_action.upsertAction({
+        changedActions.push({
           ...action,
           updatedAt: roundDateToSecond(new Date()).toISOString(),
         });
-        if (actionUpsertResponse.status === "success") {
-          //upsert to both stores
-          dispatch(upsertAction(actionUpsertResponse.data, true));
-          dispatch(upsertActionFromDb(actionUpsertResponse.data));
-        }
       }
+    }
+    //action changed. upsert to db
+    const actionUpsertResponse = await httpClient_action.upsertActions(changedActions, rexRunning);
+    if (actionUpsertResponse.status === "success") {
+      //upsert to both stores
+      dispatch(upsertActions(actionUpsertResponse.data, true));
+      dispatch(upsertActionsFromDb(actionUpsertResponse.data));
     }
 
     // filter out deleted actions using local state
@@ -195,7 +201,7 @@ export const thunkSaveActions = appCreateAsyncThunk<{
     });
     // take array of deleted actions and delete them in the db
     for (const deletedAction of deletedActions) {
-      await httpClient_action.deleteAction(deletedAction.uuid);
+      await httpClient_action.deleteAction(deletedAction.uuid, rexRunning);
     }
 
     // clear the store copy of the db and reload
@@ -519,10 +525,43 @@ export const thunkAuditActions = appCreateAsyncThunk<void>(
             getState().action.actions.find((a) => a.uuid === action.uuid)
           )
         )
-          httpClient_action.upsertAction(action);
+          httpClient_action.upsertActions([action]);
       });
       dispatch(setActions(newActions));
       dispatch(setActionsFromDb(newActions));
     }
+  }
+);
+
+export const thunkCycleActionRexToNextStatus = appCreateAsyncThunk<{ actionUuid: string }>(
+  "cycleActionRexToNextStatus",
+  async ({ actionUuid }, { dispatch, getState }) => {
+    const action = getState().action.actions.find((a) => a.uuid === actionUuid);
+    if (!action) return;
+
+    let lastStatus: RexStatus = "pending";
+    if (action.rexStatus) {
+      lastStatus = action.rexStatus;
+    }
+
+    // cycle the status to the next one
+    let rexStatus: RexStatus;
+    if (!lastStatus) {
+      rexStatus = "in-progress";
+    } else if (lastStatus === "in-progress") {
+      rexStatus = "complete";
+    } else if (lastStatus === "complete") {
+      rexStatus = "skipped";
+    } else if (lastStatus === "skipped") {
+      rexStatus = "pending";
+    } else if (lastStatus === "pending") {
+      rexStatus = "in-progress";
+    }
+
+    dispatch(upsertAction({ ...action, rexStatus }, true));
+    dispatch(upsertActionFromDb({ ...action, rexStatus }));
+
+    // update the action in the database
+    httpClient_action.upsertActions([{ ...action, rexStatus }], true);
   }
 );

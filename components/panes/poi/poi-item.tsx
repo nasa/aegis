@@ -9,7 +9,7 @@ import { setSelectedPoiUuid, setSelectedPOIRightNavItem } from "store/poi";
 import { clearEvaSelections } from "store/eva";
 import { decodeEmoji } from "utils/formatting";
 import { setRightPanelOpen } from "store/interface";
-import { setAllHoverUuids } from "store/playheadHover";
+import { setHoverUuidsForSequence } from "store/hover";
 
 const PoiItem: FunctionComponent<{
   selectedPoiUuid: string;
@@ -20,7 +20,7 @@ const PoiItem: FunctionComponent<{
 }> = ({ selectedPoiUuid, poi, poiFromDb, actions, actionsFromDb }) => {
   const dispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector((state) => state.poi.selectedRightNavItem, refEqual);
-  const hoverItemUuid = useAppSelector((state) => state.playheadHover.leftPanelItemUuid, refEqual);
+  const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelItemUuid, refEqual);
 
   let isPoiSelectedOrHoveredStyle = null;
   if (poi.uuid === selectedPoiUuid) {
@@ -68,10 +68,10 @@ const PoiItem: FunctionComponent<{
         }
       }}
       onMouseEnter={() => {
-        dispatch(setAllHoverUuids(poi.uuid));
+        dispatch(setHoverUuidsForSequence(poi.uuid));
       }}
       onMouseLeave={() => {
-        dispatch(setAllHoverUuids(null));
+        dispatch(setHoverUuidsForSequence(null));
       }}
     >
       <div className={poiStyles.itemIcon}>{decodeEmoji(poi.icon)}</div>

@@ -391,15 +391,13 @@ const Info_Panel: FunctionComponent<{
                 {editMode && mapAction === null && (
                   <>
                     {!selectedStation.location ? (
-                      <>
-                        <Button
-                          onClick={() => {
-                            handleCreate();
-                          }}
-                          label="Create Location"
-                          style={{ width: "110px" }}
-                        />
-                      </>
+                      <Button
+                        onClick={() => {
+                          handleCreate();
+                        }}
+                        label="Create Location"
+                        style={{ width: "110px" }}
+                      />
                     ) : saveButtonState !== "pending" ? (
                       <Button
                         onClick={() => {

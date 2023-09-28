@@ -15,8 +15,9 @@ import {
   appSecondsFromDateString,
   formatNumberWithCommas,
   getJulianDate,
-  getPlayheadISOString,
+  secondsFromhhmmss,
   hhmmFromMinutes,
+  hmmFromMinutes,
   hhmmssFromDateString,
   hhmmssFromSeconds,
   hhmmssmmmFromSeconds,
@@ -141,7 +142,7 @@ describe("Utilities Functions", () => {
     expect(hhmmssmmmFromSeconds(0)).toBe("00:00:00.000");
     expect(hhmmssmmmFromSeconds(-5)).toBe("-00:00:05.000");
     expect(hhmmssFromDateString("")).toBe("");
-    expect(hhmmssFromSeconds(0)).toBe("00:00:00");
+    expect(hhmmssFromSeconds(0)).toBe("+00:00:00");
     expect(hhmmssFromSeconds(-5)).toBe("-00:00:05");
     expect(shortdateFromDateString("2021-01-01T00:00:00.000Z")).toBe("2021-01-01");
     expect(shortdateFromDateString("")).toBe("");
@@ -149,7 +150,6 @@ describe("Utilities Functions", () => {
     expect(() => isoStringFromAnyDateString("XX")).toThrow(
       "The date string couldn't be converted into a Date"
     );
-    expect(getPlayheadISOString("2021-01-01T00:00:00.000Z", 0)).toBe("2021-01-01T00:00:00.000Z");
 
     expect(getJulianDate(julianDateTest)).toBe("2020/1");
 
@@ -311,6 +311,36 @@ describe("hhmmFromMinutes", () => {
   });
 });
 
+describe("hmmFromMinutes", () => {
+  it("should format positive minutes into hh:mm", () => {
+    expect(hmmFromMinutes(90)).toEqual("1:30");
+    expect(hmmFromMinutes(120)).toEqual("2:00");
+    expect(hmmFromMinutes(720)).toEqual("12:00");
+  });
+
+  it("should format negative minutes into -hh:mm", () => {
+    expect(hmmFromMinutes(-90)).toEqual("-1:30");
+    expect(hmmFromMinutes(-120)).toEqual("-2:00");
+    expect(hmmFromMinutes(-720)).toEqual("-12:00");
+  });
+
+  it("should format zero minutes into 00:00", () => {
+    expect(hmmFromMinutes(0)).toEqual("0:00");
+  });
+
+  it("should pad single digit hours and minutes with zeros", () => {
+    expect(hmmFromMinutes(9)).toEqual("0:09");
+    expect(hmmFromMinutes(63)).toEqual("1:03");
+    expect(hmmFromMinutes(600)).toEqual("10:00");
+  });
+
+  it("should round minutes", () => {
+    expect(hmmFromMinutes(9.7)).toEqual("0:10");
+    expect(hmmFromMinutes(63.3)).toEqual("1:03");
+    expect(hmmFromMinutes(600.1)).toEqual("10:00");
+  });
+});
+
 describe("traverseDurationMinutes", () => {
   test("returns 0 when segmentDistances is not provided", () => {
     expect(calcPathDurationMins(null, 10)).toBe(0);
@@ -394,5 +424,34 @@ describe("titleCase", () => {
   it("should handle strings with non-letter characters", () => {
     expect(titleCase("123 hello world!")).toBe("123 Hello World!");
     expect(titleCase("the_quick_brown_fox")).toBe("The_quick_brown_fox");
+  });
+});
+
+describe("getSecondsFromhhmmss", () => {
+  // Test for valid input
+  it("should return the correct number of seconds for a valid hh:mm:ss string", () => {
+    expect(secondsFromhhmmss("+01:30:15")).toBe(5415);
+    expect(secondsFromhhmmss("+00:00:00")).toBe(0);
+    expect(secondsFromhhmmss("+00:01:01")).toBe(61);
+  });
+
+  // Test for invalid input
+  it("should return NaN for invalid input", () => {
+    expect(secondsFromhhmmss("invalid")).toBeNaN();
+    expect(secondsFromhhmmss("01:30")).toBeNaN();
+  });
+
+  // Test for edge cases
+  it("should handle edge cases", () => {
+    expect(secondsFromhhmmss("+00:00:60")).toBe(60);
+    expect(secondsFromhhmmss("+00:60:00")).toBe(3600);
+    expect(secondsFromhhmmss("+24:00:00")).toBe(86400);
+  });
+
+  // Test for negative times
+  it("should handle negative times", () => {
+    expect(secondsFromhhmmss("-01:30:15")).toBe(-5415);
+    expect(secondsFromhhmmss("-00:00:00")).toBe(0);
+    expect(secondsFromhhmmss("-00:01:01")).toBe(-61);
   });
 });

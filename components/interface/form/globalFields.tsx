@@ -26,13 +26,15 @@ export const Button: FunctionComponent<{
   size?: "xs" | "lg";
   enabled?: boolean;
 }> = ({ onClick, label, toolTip, icon, style, labelStyle, size, enabled = true }) => {
-  const enabledStyle = !enabled ? styles.iconButtonDisabled : "";
+  const enabledStyle = !enabled ? styles.buttonDisabled : "";
   return (
     <div
       className={`${styles.button} ${enabledStyle} `}
       data-tooltip-id="aegis-tooltip"
       data-tooltip-html={toolTip}
-      onClick={onClick}
+      onClick={() => {
+        if (enabled) onClick();
+      }}
       style={style}
     >
       {icon && <FontAwesomeIcon icon={icon} size={size} className={styles.buttonLabelIcon} />}

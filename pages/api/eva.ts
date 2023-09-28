@@ -13,6 +13,7 @@ import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
 import { emitStoreDelete, emitStoreUpsert } from "./socketio";
+import { upsertLog } from "./log";
 
 const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
   req,
@@ -24,9 +25,10 @@ const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
 
-    const { uuid, socketId, missionId } = req.query;
+    const { uuid, socketId, missionId, log } = req.query;
     const intMissionId = parseInt(missionId as string);
     const evaUuid = uuid as string;
+    const logAction = log === "true";
     //check for required mission id is valid
     if (!intMissionId || _.isNaN(intMissionId)) {
       return res.status(500).json({ status: "error", message: "Invalid mission ID" });
@@ -80,6 +82,16 @@ const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
             type: "eva",
             data: [upsertResponse],
           } as StoreUpsert<Eva>);
+          if (logAction) {
+            // log this upsert to the log table
+            upsertLog({
+              uuid: uuidv4(),
+              missionId: intMissionId,
+              type: "evaUpsert",
+              payloadJson: JSON.stringify(evaToUpsert),
+              createdAt: new Date().toISOString(),
+            } as Log);
+          }
 
           return res.status(200).json({
             status: "success",
@@ -110,6 +122,16 @@ const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
             type: "eva",
             uuid: deletedUUID,
           } as StoreDelete);
+          if (logAction) {
+            // log this deletion to the log table
+            upsertLog({
+              uuid: uuidv4(),
+              missionId: intMissionId,
+              type: "evaDelete",
+              payloadJson: JSON.stringify({ evaUuid }),
+              createdAt: new Date().toISOString(),
+            } as Log);
+          }
 
           return res.status(200).json({
             status: "success",

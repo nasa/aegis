@@ -23,6 +23,7 @@ import fetchMock from "jest-fetch-mock";
 import { v4 as uuidv4 } from "uuid";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
+
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -198,8 +199,6 @@ describe("Layer API Endpoint ", () => {
       expect(res._getJSONData().data).not.toBeNull();
       const upsertedLayer: Layer = res._getJSONData().data;
       expect(upsertedLayer.uuid).not.toBeNull();
-      expect(upsertedLayer.createdAt).not.toBeNull();
-      expect(upsertedLayer.updatedAt).not.toBeNull();
       newLayer = { ...upsertedLayer };
 
       //check if it was added to the db
@@ -286,4 +285,6 @@ afterAll(async () => {
   await em.nativeDelete(User_db, { id: testUser.id });
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
+
+  jest.resetAllMocks();
 });

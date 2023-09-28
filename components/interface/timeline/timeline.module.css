@@ -26,10 +26,10 @@
 }
 
 .timelineHoverContainer {
+  flex: 0 0 150px;
   display: flex;
   flex-direction: column;
   row-gap: 4px;
-  width: 150px;
   background-color: var(--grey1);
   font-size: 0.8rem;
   border-radius: var(--panelRadius);
@@ -57,7 +57,7 @@
 }
 
 .canvasContainer {
-  width: 100%;
+  flex: 1 1 auto;
   bottom: 0;
   left: 0;
   z-index: 500;

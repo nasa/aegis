@@ -8,7 +8,7 @@ import stationStyles from "./station.module.css";
 import { clearEvaSelections } from "store/eva";
 import { decodeEmoji } from "utils/formatting";
 import { setRightPanelOpen } from "store/interface";
-import { setAllHoverUuids } from "store/playheadHover";
+import { setHoverUuidsForSequence } from "store/hover";
 
 const StationItem: FunctionComponent<{
   selectedStationUuid: string;
@@ -23,7 +23,7 @@ const StationItem: FunctionComponent<{
     refEqual
   );
 
-  const hoverItemUuid = useAppSelector((state) => state.playheadHover.leftPanelItemUuid, refEqual);
+  const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelItemUuid, refEqual);
 
   let isStationSelectedOrHoveredStyle = null;
   if (station.uuid === selectedStationUuid) {
@@ -48,10 +48,10 @@ const StationItem: FunctionComponent<{
         }
       }}
       onMouseEnter={() => {
-        dispatch(setAllHoverUuids(station.uuid));
+        dispatch(setHoverUuidsForSequence(station.uuid));
       }}
       onMouseLeave={() => {
-        dispatch(setAllHoverUuids(null));
+        dispatch(setHoverUuidsForSequence(null));
       }}
     >
       <div className={stationStyles.itemIcon}>

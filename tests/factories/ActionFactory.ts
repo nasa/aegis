@@ -25,6 +25,7 @@ export default class ActionFactory extends Factory<Action_db> {
       crewAssigned: null,
       priority: null,
       mass: null,
+      rexStatus: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -57,6 +58,7 @@ export const createTestAction = ({
     crewAssigned: null,
     priority: null,
     mass: null,
+    rexStatus: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

@@ -117,15 +117,16 @@
 .evaItemName {
   flex: 1 1 auto;
   display: flex;
-  overflow-x: hidden;
-  text-overflow: ellipsis;
+  flex-direction: row;
+  gap: 3px;
   font-size: 0.9em;
   padding: 4px 5px 4px 5px;
-  margin: 1px 4px 1px 3px;
+  margin: 1px 0 1px 0;
   border-radius: var(--radius);
   -webkit-user-select: none;
   user-select: none;
 }
+
 .evaItemName.editMode:hover {
   background-color: var(--grey2);
   cursor: default;
@@ -146,32 +147,66 @@
   color: black !important;
 }
 
+.evaItemNameRexInProgress {
+  background-color: var(--rexDim);
+  color: var(--grey5);
+}
+
+.evaItemNameRexInProgressSelected {
+  background-color: var(--rex);
+  color: var(--grey1);
+  font-weight: 500;
+}
+
+.evaItemNameRexSkippedSelected {
+  background-color: var(--grey5);
+  color: var(--grey1);
+}
+
+.evaItemNameRexComplete {
+  background-color: var(--grey1);
+  color: var(--grey5);
+}
+
+.evaItemNameRexSkipped {
+  background-color: var(--grey1);
+  color: var(--grey4);
+}
+
+.evaItemLeft {
+  flex: 1 1 auto;
+  display: flex;
+}
+
 .evaItemNameText {
+  flex: 1 1 auto;
   margin-right: 1px;
   align-self: center;
 }
 
 .evaTraverseNameText {
+  flex: 1 1 auto;
   margin-right: 1px;
   align-self: center;
   overflow: ellipsis;
 }
 
-.evaItemDuration {
+.evaItemRight {
   flex: 1;
-  text-align: right;
-
   display: flex;
   flex-direction: column;
+  font-weight: 500;
   justify-content: space-around;
+}
+
+.evaItemRightItem {
+  text-align: right;
 }
 
 .evaItemNameButtons {
   display: flex;
   flex-direction: row;
-  width: 120px;
-  flex: 0 0 120px;
-  padding-left: 10px;
+
   justify-content: right;
 }
 
@@ -209,15 +244,12 @@
 }
 
 .iconCustom {
+  flex: 0 0 28px;
   display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  align-items: center;
+  align-self: center;
 
   font-size: 18px;
   border-radius: var(--radius);
-  width: 28px;
-  height: 28px;
 }
 
 .evaTraverseIndicator {
@@ -229,10 +261,8 @@
 }
 
 .iconTraverseDotsContainer {
-  position: relative;
-  top: 0;
-  left: 12px;
-  width: 28px;
+  margin-left: 12px;
+  width: 16px;
 }
 
 .iconTraverse {
@@ -253,4 +283,11 @@
 
   background-position: center;
   background-image: url(/images/icon_status_loading.svg);
+}
+
+.rexStatusWrapper {
+  flex: 0 0 20px;
+  cursor: pointer;
+  user-select: none;
+  align-self: center;
 }

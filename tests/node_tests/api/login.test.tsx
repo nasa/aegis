@@ -133,4 +133,6 @@ afterAll(async () => {
 
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
+
+  jest.resetAllMocks();
 });

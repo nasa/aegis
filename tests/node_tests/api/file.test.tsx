@@ -1,6 +1,7 @@
 // Testing file: file.tsx - using jest
 import { describe } from "@jest/globals";
 import { deleteFile, listFiles, renameFile } from "server/file/file";
+
 const fs = require("fs");
 const path = require("path");
 
@@ -106,5 +107,7 @@ describe("File API Endpoint", () => {
     await fs.unlinkSync(path.join(staticDir, "test2.txt"));
     await fs.rmdirSync(path.join(__dirname, "../../../public/static/test/test2"));
     await fs.rmdirSync(path.join(__dirname, "../../../public/static/test"));
+
+    jest.resetAllMocks();
   });
 });

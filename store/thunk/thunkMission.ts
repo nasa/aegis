@@ -21,6 +21,9 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
   async (_, { dispatch, getState }) => {
     const mission = getState().mission.mission;
 
+    //rex active?
+    const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+
     //Alphabetize the items by name
     const sortedEquipmentItems = sortBy(mission.equipmentItems, "name");
     const sortedGeoUnits = sortBy(mission.geographicUnits, "name");
@@ -28,14 +31,17 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
     const sortedTemplates = sortBy(mission.actionTemplates, ["type", "templateName"]);
 
     //save mission to db
-    const upsertResponse = await InternalAPI.upsertMission({
-      ...mission,
-      equipmentItems: sortedEquipmentItems,
-      geographicUnits: sortedGeoUnits,
-      landerRadii: sortedLanderRadii,
-      actionTemplates: sortedTemplates,
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    });
+    const upsertResponse = await InternalAPI.upsertMission(
+      {
+        ...mission,
+        equipmentItems: sortedEquipmentItems,
+        geographicUnits: sortedGeoUnits,
+        landerRadii: sortedLanderRadii,
+        actionTemplates: sortedTemplates,
+        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      },
+      rexRunning
+    );
 
     if (upsertResponse.status === "success") {
       // update the db copy in the store

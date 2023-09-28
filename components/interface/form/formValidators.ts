@@ -75,6 +75,16 @@ const mustBeNumberGTZero = (value: Stringy): string | undefined => {
   }
 };
 
+const mustBeHHMMSS = (value: Stringy): string | undefined => {
+  if (!value) return undefined;
+  const regex = /^(\-|\+)([0-9]{2}):([0-9]{2}):([0-9]{2})$/;
+  if (regex.test(value as string)) {
+    return undefined;
+  } else {
+    return "Must be in HH:MM:SS format";
+  }
+};
+
 export const validators = {
   required,
   mustBeNumber,
@@ -85,6 +95,7 @@ export const validators = {
   mustBeValidJSON,
   mustBeInteger,
   mustBeNumberGTZero,
+  mustBeHHMMSS,
 };
 
 // UseFieldConfig<any>.validate?: FieldValidator<any>

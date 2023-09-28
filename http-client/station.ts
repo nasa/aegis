@@ -9,11 +9,15 @@ export async function getStations(missionId: number = null): Promise<WrappedResp
   return response;
 }
 
-export async function upsertStation(stationObj: Station): Promise<WrappedResponse<Station>> {
+export async function upsertStation(
+  stationObj: Station,
+  log: boolean = false
+): Promise<WrappedResponse<Station>> {
   const missionId =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-  const res = await fetch(`/api/station?socketId=${socketId}&missionId=${missionId}`, {
+  const logStr = log ? "&log=true" : "";
+  const res = await fetch(`/api/station?socketId=${socketId}&missionId=${missionId}${logStr}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -24,12 +28,16 @@ export async function upsertStation(stationObj: Station): Promise<WrappedRespons
   return response;
 }
 
-export async function deleteStation(stationUUID: string): Promise<WrappedResponse<number | null>> {
+export async function deleteStation(
+  stationUUID: string,
+  log: boolean = false
+): Promise<WrappedResponse<number | null>> {
   const missionId =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
+  const logStr = log ? "&log=true" : "";
   const res = await fetch(
-    `/api/station?socketId=${socketId}&uuid=${stationUUID}&missionId=${missionId}`,
+    `/api/station?socketId=${socketId}&uuid=${stationUUID}&missionId=${missionId}${logStr}`,
     {
       method: "DELETE",
     }

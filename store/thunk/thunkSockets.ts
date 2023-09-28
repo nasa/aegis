@@ -46,13 +46,24 @@ import {
   upsertTraversesFromDb,
 } from "store/traverse";
 import { setMission, setMissionFromDb, setMissionSectionEditing } from "store/mission";
+import {
+  deleteRexByUuid,
+  deleteRexFromDbByUuid,
+  setCrewPosEditingUuid,
+  setRexesCrewPosEditMode,
+  setRexEditMode,
+  upsertRex,
+  upsertRexFromDb,
+  setSelectedRexUuid,
+} from "store/rex";
+import { updateMapDirective } from "store/map";
 
 /**
  * Handles the storeUpsert socket event
  */
 export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
   {
-    storeUpsert: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission>;
+    storeUpsert: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission | Rex>;
   },
   string[],
   false
@@ -67,28 +78,48 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
         dispatch(setPresetEditMode({ presetUuid: changedPreset.uuid, editMode: false }));
       }
     }
-    dispatch(upsertPresets(storeUpsert.data as Preset[], true));
-    dispatch(upsertPresetsFromDb(storeUpsert.data as Preset[]));
+    dispatch(upsertPresets(changedPresets, true));
+    dispatch(upsertPresetsFromDb(changedPresets));
   } else if (storeUpsert.type === "poi") {
     const changedPois = storeUpsert.data as POI[];
     for (const changedPoi of changedPois) {
       if (getState().poi.poisEditing.includes(changedPoi.uuid)) {
         upsertMessages.push(getConflictMessage("POI", changedPoi.name, "upsert"));
         dispatch(setPoiEditMode({ poiUuid: changedPoi.uuid, editMode: false }));
+        //if there was an open map directive for this poi, cancel it.
+        if (getState().map.mapDirective?.uuid === changedPoi.uuid) {
+          dispatch(
+            updateMapDirective({
+              mapItemType: "poi",
+              uuid: changedPoi.uuid,
+              mapAction: "cancelEditMarker",
+            })
+          );
+        }
       }
     }
-    dispatch(upsertPois(storeUpsert.data as POI[], true));
-    dispatch(upsertPoisFromDb(storeUpsert.data as POI[]));
+    dispatch(upsertPois(changedPois, true));
+    dispatch(upsertPoisFromDb(changedPois));
   } else if (storeUpsert.type === "station") {
     const changedStations = storeUpsert.data as Station[];
     for (const changedStation of changedStations) {
       if (getState().station.stationsEditing.includes(changedStation.uuid)) {
         upsertMessages.push(getConflictMessage("Station", changedStation.name, "upsert"));
         dispatch(setStationEditMode({ stationUuid: changedStation.uuid, editMode: false }));
+        //if there was an open map directive for this station, cancel it.
+        if (getState().map.mapDirective?.uuid === changedStation.uuid) {
+          dispatch(
+            updateMapDirective({
+              mapItemType: "station",
+              uuid: changedStation.uuid,
+              mapAction: "cancelEditMarker",
+            })
+          );
+        }
       }
     }
-    dispatch(upsertStations(storeUpsert.data as Station[], true));
-    dispatch(upsertStationsFromDb(storeUpsert.data as Station[]));
+    dispatch(upsertStations(changedStations, true));
+    dispatch(upsertStationsFromDb(changedStations));
   } else if (storeUpsert.type === "eva") {
     const changedEvas = storeUpsert.data as Eva[];
     for (const changedEva of changedEvas) {
@@ -101,11 +132,24 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
         dispatch(setSelectedEvaSequenceItemUuid(null));
       }
     }
-    dispatch(upsertEvas(storeUpsert.data as Eva[], true));
-    dispatch(upsertEvasFromDb(storeUpsert.data as Eva[]));
+    dispatch(upsertEvas(changedEvas, true));
+    dispatch(upsertEvasFromDb(changedEvas));
   } else if (storeUpsert.type === "action") {
-    dispatch(upsertActions(storeUpsert.data as Action[], true));
-    dispatch(upsertActionsFromDb(storeUpsert.data as Action[]));
+    const changedActions = storeUpsert.data as Action[];
+    for (const changedAction of changedActions) {
+      //if there was an open map directive for this action, cancel it.
+      if (getState().map.mapDirective?.uuid === changedAction.uuid) {
+        dispatch(
+          updateMapDirective({
+            mapItemType: "action",
+            uuid: changedAction.uuid,
+            mapAction: "cancelEditMarker",
+          })
+        );
+      }
+    }
+    dispatch(upsertActions(changedActions, true));
+    dispatch(upsertActionsFromDb(changedActions));
   } else if (storeUpsert.type === "traverse") {
     const changedTraverses = storeUpsert.data as Traverse[];
     for (const changedTraverse of changedTraverses) {
@@ -123,6 +167,37 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     }
     dispatch(setMission(storeUpsert.data[0] as Mission));
     dispatch(setMissionFromDb(storeUpsert.data[0] as Mission));
+  } else if (storeUpsert.type === "rex") {
+    const changedRexs = storeUpsert.data as Rex[];
+    for (const changedRex of changedRexs) {
+      //check changes on rex object
+      if (getState().rex.rexesEditing.includes(changedRex.uuid)) {
+        upsertMessages.push(getConflictMessage("rex", changedRex.name, "upsert"));
+        dispatch(setRexEditMode({ rexUuid: changedRex.uuid, editMode: false }));
+      }
+      //check changes on crew pos inside rex object. this is handled seperately
+      if (getState().rex.rexesCrewPosEditing.includes(changedRex.uuid)) {
+        upsertMessages.push(getConflictMessage("crew position on", changedRex.name, "upsert"));
+        //if there was an open map directive for one of the crew pos, cancel it
+        if (getState().map.mapDirective?.mapItemType === "crewPos") {
+          dispatch(
+            updateMapDirective({
+              mapItemType: "crewPos",
+              uuid: getState().rex.crewPosEditingUuid,
+              mapAction: "cancelEditMarker",
+            })
+          );
+        }
+        dispatch(setRexesCrewPosEditMode({ rexUuid: changedRex.uuid, editMode: false }));
+        dispatch(setCrewPosEditingUuid(null));
+      }
+      //if this rex is the new running rex, update selected rex
+      if (changedRex.rexRunning) {
+        dispatch(setSelectedRexUuid(changedRex.uuid));
+      }
+      dispatch(upsertRex(changedRex, true));
+      dispatch(upsertRexFromDb(changedRex, true));
+    }
   }
   return upsertMessages;
 });
@@ -202,6 +277,14 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
     }
     dispatch(deleteTraverseByUuid(storeDelete.uuid));
     dispatch(deleteTraverseFromDbByUuid(storeDelete.uuid));
+  } else if (storeDelete.type === "rex") {
+    if (getState().rex.rexesEditing.includes(storeDelete.uuid)) {
+      const rexDeleted = getState().rex.rexes.find((rex) => rex.uuid === storeDelete.uuid);
+      deletedMessages.push(getConflictMessage("rex", rexDeleted.name, "delete"));
+      dispatch(setRexEditMode({ rexUuid: rexDeleted.uuid, editMode: false }));
+    }
+    dispatch(deleteRexByUuid(storeDelete.uuid));
+    dispatch(deleteRexFromDbByUuid(storeDelete.uuid));
   }
   return deletedMessages;
 });

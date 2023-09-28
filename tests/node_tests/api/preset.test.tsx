@@ -20,6 +20,8 @@ import { v4 as uuidv4 } from "uuid";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
 import { roundDateToSecond } from "utils/formatting";
+import * as SocketIo from "pages/api/socketio";
+
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -55,6 +57,10 @@ beforeAll(async () => {
       preset.owner = testUser;
     })
     .create(2);
+
+  // suppress socketio calls because they won't work during jest testing
+  jest.spyOn(SocketIo, "emitStoreUpsert").mockImplementation(() => {});
+  jest.spyOn(SocketIo, "emitStoreDelete").mockImplementation(() => {});
 });
 
 describe("Preset API Endpoint", () => {
@@ -196,7 +202,7 @@ describe("Preset API Endpoint", () => {
 
       expect(res._getJSONData().data).not.toBeNull();
       const upsertedPreset = res._getJSONData().data;
-      expect(upsertedPreset.createdAt).not.toBeNull();
+      expect(upsertedPreset.uuid).not.toBeNull();
       newPreset = { ...upsertedPreset };
 
       //check if it was added to the db
@@ -279,4 +285,6 @@ afterAll(async () => {
   await em.nativeDelete(User_db, { id: testUser.id });
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
+
+  jest.resetAllMocks();
 });

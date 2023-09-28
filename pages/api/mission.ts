@@ -8,6 +8,8 @@ import { Mission as Mission_db } from "server/database/models/mission.model";
 import { EntityData, ForeignKeyConstraintViolationException } from "@mikro-orm/core";
 import { hasPerms } from "utils/permissions";
 import { emitStoreUpsert } from "./socketio";
+import { v4 as uuidv4 } from "uuid";
+import { upsertLog } from "./log";
 
 /**
  * /api/mission?missionId=
@@ -35,8 +37,9 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
     }
 
     //missionId is optional, except when deleting
-    const { missionId, socketId } = req.query;
+    const { missionId, socketId, log } = req.query;
     const intMissionId = missionId ? parseInt(missionId as string) : null;
+    const logAction = log === "true";
 
     if (req.method === "GET") {
       if (intMissionId && _.isNaN(intMissionId)) {
@@ -114,6 +117,16 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
             type: "mission",
             data: [upsertResponse],
           } as StoreUpsert<Mission>);
+          if (logAction) {
+            // log this upsert to the log table
+            upsertLog({
+              uuid: uuidv4(),
+              missionId: intMissionId,
+              type: "missionUpsert",
+              payloadJson: JSON.stringify(upsertObject),
+              createdAt: new Date().toISOString(),
+            } as Log);
+          }
 
           return res.status(200).json({
             status: "success",
@@ -141,6 +154,17 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
       try {
         const deletedMissionId: number = await deleteMission(intMissionId);
         if (deletedMissionId) {
+          if (logAction) {
+            // log this deletion to the log table
+            upsertLog({
+              uuid: uuidv4(),
+              missionId: intMissionId,
+              type: "missionDelete",
+              payloadJson: JSON.stringify({ missionId: intMissionId }),
+              createdAt: new Date().toISOString(),
+            } as Log);
+          }
+
           return res.status(200).json({
             status: "success",
             message: "Mission Deleted",
@@ -208,23 +232,23 @@ async function upsertMission(mission: Mission): Promise<Mission> {
     createdAt: new Date(missionCopy.createdAt),
   };
 
-  let dbReferece: Mission_db;
+  let dbReference: Mission_db;
   if (mission.id) {
     //update record
     upsertRecord.version++;
-    dbReferece = await em.upsert(Mission_db, upsertRecord);
+    dbReference = await em.upsert(Mission_db, upsertRecord);
   } else {
     //insert record.
     //Can't use "upsert" to insert a new record if there's no other unique column in the table
     delete upsertRecord.id; //attempting to insert with an id of null will throw a mikro error. remove the property completely so mikro can give us a new id.
     upsertRecord.version = 1;
-    dbReferece = em.create(Mission_db, upsertRecord);
+    dbReference = em.create(Mission_db, upsertRecord);
   }
-  await em.persistAndFlush(dbReferece);
+  await em.persistAndFlush(dbReference);
   return {
-    ...dbReferece,
-    updatedAt: dbReferece.updatedAt.toISOString(),
-    createdAt: dbReferece.createdAt.toISOString(),
+    ...dbReference,
+    updatedAt: dbReference.updatedAt.toISOString(),
+    createdAt: dbReference.createdAt.toISOString(),
   } as Mission;
 }
 

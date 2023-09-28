@@ -33,6 +33,17 @@ const Actions_Panel: FunctionComponent<{
     shallowEqual
   );
 
+  const stationInRunningRex: boolean = useAppSelector((state) => {
+    const runningRexEvaUuid = state.rex.rexes.find((rex) => rex.rexRunning)?.selectedRexEvaUuid;
+    if (!runningRexEvaUuid) return false;
+    const runningRexEva = state.eva.evas.find((eva) => eva.uuid === runningRexEvaUuid);
+    const sequenceItem = runningRexEva.sequence.find(
+      (sequenceItem) => sequenceItem.uuid === selectedStationUuid
+    );
+    if (!sequenceItem) return false;
+    return true;
+  }, shallowEqual);
+
   const [actionsCalculatedFields, setActionsCalculatedField] =
     useState<ActionsCalculatedFields>(null);
 
@@ -86,6 +97,7 @@ const Actions_Panel: FunctionComponent<{
           actionParentUuid={{ stationUuid: selectedStationUuid }}
           parentType="station"
           actionsCalculatedFields={actionsCalculatedFields}
+          rexRunning={stationInRunningRex}
         />
       </div>
     </div>

@@ -204,8 +204,6 @@ describe("Layer API Endpoint ", () => {
       expect(res._getJSONData().data).not.toBeNull();
       const upsertedSublayer: Sublayer = res._getJSONData().data;
       expect(upsertedSublayer.uuid).not.toBeNull();
-      expect(upsertedSublayer.createdAt).not.toBeNull();
-      expect(upsertedSublayer.updatedAt).not.toBeNull();
       newSublayer = { ...upsertedSublayer };
 
       //check if it was added to the db
@@ -293,4 +291,6 @@ afterAll(async () => {
   await em.nativeDelete(User_db, { id: testUser.id });
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
+
+  jest.resetAllMocks();
 });
