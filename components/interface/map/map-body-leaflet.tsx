@@ -208,7 +208,7 @@ const MapBody: FunctionComponent = () => {
   const [mapZoom, setMapZoom] = useState(null); // value used to show correct scale bar
   const [mapBounds, setMapBounds] = useState<L.LatLngBoundsLiteral>(null);
   const [gridLabels, setGridLabels] = useState<GridLabelItem[]>([]);
-  const [showArrows, setShowArrows] = useState(true);
+  const [showArrows, setShowArrows] = useState(false);
 
   // make color filter settings for tile sublayer. This is the format of leaflet.tilelayer.colorfilter package
   const makeTileLayerColorFilter = (
