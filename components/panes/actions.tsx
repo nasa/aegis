@@ -6,12 +6,12 @@ import Action from "./actions-action";
 import _, { clone } from "lodash";
 import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import ReactDragListView from "react-drag-listview";
-import { STM_Coverage } from "./stm-coverage";
+import { STM_Coverage } from "./stm/stm-coverage";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreateAction, thunkGetHighlightedActions } from "store/thunk/thunkAction";
 import CalculatedDwell from "./calculated-dwell";
-import { deepEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { Assoc_POIs } from "./actions-assocpois";
 
 const Actions: FunctionComponent<{
@@ -22,6 +22,7 @@ const Actions: FunctionComponent<{
   actionParentUuid: Pick<Action, "poiUuid" | "stationUuid">;
   parentType: "poi" | "station" | "eva";
   actionsCalculatedFields: ActionsCalculatedFields;
+  rexRunning: boolean;
 }> = ({
   editMode,
   actionOrderUuids,
@@ -29,6 +30,7 @@ const Actions: FunctionComponent<{
   actionParentUuid,
   parentType,
   actionsCalculatedFields,
+  rexRunning,
 }) => {
   const dispatch = useAppDispatch();
 
@@ -36,15 +38,6 @@ const Actions: FunctionComponent<{
     (state) => state.mission.mission.actionTemplates,
     shallowEqual
   );
-
-  const parentPoiOrStation: POI | Station = useAppSelector((state) => {
-    switch (parentType) {
-      case "station":
-        return state.station.stations.find((s) => s.uuid === actionParentUuid.stationUuid);
-      case "poi":
-        return state.poi.pois.find((p) => p.uuid === actionParentUuid.poiUuid);
-    }
-  }, shallowEqual);
 
   const parentStationPoiUuids = useAppSelector(
     (state) =>
@@ -57,19 +50,7 @@ const Actions: FunctionComponent<{
     shallowEqual
   );
 
-  const stmUuidRefs = useAppSelector(
-    (state) =>
-      state.action.actions
-        .filter((action) => actionOrderUuids?.includes(action.uuid))
-        .map((action) => {
-          if (action.enabled === false) return null;
-          return action.stmUuidRefs;
-        }),
-    deepEqual
-  );
-
-  const parentLocation = parentPoiOrStation?.location;
-  const parentElevation = parentPoiOrStation?.elevation;
+  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   const [isActionHiglighted, setIsActionHighlighted] = useState<ActionHighlight[]>([]);
   const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>("");
@@ -104,114 +85,32 @@ const Actions: FunctionComponent<{
 
   return (
     <>
-      <div className={paneStyles.panelContainer}>
-        <div className={paneStyles.panelSection}>
-          <div className={actionsStyles.stmCoverage}>
-            <STM_Coverage
-              stmUuidRefs={stmUuidRefs}
-              mini={true}
-              horizontal={true}
-              onInvstgHover={highlightActions}
-            />
-          </div>
-          <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
-            <div className={paneStyles.panelSection2Column}>
-              <div className={paneStyles.panelColumnTable}>
-                <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCellLeft}>
-                    <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
-                  </div>
-                  <div className={paneStyles.panelColumnTableCell}>
-                    <div className={paneStyles.displayFieldValue}>
-                      {actionsCalculatedFields?.actionCount}
-                    </div>
-                  </div>
-                </div>
-                <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCellLeft}>
-                    <div
-                      className={paneStyles.displayFieldLabel}
-                      data-tooltip-id="aegis-tooltip"
-                      data-tooltip-html="Sum of all action durations, nominal to max"
-                    >
-                      Total Action Time (mins):
-                    </div>
-                  </div>
-                  <div className={paneStyles.panelColumnTableCell}>
-                    <div className={paneStyles.displayFieldValue}>
-                      {actionsCalculatedFields?.totalActionTime.durationLower === 0 ? (
-                        <>0</>
-                      ) : (
-                        <>
-                          {displayFormattedTotalTimeObj(actionsCalculatedFields?.totalActionTime)}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className={paneStyles.panelColumnTable}>
-                {parentType !== "poi" && (
-                  <>
-                    <CalculatedDwell actionsCalculatedFields={actionsCalculatedFields} />
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      <ActionsTopSection
+        actionOrderUuids={actionOrderUuids}
+        parentType={parentType}
+        highlightActions={highlightActions}
+        actionsCalculatedFields={actionsCalculatedFields}
+      />
+      {actionOrderUuids?.length > 0 && (
+        <ActionsListHeadings
+          editMode={editMode}
+          parentType={parentType}
+          editPerms={editPerms}
+          rexRunning={rexRunning}
+        />
+      )}
       <div className={actionsStyles.actionListContainer}>
         <div className={actionsStyles.dragableActionList}>
-          {!editMode && actionOrderUuids?.length > 0 && (
-            <div className={actionsStyles.actionListHeader}>
-              <div className={actionsStyles.actionListHeaderType}>
-                <div className={actionsStyles.actionListHeaderLabel}>Type</div>
-              </div>
-              <div className={actionsStyles.actionListHeaderTitle}>
-                <div className={actionsStyles.actionListHeaderLabel}>Title</div>
-              </div>
-              <div className={actionsStyles.actionListHeaderPriority}>
-                <div className={actionsStyles.actionListHeaderLabel}>Pri</div>
-              </div>
-              <div className={actionsStyles.actionListHeaderTime}>
-                <div className={actionsStyles.actionListHeaderLabel}>Max</div>
-              </div>
-              {parentType !== "poi" && (
-                <div className={actionsStyles.actionListHeaderCrew}>
-                  <div className={actionsStyles.actionListHeaderLabel}>Crew</div>
-                </div>
-              )}
-            </div>
-          )}
-
           <ReactDragListView onDragEnd={reorder} nodeSelector="li" handleSelector="a">
-            <ul className={actionsStyles.actionlist}>
-              {actionOrderUuids?.map((actionUuid, index) => {
-                const highlight = isActionHiglighted.find(
-                  (highlight) => highlight.uuid === actionUuid
-                )?.highlight;
-                return (
-                  <li key={actionUuid} className={actionsStyles.actionlistitem}>
-                    <div
-                      className={actionsStyles.actionlistitemOrdinal}
-                      style={editMode ? { marginTop: "9px" } : undefined}
-                    >
-                      {index + 1}
-                    </div>
-                    <Action
-                      editMode={editMode}
-                      actionUuid={actionUuid}
-                      highlight={highlight}
-                      parentType={parentType}
-                      parentLocation={parentLocation}
-                      parentElevation={parentElevation}
-                    />
-                  </li>
-                );
-              })}
-            </ul>
+            <ActionList
+              editMode={editMode}
+              rexRunning={rexRunning}
+              actionOrderUuids={actionOrderUuids}
+              highlightActions={highlightActions}
+              isActionHiglighted={isActionHiglighted}
+              stations={useAppSelector((state) => state.station.stations, shallowEqual)}
+              pois={useAppSelector((state) => state.poi.pois, shallowEqual)}
+            />
           </ReactDragListView>
         </div>
       </div>
@@ -270,3 +169,177 @@ const Actions: FunctionComponent<{
 };
 
 export default Actions;
+
+export const ActionsTopSection: FunctionComponent<{
+  actionOrderUuids: string[];
+  parentType: "poi" | "station" | "eva";
+  highlightActions: (invstgUUID: string) => void;
+  actionsCalculatedFields: ActionsCalculatedFields;
+}> = ({ actionOrderUuids, parentType, highlightActions, actionsCalculatedFields }) => {
+  const stmUuidRefs = useAppSelector(
+    (state) =>
+      state.action.actions
+        .filter((action) => actionOrderUuids?.includes(action.uuid))
+        .map((action) => {
+          if (action.enabled === false) return null;
+          return action.stmUuidRefs;
+        }),
+    deepEqual
+  );
+
+  const completedStmUuidRefs = useAppSelector(
+    (state) =>
+      state.action.actions
+        .filter((action) => actionOrderUuids?.includes(action.uuid))
+        .map((action) => {
+          if (action.rexStatus !== "complete") return null;
+          return action.stmUuidRefs;
+        }),
+    deepEqual
+  );
+
+  const inProgressStmUuidRefs = useAppSelector(
+    (state) =>
+      state.action.actions
+        .filter((action) => actionOrderUuids?.includes(action.uuid))
+        .map((action) => {
+          if (action.rexStatus !== "in-progress") return null;
+          return action.stmUuidRefs;
+        }),
+    deepEqual
+  );
+
+  return (
+    <div className={paneStyles.panelContainer}>
+      <div className={paneStyles.panelSection}>
+        <div className={actionsStyles.stmCoverage}>
+          <STM_Coverage
+            stmUuidRefs={stmUuidRefs}
+            mini={true}
+            horizontal={true}
+            onInvstgHover={highlightActions}
+            stmUuidRefsCompleted={completedStmUuidRefs}
+            stmUuidRefsInProgress={inProgressStmUuidRefs}
+          />
+        </div>
+        <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
+          <div className={paneStyles.panelSection2Column}>
+            <div className={paneStyles.panelColumnTable}>
+              <div className={paneStyles.panelColumnTableRow}>
+                <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
+                </div>
+                <div className={paneStyles.panelColumnTableCell}>
+                  <div className={paneStyles.displayFieldValue}>
+                    {actionsCalculatedFields?.actionCount}
+                  </div>
+                </div>
+              </div>
+              <div className={paneStyles.panelColumnTableRow}>
+                <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div
+                    className={paneStyles.displayFieldLabel}
+                    data-tooltip-id="aegis-tooltip"
+                    data-tooltip-html="Sum of all action durations, nominal to max"
+                  >
+                    Total Action Time (mins):
+                  </div>
+                </div>
+                <div className={paneStyles.panelColumnTableCell}>
+                  <div className={paneStyles.displayFieldValue}>
+                    {actionsCalculatedFields?.totalActionTime.durationLower === 0 ? (
+                      <>0</>
+                    ) : (
+                      <>{displayFormattedTotalTimeObj(actionsCalculatedFields?.totalActionTime)}</>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className={paneStyles.panelColumnTable}>
+              {parentType !== "poi" && (
+                <>
+                  <CalculatedDwell actionsCalculatedFields={actionsCalculatedFields} />
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const ActionsListHeadings: FunctionComponent<{
+  editMode: boolean;
+  parentType: "poi" | "station" | "eva";
+  editPerms: boolean;
+  rexRunning: boolean;
+}> = ({ editMode, parentType, editPerms, rexRunning }) => {
+  return (
+    <>
+      {!editMode && (
+        <div className={actionsStyles.actionListHeader}>
+          {rexRunning && editPerms ? <div className={actionsStyles.actionListHeaderRex} /> : <></>}
+          <div className={actionsStyles.actionListHeaderType}>
+            <div className={actionsStyles.actionListHeaderLabel}>Type</div>
+          </div>
+          <div className={actionsStyles.actionListHeaderTitle}>
+            <div className={actionsStyles.actionListHeaderLabel}>Title</div>
+          </div>
+          <div className={actionsStyles.actionListHeaderPriority}>
+            <div className={actionsStyles.actionListHeaderLabel}>Pri</div>
+          </div>
+          <div className={actionsStyles.actionListHeaderTime}>
+            <div className={actionsStyles.actionListHeaderLabel}>Max</div>
+          </div>
+          {parentType !== "poi" && (
+            <div className={actionsStyles.actionListHeaderCrew}>
+              <div className={actionsStyles.actionListHeaderLabel}>Crew</div>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+};
+
+export const ActionList: FunctionComponent<{
+  editMode: boolean;
+  actionOrderUuids: string[];
+  highlightActions: (invstgUUID: string) => void;
+  isActionHiglighted: ActionHighlight[];
+  stations: Station[];
+  pois: POI[];
+  rexRunning: boolean;
+}> = ({ editMode, actionOrderUuids, isActionHiglighted, stations, pois, rexRunning }) => {
+  return (
+    <ul className={actionsStyles.actionlist}>
+      {actionOrderUuids?.map((actionUuid, index) => {
+        const highlight = isActionHiglighted.find(
+          (highlight) => highlight.uuid === actionUuid
+        )?.highlight;
+        const parentLocation =
+          stations?.find((station) => station.actionOrderUuids.includes(actionUuid))?.location ||
+          pois?.find((poi) => poi.actionOrderUuids.includes(actionUuid))?.location;
+        const parentElevation =
+          stations?.find((station) => station.actionOrderUuids.includes(actionUuid))?.elevation ||
+          pois?.find((poi) => poi.actionOrderUuids.includes(actionUuid))?.elevation;
+        return (
+          <li key={actionUuid} className={actionsStyles.actionlistitem}>
+            <div className={actionsStyles.actionlistitemOrdinal}>{index + 1}</div>
+            <Action
+              editMode={editMode}
+              actionUuid={actionUuid}
+              highlight={highlight}
+              parentType="eva"
+              parentLocation={parentLocation}
+              parentElevation={parentElevation}
+              rexRunning={rexRunning}
+            />
+          </li>
+        );
+      })}
+    </ul>
+  );
+};

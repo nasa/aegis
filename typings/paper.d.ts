@@ -4,6 +4,8 @@
 interface PaperGroups {
   graphBkg: paper.Group; //each child in the paper group is a sequence item
   hoverLine: paper.Group;
+  petLine: paper.Group;
+  crewPositions: paper.Group;
 }
 
 /**
@@ -16,6 +18,7 @@ interface PaperData {
     blue: paper.Color;
     brightBlue: paper.Color;
     green: paper.Color;
+    brightGreen: paper.Color;
     yellow: paper.Color;
     lightYellow: paper.Color;
     grey1: paper.Color;
@@ -110,4 +113,9 @@ interface GraphSequenceData extends GraphData {
 }
 interface GraphSequenceItems {
   [uuid: string]: GraphSequenceData;
+}
+
+interface CrewPos_PaperJS extends CrewPos {
+  distanceFromLanderMeters: number;
+  walkback?: Path_PaperJS;
 }

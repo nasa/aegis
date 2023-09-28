@@ -21,12 +21,20 @@ const STMEdit: FunctionComponent<STMProps> = (props: STMProps) => {
 
   //set default selected uuid
   useEffect(() => {
-    if (!selectedObjUUID) {
-      if (allObjectives?.length > 0) {
-        setSelectedObjUUID(allObjectives[0].uuid);
-      }
+    if (!selectedObjUUID && allObjectives?.length > 0) {
+      setSelectedObjUUID(allObjectives[0].uuid);
+    } else if (!allObjectives || allObjectives.length === 0) {
+      setSelectedObjUUID(null);
     }
   }, [allObjectives, selectedObjUUID]);
+
+  useEffect(() => {
+    if (!selectedGoalUUID && props.allGoals?.length > 0) {
+      setSelectedGoalUUID(props.allGoals[0].uuid);
+    } else if (!props.allGoals || props.allGoals.length === 0) {
+      setSelectedGoalUUID(null);
+    }
+  }, [props.allGoals, selectedGoalUUID]);
 
   return (
     <>
@@ -37,42 +45,44 @@ const STMEdit: FunctionComponent<STMProps> = (props: STMProps) => {
             <NewObjectiveFields missionId={props.missionId} reloadSTM={props.reloadSTMfromDB} />
           </div>
         </div>
-        <div>
-          <div id="div_selectObjective" className={stmStyles.div_select}>
-            {allObjectives?.length > 0 && selectedObjUUID && (
+        {allObjectives?.length > 0 && selectedObjUUID && (
+          <div>
+            <div id="div_selectObjective" className={stmStyles.div_select}>
               <ObjectiveSelect
                 objectives={props.allObjectives}
                 selectedObjUUID={selectedObjUUID}
                 setSelectedObjUUID={setSelectedObjUUID}
                 setSelectedGoalUUID={setSelectedGoalUUID}
               />
-            )}
+            </div>
+            <div id="div_addGoal" className={stmStyles.div_add}>
+              <NewGoalFields
+                objectiveUUID={selectedObjUUID}
+                missionId={props.missionId}
+                reloadSTM={props.reloadSTMfromDB}
+              />
+            </div>
           </div>
-          <div id="div_addGoal" className={stmStyles.div_add}>
-            <NewGoalFields
-              objectiveUUID={selectedObjUUID}
-              missionId={props.missionId}
-              reloadSTM={props.reloadSTMfromDB}
-            />
+        )}
+        {props.allGoals?.length > 0 && selectedGoalUUID && (
+          <div>
+            <div id="div_selectGoal" className={stmStyles.div_select}>
+              <GoalSelect
+                allGoals={props.allGoals}
+                objectiveUUID={selectedObjUUID}
+                selectedGoalUUID={selectedGoalUUID}
+                setSelectedGoalUUID={setSelectedGoalUUID}
+              />
+            </div>
+            <div id="div_addInvestigation" className={stmStyles.div_add}>
+              <NewInvstgFields
+                goalUUID={selectedGoalUUID}
+                missionId={props.missionId}
+                reloadSTM={props.reloadSTMfromDB}
+              />
+            </div>
           </div>
-        </div>
-        <div>
-          <div id="div_selectGoal" className={stmStyles.div_select}>
-            <GoalSelect
-              allGoals={props.allGoals}
-              objectiveUUID={selectedObjUUID}
-              selectedGoalUUID={selectedGoalUUID}
-              setSelectedGoalUUID={setSelectedGoalUUID}
-            />
-          </div>
-          <div id="div_addInvestigation" className={stmStyles.div_add}>
-            <NewInvstgFields
-              goalUUID={selectedGoalUUID}
-              missionId={props.missionId}
-              reloadSTM={props.reloadSTMfromDB}
-            />
-          </div>
-        </div>
+        )}
         *STM items can only be deleted if they have no children
       </div>
       <h3>Import/Export STM</h3>

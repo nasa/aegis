@@ -40,17 +40,38 @@ const EvaPlannerLeft: FunctionComponent = () => {
                 label="Add"
                 icon={faPlusCircle}
                 style={{ width: "65px" }}
+                toolTip="Add a new EVA"
               />
               <Button
                 onClick={() => {
+                  console.log(selectedEva);
                   if (selectedEva) {
-                    dispatch(thunkDuplicateEva({ eva: selectedEva }));
+                    dispatch(thunkDuplicateEva({ eva: selectedEva, includeStations: false }));
                   }
                 }}
                 label="Duplicate"
                 icon={faClone}
-                enabled={!_.isNull(selectedEva)}
+                enabled={!!selectedEva}
                 style={{ width: "95px" }}
+                toolTip="Duplicate this EVA and its Traverses"
+              />
+              <Button
+                onClick={() => {
+                  if (selectedEva) {
+                    if (
+                      confirm(
+                        "This will duplicate the EVA and also make duplicates of all stations in this EVA and will name them 'station name (copy X)'. Are you sure?"
+                      )
+                    ) {
+                      dispatch(thunkDuplicateEva({ eva: selectedEva, includeStations: true }));
+                    }
+                  }
+                }}
+                label="Duplicate w/ Stations"
+                icon={faClone}
+                enabled={!!selectedEva}
+                style={{ width: "160px" }}
+                toolTip="Duplicate this EVA and its Traverses and Stations"
               />
             </div>
           </div>

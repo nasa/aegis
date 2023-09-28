@@ -13,5 +13,5 @@
 }
 
 .highlight {
-  color: #2ad300;
+  color: var(--grey5);
 }

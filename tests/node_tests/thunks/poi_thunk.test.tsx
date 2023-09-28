@@ -15,12 +15,12 @@ import { roundDateToSecond } from "utils/formatting";
 import { createTestAction } from "../../factories/ActionFactory";
 
 const mockThunkSaveActions = jest.fn();
-const mockThunkDuplicateAction = jest.fn();
+const mockThunkDuplicateActions = jest.fn();
 
 jest.mock("store/thunk/thunkAction", () => ({
   ...jest.requireActual("store/thunk/thunkAction"),
   thunkSaveActions: () => mockThunkSaveActions,
-  thunkDuplicateAction: () => mockThunkDuplicateAction,
+  thunkDuplicateActions: () => mockThunkDuplicateActions,
 }));
 
 describe("Thunk POI Tests", () => {
@@ -342,7 +342,7 @@ describe("Thunk POI Tests", () => {
     expect(storeState.poi.selectedPoiUuid).toBeTruthy();
     expect(storeState.poi.selectedRightNavItem).toEqual("info_panel");
     //we mocked the thunk duplicate action, so no further conditions will be tested here
-    expect(mockThunkDuplicateAction).toBeCalledTimes(2);
+    expect(mockThunkDuplicateActions).toBeCalledTimes(1);
   });
 
   it("thunkCreatePoiCalculatedFields()", async () => {

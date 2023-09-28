@@ -8,8 +8,15 @@ import StationEditor from "components/panes/station/station";
 import StationEditorRight from "components/panes/station/station-right";
 import MissionConfig from "components/panes/mission/mission";
 import MissionConfigRight from "components/panes/mission/mission-right";
-
-import { faGlobe, faLocationDot, faRocket, faRoute } from "@fortawesome/free-solid-svg-icons";
+import RexLeft from "components/panes/rex/rex";
+import RexRight from "components/panes/rex/rex-right";
+import {
+  faGlobe,
+  faLocationDot,
+  faPersonWalkingArrowRight,
+  faRocket,
+  faRoute,
+} from "@fortawesome/free-solid-svg-icons";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 
 export const paneTypes: PaneTypes = {
@@ -47,5 +54,12 @@ export const paneTypes: PaneTypes = {
     rightPane: EvaPlannerRight,
     color: "var(--eva)",
     icon: faRoute,
+  },
+  rex: {
+    title: "Real-time Execution",
+    leftPane: RexLeft,
+    rightPane: RexRight,
+    color: "var(--rex)",
+    icon: faPersonWalkingArrowRight,
   },
 };

@@ -1,19 +1,20 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-export const initialState: PlayheadHoverState = {
+export const initialState: HoverState = {
   timelineSeqItemUuid: null,
   leftPanelItemUuid: null,
   mapItemUuid: null,
+  crewPosItemUuid: null,
   evaSecondsElapsed: null,
   sequenceItemPercentElapsed: null,
 };
 
-export const playheadHoverSlice = createSlice({
-  name: "playheadHover",
+export const hoverSlice = createSlice({
+  name: "hover",
   initialState,
   reducers: {
     /**
-     * Change the seconds the cursor is hovering on via the nav-timeline
+     * Change the seconds the cursor is hovering on via the timeline
      * Also change the sequence UUID that is currently being hovered over
      */
 
@@ -25,6 +26,9 @@ export const playheadHoverSlice = createSlice({
     },
     setMapItemHoverUuid: (state, action: { payload: string }) => {
       state.mapItemUuid = action.payload;
+    },
+    setCrewPosItemHoverUuid: (state, action: { payload: string }) => {
+      state.crewPosItemUuid = action.payload;
     },
     setMapItemHover: (
       state,
@@ -38,12 +42,20 @@ export const playheadHoverSlice = createSlice({
     },
     clearMapItemHover: (state) => {
       state.evaSecondsElapsed = null;
-      state.mapItemUuid = null;
       state.sequenceItemPercentElapsed = null;
+      state.mapItemUuid = null;
+      state.crewPosItemUuid = null;
+      state.leftPanelItemUuid = null;
+      state.timelineSeqItemUuid = null;
     },
-    setAllHoverUuids: (state, action: { payload: string }) => {
+    setHoverUuidsForSequence: (state, action: { payload: string }) => {
       state.timelineSeqItemUuid = action.payload;
       state.leftPanelItemUuid = action.payload;
+      state.mapItemUuid = action.payload;
+    },
+    setHoverUuidsForCrewPos: (state, action: { payload: string }) => {
+      state.crewPosItemUuid = action.payload;
+      state.timelineSeqItemUuid = action.payload;
       state.mapItemUuid = action.payload;
     },
   },
@@ -53,7 +65,9 @@ export const {
   setTimelineHoverUuid,
   setLeftPanelHoverUuid,
   setMapItemHoverUuid,
+  setCrewPosItemHoverUuid,
   setMapItemHover,
   clearMapItemHover,
-  setAllHoverUuids,
-} = playheadHoverSlice.actions;
+  setHoverUuidsForSequence,
+  setHoverUuidsForCrewPos,
+} = hoverSlice.actions;

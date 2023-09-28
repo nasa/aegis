@@ -22,7 +22,7 @@ const Mission: NextPage = () => {
   // const mustBeValidJSON = validators.mustBeValidJSON;
   const [missions, setMissions] = useState<Mission[]>([]);
   const [editMissionId, setEditMissionId] = useState<number>(); //track mission currently in edit
-  const [mission, setMission] = useState<Mission>(); //current mission being edited
+  const [mission, setMission] = useState<Mission>(null); //current mission being edited
   // const [showImportMission, setShowImportMission] = useState<boolean>(false);
   const [user, setUser] = useState<User>(null);
   const [editingAttr, setEditingAttr] = useState<"Mission" | "Layers" | "STM">(undefined);
@@ -454,15 +454,15 @@ const Mission: NextPage = () => {
             {showImportMission ? "Close Import/Export" : "Open Import/Export"}
           </button>
           <ImportMission /> */}
-          {editingAttr === "Mission" && (
+          {editingAttr === "Mission" && mission && (
             <MissionEditor
               refreshMissionList={loadMissionsFromDB}
               mission={mission}
               setMission={setMission}
             />
           )}
-          {editingAttr === "Layers" && <MissionLayers mission={mission} />}
-          {editingAttr === "STM" && <MissionSTM mission={mission} />}
+          {editingAttr === "Layers" && mission && <MissionLayers mission={mission} />}
+          {editingAttr === "STM" && mission && <MissionSTM mission={mission} />}
         </div>
       </div>
     </>

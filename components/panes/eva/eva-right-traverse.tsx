@@ -6,7 +6,6 @@ import {
   faFloppyDisk,
   faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "components/interface/form/globalFields";
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
@@ -27,6 +26,7 @@ import * as httpClient_Traverse from "http-client/traverse";
 import { updateMapDirective } from "store/map";
 import { getAlertColor, isModified } from "utils/component-helpers";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { RightTabs } from "components/interface/side-controls";
 
 const EvaRightTraverse: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -60,6 +60,10 @@ const EvaRightTraverse: FunctionComponent = () => {
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = mapDirective?.uuid === selectedEvaSequenceItemUuid ? mapDirective : null;
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const rexRunning = useAppSelector(
+    (state) => state.rex.rexes.find((rex) => rex.rexRunning)?.rexRunning,
+    refEqual
+  );
 
   const calculatedFields = useAppSelector(
     (state) =>
@@ -104,10 +108,13 @@ const EvaRightTraverse: FunctionComponent = () => {
     dispatch(setTraverseEditMode({ uuid: selectedEvaSequenceItemUuid, editMode: false }));
 
     // save to db
-    const persistResponse = await httpClient_Traverse.upsertTraverse({
-      ...selectedTraverse,
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    });
+    const persistResponse = await httpClient_Traverse.upsertTraverse(
+      {
+        ...selectedTraverse,
+        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      },
+      rexRunning
+    );
     if (persistResponse) {
       dispatch(upsertTraverse(persistResponse.data, true));
       dispatch(upsertTraverseFromDb(persistResponse.data));
@@ -165,39 +172,11 @@ const EvaRightTraverse: FunctionComponent = () => {
           </div>
         </div>
         <div className={paneStyles.rightSubTray}>
-          <div className={paneStyles.rightIconRow}>
-            {panelTypes &&
-              Object.keys(panelTypes).map((panelType) => {
-                const unselectedColor = _.has(panelTypes[panelType], "unselectedColor")
-                  ? panelTypes[panelType].unselectedColor
-                  : "white";
-                return (
-                  <div
-                    key={panelType}
-                    className={
-                      selectedRightNavItem === panelType
-                        ? paneStyles.rightIconContainerSelectedTraverse
-                        : paneStyles.rightIconContainer
-                    }
-                    onClick={() => dispatch(setSelectedTraverseRightNavItem(panelType))}
-                  >
-                    <div
-                      className={paneStyles.rightIcon}
-                      style={{
-                        color:
-                          selectedRightNavItem === panelType
-                            ? panelTypes[panelType].selectedColor
-                            : unselectedColor,
-                      }}
-                      data-tooltip-id="aegis-tooltip"
-                      data-tooltip-html={panelTypes[panelType].title}
-                    >
-                      <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
+          <RightTabs
+            selectedRightNavItem={selectedRightNavItem}
+            panelTypes={panelTypes}
+            dispatchFunction={setSelectedTraverseRightNavItem}
+          />
           <div className={paneStyles.saveCancelContainer}>
             {!traversesEditing.includes(selectedEvaSequenceItemUuid) && editPerms && (
               <Button

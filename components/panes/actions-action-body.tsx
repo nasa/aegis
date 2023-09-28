@@ -23,7 +23,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { decodeEmoji, longdateFromDateString, toDecimal } from "utils/formatting";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import ReactDOMServer from "react-dom/server";
-import STMSelector from "./stm-selector";
+import STMSelector from "./stm/stm-selector";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import _, { round } from "lodash";
 import { EquipmentSelector, GeographicUnitSelector } from "./actions-action-body-multiselectors";
@@ -164,7 +164,7 @@ export const RightActionBody: FunctionComponent<{
                           validators.maxLength(4),
                           validators.mustBeInteger,
                           validators.required,
-                          validators.mustBeNumberGTZero,
+                          // validators.mustBeNumberGTZero,
                         ],
                         onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                           e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
@@ -199,7 +199,7 @@ export const RightActionBody: FunctionComponent<{
                           validators.maxLength(4),
                           validators.mustBeInteger,
                           validators.required,
-                          validators.mustBeNumberGTZero,
+                          // validators.mustBeNumberGTZero,
                         ],
                         onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                           e.target.value = e.target.value.replace(regExValidators.regExNumber, "");

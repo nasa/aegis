@@ -1,9 +1,10 @@
 import { Dispatch, MutableRefObject } from "react";
-import { clearMapItemHover, setLeftPanelHoverUuid, setMapItemHover } from "store/playheadHover";
+import { clearMapItemHover, setLeftPanelHoverUuid, setMapItemHover } from "store/hover";
 import { padZeros } from "utils/formatting";
 import { AnyAction } from "@reduxjs/toolkit";
 import paper from "paper";
 import { getSlope } from "utils/geoMath";
+import { orderBy } from "lodash";
 
 /**
  * Draws the vertical line wtih the rotated time at the bottom.
@@ -45,7 +46,7 @@ export function drawTimeMarker(
     -45,
     new paper.Point(xLoc - 15, paperVars.timelineTop + paperVars.timelineHeight + 25)
   );
-  markerGroup.addChildren([timeLabel, verticalLine]);
+  markerGroup.addChildren([verticalLine, timeLabel]);
   return markerGroup;
 }
 
@@ -672,6 +673,68 @@ function drawSequenceTraverse(
   });
   sequenceItemGroup.addChild(traverseLine);
 }
+
+/**
+ * Draw the pet line for rex
+ * @param paperDataRef
+ * @param paperGroupsRef
+ * @param petSeconds
+ */
+export const drawPetLine = (
+  paperDataRef: MutableRefObject<PaperData>,
+  paperGroupsRef: MutableRefObject<PaperGroups>,
+  petSeconds: number
+): void => {
+  const paperVars = paperDataRef.current.paperVars;
+  const xLoc = paperVars.timelineLeft + petSeconds * paperVars.pixelsPerSecondX;
+  //remove old line, draw new line
+  paperGroupsRef.current.petLine.removeChildren();
+  if (xLoc <= paperVars.timelineLeft + paperVars.timelineWidth) {
+    paperGroupsRef.current.petLine.addChild(
+      drawTimeMarker(
+        paperDataRef,
+        xLoc,
+        paperDataRef.current.styles.brightGreen,
+        paperDataRef.current.styles.brightGreen
+      )
+    );
+    paperGroupsRef.current.petLine.bringToFront();
+    paperGroupsRef.current.petLine.visible = true;
+  }
+};
+
+/**
+ * Draw crew positions for the REX event
+ * @param paperDataRef
+ * @param paperGroupsRef
+ */
+export const drawCrewPositions = (
+  paperDataRef: MutableRefObject<PaperData>,
+  paperGroupsRef: MutableRefObject<PaperGroups>,
+  crewPosRef: MutableRefObject<CrewPos_PaperJS[]>,
+  selectedCrewPosUuid: string
+): void => {
+  const paperVars = paperDataRef.current.paperVars;
+  const crewPosRefSorted = orderBy(crewPosRef.current, ["seconds"], "desc");
+  for (let i = 0; i < crewPosRefSorted.length; i++) {
+    const crewPosPaperJS = crewPosRefSorted[i];
+    const x = crewPosPaperJS.seconds * paperVars.pixelsPerSecondX + paperVars.timelineLeft;
+    const y =
+      paperVars.timelineTop +
+      paperVars.graphHeight -
+      crewPosPaperJS.distanceFromLanderMeters * paperVars.pixelsPerMeterDistanceY;
+    let color = paperDataRef.current.styles.blue;
+    if (selectedCrewPosUuid === crewPosRefSorted[i].uuid) {
+      color = paperDataRef.current.styles.yellow;
+    } else if (i === 0) {
+      color = paperDataRef.current.styles.brightGreen;
+    }
+    const circle = new paper.Path.Circle(new paper.Point(x, y), 3);
+    circle.fillColor = color;
+    circle.name = crewPosRefSorted[i].uuid;
+    paperGroupsRef.current.crewPositions.addChild(circle);
+  }
+};
 
 /**
  * Draw the mouse hover line. Also dispatch information about where the

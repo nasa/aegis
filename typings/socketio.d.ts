@@ -51,7 +51,7 @@ interface EditEvents {
   [missionId: number]: EditEvent;
 }
 
-type StoreType = "preset" | "poi" | "station" | "eva" | "action" | "traverse" | "mission";
+type StoreType = "preset" | "poi" | "station" | "eva" | "action" | "traverse" | "mission" | "rex";
 
 interface StoreUpsert<T> {
   socketId: string;

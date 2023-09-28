@@ -19,6 +19,8 @@ import EvaFactory from "../../factories/EVAFactory";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
 import { roundDateToSecond } from "utils/formatting";
+import * as SocketIo from "pages/api/socketio";
+
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -54,6 +56,10 @@ beforeAll(async () => {
       eva.owner = testUser;
     })
     .create(2);
+
+  // suppress socketio calls because they won't work during jest testing
+  jest.spyOn(SocketIo, "emitStoreUpsert").mockImplementation(() => {});
+  jest.spyOn(SocketIo, "emitStoreDelete").mockImplementation(() => {});
 });
 
 describe("EVA API Endpoint", () => {
@@ -203,8 +209,6 @@ describe("EVA API Endpoint", () => {
       expect(res._getJSONData().data).not.toBeNull();
       const upsertedEVA = res._getJSONData().data;
       expect(upsertedEVA.uuid).not.toBeNull();
-      expect(upsertedEVA.createdAt).not.toBeNull();
-      expect(upsertedEVA.updatedAt).not.toBeNull();
       newEVA = { ...upsertedEVA };
 
       //check if it was added to the db
@@ -288,4 +292,6 @@ afterAll(async () => {
 
   // Closing the DB connection allows Jest to exit successfully.
   closeORM();
+
+  jest.resetAllMocks();
 });

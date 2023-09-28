@@ -54,6 +54,8 @@ export class Action implements Action_db_type {
   enabled: boolean;
   @Property({ type: MikroTypes.json, nullable: true })
   crewAssigned: Crew[];
+  @Property({ type: MikroTypes.string, nullable: true })
+  rexStatus: RexStatus;
 
   @Property({ type: MikroTypes.datetime })
   createdAt: Date;

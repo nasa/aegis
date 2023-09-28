@@ -9,9 +9,6 @@ import FileManager from "components/admin/fileManager";
 import { deleteSublayer, getSublayers } from "http-client/sublayer";
 
 const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission: Mission }) => {
-  const [missionIdSlug, setMissionIdSlug] = useState<number>(null);
-  const [missionName, setMissionName] = useState<string>("");
-
   const [allLayers, setAllLayers] = useState<Layer[]>(null);
   const [allSublayers, setAllSublayers] = useState<Sublayer[]>(null);
   const [editSublayerParentUUID, setEditSublayerParentUUID] = useState("0");
@@ -23,36 +20,35 @@ const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission
   const reloadLayers = useCallback(() => {
     (async () => {
       //load layers
-      const resLayers = await getLayers(missionIdSlug);
+      const resLayers = await getLayers(mission.id);
       if (resLayers.data) {
         setAllLayers(resLayers.data);
         if (resLayers.data.length > 0) setEditSublayerParentUUID(resLayers.data[0].uuid);
       }
 
       //load sublayers
-      const resSublayer = await getSublayers(missionIdSlug);
+      const resSublayer = await getSublayers(mission.id);
       if (resSublayer.data) {
         setAllSublayers(resSublayer.data);
       }
     })();
-  }, [missionIdSlug]);
-
-  //realod db when mission id changes
-  useEffect(() => {
-    if (!missionIdSlug) return;
-    reloadLayers();
-  }, [missionIdSlug, reloadLayers]);
+  }, [mission.id]);
 
   //adds a new blank sublayer object to the parent layer and sets it for edit
   function addNewSublayer() {
-    const newSublayer = createNewSublayer(editSublayerParentUUID, missionIdSlug);
+    const newSublayer = createNewSublayer(editSublayerParentUUID, mission.id);
     setEditComponent(
-      <SublayerEdit sublayer={newSublayer} refreshLayerList={reloadLayers} fileList={fileList} />
+      <SublayerEdit
+        sublayer={newSublayer}
+        refreshLayerList={reloadLayers}
+        fileList={fileList}
+        missionId={mission.id}
+      />
     );
   }
 
   function addNewLayer() {
-    const newLayer = createNewLayer(missionIdSlug);
+    const newLayer = createNewLayer(mission.id);
     setEditComponent(<LayerEdit layer={newLayer} refreshLayerList={reloadLayers} />);
   }
 
@@ -68,83 +64,83 @@ const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission
   );
 
   useEffect(() => {
-    if (!mission) return;
-
-    setMissionIdSlug(mission.id);
-    setMissionName(mission.name);
-  }, [mission]);
+    reloadLayers();
+  }, [mission, reloadLayers]);
 
   return (
     <div>
-      <h2>Mission: {missionName}</h2>
-      <div id="layerList_div">
-        <h3>Layers and Sublayers</h3>
-        <LayerList
-          layers={allLayers}
-          sublayers={allSublayers}
-          missionId={missionIdSlug}
-          refreshLayerList={reloadLayers}
-          setEditComponent={setEditComponent}
-          fileList={fileList}
-        />
-      </div>
-      <div id="addLayer_div">
-        <button
-          type="button"
-          onClick={() => {
-            addNewLayer();
-          }}
-        >
-          Add New Header Layer (Clear Form)
-        </button>
-        <br />
-        {allLayers?.length > 0 && (
-          <div id="addNewSublayer_div">
-            <label htmlFor="layerSelect" className={adminStyles.selectLabel}>
-              Select Header Layer
-            </label>
-            &nbsp;
-            <select
-              id="layerSelect"
-              onChange={(e) => setEditSublayerParentUUID(e.target.value)}
-              value={editSublayerParentUUID}
-            >
-              {allLayers.map((layer: Layer) => {
-                return (
-                  <option key={"select" + layer.uuid} value={layer.uuid}>
-                    {`${layer.name}`}
-                  </option>
-                );
-              })}
-            </select>
-            &nbsp;
+      <h2>Mission: {mission.name}</h2>
+      <div className={adminStyles.layerContainer}>
+        <div>
+          <div id="layerList_div">
+            <h3>Layers and Sublayers</h3>
+            <LayerList
+              layers={allLayers}
+              sublayers={allSublayers}
+              missionId={mission.id}
+              refreshLayerList={reloadLayers}
+              setEditComponent={setEditComponent}
+              fileList={fileList}
+            />
+          </div>
+          <div id="addLayer_div">
             <button
               type="button"
               onClick={() => {
-                addNewSublayer();
+                addNewLayer();
               }}
             >
-              Add New Sub Layer (Clear Form)
+              Add New Header Layer (Clear Form)
             </button>
+            <br />
+            {allLayers?.length > 0 && (
+              <div id="addNewSublayer_div">
+                <label htmlFor="layerSelect" className={adminStyles.selectLabel}>
+                  Select Header Layer
+                </label>
+                &nbsp;
+                <select
+                  id="layerSelect"
+                  onChange={(e) => setEditSublayerParentUUID(e.target.value)}
+                  value={editSublayerParentUUID}
+                >
+                  {allLayers.map((layer: Layer) => {
+                    return (
+                      <option key={"select" + layer.uuid} value={layer.uuid}>
+                        {`${layer.name}`}
+                      </option>
+                    );
+                  })}
+                </select>
+                &nbsp;
+                <button
+                  type="button"
+                  onClick={() => {
+                    addNewSublayer();
+                  }}
+                >
+                  Add New Sub Layer (Clear Form)
+                </button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-      <br />
-      <div className={adminStyles.sectionDiv}>
-        Manage files in the /Layers folder for this mission
-        <br />
-        <br />
-        {missionIdSlug ? (
-          <>
-            <FileManager
-              path={`missionFiles/${missionIdSlug}/Layers`}
-              setFileList={setFileList}
-              isUsed={checkLayerUsesFolder}
-            />
-          </>
-        ) : (
-          <div>A new mission must be saved first before you can upload files</div>
-        )}
+        </div>
+        <div className={adminStyles.sectionDiv}>
+          Manage files in the /Layers folder for this mission
+          <br />
+          <br />
+          {mission.id ? (
+            <>
+              <FileManager
+                path={`missionFiles/${mission.id}/Layers`}
+                setFileList={setFileList}
+                isUsed={checkLayerUsesFolder}
+              />
+            </>
+          ) : (
+            <div>A new mission must be saved first before you can upload files</div>
+          )}
+        </div>
       </div>
       <div id="editLayer_div">
         <>{editComponent}</>
@@ -198,6 +194,7 @@ const LayerList = (props: {
           sublayer={layerOrSublayer as Sublayer}
           refreshLayerList={props.refreshLayerList}
           fileList={props.fileList}
+          missionId={props.missionId}
         />
       );
     }

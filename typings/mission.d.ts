@@ -116,3 +116,9 @@ type LanderRadius = {
   name: string;
   radius: number;
 };
+
+type MissionHomepageItem = {
+  id: number;
+  name: string;
+  runningRex: Rex;
+};

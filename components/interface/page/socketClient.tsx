@@ -29,7 +29,9 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
   const socket = useRef<Socket<ServerToClientEvents, ClientToServerEvents>>(null);
 
   const storeUpsertEventHandler = useCallback(
-    (storePayload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission>) => {
+    (
+      storePayload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission | Rex>
+    ) => {
       // console.log(
       //   `${new Date().toISOString()} Received storeUpsert from server. Mission: ${
       //     storePayload.missionId
@@ -254,7 +256,9 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
     // Listen for incoming store updates
     socket.current.on(
       "storeUpsert",
-      (storePayload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission>) => {
+      (
+        storePayload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission | Rex>
+      ) => {
         storeUpsertEventHandler(storePayload);
       }
     );

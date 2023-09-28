@@ -1,0 +1,198 @@
+.mapCrewPosDisplayContainer {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 100;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius);
+}
+
+.mapCrewPosDisplay {
+  border: 1px solid var(--grey3);
+  border-radius: var(--radius);
+  background-color: var(--grey2);
+  pointer-events: all;
+  max-height: 90%;
+}
+
+.menuOpen {
+  padding: 5px;
+}
+.menuClosed {
+  padding: 3px 6px 3px 6px;
+}
+.menuIcon {
+  flex: 0 0 18px;
+  user-select: none;
+}
+.menuContainer {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 400px);
+}
+.bottomTriangle {
+  width: 0;
+  height: 0;
+  border-right: 5px solid transparent;
+  border-bottom: 5px solid var(--grey5);
+  position: absolute;
+  left: 2px;
+  bottom: 2px;
+}
+.menuIconOpen {
+  margin-top: -2px;
+  margin-right: 1px;
+}
+.topTriangle {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-top: 5px solid var(--grey5);
+  position: absolute;
+  right: 2px;
+  top: 2px;
+}
+.hideMenu {
+  display: none;
+}
+
+.buttonContainer {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+.viewOnlyButtonContainer {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+}
+.center {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+.toggleContainer {
+  display: flex;
+  flex-direction: row;
+}
+.toggleLeft {
+  font-size: 0.8rem;
+  background-color: var(--grey3);
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
+  padding: 2px 4px 2px 4px;
+  min-width: 20px;
+  margin-right: 1px;
+  text-align: center;
+}
+.toggleMiddle {
+  font-size: 0.8rem;
+  background-color: var(--grey3);
+  padding: 2px 4px 2px 4px;
+  min-width: 20px;
+  margin-right: 1px;
+  text-align: center;
+}
+.toggleRight {
+  font-size: 0.8rem;
+  background-color: var(--grey3);
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+  min-width: 20px;
+  padding: 2px 4px 2px 4px;
+  text-align: center;
+}
+.toggleSelected {
+  background-color: var(--grey4);
+  color: var(--grey1);
+  font-weight: 600;
+}
+.setPosButton {
+  padding-left: 5px;
+}
+
+.crewPosTableContainer {
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+.crewPosTable {
+  border-collapse: collapse;
+}
+.crewPosTable td {
+  padding: 2px 3px 2px 3px;
+}
+.currentPos {
+  color: #52f075;
+}
+.historicPosTitle {
+  font-size: 0.8rem;
+  color: var(--grey4);
+  align-items: center;
+  cursor: pointer;
+}
+.historicPosHeader {
+  font-size: 0.8rem;
+  color: var(--grey4);
+}
+
+.historicPosItem {
+  font-size: 0.8rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.historicPosItemHover {
+  background: var(--grey1);
+}
+.historicPosItemSelected {
+  background: var(--grey5);
+  color: black;
+  font-weight: 500;
+}
+.historicPosItemPending {
+  color: var(--grey3);
+}
+.historicPosItemNumber {
+  color: var(--grey4);
+}
+.historicPosIcon {
+  font-size: 0.9em;
+}
+.petColumn {
+  min-width: 65px;
+}
+.crewColumn {
+  min-width: 90px;
+}
+
+.kabobContainer {
+  position: relative;
+  padding: 0;
+  border: none;
+  background-color: rgb(0, 0, 0, 0);
+}
+.kabobMenu {
+  position: fixed;
+  z-index: 100;
+  background-color: var(--grey3);
+  color: var(--grey5);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  font-weight: normal;
+}
+.kabobMenuItem {
+  display: flex;
+  flex-direction: row;
+  padding: 5px;
+  cursor: pointer;
+  column-gap: 3px;
+  align-items: center;
+}
+.kabobMenuItem:hover {
+  background-color: var(--grey2);
+  border-radius: var(--radius);
+}
+.kabobMenuItem:not(:last-child) {
+  border-bottom: 1px solid var(--grey4);
+}

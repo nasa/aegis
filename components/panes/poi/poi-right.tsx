@@ -2,7 +2,6 @@ import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCircleInfo,
   faPersonDigging,
@@ -23,6 +22,7 @@ import { selectPoiActions } from "store/selectors";
 import Report_Panel from "../report";
 import { getAlertColor, isModified } from "utils/component-helpers";
 import { validators } from "components/interface/form/formValidators";
+import { RightTabs } from "components/interface/side-controls";
 
 const PoiEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -158,38 +158,11 @@ const PoiEditorRight: FunctionComponent = () => {
           </div>
         </div>
         <div className={paneStyles.rightSubTray}>
-          <div className={paneStyles.rightIconRow}>
-            {Object.keys(panelTypes).map((panelType) => {
-              const unselectedColor = _.has(panelTypes[panelType], "unselectedColor")
-                ? panelTypes[panelType].unselectedColor
-                : "white";
-              return (
-                <div
-                  key={panelType}
-                  className={
-                    selectedRightNavItem === panelType
-                      ? paneStyles.rightIconContainerSelectedPoi
-                      : paneStyles.rightIconContainer
-                  }
-                  onClick={() => dispatch(setSelectedPOIRightNavItem(panelType))}
-                >
-                  <div
-                    className={paneStyles.rightIcon}
-                    style={{
-                      color:
-                        selectedRightNavItem === panelType
-                          ? panelTypes[panelType].selectedColor
-                          : unselectedColor,
-                    }}
-                    data-tooltip-id="aegis-tooltip"
-                    data-tooltip-html={panelTypes[panelType].title}
-                  >
-                    <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <RightTabs
+            selectedRightNavItem={selectedRightNavItem}
+            panelTypes={panelTypes}
+            dispatchFunction={setSelectedPOIRightNavItem}
+          />
           <div className={paneStyles.saveCancelContainer}>
             {poisEditing.includes(selectedPoiUuid) && (
               <Button

@@ -6,10 +6,28 @@ const Info_subpanel: FunctionComponent<{
 }> = ({ sublayer }) => {
   return (
     <div className={styles.container}>
-      <div className={styles.title}>Layer Description</div>
-      <div className={styles.description}>
-        {sublayer.name} {sublayer.description}
-      </div>
+      <div className={styles.title}>Description</div>
+      <div className={styles.description}>{sublayer.description || "None"}</div>
+      {sublayer.legend && (
+        <>
+          <div className={styles.title}>
+            Legend {sublayer.legend.unitsAbbr ? `(${sublayer.legend.unitsAbbr})` : ""}
+          </div>
+          <div className={styles.legend}>
+            {sublayer.legend.legend.map((legendItem) => {
+              return (
+                <div className={styles.legendItem} key={legendItem.color}>
+                  <div
+                    className={styles.legendColor}
+                    style={{ backgroundColor: `${legendItem.color}` }}
+                  ></div>
+                  <div>{legendItem.value}</div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 };

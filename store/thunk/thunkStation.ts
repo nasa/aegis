@@ -29,7 +29,7 @@ import * as httpClient_station from "http-client/station";
 import * as httpClient_action from "http-client/action";
 import { updateMapDirective } from "store/map";
 import { thunkCancelMarkerMapDirective } from "./thunkMap";
-import { thunkDuplicateAction, thunkSaveActions } from "./thunkAction";
+import { thunkDuplicateActions, thunkSaveActions } from "./thunkAction";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import { saveNewStation } from "store/cross-slice";
@@ -233,6 +233,13 @@ export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
       let totalUnassignedDurationUpper = 0;
       let totalDwellTimeLower = 0;
       let totalDwellTimeUpper = 0;
+      let totalCompletedEv1TimeLower = 0;
+      let totalCompletedEv1TimeUpper = 0;
+      let totalCompletedEv2TimeLower = 0;
+      let totalCompletedEv2TimeUpper = 0;
+      let totalCompletedDwellTimeLower = 0;
+      let totalCompletedDwellTimeUpper = 0;
+
       let actionCount = 0;
       let totalEquipmentItems: EquipmentItemUsage[] = [];
       stationActions.forEach((action) => {
@@ -241,10 +248,18 @@ export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
         if (action.crewAssigned && action.crewAssigned.includes("EV1")) {
           totalEv1DurationLower += action.durationLower;
           totalEv1DurationUpper += action.durationUpper;
+          if (action.rexStatus === "complete") {
+            totalCompletedEv1TimeLower += action.durationLower;
+            totalCompletedEv1TimeUpper += action.durationUpper;
+          }
         }
         if (action.crewAssigned && action.crewAssigned.includes("EV2")) {
           totalEv2DurationLower += action.durationLower;
           totalEv2DurationUpper += action.durationUpper;
+          if (action.rexStatus === "complete") {
+            totalCompletedEv2TimeLower += action.durationLower;
+            totalCompletedEv2TimeUpper += action.durationUpper;
+          }
         }
         if (!action.crewAssigned || action.crewAssigned.length === 0) {
           totalUnassignedDurationLower += action.durationLower;
@@ -255,10 +270,24 @@ export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
             ? totalEv1DurationLower
             : totalEv2DurationLower;
 
+        if (action.rexStatus === "complete") {
+          totalCompletedDwellTimeLower =
+            totalCompletedEv1TimeLower > totalCompletedEv2TimeLower
+              ? totalCompletedEv1TimeLower
+              : totalCompletedEv2TimeLower;
+        }
+
         totalDwellTimeUpper =
           totalEv1DurationUpper > totalEv2DurationUpper
             ? totalEv1DurationUpper
             : totalEv2DurationUpper;
+
+        if (action.rexStatus === "complete") {
+          totalCompletedDwellTimeUpper =
+            totalCompletedEv1TimeUpper > totalCompletedEv2TimeUpper
+              ? totalCompletedEv1TimeUpper
+              : totalCompletedEv2TimeUpper;
+        }
 
         totalEquipmentItems = mergeEquipmentItems(action.equipmentItemsUsage, totalEquipmentItems);
         actionCount++;
@@ -344,9 +373,17 @@ export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
           durationLower: totalEv1DurationLower,
           durationUpper: totalEv1DurationUpper,
         },
+        totalCompletedEv1Time: {
+          durationLower: totalCompletedEv1TimeLower,
+          durationUpper: totalCompletedEv1TimeUpper,
+        },
         totalEv2Time: {
           durationLower: totalEv2DurationLower,
           durationUpper: totalEv2DurationUpper,
+        },
+        totalCompletedEv2Time: {
+          durationLower: totalCompletedEv2TimeLower,
+          durationUpper: totalCompletedEv2TimeUpper,
         },
         totalUnassignedTime: {
           durationLower: totalUnassignedDurationLower,
@@ -355,6 +392,10 @@ export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
         totalDwellTime: {
           durationLower: totalDwellTimeLower,
           durationUpper: totalDwellTimeUpper,
+        },
+        totalCompletedDwellTime: {
+          durationLower: totalCompletedDwellTimeLower,
+          durationUpper: totalCompletedDwellTimeUpper,
         },
         actionCount,
         walkbackDurationMinutes,
@@ -378,6 +419,8 @@ export const thunkSaveStation = appCreateAsyncThunk<{
   const stationActionsFromDb = getState().action.actionsFromDb.filter(
     (action) => action.stationUuid === station.uuid
   );
+  // any rex running?
+  const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
 
   //if existing station, update traverses for any EVAs
   const stationFromDb = getState().station.stationsFromDb.find((s) => s.uuid === station.uuid);
@@ -396,18 +439,24 @@ export const thunkSaveStation = appCreateAsyncThunk<{
         await dispatch(
           thunkUpdateTraverseNamesForStationInEVA({
             evaSequence: eva.sequence,
-            stationUUID: station.uuid,
+            stationUuid: station.uuid,
           })
         );
       }
     }
   }
 
+  // update the name of traverses around this station in any eva using this station
+  dispatch(thunkUpdateTraversesAroundStation({ stationUuid: station.uuid, saveToDb: true }));
+
   // upsert the changed Station to the DB via internal API call
-  const stationUpsertResponse = await httpClient_station.upsertStation({
-    ...station,
-    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-  });
+  const stationUpsertResponse = await httpClient_station.upsertStation(
+    {
+      ...station,
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    },
+    rexRunning
+  );
 
   if (stationUpsertResponse.status === "success") {
     // upsert the changed Station (with new updated date) to the store
@@ -515,6 +564,8 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
   const stationActions = getState().action.actions.filter(
     (action) => action.stationUuid === station.uuid
   );
+  // any rex running?
+  const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
 
   const evasUsingThisStation: Eva[] = [];
   getState().eva.evas.forEach((eva) => {
@@ -534,7 +585,8 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
     // delete actions from the db via internal api call
     for (const actionToDelete of stationActions) {
       const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteAction(
-        actionToDelete.uuid
+        actionToDelete.uuid,
+        rexRunning
       );
       if (actionDeleteResponse.status !== "success") {
         throw new Error("Error deleting actions for station " + actionDeleteResponse.message);
@@ -552,7 +604,8 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
 
     // delete the Station from the DB via internal API call
     const deleteResponse: WrappedResponse<number> = await httpClient_station.deleteStation(
-      station.uuid
+      station.uuid,
+      rexRunning
     );
     if (deleteResponse.status === "success") {
       // remove the corresponding Station from the store
@@ -605,6 +658,7 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
       walkbackPathSegmentElevations: null,
       icon: null,
       poiUuids: [],
+      rexStatus: "pending",
       updatedAt: null,
       createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
@@ -612,7 +666,7 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
   }
 );
 
-export const thunkDuplicateStation = appCreateAsyncThunk<{ station: Station }>(
+export const thunkDuplicateStation = appCreateAsyncThunk<{ station: Station }, Station, false>(
   "stationDuplicate",
   async ({ station }, { dispatch, getState }) => {
     if (!station) return;
@@ -625,30 +679,59 @@ export const thunkDuplicateStation = appCreateAsyncThunk<{ station: Station }>(
       station.name,
       getState().station.stations.map((s) => s.name)
     );
+    newStation.actionOrderUuids = [];
+    dispatch(saveNewStation(newStation));
 
     //duplicate actions
-    const stationActions = getState().action.actions.filter(
-      (action) => action.stationUuid === station.uuid
+    const stationActions = getState()
+      .action.actions.filter((action) => action.stationUuid === station.uuid)
+      .sort(
+        (a, b) =>
+          station.actionOrderUuids.findIndex((o) => o === a.uuid) -
+          station.actionOrderUuids.findIndex((o) => o === b.uuid)
+      );
+    await dispatch(
+      thunkDuplicateActions({
+        actions: stationActions,
+        stationUuid: newStation.uuid,
+        promotingFromPoi: false,
+      })
     );
 
-    // preserve actionOrderUuids from old station using new action uuids from new station
-    const newActionOrderUuids = [];
-    for (const actionUuid of station.actionOrderUuids) {
-      const action = stationActions.find((a) => a.uuid === actionUuid);
-      const thunkRes = await dispatch(
-        thunkDuplicateAction({
-          action: action,
-          stationUuid: newStation.uuid,
-          promotingFromPoi: false,
-          handleActionOrderProcessing: false,
-        })
-      );
-      if (thunkRes.payload) {
-        newActionOrderUuids.push(thunkRes.payload as string);
-      }
+    return newStation;
+  }
+);
+
+export const thunkCycleStationRexToNextStatus = appCreateAsyncThunk<{ stationUuid: string }>(
+  "cycleStationRexToNextStatus",
+  async ({ stationUuid }, { dispatch, getState }) => {
+    const station = getState().station.stations.find((s) => s.uuid === stationUuid);
+    // any rex running?
+    const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+
+    let lastStatus: RexStatus = "pending";
+    if (station.rexStatus) {
+      lastStatus = station.rexStatus;
     }
 
-    newStation.actionOrderUuids = newActionOrderUuids; //save new order
-    dispatch(saveNewStation(newStation));
+    // cycle the status to the next one
+    let rexStatus: RexStatus;
+    if (!lastStatus) {
+      rexStatus = "in-progress";
+    } else if (lastStatus === "in-progress") {
+      rexStatus = "complete";
+    } else if (lastStatus === "complete") {
+      rexStatus = "skipped";
+    } else if (lastStatus === "skipped") {
+      rexStatus = "pending";
+    } else if (lastStatus === "pending") {
+      rexStatus = "in-progress";
+    }
+
+    dispatch(upsertStation({ ...station, rexStatus }, true));
+    dispatch(upsertStationFromDb({ ...station, rexStatus }));
+
+    // update the station in the database
+    httpClient_station.upsertStation({ ...station, rexStatus }, rexRunning);
   }
 );

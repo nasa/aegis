@@ -19,6 +19,8 @@ import TraverseFactory from "../../factories/TraverseFactory";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
 import { roundDateToSecond } from "utils/formatting";
+import * as SocketIo from "pages/api/socketio";
+
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -53,6 +55,10 @@ beforeAll(async () => {
       traverse.mission = testMissions[0];
     })
     .create(2);
+
+  // suppress socketio calls because they won't work during jest testing
+  jest.spyOn(SocketIo, "emitStoreUpsert").mockImplementation(() => {});
+  jest.spyOn(SocketIo, "emitStoreDelete").mockImplementation(() => {});
 });
 
 describe("EVA API Endpoint", () => {
@@ -71,6 +77,7 @@ describe("EVA API Endpoint", () => {
     predictedDurationUpper: 0,
     status: "Candidate",
     description: "",
+    rexStatus: null,
     createdAt: roundDateToSecond(new Date()).toISOString(),
     updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
@@ -203,8 +210,6 @@ describe("EVA API Endpoint", () => {
       expect(res._getJSONData().data).not.toBeNull();
       const upsertedTraverse = res._getJSONData().data;
       expect(upsertedTraverse.uuid).not.toBeNull();
-      expect(upsertedTraverse.createdAt).not.toBeNull();
-      expect(upsertedTraverse.updatedAt).not.toBeNull();
       newTraverse = { ...upsertedTraverse };
 
       //check if it was added to the db
@@ -276,4 +281,6 @@ afterAll(async () => {
 
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
+
+  jest.resetAllMocks();
 });

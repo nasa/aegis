@@ -1,8 +1,7 @@
 import { CombinedState, PayloadAction, combineReducers, configureStore } from "@reduxjs/toolkit";
 import { createWrapper } from "next-redux-wrapper";
 
-import { playheadSlice, initialState as playheadInitialState } from "./playhead";
-import { playheadHoverSlice, initialState as playheadHoverInitialState } from "./playheadHover";
+import { hoverSlice, initialState as hoverInitialState } from "./hover";
 import { missionSlice, initialState as missionInitialState } from "./mission";
 import { mapSlice, initialState as mapInitialState } from "./map";
 import { evaSlice, initialState as evaInitialState } from "./eva";
@@ -14,6 +13,7 @@ import { stationSlice, initialState as stationInitialState } from "./station";
 import { actionSlice, initialState as actionInitialState } from "./action";
 import { traverseSlice, initialState as traverseInitialState } from "./traverse";
 import { userSlice, initialState as userInitialState } from "./user";
+import { rexSlice, initialState as rexInitialState } from "./rex";
 import { crossSlice } from "./cross-slice";
 
 export type StoreType = ReturnType<typeof configureStore<RootState>>;
@@ -22,8 +22,7 @@ let store: StoreType;
 export type AppDispatch = typeof store.dispatch;
 
 export const initialState = {
-  playhead: playheadInitialState,
-  playheadHover: playheadHoverInitialState,
+  hover: hoverInitialState,
   mission: missionInitialState,
   user: userInitialState,
   map: mapInitialState,
@@ -35,11 +34,11 @@ export const initialState = {
   station: stationInitialState,
   action: actionInitialState,
   traverse: traverseInitialState,
+  rex: rexInitialState,
 };
 
 const sliceReducers = combineReducers({
-  playhead: playheadSlice.reducer,
-  playheadHover: playheadHoverSlice.reducer,
+  hover: hoverSlice.reducer,
   mission: missionSlice.reducer,
   user: userSlice.reducer,
   map: mapSlice.reducer,
@@ -51,6 +50,7 @@ const sliceReducers = combineReducers({
   station: stationSlice.reducer,
   action: actionSlice.reducer,
   traverse: traverseSlice.reducer,
+  rex: rexSlice.reducer,
 });
 
 export type RootState = ReturnType<typeof sliceReducers>;

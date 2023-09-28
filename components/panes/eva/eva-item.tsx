@@ -150,7 +150,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
           <div className={paneStyles.iconButtons}>
             <Button
               onClick={() => {
-                dispatch(thunkAddStationToEva({ eva }));
+                dispatch(thunkAddStationToEva({ evaUuid: eva.uuid }));
               }}
               label="Add Station"
               icon={faPlusCircle}

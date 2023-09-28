@@ -9,7 +9,7 @@ import stationStyles from "./station.module.css";
 import _ from "lodash";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { Checkbox } from "components/interface/form/globalFields";
-import { setMapItemHoverUuid } from "store/playheadHover";
+import { setMapItemHoverUuid } from "store/hover";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { faMessage } from "@fortawesome/free-solid-svg-icons";

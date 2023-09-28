@@ -11,6 +11,8 @@ import { Poi } from "./server/database/models/poi.model";
 import { Action } from "./server/database/models/action.model";
 import { Traverse } from "./server/database/models/traverse.model";
 import { Eva } from "./server/database/models/eva.model";
+import { Rex } from "./server/database/models/rex.model";
+import { Log } from "./server/database/models/log.model";
 import path from "path";
 
 const port = parseInt(process.env.AEGIS_DB_PORT);
@@ -40,6 +42,8 @@ const config: Options = {
     Action,
     Traverse,
     Eva,
+    Rex,
+    Log,
   ],
   entities: [
     Mission,
@@ -54,6 +58,8 @@ const config: Options = {
     Action,
     Traverse,
     Eva,
+    Rex,
+    Log,
   ],
   debug: process.env.DEBUG === "true" || process.env.DEBUG?.includes("db"),
   allowGlobalContext: process.env.NODE_ENV === "test",

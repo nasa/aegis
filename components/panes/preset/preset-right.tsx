@@ -1,7 +1,6 @@
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBan,
   faBullseye,
@@ -26,6 +25,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDeletePreset, thunkPresetCancel, thunkSavePreset } from "store/thunk/thunkPreset";
 import { validators } from "components/interface/form/formValidators";
 import { isModified } from "utils/component-helpers";
+import { RightTabs } from "components/interface/side-controls";
 
 const PresetEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -105,35 +105,11 @@ const PresetEditorRight: FunctionComponent = () => {
           </div>
         </div>
         <div className={paneStyles.rightSubTray}>
-          <div className={paneStyles.rightIconRow}>
-            {Object.keys(panelTypes).map((panelType) => {
-              return (
-                <div
-                  key={panelType}
-                  className={
-                    selectedRightNavItem === panelType
-                      ? paneStyles.rightIconContainerSelectedPreset
-                      : paneStyles.rightIconContainer
-                  }
-                  onClick={() => dispatch(setSelectedPresetRightNavItem(panelType))}
-                >
-                  <div
-                    className={paneStyles.rightIcon}
-                    style={{
-                      color:
-                        selectedRightNavItem === panelType
-                          ? panelTypes[panelType].selectedColor
-                          : "white",
-                    }}
-                    data-tooltip-id="aegis-tooltip"
-                    data-tooltip-html={panelTypes[panelType].title}
-                  >
-                    <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <RightTabs
+            selectedRightNavItem={selectedRightNavItem}
+            panelTypes={panelTypes}
+            dispatchFunction={setSelectedPresetRightNavItem}
+          />
           <div className={paneStyles.saveCancelContainer}>
             {presetsEditing.includes(selectedPresetUuid) && (
               <Button
