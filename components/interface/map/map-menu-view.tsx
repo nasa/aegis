@@ -100,7 +100,7 @@ export const MapViewMenu: FunctionComponent<{
                         show: e.target.checked,
                       });
                     }}
-                    toolTip="Toggle Stations on map"
+                    toolTip="Toggle all Stations on map"
                     label="Stations"
                     labelStyle={{ alignSelf: "center" }}
                     uniqueId="showHideStations"
@@ -115,6 +115,7 @@ export const MapViewMenu: FunctionComponent<{
                       setMapDisplayStations({
                         ...mapDisplayStations,
                         showLabels: e.target.checked,
+                        ...(e.target.checked && { show: true }),
                       });
                     }}
                     toolTip="Toggle Station labels on map"
@@ -134,7 +135,6 @@ export const MapViewMenu: FunctionComponent<{
                       setMapDisplayActions({
                         ...mapDisplayActions,
                         show: e.target.checked,
-                        showLabels: false,
                       });
                     }}
                     toolTip="Toggle Actions on map"
@@ -212,6 +212,38 @@ export const MapViewMenu: FunctionComponent<{
                     label="Latest Labels"
                     labelStyle={{ alignSelf: "center" }}
                     uniqueId="showHideCrewPosLatestLabels"
+                  />
+                </div>
+                <div className={styles.controlCheckbox}>
+                  <Checkbox
+                    checked={mapDisplayCrewPos.showPaths}
+                    onChange={(e) => {
+                      setMapDisplayCrewPos({
+                        ...mapDisplayCrewPos,
+                        showPaths: e.target.checked,
+                        ...(e.target.checked && { show: true }),
+                      });
+                    }}
+                    toolTip="Toggle crew paths on map"
+                    label="Crew Pos Paths"
+                    labelStyle={{ alignSelf: "center" }}
+                    uniqueId="showHideCrewPosPaths"
+                  />
+                </div>
+                <div className={styles.controlCheckbox}>
+                  <Checkbox
+                    checked={mapDisplayCrewPos.fadeOldPositions}
+                    onChange={(e) => {
+                      setMapDisplayCrewPos({
+                        ...mapDisplayCrewPos,
+                        fadeOldPositions: e.target.checked,
+                        ...(e.target.checked && { show: true }),
+                      });
+                    }}
+                    toolTip="Toggle fading old crew positions on map"
+                    label="Fade Old Pos"
+                    labelStyle={{ alignSelf: "center" }}
+                    uniqueId="fadeOldPositions"
                   />
                 </div>
               </div>

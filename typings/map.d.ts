@@ -42,6 +42,8 @@ interface MapMarkersDisplay {
  */
 interface MapCrewPosDisplay {
   show: boolean;
+  showPaths: boolean;
   showAllLabels: boolean;
   showLatestLabels: boolean;
+  fadeOldPositions: boolean;
 }
