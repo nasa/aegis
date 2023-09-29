@@ -50,14 +50,15 @@
 }
 
 .control {
-  flex: 0 0 80px;
+  flex: 0 0 90px;
   display: flex;
+  flex-direction: column;
 }
 
 .subControl {
   display: flex;
   flex-direction: column;
-  width: 120px;
+  width: 140px;
 }
 
 .controlCheckbox {
