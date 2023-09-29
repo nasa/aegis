@@ -71,6 +71,14 @@
   user-select: none;
 }
 
+.crewPosIconBackground {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  font-size: 1.1em;
+  user-select: none;
+}
+
 .crewPosCart {
   position: absolute;
   left: 2px;
@@ -83,6 +91,7 @@
   width: 20px;
   height: 5px;
   border: 1px solid var(--grey2);
+  border-radius: 3px;
 }
 .crewPosBarLeft {
   position: absolute;
@@ -90,6 +99,8 @@
   width: 10px;
   height: 5px;
   border: 1px solid var(--grey2);
+  border-bottom-left-radius: 3px;
+  border-top-left-radius: 3px;
 }
 .crewPosBarRight {
   position: absolute;
@@ -98,6 +109,8 @@
   width: 10px;
   height: 5px;
   border: 1px solid var(--grey2);
+  border-bottom-right-radius: 3px;
+  border-top-right-radius: 3px;
 }
 
 .crewPosBarEv1 {

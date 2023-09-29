@@ -7,6 +7,7 @@ import { antPath } from "leaflet-ant-path";
 import "leaflet-textpath";
 import "leaflet.tilelayer.colorfilter";
 import "proj4leaflet";
+import "leaflet-polylineoffset";
 import * as geojson from "geojson";
 
 import styles from "components/interface/map/map-body.module.css";
@@ -198,8 +199,10 @@ const MapBody: FunctionComponent = () => {
   });
   const [mapDisplayCrewPos, setMapDisplayCrewPos] = useState<MapCrewPosDisplay>({
     show: true,
-    showAllLabels: true,
+    showPaths: true,
+    showAllLabels: false,
     showLatestLabels: true,
+    fadeOldPositions: false,
   });
 
   const [mapPosition, setMapPosition] = useState<string[]>([]);
@@ -612,7 +615,6 @@ const MapBody: FunctionComponent = () => {
       tooltipOptions = {},
     }: {
       crewPos: CrewPos;
-
       permanentLabel: boolean;
       onClick: Function;
       onDragEnd: Function;
@@ -667,6 +669,7 @@ const MapBody: FunctionComponent = () => {
         // show EV1 and EV2 half bars and optionally show cart dot if a cart is in the item
         jsx = (
           <div className={styles.crewPosWrapper}>
+            <div className={styles.crewPosIconBackground}>{decodeEmoji(crewEmoji)}</div>
             <div className={styles.crewPosIcon}>{decodeEmoji(crewEmoji)}</div>
             <div className={`${styles.crewPosBarLeft} ${styles.crewPosBarEv1}`}></div>
             <div className={`${styles.crewPosBarRight} ${styles.crewPosBarEv2}`}></div>
@@ -1732,6 +1735,47 @@ const MapBody: FunctionComponent = () => {
   /**
    * Draw or update crew positions on the map when crew pos change. Serves as draw when page loads
    */
+
+  const drawCrewPath = useCallback(
+    ({
+      coords,
+      color,
+      uuid,
+      offset,
+    }: {
+      coords: AEGISPoint[];
+      color: string;
+      uuid: string;
+      offset: number;
+    }) => {
+      const existingPath = getMapItemByUuid(uuid, "crewPosPath") as AEGISPolyline;
+      if (existingPath && existingPath.mapItemType === "crewPosPath") {
+        existingPath.setLatLngs(coords);
+      } else {
+        // polyline offset doesn't have correct type override, so using any
+        const path = L.polyline(coords, {
+          color,
+          weight: 2,
+          opacity: 0.6,
+          smoothFactor: 1,
+          offset,
+          //eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any) as any; // being able to set the text and offset is a custom extension to the polyline class
+        path.uuid = uuid;
+        path.mapItemType = "crewPosPath";
+
+        path.setText("➤             ", {
+          repeat: true,
+          offset: 4,
+          attributes: { fill: color, "font-weight": "bold", "font-size": "12", opacity: 0.6 },
+        });
+
+        crewPosFeatureGroup.current.addLayer(path);
+      }
+    },
+    [getMapItemByUuid]
+  );
+
   useEffect(() => {
     if (!map.current || mapDirective) return;
 
@@ -1758,9 +1802,12 @@ const MapBody: FunctionComponent = () => {
           crewPosFeatureGroup.current.addLayer(marker);
         }
 
-        //set opacity for historic crew pos. No less than 0.3
-        let opacity = 1 - index / (array.length - 1);
-        if (opacity <= 0.3) opacity = 0.3;
+        let opacity: number = 1;
+        if (mapDisplayCrewPos.fadeOldPositions) {
+          //set opacity for historic crew pos. No less than 0.3
+          opacity = 1 - index / array.length;
+          if (opacity <= 0.3) opacity = 0.3;
+        }
 
         drawOrUpdateCrewPosOnMap({
           crewPos,
@@ -1776,10 +1823,47 @@ const MapBody: FunctionComponent = () => {
           },
           permanentLabel: mapDisplayCrewPos.showAllLabels,
           markerOptions: { opacity },
-          tooltipOptions: { opacity },
+          tooltipOptions: { opacity: 1 },
         });
       }
     });
+
+    // draw or update path
+    if (mapDisplayCrewPos.showPaths) {
+      drawCrewPath({
+        coords: crewPosToShow
+          .filter((crewPos) => crewPos.crew.includes("Cart"))
+          .map((crewPos) => {
+            return crewPos.location;
+          })
+          .reverse(),
+        color: "#aaaaaa",
+        uuid: "cart-crew-path",
+        offset: 4,
+      });
+      drawCrewPath({
+        coords: crewPosToShow
+          .filter((crewPos) => crewPos.crew.includes("EV2"))
+          .map((crewPos) => {
+            return crewPos.location;
+          })
+          .reverse(),
+        color: "#ffffff",
+        uuid: "ev2-crew-path",
+        offset: 2,
+      });
+      drawCrewPath({
+        coords: crewPosToShow
+          .filter((crewPos) => crewPos.crew.includes("EV1"))
+          .map((crewPos) => {
+            return crewPos.location;
+          })
+          .reverse(),
+        color: "#ff0000",
+        uuid: "ev1-crew-path",
+        offset: 0,
+      });
+    }
   }, [
     map,
     mapDirective,
@@ -1788,6 +1872,7 @@ const MapBody: FunctionComponent = () => {
     dispatch,
     crewPosToShow,
     mapDisplayCrewPos,
+    drawCrewPath,
   ]);
 
   // used to update the PET value via the PetInterval component
