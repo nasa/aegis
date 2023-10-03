@@ -21,3 +21,19 @@ export default class EvaFactory extends Factory<Eva_db> {
     };
   }
 }
+
+export const createTestEva = (): Eva => {
+  return {
+    uuid: uuidv4(),
+    ownerId: null,
+    missionId: null,
+    name: "Jest Eva-1",
+    status: "Candidate",
+    sequence: [],
+    description: null,
+    maxDuration: null,
+    traverseRate: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+};

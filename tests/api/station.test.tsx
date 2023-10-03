@@ -11,11 +11,11 @@ import Login from "pages/api/auth/login";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import handleStation from "pages/api/station";
 import { User as User_db } from "server/database/models/user.model";
-import UserFactory from "../../factories/UserFactory";
+import UserFactory from "../factories/UserFactory";
 import { Station as Station_db } from "server/database/models/station.model";
-import StationFactory from "../../factories/StationFactory";
+import StationFactory from "../factories/StationFactory";
 import { Mission as Mission_db } from "server/database/models/mission.model";
-import MissionFactory from "../../factories/MissionFactory";
+import MissionFactory from "../factories/MissionFactory";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
 import { roundDateToSecond } from "utils/formatting";
@@ -301,5 +301,5 @@ afterAll(async () => {
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
 
-  jest.resetAllMocks();
+  jest.restoreAllMocks();
 });

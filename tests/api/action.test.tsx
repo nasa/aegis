@@ -11,15 +11,15 @@ import login from "pages/api/auth/login";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import handleAction from "pages/api/action";
 import { User as User_db } from "server/database/models/user.model";
-import UserFactory from "../../factories/UserFactory";
+import UserFactory from "../factories/UserFactory";
 import { Action as Action_db } from "server/database/models/action.model";
-import ActionFactory from "../../factories/ActionFactory";
+import ActionFactory from "../factories/ActionFactory";
 import { Mission as Mission_db } from "server/database/models/mission.model";
-import MissionFactory from "../../factories/MissionFactory";
+import MissionFactory from "../factories/MissionFactory";
 import { Station as Station_db } from "server/database/models/station.model";
-import StationFactory from "../../factories/StationFactory";
+import StationFactory from "../factories/StationFactory";
 import { Poi as Poi_db } from "server/database/models/poi.model";
-import PoiFactory from "../../factories/PoiFactory";
+import PoiFactory from "../factories/PoiFactory";
 import * as SocketIo from "pages/api/socketio";
 import { v4 as uuidv4 } from "uuid";
 
@@ -363,5 +363,5 @@ afterAll(async () => {
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
 
-  jest.resetAllMocks();
+  jest.restoreAllMocks();
 });

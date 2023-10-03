@@ -48,10 +48,11 @@ export const thunkUpdateStationLocation = appCreateAsyncThunk<{
   );
 
   const station = getState().station.stations.find((s) => s.uuid === stationUuid);
-  if (elevation.payload === false) {
-    //gracefully reject?
+  if (!elevation || elevation.payload === false) {
+    //no elevation data, update just station location
+    dispatch(upsertStation({ ...station, location }));
   } else {
-    //upsert location and elevation
+    //upsert station location and elevation
     dispatch(upsertStation({ ...station, location, elevation: elevation.payload as number }));
   }
 
@@ -104,7 +105,7 @@ export const thunkFullUpdateWalkback = appCreateAsyncThunk<
   },
   AEGISPoint[],
   false
->("fullUpdateWalkbackPath", async ({ path, stationUuid }, { dispatch, getState }) => {
+>("fullUpdateWalkback", async ({ path, stationUuid }, { dispatch, getState }) => {
   //calculate path distances
   let newPath: AEGISPoint[];
   if (!path || path.length === 0) {
@@ -115,7 +116,6 @@ export const thunkFullUpdateWalkback = appCreateAsyncThunk<
   } else {
     newPath = _.cloneDeep(path);
   }
-  let newElevationProfile = null;
 
   const station = getState().station.stations.find((s) => s.uuid === stationUuid);
   const landerLocation = getState().mission.mission.landerLocation;
@@ -137,6 +137,7 @@ export const thunkFullUpdateWalkback = appCreateAsyncThunk<
   }
 
   //get elevation traverse
+  let newElevationProfile = null;
   const elevationResponse = await dispatch(
     thunkGetElevation({
       path: newPath,
@@ -144,8 +145,7 @@ export const thunkFullUpdateWalkback = appCreateAsyncThunk<
       uuid: stationUuid,
     })
   );
-
-  if (elevationResponse.payload !== false) {
+  if (elevationResponse && elevationResponse.payload !== false) {
     newElevationProfile = elevationResponse.payload as number[][];
   }
 
@@ -184,7 +184,7 @@ export const thunkResetWalkback = appCreateAsyncThunk<{
   ];
 
   //get elevation
-  let elevation = null;
+  let newElevationProfile = null;
   const elevationResponse = await dispatch(
     thunkGetElevation({
       path: newPath,
@@ -192,8 +192,8 @@ export const thunkResetWalkback = appCreateAsyncThunk<{
       uuid: stationUuid,
     })
   );
-  if (elevationResponse.payload !== false) {
-    elevation = elevationResponse.payload as number[][];
+  if (elevationResponse && elevationResponse.payload !== false) {
+    newElevationProfile = elevationResponse.payload as number[][];
   }
 
   //update store
@@ -202,7 +202,7 @@ export const thunkResetWalkback = appCreateAsyncThunk<{
       ...station,
       walkbackPath: newPath,
       walkbackPathSegmentDistances: newPathSegmentDistances,
-      walkbackPathSegmentElevations: elevation,
+      walkbackPathSegmentElevations: newElevationProfile,
     })
   );
 });
@@ -338,7 +338,7 @@ export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
         } as ReportItem);
       }
       // check if station has no associated POIs
-      if (station.poiUuids.length === 0) {
+      if (!station.poiUuids || station.poiUuids.length === 0) {
         newReportItems.push({
           message: "Station has no associated POIs",
           type: "info",
@@ -479,7 +479,7 @@ export const thunkSaveStation = appCreateAsyncThunk<{
     );
   }
 
-  // if the walkback is in edit mode, save the walkback
+  // if the walkback is in edit mode, cancel it out
   const stationMapDirective =
     getState().map.mapDirective?.uuid === station.uuid ? getState().map.mapDirective : null;
 

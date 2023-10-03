@@ -5,6 +5,7 @@ import {
   setEvasCalculatedFields,
   setEvasFromDb,
   setExpandedEvaUuids,
+  setSelectedEvaUuid,
   upsertEva,
   upsertEvaFromDb,
 } from "store/eva";
@@ -24,13 +25,14 @@ import {
 } from "store/traverse";
 import * as httpClient_Eva from "http-client/eva";
 import * as httpClient_Traverse from "http-client/traverse";
+import * as httpClient_Rex from "http-client/rex";
 import _ from "lodash";
 import { thunkFullUpdateTraverse, thunkUpdateTraversesAroundStation } from "./thunkTraverse";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import { mergeEquipmentItems } from "utils/store";
-import { thunkSelectRexEva } from "./thunkRex";
 import { thunkDuplicateStation } from "./thunkStation";
+import { upsertRex, upsertRexFromDb } from "store/rex";
 
 export const thunkCreateEvasCalculatedFields = appCreateAsyncThunk<void>(
   "createEvasCalculatedFields",
@@ -360,10 +362,16 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
   allRexes.forEach((rex) => {
     if (rex.selectedRexEvaUuid === eva.uuid) {
       if (confirm(`This EVA is selected in Real-time execution item ${rex.name}. Unselect it?`)) {
-        dispatch(thunkSelectRexEva({ rexUuid: rex.uuid, evaUuid: null }));
+        dispatch(upsertRex({ ...rex, selectedRexEvaUuid: null }, true));
+        dispatch(upsertRexFromDb({ ...rex, selectedRexEvaUuid: null }, true));
+        // persist the change to rex in the db
+        httpClient_Rex.upsertRex({ ...rex, selectedRexEvaUuid: null }, rexRunning);
       }
     }
   });
+
+  //first deselect the EVa. This prevents race errors when the timeline tries to render prematurely before we're done deleting all the parts
+  dispatch(setSelectedEvaUuid(null));
 
   // delete all of the traverses used in this EVA sequence if they are in traversesFromDb
   const traverseUuidsInThisEva: string[] = [];
@@ -426,7 +434,9 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
   }
 
   dispatch(setEvaEditMode({ evaUuid: eva.uuid, editMode: false }));
-  // close right panel
+  dispatch(
+    setExpandedEvaUuids(getState().eva.expandedEvaUuids.filter((uuid) => uuid !== eva.uuid))
+  );
   dispatch(setRightPanelOpen(false));
 });
 

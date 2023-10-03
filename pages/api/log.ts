@@ -93,8 +93,9 @@ const handleRex: NextApiHandler<WrappedResponse<Log[] | Log>> = async (
             status: "success",
             message: "Logs Deleted",
           });
-        } else {
-          return res.status(404).json({
+        } else if (logsDeletedSuccessfully === false) {
+          //check false explicity (vs null or undefined)
+          return res.status(200).json({
             status: "failure",
             message: "No logs found. Nothing deleted",
           });

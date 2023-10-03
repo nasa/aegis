@@ -7,12 +7,12 @@ import {
   thunkSavePoi,
   thunkUpdatePoiLocation,
 } from "store/thunk/thunkPoi";
-import { createTestPoi } from "../../factories/PoiFactory";
-import makeTestStore from "../../factories/makeTestStore";
+import { createTestPoi } from "../factories/PoiFactory";
+import createTestStore from "../factories/makeTestStore";
 import * as httpClient_poi from "http-client/poi";
 import * as httpClient_action from "http-client/action";
 import { roundDateToSecond } from "utils/formatting";
-import { createTestAction } from "../../factories/ActionFactory";
+import { createTestAction } from "../factories/ActionFactory";
 
 const mockThunkSaveActions = jest.fn();
 const mockThunkDuplicateActions = jest.fn();
@@ -23,6 +23,10 @@ jest.mock("store/thunk/thunkAction", () => ({
   thunkDuplicateActions: () => mockThunkDuplicateActions,
 }));
 
+afterAll(() => {
+  jest.restoreAllMocks();
+});
+
 describe("Thunk POI Tests", () => {
   it("thunkUpdatePoiLocation()", async () => {
     //mock and spy on the console log. This will supress it in the output
@@ -30,7 +34,7 @@ describe("Thunk POI Tests", () => {
 
     //populate the poi state in the store
     const newPoi: POI = createTestPoi();
-    const store = makeTestStore({
+    const store = createTestStore({
       poi: {
         pois: [newPoi],
         poisFromDb: [],
@@ -50,10 +54,10 @@ describe("Thunk POI Tests", () => {
 
     //we're expecting elevation call to gdal will fail with a console error during jest testing
     expect(clg).toBeCalledTimes(1);
-    clg.mockReset(); //reset the mock back to normal
+    clg.mockRestore(); //restore the mock back to normal
   });
 
-  it("thunkSavePoi() - does not save actions", async () => {
+  it("thunkSavePoi() - no modified actions", async () => {
     //mock the call to upsert to the DB (we don't actually want to upsert)
     const mockDbUpsertPoi = jest
       .spyOn(httpClient_poi, "upsertPOI")
@@ -71,7 +75,7 @@ describe("Thunk POI Tests", () => {
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
     const newPoiAction: Action = createTestAction({ poiUuid: poi.uuid });
-    const store = makeTestStore({
+    const store = createTestStore({
       poi: {
         pois: [poiModified],
         poisFromDb: [poi],
@@ -109,7 +113,7 @@ describe("Thunk POI Tests", () => {
     expect(mockThunkSaveActions).toBeCalledTimes(0);
     expect(storeState.action.actions[0]).toEqual(storeState.action.actionsFromDb[0]); //no actions were modified
 
-    mockDbUpsertPoi.mockReset(); //reset the mock back to normal
+    mockDbUpsertPoi.mockRestore(); //restore the mock back to normal
   });
 
   it("thunkSavePoi() - saves actions", async () => {
@@ -129,7 +133,7 @@ describe("Thunk POI Tests", () => {
       description: "modified description",
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
-    const store = makeTestStore({
+    const store = createTestStore({
       poi: {
         pois: [poi],
         poisFromDb: [poi],
@@ -155,7 +159,7 @@ describe("Thunk POI Tests", () => {
     expect(mockThunkSaveActions).toBeCalledTimes(1);
     expect(storeState.poi.poisEditing.length).toEqual(0);
 
-    mockDbUpsertPoi.mockReset(); //reset the mock back to normal
+    mockDbUpsertPoi.mockRestore(); //restore the mock back to normal
   });
 
   it("thunkPoiCancel()", async () => {
@@ -173,7 +177,7 @@ describe("Thunk POI Tests", () => {
       description: "modified description",
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
-    const store = makeTestStore({
+    const store = createTestStore({
       poi: {
         pois: [poiModified, unsavedPoi],
         poisFromDb: [poi],
@@ -249,7 +253,7 @@ describe("Thunk POI Tests", () => {
     const poiAction: Action = createTestAction({ poiUuid: poi.uuid });
     const unsavedPoi: POI = createTestPoi();
     const unsavedPoiAction: Action = createTestAction({ poiUuid: unsavedPoi.uuid });
-    const store = makeTestStore({
+    const store = createTestStore({
       poi: {
         pois: [poi, unsavedPoi],
         poisFromDb: [poi],
@@ -286,16 +290,16 @@ describe("Thunk POI Tests", () => {
     expect(mockDbDeletePoi).toBeCalledTimes(1); //no additional calls should have been made from the earlier call
     expect(mockDbGetPois).toBeCalledTimes(1); //no additional calls should have been made from the earlier call
 
-    //reset the mock back to normal
-    mockDbDeleteAction.mockReset();
-    mockDbGetActions.mockReset();
-    mockDbDeletePoi.mockReset();
-    mockDbGetPois.mockReset();
+    //restore the mock back to normal
+    mockDbDeleteAction.mockRestore();
+    mockDbGetActions.mockRestore();
+    mockDbDeletePoi.mockRestore();
+    mockDbGetPois.mockRestore();
   });
 
   it("thunkCreatePoi()", async () => {
     //populate the poi state in the store
-    const store = makeTestStore({
+    const store = createTestStore({
       poi: {
         pois: [],
         poisFromDb: [],
@@ -320,7 +324,7 @@ describe("Thunk POI Tests", () => {
     const poiAction1: Action = createTestAction({ poiUuid: poi.uuid });
     const poiAction2: Action = createTestAction({ poiUuid: poi.uuid });
     poi.actionOrderUuids = [poiAction1.uuid, poiAction2.uuid];
-    const store = makeTestStore({
+    const store = createTestStore({
       poi: {
         pois: [poi],
         poisFromDb: [poi],
@@ -366,7 +370,7 @@ describe("Thunk POI Tests", () => {
       durationLower: 1,
       durationUpper: 1,
     };
-    const store = makeTestStore({
+    const store = createTestStore({
       poi: {
         pois: [poi, poiNoActions],
         poisFromDb: [poi, poiNoActions],

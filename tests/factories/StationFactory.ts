@@ -10,20 +10,48 @@ export default class StationFactory extends Factory<Station_db> {
       uuid: uuidv4(),
       owner: null,
       mission: null,
+      poi: null,
+      actionOrderUuids: null,
       name: "Jest Station-1",
       status: "Candidate",
       description: "",
       radius: 0,
       location: null,
+      elevation: null,
       walkbackPath: null,
-      walkbackPathSegmentDistances: [0],
-      durationLower: 0,
-      durationUpper: 0,
+      walkbackPathSegmentDistances: null,
+      walkbackPathSegmentElevations: null,
+      durationLower: null,
+      durationUpper: null,
       rexStatus: null,
       icon: null,
-
       createdAt: new Date(),
       updatedAt: new Date(),
     };
   }
 }
+
+export const createTestStation = (): Station => {
+  return {
+    uuid: uuidv4(),
+    ownerId: null,
+    missionId: null,
+    poiUuids: null,
+    actionOrderUuids: null,
+    name: "Jest Station-1",
+    status: "Candidate",
+    description: "",
+    radius: 0,
+    location: null,
+    elevation: null,
+    walkbackPath: null,
+    walkbackPathSegmentDistances: null,
+    walkbackPathSegmentElevations: null,
+    icon: null,
+    durationLower: null,
+    durationUpper: null,
+    rexStatus: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+};
