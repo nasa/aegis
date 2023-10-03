@@ -263,7 +263,6 @@ export function secondsFromhhmmss(hhmmss: string): number {
 
 /**
  * calculate PET seconds from rex record
- * @param rex rex record
  * @returns string in hh:mm:ss format
  */
 

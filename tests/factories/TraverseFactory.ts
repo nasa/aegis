@@ -21,3 +21,22 @@ export default class TraverseFactory extends Factory<Traverse_db> {
     };
   }
 }
+
+export const createTestTraverse = (): Traverse => {
+  return {
+    uuid: uuidv4(),
+    missionId: null,
+    name: "Jest Traverse-1",
+    status: "Candidate",
+    path: null,
+    pathSegmentDistances: null,
+    pathSegmentElevations: null,
+    predictedDurationLower: 0,
+    predictedDurationUpper: 0,
+    description: "",
+    traverseRate: null,
+    rexStatus: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: null,
+  };
+};

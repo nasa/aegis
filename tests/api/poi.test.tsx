@@ -7,15 +7,15 @@ import {
 } from "node-mocks-http";
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { NextApiRequest, NextApiResponse } from "next";
-import login from "pages/api/auth/login";
+import Login from "pages/api/auth/login";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import handleEva from "pages/api/eva";
+import handlePOI from "pages/api/poi";
 import { User as User_db } from "server/database/models/user.model";
-import UserFactory from "../../factories/UserFactory";
+import UserFactory from "../factories/UserFactory";
+import { Poi as Poi_db } from "server/database/models/poi.model";
+import PoiFactory from "../factories/PoiFactory";
 import { Mission as Mission_db } from "server/database/models/mission.model";
-import MissionFactory from "../../factories/MissionFactory";
-import { Eva as Eva_db } from "server/database/models/eva.model";
-import EvaFactory from "../../factories/EVAFactory";
+import MissionFactory from "../factories/MissionFactory";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
 import { roundDateToSecond } from "utils/formatting";
@@ -26,7 +26,7 @@ global.TextDecoder = TextDecoder;
 
 let testUser: User_db;
 let testMissions: Mission_db[];
-let testEvas: Eva_db[];
+let testPois: Poi_db[];
 
 beforeAll(async () => {
   await getORM();
@@ -50,10 +50,10 @@ beforeAll(async () => {
       },
     ],
   });
-  testEvas = await new EvaFactory(em)
-    .each((eva) => {
-      eva.mission = testMissions[0];
-      eva.owner = testUser;
+  testPois = await new PoiFactory(em)
+    .each((poi) => {
+      poi.mission = testMissions[0];
+      poi.owner = testUser;
     })
     .create(2);
 
@@ -62,21 +62,25 @@ beforeAll(async () => {
   jest.spyOn(SocketIo, "emitStoreDelete").mockImplementation(() => {});
 });
 
-describe("EVA API Endpoint", () => {
+describe("Poi API Endpoint", () => {
   type ApiRequest = NextApiRequest & ReturnType<typeof createRequest>;
   type ApiResponse = NextApiResponse & ReturnType<typeof createResponse>;
 
   let loginCookie: string;
-  let newEVA: Eva = {
+  let newPoi: POI = {
     uuid: null,
-    ownerId: null,
     missionId: null,
-    name: "Jest Eva-1",
-    status: "Candidate",
-    sequence: null,
+    ownerId: null,
+    name: "Jest Test New Poi",
     description: "",
-    maxDuration: null,
-    traverseRate: null,
+    actionOrderUuids: [],
+    priorityOverride: null,
+    radius: 0,
+    location: null,
+    elevation: null,
+    icon: null,
+    tags: null,
+    status: "Candidate",
     createdAt: roundDateToSecond(new Date()).toISOString(),
     updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
@@ -87,7 +91,7 @@ describe("EVA API Endpoint", () => {
 
   test("Returns auth failure", async () => {
     const { req, res } = mockRequestResponse({ method: "GET" });
-    await handleEva(req, res);
+    await handlePOI(req, res);
     expect(res.statusCode).toBe(401);
     expect(res.statusMessage).toEqual("OK");
   });
@@ -97,7 +101,7 @@ describe("EVA API Endpoint", () => {
       method: "POST",
       body: { username: testUser.username, password: "superSecretPassword" },
     });
-    await login(loginReqRes.req, loginReqRes.res);
+    await Login(loginReqRes.req, loginReqRes.res);
     expect(loginReqRes.res.statusCode).toBe(200); //check response from login
     const response: WrappedResponse<IronSessionData> = loginReqRes.res._getJSONData();
     expect(response.status).toEqual("success");
@@ -112,35 +116,19 @@ describe("EVA API Endpoint", () => {
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handlePOI(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Returns single EVA by eva uuid", async () => {
-      const reqOptions: RequestOptions = {
-        method: "GET",
-        headers: { cookie: loginCookie },
-        query: { missionId: testMissions[0].id, uuid: testEvas[0].uuid },
-      };
-      const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
-      expect(res.statusCode).toBe(200);
-      expect(res.statusMessage).toEqual("OK");
-
-      const wrappedResponse = res._getJSONData();
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toEqual(1);
-    });
-
-    test("Returns all EVAs for mission", async () => {
+    test("Returns all Pois for mission", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handlePOI(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -149,14 +137,14 @@ describe("EVA API Endpoint", () => {
       expect(wrappedResponse.data.length).toBeGreaterThan(1);
     });
 
-    test("No EVAs returned", async () => {
+    test("No Pois returned", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handlePOI(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -172,11 +160,11 @@ describe("EVA API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newEVA, missionId: testMissions[2].id },
+        body: { ...newPoi, missionId: testMissions[2].id },
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handlePOI(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -185,55 +173,55 @@ describe("EVA API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newEVA, missionId: testMissions[1].id },
+        body: { ...newPoi, missionId: testMissions[1].id },
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handlePOI(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Create new EVA", async () => {
+    test("Create new Poi", async () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newEVA, missionId: testMissions[0].id, ownerId: testUser.id },
+        body: { ...newPoi, missionId: testMissions[0].id, ownerId: testUser.id },
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handlePOI(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedEVA = res._getJSONData().data;
-      expect(upsertedEVA.uuid).not.toBeNull();
-      newEVA = { ...upsertedEVA };
+      const upsertedPoi: POI = res._getJSONData().data;
+      expect(upsertedPoi.uuid).not.toBeNull();
+      newPoi = { ...upsertedPoi };
 
       //check if it was added to the db
       const em = getEM();
-      const evaReference = await em.findOne(Eva_db, upsertedEVA.uuid);
-      expect(evaReference).not.toBeNull();
+      const poiReference = await em.findOne(Poi_db, upsertedPoi.uuid);
+      expect(poiReference).not.toBeNull();
     });
 
-    test("Update a EVA", async () => {
-      newEVA.name = "Jest Test New EVA Modified";
+    test("Update a Poi", async () => {
+      newPoi.name = "Jest New Poi Modified";
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newEVA,
+        body: { ...newPoi, missionId: testMissions[0].id },
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handlePOI(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedEVA = res._getJSONData().data;
-      expect(upsertedEVA).not.toBeNull();
-      expect(upsertedEVA.name).toEqual("Jest Test New EVA Modified");
+      const upsertedPoi = res._getJSONData().data;
+      expect(upsertedPoi).not.toBeNull();
+      expect(upsertedPoi.name).toEqual("Jest New Poi Modified");
     });
   });
 
@@ -245,7 +233,7 @@ describe("EVA API Endpoint", () => {
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handlePOI(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -257,19 +245,19 @@ describe("EVA API Endpoint", () => {
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handlePOI(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Delete a EVA", async () => {
+    test("Delete a Poi", async () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { uuid: `${newEVA.uuid}`, missionId: testMissions[0].id },
+        query: { uuid: `${newPoi.uuid}`, missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handlePOI(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -282,8 +270,8 @@ describe("EVA API Endpoint", () => {
 afterAll(async () => {
   //Cleanup our Database
   const em = getEM();
-  for (let i = 0; i < testEvas.length; i++) {
-    await em.nativeDelete(Eva_db, { uuid: testEvas[i].uuid });
+  for (let i = 0; i < testPois.length; i++) {
+    await em.nativeDelete(Poi_db, { uuid: testPois[i].uuid });
   }
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
@@ -291,7 +279,7 @@ afterAll(async () => {
   await em.nativeDelete(User_db, { id: testUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
-  closeORM();
+  await closeORM();
 
-  jest.resetAllMocks();
+  jest.restoreAllMocks();
 });

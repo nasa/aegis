@@ -231,8 +231,9 @@ export const thunkUpdateActionLocation = appCreateAsyncThunk<{
   );
 
   const action = getState().action.actions.find((s) => s.uuid === actionUuid);
-  if (elevation.payload === false) {
+  if (!elevation || elevation.payload === false) {
     //gracefully reject?
+    dispatch(upsertAction({ ...action, location, elevation: null }));
   } else {
     //upsert location and elevation
     dispatch(upsertAction({ ...action, location, elevation: elevation.payload as number }));
@@ -247,7 +248,7 @@ export const thunkGetHighlightedActions = appCreateAsyncThunk<
   const actions = getState().action.actions.filter((a) => actionUuids.includes(a.uuid));
   const actionHighlights = [];
   for (const action of actions) {
-    const highlight = { uuid: action.uuid, highlight: false };
+    const highlight: ActionHighlight = { uuid: action.uuid, highlight: false };
     if (action.stmUuidRefs && stmUuid) {
       for (const actionSTMUuid of action.stmUuidRefs) {
         if (actionSTMUuid === stmUuid) {

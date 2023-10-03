@@ -11,7 +11,7 @@ import login from "pages/api/auth/login";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import handleUser from "pages/api/users";
 import { User as User_db } from "server/database/models/user.model";
-import UserFactory from "../../factories/UserFactory";
+import UserFactory from "../factories/UserFactory";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
 import logout from "pages/api/auth/logout";
@@ -230,5 +230,5 @@ afterAll(async () => {
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
 
-  jest.resetAllMocks();
+  jest.restoreAllMocks();
 });

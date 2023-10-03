@@ -7,26 +7,26 @@ import {
 } from "node-mocks-http";
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { NextApiRequest, NextApiResponse } from "next";
-import Login from "pages/api/auth/login";
+import login from "pages/api/auth/login";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import handleTraverse from "pages/api/traverse";
+import handleRex from "pages/api/rex";
 import { User as User_db } from "server/database/models/user.model";
-import UserFactory from "../../factories/UserFactory";
+import UserFactory from "../factories/UserFactory";
 import { Mission as Mission_db } from "server/database/models/mission.model";
-import MissionFactory from "../../factories/MissionFactory";
-import { Traverse as Traverse_db } from "server/database/models/traverse.model";
-import TraverseFactory from "../../factories/TraverseFactory";
+import MissionFactory from "../factories/MissionFactory";
+import { Rex as Rex_db } from "server/database/models/rex.model";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
 import { roundDateToSecond } from "utils/formatting";
 import * as SocketIo from "pages/api/socketio";
+import RexFactory from "../factories/RexFactory";
 
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
 let testUser: User_db;
 let testMissions: Mission_db[];
-let testTraverses: Traverse_db[];
+let testRexes: Rex_db[];
 
 beforeAll(async () => {
   await getORM();
@@ -50,9 +50,9 @@ beforeAll(async () => {
       },
     ],
   });
-  testTraverses = await new TraverseFactory(em)
-    .each((traverse) => {
-      traverse.mission = testMissions[0];
+  testRexes = await new RexFactory(em)
+    .each((rex) => {
+      rex.mission = testMissions[0];
     })
     .create(2);
 
@@ -61,23 +61,22 @@ beforeAll(async () => {
   jest.spyOn(SocketIo, "emitStoreDelete").mockImplementation(() => {});
 });
 
-describe("EVA API Endpoint", () => {
+describe("REX API Endpoint", () => {
   type ApiRequest = NextApiRequest & ReturnType<typeof createRequest>;
   type ApiResponse = NextApiResponse & ReturnType<typeof createResponse>;
 
   let loginCookie: string;
-  let newTraverse: Traverse = {
+  let newRex: Rex = {
     uuid: null,
     missionId: null,
-    name: "Jest Traverse-1",
-    path: null,
-    pathSegmentDistances: [0],
-    pathSegmentElevations: [[0]],
-    predictedDurationLower: 0,
-    predictedDurationUpper: 0,
-    status: "Candidate",
-    description: "",
-    rexStatus: null,
+    name: "Jest Rex-1",
+    description: null,
+    petStartStopTimestamp: null,
+    petValueAtStartStop: null,
+    petRunning: null,
+    selectedRexEvaUuid: null,
+    rexRunning: null,
+    crewPos: null,
     createdAt: roundDateToSecond(new Date()).toISOString(),
     updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
@@ -88,7 +87,7 @@ describe("EVA API Endpoint", () => {
 
   test("Returns auth failure", async () => {
     const { req, res } = mockRequestResponse({ method: "GET" });
-    await handleTraverse(req, res);
+    await handleRex(req, res);
     expect(res.statusCode).toBe(401);
     expect(res.statusMessage).toEqual("OK");
   });
@@ -98,7 +97,7 @@ describe("EVA API Endpoint", () => {
       method: "POST",
       body: { username: testUser.username, password: "superSecretPassword" },
     });
-    await Login(loginReqRes.req, loginReqRes.res);
+    await login(loginReqRes.req, loginReqRes.res);
     expect(loginReqRes.res.statusCode).toBe(200); //check response from login
     const response: WrappedResponse<IronSessionData> = loginReqRes.res._getJSONData();
     expect(response.status).toEqual("success");
@@ -113,35 +112,19 @@ describe("EVA API Endpoint", () => {
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleTraverse(req, res);
+      await handleRex(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Returns single Traverse by traverse uuid", async () => {
-      const reqOptions: RequestOptions = {
-        method: "GET",
-        headers: { cookie: loginCookie },
-        query: { missionId: testMissions[0].id, uuid: testTraverses[0].uuid },
-      };
-      const { req, res } = mockRequestResponse(reqOptions);
-      await handleTraverse(req, res);
-      expect(res.statusCode).toBe(200);
-      expect(res.statusMessage).toEqual("OK");
-
-      const wrappedResponse = res._getJSONData();
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toEqual(1);
-    });
-
-    test("Returns all Traverses for mission", async () => {
+    test("Returns all Rexes for mission", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleTraverse(req, res);
+      await handleRex(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -150,14 +133,14 @@ describe("EVA API Endpoint", () => {
       expect(wrappedResponse.data.length).toBeGreaterThan(1);
     });
 
-    test("No traverses returned", async () => {
+    test("No Rexes returned", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleTraverse(req, res);
+      await handleRex(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -173,11 +156,11 @@ describe("EVA API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newTraverse, missionId: testMissions[2].id },
+        body: { ...newRex, missionId: testMissions[2].id },
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleTraverse(req, res);
+      await handleRex(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -186,55 +169,55 @@ describe("EVA API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newTraverse, missionId: testMissions[1].id },
+        body: { ...newRex, missionId: testMissions[1].id },
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleTraverse(req, res);
+      await handleRex(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Create new Traverse", async () => {
+    test("Create new Rex", async () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newTraverse, missionId: testMissions[0].id, ownerId: testUser.id },
+        body: { ...newRex, missionId: testMissions[0].id },
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleTraverse(req, res);
+      await handleRex(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedTraverse = res._getJSONData().data;
-      expect(upsertedTraverse.uuid).not.toBeNull();
-      newTraverse = { ...upsertedTraverse };
+      const upsertedRex = res._getJSONData().data;
+      expect(upsertedRex.uuid).not.toBeNull();
+      newRex = { ...upsertedRex };
 
       //check if it was added to the db
       const em = getEM();
-      const traverseReference = await em.findOne(Traverse_db, upsertedTraverse.uuid);
-      expect(traverseReference).not.toBeNull();
+      const rexReference = await em.findOne(Rex_db, upsertedRex.uuid);
+      expect(rexReference).not.toBeNull();
     });
 
-    test("Update a Traverse", async () => {
-      newTraverse.name = "Jest Test New Traverse Modified";
+    test("Update a Rex", async () => {
+      newRex.name = "Jest Test New Rex Modified";
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newTraverse,
+        body: newRex,
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleTraverse(req, res);
+      await handleRex(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedTraverse = res._getJSONData().data;
-      expect(upsertedTraverse).not.toBeNull();
-      expect(upsertedTraverse.name).toEqual("Jest Test New Traverse Modified");
+      const upsertedRex = res._getJSONData().data;
+      expect(upsertedRex).not.toBeNull();
+      expect(upsertedRex.name).toEqual("Jest Test New Rex Modified");
     });
   });
 
@@ -246,19 +229,31 @@ describe("EVA API Endpoint", () => {
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleTraverse(req, res);
+      await handleRex(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Delete a Traverse", async () => {
+    test("No permissions - View only", async () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { uuid: `${newTraverse.uuid}`, missionId: testMissions[0].id },
+        query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleTraverse(req, res);
+      await handleRex(req, res);
+      expect(res.statusCode).toBe(401);
+      expect(res.statusMessage).toEqual("OK");
+    });
+
+    test("Delete a Rex", async () => {
+      const reqOptions: RequestOptions = {
+        method: "DELETE",
+        headers: { cookie: loginCookie },
+        query: { uuid: `${newRex.uuid}`, missionId: testMissions[0].id },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleRex(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -271,8 +266,8 @@ describe("EVA API Endpoint", () => {
 afterAll(async () => {
   //Cleanup our Database
   const em = getEM();
-  for (let i = 0; i < testTraverses.length; i++) {
-    await em.nativeDelete(Traverse_db, { uuid: testTraverses[i].uuid });
+  for (let i = 0; i < testRexes.length; i++) {
+    await em.nativeDelete(Rex_db, { uuid: testRexes[i].uuid });
   }
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
@@ -280,7 +275,7 @@ afterAll(async () => {
   await em.nativeDelete(User_db, { id: testUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
-  await closeORM();
+  closeORM();
 
-  jest.resetAllMocks();
+  jest.restoreAllMocks();
 });

@@ -1,6 +1,3 @@
-import { describe, expect, afterAll, beforeAll, test } from "@jest/globals";
-import "@testing-library/jest-dom";
-import { NextApiRequest, NextApiResponse } from "next";
 import {
   createMocks,
   createResponse,
@@ -8,28 +5,28 @@ import {
   RequestOptions,
   ResponseOptions,
 } from "node-mocks-http";
+import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
+import { NextApiRequest, NextApiResponse } from "next";
 import Login from "pages/api/auth/login";
-
 import { getORM, getEM, closeORM } from "utils/mikro";
-import UserFactory from "../../factories/UserFactory";
-import MissionFactory from "../../factories/MissionFactory";
-import handleLayer from "pages/api/layer";
-import LayerFactory from "../../factories/LayerFactory";
-import { Mission as Mission_db } from "server/database/models/mission.model";
+import handleTraverse from "pages/api/traverse";
 import { User as User_db } from "server/database/models/user.model";
-import { Layer as Layer_db } from "server/database/models/layer.model";
-import { createNewLayer } from "components/admin/helper";
-import fetchMock from "jest-fetch-mock";
-import { v4 as uuidv4 } from "uuid";
+import UserFactory from "../factories/UserFactory";
+import { Mission as Mission_db } from "server/database/models/mission.model";
+import MissionFactory from "../factories/MissionFactory";
+import { Traverse as Traverse_db } from "server/database/models/traverse.model";
+import TraverseFactory from "../factories/TraverseFactory";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
+import { roundDateToSecond } from "utils/formatting";
+import * as SocketIo from "pages/api/socketio";
 
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
-let testMissions: Mission_db[];
 let testUser: User_db;
-let testLayers: Layer_db[];
+let testMissions: Mission_db[];
+let testTraverses: Traverse_db[];
 
 beforeAll(async () => {
   await getORM();
@@ -53,23 +50,37 @@ beforeAll(async () => {
       },
     ],
   });
-
-  testLayers = await new LayerFactory(em)
-    .each((layer) => {
-      layer.mission = testMissions[0];
+  testTraverses = await new TraverseFactory(em)
+    .each((traverse) => {
+      traverse.mission = testMissions[0];
     })
     .create(2);
 
-  fetchMock.resetMocks();
+  // suppress socketio calls because they won't work during jest testing
+  jest.spyOn(SocketIo, "emitStoreUpsert").mockImplementation(() => {});
+  jest.spyOn(SocketIo, "emitStoreDelete").mockImplementation(() => {});
 });
 
-describe("Layer API Endpoint ", () => {
+describe("EVA API Endpoint", () => {
   type ApiRequest = NextApiRequest & ReturnType<typeof createRequest>;
   type ApiResponse = NextApiResponse & ReturnType<typeof createResponse>;
 
   let loginCookie: string;
-  let newLayer: Layer = createNewLayer();
-
+  let newTraverse: Traverse = {
+    uuid: null,
+    missionId: null,
+    name: "Jest Traverse-1",
+    path: null,
+    pathSegmentDistances: [0],
+    pathSegmentElevations: [[0]],
+    predictedDurationLower: 0,
+    predictedDurationUpper: 0,
+    status: "Candidate",
+    description: "",
+    rexStatus: null,
+    createdAt: roundDateToSecond(new Date()).toISOString(),
+    updatedAt: roundDateToSecond(new Date()).toISOString(),
+  };
   function mockRequestResponse(reqOptions: RequestOptions, resOptions?: ResponseOptions) {
     const { req, res }: { req: ApiRequest; res: ApiResponse } = createMocks(reqOptions, resOptions);
     return { req, res };
@@ -77,7 +88,7 @@ describe("Layer API Endpoint ", () => {
 
   test("Returns auth failure", async () => {
     const { req, res } = mockRequestResponse({ method: "GET" });
-    await handleLayer(req, res);
+    await handleTraverse(req, res);
     expect(res.statusCode).toBe(401);
     expect(res.statusMessage).toEqual("OK");
   });
@@ -102,57 +113,57 @@ describe("Layer API Endpoint ", () => {
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleLayer(req, res);
+      await handleTraverse(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Returns empty non-existant layer uuid for mission", async () => {
+    test("Returns single Traverse by traverse uuid", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
-        query: { missionId: testMissions[0].id, uuid: uuidv4() },
+        query: { missionId: testMissions[0].id, uuid: testTraverses[0].uuid },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleLayer(req, res);
+      await handleTraverse(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
-      const layers: Layer[] = res._getJSONData().data;
-      expect(res._getJSONData().status).toBe("success");
-      expect(layers.length).toEqual(0);
+      const wrappedResponse = res._getJSONData();
+      expect(wrappedResponse.status).toBe("success");
+      expect(wrappedResponse.data.length).toEqual(1);
     });
 
-    test("Returns single layer by layer uuid", async () => {
-      const reqOptions: RequestOptions = {
-        method: "GET",
-        headers: { cookie: loginCookie },
-        query: { missionId: testMissions[0].id, uuid: testLayers[0].uuid },
-      };
-      const { req, res } = mockRequestResponse(reqOptions);
-      await handleLayer(req, res);
-      expect(res.statusCode).toBe(200);
-      expect(res.statusMessage).toEqual("OK");
-
-      const layers: Layer[] = res._getJSONData().data;
-      expect(res._getJSONData().status).toBe("success");
-      expect(layers.length).toEqual(1);
-    });
-
-    test("Returns layers for mission", async () => {
+    test("Returns all Traverses for mission", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleLayer(req, res);
+      await handleTraverse(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
-      const layers: Layer[] = res._getJSONData().data;
-      expect(res._getJSONData().status).toBe("success");
-      expect(layers.length).toBeGreaterThan(1);
+      const wrappedResponse = res._getJSONData();
+      expect(wrappedResponse.status).toBe("success");
+      expect(wrappedResponse.data.length).toBeGreaterThan(1);
+    });
+
+    test("No traverses returned", async () => {
+      const reqOptions: RequestOptions = {
+        method: "GET",
+        headers: { cookie: loginCookie },
+        query: { missionId: testMissions[1].id },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleTraverse(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
+
+      const wrappedResponse = res._getJSONData();
+      expect(wrappedResponse.status).toBe("success");
+      expect(wrappedResponse.data.length).toEqual(0);
     });
   });
 
@@ -162,11 +173,11 @@ describe("Layer API Endpoint ", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newLayer, missionId: testMissions[2].id },
+        body: { ...newTraverse, missionId: testMissions[2].id },
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleLayer(req, res);
+      await handleTraverse(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -175,57 +186,55 @@ describe("Layer API Endpoint ", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newLayer, missionId: testMissions[1].id },
+        body: { ...newTraverse, missionId: testMissions[1].id },
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleLayer(req, res);
+      await handleTraverse(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Create new layer", async () => {
+    test("Create new Traverse", async () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newLayer, missionId: testMissions[0].id },
+        body: { ...newTraverse, missionId: testMissions[0].id, ownerId: testUser.id },
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleLayer(req, res);
+      await handleTraverse(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedLayer: Layer = res._getJSONData().data;
-      expect(upsertedLayer.uuid).not.toBeNull();
-      newLayer = { ...upsertedLayer };
+      const upsertedTraverse = res._getJSONData().data;
+      expect(upsertedTraverse.uuid).not.toBeNull();
+      newTraverse = { ...upsertedTraverse };
 
       //check if it was added to the db
       const em = getEM();
-      const layerRef: Layer_db = await em.findOne(Layer_db, upsertedLayer.uuid);
-      expect(layerRef).not.toBeNull();
+      const traverseReference = await em.findOne(Traverse_db, upsertedTraverse.uuid);
+      expect(traverseReference).not.toBeNull();
     });
 
-    test("Update a layer", async () => {
-      newLayer.name = "Jest Test Layer Modified";
-      newLayer.missionId = testMissions[0].id;
-
+    test("Update a Traverse", async () => {
+      newTraverse.name = "Jest Test New Traverse Modified";
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newLayer,
+        body: newTraverse,
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleLayer(req, res);
+      await handleTraverse(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedLayer: Layer = res._getJSONData().data;
-      expect(upsertedLayer).not.toBeNull();
-      expect(upsertedLayer.name).toEqual("Jest Test Layer Modified");
+      const upsertedTraverse = res._getJSONData().data;
+      expect(upsertedTraverse).not.toBeNull();
+      expect(upsertedTraverse.name).toEqual("Jest Test New Traverse Modified");
     });
   });
 
@@ -237,33 +246,19 @@ describe("Layer API Endpoint ", () => {
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleLayer(req, res);
+      await handleTraverse(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("No permissions - View only", async () => {
+    test("Delete a Traverse", async () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { missionId: testMissions[1].id },
+        query: { uuid: `${newTraverse.uuid}`, missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleLayer(req, res);
-      expect(res.statusCode).toBe(401);
-      expect(res.statusMessage).toEqual("OK");
-    });
-
-    test("Delete a layer", async () => {
-      newLayer.missionId = testMissions[0].id;
-
-      const reqOptions: RequestOptions = {
-        method: "DELETE",
-        headers: { cookie: loginCookie },
-        query: { uuid: `${newLayer.uuid}`, missionId: testMissions[0].id },
-      };
-      const { req, res } = mockRequestResponse(reqOptions);
-      await handleLayer(req, res);
+      await handleTraverse(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -276,15 +271,16 @@ describe("Layer API Endpoint ", () => {
 afterAll(async () => {
   //Cleanup our Database
   const em = getEM();
-  for (let i = 0; i < testLayers.length; i++) {
-    await em.nativeDelete(Layer_db, { uuid: testLayers[i].uuid });
+  for (let i = 0; i < testTraverses.length; i++) {
+    await em.nativeDelete(Traverse_db, { uuid: testTraverses[i].uuid });
   }
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
   await em.nativeDelete(User_db, { id: testUser.id });
+
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
 
-  jest.resetAllMocks();
+  jest.restoreAllMocks();
 });
