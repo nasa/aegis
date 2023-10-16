@@ -17,6 +17,12 @@ import { createTestMission } from "../factories/MissionFactory";
 import { createTestStation } from "../factories/StationFactory";
 import { createTestEva } from "../factories/EVAFactory";
 import * as httpClient_traverse from "http-client/traverse";
+jest.mock("http-client/traverse", () => {
+  return {
+    __esModule: true,
+    ...jest.requireActual("http-client/traverse"),
+  };
+});
 
 const mockThunkGetElevation = jest.fn();
 jest.mock("store/thunk/thunkElevation", () => ({

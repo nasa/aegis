@@ -1,7 +1,7 @@
 interface PaneType {
   title: string;
-  leftPane: Function;
-  rightPane: Function;
+  leftPane: FunctionComponent;
+  rightPane: FunctionComponent;
   color: string;
   icon: IconProp;
 }

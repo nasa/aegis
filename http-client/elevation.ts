@@ -1,4 +1,4 @@
-import fetchWithTimeout from "utils/fetch-with-timeout";
+import { clientFetchWithTimeout } from "utils/fetch-with-timeout";
 import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
 
 export async function getElevationProfile(
@@ -18,7 +18,7 @@ export async function getElevationProfile(
     radius,
   };
 
-  const res = await fetchWithTimeout(`/api/elevation`, {
+  const res = await clientFetchWithTimeout(`/api/elevation`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -47,7 +47,7 @@ export async function getElevationSinglePoint(
     radius,
   };
 
-  const res = await fetchWithTimeout(`/api/elevation`, {
+  const res = await clientFetchWithTimeout(`/api/elevation`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

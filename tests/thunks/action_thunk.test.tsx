@@ -1,4 +1,3 @@
-import * as httpClient_action from "http-client/action";
 import createTestStore from "../factories/makeTestStore";
 import { roundDateToSecond } from "utils/formatting";
 import { createTestAction } from "../factories/ActionFactory";
@@ -17,6 +16,13 @@ import {
   thunkUpdateActionLocation,
 } from "store/thunk/thunkAction";
 import { createTestPoi } from "../factories/PoiFactory";
+import * as httpClient_action from "http-client/action";
+jest.mock("http-client/action", () => {
+  return {
+    __esModule: true,
+    ...jest.requireActual("http-client/action"),
+  };
+});
 
 const mockThunkGetElevation = jest.fn();
 jest.mock("store/thunk/thunkElevation", () => ({

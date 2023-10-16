@@ -34,7 +34,9 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO): void 
     >(httpServer, {
       transports: ["websocket"],
       path: "/api/socketio",
+      addTrailingSlash: false,
     });
+    res.socket.server.io = io;
 
     const visitorsData: VisitorData[] = global.__serverSocketStatus__.visitorsData;
 

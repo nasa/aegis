@@ -1,16 +1,15 @@
 import { Entity, ManyToOne, PrimaryKey, Property, types as MikroTypes } from "@mikro-orm/core";
-import { Mission } from "./mission.model";
-import { Layer } from "./layer.model";
+import { Layer_db, Mission_db } from "./_allModels";
 
 @Entity()
-export class Sublayer implements Sublayer_db_type {
+export class Sublayer_db implements Sublayer_db_type {
   @PrimaryKey({ type: MikroTypes.uuid })
   uuid: string;
 
-  @ManyToOne(() => Mission, { unique: false, primary: false })
-  mission!: Mission;
-  @ManyToOne(() => Layer, { unique: false, primary: false })
-  layer!: Layer;
+  @ManyToOne(() => Mission_db, { unique: false, primary: false })
+  mission!: Mission_db;
+  @ManyToOne(() => Layer_db, { unique: false, primary: false })
+  layer!: Layer_db;
 
   @Property({ type: MikroTypes.text, nullable: true })
   name!: string;

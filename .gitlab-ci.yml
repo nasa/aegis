@@ -15,7 +15,7 @@ default:
 
 variables:
   HOME: "/tmp" # required for openshift for now
-  CURRENT_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:18-alpine"
+  CURRENT_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:18.18.1-alpine"
   # "Future" might be older if waiting on a newer version to come out
   FUTURE_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:20-alpine"
 
@@ -302,7 +302,7 @@ docker:build:nextjs:
     SERVICE_NAME: nextjs
     MULTISTAGE_TARGET: prod
     BASE_IMAGE_VAR: NEXTJS_BASE_IMAGE
-    BASE_IMAGE_VALUE: eegitlabregistry.fit.nasa.gov/emss/docker-images/node:18-alpine
+    BASE_IMAGE_VALUE: $CURRENT_NODE_VERSION_IMAGE
 
 docker:build:gdal:
   extends: .kaniko-build-template

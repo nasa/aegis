@@ -3,7 +3,7 @@ import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 import { getEM, withORM } from "utils/mikro";
 import _ from "lodash";
-import { Sublayer as Sublayer_db } from "server/database/models/sublayer.model";
+import { Sublayer_db } from "server/database/models/_allModels";
 import {
   EntityData,
   ForeignKeyConstraintViolationException,

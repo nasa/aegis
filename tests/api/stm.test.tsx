@@ -10,13 +10,15 @@ import { NextApiRequest, NextApiResponse } from "next";
 import Login from "pages/api/auth/login";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import handleSTM from "pages/api/stm";
-import { User as User_db } from "server/database/models/user.model";
+import {
+  User_db,
+  Mission_db,
+  STM_Objective_db,
+  STM_Goal_db,
+  STM_Investigation_db,
+} from "server/database/models/_allModels";
 import UserFactory from "../factories/UserFactory";
-import { Mission as Mission_db } from "server/database/models/mission.model";
 import MissionFactory from "../factories/MissionFactory";
-import { STM_Objective as STM_Objective_db } from "server/database/models/stm_objective.model";
-import { STM_Goal as STM_Goal_db } from "server/database/models/stm_goal.model";
-import { STM_Investigation as STM_Investigation_db } from "server/database/models/stm_investigation.model";
 import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
 import STMObjectiveFactory from "../factories/STMObjectiveFactory";
 import STMInvestigationFactory from "../factories/STMInvestigationFactory";

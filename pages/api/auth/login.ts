@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import bcrypt from "bcryptjs";
 import { ironOptions } from "server/session/config";
-import { User } from "server/database/models/user.model";
+import { User_db } from "server/database/models/_allModels";
 import type { IronSessionData } from "iron-session";
 
 import { withORM, getEM } from "utils/mikro";
@@ -36,7 +36,7 @@ async function login(
   password: string
 ): Promise<WrappedResponse<IronSessionData>> {
   const model = getEM();
-  const user = await model.findOne(User, { username });
+  const user = await model.findOne(User_db, { username });
   if (!user) {
     return { status: "failure", message: "No such user." };
   } else {

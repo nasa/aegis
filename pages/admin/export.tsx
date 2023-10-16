@@ -16,7 +16,7 @@ import {
   makeExportEvas,
 } from "utils/export";
 import * as httpClient_log from "http-client/log";
-const jsonKeysSort = require("json-keys-sort");
+import * as jsonKeysSort from "json-keys-sort";
 
 const ExportPage: NextPage = () => {
   const router = useRouter();

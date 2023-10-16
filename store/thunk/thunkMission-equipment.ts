@@ -28,8 +28,8 @@ export const thunkDeleteEquipment = appCreateAsyncThunk<{ equipmentItemUuid: str
   "deleteEquipment",
   async ({ equipmentItemUuid }, { dispatch, getState }) => {
     // find all of the things that could be using this equipment item
-    const actionsUsingEquipmentItem = getState().action.actions.filter((action) =>
-      action.equipmentItemsUsage?.some((item) => item.uuid === equipmentItemUuid)
+    const actionsUsingEquipmentItem = getState().action.actions.filter(
+      (action) => action.equipmentItemsUsage?.some((item) => item.uuid === equipmentItemUuid)
     );
     const templatesUsingEquipmentItem = getState().mission.mission.actionTemplates?.filter(
       (template) => template.equipmentItemsUsage?.some((item) => item.uuid === equipmentItemUuid)

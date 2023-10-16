@@ -11,7 +11,7 @@ import { getORM, getEM, closeORM } from "utils/mikro";
 import isLoggedIn from "pages/api/auth/isLoggedIn";
 import logout from "pages/api/auth/logout";
 import login from "pages/api/auth/login";
-import { User as User_db } from "server/database/models/user.model";
+import { User_db } from "server/database/models/_allModels";
 import UserFactory from "../factories/UserFactory";
 import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
 

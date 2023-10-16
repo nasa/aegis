@@ -10,7 +10,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import login from "pages/api/auth/login";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import handleUser from "pages/api/users";
-import { User as User_db } from "server/database/models/user.model";
+import { User_db } from "server/database/models/_allModels";
 import UserFactory from "../factories/UserFactory";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";

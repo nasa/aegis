@@ -2,7 +2,7 @@ import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 import { withORM, getEM } from "utils/mikro";
-import { Preset as Preset_db } from "server/database/models/preset.model";
+import { Preset_db } from "server/database/models/_allModels";
 import { EntityData } from "@mikro-orm/core";
 import { hasPerms } from "utils/permissions";
 import { emitStoreDelete, emitStoreUpsert } from "./socketio";

@@ -3,7 +3,7 @@ import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 import { IronSessionData } from "iron-session";
 import { getEM, withORM } from "utils/mikro";
-import { User } from "server/database/models/user.model";
+import { User_db } from "server/database/models/_allModels";
 
 export default withIronSessionApiRoute(withORM(handler), ironOptions);
 
@@ -15,7 +15,7 @@ async function handler(
     if (req.session.user) {
       const model = getEM();
       const { id } = req.session.user;
-      const user = await model.findOne(User, { id });
+      const user = await model.findOne(User_db, { id });
 
       //Get the latest user data to refresh the session information.
       req.session.user = {
