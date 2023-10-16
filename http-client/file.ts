@@ -1,9 +1,9 @@
-import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
+import axios, { AxiosRequestConfig, AxiosResponse, AxiosProgressEvent } from "axios";
 
 export async function uploadFile(
   formData: FormData,
   controller: AbortController,
-  progressCallback?: (progressEvent: ProgressEvent) => void
+  progressCallback?: (progressEvent: AxiosProgressEvent) => void
 ): Promise<AxiosResponse> {
   const config: AxiosRequestConfig = {
     headers: { "content-type": "multipart/form-data" },

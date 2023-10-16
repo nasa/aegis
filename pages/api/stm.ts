@@ -8,9 +8,11 @@ import {
   Loaded,
   QueryOrder,
 } from "@mikro-orm/core";
-import { STM_Objective as STMObjective_db } from "server/database/models/stm_objective.model";
-import { STM_Goal as STMGoal_db } from "server/database/models/stm_goal.model";
-import { STM_Investigation as STMInvestigation_db } from "server/database/models/stm_investigation.model";
+import {
+  STM_Objective_db,
+  STM_Goal_db,
+  STM_Investigation_db,
+} from "server/database/models/_allModels";
 import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
@@ -237,16 +239,16 @@ const handleSTM: NextApiHandler<
 async function getObjectives(missionId: number, objectiveUUID?: string): Promise<STMObjective[]> {
   const em = getEM();
 
-  let objectives: Loaded<STMObjective_db, never>[];
+  let objectives: Loaded<STM_Objective_db, never>[];
   if (objectiveUUID) {
     objectives = await em.find(
-      STMObjective_db,
+      STM_Objective_db,
       { uuid: objectiveUUID, mission: { id: missionId } },
       { orderBy: { numbering: QueryOrder.ASC } }
     );
   } else {
     objectives = await em.find(
-      STMObjective_db,
+      STM_Objective_db,
       { mission: { id: missionId } },
       { orderBy: { numbering: QueryOrder.ASC } }
     );
@@ -294,8 +296,8 @@ async function getGoals(
   const goalWhereClause: { uuid?: string; objective: {} } = { objective: objectiveWhereClause };
   if (goalUUID) goalWhereClause.uuid = goalUUID;
 
-  const goals: Loaded<STMGoal_db, never>[] = await em.find(
-    STMGoal_db,
+  const goals: Loaded<STM_Goal_db, never>[] = await em.find(
+    STM_Goal_db,
     { ...goalWhereClause },
     { orderBy: [{ objective: { numbering: QueryOrder.ASC } }, { numbering: QueryOrder.ASC }] }
   );
@@ -347,8 +349,8 @@ async function getInvestigations(
   const invstgWhereClause: { uuid?: string; goal: {} } = { goal: goalWhereClause };
   if (investigationUUID) invstgWhereClause.uuid = investigationUUID;
 
-  const invstgs: Loaded<STMInvestigation_db, never>[] = await em.find(
-    STMInvestigation_db,
+  const invstgs: Loaded<STM_Investigation_db, never>[] = await em.find(
+    STM_Investigation_db,
     { ...invstgWhereClause },
     {
       orderBy: [
@@ -399,7 +401,7 @@ async function upsertSTM(
   //determine the db table and perform upsert
   if (stmType === "Objective") {
     const objective = stmObject as STMObjective;
-    const convertedObjective: EntityData<STMObjective_db> = {
+    const convertedObjective: EntityData<STM_Objective_db> = {
       uuid: objective.uuid,
       numbering: objective.numbering,
       name: objective.name,
@@ -408,7 +410,7 @@ async function upsertSTM(
       updatedAt: new Date(objective.updatedAt),
     }; //convert fks
 
-    const upsertReference: STMObjective_db = await em.upsert(STMObjective_db, convertedObjective);
+    const upsertReference: STM_Objective_db = await em.upsert(STM_Objective_db, convertedObjective);
     await em.persistAndFlush(upsertReference);
 
     const upsertedObjective: STMObjective = {
@@ -422,7 +424,7 @@ async function upsertSTM(
     return upsertedObjective;
   } else if (stmType === "Goal") {
     const goal = stmObject as STMGoal;
-    const convertedGoal: EntityData<STMGoal_db> = {
+    const convertedGoal: EntityData<STM_Goal_db> = {
       uuid: goal.uuid,
       numbering: goal.numbering,
       name: goal.name,
@@ -431,7 +433,7 @@ async function upsertSTM(
       updatedAt: new Date(goal.updatedAt),
     }; //convert fks
 
-    const upsertReference: STMGoal_db = await em.upsert(STMGoal_db, convertedGoal);
+    const upsertReference: STM_Goal_db = await em.upsert(STM_Goal_db, convertedGoal);
     await em.persistAndFlush(upsertReference);
 
     const upsertedGoal: STMGoal = {
@@ -445,7 +447,7 @@ async function upsertSTM(
     return upsertedGoal;
   } else {
     const invstg = stmObject as STMInvestigation;
-    const convertedInvstg: EntityData<STMInvestigation_db> = {
+    const convertedInvstg: EntityData<STM_Investigation_db> = {
       uuid: invstg.uuid,
       numbering: invstg.numbering,
       name: invstg.name,
@@ -453,8 +455,8 @@ async function upsertSTM(
       createdAt: new Date(invstg.createdAt),
       updatedAt: new Date(invstg.updatedAt),
     };
-    const upsertReference: STMInvestigation_db = await em.upsert(
-      STMInvestigation_db,
+    const upsertReference: STM_Investigation_db = await em.upsert(
+      STM_Investigation_db,
       convertedInvstg
     );
     await em.persistAndFlush(upsertReference);
@@ -486,21 +488,21 @@ async function deleteSTM(
   const em = getEM();
 
   if (stmType === "Objective") {
-    const entity = await em.findOne(STMObjective_db, stmUUID);
+    const entity = await em.findOne(STM_Objective_db, stmUUID);
     if (entity) {
       await em.removeAndFlush(entity);
     } else {
       returnVal = null;
     }
   } else if (stmType === "Goal") {
-    const entity = await em.findOne(STMGoal_db, stmUUID);
+    const entity = await em.findOne(STM_Goal_db, stmUUID);
     if (entity) {
       await em.removeAndFlush(entity);
     } else {
       returnVal = null;
     }
   } else {
-    const entity = await em.findOne(STMInvestigation_db, stmUUID);
+    const entity = await em.findOne(STM_Investigation_db, stmUUID);
     if (entity) {
       await em.removeAndFlush(entity);
     } else {
@@ -524,13 +526,13 @@ async function deleteSTMTree(missionId: number): Promise<string> {
     for (const goal of goals) {
       const investigations = await getInvestigations(missionId, null, goal.uuid);
       for (const investigation of investigations) {
-        const entity = await em.findOne(STMInvestigation_db, investigation.uuid);
+        const entity = await em.findOne(STM_Investigation_db, investigation.uuid);
         em.remove(entity);
       }
-      const entity = await em.findOne(STMGoal_db, goal.uuid);
+      const entity = await em.findOne(STM_Goal_db, goal.uuid);
       em.remove(entity);
     }
-    const entity = await em.findOne(STMObjective_db, objective.uuid);
+    const entity = await em.findOne(STM_Objective_db, objective.uuid);
     em.remove(entity);
   }
   await em.flush();

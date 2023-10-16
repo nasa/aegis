@@ -8,7 +8,7 @@ import {
   Loaded,
   QueryOrder,
 } from "@mikro-orm/core";
-import { Action as Action_db } from "server/database/models/action.model";
+import { Action_db } from "server/database/models/_allModels";
 import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";

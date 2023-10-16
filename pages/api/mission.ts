@@ -4,7 +4,7 @@ import { ironOptions } from "server/session/config";
 import { withORM, getEM } from "utils/mikro";
 
 import _ from "lodash";
-import { Mission as Mission_db } from "server/database/models/mission.model";
+import { Mission_db } from "server/database/models/_allModels";
 import { EntityData, ForeignKeyConstraintViolationException } from "@mikro-orm/core";
 import { hasPerms } from "utils/permissions";
 import { emitStoreUpsert } from "./socketio";

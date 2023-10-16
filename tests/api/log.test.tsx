@@ -10,17 +10,21 @@ import { NextApiRequest, NextApiResponse } from "next";
 import login from "pages/api/auth/login";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import handleLog from "pages/api/log";
-import { User as User_db } from "server/database/models/user.model";
+import { User_db, Mission_db, Log_db } from "server/database/models/_allModels";
 import UserFactory from "../factories/UserFactory";
-import { Mission as Mission_db } from "server/database/models/mission.model";
 import MissionFactory from "../factories/MissionFactory";
-import { Log as Log_db } from "server/database/models/log.model";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
 import { roundDateToSecond } from "utils/formatting";
-import * as SocketIo from "pages/api/socketio";
 import LogFactory from "../factories/LogFactory";
 import { v4 as uuidv4 } from "uuid";
+import * as SocketIo from "pages/api/socketio";
+jest.mock("pages/api/socketio", () => {
+  return {
+    __esModule: true,
+    ...jest.requireActual("pages/api/socketio"),
+  };
+});
 
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;

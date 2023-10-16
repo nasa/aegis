@@ -1,7 +1,7 @@
 import { Entity, PrimaryKey, Property, types as MikroTypes } from "@mikro-orm/core";
 
 @Entity()
-export class Mission implements Mission_db_type {
+export class Mission_db implements Mission_db_type {
   @PrimaryKey({ type: MikroTypes.integer })
   id!: number;
 

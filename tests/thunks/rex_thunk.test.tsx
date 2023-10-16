@@ -20,6 +20,12 @@ import {
   thunkUpdateCrewPosLocation,
 } from "store/thunk/thunkRex";
 import * as httpClient_rex from "http-client/rex";
+jest.mock("http-client/rex", () => {
+  return {
+    __esModule: true,
+    ...jest.requireActual("http-client/rex"),
+  };
+});
 
 //I don't understand what is even calling this that is causing me to mock it
 jest.mock("string-strip-html", () => ({

@@ -1,16 +1,15 @@
 import { Entity, ManyToOne, PrimaryKey, Property, types as MikroTypes } from "@mikro-orm/core";
-import { User } from "./user.model";
-import { Mission } from "./mission.model";
+import { Mission_db, User_db } from "./_allModels";
 
 @Entity()
-export class Preset implements Preset_db_type {
+export class Preset_db implements Preset_db_type {
   @PrimaryKey({ type: MikroTypes.uuid, unique: true })
   uuid!: string;
 
-  @ManyToOne(() => User, { unique: false, primary: false })
-  owner!: User;
-  @ManyToOne(() => Mission, { unique: false, primary: false })
-  mission!: Mission;
+  @ManyToOne(() => User_db, { unique: false, primary: false })
+  owner!: User_db;
+  @ManyToOne(() => Mission_db, { unique: false, primary: false })
+  mission!: Mission_db;
 
   @Property({ type: MikroTypes.text })
   name: string;

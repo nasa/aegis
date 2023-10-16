@@ -10,16 +10,20 @@ import { NextApiRequest, NextApiResponse } from "next";
 import Login from "pages/api/auth/login";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import handleTraverse from "pages/api/traverse";
-import { User as User_db } from "server/database/models/user.model";
+import { Mission_db, Traverse_db, User_db } from "server/database/models/_allModels";
 import UserFactory from "../factories/UserFactory";
-import { Mission as Mission_db } from "server/database/models/mission.model";
 import MissionFactory from "../factories/MissionFactory";
-import { Traverse as Traverse_db } from "server/database/models/traverse.model";
 import TraverseFactory from "../factories/TraverseFactory";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
 import { roundDateToSecond } from "utils/formatting";
 import * as SocketIo from "pages/api/socketio";
+jest.mock("pages/api/socketio", () => {
+  return {
+    __esModule: true,
+    ...jest.requireActual("pages/api/socketio"),
+  };
+});
 
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;

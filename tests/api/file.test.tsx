@@ -1,9 +1,8 @@
 // Testing file: file.tsx - using jest
 import { describe } from "@jest/globals";
 import { deleteFile, listFiles, renameFile } from "server/file/file";
-
-const fs = require("fs");
-const path = require("path");
+import * as fs from "fs";
+import * as path from "path";
 
 describe("File API Endpoint", () => {
   const OLD_ENV = process.env;

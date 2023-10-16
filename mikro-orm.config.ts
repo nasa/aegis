@@ -1,18 +1,22 @@
 import { Options } from "@mikro-orm/core";
-import { Mission } from "./server/database/models/mission.model";
-import { User } from "./server/database/models/user.model";
-import { Layer } from "./server/database/models/layer.model";
-import { Sublayer } from "./server/database/models/sublayer.model";
-import { Preset } from "./server/database/models/preset.model";
-import { STM_Objective } from "./server/database/models/stm_objective.model";
-import { STM_Goal } from "./server/database/models/stm_goal.model";
-import { STM_Investigation } from "./server/database/models/stm_investigation.model";
-import { Poi } from "./server/database/models/poi.model";
-import { Action } from "./server/database/models/action.model";
-import { Traverse } from "./server/database/models/traverse.model";
-import { Eva } from "./server/database/models/eva.model";
-import { Rex } from "./server/database/models/rex.model";
-import { Log } from "./server/database/models/log.model";
+
+import {
+  User_db,
+  Mission_db,
+  Station_db,
+  Poi_db,
+  Log_db,
+  Action_db,
+  Eva_db,
+  Layer_db,
+  Preset_db,
+  Rex_db,
+  STM_Objective_db,
+  STM_Goal_db,
+  STM_Investigation_db,
+  Sublayer_db,
+  Traverse_db,
+} from "./server/database/models/_allModels";
 import path from "path";
 
 const port = parseInt(process.env.AEGIS_DB_PORT);
@@ -30,39 +34,41 @@ const config: Options = {
     path: path.join(__dirname, "./server/database/seeds"), // path to the folder with seed files
   },
   entitiesTs: [
-    Mission,
-    User,
-    Layer,
-    Sublayer,
-    Preset,
-    STM_Objective,
-    STM_Goal,
-    STM_Investigation,
-    Poi,
-    Action,
-    Traverse,
-    Eva,
-    Rex,
-    Log,
+    User_db,
+    Mission_db,
+    Station_db,
+    Poi_db,
+    Log_db,
+    Action_db,
+    Eva_db,
+    Layer_db,
+    Preset_db,
+    Rex_db,
+    STM_Objective_db,
+    STM_Goal_db,
+    STM_Investigation_db,
+    Sublayer_db,
+    Traverse_db,
   ],
   entities: [
-    Mission,
-    User,
-    Layer,
-    Sublayer,
-    Preset,
-    STM_Objective,
-    STM_Goal,
-    STM_Investigation,
-    Poi,
-    Action,
-    Traverse,
-    Eva,
-    Rex,
-    Log,
+    User_db,
+    Mission_db,
+    Station_db,
+    Poi_db,
+    Log_db,
+    Action_db,
+    Eva_db,
+    Layer_db,
+    Preset_db,
+    Rex_db,
+    STM_Objective_db,
+    STM_Goal_db,
+    STM_Investigation_db,
+    Sublayer_db,
+    Traverse_db,
   ],
   debug: process.env.DEBUG === "true" || process.env.DEBUG?.includes("db"),
-  allowGlobalContext: process.env.NODE_ENV === "test",
+  allowGlobalContext: true,
 };
 
 export default config;

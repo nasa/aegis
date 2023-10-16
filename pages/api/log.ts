@@ -3,7 +3,7 @@ import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 import { withORM, getEM } from "utils/mikro";
 import _ from "lodash";
-import { Log as Log_db } from "server/database/models/log.model";
+import { Log_db } from "server/database/models/_allModels";
 import { EntityData, ForeignKeyConstraintViolationException } from "@mikro-orm/core";
 import { hasPerms } from "utils/permissions";
 

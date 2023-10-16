@@ -336,9 +336,8 @@ const MapBody: FunctionComponent = () => {
               zIndex: index,
               filter,
               // custom class name that we use to control mix-blend-mode
-              className: `leaflet-layer leaflet-blend-${
-                mapSublayerControls[sublayer.uuid].style?.blendMode
-              }`,
+              className: `leaflet-layer leaflet-blend-${mapSublayerControls[sublayer.uuid].style
+                ?.blendMode}`,
             }
           );
 

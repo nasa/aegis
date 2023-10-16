@@ -3,7 +3,7 @@ import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 import { withORM, getEM } from "utils/mikro";
 import { EntityData, QueryOrder } from "@mikro-orm/core";
-import { Poi as Poi_db } from "server/database/models/poi.model";
+import { Poi_db } from "server/database/models/_allModels";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
 import { emitStoreDelete, emitStoreUpsert } from "./socketio";

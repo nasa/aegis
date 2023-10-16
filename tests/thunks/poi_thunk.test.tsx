@@ -9,10 +9,22 @@ import {
 } from "store/thunk/thunkPoi";
 import { createTestPoi } from "../factories/PoiFactory";
 import createTestStore from "../factories/makeTestStore";
-import * as httpClient_poi from "http-client/poi";
-import * as httpClient_action from "http-client/action";
 import { roundDateToSecond } from "utils/formatting";
 import { createTestAction } from "../factories/ActionFactory";
+import * as httpClient_poi from "http-client/poi";
+import * as httpClient_action from "http-client/action";
+jest.mock("http-client/poi", () => {
+  return {
+    __esModule: true,
+    ...jest.requireActual("http-client/poi"),
+  };
+});
+jest.mock("http-client/action", () => {
+  return {
+    __esModule: true,
+    ...jest.requireActual("http-client/action"),
+  };
+});
 
 const mockThunkSaveActions = jest.fn();
 const mockThunkDuplicateActions = jest.fn();

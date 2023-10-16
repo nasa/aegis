@@ -5,7 +5,7 @@ import { getEM, withORM } from "utils/mikro";
 
 import _ from "lodash";
 import { EntityData } from "@mikro-orm/core";
-import { User as User_db } from "server/database/models/user.model";
+import { User_db } from "server/database/models/_allModels";
 import bcrypt from "bcryptjs";
 
 const handleUser: NextApiHandler<WrappedResponse<User[] | User>> = async (

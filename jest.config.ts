@@ -14,14 +14,13 @@ const config = {
       "<rootDir>/tests/__mocks__/fileMock.js",
     "\\.(css|scss)$": "identity-obj-proxy",
     "^__mocks__(.*)$": "<rootDir>/__mocks__$1",
-    "^client/(.*)$": "<rootDir>/client/$1",
     "^components/(.*)$": "<rootDir>/components/$1",
     "^http-client/(.*)$": "<rootDir>/http-client/$1",
     "^pages/(.*)$": "<rootDir>/pages/$1",
     "^public/(.*)$": "<rootDir>/public/$1",
     "^server/(.*)$": "<rootDir>/server/$1",
-    "^services/(.*)$": "<rootDir>/services/$1",
     "^store/(.*)$": "<rootDir>/store/$1",
+    "^tests/(.*)$": "<rootDir>/tests/$1",
     "^typings$": "<rootDir>/typings/index.d",
     "^typings/(.*)$": "<rootDir>/typings/$1",
     "^utils/(.*)$": "<rootDir>/utils/$1",
@@ -59,8 +58,7 @@ const config = {
     "ts-jest": {
       tsconfig: "tsconfig.jest.json",
       // https://huafu.github.io/ts-jest/user/config/diagnostics#examples
-      // TODO: turn this on after js->ts conversion is complete
-      diagnostics: false,
+      warnOnly: true,
     },
     window: {},
     document: {},

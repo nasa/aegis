@@ -1,5 +1,5 @@
 import { Factory } from "@mikro-orm/seeder";
-import { Station as Station_db } from "server/database/models/station.model";
+import { Station_db } from "server/database/models/_allModels";
 import { v4 as uuidv4 } from "uuid";
 import { EntityData } from "@mikro-orm/core";
 

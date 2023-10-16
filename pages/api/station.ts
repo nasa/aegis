@@ -8,8 +8,7 @@ import {
   Loaded,
   QueryOrder,
 } from "@mikro-orm/core";
-import { Station as Station_db } from "server/database/models/station.model";
-import { Poi as Poi_db } from "server/database/models/poi.model";
+import { Station_db, Poi_db } from "server/database/models/_allModels";
 import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";

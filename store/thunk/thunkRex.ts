@@ -249,9 +249,8 @@ export const thunkUpdateCrewPosLocation = appCreateAsyncThunk<{
 export const thunkCancelCrewPosLocation = appCreateAsyncThunk<{
   crewPosEditingUuid: string;
 }>("cancelCrewPosLoc", async ({ crewPosEditingUuid }, { dispatch, getState }) => {
-  const allCrewPos = getState().rex.rexes.find(
-    (r) => r.uuid === getState().rex.selectedRexUuid
-  )?.crewPos;
+  const allCrewPos = getState().rex.rexes.find((r) => r.uuid === getState().rex.selectedRexUuid)
+    ?.crewPos;
   const crewPos = allCrewPos.find((c) => c.uuid === crewPosEditingUuid);
   if (!crewPos.location) {
     //no location means this is a newly created crew pos. delete the uuid currently being edited

@@ -316,9 +316,8 @@ export const ActionList: FunctionComponent<{
   return (
     <ul className={actionsStyles.actionlist}>
       {actionOrderUuids?.map((actionUuid, index) => {
-        const highlight = isActionHiglighted.find(
-          (highlight) => highlight.uuid === actionUuid
-        )?.highlight;
+        const highlight = isActionHiglighted.find((highlight) => highlight.uuid === actionUuid)
+          ?.highlight;
         const parentLocation =
           stations?.find((station) => station.actionOrderUuids.includes(actionUuid))?.location ||
           pois?.find((poi) => poi.actionOrderUuids.includes(actionUuid))?.location;

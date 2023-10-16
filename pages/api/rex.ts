@@ -4,7 +4,7 @@ import { ironOptions } from "server/session/config";
 import { withORM, getEM } from "utils/mikro";
 
 import _ from "lodash";
-import { Rex as Rex_db } from "server/database/models/rex.model";
+import { Rex_db } from "server/database/models/_allModels";
 import { EntityData, ForeignKeyConstraintViolationException } from "@mikro-orm/core";
 import { hasPerms } from "utils/permissions";
 import { emitStoreDelete, emitStoreUpsert } from "./socketio";

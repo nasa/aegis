@@ -1,7 +1,3 @@
-import * as thunkStation from "store/thunk/thunkStation";
-import * as thunkMap from "store/thunk/thunkMap";
-import * as httpClient_station from "http-client/station";
-import * as httpClient_action from "http-client/action";
 import createTestStore from "../factories/makeTestStore";
 import { createTestStation } from "../factories/StationFactory";
 import { roundDateToSecond } from "utils/formatting";
@@ -13,6 +9,34 @@ import { initialState as stationInitialState } from "store/station";
 import { initialState as missionInitialState } from "store/mission";
 import { initialState as mapInitialState } from "store/map";
 import { isEqual } from "lodash";
+import * as httpClient_station from "http-client/station";
+import * as httpClient_action from "http-client/action";
+import * as thunkStation from "store/thunk/thunkStation";
+import * as thunkMap from "store/thunk/thunkMap";
+jest.mock("http-client/station", () => {
+  return {
+    __esModule: true,
+    ...jest.requireActual("http-client/station"),
+  };
+});
+jest.mock("http-client/action", () => {
+  return {
+    __esModule: true,
+    ...jest.requireActual("http-client/action"),
+  };
+});
+jest.mock("store/thunk/thunkStation", () => {
+  return {
+    __esModule: true,
+    ...jest.requireActual("store/thunk/thunkStation"),
+  };
+});
+jest.mock("store/thunk/thunkMap", () => {
+  return {
+    __esModule: true,
+    ...jest.requireActual("store/thunk/thunkMap"),
+  };
+});
 
 const mockThunkSaveActions = jest.fn();
 const mockThunkDuplicateActions = jest.fn();

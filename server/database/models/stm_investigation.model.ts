@@ -1,13 +1,13 @@
 import { Entity, PrimaryKey, Property, ManyToOne, types as MikroTypes } from "@mikro-orm/core";
-import { STM_Goal } from "./stm_goal.model";
+import { STM_Goal_db } from "./_allModels";
 
 @Entity()
-export class STM_Investigation implements STMInvestigation_db_type {
+export class STM_Investigation_db implements STMInvestigation_db_type {
   @PrimaryKey({ type: MikroTypes.string })
   uuid!: string;
 
-  @ManyToOne(() => STM_Goal) //many investigations have one goal
-  goal!: STM_Goal;
+  @ManyToOne(() => STM_Goal_db) //many investigations have one goal
+  goal!: STM_Goal_db;
 
   @Property({ type: MikroTypes.text })
   name!: string;

@@ -3,7 +3,7 @@ import { types as MikroTypes } from "@mikro-orm/core";
 import * as bcrypt from "bcryptjs";
 
 @Entity()
-export class User implements User_db_type {
+export class User_db implements User_db_type {
   @PrimaryKey({ type: MikroTypes.integer })
   id!: number;
 

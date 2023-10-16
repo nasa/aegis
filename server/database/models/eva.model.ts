@@ -1,17 +1,16 @@
 import { Entity, ManyToOne, PrimaryKey, Property } from "@mikro-orm/core";
-import { Mission } from "./mission.model";
-import { User } from "./user.model";
 import { types as MikroTypes } from "@mikro-orm/core";
+import { Mission_db, User_db } from "./_allModels";
 
 @Entity()
-export class Eva implements Eva_db_type {
+export class Eva_db implements Eva_db_type {
   @PrimaryKey({ type: MikroTypes.string, unique: true })
   uuid!: string;
 
-  @ManyToOne(() => User, { unique: false, primary: false })
-  owner!: User;
-  @ManyToOne(() => Mission, { unique: false, primary: false })
-  mission!: Mission;
+  @ManyToOne(() => User_db, { unique: false, primary: false })
+  owner!: User_db;
+  @ManyToOne(() => Mission_db, { unique: false, primary: false })
+  mission!: Mission_db;
 
   @Property({ type: MikroTypes.text })
   name!: string;
