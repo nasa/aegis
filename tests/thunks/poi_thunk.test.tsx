@@ -72,10 +72,14 @@ describe("Thunk POI Tests", () => {
   it("thunkSavePoi() - no modified actions", async () => {
     //mock the call to upsert to the DB (we don't actually want to upsert)
     const mockDbUpsertPoi = jest
-      .spyOn(httpClient_poi, "upsertPOI")
-      .mockImplementation(async (poi) => {
+      .spyOn(httpClient_poi, "upsertPOIs")
+      .mockImplementation(async (pois) => {
         //just return the poi that was passed in
-        const res: WrappedResponse<POI> = { status: "success", message: "POI upserted", data: poi };
+        const res: WrappedResponse<POI[]> = {
+          status: "success",
+          message: "POI upserted",
+          data: pois,
+        };
         return res;
       });
 
@@ -131,9 +135,13 @@ describe("Thunk POI Tests", () => {
   it("thunkSavePoi() - saves actions", async () => {
     //mock the call to upsert to the DB (we don't actually want to upsert)
     const mockDbUpsertPoi = jest
-      .spyOn(httpClient_poi, "upsertPOI")
-      .mockImplementation(async (poi) => {
-        const res: WrappedResponse<POI> = { status: "success", message: "POI upserted", data: poi };
+      .spyOn(httpClient_poi, "upsertPOIs")
+      .mockImplementation(async (pois) => {
+        const res: WrappedResponse<POI[]> = {
+          status: "success",
+          message: "POI upserted",
+          data: pois,
+        };
         return res;
       });
 
@@ -226,7 +234,7 @@ describe("Thunk POI Tests", () => {
   it("thunkDeletePoi()", async () => {
     //mock the calls the DB
     const mockDbDeleteAction = jest
-      .spyOn(httpClient_action, "deleteAction")
+      .spyOn(httpClient_action, "deleteActions")
       .mockImplementation(async () => {
         const res: WrappedResponse<null> = {
           status: "success",
@@ -244,13 +252,15 @@ describe("Thunk POI Tests", () => {
         };
         return res;
       });
-    const mockDbDeletePoi = jest.spyOn(httpClient_poi, "deletePOI").mockImplementation(async () => {
-      const res: WrappedResponse<null> = {
-        status: "success",
-        message: "POI Deleted",
-      };
-      return res;
-    });
+    const mockDbDeletePoi = jest
+      .spyOn(httpClient_poi, "deletePOIs")
+      .mockImplementation(async () => {
+        const res: WrappedResponse<null> = {
+          status: "success",
+          message: "POI Deleted",
+        };
+        return res;
+      });
     const mockDbGetPois = jest.spyOn(httpClient_poi, "getPOIs").mockImplementation(async () => {
       const res: WrappedResponse<POI[]> = {
         status: "success",

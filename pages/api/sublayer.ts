@@ -43,15 +43,16 @@ const handleSublayer: NextApiHandler<WrappedResponse<Sublayer[] | Sublayer>> = a
     const { uuid, missionId } = req.query;
     const intMissionId = parseInt(missionId as string);
     const sublayerUUID = uuid as string;
+
+    if (!intMissionId || _.isNaN(intMissionId)) {
+      return res.status(500).json({ status: "error", message: "Invalid mission ID" });
+    }
+
     const editPermission = await hasPerms(intMissionId, "edit", req.session?.user);
 
     // retrieve record
     if (req.method === "GET") {
       try {
-        if (!intMissionId || _.isNaN(intMissionId)) {
-          return res.status(500).json({ status: "error", message: "Invalid mission ID" });
-        }
-
         const viewPermission = await hasPerms(intMissionId, "view", req.session?.user);
         if (!viewPermission && !editPermission)
           return res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -75,22 +76,17 @@ const handleSublayer: NextApiHandler<WrappedResponse<Sublayer[] | Sublayer>> = a
     if (req.method === "POST") {
       //must have edit permission for a given mission id
       //  or must be an admin to the back end (during mission create)
-      if (
-        missionId &&
-        !editPermission &&
-        !req.session.user.isAdmin &&
-        !req.session.user.isSuperAdmin
-      ) {
+      if (!editPermission) {
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
 
       try {
         //perform the upsert
-        const upsertObject: Sublayer = req.body as Sublayer;
-        const upsertResponse: Sublayer = await upsertSublayer(upsertObject);
+        const upsertObjects: Sublayer[] = req.body as Sublayer[];
+        const upsertResponse: Sublayer[] = await upsertSublayers(upsertObjects);
 
         //check response
-        if (!upsertResponse) {
+        if (upsertResponse.length === 0) {
           return res.status(500).json({
             status: "error",
             message: "Upsert response did not return a value",
@@ -99,7 +95,7 @@ const handleSublayer: NextApiHandler<WrappedResponse<Sublayer[] | Sublayer>> = a
         } else {
           return res.status(200).json({
             status: "success",
-            message: `Sublayer upserted with ID ${upsertResponse.uuid}`,
+            message: `Sublayer upserted with ID ${upsertResponse.map((s) => s.uuid)}`,
             data: upsertResponse,
           });
         }
@@ -113,18 +109,15 @@ const handleSublayer: NextApiHandler<WrappedResponse<Sublayer[] | Sublayer>> = a
 
     //delete a record
     if (req.method === "DELETE") {
-      if (!intMissionId || _.isNaN(intMissionId)) {
-        return res.status(500).json({ status: "error", message: "Invalid mission ID" });
-      }
-
       if (!editPermission) {
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
 
       try {
-        const deletedUUID = await deleteSublayer(sublayerUUID);
+        const uuidsToDelete: string[] = req.body;
+        const deletedUUIDs = await deleteSublayers(uuidsToDelete);
 
-        if (deletedUUID) {
+        if (deletedUUIDs.length > 0) {
           return res.status(200).json({
             status: "success",
             message: "Sublayer Deleted",
@@ -214,85 +207,94 @@ async function getSublayers(missionId: number, sublayerUUID?: string): Promise<S
 }
 
 /**
- * Inserts or Updates a sublayer into the database
- * @param sublayer the sublayer object to upsert
- * @returns a copy of the sublayer object that was upserted
+ * Inserts or Updates sublayers into the database
+ * @param sublayers the sublayers to upsert
+ * @returns a copy of the sublayers  that was upserted
  */
-async function upsertSublayer(sublayer: Sublayer): Promise<Sublayer> {
+async function upsertSublayers(sublayers: Sublayer[]): Promise<Sublayer[]> {
   const em = getEM();
-  const upsertRecord: Sublayer = _.cloneDeep(sublayer);
+  const sublayersToUpsert: Sublayer[] = _.cloneDeep(sublayers);
+  const sublayersUpsertedToDb = [];
 
-  //convert fks and upsert
-  const convertedRecord: EntityData<Sublayer_db> = {
-    uuid: upsertRecord.uuid || uuidv4(),
-    mission: upsertRecord.missionId,
-    layer: upsertRecord.layerUuid,
-    name: upsertRecord.name,
-    description: upsertRecord.description,
-    legend: upsertRecord.legend,
-    type: upsertRecord.type,
-    url: upsertRecord.url,
-    filePath: upsertRecord.filePath,
-    boundingBox: upsertRecord.boundingBox,
-    tileFormat: upsertRecord.tileFormat,
-    minNativeZoom: upsertRecord.minNativeZoom,
-    maxNativeZoom: upsertRecord.maxNativeZoom,
-    maxZoom: upsertRecord.maxZoom,
-    color: upsertRecord.color,
-    opacity: upsertRecord.opacity,
-    fillColor: upsertRecord.fillColor,
-    fillOpacity: upsertRecord.fillOpacity,
-    weight: upsertRecord.weight,
-    createdAt: new Date(upsertRecord.createdAt),
-    updatedAt: new Date(upsertRecord.updatedAt),
-  };
-  const upsertReference = await em.upsert(Sublayer_db, convertedRecord);
+  for (const sublayerToUpsert of sublayersToUpsert) {
+    //convert fks and upsert
+    const convertedRecord: EntityData<Sublayer_db> = {
+      uuid: sublayerToUpsert.uuid || uuidv4(),
+      mission: sublayerToUpsert.missionId,
+      layer: sublayerToUpsert.layerUuid,
+      name: sublayerToUpsert.name,
+      description: sublayerToUpsert.description,
+      legend: sublayerToUpsert.legend,
+      type: sublayerToUpsert.type,
+      url: sublayerToUpsert.url,
+      filePath: sublayerToUpsert.filePath,
+      boundingBox: sublayerToUpsert.boundingBox,
+      tileFormat: sublayerToUpsert.tileFormat,
+      minNativeZoom: sublayerToUpsert.minNativeZoom,
+      maxNativeZoom: sublayerToUpsert.maxNativeZoom,
+      maxZoom: sublayerToUpsert.maxZoom,
+      color: sublayerToUpsert.color,
+      opacity: sublayerToUpsert.opacity,
+      fillColor: sublayerToUpsert.fillColor,
+      fillOpacity: sublayerToUpsert.fillOpacity,
+      weight: sublayerToUpsert.weight,
+      createdAt: new Date(sublayerToUpsert.createdAt),
+      updatedAt: new Date(sublayerToUpsert.updatedAt),
+    };
+    const upsertReference = await em.upsert(Sublayer_db, convertedRecord);
+    em.persist(upsertReference);
+    sublayersUpsertedToDb.push(upsertReference);
+  }
 
-  await em.persistAndFlush(upsertReference);
+  await em.flush();
 
   //convert fks back
-  const result: Sublayer = {
-    uuid: upsertReference.uuid,
-    missionId: upsertReference.mission.id,
-    layerUuid: upsertReference.layer.uuid,
-    name: upsertReference.name,
-    description: upsertReference.description,
-    legend: upsertReference.legend,
-    url: upsertReference.url,
-    type: upsertReference.type,
-    filePath: upsertReference.filePath,
-    boundingBox: upsertReference.boundingBox,
-    tileFormat: upsertReference.tileFormat,
-    minNativeZoom: upsertReference.minNativeZoom,
-    maxNativeZoom: upsertReference.maxNativeZoom,
-    maxZoom: upsertReference.maxZoom,
-    color: upsertReference.color,
-    opacity: upsertReference.opacity,
-    fillColor: upsertReference.fillColor,
-    fillOpacity: upsertReference.fillOpacity,
-    weight: upsertReference.weight,
-    createdAt: upsertReference.createdAt.toISOString(),
-    updatedAt: upsertReference.updatedAt.toISOString(),
-  };
+  const convertedSublayers = sublayersUpsertedToDb.map((s) => {
+    return {
+      uuid: s.uuid,
+      missionId: s.mission.id,
+      layerUuid: s.layer.uuid,
+      name: s.name,
+      description: s.description,
+      legend: s.legend,
+      url: s.url,
+      type: s.type,
+      filePath: s.filePath,
+      boundingBox: s.boundingBox,
+      tileFormat: s.tileFormat,
+      minNativeZoom: s.minNativeZoom,
+      maxNativeZoom: s.maxNativeZoom,
+      maxZoom: s.maxZoom,
+      color: s.color,
+      opacity: s.opacity,
+      fillColor: s.fillColor,
+      fillOpacity: s.fillOpacity,
+      weight: s.weight,
+      createdAt: s.createdAt.toISOString(),
+      updatedAt: s.updatedAt.toISOString(),
+    };
+  });
 
-  return result;
+  return convertedSublayers;
 }
 
 /**
- * Deletes a single sublayer
- * @param uuid sublayer uuid to delete
- * @returns the uuid of the deleted sublayer, or null if nothing was deleted
+ * Deletes sublayers
+ * @param uuids sublayer uuids to delete
+ * @returns the uuids of the deleted sublayers
  */
-async function deleteSublayer(uuid: string): Promise<string | null> {
+async function deleteSublayers(uuids: string[]): Promise<string[]> {
   const em = getEM();
-  let returnVal = uuid;
-  const entity = await em.findOne(Sublayer_db, uuid);
-  if (entity) {
-    await em.removeAndFlush(entity);
-  } else {
-    returnVal = null;
+  const deletedUuids = [];
+  for (const uuid of uuids) {
+    const entity = await em.findOne(Sublayer_db, uuid);
+    if (entity) {
+      em.remove(entity);
+      deletedUuids.push(uuid);
+    }
   }
-  return returnVal;
+  await em.flush(); //perform deletes
+  return deletedUuids;
 }
 
 export default withIronSessionApiRoute(withORM(handleSublayer), ironOptions);

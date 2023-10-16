@@ -450,19 +450,21 @@ export const thunkSaveStation = appCreateAsyncThunk<{
   dispatch(thunkUpdateTraversesAroundStation({ stationUuid: station.uuid, saveToDb: true }));
 
   // upsert the changed Station to the DB via internal API call
-  const stationUpsertResponse = await httpClient_station.upsertStation(
-    {
-      ...station,
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    },
+  const stationUpsertResponse = await httpClient_station.upsertStations(
+    [
+      {
+        ...station,
+        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      },
+    ],
     rexRunning
   );
 
   if (stationUpsertResponse.status === "success") {
     // upsert the changed Station (with new updated date) to the store
-    dispatch(upsertStation(stationUpsertResponse.data, true));
+    dispatch(upsertStation(stationUpsertResponse.data[0], true));
     // update the Statiofromdb copy in store
-    dispatch(upsertStationFromDb(stationUpsertResponse.data));
+    dispatch(upsertStationFromDb(stationUpsertResponse.data[0]));
   } else {
     throw new Error("Error upserting Station: " + stationUpsertResponse.message);
   }
@@ -583,28 +585,29 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
   // if the selected station is in stationsFromDb then delete it from the db
   if (stationFromDb) {
     // delete actions from the db via internal api call
-    for (const actionToDelete of stationActions) {
-      const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteAction(
-        actionToDelete.uuid,
+    const actionuuidsToDelete: string[] = stationActions.map((a) => a.uuid);
+    if (actionuuidsToDelete.length > 0) {
+      const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteActions(
+        actionuuidsToDelete,
         rexRunning
       );
       if (actionDeleteResponse.status !== "success") {
         throw new Error("Error deleting actions for station " + actionDeleteResponse.message);
       }
-    }
-    // delete actions from the store
-    dispatch(deleteActionsByUuid(stationActions.map((a) => a.uuid)));
-    // update store copy of the db with a fresh copy of actions for this mission from the db
-    const actionData = await httpClient_action.getActions({
-      missionId: getState().mission.mission?.id,
-    });
-    if (actionData.data) {
-      dispatch(setActionsFromDb(actionData.data));
+      // delete actions from the store
+      dispatch(deleteActionsByUuid(actionuuidsToDelete));
+      // update store copy of the db with a fresh copy of actions for this mission from the db
+      const actionData = await httpClient_action.getActions({
+        missionId: getState().mission.mission?.id,
+      });
+      if (actionData.data) {
+        dispatch(setActionsFromDb(actionData.data));
+      }
     }
 
     // delete the Station from the DB via internal API call
-    const deleteResponse: WrappedResponse<number> = await httpClient_station.deleteStation(
-      station.uuid,
+    const deleteResponse: WrappedResponse<number> = await httpClient_station.deleteStations(
+      [station.uuid],
       rexRunning
     );
     if (deleteResponse.status === "success") {
@@ -732,6 +735,6 @@ export const thunkCycleStationRexToNextStatus = appCreateAsyncThunk<{ stationUui
     dispatch(upsertStationFromDb({ ...station, rexStatus }));
 
     // update the station in the database
-    httpClient_station.upsertStation({ ...station, rexStatus }, rexRunning);
+    httpClient_station.upsertStations([{ ...station, rexStatus }], rexRunning);
   }
 );

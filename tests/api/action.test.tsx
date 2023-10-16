@@ -342,7 +342,8 @@ describe("Action API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { uuid: `${newAction.uuid}`, missionId: testMissions[0].id },
+        query: { missionId: testMissions[0].id },
+        body: [newAction.uuid],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleAction(req, res);

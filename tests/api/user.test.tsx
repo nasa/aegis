@@ -27,10 +27,10 @@ beforeAll(async () => {
   await getORM();
   const em = getEM();
   testUser = await new UserFactory(em).createOne({
-    username: "testRegularUser",
+    username: "Jest regular user",
   });
   testSuperAdmin = await new UserFactory(em).createOne({
-    username: "testSuperAdmin",
+    username: "Jest super admin",
     isSuperAdmin: true,
   });
 });
@@ -87,7 +87,6 @@ describe("User API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        query: { missionId: testUser.id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleUser(req, res);
@@ -99,7 +98,6 @@ describe("User API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { missionId: testUser.id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleUser(req, res);
@@ -130,7 +128,7 @@ describe("User API Endpoint", () => {
         const reqOptions: RequestOptions = {
           method: "GET",
           headers: { cookie: loginCookie },
-          query: { userId: testUser.id.toString() },
+          query: { userId: testUser.id },
         };
         const { req, res } = mockRequestResponse(reqOptions);
         await handleUser(req, res);
@@ -165,7 +163,7 @@ describe("User API Endpoint", () => {
         const reqOptions: RequestOptions = {
           method: "POST",
           headers: { cookie: loginCookie },
-          body: newUser,
+          body: [newUser],
         };
         const { req, res } = mockRequestResponse(reqOptions);
         await handleUser(req, res);
@@ -173,7 +171,7 @@ describe("User API Endpoint", () => {
         expect(res.statusMessage).toEqual("OK");
 
         expect(res._getJSONData().data).not.toBeNull();
-        const upsertedUser = res._getJSONData().data;
+        const upsertedUser = res._getJSONData().data[0];
         expect(upsertedUser.id).not.toBeNull();
 
         //check if it was added to the db
@@ -188,7 +186,7 @@ describe("User API Endpoint", () => {
         const reqOptions: RequestOptions = {
           method: "POST",
           headers: { cookie: loginCookie },
-          body: newUser,
+          body: [newUser],
         };
         const { req, res } = mockRequestResponse(reqOptions);
         await handleUser(req, res);
@@ -196,7 +194,7 @@ describe("User API Endpoint", () => {
         expect(res.statusMessage).toEqual("OK");
 
         expect(res._getJSONData().data).not.toBeNull();
-        const upsertedUser = res._getJSONData().data;
+        const upsertedUser = res._getJSONData().data[0];
         expect(upsertedUser).not.toBeNull();
         expect(upsertedUser.username).toEqual("Jest new user Modified");
       });
@@ -207,7 +205,7 @@ describe("User API Endpoint", () => {
         const reqOptions: RequestOptions = {
           method: "DELETE",
           headers: { cookie: loginCookie },
-          query: { userId: newUser.id },
+          body: [newUser.id],
         };
         const { req, res } = mockRequestResponse(reqOptions);
         await handleUser(req, res);

@@ -68,12 +68,12 @@ describe("Thunk Rex Tests", () => {
   test("thunkSaveRex", async () => {
     //mock the call to upsert to the DB (we don't actually want to upsert)
     const mockDbUpsertRex = jest
-      .spyOn(httpClient_rex, "upsertRex")
-      .mockImplementation(async (rex) => {
-        const res: WrappedResponse<Rex> = {
+      .spyOn(httpClient_rex, "upsertRexes")
+      .mockImplementation(async (rexes) => {
+        const res: WrappedResponse<Rex[]> = {
           status: "success",
           message: "Rex upserted",
-          data: rex,
+          data: rexes,
         };
         return res;
       });
@@ -130,12 +130,12 @@ describe("Thunk Rex Tests", () => {
   test("thunkDeleteRex", async () => {
     //mock the call to upsert to the DB (we don't actually want to upsert)
     const mockDbDeleteRex = jest
-      .spyOn(httpClient_rex, "deleteRex")
-      .mockImplementation(async (rexUuid) => {
-        const res: WrappedResponse<string> = {
+      .spyOn(httpClient_rex, "deleteRexes")
+      .mockImplementation(async () => {
+        const res: WrappedResponse<null> = {
           status: "success",
           message: "Rex deleted",
-          data: rexUuid,
+          data: null,
         };
         return res;
       });
@@ -211,12 +211,12 @@ describe("Thunk Crew Pos Tests", () => {
   test("thunkUpdateCrewPosLocation", async () => {
     //mock the call to upsert to the DB (we don't actually want to upsert)
     const mockDbUpsertRex = jest
-      .spyOn(httpClient_rex, "upsertRex")
-      .mockImplementation(async (rex) => {
-        const res: WrappedResponse<Rex> = {
+      .spyOn(httpClient_rex, "upsertRexes")
+      .mockImplementation(async (rexes) => {
+        const res: WrappedResponse<Rex[]> = {
           status: "success",
           message: "Rex upserted",
-          data: rex,
+          data: rexes,
         };
         return res;
       });
@@ -326,12 +326,12 @@ describe("Thunk Crew Pos Tests", () => {
   test("thunkSaveCrewPosition", async () => {
     //mock the call to upsert to the DB (we don't actually want to upsert)
     const mockDbUpsertRex = jest
-      .spyOn(httpClient_rex, "upsertRex")
-      .mockImplementation(async (rex) => {
-        const res: WrappedResponse<Rex> = {
+      .spyOn(httpClient_rex, "upsertRexes")
+      .mockImplementation(async (rexes) => {
+        const res: WrappedResponse<Rex[]> = {
           status: "success",
           message: "Rex upserted",
-          data: rex,
+          data: rexes,
         };
         return res;
       });
@@ -364,12 +364,12 @@ describe("Thunk Crew Pos Tests", () => {
   test("thunkDeleteCrewPosByUuid", async () => {
     //mock the call to upsert to the DB (we don't actually want to upsert)
     const mockDbUpsertRex = jest
-      .spyOn(httpClient_rex, "upsertRex")
-      .mockImplementation(async (rex) => {
-        const res: WrappedResponse<Rex> = {
+      .spyOn(httpClient_rex, "upsertRexes")
+      .mockImplementation(async (rexes) => {
+        const res: WrappedResponse<Rex[]> = {
           status: "success",
           message: "Rex upserted",
-          data: rex,
+          data: rexes,
         };
         return res;
       });

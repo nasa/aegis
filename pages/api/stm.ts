@@ -4,6 +4,7 @@ import { ironOptions } from "server/session/config";
 import { withORM, getEM } from "utils/mikro";
 import {
   EntityData,
+  EntityName,
   ForeignKeyConstraintViolationException,
   Loaded,
   QueryOrder,
@@ -134,33 +135,33 @@ const handleSTM: NextApiHandler<
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
       try {
-        let upsertResponse: STMObjective | STMGoal | STMInvestigation = null;
-        let upsertObject: STMObjective | STMGoal | STMInvestigation;
+        let upsertResponse: STMObjective[] | STMGoal[] | STMInvestigation[] = [];
+        let upsertObjects: STMObjective[] | STMGoal[] | STMInvestigation[];
         let upsertType: "Objective" | "Goal" | "Investigation";
 
         if (queryParams.stmType === "o") {
-          upsertObject = req.body as STMObjective;
+          upsertObjects = req.body as STMObjective[];
           upsertType = "Objective";
         } else if (queryParams.stmType === "g") {
-          upsertObject = req.body as STMGoal;
+          upsertObjects = req.body as STMGoal[];
           upsertType = "Goal";
         } else if (queryParams.stmType === "i") {
-          upsertObject = req.body as STMInvestigation;
+          upsertObjects = req.body as STMInvestigation[];
           upsertType = "Investigation";
         } else {
           return res.status(500).json({ status: "error", message: "Invalid type" });
         }
 
         //perform the upsert
-        upsertResponse = await upsertSTM(upsertObject, upsertType);
+        upsertResponse = await upsertSTMs(upsertObjects, upsertType);
 
         //check response
-        if (upsertResponse) {
+        if (upsertResponse.length > 0) {
           return res.status(200).json({
             status: "success",
-            message: `${urlParamDict[queryParams.stmType]} upserted with uuid ${
-              upsertResponse.uuid
-            }`,
+            message: `${urlParamDict[queryParams.stmType]} upserted with uuid ${upsertResponse.map(
+              (s) => s.uuid
+            )}`,
             data: upsertResponse,
           });
         } else {
@@ -184,20 +185,22 @@ const handleSTM: NextApiHandler<
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
       try {
-        let deletedUUID: string | null;
-        if (queryParams.stmType === "o" && queryParams.o) {
-          deletedUUID = await deleteSTM(queryParams.o, "Objective");
-        } else if (queryParams.stmType === "g" && queryParams.g) {
-          deletedUUID = await deleteSTM(queryParams.g, "Goal");
-        } else if (queryParams.stmType === "i" && queryParams.i) {
-          deletedUUID = await deleteSTM(queryParams.i, "Investigation");
+        let deletedResponse: string[];
+        const uuidsToDelete: string[] = req.body;
+
+        if (queryParams.stmType === "o") {
+          deletedResponse = await deleteSTMs(uuidsToDelete, "Objective");
+        } else if (queryParams.stmType === "g") {
+          deletedResponse = await deleteSTMs(uuidsToDelete, "Goal");
+        } else if (queryParams.stmType === "i") {
+          deletedResponse = await deleteSTMs(uuidsToDelete, "Investigation");
         } else if (queryParams.stmType === "a" && queryParams.missionId) {
-          deletedUUID = await deleteSTMTree(queryParams.missionId);
+          deletedResponse = [await deleteSTMTree(queryParams.missionId)];
         } else {
           return res.status(500).json({ status: "error", message: "Invalid url parameters" });
         }
 
-        if (deletedUUID) {
+        if (deletedResponse.length > 0) {
           return res.status(200).json({
             status: "success",
             message: `${urlParamDict[queryParams.stmType]} deleted`,
@@ -381,136 +384,141 @@ async function getInvestigations(
 }
 
 /**
- * Inserts or Updates either an objective, goal, or investigation into the database.
+ * Inserts or Updates either objectives, goals, or investigations into the database.
  * Takes the object and converts fks to upsert, then converts them back on return
- * @param stmObject the STM objective, goal, or investigation object to upsert
+ * @param stmObjects the STM objectives, goals, or investigations object to upsert
  * @param stmType a string representation of the record type. This is used to type check at runtime since these are custom typescript types
- * @returns a copy of the STM object that was upserted
+ * @returns a copy of the STM objects that were upserted
  */
-async function upsertSTM(
-  stmObject: STMObjective | STMGoal | STMInvestigation,
+async function upsertSTMs(
+  stmObjects: STMObjective[] | STMGoal[] | STMInvestigation[],
   stmType: "Objective" | "Goal" | "Investigation"
-): Promise<STMObjective | STMGoal | STMInvestigation> {
+): Promise<STMObjective[] | STMGoal[] | STMInvestigation[]> {
   const em = getEM();
-
-  //we're creating a new record
-  if (!stmObject.uuid) {
-    stmObject.uuid = uuidv4();
-  }
 
   //determine the db table and perform upsert
   if (stmType === "Objective") {
-    const objective = stmObject as STMObjective;
-    const convertedObjective: EntityData<STM_Objective_db> = {
-      uuid: objective.uuid,
-      numbering: objective.numbering,
-      name: objective.name,
-      mission: objective.missionId,
-      createdAt: new Date(objective.createdAt),
-      updatedAt: new Date(objective.updatedAt),
-    }; //convert fks
+    const stmsUpsertedToDb: STMObjective[] = [];
+    for (const stmObject of stmObjects) {
+      const objective = stmObject as STMObjective;
+      const convertedObjective: EntityData<STM_Objective_db> = {
+        uuid: objective.uuid || uuidv4(),
+        numbering: objective.numbering,
+        name: objective.name,
+        mission: objective.missionId,
+        createdAt: new Date(objective.createdAt),
+        updatedAt: new Date(objective.updatedAt),
+      }; //convert fks
 
-    const upsertReference: STM_Objective_db = await em.upsert(STM_Objective_db, convertedObjective);
-    await em.persistAndFlush(upsertReference);
+      const upsertReference: STM_Objective_db = await em.upsert(
+        STM_Objective_db,
+        convertedObjective
+      );
+      em.persist(upsertReference);
 
-    const upsertedObjective: STMObjective = {
-      uuid: upsertReference.uuid,
-      numbering: upsertReference.numbering,
-      name: upsertReference.name,
-      missionId: upsertReference.mission.id,
-      createdAt: upsertReference.createdAt.toISOString(),
-      updatedAt: upsertReference.updatedAt.toISOString(),
-    };
-    return upsertedObjective;
+      const upsertedObjective: STMObjective = {
+        uuid: upsertReference.uuid,
+        numbering: upsertReference.numbering,
+        name: upsertReference.name,
+        missionId: upsertReference.mission.id,
+        createdAt: upsertReference.createdAt.toISOString(),
+        updatedAt: upsertReference.updatedAt.toISOString(),
+      };
+      stmsUpsertedToDb.push(upsertedObjective);
+    }
+    await em.flush();
+    return stmsUpsertedToDb;
   } else if (stmType === "Goal") {
-    const goal = stmObject as STMGoal;
-    const convertedGoal: EntityData<STM_Goal_db> = {
-      uuid: goal.uuid,
-      numbering: goal.numbering,
-      name: goal.name,
-      objective: goal.objectiveUuid,
-      createdAt: new Date(goal.createdAt),
-      updatedAt: new Date(goal.updatedAt),
-    }; //convert fks
+    const stmsUpsertedToDb: STMGoal[] = [];
+    for (const stmObject of stmObjects) {
+      const goal = stmObject as STMGoal;
+      const convertedGoal: EntityData<STM_Goal_db> = {
+        uuid: goal.uuid || uuidv4(),
+        numbering: goal.numbering,
+        name: goal.name,
+        objective: goal.objectiveUuid,
+        createdAt: new Date(goal.createdAt),
+        updatedAt: new Date(goal.updatedAt),
+      }; //convert fks
 
-    const upsertReference: STM_Goal_db = await em.upsert(STM_Goal_db, convertedGoal);
-    await em.persistAndFlush(upsertReference);
+      const upsertReference: STM_Goal_db = await em.upsert(STM_Goal_db, convertedGoal);
+      em.persist(upsertReference);
 
-    const upsertedGoal: STMGoal = {
-      uuid: upsertReference.uuid,
-      numbering: upsertReference.numbering,
-      name: upsertReference.name,
-      objectiveUuid: upsertReference.objective.uuid,
-      createdAt: upsertReference.createdAt.toISOString(),
-      updatedAt: upsertReference.updatedAt.toISOString(),
-    };
-    return upsertedGoal;
+      const upsertedGoal: STMGoal = {
+        uuid: upsertReference.uuid,
+        numbering: upsertReference.numbering,
+        name: upsertReference.name,
+        objectiveUuid: upsertReference.objective.uuid,
+        createdAt: upsertReference.createdAt.toISOString(),
+        updatedAt: upsertReference.updatedAt.toISOString(),
+      };
+      stmsUpsertedToDb.push(upsertedGoal);
+    }
+    await em.flush();
+    return stmsUpsertedToDb;
   } else {
-    const invstg = stmObject as STMInvestigation;
-    const convertedInvstg: EntityData<STM_Investigation_db> = {
-      uuid: invstg.uuid,
-      numbering: invstg.numbering,
-      name: invstg.name,
-      goal: invstg.goalUuid,
-      createdAt: new Date(invstg.createdAt),
-      updatedAt: new Date(invstg.updatedAt),
-    };
-    const upsertReference: STM_Investigation_db = await em.upsert(
-      STM_Investigation_db,
-      convertedInvstg
-    );
-    await em.persistAndFlush(upsertReference);
+    const stmsUpsertedToDb: STMInvestigation[] = [];
+    for (const stmObject of stmObjects) {
+      const invstg = stmObject as STMInvestigation;
+      const convertedInvstg: EntityData<STM_Investigation_db> = {
+        uuid: invstg.uuid || uuidv4(),
+        numbering: invstg.numbering,
+        name: invstg.name,
+        goal: invstg.goalUuid,
+        createdAt: new Date(invstg.createdAt),
+        updatedAt: new Date(invstg.updatedAt),
+      };
+      const upsertReference: STM_Investigation_db = await em.upsert(
+        STM_Investigation_db,
+        convertedInvstg
+      );
+      em.persist(upsertReference);
 
-    const upsertedInvstg: STMInvestigation = {
-      uuid: upsertReference.uuid,
-      numbering: upsertReference.numbering,
-      name: upsertReference.name,
-      goalUuid: upsertReference.goal.uuid,
-      createdAt: upsertReference.createdAt.toISOString(),
-      updatedAt: upsertReference.updatedAt.toISOString(),
-    };
-    return upsertedInvstg;
+      const upsertedInvstg: STMInvestigation = {
+        uuid: upsertReference.uuid,
+        numbering: upsertReference.numbering,
+        name: upsertReference.name,
+        goalUuid: upsertReference.goal.uuid,
+        createdAt: upsertReference.createdAt.toISOString(),
+        updatedAt: upsertReference.updatedAt.toISOString(),
+      };
+      stmsUpsertedToDb.push(upsertedInvstg);
+    }
+    await em.flush();
+    return stmsUpsertedToDb;
   }
 }
 
 /**
- * Deletes a single objective, goal, or investigation for a given UUID
- * @param stmUUID UUID of the objective, goal, or investigation to delete
+ * Deletes objectives, goals, or investigations for given UUIDs
+ * @param stmUUID UUIDs of the objective, goal, or investigation to delete
  * @param stmType the type of STM object
- * @return Retruns a promise of a string uuid of the entity deleted, or null if nothing was deleted
+ * @return Retruns a promise of a string uuids of the entity deleted
  */
-async function deleteSTM(
-  stmUUID: string,
+async function deleteSTMs(
+  stmUuids: string[],
   stmType: "Objective" | "Goal" | "Investigation"
-): Promise<string | null> {
-  let returnVal = stmUUID;
-
+): Promise<string[]> {
   const em = getEM();
+  const deletedUuids = [];
+  let tableEntity: EntityName<STM_Objective_db | STM_Goal_db | STM_Investigation_db>;
 
   if (stmType === "Objective") {
-    const entity = await em.findOne(STM_Objective_db, stmUUID);
-    if (entity) {
-      await em.removeAndFlush(entity);
-    } else {
-      returnVal = null;
-    }
+    tableEntity = STM_Objective_db;
   } else if (stmType === "Goal") {
-    const entity = await em.findOne(STM_Goal_db, stmUUID);
-    if (entity) {
-      await em.removeAndFlush(entity);
-    } else {
-      returnVal = null;
-    }
+    tableEntity = STM_Goal_db;
   } else {
-    const entity = await em.findOne(STM_Investigation_db, stmUUID);
+    tableEntity = STM_Investigation_db;
+  }
+  for (const stmUuid of stmUuids) {
+    const entity = await em.findOne(tableEntity, stmUuid);
     if (entity) {
-      await em.removeAndFlush(entity);
-    } else {
-      returnVal = null;
+      em.remove(entity);
+      deletedUuids.push(stmUuid);
     }
   }
-
-  return returnVal;
+  await em.flush(); //perform deletes
+  return deletedUuids;
 }
 
 /**

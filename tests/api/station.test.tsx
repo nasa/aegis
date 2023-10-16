@@ -184,7 +184,7 @@ describe("Station API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newStation, missionId: testMissions[2].id },
+        body: [{ ...newStation, missionId: testMissions[2].id }],
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -197,7 +197,7 @@ describe("Station API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newStation, missionId: testMissions[1].id },
+        body: [{ ...newStation, missionId: testMissions[1].id }],
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -210,7 +210,7 @@ describe("Station API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newStation, missionId: testMissions[0].id, ownerId: testUser.id },
+        body: [{ ...newStation, missionId: testMissions[0].id, ownerId: testUser.id }],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -219,7 +219,7 @@ describe("Station API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedStation = res._getJSONData().data;
+      const upsertedStation = res._getJSONData().data[0];
       expect(upsertedStation.uuid).not.toBeNull();
       newStation = { ...upsertedStation };
 
@@ -234,7 +234,7 @@ describe("Station API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newStation,
+        body: [newStation],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -243,7 +243,7 @@ describe("Station API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedStation = res._getJSONData().data;
+      const upsertedStation = res._getJSONData().data[0];
       expect(upsertedStation).not.toBeNull();
       expect(upsertedStation.name).toEqual("Jest Test New Station Modified");
     });
@@ -278,7 +278,8 @@ describe("Station API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { uuid: `${newStation.uuid}`, missionId: testMissions[0].id },
+        query: { missionId: testMissions[0].id },
+        body: [newStation.uuid],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleStation(req, res);

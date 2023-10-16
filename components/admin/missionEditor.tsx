@@ -8,7 +8,7 @@ import { validators } from "components/interface/form/formValidators";
 import Projection from "components/admin/projection";
 import adminStyles from "components/admin/admin.module.css";
 import { pick, isEmpty } from "lodash";
-import { upsertMission } from "http-client/mission";
+import { upsertMissions } from "http-client/mission";
 import { roundDateToSecond } from "utils/formatting";
 
 const MissionEditor: FunctionComponent<{
@@ -29,10 +29,10 @@ const MissionEditor: FunctionComponent<{
       ...missionValues,
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
-    const res = await upsertMission(missionToSave);
+    const res = await upsertMissions([missionToSave]);
     if (res.status === "success") {
       refreshMissionList();
-      setMission(res.data);
+      setMission(res.data[0]);
     }
     alert(`${res.status} - ${res.message}`);
   }

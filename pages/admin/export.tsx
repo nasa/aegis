@@ -311,7 +311,7 @@ const ExporLogs: FunctionComponent<{ missionId: number; missionName: string }> =
                   "Are you sure you want to delete all Real-time execution logs for this mission?"
                 )
               ) {
-                const response = await httpClient_log.deleteLogs(missionId);
+                const response = await httpClient_log.deleteAllLogs([missionId]);
                 if (response.status === "success") {
                   alert("Logs deleted");
                   setExportOutput("");

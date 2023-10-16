@@ -29,13 +29,14 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       //check the other presets
       const otherPresets = presets.filter((preset) => preset.uuid !== selectedPresetUuid);
       otherPresets.forEach((preset) => {
+        //there should only be one of these
         if (preset.missionPresetDefault) {
           // save the preset to the store and db
           const modifiedDate = roundDateToSecond(getAccurateNow()).toISOString();
           const updatedPreset = { ...preset, missionPresetDefault: false, updatedAt: modifiedDate };
           dispatch(upsertPreset(updatedPreset, true));
           dispatch(upsertPresetFromDb(updatedPreset));
-          httpClient_Preset.upsertPreset(updatedPreset, rexRunning);
+          httpClient_Preset.upsertPresets([updatedPreset], rexRunning);
           dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: false }));
         }
       });

@@ -161,7 +161,7 @@ describe("Layer API Endpoint ", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newLayer, missionId: testMissions[2].id },
+        body: [{ ...newLayer, missionId: testMissions[2].id }],
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -174,7 +174,7 @@ describe("Layer API Endpoint ", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newLayer, missionId: testMissions[1].id },
+        body: [{ ...newLayer, missionId: testMissions[1].id }],
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -187,7 +187,7 @@ describe("Layer API Endpoint ", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newLayer, missionId: testMissions[0].id },
+        body: [{ ...newLayer, missionId: testMissions[0].id }],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -196,7 +196,7 @@ describe("Layer API Endpoint ", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedLayer: Layer = res._getJSONData().data;
+      const upsertedLayer: Layer = res._getJSONData().data[0];
       expect(upsertedLayer.uuid).not.toBeNull();
       newLayer = { ...upsertedLayer };
 
@@ -213,7 +213,7 @@ describe("Layer API Endpoint ", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newLayer,
+        body: [newLayer],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -222,7 +222,7 @@ describe("Layer API Endpoint ", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedLayer: Layer = res._getJSONData().data;
+      const upsertedLayer: Layer = res._getJSONData().data[0];
       expect(upsertedLayer).not.toBeNull();
       expect(upsertedLayer.name).toEqual("Jest Test Layer Modified");
     });
@@ -259,7 +259,8 @@ describe("Layer API Endpoint ", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { uuid: `${newLayer.uuid}`, missionId: testMissions[0].id },
+        query: { missionId: testMissions[0].id },
+        body: [newLayer.uuid],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleLayer(req, res);

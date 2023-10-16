@@ -7,7 +7,8 @@ import { EntityData } from "@mikro-orm/core";
 import { hasPerms } from "utils/permissions";
 import { emitStoreDelete, emitStoreUpsert } from "./socketio";
 import { v4 as uuidv4 } from "uuid";
-import { upsertLog } from "./log";
+import { upsertLogs } from "./log";
+import _ from "lodash";
 
 const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
   req,
@@ -34,7 +35,7 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
       try {
-        const presets = await getAllPresetsForMission(intMissionId);
+        const presets = await getPresets(intMissionId);
         if (!presets) {
           return res.status(404).json({ status: "failure", message: "Presets not found" });
         }
@@ -55,64 +56,51 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
       if (!editPermission) {
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
-      const presetToUpsert = req.body as Preset;
       try {
-        const em = getEM();
-        const convertedPreset: EntityData<Preset_db> = {
-          uuid: presetToUpsert.uuid || uuidv4(),
-          owner: presetToUpsert.ownerId || req.session.user.id,
-          mission: presetToUpsert.missionId,
-          name: presetToUpsert.name,
-          description: presetToUpsert.description,
-          missionPreset: presetToUpsert.missionPreset,
-          missionPresetDefault: presetToUpsert.missionPresetDefault,
-          mapSublayerControls: presetToUpsert.mapSublayerControls,
-          mapCircleControls: presetToUpsert.mapCircleControls,
-          layerOrder: presetToUpsert.layerOrder,
-          createdAt: new Date(presetToUpsert.createdAt),
-          updatedAt: new Date(presetToUpsert.updatedAt),
-        };
-        const upsertedPreset = await em.upsert(Preset_db, convertedPreset);
-        await em.persistAndFlush(upsertedPreset);
-        const responsePreset: Preset = {
-          uuid: upsertedPreset.uuid,
-          missionId: upsertedPreset.mission.id,
-          ownerId: upsertedPreset.owner.id,
-          name: upsertedPreset.name,
-          description: upsertedPreset.description,
-          missionPreset: upsertedPreset.missionPreset,
-          missionPresetDefault: upsertedPreset.missionPresetDefault,
-          mapSublayerControls: upsertedPreset.mapSublayerControls,
-          mapCircleControls: upsertedPreset.mapCircleControls,
-          layerOrder: upsertedPreset.layerOrder,
-          createdAt: upsertedPreset.createdAt.toISOString(),
-          updatedAt: upsertedPreset.updatedAt.toISOString(),
-        };
-
-        // emit the upserted preset to all clients via socket.io
-        emitStoreUpsert({
-          missionId: intMissionId,
-          socketId,
-          type: "preset",
-          data: [responsePreset],
-        } as StoreUpsert<Preset>);
-
-        if (logAction) {
-          // log this upsert to the log table
-          upsertLog({
-            uuid: uuidv4(),
-            missionId: intMissionId,
-            type: "presetUpsert",
-            payloadJson: JSON.stringify(presetToUpsert),
-            createdAt: new Date().toISOString(),
-          } as Log);
-        }
-
-        return res.status(200).json({
-          status: "success",
-          message: "Preset upserted",
-          data: responsePreset,
+        const presets = req.body as Preset[];
+        //add owner id to the evas
+        const presetsToUpsert = presets.map((p) => {
+          if (!p.ownerId) {
+            return { ...p, ownerId: req.session.user.id };
+          } else {
+            return p;
+          }
         });
+        const upsertResponse: Preset[] = await upsertPresets(presetsToUpsert);
+        //check response
+        if (upsertResponse.length === 0) {
+          return res.status(500).json({
+            status: "error",
+            message: "Upsert response did not return a value",
+            data: null,
+          });
+        } else {
+          // emit the upserted preset to all clients via socket.io
+          emitStoreUpsert({
+            missionId: intMissionId,
+            socketId,
+            type: "preset",
+            data: upsertResponse,
+          } as StoreUpsert<Preset>);
+
+          if (logAction) {
+            // log this upsert to the log table
+            const log: Log = {
+              uuid: uuidv4(),
+              missionId: intMissionId,
+              type: "presetUpsert",
+              payloadJson: JSON.stringify(presetsToUpsert),
+              createdAt: new Date().toISOString(),
+            };
+            upsertLogs([log]);
+          }
+
+          return res.status(200).json({
+            status: "success",
+            message: "Preset upserted",
+            data: upsertResponse,
+          });
+        }
       } catch (error) {
         return res.status(500).json({ status: "error", message: "Failed to upsert preset." });
       }
@@ -122,40 +110,40 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
       if (!editPermission) {
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
-      const { uuid } = req.query;
-      const presetUuid = Array.isArray(uuid) ? uuid[0] : uuid;
-
       try {
-        const em = getEM();
-        const presetToDelete = await em.findOne(Preset_db, { uuid: presetUuid });
-        if (!presetToDelete) {
-          return res.status(404).json({ status: "failure", message: "Preset not found" });
-        }
-        await em.removeAndFlush(presetToDelete);
-
-        // emit the deleted preset to all clients via socket.io
-        emitStoreDelete({
-          missionId: intMissionId,
-          socketId,
-          type: "preset",
-          uuid: presetToDelete.uuid,
-        } as StoreDelete);
-
-        if (logAction) {
-          // log this deletion to the log table
-          upsertLog({
-            uuid: uuidv4(),
+        const uuidsToDelete: string[] = req.body;
+        const deletedUuids = await deletePresets(uuidsToDelete);
+        if (deletedUuids.length > 0) {
+          // emit the deleted preset to all clients via socket.io
+          emitStoreDelete({
             missionId: intMissionId,
-            type: "presetDelete",
-            payloadJson: JSON.stringify({ presetUuid }),
-            createdAt: new Date().toISOString(),
-          } as Log);
-        }
+            socketId,
+            type: "preset",
+            uuids: deletedUuids,
+          } as StoreDelete);
 
-        return res.status(200).json({
-          status: "success",
-          message: "Preset deleted",
-        });
+          if (logAction) {
+            // log this deletion to the log table
+            const log: Log = {
+              uuid: uuidv4(),
+              missionId: intMissionId,
+              type: "presetDelete",
+              payloadJson: JSON.stringify({ uuidsToDelete }),
+              createdAt: new Date().toISOString(),
+            };
+            upsertLogs([log]);
+          }
+
+          return res.status(200).json({
+            status: "success",
+            message: "Preset deleted",
+          });
+        } else {
+          return res.status(200).json({
+            status: "failure",
+            message: "No such Preset found to delete",
+          });
+        }
       } catch (error) {
         return res.status(500).json({ status: "error", message: "Failed to delete preset." });
       }
@@ -165,7 +153,7 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
   }
 };
 
-async function getAllPresetsForMission(missionId: number): Promise<Preset[] | false> {
+async function getPresets(missionId: number): Promise<Preset[] | false> {
   const model = getEM();
   const dbPresets = await model.find(Preset_db, { mission: missionId });
 
@@ -191,6 +179,70 @@ async function getAllPresetsForMission(missionId: number): Promise<Preset[] | fa
   }
 
   return transformedPresets;
+}
+
+async function upsertPresets(presets: Preset[]): Promise<Preset[]> {
+  const em = getEM();
+
+  const presetsToUpsert = _.cloneDeep(presets); //create a copy to manipulate
+  const presetsUpsertedToDb = [];
+
+  for (const presetToUpsert of presetsToUpsert) {
+    const em = getEM();
+    const convertedPreset: EntityData<Preset_db> = {
+      uuid: presetToUpsert.uuid || uuidv4(),
+      owner: presetToUpsert.ownerId,
+      mission: presetToUpsert.missionId,
+      name: presetToUpsert.name,
+      description: presetToUpsert.description,
+      missionPreset: presetToUpsert.missionPreset,
+      missionPresetDefault: presetToUpsert.missionPresetDefault,
+      mapSublayerControls: presetToUpsert.mapSublayerControls,
+      mapCircleControls: presetToUpsert.mapCircleControls,
+      layerOrder: presetToUpsert.layerOrder,
+      createdAt: new Date(presetToUpsert.createdAt),
+      updatedAt: new Date(presetToUpsert.updatedAt),
+    };
+    const upsertedPreset = await em.upsert(Preset_db, convertedPreset);
+
+    //upsert poi
+    em.persist(upsertedPreset);
+    presetsUpsertedToDb.push(upsertedPreset);
+  }
+
+  await em.flush();
+  //convert foreign keys
+  const convertedPresets = presetsUpsertedToDb.map((p) => {
+    return {
+      uuid: p.uuid,
+      missionId: p.mission.id,
+      ownerId: p.owner.id,
+      name: p.name,
+      description: p.description,
+      missionPreset: p.missionPreset,
+      missionPresetDefault: p.missionPresetDefault,
+      mapSublayerControls: p.mapSublayerControls,
+      mapCircleControls: p.mapCircleControls,
+      layerOrder: p.layerOrder,
+      createdAt: p.createdAt.toISOString(),
+      updatedAt: p.updatedAt.toISOString(),
+    };
+  });
+  return convertedPresets;
+}
+
+async function deletePresets(presetUuids: string[]): Promise<string[]> {
+  const em = getEM();
+  const deletedUuids = [];
+  for (const presetUuid of presetUuids) {
+    const entity = await em.findOne(Preset_db, { uuid: presetUuid });
+    if (entity) {
+      em.remove(entity); //delete preset
+      deletedUuids.push(presetUuid);
+    }
+  }
+  await em.flush(); //perform deletes
+  return deletedUuids;
 }
 
 export default withIronSessionApiRoute(withORM(handlePreset), ironOptions);

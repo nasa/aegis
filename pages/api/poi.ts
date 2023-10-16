@@ -7,7 +7,8 @@ import { Poi_db } from "server/database/models/_allModels";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
 import { emitStoreDelete, emitStoreUpsert } from "./socketio";
-import { upsertLog } from "./log";
+import { upsertLogs } from "./log";
+import _ from "lodash";
 
 const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
   req,
@@ -35,7 +36,7 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
       }
 
       try {
-        const pois = await getPOIsByMission(intMissionId);
+        const pois = await getPois(intMissionId);
         return res.status(200).json({
           status: "success",
           message: "POIs retrieved",
@@ -52,73 +53,50 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
       try {
-        const em = getEM();
-
-        const poiToUpsert: POI = req.body as POI;
-        //build poi to upsert
-        //convert fks
-        const convertedPoi: EntityData<Poi_db> = {
-          uuid: poiToUpsert.uuid || uuidv4(),
-          owner: poiToUpsert.ownerId || req.session.user.id,
-          mission: poiToUpsert.missionId,
-          actionOrderUuids: poiToUpsert.actionOrderUuids,
-          name: poiToUpsert.name,
-          description: poiToUpsert.description,
-          priorityOverride: poiToUpsert.priorityOverride,
-          radius: poiToUpsert.radius,
-          location: poiToUpsert.location,
-          elevation: poiToUpsert.elevation,
-          icon: poiToUpsert.icon,
-          tags: poiToUpsert.tags,
-          status: poiToUpsert.status,
-          createdAt: new Date(poiToUpsert.createdAt),
-          updatedAt: new Date(poiToUpsert.updatedAt),
-        };
-        const poiUpsertReference: Poi_db = await em.upsert(Poi_db, convertedPoi);
-        await em.persistAndFlush(poiUpsertReference);
-
-        const responsePoi: POI = {
-          uuid: poiUpsertReference.uuid,
-          missionId: poiUpsertReference.mission.id,
-          ownerId: poiUpsertReference.owner.id,
-          actionOrderUuids: poiUpsertReference.actionOrderUuids,
-          name: poiUpsertReference.name,
-          description: poiUpsertReference.description,
-          priorityOverride: poiUpsertReference.priorityOverride,
-          radius: poiUpsertReference.radius,
-          location: poiUpsertReference.location,
-          elevation: poiUpsertReference.elevation,
-          icon: poiUpsertReference.icon,
-          tags: poiUpsertReference.tags,
-          status: poiUpsertReference.status,
-          createdAt: poiUpsertReference.createdAt.toISOString(),
-          updatedAt: poiUpsertReference.updatedAt.toISOString(),
-        };
-
-        // emit the upserted item to all clients via socket.io
-        emitStoreUpsert({
-          missionId: intMissionId,
-          socketId,
-          type: "poi",
-          data: [responsePoi],
-        } as StoreUpsert<POI>);
-
-        if (logAction) {
-          // log this upsert to the log table
-          upsertLog({
-            uuid: uuidv4(),
-            missionId: intMissionId,
-            type: "poiUpsert",
-            payloadJson: JSON.stringify(poiToUpsert),
-            createdAt: new Date().toISOString(),
-          } as Log);
-        }
-
-        return res.status(200).json({
-          status: "success",
-          message: "POI upserted",
-          data: responsePoi,
+        const pois: POI[] = req.body as POI[];
+        //add owner id to the evas
+        const poisToUpsert = pois.map((p) => {
+          if (!p.ownerId) {
+            return { ...p, ownerId: req.session.user.id };
+          } else {
+            return p;
+          }
         });
+        const upsertResponse: POI[] = await upsertPois(poisToUpsert);
+        //check response
+        if (upsertResponse.length === 0) {
+          return res.status(500).json({
+            status: "error",
+            message: "Upsert response did not return a value",
+            data: null,
+          });
+        } else {
+          // emit the upserted item to all clients via socket.io
+          emitStoreUpsert({
+            missionId: intMissionId,
+            socketId,
+            type: "poi",
+            data: upsertResponse,
+          } as StoreUpsert<POI>);
+
+          if (logAction) {
+            // log this upsert to the log table
+            const log: Log = {
+              uuid: uuidv4(),
+              missionId: intMissionId,
+              type: "poiUpsert",
+              payloadJson: JSON.stringify(poisToUpsert),
+              createdAt: new Date().toISOString(),
+            };
+            upsertLogs([log]);
+          }
+
+          return res.status(200).json({
+            status: "success",
+            message: "POI upserted",
+            data: upsertResponse,
+          });
+        }
       } catch (error) {
         return res.status(500).json({ status: "error", message: "Failed to upsert POI: " + error });
       }
@@ -129,33 +107,29 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
       if (!editPermission) {
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
-      const { uuid } = req.query;
-      const actionUUID = Array.isArray(uuid) ? uuid[0] : uuid;
-
       try {
-        const em = getEM();
-        const poiToDelete = await em.findOne(Poi_db, { uuid: actionUUID });
-        if (poiToDelete) {
-          // delete the POI
-          await em.removeAndFlush(poiToDelete);
+        const uuidsToDelete: string[] = req.body;
+        const deletedUuids = await deletePois(uuidsToDelete);
 
+        if (deletedUuids.length > 0) {
           // emit the deleted item to all clients via socket.io
           emitStoreDelete({
             missionId: intMissionId,
             socketId,
             type: "poi",
-            uuid: poiToDelete.uuid,
+            uuids: deletedUuids,
           } as StoreDelete);
 
           if (logAction) {
             // log this deletion to the log table
-            upsertLog({
+            const log: Log = {
               uuid: uuidv4(),
               missionId: intMissionId,
               type: "poiDelete",
-              payloadJson: JSON.stringify({ poiUuid: poiToDelete.uuid }),
+              payloadJson: JSON.stringify({ uuidsToDelete }),
               createdAt: new Date().toISOString(),
-            } as Log);
+            };
+            upsertLogs([log]);
           }
 
           return res.status(200).json({
@@ -179,7 +153,7 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
 
 export default withIronSessionApiRoute(withORM(handlePOI), ironOptions);
 
-async function getPOIsByMission(missionId: number): Promise<POI[]> {
+async function getPois(missionId: number): Promise<POI[]> {
   const em = getEM();
   const dbPois = await em.find(
     Poi_db,
@@ -211,4 +185,83 @@ async function getPOIsByMission(missionId: number): Promise<POI[]> {
   }
 
   return transformedPois;
+}
+
+/**
+ * Inserts or Updates Pois into the database
+ * @param pois the poi objects to upsert
+ * @returns a copy of the poi objects that was upserted
+ */
+async function upsertPois(pois: POI[]): Promise<POI[]> {
+  const em = getEM();
+
+  const poisToUpsert = _.cloneDeep(pois); //create a copy to manipulate
+  const poisUpsertedToDb = [];
+
+  //build poi to upsert
+  for (const poiToUpsert of poisToUpsert) {
+    //convert fks
+    const convertedPoi: EntityData<Poi_db> = {
+      uuid: poiToUpsert.uuid || uuidv4(),
+      owner: poiToUpsert.ownerId,
+      mission: poiToUpsert.missionId,
+      actionOrderUuids: poiToUpsert.actionOrderUuids,
+      name: poiToUpsert.name,
+      description: poiToUpsert.description,
+      priorityOverride: poiToUpsert.priorityOverride,
+      radius: poiToUpsert.radius,
+      location: poiToUpsert.location,
+      elevation: poiToUpsert.elevation,
+      icon: poiToUpsert.icon,
+      tags: poiToUpsert.tags,
+      status: poiToUpsert.status,
+      createdAt: new Date(poiToUpsert.createdAt),
+      updatedAt: new Date(poiToUpsert.updatedAt),
+    };
+    const poiUpsertReference: Poi_db = await em.upsert(Poi_db, convertedPoi);
+    em.persist(poiUpsertReference);
+    poisUpsertedToDb.push(poiUpsertReference);
+  }
+
+  await em.flush();
+  //convert foreign keys
+  const convertedPois = poisUpsertedToDb.map((p) => {
+    return {
+      uuid: p.uuid,
+      missionId: p.mission.id,
+      ownerId: p.owner.id,
+      actionOrderUuids: p.actionOrderUuids,
+      name: p.name,
+      description: p.description,
+      priorityOverride: p.priorityOverride,
+      radius: p.radius,
+      location: p.location,
+      elevation: p.elevation,
+      icon: p.icon,
+      tags: p.tags,
+      status: p.status,
+      createdAt: p.createdAt.toISOString(),
+      updatedAt: p.updatedAt.toISOString(),
+    };
+  });
+  return convertedPois;
+}
+
+/**
+ * Deletes POIs.
+ * @param poiUuids Pois uuids to delete
+ * @returns the uuids of the deleted POIs
+ */
+async function deletePois(poiUuids: string[]): Promise<string[]> {
+  const em = getEM();
+  const deletedUuids = [];
+  for (const poiUuid of poiUuids) {
+    const entity = await em.findOne(Poi_db, { uuid: poiUuid });
+    if (entity) {
+      em.remove(entity); //delete poi
+      deletedUuids.push(poiUuid);
+    }
+  }
+  await em.flush(); //perform deletes
+  return deletedUuids;
 }

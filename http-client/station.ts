@@ -9,10 +9,10 @@ export async function getStations(missionId: number = null): Promise<WrappedResp
   return response;
 }
 
-export async function upsertStation(
-  stationObj: Station,
+export async function upsertStations(
+  stationObjs: Station[],
   log: boolean = false
-): Promise<WrappedResponse<Station>> {
+): Promise<WrappedResponse<Station[]>> {
   const missionId =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
@@ -22,26 +22,27 @@ export async function upsertStation(
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(stationObj),
+    body: JSON.stringify(stationObjs),
   });
-  const response: WrappedResponse<Station> = await res.json();
+  const response: WrappedResponse<Station[]> = await res.json();
   return response;
 }
 
-export async function deleteStation(
-  stationUUID: string,
+export async function deleteStations(
+  stationUUIDs: string[],
   log: boolean = false
-): Promise<WrappedResponse<number | null>> {
+): Promise<WrappedResponse<null>> {
   const missionId =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const logStr = log ? "&log=true" : "";
-  const res = await fetch(
-    `/api/station?socketId=${socketId}&uuid=${stationUUID}&missionId=${missionId}${logStr}`,
-    {
-      method: "DELETE",
-    }
-  );
-  const response: WrappedResponse<number | null> = await res.json();
+  const res = await fetch(`/api/station?socketId=${socketId}&missionId=${missionId}${logStr}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(stationUUIDs),
+  });
+  const response: WrappedResponse<null> = await res.json();
   return response;
 }

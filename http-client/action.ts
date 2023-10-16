@@ -30,20 +30,21 @@ export async function upsertActions(
   return response;
 }
 
-export async function deleteAction(
-  actionUUID: string,
+export async function deleteActions(
+  actionUuids: string[],
   log: boolean = false
 ): Promise<WrappedResponse<null>> {
   const missionId =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const logStr = log ? "&log=true" : "";
-  const res = await fetch(
-    `/api/action?socketId=${socketId}&uuid=${actionUUID}&missionId=${missionId}${logStr}`,
-    {
-      method: "DELETE",
-    }
-  );
+  const res = await fetch(`/api/action?socketId=${socketId}&missionId=${missionId}${logStr}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(actionUuids),
+  });
   const response: WrappedResponse<null> = await res.json();
   return response;
 }

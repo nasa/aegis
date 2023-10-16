@@ -33,19 +33,28 @@ export const rexSlice = createSlice({
         upsertToArrayByUuid(state.rexes, action.payload);
       },
     },
-    upsertRexFromDb: {
-      prepare: (rex: Rex, preserveModifiedDate: boolean = false) => {
+    upsertRexes: {
+      prepare: (rexes: Rex[], preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
-          return { payload: rex };
+          return { payload: rexes };
         } else {
           return {
-            payload: { ...rex, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() },
+            payload: rexes.map((rex) => ({
+              ...rex,
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+            })),
           };
         }
       },
-      reducer: (state, action: { payload: Rex }) => {
-        upsertToArrayByUuid(state.rexesFromDb, action.payload);
+      reducer: (state, action: { payload: Rex[] }) => {
+        action.payload.forEach((rex) => upsertToArrayByUuid(state.rexes, rex));
       },
+    },
+    upsertRexFromDb: (state, action: { payload: Rex }) => {
+      upsertToArrayByUuid(state.rexesFromDb, action.payload);
+    },
+    upsertRexesFromDb: (state, action: { payload: Rex[] }) => {
+      action.payload.forEach((rex) => upsertToArrayByUuid(state.rexesFromDb, rex));
     },
     upsertRexByField: {
       prepare: (
@@ -100,6 +109,12 @@ export const rexSlice = createSlice({
     },
     deleteRexFromDbByUuid: (state, action: { payload: string }) => {
       state.rexesFromDb = state.rexesFromDb.filter((rex) => rex.uuid !== action.payload);
+    },
+    deleteRexesByUuid: (state, action: { payload: string[] }) => {
+      state.rexes = state.rexes.filter((rex) => !action.payload.includes(rex.uuid));
+    },
+    deleteRexesFromDbByUuid: (state, action: { payload: string[] }) => {
+      state.rexesFromDb = state.rexesFromDb.filter((rex) => !action.payload.includes(rex.uuid));
     },
     setSelectedRexUuid: (state, action: { payload: string }) => {
       state.selectedRexUuid = action.payload;
@@ -197,9 +212,13 @@ export const {
   setRexesFromDb,
   upsertRex,
   upsertRexFromDb,
+  upsertRexes,
+  upsertRexesFromDb,
   upsertRexByField,
   deleteRexByUuid,
   deleteRexFromDbByUuid,
+  deleteRexesByUuid,
+  deleteRexesFromDbByUuid,
   setSelectedRexUuid,
   setExpandedRexUuids,
   setSelectedRexRightNavItem,

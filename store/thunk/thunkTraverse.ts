@@ -4,6 +4,8 @@ import {
   setTraverseEditMode,
   upsertTraverse,
   upsertTraverseFromDb,
+  upsertTraverses,
+  upsertTraversesFromDb,
 } from "store/traverse";
 import { calculateAscentAndDescent, getTotalDistance, calcPathDurationMins } from "utils/geoMath";
 import appCreateAsyncThunk from "./thunkUtil";
@@ -152,7 +154,7 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
       updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     if (saveToDb) {
-      httpClient_Traverse.upsertTraverse(newTraverse, rexRunning);
+      httpClient_Traverse.upsertTraverses([newTraverse], rexRunning);
       dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: false }));
       dispatch(upsertTraverseFromDb(newTraverse));
     }
@@ -263,6 +265,7 @@ export const thunkUpdateTraverseNamesForStationInEVA = appCreateAsyncThunk<{
   async ({ evaSequence, stationUuid }, { dispatch, getState }) => {
     // any rex running?
     const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+    const traversesToUpdate: Traverse[] = [];
 
     for (const [index, sequenceItem] of evaSequence.entries()) {
       if (sequenceItem.type === "traverse") {
@@ -281,12 +284,13 @@ export const thunkUpdateTraverseNamesForStationInEVA = appCreateAsyncThunk<{
             name: `${stationBefore.name} to ${stationAfter.name}`,
             updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
           };
-          await httpClient_Traverse.upsertTraverse(newTraverse, rexRunning);
-          dispatch(upsertTraverse(newTraverse, true));
-          dispatch(upsertTraverseFromDb(newTraverse));
+          traversesToUpdate.push(newTraverse);
         }
       }
     }
+    await httpClient_Traverse.upsertTraverses(traversesToUpdate, rexRunning);
+    dispatch(upsertTraverses(traversesToUpdate, true));
+    dispatch(upsertTraversesFromDb(traversesToUpdate));
   }
 );
 
@@ -386,6 +390,6 @@ export const thunkCycleTraverseRexToNextStatus = appCreateAsyncThunk<{ traverseU
     dispatch(upsertTraverseFromDb({ ...traverse, rexStatus }));
 
     // update the station in the database
-    httpClient_Traverse.upsertTraverse({ ...traverse, rexStatus }, rexRunning);
+    httpClient_Traverse.upsertTraverses([{ ...traverse, rexStatus }], rexRunning);
   }
 );

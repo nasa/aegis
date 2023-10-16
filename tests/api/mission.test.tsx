@@ -115,7 +115,7 @@ describe("Mission API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
-        query: { missionId: testMissions[0].id.toString() },
+        query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleMission(req, res);
@@ -180,8 +180,7 @@ describe("Mission API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: testMissions[2],
-        query: { missionId: testMissions[2].id },
+        body: [testMissions[2]],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleMission(req, res);
@@ -193,8 +192,7 @@ describe("Mission API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: testMissions[1],
-        query: { missionId: testMissions[1].id },
+        body: [testMissions[1]],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleMission(req, res);
@@ -206,8 +204,7 @@ describe("Mission API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newMission,
-        query: { missionId: null },
+        body: [newMission],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleMission(req, res);
@@ -220,8 +217,7 @@ describe("Mission API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: testMissions[0],
-        query: { missionId: testMissions[0].id },
+        body: [testMissions[0]],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleMission(req, res);
@@ -229,7 +225,7 @@ describe("Mission API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedMission = res._getJSONData().data;
+      const upsertedMission = res._getJSONData().data[0];
       expect(upsertedMission).not.toBeNull();
       expect(upsertedMission.version).toEqual(2);
       expect(upsertedMission.name).toEqual("Jest Mission-1 Modified");
@@ -241,7 +237,7 @@ describe("Mission API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { missionId: testMissions[2].id },
+        body: [testMissions[2].id],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleMission(req, res);
@@ -253,7 +249,7 @@ describe("Mission API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { missionId: testMissions[1].id },
+        body: [testMissions[1].id],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleMission(req, res);
@@ -265,7 +261,7 @@ describe("Mission API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { missionId: `${testMissions[0].id}` },
+        body: [testMissions[0].id],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleMission(req, res);
@@ -298,7 +294,7 @@ describe("Mission API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newMission,
+        body: [newMission],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleMission(req, res);
@@ -306,7 +302,7 @@ describe("Mission API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedMission = res._getJSONData().data;
+      const upsertedMission = res._getJSONData().data[0];
       expect(upsertedMission.id).not.toBeNull();
       expect(upsertedMission.version).toEqual(1);
 
@@ -322,8 +318,7 @@ describe("Mission API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newMission,
-        query: { missionId: newMission.id },
+        body: [newMission],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleMission(req, res);
@@ -331,7 +326,7 @@ describe("Mission API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedMission = res._getJSONData().data;
+      const upsertedMission = res._getJSONData().data[0];
       expect(upsertedMission).not.toBeNull();
       expect(upsertedMission.version).toEqual(2);
       expect(upsertedMission.name).toEqual("Mission Jest Test Modified");
@@ -341,7 +336,7 @@ describe("Mission API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { missionId: newMission.id },
+        body: [newMission.id],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleMission(req, res);

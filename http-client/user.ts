@@ -9,22 +9,26 @@ export async function getUsers(userId: number = null): Promise<WrappedResponse<U
   return response;
 }
 
-export async function upsertUser(userObj: User): Promise<WrappedResponse<User>> {
+export async function upsertUsers(userObjs: User[]): Promise<WrappedResponse<User[]>> {
   const res = await fetch(`/api/users`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(userObj),
+    body: JSON.stringify(userObjs),
   });
-  const response: WrappedResponse<User> = await res.json();
+  const response: WrappedResponse<User[]> = await res.json();
   return response;
 }
 
-export async function deleteUser(userId: number): Promise<WrappedResponse<User>> {
-  const res = await fetch(`/api/users?userId=${userId}`, {
+export async function deleteUsers(userIds: number[]): Promise<WrappedResponse<null>> {
+  const res = await fetch(`/api/users`, {
     method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(userIds),
   });
-  const response: WrappedResponse<User> = await res.json();
+  const response: WrappedResponse<null> = await res.json();
   return response;
 }

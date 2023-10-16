@@ -54,13 +54,13 @@ describe("Thunk Traverse Tests", () => {
 
   test("thunkFullUpdateTraverse()", async () => {
     const mockdbUpsertTraverse = jest
-      .spyOn(httpClient_traverse, "upsertTraverse")
-      .mockImplementation(async (traverse: Traverse) => {
+      .spyOn(httpClient_traverse, "upsertTraverses")
+      .mockImplementation(async (traverses: Traverse[]) => {
         //just return the traverse that was passed in
-        const res: WrappedResponse<Traverse> = {
+        const res: WrappedResponse<Traverse[]> = {
           status: "success",
           message: "Traverse upserted",
-          data: traverse,
+          data: traverses,
         };
         return res;
       });
@@ -244,13 +244,13 @@ describe("Thunk Traverse Tests", () => {
 
   test("thunkUpdateTraverseNamesForStationInEVA", async () => {
     const mockDbUpsertTraverse = jest
-      .spyOn(httpClient_traverse, "upsertTraverse")
-      .mockImplementation(async (traverse: Traverse) => {
+      .spyOn(httpClient_traverse, "upsertTraverses")
+      .mockImplementation(async (traverses: Traverse[]) => {
         //just return the traverse that was passed in
-        const res: WrappedResponse<Traverse> = {
+        const res: WrappedResponse<Traverse[]> = {
           status: "success",
           message: "Traverse upserted",
-          data: traverse,
+          data: traverses,
         };
         return res;
       });
@@ -279,7 +279,7 @@ describe("Thunk Traverse Tests", () => {
         stationUuid: station2.uuid,
       })
     );
-    expect(mockDbUpsertTraverse).toBeCalledTimes(2);
+    expect(mockDbUpsertTraverse).toBeCalledTimes(1);
     const t1 = store.getState().traverse.traverses.find((t) => t.uuid === traverse1.uuid);
     const t2 = store.getState().traverse.traverses.find((t) => t.uuid === traverse2.uuid);
     expect(t1.name).toEqual("Jest Station-1 to Jest Station-2");
@@ -368,13 +368,13 @@ describe("Thunk Traverse Tests", () => {
   test("thunkCycleTraverseRexToNextStatus()", async () => {
     //mock the call to upsert to the DB (we don't actually want to upsert)
     const mockDbUpsertTraverse = jest
-      .spyOn(httpClient_traverse, "upsertTraverse")
-      .mockImplementation(async (traverse: Traverse) => {
+      .spyOn(httpClient_traverse, "upsertTraverses")
+      .mockImplementation(async (traverses: Traverse[]) => {
         //just return the traverse that was passed in
-        const res: WrappedResponse<Traverse> = {
+        const res: WrappedResponse<Traverse[]> = {
           status: "success",
           message: "Traverse upserted",
-          data: traverse,
+          data: traverses,
         };
         return res;
       });
@@ -384,7 +384,6 @@ describe("Thunk Traverse Tests", () => {
     const store = createTestStore({
       traverse: { ...traverseInitialState, traverses: [traverse], traversesFromDb: [traverse] },
     });
-
     await store.dispatch(thunkCycleTraverseRexToNextStatus({ traverseUuid: traverse.uuid }));
     expect(store.getState().traverse.traverses[0].rexStatus).toEqual("in-progress");
     expect(store.getState().traverse.traversesFromDb[0].rexStatus).toEqual("in-progress");
