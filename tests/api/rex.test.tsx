@@ -160,7 +160,7 @@ describe("REX API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newRex, missionId: testMissions[2].id },
+        body: [{ ...newRex, missionId: testMissions[2].id }],
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -173,7 +173,7 @@ describe("REX API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newRex, missionId: testMissions[1].id },
+        body: [{ ...newRex, missionId: testMissions[1].id }],
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -186,7 +186,7 @@ describe("REX API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newRex, missionId: testMissions[0].id },
+        body: [{ ...newRex, missionId: testMissions[0].id }],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -195,7 +195,7 @@ describe("REX API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedRex = res._getJSONData().data;
+      const upsertedRex = res._getJSONData().data[0];
       expect(upsertedRex.uuid).not.toBeNull();
       newRex = { ...upsertedRex };
 
@@ -210,7 +210,7 @@ describe("REX API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newRex,
+        body: [newRex],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -219,7 +219,7 @@ describe("REX API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedRex = res._getJSONData().data;
+      const upsertedRex = res._getJSONData().data[0];
       expect(upsertedRex).not.toBeNull();
       expect(upsertedRex.name).toEqual("Jest Test New Rex Modified");
     });
@@ -254,7 +254,8 @@ describe("REX API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { uuid: `${newRex.uuid}`, missionId: testMissions[0].id },
+        query: { missionId: testMissions[0].id },
+        body: [newRex.uuid],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleRex(req, res);

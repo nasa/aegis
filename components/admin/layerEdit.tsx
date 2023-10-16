@@ -1,6 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import styles from "./admin.module.css";
-import { upsertLayer } from "http-client/layer";
+import { upsertLayers } from "http-client/layer";
 import { roundDateToSecond } from "utils/formatting";
 
 /** Render a single Layer record from the DB */
@@ -16,10 +16,12 @@ const LayerEdit: FunctionComponent<{ layer: Layer; refreshLayerList: Function }>
 
   //save the current editing layer to db
   async function saveLayer() {
-    const res: WrappedResponse<Layer> = await upsertLayer({
-      ...layer,
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
-    });
+    const res: WrappedResponse<Layer[]> = await upsertLayers([
+      {
+        ...layer,
+        updatedAt: roundDateToSecond(new Date()).toISOString(),
+      },
+    ]);
     props.refreshLayerList();
     alert(`${res.status} - ${res.message}`);
   }

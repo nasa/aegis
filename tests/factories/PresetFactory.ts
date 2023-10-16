@@ -10,7 +10,7 @@ export default class PresetFactory extends Factory<Preset_db> {
       uuid: v4(),
       owner: null,
       mission: null,
-      name: "Test Preset",
+      name: "Jest Test Preset",
       description: "Test Preset Description",
       mapSublayerControls: {
         Basemaps: {

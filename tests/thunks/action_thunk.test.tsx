@@ -145,7 +145,7 @@ describe("Thunk Action Tests", () => {
 
     //mock the call to upsert to the DB (we don't actually want to upsert)
     const mockDbDeleteAction = jest
-      .spyOn(httpClient_action, "deleteAction")
+      .spyOn(httpClient_action, "deleteActions")
       .mockImplementation(async () => {
         const res: WrappedResponse<null> = {
           status: "success",

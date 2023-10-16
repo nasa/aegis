@@ -7,7 +7,7 @@ import { Log_db } from "server/database/models/_allModels";
 import { EntityData, ForeignKeyConstraintViolationException } from "@mikro-orm/core";
 import { hasPerms } from "utils/permissions";
 
-const handleRex: NextApiHandler<WrappedResponse<Log[] | Log>> = async (
+const handleLog: NextApiHandler<WrappedResponse<Log[] | Log>> = async (
   req,
   res
 ): Promise<unknown> => {
@@ -21,12 +21,11 @@ const handleRex: NextApiHandler<WrappedResponse<Log[] | Log>> = async (
     const { missionId } = req.query;
     const intMissionId = missionId ? parseInt(missionId as string) : null;
 
-    if (!intMissionId || _.isNaN(intMissionId)) {
-      return res.status(500).json({ status: "error", message: "Invalid mission ID" });
-    }
-    const editPermission = await hasPerms(intMissionId, "edit", req.session?.user);
-
     if (req.method === "GET") {
+      if (!intMissionId || _.isNaN(intMissionId)) {
+        return res.status(500).json({ status: "error", message: "Invalid mission ID" });
+      }
+      const editPermission = await hasPerms(intMissionId, "edit", req.session?.user);
       const viewPermission = await hasPerms(intMissionId, "view", req.session?.user);
       if (!viewPermission && !editPermission) {
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -51,15 +50,19 @@ const handleRex: NextApiHandler<WrappedResponse<Log[] | Log>> = async (
     if (req.method === "POST") {
       try {
         //must have edit permission for a given mission id
+        if (!intMissionId || _.isNaN(intMissionId)) {
+          return res.status(500).json({ status: "error", message: "Invalid mission ID" });
+        }
+        const editPermission = await hasPerms(intMissionId, "edit", req.session?.user);
         if (!editPermission) {
           return res.status(401).json({ status: "failure", message: "Unauthorized" });
         }
         //perform the upsert
-        const upsertObject: Log = req.body as Log;
-        const upsertResponse: Log = await upsertLog(upsertObject);
+        const logs: Log[] = req.body as Log[];
+        const upsertResponse: Log[] = await upsertLogs(logs);
 
         //check response
-        if (!upsertResponse) {
+        if (upsertResponse.length === 0) {
           return res.status(500).json({
             status: "error",
             message: "Upsert response did not return a value",
@@ -68,7 +71,7 @@ const handleRex: NextApiHandler<WrappedResponse<Log[] | Log>> = async (
         } else {
           return res.status(200).json({
             status: "success",
-            message: `Rex upserted with uuid ${upsertResponse.uuid}`,
+            message: `Rex upserted with uuid ${upsertResponse.map((l) => l.uuid)}`,
             data: upsertResponse,
           });
         }
@@ -82,19 +85,23 @@ const handleRex: NextApiHandler<WrappedResponse<Log[] | Log>> = async (
 
     //delete all logs for a mission
     if (req.method === "DELETE") {
-      if (!editPermission) {
-        return res.status(401).json({ status: "failure", message: "Unauthorized" });
-      }
-
       try {
-        const logsDeletedSuccessfully = await deleteLogs(intMissionId);
-        if (logsDeletedSuccessfully) {
+        //this permission check works differently due to multiple missionIds being passed in
+        const missionIdsToDelete: number[] = req.body.map((u: string) => parseInt(u));
+        for (const missionId of missionIdsToDelete) {
+          const canDelete = await hasPerms(missionId, "edit", req.session?.user);
+          if (!canDelete) {
+            return res.status(401).json({ status: "failure", message: "Unauthorized" });
+          }
+        }
+
+        const logsDeletedSuccessfully = await deleteLogs(missionIdsToDelete);
+        if (logsDeletedSuccessfully.length > 0) {
           return res.status(200).json({
             status: "success",
             message: "Logs Deleted",
           });
-        } else if (logsDeletedSuccessfully === false) {
-          //check false explicity (vs null or undefined)
+        } else {
           return res.status(200).json({
             status: "failure",
             message: "No logs found. Nothing deleted",
@@ -140,48 +147,53 @@ async function getLogs(missionId: number): Promise<Log[]> {
 }
 
 /**
- * upserts a single log into the database
- * @param log log to upsert
- * @returns the upserted log
+ * upserts logs into the database
+ * @param log logs to upsert
+ * @returns the upserted logs
  */
-export async function upsertLog(log: Log): Promise<Log> {
+export async function upsertLogs(logs: Log[]): Promise<Log[]> {
   const em = getEM();
+  const logsUpsertedToDb = [];
 
-  const upsertRecord: EntityData<Log_db> = {
-    mission: log.missionId,
-    uuid: log.uuid,
-    type: log.type,
-    payloadJson: log.payloadJson,
-    createdAt: new Date(log.createdAt),
-  };
+  for (const log of logs) {
+    const upsertRecord: EntityData<Log_db> = {
+      mission: log.missionId,
+      uuid: log.uuid,
+      type: log.type,
+      payloadJson: log.payloadJson,
+      createdAt: new Date(log.createdAt),
+    };
 
-  let dbReference: Log_db;
-  if (log.uuid) {
-    //update record
-    dbReference = await em.upsert(Log_db, upsertRecord);
-  } else {
-    //insert record.
-    dbReference = em.create(Log_db, upsertRecord);
+    const dbReference = await em.upsert(Log_db, upsertRecord);
+    em.persist(dbReference);
+    //convert back and push
+    logsUpsertedToDb.push({
+      ...dbReference,
+      missionId: dbReference.mission.id,
+      createdAt: dbReference.createdAt.toISOString(),
+    } as Log);
   }
-  await em.persistAndFlush(dbReference);
-  return {
-    ...dbReference,
-    missionId: dbReference.mission.id,
-    createdAt: dbReference.createdAt.toISOString(),
-  } as Log;
+
+  await em.flush();
+  return logsUpsertedToDb;
 }
 
 /**
- * Deletes all logs for a given mission
- * @param missionId mission id to delete logs for
- * @returns true if successful
+ * Deletes all logs for missions
+ * @param missionId mission ids to delete logs for
+ * @returns array of deleted uuids
  */
-async function deleteLogs(missionId: number): Promise<boolean> {
+async function deleteLogs(missionIds: number[]): Promise<number[]> {
   const em = getEM();
-
-  const logs = await em.find(Log_db, { mission: missionId });
-  if (logs.length === 0) return false;
-  await em.removeAndFlush(logs);
-  return true;
+  const deletedMissionIds = [];
+  for (const missionId of missionIds) {
+    const logs = await em.find(Log_db, { mission: missionId });
+    if (logs.length !== 0) {
+      em.remove(logs);
+      deletedMissionIds.push(missionId);
+    }
+  }
+  await em.flush();
+  return deletedMissionIds;
 }
-export default withIronSessionApiRoute(withORM(handleRex), ironOptions);
+export default withIronSessionApiRoute(withORM(handleLog), ironOptions);

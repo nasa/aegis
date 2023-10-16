@@ -164,7 +164,7 @@ describe("Poi API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newPoi, missionId: testMissions[2].id },
+        body: [{ ...newPoi, missionId: testMissions[2].id }],
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -177,7 +177,7 @@ describe("Poi API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newPoi, missionId: testMissions[1].id },
+        body: [{ ...newPoi, missionId: testMissions[1].id }],
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -190,7 +190,7 @@ describe("Poi API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newPoi, missionId: testMissions[0].id, ownerId: testUser.id },
+        body: [{ ...newPoi, missionId: testMissions[0].id, ownerId: testUser.id }],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -199,7 +199,7 @@ describe("Poi API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedPoi: POI = res._getJSONData().data;
+      const upsertedPoi: POI = res._getJSONData().data[0];
       expect(upsertedPoi.uuid).not.toBeNull();
       newPoi = { ...upsertedPoi };
 
@@ -214,7 +214,7 @@ describe("Poi API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newPoi, missionId: testMissions[0].id },
+        body: [{ ...newPoi, missionId: testMissions[0].id }],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -223,7 +223,7 @@ describe("Poi API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedPoi = res._getJSONData().data;
+      const upsertedPoi = res._getJSONData().data[0];
       expect(upsertedPoi).not.toBeNull();
       expect(upsertedPoi.name).toEqual("Jest New Poi Modified");
     });
@@ -258,7 +258,8 @@ describe("Poi API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { uuid: `${newPoi.uuid}`, missionId: testMissions[0].id },
+        query: { missionId: testMissions[0].id },
+        body: [newPoi.uuid],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handlePOI(req, res);

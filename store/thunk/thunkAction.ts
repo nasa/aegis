@@ -184,12 +184,17 @@ export const thunkSaveActions = appCreateAsyncThunk<{
         });
       }
     }
-    //action changed. upsert to db
-    const actionUpsertResponse = await httpClient_action.upsertActions(changedActions, rexRunning);
-    if (actionUpsertResponse.status === "success") {
-      //upsert to both stores
-      dispatch(upsertActions(actionUpsertResponse.data, true));
-      dispatch(upsertActionsFromDb(actionUpsertResponse.data));
+    if (changedActions.length > 0) {
+      //action changed. upsert to db
+      const actionUpsertResponse = await httpClient_action.upsertActions(
+        changedActions,
+        rexRunning
+      );
+      if (actionUpsertResponse.status === "success") {
+        //upsert to both stores
+        dispatch(upsertActions(actionUpsertResponse.data, true));
+        dispatch(upsertActionsFromDb(actionUpsertResponse.data));
+      }
     }
 
     // filter out deleted actions using local state
@@ -199,9 +204,10 @@ export const thunkSaveActions = appCreateAsyncThunk<{
       });
       return !found;
     });
-    // take array of deleted actions and delete them in the db
-    for (const deletedAction of deletedActions) {
-      await httpClient_action.deleteAction(deletedAction.uuid, rexRunning);
+    if (deletedActions.length > 0) {
+      // take array of deleted actions and delete them in the db
+      const deletedActionUuids = deletedActions.map((a) => a.uuid);
+      await httpClient_action.deleteActions(deletedActionUuids, rexRunning);
     }
 
     // clear the store copy of the db and reload
@@ -498,7 +504,7 @@ export const thunkAuditActions = appCreateAsyncThunk<void>(
             getState().station.stations.find((s) => s.uuid === station.uuid)
           )
         ) {
-          httpClient_station.upsertStation(station);
+          httpClient_station.upsertStations([station]);
         }
       });
       dispatch(setStations(newStations));
@@ -512,7 +518,7 @@ export const thunkAuditActions = appCreateAsyncThunk<void>(
             getState().poi.pois.find((p) => p.uuid === poi.uuid)
           )
         ) {
-          httpClient_poi.upsertPOI(poi);
+          httpClient_poi.upsertPOIs([poi]);
         }
       });
       dispatch(setPois(newPois));

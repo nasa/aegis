@@ -6,7 +6,7 @@ export default class UserFactory extends Factory<User_db> {
   model = User_db;
   definition(): EntityData<User_db> {
     return {
-      username: "testUser",
+      username: "Jest testUser",
       password: "superSecretPassword",
       isAdmin: false,
       isSuperAdmin: false,

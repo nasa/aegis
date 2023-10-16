@@ -175,7 +175,7 @@ describe("EVA API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newEVA, missionId: testMissions[2].id },
+        body: [{ ...newEVA, missionId: testMissions[2].id }],
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -188,7 +188,7 @@ describe("EVA API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newEVA, missionId: testMissions[1].id },
+        body: [{ ...newEVA, missionId: testMissions[1].id }],
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -201,7 +201,7 @@ describe("EVA API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newEVA, missionId: testMissions[0].id, ownerId: testUser.id },
+        body: [{ ...newEVA, missionId: testMissions[0].id, ownerId: testUser.id }],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -210,7 +210,7 @@ describe("EVA API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedEVA = res._getJSONData().data;
+      const upsertedEVA = res._getJSONData().data[0];
       expect(upsertedEVA.uuid).not.toBeNull();
       newEVA = { ...upsertedEVA };
 
@@ -225,7 +225,7 @@ describe("EVA API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newEVA,
+        body: [newEVA],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -234,7 +234,7 @@ describe("EVA API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedEVA = res._getJSONData().data;
+      const upsertedEVA = res._getJSONData().data[0];
       expect(upsertedEVA).not.toBeNull();
       expect(upsertedEVA.name).toEqual("Jest Test New EVA Modified");
     });
@@ -269,7 +269,8 @@ describe("EVA API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { uuid: `${newEVA.uuid}`, missionId: testMissions[0].id },
+        query: { missionId: testMissions[0].id },
+        body: [newEVA.uuid],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleEva(req, res);

@@ -316,13 +316,13 @@ describe("Thunk Station Tests", () => {
   test("thunkSaveStation() - no modified actions", async () => {
     //mock the call to upsert to the DB (we don't actually want to upsert)
     const mockDbUpsertStation = jest
-      .spyOn(httpClient_station, "upsertStation")
-      .mockImplementation(async (station) => {
+      .spyOn(httpClient_station, "upsertStations")
+      .mockImplementation(async (stations) => {
         //just return the station that was passed in
-        const res: WrappedResponse<Station> = {
+        const res: WrappedResponse<Station[]> = {
           status: "success",
           message: "Station upserted",
-          data: station,
+          data: stations,
         };
         return res;
       });
@@ -382,12 +382,12 @@ describe("Thunk Station Tests", () => {
   test("thunkSaveStation() - saves actions", async () => {
     //mock the call to upsert to the DB (we don't actually want to upsert)
     const mockDbUpsertStation = jest
-      .spyOn(httpClient_station, "upsertStation")
-      .mockImplementation(async (station) => {
-        const res: WrappedResponse<Station> = {
+      .spyOn(httpClient_station, "upsertStations")
+      .mockImplementation(async (stations) => {
+        const res: WrappedResponse<Station[]> = {
           status: "success",
           message: "Station upserted",
-          data: station,
+          data: stations,
         };
         return res;
       });
@@ -506,7 +506,7 @@ describe("Thunk Station Tests", () => {
 
     //mock the calls the DB
     const mockDbDeleteAction = jest
-      .spyOn(httpClient_action, "deleteAction")
+      .spyOn(httpClient_action, "deleteActions")
       .mockImplementation(async () => {
         const res: WrappedResponse<null> = {
           status: "success",
@@ -525,7 +525,7 @@ describe("Thunk Station Tests", () => {
         return res;
       });
     const mockDbDeleteStation = jest
-      .spyOn(httpClient_station, "deleteStation")
+      .spyOn(httpClient_station, "deleteStations")
       .mockImplementation(async () => {
         const res: WrappedResponse<null> = {
           status: "success",
@@ -650,12 +650,12 @@ describe("Thunk Station Tests", () => {
   test("thunkCycleStationRexToNextStatus()", async () => {
     //mock the call to upsert to the DB (we don't actually want to upsert)
     const mockDbUpsertStation = jest
-      .spyOn(httpClient_station, "upsertStation")
-      .mockImplementation(async (station) => {
-        const res: WrappedResponse<Station> = {
+      .spyOn(httpClient_station, "upsertStations")
+      .mockImplementation(async (stations) => {
+        const res: WrappedResponse<Station[]> = {
           status: "success",
           message: "Station upserted",
-          data: station,
+          data: stations,
         };
         return res;
       });

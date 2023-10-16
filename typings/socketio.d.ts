@@ -65,7 +65,7 @@ interface StoreDelete {
   socketId: string;
   missionId: number;
   type: StoreType;
-  uuid: string;
+  uuids: string[];
   lastEditEvent?: EditEvent;
 }
 

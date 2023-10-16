@@ -2,7 +2,7 @@ import { NextPage } from "next";
 import { ChangeEvent, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { isLoggedIn } from "http-client/login";
-import { getPOIs, upsertPOI } from "http-client/poi";
+import { getPOIs, upsertPOIs } from "http-client/poi";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";
 import { getMissions } from "http-client/mission";
@@ -104,7 +104,7 @@ const PoiPage: NextPage = () => {
             updatedAt: roundDateToSecond(new Date()).toISOString(),
             createdAt: roundDateToSecond(new Date()).toISOString(),
           };
-          const poiSet = await upsertPOI(poiData);
+          const poiSet = await upsertPOIs([poiData]);
           if (poiSet.status !== "success") {
             if (poi.properties.name) {
               errorHolder.push(poi.properties.name);

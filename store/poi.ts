@@ -107,6 +107,12 @@ export const poiSlice = createSlice({
     deletePoiFromDbByUuid: (state, action: { payload: string }) => {
       state.poisFromDb = state.poisFromDb.filter((poi) => poi.uuid !== action.payload);
     },
+    deletePoisByUuid: (state, action: { payload: string[] }) => {
+      state.pois = state.pois.filter((poi) => !action.payload.includes(poi.uuid));
+    },
+    deletePoisFromDbByUuid: (state, action: { payload: string[] }) => {
+      state.poisFromDb = state.poisFromDb.filter((poi) => !action.payload.includes(poi.uuid));
+    },
     setSelectedPOIRightNavItem: (state, action: { payload: string }) => {
       state.selectedRightNavItem = action.payload;
     },
@@ -144,6 +150,8 @@ export const {
   setPoisFromDb,
   deletePoiByUuid,
   deletePoiFromDbByUuid,
+  deletePoisByUuid,
+  deletePoisFromDbByUuid,
   setSelectedPOIRightNavItem,
   setSelectedPoiUuid,
   setStateForNewPoi,

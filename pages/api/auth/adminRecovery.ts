@@ -5,7 +5,7 @@ import { getEM, withORM } from "utils/mikro";
 import { ironOptions } from "server/session/config";
 import { IronSessionData } from "iron-session";
 import _ from "lodash";
-import { upsertUser } from "../users";
+import { upsertUsers } from "../users";
 
 export default withIronSessionApiRoute(withORM(handler), ironOptions);
 
@@ -29,7 +29,7 @@ async function handler(
           updatedAt: String(new Date()),
         };
         //Add default values back into admin user
-        await upsertUser(adminUser);
+        await upsertUsers([adminUser]);
         res.status(200).json({ status: "success", message: "Admin user updated" });
       } else {
         res.status(500).json({ status: "error", message: "Recovery Key does not match" });

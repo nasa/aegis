@@ -13,7 +13,7 @@ import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
 import { emitStoreDelete, emitStoreUpsert } from "./socketio";
-import { upsertLog } from "./log";
+import { upsertLogs } from "./log";
 
 const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
   req,
@@ -84,13 +84,14 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
 
         if (logAction) {
           // log this upsert to the log table
-          upsertLog({
+          const log: Log = {
             uuid: uuidv4(),
             missionId: intMissionId,
             type: "actionUpsert",
             payloadJson: JSON.stringify(actionsToUpsert),
             createdAt: new Date().toISOString(),
-          } as Log);
+          };
+          upsertLogs([log]);
         }
 
         return res.status(200).json({
@@ -112,25 +113,28 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
       try {
-        const deletedUuid = await deleteAction(actionUuid);
-        if (deletedUuid) {
+        const uuidsToDelete: string[] = req.body;
+        //const uuidsToDelete: string[] = req.body as string[];
+        const deletedUuids = await deleteActions(uuidsToDelete);
+        if (deletedUuids.length > 0) {
           // emit the deleted item to all clients via socket.io
           emitStoreDelete({
             missionId: intMissionId,
             socketId,
             type: "action",
-            uuid: deletedUuid,
+            uuids: deletedUuids,
           } as StoreDelete);
 
           if (logAction) {
             // log this deletion to the log table
-            upsertLog({
+            const log: Log = {
               uuid: uuidv4(),
               missionId: intMissionId,
               type: "actionDelete",
-              payloadJson: JSON.stringify({ actionUuid }),
+              payloadJson: JSON.stringify({ deletedUuids }),
               createdAt: new Date().toISOString(),
-            } as Log);
+            };
+            upsertLogs([log]);
           }
 
           return res.status(200).json({
@@ -194,11 +198,11 @@ async function getActions(filter: ActionFilterOptions): Promise<Action[]> {
 }
 
 /**
- * Inserts or Updates a action into the database
+ * Inserts or Updates actions into the database
  * @param actions array of actions upsert
  * @returns a copy of the array of actions that was upserted
  */
-async function upsertActions(actions: Action[]) {
+async function upsertActions(actions: Action[]): Promise<void> {
   const em = getEM();
 
   const actionsToUpsert = _.cloneDeep(actions); //create a copy to manipulate
@@ -242,21 +246,22 @@ async function upsertActions(actions: Action[]) {
 }
 
 /**
- * Deletes a single action.
- * @param actionUuid action uuid to delete
- * @returns the uuid of the deleted action, or null if nothing was deleted
+ * Deletes actions.
+ * @param actionUuids action uuids to delete
+ * @returns the uuids of the deleted actions
  */
-async function deleteAction(actionUuid: string): Promise<string | null> {
+async function deleteActions(actionUuids: string[]): Promise<string[]> {
   const em = getEM();
-  let returnVal = actionUuid;
-  const entity = await em.findOne(Action_db, { uuid: actionUuid });
-
-  if (entity) {
-    await em.removeAndFlush(entity);
-  } else {
-    returnVal = null;
+  const deletedUuids = [];
+  for (const actionUuid of actionUuids) {
+    const entity = await em.findOne(Action_db, { uuid: actionUuid });
+    if (entity) {
+      deletedUuids.push(actionUuid);
+      em.remove(entity);
+    }
   }
-  return returnVal;
+  await em.flush();
+  return deletedUuids;
 }
 
 /**

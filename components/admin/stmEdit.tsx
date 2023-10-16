@@ -1,6 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import stmStyles from "./stmEdit.module.css";
-import { deleteSTM, upsertSTM } from "http-client/stm";
+import { deleteSTMs, upsertSTMs } from "http-client/stm";
 import { v4 as uuidv4 } from "uuid";
 import { roundDateToSecond } from "utils/formatting";
 
@@ -19,7 +19,7 @@ const STMEdit: FunctionComponent<STMProps> = (props: STMProps) => {
   const [selectedObjUUID, setSelectedObjUUID] = useState(null);
   const [selectedGoalUUID, setSelectedGoalUUID] = useState(null);
 
-  //set default selected uuid
+  //set default objective selected uuid
   useEffect(() => {
     if (!selectedObjUUID && allObjectives?.length > 0) {
       setSelectedObjUUID(allObjectives[0].uuid);
@@ -27,14 +27,6 @@ const STMEdit: FunctionComponent<STMProps> = (props: STMProps) => {
       setSelectedObjUUID(null);
     }
   }, [allObjectives, selectedObjUUID]);
-
-  useEffect(() => {
-    if (!selectedGoalUUID && props.allGoals?.length > 0) {
-      setSelectedGoalUUID(props.allGoals[0].uuid);
-    } else if (!props.allGoals || props.allGoals.length === 0) {
-      setSelectedGoalUUID(null);
-    }
-  }, [props.allGoals, selectedGoalUUID]);
 
   return (
     <>
@@ -64,25 +56,23 @@ const STMEdit: FunctionComponent<STMProps> = (props: STMProps) => {
             </div>
           </div>
         )}
-        {props.allGoals?.length > 0 && selectedGoalUUID && (
-          <div>
-            <div id="div_selectGoal" className={stmStyles.div_select}>
-              <GoalSelect
-                allGoals={props.allGoals}
-                objectiveUUID={selectedObjUUID}
-                selectedGoalUUID={selectedGoalUUID}
-                setSelectedGoalUUID={setSelectedGoalUUID}
-              />
-            </div>
-            <div id="div_addInvestigation" className={stmStyles.div_add}>
-              <NewInvstgFields
-                goalUUID={selectedGoalUUID}
-                missionId={props.missionId}
-                reloadSTM={props.reloadSTMfromDB}
-              />
-            </div>
+        <div>
+          <div id="div_selectGoal" className={stmStyles.div_select}>
+            <GoalSelect
+              allGoals={props.allGoals}
+              objectiveUUID={selectedObjUUID}
+              selectedGoalUUID={selectedGoalUUID}
+              setSelectedGoalUUID={setSelectedGoalUUID}
+            />
           </div>
-        )}
+          <div id="div_addInvestigation" className={stmStyles.div_add}>
+            <NewInvstgFields
+              goalUUID={selectedGoalUUID}
+              missionId={props.missionId}
+              reloadSTM={props.reloadSTMfromDB}
+            />
+          </div>
+        </div>
         *STM items can only be deleted if they have no children
       </div>
       <h3>Import/Export STM</h3>
@@ -101,10 +91,10 @@ const STMEdit: FunctionComponent<STMProps> = (props: STMProps) => {
 const destructiveImportSTM = async (stmJson: string, missionId: number) => {
   const stm = JSON.parse(stmJson);
   // delete all esiting STM items for this mission from the db via the API
-  deleteSTM(missionId, "ALL");
+  deleteSTMs(missionId, "ALL");
 
   // add all STM items from the imported JSON to the store
-  stm.objectives.forEach(async (obj: STMObjective) => {
+  stm.objectives?.forEach(async (obj: STMObjective) => {
     const newObjective: STMObjective = {
       uuid: uuidv4(),
       name: obj.name,
@@ -113,7 +103,7 @@ const destructiveImportSTM = async (stmJson: string, missionId: number) => {
       createdAt: new Date(Date.now()).toISOString(),
       updatedAt: new Date(Date.now()).toISOString(),
     };
-    await upsertSTM(missionId, newObjective, "Objective");
+    await upsertSTMs(missionId, [newObjective], "Objective");
 
     //get nested goals
     const childGoals = stm.goals.filter((g: STMGoal) => g.objectiveUuid === obj.uuid);
@@ -126,7 +116,7 @@ const destructiveImportSTM = async (stmJson: string, missionId: number) => {
         createdAt: new Date(Date.now()).toISOString(),
         updatedAt: new Date(Date.now()).toISOString(),
       };
-      await upsertSTM(missionId, newGoal, "Goal");
+      await upsertSTMs(missionId, [newGoal], "Goal");
 
       //get nested invstg
       const childInvstg = stm.investigations.filter(
@@ -141,7 +131,7 @@ const destructiveImportSTM = async (stmJson: string, missionId: number) => {
           createdAt: new Date(Date.now()).toISOString(),
           updatedAt: new Date(Date.now()).toISOString(),
         };
-        await upsertSTM(missionId, newInvstg, "Investigation");
+        await upsertSTMs(missionId, [newInvstg], "Investigation");
       });
     });
   });
@@ -255,6 +245,7 @@ const ObjectiveSelect = (props: {
         id="objSelect"
         onChange={(e) => {
           props.setSelectedObjUUID(e.target.value);
+          //reset selected goal when objective changes
           props.setSelectedGoalUUID(null);
         }}
         value={props.selectedObjUUID}
@@ -339,7 +330,7 @@ const NewObjectiveFields = (props: { missionId: number; reloadSTM: (id: number) 
       createdAt: roundDateToSecond(new Date()).toISOString(),
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
-    await upsertSTM(props.missionId, upsertRecord, "Objective");
+    await upsertSTMs(props.missionId, [upsertRecord], "Objective");
     setNewObjective({
       uuid: null,
       name: "",
@@ -406,7 +397,7 @@ const NewGoalFields = (props: {
       createdAt: roundDateToSecond(new Date()).toISOString(),
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
-    await upsertSTM(props.missionId, upsertRecord, "Goal");
+    await upsertSTMs(props.missionId, [upsertRecord], "Goal");
     setNewGoal({
       uuid: null,
       name: "",
@@ -475,7 +466,7 @@ const NewInvstgFields = (props: {
       createdAt: roundDateToSecond(new Date()).toISOString(),
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
-    await upsertSTM(props.missionId, upsertRecord, "Investigation");
+    await upsertSTMs(props.missionId, [upsertRecord], "Investigation");
     setNewInvstg({
       uuid: null,
       numbering: "",

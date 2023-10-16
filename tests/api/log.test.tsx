@@ -169,7 +169,7 @@ describe("Log API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newLog, missionId: testMissions[2].id },
+        body: [{ ...newLog, missionId: testMissions[2].id }],
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -182,7 +182,7 @@ describe("Log API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newLog, missionId: testMissions[1].id },
+        body: [{ ...newLog, missionId: testMissions[1].id }],
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -195,7 +195,7 @@ describe("Log API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newLog, missionId: testMissions[0].id },
+        body: [{ ...newLog, missionId: testMissions[0].id }],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -204,7 +204,7 @@ describe("Log API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedLog = res._getJSONData().data;
+      const upsertedLog = res._getJSONData().data[0];
       expect(upsertedLog.uuid).not.toBeNull();
       newLog = { ...upsertedLog };
 
@@ -219,7 +219,7 @@ describe("Log API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newLog,
+        body: [newLog],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -228,7 +228,7 @@ describe("Log API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedLog = res._getJSONData().data;
+      const upsertedLog = res._getJSONData().data[0];
       expect(upsertedLog).not.toBeNull();
       expect(upsertedLog.type).toEqual("stationUpsert");
     });
@@ -239,7 +239,7 @@ describe("Log API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { missionId: testMissions[2].id },
+        body: [testMissions[2].id],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleLog(req, res);
@@ -251,7 +251,7 @@ describe("Log API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { missionId: testMissions[1].id },
+        body: [testMissions[1].id],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleLog(req, res);
@@ -263,7 +263,7 @@ describe("Log API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { missionId: testMissions[0].id },
+        body: [testMissions[0].id],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleLog(req, res);
@@ -283,7 +283,7 @@ describe("Log API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { missionId: testMissions[0].id },
+        body: [testMissions[0].id],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleLog(req, res);

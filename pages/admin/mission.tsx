@@ -1,7 +1,7 @@
 import { NextPage } from "next";
 import { Dispatch, SetStateAction, useCallback, useEffect, useState } from "react";
 import router, { useRouter } from "next/router";
-import { getMissions, deleteMission } from "http-client/mission";
+import { getMissions, deleteMissions } from "http-client/mission";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";
 import { deleteFile } from "http-client/file";
@@ -26,6 +26,11 @@ const Mission: NextPage = () => {
   // const [showImportMission, setShowImportMission] = useState<boolean>(false);
   const [user, setUser] = useState<User>(null);
   const [editingAttr, setEditingAttr] = useState<"Mission" | "Layers" | "STM">(undefined);
+
+  useEffect(() => {
+    // put mission id in session so api endpoints don't fail
+    sessionStorage.setItem("missionId", mission?.id?.toString());
+  }, [mission]);
 
   const loadMissionsFromDB = useCallback(async () => {
     const missionList = (await getMissions()).data;
@@ -481,7 +486,7 @@ const MissionList = (props: {
 
   async function delMission(id: number) {
     if (confirm("Are you sure you want to delete mission " + id)) {
-      const res: WrappedResponse<number> = await deleteMission(id);
+      const res: WrappedResponse<number[]> = await deleteMissions([id]);
       const fileDelete = await deleteFile(`missionFiles/${id.toString()}`);
       alert(
         `Delete ${res.status} - ${res.message} for missionID ${id}. File delete ${

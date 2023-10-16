@@ -374,7 +374,7 @@ describe("STM API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newObjective, missionId: testMissions[0].id },
+        body: [{ ...newObjective, missionId: testMissions[0].id }],
         query: { stmType: "o", missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -383,7 +383,7 @@ describe("STM API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedSTM = res._getJSONData().data;
+      const upsertedSTM = res._getJSONData().data[0];
       expect(upsertedSTM.uuid).not.toBeNull();
       expect(upsertedSTM.createdAt).not.toBeNull();
       expect(upsertedSTM.updatedAt).not.toBeNull();
@@ -399,7 +399,7 @@ describe("STM API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newGoal, objectiveUuid: newObjective.uuid },
+        body: [{ ...newGoal, objectiveUuid: newObjective.uuid }],
         query: { stmType: "g", missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -408,7 +408,7 @@ describe("STM API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedSTM = res._getJSONData().data;
+      const upsertedSTM = res._getJSONData().data[0];
       expect(upsertedSTM.uuid).not.toBeNull();
       expect(upsertedSTM.createdAt).not.toBeNull();
       expect(upsertedSTM.updatedAt).not.toBeNull();
@@ -424,7 +424,7 @@ describe("STM API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newInvstg, goalUuid: newGoal.uuid },
+        body: [{ ...newInvstg, goalUuid: newGoal.uuid }],
         query: { stmType: "i", missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -433,7 +433,7 @@ describe("STM API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedSTM = res._getJSONData().data;
+      const upsertedSTM = res._getJSONData().data[0];
       expect(upsertedSTM.uuid).not.toBeNull();
       expect(upsertedSTM.createdAt).not.toBeNull();
       expect(upsertedSTM.updatedAt).not.toBeNull();
@@ -451,7 +451,7 @@ describe("STM API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         query: { stmType: "o", missionId: testMissions[0].id },
-        body: newObjective,
+        body: [newObjective],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSTM(req, res);
@@ -459,7 +459,7 @@ describe("STM API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedSTM = res._getJSONData().data;
+      const upsertedSTM = res._getJSONData().data[0];
       expect(upsertedSTM).not.toBeNull();
       expect(upsertedSTM.name).toEqual("Jest Test New Objective Modified");
     });
@@ -470,7 +470,7 @@ describe("STM API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         query: { stmType: "g", missionId: testMissions[0].id },
-        body: newGoal,
+        body: [newGoal],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSTM(req, res);
@@ -478,7 +478,7 @@ describe("STM API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedSTM = res._getJSONData().data;
+      const upsertedSTM = res._getJSONData().data[0];
       expect(upsertedSTM).not.toBeNull();
       expect(upsertedSTM.name).toEqual("Jest Test New Goal Modified");
     });
@@ -489,7 +489,7 @@ describe("STM API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         query: { stmType: "i", missionId: testMissions[0].id },
-        body: newInvstg,
+        body: [newInvstg],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSTM(req, res);
@@ -497,7 +497,7 @@ describe("STM API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedSTM = res._getJSONData().data;
+      const upsertedSTM = res._getJSONData().data[0];
       expect(upsertedSTM).not.toBeNull();
       expect(upsertedSTM.name).toEqual("Jest Test New Investigation Modified");
     });
@@ -532,7 +532,8 @@ describe("STM API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { stmType: "i", i: `${newInvstg.uuid}`, missionId: testMissions[0].id },
+        query: { stmType: "i", missionId: testMissions[0].id },
+        body: [newInvstg.uuid],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSTM(req, res);
@@ -547,7 +548,8 @@ describe("STM API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { stmType: "g", g: `${newGoal.uuid}`, missionId: testMissions[0].id },
+        query: { stmType: "g", missionId: testMissions[0].id },
+        body: [newGoal.uuid],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSTM(req, res);
@@ -562,7 +564,8 @@ describe("STM API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { stmType: "o", o: `${newObjective.uuid}`, missionId: testMissions[0].id },
+        query: { stmType: "o", missionId: testMissions[0].id },
+        body: [newObjective.uuid],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSTM(req, res);

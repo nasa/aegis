@@ -42,11 +42,11 @@ export async function getInvestigations(urlParams?: {
 }
 
 /****** UPSERT ******/
-export async function upsertSTM(
+export async function upsertSTMs(
   mission: number,
-  stmObject: STMObjective | STMGoal | STMInvestigation,
+  stmObjects: STMObjective[] | STMGoal[] | STMInvestigation[],
   stmType: "Objective" | "Goal" | "Investigation"
-): Promise<WrappedResponse<STMObjective | STMGoal | STMInvestigation>> {
+): Promise<WrappedResponse<STMObjective[] | STMGoal[] | STMInvestigation[]>> {
   const stmParam: string = stmType.charAt(0).toLowerCase();
 
   const res = await fetch(`/api/stm?stmType=${stmParam}&missionId=${mission}`, {
@@ -54,26 +54,26 @@ export async function upsertSTM(
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(stmObject),
+    body: JSON.stringify(stmObjects),
   });
-  const response: WrappedResponse<typeof stmObject> = await res.json();
+  const response: WrappedResponse<typeof stmObjects> = await res.json();
   return response;
 }
 
 /****** DELETE ******/
-export async function deleteSTM(
+export async function deleteSTMs(
   missionId: number,
   stmType: "Objective" | "Goal" | "Investigation" | "ALL",
-  uuid?: string
-): Promise<WrappedResponse<string | null>> {
+  uuids: string[] = []
+): Promise<WrappedResponse<null>> {
   const stmParam: string = stmType.charAt(0).toLowerCase();
-
-  const res = await fetch(
-    `/api/stm?stmType=${stmParam}&missionId=${missionId}&${stmParam}=${uuid}`,
-    {
-      method: "DELETE",
-    }
-  );
-  const response: WrappedResponse<string | null> = await res.json();
+  const res = await fetch(`/api/stm?stmType=${stmParam}&missionId=${missionId}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(uuids),
+  });
+  const response: WrappedResponse<null> = await res.json();
   return response;
 }

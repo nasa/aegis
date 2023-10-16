@@ -170,7 +170,7 @@ describe("Preset API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newPreset, missionId: testMissions[2].id },
+        body: [{ ...newPreset, missionId: testMissions[2].id }],
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -183,7 +183,7 @@ describe("Preset API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newPreset, missionId: testMissions[1].id },
+        body: [{ ...newPreset, missionId: testMissions[1].id }],
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -196,7 +196,7 @@ describe("Preset API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newPreset, missionId: testMissions[0].id, ownerId: testUser.id },
+        body: [{ ...newPreset, missionId: testMissions[0].id, ownerId: testUser.id }],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -205,7 +205,7 @@ describe("Preset API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedPreset = res._getJSONData().data;
+      const upsertedPreset = res._getJSONData().data[0];
       expect(upsertedPreset.uuid).not.toBeNull();
       newPreset = { ...upsertedPreset };
 
@@ -220,7 +220,7 @@ describe("Preset API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newPreset,
+        body: [newPreset],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -229,7 +229,7 @@ describe("Preset API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedPreset = res._getJSONData().data;
+      const upsertedPreset = res._getJSONData().data[0];
       expect(upsertedPreset).not.toBeNull();
       expect(upsertedPreset.name).toEqual("Preset Jest Test Modified");
     });
@@ -264,7 +264,8 @@ describe("Preset API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { uuid: `${newPreset.uuid}`, missionId: testMissions[0].id },
+        query: { missionId: testMissions[0].id },
+        body: [newPreset.uuid],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handlePreset(req, res);

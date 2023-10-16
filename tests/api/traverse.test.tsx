@@ -203,7 +203,7 @@ describe("EVA API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newTraverse, missionId: testMissions[0].id, ownerId: testUser.id },
+        body: [{ ...newTraverse, missionId: testMissions[0].id, ownerId: testUser.id }],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -212,7 +212,7 @@ describe("EVA API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedTraverse = res._getJSONData().data;
+      const upsertedTraverse = res._getJSONData().data[0];
       expect(upsertedTraverse.uuid).not.toBeNull();
       newTraverse = { ...upsertedTraverse };
 
@@ -227,7 +227,7 @@ describe("EVA API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newTraverse,
+        body: [newTraverse],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -236,7 +236,7 @@ describe("EVA API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedTraverse = res._getJSONData().data;
+      const upsertedTraverse = res._getJSONData().data[0];
       expect(upsertedTraverse).not.toBeNull();
       expect(upsertedTraverse.name).toEqual("Jest Test New Traverse Modified");
     });
@@ -259,7 +259,8 @@ describe("EVA API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { uuid: `${newTraverse.uuid}`, missionId: testMissions[0].id },
+        query: { missionId: testMissions[0].id },
+        body: [newTraverse.uuid],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleTraverse(req, res);
