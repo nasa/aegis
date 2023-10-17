@@ -11,15 +11,19 @@ import login from "pages/api/auth/login";
 import logout from "pages/api/auth/logout";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import handleMissionHomePageItems from "pages/api/missionHomepageItems";
-import { User as User_db } from "server/database/models/user.model";
-import UserFactory from "../../factories/UserFactory";
-import { Mission as Mission_db } from "server/database/models/mission.model";
-import MissionFactory from "../../factories/MissionFactory";
-import { Rex as Rex_db } from "server/database/models/rex.model";
+import { User_db, Mission_db, Rex_db } from "server/database/models/_allModels";
+import UserFactory from "../factories/UserFactory";
+import MissionFactory from "../factories/MissionFactory";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
+import RexFactory from "../factories/RexFactory";
 import * as SocketIo from "pages/api/socketio";
-import RexFactory from "../../factories/RexFactory";
+jest.mock("pages/api/socketio", () => {
+  return {
+    __esModule: true,
+    ...jest.requireActual("pages/api/socketio"),
+  };
+});
 
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
@@ -195,5 +199,5 @@ afterAll(async () => {
   // Closing the DB connection allows Jest to exit successfully.
   closeORM();
 
-  jest.resetAllMocks();
+  jest.restoreAllMocks();
 });

@@ -5,6 +5,7 @@ import {
   setEvasCalculatedFields,
   setEvasFromDb,
   setExpandedEvaUuids,
+  setSelectedEvaUuid,
   upsertEva,
   upsertEvaFromDb,
 } from "store/eva";
@@ -18,19 +19,22 @@ import {
   deleteTraverseByUuid,
   upsertTraverse,
   setTraverseEditMode,
-  deleteTraverseFromDbByUuid,
   setTraversesFromDb,
-  upsertTraverseFromDb,
+  upsertTraverses,
+  upsertTraversesFromDb,
+  deleteTraversesFromDbByUuid,
+  deleteTraversesByUuid,
 } from "store/traverse";
 import * as httpClient_Eva from "http-client/eva";
 import * as httpClient_Traverse from "http-client/traverse";
+import * as httpClient_Rex from "http-client/rex";
 import _ from "lodash";
 import { thunkFullUpdateTraverse, thunkUpdateTraversesAroundStation } from "./thunkTraverse";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import { mergeEquipmentItems } from "utils/store";
-import { thunkSelectRexEva } from "./thunkRex";
 import { thunkDuplicateStation } from "./thunkStation";
+import { upsertRex, upsertRexFromDb } from "store/rex";
 
 export const thunkCreateEvasCalculatedFields = appCreateAsyncThunk<void>(
   "createEvasCalculatedFields",
@@ -237,36 +241,41 @@ export const thunkSaveEva = appCreateAsyncThunk<{
     return traverseUuidsInThisEva.includes(traverse.uuid);
   });
   // upsert the any modified traverses to the DB and update both copies in the store
-  for (const traverse of thisEvasTraverses) {
-    if (isModified([traverse], [thisEvasTraversesFromDb.find((t) => t.uuid === traverse.uuid)])) {
-      const traverseUpsertResponse = await httpClient_Traverse.upsertTraverse(
-        {
-          ...traverse,
-          updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-        },
-        rexRunning
-      );
-      if (traverseUpsertResponse.status === "success") {
-        // upsert the changed Traverse (with new updated date) to the store
-        dispatch(upsertTraverse(traverseUpsertResponse.data, true));
-        dispatch(upsertTraverseFromDb(traverseUpsertResponse.data));
-      }
+  const modifiedTraverses = thisEvasTraverses.flatMap((traverse) => {
+    const traverseFromDb = thisEvasTraversesFromDb.find((t) => t.uuid === traverse.uuid);
+    if (isModified([traverse], [traverseFromDb])) {
+      return { ...traverse, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() };
+    } else {
+      return [];
+    }
+  });
+  if (modifiedTraverses?.length > 0) {
+    const traverseUpsertResponse = await httpClient_Traverse.upsertTraverses(
+      modifiedTraverses,
+      rexRunning
+    );
+    if (traverseUpsertResponse.status === "success") {
+      // upsert the changed Traverse (with new updated date) to the store
+      dispatch(upsertTraverses(traverseUpsertResponse.data, true));
+      dispatch(upsertTraversesFromDb(traverseUpsertResponse.data));
     }
   }
 
   // upsert the changed Eva to the DB via internal API call
-  const evaUpsertResponse = await httpClient_Eva.upsertEva(
-    {
-      ...eva,
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    },
+  const evaUpsertResponse = await httpClient_Eva.upsertEvas(
+    [
+      {
+        ...eva,
+        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      },
+    ],
     rexRunning
   );
 
   if (evaUpsertResponse.status === "success") {
     // upsert the changed eva (with new updated date) to the store
-    dispatch(upsertEva(evaUpsertResponse.data, true));
-    dispatch(upsertEvaFromDb(evaUpsertResponse.data));
+    dispatch(upsertEva(evaUpsertResponse.data[0], true));
+    dispatch(upsertEvaFromDb(evaUpsertResponse.data[0]));
   } else {
     throw new Error("Error upserting Eva: " + evaUpsertResponse.message);
   }
@@ -283,8 +292,11 @@ export const thunkSaveEva = appCreateAsyncThunk<{
   const traversesToDelete = getState().traverse.traversesFromDb.filter((traverse) => {
     return !traverseUuidsInAnyEva.includes(traverse.uuid);
   });
-  for (const traverse of traversesToDelete) {
-    await httpClient_Traverse.deleteTraverse(traverse.uuid, rexRunning);
+  if (traversesToDelete.length > 0) {
+    await httpClient_Traverse.deleteTraverses(
+      traversesToDelete.map((t) => t.uuid),
+      rexRunning
+    );
   }
 
   // reset the traversesFromDB in the store with a fresh copy from the DB
@@ -360,10 +372,16 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
   allRexes.forEach((rex) => {
     if (rex.selectedRexEvaUuid === eva.uuid) {
       if (confirm(`This EVA is selected in Real-time execution item ${rex.name}. Unselect it?`)) {
-        dispatch(thunkSelectRexEva({ rexUuid: rex.uuid, evaUuid: null }));
+        dispatch(upsertRex({ ...rex, selectedRexEvaUuid: null }, true));
+        dispatch(upsertRexFromDb({ ...rex, selectedRexEvaUuid: null }));
+        // persist the change to rex in the db
+        httpClient_Rex.upsertRexes([{ ...rex, selectedRexEvaUuid: null }], rexRunning);
       }
     }
   });
+
+  //first deselect the EVa. This prevents race errors when the timeline tries to render prematurely before we're done deleting all the parts
+  dispatch(setSelectedEvaUuid(null));
 
   // delete all of the traverses used in this EVA sequence if they are in traversesFromDb
   const traverseUuidsInThisEva: string[] = [];
@@ -372,40 +390,38 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
       traverseUuidsInThisEva.push(sequenceItem.uuid);
     }
   });
-  const thisEvasTraversesFromDb = getState().traverse.traversesFromDb.filter((traverse) => {
-    return traverseUuidsInThisEva.includes(traverse.uuid);
-  });
-  for (const traverse of thisEvasTraversesFromDb) {
-    const deleteResponse: WrappedResponse<number> = await httpClient_Traverse.deleteTraverse(
-      traverse.uuid,
+  if (traverseUuidsInThisEva.length > 0) {
+    const thisEvasTraversesFromDb = getState().traverse.traversesFromDb.filter((traverse) => {
+      return traverseUuidsInThisEva.includes(traverse.uuid);
+    });
+    const deleteResponse: WrappedResponse<null> = await httpClient_Traverse.deleteTraverses(
+      thisEvasTraversesFromDb.map((t) => t.uuid),
       rexRunning
     );
     if (deleteResponse.status === "success") {
       // remove the corresponding traverse from the traversesFromDb store
-      dispatch(deleteTraverseFromDbByUuid(traverse.uuid));
+      dispatch(deleteTraversesFromDbByUuid(thisEvasTraversesFromDb.map((t) => t.uuid)));
     }
-  }
-  // get fresh copy of Traverses from DB
-  const traverseData = await httpClient_Traverse.getTraverses(getState().mission.mission?.id);
-  if (traverseData.data) {
-    dispatch(setTraversesFromDb(traverseData.data));
-  }
+    // get fresh copy of Traverses from DB
+    const traverseData = await httpClient_Traverse.getTraverses(getState().mission.mission?.id);
+    if (traverseData.data) {
+      dispatch(setTraversesFromDb(traverseData.data));
+    }
 
-  // delete all of the traverses used in this EVA sequence from the traverses store
-  const thisEvasTraverses = getState().traverse.traverses.filter((traverse) => {
-    return traverseUuidsInThisEva.includes(traverse.uuid);
-  });
-  thisEvasTraverses.forEach((traverse) => {
-    dispatch(deleteTraverseByUuid(traverse.uuid));
-  });
+    // delete all of the traverses used in this EVA sequence from the traverses store
+    const thisEvasTraverses = getState().traverse.traverses.filter((traverse) => {
+      return traverseUuidsInThisEva.includes(traverse.uuid);
+    });
+    dispatch(deleteTraversesByUuid(thisEvasTraverses.map((t) => t.uuid)));
+  }
 
   // delete the eva from the DB or the store
   // if the selected eva is in evasFromDb then delete it from the db
   const evaFromDb = getState().eva.evasFromDb.find((evaFromDb) => evaFromDb.uuid === eva.uuid);
   if (evaFromDb) {
     // delete the Eva from the DB via internal API call
-    const deleteResponse: WrappedResponse<number> = await httpClient_Eva.deleteEva(
-      eva.uuid,
+    const deleteResponse: WrappedResponse<number[]> = await httpClient_Eva.deleteEvas(
+      [eva.uuid],
       rexRunning
     );
     if (deleteResponse.status === "success") {
@@ -426,7 +442,9 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
   }
 
   dispatch(setEvaEditMode({ evaUuid: eva.uuid, editMode: false }));
-  // close right panel
+  dispatch(
+    setExpandedEvaUuids(getState().eva.expandedEvaUuids.filter((uuid) => uuid !== eva.uuid))
+  );
   dispatch(setRightPanelOpen(false));
 });
 

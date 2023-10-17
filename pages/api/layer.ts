@@ -3,7 +3,7 @@ import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
 import { getEM, withORM } from "utils/mikro";
 import _ from "lodash";
-import { Layer as Layer_db } from "server/database/models/layer.model";
+import { Layer_db } from "server/database/models/_allModels";
 import {
   EntityData,
   ForeignKeyConstraintViolationException,
@@ -43,15 +43,16 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
     const { uuid, missionId } = req.query;
     const intMissionId = parseInt(missionId as string);
     const layerUUID = uuid as string;
+
+    if (!intMissionId || _.isNaN(intMissionId)) {
+      return res.status(500).json({ status: "error", message: "Invalid mission ID" });
+    }
+
     const editPermission = await hasPerms(intMissionId, "edit", req.session?.user);
 
     // retrieve record
     if (req.method === "GET") {
       try {
-        if (!intMissionId || _.isNaN(intMissionId)) {
-          return res.status(500).json({ status: "error", message: "Invalid mission ID" });
-        }
-
         const viewPermission = await hasPerms(intMissionId, "view", req.session?.user);
         if (!viewPermission && !editPermission)
           return res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -75,22 +76,17 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
     if (req.method === "POST") {
       //must have edit permission for a given mission id
       //  or must be an admin to the back end (during mission create)
-      if (
-        missionId &&
-        !editPermission &&
-        !req.session.user.isAdmin &&
-        !req.session.user.isSuperAdmin
-      ) {
+      if (!editPermission) {
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
 
       try {
         //perform the upsert
-        const upsertObject: Layer = req.body as Layer;
-        const upsertResponse: Layer = await upsertLayer(upsertObject);
+        const layersToUpsert: Layer[] = req.body as Layer[];
+        const upsertResponse: Layer[] = await upsertLayers(layersToUpsert);
 
         //check response
-        if (!upsertResponse) {
+        if (upsertResponse.length === 0) {
           return res.status(500).json({
             status: "error",
             message: "Upsert response did not return a value",
@@ -99,7 +95,7 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
         } else {
           return res.status(200).json({
             status: "success",
-            message: `Layer upserted with ID ${upsertResponse.uuid}`,
+            message: `Layer upserted with ID ${upsertResponse.map((l) => l.uuid)}`,
             data: upsertResponse,
           });
         }
@@ -113,18 +109,15 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
 
     //delete a record
     if (req.method === "DELETE") {
-      if (!intMissionId || _.isNaN(intMissionId)) {
-        return res.status(500).json({ status: "error", message: "Invalid mission ID" });
-      }
-
       if (!editPermission) {
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
 
       try {
-        const deletedUUID = await deleteLayer(layerUUID);
+        const uuidsToDelete: string[] = req.body;
+        const deletedUUIDs = await deleteLayers(uuidsToDelete);
 
-        if (deletedUUID) {
+        if (deletedUUIDs.length > 0) {
           return res.status(200).json({
             status: "success",
             message: "Layer Deleted",
@@ -198,53 +191,60 @@ async function getLayers(missionId: number, layerUUID?: string): Promise<Layer[]
 }
 
 /**
- * Inserts or Updates a layer into the database
- * @param layer the layer object to upsert
- * @returns a copy of the layer object that was upserted
+ * Inserts or Updates layers into the database
+ * @param layer the layer objects to upsert
+ * @returns a copy of the layer objects that was upserted
  */
-async function upsertLayer(layer: Layer): Promise<Layer> {
+async function upsertLayers(layers: Layer[]): Promise<Layer[]> {
   const em = getEM();
-  const upsertRecord: Layer = _.cloneDeep(layer);
 
-  //convert fks and upsert
-  const convertedRecord: EntityData<Layer_db> = {
-    uuid: upsertRecord.uuid || uuidv4(),
-    mission: upsertRecord.missionId,
-    name: upsertRecord.name,
-    createdAt: new Date(upsertRecord.createdAt),
-    updatedAt: new Date(upsertRecord.updatedAt),
-  };
-  const upsertReference = await em.upsert(Layer_db, convertedRecord);
+  const layersToUpsert: Layer[] = _.cloneDeep(layers);
+  const layersUpsertedToDb = [];
 
-  await em.persistAndFlush(upsertReference);
+  for (const layerToUpsert of layersToUpsert) {
+    //convert fks and upsert
+    const convertedRecord: EntityData<Layer_db> = {
+      uuid: layerToUpsert.uuid || uuidv4(),
+      mission: layerToUpsert.missionId,
+      name: layerToUpsert.name,
+      createdAt: new Date(layerToUpsert.createdAt),
+      updatedAt: new Date(layerToUpsert.updatedAt),
+    };
+    const upsertReference = await em.upsert(Layer_db, convertedRecord);
 
-  //convert fks back
-  const result: Layer = {
-    uuid: upsertReference.uuid,
-    missionId: upsertReference.mission.id,
-    name: upsertReference.name,
-    createdAt: upsertReference.createdAt.toISOString(),
-    updatedAt: upsertReference.updatedAt.toISOString(),
-  };
+    em.persist(upsertReference);
 
-  return result;
+    //convert fks back
+    const convertedLayer: Layer = {
+      uuid: upsertReference.uuid,
+      missionId: upsertReference.mission.id,
+      name: upsertReference.name,
+      createdAt: upsertReference.createdAt.toISOString(),
+      updatedAt: upsertReference.updatedAt.toISOString(),
+    };
+    layersUpsertedToDb.push(convertedLayer);
+  }
+  await em.flush();
+  return layersUpsertedToDb;
 }
 
 /**
- * Deletes a single layer
- * @param uuid layer uuid to delete
- * @returns the uuid of the deleted layer, or null if nothing was deleted
+ * Deletes layers
+ * @param uuids layer uuids to delete
+ * @returns the uuids of the deleted layers
  */
-async function deleteLayer(uuid: string): Promise<string | null> {
+async function deleteLayers(uuids: string[]): Promise<string[]> {
   const em = getEM();
-  let returnVal = uuid;
-  const entity = await em.findOne(Layer_db, uuid);
-  if (entity) {
-    await em.removeAndFlush(entity);
-  } else {
-    returnVal = null;
+  const deletedUuids = [];
+  for (const uuid of uuids) {
+    const entity = await em.findOne(Layer_db, uuid);
+    if (entity) {
+      deletedUuids.push(uuid);
+      em.remove(entity); //delete layer
+    }
   }
-  return returnVal;
+  await em.flush(); //perform deletes
+  return deletedUuids;
 }
 
 export default withIronSessionApiRoute(withORM(handleLayer), ironOptions);

@@ -3,7 +3,9 @@
 #
 # Must have base image, which is supplied by docker-compose, defined in .env, and
 # set appropriately for the environment via scripts/make-dotenv.sh
-ARG NEXTJS_BASE_IMAGE=node:18-alpine
+# The following ARG syntax will use the image defined in NEXTJS_BASE_IMAGE first, and
+# if it's not defined, defult to the assignment to the right of the = from docker hub
+ARG NEXTJS_BASE_IMAGE=node:18.18.1-alpine
 
 FROM $NEXTJS_BASE_IMAGE as base
 

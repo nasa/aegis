@@ -1,5 +1,5 @@
 import { Factory } from "@mikro-orm/seeder";
-import { STM_Goal as STM_Goal_db } from "server/database/models/stm_goal.model";
+import { STM_Goal_db } from "server/database/models/_allModels";
 import { v4 as uuidv4 } from "uuid";
 import { EntityData } from "@mikro-orm/core";
 

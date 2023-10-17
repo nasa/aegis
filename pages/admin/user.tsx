@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 import { isLoggedIn } from "http-client/login";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";
-import { deleteUser, getUsers, upsertUser } from "../../http-client/user";
+import { deleteUsers, getUsers, upsertUsers } from "../../http-client/user";
 import { faEdit, faTrashCan, faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
@@ -73,8 +73,8 @@ const User: NextPage = () => {
   };
 
   const handleDelete = async (user: User) => {
-    const deletedUser = await deleteUser(user.id);
-    if (deletedUser) {
+    const deleteRes = await deleteUsers([user.id]);
+    if (deleteRes.status === "success") {
       setUserList(userList.filter((u) => u.id !== user.id));
     } else {
       alert("There was an error deleting user");
@@ -106,16 +106,18 @@ const User: NextPage = () => {
         return p.permissions.view || p.permissions.edit;
       });
     }
-    const updatedUser = await upsertUser({
-      ...user,
-      permissionList: permList,
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
-    });
+    const updatedUser = await upsertUsers([
+      {
+        ...user,
+        permissionList: permList,
+        updatedAt: roundDateToSecond(new Date()).toISOString(),
+      },
+    ]);
     if (updatedUser.status === "success") {
       setErrorMessage("");
       if (createMode) {
         setCreateMode(!createMode);
-        handleEdit(updatedUser.data);
+        handleEdit(updatedUser.data[0]);
         setInfoMessage("User created successfully");
       } else {
         setInfoMessage("User updated successfully");

@@ -96,32 +96,16 @@ export const actionSlice = createSlice({
       state.actionsFromDb = action.payload;
     },
     deleteActionByUuid: (state, action: { payload: string }) => {
-      state.actions.splice(
-        state.actions.findIndex((stateAction) => stateAction.uuid === action.payload),
-        1
-      );
+      state.actions = state.actions.filter((a) => a.uuid !== action.payload);
     },
     deleteActionFromDbByUuid: (state, action: { payload: string }) => {
-      state.actionsFromDb.splice(
-        state.actionsFromDb.findIndex((stateAction) => stateAction.uuid === action.payload),
-        1
-      );
+      state.actionsFromDb = state.actionsFromDb.filter((a) => a.uuid !== action.payload);
     },
     deleteActionsByUuid: (state, action: { payload: string[] }) => {
-      action.payload.forEach((uuid) => {
-        state.actions.splice(
-          state.actions.findIndex((stateAction) => stateAction.uuid === uuid),
-          1
-        );
-      });
+      state.actions = state.actions.filter((a) => !action.payload.includes(a.uuid));
     },
     deleteActionsFromDbByUuid: (state, action: { payload: string[] }) => {
-      action.payload.forEach((uuidtoDelete) => {
-        const actionIndex = state.actionsFromDb.findIndex(
-          (stateAction) => stateAction.uuid === uuidtoDelete
-        );
-        if (actionIndex >= 0) state.actionsFromDb.splice(actionIndex, 1);
-      });
+      state.actionsFromDb = state.actionsFromDb.filter((a) => !action.payload.includes(a.uuid));
     },
   },
 });

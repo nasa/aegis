@@ -9,10 +9,10 @@ import {
 import { shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
-import fetchWithTimeout from "utils/fetch-with-timeout";
 import { useAppDispatch } from "utils/useAppDispatch";
 import _ from "lodash";
 import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/thunkSockets";
+import { clientFetchWithTimeout } from "utils/fetch-with-timeout";
 
 const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
   const dispatch = useAppDispatch();
@@ -129,7 +129,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
     // if running local environment (no CI/CD), hit the API to wake it up
     if (!wakeFetchSent && process.env.NEXT_PUBLIC_IN_CI_ENVIRONMENT === "false") {
       try {
-        fetchWithTimeout(`${window.location.origin}/api/socketio`, { timeout: 5 });
+        clientFetchWithTimeout(`${window.location.origin}/api/socketio`, null, 2000);
       } catch (error) {
         // ignore
       }
@@ -191,13 +191,15 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
       // hit the API to get the lastest edit event and compare it to the one in the store
       // if they are different, then alert the user and refresh the page
       (async () => {
-        const wrappedLastEditResponse = await fetchWithTimeout(
+        const wrappedLastEditResponse = await clientFetchWithTimeout(
           `${window.location.origin}/api/socketLastEditEvent?missionId=${missionId}`,
-          { timeout: 2000 }
+          null,
+          2000
         );
 
         if (wrappedLastEditResponse.status === 200) {
-          const lastEditResponse = await wrappedLastEditResponse.json();
+          const lastEditResponse =
+            (await wrappedLastEditResponse.json()) as WrappedResponse<EditEvent>;
           if (
             interfaceStoreRef.current.socketStatus.lastEditEvent &&
             lastEditResponse &&

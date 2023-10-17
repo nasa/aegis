@@ -108,16 +108,18 @@ const EvaRightTraverse: FunctionComponent = () => {
     dispatch(setTraverseEditMode({ uuid: selectedEvaSequenceItemUuid, editMode: false }));
 
     // save to db
-    const persistResponse = await httpClient_Traverse.upsertTraverse(
-      {
-        ...selectedTraverse,
-        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-      },
+    const persistResponse = await httpClient_Traverse.upsertTraverses(
+      [
+        {
+          ...selectedTraverse,
+          updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+        },
+      ],
       rexRunning
     );
     if (persistResponse) {
-      dispatch(upsertTraverse(persistResponse.data, true));
-      dispatch(upsertTraverseFromDb(persistResponse.data));
+      dispatch(upsertTraverse(persistResponse.data[0], true));
+      dispatch(upsertTraverseFromDb(persistResponse.data[0]));
     }
 
     // if there's an active traverse edit action, cancel it

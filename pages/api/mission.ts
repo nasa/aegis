@@ -4,12 +4,12 @@ import { ironOptions } from "server/session/config";
 import { withORM, getEM } from "utils/mikro";
 
 import _ from "lodash";
-import { Mission as Mission_db } from "server/database/models/mission.model";
+import { Mission_db } from "server/database/models/_allModels";
 import { EntityData, ForeignKeyConstraintViolationException } from "@mikro-orm/core";
 import { hasPerms } from "utils/permissions";
 import { emitStoreUpsert } from "./socketio";
 import { v4 as uuidv4 } from "uuid";
-import { upsertLog } from "./log";
+import { upsertLogs } from "./log";
 
 /**
  * /api/mission?missionId=
@@ -36,7 +36,7 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
       return res.status(401).json({ status: "failure", message: "Unauthorized" });
     }
 
-    //missionId is optional, except when deleting
+    //missionId is only required for DELETE
     const { missionId, socketId, log } = req.query;
     const intMissionId = missionId ? parseInt(missionId as string) : null;
     const logAction = log === "true";
@@ -50,7 +50,7 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
       if (intMissionId) {
         viewPermission = await hasPerms(intMissionId, "view", req.session?.user);
       } else {
-        //no mission specified. check if they are allowed to view at least one mission
+        //no mission was specified. check if they are allowed to view at least one mission
         viewPermission =
           req.session?.user?.isSuperAdmin ||
           req.session?.user?.permissionList?.find((p) => p.permissions.view)?.permissions.view;
@@ -60,7 +60,7 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
 
       try {
         let records: Mission[];
-        if (missionId) {
+        if (intMissionId) {
           records = await getMission(intMissionId);
         } else {
           //super admin can see all missions
@@ -88,49 +88,55 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
       }
     }
 
-    const editPermission = await hasPerms(intMissionId, "edit", req.session?.user);
-
     //upsert a record
     if (req.method === "POST") {
       try {
-        //must have edit permission for a given mission id
-        //  or if no mission id (create mission) must be an admin to the back end or user 1
-        if ((missionId && !editPermission) || (!missionId && !req.session.user.isSuperAdmin)) {
-          return res.status(401).json({ status: "failure", message: "Unauthorized" });
+        const missionsToUpsert: Mission[] = req.body as Mission[];
+        //must have edit permission the mission ids
+        for (const mission of missionsToUpsert) {
+          const canEditThisMission = await hasPerms(mission.id, "edit", req.session?.user);
+          if (!canEditThisMission) {
+            return res.status(401).json({ status: "failure", message: "Unauthorized" });
+          }
         }
         //perform the upsert
-        const upsertObject: Mission = req.body as Mission;
-        const upsertResponse: Mission = await upsertMission(upsertObject);
+        const upsertResponse: Mission[] = await upsertMissions(missionsToUpsert);
 
         //check response
-        if (!upsertResponse) {
+        if (upsertResponse.length === 0) {
           return res.status(500).json({
             status: "error",
             message: "Upsert response did not return a value",
             data: null,
           });
         } else {
-          // emit the upserted item to all clients via socket.io
-          emitStoreUpsert({
-            missionId: intMissionId,
-            socketId,
-            type: "mission",
-            data: [upsertResponse],
-          } as StoreUpsert<Mission>);
-          if (logAction) {
-            // log this upsert to the log table
-            upsertLog({
-              uuid: uuidv4(),
-              missionId: intMissionId,
-              type: "missionUpsert",
-              payloadJson: JSON.stringify(upsertObject),
-              createdAt: new Date().toISOString(),
-            } as Log);
+          //For each mission upserted, emit and log.
+          //This is done in a loop since sockets are filtered to only process
+          //  messages that match the missionId field.
+          for (const upsertedMission of upsertResponse) {
+            // emit the upserted item to all clients via socket.io
+            emitStoreUpsert({
+              missionId: upsertedMission.id,
+              socketId,
+              type: "mission",
+              data: [upsertedMission],
+            } as StoreUpsert<Mission>);
+            if (logAction) {
+              // log this upsert to the log table
+              const log: Log = {
+                uuid: uuidv4(),
+                missionId: upsertedMission.id,
+                type: "missionUpsert",
+                payloadJson: JSON.stringify(upsertedMission),
+                createdAt: new Date().toISOString(),
+              };
+              upsertLogs([log]);
+            }
           }
 
           return res.status(200).json({
             status: "success",
-            message: `Mission upserted with ID ${upsertResponse.id}`,
+            message: `Mission upserted with IDs ${upsertResponse.map((m) => m.id)}`,
             data: upsertResponse,
           });
         }
@@ -144,25 +150,36 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
 
     //delete a mission record
     if (req.method === "DELETE") {
-      if (!editPermission) {
-        return res.status(401).json({ status: "failure", message: "Unauthorized" });
-      }
-      if (!intMissionId || _.isNaN(intMissionId)) {
-        return res.status(500).json({ status: "error", message: "Invalid mission ID" });
-      }
-
       try {
-        const deletedMissionId: number = await deleteMission(intMissionId);
-        if (deletedMissionId) {
+        const missionIdsToDelete: number[] = req.body.map((u: string) => parseInt(u));
+        //must have edit permission the mission ids
+        //  or if no mission id (create mission) must be an admin to the back end or user 1
+        for (const missionIdToDelete of missionIdsToDelete) {
+          if (!missionIdToDelete || _.isNaN(missionIdToDelete)) {
+            return res.status(500).json({ status: "error", message: "Invalid mission ID" });
+          }
+
+          const canEditThisMission = await hasPerms(missionIdToDelete, "edit", req.session?.user);
+          if (!canEditThisMission) {
+            return res.status(401).json({ status: "failure", message: "Unauthorized" });
+          }
+        }
+
+        const deletedMissionIds: number[] = await deleteMissions(missionIdsToDelete);
+        if (deletedMissionIds.length > 0) {
           if (logAction) {
-            // log this deletion to the log table
-            upsertLog({
-              uuid: uuidv4(),
-              missionId: intMissionId,
-              type: "missionDelete",
-              payloadJson: JSON.stringify({ missionId: intMissionId }),
-              createdAt: new Date().toISOString(),
-            } as Log);
+            // log this deletion to the log table for each mission
+            //  since logs are recorded by mission
+            for (const deletedMissionId of deletedMissionIds) {
+              const log: Log = {
+                uuid: uuidv4(),
+                missionId: deletedMissionId,
+                type: "missionDelete",
+                payloadJson: JSON.stringify({ deletedMissionId }),
+                createdAt: new Date().toISOString(),
+              };
+              upsertLogs([log]);
+            }
           }
 
           return res.status(200).json({
@@ -218,54 +235,63 @@ async function getMission(missionIdList: number | number[] = null): Promise<Miss
 }
 
 /**
- * Inserts or Updates a mission into the database
- * @param mission the mission object to upsert
- * @returns a copy of the mission object that was upserted
+ * Inserts or Updates missions into the database
+ * @param missions the mission objects to upsert
+ * @returns a copy of the mission objects that was upserted
  */
-async function upsertMission(mission: Mission): Promise<Mission> {
+async function upsertMissions(missions: Mission[]): Promise<Mission[]> {
   const em = getEM();
 
-  const missionCopy: Mission = _.cloneDeep(mission);
-  const upsertRecord: EntityData<Mission_db> = {
-    ...missionCopy,
-    updatedAt: new Date(missionCopy.updatedAt),
-    createdAt: new Date(missionCopy.createdAt),
-  };
+  const missionsCopy: Mission[] = _.cloneDeep(missions);
+  const missionsUpsertedToDb = [];
 
-  let dbReference: Mission_db;
-  if (mission.id) {
-    //update record
-    upsertRecord.version++;
-    dbReference = await em.upsert(Mission_db, upsertRecord);
-  } else {
-    //insert record.
-    //Can't use "upsert" to insert a new record if there's no other unique column in the table
-    delete upsertRecord.id; //attempting to insert with an id of null will throw a mikro error. remove the property completely so mikro can give us a new id.
-    upsertRecord.version = 1;
-    dbReference = em.create(Mission_db, upsertRecord);
+  for (const missionCopy of missionsCopy) {
+    const upsertRecord: EntityData<Mission_db> = {
+      ...missionCopy,
+      updatedAt: new Date(missionCopy.updatedAt),
+      createdAt: new Date(missionCopy.createdAt),
+    };
+
+    let dbReference: Mission_db;
+    if (missionCopy.id) {
+      //update record
+      upsertRecord.version++;
+      dbReference = await em.upsert(Mission_db, upsertRecord);
+    } else {
+      //insert record.
+      //Can't use "upsert" to insert a new record if there's no other unique column in the table
+      delete upsertRecord.id; //attempting to insert with an id of null will throw a mikro error. remove the property completely so mikro can give us a new id.
+      upsertRecord.version = 1;
+      dbReference = em.create(Mission_db, upsertRecord);
+    }
+
+    //have to both persist and flush in order to get the new mission id back
+    await em.persistAndFlush(dbReference);
+    missionsUpsertedToDb.push({
+      ...dbReference,
+      updatedAt: dbReference.updatedAt.toISOString(),
+      createdAt: dbReference.createdAt.toISOString(),
+    } as Mission);
   }
-  await em.persistAndFlush(dbReference);
-  return {
-    ...dbReference,
-    updatedAt: dbReference.updatedAt.toISOString(),
-    createdAt: dbReference.createdAt.toISOString(),
-  } as Mission;
+  return missionsUpsertedToDb;
 }
 
 /**
- * Deletes a single mission
- * @param missionId mission ID to delete
- * @returns the id of the deleted mission or null if nothing was deleted
+ * Deletes missions
+ * @param missionIds mission IDs to delete
+ * @returns the ids of the deleted missions
  */
-async function deleteMission(missionId: number): Promise<number | null> {
+async function deleteMissions(missionIds: number[]): Promise<number[]> {
   const em = getEM();
-  let returnVal = missionId;
-  const entity = await em.findOne(Mission_db, missionId);
-  if (entity) {
-    await em.removeAndFlush(entity);
-  } else {
-    returnVal = null;
+  const deletedMissionIds = [];
+  for (const missionId of missionIds) {
+    const entity = await em.findOne(Mission_db, missionId);
+    if (entity) {
+      em.remove(entity);
+      deletedMissionIds.push(missionId);
+    }
   }
-  return returnVal;
+  await em.flush();
+  return deletedMissionIds;
 }
 export default withIronSessionApiRoute(withORM(handleMission), ironOptions);

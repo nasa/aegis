@@ -1,31 +1,31 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import {
-  deletePresetByUuid,
-  deletePresetFromDbByUuid,
+  deletePresetsByUuid,
+  deletePresetsFromDbByUuid,
   setPresetEditMode,
   setSelectedPresetUuid,
   upsertPresets,
   upsertPresetsFromDb,
 } from "store/preset";
 import {
-  deletePoiByUuid,
-  deletePoiFromDbByUuid,
+  deletePoisByUuid,
+  deletePoisFromDbByUuid,
   setPoiEditMode,
   setSelectedPoiUuid,
   upsertPois,
   upsertPoisFromDb,
 } from "store/poi";
 import {
-  deleteStationByUuid,
-  deleteStationFromDbByUuid,
+  deleteStationsByUuid,
+  deleteStationsFromDbByUuid,
   setSelectedStationUuid,
   setStationEditMode,
   upsertStations,
   upsertStationsFromDb,
 } from "store/station";
 import {
-  deleteEvaByUuid,
-  deleteEvaFromDbByUuid,
+  deleteEvasByUuid,
+  deleteEvasFromDbByUuid,
   setEvaEditMode,
   setSelectedEvaSequenceItemUuid,
   setSelectedEvaUuid,
@@ -33,27 +33,27 @@ import {
   upsertEvasFromDb,
 } from "store/eva";
 import {
-  deleteActionByUuid,
-  deleteActionFromDbByUuid,
+  deleteActionsByUuid,
+  deleteActionsFromDbByUuid,
   upsertActions,
   upsertActionsFromDb,
 } from "store/action";
 import {
-  deleteTraverseByUuid,
-  deleteTraverseFromDbByUuid,
+  deleteTraversesByUuid,
+  deleteTraversesFromDbByUuid,
   setTraverseEditMode,
   upsertTraverses,
   upsertTraversesFromDb,
 } from "store/traverse";
 import { setMission, setMissionFromDb, setMissionSectionEditing } from "store/mission";
 import {
-  deleteRexByUuid,
-  deleteRexFromDbByUuid,
+  deleteRexesByUuid,
+  deleteRexesFromDbByUuid,
   setCrewPosEditingUuid,
   setRexesCrewPosEditMode,
   setRexEditMode,
-  upsertRex,
-  upsertRexFromDb,
+  upsertRexes,
+  upsertRexesFromDb,
   setSelectedRexUuid,
 } from "store/rex";
 import { updateMapDirective } from "store/map";
@@ -161,12 +161,17 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     dispatch(upsertTraverses(storeUpsert.data as Traverse[], true));
     dispatch(upsertTraversesFromDb(storeUpsert.data as Traverse[]));
   } else if (storeUpsert.type === "mission") {
-    if (getState().mission.missionSectionsEditing.length > 0) {
-      upsertMessages.push("The mission that you are editing has been changed by another user.");
-      dispatch(setMissionSectionEditing({ section: "prefs", editMode: false }));
+    const changedMissions = storeUpsert.data as Mission[];
+    for (const changedMission of changedMissions) {
+      if (getState().mission.mission.id === changedMission.id) {
+        if (getState().mission.missionSectionsEditing.length > 0) {
+          upsertMessages.push("The mission that you are editing has been changed by another user.");
+          dispatch(setMissionSectionEditing({ section: "prefs", editMode: false }));
+        }
+        dispatch(setMission(storeUpsert.data[0] as Mission));
+        dispatch(setMissionFromDb(storeUpsert.data[0] as Mission));
+      }
     }
-    dispatch(setMission(storeUpsert.data[0] as Mission));
-    dispatch(setMissionFromDb(storeUpsert.data[0] as Mission));
   } else if (storeUpsert.type === "rex") {
     const changedRexs = storeUpsert.data as Rex[];
     for (const changedRex of changedRexs) {
@@ -195,9 +200,9 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
       if (changedRex.rexRunning) {
         dispatch(setSelectedRexUuid(changedRex.uuid));
       }
-      dispatch(upsertRex(changedRex, true));
-      dispatch(upsertRexFromDb(changedRex, true));
     }
+    dispatch(upsertRexes(changedRexs, true));
+    dispatch(upsertRexesFromDb(changedRexs));
   }
   return upsertMessages;
 });
@@ -215,76 +220,89 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
   const deletedMessages: string[] = [];
 
   if (storeDelete.type === "preset") {
-    if (getState().preset.presetsEditing.includes(storeDelete.uuid)) {
-      const deletedPreset = getState().preset.presets.find(
-        (preset) => preset.uuid === storeDelete.uuid
-      );
-      deletedMessages.push(getConflictMessage("preset", deletedPreset.name, "delete"));
-      dispatch(setPresetEditMode({ presetUuid: deletedPreset.uuid, editMode: false }));
+    for (const deletedUuid of storeDelete.uuids) {
+      if (getState().preset.presetsEditing.includes(deletedUuid)) {
+        const deletedPreset = getState().preset.presets.find(
+          (preset) => preset.uuid === deletedUuid
+        );
+        deletedMessages.push(getConflictMessage("preset", deletedPreset.name, "delete"));
+        dispatch(setPresetEditMode({ presetUuid: deletedPreset.uuid, editMode: false }));
+      }
+      if (getState().preset.selectedPresetUuid === deletedUuid) {
+        // set the selected preset to the default preset
+        const defaultPreset = getState().preset.presets.find(
+          (thisPreset) => thisPreset.missionPresetDefault === true
+        ) as Preset;
+        dispatch(setSelectedPresetUuid(defaultPreset.uuid));
+      }
     }
-    if (getState().preset.selectedPresetUuid === storeDelete.uuid) {
-      // set the selected preset to the default preset
-      const defaultPreset = getState().preset.presets.find(
-        (thisPreset) => thisPreset.missionPresetDefault === true
-      ) as Preset;
-      dispatch(setSelectedPresetUuid(defaultPreset.uuid));
-    }
-    dispatch(deletePresetByUuid(storeDelete.uuid));
-    dispatch(deletePresetFromDbByUuid(storeDelete.uuid));
+    dispatch(deletePresetsByUuid(storeDelete.uuids));
+    dispatch(deletePresetsFromDbByUuid(storeDelete.uuids));
   } else if (storeDelete.type === "poi") {
-    if (getState().poi.poisEditing.includes(storeDelete.uuid)) {
-      const poiDeleted = getState().poi.pois.find((poi) => poi.uuid === storeDelete.uuid);
-      deletedMessages.push(getConflictMessage("POI", poiDeleted.name, "delete"));
-      dispatch(setPoiEditMode({ poiUuid: poiDeleted.uuid, editMode: false }));
+    for (const deletedUuid of storeDelete.uuids) {
+      if (getState().poi.poisEditing.includes(deletedUuid)) {
+        const poiDeleted = getState().poi.pois.find((poi) => poi.uuid === deletedUuid);
+        deletedMessages.push(getConflictMessage("POI", poiDeleted.name, "delete"));
+        dispatch(setPoiEditMode({ poiUuid: poiDeleted.uuid, editMode: false }));
+      }
+      if (getState().poi.selectedPoiUuid === deletedUuid) dispatch(setSelectedPoiUuid(null));
     }
-    if (getState().poi.selectedPoiUuid === storeDelete.uuid) dispatch(setSelectedPoiUuid(null));
-    dispatch(deletePoiByUuid(storeDelete.uuid));
-    dispatch(deletePoiFromDbByUuid(storeDelete.uuid));
+    dispatch(deletePoisByUuid(storeDelete.uuids));
+    dispatch(deletePoisFromDbByUuid(storeDelete.uuids));
   } else if (storeDelete.type === "station") {
-    if (getState().station.stationsEditing.includes(storeDelete.uuid)) {
-      const stationDeleted = getState().station.stations.find(
-        (station) => station.uuid === storeDelete.uuid
-      );
-      deletedMessages.push(getConflictMessage("station", stationDeleted.name, "delete"));
-      dispatch(setStationEditMode({ stationUuid: stationDeleted.uuid, editMode: false }));
+    for (const deletedUuid of storeDelete.uuids) {
+      if (getState().station.stationsEditing.includes(deletedUuid)) {
+        const stationDeleted = getState().station.stations.find(
+          (station) => station.uuid === deletedUuid
+        );
+        deletedMessages.push(getConflictMessage("station", stationDeleted.name, "delete"));
+        dispatch(setStationEditMode({ stationUuid: stationDeleted.uuid, editMode: false }));
+      }
+      if (getState().station.selectedStationUuid === deletedUuid)
+        dispatch(setSelectedStationUuid(null));
     }
-    if (getState().station.selectedStationUuid === storeDelete.uuid)
-      dispatch(setSelectedStationUuid(null));
-    dispatch(deleteStationByUuid(storeDelete.uuid));
-    dispatch(deleteStationFromDbByUuid(storeDelete.uuid));
+    dispatch(deleteStationsByUuid(storeDelete.uuids));
+    dispatch(deleteStationsFromDbByUuid(storeDelete.uuids));
   } else if (storeDelete.type === "eva") {
-    if (getState().eva.evasEditing.includes(storeDelete.uuid)) {
-      const evaDeleted = getState().eva.evas.find((eva) => eva.uuid === storeDelete.uuid);
-      deletedMessages.push(getConflictMessage("EVA", evaDeleted.name, "delete"));
-      dispatch(setEvaEditMode({ evaUuid: evaDeleted.uuid, editMode: false }));
+    for (const deletedUuid of storeDelete.uuids) {
+      if (getState().eva.evasEditing.includes(deletedUuid)) {
+        const evaDeleted = getState().eva.evas.find((eva) => eva.uuid === deletedUuid);
+        deletedMessages.push(getConflictMessage("EVA", evaDeleted.name, "delete"));
+        dispatch(setEvaEditMode({ evaUuid: evaDeleted.uuid, editMode: false }));
+      }
+      if (getState().eva.selectedEvaUuid === deletedUuid) {
+        dispatch(setSelectedEvaUuid(null));
+        dispatch(setSelectedEvaSequenceItemUuid(null));
+      }
     }
-    if (getState().eva.selectedEvaUuid === storeDelete.uuid) {
-      dispatch(setSelectedEvaUuid(null));
-      dispatch(setSelectedEvaSequenceItemUuid(null));
-    }
-    dispatch(deleteEvaByUuid(storeDelete.uuid));
-    dispatch(deleteEvaFromDbByUuid(storeDelete.uuid));
+
+    dispatch(deleteEvasByUuid(storeDelete.uuids));
+    dispatch(deleteEvasFromDbByUuid(storeDelete.uuids));
   } else if (storeDelete.type === "action") {
-    dispatch(deleteActionByUuid(storeDelete.uuid));
-    dispatch(deleteActionFromDbByUuid(storeDelete.uuid));
+    dispatch(deleteActionsByUuid(storeDelete.uuids));
+    dispatch(deleteActionsFromDbByUuid(storeDelete.uuids));
   } else if (storeDelete.type === "traverse") {
-    if (getState().traverse.traversesEditing.includes(storeDelete.uuid)) {
-      const traverseDeleted = getState().traverse.traverses.find(
-        (traverse) => traverse.uuid === storeDelete.uuid
-      );
-      deletedMessages.push(getConflictMessage("traverse", traverseDeleted.name, "delete"));
-      dispatch(setTraverseEditMode({ uuid: traverseDeleted.uuid, editMode: false }));
+    for (const deletedUuid of storeDelete.uuids) {
+      if (getState().traverse.traversesEditing.includes(deletedUuid)) {
+        const traverseDeleted = getState().traverse.traverses.find(
+          (traverse) => traverse.uuid === deletedUuid
+        );
+        deletedMessages.push(getConflictMessage("traverse", traverseDeleted.name, "delete"));
+        dispatch(setTraverseEditMode({ uuid: traverseDeleted.uuid, editMode: false }));
+      }
     }
-    dispatch(deleteTraverseByUuid(storeDelete.uuid));
-    dispatch(deleteTraverseFromDbByUuid(storeDelete.uuid));
+    dispatch(deleteTraversesByUuid(storeDelete.uuids));
+    dispatch(deleteTraversesFromDbByUuid(storeDelete.uuids));
   } else if (storeDelete.type === "rex") {
-    if (getState().rex.rexesEditing.includes(storeDelete.uuid)) {
-      const rexDeleted = getState().rex.rexes.find((rex) => rex.uuid === storeDelete.uuid);
-      deletedMessages.push(getConflictMessage("rex", rexDeleted.name, "delete"));
-      dispatch(setRexEditMode({ rexUuid: rexDeleted.uuid, editMode: false }));
+    for (const deletedUuid of storeDelete.uuids) {
+      if (getState().rex.rexesEditing.includes(deletedUuid)) {
+        const rexDeleted = getState().rex.rexes.find((rex) => rex.uuid === deletedUuid);
+        deletedMessages.push(getConflictMessage("rex", rexDeleted.name, "delete"));
+        dispatch(setRexEditMode({ rexUuid: rexDeleted.uuid, editMode: false }));
+      }
     }
-    dispatch(deleteRexByUuid(storeDelete.uuid));
-    dispatch(deleteRexFromDbByUuid(storeDelete.uuid));
+    dispatch(deleteRexesByUuid(storeDelete.uuids));
+    dispatch(deleteRexesFromDbByUuid(storeDelete.uuids));
   }
   return deletedMessages;
 });

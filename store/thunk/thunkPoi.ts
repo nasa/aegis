@@ -144,19 +144,21 @@ export const thunkSavePoi = appCreateAsyncThunk<{
   const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
 
   //save poi to db
-  const poiUpsertResponse = await httpClient_poi.upsertPOI(
-    {
-      ...poi,
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    },
+  const poiUpsertResponse = await httpClient_poi.upsertPOIs(
+    [
+      {
+        ...poi,
+        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      },
+    ],
     rexRunning
   );
 
   if (poiUpsertResponse.status === "success") {
     // upsert the changed POI to the store
-    dispatch(upsertPoi(poiUpsertResponse.data, true));
+    dispatch(upsertPoi(poiUpsertResponse.data[0], true));
     // update the POI in the store with a  fresh copy of POIs from DB
-    dispatch(upsertPoiFromDb(poiUpsertResponse.data));
+    dispatch(upsertPoiFromDb(poiUpsertResponse.data[0]));
   } else {
     throw new Error("Error upserting POI: " + poiUpsertResponse.message);
   }
@@ -216,25 +218,26 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
   // if the selected poi is in poisFromDb then delete it from the db
   if (poiFromDb) {
     // delete actions from the db via internal api call
-    for (const actionToDelete of poiActions) {
-      const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteAction(
-        actionToDelete.uuid,
+    const actionUuidsToDelete = poiActions.map((a) => a.uuid);
+    if (actionUuidsToDelete.length > 0) {
+      const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteActions(
+        actionUuidsToDelete,
         rexRunning
       );
       if (actionDeleteResponse.status !== "success") {
         throw new Error("Error deleting actions for poi " + actionDeleteResponse.message);
       }
-    }
-    // delete actions from the store
-    dispatch(deleteActionsByUuid(poiActions.map((a) => a.uuid)));
-    // update store copy of the db with a fresh copy of actions for this mission from the db
-    const actionData = await httpClient_action.getActions({ missionId: selectedMissionId });
-    if (actionData.data) {
-      dispatch(setActionsFromDb(actionData.data));
+      // delete actions from the store
+      dispatch(deleteActionsByUuid(actionUuidsToDelete));
+      // update store copy of the db with a fresh copy of actions for this mission from the db
+      const actionData = await httpClient_action.getActions({ missionId: selectedMissionId });
+      if (actionData.data) {
+        dispatch(setActionsFromDb(actionData.data));
+      }
     }
 
     // delete the POI from the DB via internal API call
-    const deleteResponse = await httpClient_poi.deletePOI(poi.uuid, rexRunning);
+    const deleteResponse = await httpClient_poi.deletePOIs([poi.uuid], rexRunning);
     if (deleteResponse.status === "success") {
       // remove the corresponding POI from the store
       dispatch(deletePoiByUuid(poi.uuid));

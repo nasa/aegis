@@ -1,13 +1,12 @@
 // Testing file: file.tsx - using jest
 import { describe } from "@jest/globals";
 import { deleteFile, listFiles, renameFile } from "server/file/file";
-
-const fs = require("fs");
-const path = require("path");
+import * as fs from "fs";
+import * as path from "path";
 
 describe("File API Endpoint", () => {
   const OLD_ENV = process.env;
-  const staticDir = path.join(__dirname, "../../../public/static/test");
+  const staticDir = path.join(__dirname, "../../public/static/test");
 
   beforeEach(async () => {
     jest.resetModules();
@@ -52,7 +51,7 @@ describe("File API Endpoint", () => {
 
   test("List Files: Directory", async () => {
     // Make a second directory
-    const staticDir2 = path.join(__dirname, "../../../public/static/test/test2");
+    const staticDir2 = path.join(__dirname, "../../public/static/test/test2");
     await fs.promises.mkdir(staticDir2, { recursive: true }).catch(console.error);
 
     const files = await listFiles("test");
@@ -105,9 +104,9 @@ describe("File API Endpoint", () => {
   afterAll(async () => {
     process.env = OLD_ENV;
     await fs.unlinkSync(path.join(staticDir, "test2.txt"));
-    await fs.rmdirSync(path.join(__dirname, "../../../public/static/test/test2"));
-    await fs.rmdirSync(path.join(__dirname, "../../../public/static/test"));
+    await fs.rmdirSync(path.join(__dirname, "../../public/static/test/test2"));
+    await fs.rmdirSync(path.join(__dirname, "../../public/static/test"));
 
-    jest.resetAllMocks();
+    jest.restoreAllMocks();
   });
 });

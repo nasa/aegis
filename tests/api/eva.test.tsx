@@ -9,24 +9,27 @@ import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { NextApiRequest, NextApiResponse } from "next";
 import login from "pages/api/auth/login";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import handleRex from "pages/api/rex";
-import { User as User_db } from "server/database/models/user.model";
-import UserFactory from "../../factories/UserFactory";
-import { Mission as Mission_db } from "server/database/models/mission.model";
-import MissionFactory from "../../factories/MissionFactory";
-import { Rex as Rex_db } from "server/database/models/rex.model";
+import handleEva from "pages/api/eva";
+import UserFactory from "../factories/UserFactory";
+import MissionFactory from "../factories/MissionFactory";
+import { User_db, Mission_db, Eva_db } from "server/database/models/_allModels";
+import EvaFactory from "../factories/EVAFactory";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
 import { roundDateToSecond } from "utils/formatting";
 import * as SocketIo from "pages/api/socketio";
-import RexFactory from "../../factories/RexFactory";
-
+jest.mock("pages/api/socketio", () => {
+  return {
+    __esModule: true,
+    ...jest.requireActual("pages/api/socketio"),
+  };
+});
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
 let testUser: User_db;
 let testMissions: Mission_db[];
-let testRexes: Rex_db[];
+let testEvas: Eva_db[];
 
 beforeAll(async () => {
   await getORM();
@@ -50,9 +53,10 @@ beforeAll(async () => {
       },
     ],
   });
-  testRexes = await new RexFactory(em)
-    .each((rex) => {
-      rex.mission = testMissions[0];
+  testEvas = await new EvaFactory(em)
+    .each((eva) => {
+      eva.mission = testMissions[0];
+      eva.owner = testUser;
     })
     .create(2);
 
@@ -61,22 +65,21 @@ beforeAll(async () => {
   jest.spyOn(SocketIo, "emitStoreDelete").mockImplementation(() => {});
 });
 
-describe("REX API Endpoint", () => {
+describe("EVA API Endpoint", () => {
   type ApiRequest = NextApiRequest & ReturnType<typeof createRequest>;
   type ApiResponse = NextApiResponse & ReturnType<typeof createResponse>;
 
   let loginCookie: string;
-  let newRex: Rex = {
+  let newEVA: Eva = {
     uuid: null,
+    ownerId: null,
     missionId: null,
-    name: "Jest Rex-1",
-    description: null,
-    petStartStopTimestamp: null,
-    petValueAtStartStop: null,
-    petRunning: null,
-    selectedRexEvaUuid: null,
-    rexRunning: null,
-    crewPos: null,
+    name: "Jest Eva-1",
+    status: "Candidate",
+    sequence: null,
+    description: "",
+    maxDuration: null,
+    traverseRate: null,
     createdAt: roundDateToSecond(new Date()).toISOString(),
     updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
@@ -87,7 +90,7 @@ describe("REX API Endpoint", () => {
 
   test("Returns auth failure", async () => {
     const { req, res } = mockRequestResponse({ method: "GET" });
-    await handleRex(req, res);
+    await handleEva(req, res);
     expect(res.statusCode).toBe(401);
     expect(res.statusMessage).toEqual("OK");
   });
@@ -112,19 +115,35 @@ describe("REX API Endpoint", () => {
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleRex(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Returns all Rexes for mission", async () => {
+    test("Returns single EVA by eva uuid", async () => {
+      const reqOptions: RequestOptions = {
+        method: "GET",
+        headers: { cookie: loginCookie },
+        query: { missionId: testMissions[0].id, uuid: testEvas[0].uuid },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleEva(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
+
+      const wrappedResponse = res._getJSONData();
+      expect(wrappedResponse.status).toBe("success");
+      expect(wrappedResponse.data.length).toEqual(1);
+    });
+
+    test("Returns all EVAs for mission", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleRex(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -133,14 +152,14 @@ describe("REX API Endpoint", () => {
       expect(wrappedResponse.data.length).toBeGreaterThan(1);
     });
 
-    test("No Rexes returned", async () => {
+    test("No EVAs returned", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleRex(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -156,11 +175,11 @@ describe("REX API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newRex, missionId: testMissions[2].id },
+        body: [{ ...newEVA, missionId: testMissions[2].id }],
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleRex(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -169,55 +188,55 @@ describe("REX API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newRex, missionId: testMissions[1].id },
+        body: [{ ...newEVA, missionId: testMissions[1].id }],
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleRex(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Create new Rex", async () => {
+    test("Create new EVA", async () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newRex, missionId: testMissions[0].id },
+        body: [{ ...newEVA, missionId: testMissions[0].id, ownerId: testUser.id }],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleRex(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedRex = res._getJSONData().data;
-      expect(upsertedRex.uuid).not.toBeNull();
-      newRex = { ...upsertedRex };
+      const upsertedEVA = res._getJSONData().data[0];
+      expect(upsertedEVA.uuid).not.toBeNull();
+      newEVA = { ...upsertedEVA };
 
       //check if it was added to the db
       const em = getEM();
-      const rexReference = await em.findOne(Rex_db, upsertedRex.uuid);
-      expect(rexReference).not.toBeNull();
+      const evaReference = await em.findOne(Eva_db, upsertedEVA.uuid);
+      expect(evaReference).not.toBeNull();
     });
 
-    test("Update a Rex", async () => {
-      newRex.name = "Jest Test New Rex Modified";
+    test("Update a EVA", async () => {
+      newEVA.name = "Jest Test New EVA Modified";
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newRex,
+        body: [newEVA],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleRex(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedRex = res._getJSONData().data;
-      expect(upsertedRex).not.toBeNull();
-      expect(upsertedRex.name).toEqual("Jest Test New Rex Modified");
+      const upsertedEVA = res._getJSONData().data[0];
+      expect(upsertedEVA).not.toBeNull();
+      expect(upsertedEVA.name).toEqual("Jest Test New EVA Modified");
     });
   });
 
@@ -229,7 +248,7 @@ describe("REX API Endpoint", () => {
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleRex(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -241,19 +260,20 @@ describe("REX API Endpoint", () => {
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleRex(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Delete a Rex", async () => {
+    test("Delete a EVA", async () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { uuid: `${newRex.uuid}`, missionId: testMissions[0].id },
+        query: { missionId: testMissions[0].id },
+        body: [newEVA.uuid],
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleRex(req, res);
+      await handleEva(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -266,8 +286,8 @@ describe("REX API Endpoint", () => {
 afterAll(async () => {
   //Cleanup our Database
   const em = getEM();
-  for (let i = 0; i < testRexes.length; i++) {
-    await em.nativeDelete(Rex_db, { uuid: testRexes[i].uuid });
+  for (let i = 0; i < testEvas.length; i++) {
+    await em.nativeDelete(Eva_db, { uuid: testEvas[i].uuid });
   }
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
@@ -277,5 +297,5 @@ afterAll(async () => {
   // Closing the DB connection allows Jest to exit successfully.
   closeORM();
 
-  jest.resetAllMocks();
+  jest.restoreAllMocks();
 });

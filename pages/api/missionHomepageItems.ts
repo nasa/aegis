@@ -1,11 +1,10 @@
 import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import { ironOptions } from "server/session/config";
-import { getEM } from "utils/mikro";
+import { getEM, withORM } from "utils/mikro";
 
 import _ from "lodash";
-import { Mission as Mission_db } from "server/database/models/mission.model";
-import { Rex as Rex_db } from "server/database/models/rex.model";
+import { Mission_db, Rex_db } from "server/database/models/_allModels";
 
 const handleMissionHomePageItems: NextApiHandler<WrappedResponse<MissionHomepageItem[]>> = async (
   req,
@@ -57,8 +56,6 @@ const handleMissionHomePageItems: NextApiHandler<WrappedResponse<MissionHomepage
   }
 };
 
-export default withIronSessionApiRoute(handleMissionHomePageItems, ironOptions);
-
 async function getHomepageMissionItems(
   missionIdList: number | number[] = null
 ): Promise<MissionHomepageItem[]> {
@@ -103,3 +100,5 @@ async function getHomepageMissionItems(
   }
   return _.sortBy(missionHomepageItems, "name");
 }
+
+export default withIronSessionApiRoute(withORM(handleMissionHomePageItems), ironOptions);

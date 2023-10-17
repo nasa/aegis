@@ -1,3 +1,6 @@
+import { describe, expect, afterAll, beforeAll, test } from "@jest/globals";
+import "@testing-library/jest-dom";
+import { NextApiRequest, NextApiResponse } from "next";
 import {
   createMocks,
   createResponse,
@@ -5,28 +8,27 @@ import {
   RequestOptions,
   ResponseOptions,
 } from "node-mocks-http";
-import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
-import { NextApiRequest, NextApiResponse } from "next";
-import login from "pages/api/auth/login";
+import Login from "pages/api/auth/login";
+
 import { getORM, getEM, closeORM } from "utils/mikro";
-import handleEva from "pages/api/eva";
-import { User as User_db } from "server/database/models/user.model";
-import UserFactory from "../../factories/UserFactory";
-import { Mission as Mission_db } from "server/database/models/mission.model";
-import MissionFactory from "../../factories/MissionFactory";
-import { Eva as Eva_db } from "server/database/models/eva.model";
-import EvaFactory from "../../factories/EVAFactory";
+import UserFactory from "../factories/UserFactory";
+import MissionFactory from "../factories/MissionFactory";
+import LayerFactory from "../factories/LayerFactory";
+import SublayerFactory from "../factories/SublayerFactory";
+import handleSublayer from "pages/api/sublayer";
+import { Mission_db, Layer_db, User_db, Sublayer_db } from "server/database/models/_allModels";
+import { createNewSublayer } from "components/admin/helper";
+import fetchMock from "jest-fetch-mock";
+import { v4 as uuidv4 } from "uuid";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
-import { roundDateToSecond } from "utils/formatting";
-import * as SocketIo from "pages/api/socketio";
-
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
-let testUser: User_db;
 let testMissions: Mission_db[];
-let testEvas: Eva_db[];
+let testUser: User_db;
+let testLayer: Layer_db;
+let testSublayers: Sublayer_db[];
 
 beforeAll(async () => {
   await getORM();
@@ -50,36 +52,26 @@ beforeAll(async () => {
       },
     ],
   });
-  testEvas = await new EvaFactory(em)
-    .each((eva) => {
-      eva.mission = testMissions[0];
-      eva.owner = testUser;
+  testLayer = await new LayerFactory(em).createOne({
+    mission: testMissions[0],
+  });
+  testSublayers = await new SublayerFactory(em)
+    .each((sublayer) => {
+      sublayer.mission = testMissions[0];
+      sublayer.layer = testLayer;
     })
     .create(2);
 
-  // suppress socketio calls because they won't work during jest testing
-  jest.spyOn(SocketIo, "emitStoreUpsert").mockImplementation(() => {});
-  jest.spyOn(SocketIo, "emitStoreDelete").mockImplementation(() => {});
+  fetchMock.resetMocks();
 });
 
-describe("EVA API Endpoint", () => {
+describe("Layer API Endpoint ", () => {
   type ApiRequest = NextApiRequest & ReturnType<typeof createRequest>;
   type ApiResponse = NextApiResponse & ReturnType<typeof createResponse>;
 
   let loginCookie: string;
-  let newEVA: Eva = {
-    uuid: null,
-    ownerId: null,
-    missionId: null,
-    name: "Jest Eva-1",
-    status: "Candidate",
-    sequence: null,
-    description: "",
-    maxDuration: null,
-    traverseRate: null,
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
-  };
+  let newSublayer: Sublayer = createNewSublayer(uuidv4());
+
   function mockRequestResponse(reqOptions: RequestOptions, resOptions?: ResponseOptions) {
     const { req, res }: { req: ApiRequest; res: ApiResponse } = createMocks(reqOptions, resOptions);
     return { req, res };
@@ -87,7 +79,7 @@ describe("EVA API Endpoint", () => {
 
   test("Returns auth failure", async () => {
     const { req, res } = mockRequestResponse({ method: "GET" });
-    await handleEva(req, res);
+    await handleSublayer(req, res);
     expect(res.statusCode).toBe(401);
     expect(res.statusMessage).toEqual("OK");
   });
@@ -97,7 +89,7 @@ describe("EVA API Endpoint", () => {
       method: "POST",
       body: { username: testUser.username, password: "superSecretPassword" },
     });
-    await login(loginReqRes.req, loginReqRes.res);
+    await Login(loginReqRes.req, loginReqRes.res);
     expect(loginReqRes.res.statusCode).toBe(200); //check response from login
     const response: WrappedResponse<IronSessionData> = loginReqRes.res._getJSONData();
     expect(response.status).toEqual("success");
@@ -112,57 +104,57 @@ describe("EVA API Endpoint", () => {
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handleSublayer(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Returns single EVA by eva uuid", async () => {
+    test("Returns empty non-existant sublayer uuid for mission", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
-        query: { missionId: testMissions[0].id, uuid: testEvas[0].uuid },
+        query: { missionId: testMissions[0].id, uuid: uuidv4() },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handleSublayer(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
-      const wrappedResponse = res._getJSONData();
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toEqual(1);
+      const sublayers: Sublayer[] = res._getJSONData().data;
+      expect(res._getJSONData().status).toBe("success");
+      expect(sublayers.length).toEqual(0);
     });
 
-    test("Returns all EVAs for mission", async () => {
+    test("Returns single sublayer by sublayer uuid", async () => {
+      const reqOptions: RequestOptions = {
+        method: "GET",
+        headers: { cookie: loginCookie },
+        query: { missionId: testMissions[0].id, uuid: testSublayers[0].uuid },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleSublayer(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
+
+      const sublayers: Sublayer[] = res._getJSONData().data;
+      expect(res._getJSONData().status).toBe("success");
+      expect(sublayers.length).toEqual(1);
+    });
+
+    test("Returns sublayers for mission", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handleSublayer(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
-      const wrappedResponse = res._getJSONData();
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toBeGreaterThan(1);
-    });
-
-    test("No EVAs returned", async () => {
-      const reqOptions: RequestOptions = {
-        method: "GET",
-        headers: { cookie: loginCookie },
-        query: { missionId: testMissions[1].id },
-      };
-      const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
-      expect(res.statusCode).toBe(200);
-      expect(res.statusMessage).toEqual("OK");
-
-      const wrappedResponse = res._getJSONData();
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toEqual(0);
+      const sublayers: Sublayer[] = res._getJSONData().data;
+      expect(res._getJSONData().status).toBe("success");
+      expect(sublayers.length).toBeGreaterThan(1);
     });
   });
 
@@ -172,11 +164,11 @@ describe("EVA API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newEVA, missionId: testMissions[2].id },
+        body: [{ ...newSublayer, layerUuid: testLayer.uuid, missionId: testMissions[2].id }],
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handleSublayer(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -185,55 +177,57 @@ describe("EVA API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newEVA, missionId: testMissions[1].id },
+        body: [{ ...newSublayer, layerUuid: testLayer.uuid, missionId: testMissions[1].id }],
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handleSublayer(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Create new EVA", async () => {
+    test("Create new sublayer", async () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newEVA, missionId: testMissions[0].id, ownerId: testUser.id },
+        body: [{ ...newSublayer, layerUuid: testLayer.uuid, missionId: testMissions[0].id }],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handleSublayer(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedEVA = res._getJSONData().data;
-      expect(upsertedEVA.uuid).not.toBeNull();
-      newEVA = { ...upsertedEVA };
+      const upsertedSublayer: Sublayer = res._getJSONData().data[0];
+      expect(upsertedSublayer.uuid).not.toBeNull();
+      newSublayer = { ...upsertedSublayer };
 
       //check if it was added to the db
       const em = getEM();
-      const evaReference = await em.findOne(Eva_db, upsertedEVA.uuid);
-      expect(evaReference).not.toBeNull();
+      const sublayerRef: Sublayer_db = await em.findOne(Sublayer_db, upsertedSublayer.uuid);
+      expect(sublayerRef).not.toBeNull();
     });
 
-    test("Update a EVA", async () => {
-      newEVA.name = "Jest Test New EVA Modified";
+    test("Update a sublayer", async () => {
+      newSublayer.name = "Jest Test Sublayer Modified";
+      newSublayer.missionId = testMissions[0].id;
+
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newEVA,
+        body: [newSublayer],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handleSublayer(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedEVA = res._getJSONData().data;
-      expect(upsertedEVA).not.toBeNull();
-      expect(upsertedEVA.name).toEqual("Jest Test New EVA Modified");
+      const upsertedSublayer: Sublayer = res._getJSONData().data[0];
+      expect(upsertedSublayer).not.toBeNull();
+      expect(upsertedSublayer.name).toEqual("Jest Test Sublayer Modified");
     });
   });
 
@@ -245,7 +239,7 @@ describe("EVA API Endpoint", () => {
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handleSublayer(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -257,19 +251,22 @@ describe("EVA API Endpoint", () => {
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handleSublayer(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Delete a EVA", async () => {
+    test("Delete a sublayer", async () => {
+      newSublayer.missionId = testMissions[0].id;
+
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { uuid: `${newEVA.uuid}`, missionId: testMissions[0].id },
+        query: { missionId: testMissions[0].id },
+        body: [newSublayer.uuid],
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleEva(req, res);
+      await handleSublayer(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -282,16 +279,16 @@ describe("EVA API Endpoint", () => {
 afterAll(async () => {
   //Cleanup our Database
   const em = getEM();
-  for (let i = 0; i < testEvas.length; i++) {
-    await em.nativeDelete(Eva_db, { uuid: testEvas[i].uuid });
+  for (let i = 0; i < testSublayers.length; i++) {
+    await em.nativeDelete(Sublayer_db, { uuid: testSublayers[i].uuid });
   }
+  await em.nativeDelete(Layer_db, { uuid: testLayer.uuid });
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
   await em.nativeDelete(User_db, { id: testUser.id });
-
   // Closing the DB connection allows Jest to exit successfully.
-  closeORM();
+  await closeORM();
 
-  jest.resetAllMocks();
+  jest.restoreAllMocks();
 });

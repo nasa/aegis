@@ -8,13 +8,12 @@ import {
   Loaded,
   QueryOrder,
 } from "@mikro-orm/core";
-import { Station as Station_db } from "server/database/models/station.model";
-import { Poi as Poi_db } from "server/database/models/poi.model";
+import { Station_db, Poi_db } from "server/database/models/_allModels";
 import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
 import { emitStoreDelete, emitStoreUpsert } from "./socketio";
-import { upsertLog } from "./log";
+import { upsertLogs } from "./log";
 
 const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = async (
   req,
@@ -65,12 +64,19 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
       try {
-        const stationToUpsert: Station = req.body as Station;
-        if (!stationToUpsert.ownerId) stationToUpsert.ownerId = req.session.user.id;
-        const upsertResponse: Station = await upsertStation(stationToUpsert);
+        const stations: Station[] = req.body as Station[];
+        //add owner id to the evas
+        const stationsToUpsert = stations.map((s) => {
+          if (!s.ownerId) {
+            return { ...s, ownerId: req.session.user.id };
+          } else {
+            return s;
+          }
+        });
+        const upsertResponse: Station[] = await upsertStations(stationsToUpsert);
 
         //check response
-        if (!upsertResponse) {
+        if (upsertResponse.length === 0) {
           return res.status(500).json({
             status: "error",
             message: "Upsert response did not return a value",
@@ -82,23 +88,24 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
             missionId: intMissionId,
             socketId,
             type: "station",
-            data: [upsertResponse],
+            data: upsertResponse,
           } as StoreUpsert<Station>);
 
           if (logAction) {
             // log this upsert to the log table
-            upsertLog({
+            const log: Log = {
               uuid: uuidv4(),
               missionId: intMissionId,
               type: "stationUpsert",
-              payloadJson: JSON.stringify(stationToUpsert),
+              payloadJson: JSON.stringify(stationsToUpsert),
               createdAt: new Date().toISOString(),
-            } as Log);
+            };
+            upsertLogs([log]);
           }
 
           return res.status(200).json({
             status: "success",
-            message: `Station upserted with ID ${upsertResponse.uuid}`,
+            message: `Station upserted with ID ${upsertResponse.map((s) => s.uuid)}`,
             data: upsertResponse,
           });
         }
@@ -116,25 +123,28 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
       try {
-        const deletedUuid = await deleteStation(stationUuid);
-        if (deletedUuid) {
+        const uuidsToDelete: string[] = req.body;
+        const deletedUuids = await deleteStations(uuidsToDelete);
+
+        if (deletedUuids.length > 0) {
           // emit the deleted item to all clients via socket.io
           emitStoreDelete({
             missionId: intMissionId,
             socketId,
             type: "station",
-            uuid: deletedUuid,
+            uuids: deletedUuids,
           } as StoreDelete);
 
           if (logAction) {
             // log this deletion to the log table
-            upsertLog({
+            const log: Log = {
               uuid: uuidv4(),
               missionId: intMissionId,
               type: "stationDelete",
-              payloadJson: JSON.stringify({ stationUuid }),
+              payloadJson: JSON.stringify({ deletedUuids }),
               createdAt: new Date().toISOString(),
-            } as Log);
+            };
+            upsertLogs([log]);
           }
 
           return res.status(200).json({
@@ -203,75 +213,80 @@ async function getStations(missionId: number, stationUUID?: string): Promise<Sta
 }
 
 /**
- * Inserts or Updates a station into the database
- * @param station the station object to upsert
- * @returns a copy of the station object that was upserted
+ * Inserts or Updates stations into the database
+ * @param stations the stations to upsert
+ * @returns a copy of the stations that was upserted
  */
-async function upsertStation(station: Station): Promise<Station> {
+async function upsertStations(stations: Station[]): Promise<Station[]> {
   const em = getEM();
 
-  const stationToUpsert = _.cloneDeep(station); //create a copy to manipulate
+  const stationsToUpsert = _.cloneDeep(stations); //create a copy to manipulate
+  const stationsUpsertedToDb = [];
 
-  const convertedStation: EntityData<Station_db> = {
-    uuid: stationToUpsert.uuid || uuidv4(),
-    owner: stationToUpsert.ownerId,
-    mission: stationToUpsert.missionId,
-    actionOrderUuids: stationToUpsert.actionOrderUuids,
-    name: stationToUpsert.name,
-    status: stationToUpsert.status,
-    description: stationToUpsert.description,
-    radius: stationToUpsert.radius,
-    location: stationToUpsert.location,
-    elevation: stationToUpsert.elevation,
-    walkbackPath: stationToUpsert.walkbackPath,
-    walkbackPathSegmentDistances: stationToUpsert.walkbackPathSegmentDistances,
-    walkbackPathSegmentElevations: stationToUpsert.walkbackPathSegmentElevations,
-    durationLower: stationToUpsert.durationLower,
-    durationUpper: stationToUpsert.durationUpper,
-    icon: stationToUpsert.icon,
-    rexStatus: stationToUpsert.rexStatus,
-    updatedAt: new Date(stationToUpsert.updatedAt),
-    createdAt: new Date(stationToUpsert.createdAt),
-  };
+  for (const stationToUpsert of stationsToUpsert) {
+    const convertedStation: EntityData<Station_db> = {
+      uuid: stationToUpsert.uuid || uuidv4(),
+      owner: stationToUpsert.ownerId,
+      mission: stationToUpsert.missionId,
+      actionOrderUuids: stationToUpsert.actionOrderUuids,
+      name: stationToUpsert.name,
+      status: stationToUpsert.status,
+      description: stationToUpsert.description,
+      radius: stationToUpsert.radius,
+      location: stationToUpsert.location,
+      elevation: stationToUpsert.elevation,
+      walkbackPath: stationToUpsert.walkbackPath,
+      walkbackPathSegmentDistances: stationToUpsert.walkbackPathSegmentDistances,
+      walkbackPathSegmentElevations: stationToUpsert.walkbackPathSegmentElevations,
+      durationLower: stationToUpsert.durationLower,
+      durationUpper: stationToUpsert.durationUpper,
+      icon: stationToUpsert.icon,
+      rexStatus: stationToUpsert.rexStatus,
+      updatedAt: new Date(stationToUpsert.updatedAt),
+      createdAt: new Date(stationToUpsert.createdAt),
+    };
 
-  //upsert station
-  const stationRefFromDb: Station_db = await em.upsert(Station_db, convertedStation);
-  await em.populate(stationRefFromDb, ["poi"]); //need to populate pois in order to remove them
+    //upsert station
+    const stationRefFromDb: Station_db = await em.upsert(Station_db, convertedStation);
+    await em.populate(stationRefFromDb, ["poi"]); //need to populate pois in order to remove them
 
-  //remove all pois
-  stationRefFromDb.poi.removeAll();
-  //add back pois
-  if (stationToUpsert.poiUuids) {
-    for (const uuid of stationToUpsert.poiUuids) {
-      const poiReference = em.getReference(Poi_db, uuid);
-      stationRefFromDb.poi.add(poiReference);
+    //remove all pois
+    stationRefFromDb.poi.removeAll();
+    //add back pois
+    if (stationToUpsert.poiUuids) {
+      for (const uuid of stationToUpsert.poiUuids) {
+        const poiReference = em.getReference(Poi_db, uuid);
+        stationRefFromDb.poi.add(poiReference);
+      }
     }
+
+    em.persist(stationRefFromDb);
+    stationsUpsertedToDb.push(stationRefFromDb);
   }
 
-  await em.persistAndFlush(stationRefFromDb);
-
+  await em.flush();
   //convert foreign keys
-  return convertStations([stationRefFromDb])[0];
+  return convertStations(stationsUpsertedToDb);
 }
 
 /**
- * Deletes a single station and the entity relationships to any POIs.
+ * Deletes stations and the entity relationships to any POIs.
  * This operation does not touch actions. Actions should be removed by calling the Actions API directly.
- * @param stationUuid station uuid to delete
- * @returns the uuid of the deleted station, or null if nothing was deleted
+ * @param stationUuids station uuids to delete
+ * @returns the uuids of the deleted station
  */
-async function deleteStation(stationUuid: string): Promise<string | null> {
+async function deleteStations(stationUuids: string[]): Promise<string[]> {
   const em = getEM();
-  let returnVal = stationUuid;
-  const entity = await em.findOne(Station_db, { uuid: stationUuid }, { populate: ["poi"] });
-
-  if (entity) {
-    entity.poi.removeAll(); //delete relationship to poi (does not delete the poi record)
-    await em.remove(entity).flush(); //delete station and cascade deletes
-  } else {
-    returnVal = null;
+  const deletedUuids = [];
+  for (const stationUuid of stationUuids) {
+    const entity = await em.findOne(Station_db, { uuid: stationUuid }, { populate: ["poi"] });
+    if (entity) {
+      em.remove(entity);
+      deletedUuids.push(stationUuid);
+    }
+    await em.flush(); //perform deletes
+    return deletedUuids;
   }
-  return returnVal;
 }
 
 /**

@@ -7,34 +7,37 @@ import {
 } from "node-mocks-http";
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { NextApiRequest, NextApiResponse } from "next";
-import login from "pages/api/auth/login";
-import logout from "pages/api/auth/logout";
+import Login from "pages/api/auth/login";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import handleMission from "pages/api/mission";
-import { Mission as Mission_db } from "server/database/models/mission.model";
-import MissionFactory from "../../factories/MissionFactory";
-import { User as User_db } from "server/database/models/user.model";
-import UserFactory from "../../factories/UserFactory";
+import handlePreset from "pages/api/preset";
+import { Mission_db, Preset_db, User_db } from "server/database/models/_allModels";
+import MissionFactory from "../factories/MissionFactory";
+import PresetFactory from "../factories/PresetFactory";
+import UserFactory from "../factories/UserFactory";
+import { v4 as uuidv4 } from "uuid";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
 import { roundDateToSecond } from "utils/formatting";
 import * as SocketIo from "pages/api/socketio";
+jest.mock("pages/api/socketio", () => {
+  return {
+    __esModule: true,
+    ...jest.requireActual("pages/api/socketio"),
+  };
+});
 
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
+let testUser: User_db;
 let testMissions: Mission_db[];
-let testAdmin: User_db;
-let testSuperAdmin: User_db;
-let newMission: Partial<Mission>;
+let testPresets: Preset_db[];
 
 beforeAll(async () => {
   await getORM();
   const em = getEM();
   testMissions = await new MissionFactory(em).create(3);
-  testAdmin = await new UserFactory(em).createOne({
-    username: "testAdmin",
-    isAdmin: true,
+  testUser = await new UserFactory(em).createOne({
     permissionList: [
       {
         missionId: testMissions[0].id,
@@ -50,33 +53,36 @@ beforeAll(async () => {
           view: true,
         },
       },
-      {
-        missionId: 99999,
-        permissions: {
-          edit: false,
-          view: true,
-        },
-      },
     ],
   });
-  testSuperAdmin = await new UserFactory(em).createOne({
-    username: "testSuperAdmin",
-    isSuperAdmin: true,
-  });
+  testPresets = await new PresetFactory(em)
+    .each((preset) => {
+      preset.mission = testMissions[0];
+      preset.owner = testUser;
+    })
+    .create(2);
 
   // suppress socketio calls because they won't work during jest testing
   jest.spyOn(SocketIo, "emitStoreUpsert").mockImplementation(() => {});
   jest.spyOn(SocketIo, "emitStoreDelete").mockImplementation(() => {});
 });
 
-describe("Mission API Endpoint", () => {
+describe("Preset API Endpoint", () => {
   type ApiRequest = NextApiRequest & ReturnType<typeof createRequest>;
   type ApiResponse = NextApiResponse & ReturnType<typeof createResponse>;
 
   let loginCookie: string;
-
-  newMission = {
-    name: "Mission Jest Test",
+  let newPreset: Preset = {
+    name: "Preset Jest Test",
+    uuid: uuidv4(),
+    ownerId: null,
+    missionId: null,
+    description: null,
+    missionPreset: false,
+    missionPresetDefault: false,
+    mapCircleControls: null,
+    mapSublayerControls: null,
+    layerOrder: null,
     createdAt: roundDateToSecond(new Date()).toISOString(),
     updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
@@ -87,8 +93,15 @@ describe("Mission API Endpoint", () => {
   }
 
   test("Returns auth failure", async () => {
-    const { req, res } = mockRequestResponse({ method: "GET" });
-    await handleMission(req, res);
+    const reqOptions: RequestOptions = {
+      method: "GET",
+      headers: {
+        cookie: loginCookie,
+      },
+      query: { missionId: 1 },
+    };
+    const { req, res } = mockRequestResponse(reqOptions);
+    await handlePreset(req, res);
     expect(res.statusCode).toBe(401);
     expect(res.statusMessage).toEqual("OK");
   });
@@ -96,9 +109,9 @@ describe("Mission API Endpoint", () => {
   test("Returns login session", async () => {
     const loginReqRes = mockRequestResponse({
       method: "POST",
-      body: { username: testAdmin.username, password: "superSecretPassword" },
+      body: { username: testUser.username, password: "superSecretPassword" },
     });
-    await login(loginReqRes.req, loginReqRes.res);
+    await Login(loginReqRes.req, loginReqRes.res);
     expect(loginReqRes.res.statusCode).toBe(200); //check response from login
     const response: WrappedResponse<IronSessionData> = loginReqRes.res._getJSONData();
     expect(response.status).toEqual("success");
@@ -106,60 +119,42 @@ describe("Mission API Endpoint", () => {
   });
 
   describe("GET request", () => {
-    test("Returns single mission", async () => {
-      const reqOptions: RequestOptions = {
-        method: "GET",
-        headers: { cookie: loginCookie },
-        query: { missionId: testMissions[0].id.toString() },
-      };
-      const { req, res } = mockRequestResponse(reqOptions);
-      await handleMission(req, res);
-      expect(res.statusCode).toBe(200);
-      expect(res.statusMessage).toEqual("OK");
-
-      const wrappedResponse = res._getJSONData();
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toEqual(1);
-    });
-
-    test("Returns all missions user has permissions to", async () => {
-      const reqOptions: RequestOptions = {
-        method: "GET",
-        headers: { cookie: loginCookie },
-      };
-      const { req, res } = mockRequestResponse(reqOptions);
-      await handleMission(req, res);
-      expect(res.statusCode).toBe(200);
-      expect(res.statusMessage).toEqual("OK");
-
-      const wrappedResponse = res._getJSONData();
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toEqual(2);
-    });
-
-    test("No mission returned - no permission", async () => {
+    test("No permissions", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleMission(req, res);
+      await handlePreset(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
-
-      const wrappedResponse = res._getJSONData();
-      expect(wrappedResponse.status).toBe("failure");
     });
 
-    test("No mission returned - doesnt exist", async () => {
+    test("Returns all mission presets for mission", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
-        query: { missionId: "99999" },
+        query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleMission(req, res);
+      await handlePreset(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
+
+      const wrappedResponse = res._getJSONData();
+      expect(wrappedResponse.status).toBe("success");
+      expect(wrappedResponse.data.length).toBeGreaterThanOrEqual(1);
+    });
+
+    test("No presets returned", async () => {
+      const reqOptions: RequestOptions = {
+        method: "GET",
+        headers: { cookie: loginCookie },
+        query: { missionId: testMissions[1].id },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handlePreset(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -175,11 +170,11 @@ describe("Mission API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: testMissions[2],
+        body: [{ ...newPreset, missionId: testMissions[2].id }],
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleMission(req, res);
+      await handlePreset(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -188,46 +183,55 @@ describe("Mission API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: testMissions[1],
+        body: [{ ...newPreset, missionId: testMissions[1].id }],
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleMission(req, res);
+      await handlePreset(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Create new mission - No permissions", async () => {
+    test("Create new preset", async () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newMission,
-        query: { missionId: null },
-      };
-      const { req, res } = mockRequestResponse(reqOptions);
-      await handleMission(req, res);
-      expect(res.statusCode).toBe(401);
-      expect(res.statusMessage).toEqual("OK");
-    });
-
-    test("Update a mission", async () => {
-      testMissions[0].name = "Gaia-1 Modified";
-      const reqOptions: RequestOptions = {
-        method: "POST",
-        headers: { cookie: loginCookie },
-        body: testMissions[0],
+        body: [{ ...newPreset, missionId: testMissions[0].id, ownerId: testUser.id }],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleMission(req, res);
+      await handlePreset(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedMission = res._getJSONData().data;
-      expect(upsertedMission).not.toBeNull();
-      expect(upsertedMission.version).toEqual(2);
-      expect(upsertedMission.name).toEqual("Gaia-1 Modified");
+      const upsertedPreset = res._getJSONData().data[0];
+      expect(upsertedPreset.uuid).not.toBeNull();
+      newPreset = { ...upsertedPreset };
+
+      //check if it was added to the db
+      const em = getEM();
+      const presetRef: Preset_db = await em.findOne(Preset_db, upsertedPreset.uuid);
+      expect(presetRef).not.toBeNull();
+    });
+
+    test("Update a preset", async () => {
+      newPreset.name = "Preset Jest Test Modified";
+      const reqOptions: RequestOptions = {
+        method: "POST",
+        headers: { cookie: loginCookie },
+        body: [newPreset],
+        query: { missionId: testMissions[0].id },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handlePreset(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
+
+      expect(res._getJSONData().data).not.toBeNull();
+      const upsertedPreset = res._getJSONData().data[0];
+      expect(upsertedPreset).not.toBeNull();
+      expect(upsertedPreset.name).toEqual("Preset Jest Test Modified");
     });
   });
 
@@ -239,7 +243,7 @@ describe("Mission API Endpoint", () => {
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleMission(req, res);
+      await handlePreset(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -251,95 +255,20 @@ describe("Mission API Endpoint", () => {
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleMission(req, res);
+      await handlePreset(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Delete a mission", async () => {
+    test("Delete a preset", async () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { missionId: `${testMissions[0].id}` },
+        query: { missionId: testMissions[0].id },
+        body: [newPreset.uuid],
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleMission(req, res);
-      expect(res.statusCode).toBe(200);
-      expect(res.statusMessage).toEqual("OK");
-
-      const wrappedResponse = res._getJSONData();
-      expect(wrappedResponse.status).toBe("success");
-    });
-  });
-
-  describe("Super Admin", () => {
-    test("Login as super admin", async () => {
-      const logoutReqRes = mockRequestResponse({ method: "GET" });
-      await logout(logoutReqRes.req, logoutReqRes.res);
-
-      const loginReqRes = mockRequestResponse({
-        method: "POST",
-        body: { username: testSuperAdmin.username, password: "superSecretPassword" },
-      });
-      await login(loginReqRes.req, loginReqRes.res);
-      expect(loginReqRes.res.statusCode).toBe(200); //check response from login
-      const response: WrappedResponse<IronSessionData> = loginReqRes.res._getJSONData();
-      expect(response.status).toEqual("success");
-      expect(response.data.user.isSuperAdmin).toBeTruthy();
-      loginCookie = loginReqRes.res._getHeaders()["set-cookie"][0];
-    });
-
-    test("Create new mission", async () => {
-      const reqOptions: RequestOptions = {
-        method: "POST",
-        headers: { cookie: loginCookie },
-        body: newMission,
-      };
-      const { req, res } = mockRequestResponse(reqOptions);
-      await handleMission(req, res);
-      expect(res.statusCode).toBe(200);
-      expect(res.statusMessage).toEqual("OK");
-
-      expect(res._getJSONData().data).not.toBeNull();
-      const upsertedMission = res._getJSONData().data;
-      expect(upsertedMission.id).not.toBeNull();
-      expect(upsertedMission.version).toEqual(1);
-
-      //check if it was added to the db
-      const em = getEM();
-      const missionReference = await em.findOne(Mission_db, upsertedMission.id);
-      expect(missionReference).not.toBeNull();
-      newMission = { ...upsertedMission };
-    });
-
-    test("Update a mission", async () => {
-      newMission.name = "Mission Jest Test Modified";
-      const reqOptions: RequestOptions = {
-        method: "POST",
-        headers: { cookie: loginCookie },
-        body: newMission,
-        query: { missionId: newMission.id },
-      };
-      const { req, res } = mockRequestResponse(reqOptions);
-      await handleMission(req, res);
-      expect(res.statusCode).toBe(200);
-      expect(res.statusMessage).toEqual("OK");
-
-      expect(res._getJSONData().data).not.toBeNull();
-      const upsertedMission = res._getJSONData().data;
-      expect(upsertedMission).not.toBeNull();
-      expect(upsertedMission.version).toEqual(2);
-      expect(upsertedMission.name).toEqual("Mission Jest Test Modified");
-    });
-
-    test("Delete a mission", async () => {
-      const reqOptions: RequestOptions = {
-        method: "DELETE",
-        headers: { cookie: loginCookie },
-        query: { missionId: newMission.id },
-      };
-      const { req, res } = mockRequestResponse(reqOptions);
-      await handleMission(req, res);
+      await handlePreset(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -352,14 +281,15 @@ describe("Mission API Endpoint", () => {
 afterAll(async () => {
   //Cleanup our Database
   const em = getEM();
-  await em.nativeDelete(User_db, { id: testAdmin.id });
-  await em.nativeDelete(User_db, { id: testSuperAdmin.id });
+  for (let i = 0; i < testPresets.length; i++) {
+    await em.nativeDelete(Preset_db, { uuid: testPresets[i].uuid });
+  }
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
-
+  await em.nativeDelete(User_db, { id: testUser.id });
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
 
-  jest.resetAllMocks();
+  jest.restoreAllMocks();
 });

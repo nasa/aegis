@@ -4,6 +4,8 @@ import {
   setTraverseEditMode,
   upsertTraverse,
   upsertTraverseFromDb,
+  upsertTraverses,
+  upsertTraversesFromDb,
 } from "store/traverse";
 import { calculateAscentAndDescent, getTotalDistance, calcPathDurationMins } from "utils/geoMath";
 import appCreateAsyncThunk from "./thunkUtil";
@@ -86,19 +88,18 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
         ];
       }
     }
-    let newElevationProfile = null;
 
     // find the traverse and start/end stations to check endpoints
     let selectedEvaSequence = evaSequence;
     if (!selectedEvaSequence) {
       selectedEvaSequence = getState().eva.evas.find(
         (eva) => eva.uuid === getState().eva.selectedEvaUuid
-      ).sequence;
+      )?.sequence;
     }
 
     let stationBefore: Station;
     let stationAfter: Station;
-    selectedEvaSequence.forEach((item, index) => {
+    selectedEvaSequence?.forEach((item, index) => {
       if (item.type === "traverse" && item.uuid === traverseUuid) {
         const stationUuidBefore = selectedEvaSequence[index - 1].uuid;
         const stationUuidAfter = selectedEvaSequence[index + 1].uuid;
@@ -108,11 +109,11 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
     });
 
     //set starting station
-    if (stationBefore.location && !_.isEqual(newPath.at(0), stationBefore.location)) {
+    if (stationBefore?.location && !_.isEqual(newPath.at(0), stationBefore.location)) {
       newPath[0] = stationBefore.location;
     }
     //set ending station
-    if (stationAfter.location && !_.isEqual(newPath.at(-1), stationAfter.location)) {
+    if (stationAfter?.location && !_.isEqual(newPath.at(-1), stationAfter.location)) {
       newPath[newPath.length - 1] = stationAfter.location;
     }
 
@@ -138,7 +139,8 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
      *  get the value by using .payload which will be either the return value
      *  or false if the thunk was un-fullfilled.
      */
-    if (elevationResponse.payload !== false) {
+    let newElevationProfile = null;
+    if (elevationResponse && elevationResponse.payload !== false) {
       //good response from the thunk, cast as our number type
       newElevationProfile = elevationResponse.payload as number[][];
     }
@@ -152,7 +154,7 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
       updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     if (saveToDb) {
-      httpClient_Traverse.upsertTraverse(newTraverse, rexRunning);
+      httpClient_Traverse.upsertTraverses([newTraverse], rexRunning);
       dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: false }));
       dispatch(upsertTraverseFromDb(newTraverse));
     }
@@ -190,7 +192,6 @@ export const thunkResetTraverse = appCreateAsyncThunk<{
     thunkFullUpdateTraverse({
       path: newPath,
       traverseUuid,
-      rename: false,
       evaSequence: selectedEva.sequence,
     })
   );
@@ -264,6 +265,7 @@ export const thunkUpdateTraverseNamesForStationInEVA = appCreateAsyncThunk<{
   async ({ evaSequence, stationUuid }, { dispatch, getState }) => {
     // any rex running?
     const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+    const traversesToUpdate: Traverse[] = [];
 
     for (const [index, sequenceItem] of evaSequence.entries()) {
       if (sequenceItem.type === "traverse") {
@@ -282,12 +284,13 @@ export const thunkUpdateTraverseNamesForStationInEVA = appCreateAsyncThunk<{
             name: `${stationBefore.name} to ${stationAfter.name}`,
             updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
           };
-          await httpClient_Traverse.upsertTraverse(newTraverse, rexRunning);
-          dispatch(upsertTraverse(newTraverse, true));
-          dispatch(upsertTraverseFromDb(newTraverse));
+          traversesToUpdate.push(newTraverse);
         }
       }
     }
+    await httpClient_Traverse.upsertTraverses(traversesToUpdate, rexRunning);
+    dispatch(upsertTraverses(traversesToUpdate, true));
+    dispatch(upsertTraversesFromDb(traversesToUpdate));
   }
 );
 
@@ -387,6 +390,6 @@ export const thunkCycleTraverseRexToNextStatus = appCreateAsyncThunk<{ traverseU
     dispatch(upsertTraverseFromDb({ ...traverse, rexStatus }));
 
     // update the station in the database
-    httpClient_Traverse.upsertTraverse({ ...traverse, rexStatus }, rexRunning);
+    httpClient_Traverse.upsertTraverses([{ ...traverse, rexStatus }], rexRunning);
   }
 );

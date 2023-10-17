@@ -35,7 +35,7 @@ export const thunkLogRexFull = appCreateAsyncThunk<{
       payloadJson: JSON.stringify({ noEvaSelected: true }),
       createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
-    httpClient_Log.upsertLog(log);
+    httpClient_Log.upsertLogs([log]);
     return;
   }
 
@@ -122,5 +122,5 @@ export const thunkLogRexFull = appCreateAsyncThunk<{
     createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
   };
 
-  httpClient_Log.upsertLog(log);
+  httpClient_Log.upsertLogs([log]);
 });

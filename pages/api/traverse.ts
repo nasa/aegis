@@ -8,12 +8,12 @@ import {
   Loaded,
   QueryOrder,
 } from "@mikro-orm/core";
-import { Traverse as Traverse_db } from "server/database/models/traverse.model";
+import { Traverse_db } from "server/database/models/_allModels";
 import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
 import { emitStoreDelete, emitStoreUpsert } from "./socketio";
-import { upsertLog } from "./log";
+import { upsertLogs } from "./log";
 
 const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = async (
   req,
@@ -64,11 +64,11 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
       try {
-        const traverseToUpsert: Traverse = req.body as Traverse;
-        const upsertResponse: Traverse = await upsertTraverse(traverseToUpsert);
+        const traversesToUpsert: Traverse[] = req.body as Traverse[];
+        const upsertResponse: Traverse[] = await upsertTraverses(traversesToUpsert);
 
         //check response
-        if (!upsertResponse) {
+        if (upsertResponse.length === 0) {
           return res.status(500).json({
             status: "error",
             message: "Upsert response did not return a value",
@@ -80,23 +80,24 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
             missionId: intMissionId,
             socketId,
             type: "traverse",
-            data: [upsertResponse],
+            data: upsertResponse,
           } as StoreUpsert<Traverse>);
 
           if (logAction) {
             // log this upsert to the log table
-            upsertLog({
+            const log: Log = {
               uuid: uuidv4(),
               missionId: intMissionId,
               type: "traverseUpsert",
-              payloadJson: JSON.stringify(traverseToUpsert),
+              payloadJson: JSON.stringify(traversesToUpsert),
               createdAt: new Date().toISOString(),
-            } as Log);
+            };
+            upsertLogs([log]);
           }
 
           return res.status(200).json({
             status: "success",
-            message: `Traverse upserted with ID ${upsertResponse.uuid}`,
+            message: `Traverses upserted with Uuids ${upsertResponse.map((t) => t.uuid)}`,
             data: upsertResponse,
           });
         }
@@ -114,25 +115,27 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
       try {
-        const deletedUuid = await deleteTraverse(traverseUuid);
-        if (deletedUuid) {
+        const uuidsToDelete: string[] = req.body;
+        const deletedUuids = await deleteTraverses(uuidsToDelete);
+        if (deletedUuids.length > 0) {
           // emit the deleted item to all clients via socket.io
           emitStoreDelete({
             missionId: intMissionId,
             socketId,
             type: "traverse",
-            uuid: deletedUuid,
+            uuids: deletedUuids,
           } as StoreDelete);
 
           if (logAction) {
             // log this deletion to the log table
-            upsertLog({
+            const log: Log = {
               uuid: uuidv4(),
               missionId: intMissionId,
               type: "traverseDelete",
-              payloadJson: JSON.stringify({ traverseUuid }),
+              payloadJson: JSON.stringify({ deletedUuids }),
               createdAt: new Date().toISOString(),
-            } as Log);
+            };
+            upsertLogs([log]);
           }
 
           return res.status(200).json({
@@ -195,57 +198,63 @@ async function getTraverses(missionId: number, traverseUuid?: string): Promise<T
 }
 
 /**
- * Inserts or Updates a Traverse into the database
- * @param traverse the Traverse object to upsert
- * @returns a copy of the Traverse object that was upserted
+ * Inserts or Updates Traverses into the database
+ * @param traverses the Traverse objects to upsert
+ * @returns a copy of the Traverse objects that was upserted
  */
-async function upsertTraverse(traverse: Traverse): Promise<Traverse> {
+async function upsertTraverses(traverses: Traverse[]): Promise<Traverse[]> {
   const em = getEM();
 
-  const traverseToUpsert = _.cloneDeep(traverse); //create a copy to manipulate
+  const traversesToUpsert = _.cloneDeep(traverses); //create a copy to manipulate
+  const traversesUpsertedToDb = [];
 
-  const convertedTraverse: EntityData<Traverse_db> = {
-    uuid: traverseToUpsert.uuid || uuidv4(),
-    mission: traverseToUpsert.missionId,
-    name: traverseToUpsert.name,
-    path: traverseToUpsert.path,
-    pathSegmentDistances: traverseToUpsert.pathSegmentDistances,
-    pathSegmentElevations: traverseToUpsert.pathSegmentElevations,
-    status: traverseToUpsert.status,
-    predictedDurationLower: traverseToUpsert.predictedDurationLower,
-    predictedDurationUpper: traverseToUpsert.predictedDurationUpper,
-    description: traverseToUpsert.description,
-    traverseRate: traverseToUpsert.traverseRate,
-    rexStatus: traverseToUpsert.rexStatus,
-    updatedAt: new Date(traverseToUpsert.updatedAt),
-    createdAt: new Date(traverseToUpsert.createdAt),
-  };
+  for (const traverseToUpsert of traversesToUpsert) {
+    const convertedTraverse: EntityData<Traverse_db> = {
+      uuid: traverseToUpsert.uuid || uuidv4(),
+      mission: traverseToUpsert.missionId,
+      name: traverseToUpsert.name,
+      path: traverseToUpsert.path,
+      pathSegmentDistances: traverseToUpsert.pathSegmentDistances,
+      pathSegmentElevations: traverseToUpsert.pathSegmentElevations,
+      status: traverseToUpsert.status,
+      predictedDurationLower: traverseToUpsert.predictedDurationLower,
+      predictedDurationUpper: traverseToUpsert.predictedDurationUpper,
+      description: traverseToUpsert.description,
+      traverseRate: traverseToUpsert.traverseRate,
+      rexStatus: traverseToUpsert.rexStatus,
+      updatedAt: new Date(traverseToUpsert.updatedAt),
+      createdAt: new Date(traverseToUpsert.createdAt),
+    };
 
-  //upsert traverse
-  const traverseRefFromDb: Traverse_db = await em.upsert(Traverse_db, convertedTraverse);
-  await em.persistAndFlush(traverseRefFromDb);
+    //upsert traverse
+    const traverseRefFromDb: Traverse_db = await em.upsert(Traverse_db, convertedTraverse);
+    em.persist(traverseRefFromDb);
+    traversesUpsertedToDb.push(traverseRefFromDb);
+  }
 
+  await em.flush();
   //convert foreign keys
-  return convertTraverses([traverseRefFromDb])[0];
+  return convertTraverses(traversesUpsertedToDb);
 }
 
 /**
- * Deletes a single Traverse and the entity relationships to any POIs.
- * @param traverseUuid Traverse uuid to delete
- * @returns the uuid of the deleted Traverse, or null if nothing was deleted
+ * Deletes Traverses and the entity relationships to any POIs.
+ * @param traverseUuids Traverse uuid to delete
+ * @returns the uuids of the deleted Traverses
  */
-async function deleteTraverse(traverseUuid: string): Promise<string | null> {
+async function deleteTraverses(traverseUuids: string[]): Promise<string[]> {
   const em = getEM();
-  let returnVal = traverseUuid;
-  const entity = await em.findOne(Traverse_db, { uuid: traverseUuid });
-
-  if (entity) {
-    em.remove(entity); //delete traverse
-    await em.flush(); //perform deletes
-  } else {
-    returnVal = null;
+  const deletedUuids = [];
+  for (const traverseUuid of traverseUuids) {
+    const entity = await em.findOne(Traverse_db, { uuid: traverseUuid });
+    if (entity) {
+      deletedUuids.push(traverseUuid);
+      em.remove(entity); //delete traverse
+    }
   }
-  return returnVal;
+
+  await em.flush(); //perform deletes
+  return deletedUuids;
 }
 
 /**

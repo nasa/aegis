@@ -3,7 +3,7 @@ interface User {
   username: string;
   password?: string;
   isSuperAdmin?: boolean;
-  isAdmin?: boolean;
+  isAdmin?: boolean; //controls access to the backend only (does not control if they can edit once in there)
   permissionList?: Permission[];
   createdAt?: string;
   updatedAt?: string;

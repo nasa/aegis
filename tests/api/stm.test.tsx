@@ -10,17 +10,19 @@ import { NextApiRequest, NextApiResponse } from "next";
 import Login from "pages/api/auth/login";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import handleSTM from "pages/api/stm";
-import { User as User_db } from "server/database/models/user.model";
-import UserFactory from "../../factories/UserFactory";
-import { Mission as Mission_db } from "server/database/models/mission.model";
-import MissionFactory from "../../factories/MissionFactory";
-import { STM_Objective as STM_Objective_db } from "server/database/models/stm_objective.model";
-import { STM_Goal as STM_Goal_db } from "server/database/models/stm_goal.model";
-import { STM_Investigation as STM_Investigation_db } from "server/database/models/stm_investigation.model";
+import {
+  User_db,
+  Mission_db,
+  STM_Objective_db,
+  STM_Goal_db,
+  STM_Investigation_db,
+} from "server/database/models/_allModels";
+import UserFactory from "../factories/UserFactory";
+import MissionFactory from "../factories/MissionFactory";
 import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
-import STMObjectiveFactory from "../../factories/STMObjectiveFactory";
-import STMInvestigationFactory from "../../factories/STMInvestigationFactory";
-import STMGoalFactory from "../../factories/STMGoalFactory";
+import STMObjectiveFactory from "../factories/STMObjectiveFactory";
+import STMInvestigationFactory from "../factories/STMInvestigationFactory";
+import STMGoalFactory from "../factories/STMGoalFactory";
 import { IronSessionData } from "iron-session";
 import { roundDateToSecond } from "utils/formatting";
 global.TextEncoder = TextEncoder;
@@ -372,7 +374,7 @@ describe("STM API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newObjective, missionId: testMissions[0].id },
+        body: [{ ...newObjective, missionId: testMissions[0].id }],
         query: { stmType: "o", missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -381,7 +383,7 @@ describe("STM API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedSTM = res._getJSONData().data;
+      const upsertedSTM = res._getJSONData().data[0];
       expect(upsertedSTM.uuid).not.toBeNull();
       expect(upsertedSTM.createdAt).not.toBeNull();
       expect(upsertedSTM.updatedAt).not.toBeNull();
@@ -397,7 +399,7 @@ describe("STM API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newGoal, objectiveUuid: newObjective.uuid },
+        body: [{ ...newGoal, objectiveUuid: newObjective.uuid }],
         query: { stmType: "g", missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -406,7 +408,7 @@ describe("STM API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedSTM = res._getJSONData().data;
+      const upsertedSTM = res._getJSONData().data[0];
       expect(upsertedSTM.uuid).not.toBeNull();
       expect(upsertedSTM.createdAt).not.toBeNull();
       expect(upsertedSTM.updatedAt).not.toBeNull();
@@ -422,7 +424,7 @@ describe("STM API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newInvstg, goalUuid: newGoal.uuid },
+        body: [{ ...newInvstg, goalUuid: newGoal.uuid }],
         query: { stmType: "i", missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
@@ -431,7 +433,7 @@ describe("STM API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedSTM = res._getJSONData().data;
+      const upsertedSTM = res._getJSONData().data[0];
       expect(upsertedSTM.uuid).not.toBeNull();
       expect(upsertedSTM.createdAt).not.toBeNull();
       expect(upsertedSTM.updatedAt).not.toBeNull();
@@ -449,7 +451,7 @@ describe("STM API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         query: { stmType: "o", missionId: testMissions[0].id },
-        body: newObjective,
+        body: [newObjective],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSTM(req, res);
@@ -457,7 +459,7 @@ describe("STM API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedSTM = res._getJSONData().data;
+      const upsertedSTM = res._getJSONData().data[0];
       expect(upsertedSTM).not.toBeNull();
       expect(upsertedSTM.name).toEqual("Jest Test New Objective Modified");
     });
@@ -468,7 +470,7 @@ describe("STM API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         query: { stmType: "g", missionId: testMissions[0].id },
-        body: newGoal,
+        body: [newGoal],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSTM(req, res);
@@ -476,7 +478,7 @@ describe("STM API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedSTM = res._getJSONData().data;
+      const upsertedSTM = res._getJSONData().data[0];
       expect(upsertedSTM).not.toBeNull();
       expect(upsertedSTM.name).toEqual("Jest Test New Goal Modified");
     });
@@ -487,7 +489,7 @@ describe("STM API Endpoint", () => {
         method: "POST",
         headers: { cookie: loginCookie },
         query: { stmType: "i", missionId: testMissions[0].id },
-        body: newInvstg,
+        body: [newInvstg],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSTM(req, res);
@@ -495,7 +497,7 @@ describe("STM API Endpoint", () => {
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedSTM = res._getJSONData().data;
+      const upsertedSTM = res._getJSONData().data[0];
       expect(upsertedSTM).not.toBeNull();
       expect(upsertedSTM.name).toEqual("Jest Test New Investigation Modified");
     });
@@ -530,7 +532,8 @@ describe("STM API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { stmType: "i", i: `${newInvstg.uuid}`, missionId: testMissions[0].id },
+        query: { stmType: "i", missionId: testMissions[0].id },
+        body: [newInvstg.uuid],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSTM(req, res);
@@ -545,7 +548,8 @@ describe("STM API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { stmType: "g", g: `${newGoal.uuid}`, missionId: testMissions[0].id },
+        query: { stmType: "g", missionId: testMissions[0].id },
+        body: [newGoal.uuid],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSTM(req, res);
@@ -560,7 +564,8 @@ describe("STM API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { stmType: "o", o: `${newObjective.uuid}`, missionId: testMissions[0].id },
+        query: { stmType: "o", missionId: testMissions[0].id },
+        body: [newObjective.uuid],
       };
       const { req, res } = mockRequestResponse(reqOptions);
       await handleSTM(req, res);
@@ -593,5 +598,5 @@ afterAll(async () => {
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
 
-  jest.resetAllMocks();
+  jest.restoreAllMocks();
 });

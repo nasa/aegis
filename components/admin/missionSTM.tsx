@@ -1,6 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import adminStyles from "./admin.module.css";
-import { getObjectives, getGoals, getInvestigations, deleteSTM } from "http-client/stm";
+import { getObjectives, getGoals, getInvestigations, deleteSTMs } from "http-client/stm";
 import STMEdit from "components/admin/stmEdit";
 
 const MissionSTM: FunctionComponent<{ mission: Mission }> = (props: { mission: Mission }) => {
@@ -69,7 +69,7 @@ const MissionSTM: FunctionComponent<{ mission: Mission }> = (props: { mission: M
       }
       try {
         setMessage(`Deleting ${stmType}: ${uuid}`);
-        await deleteSTM(missionIdSlug, stmType, uuid);
+        await deleteSTMs(missionIdSlug, stmType, [uuid]);
         await loadSTMfromDB(missionIdSlug);
         setMessage(`Delete Complete`);
       } catch {

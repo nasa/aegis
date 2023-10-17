@@ -110,6 +110,13 @@ export const evaSlice = createSlice({
     deleteEvaFromDbByUuid: (state, action: { payload: string }) => {
       state.evasFromDb = state.evasFromDb.filter((eva) => eva.uuid !== action.payload);
     },
+    deleteEvasByUuid: (state, action: { payload: string[] }) => {
+      state.evas = state.evas.filter((eva) => !action.payload.includes(eva.uuid));
+      state.selectedEvaUuid = null;
+    },
+    deleteEvasFromDbByUuid: (state, action: { payload: string[] }) => {
+      state.evasFromDb = state.evasFromDb.filter((eva) => !action.payload.includes(eva.uuid));
+    },
     setSelectedEvaRightNavItem: (state, action: { payload: string }) => {
       state.selectedEvaRightNavItem = action.payload;
     },
@@ -180,6 +187,8 @@ export const {
   setEvasFromDb,
   deleteEvaByUuid,
   deleteEvaFromDbByUuid,
+  deleteEvasByUuid,
+  deleteEvasFromDbByUuid,
   setStateForNewEva,
   setSelectedEvaUuid,
   setSelectedEvaSequenceItemUuid,

@@ -26,19 +26,21 @@ export const thunkSavePreset = appCreateAsyncThunk<{
   const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
 
   // upsert the changed Preset to the DB
-  const upsertReponse = await InternalAPI.upsertPreset(
-    {
-      ...preset,
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    },
+  const upsertReponse = await InternalAPI.upsertPresets(
+    [
+      {
+        ...preset,
+        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      },
+    ],
     rexRunning
   );
 
   if (upsertReponse.status === "success") {
     // upsert the changed preset to the store
-    dispatch(upsertPreset(upsertReponse.data, true));
+    dispatch(upsertPreset(upsertReponse.data[0], true));
     // update the preset in the store from the DB
-    dispatch(upsertPresetFromDb(upsertReponse.data));
+    dispatch(upsertPresetFromDb(upsertReponse.data[0]));
   } else {
     throw new Error("Error upserting Presets: " + upsertReponse.message);
   }
@@ -79,7 +81,7 @@ export const thunkDeletePreset = appCreateAsyncThunk<{
   if (presetFromDb) {
     const missionId = getState().mission.mission?.id;
     // delete the preset from the DB via internal API call
-    const deleteResponse = await InternalAPI.deletePreset(preset.uuid, rexRunning);
+    const deleteResponse = await InternalAPI.deletePresets([preset.uuid], rexRunning);
     if (deleteResponse.status === "success") {
       // remove the corresponding preset from the store
       dispatch(deletePresetByUuid(preset.uuid));

@@ -1,12 +1,16 @@
+// Adding the below because https://stackoverflow.com/questions/68468203/why-am-i-getting-textencoder-is-not-defined-in-jest
+import { TextEncoder, TextDecoder } from "util";
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
 import reducer, { initialState, deleteActionsFromDbByUuid } from "store/action";
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import { v4 as uuidv4 } from "uuid";
-import UserFactory from "../../factories/UserFactory";
-import MissionFactory from "../../factories/MissionFactory";
-import makeTestStore from "../../factories/makeTestStore";
-import { Mission as Mission_db } from "server/database/models/mission.model";
-import { User as User_db } from "server/database/models/user.model";
+import UserFactory from "../factories/UserFactory";
+import MissionFactory from "../factories/MissionFactory";
+import createTestStore from "../factories/makeTestStore";
+import { Mission_db, User_db } from "server/database/models/_allModels";
 
 let testMission: Mission_db;
 let testAdmin: User_db;
@@ -285,7 +289,7 @@ describe("Action Store Tests with mock store", () => {
   test("Delete actions", () => {
     const uuids = [uuidv4(), uuidv4(), uuidv4(), uuidv4()];
 
-    const store = makeTestStore({
+    const store = createTestStore({
       action: {
         actions: [],
         actionsFromDb: [

@@ -1,6 +1,8 @@
-import { generateUniqueName } from "utils/names/unique-name";
 import appCreateAsyncThunk from "./thunkUtil";
 import { v4 as uuidv4 } from "uuid";
+import { generateUniqueName } from "utils/names/unique-name";
+import { makeUniqueStringCopy } from "utils/names/duplicate";
+import { upsertToArrayByUuid } from "utils/store";
 import {
   getAccurateNow,
   roundDateToSecond,
@@ -19,11 +21,9 @@ import {
   setRexesCrewPosEditMode,
   setSelectedRexUuid,
 } from "store/rex";
-import { makeUniqueStringCopy } from "utils/names/duplicate";
 import _ from "lodash";
 import * as httpClient_Rex from "http-client/rex";
 import { saveNewRex } from "store/cross-slice";
-import { upsertToArrayByUuid } from "utils/store";
 import { updateMapDirective } from "store/map";
 import { thunkLogRexFull } from "./thunkLog";
 
@@ -34,7 +34,6 @@ export const thunkCreateRex = appCreateAsyncThunk<void>(
       dictName: "colors",
       existingNames: getState().rex.rexes.map((rex) => rex.name),
     });
-
     const blankRex: Rex = {
       missionId: getState().mission.mission.id,
       uuid: uuidv4(),
@@ -81,12 +80,12 @@ export const thunkSaveRex = appCreateAsyncThunk<{ rexUuid: string }>(
     if (!rexUuid) return;
 
     const rexToSave = getState().rex.rexes.find((rex) => rex.uuid === rexUuid);
-    const upsertReponse = await httpClient_Rex.upsertRex(rexToSave, rexToSave.rexRunning);
+    const upsertReponse = await httpClient_Rex.upsertRexes([rexToSave], rexToSave.rexRunning);
     if (upsertReponse.status === "success") {
       // upsert the changed rex to the store
-      dispatch(upsertRex(upsertReponse.data));
+      dispatch(upsertRex(upsertReponse.data[0]));
       // update the rex in the store from the DB
-      dispatch(upsertRexFromDb(upsertReponse.data));
+      dispatch(upsertRexFromDb(upsertReponse.data[0]));
       // take the rex out of edit mode
       dispatch(setRexEditMode({ rexUuid, editMode: false }));
     } else {
@@ -104,14 +103,17 @@ export const thunkSaveRex = appCreateAsyncThunk<{ rexUuid: string }>(
       //set the rex to not running and stop the PET timer
       const rexCopy = _.cloneDeep(rex);
       rexCopy.petRunning = false;
-      rexCopy.petValueAtStartStop = calculatePetValue(rexCopy);
+      rexCopy.petValueAtStartStop = calculatePetValue({
+        petStartStopTimestamp: rexCopy.petStartStopTimestamp,
+        petValueAtStartStop: rexCopy.petValueAtStartStop,
+      });
       rexCopy.petStartStopTimestamp = roundDateToSecond(getAccurateNow()).toISOString();
       rexCopy.updatedAt = roundDateToSecond(getAccurateNow()).toISOString();
 
-      const upsertReponse = await httpClient_Rex.upsertRex(rexCopy, rex.rexRunning);
+      const upsertReponse = await httpClient_Rex.upsertRexes([rexCopy], rex.rexRunning);
       if (upsertReponse.status === "success") {
         // update the rex in the store from the DB
-        dispatch(upsertRexFromDb(upsertReponse.data));
+        dispatch(upsertRexFromDb(upsertReponse.data[0]));
       } else {
         throw new Error("Error upserting Rexes: " + upsertReponse.message);
       }
@@ -148,25 +150,13 @@ export const thunkDeleteRex = appCreateAsyncThunk<{ rexUuid: string }>(
     dispatch(deleteRexFromDbByUuid(rexUuid));
 
     // delete the rex from the db
-    httpClient_Rex.deleteRex(rexUuid, rexRunning);
+    httpClient_Rex.deleteRexes([rexUuid], rexRunning);
 
     // take the rex out of edit mode
     dispatch(setRexEditMode({ rexUuid, editMode: false }));
     dispatch(setSelectedRexUuid(null));
   }
 );
-
-export const thunkSelectRexEva = appCreateAsyncThunk<{
-  rexUuid: string;
-  evaUuid: string;
-}>("rexSelectEva", async ({ rexUuid, evaUuid }, { dispatch, getState }) => {
-  const rex = getState().rex.rexes.find((rex) => rex.uuid === rexUuid);
-  // any rex running?
-  const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
-  dispatch(upsertRex({ ...rex, selectedRexEvaUuid: evaUuid }, true));
-  // persist the change to rex in the db
-  httpClient_Rex.upsertRex({ ...rex, selectedRexEvaUuid: evaUuid }, rexRunning);
-});
 
 export const thunkRexPetStartStop = appCreateAsyncThunk<{
   rexUuid: string;
@@ -186,6 +176,38 @@ export const thunkRexPetStartStop = appCreateAsyncThunk<{
 });
 
 /**
+ * Create an new crew position for an rex but do not save to the db. keep in store only
+ * Returns uuid of new crew pos
+ */
+export const thunkCreateCrewPos = appCreateAsyncThunk<
+  {
+    crew: RexCrewType[];
+  },
+  string,
+  false
+>("createCrewPos", async ({ crew }, { dispatch, getState }) => {
+  const uuid = uuidv4();
+  const runningRex = getState().rex.rexes.find((r) => r.rexRunning);
+  if (!runningRex) return null;
+  const seconds = secondsFromhhmmss(
+    runningRex.petRunning ? calculatePetValue(runningRex) : runningRex.petValueAtStartStop
+  );
+  const newCrewPos: CrewPos = {
+    uuid: uuid,
+    location: null,
+    elevation: null,
+    seconds: seconds,
+    crew: crew,
+    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+  };
+  dispatch(upsertCrewPos({ rexUuid: getState().rex.selectedRexUuid, crewPos: newCrewPos }));
+  dispatch(setCrewPosEditingUuid(uuid));
+  dispatch(setRexesCrewPosEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: true }));
+  return uuid;
+});
+
+/**
  * Update the crew position location and then save to db
  */
 export const thunkUpdateCrewPosLocation = appCreateAsyncThunk<{
@@ -201,19 +223,21 @@ export const thunkUpdateCrewPosLocation = appCreateAsyncThunk<{
   upsertToArrayByUuid(newRexCrewPos, { ...oldCrewPos, location });
 
   //automatically save to the db.
-  const rexUpsertResponse = await httpClient_Rex.upsertRex(
-    {
-      ...selectedRex,
-      crewPos: newRexCrewPos,
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    },
+  const rexUpsertResponse = await httpClient_Rex.upsertRexes(
+    [
+      {
+        ...selectedRex,
+        crewPos: newRexCrewPos,
+        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      },
+    ],
     rexRunning
   );
 
   if (rexUpsertResponse.status === "success") {
     // upsert the changed rex (with new updated date) to the store
-    dispatch(upsertRex(rexUpsertResponse.data, true));
-    dispatch(upsertRexFromDb(rexUpsertResponse.data));
+    dispatch(upsertRex(rexUpsertResponse.data[0], true));
+    dispatch(upsertRexFromDb(rexUpsertResponse.data[0]));
     dispatch(setCrewPosEditingUuid(null));
   } else {
     throw new Error("Error upserting Rex: " + rexUpsertResponse.message);
@@ -227,9 +251,8 @@ export const thunkUpdateCrewPosLocation = appCreateAsyncThunk<{
 export const thunkCancelCrewPosLocation = appCreateAsyncThunk<{
   crewPosEditingUuid: string;
 }>("cancelCrewPosLoc", async ({ crewPosEditingUuid }, { dispatch, getState }) => {
-  const allCrewPos = getState().rex.rexes.find(
-    (r) => r.uuid === getState().rex.selectedRexUuid
-  )?.crewPos;
+  const allCrewPos = getState().rex.rexes.find((r) => r.uuid === getState().rex.selectedRexUuid)
+    ?.crewPos;
   const crewPos = allCrewPos.find((c) => c.uuid === crewPosEditingUuid);
   if (!crewPos.location) {
     //no location means this is a newly created crew pos. delete the uuid currently being edited
@@ -259,69 +282,8 @@ export const thunkCancelCrewPosLocation = appCreateAsyncThunk<{
   }
 });
 
-export const thunkSaveCrewPosition = appCreateAsyncThunk<{
-  crewPos: CrewPos;
-}>("saveCrewPos", async ({ crewPos }, { dispatch, getState }) => {
-  const selectedRex = getState().rex.rexes.find((r) => r.uuid === getState().rex.selectedRexUuid);
-  const newRexCrewPos: CrewPos[] = _.cloneDeep(selectedRex.crewPos);
-  upsertToArrayByUuid(newRexCrewPos, { ...crewPos });
-
-  //automatically save to the db.
-  //check rex is running for logging
-  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
-  const rexUpsertResponse = await httpClient_Rex.upsertRex(
-    {
-      ...selectedRex,
-      crewPos: newRexCrewPos,
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    },
-    isRexRunning
-  );
-
-  if (rexUpsertResponse.status === "success") {
-    // upsert the changed rex (with new updated date) to the store
-    dispatch(upsertRex(rexUpsertResponse.data, true));
-    dispatch(upsertRexFromDb(rexUpsertResponse.data));
-    dispatch(setCrewPosEditingUuid(null));
-  } else {
-    throw new Error("Error upserting Rex: " + rexUpsertResponse.message);
-  }
-  dispatch(setRexesCrewPosEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: false }));
-});
-
 /**
- * Create an new crew position for an rex but do not save to the db. keep in store only
- * Returns uuid of new crew pos
- */
-export const thunkCreateCrewPos = appCreateAsyncThunk<
-  {
-    crew: RexCrewType[];
-  },
-  string,
-  false
->("createCrewPos", async ({ crew }, { dispatch, getState }) => {
-  const uuid = uuidv4();
-  const runningRex = getState().rex.rexes.find((r) => r.rexRunning);
-  const seconds = secondsFromhhmmss(
-    runningRex.petRunning ? calculatePetValue(runningRex) : runningRex.petValueAtStartStop
-  );
-  const newCrewPos: CrewPos = {
-    uuid: uuid,
-    location: null,
-    elevation: null,
-    seconds: seconds,
-    crew: crew,
-    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-  };
-  dispatch(upsertCrewPos({ rexUuid: getState().rex.selectedRexUuid, crewPos: newCrewPos }));
-  dispatch(setCrewPosEditingUuid(uuid));
-  dispatch(setRexesCrewPosEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: true }));
-  return uuid;
-});
-
-/**
- * Cancel editing an exsiting crew position
+ * Cancel editing an existing crew position
  */
 export const thunkCancelCrewPos = appCreateAsyncThunk<{
   crewPosUuid: string;
@@ -355,25 +317,48 @@ export const thunkCancelCrewPos = appCreateAsyncThunk<{
     newAllCrewPos = newAllCrewPos.filter((c) => c.uuid !== crewPosUuid);
   }
 
+  // upsert the changed rex (with new updated date) to the store
+  dispatch(
+    upsertRex(
+      {
+        ...selectedRex,
+        crewPos: newAllCrewPos,
+      },
+      true
+    )
+  );
+  dispatch(setCrewPosEditingUuid(null));
+  dispatch(setRexesCrewPosEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: false }));
+});
+
+export const thunkSaveCrewPosition = appCreateAsyncThunk<{
+  crewPos: CrewPos;
+}>("saveCrewPos", async ({ crewPos }, { dispatch, getState }) => {
+  const selectedRex = getState().rex.rexes.find((r) => r.uuid === getState().rex.selectedRexUuid);
+  const newRexCrewPos: CrewPos[] = _.cloneDeep(selectedRex.crewPos) || [];
+  upsertToArrayByUuid(newRexCrewPos, { ...crewPos });
+
   //automatically save to the db.
   //check rex is running for logging
   const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
-  const evaUpsertResponse = await httpClient_Rex.upsertRex(
-    {
-      ...selectedRex,
-      crewPos: newAllCrewPos,
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    },
+  const rexUpsertResponse = await httpClient_Rex.upsertRexes(
+    [
+      {
+        ...selectedRex,
+        crewPos: newRexCrewPos,
+        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      },
+    ],
     isRexRunning
   );
 
-  if (evaUpsertResponse.status === "success") {
+  if (rexUpsertResponse.status === "success") {
     // upsert the changed rex (with new updated date) to the store
-    dispatch(upsertRex(evaUpsertResponse.data, true));
-    dispatch(upsertRexFromDb(evaUpsertResponse.data));
+    dispatch(upsertRex(rexUpsertResponse.data[0], true));
+    dispatch(upsertRexFromDb(rexUpsertResponse.data[0]));
     dispatch(setCrewPosEditingUuid(null));
   } else {
-    throw new Error("Error upserting Rex: " + evaUpsertResponse.message);
+    throw new Error("Error upserting Rex: " + rexUpsertResponse.message);
   }
   dispatch(setRexesCrewPosEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: false }));
 });
@@ -392,20 +377,22 @@ export const thunkDeleteCrewPosByUuid = appCreateAsyncThunk<{
   const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
 
   //automatically save to the db.
-  const evaUpsertResponse = await httpClient_Rex.upsertRex(
-    {
-      ...selectedRex,
-      crewPos: newRexCrewPos,
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    },
+  const rexUpsertResponse = await httpClient_Rex.upsertRexes(
+    [
+      {
+        ...selectedRex,
+        crewPos: newRexCrewPos,
+        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      },
+    ],
     rexRunning
   );
 
-  if (evaUpsertResponse.status === "success") {
+  if (rexUpsertResponse.status === "success") {
     // upsert the changed rex (with new updated date) to the store
-    dispatch(upsertRex(evaUpsertResponse.data, true));
-    dispatch(upsertRexFromDb(evaUpsertResponse.data));
+    dispatch(upsertRex(rexUpsertResponse.data[0], true));
+    dispatch(upsertRexFromDb(rexUpsertResponse.data[0]));
   } else {
-    throw new Error("Error upserting Rex: " + evaUpsertResponse.message);
+    throw new Error("Error upserting Rex: " + rexUpsertResponse.message);
   }
 });

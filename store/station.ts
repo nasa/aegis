@@ -109,6 +109,14 @@ export const stationSlice = createSlice({
         (station) => station.uuid !== action.payload
       );
     },
+    deleteStationsByUuid: (state, action: { payload: string[] }) => {
+      state.stations = state.stations.filter((station) => !action.payload.includes(station.uuid));
+    },
+    deleteStationsFromDbByUuid: (state, action: { payload: string[] }) => {
+      state.stationsFromDb = state.stationsFromDb.filter(
+        (station) => !action.payload.includes(station.uuid)
+      );
+    },
     setSelectedStationRightNavItem: (state, action: { payload: string }) => {
       state.selectedRightNavItem = action.payload;
     },
@@ -162,6 +170,8 @@ export const {
   setStationsFromDb,
   deleteStationByUuid,
   deleteStationFromDbByUuid,
+  deleteStationsByUuid,
+  deleteStationsFromDbByUuid,
   setSelectedStationRightNavItem,
   setSelectedStationUuid,
   setStateForNewStation,

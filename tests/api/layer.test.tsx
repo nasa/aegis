@@ -1,3 +1,6 @@
+import { describe, expect, afterAll, beforeAll, test } from "@jest/globals";
+import "@testing-library/jest-dom";
+import { NextApiRequest, NextApiResponse } from "next";
 import {
   createMocks,
   createResponse,
@@ -5,29 +8,27 @@ import {
   RequestOptions,
   ResponseOptions,
 } from "node-mocks-http";
-import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
-import { NextApiRequest, NextApiResponse } from "next";
 import Login from "pages/api/auth/login";
+
 import { getORM, getEM, closeORM } from "utils/mikro";
-import handlePreset from "pages/api/preset";
-import { Mission as Mission_db } from "server/database/models/mission.model";
-import { Preset as Preset_db } from "server/database/models/preset.model";
-import { User as User_db } from "server/database/models/user.model";
-import MissionFactory from "../../factories/MissionFactory";
-import PresetFactory from "../../factories/PresetFactory";
-import UserFactory from "../../factories/UserFactory";
+import UserFactory from "../factories/UserFactory";
+import MissionFactory from "../factories/MissionFactory";
+import handleLayer from "pages/api/layer";
+import LayerFactory from "../factories/LayerFactory";
+import { Mission_db, Layer_db, User_db } from "server/database/models/_allModels";
+
+import { createNewLayer } from "components/admin/helper";
+import fetchMock from "jest-fetch-mock";
 import { v4 as uuidv4 } from "uuid";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
-import { roundDateToSecond } from "utils/formatting";
-import * as SocketIo from "pages/api/socketio";
 
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
-let testUser: User_db;
 let testMissions: Mission_db[];
-let testPresets: Preset_db[];
+let testUser: User_db;
+let testLayers: Layer_db[];
 
 beforeAll(async () => {
   await getORM();
@@ -51,37 +52,22 @@ beforeAll(async () => {
       },
     ],
   });
-  testPresets = await new PresetFactory(em)
-    .each((preset) => {
-      preset.mission = testMissions[0];
-      preset.owner = testUser;
+
+  testLayers = await new LayerFactory(em)
+    .each((layer) => {
+      layer.mission = testMissions[0];
     })
     .create(2);
 
-  // suppress socketio calls because they won't work during jest testing
-  jest.spyOn(SocketIo, "emitStoreUpsert").mockImplementation(() => {});
-  jest.spyOn(SocketIo, "emitStoreDelete").mockImplementation(() => {});
+  fetchMock.resetMocks();
 });
 
-describe("Preset API Endpoint", () => {
+describe("Layer API Endpoint ", () => {
   type ApiRequest = NextApiRequest & ReturnType<typeof createRequest>;
   type ApiResponse = NextApiResponse & ReturnType<typeof createResponse>;
 
   let loginCookie: string;
-  let newPreset: Preset = {
-    name: "Preset Jest Test",
-    uuid: uuidv4(),
-    ownerId: null,
-    missionId: null,
-    description: null,
-    missionPreset: false,
-    missionPresetDefault: false,
-    mapCircleControls: null,
-    mapSublayerControls: null,
-    layerOrder: null,
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
-  };
+  let newLayer: Layer = createNewLayer();
 
   function mockRequestResponse(reqOptions: RequestOptions, resOptions?: ResponseOptions) {
     const { req, res }: { req: ApiRequest; res: ApiResponse } = createMocks(reqOptions, resOptions);
@@ -89,15 +75,8 @@ describe("Preset API Endpoint", () => {
   }
 
   test("Returns auth failure", async () => {
-    const reqOptions: RequestOptions = {
-      method: "GET",
-      headers: {
-        cookie: loginCookie,
-      },
-      query: { missionId: 1 },
-    };
-    const { req, res } = mockRequestResponse(reqOptions);
-    await handlePreset(req, res);
+    const { req, res } = mockRequestResponse({ method: "GET" });
+    await handleLayer(req, res);
     expect(res.statusCode).toBe(401);
     expect(res.statusMessage).toEqual("OK");
   });
@@ -122,41 +101,57 @@ describe("Preset API Endpoint", () => {
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
+      await handleLayer(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Returns all mission presets for mission", async () => {
+    test("Returns empty non-existant layer uuid for mission", async () => {
+      const reqOptions: RequestOptions = {
+        method: "GET",
+        headers: { cookie: loginCookie },
+        query: { missionId: testMissions[0].id, uuid: uuidv4() },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleLayer(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
+
+      const layers: Layer[] = res._getJSONData().data;
+      expect(res._getJSONData().status).toBe("success");
+      expect(layers.length).toEqual(0);
+    });
+
+    test("Returns single layer by layer uuid", async () => {
+      const reqOptions: RequestOptions = {
+        method: "GET",
+        headers: { cookie: loginCookie },
+        query: { missionId: testMissions[0].id, uuid: testLayers[0].uuid },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleLayer(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
+
+      const layers: Layer[] = res._getJSONData().data;
+      expect(res._getJSONData().status).toBe("success");
+      expect(layers.length).toEqual(1);
+    });
+
+    test("Returns layers for mission", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
+      await handleLayer(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
-      const wrappedResponse = res._getJSONData();
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toBeGreaterThanOrEqual(1);
-    });
-
-    test("No presets returned", async () => {
-      const reqOptions: RequestOptions = {
-        method: "GET",
-        headers: { cookie: loginCookie },
-        query: { missionId: testMissions[1].id },
-      };
-      const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
-      expect(res.statusCode).toBe(200);
-      expect(res.statusMessage).toEqual("OK");
-
-      const wrappedResponse = res._getJSONData();
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toEqual(0);
+      const layers: Layer[] = res._getJSONData().data;
+      expect(res._getJSONData().status).toBe("success");
+      expect(layers.length).toBeGreaterThan(1);
     });
   });
 
@@ -166,11 +161,11 @@ describe("Preset API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newPreset, missionId: testMissions[2].id },
+        body: [{ ...newLayer, missionId: testMissions[2].id }],
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
+      await handleLayer(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -179,55 +174,57 @@ describe("Preset API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newPreset, missionId: testMissions[1].id },
+        body: [{ ...newLayer, missionId: testMissions[1].id }],
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
+      await handleLayer(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Create new preset", async () => {
+    test("Create new layer", async () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newPreset, missionId: testMissions[0].id, ownerId: testUser.id },
+        body: [{ ...newLayer, missionId: testMissions[0].id }],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
+      await handleLayer(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedPreset = res._getJSONData().data;
-      expect(upsertedPreset.uuid).not.toBeNull();
-      newPreset = { ...upsertedPreset };
+      const upsertedLayer: Layer = res._getJSONData().data[0];
+      expect(upsertedLayer.uuid).not.toBeNull();
+      newLayer = { ...upsertedLayer };
 
       //check if it was added to the db
       const em = getEM();
-      const presetRef: Preset_db = await em.findOne(Preset_db, upsertedPreset.uuid);
-      expect(presetRef).not.toBeNull();
+      const layerRef: Layer_db = await em.findOne(Layer_db, upsertedLayer.uuid);
+      expect(layerRef).not.toBeNull();
     });
 
-    test("Update a preset", async () => {
-      newPreset.name = "Preset Jest Test Modified";
+    test("Update a layer", async () => {
+      newLayer.name = "Jest Test Layer Modified";
+      newLayer.missionId = testMissions[0].id;
+
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newPreset,
+        body: [newLayer],
         query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
+      await handleLayer(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedPreset = res._getJSONData().data;
-      expect(upsertedPreset).not.toBeNull();
-      expect(upsertedPreset.name).toEqual("Preset Jest Test Modified");
+      const upsertedLayer: Layer = res._getJSONData().data[0];
+      expect(upsertedLayer).not.toBeNull();
+      expect(upsertedLayer.name).toEqual("Jest Test Layer Modified");
     });
   });
 
@@ -239,7 +236,7 @@ describe("Preset API Endpoint", () => {
         query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
+      await handleLayer(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -251,19 +248,22 @@ describe("Preset API Endpoint", () => {
         query: { missionId: testMissions[1].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
+      await handleLayer(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Delete a preset", async () => {
+    test("Delete a layer", async () => {
+      newLayer.missionId = testMissions[0].id;
+
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { uuid: `${newPreset.uuid}`, missionId: testMissions[0].id },
+        query: { missionId: testMissions[0].id },
+        body: [newLayer.uuid],
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handlePreset(req, res);
+      await handleLayer(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -276,8 +276,8 @@ describe("Preset API Endpoint", () => {
 afterAll(async () => {
   //Cleanup our Database
   const em = getEM();
-  for (let i = 0; i < testPresets.length; i++) {
-    await em.nativeDelete(Preset_db, { uuid: testPresets[i].uuid });
+  for (let i = 0; i < testLayers.length; i++) {
+    await em.nativeDelete(Layer_db, { uuid: testLayers[i].uuid });
   }
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
@@ -286,5 +286,5 @@ afterAll(async () => {
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
 
-  jest.resetAllMocks();
+  jest.restoreAllMocks();
 });

@@ -2,11 +2,11 @@ import { Dispatch, FunctionComponent, useCallback, useEffect, useState } from "r
 import adminStyles from "./admin.module.css";
 import LayerEdit from "components/admin/layerEdit";
 import SublayerEdit from "components/admin/sublayerEdit";
-import { deleteLayer, getLayers } from "http-client/layer";
+import { deleteLayers, getLayers } from "http-client/layer";
 import { createNewLayer, createNewSublayer } from "components/admin/helper";
 import _ from "lodash";
 import FileManager from "components/admin/fileManager";
-import { deleteSublayer, getSublayers } from "http-client/sublayer";
+import { deleteSublayers, getSublayers } from "http-client/sublayer";
 
 const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission: Mission }) => {
   const [allLayers, setAllLayers] = useState<Layer[]>(null);
@@ -163,7 +163,7 @@ const LayerList = (props: {
 }) => {
   async function delSubLayer(sublayer: Sublayer) {
     if (confirm("Are you sure you want to delete sublayer " + sublayer.name)) {
-      const res: WrappedResponse<null> = await deleteSublayer(sublayer.uuid, props.missionId);
+      const res: WrappedResponse<null> = await deleteSublayers([sublayer.uuid]);
       alert(`Delete sublayer ${res.status} - ${res.message}`);
       props.refreshLayerList(); //reload layer listing in parent component.
     }
@@ -176,7 +176,7 @@ const LayerList = (props: {
           `Error: Cannot delete layer ${layer.name}. This layer has sublayers. Delete sublayers first`
         );
       } else {
-        const res: WrappedResponse<null> = await deleteLayer(layer.uuid, props.missionId);
+        const res: WrappedResponse<null> = await deleteLayers([layer.uuid]);
         alert(`Delete ${res.status} - ${res.message} for uuid ${layer.uuid}`);
         props.refreshLayerList(); //reload layer listing in parent component.
       }

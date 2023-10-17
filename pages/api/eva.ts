@@ -8,12 +8,12 @@ import {
   Loaded,
   QueryOrder,
 } from "@mikro-orm/core";
-import { Eva as Eva_db } from "server/database/models/eva.model";
+import { Eva_db } from "server/database/models/_allModels";
 import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
 import { hasPerms } from "utils/permissions";
 import { emitStoreDelete, emitStoreUpsert } from "./socketio";
-import { upsertLog } from "./log";
+import { upsertLogs } from "./log";
 
 const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
   req,
@@ -63,12 +63,19 @@ const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
       try {
-        const evaToUpsert: Eva = req.body as Eva;
-        if (!evaToUpsert.ownerId) evaToUpsert.ownerId = req.session.user.id;
-        const upsertResponse: Eva = await upsertEVAs(evaToUpsert);
+        const evas: Eva[] = req.body as Eva[];
+        //add owner id to the evas
+        const evasToUpsert = evas.map((e) => {
+          if (!e.ownerId) {
+            return { ...e, ownerId: req.session.user.id };
+          } else {
+            return e;
+          }
+        });
+        const upsertResponse: Eva[] = await upsertEVAs(evasToUpsert);
 
         //check response
-        if (!upsertResponse) {
+        if (upsertResponse.length === 0) {
           return res.status(500).json({
             status: "error",
             message: "Upsert response did not return a value",
@@ -80,22 +87,23 @@ const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
             missionId: intMissionId,
             socketId,
             type: "eva",
-            data: [upsertResponse],
+            data: upsertResponse,
           } as StoreUpsert<Eva>);
           if (logAction) {
             // log this upsert to the log table
-            upsertLog({
+            const log: Log = {
               uuid: uuidv4(),
               missionId: intMissionId,
               type: "evaUpsert",
-              payloadJson: JSON.stringify(evaToUpsert),
+              payloadJson: JSON.stringify(evasToUpsert),
               createdAt: new Date().toISOString(),
-            } as Log);
+            };
+            upsertLogs([log]);
           }
 
           return res.status(200).json({
             status: "success",
-            message: `EVA upserted with ID ${upsertResponse.uuid}`,
+            message: `EVAs upserted with Uuids ${upsertResponse.map((e) => e.uuid)}`,
             data: upsertResponse,
           });
         }
@@ -113,24 +121,26 @@ const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
         return res.status(401).json({ status: "failure", message: "Unauthorized" });
       }
       try {
-        const deletedUUID = await deleteEVA(evaUuid);
-        if (deletedUUID) {
+        const uuidsToDelete: string[] = req.body;
+        const deletedUuids = await deleteEVAs(uuidsToDelete);
+        if (deletedUuids.length > 0) {
           // emit the deleted item to all clients via socket.io
           emitStoreDelete({
             missionId: intMissionId,
             socketId,
             type: "eva",
-            uuid: deletedUUID,
+            uuids: deletedUuids,
           } as StoreDelete);
           if (logAction) {
             // log this deletion to the log table
-            upsertLog({
+            const log: Log = {
               uuid: uuidv4(),
               missionId: intMissionId,
               type: "evaDelete",
-              payloadJson: JSON.stringify({ evaUuid }),
+              payloadJson: JSON.stringify({ uuidsToDelete }),
               createdAt: new Date().toISOString(),
-            } as Log);
+            };
+            upsertLogs([log]);
           }
 
           return res.status(200).json({
@@ -189,53 +199,59 @@ async function getEVAs(missionId: number, evaUuid?: string): Promise<Eva[]> {
 }
 
 /**
- * Inserts or Updates a EVA into the database
- * @param eva the EVA object to upsert
- * @returns a copy of the EVA object that was upserted
+ * Inserts or Updates EVAs into the database
+ * @param evas the EVA objects to upsert
+ * @returns a copy of the EVA objects that was upserted
  */
-async function upsertEVAs(eva: Eva): Promise<Eva> {
+async function upsertEVAs(evas: Eva[]): Promise<Eva[]> {
   const em = getEM();
 
-  const evaToUpsert = _.cloneDeep(eva); //create a copy to manipulate
-  const convertedEva: EntityData<Eva_db> = {
-    uuid: evaToUpsert.uuid || uuidv4(),
-    owner: evaToUpsert.ownerId,
-    mission: evaToUpsert.missionId,
-    name: evaToUpsert.name,
-    status: evaToUpsert.status,
-    sequence: evaToUpsert.sequence,
-    description: evaToUpsert.description,
-    maxDuration: evaToUpsert.maxDuration,
-    traverseRate: evaToUpsert.traverseRate,
-    updatedAt: new Date(evaToUpsert.updatedAt),
-    createdAt: new Date(evaToUpsert.createdAt),
-  };
+  const evasToUpsert = _.cloneDeep(evas); //create a copy to manipulate
+  const evasUpsertedToDb = [];
 
-  //upsert eva
-  const evaRefFromDb: Eva_db = await em.upsert(Eva_db, convertedEva);
-  await em.persistAndFlush(evaRefFromDb);
+  for (const evaToUpsert of evasToUpsert) {
+    const convertedEva: EntityData<Eva_db> = {
+      uuid: evaToUpsert.uuid || uuidv4(),
+      owner: evaToUpsert.ownerId,
+      mission: evaToUpsert.missionId,
+      name: evaToUpsert.name,
+      status: evaToUpsert.status,
+      sequence: evaToUpsert.sequence,
+      description: evaToUpsert.description,
+      maxDuration: evaToUpsert.maxDuration,
+      traverseRate: evaToUpsert.traverseRate,
+      updatedAt: new Date(evaToUpsert.updatedAt),
+      createdAt: new Date(evaToUpsert.createdAt),
+    };
 
+    //upsert eva
+    const evaRefFromDb: Eva_db = await em.upsert(Eva_db, convertedEva);
+    em.persist(evaRefFromDb);
+    evasUpsertedToDb.push(evaRefFromDb);
+  }
+
+  await em.flush();
   //convert foreign keys
-  return convertEVAs([evaRefFromDb])[0];
+  return convertEVAs(evasUpsertedToDb);
 }
 
 /**
- * Deletes a single EVA and the entity relationships to any POIs.
- * @param evaUuid EVA uuid to delete
- * @returns the uuid of the deleted EVA, or null if nothing was deleted
+ * Deletes a EVAs and the entity relationships to any POIs.
+ * @param evaUuids EVA uuids to delete
+ * @returns the uuids of the deleted EVA
  */
-async function deleteEVA(evaUuid: string): Promise<string | null> {
+async function deleteEVAs(evaUuids: string[]): Promise<string[]> {
   const em = getEM();
-  let returnVal = evaUuid;
-  const entity = await em.findOne(Eva_db, { uuid: evaUuid });
-
-  if (entity) {
-    em.remove(entity); //delete eva
-    await em.flush(); //perform deletes
-  } else {
-    returnVal = null;
+  const deletedUuids = [];
+  for (const evaUuid of evaUuids) {
+    const entity = await em.findOne(Eva_db, { uuid: evaUuid });
+    if (entity) {
+      em.remove(entity); //delete eva
+      deletedUuids.push(evaUuid);
+    }
   }
-  return returnVal;
+  await em.flush(); //perform deletes
+  return deletedUuids;
 }
 
 /**

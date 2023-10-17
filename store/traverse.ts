@@ -109,6 +109,16 @@ export const traverseSlice = createSlice({
         (traverse) => traverse.uuid !== action.payload
       );
     },
+    deleteTraversesByUuid: (state, action: { payload: string[] }) => {
+      state.traverses = state.traverses.filter(
+        (traverse) => !action.payload.includes(traverse.uuid)
+      );
+    },
+    deleteTraversesFromDbByUuid: (state, action: { payload: string[] }) => {
+      state.traversesFromDb = state.traversesFromDb.filter(
+        (traverse) => !action.payload.includes(traverse.uuid)
+      );
+    },
     setSelectedTraverseRightNavItem: (state, action: { payload: string }) => {
       state.selectedTraverseRightNavItem = action.payload;
     },
@@ -151,6 +161,8 @@ export const {
   setTraversesFromDb,
   deleteTraverseByUuid,
   deleteTraverseFromDbByUuid,
+  deleteTraversesByUuid,
+  deleteTraversesFromDbByUuid,
   setSelectedTraverseRightNavItem,
   setTraverseEditMode,
   revertTraversePath,

@@ -91,9 +91,8 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
         <div className={actionsStyles.actionListContainer}>
           {selectedEva.sequence.map((sequenceItem) => {
             if (sequenceItem.type !== "station") return null;
-            const actionOrderUuids = stations.find(
-              (station) => station.uuid === sequenceItem.uuid
-            )?.actionOrderUuids;
+            const actionOrderUuids = stations.find((station) => station.uuid === sequenceItem.uuid)
+              ?.actionOrderUuids;
             return (
               <div key={sequenceItem.uuid}>
                 <Actions_Station_Heading stationUuid={sequenceItem.uuid} />

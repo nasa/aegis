@@ -3,7 +3,7 @@ import { convertNodeToHTML, convertStringToNodes } from "components/interface/fo
 import _ from "lodash";
 import { decodeEmoji } from "./formatting";
 
-export const decodeWsywig = (string: string): string => {
+const decodeWsywig = (string: string): string => {
   // convert wysiwyg to html and strip the html tags
   let newString = stripHtml(
     _.reduce(

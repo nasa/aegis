@@ -1,21 +1,18 @@
 import { Collection, Entity, ManyToMany, ManyToOne, PrimaryKey, Property } from "@mikro-orm/core";
-
-import { Mission } from "./mission.model";
-import { User } from "./user.model";
 import { types as MikroTypes } from "@mikro-orm/core";
-import { Station } from "./station.model";
+import { Mission_db, Station_db, User_db } from "./_allModels";
 
 @Entity()
-export class Poi implements Poi_db_type {
+export class Poi_db implements Poi_db_type {
   @PrimaryKey({ type: MikroTypes.string, unique: true })
   uuid!: string;
 
-  @ManyToOne(() => User, { unique: false, primary: false })
-  owner!: User;
-  @ManyToOne(() => Mission, { unique: false, primary: false })
-  mission!: Mission;
-  @ManyToMany(() => Station, (station) => station.poi) //a poi can belong to many stations
-  station = new Collection<Station>(this);
+  @ManyToOne(() => User_db, { unique: false, primary: false })
+  owner!: User_db;
+  @ManyToOne(() => Mission_db, { unique: false, primary: false })
+  mission!: Mission_db;
+  @ManyToMany(() => Station_db, (station) => station.poi) //a poi can belong to many stations
+  station = new Collection<Station_db>(this);
 
   @Property({ type: MikroTypes.text })
   name!: string;

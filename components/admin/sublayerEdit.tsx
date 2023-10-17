@@ -1,6 +1,6 @@
 import { FunctionComponent, useState, useEffect } from "react";
 import styles from "./admin.module.css";
-import { upsertSublayer } from "http-client/sublayer";
+import { upsertSublayers } from "http-client/sublayer";
 import { roundDateToSecond } from "utils/formatting";
 import { validators } from "components/interface/form/formValidators";
 interface SublayerProps {
@@ -26,10 +26,12 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
 
   //save the current editing sublayer to db
   async function saveSublayer() {
-    const res: WrappedResponse<Sublayer> = await upsertSublayer({
-      ...sublayer,
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
-    });
+    const res: WrappedResponse<Sublayer[]> = await upsertSublayers([
+      {
+        ...sublayer,
+        updatedAt: roundDateToSecond(new Date()).toISOString(),
+      },
+    ]);
     props.refreshLayerList();
     alert(`${res.status} - ${res.message}`);
   }

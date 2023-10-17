@@ -1,5 +1,5 @@
 import type { NextPage } from "next";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import dynamic from "next/dynamic";
@@ -27,9 +27,7 @@ const RightControlPanel = dynamic(
     ssr: false,
   }
 );
-const MapBody = dynamic(import("components/interface/map/map-body-leaflet"), {
-  ssr: false,
-});
+
 const SunEarthPosition = dynamic(import("components/interface/map/map-sunearth"), {
   ssr: false,
 });
@@ -63,6 +61,16 @@ const Main: NextPage = () => {
 
   const { id } = router.query;
   const intMissionId = parseInt(Array.isArray(id) ? id[0] : id);
+
+  // changed this implementation to use useMemo with the dynamic import because Next 13 decided to compile leaflet even though ssr: false was set
+  const MapBody = useMemo(
+    () =>
+      dynamic(() => import("components/interface/map/map-body-leaflet"), {
+        loading: () => <p>A map is loading</p>,
+        ssr: false,
+      }),
+    []
+  );
 
   /**
    * On initial load, set the missionId and sessionId in sessionStorage

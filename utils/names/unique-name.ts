@@ -9,7 +9,7 @@ import {
 } from "unique-names-generator";
 import starTrek from "./star-trek";
 import lotr from "./lotr";
-const profanityFilter = require("leo-profanity");
+import profanityFilter from "leo-profanity";
 
 type DictName =
   | "adjectives"

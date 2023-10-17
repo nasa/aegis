@@ -4,12 +4,12 @@ import { ironOptions } from "server/session/config";
 import { withORM, getEM } from "utils/mikro";
 
 import _ from "lodash";
-import { Rex as Rex_db } from "server/database/models/rex.model";
+import { Rex_db } from "server/database/models/_allModels";
 import { EntityData, ForeignKeyConstraintViolationException } from "@mikro-orm/core";
 import { hasPerms } from "utils/permissions";
 import { emitStoreDelete, emitStoreUpsert } from "./socketio";
 import { v4 as uuidv4 } from "uuid";
-import { upsertLog } from "./log";
+import { upsertLogs } from "./log";
 
 const handleRex: NextApiHandler<WrappedResponse<Rex[] | Rex>> = async (
   req,
@@ -62,11 +62,11 @@ const handleRex: NextApiHandler<WrappedResponse<Rex[] | Rex>> = async (
       }
       try {
         //perform the upsert
-        const rexToUpsert: Rex = req.body as Rex;
-        const upsertResponse: Rex = await upsertRex(rexToUpsert);
+        const rexes: Rex[] = req.body as Rex[];
+        const upsertResponse: Rex[] = await upsertRexes(rexes);
 
         //check response
-        if (!upsertResponse) {
+        if (upsertResponse.length === 0) {
           return res.status(500).json({
             status: "error",
             message: "Upsert response did not return a value",
@@ -78,23 +78,24 @@ const handleRex: NextApiHandler<WrappedResponse<Rex[] | Rex>> = async (
             missionId: intMissionId,
             socketId,
             type: "rex",
-            data: [upsertResponse],
+            data: upsertResponse,
           } as StoreUpsert<Rex>);
 
           if (logAction) {
             // log this upsert to the log table
-            upsertLog({
+            const log: Log = {
               uuid: uuidv4(),
               missionId: intMissionId,
               type: "rexUpsert",
-              payloadJson: JSON.stringify(rexToUpsert),
+              payloadJson: JSON.stringify(rexes),
               createdAt: new Date().toISOString(),
-            } as Log);
+            };
+            upsertLogs([log]);
           }
 
           return res.status(200).json({
             status: "success",
-            message: `Rex upserted with uuid ${upsertResponse.uuid}`,
+            message: `Rex upserted with uuid ${upsertResponse.map((r) => r.uuid)}`,
             data: upsertResponse,
           });
         }
@@ -113,24 +114,26 @@ const handleRex: NextApiHandler<WrappedResponse<Rex[] | Rex>> = async (
       }
 
       try {
-        const deletedRexUuid: string = await deleteRex(rexUuid);
-        if (deletedRexUuid) {
+        const uuidsToDelete: string[] = req.body;
+        const deletedRexUuids: string[] = await deleteRexes(uuidsToDelete);
+        if (deletedRexUuids.length > 0) {
           emitStoreDelete({
             missionId: intMissionId,
             socketId,
             type: "rex",
-            uuid: deletedRexUuid,
+            uuids: deletedRexUuids,
           } as StoreDelete);
 
           if (logAction) {
             // log this deletion to the log table
-            upsertLog({
+            const log: Log = {
               uuid: uuidv4(),
               missionId: intMissionId,
               type: "rexDelete",
               payloadJson: JSON.stringify({ rexUuid }),
               createdAt: new Date().toISOString(),
-            } as Log);
+            };
+            upsertLogs([log]);
           }
 
           return res.status(200).json({
@@ -182,62 +185,66 @@ async function getRex(missionId: number): Promise<Rex[]> {
 }
 
 /**
- * upserts a single rex into the database
- * @param rex rex to upsert
- * @returns the upserted rex
+ * upserts rexes into the database
+ * @param rexes rexes to upsert
+ * @returns the upserted rexes
  */
-async function upsertRex(rex: Rex): Promise<Rex> {
+async function upsertRexes(rexes: Rex[]): Promise<Rex[]> {
   const em = getEM();
 
-  const copy: Rex = _.cloneDeep(rex);
+  const rexesToUpsert: Rex[] = _.cloneDeep(rexes);
+  const rexesUpsertedToDb = [];
 
-  const upsertRecord: EntityData<Rex_db> = {
-    mission: copy.missionId,
-    uuid: copy.uuid || uuidv4(),
-    name: copy.name,
-    description: copy.description,
-    petStartStopTimestamp: copy.petStartStopTimestamp,
-    petValueAtStartStop: copy.petValueAtStartStop,
-    petRunning: copy.petRunning,
-    selectedRexEvaUuid: copy.selectedRexEvaUuid,
-    rexRunning: copy.rexRunning,
-    crewPos: copy.crewPos,
-    updatedAt: new Date(copy.updatedAt),
-    createdAt: new Date(copy.createdAt),
-  };
-
-  let dbReference: Rex_db;
-  if (rex.uuid) {
-    //update record
-    dbReference = await em.upsert(Rex_db, upsertRecord);
-  } else {
-    //insert record.
-    dbReference = em.create(Rex_db, upsertRecord);
+  for (const rexToUpsert of rexesToUpsert) {
+    const upsertRecord: EntityData<Rex_db> = {
+      mission: rexToUpsert.missionId,
+      uuid: rexToUpsert.uuid || uuidv4(),
+      name: rexToUpsert.name,
+      description: rexToUpsert.description,
+      petStartStopTimestamp: rexToUpsert.petStartStopTimestamp,
+      petValueAtStartStop: rexToUpsert.petValueAtStartStop,
+      petRunning: rexToUpsert.petRunning,
+      selectedRexEvaUuid: rexToUpsert.selectedRexEvaUuid,
+      rexRunning: rexToUpsert.rexRunning,
+      crewPos: rexToUpsert.crewPos,
+      updatedAt: new Date(rexToUpsert.updatedAt),
+      createdAt: new Date(rexToUpsert.createdAt),
+    };
+    const rexUpsertReference: Rex_db = await em.upsert(Rex_db, upsertRecord);
+    em.persist(rexUpsertReference);
+    rexesUpsertedToDb.push(rexUpsertReference);
   }
-  await em.persistAndFlush(dbReference);
+  await em.flush();
 
-  return {
-    ...dbReference,
-    missionId: dbReference.mission.id,
-    updatedAt: dbReference.updatedAt.toISOString(),
-    createdAt: dbReference.createdAt.toISOString(),
-  } as Rex;
+  //convert foreign keys
+  const convertedRexes = rexesUpsertedToDb.map((r) => {
+    return {
+      ...r,
+      missionId: r.mission.id,
+      updatedAt: r.updatedAt.toISOString(),
+      createdAt: r.createdAt.toISOString(),
+    } as Rex;
+  });
+  return convertedRexes;
 }
 
 /**
- * Deletes a single rex
- * @param uuid rex to delete
- * @returns the id of the deleted rex or null if nothing was deleted
+ * Deletes rexes
+ * @param uuids rex uuids to delete
+ * @returns the uuids of the deleted rexes
  */
-async function deleteRex(uuid: string): Promise<string | null> {
+async function deleteRexes(uuids: string[]): Promise<string[]> {
   const em = getEM();
-  let returnVal = uuid;
-  const entity = await em.findOne(Rex_db, uuid);
-  if (entity) {
-    await em.removeAndFlush(entity);
-  } else {
-    returnVal = null;
+  const deletedUuids = [];
+  for (const uuid of uuids) {
+    const entity = await em.findOne(Rex_db, uuid);
+    if (entity) {
+      em.remove(entity); //delete rex
+      deletedUuids.push(uuid);
+    }
   }
-  return returnVal;
+  await em.flush(); //perform deletes
+  return deletedUuids;
 }
+
 export default withIronSessionApiRoute(withORM(handleRex), ironOptions);

@@ -1,7 +1,7 @@
 import { EntityData } from "@mikro-orm/core";
 import { Factory } from "@mikro-orm/seeder";
 import { v4 } from "uuid";
-import { Sublayer as Sublayer_db } from "server/database/models/sublayer.model";
+import { Sublayer_db } from "server/database/models/_allModels";
 
 export default class SublayerFactory extends Factory<Sublayer_db> {
   model = Sublayer_db;

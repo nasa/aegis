@@ -7,32 +7,39 @@ import {
 } from "node-mocks-http";
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { NextApiRequest, NextApiResponse } from "next";
-import Login from "pages/api/auth/login";
+import login from "pages/api/auth/login";
+import logout from "pages/api/auth/logout";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import handleStation from "pages/api/station";
-import { User as User_db } from "server/database/models/user.model";
-import UserFactory from "../../factories/UserFactory";
-import { Station as Station_db } from "server/database/models/station.model";
-import StationFactory from "../../factories/StationFactory";
-import { Mission as Mission_db } from "server/database/models/mission.model";
-import MissionFactory from "../../factories/MissionFactory";
+import handleMission from "pages/api/mission";
+import { Mission_db, User_db } from "server/database/models/_allModels";
+import MissionFactory from "../factories/MissionFactory";
+import UserFactory from "../factories/UserFactory";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
 import { roundDateToSecond } from "utils/formatting";
 import * as SocketIo from "pages/api/socketio";
+jest.mock("pages/api/socketio", () => {
+  return {
+    __esModule: true,
+    ...jest.requireActual("pages/api/socketio"),
+  };
+});
 
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
-let testUser: User_db;
 let testMissions: Mission_db[];
-let testStations: Station_db[];
+let testAdmin: User_db;
+let testSuperAdmin: User_db;
+let newMission: Partial<Mission>;
 
 beforeAll(async () => {
   await getORM();
   const em = getEM();
   testMissions = await new MissionFactory(em).create(3);
-  testUser = await new UserFactory(em).createOne({
+  testAdmin = await new UserFactory(em).createOne({
+    username: "testAdmin",
+    isAdmin: true,
     permissionList: [
       {
         missionId: testMissions[0].id,
@@ -48,46 +55,37 @@ beforeAll(async () => {
           view: true,
         },
       },
+      {
+        missionId: 99999,
+        permissions: {
+          edit: false,
+          view: true,
+        },
+      },
     ],
   });
-  testStations = await new StationFactory(em)
-    .each((station) => {
-      station.mission = testMissions[0];
-      station.owner = testUser;
-    })
-    .create(2);
+  testSuperAdmin = await new UserFactory(em).createOne({
+    username: "testSuperAdmin",
+    isSuperAdmin: true,
+  });
 
   // suppress socketio calls because they won't work during jest testing
   jest.spyOn(SocketIo, "emitStoreUpsert").mockImplementation(() => {});
   jest.spyOn(SocketIo, "emitStoreDelete").mockImplementation(() => {});
 });
 
-describe("Station API Endpoint", () => {
+describe("Mission API Endpoint", () => {
   type ApiRequest = NextApiRequest & ReturnType<typeof createRequest>;
   type ApiResponse = NextApiResponse & ReturnType<typeof createResponse>;
 
   let loginCookie: string;
-  let newStation: Station = {
-    uuid: null,
-    ownerId: null,
-    missionId: null,
-    name: "Jest Station-1",
-    status: "Candidate",
-    description: "",
-    actionOrderUuids: [],
-    radius: 0,
-    location: null,
-    elevation: null,
-    icon: null,
-    walkbackPath: null,
-    walkbackPathSegmentDistances: [0],
-    walkbackPathSegmentElevations: null,
-    durationLower: 0,
-    durationUpper: 0,
-    rexStatus: null,
+
+  newMission = {
+    name: "Jest Mission-1",
     createdAt: roundDateToSecond(new Date()).toISOString(),
     updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
+
   function mockRequestResponse(reqOptions: RequestOptions, resOptions?: ResponseOptions) {
     const { req, res }: { req: ApiRequest; res: ApiResponse } = createMocks(reqOptions, resOptions);
     return { req, res };
@@ -95,7 +93,7 @@ describe("Station API Endpoint", () => {
 
   test("Returns auth failure", async () => {
     const { req, res } = mockRequestResponse({ method: "GET" });
-    await handleStation(req, res);
+    await handleMission(req, res);
     expect(res.statusCode).toBe(401);
     expect(res.statusMessage).toEqual("OK");
   });
@@ -103,9 +101,9 @@ describe("Station API Endpoint", () => {
   test("Returns login session", async () => {
     const loginReqRes = mockRequestResponse({
       method: "POST",
-      body: { username: testUser.username, password: "superSecretPassword" },
+      body: { username: testAdmin.username, password: "superSecretPassword" },
     });
-    await Login(loginReqRes.req, loginReqRes.res);
+    await login(loginReqRes.req, loginReqRes.res);
     expect(loginReqRes.res.statusCode).toBe(200); //check response from login
     const response: WrappedResponse<IronSessionData> = loginReqRes.res._getJSONData();
     expect(response.status).toEqual("success");
@@ -113,26 +111,14 @@ describe("Station API Endpoint", () => {
   });
 
   describe("GET request", () => {
-    test("No permissions", async () => {
+    test("Returns single mission", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
-        query: { missionId: testMissions[2].id },
+        query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleStation(req, res);
-      expect(res.statusCode).toBe(401);
-      expect(res.statusMessage).toEqual("OK");
-    });
-
-    test("Returns single station by station uuid", async () => {
-      const reqOptions: RequestOptions = {
-        method: "GET",
-        headers: { cookie: loginCookie },
-        query: { missionId: testMissions[0].id, uuid: testStations[0].uuid },
-      };
-      const { req, res } = mockRequestResponse(reqOptions);
-      await handleStation(req, res);
+      await handleMission(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -141,30 +127,44 @@ describe("Station API Endpoint", () => {
       expect(wrappedResponse.data.length).toEqual(1);
     });
 
-    test("Returns all stations for a mission", async () => {
+    test("Returns all missions user has permissions to", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
-        query: { missionId: testMissions[0].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleStation(req, res);
+      await handleMission(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       const wrappedResponse = res._getJSONData();
       expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toBeGreaterThan(1);
+      expect(wrappedResponse.data.length).toEqual(2);
     });
 
-    test("No stations returned", async () => {
+    test("No mission returned - no permission", async () => {
       const reqOptions: RequestOptions = {
         method: "GET",
         headers: { cookie: loginCookie },
-        query: { missionId: testMissions[1].id },
+        query: { missionId: testMissions[2].id },
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleStation(req, res);
+      await handleMission(req, res);
+      expect(res.statusCode).toBe(401);
+      expect(res.statusMessage).toEqual("OK");
+
+      const wrappedResponse = res._getJSONData();
+      expect(wrappedResponse.status).toBe("failure");
+    });
+
+    test("No mission returned - doesnt exist", async () => {
+      const reqOptions: RequestOptions = {
+        method: "GET",
+        headers: { cookie: loginCookie },
+        query: { missionId: "99999" },
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleMission(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -174,17 +174,16 @@ describe("Station API Endpoint", () => {
     });
   });
 
-  //upsert and delete tests must occur in order.
+  //upsert and delete tests must occur in order
   describe("POST request", () => {
     test("No permissions", async () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newStation, missionId: testMissions[2].id },
-        query: { missionId: testMissions[2].id },
+        body: [testMissions[2]],
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleStation(req, res);
+      await handleMission(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -193,55 +192,43 @@ describe("Station API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newStation, missionId: testMissions[1].id },
-        query: { missionId: testMissions[1].id },
+        body: [testMissions[1]],
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleStation(req, res);
+      await handleMission(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Create new station", async () => {
+    test("Create new mission - No permissions", async () => {
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: { ...newStation, missionId: testMissions[0].id, ownerId: testUser.id },
-        query: { missionId: testMissions[0].id },
+        body: [newMission],
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleStation(req, res);
-      expect(res.statusCode).toBe(200);
+      await handleMission(req, res);
+      expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
-
-      expect(res._getJSONData().data).not.toBeNull();
-      const upsertedStation = res._getJSONData().data;
-      expect(upsertedStation.uuid).not.toBeNull();
-      newStation = { ...upsertedStation };
-
-      //check if it was added to the db
-      const em = getEM();
-      const stationReference = await em.findOne(Station_db, upsertedStation.uuid);
-      expect(stationReference).not.toBeNull();
     });
 
-    test("Update a station", async () => {
-      newStation.name = "Jest Test New Station Modified";
+    test("Update a mission", async () => {
+      testMissions[0].name = "Jest Mission-1 Modified";
       const reqOptions: RequestOptions = {
         method: "POST",
         headers: { cookie: loginCookie },
-        body: newStation,
-        query: { missionId: testMissions[0].id },
+        body: [testMissions[0]],
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleStation(req, res);
+      await handleMission(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
       expect(res._getJSONData().data).not.toBeNull();
-      const upsertedStation = res._getJSONData().data;
-      expect(upsertedStation).not.toBeNull();
-      expect(upsertedStation.name).toEqual("Jest Test New Station Modified");
+      const upsertedMission = res._getJSONData().data[0];
+      expect(upsertedMission).not.toBeNull();
+      expect(upsertedMission.version).toEqual(2);
+      expect(upsertedMission.name).toEqual("Jest Mission-1 Modified");
     });
   });
 
@@ -250,10 +237,10 @@ describe("Station API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { missionId: testMissions[2].id },
+        body: [testMissions[2].id],
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleStation(req, res);
+      await handleMission(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
@@ -262,22 +249,97 @@ describe("Station API Endpoint", () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { missionId: testMissions[1].id },
+        body: [testMissions[1].id],
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleStation(req, res);
+      await handleMission(req, res);
       expect(res.statusCode).toBe(401);
       expect(res.statusMessage).toEqual("OK");
     });
 
-    test("Delete a station", async () => {
+    test("Delete a mission", async () => {
       const reqOptions: RequestOptions = {
         method: "DELETE",
         headers: { cookie: loginCookie },
-        query: { uuid: `${newStation.uuid}`, missionId: testMissions[0].id },
+        body: [testMissions[0].id],
       };
       const { req, res } = mockRequestResponse(reqOptions);
-      await handleStation(req, res);
+      await handleMission(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
+
+      const wrappedResponse = res._getJSONData();
+      expect(wrappedResponse.status).toBe("success");
+    });
+  });
+
+  describe("Super Admin", () => {
+    test("Login as super admin", async () => {
+      const logoutReqRes = mockRequestResponse({ method: "GET" });
+      await logout(logoutReqRes.req, logoutReqRes.res);
+
+      const loginReqRes = mockRequestResponse({
+        method: "POST",
+        body: { username: testSuperAdmin.username, password: "superSecretPassword" },
+      });
+      await login(loginReqRes.req, loginReqRes.res);
+      expect(loginReqRes.res.statusCode).toBe(200); //check response from login
+      const response: WrappedResponse<IronSessionData> = loginReqRes.res._getJSONData();
+      expect(response.status).toEqual("success");
+      expect(response.data.user.isSuperAdmin).toBeTruthy();
+      loginCookie = loginReqRes.res._getHeaders()["set-cookie"][0];
+    });
+
+    test("Create new mission", async () => {
+      const reqOptions: RequestOptions = {
+        method: "POST",
+        headers: { cookie: loginCookie },
+        body: [newMission],
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleMission(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
+
+      expect(res._getJSONData().data).not.toBeNull();
+      const upsertedMission = res._getJSONData().data[0];
+      expect(upsertedMission.id).not.toBeNull();
+      expect(upsertedMission.version).toEqual(1);
+
+      //check if it was added to the db
+      const em = getEM();
+      const missionReference = await em.findOne(Mission_db, upsertedMission.id);
+      expect(missionReference).not.toBeNull();
+      newMission = { ...upsertedMission };
+    });
+
+    test("Update a mission", async () => {
+      newMission.name = "Mission Jest Test Modified";
+      const reqOptions: RequestOptions = {
+        method: "POST",
+        headers: { cookie: loginCookie },
+        body: [newMission],
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleMission(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(res.statusMessage).toEqual("OK");
+
+      expect(res._getJSONData().data).not.toBeNull();
+      const upsertedMission = res._getJSONData().data[0];
+      expect(upsertedMission).not.toBeNull();
+      expect(upsertedMission.version).toEqual(2);
+      expect(upsertedMission.name).toEqual("Mission Jest Test Modified");
+    });
+
+    test("Delete a mission", async () => {
+      const reqOptions: RequestOptions = {
+        method: "DELETE",
+        headers: { cookie: loginCookie },
+        body: [newMission.id],
+      };
+      const { req, res } = mockRequestResponse(reqOptions);
+      await handleMission(req, res);
       expect(res.statusCode).toBe(200);
       expect(res.statusMessage).toEqual("OK");
 
@@ -290,16 +352,14 @@ describe("Station API Endpoint", () => {
 afterAll(async () => {
   //Cleanup our Database
   const em = getEM();
-  for (let i = 0; i < testStations.length; i++) {
-    await em.nativeDelete(Station_db, { uuid: testStations[i].uuid });
-  }
+  await em.nativeDelete(User_db, { id: testAdmin.id });
+  await em.nativeDelete(User_db, { id: testSuperAdmin.id });
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
-  await em.nativeDelete(User_db, { id: testUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
 
-  jest.resetAllMocks();
+  jest.restoreAllMocks();
 });

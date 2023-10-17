@@ -15,10 +15,9 @@ default:
 
 variables:
   HOME: "/tmp" # required for openshift for now
-  EMSS_DEPLOY_IMAGE: "$CI_REGISTRY/emss/docker-images:deploy-node-14-alpine"
-  CURRENT_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images:node-18-alpine"
+  CURRENT_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:18.18.1-alpine"
   # "Future" might be older if waiting on a newer version to come out
-  FUTURE_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images:node-16-alpine"
+  FUTURE_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:20-alpine"
 
   # Default image unless otherwise specified
 image: "$CURRENT_NODE_VERSION_IMAGE"
@@ -45,6 +44,11 @@ include:
 
   # A11y tests. Disabled for now.
   # - template: "Verify/Accessibility.gitlab-ci.yml"
+
+  #code quality checks
+  - project: "emss/gitlab-templates"
+    ref: main
+    file: "/jobs/code-quality.gitlab-ci.yml"
 
 # Overrride some properties on FIT jobs. Unfortunately using a template for these
 # make GitLab angry, so a lot of repetition
@@ -298,7 +302,7 @@ docker:build:nextjs:
     SERVICE_NAME: nextjs
     MULTISTAGE_TARGET: prod
     BASE_IMAGE_VAR: NEXTJS_BASE_IMAGE
-    BASE_IMAGE_VALUE: eegitlabregistry.fit.nasa.gov/emss/docker-images/node:18-alpine
+    BASE_IMAGE_VALUE: $CURRENT_NODE_VERSION_IMAGE
 
 docker:build:gdal:
   extends: .kaniko-build-template

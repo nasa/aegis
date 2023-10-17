@@ -26,8 +26,8 @@ export const thunkDeleteGeoUnit = appCreateAsyncThunk<{ geographicUnitUuid: stri
   "deleteGeoUnit",
   async ({ geographicUnitUuid }, { dispatch, getState }) => {
     // find all of the actions using this equipment item
-    const actionsUsingGeographicUnit = getState().action.actions.filter((action) =>
-      action.geographicUnitsUsage?.some((uuid) => uuid === geographicUnitUuid)
+    const actionsUsingGeographicUnit = getState().action.actions.filter(
+      (action) => action.geographicUnitsUsage?.some((uuid) => uuid === geographicUnitUuid)
     );
     const templatesUsingGeographicUnit = getState().mission.mission.actionTemplates?.filter(
       (template) => template.geographicUnitsUsage?.some((uuid) => uuid === geographicUnitUuid)
