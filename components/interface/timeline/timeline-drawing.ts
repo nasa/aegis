@@ -191,7 +191,9 @@ export function drawGraphAxis(
   axisGroup.addChild(rightYAxisLabel);
 
   const markerSpacingPx = 25; //at least this many pixels between markers
-  const possibleIntervalMeters = [1, 2, 5, 10, 15, 20, 25, 50, 100, 150, 200, 500, 1000];
+  const possibleIntervalMeters = [
+    1, 2, 5, 10, 15, 20, 25, 50, 100, 150, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000,
+  ];
 
   //draw left y-axis meter markers
 
