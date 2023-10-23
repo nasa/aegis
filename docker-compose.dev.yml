@@ -43,6 +43,8 @@ services:
       dockerfile: ./docker/gdal/Dockerfile
     volumes:
       - ./server/python:/app
+    ports:
+      - 5678:5678
 
 volumes:
   container_only_node_modules:

@@ -1,5 +1,5 @@
 import { getElevationSinglePoint } from "http-client/elevation";
-import { Dispatch, FunctionComponent, SetStateAction, useEffect } from "react";
+import { Dispatch, FunctionComponent, SetStateAction, useEffect, useRef } from "react";
 import FileManager from "./fileManager";
 import { Form } from "react-final-form";
 import { AnyObject } from "final-form";
@@ -16,19 +16,60 @@ const MissionEditor: FunctionComponent<{
   mission: Mission;
   setMission: Dispatch<SetStateAction<Mission>>;
 }> = ({ refreshMissionList, mission, setMission }) => {
+  const formApiRef = useRef(null);
+
   //save the mission and call and upsert
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async function onSubmit(values: Record<string, any>) {
     const missionKeys = Object.keys(mission);
 
-    const missionValues = pick(values, missionKeys) as Mission;
-
-    setMission(missionValues);
+    const missionValues = pick(values, missionKeys);
 
     const missionToSave: Mission = {
-      ...missionValues,
+      id: mission.id,
+      version: mission.version,
+      name: missionValues.name,
+      equipmentItems: mission.equipmentItems,
+      geographicUnits: mission.geographicUnits,
+      actionTemplates: mission.actionTemplates,
+      description: missionValues.description,
+      missionBanner: missionValues.missionBanner,
+      planetRadius: parseFloat(missionValues.planetRadius),
+      landerLocation: {
+        lat: parseFloat(missionValues.landerLocation.lat),
+        lng: parseFloat(missionValues.landerLocation.lng),
+      } as AEGISPoint,
+      landerRadii: mission.landerRadii,
+      landerElevationMeters: parseFloat(missionValues.landerElevationMeters),
+      initialZoom: parseFloat(missionValues.initialZoom),
+      defaultEvaDuration: parseFloat(missionValues.defaultEvaDuration),
+      traverseRate: parseFloat(missionValues.traverseRate),
+      walkbackRate: parseFloat(missionValues.walkbackRate),
+      sunAzimuth: parseFloat(missionValues.sunAzimuth),
+      sunAzimuthVisible: missionValues.sunAzimuthEnabled,
+      earthAzimuth: parseFloat(missionValues.earthAzimuth),
+      earthAzimuthVisible: missionValues.earthAzimuthEnabled,
+      demFilePath: missionValues.demFilePath,
+      demResolution: parseFloat(missionValues.demResolution),
+
+      projIsCustom: missionValues.projIsCustom,
+      projEpsg: missionValues.projEpsg,
+      projProj4String: missionValues.projProj4String,
+      projBoundsMinX: parseFloat(missionValues.projBoundsMinX),
+      projBoundsMinY: parseFloat(missionValues.projBoundsMinY),
+      projBoundsMaxX: parseFloat(missionValues.projBoundsMaxX),
+      projBoundsMaxY: parseFloat(missionValues.projBoundsMaxY),
+      projOriginX: parseFloat(missionValues.projOriginX),
+      projOriginY: parseFloat(missionValues.projOriginY),
+      projResZoomLevel: parseFloat(missionValues.projResZoomLevel),
+      projResUnitsPerPixel: parseFloat(missionValues.projResUnitsPerPixel),
+
+      createdAt: mission.createdAt,
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
+
+    setMission(missionToSave);
+
     const res = await upsertMissions([missionToSave]);
     if (res.status === "success") {
       refreshMissionList();
@@ -38,23 +79,17 @@ const MissionEditor: FunctionComponent<{
   }
 
   //calculate the lander elevation based on the lander location
-  async function calcLanderElevation(mission: Mission) {
+  async function calcLanderElevation(point: AEGISPoint) {
     if (!mission.landerLocation.lat || !mission.landerLocation.lat) {
       alert("invalid lander location, cannot calculate elevation");
     }
 
-    const point: AEGISPoint = {
-      lat: mission.landerLocation.lat,
-      lng: mission.landerLocation.lng,
-    };
     const elevation = (
       await getElevationSinglePoint(mission.id, mission.demFilePath, point, mission.planetRadius)
     ).data;
 
-    setMission({
-      ...mission,
-      landerElevationMeters: elevation,
-    });
+    // use the Final Form API to change the value of the landerElevationMeters field. Mission state is not updated until form is submitted
+    formApiRef.current.change("landerElevationMeters", elevation);
   }
 
   const handleFormErrors = (errors: AnyObject) => {
@@ -81,7 +116,9 @@ const MissionEditor: FunctionComponent<{
         initialValues={{
           ...mission,
         }}
-        render={({ handleSubmit, values, errors }) => {
+        render={({ form, handleSubmit, values, errors }) => {
+          formApiRef.current = form; // save form instance so we can change values programmatically later
+
           return (
             <form onSubmit={handleSubmit}>
               <div className={adminStyles.container}>
@@ -174,7 +211,11 @@ const MissionEditor: FunctionComponent<{
                       <button
                         type="button"
                         onClick={() => {
-                          calcLanderElevation(values as Mission);
+                          const point: AEGISPoint = {
+                            lat: parseFloat(values.landerLocation.lat),
+                            lng: parseFloat(values.landerLocation.lng),
+                          };
+                          calcLanderElevation(point);
                         }}
                       >
                         Calculate
