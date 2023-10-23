@@ -15,6 +15,7 @@ RUN apt-get -o APT::Retries=3 -y update && \
       export C_INCLUDE_PATH=/usr/include/gdal && \
       pip3 install setuptools==57.5.0 numpy && \
       pip3 install GDAL==$(gdal-config --version) --global-option=build_ext --global-option="-I/usr/include/gdal" && \
+      pip3 install debugpy && \
       mkdir /app
 
 WORKDIR /app

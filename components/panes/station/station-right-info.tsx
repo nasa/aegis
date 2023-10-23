@@ -569,7 +569,7 @@ const Info_Panel: FunctionComponent<{
               <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
                 {!selectedStation.location && (
                   <div className={`${paneStyles.verticalCenter} ${paneStyles.buttonPlaceholder}`}>
-                    <div className={paneStyles.panelText}>Station Locaton not set</div>
+                    <div className={paneStyles.panelText}>Station Location not set</div>
                   </div>
                 )}
                 {!landerLocation && (

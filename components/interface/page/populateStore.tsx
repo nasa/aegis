@@ -370,13 +370,13 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
 
   //Generate poi calculated values
   useEffect(() => {
-    if (_.isEmpty(pois) || _.isEmpty(actions) || !hasPermissions) return;
+    if (_.isEmpty(pois) || !hasPermissions) return;
     dispatch(thunkCreatePoiCalculatedFields());
   }, [pois, actions, dispatch, hasPermissions]);
 
   //Generate station calculated values
   useEffect(() => {
-    if (_.isEmpty(stations) || _.isEmpty(actions) || !hasPermissions) return;
+    if (_.isEmpty(stations) || !hasPermissions) return;
     dispatch(thunkCreateStationCalculatedFields());
   }, [stations, actions, dispatch, hasPermissions]);
 
