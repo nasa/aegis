@@ -31,7 +31,7 @@ export function createNewSublayer(layerUuid?: string, missionId?: number): Subla
     type: "tile",
     filePath: "",
     boundingBox: null,
-    tileFormat: "TMS",
+    tileFormat: "tms",
     minNativeZoom: 0,
     maxNativeZoom: 0,
     maxZoom: 30,

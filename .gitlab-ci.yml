@@ -310,7 +310,7 @@ docker:build:gdal:
     SERVICE_NAME: gdal
     MULTISTAGE_TARGET: base
     BASE_IMAGE_VAR: GDAL_BASE_IMAGE
-    BASE_IMAGE_VALUE: python:3.9.16-slim-buster
+    BASE_IMAGE_VALUE: eegitlabregistry.fit.nasa.gov/emss/docker-images/deploy:gdal
 
 #
 # Push docker images after necessary jobs pass (e.g. unit testing passes)

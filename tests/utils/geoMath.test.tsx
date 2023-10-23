@@ -19,6 +19,65 @@ describe("Geomath Functions", () => {
   test("Returns 0 distance between two identical coordinates", () => {
     expect(getDistanceBetweenTwoCoordinates(latLng1, latLng2, 0)).toBe(0);
   });
+
+  describe("getDistanceBetweenTwoCoordinates", () => {
+    test("should correctly calculate distance between two points", () => {
+      const point1: AEGISPoint = { lat: 37.7749, lng: -122.4194 }; // San Francisco
+      const point2: AEGISPoint = { lat: 34.0522, lng: -118.2437 }; // Los Angeles
+      const radius = earthRadius; // Earth's radius in meters
+
+      const distance = getDistanceBetweenTwoCoordinates(point1, point2, radius);
+
+      expect(distance).toBeCloseTo(559120.5770615533, 3);
+    });
+
+    test("should return null when either point is null", () => {
+      const point: AEGISPoint = { lat: 37.7749, lng: -122.4194 };
+      const radius = earthRadius;
+
+      expect(getDistanceBetweenTwoCoordinates(null, point, radius)).toBeNull();
+      expect(getDistanceBetweenTwoCoordinates(point, null, radius)).toBeNull();
+      expect(getDistanceBetweenTwoCoordinates(null, null, radius)).toBeNull();
+    });
+
+    test("should return 0 when radius is 0", () => {
+      const point1: AEGISPoint = { lat: 37.7749, lng: -122.4194 };
+      const point2: AEGISPoint = { lat: 34.0522, lng: -118.2437 };
+
+      expect(getDistanceBetweenTwoCoordinates(point1, point2, 0)).toBe(0);
+    });
+
+    test("should return negative distance when radius is negative", () => {
+      const point1: AEGISPoint = { lat: 37.7749, lng: -122.4194 };
+      const point2: AEGISPoint = { lat: 34.0522, lng: -118.2437 };
+      const radius = -earthRadius;
+
+      const distance = getDistanceBetweenTwoCoordinates(point1, point2, radius);
+
+      expect(distance).toBeCloseTo(-559120.5770615533, 1);
+    });
+
+    test("should return a small number when the two points are very close together", () => {
+      const point1: AEGISPoint = { lat: 37.7749, lng: -122.4190004 };
+      const point2: AEGISPoint = { lat: 37.7749, lng: -122.4190005 };
+      const radius = earthRadius;
+
+      const distance = getDistanceBetweenTwoCoordinates(point1, point2, radius);
+
+      expect(distance).toBeCloseTo(0.008789, 6);
+    });
+
+    test("should return a small number when the two points are very close together on the south pole of the moon", () => {
+      const point1: AEGISPoint = { lat: -90, lng: 0 };
+      const point2: AEGISPoint = { lat: -90, lng: 0.0000001 };
+      const radius = 1737100;
+
+      const distance = getDistanceBetweenTwoCoordinates(point1, point2, radius);
+
+      expect(distance).toBeCloseTo(0.0000001, 6);
+    });
+  });
+
   test("Convert leaflet latlng to aegispoint", () => {
     const latlng = new LatLng(0, 0);
     const aegispoint = convertLeafletLatLngToAegisPoint(latlng);

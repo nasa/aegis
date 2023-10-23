@@ -15,6 +15,22 @@
       "port": 9222,
       "urlFilter": "http://aegis-local.fit.nasa.gov:4000/*",
       "webRoot": "${workspaceFolder}"
+    },
+    {
+      "name": "gdal: Remote Attach",
+      "type": "python",
+      "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": 5678
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}/server/python",
+          "remoteRoot": "/app"
+        }
+      ],
+      "justMyCode": true
     }
   ]
 }

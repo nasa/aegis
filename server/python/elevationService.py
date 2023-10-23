@@ -16,6 +16,10 @@ from waitress import serve
 from flask import Flask, jsonify, request
 import json
 
+import debugpy
+
+debugpy.listen(("0.0.0.0", 5678))
+
 # Make gdal use exceptions instead of their own errors so that they can be caught
 gdal.UseExceptions()
 
@@ -146,9 +150,13 @@ def pathToElevationProfile(rasterFilePath, axes, bandNumber, pathArr, stepsArr):
         latLonEndPairs = [[lat1, lon1], [lat2, lon2]]
         thisSteps = int(stepsArr[i - 1])  # steps between previous point and next point
 
-        # Note: converting to pixels first and then interpolating in less accurate
-        # Interpolate between those latlons
-        latLonArray = getInterpolatedArray(latLonEndPairs, thisSteps)
+        # if there's only a single step there's no reason to interpolate
+        if thisSteps > 1:
+            # Note: converting to pixels first and then interpolating in less accurate
+            # Interpolate between those latlons
+            latLonArray = getInterpolatedArray(latLonEndPairs, thisSteps)
+        else:
+            latLonArray = latLonEndPairs
 
         # Deep Copy the list
         latLonElevArray = [x[:] for x in latLonArray]
@@ -168,6 +176,7 @@ from waitress import serve
 from flask import Flask, jsonify, request, make_response
 
 app = Flask(__name__)
+
 
 # route to test that the server is running and responding
 @app.route("/")
