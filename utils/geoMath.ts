@@ -115,84 +115,8 @@ export const convertLeafletLatLngsToAegisPoints = (latLngs: L.LatLng[]): AEGISPo
   return latLngs.map((latLng) => convertLeafletLatLngToAegisPoint(latLng));
 };
 
-// https://github.com/manuelbieh/geolib/
-// Computes the destination point given an initial point, a distance and a bearing
-// See http://www.movable-type.co.uk/scripts/latlong.html for the original code
-export function computeDestinationPoint(
-  start: AEGISPoint,
-  distance: number,
-  bearing: number,
-  radius: number
-): AEGISPoint {
-  const lat = start.lat;
-  const lng = start.lng;
-
-  const delta = distance / radius;
-  const theta = deg2rad(bearing);
-
-  const phi1 = deg2rad(lat);
-  const lambda1 = deg2rad(lng);
-
-  const phi2 = Math.asin(
-    Math.sin(phi1) * Math.cos(delta) + Math.cos(phi1) * Math.sin(delta) * Math.cos(theta)
-  );
-
-  let lambda2 =
-    lambda1 +
-    Math.atan2(
-      Math.sin(theta) * Math.sin(delta) * Math.cos(phi1),
-      Math.cos(delta) - Math.sin(phi1) * Math.sin(phi2)
-    );
-
-  let longitude = rad2deg(lambda2);
-  if (longitude < -180 || longitude > 180) {
-    // normalise to >=-180 and <=180° if value is >180 or <-180
-    lambda2 = ((lambda2 + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
-    longitude = rad2deg(lambda2);
-  }
-
-  return {
-    lat: rad2deg(phi2),
-    lng: longitude,
-  };
-}
-
-/**
- * https://github.com/manuelbieh/geolib/
- * Gets rhumb line bearing of two points. Find out about the difference between rhumb line and
- * great circle bearing on Wikipedia. It's quite complicated. Rhumb line should be fine in most cases:
- *
- * http://en.wikipedia.org/wiki/Rhumb_line#General_and_mathematical_description
- *
- * Function heavily based on Doug Vanderweide's great PHP version (licensed under GPL 3.0)
- * http://www.dougv.com/2009/07/13/calculating-the-bearing-and-compass-rose-direction-between-two-latitude-longitude-coordinates-in-php/
- */
-export function getRhumbLineBearing(origin: AEGISPoint, dest: AEGISPoint): number {
-  // difference of longitude coords
-  let diffLon = deg2rad(dest.lng) - deg2rad(origin.lng);
-
-  // difference latitude coords phi
-  const diffPhi = Math.log(
-    Math.tan(deg2rad(dest.lat) / 2 + Math.PI / 4) / Math.tan(deg2rad(origin.lat) / 2 + Math.PI / 4)
-  );
-
-  // recalculate diffLon if it is greater than pi
-  if (Math.abs(diffLon) > Math.PI) {
-    if (diffLon > 0) {
-      diffLon = (Math.PI * 2 - diffLon) * -1;
-    } else {
-      diffLon = Math.PI * 2 + diffLon;
-    }
-  }
-
-  //return the angle, normalized
-  return (rad2deg(Math.atan2(diffLon, diffPhi)) + 360) % 360;
-}
-
 /**
  * Adds points along a path every x meters. Preserves the original points passed in.
- * The returned path can be gaurenteed to have a point at least every x meters, but there may be
- * points with less distance.
  * @param path original path of AEGIS Points
  * @param meters distance at which new points should be added
  * @param radius Radius of the planet
@@ -207,27 +131,63 @@ export function addPointsAtMeters(
   if (_.isEqual(path[0], path[1])) return path;
 
   const newPath: AEGISPoint[] = [];
-
   //loop through path segments
   for (let i = 0; i < path.length; i++) {
     newPath.push(path[i]);
 
-    //we're on the last item of the array
+    //     //we're on the last item of the array
     if (i === path.length - 1) break;
 
-    const bearing = getRhumbLineBearing(path[i], path[i + 1]);
-    let currentPoint = path[i];
-    let distance = getDistanceBetweenTwoCoordinates(currentPoint, path[i + 1], radius);
-    //loop while the distance remaining is greater than the meters distance
-    while (distance > meters) {
-      const newPoint = computeDestinationPoint(currentPoint, meters, bearing, radius);
-      newPath.push(newPoint);
-      currentPoint = newPoint;
-      distance = getDistanceBetweenTwoCoordinates(currentPoint, path[i + 1], radius);
-    }
+    const distance = getDistanceBetweenTwoCoordinates(path[i], path[i + 1], radius);
+    const nNeeded = Math.floor(distance / meters);
+    if (nNeeded === 0) continue;
+    const interpolatedPoints = greatCircleInterpolate(path[i], path[i + 1], nNeeded);
+    // const interpolatedPoints = linearInterpolate(path[i], path[i + 1], nNeeded);
+    newPath.push(...interpolatedPoints);
   }
-
   return newPath;
+}
+
+/**
+ * Calculates the coordinates of n points along a great circle path between two points
+ * @param start AEGISPoint
+ * @param endAEGISPoint
+ * @param n Number of points to interpolate between start and end
+ * @returns AEGISPoint[]
+ */
+export function greatCircleInterpolate(
+  startPoint: AEGISPoint,
+  endPoint: AEGISPoint,
+  n: number
+): AEGISPoint[] {
+  const start = [startPoint.lat, startPoint.lng];
+  const end = [endPoint.lat, endPoint.lng];
+  const result: AEGISPoint[] = [];
+  const startLatRad = deg2rad(start[0]);
+  const startLonRad = deg2rad(start[1]);
+  const endLatRad = deg2rad(end[0]);
+  const endLonRad = deg2rad(end[1]);
+  const d = Math.acos(
+    Math.sin(startLatRad) * Math.sin(endLatRad) +
+      Math.cos(startLatRad) * Math.cos(endLatRad) * Math.cos(endLonRad - startLonRad)
+  ); // Angular distance
+
+  for (let i = 1; i <= n; i++) {
+    const f = i / (n + 1);
+    const A = Math.sin((1 - f) * d) / Math.sin(d);
+    const B = Math.sin(f * d) / Math.sin(d);
+    const x =
+      A * Math.cos(startLatRad) * Math.cos(startLonRad) +
+      B * Math.cos(endLatRad) * Math.cos(endLonRad);
+    const y =
+      A * Math.cos(startLatRad) * Math.sin(startLonRad) +
+      B * Math.cos(endLatRad) * Math.sin(endLonRad);
+    const z = A * Math.sin(startLatRad) + B * Math.sin(endLatRad);
+    const latRad = Math.atan2(z, Math.sqrt(x * x + y * y));
+    const lonRad = Math.atan2(y, x);
+    result.push({ lat: rad2deg(latRad), lng: rad2deg(lonRad) });
+  }
+  return result;
 }
 
 /**

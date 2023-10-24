@@ -216,7 +216,8 @@ const NavTimeline: FunctionComponent = () => {
               }
             }
 
-            // subdivide seach segment by 150 meters for greater accuracy
+            // subdivide each segment by 150 meters for greater accuracy
+
             const newWalkbackPath: AEGISPoint[] = addPointsAtMeters(
               station.walkbackPath,
               150,

@@ -1,10 +1,8 @@
 import {
   addPointsAtMeters,
   calcCentroidofCoordinates,
-  computeDestinationPoint,
   convertLeafletLatLngToAegisPoint,
   getDistanceBetweenTwoCoordinates,
-  getRhumbLineBearing,
   getSlope,
   getTotalDistance,
   calcPathDurationMins,
@@ -134,67 +132,6 @@ describe("Geomath Functions", () => {
     expect(calcCentroidofCoordinates(globe)).toEqual({
       lat: 19.21417269459288,
       lng: -176.73031760486452,
-    });
-  });
-
-  describe("computeDestinationPoint", () => {
-    it("should get the destination point to a given point, distance and bearing", () => {
-      let point = computeDestinationPoint(
-        { lat: 52.518611, lng: 13.408056 },
-        15000,
-        180,
-        earthRadius
-      );
-      point.lat = +point.lat.toFixed(5);
-      point.lng = +point.lng.toFixed(5);
-
-      expect(point).toEqual({
-        lat: +(52.383712759112186).toFixed(5),
-        lng: +(13.408056).toFixed(5),
-      });
-      point = computeDestinationPoint({ lat: 52.518611, lng: 13.408056 }, 15000, 135, earthRadius);
-      point.lat = +point.lat.toFixed(5);
-      point.lng = +point.lng.toFixed(5);
-      expect(point).toEqual({
-        lat: +(52.42312025947117).toFixed(5),
-        lng: +(13.56447370636139).toFixed(5),
-      });
-    });
-
-    it("should not exceed maxLon or fall below minLon", () => {
-      expect(
-        computeDestinationPoint({ lat: 18.5075232, lng: 73.8047121 }, 50000000, 0, earthRadius)
-      ).toEqual({
-        lat: 71.83167384063478,
-        lng: -106.19528790000001,
-      });
-    });
-
-    it("should leave lng untouched if bearing is 0 or 180", () => {
-      expect(
-        computeDestinationPoint({ lat: 18.5075232, lng: 73.8047121 }, 500, 0, earthRadius)
-      ).toEqual({
-        lat: 18.512019808029596,
-        lng: 73.8047121,
-      });
-
-      expect(
-        computeDestinationPoint({ lat: 18.5075232, lng: 73.8047121 }, 500, 180, earthRadius)
-      ).toEqual({
-        lat: 18.50302659197041,
-        lng: 73.8047121,
-      });
-    });
-  });
-
-  describe("getRhumbLineBearing", () => {
-    it("should return a bearing between two points", () => {
-      expect(
-        getRhumbLineBearing(
-          { lat: 39.778889, lng: -104.9825 },
-          { lat: 43.778889, lng: -102.9825 }
-        ).toFixed(5)
-      ).toEqual((20.438617005368314).toFixed(5));
     });
   });
 
