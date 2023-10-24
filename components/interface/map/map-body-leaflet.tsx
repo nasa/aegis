@@ -311,8 +311,8 @@ const MapBody: FunctionComponent = () => {
     layersToAddInOrder.map((sublayer, index) => {
       if (sublayer.type === "tile") {
         // if layer isn't already on the map, add it
+        const filter = makeTileLayerColorFilter(mapSublayerControls, sublayer.uuid);
         if (!isLayerOnMapByName(map, sublayer.name)) {
-          const filter = makeTileLayerColorFilter(mapSublayerControls, sublayer.uuid);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const tileLayer = (L.tileLayer as any).colorFilter(
             `${layerBaseURL}/${mission.id}/Layers/${sublayer.url}`,
@@ -345,7 +345,11 @@ const MapBody: FunctionComponent = () => {
           tileLayer.bringToFront();
         } else {
           // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
-          const layer = getLayerByName(map, sublayer.name);
+          const layer: L.TileLayer = getLayerByName(map, sublayer.name);
+          // set all the options for the layer that are in the mapSublayerControls
+          layer.setOpacity(mapSublayerControls[sublayer.uuid].style?.opacity);
+          layer.updateFilter(filter);
+
           layer.bringToFront();
         }
       } else if (sublayer.type === "vector") {
@@ -500,13 +504,16 @@ const MapBody: FunctionComponent = () => {
       for (const [uuid, sublayerControl] of Object.entries(mapSublayerControls)) {
         if (layer.options.uuid === uuid) {
           if (layer.options.type === "tile") {
-            (layer as L.TileLayer).updateFilter(
+            const tileLayer = layer as L.TileLayer;
+            tileLayer.updateFilter(
               makeTileLayerColorFilter(mapSublayerControls, sublayerControl.sublayerUuid)
             );
+            tileLayer.setOpacity(sublayerControl.style?.opacity);
             // custom class name that we use to control mix-blend-mode
             layer.getContainer().className = `leaflet-layer leaflet-blend-${sublayerControl.style?.blendMode}`;
           } else if (layer.options.type === "vector") {
-            (layer as L.GeoJSON).setStyle({
+            const geoJsonLayer = layer as L.GeoJSON;
+            geoJsonLayer.setStyle({
               color: sublayerControl.style?.color,
               opacity: sublayerControl.style?.opacity,
               weight: sublayerControl.style?.weight,
@@ -1698,7 +1705,7 @@ const MapBody: FunctionComponent = () => {
 
     if (traversesToShow) {
       // delete all traverses from the map
-      map.current.eachLayer((layer: AEGISMapLayer) => {
+      map.current.eachLayer((layer: AEGISMapDrawingLayer) => {
         if (layer.mapItemType === "traverse" || layer.mapItemType === "antPath") {
           map.current.removeLayer(layer);
         }
@@ -2172,7 +2179,7 @@ const MapBody: FunctionComponent = () => {
     if (mapHoverItemUuid) {
       // search for this item on the map to get the lat lng
       let latLngs: L.LatLng[] = [];
-      map.current.eachLayer((layer: AEGISMapLayer) => {
+      map.current.eachLayer((layer: AEGISMapDrawingLayer) => {
         if (
           layer?.uuid === mapHoverItemUuid &&
           (layer.mapItemType === "poi" ||
