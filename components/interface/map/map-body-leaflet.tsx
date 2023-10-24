@@ -1961,16 +1961,54 @@ const MapBody: FunctionComponent = () => {
               cumulativeCurrentDistance
             ) {
               //we are in this segment
-              const percentSegmentDistance =
-                (cumulativeCurrentDistance - cumulativePrevSegDistances) /
-                traverse.pathSegmentDistances[i];
-              const lat =
-                traverse.path[i].lat +
-                (traverse.path[i + 1].lat - traverse.path[i].lat) * percentSegmentDistance;
-              const lng =
-                traverse.path[i].lng +
-                (traverse.path[i + 1].lng - traverse.path[i].lng) * percentSegmentDistance;
-              location = { lat, lng };
+
+              // Here we use the fact that Leaflet is already projecting the map and we convert
+              // between pixel points on the leaflet instance against the coordinates underlying those points.
+              // This helps us around the south pole where we can't really use bearing to deterine our path to the next point.
+              // This method results in a parabola at the south pole
+
+              // get the x, y pixel coordinates of the source and destination points
+              const sourcePixelCoords = map.current.latLngToLayerPoint(
+                new L.LatLng(traverse.path[i].lat, traverse.path[i].lng)
+              );
+              const destPixelCoords = map.current.latLngToLayerPoint(
+                new L.LatLng(traverse.path[i + 1].lat, traverse.path[i + 1].lng)
+              );
+
+              // get the distance between the two points in pixels using pythagorean theorem
+              const distancePixels = Math.sqrt(
+                Math.pow(destPixelCoords.x - sourcePixelCoords.x, 2) +
+                  Math.pow(destPixelCoords.y - sourcePixelCoords.y, 2)
+              );
+
+              // distance of segment in meters
+              const distanceMeters = traverse.pathSegmentDistances[i];
+
+              // distance along this segment in meters
+              const percentAlongDistanceMeters =
+                traverse.pathSegmentDistances[i] -
+                (cumulativePrevSegDistances +
+                  traverse.pathSegmentDistances[i] -
+                  cumulativeCurrentDistance);
+
+              // distance along this segment in pixels using ratio comparison
+              const percentAlongDistancePixels =
+                (percentAlongDistanceMeters * distancePixels) / distanceMeters;
+
+              // x, y pixel coordinates of the point along the segment using the sourcePixelCoords as the origin
+              const x =
+                sourcePixelCoords.x +
+                (percentAlongDistancePixels * (destPixelCoords.x - sourcePixelCoords.x)) /
+                  distancePixels;
+              const y =
+                sourcePixelCoords.y +
+                (percentAlongDistancePixels * (destPixelCoords.y - sourcePixelCoords.y)) /
+                  distancePixels;
+
+              // convert the pixel coordinates back to lat/lng
+              const latLng = map.current.layerPointToLatLng(new L.Point(x, y));
+              location = { lat: latLng.lat, lng: latLng.lng };
+
               break;
             } else {
               cumulativePrevSegDistances += traverse.pathSegmentDistances[i];
@@ -2000,7 +2038,7 @@ const MapBody: FunctionComponent = () => {
         }
       }
     })();
-  }, [hover, getMapItemByUuid, mapDirective, selectedEva, dispatch]);
+  }, [hover, getMapItemByUuid, mapDirective, selectedEva, dispatch, mission.planetRadius]);
 
   const removeSelectedMarker = useCallback(() => {
     // remove any existing highlight layers
