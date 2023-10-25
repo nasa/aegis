@@ -39,9 +39,10 @@ beforeAll(async () => {
   const em = getEM();
   testMissions = await new MissionFactory(em).create(3);
   testUserNoPerms = await new UserFactory(em).createOne({
-    username: "testNoPerms",
+    username: "JesttestNoPerms",
   });
   testUser = await new UserFactory(em).createOne({
+    username: "JesthomePageItems",
     permissionList: [
       {
         missionId: testMissions[0].id,
@@ -60,7 +61,7 @@ beforeAll(async () => {
     ],
   });
   testSuperAdmin = await new UserFactory(em).createOne({
-    username: "testSuperAdmin",
+    username: "JesttestSuperAdminForHomePageItems",
     isSuperAdmin: true,
   });
 
@@ -196,8 +197,9 @@ afterAll(async () => {
   await em.nativeDelete(User_db, { id: testUser.id });
   await em.nativeDelete(User_db, { id: testSuperAdmin.id });
   await em.nativeDelete(User_db, { id: testUserNoPerms.id });
+
   // Closing the DB connection allows Jest to exit successfully.
-  closeORM();
+  await closeORM();
 
   jest.restoreAllMocks();
 });

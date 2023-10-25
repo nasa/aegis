@@ -35,6 +35,7 @@ beforeAll(async () => {
   const em = getEM();
   testMissions = await new MissionFactory(em).create(3);
   testUser = await new UserFactory(em).createOne({
+    username: "Jestlayer",
     permissionList: [
       {
         missionId: testMissions[0].id,
@@ -283,6 +284,7 @@ afterAll(async () => {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
   await em.nativeDelete(User_db, { id: testUser.id });
+
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
 
