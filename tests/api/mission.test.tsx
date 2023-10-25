@@ -38,7 +38,7 @@ beforeAll(async () => {
   const em = getEM();
   testMissions = await new MissionFactory(em).create(3);
   testAdmin = await new UserFactory(em).createOne({
-    username: "testAdmin",
+    username: "JesttestAdminForMission",
     isAdmin: true,
     permissionList: [
       {
@@ -65,7 +65,7 @@ beforeAll(async () => {
     ],
   });
   testSuperAdmin = await new UserFactory(em).createOne({
-    username: "testSuperAdmin",
+    username: "JesttestSuperAdminForMission",
     isSuperAdmin: true,
   });
 

@@ -51,6 +51,7 @@ const config = {
   // }, },
   coverageReporters: ["text", "lcov", "cobertura"],
   globalSetup: "<rootDir>/jest.globalSetup.ts",
+  globalTeardown: "<rootDir>/jest.globalTeardown.ts",
   setupFiles: ["<rootDir>/jest.setup.ts"],
   setupFilesAfterEnv: ["<rootDir>/utils/jest-extends.ts"],
   testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/", "<rootDir>/out"],
