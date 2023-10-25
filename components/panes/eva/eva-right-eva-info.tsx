@@ -268,6 +268,34 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         </div>
                       </div>
                     </div>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTable}>
+                        <div className={paneStyles.panelColumnTableRow}>
+                          <div className={paneStyles.panelColumnTableCellLeft}>
+                            <div className={paneStyles.displayFieldLabel}>Total Ascent (m):</div>
+                          </div>
+                          <div className={paneStyles.panelColumnTableCell}>
+                            <div className={paneStyles.displayFieldValue}>
+                              {evaCalculatedFields.totalTraverseAscentDescent.totalMetersClimbed.toFixed(
+                                0
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className={paneStyles.panelColumnTableRow}>
+                          <div className={paneStyles.panelColumnTableCellLeft}>
+                            <div className={paneStyles.displayFieldLabel}>Total Descent (m):</div>
+                          </div>
+                          <div className={paneStyles.panelColumnTableCell}>
+                            <div className={paneStyles.displayFieldValue}>
+                              {evaCalculatedFields.totalTraverseAscentDescent.totalMetersDescended.toFixed(
+                                0
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <div className={paneStyles.panelColumnTable}>
                     <CalculatedDwell actionsCalculatedFields={evaCalculatedFields} />
