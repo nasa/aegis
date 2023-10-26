@@ -21,12 +21,10 @@ services:
     restart: unless-stopped
     env_file:
       - ./.env
-    environment:
+    environment:           
       # Override what is in .env (which may be "localhost" to support native local dev) such
       # that it is always "database" in a full Docker-Compose setup.
       - AEGIS_DB_HOST=database
-      # required for docker-entrypoint.sh check for database being up
-      - AEGIS_DB_PORT=${AEGIS_DB_PORT}
     depends_on:
       database:
         condition: service_healthy
@@ -47,7 +45,8 @@ services:
     image: postgis/postgis:14-3.2-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${AEGIS_DB_USER}
+      # Used for setting up a DB for the first time. These are not stored in the container
+      # but rather in the db data itself
       POSTGRES_PASSWORD: ${AEGIS_DB_PASS}
       POSTGRES_DB: ${AEGIS_DB_NAME}
     healthcheck:
@@ -57,8 +56,9 @@ services:
       retries: 6 # max consecutive failures
       start_period: 15s # db takes about 20 seconds to come up
     ports:
-      - "${AEGIS_DB_PORT}:5432"
+      - "5432:5432"
     volumes:
+      # map the DB data to be stored outside the container
       - ${DOCKER_DB_DATA_DIR}:/var/lib/postgresql/data
       - ${DOCKER_DB_INIT_DIR}:/docker-entrypoint-initdb.d
     networks:

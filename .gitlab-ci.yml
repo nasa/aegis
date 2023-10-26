@@ -183,16 +183,18 @@ node-sbom:
 .test_template:
   stage: stageless
   variables:
-    POSTGRES_PORT: ${AEGIS_DB_PORT}
-    POSTGRES_HOST: ${AEGIS_DB_HOST}
-    POSTGRES_HOST_AUTH_METHOD: trust
-    POSTGRES_USER: ${AEGIS_DB_USER}
-    POSTGRES_PASSWORD: ${AEGIS_DB_PASS}
-    POSTGRES_DB: ${AEGIS_DB_NAME}
+    # define variables used by Node app
+    AEGIS_DB_HOST: postgres-test-container
+    AEGIS_DB_PASS: test-only-password
+    AEGIS_DB_NAME: aegis
+
+    # plug those same variables into the Postgres container we're spinning up
+    POSTGRES_PASSWORD: test-only-password
+    POSTGRES_DB: aegis
   services:
     # image should match database used in docker-compose.yml
     - name: $CI_REGISTRY/emss/docker-images/postgres:postgis-14-alpine
-      alias: postgres
+      alias: postgres-test-container
   tags: ["docker", "linux"]
 
 test:
@@ -226,6 +228,47 @@ test-node-next:
     - npm run tsc
     - npm t
 
+make-dotenv:
+  image: "$CI_REGISTRY/emss/docker-images:envsubst-bash-in-envsubst"
+  stage: stageless
+  needs: []
+  tags: ["openshift"]
+  script:
+    # Copy contents of DOTENV_SECRET from CI/CD variables to a new .env.secret file
+    - echo "${DOTENV_SECRET}" > ./.env.secret
+
+    # Determine which docker image type (dev, int, or prod) to deploy based on branch
+    # Append the commit sha in order to ensure the correct build is being deployed in the case
+    # multiple devs are building images simutaneously
+    - >
+      if [ "${CI_COMMIT_REF_SLUG}" == "prod" ]; then
+          IMAGE_VERSION="prod-${CI_COMMIT_SHORT_SHA}"
+      elif [ "${CI_COMMIT_REF_SLUG}" == "int" ]; then
+          IMAGE_VERSION="int-${CI_COMMIT_SHORT_SHA}"
+      else
+          IMAGE_VERSION="dev-${CI_COMMIT_SHORT_SHA}"
+      fi
+
+    # Save image version into a an artifact to be read later in other jobs
+    - echo "IMAGE_VERSION=${IMAGE_VERSION}" >> pipelineVariables.env
+    # Export the variable so it can be read inside the make-dotenv.sh script
+    - export IMAGE_VERSION
+
+    # make-dotenv.sh should detect the script directory to read .env.template and write .env
+    # relatively, but Alpine Linux uses standard POSIX sh, not Bash, which cannot do this [1]. So
+    # we need to `cd` into the ./scripts directory first when using Alpine.
+    #
+    # Ref: [1] https://stackoverflow.com/a/49794678/2782380
+    - cd ./scripts
+    - bash ./make-dotenv.sh
+  artifacts:
+    reports:
+      dotenv: pipelineVariables.env
+    paths:
+      - .env
+      - .fitdock.yml
+      - docker-compose.yml
+
 .kaniko-build-template:
   stage: stageless
   image:
@@ -247,9 +290,7 @@ test-node-next:
     # JSON config file for use by the executor
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" > /kaniko/.docker/config.json
 
-    # Set shell to export all variable definitions, then source .env, then turn off allexport
-    - set -o allexport && source ./.env && set +o allexport
-
+    # IMAGE_VERSION is from make-dotenv job
     - TEMP_IMAGE_NAME="${CI_REGISTRY_IMAGE}/${SERVICE_NAME}:preview-${IMAGE_VERSION}"
     - echo "Temp image name = ${TEMP_IMAGE_NAME}"
 
@@ -303,6 +344,8 @@ docker:build:nextjs:
     MULTISTAGE_TARGET: prod
     BASE_IMAGE_VAR: NEXTJS_BASE_IMAGE
     BASE_IMAGE_VALUE: $CURRENT_NODE_VERSION_IMAGE
+    MAP_ENV_VARS_TO_BUILD_ARGS: |
+      NEXT_PUBLIC_IN_CI_ENVIRONMENT
 
 docker:build:gdal:
   extends: .kaniko-build-template
@@ -335,9 +378,7 @@ docker:push:
     # Login to registry
     - echo $CI_JOB_TOKEN | skopeo login -u gitlab-ci-token --password-stdin $CI_REGISTRY
 
-    # Set shell to export all variable definitions, then source .env, then turn off allexport
-    - set -o allexport && source ./.env && set +o allexport
-
+    # IMAGE_VERSION is from make-dotenv job
     - SERVICE=nginx
     - TEMP_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:preview-${IMAGE_VERSION}"
     - FINAL_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:${IMAGE_VERSION}"
@@ -352,40 +393,6 @@ docker:push:
     - TEMP_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:preview-${IMAGE_VERSION}"
     - FINAL_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:${IMAGE_VERSION}"
     - skopeo copy docker://$TEMP_IMAGE docker://$FINAL_IMAGE
-
-make-dotenv:
-  stage: stageless
-  tags: ["openshift"]
-  needs: []
-  script:
-    # Baseline .env from CI/CD file-variable
-    - cp "${FIT_DOTENV_FILE_PATH}" ./.env
-
-    # Determine which docker image type (dev, int, or prod) to deploy based on branch
-    - >
-      if [ "${CI_COMMIT_REF_SLUG}" == "prod" ]; then
-        IMAGE_VERSION="prod-${CI_COMMIT_SHORT_SHA}"
-      elif [ "${CI_COMMIT_REF_SLUG}" == "int" ]; then
-        IMAGE_VERSION="int-${CI_COMMIT_SHORT_SHA}"
-      else
-        IMAGE_VERSION="dev-${CI_COMMIT_SHORT_SHA}"
-      fi
-
-    - export IMAGE_VERSION
-
-    # Append desired docker images (dev, int, or prod) to
-    - echo "" >> ./.env
-    - echo "DOCKER_IMAGE_NGINX=eegitlabregistry.fit.nasa.gov/emss/aegis/nginx:${IMAGE_VERSION}" >> ./.env
-    - echo "DOCKER_IMAGE_NEXTJS=eegitlabregistry.fit.nasa.gov/emss/aegis/nextjs:${IMAGE_VERSION}" >> ./.env
-    - echo "DOCKER_IMAGE_GDAL=eegitlabregistry.fit.nasa.gov/emss/aegis/gdal:${IMAGE_VERSION}" >> ./.env
-    - echo "IMAGE_VERSION=${IMAGE_VERSION}" >> ./.env
-
-  # All this job does is prepare artifacts to be exported to the deploy jobs
-  artifacts:
-    paths:
-      - .env
-      - .fitdock.yml
-      - docker-compose.yml
 
 .deploy-template:
   stage: stageless
@@ -456,7 +463,7 @@ deploy:dev1:
     name: development1
     url: $URL
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1 #CI/CD Variable
     URL: https://aegis-dev1.fit.nasa.gov
   when: manual
 
@@ -470,7 +477,7 @@ deploy:int:
     name: integration
     url: $URL
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
     URL: https://aegis-int.fit.nasa.gov
   only:
     - int
@@ -485,7 +492,7 @@ deploy:prod:
     name: production
     url: $URL
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD #CI/CD Variable
     URL: https://aegis.fit.nasa.gov
   when: manual
   only:

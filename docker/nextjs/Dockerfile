@@ -36,15 +36,12 @@ RUN npm install
 COPY . /app
 
 # WARNING: All NEXT_PUBLIC_* environment variables need to be present at build time, because they
-# are actually inserted into the client-side code. We can simply copy .env.example here, because
-# the only NEXT_PUBLIC_* variables aren't sensitive and won't change between environments. If these
-# variables did need to change between environments, we'd either have to (a) COPY in the desired
-# .env at image build time or (b) would need to make a runtime method for retrieving such config.
-# Maestro does (b).
-COPY .env.example .env
+# are actually inserted into the client-side code. If these variables change between environments,
+# we'd either have to (a) COPY in the desired .env at image build time or (b) would need to make a 
+# runtime method for retrieving such config.
+ARG NEXT_PUBLIC_IN_CI_ENVIRONMENT
 
-RUN npm run build \
-  && rm -f ./.env
+RUN npm run build 
 
 # runs on port 4000
 CMD ["/bin/sh", "-c", "npm run migrate:up; npm run start"]

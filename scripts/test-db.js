@@ -11,9 +11,9 @@ const run = async () => {
   try {
     const client = new Client({
       host: process.env.AEGIS_DB_HOST,
-      user: process.env.AEGIS_DB_USER,
+      user: "postgres", //default user
       password: process.env.AEGIS_DB_PASS,
-      port: process.env.AEGIS_DB_PORT,
+      port: 5432, //default port
       database: process.env.AEGIS_DB_NAME,
     });
     await client.connect();
