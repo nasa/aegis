@@ -6,9 +6,9 @@
 
 For all install methods, do the following:
 
-1. Create a `.env` file by copying `.env.example`
-   1. Pick a strong password for `AEGIS_DB_PASS`
-2. **Elevated privileges required:** Add `127.0.0.1 aegis-local.fit.nasa.gov` to your "hosts" file.
+1. Create a `./.env` and `./.env.secret` file by running `./scripts/make-dotenv.sh` in the terminal.
+2. Run `./scripts/make-dev-ssl-cert.sh` in a terminal to setup a self-signed certificate.
+3. **Elevated privileges required:** Add `127.0.0.1 aegis-local.fit.nasa.gov` to your "hosts" file.
    1. Windows: Open the start menu, type "notepad", right-click on "Notepad" and select "open as administrator". In Notepad go to `C:\Windows\System32\drivers\etc`, show all files, and open the `hosts` file.
    2. Mac: Edit `/etc/hosts`
    3. Content to add at the bottom of the file (add CODA/Maestro/Labs while you're at it):
@@ -18,7 +18,6 @@ For all install methods, do the following:
       127.0.0.1 maestro-local.fit.nasa.gov
       127.0.0.1 emss-labs-local.fit.nasa.gov
       ```
-3. To setup a self-signed certificate, in a terminal run: `./scripts/make-dev-ssl-cert.sh`
 4. Perform steps for either "Fully docker-compose" or "Just database via docker-compose" below.
 
 ### Fully docker-compose

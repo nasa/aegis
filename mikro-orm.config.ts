@@ -19,11 +19,10 @@ import {
 } from "./server/database/models/_allModels";
 import path from "path";
 
-const port = parseInt(process.env.AEGIS_DB_PORT);
 const config: Options = {
   dbName: process.env.AEGIS_DB_NAME,
   host: process.env.AEGIS_DB_HOST,
-  port,
+  port: 5432, //default port
   type: "postgresql",
   password: process.env.AEGIS_DB_PASS,
   migrations: {
