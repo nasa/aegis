@@ -44,8 +44,8 @@ export class Sublayer_db implements Sublayer_db_type {
   @Property({ type: MikroTypes.double, nullable: true })
   weight: number;
 
-  @Property({ type: MikroTypes.datetime })
+  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;
-  @Property({ type: MikroTypes.datetime })
+  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   updatedAt!: Date;
 }

@@ -26,8 +26,8 @@ export class Preset_db implements Preset_db_type {
   @Property({ type: MikroTypes.json, nullable: true })
   layerOrder: PresetLayerOrder[];
 
-  @Property({ type: MikroTypes.datetime })
+  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;
-  @Property({ type: MikroTypes.datetime })
+  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   updatedAt!: Date;
 }
