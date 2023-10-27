@@ -191,6 +191,9 @@ node-sbom:
     # plug those same variables into the Postgres container we're spinning up
     POSTGRES_PASSWORD: test-only-password
     POSTGRES_DB: aegis
+
+    # used for the api/file tests that need to perform file actions
+    PUBLIC_STATIC_DIR: ./public/static
   services:
     # image should match database used in docker-compose.yml
     - name: $CI_REGISTRY/emss/docker-images/postgres:postgis-14-alpine
