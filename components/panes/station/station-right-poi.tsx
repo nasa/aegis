@@ -3,7 +3,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
-import { upsertStation } from "store/station";
+import { upsertStationByField } from "store/station";
 import poiStyles from "../poi/poi.module.css";
 import stationStyles from "./station.module.css";
 import _ from "lodash";
@@ -105,13 +105,12 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           <Checkbox
                             checked={checked}
                             onChange={(e) => {
-                              const updatedStation: Station = {
-                                ...selectedStation,
-                                poiUuids: e.target.checked
-                                  ? [...selectedStation?.poiUuids, poi.uuid]
-                                  : selectedStation?.poiUuids.filter((uuid) => uuid !== poi.uuid),
-                              };
-                              dispatch(upsertStation(updatedStation));
+                              const poiUuids = e.target.checked
+                                ? [...selectedStation?.poiUuids, poi.uuid]
+                                : selectedStation?.poiUuids.filter((uuid) => uuid !== poi.uuid);
+                              dispatch(
+                                upsertStationByField(selectedStationUuid, "poiUuids", poiUuids)
+                              );
                             }}
                             toolTip={`Link ${poi.name}`}
                             label={

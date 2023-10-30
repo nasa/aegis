@@ -94,6 +94,7 @@ export const poiSlice = createSlice({
         upsertToArrayByUuid(state.pois, newPoi);
       },
     },
+
     /* only called for populating store  */
     setPois: (state, action: { payload: POI[] }) => {
       state.pois = action.payload;

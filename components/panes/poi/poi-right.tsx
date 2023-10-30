@@ -13,7 +13,7 @@ import {
   faCheck,
 } from "@fortawesome/free-solid-svg-icons";
 import { Button, IconDropdown, InLineEditInput } from "components/interface/form/globalFields";
-import { setSelectedPOIRightNavItem, setPoiEditMode, upsertPoi, upsertPoiByField } from "store/poi";
+import { setSelectedPOIRightNavItem, setPoiEditMode, upsertPoiByField } from "store/poi";
 import Info_Panel from "./poi-right-info";
 import Actions_Panel from "./poi-right-actions";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -106,7 +106,7 @@ const PoiEditorRight: FunctionComponent = () => {
             selected={selectedPoi.icon}
             editing={poisEditing.includes(selectedPoiUuid)}
             setSelected={(value: string) => {
-              dispatch(upsertPoi({ ...selectedPoi, icon: value }));
+              dispatch(upsertPoiByField(selectedPoi.uuid, "icon", value));
             }}
             items={[
               "1F534",

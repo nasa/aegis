@@ -16,6 +16,22 @@ import { thunkDuplicateActions, thunkSaveActions } from "./thunkAction";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 
+export const thunkUpdatePoiLatLngField = appCreateAsyncThunk<{
+  poiUuid: string;
+  type: "lat" | "lng";
+  value: number;
+}>("updatePoiLatLngField", async ({ poiUuid, type, value }, { getState, dispatch }) => {
+  const poiLocation: AEGISPoint = _.cloneDeep(
+    getState().poi.pois.find((p) => p.uuid === poiUuid)?.location
+  );
+  if (type === "lat") {
+    poiLocation.lat = value;
+  } else {
+    poiLocation.lng = value;
+  }
+  await dispatch(thunkUpdatePoiLocation({ location: poiLocation, poiUuid }));
+});
+
 export const thunkUpdatePoiLocation = appCreateAsyncThunk<{
   location: AEGISPoint;
   poiUuid: string;
@@ -27,14 +43,13 @@ export const thunkUpdatePoiLocation = appCreateAsyncThunk<{
       uuid: poiUuid,
     })
   );
-
   const poi = getState().poi.pois.find((s) => s.uuid === poiUuid);
   if (elevation.payload === false) {
     //elevation failed - upsert without it
-    dispatch(upsertPoi({ ...poi, location }));
+    await dispatch(upsertPoi({ ...poi, location }));
   } else {
     //upsert location and elevation
-    dispatch(upsertPoi({ ...poi, location, elevation: elevation.payload as number }));
+    await dispatch(upsertPoi({ ...poi, location, elevation: elevation.payload as number }));
   }
 });
 

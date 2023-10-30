@@ -19,7 +19,7 @@ import {
   setPresetUIState,
   togglePresetUIStateExpanded,
   togglePresetSublayerVisible,
-  upsertPreset,
+  upsertPresetByField,
 } from "store/preset";
 import Settings_subpanel from "./preset-right-layers-settings";
 import Info_subpanel from "./preset-right-layers-info";
@@ -73,7 +73,7 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
     const newOrder = cloneDeep(orderedLayerUuids);
     const headerLayerBeingMoved = newOrder.splice(fromIndex, 1)[0]; //remove header layer
     newOrder.splice(toIndex, 0, headerLayerBeingMoved); //reinsert in new position
-    dispatch(upsertPreset({ ...selectedPreset, layerOrder: newOrder }));
+    dispatch(upsertPresetByField(selectedPreset.uuid, "layerOrder", newOrder));
   }
 
   //reorder sublayers and then upsert to preset
@@ -82,7 +82,7 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
     const headerLayer = newOrder.find((headerLayers) => headerLayers.layerUuid === headerUuid);
     const headerLayerBeingMoved = headerLayer.sublayerUuids.splice(fromIndex, 1)[0]; //remove header layer
     headerLayer.sublayerUuids.splice(toIndex, 0, headerLayerBeingMoved); //reinsert in new position
-    dispatch(upsertPreset({ ...selectedPreset, layerOrder: newOrder }));
+    dispatch(upsertPresetByField(selectedPreset.uuid, "layerOrder", newOrder));
   }
 
   return (

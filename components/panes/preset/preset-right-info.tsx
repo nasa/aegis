@@ -4,7 +4,12 @@ import presetStyles from "./preset.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 import * as httpClient_Preset from "http-client/preset";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
-import { setPresetEditMode, upsertPreset, upsertPresetFromDb } from "store/preset";
+import {
+  setPresetEditMode,
+  upsertPreset,
+  upsertPresetByField,
+  upsertPresetFromDb,
+} from "store/preset";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { Checkbox } from "components/interface/form/globalFields";
 import { SubpanelHeading } from "components/interface/_global-elements";
@@ -25,7 +30,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const handleDefaultPresetChange = (evt: ChangeEvent<HTMLInputElement>) => {
     // If the preset is being set as the default, then we need to unset the default flag on all other presets
     if (evt.target.checked) {
-      dispatch(upsertPreset({ ...selectedPreset, missionPresetDefault: true }));
+      dispatch(upsertPresetByField(selectedPresetUuid, "missionPresetDefault", true));
       //check the other presets
       const otherPresets = presets.filter((preset) => preset.uuid !== selectedPresetUuid);
       otherPresets.forEach((preset) => {
@@ -41,7 +46,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
         }
       });
     } else {
-      dispatch(upsertPreset({ ...selectedPreset, missionPresetDefault: false }));
+      dispatch(upsertPresetByField(selectedPresetUuid, "missionPresetDefault", false));
     }
   };
 
@@ -59,15 +64,13 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     onChange={(evt) => {
                       if (!editMode) return;
                       if (evt.target.checked) {
-                        dispatch(upsertPreset({ ...selectedPreset, missionPreset: true }));
+                        dispatch(upsertPresetByField(selectedPresetUuid, "missionPreset", true));
                       } else {
                         // if the preset is being unset as a mission preset, then we need to also make sure it is not the default preset
+
+                        dispatch(upsertPresetByField(selectedPresetUuid, "missionPreset", false));
                         dispatch(
-                          upsertPreset({
-                            ...selectedPreset,
-                            missionPreset: false,
-                            missionPresetDefault: false,
-                          })
+                          upsertPresetByField(selectedPresetUuid, "missionPresetDefault", false)
                         );
                       }
                     }}
@@ -139,12 +142,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               defaultValue="Enter description here"
               editing={editMode}
               onChange={(value) => {
-                dispatch(
-                  upsertPreset({
-                    ...selectedPreset,
-                    description: value,
-                  })
-                );
+                dispatch(upsertPresetByField(selectedPresetUuid, "description", value));
               }}
             />
           </div>
