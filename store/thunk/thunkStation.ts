@@ -35,6 +35,22 @@ import { isModified } from "utils/component-helpers";
 import { saveNewStation } from "store/cross-slice";
 import { mergeEquipmentItems } from "utils/store";
 
+export const thunkUpdateStationLatLngField = appCreateAsyncThunk<{
+  stationUuid: string;
+  type: "lat" | "lng";
+  value: number;
+}>("updateStationLatLngField", async ({ stationUuid, type, value }, { getState, dispatch }) => {
+  const stationLocation: AEGISPoint = _.cloneDeep(
+    getState().station.stations.find((s) => s.uuid === stationUuid)?.location
+  );
+  if (type === "lat") {
+    stationLocation.lat = value;
+  } else {
+    stationLocation.lng = value;
+  }
+  await dispatch(thunkUpdateStationLocation({ location: stationLocation, stationUuid }));
+});
+
 export const thunkUpdateStationLocation = appCreateAsyncThunk<{
   location: AEGISPoint;
   stationUuid: string;
@@ -50,22 +66,22 @@ export const thunkUpdateStationLocation = appCreateAsyncThunk<{
   const station = getState().station.stations.find((s) => s.uuid === stationUuid);
   if (!elevation || elevation.payload === false) {
     //no elevation data, update just station location
-    dispatch(upsertStation({ ...station, location }));
+    await dispatch(upsertStation({ ...station, location }));
   } else {
     //upsert station location and elevation
-    dispatch(upsertStation({ ...station, location, elevation: elevation.payload as number }));
+    await dispatch(upsertStation({ ...station, location, elevation: elevation.payload as number }));
   }
 
   //update walkback path, elevation, and snap to new location
-  dispatch(thunkFullUpdateWalkback({ path: station.walkbackPath, stationUuid }));
+  await dispatch(thunkFullUpdateWalkback({ path: station.walkbackPath, stationUuid }));
 
   //update any eva traverses connected to this station
-  dispatch(thunkUpdateTraversesAroundStation({ stationUuid, saveToDb: true }));
+  await dispatch(thunkUpdateTraversesAroundStation({ stationUuid, saveToDb: true }));
 });
 
 /**
  * Only updates walkback path and distances
- * This is used on polyline edit drag,
+ * This is used on polyline edit drag
  */
 export const thunkUpdateWalkbackPath = appCreateAsyncThunk<{
   path: AEGISPoint[];

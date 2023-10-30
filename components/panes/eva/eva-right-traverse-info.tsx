@@ -8,7 +8,7 @@ import {
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { FunctionComponent, useEffect, useState } from "react";
-import { upsertTraverse, upsertTraverseByField } from "store/traverse";
+import { upsertTraverseByField } from "store/traverse";
 import { updateMapDirective } from "store/map";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
@@ -130,13 +130,8 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                 key={selectedTraverse.uuid}
                 value={selectedTraverse.description}
                 editing={editMode}
-                onChange={(value) => {
-                  dispatch(
-                    upsertTraverse({
-                      ...selectedTraverse,
-                      description: value,
-                    })
-                  );
+                onChange={(value: string) => {
+                  dispatch(upsertTraverseByField(selectedTraverse.uuid, "description", value));
                 }}
               />
             </div>

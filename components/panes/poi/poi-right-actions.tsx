@@ -3,7 +3,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
-import { setPoiEditMode, upsertPoi } from "store/poi";
+import { setPoiEditMode, upsertPoiByField } from "store/poi";
 import Actions from "../actions";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
 
@@ -67,7 +67,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
           }}
           actionOrderUuids={selectedPoi.actionOrderUuids}
           setActionOrderUuids={(actionOrderUuids) => {
-            dispatch(upsertPoi({ ...selectedPoi, actionOrderUuids: actionOrderUuids }));
+            dispatch(upsertPoiByField(selectedPoiUuid, "actionOrderUuids", actionOrderUuids));
           }}
           actionParentUuid={{ poiUuid: selectedPoiUuid }}
           parentType="poi"

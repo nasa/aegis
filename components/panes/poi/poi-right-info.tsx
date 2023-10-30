@@ -6,12 +6,13 @@ import { Button, InLineEditInput } from "components/interface/form/globalFields"
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
-import { setSelectedPOIRightNavItem, upsertPoi, upsertPoiByField } from "store/poi";
+import { setSelectedPOIRightNavItem, upsertPoiByField } from "store/poi";
 import { updateMapDirective } from "store/map";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { round } from "lodash";
 import { validators } from "components/interface/form/formValidators";
+import { thunkUpdatePoiLatLngField } from "store/thunk/thunkPoi";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -98,12 +99,7 @@ const Info_Panel: FunctionComponent<{
                 value={selectedPoi.description}
                 editing={editMode}
                 onChange={(value) => {
-                  dispatch(
-                    upsertPoi({
-                      ...selectedPoi,
-                      description: value,
-                    })
-                  );
+                  dispatch(upsertPoiByField(selectedPoi.uuid, "description", value));
                 }}
                 key={selectedPoi.uuid}
               />
@@ -247,9 +243,10 @@ const Info_Panel: FunctionComponent<{
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
                               dispatch(
-                                upsertPoiByField(selectedPoi.uuid, "location", {
-                                  lat: parseFloat(val),
-                                  lng: selectedPoi.location.lng,
+                                thunkUpdatePoiLatLngField({
+                                  poiUuid: selectedPoi.uuid,
+                                  type: "lat",
+                                  value: parseFloat(val),
                                 })
                               );
                             }}
@@ -280,9 +277,10 @@ const Info_Panel: FunctionComponent<{
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
                               dispatch(
-                                upsertPoiByField(selectedPoi.uuid, "location", {
-                                  lat: selectedPoi.location.lat,
-                                  lng: parseFloat(val),
+                                thunkUpdatePoiLatLngField({
+                                  poiUuid: selectedPoi.uuid,
+                                  type: "lng",
+                                  value: parseFloat(val),
                                 })
                               );
                             }}
