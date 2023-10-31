@@ -25,11 +25,11 @@ beforeAll(async () => {
   await getORM();
   const em = getEM();
   testAdmin = await new UserFactory(em).createOne({
-    username: "testAdminForLogin",
+    username: "JesttestAdminForLogin",
     isAdmin: true,
   });
   testNotAdmin = await new UserFactory(em).createOne({
-    username: "testNotAdminForLogin",
+    username: "JesttestNotAdminForLogin",
     isAdmin: false,
   });
 });
@@ -67,12 +67,12 @@ describe("Login/Logout API Endpoint", () => {
       expect(loginReqRes.res.statusCode).toBe(200); //check response from login
       expect(loginReqRes.req.session.user).not.toBeNull();
       expect(loginReqRes.req.session.user.id).toEqual(testAdmin.id);
-      expect(loginReqRes.req.session.user.username).toEqual("testAdminForLogin");
+      expect(loginReqRes.req.session.user.username).toEqual(testAdmin.username);
       loginCookie = loginReqRes.res._getHeaders()["set-cookie"][0];
 
       const jsonData = await loginReqRes.res._getJSONData();
       expect(jsonData.status).toEqual("success");
-      expect(jsonData.data.user.username).toEqual("testAdminForLogin");
+      expect(jsonData.data.user.username).toEqual(testAdmin.username);
     });
 
     test("Is logged in", async () => {
@@ -85,7 +85,7 @@ describe("Login/Logout API Endpoint", () => {
 
       const jsonData = await loginReqRes.res._getJSONData();
       expect(jsonData.status).toEqual("success");
-      expect(jsonData.data.user.username).toEqual("testAdminForLogin");
+      expect(jsonData.data.user.username).toEqual(testAdmin.username);
     });
 
     test("Logout", async () => {

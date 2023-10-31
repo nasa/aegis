@@ -35,6 +35,7 @@
   font-size: 0.9em;
   height: 24px;
   cursor: pointer;
+  user-select: none;
 }
 
 .presetItemSelected {

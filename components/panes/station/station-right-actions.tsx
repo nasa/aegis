@@ -2,7 +2,7 @@ import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import Actions from "../actions";
-import { setStationEditMode, upsertStation } from "store/station";
+import { setStationEditMode, upsertStationByField } from "store/station";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
 
@@ -92,7 +92,9 @@ const Actions_Panel: FunctionComponent<{
           }}
           actionOrderUuids={selectedStation.actionOrderUuids}
           setActionOrderUuids={(actionOrderUuids) => {
-            dispatch(upsertStation({ ...selectedStation, actionOrderUuids: actionOrderUuids }));
+            dispatch(
+              upsertStationByField(selectedStationUuid, "actionOrderUuids", actionOrderUuids)
+            );
           }}
           actionParentUuid={{ stationUuid: selectedStationUuid }}
           parentType="station"

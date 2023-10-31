@@ -85,7 +85,6 @@ export const thunkDeletePreset = appCreateAsyncThunk<{
     if (deleteResponse.status === "success") {
       // remove the corresponding preset from the store
       dispatch(deletePresetByUuid(preset.uuid));
-      dispatch(setSelectedPresetUuid(null));
 
       // get fresh copy of presets from DB
       const presetData = await InternalAPI.getPresets(missionId);
@@ -98,10 +97,11 @@ export const thunkDeletePreset = appCreateAsyncThunk<{
   } else {
     // if the selected preset is not in presetsFromDb then delete it from the store
     dispatch(deletePresetByUuid(preset.uuid));
-    dispatch(setSelectedPresetUuid(null));
   }
   dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: false }));
   dispatch(setRightPanelOpen(false));
+  const defaultPresetUuid = getState().preset.presets.find((p) => p.missionPresetDefault)?.uuid;
+  dispatch(setSelectedPresetUuid(defaultPresetUuid));
 });
 
 export const thunkCreatePreset = appCreateAsyncThunk<void>(

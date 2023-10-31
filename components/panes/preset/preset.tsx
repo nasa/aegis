@@ -9,7 +9,6 @@ import { ModifiedIndicator } from "components/interface/_global-elements";
 import { Button } from "components/interface/form/globalFields";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setRightPanelOpen } from "store/interface";
-import { setAllLayerControlsInvisible } from "utils/store";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreatePreset, thunkDuplicatePreset } from "store/thunk/thunkPreset";
 
@@ -92,11 +91,6 @@ const PresetList: FunctionComponent<{
 
   const handleSelectPresetClick = async (currentPreset: Preset) => {
     if (currentPreset.uuid === selectedPresetUuid) {
-      dispatch(setSelectedPresetUuid(null));
-      dispatch(setRightPanelOpen(false));
-      dispatch(
-        setMapSublayerControls(setAllLayerControlsInvisible(currentPreset.mapSublayerControls))
-      );
       return;
     }
 

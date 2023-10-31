@@ -41,7 +41,7 @@ describe("User API Endpoint", () => {
 
   let loginCookie: string;
   let newUser: Partial<User> = {
-    username: "Jest new user",
+    username: "JestUserForUserTest",
     password: "password",
     createdAt: roundDateToSecond(new Date()).toISOString(),
     updatedAt: roundDateToSecond(new Date()).toISOString(),

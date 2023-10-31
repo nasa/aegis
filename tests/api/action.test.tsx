@@ -48,6 +48,7 @@ beforeAll(async () => {
   const em = getEM();
   testMissions = await new MissionFactory(em).create(3);
   testUser = await new UserFactory(em).createOne({
+    username: "Jestaction",
     permissionList: [
       {
         missionId: testMissions[0].id,

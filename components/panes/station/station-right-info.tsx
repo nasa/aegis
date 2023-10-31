@@ -14,12 +14,16 @@ import {
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
-import { setSelectedStationRightNavItem, upsertStation, upsertStationByField } from "store/station";
+import { setSelectedStationRightNavItem, upsertStationByField } from "store/station";
 import { updateMapDirective } from "store/map";
 import { calcCentroidofCoordinates } from "utils/geoMath";
 import { formatNumberWithCommas, toDecimal } from "utils/formatting";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkResetWalkback, thunkUpdateStationLocation } from "store/thunk/thunkStation";
+import {
+  thunkResetWalkback,
+  thunkUpdateStationLatLngField,
+  thunkUpdateStationLocation,
+} from "store/thunk/thunkStation";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { round } from "lodash";
@@ -225,12 +229,7 @@ const Info_Panel: FunctionComponent<{
                 value={selectedStation.description}
                 editing={editMode}
                 onChange={(value) => {
-                  dispatch(
-                    upsertStation({
-                      ...selectedStation,
-                      description: value,
-                    })
-                  );
+                  dispatch(upsertStationByField(selectedStation.uuid, "description", value));
                 }}
               />
             </div>
@@ -492,9 +491,10 @@ const Info_Panel: FunctionComponent<{
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
                               dispatch(
-                                upsertStationByField(selectedStation.uuid, "location", {
-                                  lat: parseFloat(val),
-                                  lng: selectedStation.location.lng,
+                                thunkUpdateStationLatLngField({
+                                  stationUuid: selectedStation.uuid,
+                                  type: "lat",
+                                  value: parseFloat(val),
                                 })
                               );
                             }}
@@ -525,9 +525,10 @@ const Info_Panel: FunctionComponent<{
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
                               dispatch(
-                                upsertStationByField(selectedStation.uuid, "location", {
-                                  lat: selectedStation.location.lat,
-                                  lng: parseFloat(val),
+                                thunkUpdateStationLatLngField({
+                                  stationUuid: selectedStation.uuid,
+                                  type: "lng",
+                                  value: parseFloat(val),
                                 })
                               );
                             }}

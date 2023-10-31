@@ -18,7 +18,6 @@ import { Button, InLineEditInput } from "components/interface/form/globalFields"
 import {
   setSelectedStationRightNavItem,
   setStationEditMode,
-  upsertStation,
   upsertStationByField,
 } from "store/station";
 
@@ -177,7 +176,7 @@ const StationEditorRight: FunctionComponent = () => {
                       darkMode={true}
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       onEmojiSelect={(e: any) => {
-                        dispatch(upsertStation({ ...selectedStation, icon: e.unified }));
+                        dispatch(upsertStationByField(selectedStation.uuid, "icon", e.unified));
                         setShowEmojiPicker(false);
                       }}
                     />
