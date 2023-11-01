@@ -254,3 +254,54 @@ export const calcPathDurationMins = (segmentDistances: number[], traverseRate: n
   const durationMinutes = durationHours * 60;
   return durationMinutes;
 };
+
+const getNPointsBetweenTwoPixelCoords = (
+  mapRef: React.MutableRefObject<L.Map>,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  n: number
+): L.LatLng[] => {
+  const map = mapRef.current;
+  const points: L.LatLng[] = [];
+  const xStep = (x2 - x1) / (n + 1);
+  const yStep = (y2 - y1) / (n + 1);
+  for (let i = 1; i <= n; i++) {
+    points.push(map.containerPointToLatLng([x1 + i * xStep, y1 + i * yStep]));
+  }
+  return points;
+};
+
+/**
+ * Get map bounds from viewport using x/y coordinates
+ * @returns {L.LatLngBounds}
+ */
+export function getBoundsFromMapViewport(mapRef: React.MutableRefObject<L.Map>): L.LatLng[] {
+  const map = mapRef.current;
+  const size = map.getSize();
+
+  const topLeft = map.containerPointToLatLng([0, 0]);
+  // 10 points from topLeft to topRight
+  const topLeftToRight = getNPointsBetweenTwoPixelCoords(mapRef, 0, 0, size.x, 0, 10);
+  const topRight = map.containerPointToLatLng([size.x, 0]);
+  // 10 points from topRight to bottomRight
+  const topRightToBottom = getNPointsBetweenTwoPixelCoords(mapRef, size.x, 0, size.x, size.y, 10);
+  const bottomRight = map.containerPointToLatLng([size.x, size.y]);
+  // 10 points from bottomRight to bottomLeft
+  const bottomRightToLeft = getNPointsBetweenTwoPixelCoords(mapRef, size.x, size.y, 0, size.y, 10);
+  const bottomLeft = map.containerPointToLatLng([0, size.y]);
+  // 10 points from bottomLeft to topLeft
+  const bottomLeftToTop = getNPointsBetweenTwoPixelCoords(mapRef, 0, size.y, 0, 0, 10);
+  const perimeter = [
+    topLeft,
+    ...topLeftToRight,
+    topRight,
+    ...topRightToBottom,
+    bottomRight,
+    ...bottomRightToLeft,
+    bottomLeft,
+    ...bottomLeftToTop,
+  ];
+  return perimeter;
+}

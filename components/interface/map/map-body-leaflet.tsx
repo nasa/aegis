@@ -33,6 +33,7 @@ import { setSelectedCrewPosUuid } from "store/rex";
 import {
   convertLeafletLatLngsToAegisPoints,
   convertLeafletLatLngToAegisPoint,
+  getBoundsFromMapViewport,
   getDistanceBetweenTwoCoordinates,
   getMidpoint,
 } from "utils/geoMath";
@@ -376,11 +377,17 @@ const MapBody: FunctionComponent = () => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               feature: geojson.Feature<geojson.GeometryObject, any>
             ) => {
+              // if this grid has a MGRS_UTM property, that means it was made via MGRS process (for earth things like JETT 5).
+              // This means the 2nd coordinate is the bottom left
+              // If not, that means it's a bespoke grid made by the ARES GIS team, this means the 4th coordinate is the bottom left
+
+              const bottomLeftCoordinate = feature.properties["MGRS_UTM"] ? 1 : 3;
+
               if (feature.properties["CELL_ID"]) {
                 const multiPolygon = feature.geometry as geojson.MultiPolygon;
                 const latLng = new L.LatLng(
-                  multiPolygon.coordinates[0][0][1][1],
-                  multiPolygon.coordinates[0][0][1][0]
+                  multiPolygon.coordinates[0][0][bottomLeftCoordinate][1],
+                  multiPolygon.coordinates[0][0][bottomLeftCoordinate][0]
                 );
 
                 newGridLabels.push({
@@ -446,21 +453,45 @@ const MapBody: FunctionComponent = () => {
     if (!mapZoom || !mapBounds) return;
 
     let modulo = 1;
-    if (mapZoom < 15) {
-      modulo = 10;
-    } else if (mapZoom < 16) {
-      modulo = 5;
-    } else if (mapZoom < 18) {
-      modulo = 2;
+    //zoom levels are different for earth and moon because you have to zoom in more to see the same amount of detail on the Earth
+    if (mission.planetRadius >= 6370000) {
+      //if earth (6378137)
+      if (mapZoom < 15) {
+        modulo = 10;
+      } else if (mapZoom < 16) {
+        modulo = 5;
+      } else if (mapZoom < 18) {
+        modulo = 2;
+      } else if (mapZoom >= 18) {
+        modulo = 1;
+      }
+    } else {
+      //if moon
+      if (mapZoom < 13) {
+        modulo = 10;
+      } else if (mapZoom < 14) {
+        modulo = 5;
+      } else if (mapZoom < 15) {
+        modulo = 2;
+      } else if (mapZoom >= 15) {
+        modulo = 1;
+      }
     }
 
     // clear all grid labels
     gridLabelFeatureGroup.current.clearLayers();
 
+    // bounds near the south pole becomes a scewed shape when pulled straight from Leaflet.
+    // This process makes a square polygon using the map viewport as extents
+    // Then turns that into a polygon and gets the bounds from that for checking if a grid label is in the map bounds
+    const perimeter = getBoundsFromMapViewport(map);
+    const polygon = L.polygon(perimeter);
+    const bounds = polygon.getBounds();
+
     // loop through all grid labels and draw tooltips for the ones that match the modulo
     gridLabels.forEach((gridLabel) => {
       // ignore the label if it's not in the current map bounds
-      const bounds = new L.LatLngBounds(mapBounds);
+
       if (!bounds.contains(gridLabel.latLng)) return;
 
       // get the label name and check the numbers to see if they match the modulo
@@ -483,7 +514,7 @@ const MapBody: FunctionComponent = () => {
         tooltip.addTo(gridLabelFeatureGroup.current);
       }
     });
-  }, [mapBounds, mapZoom, gridLabels]);
+  }, [mapBounds, mapZoom, gridLabels, mission.planetRadius]);
 
   /**
    * Update sublayer controls if presets change
