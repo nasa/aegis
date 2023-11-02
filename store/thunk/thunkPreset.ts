@@ -17,6 +17,7 @@ import * as InternalAPI from "http-client/preset";
 import { sortBy, cloneDeep } from "lodash";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { saveNewPreset } from "store/cross-slice";
+import _ from "lodash";
 
 export const thunkSavePreset = appCreateAsyncThunk<{
   preset: Preset;
@@ -106,7 +107,7 @@ export const thunkDeletePreset = appCreateAsyncThunk<{
 
 export const thunkCreatePreset = appCreateAsyncThunk<void>(
   "presetCreate",
-  async (_, { dispatch, getState }) => {
+  async (__, { dispatch, getState }) => {
     const randomName = generateUniqueName({
       dictName: "colors",
       existingNames: getState().preset.presets.map((item) => item.name),
@@ -125,6 +126,18 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
       });
     }
 
+    const blankMapSublayerControls = _.cloneDeep(getState().map.mapSublayerControls);
+    // make all sublayers invisible
+    for (const [key] of Object.entries(blankMapSublayerControls)) {
+      blankMapSublayerControls[key].visible = false;
+    }
+
+    const blankMapCircleControls = _.cloneDeep(getState().map.mapCircleControls);
+    // make all circles invisible
+    for (const [key] of Object.entries(blankMapCircleControls)) {
+      blankMapCircleControls[key].visible = false;
+    }
+
     const blankPreset: Preset = {
       uuid: uuidv4(),
       name: randomName,
@@ -134,8 +147,8 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
       missionPreset: false,
       missionPresetDefault: false,
       layerOrder: defaultOrder,
-      mapSublayerControls: getState().map.mapSublayerControls,
-      mapCircleControls: getState().map.mapCircleControls,
+      mapSublayerControls: blankMapSublayerControls,
+      mapCircleControls: blankMapCircleControls,
       updatedAt: null,
       createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };

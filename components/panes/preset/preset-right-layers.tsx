@@ -115,7 +115,8 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
                       } else {
                         //check if any of the sublayers are visible
                         sublayers?.forEach((sublayer) => {
-                          if (presetMapLayerControls[sublayer.uuid].visible) sublayerVisible = true;
+                          if (presetMapLayerControls[sublayer.uuid]?.visible)
+                            sublayerVisible = true;
                         });
                       }
 
@@ -205,7 +206,7 @@ const Sublayer: FunctionComponent<{
     <div className={styles.sublayerItemContainer}>
       <div
         className={`${styles.sublayer} ${
-          selectedPreset.mapSublayerControls[sublayer.uuid].visible || editMode
+          selectedPreset.mapSublayerControls[sublayer.uuid]?.visible || editMode
             ? null
             : styles.sublayerDisabled
         }`}
@@ -232,7 +233,7 @@ const Sublayer: FunctionComponent<{
               );
             }}
           >
-            {presetSublayerControls[sublayer.uuid].visible ? (
+            {presetSublayerControls[sublayer.uuid]?.visible ? (
               <div className={styles.visible}>
                 <FontAwesomeIcon icon={faEye} size="xs" />
               </div>
@@ -251,7 +252,7 @@ const Sublayer: FunctionComponent<{
         <div className={styles.sublayerToolIcons}>
           <div
             className={`${styles.sublayerToolIcon} ${
-              selectedPreset.mapSublayerControls[sublayer.uuid].visible || editMode
+              selectedPreset.mapSublayerControls[sublayer.uuid]?.visible || editMode
                 ? null
                 : styles.sublayerDisabled
             }`}
@@ -300,7 +301,7 @@ const Sublayer: FunctionComponent<{
       {presetUIStates[sublayer.uuid].tabSelected === "info" && (
         <div
           className={`${styles.sublayerExpando} ${
-            selectedPreset.mapSublayerControls[sublayer.uuid].visible || editMode
+            selectedPreset.mapSublayerControls[sublayer.uuid]?.visible || editMode
               ? null
               : styles.sublayerDisabled
           }`}

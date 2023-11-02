@@ -262,7 +262,7 @@ const MapBody: FunctionComponent = () => {
         //loop through the sublayer uuids
         for (const sublayerUuid of headerLayer.sublayerUuids) {
           //check if sublayer is toggled visible in the preset
-          if (selectedPreset.mapSublayerControls[sublayerUuid].visible) {
+          if (selectedPreset.mapSublayerControls[sublayerUuid]?.visible) {
             //this layer is visible - get the sublayer object from misson
             const sublayer = missionSublayers.find((sublayer) => sublayer.uuid === sublayerUuid);
             layersToAdd.push(sublayer); //add sublayer
