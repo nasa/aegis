@@ -127,7 +127,7 @@ const NavTimeline: FunctionComponent = () => {
       maxDistFromLanderMeters: 0,
       evaLengthMins: selectedEva?.maxDuration
         ? +selectedEva?.maxDuration
-        : +mission.defaultEvaDuration,
+        : +mission?.defaultEvaDuration,
       evaLengthCalculatedMins: 0,
       maxElevationMeters: null,
       minElevationMeters: null,

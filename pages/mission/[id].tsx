@@ -1,14 +1,11 @@
 import type { NextPage } from "next";
 import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 
 import styles from "./mission.module.css";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChevronRight, faChevronLeft } from "@fortawesome/free-solid-svg-icons";
-import { setRightPanelOpen } from "store/interface";
 import { setMissionPerms, setUserStore } from "store/user";
 import { Tooltip } from "react-tooltip";
 import _ from "lodash";
@@ -53,7 +50,6 @@ const PopulateStore = dynamic(import("components/interface/page/populateStore"),
 const Main: NextPage = () => {
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, refEqual);
   const missionStore = useAppSelector((state) => state.mission, shallowEqual);
 
   //local state to ensure permissions have been checked first before running the other useEffects
@@ -143,36 +139,9 @@ const Main: NextPage = () => {
                   {showSunEarth && <SunEarthPosition />}
                 </div>
               </div>
-              <div className={styles.bottomControl}>
-                <BottomControlPanel />
-              </div>
+              <BottomControlPanel />
             </div>
-            <div
-              className={styles.drawerSlider}
-              onClick={() => dispatch(setRightPanelOpen(!rightPanelOpen))}
-            >
-              <div className={styles.circle}>
-                {rightPanelOpen ? (
-                  <FontAwesomeIcon
-                    className={styles.drawerIcon}
-                    color="white"
-                    icon={faChevronRight}
-                  />
-                ) : (
-                  <FontAwesomeIcon
-                    className={styles.drawerIcon}
-                    color="white"
-                    icon={faChevronLeft}
-                  />
-                )}
-              </div>
-            </div>
-
-            {rightPanelOpen && (
-              <div className={styles.rightControl}>
-                <RightControlPanel />
-              </div>
-            )}
+            <RightControlPanel />
           </div>
 
           <SocketClient missionId={intMissionId} />
