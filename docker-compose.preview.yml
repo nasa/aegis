@@ -20,3 +20,9 @@ services:
       context: .
       dockerfile: ./docker/nextjs/Dockerfile
       target: prod
+
+  gdal:
+    image: aegis-dev-gdal:latest
+    build:
+      context: .
+      dockerfile: ./docker/gdal/Dockerfile
