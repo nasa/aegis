@@ -14,6 +14,7 @@ import {
   makeExportStations,
   makeExportTraverses,
   makeExportEvas,
+  makeExportRexes,
 } from "utils/export";
 import * as httpClient_log from "http-client/log";
 import * as jsonKeysSort from "json-keys-sort";
@@ -30,6 +31,7 @@ const ExportPage: NextPage = () => {
   const traverseStore = useAppSelector((state) => state.traverse, shallowEqual);
   const evaStore = useAppSelector((state) => state.eva, shallowEqual);
   const stmStore = useAppSelector((state) => state.stm, shallowEqual);
+  const rexStore = useAppSelector((state) => state.rex, shallowEqual);
 
   const [exportedData, setExportedData] = useState<ExportedData>(null);
   const [selectedOutput, setSelectedOutput] = useState("");
@@ -40,6 +42,7 @@ const ExportPage: NextPage = () => {
   const [selectStations, setSelectStations] = useState(false);
   const [selectActions, setSelectActions] = useState(false);
   const [selectTraverses, setSelectTraverses] = useState(false);
+  const [selectRexes, setSelectRexes] = useState(false);
 
   //on load check login and mission id
   useEffect(() => {
@@ -60,28 +63,15 @@ const ExportPage: NextPage = () => {
   }, [router, intMissionId]);
 
   useEffect(() => {
-    if (
-      !missionStore.mission ||
-      poiStore.pois.length === 0 ||
-      stationStore.stations.length === 0 ||
-      actionStore.actions.length === 0 ||
-      traverseStore.traverses.length === 0 ||
-      evaStore.evas.length === 0 ||
-      stmStore.objectives.length === 0 ||
-      stmStore.goals.length === 0 ||
-      stmStore.investigations.length === 0
-    )
-      return;
-
     /**
      * Actions
      */
     const actions: ExportAction[] = makeExportActions({
-      actions: actionStore.actions,
-      stations: stationStore.stations,
-      pois: poiStore.pois,
+      actions: actionStore?.actions,
+      stations: stationStore?.stations,
+      pois: poiStore?.pois,
       stmStore,
-      mission: missionStore.mission,
+      mission: missionStore?.mission,
     });
 
     /**
@@ -107,19 +97,26 @@ const ExportPage: NextPage = () => {
      * Traverses
      */
     const traverses: ExportTraverse[] = makeExportTraverses({
-      traverses: traverseStore.traverses,
-      calculatedFields: traverseStore.calculatedFields,
+      traverses: traverseStore?.traverses,
+      calculatedFields: traverseStore?.calculatedFields,
     });
 
     /**
      * EVAs
      */
     const evas: ExportEva[] = makeExportEvas({
-      evas: evaStore.evas,
-      evaCalculatedFields: evaStore.calculatedFields,
+      evas: evaStore?.evas,
+      evaCalculatedFields: evaStore?.calculatedFields,
       stations,
       traverses,
       missionStore,
+    });
+
+    /**
+     * REXes
+     */
+    const rexes: ExportRex[] = makeExportRexes({
+      rexes: rexStore?.rexes,
     });
 
     /**
@@ -132,10 +129,20 @@ const ExportPage: NextPage = () => {
       actions,
       traverses,
       evas,
+      rexes,
     };
 
     setExportedData(exportedData);
-  }, [missionStore, poiStore, stationStore, actionStore, traverseStore, evaStore, stmStore]);
+  }, [
+    missionStore,
+    poiStore,
+    stationStore,
+    actionStore,
+    traverseStore,
+    evaStore,
+    stmStore,
+    rexStore,
+  ]);
 
   const generateOutput = () => {
     let selectedExportedData = {};
@@ -151,6 +158,8 @@ const ExportPage: NextPage = () => {
       selectedExportedData = { ...selectedExportedData, actions: { ...exportedData.actions } };
     if (selectTraverses)
       selectedExportedData = { ...selectedExportedData, traverses: { ...exportedData.traverses } };
+    if (selectRexes)
+      selectedExportedData = { ...selectedExportedData, rexes: { ...exportedData.rexes } };
 
     // convert object to readble string
     const sortedJson = jsonKeysSort.sort(selectedExportedData);
@@ -204,6 +213,12 @@ const ExportPage: NextPage = () => {
             onChange={() => setSelectMission(!selectMission)}
             uniqueId="export-mission"
           />
+          <Checkbox
+            label="All Real-time Execution Items (REXes)"
+            checked={selectRexes}
+            onChange={() => setSelectRexes(!selectRexes)}
+            uniqueId="export-rexes"
+          />
           <button
             onClick={() => {
               const output = generateOutput();
@@ -226,6 +241,7 @@ const ExportPage: NextPage = () => {
               if (selectStations) filename += "stations_";
               if (selectActions) filename += "actions_";
               if (selectTraverses) filename += "traverses_";
+              if (selectRexes) filename += "rexes_";
               filename += "export.json";
               element.download = filename;
               document.body.appendChild(element); // Required for this to work in FireFox
@@ -265,7 +281,7 @@ const ExporLogs: FunctionComponent<{ missionId: number; missionName: string }> =
       const logsConverted = response.data.map((log) => {
         return {
           ...log,
-          payloadJson: JSON.parse(log.payloadJson),
+          payloadJson: log.payloadJson,
         };
       });
       return logsConverted;

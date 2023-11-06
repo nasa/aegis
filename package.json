@@ -9,7 +9,7 @@
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "tsc": "tsc --pretty",
-    "test": "jest --runInBand",
+    "test": "jest",
     "test:all": "npm run lint && npm run tsc && npm run build && npm run test",
     "test:coverage": "npm run test       -- --coverage --reporters=default --reporters=jest-junit",
     "test:coverage:single": "npm run test       --  --coverage --reporters=default --reporters=jest-junit --collectCoverageFrom=[]",
