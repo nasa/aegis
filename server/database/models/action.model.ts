@@ -17,7 +17,7 @@ export class Action_db implements Action_db_type {
 
   @ManyToOne(() => Action_db, { unique: false, primary: false, nullable: true })
   parentAction: Action_db;
-  @Property({ type: MikroTypes.datetime, nullable: true })
+  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)", nullable: true })
   parentCopyDate: Date;
 
   @Property({ type: MikroTypes.text })
@@ -55,8 +55,8 @@ export class Action_db implements Action_db_type {
   @Property({ type: MikroTypes.string, nullable: true })
   rexStatus: RexStatus;
 
-  @Property({ type: MikroTypes.datetime })
+  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt: Date;
-  @Property({ type: MikroTypes.datetime })
+  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   updatedAt: Date;
 }
