@@ -19,6 +19,10 @@
     "migrate:down": "npx mikro-orm migration:down",
     "migrate:create": "npx mikro-orm migration:create",
     "migrate:fresh": "npx mikro-orm migration:fresh --seed",
+    "docker:dev": "bash ./appcompose.sh dev up -d",
+    "docker:dev:rebuild": "bash ./appcompose.sh dev build --no-cache",
+    "docker:preview": "bash ./appcompose.sh preview up --build -d",
+    "docker:preview:rebuild": "bash ./appcompose.sh preview build --no-cache",
     "version:patch": "npm version patch && git push",
     "version:minor": "npm version minor && git push",
     "version:major": "npm version major && git push"
