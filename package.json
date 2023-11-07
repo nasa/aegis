@@ -19,10 +19,6 @@
     "migrate:down": "npx mikro-orm migration:down",
     "migrate:create": "npx mikro-orm migration:create",
     "migrate:fresh": "npx mikro-orm migration:fresh --seed",
-    "docker:dev": "cross-env DOCKER_SCAN_SUGGEST=false docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d",
-    "docker:dev:rebuild": "cross-env DOCKER_SCAN_SUGGEST=false docker-compose -f docker-compose.yml -f docker-compose.dev.yml build --no-cache",
-    "docker:preview": "cross-env DOCKER_SCAN_SUGGEST=false docker-compose -f docker-compose.yml -f docker-compose.preview.yml up --build -d",
-    "docker:preview:rebuild": "cross-env DOCKER_SCAN_SUGGEST=false docker-compose -f docker-compose.yml -f docker-compose.preview.yml build --no-cache",
     "version:patch": "npm version patch && git push",
     "version:minor": "npm version minor && git push",
     "version:major": "npm version major && git push"
