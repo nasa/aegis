@@ -25,8 +25,8 @@ For all install methods, do the following:
 Perform "All install methods" instructions above before performing the following.
 
 1. Run Docker Compose:
-   1. Dev mode: `./appcompose dev up -d`
-   2. Production preview: `./appcompose preview up --build -d`
+   1. Dev mode: `npm run docker:dev`
+   2. Production preview: `npm run docker:preview`
 2. Import a dump of the database from one of the environments using the instructions outlined in "Import a database dump from one of the AEGIS environments" below.
 3. Open [https://aegis-local.fit.nasa.gov](https://aegis-local.fit.nasa.gov) with your browser. In dev, username and password are both `admin`.
 
@@ -110,8 +110,8 @@ docker-compose down --remove-orphans
 rm -rf ./.local/database
 
 # 3. Test docker in preview production mode
-./appcompose preview build --no-cache
-./appcompose preview up --build -d
+npm run docker:preview:rebuild
+npm run docker:preview
 docker-compose exec nextjs npm run seed
 # VERIFY https://aegis-local.fit.nasa.gov, make note of speed
 
@@ -120,8 +120,8 @@ docker-compose down --remove-orphans
 rm -rf ./.local/database
 
 # 5. Test docker in dev mode
-./appcompose dev build --no-cache
-./appcompose dev up -d
+npm run docker:dev:rebuild
+npm run docker:dev
 docker-compose exec nextjs npm run seed
 # VERIFY https://aegis-local.fit.nasa.gov, report slowness compared to "preview"
 
