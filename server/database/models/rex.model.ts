@@ -28,8 +28,8 @@ export class Rex_db implements Rex_db_type {
   @Property({ type: MikroTypes.json, nullable: true })
   crewPos: CrewPos[];
 
-  @Property({ type: MikroTypes.datetime })
+  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;
-  @Property({ type: MikroTypes.datetime })
+  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   updatedAt!: Date;
 }

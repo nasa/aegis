@@ -35,7 +35,7 @@
 }
 
 .leftControl {
-  flex: 0 0 350px;
+  flex: 0 0;
   border-right: 1px solid var(--grey1);
   height: 100%;
   background: black;
@@ -45,43 +45,6 @@
   flex: 1;
   height: 100%;
   position: relative;
-}
-
-.drawerSlider {
-  color: white;
-  position: relative;
-  height: 58px;
-  left: 2px;
-  top: 50%;
-  margin-top: -40px;
-  background: transparent;
-}
-
-.circle {
-  top: -19px;
-  right: 1px;
-  background: url("/images/drawerNub.svg") no-repeat;
-  width: 13px;
-  height: 64px;
-  z-index: 55;
-  position: absolute;
-  cursor: pointer;
-}
-
-.drawerIcon {
-  position: relative;
-  width: 12px;
-  height: 12px;
-  left: 0;
-  top: 19px;
-  background: transparent;
-}
-
-.rightControl {
-  flex: 0 0 480px;
-  border-left: 1px solid var(--grey1);
-  height: 100%;
-  background: black;
 }
 
 .page .tooltip {

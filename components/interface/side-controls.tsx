@@ -1,19 +1,32 @@
 import _ from "lodash";
 import styles from "./side-controls.module.css";
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, useEffect } from "react";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { setRightPanelOpen, setSectionSelected } from "store/interface";
+import {
+  setBottomPanelOpen,
+  setLeftPanelOpen,
+  setRightPanelOpen,
+  setSectionSelected,
+} from "store/interface";
 
 import { paneTypes } from "components/interface/_paneTypes";
 import { setSelectedEvaUuid, setSelectedEvaRightNavItem } from "store/eva";
 import NavTimeline from "components/interface/timeline/timeline";
 import { isModified } from "utils/component-helpers";
 import paneStyles from "../panes/global-pane-styles.module.css";
+import {
+  faChevronDown,
+  faChevronLeft,
+  faChevronRight,
+  faChevronUp,
+} from "@fortawesome/free-solid-svg-icons";
 
 /* This control sits at the left side of the screen and loads the selected component based on the NavGutter icon selected */
 export const LeftControlPanel: FunctionComponent = () => {
+  const dispatch = useAppDispatch();
+  const leftPanelOpen = useAppSelector((state) => state.interface.leftPanelOpen, refEqual);
   const interfaceStateLabel = useAppSelector(
     (state) => state.interface.sectionSelectedLabel,
     refEqual
@@ -30,31 +43,70 @@ export const LeftControlPanel: FunctionComponent = () => {
   return (
     <div className={styles.body}>
       <NavGutter selectedNavItem={interfaceStateLabel} />
-      <div className={styles.activeComponent}>
-        <div className={styles.activeComponentTitle} style={{ color: paneType.color }}>
-          {title}
+
+      {leftPanelOpen && (
+        <div className={styles.activeComponent}>
+          <div className={styles.activeComponentTitle} style={{ color: paneType.color }}>
+            {title}
+          </div>
+          <ActiveComponent />
         </div>
-        <ActiveComponent />
+      )}
+      <div className={styles.drawerLeft} onClick={() => dispatch(setLeftPanelOpen(!leftPanelOpen))}>
+        <div className={styles.drawerLeftTab}>
+          {leftPanelOpen ? (
+            <FontAwesomeIcon className={styles.drawerLeftIcon} color="white" icon={faChevronLeft} />
+          ) : (
+            <FontAwesomeIcon
+              className={styles.drawerLeftIcon}
+              color="white"
+              icon={faChevronRight}
+            />
+          )}
+          <div className={styles.drawerLeftSvg}>
+            <img src="/images/drawerNub.svg" alt="Open/Close Timline" />
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
 export const BottomControlPanel: FunctionComponent = () => {
+  const dispatch = useAppDispatch();
+  const bottomPanelOpen = useAppSelector((state) => state.interface.bottomPanelOpen, refEqual);
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
-  const [showTimeline, setShowTimeline] = useState(false);
 
   useEffect(() => {
     if (selectedEvaUuid) {
-      setShowTimeline(true);
+      dispatch(setBottomPanelOpen(true));
     } else {
-      setShowTimeline(false);
+      dispatch(setBottomPanelOpen(false));
     }
-  }, [selectedEvaUuid]);
+  }, [selectedEvaUuid, dispatch]);
 
   return (
     <>
-      {showTimeline && (
+      <div
+        className={styles.drawerBottom}
+        onClick={() => dispatch(setBottomPanelOpen(!bottomPanelOpen))}
+      >
+        <div className={styles.drawerBottomTab}>
+          {bottomPanelOpen ? (
+            <FontAwesomeIcon
+              className={styles.drawerBottomIcon}
+              color="white"
+              icon={faChevronDown}
+            />
+          ) : (
+            <FontAwesomeIcon className={styles.drawerBottomIcon} color="white" icon={faChevronUp} />
+          )}
+          <div className={styles.drawerBottomSvg}>
+            <img src="/images/drawerNub.svg" alt="Open/Close Timline" />
+          </div>
+        </div>
+      </div>
+      {bottomPanelOpen && (
         <div className={styles.activeComponentBottom}>
           <NavTimeline />
         </div>
@@ -65,10 +117,12 @@ export const BottomControlPanel: FunctionComponent = () => {
 
 /* This control sits at the right side of the screen and displays the active pane for that position */
 export const RightControlPanel: FunctionComponent = () => {
+  const dispatch = useAppDispatch();
   const interfaceStateLabel = useAppSelector(
     (state) => state.interface.sectionSelectedLabel,
     refEqual
   );
+  const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, refEqual);
 
   let ActiveComponent = null;
   const paneType: PaneType = paneTypes[interfaceStateLabel as keyof PaneTypes];
@@ -78,9 +132,37 @@ export const RightControlPanel: FunctionComponent = () => {
 
   return (
     <>
-      <div className={styles.activeComponentRight}>
-        <ActiveComponent />
+      <div
+        className={styles.drawerRight}
+        onClick={() => dispatch(setRightPanelOpen(!rightPanelOpen))}
+      >
+        <div className={styles.drawerRightTab}>
+          {rightPanelOpen ? (
+            <FontAwesomeIcon
+              className={styles.drawerRightIcon}
+              color="white"
+              icon={faChevronRight}
+            />
+          ) : (
+            <FontAwesomeIcon
+              className={styles.drawerRightIcon}
+              color="white"
+              icon={faChevronLeft}
+            />
+          )}
+          <div className={styles.drawerRightSvg}>
+            <img src="/images/drawerNub.svg" alt="Open/Close Timline" />
+          </div>
+        </div>
       </div>
+
+      {rightPanelOpen && (
+        <div className={styles.rightControl}>
+          <div className={styles.activeComponentRight}>
+            <ActiveComponent />
+          </div>
+        </div>
+      )}
     </>
   );
 };
@@ -193,6 +275,7 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
               data-tooltip-id="aegis-tooltip"
               data-tooltip-html={pane.title}
               onClick={() => {
+                dispatch(setLeftPanelOpen(true));
                 dispatch(setSectionSelected(paneType));
                 switch (paneType) {
                   case "mission":

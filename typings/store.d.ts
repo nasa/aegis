@@ -70,7 +70,9 @@ interface PresetState {
 type InterfaceSection = "mission" | "preset" | "poi" | "station" | "evas" | "rex";
 interface InterfaceState {
   sectionSelectedLabel: InterfaceSection;
+  leftPanelOpen: boolean;
   rightPanelOpen: boolean;
+  bottomPanelOpen: boolean;
   elevationPendingItemUuids: string[];
   timelineShowDistanceFromLander: boolean;
   timelineShowElevation: boolean;

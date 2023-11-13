@@ -2,8 +2,6 @@
   display: flex;
   flex-direction: row;
   height: 100%;
-  width: 400px;
-  overflow: hidden;
 }
 
 .rightBody {
@@ -70,4 +68,117 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+
+.drawerBottom {
+  position: relative;
+  width: 58px;
+  left: 50%;
+  top: 2px;
+  margin-right: -40px;
+}
+
+.drawerBottomTab {
+  right: 0;
+  top: -13px;
+  height: 13px;
+  width: 64px;
+  position: absolute;
+  cursor: pointer;
+}
+
+.drawerBottomSvg {
+  position: relative;
+  left: 0;
+  top: -22px;
+  transform: rotate(90deg);
+  z-index: 55;
+}
+
+.drawerBottomIcon {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  left: 28px;
+  top: -5px;
+  background: transparent;
+  z-index: 60;
+}
+
+.drawerRight {
+  position: relative;
+  height: 58px;
+  left: 2px;
+  top: 50vh;
+  margin-top: -40px;
+}
+
+.drawerRightTab {
+  top: -19px;
+  right: 1px;
+  width: 13px;
+  height: 64px;
+  z-index: 55;
+  position: absolute;
+  cursor: pointer;
+}
+
+.drawerRightSvg {
+  position: relative;
+  left: -1px;
+  top: -20px;
+  z-index: 55;
+}
+
+.drawerRightIcon {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  left: 0;
+  top: 19px;
+  background: transparent;
+  z-index: 60;
+}
+
+.rightControl {
+  flex: 0 0 480px;
+  border-left: 1px solid var(--grey1);
+  height: 100%;
+  background: black;
+}
+
+.drawerLeft {
+  position: relative;
+  height: 58px;
+  left: 2px;
+  top: 50vh;
+  margin-top: -40px;
+}
+
+.drawerLeftTab {
+  top: -19px;
+  right: -10px;
+  width: 13px;
+  height: 64px;
+  z-index: 55;
+  position: absolute;
+  cursor: pointer;
+}
+
+.drawerLeftSvg {
+  position: relative;
+  left: 0;
+  top: -22px;
+  transform: rotate(180deg);
+  z-index: 55;
+}
+
+.drawerLeftIcon {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  left: -2px;
+  top: 22px;
+  background: transparent;
+  z-index: 60;
 }

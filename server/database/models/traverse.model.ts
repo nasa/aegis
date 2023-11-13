@@ -31,8 +31,8 @@ export class Traverse_db implements Traverse_db_type {
   @Property({ type: MikroTypes.string, nullable: true })
   rexStatus: RexStatus;
 
-  @Property({ type: MikroTypes.datetime })
+  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;
-  @Property({ type: MikroTypes.datetime })
+  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   updatedAt!: Date;
 }

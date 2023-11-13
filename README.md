@@ -109,7 +109,7 @@ npm i
 docker-compose down --remove-orphans
 rm -rf ./.local/database
 
-# 3. TEST "docker:preview"
+# 3. Test docker in preview production mode
 npm run docker:preview:rebuild
 npm run docker:preview
 docker-compose exec nextjs npm run seed
@@ -119,7 +119,7 @@ docker-compose exec nextjs npm run seed
 docker-compose down --remove-orphans
 rm -rf ./.local/database
 
-# 5. TEST "docker:dev"
+# 5. Test docker in dev mode
 npm run docker:dev:rebuild
 npm run docker:dev
 docker-compose exec nextjs npm run seed
@@ -134,7 +134,7 @@ docker-compose up -d database # just booting database container
 # wait about 30 seconds. Database isn't really ready right away.
 npm run migrate:up # if this fails, wait a little longer then try again (waiting for database)
 npm run seed
-npm run dev # note: not docker:dev. Running node locally.
+npm run dev # note: not docker in dev mode. Running node locally.
 # NOTE following URL is http (not https) and has port 4000, since not behind nginx proxy
 # VERIFY http://aegis-local.fit.nasa.gov:4000, report slowness compared to "preview"
 ```

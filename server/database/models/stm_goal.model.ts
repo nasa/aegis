@@ -24,8 +24,8 @@ export class STM_Goal_db implements STMGoal_db_type {
   @Property({ type: MikroTypes.string })
   numbering!: string;
 
-  @Property({ type: MikroTypes.datetime })
+  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;
-  @Property({ type: MikroTypes.datetime })
+  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   updatedAt!: Date;
 }

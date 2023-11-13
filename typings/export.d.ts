@@ -54,6 +54,11 @@ interface ExportEvaCalculatedFields extends EvaCalculatedFields {
   equipmentItemsReadable: EquipmentItemUsageReadable[];
 }
 
+interface ExportRex extends Rex {
+  _itemType: string;
+  descriptionReadable: string;
+}
+
 type EquipmentItemUsageReadable = {
   name: string;
   singleUse: boolean;
@@ -67,6 +72,7 @@ type ExportedData = {
   actions: ExportAction[];
   traverses: ExportTraverses[];
   evas: ExportEva[];
+  rexes: ExportRex[];
 };
 
 interface ExportRex extends Rex {

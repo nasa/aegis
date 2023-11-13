@@ -206,3 +206,15 @@ export const makeExportEvas = (params: {
 
   return exportEvas;
 };
+
+export const makeExportRexes = (params: { rexes: Rex[] }): ExportRex[] => {
+  const { rexes } = params;
+  const exportRexes: ExportRex[] = rexes.map((rex) => {
+    return {
+      ...rex,
+      _itemType: "Rex",
+      descriptionReadable: decodeWsywig(rex.description),
+    } as ExportRex;
+  });
+  return exportRexes;
+};

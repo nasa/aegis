@@ -15,6 +15,6 @@ export class Log_db implements Log_db_type {
   @Property({ type: MikroTypes.json })
   payloadJson: string;
 
-  @Property({ type: MikroTypes.datetime })
+  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;
 }

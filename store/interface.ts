@@ -2,7 +2,9 @@ import { createSlice } from "@reduxjs/toolkit";
 
 export const initialState: InterfaceState = {
   sectionSelectedLabel: "preset",
+  leftPanelOpen: true,
   rightPanelOpen: true,
+  bottomPanelOpen: true,
   elevationPendingItemUuids: [],
   timelineShowDistanceFromLander: true,
   timelineShowElevation: true,
@@ -25,8 +27,14 @@ export const interfaceSlice = createSlice({
     setSectionSelected: (state, action: { payload: InterfaceSection }) => {
       state.sectionSelectedLabel = action.payload;
     },
+    setLeftPanelOpen: (state, action: { payload: boolean }) => {
+      state.leftPanelOpen = action.payload;
+    },
     setRightPanelOpen: (state, action: { payload: boolean }) => {
       state.rightPanelOpen = action.payload;
+    },
+    setBottomPanelOpen: (state, action: { payload: boolean }) => {
+      state.bottomPanelOpen = action.payload;
     },
     insertElevationPending: (state, action: { payload: string }) => {
       state.elevationPendingItemUuids.push(action.payload);
@@ -73,7 +81,9 @@ export const interfaceSlice = createSlice({
 
 export const {
   setSectionSelected,
+  setLeftPanelOpen,
   setRightPanelOpen,
+  setBottomPanelOpen,
   insertElevationPending,
   removeElevationPending,
   setShowDistanceFromLander,

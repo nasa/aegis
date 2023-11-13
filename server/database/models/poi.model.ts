@@ -35,8 +35,8 @@ export class Poi_db implements Poi_db_type {
   @Property({ type: MikroTypes.json, nullable: true })
   actionOrderUuids: string[];
 
-  @Property({ type: MikroTypes.datetime })
+  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;
-  @Property({ type: MikroTypes.datetime })
+  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   updatedAt!: Date;
 }

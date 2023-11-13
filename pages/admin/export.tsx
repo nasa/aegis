@@ -8,30 +8,19 @@ import { shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { Checkbox } from "components/interface/form/globalFields";
 import { isLoggedIn } from "http-client/login";
 import { getMissions } from "http-client/mission";
-import {
-  makeExportActions,
-  makeExportPois,
-  makeExportStations,
-  makeExportTraverses,
-  makeExportEvas,
-} from "utils/export";
+
 import * as httpClient_log from "http-client/log";
-import * as jsonKeysSort from "json-keys-sort";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { thunkMakeExportString } from "store/thunk/thunkMission";
 
 const ExportPage: NextPage = () => {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { missionId } = router.query;
   const intMissionId = missionId ? parseInt(missionId as string) : null;
 
   const missionStore = useAppSelector((state) => state.mission, shallowEqual);
-  const poiStore = useAppSelector((state) => state.poi, shallowEqual);
-  const stationStore = useAppSelector((state) => state.station, shallowEqual);
-  const actionStore = useAppSelector((state) => state.action, shallowEqual);
-  const traverseStore = useAppSelector((state) => state.traverse, shallowEqual);
-  const evaStore = useAppSelector((state) => state.eva, shallowEqual);
-  const stmStore = useAppSelector((state) => state.stm, shallowEqual);
 
-  const [exportedData, setExportedData] = useState<ExportedData>(null);
   const [selectedOutput, setSelectedOutput] = useState("");
 
   const [selectEvas, setSelectEvas] = useState(true);
@@ -40,6 +29,7 @@ const ExportPage: NextPage = () => {
   const [selectStations, setSelectStations] = useState(false);
   const [selectActions, setSelectActions] = useState(false);
   const [selectTraverses, setSelectTraverses] = useState(false);
+  const [selectRexes, setSelectRexes] = useState(false);
 
   //on load check login and mission id
   useEffect(() => {
@@ -59,106 +49,6 @@ const ExportPage: NextPage = () => {
     })();
   }, [router, intMissionId]);
 
-  useEffect(() => {
-    if (
-      !missionStore.mission ||
-      poiStore.pois.length === 0 ||
-      stationStore.stations.length === 0 ||
-      actionStore.actions.length === 0 ||
-      traverseStore.traverses.length === 0 ||
-      evaStore.evas.length === 0 ||
-      stmStore.objectives.length === 0 ||
-      stmStore.goals.length === 0 ||
-      stmStore.investigations.length === 0
-    )
-      return;
-
-    /**
-     * Actions
-     */
-    const actions: ExportAction[] = makeExportActions({
-      actions: actionStore.actions,
-      stations: stationStore.stations,
-      pois: poiStore.pois,
-      stmStore,
-      mission: missionStore.mission,
-    });
-
-    /**
-     * POIs
-     */
-    const pois: ExportPOI[] = makeExportPois({
-      poiStore,
-      actions,
-      missionStore,
-    });
-
-    /**
-     * Stations
-     */
-    const stations: ExportStation[] = makeExportStations({
-      stationStore,
-      actions,
-      missionStore,
-      pois,
-    });
-
-    /**
-     * Traverses
-     */
-    const traverses: ExportTraverse[] = makeExportTraverses({
-      traverses: traverseStore.traverses,
-      calculatedFields: traverseStore.calculatedFields,
-    });
-
-    /**
-     * EVAs
-     */
-    const evas: ExportEva[] = makeExportEvas({
-      evas: evaStore.evas,
-      evaCalculatedFields: evaStore.calculatedFields,
-      stations,
-      traverses,
-      missionStore,
-    });
-
-    /**
-     * Finish
-     */
-    const exportedData: ExportedData = {
-      mission: missionStore.mission,
-      pois,
-      stations,
-      actions,
-      traverses,
-      evas,
-    };
-
-    setExportedData(exportedData);
-  }, [missionStore, poiStore, stationStore, actionStore, traverseStore, evaStore, stmStore]);
-
-  const generateOutput = () => {
-    let selectedExportedData = {};
-    if (selectEvas)
-      selectedExportedData = { ...selectedExportedData, evas: { ...exportedData.evas } };
-    if (selectMission)
-      selectedExportedData = { ...selectedExportedData, mission: { ...exportedData.mission } };
-    if (selectPois)
-      selectedExportedData = { ...selectedExportedData, pois: { ...exportedData.pois } };
-    if (selectStations)
-      selectedExportedData = { ...selectedExportedData, stations: { ...exportedData.stations } };
-    if (selectActions)
-      selectedExportedData = { ...selectedExportedData, actions: { ...exportedData.actions } };
-    if (selectTraverses)
-      selectedExportedData = { ...selectedExportedData, traverses: { ...exportedData.traverses } };
-
-    // convert object to readble string
-    const sortedJson = jsonKeysSort.sort(selectedExportedData);
-    const dataStr = JSON.stringify(sortedJson, null, 2);
-
-    return dataStr;
-  };
-
   if (!intMissionId) return <div>No missionId provided</div>;
 
   return (
@@ -172,6 +62,7 @@ const ExportPage: NextPage = () => {
             label="All EVAs (including stations with associated actions and traverses)"
             checked={selectEvas}
             onChange={() => setSelectEvas(!selectEvas)}
+            uniqueId="export-all-evas"
           />
 
           <Checkbox
@@ -204,32 +95,64 @@ const ExportPage: NextPage = () => {
             onChange={() => setSelectMission(!selectMission)}
             uniqueId="export-mission"
           />
+          <Checkbox
+            label="All Real-time Execution Items (REXes)"
+            checked={selectRexes}
+            onChange={() => setSelectRexes(!selectRexes)}
+            uniqueId="export-rexes"
+          />
           <button
             onClick={() => {
-              const output = generateOutput();
-              setSelectedOutput(output);
+              (async () => {
+                const output = await dispatch(
+                  thunkMakeExportString({
+                    selectEvas,
+                    selectMission,
+                    selectPois,
+                    selectStations,
+                    selectActions,
+                    selectTraverses,
+                    selectRexes,
+                  })
+                );
+                setSelectedOutput(output.payload as string);
+              })();
             }}
           >
             Export as JSON to Text Field
           </button>
           <button
             onClick={() => {
-              const output = generateOutput();
-              setSelectedOutput(output);
-              const element = document.createElement("a");
-              const file = new Blob([output], { type: "text/json" });
-              element.href = URL.createObjectURL(file);
-              let filename = `${missionStore.mission?.name}_`;
-              if (selectEvas) filename += "evas_";
-              if (selectMission) filename += "mission_";
-              if (selectPois) filename += "pois_";
-              if (selectStations) filename += "stations_";
-              if (selectActions) filename += "actions_";
-              if (selectTraverses) filename += "traverses_";
-              filename += "export.json";
-              element.download = filename;
-              document.body.appendChild(element); // Required for this to work in FireFox
-              element.click();
+              (async () => {
+                const output = await dispatch(
+                  thunkMakeExportString({
+                    selectEvas,
+                    selectMission,
+                    selectPois,
+                    selectStations,
+                    selectActions,
+                    selectTraverses,
+                    selectRexes,
+                  })
+                );
+                setSelectedOutput(output.payload as string);
+
+                const element = document.createElement("a");
+                const file = new Blob([output.payload as string], { type: "text/json" });
+                element.href = URL.createObjectURL(file);
+                let filename = `${missionStore.mission?.name}_`;
+                if (selectEvas) filename += "evas_";
+                if (selectMission) filename += "mission_";
+                if (selectPois) filename += "pois_";
+                if (selectStations) filename += "stations_";
+                if (selectActions) filename += "actions_";
+                if (selectTraverses) filename += "traverses_";
+                if (selectRexes) filename += "rexes_";
+                filename += "export.json";
+                element.download = filename;
+                document.body.appendChild(element); // Required for this to work in FireFox
+                element.click();
+              })();
             }}
           >
             Export as JSON File
@@ -265,7 +188,7 @@ const ExporLogs: FunctionComponent<{ missionId: number; missionName: string }> =
       const logsConverted = response.data.map((log) => {
         return {
           ...log,
-          payloadJson: JSON.parse(log.payloadJson),
+          payloadJson: log.payloadJson,
         };
       });
       return logsConverted;

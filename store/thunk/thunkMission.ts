@@ -15,6 +15,15 @@ import { setMapCircleControls } from "store/map";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
+import {
+  makeExportActions,
+  makeExportEvas,
+  makeExportPois,
+  makeExportRexes,
+  makeExportStations,
+  makeExportTraverses,
+} from "utils/export";
+import * as jsonKeysSort from "json-keys-sort";
 
 export const thunkMissionSave = appCreateAsyncThunk<void>(
   "missionSave",
@@ -241,5 +250,124 @@ export const thunkDeleteActionTemplate = appCreateAsyncThunk<{ actionTemplateUui
       (item) => item.uuid !== actionTemplateUuid
     );
     dispatch(upsertMission({ ...getState().mission.mission, actionTemplates: newActionTemplates }));
+  }
+);
+
+export const thunkMakeExportString = appCreateAsyncThunk<
+  {
+    selectEvas: boolean;
+    selectMission: boolean;
+    selectPois: boolean;
+    selectStations: boolean;
+    selectActions: boolean;
+    selectTraverses: boolean;
+    selectRexes: boolean;
+  },
+  string,
+  false
+>(
+  "makeExportString",
+  async (
+    {
+      selectEvas,
+      selectMission,
+      selectPois,
+      selectStations,
+      selectActions,
+      selectTraverses,
+      selectRexes,
+    },
+    { getState }
+  ) => {
+    /**
+     * Actions
+     */
+    const actions: ExportAction[] = makeExportActions({
+      actions: getState().action?.actions,
+      stations: getState().station?.stations,
+      pois: getState().poi?.pois,
+      stmStore: getState().stm,
+      mission: getState().mission?.mission,
+    });
+
+    /**
+     * POIs
+     */
+    const pois: ExportPOI[] = makeExportPois({
+      poiStore: getState().poi,
+      actions,
+      missionStore: getState().mission,
+    });
+
+    /**
+     * Stations
+     */
+    const stations: ExportStation[] = makeExportStations({
+      stationStore: getState().station,
+      actions,
+      missionStore: getState().mission,
+      pois,
+    });
+
+    /**
+     * Traverses
+     */
+    const traverses: ExportTraverse[] = makeExportTraverses({
+      traverses: getState().traverse?.traverses,
+      calculatedFields: getState().traverse?.calculatedFields,
+    });
+
+    /**
+     * EVAs
+     */
+    const evas: ExportEva[] = makeExportEvas({
+      evas: getState().eva?.evas,
+      evaCalculatedFields: getState().eva?.calculatedFields,
+      stations,
+      traverses,
+      missionStore: getState().mission,
+    });
+
+    /**
+     * REXes
+     */
+    const rexes: ExportRex[] = makeExportRexes({
+      rexes: getState().rex?.rexes,
+    });
+
+    /**
+     * Finish
+     */
+    const exportedData: ExportedData = {
+      mission: getState().mission.mission,
+      pois,
+      stations,
+      actions,
+      traverses,
+      evas,
+      rexes,
+    };
+
+    let selectedExportedData = {};
+    if (selectEvas)
+      selectedExportedData = { ...selectedExportedData, evas: { ...exportedData.evas } };
+    if (selectMission)
+      selectedExportedData = { ...selectedExportedData, mission: { ...exportedData.mission } };
+    if (selectPois)
+      selectedExportedData = { ...selectedExportedData, pois: { ...exportedData.pois } };
+    if (selectStations)
+      selectedExportedData = { ...selectedExportedData, stations: { ...exportedData.stations } };
+    if (selectActions)
+      selectedExportedData = { ...selectedExportedData, actions: { ...exportedData.actions } };
+    if (selectTraverses)
+      selectedExportedData = { ...selectedExportedData, traverses: { ...exportedData.traverses } };
+    if (selectRexes)
+      selectedExportedData = { ...selectedExportedData, rexes: { ...exportedData.rexes } };
+
+    // convert object to readble string
+    const sortedJson = jsonKeysSort.sort(selectedExportedData);
+    const dataStr = JSON.stringify(sortedJson, null, 2);
+
+    return dataStr;
   }
 );
