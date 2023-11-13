@@ -294,6 +294,7 @@ export const Checkbox: FunctionComponent<{
   toolTip?: string;
   label?: string | ReactNode;
   labelStyle?: CSSProperties;
+  labelClassName?: string;
   labelPlacement?: "left" | "right";
   uniqueId?: string;
 }> = ({
@@ -303,6 +304,7 @@ export const Checkbox: FunctionComponent<{
   toolTip,
   label,
   labelStyle,
+  labelClassName,
   labelPlacement = "right",
   uniqueId,
 }) => {
@@ -315,7 +317,11 @@ export const Checkbox: FunctionComponent<{
       data-tooltip-html={toolTip}
     >
       {labelPlacement === "left" ? (
-        <label style={{ ...labelStyle, cursor: "pointer" }} htmlFor={uniqueId}>
+        <label
+          style={{ ...labelStyle, cursor: "pointer" }}
+          className={labelClassName}
+          htmlFor={uniqueId}
+        >
           {label}
         </label>
       ) : (
@@ -330,7 +336,11 @@ export const Checkbox: FunctionComponent<{
         className={checked ? styles.checkboxChecked : ""}
       />
       {labelPlacement === "right" ? (
-        <label style={{ ...labelStyle, cursor: "pointer" }} htmlFor={uniqueId}>
+        <label
+          style={{ ...labelStyle, cursor: "pointer" }}
+          className={labelClassName}
+          htmlFor={uniqueId}
+        >
           {label}
         </label>
       ) : (

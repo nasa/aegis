@@ -10,6 +10,7 @@ import {
   faSliders,
   faBullseye,
   faPersonDigging,
+  faFileExport,
 } from "@fortawesome/free-solid-svg-icons";
 
 import Prefs_panel from "./mission-right-prefs";
@@ -24,6 +25,7 @@ import GeographiUnits_Panel from "./mission-right-geographicUnits";
 import { isModified } from "utils/component-helpers";
 import ActionTemplates_Panel from "./mission-right-actionTemplates";
 import { RightTabs } from "components/interface/side-controls";
+import Export_Panel from "./mission-right-export";
 
 const MissionPrefsRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -81,6 +83,12 @@ const MissionPrefsRight: FunctionComponent = () => {
       panel: GeographiUnits_Panel,
       selectedColor: "white",
       icon: faAtlas,
+    },
+    export_panel: {
+      title: "Export AEGIS Data",
+      panel: Export_Panel,
+      selectedColor: "white",
+      icon: faFileExport,
     },
   };
 
