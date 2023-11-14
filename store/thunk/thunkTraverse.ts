@@ -97,24 +97,45 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
       )?.sequence;
     }
 
-    let stationBefore: Station;
-    let stationAfter: Station;
+    let locationBefore: AEGISPoint;
+    let locationAfter: AEGISPoint;
+    let nameBefore: string;
+    let nameAfter: string;
     selectedEvaSequence?.forEach((item, index) => {
       if (item.type === "traverse" && item.uuid === traverseUuid) {
-        const stationUuidBefore = selectedEvaSequence[index - 1].uuid;
-        const stationUuidAfter = selectedEvaSequence[index + 1].uuid;
-        stationBefore = getState().station.stations.find((s) => s.uuid === stationUuidBefore);
-        stationAfter = getState().station.stations.find((s) => s.uuid === stationUuidAfter);
+        // if this is the first item in the sequence, use the lander location as the before location
+        if (index === 0) {
+          locationBefore = getState().mission.mission.landerLocation;
+          nameBefore = "Lander";
+        } else {
+          const stationUuidBefore = selectedEvaSequence[index - 1].uuid;
+          const stationBefore = getState().station.stations.find(
+            (s) => s.uuid === stationUuidBefore
+          );
+          locationBefore = stationBefore.location;
+          nameBefore = stationBefore.name;
+        }
+
+        // if this is the last item in the sequence, use the lander location as the after location
+        if (index === selectedEvaSequence.length - 1) {
+          locationAfter = getState().mission.mission.landerLocation;
+          nameAfter = "Lander";
+        } else {
+          const stationUuidAfter = selectedEvaSequence[index + 1].uuid;
+          const stationAfter = getState().station.stations.find((s) => s.uuid === stationUuidAfter);
+          locationAfter = stationAfter.location;
+          nameAfter = stationAfter.name;
+        }
       }
     });
 
-    //set starting station
-    if (stationBefore?.location && !_.isEqual(newPath.at(0), stationBefore.location)) {
-      newPath[0] = stationBefore.location;
+    //set starting location
+    if (locationBefore && !_.isEqual(newPath.at(0), locationBefore)) {
+      newPath[0] = locationBefore;
     }
-    //set ending station
-    if (stationAfter?.location && !_.isEqual(newPath.at(-1), stationAfter.location)) {
-      newPath[newPath.length - 1] = stationAfter.location;
+    //set ending location
+    if (locationAfter && !_.isEqual(newPath.at(-1), locationAfter)) {
+      newPath[newPath.length - 1] = locationAfter;
     }
 
     //calculate new path distances
@@ -147,7 +168,7 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
 
     const newTraverse: Traverse = {
       ...traverse,
-      name: rename ? stationBefore.name + " to " + stationAfter.name : traverse.name,
+      name: rename ? nameBefore + " to " + nameAfter : traverse.name,
       path: newPath,
       pathSegmentDistances: pathSegmentDistances,
       pathSegmentElevations: newElevationProfile,

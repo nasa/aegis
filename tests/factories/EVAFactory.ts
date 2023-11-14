@@ -16,6 +16,8 @@ export default class EvaFactory extends Factory<Eva_db> {
       description: "",
       maxDuration: null,
       traverseRate: null,
+      egressDuration: null,
+      ingressDuration: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -33,6 +35,8 @@ export const createTestEva = (): Eva => {
     description: null,
     maxDuration: null,
     traverseRate: null,
+    egressDuration: null,
+    ingressDuration: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

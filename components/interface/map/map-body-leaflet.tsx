@@ -2136,7 +2136,7 @@ const MapBody: FunctionComponent = () => {
         const seqItemRes = await dispatch(
           thunkGetStationOrTraverse({ uuid: selectedEvaSequenceItemUuid })
         );
-        if (seqItemRes.payload !== false) {
+        if (seqItemRes.payload) {
           const seqItem = seqItemRes.payload;
           if (seqItem.type === "traverse") {
             panMapToLocation = getMidpoint((seqItem.item as Traverse).path);

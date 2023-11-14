@@ -81,6 +81,8 @@ describe("EVA API Endpoint", () => {
     description: "",
     maxDuration: null,
     traverseRate: null,
+    egressDuration: null,
+    ingressDuration: null,
     createdAt: roundDateToSecond(new Date()).toISOString(),
     updatedAt: roundDateToSecond(new Date()).toISOString(),
   };

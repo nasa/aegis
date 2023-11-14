@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 
 export const initialState: HoverState = {
   timelineSeqItemUuid: null,
-  leftPanelItemUuid: null,
+  leftPanelHoverItemUuid: null,
   mapItemUuid: null,
   crewPosItemUuid: null,
   evaSecondsElapsed: null,
@@ -22,7 +22,7 @@ export const hoverSlice = createSlice({
       state.timelineSeqItemUuid = action.payload;
     },
     setLeftPanelHoverUuid: (state, action: { payload: string }) => {
-      state.leftPanelItemUuid = action.payload;
+      state.leftPanelHoverItemUuid = action.payload;
     },
     setMapItemHoverUuid: (state, action: { payload: string }) => {
       state.mapItemUuid = action.payload;
@@ -45,12 +45,12 @@ export const hoverSlice = createSlice({
       state.sequenceItemPercentElapsed = null;
       state.mapItemUuid = null;
       state.crewPosItemUuid = null;
-      state.leftPanelItemUuid = null;
+      state.leftPanelHoverItemUuid = null;
       state.timelineSeqItemUuid = null;
     },
     setHoverUuidsForSequence: (state, action: { payload: string }) => {
       state.timelineSeqItemUuid = action.payload;
-      state.leftPanelItemUuid = action.payload;
+      state.leftPanelHoverItemUuid = action.payload;
       state.mapItemUuid = action.payload;
     },
     setHoverUuidsForCrewPos: (state, action: { payload: string }) => {

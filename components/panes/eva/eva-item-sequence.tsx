@@ -54,7 +54,7 @@ const EvaItemSequence: FunctionComponent<{
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
-  const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelItemUuid, refEqual);
+  const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
 
   const runningRexFromDb = useAppSelector(
     (state) => state.rex.rexesFromDb.find((rex) => rex.rexRunning),
@@ -357,10 +357,10 @@ const EvaItemSequence: FunctionComponent<{
                       <div className={evaStyles.evaItemNameButtons}>
                         <div
                           className={`${evaStyles.evaItemNameButton} ${
-                            index === 0 && evaStyles.disabled
+                            index === 1 && evaStyles.disabled
                           }`}
                           onClick={() => {
-                            if (index === 0) return;
+                            if (index === 1) return;
                             handleMoveStationUp(index);
                           }}
                         >
@@ -368,10 +368,10 @@ const EvaItemSequence: FunctionComponent<{
                         </div>
                         <div
                           className={`${evaStyles.evaItemNameButton} ${
-                            index === evaSequence.length - 1 && evaStyles.disabled
+                            index === evaSequence.length - 2 && evaStyles.disabled
                           }`}
                           onClick={() => {
-                            if (index === evaSequence.length - 1) return;
+                            if (index === evaSequence.length - 2) return;
                             handleMoveStationDown(index);
                           }}
                         >
