@@ -11,6 +11,7 @@ import { formatNumberWithCommas, toDecimal } from "utils/formatting";
 import {
   faCalculator,
   faMessage,
+  faPersonThroughWindow,
   faQuestionCircle,
   faToolbox,
 } from "@fortawesome/free-solid-svg-icons";
@@ -87,6 +88,91 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               />
             </div>
           </div>
+
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "3px" }}>
+              <SubpanelHeading icon={faPersonThroughWindow}>Egress and Ingress</SubpanelHeading>
+            </div>
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.inputFieldLabel}>Egress Duration (mins):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.inputFieldValue}>
+                        <InLineEditInput
+                          value={selectedEva.egressDuration?.toString()}
+                          editing={editMode}
+                          fieldProps={{
+                            name: "egressDuration",
+                            ariaLabel: "Egress Duration",
+                            style: { width: "55px" },
+                            validators: [
+                              validators.mustBeNumber,
+                              validators.maxLength(3),
+                              validators.mustBeInteger,
+                            ],
+                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                              e.target.value = e.target.value.replace(
+                                regExValidators.regExNumber,
+                                ""
+                              );
+                            },
+                          }}
+                          onSubmit={(val: string) => {
+                            dispatch(
+                              upsertEvaByField(selectedEva.uuid, "egressDuration", toDecimal(val))
+                            );
+                          }}
+                          key={`${selectedEva.uuid}-egressDuration`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.inputFieldLabel}>Ingress Duration (mins):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.inputFieldValue}>
+                        <InLineEditInput
+                          value={selectedEva.ingressDuration?.toString()}
+                          editing={editMode}
+                          fieldProps={{
+                            name: "ingressDuration",
+                            ariaLabel: "Ingress Duration",
+                            style: { width: "55px" },
+                            validators: [
+                              validators.mustBeNumber,
+                              validators.maxLength(3),
+                              validators.mustBeInteger,
+                            ],
+                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                              e.target.value = e.target.value.replace(
+                                regExValidators.regExNumber,
+                                ""
+                              );
+                            },
+                          }}
+                          onSubmit={(val: string) => {
+                            dispatch(
+                              upsertEvaByField(selectedEva.uuid, "ingressDuration", toDecimal(val))
+                            );
+                          }}
+                          key={`${selectedEva.uuid}-ingressDuration`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "3px" }}>
               <SubpanelHeading icon={faQuestionCircle}>Estimations</SubpanelHeading>

@@ -220,6 +220,8 @@ async function upsertEVAs(evas: Eva[]): Promise<Eva[]> {
       description: evaToUpsert.description,
       maxDuration: evaToUpsert.maxDuration,
       traverseRate: evaToUpsert.traverseRate,
+      egressDuration: evaToUpsert.egressDuration,
+      ingressDuration: evaToUpsert.ingressDuration,
       updatedAt: new Date(evaToUpsert.updatedAt),
       createdAt: new Date(evaToUpsert.createdAt),
     };
@@ -273,6 +275,8 @@ function convertEVAs(dbevas: Eva_db[]): Eva[] {
       description: dbeva.description,
       maxDuration: dbeva.maxDuration,
       traverseRate: dbeva.traverseRate,
+      egressDuration: dbeva.egressDuration,
+      ingressDuration: dbeva.ingressDuration,
       createdAt: dbeva.createdAt.toISOString(),
       updatedAt: dbeva.updatedAt.toISOString(),
     };
