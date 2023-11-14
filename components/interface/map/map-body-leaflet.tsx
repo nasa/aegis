@@ -213,6 +213,7 @@ const MapBody: FunctionComponent = () => {
   const [mapBounds, setMapBounds] = useState<L.LatLngBoundsLiteral>(null);
   const [gridLabels, setGridLabels] = useState<GridLabelItem[]>([]);
   const [showArrows, setShowArrows] = useState(false);
+  const [showGridLabels, setShowGridLabels] = useState(true);
 
   // make color filter settings for tile sublayer. This is the format of leaflet.tilelayer.colorfilter package
   const makeTileLayerColorFilter = (
@@ -481,6 +482,9 @@ const MapBody: FunctionComponent = () => {
     // clear all grid labels
     gridLabelFeatureGroup.current.clearLayers();
 
+    // only show grid labels if the view toggle is on
+    if (!showGridLabels) return;
+
     // bounds near the south pole becomes a scewed shape when pulled straight from Leaflet.
     // This process makes a square polygon using the map viewport as extents
     // Then turns that into a polygon and gets the bounds from that for checking if a grid label is in the map bounds
@@ -514,7 +518,7 @@ const MapBody: FunctionComponent = () => {
         tooltip.addTo(gridLabelFeatureGroup.current);
       }
     });
-  }, [mapBounds, mapZoom, gridLabels, mission.planetRadius]);
+  }, [mapBounds, mapZoom, gridLabels, mission.planetRadius, showGridLabels]);
 
   /**
    * Update sublayer controls if presets change
@@ -2275,6 +2279,8 @@ const MapBody: FunctionComponent = () => {
           setShowArrows={setShowArrows}
           mapDisplayCrewPos={mapDisplayCrewPos}
           setMapDisplayCrewPos={setMapDisplayCrewPos}
+          showGridLabels={showGridLabels}
+          setShowGridLabels={setShowGridLabels}
         />
       </div>
       {sectionSelected === "rex" && selectedOrRunningRex && <MapCrewPositionMenu />}
