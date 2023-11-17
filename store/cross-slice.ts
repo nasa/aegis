@@ -27,7 +27,7 @@ export const crossSlice = createSlice({
       const selectedEva = state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid);
       const sequenceItemType = selectedEva.sequence.find(
         (seqItem) => seqItem.uuid === action.payload.sequenceItemUuid
-      )?.type;
+      ).type;
       if (sequenceItemType === "station") {
         stationSlice.caseReducers.setSelectedStationUuid(state.station, {
           payload: action.payload.sequenceItemUuid,

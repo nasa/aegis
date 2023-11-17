@@ -60,8 +60,6 @@ interface EvaCalculated_PaperJS {
   minElevationMeters: number; //used to calculate bottom of right y-axis graph
   landerElevationMeters: number;
   elevationResolutionMeters: number; //meters
-  egressDurationMins: number;
-  ingressDurationMins: number;
 }
 
 /**

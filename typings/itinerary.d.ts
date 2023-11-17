@@ -28,9 +28,6 @@ interface Eva {
   maxDuration: number; // minutes
   traverseRate: number; // km/hour
 
-  egressDuration: number; // minutes
-  ingressDuration: number; // minutes
-
   createdAt?: string;
   updatedAt?: string;
 }
