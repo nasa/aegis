@@ -27,7 +27,7 @@ import { setTraversesFromDb, setTraverses } from "store/traverse";
 import { getTraverses } from "http-client/traverse";
 import { thunkCreateStationCalculatedFields } from "store/thunk/thunkStation";
 import { thunkCreateTraverseCalculatedFields } from "store/thunk/thunkTraverse";
-import { thunkAuditEvas, thunkCreateEvasCalculatedFields } from "store/thunk/thunkEva";
+import { thunkCreateEvasCalculatedFields } from "store/thunk/thunkEva";
 import { thunkCreatePoiCalculatedFields } from "store/thunk/thunkPoi";
 import { thunkSavePreset } from "store/thunk/thunkPreset";
 import _ from "lodash";
@@ -62,7 +62,6 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
   );
 
   const [actionsAudited, setActionsAudited] = useState(false);
-  const [evasAudited, setEvasAudited] = useState(false);
 
   const dispatch = useAppDispatch();
 
@@ -411,20 +410,6 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
     dispatch(thunkAuditActions());
     setActionsAudited(true);
   }, [stations, pois, actions, dispatch, actionsAudited]);
-
-  /**
-   * Audit EVAs
-   * TODO: This is a temporary fix to audit EVAs to add "from lander" and "to lander" traverses at the beginning and end of each EVA
-   * This won't be needed forever but has written to be harmless if it is run more than once and everything is in order
-   */
-  useEffect(() => {
-    if (evas.length === 0 || evasAudited) return;
-
-    //audit evas
-    dispatch(thunkAuditEvas());
-
-    setEvasAudited(true);
-  }, [evas, dispatch, evasAudited]);
 
   return <></>;
 };

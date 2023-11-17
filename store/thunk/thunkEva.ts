@@ -155,15 +155,9 @@ export const thunkCreateEvasCalculatedFields = appCreateAsyncThunk<void>(
         }
       }
       evaCalculatedFields.totalEvaTime.durationLower =
-        evaCalculatedFields.totalDwellTime.durationLower +
-        evaCalculatedFields.totalTraverseTime +
-        eva.egressDuration +
-        eva.ingressDuration;
+        evaCalculatedFields.totalDwellTime.durationLower + evaCalculatedFields.totalTraverseTime;
       evaCalculatedFields.totalEvaTime.durationUpper =
-        evaCalculatedFields.totalDwellTime.durationUpper +
-        evaCalculatedFields.totalTraverseTime +
-        eva.egressDuration +
-        eva.ingressDuration;
+        evaCalculatedFields.totalDwellTime.durationUpper + evaCalculatedFields.totalTraverseTime;
 
       // check if max time exceeds limit
 
@@ -224,7 +218,6 @@ export const thunkGetStationOrTraverse = appCreateAsyncThunk<
   if (station) return { type: "station", item: station };
   const traverse = getState().traverse.traverses.find((t) => t.uuid === uuid);
   if (traverse) return { type: "traverse", item: traverse };
-  return null;
 });
 
 export const thunkSaveEva = appCreateAsyncThunk<{
@@ -473,8 +466,6 @@ export const thunkCreateEva = appCreateAsyncThunk<void>(
       description: "",
       traverseRate: getState().mission.mission.traverseRate,
       maxDuration: getState().mission.mission.defaultEvaDuration,
-      egressDuration: 10,
-      ingressDuration: 10,
       createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
       updatedAt: null,
     };
@@ -541,27 +532,13 @@ export const thunkDuplicateEva = appCreateAsyncThunk<{
     newTraverse.updatedAt = null;
     newTraverse.uuid = newTraverseUuid;
 
-    let nameBefore: string;
-    let nameAfter: string;
-
-    // if no station before, station before name is "Lander"
-    if (sequenceIndex === 0) {
-      nameBefore = "Lander";
-    } else {
-      nameBefore = getState().station.stations.find(
-        (s) => s.uuid === newEva.sequence[sequenceIndex - 1].uuid
-      )?.name;
-    }
-    // if no station after, station after name is "Lander"
-    if (sequenceIndex === newEva.sequence.length - 1) {
-      nameAfter = "Lander";
-    } else {
-      nameAfter = getState().station.stations.find(
-        (s) => s.uuid === newEva.sequence[sequenceIndex + 1].uuid
-      )?.name;
-    }
-
-    newTraverse.name = `${nameBefore} to ${nameAfter}`;
+    const stationBefore = getState().station.stations.find(
+      (s) => s.uuid === newEva.sequence[sequenceIndex - 1].uuid
+    );
+    const stationAfter = getState().station.stations.find(
+      (s) => s.uuid === newEva.sequence[sequenceIndex + 1].uuid
+    );
+    newTraverse.name = `${stationBefore.name} to ${stationAfter.name}`;
     dispatch(upsertTraverse(newTraverse));
     dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: true }));
   }
@@ -569,25 +546,6 @@ export const thunkDuplicateEva = appCreateAsyncThunk<{
   //new eva is ready to be duplicated in the store.
   dispatch(saveNewEva(newEva));
 });
-
-const makeNewTraverse = (missionId: number): Traverse => {
-  const newTraverse: Traverse = {
-    missionId: missionId,
-    uuid: uuidv4(),
-    name: "",
-    description: "",
-    predictedDurationLower: null,
-    predictedDurationUpper: null,
-    path: [],
-    pathSegmentDistances: null,
-    pathSegmentElevations: null,
-    status: null,
-    rexStatus: null,
-    updatedAt: null,
-    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-  };
-  return newTraverse;
-};
 
 export const thunkAddStationToEva = appCreateAsyncThunk<{ evaUuid: string }>(
   "evaAddStation",
@@ -600,37 +558,31 @@ export const thunkAddStationToEva = appCreateAsyncThunk<{ evaUuid: string }>(
       uuid: "",
     };
     if (newEvaSequence.length === 0) {
-      // add traverse for "from lander"
-      const newTraverse = makeNewTraverse(eva.missionId);
-      dispatch(upsertTraverse(newTraverse));
-      newEvaSequence.push({
-        type: "traverse",
-        uuid: newTraverse.uuid,
-      });
-
-      // add new station sequence item
       newEvaSequence.push(newStationSequenceItem);
-
-      // add traverse for "to lander"
-      const newTraverse2 = makeNewTraverse(eva.missionId);
-      dispatch(upsertTraverse(newTraverse2));
-      newEvaSequence.push({
-        type: "traverse",
-        uuid: newTraverse2.uuid,
-      });
     } else {
       // add a traverse before the station
-      const newTraverse = makeNewTraverse(eva.missionId);
+      const newTraverse: Traverse = {
+        missionId: getState().mission.mission?.id,
+        uuid: uuidv4(),
+        name: "",
+        description: "",
+        predictedDurationLower: null,
+        predictedDurationUpper: null,
+        path: [],
+        pathSegmentDistances: null,
+        pathSegmentElevations: null,
+        status: null,
+        rexStatus: null,
+        updatedAt: null,
+        createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      };
       dispatch(upsertTraverse(newTraverse));
 
-      // add new station to the end of the sequence
-      newEvaSequence.push(newStationSequenceItem);
-
-      // add a traverse after the station that becomes the new "to lander"
       newEvaSequence.push({
         type: "traverse",
         uuid: newTraverse.uuid,
       });
+      newEvaSequence.push(newStationSequenceItem);
     }
     dispatch(setEvaSequence({ evaUuid: eva.uuid, sequence: newEvaSequence }));
 
@@ -645,39 +597,36 @@ export const thunkDeleteStationFromEva = appCreateAsyncThunk<{
   evaSequence: EvaSequenceItem[];
   sequenceIndex: number;
   evaUuid: string;
-}>("evaDeleteStation", async ({ evaSequence, sequenceIndex, evaUuid }, { dispatch }) => {
+}>("evaDeleteStation", async ({ evaSequence, sequenceIndex, evaUuid }, { dispatch, getState }) => {
   const newEvaSequence = _.cloneDeep(evaSequence);
   let traverseUuidToUpdate: string = null;
-  // if this is the first station in the EVA, delete the traverse before it otherwise delete the traverse after it
-  if (sequenceIndex === 1) {
-    // set the traverse after the station to be updated
-    traverseUuidToUpdate = newEvaSequence[sequenceIndex + 1].uuid;
-    // delete the traverse record before the station
+  // if there is a traverse after the station, delete it
+  if (newEvaSequence[sequenceIndex + 1] && newEvaSequence[sequenceIndex + 1].type === "traverse") {
+    if (sequenceIndex >= 2) traverseUuidToUpdate = newEvaSequence[sequenceIndex - 1].uuid;
+    // remove the station and this sequence from the newEvaSequence
+    dispatch(deleteTraverseByUuid(newEvaSequence[sequenceIndex + 1].uuid));
+    newEvaSequence.splice(sequenceIndex, 2);
+  } else if (
+    newEvaSequence[sequenceIndex - 1] &&
+    newEvaSequence[sequenceIndex - 1].type === "traverse"
+  ) {
+    //there's no traverse after the station, this must be the last station in the sequence.
+    //if there is a traverse before the station, delete station and this sequence from the newEvaSequence
     dispatch(deleteTraverseByUuid(newEvaSequence[sequenceIndex - 1].uuid));
-    // remove the traverse before the station and the station from the newEvaSequence
     newEvaSequence.splice(sequenceIndex - 1, 2);
   } else {
-    // set the traverse before the station to be updated
-    traverseUuidToUpdate = newEvaSequence[sequenceIndex - 1].uuid;
-    // delete the traverse record after the station
-    dispatch(deleteTraverseByUuid(newEvaSequence[sequenceIndex + 1].uuid));
-    // remove the traverse after the station and the station from the newEvaSequence
-    newEvaSequence.splice(sequenceIndex, 2);
-  }
-
-  // after deleting the station, if there are no more stations in the EVA, delete the traverse after the station
-  if (newEvaSequence.length === 1) {
-    dispatch(deleteTraverseByUuid(newEvaSequence[0].uuid));
-    newEvaSequence.splice(0, 1);
+    // remove the station alone
+    newEvaSequence.splice(sequenceIndex, 1);
   }
 
   dispatch(setEvaSequence({ evaUuid, sequence: newEvaSequence }));
 
-  //update traverse marked above to update
+  //update traverse if we need to
   if (traverseUuidToUpdate) {
+    const traverse = getState().traverse.traverses.find((t) => t.uuid === traverseUuidToUpdate);
     await dispatch(
       thunkFullUpdateTraverse({
-        traverseUuid: traverseUuidToUpdate,
+        traverseUuid: traverse.uuid,
         rename: true,
         evaSequence: newEvaSequence,
       })
@@ -746,77 +695,3 @@ export const thunkReorderStationInEva = appCreateAsyncThunk<{
     }
   }
 });
-
-/**
- * Check all EVA sequences to make sure a traverse "from lander" is at the beginning and "to lander" is at the end
- * Create any missing traverses as needed and add them to the sequence
- * Check all evas to make sure they have a default egress and ingress duration of 10 minutes
- */
-export const thunkAuditEvas = appCreateAsyncThunk<void>(
-  "auditEvas",
-  async (__, { dispatch, getState }) => {
-    const evas = getState().eva.evas;
-    for (const eva of evas) {
-      // if this eva has no sequence, skip it
-      if (eva.sequence.length === 0) continue;
-
-      let saveEva = false;
-      const newEvaSequence = _.cloneDeep(eva.sequence);
-      // check if there is a traverse at the beginning of the sequence
-      if (newEvaSequence[0]?.type !== "traverse") {
-        // add traverse for "from lander"
-        const newTraverse = makeNewTraverse(eva.missionId);
-        dispatch(upsertTraverse(newTraverse));
-        newEvaSequence.unshift({
-          type: "traverse",
-          uuid: newTraverse.uuid,
-        });
-        await dispatch(
-          thunkFullUpdateTraverse({
-            traverseUuid: newTraverse.uuid,
-            evaSequence: newEvaSequence,
-            rename: true,
-            saveToDb: true,
-          })
-        );
-        saveEva = true;
-      }
-
-      // check if there is a traverse at the end of the sequence
-      if (newEvaSequence[newEvaSequence.length - 1]?.type !== "traverse") {
-        // add traverse for "to lander"
-        const newTraverse = makeNewTraverse(eva.missionId);
-        dispatch(upsertTraverse(newTraverse));
-        newEvaSequence.push({
-          type: "traverse",
-          uuid: newTraverse.uuid,
-        });
-        await dispatch(
-          thunkFullUpdateTraverse({
-            traverseUuid: newTraverse.uuid,
-            evaSequence: newEvaSequence,
-            rename: true,
-            saveToDb: true,
-          })
-        );
-        saveEva = true;
-      }
-
-      const newEva: Eva = {
-        ...eva,
-        sequence: newEvaSequence,
-        egressDuration: eva.egressDuration ? eva.egressDuration : 10,
-        ingressDuration: eva.ingressDuration ? eva.ingressDuration : 10,
-      };
-
-      if (!_.isEqual(eva, newEva)) {
-        saveEva = true;
-      }
-
-      if (saveEva) {
-        dispatch(upsertEva(newEva));
-        await dispatch(thunkSaveEva({ eva: newEva }));
-      }
-    }
-  }
-);

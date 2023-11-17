@@ -1,6 +1,6 @@
 interface HoverState {
   timelineSeqItemUuid: string; //when hovering over the timeline
-  leftPanelHoverItemUuid: string;
+  leftPanelItemUuid: string;
   mapItemUuid: string;
   crewPosItemUuid: string;
   evaSecondsElapsed: number /** Seconds representing the time into the mission that the mouse is hovering on via the nav-timeline */;
