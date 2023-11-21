@@ -15,6 +15,8 @@ export const MapViewMenu: FunctionComponent<{
   setShowArrows: Dispatch<SetStateAction<boolean>>;
   mapDisplayCrewPos: MapCrewPosDisplay;
   setMapDisplayCrewPos: Dispatch<SetStateAction<MapCrewPosDisplay>>;
+  showGridLabels: boolean;
+  setShowGridLabels: Dispatch<SetStateAction<boolean>>;
 }> = ({
   mapDisplayPois,
   setMapDisplayPois,
@@ -26,6 +28,8 @@ export const MapViewMenu: FunctionComponent<{
   setShowArrows,
   mapDisplayCrewPos,
   setMapDisplayCrewPos,
+  showGridLabels,
+  setShowGridLabels,
 }) => {
   const [showMenu, setShowMenu] = useState(false);
 
@@ -260,6 +264,22 @@ export const MapViewMenu: FunctionComponent<{
                     label="Traverse Arrows"
                     labelStyle={{ alignSelf: "center" }}
                     uniqueId="showHideArrows"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className={styles.controlContainer}>
+              <div className={styles.subControl}>
+                <div className={styles.controlCheckbox}>
+                  <Checkbox
+                    checked={showGridLabels}
+                    onChange={(e) => {
+                      setShowGridLabels(e.target.checked);
+                    }}
+                    toolTip="Toggle labels on grid layers"
+                    label="Grid Labels"
+                    labelStyle={{ alignSelf: "center" }}
+                    uniqueId="showHideGridLabels"
                   />
                 </div>
               </div>
