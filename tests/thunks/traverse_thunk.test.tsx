@@ -65,8 +65,10 @@ describe("Thunk Traverse Tests", () => {
         return res;
       });
 
+    const traverseEgress: Traverse = createTestTraverse();
+    const traverseIngress: Traverse = createTestTraverse();
     const traverse: Traverse = createTestTraverse();
-    const traverse2: Traverse = createTestTraverse();
+    const traverseNoEva: Traverse = createTestTraverse();
     const mission: Mission = createTestMission();
     const station1: Station = createTestStation();
     station1.location = { lat: 1, lng: 1.1 };
@@ -74,20 +76,22 @@ describe("Thunk Traverse Tests", () => {
     station2.location = { lat: 2, lng: 2.1 };
     const eva: Eva = createTestEva();
     eva.sequence = [
+      { uuid: traverseEgress.uuid, type: "traverse" },
       { uuid: station1.uuid, type: "station" },
       { uuid: traverse.uuid, type: "traverse" },
       { uuid: station2.uuid, type: "station" },
+      { uuid: traverseIngress.uuid, type: "traverse" },
     ];
     const newPath = [
-      { lat: 0, lng: 0 },
+      station1.location,
       { lat: 1.5, lng: 2.5 },
       { lat: 1.6, lng: 2.6 },
-      { lat: 4, lng: 4 },
+      station2.location,
     ];
     const store = createTestStore({
       traverse: {
         ...traverseInitialState,
-        traverses: [traverse, traverse2],
+        traverses: [traverseEgress, traverse, traverseIngress, traverseNoEva],
         traversesEditing: [traverse.uuid],
       },
       mission: {
@@ -118,10 +122,10 @@ describe("Thunk Traverse Tests", () => {
     let resultTraverse = storeState.traverse.traverses.find((t) => t.uuid === traverse.uuid);
     expect(resultTraverse.name).toEqual("Jest Station-1 to Jest Station-1");
     expect(resultTraverse.path).toEqual([
-      { lat: 1, lng: 1.1 },
+      station1.location,
       { lat: 1.5, lng: 2.5 },
       { lat: 1.6, lng: 2.6 },
-      { lat: 2, lng: 2.1 },
+      station2.location,
     ]);
     expect(resultTraverse.pathSegmentDistances.length).toEqual(3);
     expect(resultTraverse.updatedAt).not.toBeNull();
@@ -131,13 +135,13 @@ describe("Thunk Traverse Tests", () => {
     expect(storeState.traverse.traversesEditing.length).toEqual(0);
 
     //update with no path
-    await store.dispatch(thunkFullUpdateTraverse({ path: null, traverseUuid: traverse2.uuid }));
+    await store.dispatch(thunkFullUpdateTraverse({ path: null, traverseUuid: traverseNoEva.uuid }));
     storeState = store.getState();
-    resultTraverse = storeState.traverse.traverses.find((t) => t.uuid === traverse2.uuid);
+    resultTraverse = storeState.traverse.traverses.find((t) => t.uuid === traverseNoEva.uuid);
     expect(resultTraverse.name).toEqual("Jest Traverse-1");
     expect(resultTraverse.path).toEqual([
-      { lat: 3, lng: 3 },
-      { lat: 3, lng: 3 },
+      storeState.mission.mission.landerLocation,
+      storeState.mission.mission.landerLocation,
     ]);
     expect(storeState.traverse.traversesFromDb.length).toEqual(1);
     expect(mockdbUpsertTraverse).toBeCalledTimes(1);
@@ -187,29 +191,26 @@ describe("Thunk Traverse Tests", () => {
     const traverse4 = createTestTraverse();
     const station1: Station = createTestStation();
     station1.location = { lat: 1, lng: 1.1 };
+    station1.name = "Jest Station-1";
     const station2: Station = createTestStation();
     station2.location = { lat: 2, lng: 2.1 };
     station2.name = "Jest Station-2";
     const station3: Station = createTestStation();
     station3.location = { lat: 3, lng: 2.1 };
     station3.name = "Jest Station-3";
+
     const mission = createTestMission();
     const eva1 = createTestEva();
     eva1.sequence = [
-      { uuid: station1.uuid, type: "station" },
       { uuid: traverse1.uuid, type: "traverse" },
-      { uuid: station2.uuid, type: "station" },
-      { uuid: traverse2.uuid, type: "traverse" },
-      { uuid: station3.uuid, type: "station" },
-    ];
-    const eva2 = createTestEva();
-    eva2.sequence = [
-      { uuid: station3.uuid, type: "station" },
-      { uuid: traverse3.uuid, type: "traverse" },
-      { uuid: station2.uuid, type: "station" },
-      { uuid: traverse4.uuid, type: "traverse" },
       { uuid: station1.uuid, type: "station" },
+      { uuid: traverse2.uuid, type: "traverse" },
+      { uuid: station2.uuid, type: "station" },
+      { uuid: traverse3.uuid, type: "traverse" },
+      { uuid: station3.uuid, type: "station" },
+      { uuid: traverse4.uuid, type: "traverse" },
     ];
+
     const store = createTestStore({
       traverse: {
         ...traverseInitialState,
@@ -217,7 +218,7 @@ describe("Thunk Traverse Tests", () => {
       },
       eva: {
         ...evaInitialState,
-        evas: [eva1, eva2],
+        evas: [eva1],
       },
       mission: {
         ...missionInitialState,
@@ -232,14 +233,14 @@ describe("Thunk Traverse Tests", () => {
     const t2 = store.getState().traverse.traverses.find((t) => t.uuid === traverse2.uuid);
     const t3 = store.getState().traverse.traverses.find((t) => t.uuid === traverse3.uuid);
     const t4 = store.getState().traverse.traverses.find((t) => t.uuid === traverse4.uuid);
-    expect(t1.path).toEqual([station1.location, station2.location]);
-    expect(t2.path).toEqual([station2.location, station3.location]);
-    expect(t3.path).toEqual([station3.location, station2.location]);
-    expect(t4.path).toEqual([station2.location, station1.location]);
-    expect(t1.name).toEqual("Jest Station-1 to Jest Station-2");
-    expect(t2.name).toEqual("Jest Station-2 to Jest Station-3");
-    expect(t3.name).toEqual("Jest Station-3 to Jest Station-2");
-    expect(t4.name).toEqual("Jest Station-2 to Jest Station-1");
+    expect(t1.path).toEqual([store.getState().mission.mission.landerLocation, station1.location]);
+    expect(t2.path).toEqual([station1.location, station2.location]);
+    expect(t3.path).toEqual([station2.location, station3.location]);
+    expect(t4.path).toEqual([station3.location, store.getState().mission.mission.landerLocation]);
+    expect(t1.name).toEqual("Lander to Jest Station-1");
+    expect(t2.name).toEqual("Jest Station-1 to Jest Station-2");
+    expect(t3.name).toEqual("Jest Station-2 to Jest Station-3");
+    expect(t4.name).toEqual("Jest Station-3 to Lander");
   });
 
   test("thunkUpdateTraverseNamesForStationInEVA", async () => {

@@ -252,6 +252,31 @@
   border-radius: var(--radius);
 }
 
+.stationWrapperRight {
+  display: flex;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.stationIconRight {
+  flex: 0 0 25px;
+  display: flex;
+  align-self: center;
+
+  font-size: 16px;
+  border-radius: var(--radius);
+}
+
+.stationNameRight {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-self: center;
+  margin-top: 2px;
+  margin-left: 5px;
+}
+
 .evaTraverseIndicator {
   display: flex;
   flex-direction: column;

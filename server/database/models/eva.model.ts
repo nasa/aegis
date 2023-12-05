@@ -24,6 +24,14 @@ export class Eva_db implements Eva_db_type {
   maxDuration!: number;
   @Property({ type: MikroTypes.double, nullable: true })
   traverseRate!: number;
+  @Property({ type: MikroTypes.double, nullable: true })
+  egressDuration: number;
+  @Property({ type: MikroTypes.double, nullable: true })
+  ingressDuration: number;
+  @Property({ type: MikroTypes.string, nullable: true })
+  egressLocationUuid!: string;
+  @Property({ type: MikroTypes.string, nullable: true })
+  ingressLocationUuid!: string;
 
   @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;
