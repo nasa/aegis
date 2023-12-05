@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, useEffect, useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 
@@ -27,7 +27,7 @@ import { setTraversesFromDb, setTraverses } from "store/traverse";
 import { getTraverses } from "http-client/traverse";
 import { thunkCreateStationCalculatedFields } from "store/thunk/thunkStation";
 import { thunkCreateTraverseCalculatedFields } from "store/thunk/thunkTraverse";
-import { thunkCreateEvasCalculatedFields } from "store/thunk/thunkEva";
+import { thunkAuditEvas, thunkCreateEvasCalculatedFields } from "store/thunk/thunkEva";
 import { thunkCreatePoiCalculatedFields } from "store/thunk/thunkPoi";
 import { thunkSavePreset } from "store/thunk/thunkPreset";
 import _ from "lodash";
@@ -61,7 +61,8 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
     shallowEqual
   );
 
-  const [actionsAudited, setActionsAudited] = useState(false);
+  const actionsAudited = useRef(false);
+  const evasAudited = useRef(false);
 
   const dispatch = useAppDispatch();
 
@@ -405,11 +406,23 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
   useEffect(() => {
     if (stations.length === 0 || pois.length === 0 || actions.length === 0 || actionsAudited)
       return;
-
+    actionsAudited.current = true;
     //audit actions
     dispatch(thunkAuditActions());
-    setActionsAudited(true);
   }, [stations, pois, actions, dispatch, actionsAudited]);
+
+  /**
+   * Audit EVAs
+   * TODO: This is a temporary fix to audit EVAs to add "from lander" and "to lander" traverses at the beginning and end of each EVA
+   * This won't be needed forever but has written to be harmless if it is run more than once and everything is in order
+   */
+  useEffect(() => {
+    if (_.isEmpty(evas) || _.isEmpty(traverses) || _.isEmpty(stations) || evasAudited.current)
+      return;
+    evasAudited.current = true;
+    //audit evas
+    dispatch(thunkAuditEvas());
+  }, [evas, traverses, dispatch, evasAudited, stations]);
 
   return <></>;
 };

@@ -24,6 +24,7 @@ import { selectEVASequenceItem } from "store/cross-slice";
 import { setSelectedStationUuid } from "store/station";
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import { thunkAddStationToEva } from "store/thunk/thunkEva";
+import { EvaEgressIngressListing } from "../eva/eva-item";
 
 const EvaRexLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -221,11 +222,15 @@ const EvaRexItem: FunctionComponent<{ rexUuid: string }> = ({ rexUuid }) => {
               </div>
             </div>
             {selectedRexEva && (
-              <EvaItemSequence
-                evaUuid={selectedRexEva.uuid}
-                evaSequence={selectedRexEva?.sequence}
-                editMode={evasEditing.includes(selectedRexEva.uuid)}
-              />
+              <>
+                <EvaEgressIngressListing eva={selectedRexEva} isEgress={true} />
+                <EvaItemSequence
+                  evaUuid={selectedRexEva.uuid}
+                  evaSequence={selectedRexEva?.sequence}
+                  editMode={evasEditing.includes(selectedRexEva.uuid)}
+                />
+                <EvaEgressIngressListing eva={selectedRexEva} isEgress={false} />
+              </>
             )}
             {evasEditing.includes(selectedEvaUuid) && (
               <div className={evaStyles.evaFooterContainer}>

@@ -73,6 +73,12 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
     // any rex running?
     const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
 
+    const eva = getState().eva.evas.find((eva) => {
+      return eva.sequence.find((sequenceItem) => {
+        return sequenceItem.uuid === traverseUuid;
+      });
+    });
+
     //make a copy
     let newPath: AEGISPoint[];
     if (path && path.length > 0) {
@@ -92,29 +98,66 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
     // find the traverse and start/end stations to check endpoints
     let selectedEvaSequence = evaSequence;
     if (!selectedEvaSequence) {
-      selectedEvaSequence = getState().eva.evas.find(
-        (eva) => eva.uuid === getState().eva.selectedEvaUuid
-      )?.sequence;
+      selectedEvaSequence = eva?.sequence;
     }
 
-    let stationBefore: Station;
-    let stationAfter: Station;
+    let locationBefore: AEGISPoint;
+    let locationAfter: AEGISPoint;
+    let nameBefore: string;
+    let nameAfter: string;
     selectedEvaSequence?.forEach((item, index) => {
       if (item.type === "traverse" && item.uuid === traverseUuid) {
-        const stationUuidBefore = selectedEvaSequence[index - 1].uuid;
-        const stationUuidAfter = selectedEvaSequence[index + 1].uuid;
-        stationBefore = getState().station.stations.find((s) => s.uuid === stationUuidBefore);
-        stationAfter = getState().station.stations.find((s) => s.uuid === stationUuidAfter);
+        // if this is the first item in the sequence, use the egressLocation as the before location
+        if (index === 0) {
+          if (eva.egressLocationUuid === "lander") {
+            locationBefore = getState().mission.mission.landerLocation;
+            nameBefore = "Lander";
+          } else {
+            const stationUuidBefore = eva.egressLocationUuid;
+            const stationBefore = getState().station.stations.find(
+              (s) => s.uuid === stationUuidBefore
+            );
+            locationBefore = stationBefore.location;
+            nameBefore = stationBefore.name;
+          }
+        } else {
+          const stationUuidBefore = selectedEvaSequence[index - 1].uuid;
+          const stationBefore = getState().station.stations.find(
+            (s) => s.uuid === stationUuidBefore
+          );
+          locationBefore = stationBefore.location;
+          nameBefore = stationBefore.name;
+        }
+
+        // if this is the last item in the sequence, use ingressLocation as the after location
+        if (index === selectedEvaSequence.length - 1) {
+          if (eva.ingressLocationUuid === "lander") {
+            locationAfter = getState().mission.mission.landerLocation;
+            nameAfter = "Lander";
+          } else {
+            const stationUuidAfter = eva.ingressLocationUuid;
+            const stationAfter = getState().station.stations.find(
+              (s) => s.uuid === stationUuidAfter
+            );
+            locationAfter = stationAfter.location;
+            nameAfter = stationAfter.name;
+          }
+        } else {
+          const stationUuidAfter = selectedEvaSequence[index + 1].uuid;
+          const stationAfter = getState().station.stations.find((s) => s.uuid === stationUuidAfter);
+          locationAfter = stationAfter.location;
+          nameAfter = stationAfter.name;
+        }
       }
     });
 
-    //set starting station
-    if (stationBefore?.location && !_.isEqual(newPath.at(0), stationBefore.location)) {
-      newPath[0] = stationBefore.location;
+    //set starting location
+    if (locationBefore && !_.isEqual(newPath.at(0), locationBefore)) {
+      newPath[0] = locationBefore;
     }
-    //set ending station
-    if (stationAfter?.location && !_.isEqual(newPath.at(-1), stationAfter.location)) {
-      newPath[newPath.length - 1] = stationAfter.location;
+    //set ending location
+    if (locationAfter && !_.isEqual(newPath.at(-1), locationAfter)) {
+      newPath[newPath.length - 1] = locationAfter;
     }
 
     //calculate new path distances
@@ -147,7 +190,7 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
 
     const newTraverse: Traverse = {
       ...traverse,
-      name: rename ? stationBefore.name + " to " + stationAfter.name : traverse.name,
+      name: rename ? nameBefore + " to " + nameAfter : traverse.name,
       path: newPath,
       pathSegmentDistances: pathSegmentDistances,
       pathSegmentElevations: newElevationProfile,
@@ -217,35 +260,31 @@ export const thunkUpdateTraversesAroundStation = appCreateAsyncThunk<{
       for (let i = 0; i < eva.sequence.length; i++) {
         if (eva.sequence[i].uuid === stationUuid) {
           //get traverse before
-          if (i > 0) {
-            const traverseBefore = getState().traverse.traverses.find(
-              (t) => t.uuid === eva.sequence[i - 1].uuid
-            );
-            //update traverse in store
-            await dispatch(
-              thunkFullUpdateTraverse({
-                traverseUuid: traverseBefore.uuid,
-                rename: true,
-                evaSequence: eva.sequence,
-                saveToDb,
-              })
-            );
-          }
+          const traverseBefore = getState().traverse.traverses.find(
+            (t) => t.uuid === eva.sequence[i - 1].uuid
+          );
+          //update traverse in store
+          await dispatch(
+            thunkFullUpdateTraverse({
+              traverseUuid: traverseBefore.uuid,
+              rename: true,
+              evaSequence: eva.sequence,
+              saveToDb,
+            })
+          );
           //get traverse after
-          if (i < eva.sequence.length - 1) {
-            const traverseAfter = getState().traverse.traverses.find(
-              (t) => t.uuid === eva.sequence[i + 1].uuid
-            );
-            //update traverse in store
-            await dispatch(
-              thunkFullUpdateTraverse({
-                traverseUuid: traverseAfter.uuid,
-                rename: true,
-                evaSequence: eva.sequence,
-                saveToDb,
-              })
-            );
-          }
+          const traverseAfter = getState().traverse.traverses.find(
+            (t) => t.uuid === eva.sequence[i + 1].uuid
+          );
+          //update traverse in store
+          await dispatch(
+            thunkFullUpdateTraverse({
+              traverseUuid: traverseAfter.uuid,
+              rename: true,
+              evaSequence: eva.sequence,
+              saveToDb,
+            })
+          );
           break;
         }
       }

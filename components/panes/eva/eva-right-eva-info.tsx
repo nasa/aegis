@@ -1,22 +1,26 @@
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
-import { InLineEditInput } from "components/interface/form/globalFields";
+import { Dropdown, InLineEditInput } from "components/interface/form/globalFields";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { upsertEvaByField } from "store/eva";
 import { shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
+import evaStyles from "./eva.module.css";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { formatNumberWithCommas, toDecimal } from "utils/formatting";
 import {
   faCalculator,
   faMessage,
+  faPersonThroughWindow,
   faQuestionCircle,
   faToolbox,
 } from "@fortawesome/free-solid-svg-icons";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { regExValidators, validators } from "components/interface/form/formValidators";
 import CalculatedDwell from "../calculated-dwell";
+import { thunkFullUpdateTraverse } from "store/thunk/thunkTraverse";
+import { decodeEmoji } from "utils/formatting";
 
 const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -37,6 +41,35 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     (state) => state.mission.mission.equipmentItems,
     shallowEqual
   );
+  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
+
+  const egressLocationIcon = useAppSelector((state) => {
+    const station = state.station.stations.find(
+      (station) => station.uuid === selectedEva.egressLocationUuid
+    );
+    return station ? station.icon : "1f680"; //rocket
+  }, shallowEqual);
+  const egressLocationName = useAppSelector((state) => {
+    const station = state.station.stations.find(
+      (station) => station.uuid === selectedEva.egressLocationUuid
+    );
+    return station ? station.name : "Lander";
+  }, shallowEqual);
+
+  const ingressLocationIcon = useAppSelector((state) => {
+    const station = state.station.stations.find(
+      (station) => station.uuid === selectedEva.ingressLocationUuid
+    );
+    if (!station) return "1f680"; //rocket
+    return station ? station.icon : "1f680"; //rocket
+  }, shallowEqual);
+
+  const ingressLocationName = useAppSelector((state) => {
+    const station = state.station.stations.find(
+      (station) => station.uuid === selectedEva.ingressLocationUuid
+    );
+    return station ? station.name : "Lander";
+  }, shallowEqual);
 
   const [consumablesCol1, setConsumablesCol1] = useState<EquipmentItemDisplay[]>(null);
   const [consumablesCol2, setConsumablesCol2] = useState<EquipmentItemDisplay[]>(null);
@@ -87,6 +120,212 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               />
             </div>
           </div>
+
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "3px" }}>
+              <SubpanelHeading icon={faPersonThroughWindow}>Egress and Ingress</SubpanelHeading>
+            </div>
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.inputFieldLabel}>EVA Egress Location:</div>
+                    </div>
+                  </div>
+                </div>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.inputFieldLabel}>EVA Ingress Location:</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.inputFieldValue}>
+                        {editMode ? (
+                          <Dropdown
+                            selected={selectedEva.egressLocationUuid}
+                            arrowStyle={{ top: "1px" }}
+                            containerStyle={{
+                              width: "190px",
+                              marginTop: "3px",
+                              marginBottom: "3px",
+                            }}
+                            selectStyle={{ width: "100%" }}
+                            onChange={(val) => {
+                              dispatch(
+                                upsertEvaByField(selectedEva.uuid, "egressLocationUuid", val)
+                              );
+                              dispatch(
+                                thunkFullUpdateTraverse({
+                                  traverseUuid: selectedEva.sequence[0].uuid,
+                                  saveToDb: false,
+                                  rename: true,
+                                })
+                              );
+                            }}
+                            toolTip="Egress Location"
+                          >
+                            <option value="lander">Lander</option>
+                            {stations.map((station) => {
+                              return (
+                                <option key={station.uuid} value={station.uuid}>
+                                  {station.name}
+                                </option>
+                              );
+                            })}
+                          </Dropdown>
+                        ) : (
+                          <div className={evaStyles.stationWrapperRight}>
+                            <div className={evaStyles.iconCustomSmall}>
+                              {decodeEmoji(egressLocationIcon)}
+                            </div>
+                            <div className={evaStyles.stationNameRight}>{egressLocationName}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.inputFieldValue}>
+                        {editMode ? (
+                          <Dropdown
+                            selected={selectedEva.ingressLocationUuid}
+                            arrowStyle={{ top: "1px" }}
+                            containerStyle={{
+                              width: "190px",
+                              marginTop: "3px",
+                              marginBottom: "3px",
+                            }}
+                            selectStyle={{ width: "100%" }}
+                            onChange={(val) => {
+                              dispatch(
+                                upsertEvaByField(selectedEva.uuid, "ingressLocationUuid", val)
+                              );
+                              dispatch(
+                                thunkFullUpdateTraverse({
+                                  traverseUuid:
+                                    selectedEva.sequence[selectedEva.sequence.length - 1].uuid,
+                                  saveToDb: false,
+                                  rename: true,
+                                })
+                              );
+                            }}
+                            toolTip="Ingress Location"
+                          >
+                            <option value="lander">Lander</option>
+                            {stations.map((station) => {
+                              return (
+                                <option key={station.uuid} value={station.uuid}>
+                                  {station.name}
+                                </option>
+                              );
+                            })}
+                          </Dropdown>
+                        ) : (
+                          <div className={evaStyles.stationWrapperRight}>
+                            <div className={evaStyles.iconCustomSmall}>
+                              {decodeEmoji(ingressLocationIcon)}
+                            </div>
+                            <div className={evaStyles.stationNameRight}>{ingressLocationName}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.inputFieldLabel}>Egress Duration (mins):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.inputFieldValue}>
+                        <InLineEditInput
+                          value={selectedEva.egressDuration?.toString()}
+                          editing={editMode}
+                          fieldProps={{
+                            name: "egressDuration",
+                            ariaLabel: "Egress Duration",
+                            style: { width: "55px" },
+                            validators: [
+                              validators.mustBeNumber,
+                              validators.maxLength(3),
+                              validators.mustBeInteger,
+                            ],
+                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                              e.target.value = e.target.value.replace(
+                                regExValidators.regExNumber,
+                                ""
+                              );
+                            },
+                          }}
+                          onSubmit={(val: string) => {
+                            dispatch(
+                              upsertEvaByField(selectedEva.uuid, "egressDuration", toDecimal(val))
+                            );
+                          }}
+                          key={`${selectedEva.uuid}-egressDuration`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.inputFieldLabel}>Ingress Duration (mins):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.inputFieldValue}>
+                        <InLineEditInput
+                          value={selectedEva.ingressDuration?.toString()}
+                          editing={editMode}
+                          fieldProps={{
+                            name: "ingressDuration",
+                            ariaLabel: "Ingress Duration",
+                            style: { width: "55px" },
+                            validators: [
+                              validators.mustBeNumber,
+                              validators.maxLength(3),
+                              validators.mustBeInteger,
+                            ],
+                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                              e.target.value = e.target.value.replace(
+                                regExValidators.regExNumber,
+                                ""
+                              );
+                            },
+                          }}
+                          onSubmit={(val: string) => {
+                            dispatch(
+                              upsertEvaByField(selectedEva.uuid, "ingressDuration", toDecimal(val))
+                            );
+                          }}
+                          key={`${selectedEva.uuid}-ingressDuration`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "3px" }}>
               <SubpanelHeading icon={faQuestionCircle}>Estimations</SubpanelHeading>

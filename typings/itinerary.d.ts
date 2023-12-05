@@ -28,6 +28,11 @@ interface Eva {
   maxDuration: number; // minutes
   traverseRate: number; // km/hour
 
+  egressDuration: number; // minutes
+  ingressDuration: number; // minutes
+  egressLocationUuid: string; // station uuid or "lander"
+  ingressLocationUuid: string; // station uuid or "lander"
+
   createdAt?: string;
   updatedAt?: string;
 }
