@@ -17,6 +17,7 @@ import {
 import { thunkGetElevation } from "./thunkElevation";
 import _ from "lodash";
 import {
+  thunkFullUpdateTraverse,
   thunkUpdateTraverseNamesForStationInEVA,
   thunkUpdateTraversesAroundStation,
 } from "./thunkTraverse";
@@ -77,6 +78,9 @@ export const thunkUpdateStationLocation = appCreateAsyncThunk<{
 
   //update any eva traverses connected to this station
   await dispatch(thunkUpdateTraversesAroundStation({ stationUuid, saveToDb: true }));
+
+  //update any traverses of EVAs that use this station as an egress or ingress point
+  await dispatch(thunkUpdateEVAsUsingStationForEgressIngress({ stationUuid }));
 });
 
 /**
@@ -261,7 +265,7 @@ export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
       stationActions.forEach((action) => {
         totalDurationLower += action.durationLower;
         totalDurationUpper += action.durationUpper;
-        if (action.crewAssigned && action.crewAssigned.includes("EV1")) {
+        if (action.crewAssigned?.includes("EV1")) {
           totalEv1DurationLower += action.durationLower;
           totalEv1DurationUpper += action.durationUpper;
           if (action.rexStatus === "complete") {
@@ -269,7 +273,7 @@ export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
             totalCompletedEv1TimeUpper += action.durationUpper;
           }
         }
-        if (action.crewAssigned && action.crewAssigned.includes("EV2")) {
+        if (action.crewAssigned?.includes("EV2")) {
           totalEv2DurationLower += action.durationLower;
           totalEv2DurationUpper += action.durationUpper;
           if (action.rexStatus === "complete") {
@@ -570,6 +574,9 @@ export const thunkStationCancel = appCreateAsyncThunk<{
   }
   dispatch(thunkCancelMarkerMapDirective({ uuid: station.uuid }));
   dispatch(setStationEditMode({ stationUuid: station.uuid, editMode: false }));
+
+  //update any traverses of EVAs that use this station as an egress or ingress point
+  await dispatch(thunkUpdateEVAsUsingStationForEgressIngress({ stationUuid: station.uuid }));
 });
 
 export const thunkDeleteStation = appCreateAsyncThunk<{
@@ -595,6 +602,14 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
   });
   if (evasUsingThisStation.length > 0) {
     alert("Cannot delete a station that is being used by an EVA");
+    return;
+  }
+
+  const evasUsingThisStationForEgressIngress: Eva[] = getState().eva.evas.filter((eva) => {
+    return eva.egressLocationUuid === station.uuid || eva.ingressLocationUuid === station.uuid;
+  });
+  if (evasUsingThisStationForEgressIngress.length > 0) {
+    alert("Cannot delete a station that is being used by an EVA as an egress or ingress location");
     return;
   }
 
@@ -754,3 +769,25 @@ export const thunkCycleStationRexToNextStatus = appCreateAsyncThunk<{ stationUui
     httpClient_station.upsertStations([{ ...station, rexStatus }], rexRunning);
   }
 );
+
+export const thunkUpdateEVAsUsingStationForEgressIngress = appCreateAsyncThunk<{
+  stationUuid: string;
+}>("updateEVAsUsingStationForEgressIngress", async ({ stationUuid }, { dispatch, getState }) => {
+  //update any traverses of EVAs that use this station as an egress or ingress point
+  const evasUsingStationEgressIngress: Eva[] = getState().eva.evas.filter((eva) => {
+    return eva.egressLocationUuid === stationUuid || eva.ingressLocationUuid === stationUuid;
+  });
+  //first/last sequence items of these evas
+  const firstLastSequenceItems: EvaSequenceItem[] = [];
+  evasUsingStationEgressIngress.forEach((eva) => {
+    if (eva.sequence.length > 0) {
+      firstLastSequenceItems.push(eva.sequence[0]);
+      firstLastSequenceItems.push(eva.sequence[eva.sequence.length - 1]);
+    }
+  });
+
+  //perform full updates of these traverses
+  firstLastSequenceItems.forEach(async (traverse) => {
+    await dispatch(thunkFullUpdateTraverse({ traverseUuid: traverse.uuid, saveToDb: true }));
+  });
+});

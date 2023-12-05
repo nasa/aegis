@@ -23,7 +23,7 @@ const StationItem: FunctionComponent<{
     refEqual
   );
 
-  const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelItemUuid, refEqual);
+  const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
 
   let isStationSelectedOrHoveredStyle = null;
   if (station.uuid === selectedStationUuid) {

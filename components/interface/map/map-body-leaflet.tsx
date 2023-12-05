@@ -1539,7 +1539,7 @@ const MapBody: FunctionComponent = () => {
     drawOrUpdateMarkerOnMap({
       name: "Lander",
       uuid: "lander",
-      iconEmoji: "1F315",
+      iconEmoji: "1f680", //rocket
       mapItemType: "lander",
       location: mission.landerLocation,
       onClick: () => {
@@ -2140,7 +2140,7 @@ const MapBody: FunctionComponent = () => {
         const seqItemRes = await dispatch(
           thunkGetStationOrTraverse({ uuid: selectedEvaSequenceItemUuid })
         );
-        if (seqItemRes.payload !== false) {
+        if (seqItemRes.payload) {
           const seqItem = seqItemRes.payload;
           if (seqItem.type === "traverse") {
             panMapToLocation = getMidpoint((seqItem.item as Traverse).path);
