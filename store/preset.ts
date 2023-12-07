@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import { upsertToArrayByUuid } from "../utils/store";
 import _, { cloneDeep } from "lodash";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+
 export const initialState: PresetState = {
   presets: [],
   presetsFromDb: [],
@@ -9,6 +10,7 @@ export const initialState: PresetState = {
   selectedRightNavItem: "info_panel",
   presetsUIStates: {},
   presetsEditing: [],
+  loadingStatus: "unloaded",
 };
 
 export const presetSlice = createSlice({
@@ -233,6 +235,9 @@ export const presetSlice = createSlice({
       state.selectedPresetUuid = action.payload.uuid; // select the newly created Preset
       state.selectedRightNavItem = "info_panel";
     },
+    setPresetLoadingStatus: (state, action: { payload: LoadingStatus }) => {
+      state.loadingStatus = action.payload;
+    },
   },
 });
 
@@ -262,4 +267,5 @@ export const {
   deletePresetUIStates,
   setPresetEditMode,
   resetAllPresetUIStates,
+  setPresetLoadingStatus,
 } = presetSlice.actions;

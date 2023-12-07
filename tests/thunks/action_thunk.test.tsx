@@ -74,6 +74,7 @@ describe("Thunk Action Tests", () => {
       station: { ...stationInitialState, stations: [station] },
       poi: { ...poiInitialState, pois: [poi] },
       action: {
+        ...actionInitialState,
         actions: [stationAction, poiAction],
         actionsFromDb: [stationAction, poiAction],
       },
@@ -138,6 +139,7 @@ describe("Thunk Action Tests", () => {
     deletedStationAction.name = "Deleted action";
     const store = createTestStore({
       action: {
+        ...actionInitialState,
         actions: [stationActionModified, unsavedStationAction],
         actionsFromDb: [stationAction, deletedStationAction],
       },
@@ -212,7 +214,7 @@ describe("Thunk Action Tests", () => {
     //populate the action state in the store
     const action: Action = createTestAction({ stationUuid: uuidv4() });
     const store = createTestStore({
-      action: { actions: [action], actionsFromDb: [action] },
+      action: { ...actionInitialState, actions: [action], actionsFromDb: [action] },
     });
 
     //call the thunk
@@ -238,7 +240,11 @@ describe("Thunk Action Tests", () => {
     action2.stmUuidRefs = [stmUuid1, uuidv4()];
     const actionWithNoStm: Action = createTestAction({ stationUuid: uuidv4() });
     const store = createTestStore({
-      action: { actions: [action1, action2, actionWithNoStm], actionsFromDb: [] },
+      action: {
+        ...actionInitialState,
+        actions: [action1, action2, actionWithNoStm],
+        actionsFromDb: [],
+      },
     });
 
     //highlight 2
@@ -293,10 +299,7 @@ describe("Thunk Action Tests", () => {
     const store = createTestStore({
       station: { ...stationInitialState, stations: [station] },
       poi: { ...poiInitialState, pois: [poi] },
-      action: {
-        actions: [stationAction, poiAction],
-        actionsFromDb: [],
-      },
+      action: { ...actionInitialState, actions: [stationAction, poiAction], actionsFromDb: [] },
     });
 
     //delete from station
@@ -328,10 +331,7 @@ describe("Thunk Action Tests", () => {
     //populate the action state in the store
     const action: Action = createTestAction({ stationUuid: uuidv4() });
     const store = createTestStore({
-      action: {
-        actions: [action],
-        actionsFromDb: [action],
-      },
+      action: { ...actionInitialState, actions: [action], actionsFromDb: [action] },
     });
 
     await store.dispatch(thunkCycleActionRexToNextStatus({ actionUuid: action.uuid }));

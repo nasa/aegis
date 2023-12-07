@@ -2,6 +2,7 @@ import { upsertPoi } from "store/poi";
 import { createTestPoi } from "../factories/PoiFactory";
 import createTestStore from "../factories/makeTestStore";
 import { StoreType } from "store";
+import { initialState as poiInitialState } from "store/poi";
 
 let store: StoreType;
 let testPoi: POI;
@@ -11,12 +12,8 @@ beforeAll(() => {
   testPoi = createTestPoi();
   store = createTestStore({
     poi: {
+      ...poiInitialState,
       pois: [testPoi],
-      poisFromDb: [],
-      selectedPoiUuid: null,
-      selectedRightNavItem: "info_panel",
-      poisEditing: [],
-      calculatedFields: [],
     },
   });
 });

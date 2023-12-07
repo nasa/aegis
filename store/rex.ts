@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { cloneDeep } from "lodash";
+
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
 
@@ -13,6 +14,7 @@ export const initialState: RexState = {
   rexesCrewPosEditing: [],
   selectedCrewPosUuid: null,
   crewPosEditingUuid: null,
+  loadingStatus: "unloaded",
 };
 
 export const rexSlice = createSlice({
@@ -204,6 +206,9 @@ export const rexSlice = createSlice({
       const rex = state.rexes.find((f) => f.uuid === action.payload.rexUuid);
       rex.crewPos = rex.crewPos.filter((c) => c.uuid !== action.payload.crewPosUuid);
     },
+    setRexLoadingStatus: (state, action: { payload: LoadingStatus }) => {
+      state.loadingStatus = action.payload;
+    },
   },
 });
 
@@ -230,4 +235,5 @@ export const {
   setCrewPosEditingUuid,
   upsertCrewPos,
   deleteCrewPosByUuid,
+  setRexLoadingStatus,
 } = rexSlice.actions;

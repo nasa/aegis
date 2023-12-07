@@ -1,6 +1,6 @@
 import { FunctionComponent, useEffect, useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { useAppSelector, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 
 import { getPresets } from "http-client/preset";
 import { getPOIs } from "http-client/poi";
@@ -10,20 +10,27 @@ import { getStations } from "http-client/station";
 import * as httpClient_action from "http-client/action";
 import { getGoals, getInvestigations, getObjectives } from "http-client/stm";
 import { setMapCircleControls, setMapSublayerControls } from "store/map";
-import { setPois, setPoisFromDb } from "store/poi";
+import { setPois, setPoisFromDb, setPoiLoadingStatus } from "store/poi";
 import {
+  setPresetLoadingStatus,
   setPresetUIStates,
   setPresets,
   setPresetsFromDb,
   setSelectedPresetUuid,
 } from "store/preset";
-import { setLayers, setMission, setMissionFromDb, setSublayers } from "store/mission";
-import { setStations, setStationsFromDb } from "store/station";
-import { setActions, setActionsFromDb, upsertAction, upsertActionFromDb } from "store/action";
-import { setGoals, setInvestigations, setObjectives } from "store/stm";
+import {
+  setLayers,
+  setMission,
+  setMissionFromDb,
+  setSublayers,
+  setMissionLoadingStatus,
+} from "store/mission";
+import { setStations, setStationsFromDb, setStationLoadingStatus } from "store/station";
+import { setActions, setActionsFromDb, setActionLoadingStatus } from "store/action";
+import { setGoals, setInvestigations, setObjectives, setStmLoadingStatus } from "store/stm";
 import { getEvas } from "http-client/eva";
-import { setEvas, setEvasFromDb } from "store/eva";
-import { setTraversesFromDb, setTraverses } from "store/traverse";
+import { setEvaLoadingStatus, setEvas, setEvasFromDb } from "store/eva";
+import { setTraversesFromDb, setTraverses, setTraverseLoadingStatus } from "store/traverse";
 import { getTraverses } from "http-client/traverse";
 import { thunkCreateStationCalculatedFields } from "store/thunk/thunkStation";
 import { thunkCreateTraverseCalculatedFields } from "store/thunk/thunkTraverse";
@@ -34,7 +41,7 @@ import _ from "lodash";
 import { getSublayers } from "http-client/sublayer";
 import { thunkAuditActions } from "store/thunk/thunkAction";
 import { getRexes } from "http-client/rex";
-import { setRexes, setRexesFromDb } from "store/rex";
+import { setRexLoadingStatus, setRexes, setRexesFromDb } from "store/rex";
 import { setRunningRexView } from "store/cross-slice";
 
 const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: boolean }> = ({
@@ -42,11 +49,17 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
   hasPermissions,
 }) => {
   const missionStore = useAppSelector((state) => state.mission, shallowEqual);
+  const poisLoadingStatus = useAppSelector((state) => state.poi.loadingStatus, refEqual);
   const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
+  const stationsLoadingStatus = useAppSelector((state) => state.station.loadingStatus, refEqual);
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
+  const actionsLoadingStatus = useAppSelector((state) => state.action.loadingStatus, refEqual);
   const actions = useAppSelector((state) => state.action.actions, shallowEqual);
+  const traverseLoadingStatus = useAppSelector((state) => state.traverse.loadingStatus, refEqual);
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
+  const evaLoadingStatus = useAppSelector((state) => state.eva.loadingStatus, refEqual);
   const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
+  const stmLoadingStatus = useAppSelector((state) => state.stm.loadingStatus, refEqual);
   const presetUuids = useAppSelector(
     (state) => state.preset.presets.map((p) => p.uuid),
     shallowEqual
@@ -73,6 +86,7 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
     if (!hasPermissions) return;
     (async () => {
       //populate mission
+      dispatch(setMissionLoadingStatus("loading"));
       const missionData = await getMissions(missionId);
       if (missionData.data) {
         if (!missionData.data[0].landerRadii) {
@@ -114,8 +128,10 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
         //save to store
         dispatch(setMapSublayerControls(missionMapSublayerControls));
       }
+      dispatch(setMissionLoadingStatus("loaded"));
 
       //Populate Presets
+      setPresetLoadingStatus("loading");
       const presetData: Preset[] = (await getPresets(missionId)).data;
       if (presetData) {
         //fix and validate against modifications to layers/sublayers made in admin since this preset was last saved
@@ -240,56 +256,71 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
           dispatch(setMapSublayerControls(defaultPreset[0].mapSublayerControls));
         }
       }
+      setPresetLoadingStatus("loaded");
 
       //Populate POIs
+      dispatch(setPoiLoadingStatus("loading"));
       const poiData = await getPOIs(missionId);
       if (poiData.data) {
         dispatch(setPois(poiData.data));
         dispatch(setPoisFromDb(poiData.data));
       }
+      dispatch(setPoiLoadingStatus("loaded"));
 
       //Populate stations
+      dispatch(setStationLoadingStatus("loading"));
       const stationData = await getStations(missionId);
       if (stationData.data) {
         dispatch(setStations(stationData.data));
         dispatch(setStationsFromDb(stationData.data));
       }
+      dispatch(setStationLoadingStatus("loaded"));
 
       //Populate actions
+      dispatch(setActionLoadingStatus("loading"));
       const actionData = await httpClient_action.getActions({ missionId: missionId });
       if (actionData.data) {
         dispatch(setActions(actionData.data));
         dispatch(setActionsFromDb(actionData.data));
       }
+      dispatch(setActionLoadingStatus("loaded"));
 
       //Populate evas
+      dispatch(setEvaLoadingStatus("loading"));
       const evaData = await getEvas(missionId);
       if (evaData.data) {
         dispatch(setEvas(evaData.data));
         dispatch(setEvasFromDb(evaData.data));
       }
+      dispatch(setEvaLoadingStatus("loaded"));
 
       //Populate traverses
+      dispatch(setTraverseLoadingStatus("loading"));
       const traverseData = await getTraverses(missionId);
       if (traverseData.data) {
         dispatch(setTraverses(traverseData.data));
         dispatch(setTraversesFromDb(traverseData.data));
       }
+      dispatch(setTraverseLoadingStatus("loaded"));
 
       //Populate stm
+      dispatch(setStmLoadingStatus("loading"));
       const objectiveData = await getObjectives({ missionId: missionId });
       if (objectiveData.data) dispatch(setObjectives(objectiveData.data));
       const goalData = await getGoals({ missionId: missionId });
       if (goalData.data) dispatch(setGoals(goalData.data));
       const invstgData = await getInvestigations({ missionId: missionId });
       if (invstgData.data) dispatch(setInvestigations(invstgData.data));
+      dispatch(setStmLoadingStatus("loaded"));
 
       //Populate rex
+      dispatch(setRexLoadingStatus("loading"));
       const rexData = await getRexes(missionId);
       if (rexData.data) {
         dispatch(setRexes(rexData.data));
         dispatch(setRexesFromDb(rexData.data));
       }
+      dispatch(setRexLoadingStatus("loaded"));
 
       //If REX is happening, then switch the interface to show the rex pane and EVA actions right panel
       const runningRex = rexData.data?.find((rex) => rex.rexRunning === true);
@@ -346,70 +377,72 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
     dispatch,
   ]);
 
-  //check if any mission equipment items don't exist in mission. For some reason there were orphaned uuids?!
-  //possibly can remove this in the future. Not sure how some actions got into this state.
-  useEffect(() => {
-    if (!missionStore.mission?.equipmentItems || !actions) return;
-
-    //loop through all equipment items in each action
-    for (const action of actions) {
-      if (!action.equipmentItemsUsage) continue;
-      for (const equipItem of action.equipmentItemsUsage) {
-        const found = missionStore.mission.equipmentItems.find((e) => e.uuid === equipItem.uuid);
-        if (!found) {
-          const newEquipItemUsage = action.equipmentItemsUsage.filter((i) =>
-            missionStore.mission.equipmentItems.some((e) => e.uuid === i.uuid)
-          );
-          httpClient_action.upsertActions([{ ...action, equipmentItemsUsage: newEquipItemUsage }]); //update the database
-          dispatch(upsertAction(action, true));
-          dispatch(upsertActionFromDb(action));
-          break;
-        }
-      }
-    }
-  }, [actions, missionStore.mission?.equipmentItems, dispatch]);
-
   //Generate poi calculated values
   useEffect(() => {
-    if (_.isEmpty(pois) || !hasPermissions) return;
+    if (poisLoadingStatus !== "loaded" || actionsLoadingStatus !== "loaded" || !hasPermissions)
+      return;
     dispatch(thunkCreatePoiCalculatedFields());
-  }, [pois, actions, dispatch, hasPermissions]);
+  }, [poisLoadingStatus, actionsLoadingStatus, pois, dispatch, hasPermissions]);
 
   //Generate station calculated values
   useEffect(() => {
-    if (_.isEmpty(stations) || !hasPermissions) return;
+    if (stationsLoadingStatus !== "loaded" || actionsLoadingStatus !== "loaded" || !hasPermissions)
+      return;
     dispatch(thunkCreateStationCalculatedFields());
-  }, [stations, actions, dispatch, hasPermissions]);
+  }, [stationsLoadingStatus, actionsLoadingStatus, stations, actions, dispatch, hasPermissions]);
 
   //Generate traverse calculated values
   useEffect(() => {
-    if (_.isEmpty(traverses) || !hasPermissions) return;
+    if (traverseLoadingStatus !== "loaded" || !hasPermissions) return;
     dispatch(thunkCreateTraverseCalculatedFields());
-  }, [traverses, dispatch, hasPermissions]);
+  }, [traverseLoadingStatus, traverses, dispatch, hasPermissions]);
 
   //Generate eva calculated values. These are dependent on stations and traverses having had their calculated values generated
   useEffect(() => {
     if (
-      _.isEmpty(evas) ||
+      evaLoadingStatus !== "loaded" ||
       _.isEmpty(stationsCalculatedFields) ||
       _.isEmpty(traversesCalculatedFields) ||
       !hasPermissions
     )
       return;
     dispatch(thunkCreateEvasCalculatedFields());
-  }, [evas, stationsCalculatedFields, traversesCalculatedFields, dispatch, hasPermissions]);
+  }, [
+    evaLoadingStatus,
+    stationsCalculatedFields,
+    traversesCalculatedFields,
+    evas,
+    dispatch,
+    hasPermissions,
+  ]);
 
   /**
    * Audit actions
    * TODO: This is a temporary fix to audit actions. This won't be needed forever but has written to be harmless if it is run more than once and everything is in order
    */
   useEffect(() => {
-    if (stations.length === 0 || pois.length === 0 || actions.length === 0 || actionsAudited)
+    // check if store has been populated
+    if (
+      missionStore.loadingStatus !== "loaded" ||
+      stationsLoadingStatus !== "loaded" ||
+      poisLoadingStatus !== "loaded" ||
+      actionsLoadingStatus !== "loaded" ||
+      stmLoadingStatus !== "loaded" ||
+      actionsAudited.current
+    )
       return;
+
     actionsAudited.current = true;
-    //audit actions
     dispatch(thunkAuditActions());
-  }, [stations, pois, actions, dispatch, actionsAudited]);
+  }, [
+    dispatch,
+    stationsLoadingStatus,
+    poisLoadingStatus,
+    actionsLoadingStatus,
+    stmLoadingStatus,
+    missionStore.loadingStatus,
+    actionsAudited,
+  ]);
 
   /**
    * Audit EVAs
@@ -417,12 +450,17 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
    * This won't be needed forever but has written to be harmless if it is run more than once and everything is in order
    */
   useEffect(() => {
-    if (_.isEmpty(evas) || _.isEmpty(traverses) || _.isEmpty(stations) || evasAudited.current)
+    if (
+      evaLoadingStatus !== "loaded" ||
+      traverseLoadingStatus !== "loaded" ||
+      stationsLoadingStatus !== "loaded" ||
+      evasAudited.current
+    )
       return;
     evasAudited.current = true;
     //audit evas
     dispatch(thunkAuditEvas());
-  }, [evas, traverses, dispatch, evasAudited, stations]);
+  }, [evaLoadingStatus, traverseLoadingStatus, dispatch, evasAudited, stationsLoadingStatus]);
 
   return <></>;
 };

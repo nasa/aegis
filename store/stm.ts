@@ -4,6 +4,7 @@ export const initialState: STMState = {
   objectives: [],
   goals: [],
   investigations: [],
+  loadingStatus: "unloaded",
 };
 
 export const stmSlice = createSlice({
@@ -22,7 +23,10 @@ export const stmSlice = createSlice({
     setInvestigations: (state, action: { payload: STMInvestigation[] }) => {
       state.investigations = action.payload;
     },
+    setStmLoadingStatus: (state, action: { payload: LoadingStatus }) => {
+      state.loadingStatus = action.payload;
+    },
   },
 });
 
-export const { setObjectives, setGoals, setInvestigations } = stmSlice.actions;
+export const { setObjectives, setGoals, setInvestigations, setStmLoadingStatus } = stmSlice.actions;

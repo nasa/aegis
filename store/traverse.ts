@@ -9,6 +9,7 @@ export const initialState: TraverseState = {
   traversesEditing: [],
   selectedTraverseRightNavItem: "info_panel",
   calculatedFields: [],
+  loadingStatus: "unloaded",
 };
 
 export const traverseSlice = createSlice({
@@ -148,6 +149,9 @@ export const traverseSlice = createSlice({
     ) => {
       state.calculatedFields = action.payload.calculatedFields;
     },
+    setTraverseLoadingStatus: (state, action: { payload: LoadingStatus }) => {
+      state.loadingStatus = action.payload;
+    },
   },
 });
 
@@ -167,4 +171,5 @@ export const {
   setTraverseEditMode,
   revertTraversePath,
   setTraverseCalculatedFields,
+  setTraverseLoadingStatus,
 } = traverseSlice.actions;
