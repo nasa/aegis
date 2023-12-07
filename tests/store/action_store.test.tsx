@@ -11,6 +11,7 @@ import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
 import createTestStore from "../factories/makeTestStore";
 import { Mission_db, User_db } from "server/database/models/_allModels";
+import { initialState as actionInitialState } from "store/action";
 
 let testMission: Mission_db;
 let testAdmin: User_db;
@@ -291,6 +292,7 @@ describe("Action Store Tests with mock store", () => {
 
     const store = createTestStore({
       action: {
+        ...actionInitialState,
         actions: [],
         actionsFromDb: [
           {

@@ -495,6 +495,49 @@ export const thunkAuditActions = appCreateAsyncThunk<void>(
       });
     }
 
+    /**
+     * Action STM UUID Refs Audit
+     * Audit the stm UUID refs on each action to ensure they still exist.
+     * They may not exist if they were deleted from the admin side.
+     */
+    const stmInvstgUuids = getState().stm.investigations.map((i) => i.uuid);
+    for (const action of newActions) {
+      if (!action.stmUuidRefs) continue;
+      let newUuidRefs = _.clone(action.stmUuidRefs); //make a copy to splice from
+      let isChanged = false;
+      for (const stmUuid of action.stmUuidRefs) {
+        if (stmInvstgUuids.indexOf(stmUuid) < 0) {
+          //stm doesn't exist. remove it from our copy
+          isChanged = true;
+          newUuidRefs = newUuidRefs.filter((uuid) => uuid != stmUuid);
+          console.log(newUuidRefs);
+        }
+      }
+      if (isChanged) action.stmUuidRefs = newUuidRefs;
+    }
+
+    /**
+     * Audit Mission Equipment
+     * check if any mission equipment items don't exist in mission. For some reason there were orphaned uuids?!
+     * possibly can remove this in the future. Not sure how some actions got into this state.
+     */
+    for (const action of newActions) {
+      if (!action.equipmentItemsUsage) continue;
+      //loop through all equipment items in each action
+      for (const equipItem of action.equipmentItemsUsage) {
+        const found = getState().mission.mission.equipmentItems.find(
+          (e) => e.uuid === equipItem.uuid
+        );
+        if (!found) {
+          const newEquipItemUsage = action.equipmentItemsUsage.filter((i) =>
+            getState().mission.mission.equipmentItems.some((e) => e.uuid === i.uuid)
+          );
+          action.equipmentItemsUsage = newEquipItemUsage;
+          break;
+        }
+      }
+    }
+
     // update the store and db with the new values
     if (!_.isEqual(newStations, getState().station.stations)) {
       newStations.forEach((station) => {

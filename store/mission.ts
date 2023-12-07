@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 
 export const initialState: MissionState = {
@@ -8,6 +9,7 @@ export const initialState: MissionState = {
   sublayers: null,
   selectedRightNavItem: "prefs_panel",
   missionSectionsEditing: [],
+  loadingStatus: "unloaded",
 };
 
 export const missionSlice = createSlice({
@@ -94,6 +96,9 @@ export const missionSlice = createSlice({
         );
       }
     },
+    setMissionLoadingStatus: (state, action: { payload: LoadingStatus }) => {
+      state.loadingStatus = action.payload;
+    },
   },
 });
 
@@ -106,4 +111,5 @@ export const {
   setSublayers,
   setSelectedMissionRightNavItem,
   setMissionSectionEditing,
+  setMissionLoadingStatus,
 } = missionSlice.actions;

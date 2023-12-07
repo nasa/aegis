@@ -6,6 +6,7 @@ import { upsertToArrayByUuid } from "utils/store";
 export const initialState: ActionState = {
   actions: [],
   actionsFromDb: [],
+  loadingStatus: "unloaded",
 };
 
 export const actionSlice = createSlice({
@@ -107,6 +108,9 @@ export const actionSlice = createSlice({
     deleteActionsFromDbByUuid: (state, action: { payload: string[] }) => {
       state.actionsFromDb = state.actionsFromDb.filter((a) => !action.payload.includes(a.uuid));
     },
+    setActionLoadingStatus: (state, action: { payload: LoadingStatus }) => {
+      state.loadingStatus = action.payload;
+    },
   },
 });
 
@@ -122,6 +126,7 @@ export const {
   deleteActionFromDbByUuid,
   deleteActionsByUuid,
   deleteActionsFromDbByUuid,
+  setActionLoadingStatus,
 } = actionSlice.actions;
 
 export default actionSlice.reducer;
