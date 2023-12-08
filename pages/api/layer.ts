@@ -153,7 +153,7 @@ const handleLayer: NextApiHandler<WrappedResponse<Layer[] | Layer>> = async (
  * @param layerUUID optional. UUID of the layer to retrieve
  * @returns array of layers
  */
-async function getLayers(missionId: number, layerUUID?: string): Promise<Layer[]> {
+export async function getLayers(missionId: number, layerUUID?: string): Promise<Layer[]> {
   const em = getEM();
 
   let layers_db: Loaded<Layer_db, never>[];

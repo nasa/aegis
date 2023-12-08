@@ -1,14 +1,6 @@
 import { FunctionComponent, useEffect, useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
-
-import { getPresets } from "http-client/preset";
-import { getPOIs } from "http-client/poi";
-import { getMissions } from "http-client/mission";
-import { getLayers } from "http-client/layer";
-import { getStations } from "http-client/station";
-import * as httpClient_action from "http-client/action";
-import { getGoals, getInvestigations, getObjectives } from "http-client/stm";
 import { setMapCircleControls, setMapSublayerControls } from "store/map";
 import { setPois, setPoisFromDb, setPoiLoadingStatus } from "store/poi";
 import {
@@ -28,21 +20,18 @@ import {
 import { setStations, setStationsFromDb, setStationLoadingStatus } from "store/station";
 import { setActions, setActionsFromDb, setActionLoadingStatus } from "store/action";
 import { setGoals, setInvestigations, setObjectives, setStmLoadingStatus } from "store/stm";
-import { getEvas } from "http-client/eva";
 import { setEvaLoadingStatus, setEvas, setEvasFromDb } from "store/eva";
 import { setTraversesFromDb, setTraverses, setTraverseLoadingStatus } from "store/traverse";
-import { getTraverses } from "http-client/traverse";
 import { thunkCreateStationCalculatedFields } from "store/thunk/thunkStation";
 import { thunkCreateTraverseCalculatedFields } from "store/thunk/thunkTraverse";
 import { thunkAuditEvas, thunkCreateEvasCalculatedFields } from "store/thunk/thunkEva";
 import { thunkCreatePoiCalculatedFields } from "store/thunk/thunkPoi";
 import { thunkSavePreset } from "store/thunk/thunkPreset";
 import _ from "lodash";
-import { getSublayers } from "http-client/sublayer";
 import { thunkAuditActions } from "store/thunk/thunkAction";
-import { getRexes } from "http-client/rex";
 import { setRexLoadingStatus, setRexes, setRexesFromDb } from "store/rex";
-import { setRunningRexView } from "store/cross-slice";
+import { setAllStoreLoadingStatuses, setRunningRexView } from "store/cross-slice";
+import { getAll } from "http-client/all";
 
 const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: boolean }> = ({
   missionId,
@@ -85,20 +74,27 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
   useEffect(() => {
     if (!hasPermissions) return;
     (async () => {
+      //get all data for a mission from a single endpoint
+      dispatch(setAllStoreLoadingStatuses("loading"));
+      const allDataRes: WrappedResponse<OneMissionToRuleThemAll> = await getAll(missionId);
+      if (allDataRes.status !== "success" || !allDataRes.data) {
+        dispatch(setAllStoreLoadingStatuses("error"));
+        return;
+      } //gracefully handle an error if no data is returned?
+
       //populate mission
-      dispatch(setMissionLoadingStatus("loading"));
-      const missionData = await getMissions(missionId);
-      if (missionData.data) {
-        if (!missionData.data[0].landerRadii) {
-          missionData.data[0].landerRadii = [];
+      const missionData = allDataRes.data.mission;
+      if (missionData) {
+        if (!missionData.landerRadii) {
+          missionData.landerRadii = [];
         }
-        dispatch(setMission(missionData.data[0]));
-        dispatch(setMissionFromDb(missionData.data[0]));
+        dispatch(setMission(missionData));
+        dispatch(setMissionFromDb(missionData));
       }
 
       //populate layers and layerControls
-      const layerData = (await getLayers(missionId)).data;
-      const sublayerData: Sublayer[] = (await getSublayers(missionId)).data;
+      const layerData: Layer[] = allDataRes.data.layers;
+      const sublayerData: Sublayer[] = allDataRes.data.sublayers;
 
       const missionMapSublayerControls: MapSublayerControls = {}; //map sublayer controls generated from mission sublayers
       if (layerData) {
@@ -131,8 +127,7 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
       dispatch(setMissionLoadingStatus("loaded"));
 
       //Populate Presets
-      setPresetLoadingStatus("loading");
-      const presetData: Preset[] = (await getPresets(missionId)).data;
+      const presetData: Preset[] = allDataRes.data.presets;
       if (presetData) {
         //fix and validate against modifications to layers/sublayers made in admin since this preset was last saved
         presetData.forEach((preset) => {
@@ -213,7 +208,7 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
             modified = true;
           }
 
-          missionData.data[0].landerRadii.forEach((landerRadius) => {
+          missionData.landerRadii.forEach((landerRadius) => {
             if (preset.mapCircleControls[landerRadius.uuid]) {
               mapCircleControls[landerRadius.uuid] = preset.mapCircleControls[landerRadius.uuid];
             } else {
@@ -256,77 +251,70 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
           dispatch(setMapSublayerControls(defaultPreset[0].mapSublayerControls));
         }
       }
-      setPresetLoadingStatus("loaded");
+      dispatch(setPresetLoadingStatus("loaded"));
 
       //Populate POIs
-      dispatch(setPoiLoadingStatus("loading"));
-      const poiData = await getPOIs(missionId);
-      if (poiData.data) {
-        dispatch(setPois(poiData.data));
-        dispatch(setPoisFromDb(poiData.data));
+      const poiData = allDataRes.data.pois;
+      if (poiData) {
+        dispatch(setPois(poiData));
+        dispatch(setPoisFromDb(poiData));
       }
       dispatch(setPoiLoadingStatus("loaded"));
 
       //Populate stations
-      dispatch(setStationLoadingStatus("loading"));
-      const stationData = await getStations(missionId);
-      if (stationData.data) {
-        dispatch(setStations(stationData.data));
-        dispatch(setStationsFromDb(stationData.data));
+      const stationData = allDataRes.data.stations;
+      if (stationData) {
+        dispatch(setStations(stationData));
+        dispatch(setStationsFromDb(stationData));
       }
       dispatch(setStationLoadingStatus("loaded"));
 
       //Populate actions
-      dispatch(setActionLoadingStatus("loading"));
-      const actionData = await httpClient_action.getActions({ missionId: missionId });
-      if (actionData.data) {
-        dispatch(setActions(actionData.data));
-        dispatch(setActionsFromDb(actionData.data));
+      const actionData = allDataRes.data.actions;
+      if (actionData) {
+        dispatch(setActions(actionData));
+        dispatch(setActionsFromDb(actionData));
       }
       dispatch(setActionLoadingStatus("loaded"));
 
       //Populate evas
-      dispatch(setEvaLoadingStatus("loading"));
-      const evaData = await getEvas(missionId);
-      if (evaData.data) {
-        dispatch(setEvas(evaData.data));
-        dispatch(setEvasFromDb(evaData.data));
+      const evaData = allDataRes.data.evas;
+      if (evaData) {
+        dispatch(setEvas(evaData));
+        dispatch(setEvasFromDb(evaData));
       }
       dispatch(setEvaLoadingStatus("loaded"));
 
       //Populate traverses
-      dispatch(setTraverseLoadingStatus("loading"));
-      const traverseData = await getTraverses(missionId);
-      if (traverseData.data) {
-        dispatch(setTraverses(traverseData.data));
-        dispatch(setTraversesFromDb(traverseData.data));
+      const traverseData = allDataRes.data.traverses;
+      if (traverseData) {
+        dispatch(setTraverses(traverseData));
+        dispatch(setTraversesFromDb(traverseData));
       }
       dispatch(setTraverseLoadingStatus("loaded"));
 
       //Populate stm
-      dispatch(setStmLoadingStatus("loading"));
-      const objectiveData = await getObjectives({ missionId: missionId });
-      if (objectiveData.data) dispatch(setObjectives(objectiveData.data));
-      const goalData = await getGoals({ missionId: missionId });
-      if (goalData.data) dispatch(setGoals(goalData.data));
-      const invstgData = await getInvestigations({ missionId: missionId });
-      if (invstgData.data) dispatch(setInvestigations(invstgData.data));
+      const objectiveData = allDataRes.data.objectives;
+      if (objectiveData) dispatch(setObjectives(objectiveData));
+      const goalData = allDataRes.data.goals;
+      if (goalData) dispatch(setGoals(goalData));
+      const invstgData = allDataRes.data.invstgs;
+      if (invstgData) dispatch(setInvestigations(invstgData));
       dispatch(setStmLoadingStatus("loaded"));
 
       //Populate rex
-      dispatch(setRexLoadingStatus("loading"));
-      const rexData = await getRexes(missionId);
-      if (rexData.data) {
-        dispatch(setRexes(rexData.data));
-        dispatch(setRexesFromDb(rexData.data));
+      const rexData = allDataRes.data.rexes;
+      if (rexData) {
+        dispatch(setRexes(rexData));
+        dispatch(setRexesFromDb(rexData));
+
+        //If REX is happening, then switch the interface to show the rex pane and EVA actions right panel
+        const runningRex = rexData.find((rex) => rex.rexRunning === true);
+        if (runningRex) {
+          dispatch(setRunningRexView({ runningRexUuid: runningRex.uuid }));
+        }
       }
       dispatch(setRexLoadingStatus("loaded"));
-
-      //If REX is happening, then switch the interface to show the rex pane and EVA actions right panel
-      const runningRex = rexData.data?.find((rex) => rex.rexRunning === true);
-      if (runningRex) {
-        dispatch(setRunningRexView({ runningRexUuid: runningRex.uuid }));
-      }
     })();
   }, [dispatch, hasPermissions, missionId]);
 

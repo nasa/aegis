@@ -239,7 +239,10 @@ const handleSTM: NextApiHandler<
  * @param objectiveUUID optional objective uuid to retrieve. No value will retrieve all objectives for the mission
  * @returns array of stm objectives. returns empty array if no records found
  */
-async function getObjectives(missionId: number, objectiveUUID?: string): Promise<STMObjective[]> {
+export async function getObjectives(
+  missionId: number,
+  objectiveUUID?: string
+): Promise<STMObjective[]> {
   const em = getEM();
 
   let objectives: Loaded<STM_Objective_db, never>[];
@@ -283,7 +286,7 @@ async function getObjectives(missionId: number, objectiveUUID?: string): Promise
  * @param goalUUID optional goal uuid to retrieve. No value will retrieve all goals for the mission/objective
  * @returns array of stm goals. returns empty array if no records found
  */
-async function getGoals(
+export async function getGoals(
   missionId: number,
   objectiveUUID?: string,
   goalUUID?: string
@@ -332,7 +335,7 @@ async function getGoals(
  * @param investigationUUID optional investigation uuid to retrieve. No value will retrieve all investigations for the mission/objective/goal
  * @returns array of stm investigations. returns empty array if no records found
  */
-async function getInvestigations(
+export async function getInvestigations(
   missionId: number,
   objectiveUUID?: string,
   goalUUID?: string,

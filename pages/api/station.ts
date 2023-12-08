@@ -182,7 +182,7 @@ const handleStation: NextApiHandler<WrappedResponse<Station[] | Station>> = asyn
  * @param stationUUID optional. UUID of the station to retrieve
  * @returns array of stations
  */
-async function getStations(missionId: number, stationUUID?: string): Promise<Station[]> {
+export async function getStations(missionId: number, stationUUID?: string): Promise<Station[]> {
   const em = getEM();
 
   //find stations by either mission Id or uuid
