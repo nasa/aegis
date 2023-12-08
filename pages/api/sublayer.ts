@@ -153,7 +153,7 @@ const handleSublayer: NextApiHandler<WrappedResponse<Sublayer[] | Sublayer>> = a
  * @param sublayerUUID optional. UUID of the sublayer to retrieve
  * @returns array of sublayers
  */
-async function getSublayers(missionId: number, sublayerUUID?: string): Promise<Sublayer[]> {
+export async function getSublayers(missionId: number, sublayerUUID?: string): Promise<Sublayer[]> {
   const em = getEM();
 
   let sublayers_db: Loaded<Sublayer_db, never>[];

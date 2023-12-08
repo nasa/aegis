@@ -216,7 +216,7 @@ const handleMission: NextApiHandler<WrappedResponse<Mission[] | Mission>> = asyn
  * @returns a mission
  * @param missionIdList
  */
-async function getMission(missionIdList: number | number[] = null): Promise<Mission[]> {
+export async function getMission(missionIdList: number | number[] = null): Promise<Mission[]> {
   const em = getEM();
   let missions: Mission_db[];
   if (!missionIdList) {

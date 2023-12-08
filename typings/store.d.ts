@@ -187,4 +187,4 @@ interface MustContain {
   updatedAt?: string;
 }
 
-type LoadingStatus = "loading" | "loaded" | "unloaded";
+type LoadingStatus = "loading" | "loaded" | "unloaded" | "error";

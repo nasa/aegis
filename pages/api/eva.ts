@@ -178,7 +178,7 @@ const handleEva: NextApiHandler<WrappedResponse<Eva[] | Eva>> = async (
  * @param evaUuid optional. UUID of the eva to retrieve
  * @returns array of evas
  */
-async function getEVAs(missionId: number, evaUuid?: string): Promise<Eva[]> {
+export async function getEVAs(missionId: number, evaUuid?: string): Promise<Eva[]> {
   const em = getEM();
 
   //find evas by either mission Id or uuid

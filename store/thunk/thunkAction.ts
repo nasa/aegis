@@ -510,7 +510,6 @@ export const thunkAuditActions = appCreateAsyncThunk<void>(
           //stm doesn't exist. remove it from our copy
           isChanged = true;
           newUuidRefs = newUuidRefs.filter((uuid) => uuid != stmUuid);
-          console.log(newUuidRefs);
         }
       }
       if (isChanged) action.stmUuidRefs = newUuidRefs;

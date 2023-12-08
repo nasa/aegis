@@ -173,7 +173,7 @@ const handleTraverse: NextApiHandler<WrappedResponse<Traverse[] | Traverse>> = a
  * @param traverseUuid optional. UUID of the traverse to retrieve
  * @returns array of traverses
  */
-async function getTraverses(missionId: number, traverseUuid?: string): Promise<Traverse[]> {
+export async function getTraverses(missionId: number, traverseUuid?: string): Promise<Traverse[]> {
   const em = getEM();
 
   //find traverses by either mission Id or uuid

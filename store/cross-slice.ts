@@ -10,6 +10,8 @@ import { traverseSlice } from "./traverse";
 import { initialState } from "../store";
 import { presetSlice } from "./preset";
 import { rexSlice } from "./rex";
+import { missionSlice } from "./mission";
+import { stmSlice } from "./stm";
 
 export const crossSlice = createSlice({
   name: "cross-slice",
@@ -151,6 +153,19 @@ export const crossSlice = createSlice({
           .selectedRexEvaUuid,
       });
     },
+    setAllStoreLoadingStatuses(state, action: PayloadAction<LoadingStatus>) {
+      missionSlice.caseReducers.setMissionLoadingStatus(state.mission, { payload: action.payload });
+      presetSlice.caseReducers.setPresetLoadingStatus(state.preset, { payload: action.payload });
+      poiSlice.caseReducers.setPoiLoadingStatus(state.poi, { payload: action.payload });
+      stationSlice.caseReducers.setStationLoadingStatus(state.station, { payload: action.payload });
+      actionSlice.caseReducers.setActionLoadingStatus(state.action, { payload: action.payload });
+      evaSlice.caseReducers.setEvaLoadingStatus(state.eva, { payload: action.payload });
+      traverseSlice.caseReducers.setTraverseLoadingStatus(state.traverse, {
+        payload: action.payload,
+      });
+      stmSlice.caseReducers.setStmLoadingStatus(state.stm, { payload: action.payload });
+      rexSlice.caseReducers.setRexLoadingStatus(state.rex, { payload: action.payload });
+    },
   },
   extraReducers: (builder) =>
     builder.addMatcher(isRejectedAction, (state, action) => {
@@ -177,4 +192,5 @@ export const {
   obliteratePoi,
   obliterateEntireStore,
   setRunningRexView,
+  setAllStoreLoadingStatuses,
 } = crossSlice.actions;

@@ -36,10 +36,6 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
       }
       try {
         const presets = await getPresets(intMissionId);
-        if (!presets) {
-          return res.status(404).json({ status: "failure", message: "Presets not found" });
-        }
-
         return res.status(200).json({
           status: "success",
           message: "presets retrieved",
@@ -153,7 +149,7 @@ const handlePreset: NextApiHandler<WrappedResponse<Preset[] | Preset>> = async (
   }
 };
 
-async function getPresets(missionId: number): Promise<Preset[] | false> {
+export async function getPresets(missionId: number): Promise<Preset[]> {
   const model = getEM();
   const dbPresets = await model.find(Preset_db, { mission: missionId });
 

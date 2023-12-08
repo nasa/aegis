@@ -44,7 +44,6 @@ const EvaPlannerLeft: FunctionComponent = () => {
               />
               <Button
                 onClick={() => {
-                  console.log(selectedEva);
                   if (selectedEva) {
                     dispatch(thunkDuplicateEva({ eva: selectedEva, includeStations: false }));
                   }
