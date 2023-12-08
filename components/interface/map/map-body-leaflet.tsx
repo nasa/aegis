@@ -391,8 +391,15 @@ const MapBody: FunctionComponent = () => {
                   multiPolygon.coordinates[0][0][bottomLeftCoordinate][0]
                 );
 
+                // x y is flipped if it's bespoke made by the ARES GIS team
+                const cellid = feature.properties["MGRS_UTM"]
+                  ? feature.properties["CELL_ID"]
+                  : `${feature.properties["CELL_ID"].split(" ")[1]} ${
+                      feature.properties["CELL_ID"].split(" ")[0]
+                    } `;
+
                 newGridLabels.push({
-                  id: feature.properties["CELL_ID"],
+                  id: cellid,
                   latLng: { lat: latLng.lat, lng: latLng.lng },
                 });
               }
@@ -1701,7 +1708,8 @@ const MapBody: FunctionComponent = () => {
       }
     });
 
-    if (sectionSelected !== "station" && sectionSelected !== "evas") return;
+    if (sectionSelected !== "station" && sectionSelected !== "evas" && sectionSelected !== "rex")
+      return;
 
     // draw the walkback traverse
     if (!mapDirective && selectedStation?.walkbackPath) {

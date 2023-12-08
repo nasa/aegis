@@ -58,17 +58,24 @@ const Info_Panel: FunctionComponent<{
     refEqual
   );
 
-  const evasUsingThisStation = useAppSelector((state) => {
-    const evasUsingThisStation: Eva[] = [];
+  const countEvasUsingThisStation = useAppSelector((state) => {
+    let numEvas = 0;
     state.eva.evas.forEach((eva) => {
-      eva.sequence.forEach((sequenceItem) => {
-        if (sequenceItem.uuid === selectedStation.uuid) {
-          evasUsingThisStation.push(eva);
-        }
-      });
+      if (
+        eva.ingressLocationUuid === selectedStation.uuid ||
+        eva.egressLocationUuid === selectedStation.uuid
+      ) {
+        numEvas++;
+      } else {
+        eva.sequence.forEach((sequenceItem) => {
+          if (sequenceItem.uuid === selectedStation.uuid) {
+            numEvas++;
+          }
+        });
+      }
     });
-    return evasUsingThisStation;
-  }, shallowEqual);
+    return numEvas;
+  }, refEqual);
 
   const calculatedFields = useAppSelector(
     (state) =>
@@ -368,7 +375,7 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {evasUsingThisStation.length}
+                        {countEvasUsingThisStation}
                       </div>
                     </div>
                   </div>

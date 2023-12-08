@@ -80,16 +80,16 @@ export const thunkSaveRex = appCreateAsyncThunk<{ rexUuid: string }>(
     if (!rexUuid) return;
 
     const rexToSave = getState().rex.rexes.find((rex) => rex.uuid === rexUuid);
-    const upsertReponse = await httpClient_Rex.upsertRexes([rexToSave], rexToSave.rexRunning);
-    if (upsertReponse.status === "success") {
+    const upsertResponse = await httpClient_Rex.upsertRexes([rexToSave], rexToSave.rexRunning);
+    if (upsertResponse.status === "success") {
       // upsert the changed rex to the store
-      dispatch(upsertRex(upsertReponse.data[0]));
+      dispatch(upsertRex(upsertResponse.data[0], true));
       // update the rex in the store from the DB
-      dispatch(upsertRexFromDb(upsertReponse.data[0]));
+      dispatch(upsertRexFromDb(upsertResponse.data[0]));
       // take the rex out of edit mode
       dispatch(setRexEditMode({ rexUuid, editMode: false }));
     } else {
-      throw new Error("Error upserting Rexes: " + upsertReponse.message);
+      throw new Error("Error upserting Rexes: " + upsertResponse.message);
     }
 
     // log an export of a full copy of this rex and associated eva to the log db table for posterity
