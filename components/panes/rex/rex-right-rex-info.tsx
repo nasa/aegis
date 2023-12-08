@@ -8,7 +8,7 @@ import { upsertRexByField } from "store/rex";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBackwardFast, faPause, faPlay } from "@fortawesome/free-solid-svg-icons";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { Button, Dropdown, InLineEditInput } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
 import { thunkRexPetStartStop } from "store/thunk/thunkRex";
@@ -30,7 +30,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
 
   const evaDropdownItems: EvaDropdownItem[] = useAppSelector(
     (state) => state.eva.evas.map((eva) => ({ label: eva.name, value: eva.uuid })),
-    refEqual
+    deepEqual
   );
   const evaDropdownItemsSorted = _.sortBy(evaDropdownItems, (item) => item.label);
 

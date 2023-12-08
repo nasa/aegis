@@ -38,10 +38,11 @@ import { isModified } from "utils/component-helpers";
 
 export const MapCrewPositionMenu: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const selectedRexIsRunning = useAppSelector(
-    (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid)?.rexRunning,
-    refEqual
-  );
+  const selectedRexIsRunning = useAppSelector((state) => {
+    const running = state.rex.rexesFromDb.find((r) => r.uuid === state.rex.selectedRexUuid)
+      ?.rexRunning;
+    return running === undefined ? false : running; //must return bool (undefined is not acceptable)
+  }, refEqual);
   const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
   const allCrewPos = useAppSelector((state) => {
     const rexCrewPos = state.rex.rexes.find((r) => r.uuid === selectedRexUuid)?.crewPos;
