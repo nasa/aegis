@@ -1,4 +1,4 @@
-.mapCrewPosDisplayContainer {
+.mapPosDisplayContainer {
   position: absolute;
   top: 10px;
   right: 10px;
@@ -7,7 +7,7 @@
   border-radius: var(--radius);
 }
 
-.mapCrewPosDisplay {
+.mapPosDisplay {
   border: 1px solid var(--grey3);
   border-radius: var(--radius);
   background-color: var(--grey2);
@@ -85,6 +85,7 @@
   min-width: 20px;
   margin-right: 1px;
   text-align: center;
+  user-select: none;
 }
 .toggleMiddle {
   font-size: 0.8rem;
@@ -93,6 +94,7 @@
   min-width: 20px;
   margin-right: 1px;
   text-align: center;
+  user-select: none;
 }
 .toggleRight {
   font-size: 0.8rem;
@@ -102,6 +104,7 @@
   min-width: 20px;
   padding: 2px 4px 2px 4px;
   text-align: center;
+  user-select: none;
 }
 .toggleSelected {
   background-color: var(--grey4);
@@ -112,14 +115,14 @@
   padding-left: 5px;
 }
 
-.crewPosTableContainer {
+.posTableContainer {
   flex: 1 1 auto;
   overflow-y: auto;
 }
-.crewPosTable {
+.posTable {
   border-collapse: collapse;
 }
-.crewPosTable td {
+.posTable td {
   padding: 2px 3px 2px 3px;
 }
 .currentPos {
@@ -161,7 +164,7 @@
 .petColumn {
   min-width: 65px;
 }
-.crewColumn {
+.markerColumn {
   min-width: 90px;
 }
 

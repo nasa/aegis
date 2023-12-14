@@ -11,9 +11,9 @@ export const initialState: RexState = {
   expandedRexUuids: [],
   selectedRexRightNavItem: "info_panel",
   rexesEditing: [],
-  rexesCrewPosEditing: [],
-  selectedCrewPosUuid: null,
-  crewPosEditingUuid: null,
+  rexesPosEntriesEditing: [],
+  selectedPosEntryUuid: null,
+  posEntryEditingUuid: null,
   loadingStatus: "unloaded",
 };
 
@@ -120,7 +120,7 @@ export const rexSlice = createSlice({
     },
     setSelectedRexUuid: (state, action: { payload: string }) => {
       state.selectedRexUuid = action.payload;
-      state.selectedCrewPosUuid = null;
+      state.selectedPosEntryUuid = null;
     },
     setExpandedRexUuids: (state, action: { payload: string[] }) => {
       state.expandedRexUuids = action.payload;
@@ -138,14 +138,14 @@ export const rexSlice = createSlice({
         state.rexesEditing = state.rexesEditing.filter((uuid) => uuid !== action.payload.rexUuid);
       }
     },
-    setRexesCrewPosEditMode: (
+    setRexesPosEntryEditMode: (
       state,
       action: { payload: { rexUuid: string; editMode: boolean } }
     ) => {
       if (action.payload.editMode) {
-        state.rexesCrewPosEditing.push(action.payload.rexUuid);
+        state.rexesPosEntriesEditing.push(action.payload.rexUuid);
       } else {
-        state.rexesCrewPosEditing = state.rexesCrewPosEditing.filter(
+        state.rexesPosEntriesEditing = state.rexesPosEntriesEditing.filter(
           (uuid) => uuid !== action.payload.rexUuid
         );
       }
@@ -156,31 +156,31 @@ export const rexSlice = createSlice({
       state.expandedRexUuids.push(action.payload.rexUuid);
       state.selectedRexRightNavItem = "info_panel";
     },
-    setSelectedCrewPosUuid: (state, action: { payload: string }) => {
-      state.selectedCrewPosUuid = action.payload;
+    setSelectedPosEntryUuid: (state, action: { payload: string }) => {
+      state.selectedPosEntryUuid = action.payload;
     },
-    setCrewPosEditingUuid: (state, action: { payload: string }) => {
-      state.crewPosEditingUuid = action.payload;
+    setPosEntryEditingUuid: (state, action: { payload: string }) => {
+      state.posEntryEditingUuid = action.payload;
     },
-    upsertCrewPos: {
+    upsertPosEntry: {
       prepare: ({
         rexUuid,
-        crewPos,
+        posEntry: posEntry,
         preserveModifiedDate = false,
       }: {
         rexUuid: string;
-        crewPos: CrewPos;
+        posEntry: PosEntry;
         preserveModifiedDate?: boolean;
       }) => {
         if (preserveModifiedDate) {
           return {
-            payload: { rexUuid, crewPos, updatedAt: null },
+            payload: { rexUuid, posEntry, updatedAt: null },
           };
         } else {
           return {
             payload: {
               rexUuid,
-              crewPos,
+              posEntry,
               updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
             },
           };
@@ -188,23 +188,26 @@ export const rexSlice = createSlice({
       },
       reducer: (
         state,
-        action: { payload: { rexUuid: string; crewPos: CrewPos; updatedAt: string } }
+        action: { payload: { rexUuid: string; posEntry: PosEntry; updatedAt: string } }
       ) => {
         const rex = state.rexes.find((f) => f.uuid === action.payload.rexUuid);
-        if (!rex.crewPos) {
-          rex.crewPos = [{ ...action.payload.crewPos, updatedAt: action.payload.updatedAt }];
+        if (!rex.posEntries) {
+          rex.posEntries = [{ ...action.payload.posEntry, updatedAt: action.payload.updatedAt }];
         } else {
-          upsertToArrayByUuid(rex.crewPos, {
-            ...action.payload.crewPos,
+          upsertToArrayByUuid(rex.posEntries, {
+            ...action.payload.posEntry,
             updatedAt: action.payload.updatedAt,
           });
         }
         if (action.payload.updatedAt) rex.updatedAt = action.payload.updatedAt;
       },
     },
-    deleteCrewPosByUuid: (state, action: { payload: { rexUuid: string; crewPosUuid: string } }) => {
+    deletePosEntryByUuid: (
+      state,
+      action: { payload: { rexUuid: string; posEntryUuid: string } }
+    ) => {
       const rex = state.rexes.find((f) => f.uuid === action.payload.rexUuid);
-      rex.crewPos = rex.crewPos.filter((c) => c.uuid !== action.payload.crewPosUuid);
+      rex.posEntries = rex.posEntries.filter((c) => c.uuid !== action.payload.posEntryUuid);
     },
     setRexLoadingStatus: (state, action: { payload: LoadingStatus }) => {
       state.loadingStatus = action.payload;
@@ -229,11 +232,11 @@ export const {
   setSelectedRexRightNavItem,
   setRexesEditing,
   setRexEditMode,
-  setRexesCrewPosEditMode,
+  setRexesPosEntryEditMode,
   setStateForNewRex,
-  setSelectedCrewPosUuid,
-  setCrewPosEditingUuid,
-  upsertCrewPos,
-  deleteCrewPosByUuid,
+  setSelectedPosEntryUuid,
+  setPosEntryEditingUuid,
+  upsertPosEntry,
+  deletePosEntryByUuid,
   setRexLoadingStatus,
 } = rexSlice.actions;

@@ -4,7 +4,7 @@ export const initialState: HoverState = {
   timelineSeqItemUuid: null,
   leftPanelHoverItemUuid: null,
   mapItemUuid: null,
-  crewPosItemUuid: null,
+  posEntryItemUuid: null,
   evaSecondsElapsed: null,
   sequenceItemPercentElapsed: null,
 };
@@ -27,8 +27,8 @@ export const hoverSlice = createSlice({
     setMapItemHoverUuid: (state, action: { payload: string }) => {
       state.mapItemUuid = action.payload;
     },
-    setCrewPosItemHoverUuid: (state, action: { payload: string }) => {
-      state.crewPosItemUuid = action.payload;
+    setPosEntryItemHoverUuid: (state, action: { payload: string }) => {
+      state.posEntryItemUuid = action.payload;
     },
     setMapItemHover: (
       state,
@@ -44,7 +44,7 @@ export const hoverSlice = createSlice({
       state.evaSecondsElapsed = null;
       state.sequenceItemPercentElapsed = null;
       state.mapItemUuid = null;
-      state.crewPosItemUuid = null;
+      state.posEntryItemUuid = null;
       state.leftPanelHoverItemUuid = null;
       state.timelineSeqItemUuid = null;
     },
@@ -53,8 +53,8 @@ export const hoverSlice = createSlice({
       state.leftPanelHoverItemUuid = action.payload;
       state.mapItemUuid = action.payload;
     },
-    setHoverUuidsForCrewPos: (state, action: { payload: string }) => {
-      state.crewPosItemUuid = action.payload;
+    setHoverUuidsForPosEntry: (state, action: { payload: string }) => {
+      state.posEntryItemUuid = action.payload;
       state.timelineSeqItemUuid = action.payload;
       state.mapItemUuid = action.payload;
     },
@@ -65,9 +65,9 @@ export const {
   setTimelineHoverUuid,
   setLeftPanelHoverUuid,
   setMapItemHoverUuid,
-  setCrewPosItemHoverUuid,
+  setPosEntryItemHoverUuid,
   setMapItemHover,
   clearMapItemHover,
   setHoverUuidsForSequence,
-  setHoverUuidsForCrewPos,
+  setHoverUuidsForPosEntry,
 } = hoverSlice.actions;

@@ -32,6 +32,7 @@ import { thunkAuditActions } from "store/thunk/thunkAction";
 import { setRexLoadingStatus, setRexes, setRexesFromDb } from "store/rex";
 import { setAllStoreLoadingStatuses, setRunningRexView } from "store/cross-slice";
 import { getAll } from "http-client/all";
+import { thunkAuditRexPositions } from "store/thunk/thunkRex";
 
 const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: boolean }> = ({
   missionId,
@@ -49,10 +50,12 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
   const evaLoadingStatus = useAppSelector((state) => state.eva.loadingStatus, refEqual);
   const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
   const stmLoadingStatus = useAppSelector((state) => state.stm.loadingStatus, refEqual);
+  const rexLoadingStatus = useAppSelector((state) => state.rex.loadingStatus, refEqual);
   const presetUuids = useAppSelector(
     (state) => state.preset.presets.map((p) => p.uuid),
     shallowEqual
   );
+  const rexes = useAppSelector((state) => state.rex.rexes, shallowEqual);
 
   const stationsCalculatedFields = useAppSelector(
     (state) => state.station.calculatedFields,
@@ -65,6 +68,8 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
 
   const actionsAudited = useRef(false);
   const evasAudited = useRef(false);
+
+  const rexPosAudited = useRef(false);
 
   const dispatch = useAppDispatch();
 
@@ -449,6 +454,19 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
     //audit evas
     dispatch(thunkAuditEvas());
   }, [evaLoadingStatus, traverseLoadingStatus, dispatch, evasAudited, stationsLoadingStatus]);
+
+  /**
+   * Audit REX positions
+   * TODO: This is a temporary fix to audit REX positions to conver them from the old hard coded EV1, EV2, Cart format to the new flexible type format
+   */
+  useEffect(() => {
+    if (rexLoadingStatus !== "loaded") return;
+
+    // audit crew positions
+    dispatch(thunkAuditRexPositions());
+
+    rexPosAudited.current = true;
+  }, [rexes, rexLoadingStatus, dispatch]);
 
   return <></>;
 };

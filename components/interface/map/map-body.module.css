@@ -58,71 +58,49 @@
   color: rgba(0, 0, 0, 1);
   font-size: 1.2em;
   user-select: none;
+  filter: drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5)) drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5))
+    drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5)) drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5));
 }
 
-.crewPosWrapper {
+.mapIconWin10 {
+  color: rgba(0, 0, 0, 1);
+  font-size: 1.2em;
+  user-select: none;
+}
+
+.iconWrapper {
+  display: flex;
   position: relative;
+  width: 21px;
+  height: 21px;
 }
 
-.crewPosIcon {
+.posIcon {
   position: absolute;
   left: 2px;
-  font-size: 1.1em;
+  font-size: 1.2em;
+  user-select: none;
+  filter: drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5)) drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5))
+    drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5)) drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5));
+}
+
+.posIconWin10 {
+  position: absolute;
+  left: 2px;
+  font-size: 1.2em;
   user-select: none;
 }
 
-.crewPosIconBackground {
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  font-size: 1.1em;
-  user-select: none;
-}
-
-.crewPosCart {
-  position: absolute;
-  left: 2px;
-  font-size: 1.3em;
-}
-
-.crewPosBarFull {
+.posBar {
+  display: flex;
+  flex-direction: row;
   position: absolute;
   top: 18px;
   width: 20px;
-  height: 5px;
+  height: 6px;
   border: 1px solid var(--grey2);
   border-radius: 3px;
 }
-.crewPosBarLeft {
-  position: absolute;
-  top: 18px;
-  width: 10px;
-  height: 5px;
-  border: 1px solid var(--grey2);
-  border-bottom-left-radius: 3px;
-  border-top-left-radius: 3px;
-}
-.crewPosBarRight {
-  position: absolute;
-  top: 18px;
-  left: 9px;
-  width: 10px;
-  height: 5px;
-  border: 1px solid var(--grey2);
-  border-bottom-right-radius: 3px;
-  border-top-right-radius: 3px;
-}
-
-.crewPosBarEv1 {
-  background-color: var(--error);
-}
-.crewPosBarEv2 {
-  background-color: white;
-}
-
-.crewPosMiniCart {
-  position: absolute;
-  top: 6px;
-  left: 17px;
-  font-size: 0.8em;
+.posBarItem {
+  flex: 1 1 auto;
 }

@@ -710,31 +710,31 @@ export const drawPetLine = (
  * @param paperDataRef
  * @param paperGroupsRef
  */
-export const drawCrewPositions = (
+export const drawPositionMarkers = (
   paperDataRef: MutableRefObject<PaperData>,
   paperGroupsRef: MutableRefObject<PaperGroups>,
-  crewPosRef: MutableRefObject<CrewPos_PaperJS[]>,
-  selectedCrewPosUuid: string
+  posRef: MutableRefObject<PosEntry_PaperJS[]>,
+  selectedPosEntryUuid: string
 ): void => {
   const paperVars = paperDataRef.current.paperVars;
-  const crewPosRefSorted = orderBy(crewPosRef.current, ["seconds"], "desc");
-  for (let i = 0; i < crewPosRefSorted.length; i++) {
-    const crewPosPaperJS = crewPosRefSorted[i];
-    const x = crewPosPaperJS.seconds * paperVars.pixelsPerSecondX + paperVars.timelineLeft;
+  const posRefSorted = orderBy(posRef.current, ["seconds"], "desc");
+  for (let i = 0; i < posRefSorted.length; i++) {
+    const posPaperJS = posRefSorted[i];
+    const x = posPaperJS.seconds * paperVars.pixelsPerSecondX + paperVars.timelineLeft;
     const y =
       paperVars.timelineTop +
       paperVars.graphHeight -
-      crewPosPaperJS.distanceFromLanderMeters * paperVars.pixelsPerMeterDistanceY;
+      posPaperJS.distanceFromLanderMeters * paperVars.pixelsPerMeterDistanceY;
     let color = paperDataRef.current.styles.blue;
-    if (selectedCrewPosUuid === crewPosRefSorted[i].uuid) {
+    if (selectedPosEntryUuid === posRefSorted[i].uuid) {
       color = paperDataRef.current.styles.yellow;
     } else if (i === 0) {
       color = paperDataRef.current.styles.brightGreen;
     }
     const circle = new paper.Path.Circle(new paper.Point(x, y), 3);
     circle.fillColor = color;
-    circle.name = crewPosRefSorted[i].uuid;
-    paperGroupsRef.current.crewPositions.addChild(circle);
+    circle.name = posRefSorted[i].uuid;
+    paperGroupsRef.current.positionMarkers.addChild(circle);
   }
 };
 

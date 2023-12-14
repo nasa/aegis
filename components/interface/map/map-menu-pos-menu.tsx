@@ -2,22 +2,26 @@ import { faEllipsisV, faTrashAlt, faEdit } from "@fortawesome/free-solid-svg-ico
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Dispatch, FunctionComponent, SetStateAction, useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkCancelCrewPos, thunkDeleteCrewPosByUuid } from "store/thunk/thunkRex";
-import styles from "./map-menu-crewPos.module.css";
+import { thunkCancelPosEntry, thunkDeletePosEntryByUuid } from "store/thunk/thunkRex";
+import styles from "./map-menu-pos.module.css";
 import { useAppSelector, refEqual } from "utils/useAppSelector";
-import { setCrewPosEditingUuid, setRexesCrewPosEditMode, setSelectedCrewPosUuid } from "store/rex";
+import {
+  setPosEntryEditingUuid,
+  setRexesPosEntryEditMode,
+  setSelectedPosEntryUuid,
+} from "store/rex";
 
-export const CrewPosKabobMenu: FunctionComponent<{
-  crewPos: CrewPos;
+export const PosKabobMenu: FunctionComponent<{
+  posEntry: PosEntry;
   isSelected: boolean;
   isEditing: boolean;
-  setCrewSelected: Dispatch<SetStateAction<RexCrewType[]>>;
-}> = ({ crewPos, isSelected, isEditing, setCrewSelected }) => {
+  setSelectedPosTypes: Dispatch<SetStateAction<string[]>>;
+}> = ({ posEntry, isSelected, isEditing, setSelectedPosTypes }) => {
   const dispatch = useAppDispatch();
   const dialogRef = useRef(null);
   const menuRef = useRef(null);
   const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
-  const crewPosEditingUuid = useAppSelector((state) => state.rex.crewPosEditingUuid, refEqual);
+  const posEntryEditingUuid = useAppSelector((state) => state.rex.posEntryEditingUuid, refEqual);
 
   const handleMenuOpen = (e: React.MouseEvent) => {
     const x = e.clientX + 5; // width of the menu
@@ -25,14 +29,14 @@ export const CrewPosKabobMenu: FunctionComponent<{
     menuRef.current.style.top = `${e.clientY}px`;
   };
 
-  const handleEdit = async (crewPosUuid: string) => {
+  const handleEdit = async (posEntryUuid: string) => {
     //cancel out anything else in edit before putting this one in edit
-    await dispatch(thunkCancelCrewPos({ crewPosUuid: crewPosEditingUuid }));
+    await dispatch(thunkCancelPosEntry({ posEntryUuid: posEntryEditingUuid }));
 
-    setCrewSelected(crewPos.crew);
-    dispatch(setSelectedCrewPosUuid(crewPosUuid));
-    dispatch(setCrewPosEditingUuid(crewPos.uuid));
-    dispatch(setRexesCrewPosEditMode({ rexUuid: selectedRexUuid, editMode: true }));
+    setSelectedPosTypes(posEntry.posTypeUuids);
+    dispatch(setSelectedPosEntryUuid(posEntryUuid));
+    dispatch(setPosEntryEditingUuid(posEntry.uuid));
+    dispatch(setRexesPosEntryEditMode({ rexUuid: selectedRexUuid, editMode: true }));
   };
   return (
     <>
@@ -48,7 +52,7 @@ export const CrewPosKabobMenu: FunctionComponent<{
             <div
               className={styles.kabobMenuItem}
               onClick={() => {
-                handleEdit(crewPos.uuid);
+                handleEdit(posEntry.uuid);
                 dialogRef.current?.close();
               }}
             >
@@ -61,8 +65,8 @@ export const CrewPosKabobMenu: FunctionComponent<{
             onClick={(e) => {
               if (window.confirm("Are you sure you want to delete this Crew Position?")) {
                 dispatch(
-                  thunkDeleteCrewPosByUuid({
-                    crewPosUuid: crewPos.uuid,
+                  thunkDeletePosEntryByUuid({
+                    posEntryUuid: posEntry.uuid,
                   })
                 );
                 e.stopPropagation();

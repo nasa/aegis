@@ -124,6 +124,7 @@ const Main: NextPage = () => {
             className={styles.tooltip}
             clickable={true}
             delayShow={1000}
+            delayHide={500}
           />
           <div className={styles.header}>
             <Header />

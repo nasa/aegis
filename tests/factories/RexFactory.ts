@@ -16,7 +16,8 @@ export default class RexFactory extends Factory<Rex_db> {
       petRunning: false,
       selectedRexEvaUuid: null,
       rexRunning: false,
-      crewPos: null,
+      posEntries: null,
+      posTypes: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -34,19 +35,20 @@ export const createTestRex = (): Rex => {
     petRunning: false,
     selectedRexEvaUuid: null,
     rexRunning: false,
-    crewPos: null,
+    posEntries: null,
+    posTypes: null,
     createdAt: new Date().toISOString(),
     updatedAt: null,
   };
 };
 
-export const createTestCrewPos = (): CrewPos => {
+export const createTestPosEntry = (): PosEntry => {
   return {
     uuid: uuidv4(),
     location: null,
     elevation: null,
     seconds: null,
-    crew: null,
+    posTypeUuids: null,
     createdAt: new Date().toISOString(),
     updatedAt: null,
   };

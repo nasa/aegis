@@ -46,22 +46,6 @@ type Eva_db_type = Omit<Eva, "ownerId" | "missionId" | "createdAt" | "updatedAt"
 
 type EVAStatus = "Archived" | "Candidate" | "In Review" | "Approved";
 
-type EvaRexEvent = {
-  uuid: string;
-  creationDate: string;
-};
-type RexCrewType = Crew | "Cart";
-
-interface CrewPos {
-  uuid: string;
-  location: AEGISPoint;
-  elevation: number;
-  seconds: number;
-  crew: RexCrewType[];
-  createdAt: string;
-  updatedAt: string;
-}
-
 type TraverseStatus = "Archived" | "Candidate" | "In Review" | "Approved";
 
 interface Traverse {
@@ -314,7 +298,8 @@ type Rex = {
   petRunning: boolean; // whether the timer is currently running
   selectedRexEvaUuid: string;
   rexRunning: boolean;
-  crewPos: CrewPos[];
+  posEntries: PosEntry[];
+  posTypes: PosType[];
   createdAt?: string;
   updatedAt?: string;
 };
@@ -324,6 +309,29 @@ type Rex_db_type = Omit<Rex, "missionId" | "createdAt" | "updatedAt"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };
+
+type EvaRexEvent = {
+  uuid: string;
+  creationDate: string;
+};
+
+interface PosEntry {
+  uuid: string;
+  location: AEGISPoint;
+  elevation: number;
+  seconds: number;
+  posTypeUuids: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface PosType {
+  uuid: string;
+  abbr: string;
+  name: string;
+  icon: string;
+  pathColor: string;
+}
 
 type LogType =
   | "missionUpsert"
