@@ -77,18 +77,19 @@ async function getHomepageMissionItems(
 
     const rex: Rex = rexDb
       ? {
-          missionId: rexDb?.mission.id,
-          uuid: rexDb?.uuid,
-          name: rexDb?.name,
-          description: rexDb?.description,
-          petStartStopTimestamp: rexDb?.petStartStopTimestamp,
-          petValueAtStartStop: rexDb?.petValueAtStartStop,
-          petRunning: rexDb?.petRunning,
-          selectedRexEvaUuid: rexDb?.selectedRexEvaUuid,
-          rexRunning: rexDb?.rexRunning,
-          crewPos: rexDb?.crewPos,
-          createdAt: rexDb?.createdAt.toISOString(),
-          updatedAt: rexDb?.updatedAt.toISOString(),
+          missionId: rexDb.mission.id,
+          uuid: rexDb.uuid,
+          name: rexDb.name,
+          description: rexDb.description,
+          petStartStopTimestamp: rexDb.petStartStopTimestamp,
+          petValueAtStartStop: rexDb.petValueAtStartStop,
+          petRunning: rexDb.petRunning,
+          selectedRexEvaUuid: rexDb.selectedRexEvaUuid,
+          rexRunning: rexDb.rexRunning,
+          posEntries: rexDb.posEntries,
+          posTypes: rexDb.posTypes,
+          createdAt: rexDb.createdAt.toISOString(),
+          updatedAt: rexDb.updatedAt.toISOString(),
         }
       : null;
     const missionHomepageItem: MissionHomepageItem = {

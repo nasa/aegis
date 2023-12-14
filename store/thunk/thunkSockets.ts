@@ -49,8 +49,8 @@ import { setMission, setMissionFromDb, setMissionSectionEditing } from "store/mi
 import {
   deleteRexesByUuid,
   deleteRexesFromDbByUuid,
-  setCrewPosEditingUuid,
-  setRexesCrewPosEditMode,
+  setPosEntryEditingUuid,
+  setRexesPosEntryEditMode,
   setRexEditMode,
   upsertRexes,
   upsertRexesFromDb,
@@ -181,20 +181,20 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
         dispatch(setRexEditMode({ rexUuid: changedRex.uuid, editMode: false }));
       }
       //check changes on crew pos inside rex object. this is handled seperately
-      if (getState().rex.rexesCrewPosEditing.includes(changedRex.uuid)) {
+      if (getState().rex.rexesPosEntriesEditing.includes(changedRex.uuid)) {
         upsertMessages.push(getConflictMessage("crew position on", changedRex.name, "upsert"));
         //if there was an open map directive for one of the crew pos, cancel it
-        if (getState().map.mapDirective?.mapItemType === "crewPos") {
+        if (getState().map.mapDirective?.mapItemType === "posEntry") {
           dispatch(
             updateMapDirective({
-              mapItemType: "crewPos",
-              uuid: getState().rex.crewPosEditingUuid,
+              mapItemType: "posEntry",
+              uuid: getState().rex.posEntryEditingUuid,
               mapAction: "cancelEditMarker",
             })
           );
         }
-        dispatch(setRexesCrewPosEditMode({ rexUuid: changedRex.uuid, editMode: false }));
-        dispatch(setCrewPosEditingUuid(null));
+        dispatch(setRexesPosEntryEditMode({ rexUuid: changedRex.uuid, editMode: false }));
+        dispatch(setPosEntryEditingUuid(null));
       }
       //if this rex is the new running rex, update selected rex
       if (changedRex.rexRunning) {

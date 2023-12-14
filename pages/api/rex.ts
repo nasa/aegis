@@ -206,7 +206,8 @@ async function upsertRexes(rexes: Rex[]): Promise<Rex[]> {
       petRunning: rexToUpsert.petRunning,
       selectedRexEvaUuid: rexToUpsert.selectedRexEvaUuid,
       rexRunning: rexToUpsert.rexRunning,
-      crewPos: rexToUpsert.crewPos,
+      posEntries: rexToUpsert.posEntries,
+      posTypes: rexToUpsert.posTypes,
       updatedAt: new Date(rexToUpsert.updatedAt),
       createdAt: new Date(rexToUpsert.createdAt),
     };

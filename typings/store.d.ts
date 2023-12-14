@@ -2,7 +2,7 @@ interface HoverState {
   timelineSeqItemUuid: string; //when hovering over the timeline
   leftPanelHoverItemUuid: string;
   mapItemUuid: string;
-  crewPosItemUuid: string;
+  posEntryItemUuid: string;
   evaSecondsElapsed: number /** Seconds representing the time into the mission that the mouse is hovering on via the nav-timeline */;
   sequenceItemPercentElapsed: number; //when hovering over the timline, represents % duration elapsed for that sequence item at that point in time
 }
@@ -115,9 +115,9 @@ interface RexState {
   expandedRexUuids: string[];
   selectedRexRightNavItem: string;
   rexesEditing: string[];
-  rexesCrewPosEditing: string[];
-  selectedCrewPosUuid: string;
-  crewPosEditingUuid: string; //only one can be in edit mode at a time
+  rexesPosEntriesEditing: string[];
+  selectedPosEntryUuid: string;
+  posEntryEditingUuid: string; //only one can be in edit mode at a time
   loadingStatus: LoadingStatus;
 }
 

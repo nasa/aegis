@@ -29,7 +29,7 @@ import { setSelectedPoiUuid } from "store/poi";
 import { setRightPanelOpen, setSectionSelected } from "store/interface";
 import { revertWalkbackPath, setSelectedStationUuid } from "store/station";
 import { revertTraversePath } from "store/traverse";
-import { setSelectedCrewPosUuid } from "store/rex";
+import { setSelectedPosEntryUuid } from "store/rex";
 import {
   convertLeafletLatLngsToAegisPoints,
   convertLeafletLatLngToAegisPoint,
@@ -38,7 +38,7 @@ import {
   getMidpoint,
 } from "utils/geoMath";
 import { decodeEmoji, secondsFromhhmmss, hhmmssFromSeconds, titleCase } from "utils/formatting";
-import { clearMapItemHover, setHoverUuidsForSequence, setHoverUuidsForCrewPos } from "store/hover";
+import { clearMapItemHover, setHoverUuidsForSequence, setHoverUuidsForPosEntry } from "store/hover";
 
 import {
   thunkUpdateStationLocation,
@@ -54,10 +54,11 @@ import { thunkGetStationOrTraverse } from "store/thunk/thunkEva";
 import { thunkUpdateLanderLocation } from "store/thunk/thunkMission";
 import { thunkUpdateActionLocation } from "store/thunk/thunkAction";
 import { MapViewMenu } from "./map-menu-view";
-import { MapCrewPositionMenu } from "./map-menu-crewPos";
-import { thunkUpdateCrewPosLocation } from "store/thunk/thunkRex";
+import { MapPositionMenu } from "./map-menu-pos";
+import { thunkUpdatePosEntryLocation } from "store/thunk/thunkRex";
 import PetInterval from "../page/petInterval";
 import ReactDOMServer from "react-dom/server";
+import { isWindows10 } from "utils/browser";
 
 type MissionSelectProperties = Pick<
   Mission,
@@ -100,7 +101,7 @@ const MapBody: FunctionComponent = () => {
   const poiFeatureGroup = useRef<L.FeatureGroup>(null);
   const actionFeatureGroup = useRef<L.FeatureGroup>(null);
   const gridLabelFeatureGroup = useRef<L.FeatureGroup>(null);
-  const crewPosFeatureGroup = useRef<L.FeatureGroup>(null);
+  const posEntryFeatureGroup = useRef<L.FeatureGroup>(null);
 
   const mission: MissionSelectProperties = useAppSelector(
     (state) =>
@@ -173,7 +174,7 @@ const MapBody: FunctionComponent = () => {
   );
   const hover = useAppSelector((state) => state.hover, shallowEqual); //astronaut hover timeline
 
-  const selectedCrewPosUuid = useAppSelector((state) => state.rex.selectedCrewPosUuid, refEqual);
+  const selectedPosEntryUuid = useAppSelector((state) => state.rex.selectedPosEntryUuid, refEqual);
   const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
 
   const mapHoverItemUuid = useAppSelector((state) => state.hover.mapItemUuid, refEqual);
@@ -185,7 +186,7 @@ const MapBody: FunctionComponent = () => {
   const [stationsToShow, setStationsToShow] = useState<Station[]>([]);
   const [traversesToShow, setTraversesToShow] = useState<Traverse[]>([]);
   const [actionsToShow, setActionsToShow] = useState<Action[]>([]);
-  const [crewPosToShow, setCrewPosToShow] = useState<CrewPos[]>([]);
+  const [posEntriesToShow, setPosEntriesToShow] = useState<PosEntry[]>([]);
   const [mapDisplayPois, setMapDisplayPois] = useState<MapMarkersDisplay>({
     show: true,
     showLabels: false,
@@ -198,7 +199,7 @@ const MapBody: FunctionComponent = () => {
     show: true,
     showLabels: false,
   });
-  const [mapDisplayCrewPos, setMapDisplayCrewPos] = useState<MapCrewPosDisplay>({
+  const [mapDisplayPosMarkers, setMapDisplayPosMarkers] = useState<MapPosDisplay>({
     show: true,
     showPaths: true,
     showAllLabels: false,
@@ -214,6 +215,9 @@ const MapBody: FunctionComponent = () => {
   const [gridLabels, setGridLabels] = useState<GridLabelItem[]>([]);
   const [showArrows, setShowArrows] = useState(false);
   const [showGridLabels, setShowGridLabels] = useState(true);
+
+  // used to update the PET value via the PetInterval component
+  const [rexPetTime, setRexPetTime] = useState("");
 
   // make color filter settings for tile sublayer. This is the format of leaflet.tilelayer.colorfilter package
   const makeTileLayerColorFilter = (
@@ -653,134 +657,11 @@ const MapBody: FunctionComponent = () => {
     );
   }, [mapPosition]);
 
-  const drawOrUpdateCrewPosOnMap = useCallback(
-    ({
-      crewPos,
-      permanentLabel,
-      onClick = () => {},
-      onDragEnd = () => {},
-      markerOptions,
-      tooltipOptions = {},
-    }: {
-      crewPos: CrewPos;
-      permanentLabel: boolean;
-      onClick: Function;
-      onDragEnd: Function;
-      markerOptions: L.MarkerOptions;
-      tooltipOptions: L.TooltipOptions;
-    }) => {
-      const { uuid, location, crew } = crewPos;
-      if (isNaN(crewPos?.location?.lat) || isNaN(crewPos?.location?.lng)) return;
-      const mapItemType = "crewPos";
-
-      // make html for all permutations of crew loc crewItem types
-      const crewEmoji = "1f468-200d-1f680"; //crew
-      const cartEmoji = "1f6d2"; //cart
-
-      let jsx = null;
-      // if only cart is in the item, show a cart emoji only
-      if (crew.find((crewType) => crewType === "Cart") && crew.length === 1) {
-        jsx = (
-          <div className={styles.crewPosWrapper}>
-            <div className={styles.crewPosCart}>{decodeEmoji(cartEmoji)}</div>
-          </div>
-        );
-      } else if (
-        crew.find((crewType) => crewType === "EV1") &&
-        !crew.find((crewType) => crewType === "EV2")
-      ) {
-        // if only EV1 is in the item, show a full bar with EV1 color and optionally show cart dot if a cart is in the item
-        jsx = (
-          <div className={styles.crewPosWrapper}>
-            <div className={styles.crewPosIcon}>{decodeEmoji(crewEmoji)}</div>
-            <div className={`${styles.crewPosBarFull} ${styles.crewPosBarEv1}`}></div>
-            {crew.find((crewType) => crewType === "Cart") && (
-              <div className={`${styles.crewPosMiniCart}`}>{decodeEmoji(cartEmoji)}</div>
-            )}
-          </div>
-        );
-      } else if (
-        crew.find((crewType) => crewType === "EV2") &&
-        !crew.find((crewType) => crewType === "EV1")
-      ) {
-        // if only EV2 is in the item, show a full bar with EV2 color and optionally show cart dot if a cart is in the item
-        jsx = (
-          <div className={styles.crewPosWrapper}>
-            <div className={styles.crewPosIcon}>{decodeEmoji(crewEmoji)}</div>
-            <div className={`${styles.crewPosBarFull} ${styles.crewPosBarEv2}`}></div>
-            {crew.find((crewType) => crewType === "Cart") && (
-              <div className={`${styles.crewPosMiniCart}`}>{decodeEmoji(cartEmoji)}</div>
-            )}
-          </div>
-        );
-      } else {
-        // show EV1 and EV2 half bars and optionally show cart dot if a cart is in the item
-        jsx = (
-          <div className={styles.crewPosWrapper}>
-            <div className={styles.crewPosIconBackground}>{decodeEmoji(crewEmoji)}</div>
-            <div className={styles.crewPosIcon}>{decodeEmoji(crewEmoji)}</div>
-            <div className={`${styles.crewPosBarLeft} ${styles.crewPosBarEv1}`}></div>
-            <div className={`${styles.crewPosBarRight} ${styles.crewPosBarEv2}`}></div>
-            {crew.find((crewType) => crewType === "Cart") && (
-              <div className={`${styles.crewPosMiniCart}`}>{decodeEmoji(cartEmoji)}</div>
-            )}
-          </div>
-        );
-      }
-
-      const html = ReactDOMServer.renderToString(jsx);
-      const icon = L.divIcon({ html });
-
-      const existingLayer = getMapItemByUuid(uuid, mapItemType) as AEGISMarker;
-      if (existingLayer && existingLayer.mapItemType === mapItemType) {
-        existingLayer.setLatLng(location as L.LatLng);
-        existingLayer.setIcon(icon);
-      } else {
-        const marker = L.marker(location as AEGISPoint, {
-          icon,
-          ...markerOptions,
-        }) as AEGISMarker;
-        marker.uuid = uuid;
-        marker.mapItemType = mapItemType;
-
-        // marker handlers
-        marker.bindTooltip(``, {
-          sticky: false,
-          direction: "top",
-          offset: new L.Point(0, -10),
-          permanent: permanentLabel,
-          className: "leaflet-tooltip-own",
-          ...tooltipOptions,
-        });
-
-        marker
-          .on("click", () => {
-            onClick();
-          })
-          .on("mouseover", () => {
-            dispatch(setHoverUuidsForCrewPos(marker.uuid));
-          })
-          .on("mouseout", () => {
-            dispatch(clearMapItemHover());
-          });
-        if (onDragEnd) {
-          // dragend handler that causes edit to be saved on mouseup
-          marker.on("dragend", (e) => {
-            map.current.getContainer().style.cursor = "grab";
-            onDragEnd(e.target as AEGISMarker);
-          });
-        }
-        crewPosFeatureGroup.current.addLayer(marker);
-      }
-    },
-    [map, getMapItemByUuid, dispatch]
-  );
-
   /**
    * Draw or update markers on the map
    */
   const drawOrUpdateMarkerOnMap = useCallback(
-    ({
+    async ({
       name,
       uuid,
       iconEmoji,
@@ -805,8 +686,14 @@ const MapBody: FunctionComponent = () => {
     }) => {
       if (isNaN(location.lat) || isNaN(location.lng)) return;
 
+      const isWin10 = await isWindows10();
+
       const html = ReactDOMServer.renderToString(
-        <div className={styles.mapIcon}>{decodeEmoji(iconEmoji)}</div>
+        <div className={styles.iconWrapper}>
+          <div className={isWin10 ? styles.mapIconWin10 : styles.mapIcon}>
+            {decodeEmoji(iconEmoji)}
+          </div>
+        </div>
       );
       const icon = L.divIcon({ html });
 
@@ -838,8 +725,8 @@ const MapBody: FunctionComponent = () => {
               onClick();
             })
             .on("mouseover", () => {
-              if (mapItemType === "crewPos") {
-                dispatch(setHoverUuidsForCrewPos(marker.uuid));
+              if (mapItemType === "posEntry") {
+                dispatch(setHoverUuidsForPosEntry(marker.uuid));
               } else {
                 dispatch(setHoverUuidsForSequence(marker.uuid));
               }
@@ -863,8 +750,8 @@ const MapBody: FunctionComponent = () => {
           poiFeatureGroup.current.addLayer(marker);
         } else if (mapItemType === "action") {
           actionFeatureGroup.current.addLayer(marker);
-        } else if (mapItemType === "crewPos") {
-          crewPosFeatureGroup.current.addLayer(marker);
+        } else if (mapItemType === "posEntry") {
+          posEntryFeatureGroup.current.addLayer(marker);
         } else {
           map.current.addLayer(marker);
         }
@@ -1021,8 +908,8 @@ const MapBody: FunctionComponent = () => {
         case "action":
           await dispatch(thunkUpdateActionLocation({ location, actionUuid: uuid }));
           break;
-        case "crewPos":
-          await dispatch(thunkUpdateCrewPosLocation({ location, crewPosUuid: uuid }));
+        case "posEntry":
+          await dispatch(thunkUpdatePosEntryLocation({ location, posEntryUuid: uuid }));
           break;
       }
     },
@@ -1087,8 +974,8 @@ const MapBody: FunctionComponent = () => {
       gridLabelFeatureGroup.current = L.featureGroup().addTo(map.current);
     }
 
-    if (!crewPosFeatureGroup.current) {
-      crewPosFeatureGroup.current = L.featureGroup().addTo(map.current);
+    if (!posEntryFeatureGroup.current) {
+      posEntryFeatureGroup.current = L.featureGroup().addTo(map.current);
     }
   }, [mapRef, map, draggableLines, mission]);
 
@@ -1131,7 +1018,7 @@ const MapBody: FunctionComponent = () => {
           mapDirective.mapItemType === "poi" ||
           mapDirective.mapItemType === "lander" ||
           mapDirective.mapItemType === "action" ||
-          mapDirective.mapItemType === "crewPos") &&
+          mapDirective.mapItemType === "posEntry") &&
         (mapDirective.mapAction === "editMarker" || mapDirective.mapAction === "createMarker")
       ) {
         saveUpdatedItemPosition(
@@ -1459,17 +1346,17 @@ const MapBody: FunctionComponent = () => {
   }, [traverses, selectedEvaSequenceItemUuid, selectedEva]);
 
   /**
-   * Populate Crew positions to show when crew pos or selections change
+   * Populate pos entries to show when pos or selections change
    */
   useEffect(() => {
-    setCrewPosToShow([]);
-    if (mapDisplayCrewPos.show) {
+    setPosEntriesToShow([]);
+    if (mapDisplayPosMarkers.show) {
       //if there is a running rex, or no running rex but we're on the rex section and there's a rex selected
       if (selectedOrRunningRex?.rexRunning || (sectionSelected === "rex" && selectedOrRunningRex)) {
-        setCrewPosToShow(_.orderBy(selectedOrRunningRex.crewPos, ["createdAt"], "desc"));
+        setPosEntriesToShow(_.orderBy(selectedOrRunningRex.posEntries, ["createdAt"], "desc"));
       }
     }
-  }, [selectedOrRunningRex, sectionSelected, mapDisplayCrewPos]);
+  }, [selectedOrRunningRex, sectionSelected, mapDisplayPosMarkers]);
 
   /**
    * Populate lander radii
@@ -1763,7 +1650,7 @@ const MapBody: FunctionComponent = () => {
           onClick: () => {
             dispatch(setSectionSelected("evas"));
             dispatch(selectEVASequenceItem({ sequenceItemUuid: traverse.uuid }));
-            dispatch(setSelectedCrewPosUuid(null));
+            dispatch(setSelectedPosEntryUuid(null));
           },
           color: selectedEvaSequenceItemUuid === traverse.uuid ? "#64ceff" : "#03adfc",
           mapItemType: "traverse",
@@ -1782,10 +1669,139 @@ const MapBody: FunctionComponent = () => {
   ]);
 
   /**
-   * Draw or update crew positions on the map when crew pos change. Serves as draw when page loads
+   * Draw or update pos entries on the map when pos changes. Serves as draw when page loads
+   */
+  const drawOrUpdatePosOnMap = useCallback(
+    async ({
+      posEntry,
+      permanentLabel,
+      onClick = () => {},
+      onDragEnd = () => {},
+      markerOptions,
+      tooltipOptions = {},
+    }: {
+      posEntry: PosEntry;
+      permanentLabel: boolean;
+      onClick: Function;
+      onDragEnd: Function;
+      markerOptions: L.MarkerOptions;
+      tooltipOptions: L.TooltipOptions;
+    }) => {
+      const { uuid, location, posTypeUuids: posTypeUuids } = posEntry;
+      if (isNaN(posEntry?.location?.lat) || isNaN(posEntry?.location?.lng)) return;
+      const mapItemType: MapItemType = "posEntry";
+
+      const isWin10 = await isWindows10();
+
+      const makeIconFromPosTypeUuid = (posTypeUuid: string, count: number): JSX.Element => {
+        const entryPosType = selectedOrRunningRex?.posTypes?.find(
+          (posType) => posType.uuid === posTypeUuid
+        );
+        const jsx = (
+          <div
+            className={isWin10 ? styles.posIconWin10 : styles.posIcon}
+            style={{ left: count * 2, top: count * 2 }}
+            key={`icon_${posTypeUuid}`}
+          >
+            {decodeEmoji(entryPosType?.icon)}
+          </div>
+        );
+        return jsx;
+      };
+
+      const getColorFromPosTypeUuid = (posTypeUuid: string): string => {
+        const entryPosType = selectedOrRunningRex?.posTypes?.find(
+          (posType) => posType.uuid === posTypeUuid
+        );
+        return entryPosType?.pathColor;
+      };
+
+      // draw icons in reverse order so the first one is on top
+      const jsx = (
+        <div className={styles.iconWrapper}>
+          {posTypeUuids?.length > 0 &&
+            posTypeUuids
+              .slice(0)
+              .reverse()
+              .map((posTypeUuid, index, posTypeUuids) =>
+                makeIconFromPosTypeUuid(posTypeUuid, posTypeUuids.length - index - 1)
+              )}
+          <div className={styles.posBar}>
+            {posTypeUuids?.map((posTypeUuid, index) => (
+              <div
+                key={`bar_${index}`}
+                className={styles.posBarItem}
+                style={{ backgroundColor: getColorFromPosTypeUuid(posTypeUuid) }}
+              ></div>
+            ))}
+          </div>
+        </div>
+      );
+
+      const html = ReactDOMServer.renderToString(jsx);
+      const icon = L.divIcon({ html });
+
+      const existingLayer = getMapItemByUuid(uuid, mapItemType) as AEGISMarker;
+      if (existingLayer && existingLayer.mapItemType === mapItemType) {
+        existingLayer.setLatLng(location as L.LatLng);
+        existingLayer.setIcon(icon);
+      } else {
+        const marker = L.marker(location as AEGISPoint, {
+          icon,
+          ...markerOptions,
+        }) as AEGISMarker;
+        marker.uuid = uuid;
+        marker.mapItemType = mapItemType;
+
+        // marker handlers
+        marker.bindTooltip(``, {
+          sticky: false,
+          direction: "top",
+          offset: new L.Point(0, -10),
+          permanent: permanentLabel,
+          className: "leaflet-tooltip-own",
+          ...tooltipOptions,
+        });
+
+        const rexPetSeconds = secondsFromhhmmss(rexPetTime);
+        const timeToShow = hhmmssFromSeconds(rexPetSeconds - posEntry.seconds);
+        const markerPosTypeAbbrs = posEntry.posTypeUuids.map((posTypeUuid) => {
+          const posType = selectedOrRunningRex?.posTypes?.find(
+            (posType) => posType.uuid === posTypeUuid
+          );
+          return posType?.abbr;
+        });
+        const newLabel = `<div style="text-align: center">${timeToShow} / ${markerPosTypeAbbrs}</div>`;
+        marker.setTooltipContent(newLabel);
+
+        marker
+          .on("click", () => {
+            onClick();
+          })
+          .on("mouseover", () => {
+            dispatch(setHoverUuidsForPosEntry(marker.uuid));
+          })
+          .on("mouseout", () => {
+            dispatch(clearMapItemHover());
+          });
+        if (onDragEnd) {
+          // dragend handler that causes edit to be saved on mouseup
+          marker.on("dragend", (e) => {
+            map.current.getContainer().style.cursor = "grab";
+            onDragEnd(e.target as AEGISMarker);
+          });
+        }
+        posEntryFeatureGroup.current.addLayer(marker);
+      }
+    },
+    [map, getMapItemByUuid, dispatch, selectedOrRunningRex, rexPetTime]
+  );
+
+  /**
+   * Draw or update pos entries on the map when pos changes. Serves as draw when page loads
    */
 
-  const drawCrewPath = useCallback(
+  const drawPosPath = useCallback(
     ({
       coords,
       color,
@@ -1797,8 +1813,8 @@ const MapBody: FunctionComponent = () => {
       uuid: string;
       offset: number;
     }) => {
-      const existingPath = getMapItemByUuid(uuid, "crewPosPath") as AEGISPolyline;
-      if (existingPath && existingPath.mapItemType === "crewPosPath") {
+      const existingPath = getMapItemByUuid(uuid, "posPath") as AEGISPolyline;
+      if (existingPath && existingPath.mapItemType === "posPath") {
         existingPath.setLatLngs(coords);
       } else {
         // polyline offset doesn't have correct type override, so using any
@@ -1811,7 +1827,7 @@ const MapBody: FunctionComponent = () => {
           //eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any) as any; // being able to set the text and offset is a custom extension to the polyline class
         path.uuid = uuid;
-        path.mapItemType = "crewPosPath";
+        path.mapItemType = "posPath";
 
         path.setText("➤             ", {
           repeat: true,
@@ -1819,152 +1835,170 @@ const MapBody: FunctionComponent = () => {
           attributes: { fill: color, "font-weight": "bold", "font-size": "12", opacity: 0.6 },
         });
 
-        crewPosFeatureGroup.current.addLayer(path);
+        posEntryFeatureGroup.current.addLayer(path);
       }
     },
     [getMapItemByUuid]
   );
 
+  /**
+   * General Pos Entry drawing function
+   */
   useEffect(() => {
     if (!map.current || mapDirective) return;
 
-    // delete all crew pos in leaflet
-    crewPosFeatureGroup.current.clearLayers();
+    // delete all pos entries in leaflet
+    posEntryFeatureGroup.current.clearLayers();
 
-    // draw or update all crew pos
-    crewPosToShow.forEach((crewPos, index, array) => {
-      if (crewPos.location) {
-        //if this is the most recent crew pos, add a circle around it
-        if (index === 0) {
-          // highlight current crew pos
-          const marker = L.circleMarker(
-            { lat: crewPos.location.lat, lng: crewPos.location.lng },
-            {
-              radius: 25,
-              color: "#52f075",
-              stroke: true,
-              weight: 2,
-              fill: false,
-            }
-          ) as AEGISCircleMarker;
-          marker.bringToFront();
-          crewPosFeatureGroup.current.addLayer(marker);
+    // track first occurrences for display of faded markers
+    const posTypeFirstOccurrence: { [key: string]: boolean } = {};
+
+    // track the last pos entry for each pos type for display of latest markers
+    const posTypeLastEntryUuids: { [key: string]: string } = {};
+
+    const posEntriesToShowSortedByTime = _.orderBy(posEntriesToShow, ["createdAt"], ["desc"]);
+    // find the latest pos entry for each type
+    posEntriesToShowSortedByTime.forEach((posEntry) => {
+      posEntry.posTypeUuids.forEach((posTypeUuid) => {
+        if (!posTypeLastEntryUuids[posTypeUuid]) {
+          posTypeLastEntryUuids[posTypeUuid] = posEntry.uuid;
         }
+      });
+    });
 
-        let opacity: number = 1;
-        if (mapDisplayCrewPos.fadeOldPositions) {
-          //set opacity for historic crew pos. No less than 0.3
-          opacity = 1 - index / array.length;
-          if (opacity <= 0.3) opacity = 0.3;
+    // draw or update all pos entries
+    posEntriesToShow.forEach((posEntry, index) => {
+      if (!posEntry.location) return;
+
+      //if this is the most recent pos entries, add a circle around it
+      if (index === 0) {
+        // highlight current pos entries
+        const marker = L.circleMarker(
+          { lat: posEntry.location.lat, lng: posEntry.location.lng },
+          {
+            radius: 25,
+            color: "#52f075",
+            stroke: true,
+            weight: 2,
+            fill: false,
+          }
+        ) as AEGISCircleMarker;
+        marker.bringToFront();
+        posEntryFeatureGroup.current.addLayer(marker);
+      }
+
+      let opacity: number = 1;
+      if (mapDisplayPosMarkers.fadeOldPositions) {
+        //if any posType has not been seen yet, make this position opaque and mark it as seen
+        let allPosTypesSeen = true;
+        posEntry.posTypeUuids.forEach((posTypeUuid) => {
+          if (!posTypeFirstOccurrence[posTypeUuid]) {
+            posTypeFirstOccurrence[posTypeUuid] = true;
+            allPosTypesSeen = false;
+          }
+        });
+        //make all old positions semi-transparent
+        if (allPosTypesSeen) {
+          opacity = 0.4;
         }
+      }
 
-        drawOrUpdateCrewPosOnMap({
-          crewPos,
-          onClick: () => {
-            setShowSelectedItemOnMap(true);
-            dispatch(setSelectedCrewPosUuid(crewPos.uuid));
-            dispatch(selectEVASequenceItem({ sequenceItemUuid: null }));
-          },
-          onDragEnd: (marker: AEGISMarker) => {
-            const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
-            saveUpdatedItemPosition(crewPos.uuid, "crewPos", newLocation);
-            dispatch(updateMapDirective(null));
-          },
-          permanentLabel: mapDisplayCrewPos.showAllLabels,
-          markerOptions: { opacity },
-          tooltipOptions: { opacity: 1 },
+      let permanentLabel = mapDisplayPosMarkers.showAllLabels;
+      if (mapDisplayPosMarkers.showLatestLabels) {
+        // if posTypeLastEntryUuids has this pos entry's uuid, then this is the latest entry for this pos type
+        posEntry.posTypeUuids.forEach((posTypeUuid) => {
+          if (posTypeLastEntryUuids[posTypeUuid] === posEntry.uuid) {
+            permanentLabel = true;
+          }
         });
       }
+
+      drawOrUpdatePosOnMap({
+        posEntry: posEntry,
+        onClick: () => {
+          setShowSelectedItemOnMap(true);
+          dispatch(setSelectedPosEntryUuid(posEntry.uuid));
+          dispatch(selectEVASequenceItem({ sequenceItemUuid: null }));
+        },
+        onDragEnd: (marker: AEGISMarker) => {
+          const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
+          saveUpdatedItemPosition(posEntry.uuid, "posEntry", newLocation);
+          dispatch(updateMapDirective(null));
+        },
+        permanentLabel,
+        markerOptions: { opacity },
+        tooltipOptions: { opacity: 1 },
+      });
     });
 
     // draw or update path
-    if (mapDisplayCrewPos.showPaths) {
-      drawCrewPath({
-        coords: crewPosToShow
-          .filter((crewPos) => crewPos.crew.includes("Cart"))
-          .map((crewPos) => {
-            return crewPos.location;
-          })
-          .reverse(),
-        color: "#aaaaaa",
-        uuid: "cart-crew-path",
-        offset: 4,
-      });
-      drawCrewPath({
-        coords: crewPosToShow
-          .filter((crewPos) => crewPos.crew.includes("EV2"))
-          .map((crewPos) => {
-            return crewPos.location;
-          })
-          .reverse(),
-        color: "#ffffff",
-        uuid: "ev2-crew-path",
-        offset: 2,
-      });
-      drawCrewPath({
-        coords: crewPosToShow
-          .filter((crewPos) => crewPos.crew.includes("EV1"))
-          .map((crewPos) => {
-            return crewPos.location;
-          })
-          .reverse(),
-        color: "#ff0000",
-        uuid: "ev1-crew-path",
-        offset: 0,
+    if (mapDisplayPosMarkers.showPaths) {
+      const reversePosTypes = _.reverse(_.clone(selectedOrRunningRex?.posTypes));
+      reversePosTypes?.forEach((posType, index) => {
+        const posEntriesToShowForType = posEntriesToShow.filter((posEntry) =>
+          posEntry.posTypeUuids.includes(posType.uuid)
+        );
+        // reverse the array so that the oldest entry is first
+        posEntriesToShowForType.reverse();
+
+        if (posEntriesToShowForType.length > 1) {
+          drawPosPath({
+            coords: posEntriesToShowForType.map((posEntry) => {
+              return posEntry.location;
+            }),
+            color: posType.pathColor,
+            uuid: posType.uuid,
+            offset: index,
+          });
+        }
       });
     }
   }, [
     map,
     mapDirective,
-    drawOrUpdateCrewPosOnMap,
+    rexPetTime,
+    drawOrUpdatePosOnMap,
     saveUpdatedItemPosition,
     dispatch,
-    crewPosToShow,
-    mapDisplayCrewPos,
-    drawCrewPath,
+    posEntriesToShow,
+    mapDisplayPosMarkers,
+    drawPosPath,
+    selectedOrRunningRex,
   ]);
-
-  // used to update the PET value via the PetInterval component
-  const [rexPetTime, setRexPetTime] = useState("");
 
   //handle when rex is ticking
   useEffect(() => {
-    if (!crewPosToShow || crewPosToShow.length === 0) return;
-    for (let i = 0; i < crewPosToShow.length; i++) {
-      const crewPosMarker = getMapItemByUuid(crewPosToShow[i].uuid) as AEGISMarker;
-      if (crewPosMarker) {
+    if (!posEntriesToShow || posEntriesToShow.length === 0) return;
+    for (let i = 0; i < posEntriesToShow.length; i++) {
+      const posMarker = getMapItemByUuid(posEntriesToShow[i].uuid) as AEGISMarker;
+      if (posMarker) {
         const rexPetSeconds = secondsFromhhmmss(rexPetTime);
-        const timeToShow = hhmmssFromSeconds(rexPetSeconds - crewPosToShow[i].seconds);
-        const newLabel = `<div style="text-align: center">${timeToShow}</div>`;
-        crewPosMarker.setTooltipContent(newLabel);
+        const timeToShow = hhmmssFromSeconds(rexPetSeconds - posEntriesToShow[i].seconds);
+        const markerPosTypeAbbrs = posEntriesToShow[i].posTypeUuids.map((posTypeUuid) => {
+          const posType = selectedOrRunningRex?.posTypes?.find(
+            (posType) => posType.uuid === posTypeUuid
+          );
+          return posType?.abbr;
+        });
+        const newLabel = `<div style="text-align: center">${timeToShow} / ${markerPosTypeAbbrs}</div>`;
+        posMarker.setTooltipContent(newLabel);
       }
     }
-    if (mapDisplayCrewPos.showLatestLabels) {
-      const crewPosToShowSortedByTime = _.orderBy(crewPosToShow, ["createdAt"], ["desc"]);
-      const latestCrewPosMarkerWithEv1 = crewPosToShowSortedByTime.find((crewPos) =>
-        crewPos.crew.includes("EV1")
-      );
-      const latestCrewPosMarkerWithEv2 = crewPosToShowSortedByTime.find((crewPos) =>
-        crewPos.crew.includes("EV2")
-      );
-      const latestCrewPosMarkerWithCart = crewPosToShowSortedByTime.find((crewPos) =>
-        crewPos.crew.includes("Cart")
-      );
-      // open the tooltip for each latest crew pos
-      if (latestCrewPosMarkerWithEv1) {
-        const crewPosMarker = getMapItemByUuid(latestCrewPosMarkerWithEv1.uuid) as AEGISMarker;
-        if (crewPosMarker) crewPosMarker.openTooltip();
-      }
-      if (latestCrewPosMarkerWithEv2) {
-        const crewPosMarker = getMapItemByUuid(latestCrewPosMarkerWithEv2.uuid) as AEGISMarker;
-        if (crewPosMarker) crewPosMarker.openTooltip();
-      }
-      if (latestCrewPosMarkerWithCart) {
-        const crewPosMarker = getMapItemByUuid(latestCrewPosMarkerWithCart.uuid) as AEGISMarker;
-        if (crewPosMarker) crewPosMarker.openTooltip();
-      }
+    if (mapDisplayPosMarkers.showLatestLabels) {
+      const posEntriesToShowSortedByTime = _.orderBy(posEntriesToShow, ["createdAt"], ["desc"]);
+
+      // find the latest pos entry for each type
+      selectedOrRunningRex?.posTypes?.forEach((posType) => {
+        const latestPosMarker = posEntriesToShowSortedByTime.find((posEntry) =>
+          posEntry.posTypeUuids.includes(posType.uuid)
+        );
+        if (latestPosMarker) {
+          const posMarker = getMapItemByUuid(latestPosMarker.uuid) as AEGISMarker;
+          if (posMarker) posMarker.openTooltip();
+        }
+      });
     }
-  }, [rexPetTime, getMapItemByUuid, crewPosToShow, mapDisplayCrewPos]);
+  }, [rexPetTime, posEntriesToShow, mapDisplayPosMarkers, getMapItemByUuid, selectedOrRunningRex]);
 
   /**
    * Draw or update hover timeline marker (astronaut) on the map when the hover seconds change.
@@ -2160,14 +2194,14 @@ const MapBody: FunctionComponent = () => {
         }
       } else if (
         sectionSelected === "rex" &&
-        selectedOrRunningRex?.crewPos &&
-        selectedCrewPosUuid
+        selectedOrRunningRex?.posEntries &&
+        selectedPosEntryUuid
       ) {
-        const crewPosLocation = selectedOrRunningRex.crewPos.find(
-          (c) => c.uuid === selectedCrewPosUuid
+        const posLocation = selectedOrRunningRex.posEntries.find(
+          (c) => c.uuid === selectedPosEntryUuid
         )?.location;
-        highlightLocation = crewPosLocation;
-        panMapToLocation = crewPosLocation;
+        highlightLocation = posLocation;
+        panMapToLocation = posLocation;
       }
 
       if (highlightLocation) {
@@ -2193,7 +2227,7 @@ const MapBody: FunctionComponent = () => {
     drawSelectedMarker,
     mapDirective,
     selectedEvaSequenceItemUuid,
-    selectedCrewPosUuid,
+    selectedPosEntryUuid,
     selectedOrRunningRex,
   ]);
 
@@ -2201,10 +2235,10 @@ const MapBody: FunctionComponent = () => {
    * if selected marker changes, then show the highlight on the map
    */
   useEffect(() => {
-    if (selectedPoi || selectedStation || selectedCrewPosUuid) {
+    if (selectedPoi || selectedStation || selectedPosEntryUuid) {
       setShowSelectedItemOnMap(true);
     }
-  }, [selectedPoi, selectedStation, selectedCrewPosUuid]);
+  }, [selectedPoi, selectedStation, selectedPosEntryUuid]);
 
   /**
    * If hover uuid changes, show a hover highlight on the map
@@ -2227,7 +2261,7 @@ const MapBody: FunctionComponent = () => {
           layer?.uuid === mapHoverItemUuid &&
           (layer.mapItemType === "poi" ||
             layer.mapItemType === "station" ||
-            layer.mapItemType === "crewPos")
+            layer.mapItemType === "posEntry")
         ) {
           const markerLayer = layer as AEGISMarker;
           latLngs.push(markerLayer.getLatLng());
@@ -2285,13 +2319,13 @@ const MapBody: FunctionComponent = () => {
           setMapDisplayActions={setMapDisplayActions}
           showArrows={showArrows}
           setShowArrows={setShowArrows}
-          mapDisplayCrewPos={mapDisplayCrewPos}
-          setMapDisplayCrewPos={setMapDisplayCrewPos}
+          mapDisplayPosMarkers={mapDisplayPosMarkers}
+          setMapDisplayPosMarkers={setMapDisplayPosMarkers}
           showGridLabels={showGridLabels}
           setShowGridLabels={setShowGridLabels}
         />
       </div>
-      {sectionSelected === "rex" && selectedOrRunningRex && <MapCrewPositionMenu />}
+      {selectedOrRunningRex && <MapPositionMenu />}
       <div className={styles.mapScaleDisplay}>{drawScaleBarDiv()}</div>
       <div className={styles.mapPositionDisplay}>{drawLatLongDiv()}</div>
     </div>

@@ -38,9 +38,9 @@ interface MapMarkersDisplay {
 }
 
 /**
- * CrewPos map view state
+ * Pos map view state
  */
-interface MapCrewPosDisplay {
+interface MapPosDisplay {
   show: boolean;
   showPaths: boolean;
   showAllLabels: boolean;

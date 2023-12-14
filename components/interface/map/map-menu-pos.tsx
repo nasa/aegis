@@ -6,10 +6,9 @@ import {
   useEffect,
   useState,
 } from "react";
-import styles from "./map-menu-crewPos.module.css";
+import styles from "./map-menu-pos.module.css";
 import {
   faBan,
-  faCartShopping,
   faChevronDown,
   faChevronUp,
   faCrosshairs,
@@ -22,104 +21,117 @@ import { updateMapDirective } from "store/map";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { shallowEqual, deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import {
-  thunkCancelCrewPos,
-  thunkCancelCrewPosLocation,
-  thunkCreateCrewPos,
-  thunkSaveCrewPosition,
+  thunkCancelPosEntry,
+  thunkCancelPosEntryLocation,
+  thunkCreatePosEntry,
+  thunkPersistRexPosEntries,
+  thunkUpdatePosTypesOnPosEntry,
 } from "store/thunk/thunkRex";
-import { setCrewPosEditingUuid, setSelectedCrewPosUuid, upsertCrewPos } from "store/rex";
+import { setPosEntryEditingUuid, setSelectedPosEntryUuid } from "store/rex";
 import { hhmmssFromSeconds } from "utils/formatting";
 import { selectEVASequenceItem } from "store/cross-slice";
-import { setHoverUuidsForCrewPos } from "store/hover";
-import { CrewPosKabobMenu } from "./map-menu-crewPos-menu";
+import { setHoverUuidsForPosEntry } from "store/hover";
+import { PosKabobMenu } from "./map-menu-pos-menu";
 import { orderBy } from "lodash";
 import { calcPathDurationMins, getDistanceBetweenTwoCoordinates } from "utils/geoMath";
-import { isModified } from "utils/component-helpers";
+import _ from "lodash";
 
-export const MapCrewPositionMenu: FunctionComponent = () => {
+export const MapPositionMenu: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const selectedRexIsRunning = useAppSelector((state) => {
     const running = state.rex.rexesFromDb.find((r) => r.uuid === state.rex.selectedRexUuid)
       ?.rexRunning;
     return running === undefined ? false : running; //must return bool (undefined is not acceptable)
   }, refEqual);
-  const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
-  const allCrewPos = useAppSelector((state) => {
-    const rexCrewPos = state.rex.rexes.find((r) => r.uuid === selectedRexUuid)?.crewPos;
-    return orderBy(rexCrewPos, ["createdAt"], "desc");
-  }, deepEqual);
-
-  const crewPosEditingUuid = useAppSelector((state) => state.rex.crewPosEditingUuid, refEqual);
-  const crewPosInEdit = allCrewPos.find((c) => c.uuid === crewPosEditingUuid);
-  const editingCrewPos = useAppSelector(
-    (state) =>
-      state.rex.rexes
-        .find((r) => r.uuid === selectedRexUuid)
-        ?.crewPos?.find((c) => c.uuid === state.rex.crewPosEditingUuid),
+  const selectedRex = useAppSelector(
+    (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid),
     shallowEqual
   );
-  const editingCrewPosFromDb = useAppSelector(
+  const posEntries = useAppSelector((state) => {
+    const posEntries = state.rex.rexes.find((r) => r.uuid === selectedRex.uuid)?.posEntries;
+    return orderBy(posEntries, ["createdAt"], "desc");
+  }, deepEqual);
+
+  const posEntryEditingUuid = useAppSelector((state) => state.rex.posEntryEditingUuid, refEqual);
+  const posEntriesInEdit = posEntries.find((c) => c.uuid === posEntryEditingUuid);
+  const editingPosEntry = useAppSelector(
+    (state) =>
+      state.rex.rexes
+        .find((r) => r.uuid === selectedRex.uuid)
+        ?.posEntries?.find((c) => c.uuid === state.rex.posEntryEditingUuid),
+    shallowEqual
+  );
+  const editingPosEntryFromDb = useAppSelector(
     (state) =>
       state.rex.rexesFromDb
-        .find((r) => r.uuid === selectedRexUuid)
-        ?.crewPos?.find((c) => c.uuid === state.rex.crewPosEditingUuid),
+        .find((r) => r.uuid === selectedRex.uuid)
+        ?.posEntries?.find((c) => c.uuid === state.rex.posEntryEditingUuid),
     deepEqual
   );
 
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
-  const thisMapDirective = mapDirective?.uuid === crewPosEditingUuid ? mapDirective : null;
+  const thisMapDirective = mapDirective?.uuid === posEntryEditingUuid ? mapDirective : null;
   const thisMapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
-  const [crew, setCrew] = useState<RexCrewType[]>(["EV1", "EV2", "Cart"]);
-  const [showCrewPosList, setShowCrewPosList] = useState(false);
+  const [selectedPosTypeUuids, setSelectedPosTypeUuids] = useState<string[]>([]);
+  const [showPosList, setShowPosList] = useState(false);
   const [modified, setModified] = useState(false); //track modified
   const [showMenu, setShowMenu] = useState(true);
 
   //for enable/disable save button
   useEffect(() => {
-    if (!crewPosEditingUuid) return;
-    setModified(isModified([editingCrewPos], [editingCrewPosFromDb]));
-  }, [crewPosEditingUuid, editingCrewPos, editingCrewPosFromDb]);
+    if (!posEntryEditingUuid) return;
+    setModified(!_.isEqual([editingPosEntry], [editingPosEntryFromDb]));
+  }, [posEntryEditingUuid, editingPosEntry, editingPosEntryFromDb]);
 
-  const toggleCrewAssigned = useCallback(
-    (crewMember: RexCrewType) => {
-      let newCrew: RexCrewType[] = [];
-      //add or remove crew
-      if (crew.includes(crewMember)) {
-        newCrew = crew.filter((c) => c !== crewMember);
+  const togglePosType = useCallback(
+    async (posTypeUuid: string) => {
+      let newSelectedPosTypeUuids: string[] = [];
+      if (selectedPosTypeUuids.includes(posTypeUuid)) {
+        newSelectedPosTypeUuids = selectedPosTypeUuids.filter((i) => i !== posTypeUuid);
       } else {
-        newCrew = [...crew, crewMember];
+        newSelectedPosTypeUuids = [...selectedPosTypeUuids, posTypeUuid];
       }
-      //sort so "Cart" is at the end
-      newCrew.sort((a, b) => {
-        if (a === "Cart") {
-          return 1;
-        }
-        if (b === "Cart") {
-          return -1;
-        }
-        return a < b ? -1 : 1;
-      });
-      //currently in the middle of placing a new crew pos, or editing existing. Update the crew in the store as well
-      if (crewPosEditingUuid) {
-        dispatch(
-          upsertCrewPos({
-            rexUuid: selectedRexUuid,
-            crewPos: { ...crewPosInEdit, crew: newCrew },
-          })
-        );
-        //cancel map action if all crew is toggled off
-        if (thisMapAction && newCrew.length === 0) {
-          dispatch(thunkCancelCrewPosLocation({ crewPosEditingUuid }));
-        }
-      }
-
-      setCrew(newCrew);
+      setSelectedPosTypeUuids(newSelectedPosTypeUuids);
+      if (!editingPosEntry) return;
+      await dispatch(
+        thunkUpdatePosTypesOnPosEntry({
+          rex: selectedRex,
+          posEntryUuid: posEntryEditingUuid,
+          posTypeUuids: newSelectedPosTypeUuids,
+        })
+      );
     },
-    [crew, dispatch, selectedRexUuid, thisMapAction, crewPosEditingUuid, crewPosInEdit]
+    [
+      selectedRex,
+      selectedPosTypeUuids,
+      setSelectedPosTypeUuids,
+      editingPosEntry,
+      dispatch,
+      posEntryEditingUuid,
+    ]
   );
+
+  // track the last pos entry for each pos type to determine which items to show in the top list
+  const posTypeLastEntryUuids: { [key: string]: string } = {};
+  posEntries.forEach((posEntry) => {
+    posEntry.posTypeUuids.forEach((posTypeUuid) => {
+      if (!posTypeLastEntryUuids[posTypeUuid]) {
+        posTypeLastEntryUuids[posTypeUuid] = posEntry.uuid;
+      }
+    });
+  });
+  const posEntriesTopList: PosEntry[] = [];
+  posEntries.forEach((posEntry) => {
+    const posEntryInLatest = posEntry.posTypeUuids.some(
+      (posTypeUuid) => posTypeLastEntryUuids[posTypeUuid] === posEntry.uuid
+    );
+    if (posEntryInLatest) {
+      posEntriesTopList.push(posEntry);
+    }
+  });
 
   const verifyNoActiveMapAction = (): boolean => {
     // if another mapAction is underway, fire an alert and return false
@@ -133,14 +145,15 @@ export const MapCrewPositionMenu: FunctionComponent = () => {
     }
   };
 
-  //create a new crew position
+  //create a new position entry
   const handleCreate = async () => {
     if (verifyNoActiveMapAction()) {
-      const newUuid = (await dispatch(thunkCreateCrewPos({ crew: crew }))).payload;
+      const newUuid = (await dispatch(thunkCreatePosEntry({ posTypeUuids: selectedPosTypeUuids })))
+        .payload;
       if (newUuid) {
         dispatch(
           updateMapDirective({
-            mapItemType: "crewPos",
+            mapItemType: "posEntry",
             uuid: newUuid,
             mapAction: "createMarker",
           })
@@ -148,22 +161,20 @@ export const MapCrewPositionMenu: FunctionComponent = () => {
       }
     }
   };
-  const handlePositionEdit = async (crewPosEditingUuid: string) => {
+  const handlePositionEdit = async (posEditingUuid: string) => {
     if (verifyNoActiveMapAction()) {
       dispatch(
         updateMapDirective({
-          mapItemType: "crewPos",
-          uuid: crewPosEditingUuid,
+          mapItemType: "posEntry",
+          uuid: posEditingUuid,
           mapAction: "editMarker",
         })
       );
     }
   };
   return (
-    <div className={styles.mapCrewPosDisplayContainer}>
-      <div
-        className={`${styles.mapCrewPosDisplay} ${showMenu ? styles.menuOpen : styles.menuClosed}`}
-      >
+    <div className={styles.mapPosDisplayContainer}>
+      <div className={`${styles.mapPosDisplay} ${showMenu ? styles.menuOpen : styles.menuClosed}`}>
         {!showMenu && (
           <div
             className={styles.menuIcon}
@@ -191,68 +202,49 @@ export const MapCrewPositionMenu: FunctionComponent = () => {
           >
             {editPerms && (
               <div className={styles.toggleContainer}>
-                <div
-                  className={`${styles.toggleLeft} ${styles.center} ${
-                    crew.includes("EV1") && styles.toggleSelected
-                  }`}
-                  onClick={() => {
-                    toggleCrewAssigned("EV1");
-                  }}
-                >
-                  1
-                </div>
-                <div
-                  className={`${styles.toggleMiddle} ${styles.center} ${
-                    crew.includes("EV2") && styles.toggleSelected
-                  }`}
-                  onClick={() => {
-                    toggleCrewAssigned("EV2");
-                  }}
-                >
-                  2
-                </div>
-                <div
-                  className={`${styles.toggleRight} ${styles.center} ${
-                    crew.includes("Cart") && styles.toggleSelected
-                  }`}
-                  onClick={() => {
-                    toggleCrewAssigned("Cart");
-                  }}
-                >
-                  <FontAwesomeIcon
-                    icon={faCartShopping}
-                    size="sm"
-                    style={{
-                      marginTop: "3px",
-                      width: "15px",
-                      color: `${crew.includes("Cart") ? "var(--grey1)" : "var(--grey5)"}`,
-                      outline: "none",
-                    }}
-                    tabIndex={0}
-                  />
-                </div>
+                {selectedRex.posTypes?.map((posType, index) => {
+                  let toggleStyle = styles.toggleMiddle;
+                  if (index === 0) {
+                    toggleStyle = styles.toggleLeft;
+                  } else if (index === selectedRex.posTypes.length - 1) {
+                    toggleStyle = styles.toggleRight;
+                  }
+                  return (
+                    <div
+                      key={posType.uuid}
+                      className={`${toggleStyle} ${styles.center} ${
+                        selectedPosTypeUuids.includes(posType.uuid) && styles.toggleSelected
+                      }`}
+                      onClick={() => {
+                        togglePosType(posType.uuid);
+                      }}
+                    >
+                      {posType.abbr}
+                    </div>
+                  );
+                })}
                 <div className={styles.setPosButton}>
                   {thisMapAction === null && (
                     <Button
                       onClick={async () => {
-                        if (crewPosEditingUuid) {
-                          await handlePositionEdit(crewPosEditingUuid);
+                        if (posEntryEditingUuid) {
+                          await handlePositionEdit(posEntryEditingUuid);
                         } else {
                           await handleCreate();
                         }
                       }}
-                      label={crewPosEditingUuid ? "Edit Pos." : "New Pos."}
+                      label={posEntryEditingUuid ? "Edit Pos." : "New Pos."}
                       icon={faCrosshairs}
                       style={{ height: "1.75em", width: "90px", marginLeft: 0 }}
-                      enabled={crew.length > 0 && selectedRexIsRunning}
+                      enabled={selectedPosTypeUuids.length > 0 && selectedRexIsRunning}
                     />
                   )}
                   {(thisMapAction === "createMarker" || thisMapAction === "editMarker") && (
                     <Button
                       onClick={() => {
-                        dispatch(thunkCancelCrewPosLocation({ crewPosEditingUuid }));
+                        dispatch(thunkCancelPosEntryLocation({ posEntryEditingUuid }));
                         if (thisMapAction === "createMarker") {
-                          dispatch(setCrewPosEditingUuid(null));
+                          dispatch(setPosEntryEditingUuid(null));
                         }
                       }}
                       icon={faBan}
@@ -261,28 +253,38 @@ export const MapCrewPositionMenu: FunctionComponent = () => {
                     />
                   )}
                 </div>
-                {crewPosInEdit?.location && (
+                {posEntriesInEdit?.location && (
                   <>
                     <div>
                       <Button
-                        onClick={() => {
-                          dispatch(thunkSaveCrewPosition({ crewPos: crewPosInEdit }));
+                        onClick={async () => {
+                          await dispatch(
+                            thunkUpdatePosTypesOnPosEntry({
+                              rex: selectedRex,
+                              posEntryUuid: posEntryEditingUuid,
+                              posTypeUuids: selectedPosTypeUuids,
+                            })
+                          );
+                          await dispatch(thunkPersistRexPosEntries({ rexUuid: selectedRex.uuid }));
                         }}
                         icon={faFloppyDisk}
-                        toolTip={`Save Crew Position ${modified ? "" : " (nothing to save)"}`}
-                        enabled={modified && crew.length > 0}
+                        toolTip={`Save Position Markers ${modified ? "" : " (nothing to save)"}`}
+                        enabled={modified && selectedPosTypeUuids.length > 0}
                         style={{
                           height: "1.75em",
                           backgroundColor:
-                            modified && crew.length > 0 ? "var(--alert)" : "var(--alert-disabled)",
-                          color: modified && crew.length > 0 ? "white" : "var(--grey4)",
+                            modified && selectedPosTypeUuids.length > 0
+                              ? "var(--alert)"
+                              : "var(--alert-disabled)",
+                          color:
+                            modified && selectedPosTypeUuids.length > 0 ? "white" : "var(--grey4)",
                         }}
                       />
                     </div>
                     <div>
                       <Button
                         onClick={() => {
-                          dispatch(thunkCancelCrewPos({ crewPosUuid: crewPosEditingUuid }));
+                          dispatch(thunkCancelPosEntry({ posEntryUuid: posEntryEditingUuid }));
                         }}
                         icon={faBan}
                         toolTip="Cancel Edit"
@@ -311,13 +313,13 @@ export const MapCrewPositionMenu: FunctionComponent = () => {
               <div className={styles.topTriangle} />
             </div>
           </div>
-          <div className={styles.crewPosTableContainer}>
-            <table className={styles.crewPosTable}>
+          <div className={styles.posTableContainer}>
+            <table className={styles.posTable}>
               <thead>
                 <tr className={styles.historicPosHeader}>
                   <td>#</td>
                   <td className={styles.petColumn}>PET</td>
-                  <td className={styles.crewColumn}>Crew</td>
+                  <td className={styles.markerColumn}>Markers</td>
                   <td>
                     Lander
                     <br />
@@ -331,47 +333,52 @@ export const MapCrewPositionMenu: FunctionComponent = () => {
                 </tr>
               </thead>
               <tbody>
-                {allCrewPos?.length > 0 && (
-                  <CrewPositionItem
-                    crewPos={allCrewPos[0]}
-                    showKabob={editPerms}
-                    numbering={allCrewPos.length}
-                    setCrew={setCrew}
-                  />
+                {posEntries?.length > 0 && (
+                  <>
+                    {posEntries.map((posEntry, index) => {
+                      if (!posEntriesTopList.includes(posEntry)) return null;
+
+                      return (
+                        <PositionRow
+                          key={posEntry.uuid}
+                          posEntry={posEntry}
+                          showKabob={editPerms}
+                          numbering={posEntries.length - index}
+                          setSelectedPosTypes={setSelectedPosTypeUuids}
+                        />
+                      );
+                    })}
+                  </>
                 )}
                 <tr>
                   <td
                     className={styles.historicPosTitle}
                     onClick={() => {
-                      setShowCrewPosList(!showCrewPosList);
+                      setShowPosList(!showPosList);
                     }}
                     colSpan={5}
                   >
-                    Past Positions
+                    All Positions
                     <FontAwesomeIcon
-                      icon={showCrewPosList ? faChevronDown : faChevronUp}
+                      icon={showPosList ? faChevronDown : faChevronUp}
                       size="sm"
                       style={{ paddingLeft: "5px" }}
                     />
                   </td>
                 </tr>
-                {showCrewPosList && allCrewPos && (
+                {showPosList && posEntries && (
                   <>
-                    {/* <div className={styles.historicPosContainer}> */}
-                    {allCrewPos.flatMap((crewPos, index, crewPosArray) => {
-                      if (index === 0) return []; //skip the first (most recent) entry
-
+                    {posEntries.map((posEntry, index, posEntries) => {
                       return (
-                        <CrewPositionItem
-                          key={crewPos.uuid}
-                          crewPos={crewPos}
+                        <PositionRow
+                          key={posEntry.uuid}
+                          posEntry={posEntry}
                           showKabob={editPerms}
-                          numbering={crewPosArray.length - index}
-                          setCrew={setCrew}
+                          numbering={posEntries.length - index}
+                          setSelectedPosTypes={setSelectedPosTypeUuids}
                         />
                       );
                     })}
-                    {/* </div> */}
                   </>
                 )}
               </tbody>
@@ -383,12 +390,12 @@ export const MapCrewPositionMenu: FunctionComponent = () => {
   );
 };
 
-export const CrewPositionItem: FunctionComponent<{
-  crewPos: CrewPos;
+export const PositionRow: FunctionComponent<{
+  posEntry: PosEntry;
   showKabob: boolean;
   numbering: number;
-  setCrew: Dispatch<SetStateAction<RexCrewType[]>>;
-}> = ({ crewPos, showKabob, numbering, setCrew }) => {
+  setSelectedPosTypes: Dispatch<SetStateAction<string[]>>;
+}> = ({ posEntry, showKabob, numbering, setSelectedPosTypes }) => {
   const dispatch = useAppDispatch();
 
   const landerLocation = useAppSelector((state) => state.mission.mission.landerLocation, refEqual);
@@ -401,20 +408,28 @@ export const CrewPositionItem: FunctionComponent<{
     }
   }, refEqual);
   const radius = useAppSelector((state) => state.mission.mission.planetRadius, refEqual);
-  const crewPosEditingUuid = useAppSelector((state) => state.rex.crewPosEditingUuid, refEqual);
 
   const isSelected = useAppSelector(
-    (state) => state.rex.selectedCrewPosUuid === crewPos.uuid,
+    (state) => state.rex.selectedPosEntryUuid === posEntry.uuid,
     refEqual
   );
   const isHovered = useAppSelector(
-    (state) => state.hover.crewPosItemUuid === crewPos.uuid,
+    (state) => state.hover.posEntryItemUuid === posEntry.uuid,
     refEqual
   );
   const isEditing = useAppSelector(
-    (state) => state.rex.crewPosEditingUuid === crewPos.uuid,
+    (state) => state.rex.posEntryEditingUuid === posEntry.uuid,
     refEqual
   );
+  const selectedRex = useAppSelector(
+    (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid),
+    shallowEqual
+  );
+
+  const posNameList = posEntry.posTypeUuids?.map((uuid) => {
+    const posType = selectedRex.posTypes?.find((p) => p.uuid === uuid);
+    return posType?.name;
+  });
 
   const [dist, setDist] = useState(null);
   const [duration, setDuration] = useState(null);
@@ -429,13 +444,13 @@ export const CrewPositionItem: FunctionComponent<{
     } else {
       setItemStyle(null);
     }
-  }, [crewPos.uuid, isHovered, isSelected]);
+  }, [posEntry.uuid, isHovered, isSelected]);
 
   //calculate distance and duration for this crew position location
   useEffect(() => {
-    if (crewPos.location && landerLocation && radius && traverseRate) {
+    if (posEntry.location && landerLocation && radius && traverseRate) {
       const newDistance = +getDistanceBetweenTwoCoordinates(
-        crewPos.location,
+        posEntry.location,
         landerLocation,
         radius
       ).toFixed(2);
@@ -445,37 +460,37 @@ export const CrewPositionItem: FunctionComponent<{
       setDist(null);
       setDuration(null);
     }
-  }, [crewPos.location, landerLocation, radius, traverseRate]);
+  }, [posEntry.location, landerLocation, radius, traverseRate]);
 
   return (
     <>
-      {crewPos && (
+      {posEntry && (
         <tr
-          key={crewPos.uuid}
+          key={posEntry.uuid}
           className={`${styles.historicPosItem} ${
-            !crewPos.location && styles.historicPosItemPending
+            !posEntry.location && styles.historicPosItemPending
           } ${itemStyle}`}
           onMouseEnter={() => {
-            dispatch(setHoverUuidsForCrewPos(crewPos.uuid));
+            dispatch(setHoverUuidsForPosEntry(posEntry.uuid));
           }}
           onMouseLeave={() => {
-            dispatch(setHoverUuidsForCrewPos(null));
+            dispatch(setHoverUuidsForPosEntry(null));
           }}
           onClick={async () => {
             //cancel out anything currently in edit
-            await dispatch(thunkCancelCrewPos({ crewPosUuid: crewPosEditingUuid }));
+            await dispatch(thunkCancelPosEntry({ posEntryUuid: posEntry.uuid }));
 
             if (isSelected) {
-              dispatch(setSelectedCrewPosUuid(null));
+              dispatch(setSelectedPosEntryUuid(null));
             } else {
-              dispatch(setSelectedCrewPosUuid(crewPos.uuid));
+              dispatch(setSelectedPosEntryUuid(posEntry.uuid));
               dispatch(selectEVASequenceItem({ sequenceItemUuid: null }));
             }
           }}
         >
           <td className={`${styles.historicPosItemNumber}`}>{numbering}</td>
-          <td className={styles.petColumn}>{hhmmssFromSeconds(crewPos.seconds)}</td>
-          <td className={`${styles.crewColumn}`}>{crewPos.crew.join(", ")}</td>
+          <td className={styles.petColumn}>{hhmmssFromSeconds(posEntry.seconds)}</td>
+          <td className={`${styles.crewColumn}`}>{posNameList?.join(", ")}</td>
           <td>{dist || "Not Set"}</td>
           <td>{duration || "Not Set"}</td>
           <td
@@ -484,11 +499,11 @@ export const CrewPositionItem: FunctionComponent<{
             }}
           >
             {showKabob && (
-              <CrewPosKabobMenu
-                crewPos={crewPos}
+              <PosKabobMenu
+                posEntry={posEntry}
                 isSelected={isSelected}
                 isEditing={isEditing}
-                setCrewSelected={setCrew}
+                setSelectedPosTypes={setSelectedPosTypes}
               />
             )}
           </td>

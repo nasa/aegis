@@ -81,7 +81,8 @@ describe("REX API Endpoint", () => {
     petRunning: null,
     selectedRexEvaUuid: null,
     rexRunning: null,
-    crewPos: null,
+    posEntries: null,
+    posTypes: null,
     createdAt: roundDateToSecond(new Date()).toISOString(),
     updatedAt: roundDateToSecond(new Date()).toISOString(),
   };

@@ -13,8 +13,8 @@ export const MapViewMenu: FunctionComponent<{
   setMapDisplayActions: Dispatch<SetStateAction<MapMarkersDisplay>>;
   showArrows: boolean;
   setShowArrows: Dispatch<SetStateAction<boolean>>;
-  mapDisplayCrewPos: MapCrewPosDisplay;
-  setMapDisplayCrewPos: Dispatch<SetStateAction<MapCrewPosDisplay>>;
+  mapDisplayPosMarkers: MapPosDisplay;
+  setMapDisplayPosMarkers: Dispatch<SetStateAction<MapPosDisplay>>;
   showGridLabels: boolean;
   setShowGridLabels: Dispatch<SetStateAction<boolean>>;
 }> = ({
@@ -26,8 +26,8 @@ export const MapViewMenu: FunctionComponent<{
   setMapDisplayActions,
   showArrows,
   setShowArrows,
-  mapDisplayCrewPos,
-  setMapDisplayCrewPos,
+  mapDisplayPosMarkers,
+  setMapDisplayPosMarkers,
   showGridLabels,
   setShowGridLabels,
 }) => {
@@ -171,75 +171,75 @@ export const MapViewMenu: FunctionComponent<{
               <div className={styles.control}>
                 <div className={styles.controlCheckbox}>
                   <Checkbox
-                    checked={mapDisplayCrewPos.show}
+                    checked={mapDisplayPosMarkers.show}
                     onChange={(e) => {
-                      setMapDisplayCrewPos({
-                        ...mapDisplayCrewPos,
+                      setMapDisplayPosMarkers({
+                        ...mapDisplayPosMarkers,
                         show: e.target.checked,
                       });
                     }}
-                    toolTip="Toggle crew positions on map"
-                    label="Crew Pos"
+                    toolTip="Toggle position markers on map"
+                    label="Position Markers"
                     labelStyle={{ alignSelf: "center" }}
-                    uniqueId="showHideCrewPos"
+                    uniqueId="showHidePos"
                   />
                 </div>
               </div>
               <div className={styles.subControl}>
                 <div className={styles.controlCheckbox}>
                   <Checkbox
-                    checked={mapDisplayCrewPos.showAllLabels}
+                    checked={mapDisplayPosMarkers.showAllLabels}
                     onChange={(e) => {
-                      setMapDisplayCrewPos({
-                        ...mapDisplayCrewPos,
+                      setMapDisplayPosMarkers({
+                        ...mapDisplayPosMarkers,
                         showAllLabels: e.target.checked,
                         ...(e.target.checked && { show: true }),
                       });
                     }}
-                    toolTip="Toggle crew position timers on map for all crew positions"
+                    toolTip="Toggle position marker timers on map for position markers"
                     label="All Labels"
                     labelStyle={{ alignSelf: "center" }}
-                    uniqueId="showHideCrewPosAllLabels"
+                    uniqueId="showHidePosAllLabels"
                   />
                 </div>
                 <div className={styles.controlCheckbox}>
                   <Checkbox
-                    checked={mapDisplayCrewPos.showLatestLabels}
+                    checked={mapDisplayPosMarkers.showLatestLabels}
                     onChange={(e) => {
-                      setMapDisplayCrewPos({
-                        ...mapDisplayCrewPos,
+                      setMapDisplayPosMarkers({
+                        ...mapDisplayPosMarkers,
                         showLatestLabels: e.target.checked,
                         ...(e.target.checked && { show: true }),
                       });
                     }}
-                    toolTip="Toggle crew position labels on map for latest crew positions"
+                    toolTip="Toggle position marker labels on map for latest position markers"
                     label="Latest Labels"
                     labelStyle={{ alignSelf: "center" }}
-                    uniqueId="showHideCrewPosLatestLabels"
+                    uniqueId="showHidePosLatestLabels"
                   />
                 </div>
                 <div className={styles.controlCheckbox}>
                   <Checkbox
-                    checked={mapDisplayCrewPos.showPaths}
+                    checked={mapDisplayPosMarkers.showPaths}
                     onChange={(e) => {
-                      setMapDisplayCrewPos({
-                        ...mapDisplayCrewPos,
+                      setMapDisplayPosMarkers({
+                        ...mapDisplayPosMarkers,
                         showPaths: e.target.checked,
                         ...(e.target.checked && { show: true }),
                       });
                     }}
-                    toolTip="Toggle crew paths on map"
-                    label="Crew Pos Paths"
+                    toolTip="Toggle position markers on map"
+                    label="Pos Marker Paths"
                     labelStyle={{ alignSelf: "center" }}
-                    uniqueId="showHideCrewPosPaths"
+                    uniqueId="showHidePosPaths"
                   />
                 </div>
                 <div className={styles.controlCheckbox}>
                   <Checkbox
-                    checked={mapDisplayCrewPos.fadeOldPositions}
+                    checked={mapDisplayPosMarkers.fadeOldPositions}
                     onChange={(e) => {
-                      setMapDisplayCrewPos({
-                        ...mapDisplayCrewPos,
+                      setMapDisplayPosMarkers({
+                        ...mapDisplayPosMarkers,
                         fadeOldPositions: e.target.checked,
                         ...(e.target.checked && { show: true }),
                       });

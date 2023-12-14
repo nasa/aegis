@@ -15,11 +15,12 @@ import {
   setRexEditMode,
   upsertRex,
   upsertRexFromDb,
-  deleteCrewPosByUuid,
-  setCrewPosEditingUuid,
-  upsertCrewPos,
-  setRexesCrewPosEditMode,
+  deletePosEntryByUuid,
+  setPosEntryEditingUuid,
+  upsertPosEntry,
+  setRexesPosEntryEditMode,
   setSelectedRexUuid,
+  upsertRexByField,
 } from "store/rex";
 import _ from "lodash";
 import * as httpClient_Rex from "http-client/rex";
@@ -34,6 +35,32 @@ export const thunkCreateRex = appCreateAsyncThunk<void>(
       dictName: "colors",
       existingNames: getState().rex.rexes.map((rex) => rex.name),
     });
+
+    // default crew position item types
+    const posTypeEv1: PosType = {
+      uuid: uuidv4(),
+      abbr: "1",
+      name: "EV1",
+      icon: "1f468-200d-1f680", //crew
+      pathColor: "#ff0000",
+    };
+
+    const posTypeEv2: PosType = {
+      uuid: uuidv4(),
+      abbr: "2",
+      name: "EV2",
+      icon: "1f469-200d-1f680", //crew
+      pathColor: "#ffffff",
+    };
+
+    const posTypeCart: PosType = {
+      uuid: uuidv4(),
+      abbr: "C",
+      name: "Cart",
+      icon: "1f6d2", //shopping cart
+      pathColor: "#AAAAAA",
+    };
+
     const blankRex: Rex = {
       missionId: getState().mission.mission.id,
       uuid: uuidv4(),
@@ -44,7 +71,8 @@ export const thunkCreateRex = appCreateAsyncThunk<void>(
       petRunning: false,
       selectedRexEvaUuid: null,
       rexRunning: false,
-      crewPos: null,
+      posEntries: null,
+      posTypes: [posTypeEv1, posTypeEv2, posTypeCart],
       createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
       updatedAt: null,
     };
@@ -145,16 +173,16 @@ export const thunkDeleteRex = appCreateAsyncThunk<{ rexUuid: string }>(
     //rex active?
     const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
 
+    // take the rex out of edit mode
+    dispatch(setRexEditMode({ rexUuid, editMode: false }));
+    dispatch(setSelectedRexUuid(null));
+
     // delete the rex from the store
     dispatch(deleteRexByUuid(rexUuid));
     dispatch(deleteRexFromDbByUuid(rexUuid));
 
     // delete the rex from the db
     httpClient_Rex.deleteRexes([rexUuid], rexRunning);
-
-    // take the rex out of edit mode
-    dispatch(setRexEditMode({ rexUuid, editMode: false }));
-    dispatch(setSelectedRexUuid(null));
   }
 );
 
@@ -175,146 +203,173 @@ export const thunkRexPetStartStop = appCreateAsyncThunk<{
   );
 });
 
-/**
+/*
  * Create an new crew position for an rex but do not save to the db. keep in store only
  * Returns uuid of new crew pos
  */
-export const thunkCreateCrewPos = appCreateAsyncThunk<
+export const thunkCreatePosEntry = appCreateAsyncThunk<
   {
-    crew: RexCrewType[];
+    posTypeUuids: string[];
   },
   string,
   false
->("createCrewPos", async ({ crew }, { dispatch, getState }) => {
+>("createPosEntry", async ({ posTypeUuids }, { dispatch, getState }) => {
   const uuid = uuidv4();
   const runningRex = getState().rex.rexes.find((r) => r.rexRunning);
   if (!runningRex) return null;
   const seconds = secondsFromhhmmss(
     runningRex.petRunning ? calculatePetValue(runningRex) : runningRex.petValueAtStartStop
   );
-  const newCrewPos: CrewPos = {
+  const newPosEntry: PosEntry = {
     uuid: uuid,
     location: null,
     elevation: null,
     seconds: seconds,
-    crew: crew,
+    posTypeUuids: posTypeUuids,
     createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   };
-  dispatch(upsertCrewPos({ rexUuid: getState().rex.selectedRexUuid, crewPos: newCrewPos }));
-  dispatch(setCrewPosEditingUuid(uuid));
-  dispatch(setRexesCrewPosEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: true }));
+  dispatch(upsertPosEntry({ rexUuid: getState().rex.selectedRexUuid, posEntry: newPosEntry }));
+  dispatch(setPosEntryEditingUuid(uuid));
+  dispatch(setRexesPosEntryEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: true }));
   return uuid;
 });
 
-/**
- * Update the crew position location and then save to db
+/*
+ * Update the position entry location and then save to db
  */
-export const thunkUpdateCrewPosLocation = appCreateAsyncThunk<{
+export const thunkUpdatePosEntryLocation = appCreateAsyncThunk<{
   location: AEGISPoint;
-  crewPosUuid: string;
-}>("updateCrewPosLoc", async ({ location, crewPosUuid }, { dispatch, getState }) => {
-  const selectedRex = getState().rex.rexes.find((r) => r.uuid === getState().rex.selectedRexUuid);
-  const newRexCrewPos: CrewPos[] = _.cloneDeep(selectedRex.crewPos);
-  const oldCrewPos = selectedRex.crewPos.find((c) => c.uuid === crewPosUuid);
-  // any rex running?
-  const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+  posEntryUuid: string;
+}>(
+  "updatePosEntryLoc",
+  async ({ location, posEntryUuid: posEntryUuid }, { dispatch, getState }) => {
+    const selectedRex = getState().rex.rexes.find((r) => r.uuid === getState().rex.selectedRexUuid);
+    const newRexPosEntries: PosEntry[] = _.cloneDeep(selectedRex.posEntries);
+    const oldPosEntries = selectedRex.posEntries.find((c) => c.uuid === posEntryUuid);
+    // any rex running?
+    const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
 
-  upsertToArrayByUuid(newRexCrewPos, { ...oldCrewPos, location });
+    upsertToArrayByUuid(newRexPosEntries, { ...oldPosEntries, location });
 
-  //automatically save to the db.
-  const rexUpsertResponse = await httpClient_Rex.upsertRexes(
-    [
-      {
-        ...selectedRex,
-        crewPos: newRexCrewPos,
-        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-      },
-    ],
-    rexRunning
-  );
+    //automatically save to the db.
+    const rexUpsertResponse = await httpClient_Rex.upsertRexes(
+      [
+        {
+          ...selectedRex,
+          posEntries: newRexPosEntries,
+          updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+        },
+      ],
+      rexRunning
+    );
 
-  if (rexUpsertResponse.status === "success") {
-    // upsert the changed rex (with new updated date) to the store
-    dispatch(upsertRex(rexUpsertResponse.data[0], true));
-    dispatch(upsertRexFromDb(rexUpsertResponse.data[0]));
-    dispatch(setCrewPosEditingUuid(null));
-  } else {
-    throw new Error("Error upserting Rex: " + rexUpsertResponse.message);
+    if (rexUpsertResponse.status === "success") {
+      // upsert the changed rex (with new updated date) to the store
+      dispatch(upsertRex(rexUpsertResponse.data[0], true));
+      dispatch(upsertRexFromDb(rexUpsertResponse.data[0]));
+      dispatch(setPosEntryEditingUuid(null));
+    } else {
+      throw new Error("Error upserting Rex: " + rexUpsertResponse.message);
+    }
+    dispatch(
+      setRexesPosEntryEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: false })
+    );
   }
-  dispatch(setRexesCrewPosEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: false }));
+);
+
+/*
+ * Update the position types of a pos entry in the store but not the db
+ * Db persistence happens when the rex is saved
+ */
+export const thunkUpdatePosTypesOnPosEntry = appCreateAsyncThunk<{
+  rex: Rex;
+  posEntryUuid: string;
+  posTypeUuids: string[];
+}>("updatePosEntryTypes", async ({ rex, posEntryUuid, posTypeUuids }, { dispatch }) => {
+  const oldPosEntry = rex.posEntries.find((c) => c.uuid === posEntryUuid);
+  let newRexPosEntries: PosEntry[] = _.cloneDeep(rex.posEntries);
+  const newRexPosEntry: PosEntry = {
+    ...oldPosEntry,
+    posTypeUuids,
+  };
+  newRexPosEntries = upsertToArrayByUuid(newRexPosEntries, newRexPosEntry);
+  dispatch(upsertRexByField(rex.uuid, "posEntries", newRexPosEntries));
 });
 
-/**
- * Cancel the crew position location
+/*
+ * Cancel the position entry location
  */
-export const thunkCancelCrewPosLocation = appCreateAsyncThunk<{
-  crewPosEditingUuid: string;
-}>("cancelCrewPosLoc", async ({ crewPosEditingUuid }, { dispatch, getState }) => {
-  const allCrewPos = getState().rex.rexes.find((r) => r.uuid === getState().rex.selectedRexUuid)
-    ?.crewPos;
-  const crewPos = allCrewPos.find((c) => c.uuid === crewPosEditingUuid);
-  if (!crewPos.location) {
+export const thunkCancelPosEntryLocation = appCreateAsyncThunk<{
+  posEntryEditingUuid: string;
+}>("cancelpositionEntryLoc", async ({ posEntryEditingUuid }, { dispatch, getState }) => {
+  const allpositionEntries = getState().rex.rexes.find(
+    (r) => r.uuid === getState().rex.selectedRexUuid
+  )?.posEntries;
+  const positionEntry = allpositionEntries.find((c) => c.uuid === posEntryEditingUuid);
+  if (!positionEntry.location) {
     //no location means this is a newly created crew pos. delete the uuid currently being edited
     dispatch(
-      deleteCrewPosByUuid({
+      deletePosEntryByUuid({
         rexUuid: getState().rex.selectedRexUuid,
-        crewPosUuid: crewPosEditingUuid,
+        posEntryUuid: posEntryEditingUuid,
       })
     );
     dispatch(
       updateMapDirective({
-        mapItemType: "crewPos",
-        uuid: crewPosEditingUuid,
+        mapItemType: "posEntry",
+        uuid: posEntryEditingUuid,
         mapAction: "cancelCreateMarker",
       })
     );
-    dispatch(setRexesCrewPosEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: false }));
-    dispatch(setCrewPosEditingUuid(null));
+    dispatch(
+      setRexesPosEntryEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: false })
+    );
+    dispatch(setPosEntryEditingUuid(null));
   } else {
     dispatch(
       updateMapDirective({
-        mapItemType: "crewPos",
-        uuid: crewPosEditingUuid,
+        mapItemType: "posEntry",
+        uuid: posEntryEditingUuid,
         mapAction: "cancelEditMarker",
       })
     );
   }
 });
 
-/**
- * Cancel editing an existing crew position
+/*
+ * Cancel editing an existing pos entry
  */
-export const thunkCancelCrewPos = appCreateAsyncThunk<{
-  crewPosUuid: string;
-}>("cancelCrewPos", async ({ crewPosUuid }, { dispatch, getState }) => {
+export const thunkCancelPosEntry = appCreateAsyncThunk<{
+  posEntryUuid: string;
+}>("cancelPosEntry", async ({ posEntryUuid }, { dispatch, getState }) => {
   const selectedRex = getState().rex.rexes.find((r) => r.uuid === getState().rex.selectedRexUuid);
-  const allCrewPosFromDb = getState().rex.rexesFromDb.find(
+  const allPosEntriesFromDb = getState().rex.rexesFromDb.find(
     (r) => r.uuid === getState().rex.selectedRexUuid
-  ).crewPos;
-  const allCrewPos = getState().rex.rexes.find(
+  ).posEntries;
+  const allPosEntries = getState().rex.rexes.find(
     (r) => r.uuid === getState().rex.selectedRexUuid
-  ).crewPos;
-  const crewPosFromDb = allCrewPosFromDb?.find((c) => c.uuid === crewPosUuid);
-  let newAllCrewPos = _.cloneDeep(allCrewPos);
+  ).posEntries;
+  const posEntriesFromDb = allPosEntriesFromDb?.find((c) => c.uuid === posEntryUuid);
+  let newAllPosEntries = _.cloneDeep(allPosEntries);
 
   //cancel out map action if they were in the middle of one for this
-  if (getState().map.mapDirective?.uuid === crewPosUuid) {
+  if (getState().map.mapDirective?.uuid === posEntryUuid) {
     dispatch(
       updateMapDirective({
-        mapItemType: "crewPos",
-        uuid: crewPosUuid,
+        mapItemType: "posEntry",
+        uuid: posEntryUuid,
         mapAction: "cancelEditMarker",
       })
     );
   }
 
   //Replace only this crew pos with the version from the db
-  if (crewPosFromDb) {
-    upsertToArrayByUuid(newAllCrewPos, crewPosFromDb);
+  if (posEntriesFromDb) {
+    upsertToArrayByUuid(newAllPosEntries, posEntriesFromDb);
   } else {
     //this crew pos was never saved. Delete it from the store
-    newAllCrewPos = newAllCrewPos.filter((c) => c.uuid !== crewPosUuid);
+    newAllPosEntries = newAllPosEntries.filter((c) => c.uuid !== posEntryUuid);
   }
 
   // upsert the changed rex (with new updated date) to the store
@@ -322,21 +377,19 @@ export const thunkCancelCrewPos = appCreateAsyncThunk<{
     upsertRex(
       {
         ...selectedRex,
-        crewPos: newAllCrewPos,
+        posEntries: newAllPosEntries,
       },
       true
     )
   );
-  dispatch(setCrewPosEditingUuid(null));
-  dispatch(setRexesCrewPosEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: false }));
+  dispatch(setPosEntryEditingUuid(null));
+  dispatch(setRexesPosEntryEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: false }));
 });
 
-export const thunkSaveCrewPosition = appCreateAsyncThunk<{
-  crewPos: CrewPos;
-}>("saveCrewPos", async ({ crewPos }, { dispatch, getState }) => {
-  const selectedRex = getState().rex.rexes.find((r) => r.uuid === getState().rex.selectedRexUuid);
-  const newRexCrewPos: CrewPos[] = _.cloneDeep(selectedRex.crewPos) || [];
-  upsertToArrayByUuid(newRexCrewPos, { ...crewPos });
+export const thunkPersistRexPosEntries = appCreateAsyncThunk<{
+  rexUuid: string;
+}>("persistPosEntries", async ({ rexUuid }, { dispatch, getState }) => {
+  const selectedRex = getState().rex.rexes.find((r) => r.uuid === rexUuid);
 
   //automatically save to the db.
   //check rex is running for logging
@@ -345,7 +398,6 @@ export const thunkSaveCrewPosition = appCreateAsyncThunk<{
     [
       {
         ...selectedRex,
-        crewPos: newRexCrewPos,
         updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
       },
     ],
@@ -356,22 +408,22 @@ export const thunkSaveCrewPosition = appCreateAsyncThunk<{
     // upsert the changed rex (with new updated date) to the store
     dispatch(upsertRex(rexUpsertResponse.data[0], true));
     dispatch(upsertRexFromDb(rexUpsertResponse.data[0]));
-    dispatch(setCrewPosEditingUuid(null));
+    dispatch(setPosEntryEditingUuid(null));
   } else {
     throw new Error("Error upserting Rex: " + rexUpsertResponse.message);
   }
-  dispatch(setRexesCrewPosEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: false }));
+  dispatch(setRexesPosEntryEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: false }));
 });
 
-/**
- * Delete a crew position for an rex and save to db
+/*
+ * Delete a pos entry from a rex and save to db
  */
-export const thunkDeleteCrewPosByUuid = appCreateAsyncThunk<{
-  crewPosUuid: string;
-}>("deleteCrewPos", async ({ crewPosUuid }, { dispatch, getState }) => {
+export const thunkDeletePosEntryByUuid = appCreateAsyncThunk<{
+  posEntryUuid: string;
+}>("deletePosEntry", async ({ posEntryUuid }, { dispatch, getState }) => {
   const selectedRex = getState().rex.rexes.find((r) => r.uuid === getState().rex.selectedRexUuid);
-  const newRexCrewPos: CrewPos[] = _.cloneDeep(selectedRex.crewPos).filter(
-    (c) => c.uuid !== crewPosUuid
+  const newRexPosEntries: PosEntry[] = _.cloneDeep(selectedRex.posEntries).filter(
+    (c) => c.uuid !== posEntryUuid
   );
   // any rex running?
   const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
@@ -381,7 +433,7 @@ export const thunkDeleteCrewPosByUuid = appCreateAsyncThunk<{
     [
       {
         ...selectedRex,
-        crewPos: newRexCrewPos,
+        posEntries: newRexPosEntries,
         updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
       },
     ],
@@ -396,3 +448,139 @@ export const thunkDeleteCrewPosByUuid = appCreateAsyncThunk<{
     throw new Error("Error upserting Rex: " + rexUpsertResponse.message);
   }
 });
+
+export const thunkCreatePosType = appCreateAsyncThunk<void>(
+  "createPosType",
+  async (__, { dispatch, getState }) => {
+    const blankPosType: PosType = {
+      uuid: uuidv4(),
+      abbr: "1",
+      name: "EV1",
+      icon: "1f468-200d-1f680", //crew
+      pathColor: "#ff0000",
+    };
+
+    const selectedRex = getState().rex.rexes.find((r) => r.uuid === getState().rex.selectedRexUuid);
+    const newRexPosTypes: PosType[] = _.cloneDeep(selectedRex.posTypes) || [];
+    newRexPosTypes.push(blankPosType);
+
+    dispatch(upsertRexByField(selectedRex.uuid, "posTypes", newRexPosTypes));
+  }
+);
+
+export const thunkUpdatePosTypeField = appCreateAsyncThunk<{
+  rexUuid: string;
+  uuid: string;
+  fieldName: keyof PosType;
+  value: PosType[keyof PosType];
+}>("updatePosTypeField", async ({ rexUuid, uuid, fieldName, value }, { dispatch, getState }) => {
+  const rex = getState().rex.rexes.find((rex) => rex.uuid === rexUuid);
+  const newPosEntryTypes = _.cloneDeep(rex.posTypes);
+  const itemIndex = newPosEntryTypes?.findIndex((item) => item.uuid === uuid);
+  if (itemIndex >= 0) {
+    (newPosEntryTypes[itemIndex] as Record<typeof fieldName, PosType[keyof PosType]>)[fieldName] =
+      value;
+    dispatch(upsertRexByField(rexUuid, "posTypes", newPosEntryTypes));
+  }
+});
+
+export const thunkDeletePosType = appCreateAsyncThunk<{ rexUuid: string; posTypeUuid: string }>(
+  "deletePosType",
+  async ({ rexUuid, posTypeUuid }, { dispatch, getState }) => {
+    // Look for any posEntries that are using this posType
+    const rex = getState().rex.rexes.find((rex) => rex.uuid === rexUuid);
+    const posEntriesUsingPosType = rex.posEntries?.filter((posEntry) =>
+      posEntry.posTypeUuids.includes(posTypeUuid)
+    );
+
+    if (posEntriesUsingPosType.length > 0) {
+      alert(
+        "This Position Item Type is being used by one or more Position Entries. Please delete those Position Entries before deleting this Position Item Type."
+      );
+      return;
+    }
+
+    //this item is not being used. All good to delete it
+    const newRexPosTypes = _.cloneDeep(rex.posTypes).filter((item) => item.uuid !== posTypeUuid);
+    dispatch(upsertRexByField(rexUuid, "posTypes", newRexPosTypes));
+  }
+);
+
+export const thunkAuditRexPositions = appCreateAsyncThunk<void>(
+  "auditRexPositions",
+  async (__, { dispatch, getState }) => {
+    const defaultPosTypes: PosType[] = [
+      {
+        uuid: "EV1",
+        abbr: "1",
+        name: "EV1",
+        icon: "1f468-200d-1f680", //crew
+        pathColor: "#ff0000",
+      },
+      {
+        uuid: "EV2",
+        abbr: "2",
+        name: "EV2",
+        icon: "1f469-200d-1f680", //crew
+        pathColor: "#ffffff",
+      },
+      {
+        uuid: "Cart",
+        abbr: "C",
+        name: "Cart",
+        icon: "1f6d2", //shopping cart
+        pathColor: "#AAAAAA",
+      },
+    ];
+
+    type UnconvertedPosEntry = PosEntry & { crew?: string[] };
+
+    getState().rex.rexes.forEach(async (rex) => {
+      // using any type because the type of rex might be an old one no longer compatible with our types
+      //eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const newRex: any = _.cloneDeep(rex);
+
+      // search each rex for missing posTypes and add a default one if needed
+      if (!newRex.posTypes || newRex.posTypes?.length === 0) {
+        newRex.posTypes = defaultPosTypes;
+      }
+
+      // check if posEntries is the old crewPos format
+      if (newRex.posEntries?.length > 0 && newRex.posEntries[0].crew) {
+        // convert this posEntry from old crewPos format to new posEntry format
+
+        const newRexPosEntries: PosEntry[] = [];
+        // convert each crewPos to a posEntry
+        newRex.posEntries.forEach((oldPosEntry: UnconvertedPosEntry) => {
+          const newRexPosEntry: PosEntry = {
+            uuid: uuidv4(),
+            location: oldPosEntry.location,
+            elevation: oldPosEntry.elevation,
+            seconds: oldPosEntry.seconds,
+            posTypeUuids: oldPosEntry.crew, // crew is an array of strings. We have made the default posTypes uuids above match the old strings
+            createdAt: oldPosEntry.createdAt,
+            updatedAt: oldPosEntry.updatedAt,
+          };
+          // add the new posEntry to the rex
+          newRexPosEntries.push(newRexPosEntry);
+        });
+
+        // add the new posEntries to the rex
+        newRex.posEntries = newRexPosEntries;
+      }
+
+      // update the rex in the store
+      if (!_.isEqual(rex, newRex)) {
+        // update the rex in the database
+        const upsertReponse = await httpClient_Rex.upsertRexes([newRex], false);
+        if (upsertReponse.status === "success") {
+          // update the rex in the store from the DB
+          dispatch(upsertRex(upsertReponse.data[0], true));
+          dispatch(upsertRexFromDb(upsertReponse.data[0]));
+        } else {
+          throw new Error("Error saving audited Rexes: " + upsertReponse.message);
+        }
+      }
+    });
+  }
+);
