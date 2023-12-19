@@ -1,6 +1,6 @@
 import { FunctionComponent, useEffect, useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import { setMapCircleControls, setMapSublayerControls } from "store/map";
 import { setPois, setPoisFromDb, setPoiLoadingStatus } from "store/poi";
 import {
@@ -39,16 +39,88 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
   hasPermissions,
 }) => {
   const missionStore = useAppSelector((state) => state.mission, shallowEqual);
+  const missionTraverseRate = useAppSelector(
+    (state) => state.mission.mission?.traverseRate,
+    refEqual
+  );
   const poisLoadingStatus = useAppSelector((state) => state.poi.loadingStatus, refEqual);
-  const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
+  const poisFieldsForCalc = useAppSelector(
+    (state) => state.poi.pois.map((p) => p.uuid),
+    shallowEqual
+  );
   const stationsLoadingStatus = useAppSelector((state) => state.station.loadingStatus, refEqual);
-  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
+  const stationsFieldsForCalc = useAppSelector(
+    (state) =>
+      state.station.stations.map((s) => {
+        return {
+          location: s.location,
+          durationLower: s.durationLower,
+          durationUpper: s.durationUpper,
+          poiUuids: s.poiUuids,
+          walkbackPathSegmentDistances: s.walkbackPathSegmentDistances,
+          walkbackPathSegmentElevations: s.walkbackPathSegmentElevations,
+        };
+      }),
+    deepEqual
+  );
   const actionsLoadingStatus = useAppSelector((state) => state.action.loadingStatus, refEqual);
-  const actions = useAppSelector((state) => state.action.actions, shallowEqual);
+  const stationsActions = useAppSelector(
+    (state) =>
+      state.action.actions
+        .filter((a) => a.stationUuid)
+        .map((a) => {
+          return {
+            durationLower: a.durationLower,
+            durationUpper: a.durationUpper,
+            crewAssigned: a.crewAssigned,
+            enabled: a.enabled,
+            rexStatus: a.rexStatus,
+            equipmentItemsUsage: a.equipmentItemsUsage,
+          };
+        }),
+    deepEqual
+  );
+  const poiActions = useAppSelector(
+    (state) =>
+      state.action.actions
+        .filter((a) => a.poiUuid)
+        .map((a) => {
+          return {
+            durationLower: a.durationLower,
+            durationUpper: a.durationUpper,
+            crewAssigned: a.crewAssigned,
+            enabled: a.enabled,
+          };
+        }),
+    deepEqual
+  );
   const traverseLoadingStatus = useAppSelector((state) => state.traverse.loadingStatus, refEqual);
-  const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
+  const traversesFieldsForCalc = useAppSelector(
+    (state) =>
+      state.traverse.traverses.map((t) => {
+        return {
+          traverseRate: t.traverseRate,
+          pathSegmentDistances: t.pathSegmentDistances,
+          pathSegmentElevations: t.pathSegmentElevations,
+          predictedDurationLower: t.predictedDurationLower,
+          predictedDurationUpper: t.predictedDurationUpper,
+        };
+      }),
+    deepEqual
+  );
   const evaLoadingStatus = useAppSelector((state) => state.eva.loadingStatus, refEqual);
-  const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
+  const evasFieldsForCalc = useAppSelector(
+    (state) =>
+      state.eva.evas.map((e) => {
+        return {
+          sequence: e.sequence,
+          egressDuration: e.egressDuration,
+          ingressDuration: e.ingressDuration,
+          maxDuration: e.maxDuration,
+        };
+      }),
+    deepEqual
+  );
   const stmLoadingStatus = useAppSelector((state) => state.stm.loadingStatus, refEqual);
   const rexLoadingStatus = useAppSelector((state) => state.rex.loadingStatus, refEqual);
   const presetUuids = useAppSelector(
@@ -68,7 +140,6 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
 
   const actionsAudited = useRef(false);
   const evasAudited = useRef(false);
-
   const rexPosAudited = useRef(false);
 
   const dispatch = useAppDispatch();
@@ -375,20 +446,40 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
     if (poisLoadingStatus !== "loaded" || actionsLoadingStatus !== "loaded" || !hasPermissions)
       return;
     dispatch(thunkCreatePoiCalculatedFields());
-  }, [poisLoadingStatus, actionsLoadingStatus, pois, dispatch, hasPermissions]);
+  }, [
+    poisLoadingStatus,
+    actionsLoadingStatus,
+    poisFieldsForCalc,
+    poiActions,
+    dispatch,
+    hasPermissions,
+  ]);
 
   //Generate station calculated values
   useEffect(() => {
     if (stationsLoadingStatus !== "loaded" || actionsLoadingStatus !== "loaded" || !hasPermissions)
       return;
     dispatch(thunkCreateStationCalculatedFields());
-  }, [stationsLoadingStatus, actionsLoadingStatus, stations, actions, dispatch, hasPermissions]);
+  }, [
+    stationsLoadingStatus,
+    actionsLoadingStatus,
+    stationsFieldsForCalc,
+    stationsActions,
+    dispatch,
+    hasPermissions,
+  ]);
 
   //Generate traverse calculated values
   useEffect(() => {
     if (traverseLoadingStatus !== "loaded" || !hasPermissions) return;
     dispatch(thunkCreateTraverseCalculatedFields());
-  }, [traverseLoadingStatus, traverses, dispatch, hasPermissions]);
+  }, [
+    traverseLoadingStatus,
+    traversesFieldsForCalc,
+    missionTraverseRate,
+    dispatch,
+    hasPermissions,
+  ]);
 
   //Generate eva calculated values. These are dependent on stations and traverses having had their calculated values generated
   useEffect(() => {
@@ -404,7 +495,7 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
     evaLoadingStatus,
     stationsCalculatedFields,
     traversesCalculatedFields,
-    evas,
+    evasFieldsForCalc,
     dispatch,
     hasPermissions,
   ]);
