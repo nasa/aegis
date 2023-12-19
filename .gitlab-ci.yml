@@ -15,7 +15,7 @@ default:
 
 variables:
   HOME: "/tmp" # required for openshift for now
-  CURRENT_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:18.18.1-alpine"
+  CURRENT_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:20.9.0-alpine"
   # "Future" might be older if waiting on a newer version to come out
   FUTURE_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:20-alpine"
 
