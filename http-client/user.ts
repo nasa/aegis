@@ -18,6 +18,11 @@ export async function upsertUsers(userObjs: User[]): Promise<WrappedResponse<Use
     body: JSON.stringify(userObjs),
   });
   const response: WrappedResponse<User[]> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error saving users to database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }
 
@@ -30,5 +35,10 @@ export async function deleteUsers(userIds: number[]): Promise<WrappedResponse<nu
     body: JSON.stringify(userIds),
   });
   const response: WrappedResponse<null> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error deleting users from database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }

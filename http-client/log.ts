@@ -16,6 +16,11 @@ export async function upsertLogs(logObjs: Log[]): Promise<WrappedResponse<Log[]>
     body: JSON.stringify(logObjs),
   });
   const response: WrappedResponse<Log[]> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error saving logs to database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }
 
@@ -28,5 +33,10 @@ export async function deleteAllLogs(missionIds: number[]): Promise<WrappedRespon
     body: JSON.stringify(missionIds.map(String)),
   });
   const response: WrappedResponse<null> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error deleting logs from database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }

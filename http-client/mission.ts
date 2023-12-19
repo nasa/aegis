@@ -29,6 +29,11 @@ export async function upsertMissions(
     body: JSON.stringify(missionObjs),
   });
   const response: WrappedResponse<Mission[]> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error saving missions to database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }
 
@@ -45,5 +50,10 @@ export async function deleteMissions(
     body: JSON.stringify(missionIds.map(String)),
   });
   const response: WrappedResponse<null> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error deleting missions from database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }

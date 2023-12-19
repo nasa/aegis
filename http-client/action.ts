@@ -27,6 +27,11 @@ export async function upsertActions(
     body: JSON.stringify(actions),
   });
   const response: WrappedResponse<Action[]> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error saving actions to database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }
 
@@ -46,5 +51,10 @@ export async function deleteActions(
     body: JSON.stringify(actionUuids),
   });
   const response: WrappedResponse<null> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error deleting actions from database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }

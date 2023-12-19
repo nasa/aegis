@@ -18,6 +18,11 @@ export async function upsertLayers(layers: Layer[]): Promise<WrappedResponse<Lay
     body: JSON.stringify(layers),
   });
   const response: WrappedResponse<Layer[]> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error saving layers to database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }
 
@@ -32,5 +37,10 @@ export async function deleteLayers(layerUuids: string[]): Promise<WrappedRespons
     body: JSON.stringify(layerUuids),
   });
   const response: WrappedResponse<null> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error deleting layers from database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }

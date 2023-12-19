@@ -62,7 +62,7 @@ const Main: NextPage = () => {
   const MapBody = useMemo(
     () =>
       dynamic(() => import("components/interface/map/map-body-leaflet"), {
-        loading: () => <p>A map is loading</p>,
+        loading: () => <p>Loading map</p>,
         ssr: false,
       }),
     []

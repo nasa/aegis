@@ -20,7 +20,13 @@ export async function upsertPresets(
     },
     body: JSON.stringify(presets),
   });
-  return await res.json();
+  const response: WrappedResponse<Preset[]> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error saving presets to database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
+  return response;
 }
 
 export async function deletePresets(
@@ -38,5 +44,11 @@ export async function deletePresets(
     },
     body: JSON.stringify(presetUuids),
   });
-  return await res.json();
+  const response: WrappedResponse<Preset[]> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error deleting presets from database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
+  return response;
 }

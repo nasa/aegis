@@ -21,6 +21,11 @@ export async function upsertRexes(
     body: JSON.stringify(rexObjs),
   });
   const response: WrappedResponse<Rex[]> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error saving rexes to database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }
 
@@ -40,5 +45,10 @@ export async function deleteRexes(
     body: JSON.stringify(uuids),
   });
   const response: WrappedResponse<null> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error deleting rexes from database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }
