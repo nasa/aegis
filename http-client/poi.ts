@@ -20,6 +20,11 @@ export async function upsertPOIs(
     body: JSON.stringify(pois),
   });
   const response: WrappedResponse<POI[]> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error saving POIs to database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }
 
@@ -39,5 +44,10 @@ export async function deletePOIs(
     body: JSON.stringify(poiUuids),
   });
   const response: WrappedResponse<null> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error deleting POIs from database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }

@@ -24,8 +24,12 @@ export async function upsertEvas(
     },
     body: JSON.stringify(evas),
   });
-
   const response: WrappedResponse<Eva[]> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error saving evas to database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }
 
@@ -44,6 +48,12 @@ export async function deleteEvas(
     },
     body: JSON.stringify(evaUuids),
   });
+
   const response: WrappedResponse<null> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error deleting evas from database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }
