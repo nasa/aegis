@@ -13,15 +13,16 @@ export default withIronSessionApiRoute(handler, ironOptions);
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { path } = req.query as { [key: string]: string };
   try {
-    if (req.session.user) {
-      const success = await deleteFile(decodeURIComponent(path));
-      if (!success) {
-        throw new Error("Unable to delete file. Check server log");
-      }
-      res.status(200).json("Success");
-    } else {
+    if (!req.session.user) {
       res.status(401).json("Unauthorized");
+      return;
     }
+
+    const success = await deleteFile(decodeURIComponent(path));
+    if (!success) {
+      throw new Error("Unable to delete file. Check server log");
+    }
+    res.status(200).json("Success");
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: e.toString() });
