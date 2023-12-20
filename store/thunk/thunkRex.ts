@@ -27,6 +27,8 @@ import * as httpClient_Rex from "http-client/rex";
 import { saveNewRex } from "store/cross-slice";
 import { updateMapDirective } from "store/map";
 import { thunkLogRexFull } from "./thunkLog";
+import { makeExportRexes } from "utils/export";
+import * as jsonKeysSort from "json-keys-sort";
 
 export const thunkCreateRex = appCreateAsyncThunk<void>(
   "rexCreate",
@@ -584,3 +586,28 @@ export const thunkAuditRexPositions = appCreateAsyncThunk<void>(
     });
   }
 );
+
+export const thunkMakeExportRexString = appCreateAsyncThunk<
+  {
+    rexUuid: string;
+  },
+  string,
+  false
+>("makeExportRexString", async ({ rexUuid }, { getState }) => {
+  /**
+   * REX
+   */
+  const rexes: ExportRex[] = makeExportRexes({
+    rexes: getState().rex?.rexes,
+  });
+
+  const exportRex = rexes.find((rex) => rex.uuid === rexUuid);
+
+  const selectedExportedData = { rex: exportRex };
+
+  // convert object to readble string
+  const sortedJson = jsonKeysSort.sort(selectedExportedData);
+  const dataStr = JSON.stringify(sortedJson, null, 2);
+
+  return dataStr;
+});
