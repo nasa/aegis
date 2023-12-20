@@ -4,8 +4,6 @@ import {
   setTraverseEditMode,
   upsertTraverse,
   upsertTraverseFromDb,
-  upsertTraverses,
-  upsertTraversesFromDb,
 } from "store/traverse";
 import { calculateAscentAndDescent, getTotalDistance, calcPathDurationMins } from "utils/geoMath";
 import appCreateAsyncThunk from "./thunkUtil";
@@ -289,47 +287,6 @@ export const thunkUpdateTraversesAroundStation = appCreateAsyncThunk<{
         }
       }
     }
-  }
-);
-
-/**
- * Update traverse names surrounding a given station in a given EVA
- * Saves to store, fromDb store, and database
- **/
-export const thunkUpdateTraverseNamesForStationInEVA = appCreateAsyncThunk<{
-  evaSequence: EvaSequenceItem[];
-  stationUuid: string;
-}>(
-  "updateTraverseNamesForStationInEVA",
-  async ({ evaSequence, stationUuid }, { dispatch, getState }) => {
-    // any rex running?
-    const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
-    const traversesToUpdate: Traverse[] = [];
-
-    for (const [index, sequenceItem] of evaSequence.entries()) {
-      if (sequenceItem.type === "traverse") {
-        const stationUuidBefore = evaSequence[index - 1].uuid;
-        const stationUuidAfter = evaSequence[index + 1].uuid;
-        if (stationUuid === stationUuidBefore || stationUuid === stationUuidAfter) {
-          const stationBefore = getState().station.stations.find(
-            (s) => s.uuid === stationUuidBefore
-          );
-          const stationAfter = getState().station.stations.find((s) => s.uuid === stationUuidAfter);
-          const selectedTraverse = getState().traverse.traverses.find(
-            (t) => t.uuid === sequenceItem.uuid
-          );
-          const newTraverse = {
-            ...selectedTraverse,
-            name: `${stationBefore.name} to ${stationAfter.name}`,
-            updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-          };
-          traversesToUpdate.push(newTraverse);
-        }
-      }
-    }
-    await httpClient_Traverse.upsertTraverses(traversesToUpdate, rexRunning);
-    dispatch(upsertTraverses(traversesToUpdate, true));
-    dispatch(upsertTraversesFromDb(traversesToUpdate));
   }
 );
 

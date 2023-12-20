@@ -53,10 +53,8 @@ jest.mock("store/thunk/thunkElevation", () => ({
 }));
 
 const mockThunkUpdateTraversesAroundStation = jest.fn();
-const mockThunkUpdateTraverseNamesForStationInEVA = jest.fn();
 jest.mock("store/thunk/thunkTraverse", () => ({
   thunkUpdateTraversesAroundStation: () => mockThunkUpdateTraversesAroundStation,
-  thunkUpdateTraverseNamesForStationInEVA: () => mockThunkUpdateTraverseNamesForStationInEVA,
 }));
 
 afterAll(() => {
