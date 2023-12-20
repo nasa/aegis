@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { cloneDeep } from "lodash";
+
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
 
@@ -12,6 +13,7 @@ export const initialState: EvaState = {
   evasFromDb: [],
   evasEditing: [],
   calculatedFields: [],
+  loadingStatus: "unloaded",
 };
 
 export const evaSlice = createSlice({
@@ -174,6 +176,9 @@ export const evaSlice = createSlice({
       state.selectedEvaUuid = "";
       state.selectedEvaSequenceItemUuid = "";
     },
+    setEvaLoadingStatus: (state, action: { payload: LoadingStatus }) => {
+      state.loadingStatus = action.payload;
+    },
   },
 });
 
@@ -198,4 +203,5 @@ export const {
   setEvaEditMode,
   setEvasCalculatedFields,
   clearEvaSelections,
+  setEvaLoadingStatus,
 } = evaSlice.actions;

@@ -15,9 +15,9 @@ default:
 
 variables:
   HOME: "/tmp" # required for openshift for now
-  CURRENT_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:18.18.1-alpine"
+  CURRENT_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:20.9.0-alpine"
   # "Future" might be older if waiting on a newer version to come out
-  FUTURE_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:20-alpine"
+  FUTURE_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:21-alpine"
 
   # Default image unless otherwise specified
 image: "$CURRENT_NODE_VERSION_IMAGE"
@@ -45,10 +45,15 @@ include:
   # A11y tests. Disabled for now.
   # - template: "Verify/Accessibility.gitlab-ci.yml"
 
-  #code quality checks
+  # Code quality checks
   - project: "emss/gitlab-templates"
     ref: main
     file: "/jobs/code-quality.gitlab-ci.yml"
+
+  # Fitdock deploy template
+  - project: "emss/gitlab-templates"
+    ref: main
+    file: "/jobs/fitdock-deploy.gitlab-ci.yml"
 
 # Overrride some properties on FIT jobs. Unfortunately using a template for these
 # make GitLab angry, so a lot of repetition
@@ -219,7 +224,7 @@ test:
     paths:
       - ./coverage/*
 
-# test against next version of node that CODA may use, but allow to fail
+# test against next version of node that AEGIS may use, but allow to fail
 test-node-next:
   image: "$FUTURE_NODE_VERSION_IMAGE"
   needs: ["install_dependencies"]
@@ -269,8 +274,6 @@ make-dotenv:
       dotenv: pipelineVariables.env
     paths:
       - .env
-      - .fitdock.yml
-      - docker-compose.yml
 
 .kaniko-build-template:
   stage: stageless
@@ -359,9 +362,9 @@ docker:build:gdal:
     BASE_IMAGE_VALUE: eegitlabregistry.fit.nasa.gov/emss/docker-images/deploy:gdal
 
 #
-# Push docker images after necessary jobs pass (e.g. unit testing passes)
+# Retag docker images after necessary jobs pass (e.g. unit testing passes)
 #
-docker:push:
+docker:retag:
   stage: stageless
   image: "$CI_REGISTRY/emss/docker-images:skopeo"
   variables:
@@ -397,61 +400,23 @@ docker:push:
     - FINAL_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:${IMAGE_VERSION}"
     - skopeo copy docker://$TEMP_IMAGE docker://$FINAL_IMAGE
 
+deploy:artifactize-committed-files:
+  image: "$CI_REGISTRY/emss/docker-images:envsubst-bash-in-envsubst"
+  stage: stageless
+  needs: []
+  tags: ["openshift"]
+  script:
+    - echo "This job runs no commands, just turns .fitdock.yml and docker-compose.yml into artifacts"
+  artifacts:
+    paths:
+      - .fitdock.yml
+      - docker-compose.yml
+
 .deploy-template:
+  extends: .emss-fitdock-deploy # use job template from gitlab-templates repo
   stage: stageless
   timeout: 10 minutes
-  variables:
-    GIT_STRATEGY: none # Don't checkout the repo, just get artifacts
-
-  script:
-    # Ultimately it'd be good to have as much of the following wrapped up in a job template
-    # that multiple projects could share. One problem may be getting the sudo password session
-    # to be transferrable between before_script (in a template) and script. Then again, the docs
-    # say: "Scripts you specify in before_script are concatenated with any scripts you specify
-    # in the main script. The combined scripts execute together in a single shell."
-
-    - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
-
-    # Ultimately get this from .fitdock.yml, but need to write a method to do that
-    - export INSTALL_DIR=/opt/aegis
-
-    - >
-      if ! sudo fitdock --version; then
-        sudo git clone -b fitdock https://gitlab.fit.nasa.gov/fitbox/fitbox.git /opt/fitdock
-        sudo bash /opt/fitdock/src/scripts/setup-ubuntu.sh
-      fi
-
-    - >
-      if [[ "${CI_COMMIT_TITLE}" =~ \[fitdock\] ]] || ! cmp --silent ./.fitdock.yml "${INSTALL_DIR}/.fitdock.yml"; then
-        echo "do deploy";
-        sudo mkdir -p "${INSTALL_DIR}"
-        sudo chown gitlab-runner:gitlab-runner "${INSTALL_DIR}"
-        /bin/cp -f ./.fitdock.yml "${INSTALL_DIR}/.fitdock.yml"
-        sudo fitdock "${INSTALL_DIR}/.fitdock.yml"
-      fi
-
-    # Move into place
-    # /bin/cp to avoid aliased version of `cp` which doesn't allow forcing with -f
-    - /bin/cp -f ./.env "${INSTALL_DIR}/.env"
-    - /bin/cp -f ./docker-compose.yml "${INSTALL_DIR}/docker-compose.yml"
-    - rm -f .env
-    - rm -f .fitdock.yml
-    - rm -f docker-compose.yml
-
-    # Take docker-compose down, pull latest, bring it back up
-    - cd "${INSTALL_DIR}"
-    - echo $CI_JOB_TOKEN | sudo /usr/bin/docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
-
-    # Get the latest of each image
-    - sudo /usr/bin/docker compose pull
-
-    # Using the new images, re-up Compose. Also remove anything no longer defined in
-    # docker-compose.yml via --remove-orphans
-    - sudo /usr/bin/docker compose up -d --remove-orphans
-
-    # remove any images no longer in use
-    - sudo /usr/bin/docker image prune -af
-
+  after_script:
     # hit the aegis socket.io endpoint to start up the socket server
     - sleep 10
     - curl -k --silent --connect-timeout 1 $URL/api/socketio || true
@@ -461,7 +426,8 @@ deploy:dev1:
   tags: ["emss-aegis-dev1"]
   needs:
     - make-dotenv
-    - docker:push
+    - docker:retag
+    - deploy:artifactize-committed-files
   environment:
     name: development1
     url: $URL
@@ -475,7 +441,8 @@ deploy:int:
   tags: ["emss-aegis-int"]
   needs:
     - make-dotenv
-    - docker:push
+    - docker:retag
+    - deploy:artifactize-committed-files
   environment:
     name: integration
     url: $URL
@@ -490,7 +457,8 @@ deploy:prod:
   tags: ["emss-aegis-prod"]
   needs:
     - make-dotenv
-    - docker:push
+    - docker:retag
+    - deploy:artifactize-committed-files
   environment:
     name: production
     url: $URL

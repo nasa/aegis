@@ -171,7 +171,7 @@ const handleAction: NextApiHandler<WrappedResponse<Action[] | Action>> = async (
  * @param filter optional filters: actionUuid, poiUuid, stationUuid, or missionId. If no filter options are provided, all actions will be returned.
  * @returns array of actions
  */
-async function getActions(filter: ActionFilterOptions): Promise<Action[]> {
+export async function getActions(filter: ActionFilterOptions): Promise<Action[]> {
   const em = getEM();
 
   //build filter where clause

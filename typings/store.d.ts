@@ -2,7 +2,7 @@ interface HoverState {
   timelineSeqItemUuid: string; //when hovering over the timeline
   leftPanelHoverItemUuid: string;
   mapItemUuid: string;
-  crewPosItemUuid: string;
+  posEntryItemUuid: string;
   evaSecondsElapsed: number /** Seconds representing the time into the mission that the mouse is hovering on via the nav-timeline */;
   sequenceItemPercentElapsed: number; //when hovering over the timline, represents % duration elapsed for that sequence item at that point in time
 }
@@ -14,6 +14,7 @@ interface MissionState {
   sublayers: Sublayer[];
   selectedRightNavItem: string;
   missionSectionsEditing: string[];
+  loadingStatus: LoadingStatus;
 }
 
 interface UserState {
@@ -39,6 +40,7 @@ interface EvaState {
   evasFromDb: Eva[];
   evasEditing: string[];
   calculatedFields: EvaCalculatedFields[];
+  loadingStatus: LoadingStatus;
 }
 
 interface TraverseState {
@@ -47,6 +49,7 @@ interface TraverseState {
   traversesEditing: string[];
   selectedTraverseRightNavItem: string;
   calculatedFields: TraverseCalculatedFields[];
+  loadingStatus: LoadingStatus;
 }
 
 interface PoiState {
@@ -56,6 +59,7 @@ interface PoiState {
   selectedRightNavItem: string;
   poisEditing: string[];
   calculatedFields: PoiCalculatedFields[];
+  loadingStatus: LoadingStatus;
 }
 
 interface PresetState {
@@ -65,6 +69,7 @@ interface PresetState {
   selectedRightNavItem: string;
   presetsUIStates: PresetsUIStates;
   presetsEditing: string[];
+  loadingStatus: LoadingStatus;
 }
 
 type InterfaceSection = "mission" | "preset" | "poi" | "station" | "evas" | "rex";
@@ -84,6 +89,7 @@ interface STMState {
   objectives: STMObjective[];
   goals: STMGoal[];
   investigations: STMInvestigation[];
+  loadingStatus: LoadingStatus;
 }
 
 interface StationState {
@@ -93,11 +99,13 @@ interface StationState {
   selectedRightNavItem: string;
   stationsEditing: string[];
   calculatedFields: StationCalculatedFields[];
+  loadingStatus: LoadingStatus;
 }
 
 interface ActionState {
   actions: Action[];
   actionsFromDb: Action[];
+  loadingStatus: LoadingStatus;
 }
 
 interface RexState {
@@ -107,9 +115,10 @@ interface RexState {
   expandedRexUuids: string[];
   selectedRexRightNavItem: string;
   rexesEditing: string[];
-  rexesCrewPosEditing: string[];
-  selectedCrewPosUuid: string;
-  crewPosEditingUuid: string; //only one can be in edit mode at a time
+  rexesPosEntriesEditing: string[];
+  selectedPosEntryUuid: string;
+  posEntryEditingUuid: string; //only one can be in edit mode at a time
+  loadingStatus: LoadingStatus;
 }
 
 type ReportItem = {
@@ -177,3 +186,5 @@ interface MustContain {
   createdAt?: string;
   updatedAt?: string;
 }
+
+type LoadingStatus = "loading" | "loaded" | "unloaded" | "error";

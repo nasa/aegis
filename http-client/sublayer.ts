@@ -21,6 +21,11 @@ export async function upsertSublayers(sublayers: Sublayer[]): Promise<WrappedRes
     body: JSON.stringify(sublayers),
   });
   const response: WrappedResponse<Sublayer[]> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error saving sublayers to database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }
 
@@ -35,5 +40,10 @@ export async function deleteSublayers(sublayerUuids: string[]): Promise<WrappedR
     body: JSON.stringify(sublayerUuids),
   });
   const response: WrappedResponse<null> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error deleting sublayers from database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }

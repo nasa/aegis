@@ -40,7 +40,7 @@ const handleRex: NextApiHandler<WrappedResponse<Rex[] | Rex>> = async (
       }
 
       try {
-        const records = await getRex(intMissionId);
+        const records = await getRexes(intMissionId);
 
         return res.status(200).json({
           status: "success",
@@ -170,7 +170,7 @@ const handleRex: NextApiHandler<WrappedResponse<Rex[] | Rex>> = async (
  * @param missionId mission id to get rexes for
  * @returns rexes
  */
-async function getRex(missionId: number): Promise<Rex[]> {
+export async function getRexes(missionId: number): Promise<Rex[]> {
   const em = getEM();
   const rexes = await em.find(Rex_db, { mission: missionId });
 
@@ -206,7 +206,8 @@ async function upsertRexes(rexes: Rex[]): Promise<Rex[]> {
       petRunning: rexToUpsert.petRunning,
       selectedRexEvaUuid: rexToUpsert.selectedRexEvaUuid,
       rexRunning: rexToUpsert.rexRunning,
-      crewPos: rexToUpsert.crewPos,
+      posEntries: rexToUpsert.posEntries,
+      posTypes: rexToUpsert.posTypes,
       updatedAt: new Date(rexToUpsert.updatedAt),
       createdAt: new Date(rexToUpsert.createdAt),
     };

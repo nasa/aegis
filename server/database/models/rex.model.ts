@@ -26,7 +26,9 @@ export class Rex_db implements Rex_db_type {
   @Property({ type: MikroTypes.boolean, nullable: true })
   rexRunning: boolean;
   @Property({ type: MikroTypes.json, nullable: true })
-  crewPos: CrewPos[];
+  posEntries: PosEntry[];
+  @Property({ type: MikroTypes.json, nullable: true })
+  posTypes: PosType[];
 
   @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;

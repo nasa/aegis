@@ -24,7 +24,7 @@ import { initGraphItemsRef, initPaperRefs } from "./timeline-init";
 import TimelineHoverValues from "./timeline-hover";
 import { selectedEvaActions, selectedEvaStations, selectedEvaTraverses } from "store/selectors";
 import { secondsFromhhmmss } from "utils/formatting";
-import { setSelectedCrewPosUuid } from "store/rex";
+import { setSelectedPosEntryUuid } from "store/rex";
 import PetInterval from "../page/petInterval";
 
 /**
@@ -44,7 +44,7 @@ const NavTimeline: FunctionComponent = () => {
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
-  const selectedCrewPosUuid = useAppSelector((state) => state.rex.selectedCrewPosUuid, refEqual);
+  const selectedPosEntryUuid = useAppSelector((state) => state.rex.selectedPosEntryUuid, refEqual);
   const missionTraverseRate = useAppSelector(
     (state) => state.mission.mission?.traverseRate,
     refEqual
@@ -77,7 +77,7 @@ const NavTimeline: FunctionComponent = () => {
   const paperDataRef: MutableRefObject<PaperData> = useRef(null);
   const storeRef: MutableRefObject<EvaCalculated_PaperJS> = useRef(null);
   const paperGroupsRef: MutableRefObject<PaperGroups> = useRef(null);
-  const crewPosRef: MutableRefObject<CrewPos_PaperJS[]> = useRef(null);
+  const posRef: MutableRefObject<PosEntry_PaperJS[]> = useRef(null);
   const graphSequenceItems: MutableRefObject<GraphSequenceItems> = useRef(null);
   const flattenedGraphData: MutableRefObject<GraphData> = useRef(null);
 
@@ -376,11 +376,11 @@ const NavTimeline: FunctionComponent = () => {
     }
 
     //loop through any crew positions (for rex) to check max graph ranges
-    if (!selectedRex?.crewPos) return;
-    for (const crewPos of selectedRex.crewPos) {
-      if (!crewPos.location) continue; //new crew pos don't have location yet
+    if (!selectedRex?.posEntries) return;
+    for (const posEntry of selectedRex.posEntries) {
+      if (!posEntry.location) continue; //new crew pos don't have location yet
       const newDistance = +getDistanceBetweenTwoCoordinates(
-        crewPos.location,
+        posEntry.location,
         mission.landerLocation,
         mission.planetRadius
       ).toFixed(2);
@@ -398,19 +398,18 @@ const NavTimeline: FunctionComponent = () => {
     stationCalculatedFields,
   ]);
 
-  const processCrewPositionFromStore = useCallback(() => {
+  const processPosEntriesFromStore = useCallback(() => {
     if (!mission || !selectedRex) return;
-    const crewPosForPaper: CrewPos_PaperJS[] = [];
-    const allCrewPos = selectedRex.crewPos;
-    for (const crewPos of allCrewPos) {
+    const posForPaper: PosEntry_PaperJS[] = [];
+    for (const posEntry of selectedRex.posEntries) {
       const distFromLander = getDistanceBetweenTwoCoordinates(
         mission.landerLocation,
-        crewPos.location,
+        posEntry.location,
         mission.planetRadius
       );
-      crewPosForPaper.push({ ...crewPos, distanceFromLanderMeters: distFromLander });
+      posForPaper.push({ ...posEntry, distanceFromLanderMeters: distFromLander });
     }
-    crewPosRef.current = crewPosForPaper;
+    posRef.current = posForPaper;
   }, [mission, selectedRex]);
 
   //handles on mouse move over the paper canvas
@@ -465,11 +464,11 @@ const NavTimeline: FunctionComponent = () => {
     }
 
     if (selectedRex) {
-      TimelineDrawing.drawCrewPositions(
+      TimelineDrawing.drawPositionMarkers(
         paperDataRef,
         paperGroupsRef,
-        crewPosRef,
-        selectedCrewPosUuid
+        posRef,
+        selectedPosEntryUuid
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -480,7 +479,7 @@ const NavTimeline: FunctionComponent = () => {
     showDistanceFromLander,
     showElevation,
     graphSequenceItems,
-    selectedCrewPosUuid,
+    selectedPosEntryUuid,
   ]);
 
   //handle pet rex seconds moving during rex
@@ -511,8 +510,8 @@ const NavTimeline: FunctionComponent = () => {
     if (isNil(paper.project) && typeof window !== "undefined") {
       paper.setup(canvas.current);
     }
-    if (selectedRex?.crewPos) {
-      processCrewPositionFromStore();
+    if (selectedRex?.posEntries) {
+      processPosEntriesFromStore();
     }
     processEvaDataFromStore(); //loads data into the storeRef
     drawTimeline();
@@ -534,15 +533,15 @@ const NavTimeline: FunctionComponent = () => {
     };
     paper.view.onClick = function (event: paper.MouseEvent) {
       //first check crew pos
-      let selectedCrewPosUuid: string = null;
-      for (const crewPosDrawing of paperGroupsRef.current.crewPositions.children) {
-        if (crewPosDrawing.contains(new paper.Point(event.point.x, event.point.y))) {
-          selectedCrewPosUuid = crewPosDrawing.name;
+      let selectedPosEntryUuid: string = null;
+      for (const posDrawing of paperGroupsRef.current.positionMarkers.children) {
+        if (posDrawing.contains(new paper.Point(event.point.x, event.point.y))) {
+          selectedPosEntryUuid = posDrawing.name;
           break;
         }
       }
-      if (selectedCrewPosUuid) {
-        dispatch(setSelectedCrewPosUuid(selectedCrewPosUuid));
+      if (selectedPosEntryUuid) {
+        dispatch(setSelectedPosEntryUuid(selectedPosEntryUuid));
         dispatch(selectEVASequenceItem({ sequenceItemUuid: null }));
         return;
       }
@@ -560,8 +559,10 @@ const NavTimeline: FunctionComponent = () => {
         }
       }
       //set selected uuid if we have one
+
       if (sequenceUuid && sequenceUuid !== "egress" && sequenceUuid !== "ingress") {
-        dispatch(setSelectedCrewPosUuid(null));
+        dispatch(setSelectedPosEntryUuid(null));
+
         dispatch(selectEVASequenceItem({ sequenceItemUuid: sequenceUuid }));
         return;
       }

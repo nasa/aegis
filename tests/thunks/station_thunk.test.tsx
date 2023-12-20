@@ -8,6 +8,7 @@ import { initialState as evaInitialState } from "store/eva";
 import { initialState as stationInitialState } from "store/station";
 import { initialState as missionInitialState } from "store/mission";
 import { initialState as mapInitialState } from "store/map";
+import { initialState as actionInitialState } from "store/action";
 import { isEqual } from "lodash";
 import * as httpClient_station from "http-client/station";
 import * as httpClient_action from "http-client/action";
@@ -52,10 +53,8 @@ jest.mock("store/thunk/thunkElevation", () => ({
 }));
 
 const mockThunkUpdateTraversesAroundStation = jest.fn();
-const mockThunkUpdateTraverseNamesForStationInEVA = jest.fn();
 jest.mock("store/thunk/thunkTraverse", () => ({
   thunkUpdateTraversesAroundStation: () => mockThunkUpdateTraversesAroundStation,
-  thunkUpdateTraverseNamesForStationInEVA: () => mockThunkUpdateTraverseNamesForStationInEVA,
 }));
 
 afterAll(() => {
@@ -233,6 +232,7 @@ describe("Thunk Station Tests", () => {
     };
     const store = createTestStore({
       station: {
+        ...stationInitialState,
         stations: [station, stationNoActions],
         stationsFromDb: [station, stationNoActions],
         selectedStationUuid: null,
@@ -241,6 +241,7 @@ describe("Thunk Station Tests", () => {
         calculatedFields: [],
       },
       action: {
+        ...actionInitialState,
         actions: [stationAction1, stationAction2, stationAction3],
         actionsFromDb: [stationAction1, stationAction2, stationAction3],
       },
@@ -347,6 +348,7 @@ describe("Thunk Station Tests", () => {
         stationsEditing: [station.uuid],
       },
       action: {
+        ...actionInitialState,
         actions: [newStationAction],
         actionsFromDb: [newStationAction],
       },
@@ -409,6 +411,7 @@ describe("Thunk Station Tests", () => {
         stationsEditing: [station.uuid],
       },
       action: {
+        ...actionInitialState,
         actions: [stationActionModified],
         actionsFromDb: [stationAction],
       },
@@ -458,6 +461,7 @@ describe("Thunk Station Tests", () => {
         stationsEditing: [station.uuid, unsavedStation.uuid],
       },
       action: {
+        ...actionInitialState,
         actions: [stationActionModified, unsavedStationAction, newStationAction],
         actionsFromDb: [stationAction],
       },
@@ -553,6 +557,7 @@ describe("Thunk Station Tests", () => {
     const eva: Eva = createTestEva();
     const store = createTestStore({
       station: {
+        ...stationInitialState,
         stations: [station, unsavedStation, stationInEva],
         stationsFromDb: [station],
         selectedStationUuid: station.uuid,
@@ -561,6 +566,7 @@ describe("Thunk Station Tests", () => {
         calculatedFields: [],
       },
       action: {
+        ...actionInitialState,
         actions: [stationAction, unsavedStationAction],
         actionsFromDb: [stationAction],
       },
@@ -632,6 +638,7 @@ describe("Thunk Station Tests", () => {
     const store = createTestStore({
       station: { ...stationInitialState, stations: [station], stationsFromDb: [station] },
       action: {
+        ...actionInitialState,
         actions: [stationAction1, stationAction2],
         actionsFromDb: [stationAction1, stationAction2],
       },

@@ -74,7 +74,3 @@ type ExportedData = {
   evas: ExportEva[];
   rexes: ExportRex[];
 };
-
-interface ExportRex extends Rex {
-  evaReadable: ExportEva;
-}

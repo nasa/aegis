@@ -122,3 +122,19 @@ type MissionHomepageItem = {
   name: string;
   runningRex: Rex;
 };
+
+type OneMissionToRuleThemAll = {
+  mission: Mission;
+  actions: Action[];
+  evas: Eva[];
+  layers: Layer[];
+  pois: Poi[];
+  presets: Preset[];
+  rexes: Rex[];
+  stations: Station[];
+  objectives: STMObjective[];
+  goals: STMGoal[];
+  invstgs: STMInvestigation[];
+  sublayers: Sublayer[];
+  traverses: Traverse[];
+};

@@ -13,6 +13,7 @@ div#__next > div {
 
 body {
   margin: 0;
+  background-color: black;
 }
 
 :root {

@@ -4,7 +4,9 @@ import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import {
   faBan,
   faCircleInfo,
+  faCrosshairs,
   faEdit,
+  faFileExport,
   faFloppyDisk,
   faTrashAlt,
 } from "@fortawesome/free-solid-svg-icons";
@@ -18,6 +20,8 @@ import { isModified } from "utils/component-helpers";
 import { RightTabs } from "components/interface/side-controls";
 import { setRexEditMode, setSelectedRexRightNavItem, upsertRexByField } from "store/rex";
 import { thunkCancelRex, thunkDeleteRex, thunkSaveRex } from "store/thunk/thunkRex";
+import Positions_panel from "./rex-right-rex-posTypes";
+import Export_panel from "./rex-right-rex-export";
 
 const RexRightRex: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -48,6 +52,18 @@ const RexRightRex: FunctionComponent = () => {
       panel: Info_panel,
       selectedColor: "white",
       icon: faCircleInfo,
+    },
+    positions_panel: {
+      title: "Position Marker Tracking",
+      panel: Positions_panel,
+      selectedColor: "white",
+      icon: faCrosshairs,
+    },
+    export_panel: {
+      title: "Export REX",
+      panel: Export_panel,
+      selectedColor: "white",
+      icon: faFileExport,
     },
   };
 

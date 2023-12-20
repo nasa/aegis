@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { cloneDeep } from "lodash";
+
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
 
@@ -10,6 +11,7 @@ export const initialState: PoiState = {
   selectedRightNavItem: "info_panel",
   poisEditing: [],
   calculatedFields: [],
+  loadingStatus: "unloaded",
 };
 
 export const poiSlice = createSlice({
@@ -138,6 +140,9 @@ export const poiSlice = createSlice({
     ) => {
       state.calculatedFields = action.payload.calculatedFields;
     },
+    setPoiLoadingStatus: (state, action: { payload: LoadingStatus }) => {
+      state.loadingStatus = action.payload;
+    },
   },
 });
 
@@ -158,4 +163,5 @@ export const {
   setStateForNewPoi,
   setPoiEditMode,
   setPoiCalculatedFields,
+  setPoiLoadingStatus,
 } = poiSlice.actions;

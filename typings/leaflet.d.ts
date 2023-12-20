@@ -7,14 +7,14 @@ type AEGISMarker = L.Marker & {
   mapItemType: MapMarkerType;
 };
 
-type MapMarkerType = "poi" | "station" | "lander" | "hover" | "action" | "crewPos";
+type MapMarkerType = "poi" | "station" | "lander" | "hover" | "action" | "posEntry";
 
 type AEGISPolyline = L.Polyline & {
   uuid?: string;
   mapItemType: MapPolylineType;
 };
 
-type MapPolylineType = "traverse" | "walkback" | "antPath" | "hover" | "crewPosPath";
+type MapPolylineType = "traverse" | "walkback" | "antPath" | "hover" | "posPath";
 
 type AEGISMapDrawingLayer = L.Layer & {
   uuid?: string;

@@ -4,6 +4,7 @@ import {
   makeExportActions,
   makeExportEvas,
   makeExportPois,
+  makeExportRexes,
   makeExportStations,
   makeExportTraverses,
 } from "utils/export";
@@ -19,9 +20,8 @@ export const thunkLogRexFull = appCreateAsyncThunk<{
   rexUuid: string;
   directive: "start" | "stop";
 }>("logRexFull", async ({ rexUuid, directive }, { getState }) => {
-  const exportRex = _.cloneDeep(
-    getState().rex.rexes.find((rex) => rex.uuid === rexUuid)
-  ) as ExportRex;
+  const rex = _.cloneDeep(getState().rex.rexes.find((rex) => rex.uuid === rexUuid));
+  const exportRex: ExportRex = makeExportRexes({ rexes: [rex] })[0];
 
   // package up EVA and children
 
@@ -111,14 +111,15 @@ export const thunkLogRexFull = appCreateAsyncThunk<{
     missionStore: getState().mission,
   });
 
-  exportRex.evaReadable = exportedEvas[0];
-
   // persist export to the log database
   const log: Log = {
     uuid: uuidv4(),
     missionId: getState().mission.mission.id,
     type: directive === "start" ? "fullRexStart" : "fullRexStop",
-    payloadJson: JSON.stringify(exportRex),
+    payloadJson: JSON.stringify({
+      rex: exportRex,
+      eva: exportedEvas[0],
+    }),
     createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
   };
 

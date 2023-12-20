@@ -25,6 +25,11 @@ export async function upsertStations(
     body: JSON.stringify(stationObjs),
   });
   const response: WrappedResponse<Station[]> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error saving stations to database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }
 
@@ -44,5 +49,10 @@ export async function deleteStations(
     body: JSON.stringify(stationUUIDs),
   });
   const response: WrappedResponse<null> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error deleting stations from database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
   return response;
 }

@@ -10,6 +10,7 @@ export const initialState: StationState = {
   selectedRightNavItem: "info_panel",
   stationsEditing: [],
   calculatedFields: [],
+  loadingStatus: "unloaded",
 };
 
 export const stationSlice = createSlice({
@@ -157,6 +158,9 @@ export const stationSlice = createSlice({
     ) => {
       state.calculatedFields = action.payload.calculatedFields;
     },
+    setStationLoadingStatus: (state, action: { payload: LoadingStatus }) => {
+      state.loadingStatus = action.payload;
+    },
   },
 });
 
@@ -178,4 +182,5 @@ export const {
   setStationEditMode,
   revertWalkbackPath,
   setStationCalculatedFields,
+  setStationLoadingStatus,
 } = stationSlice.actions;

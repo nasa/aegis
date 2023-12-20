@@ -158,12 +158,12 @@ const toggleBlock = (editor: CustomEditor, format: "numbered-list" | "bulleted-l
     type: isActive
       ? "paragraph"
       : isList
-      ? "list-item"
-      : format === "numbered-list"
-      ? "numbered-list"
-      : format === "bulleted-list"
-      ? "bulleted-list"
-      : "paragraph",
+        ? "list-item"
+        : format === "numbered-list"
+          ? "numbered-list"
+          : format === "bulleted-list"
+            ? "bulleted-list"
+            : "paragraph",
   };
   Transforms.setNodes<SlateElement>(editor, newProperties);
 

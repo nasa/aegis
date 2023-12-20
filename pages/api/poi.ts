@@ -153,7 +153,7 @@ const handlePOI: NextApiHandler<WrappedResponse<POI[] | POI>> = async (
 
 export default withIronSessionApiRoute(withORM(handlePOI), ironOptions);
 
-async function getPois(missionId: number): Promise<POI[]> {
+export async function getPois(missionId: number): Promise<POI[]> {
   const em = getEM();
   const dbPois = await em.find(
     Poi_db,

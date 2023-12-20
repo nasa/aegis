@@ -43,16 +43,17 @@ export const makeEquipmentReadable = (params: {
   mission: Mission;
 }): EquipmentItemUsageReadable[] => {
   const { equipmentItems, mission } = params;
-  const equipmentItemsReadable: EquipmentItemUsageReadable[] = equipmentItems?.map(
+  const equipmentItemsUsageReadable: EquipmentItemUsageReadable[] = equipmentItems?.map(
     (equipmentItem) => {
-      return {
+      const equipmentItemUsageReadable: EquipmentItemUsageReadable = {
         name: mission.equipmentItems.find((e) => e.uuid === equipmentItem.uuid)?.name,
         singleUse: mission.equipmentItems.find((e) => e.uuid === equipmentItem.uuid)?.singleUse,
         quantityUsed: equipmentItem.quantityUsed,
-      } as EquipmentItemUsageReadable;
+      };
+      return equipmentItemUsageReadable;
     }
   );
-  return equipmentItemsReadable;
+  return equipmentItemsUsageReadable;
 };
 
 export const makeExportActions = (params: {
@@ -64,7 +65,7 @@ export const makeExportActions = (params: {
 }): ExportAction[] => {
   const { actions, mission, stations, pois, stmStore } = params;
   const exportActions: ExportAction[] = actions.map((action) => {
-    return {
+    const exportAction: ExportAction = {
       ...action,
       _itemType: "Action",
       descriptionReadable: decodeWsywig(action.description),
@@ -84,7 +85,8 @@ export const makeExportActions = (params: {
       geographicalUnitsReadable: action.geographicUnitsUsage?.map((geographicUnitUsageUuid) => {
         return mission.geographicUnits.find((g) => g.uuid === geographicUnitUsageUuid)?.name;
       }),
-    } as ExportAction;
+    };
+    return exportAction;
   });
 
   return exportActions;
@@ -102,7 +104,7 @@ export const makeExportPois = (params: {
       const action = actions.find((a) => a.uuid === actionUuid);
       if (action) actionsReadable.push(action);
     });
-    return {
+    const exportPoi: ExportPOI = {
       ...poi,
       _itemType: "POI",
       actionsReadable,
@@ -110,7 +112,8 @@ export const makeExportPois = (params: {
       calculatedFields: poiStore.calculatedFields.find((c) => c.uuid === poi.uuid),
       elevationRelative: poi.elevation - missionStore.mission.landerElevationMeters,
       iconEmojiDecoded: decodeEmoji(poi.icon),
-    } as ExportPOI;
+    };
+    return exportPoi;
   });
   return exportPois;
 };
@@ -128,8 +131,7 @@ export const makeExportStations = (params: {
       const action = actions.find((a) => a.uuid === actionUuid);
       if (action) actionsReadable.push(action);
     });
-
-    return {
+    const ExportStation: ExportStation = {
       ...station,
       _itemType: "Station",
       descriptionReadable: decodeWsywig(station.description),
@@ -154,6 +156,7 @@ export const makeExportStations = (params: {
         }
       }),
     };
+    return ExportStation;
   });
   return exportStations;
 };
@@ -183,7 +186,7 @@ export const makeExportEvas = (params: {
 }): ExportEva[] => {
   const { evas, evaCalculatedFields, stations, traverses, missionStore } = params;
   const exportEvas: ExportEva[] = evas.map((eva) => {
-    return {
+    const exportEva: ExportEva = {
       ...eva,
       _itemType: "EVA",
       descriptionReadable: decodeWsywig(eva.description),
@@ -200,8 +203,9 @@ export const makeExportEvas = (params: {
           equipmentItems: evaCalculatedFields.find((c) => c.uuid === eva.uuid)?.equipmentItems,
           mission: missionStore.mission,
         }),
-      } as ExportEvaCalculatedFields,
+      },
     };
+    return exportEva;
   });
 
   return exportEvas;
@@ -210,11 +214,12 @@ export const makeExportEvas = (params: {
 export const makeExportRexes = (params: { rexes: Rex[] }): ExportRex[] => {
   const { rexes } = params;
   const exportRexes: ExportRex[] = rexes.map((rex) => {
-    return {
+    const exportRex: ExportRex = {
       ...rex,
       _itemType: "Rex",
       descriptionReadable: decodeWsywig(rex.description),
-    } as ExportRex;
+    };
+    return exportRex;
   });
   return exportRexes;
 };

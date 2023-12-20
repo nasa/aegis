@@ -11,6 +11,7 @@ import { useRouter } from "next/router";
 import { isLoggedIn } from "http-client/login";
 import UploadFile from "./uploadFile";
 import adminStyles from "components/admin/admin.module.css";
+import DownloadFromBox from "./downloadFromBox";
 
 const FileManager: FunctionComponent<{
   path: string;
@@ -23,6 +24,7 @@ const FileManager: FunctionComponent<{
 }) => {
   const { path, setFileList, isUsed } = { ...props };
   const [dirListing, setDirListing] = useState<fileState[]>([]);
+  const [refreshDirectoryListing, setRefreshDirectoryListing] = useState(false);
 
   const router = useRouter();
 
@@ -59,6 +61,13 @@ const FileManager: FunctionComponent<{
       if (setFileList) setFileList([]);
     }
   }, [path, setFileList]);
+
+  useEffect(() => {
+    if (refreshDirectoryListing) {
+      getDirListing();
+      setRefreshDirectoryListing(false);
+    }
+  }, [refreshDirectoryListing, getDirListing]);
 
   //show or hide the rename field
   function showHideRename(key: string) {
@@ -120,7 +129,14 @@ const FileManager: FunctionComponent<{
 
   return (
     <div>
-      <UploadFile path={path} cb={getDirListing} />
+      <div className={adminStyles.layerContainer}>
+        <div className={adminStyles.divWithBorder}>
+          <UploadFile path={path} cb={getDirListing} />
+        </div>
+        <div className={adminStyles.divWithBorder}>
+          <DownloadFromBox path={path} setRefreshDirectoryListing={setRefreshDirectoryListing} />
+        </div>
+      </div>
       <br />
       <h4>Directory Listing</h4>
       <div>

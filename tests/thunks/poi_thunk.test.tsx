@@ -13,6 +13,9 @@ import { roundDateToSecond } from "utils/formatting";
 import { createTestAction } from "../factories/ActionFactory";
 import * as httpClient_poi from "http-client/poi";
 import * as httpClient_action from "http-client/action";
+import { initialState as poiInitialState } from "store/poi";
+import { initialState as actionInitialState } from "store/action";
+
 jest.mock("http-client/poi", () => {
   return {
     __esModule: true,
@@ -48,12 +51,8 @@ describe("Thunk POI Tests", () => {
     const newPoi: POI = createTestPoi();
     const store = createTestStore({
       poi: {
+        ...poiInitialState,
         pois: [newPoi],
-        poisFromDb: [],
-        selectedPoiUuid: null,
-        selectedRightNavItem: "info_panel",
-        poisEditing: [],
-        calculatedFields: [],
       },
     });
 
@@ -92,18 +91,8 @@ describe("Thunk POI Tests", () => {
     };
     const newPoiAction: Action = createTestAction({ poiUuid: poi.uuid });
     const store = createTestStore({
-      poi: {
-        pois: [poiModified],
-        poisFromDb: [poi],
-        selectedPoiUuid: null,
-        selectedRightNavItem: "info_panel",
-        poisEditing: [poi.uuid],
-        calculatedFields: [],
-      },
-      action: {
-        actions: [newPoiAction],
-        actionsFromDb: [newPoiAction],
-      },
+      poi: { ...poiInitialState, pois: [poiModified], poisFromDb: [poi], poisEditing: [poi.uuid] },
+      action: { ...actionInitialState, actions: [newPoiAction], actionsFromDb: [newPoiAction] },
     });
 
     //check init values in store
@@ -154,18 +143,8 @@ describe("Thunk POI Tests", () => {
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
     const store = createTestStore({
-      poi: {
-        pois: [poi],
-        poisFromDb: [poi],
-        selectedPoiUuid: null,
-        selectedRightNavItem: "info_panel",
-        poisEditing: [poi.uuid],
-        calculatedFields: [],
-      },
-      action: {
-        actions: [poiActionModified],
-        actionsFromDb: [poiAction],
-      },
+      poi: { ...poiInitialState, pois: [poi], poisFromDb: [poi], poisEditing: [poi.uuid] },
+      action: { ...actionInitialState, actions: [poiActionModified], actionsFromDb: [poiAction] },
     });
 
     //check init values in store
@@ -199,14 +178,13 @@ describe("Thunk POI Tests", () => {
     };
     const store = createTestStore({
       poi: {
+        ...poiInitialState,
         pois: [poiModified, unsavedPoi],
         poisFromDb: [poi],
-        selectedPoiUuid: null,
-        selectedRightNavItem: "info_panel",
         poisEditing: [poi.uuid, unsavedPoi.uuid],
-        calculatedFields: [],
       },
       action: {
+        ...actionInitialState,
         actions: [newPoiActionModified],
         actionsFromDb: [newPoiAction],
       },
@@ -277,14 +255,14 @@ describe("Thunk POI Tests", () => {
     const unsavedPoiAction: Action = createTestAction({ poiUuid: unsavedPoi.uuid });
     const store = createTestStore({
       poi: {
+        ...poiInitialState,
         pois: [poi, unsavedPoi],
         poisFromDb: [poi],
         selectedPoiUuid: poi.uuid,
-        selectedRightNavItem: "info_panel",
         poisEditing: [poi.uuid, unsavedPoi.uuid],
-        calculatedFields: [],
       },
       action: {
+        ...actionInitialState,
         actions: [poiAction, unsavedPoiAction],
         actionsFromDb: [poiAction],
       },
@@ -322,14 +300,7 @@ describe("Thunk POI Tests", () => {
   it("thunkCreatePoi()", async () => {
     //populate the poi state in the store
     const store = createTestStore({
-      poi: {
-        pois: [],
-        poisFromDb: [],
-        selectedPoiUuid: null,
-        selectedRightNavItem: "",
-        poisEditing: [],
-        calculatedFields: [],
-      },
+      poi: { ...poiInitialState },
     });
 
     await store.dispatch(thunkCreatePoi());
@@ -347,15 +318,9 @@ describe("Thunk POI Tests", () => {
     const poiAction2: Action = createTestAction({ poiUuid: poi.uuid });
     poi.actionOrderUuids = [poiAction1.uuid, poiAction2.uuid];
     const store = createTestStore({
-      poi: {
-        pois: [poi],
-        poisFromDb: [poi],
-        selectedPoiUuid: null,
-        selectedRightNavItem: "",
-        poisEditing: [],
-        calculatedFields: [],
-      },
+      poi: { ...poiInitialState, pois: [poi], poisFromDb: [poi] },
       action: {
+        ...actionInitialState,
         actions: [poiAction1, poiAction2],
         actionsFromDb: [poiAction1, poiAction2],
       },
@@ -393,15 +358,9 @@ describe("Thunk POI Tests", () => {
       durationUpper: 1,
     };
     const store = createTestStore({
-      poi: {
-        pois: [poi, poiNoActions],
-        poisFromDb: [poi, poiNoActions],
-        selectedPoiUuid: null,
-        selectedRightNavItem: "",
-        poisEditing: [],
-        calculatedFields: [],
-      },
+      poi: { ...poiInitialState, pois: [poi, poiNoActions], poisFromDb: [poi, poiNoActions] },
       action: {
+        ...actionInitialState,
         actions: [poiAction1, poiAction2, poiAction3],
         actionsFromDb: [poiAction1, poiAction2, poiAction3],
       },

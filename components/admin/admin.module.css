@@ -50,7 +50,9 @@
   text-align: center;
   position: relative;
   cursor: pointer;
-  box-shadow: 0 10px 15px -3px rgba(33, 150, 243, 0.4), 0 4px 6px -4px rgba(33, 150, 243, 0.4);
+  box-shadow:
+    0 10px 15px -3px rgba(33, 150, 243, 0.4),
+    0 4px 6px -4px rgba(33, 150, 243, 0.4);
   border-radius: 10px;
   background-color: #6b6ecc;
   background: linear-gradient(45deg, #04051dea 0%, #2b566e 100%);
@@ -77,7 +79,9 @@
 }
 
 .actionTile:hover {
-  box-shadow: 0 10px 15px -3px rgba(255, 0, 243, 0.4), 0 4px 6px -4px rgba(33, 150, 243, 0.4);
+  box-shadow:
+    0 10px 15px -3px rgba(255, 0, 243, 0.4),
+    0 4px 6px -4px rgba(33, 150, 243, 0.4);
   background: linear-gradient(45deg, #04051dea 0%, #2b566e 100%);
 }
 
@@ -889,6 +893,11 @@
   display: block;
 }
 
+.pageStyle {
+  background-color: white;
+  overflow-y: auto;
+}
+
 .pageStyle .tooltip {
   z-index: 900;
   background-color: black;
@@ -902,4 +911,15 @@
 .layerContainer {
   display: flex;
   flex-direction: row;
+}
+
+.divWithBorder {
+  border: 1px solid black;
+  padding: 5px;
+  margin: 5px;
+}
+
+.breadcrumb {
+  font-size: 0.9em;
+  cursor: default;
 }

@@ -106,7 +106,7 @@ const EvaItemSequence: FunctionComponent<{
   };
 
   const displayInProgressItemTimeRemaining = (rexPetSeconds: number, sequenceItemUuid: string) => {
-    const sequenceItemMetadata = sequenceItemsMetadata.find(
+    const sequenceItemMetadata = sequenceItemsMetadata?.find(
       (sequenceItem) => sequenceItem.uuid === sequenceItemUuid
     );
     if (!sequenceItemMetadata) return "N/A";

@@ -4,7 +4,7 @@ import { NextPage } from "next";
 import { useRouter } from "next/router";
 import { FunctionComponent, useEffect, useState } from "react";
 import { shallowEqual, useAppSelector } from "utils/useAppSelector";
-
+import styles from "components/admin/admin.module.css";
 import { Checkbox } from "components/interface/form/globalFields";
 import { isLoggedIn } from "http-client/login";
 import { getMissions } from "http-client/mission";
@@ -53,7 +53,7 @@ const ExportPage: NextPage = () => {
 
   return (
     <>
-      <div>
+      <div className={styles.pageStyle}>
         <h1>Export</h1>
         <div style={{ marginBottom: "5px" }}>Mission: {missionStore.mission?.name}</div>
         <div style={{ userSelect: "none" }}>

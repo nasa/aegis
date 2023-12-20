@@ -14,7 +14,7 @@ export function initPaperRefs(
     graphBkg: new paper.Group(),
     hoverLine: new paper.Group(),
     petLine: new paper.Group(),
-    crewPositions: new paper.Group(),
+    positionMarkers: new paper.Group(),
   };
 
   //init paper vars and styles

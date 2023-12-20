@@ -16,11 +16,7 @@ import {
 } from "utils/geoMath";
 import { thunkGetElevation } from "./thunkElevation";
 import _ from "lodash";
-import {
-  thunkFullUpdateTraverse,
-  thunkUpdateTraverseNamesForStationInEVA,
-  thunkUpdateTraversesAroundStation,
-} from "./thunkTraverse";
+import { thunkFullUpdateTraverse, thunkUpdateTraversesAroundStation } from "./thunkTraverse";
 import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
 import { setRightPanelOpen } from "store/interface";
@@ -442,31 +438,7 @@ export const thunkSaveStation = appCreateAsyncThunk<{
   // any rex running?
   const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
 
-  //if existing station, update traverses for any EVAs
-  const stationFromDb = getState().station.stationsFromDb.find((s) => s.uuid === station.uuid);
-  if (stationFromDb) {
-    // check if station name changed
-    if (station.name !== stationFromDb.name) {
-      // We've changed a station name, so get all Evas using this station
-      const evasUsingThisStation: Eva[] = getState().eva.evas.filter((eva) => {
-        return eva.sequence.some((sequence) => {
-          return sequence.uuid === station.uuid;
-        });
-      });
-
-      // update traverse names to store and database
-      for (const eva of evasUsingThisStation) {
-        await dispatch(
-          thunkUpdateTraverseNamesForStationInEVA({
-            evaSequence: eva.sequence,
-            stationUuid: station.uuid,
-          })
-        );
-      }
-    }
-  }
-
-  // update the name of traverses around this station in any eva using this station
+  // full update traverses (including name) around this station in any eva using this station
   dispatch(thunkUpdateTraversesAroundStation({ stationUuid: station.uuid, saveToDb: true }));
 
   // upsert the changed Station to the DB via internal API call
