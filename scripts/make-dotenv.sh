@@ -23,7 +23,13 @@ fi
 
 # Write back to .env.secret with all our passwords
 echo "export AEGIS_DB_PASS=${AEGIS_DB_PASS@Q}
-export ADMIN_RECOVERY_KEY=${ADMIN_RECOVERY_KEY@Q}" > "${DOTENV_SECRET}"
+export ADMIN_RECOVERY_KEY=${ADMIN_RECOVERY_KEY@Q}
+export BOX_CLIENT_ID=${BOX_CLIENT_ID@Q}
+export BOX_CLIENT_SECRET=${BOX_CLIENT_SECRET@Q}
+export BOX_ENTERPRISE_ID=${BOX_ENTERPRISE_ID@Q}
+export BOX_USER_ID=${BOX_USER_ID@Q}
+" > "${DOTENV_SECRET}"
+
 echo "${RELATIVE_DOTENV_SECRET} saved"
 
 # Set all the other variables for the .env file
@@ -42,7 +48,7 @@ if [ -z "${CI+set}" ]; then # if not in CI (aka local)
 
     export DOCKER_IMAGE_NGINX=eegitlabregistry.fit.nasa.gov/emss/aegis:nginx-dev
     export DOCKER_IMAGE_NEXTJS=eegitlabregistry.fit.nasa.gov/emss/aegis:nextjs-dev
-    export DOCKER_IMAGE_GDAL=eegitlabregistry.fit.nasa.gov/emss/aegis:gdal-dev
+    export DOCKER_IMAGE_GDAL=eegitlabregistry.fit.nasa.gov/emss/aegis:gdal-dev    
 else
     export DOCKER_SSL_CERTS_DIR=/etc/pki/tls/certs
     export DOCKER_SSL_PRIVATE_DIR=/etc/pki/tls/private
