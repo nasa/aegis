@@ -134,8 +134,10 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
 
     const blankMapCircleControls = _.cloneDeep(getState().map.mapCircleControls);
     // make all circles invisible
-    for (const [key] of Object.entries(blankMapCircleControls)) {
-      blankMapCircleControls[key].visible = false;
+    if (blankMapCircleControls) {
+      for (const [key] of Object.entries(blankMapCircleControls)) {
+        blankMapCircleControls[key].visible = false;
+      }
     }
 
     const blankPreset: Preset = {
