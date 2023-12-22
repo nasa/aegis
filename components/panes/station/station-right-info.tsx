@@ -29,13 +29,13 @@ import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { round } from "lodash";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import CalculatedDwell from "../calculated-dwell";
+import { thunkVerifyNoActiveMapAction } from "store/thunk/thunkMap";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
   actionCount: number;
 }> = ({ editMode, actionCount }) => {
   const dispatch = useAppDispatch();
-  const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
 
   const selectedStation = useAppSelector(
     (state) =>
@@ -50,12 +50,23 @@ const Info_Panel: FunctionComponent<{
     (state) => state.mission.mission.landerElevationMeters,
     shallowEqual
   );
-  const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
-  const thisMapDirective = mapDirective?.uuid === selectedStation.uuid ? mapDirective : null;
+  const thisMapDirective = useAppSelector((state) => {
+    return state.map.mapDirective?.uuid === selectedStation.uuid ? state.map.mapDirective : null;
+  }, shallowEqual);
+  const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
+
   const elevationPendingIndex = useAppSelector(
     (state) =>
       state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedStation.uuid),
     refEqual
+  );
+  const stationPoisLocations = useAppSelector(
+    (state) =>
+      selectedStation.poiUuids.map((poiUuid) => {
+        const poi = state.poi.pois.find((p) => p.uuid === poiUuid);
+        return poi.location;
+      }),
+    shallowEqual
   );
 
   const countEvasUsingThisStation = useAppSelector((state) => {
@@ -135,21 +146,13 @@ const Info_Panel: FunctionComponent<{
     );
   };
 
-  const verifyNoActiveMapAction = (): boolean => {
-    // if another mapAction is underway, fire an alert and return false
-
-    if (mapDirective && mapDirective.mapAction !== null) {
-      alert(
-        "Another map action is underway. Please cancel or complete that map action before starting a new one."
-      );
-      return false;
-    } else {
-      return true;
-    }
+  // verify map action using a thunk to avoid subscribing to the mapDirective
+  const verifyNoActiveMapAction = async (): Promise<boolean> => {
+    return (await dispatch(thunkVerifyNoActiveMapAction())).payload;
   };
 
-  const handleCreate = () => {
-    if (verifyNoActiveMapAction()) {
+  const handleCreate = async () => {
+    if (await verifyNoActiveMapAction()) {
       dispatchStationMapAction("createMarker");
     }
   };
@@ -157,8 +160,8 @@ const Info_Panel: FunctionComponent<{
     dispatchStationMapAction("cancelCreateMarker");
   };
 
-  const handleEdit = () => {
-    if (verifyNoActiveMapAction()) {
+  const handleEdit = async () => {
+    if (await verifyNoActiveMapAction()) {
       dispatchStationMapAction("editMarker");
     }
   };
@@ -168,16 +171,12 @@ const Info_Panel: FunctionComponent<{
   };
 
   const handleCalcCentroid = () => {
-    const poiLocs = selectedStation.poiUuids.map((poiUuid) => {
-      const poi = pois.find((poi) => poi.uuid === poiUuid);
-      return poi.location;
-    });
-    const centroid = calcCentroidofCoordinates(poiLocs);
+    const centroid = calcCentroidofCoordinates(stationPoisLocations);
     dispatch(thunkUpdateStationLocation({ location: centroid, stationUuid: selectedStation.uuid }));
   };
 
-  const handleEditWalkback = () => {
-    if (verifyNoActiveMapAction()) {
+  const handleEditWalkback = async () => {
+    if (await verifyNoActiveMapAction()) {
       dispatch(
         updateMapDirective({
           mapItemType: "walkback",
@@ -191,7 +190,8 @@ const Info_Panel: FunctionComponent<{
   const handleCancelEditWalkback = () => {
     dispatch(
       updateMapDirective({
-        ...mapDirective,
+        mapItemType: "walkback",
+        uuid: selectedStation.uuid,
         mapAction: "cancelEditPolyline",
       })
     );
@@ -200,7 +200,8 @@ const Info_Panel: FunctionComponent<{
   const handleSaveEditWalkback = () => {
     dispatch(
       updateMapDirective({
-        ...mapDirective,
+        mapItemType: "walkback",
+        uuid: selectedStation.uuid,
         mapAction: "saveEditPolyline",
       })
     );
@@ -218,8 +219,6 @@ const Info_Panel: FunctionComponent<{
       }
     }
   }, [selectedStation, dispatch, handleResetWalkback, landerLocation]);
-
-  const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   return (
     <div className={paneStyles.rightBody}>

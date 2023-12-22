@@ -18,6 +18,7 @@ import { thunkResetTraverse } from "store/thunk/thunkTraverse";
 import { formatNumberWithCommas, toDecimal } from "utils/formatting";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { validators, regExValidators } from "components/interface/form/formValidators";
+import { thunkVerifyNoActiveMapAction } from "store/thunk/thunkMap";
 
 const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -54,8 +55,10 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
     shallowEqual
   );
 
-  const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
-  const thisMapDirective = mapDirective?.uuid === selectedTraverse?.uuid ? mapDirective : null;
+  const thisMapDirective = useAppSelector((state) => {
+    return state.map.mapDirective?.uuid === selectedTraverse.uuid ? state.map.mapDirective : null;
+  }, shallowEqual);
+  const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
 
@@ -67,20 +70,13 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
     }
   }, [elevationPendingIndex]);
 
-  const verifyNoActiveMapAction = (): boolean => {
-    // if another mapAction is underway, fire an alert and return false
-    if (mapDirective && mapDirective.mapAction !== null) {
-      alert(
-        "Another map action is underway. Please cancel or complete that map action before starting a new one."
-      );
-      return false;
-    } else {
-      return true;
-    }
+  // verify map action using a thunk to avoid subscribing to the mapDirective
+  const verifyNoActiveMapAction = async (): Promise<boolean> => {
+    return (await dispatch(thunkVerifyNoActiveMapAction())).payload;
   };
 
-  const handlePathEdit = () => {
-    if (verifyNoActiveMapAction()) {
+  const handlePathEdit = async () => {
+    if (await verifyNoActiveMapAction()) {
       dispatch(
         updateMapDirective({
           uuid: selectedTraverse.uuid,
@@ -94,7 +90,8 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
   const handlePathFinished = async () => {
     dispatch(
       updateMapDirective({
-        ...mapDirective,
+        uuid: selectedTraverse.uuid,
+        mapItemType: "traverse",
         mapAction: "saveEditPolyline",
       })
     );
@@ -103,7 +100,8 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
   const handleCancelPathEdit = () => {
     dispatch(
       updateMapDirective({
-        ...mapDirective,
+        uuid: selectedTraverse.uuid,
+        mapItemType: "traverse",
         mapAction: "cancelEditPolyline",
       })
     );
@@ -113,8 +111,6 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
     //reset path to stations endpoints
     dispatch(thunkResetTraverse({ traverseUuid: selectedTraverse.uuid }));
   };
-
-  const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   return (
     <div className={paneStyles.rightBody}>

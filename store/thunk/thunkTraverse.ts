@@ -216,18 +216,41 @@ export const thunkResetTraverse = appCreateAsyncThunk<{
     (eva) => eva.uuid === getState().eva.selectedEvaUuid
   );
 
-  //reset path to a single segment with stations endpoints
+  let fromStationLoc: AEGISPoint;
+  let toStationLoc: AEGISPoint;
+
   const sequenceIndex = selectedEva.sequence.findIndex(
-    (sequenceItem) => sequenceItem.uuid === getState().eva.selectedEvaSequenceItemUuid
+    (sequenceItem) => sequenceItem.uuid === traverseUuid
   );
-  if (sequenceIndex < 1) return;
-  const fromStation = getState().station.stations.find(
-    (station) => station.uuid === selectedEva.sequence[sequenceIndex - 1].uuid
-  );
-  const toStation = getState().station.stations.find(
-    (station) => station.uuid === selectedEva.sequence[sequenceIndex + 1].uuid
-  );
-  const newPath = [fromStation.location, toStation.location];
+  if (sequenceIndex === 0) {
+    //first traverse in sequence. get egress location.
+    if (selectedEva.egressLocationUuid === "lander") {
+      fromStationLoc = getState().mission.mission.landerLocation;
+    } else {
+      fromStationLoc = getState().station.stations.find(
+        (s) => s.uuid === selectedEva.egressLocationUuid
+      )?.location;
+    }
+  } else {
+    fromStationLoc = getState().station.stations.find(
+      (station) => station.uuid === selectedEva.sequence[sequenceIndex - 1].uuid
+    )?.location;
+  }
+  if (sequenceIndex === selectedEva.sequence.length - 1) {
+    //last traverse in sequence. get ingress location
+    if (selectedEva.ingressLocationUuid === "lander") {
+      toStationLoc = getState().mission.mission.landerLocation;
+    } else {
+      toStationLoc = getState().station.stations.find(
+        (s) => s.uuid === selectedEva.ingressLocationUuid
+      )?.location;
+    }
+  } else {
+    toStationLoc = getState().station.stations.find(
+      (station) => station.uuid === selectedEva.sequence[sequenceIndex + 1].uuid
+    )?.location;
+  }
+  const newPath = [fromStationLoc, toStationLoc];
 
   await dispatch(
     thunkFullUpdateTraverse({

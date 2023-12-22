@@ -35,6 +35,7 @@ import { PosKabobMenu } from "./map-menu-pos-menu";
 import { orderBy } from "lodash";
 import { calcPathDurationMins, getDistanceBetweenTwoCoordinates } from "utils/geoMath";
 import _ from "lodash";
+import { thunkVerifyNoActiveMapAction } from "store/thunk/thunkMap";
 
 export const MapPositionMenu: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -69,8 +70,9 @@ export const MapPositionMenu: FunctionComponent = () => {
     deepEqual
   );
 
-  const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
-  const thisMapDirective = mapDirective?.uuid === posEntryEditingUuid ? mapDirective : null;
+  const thisMapDirective = useAppSelector((state) => {
+    return state.map.mapDirective?.uuid === posEntryEditingUuid ? state.map.mapDirective : null;
+  }, shallowEqual);
   const thisMapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
@@ -133,21 +135,14 @@ export const MapPositionMenu: FunctionComponent = () => {
     }
   });
 
-  const verifyNoActiveMapAction = (): boolean => {
-    // if another mapAction is underway, fire an alert and return false
-    if (mapDirective && mapDirective.mapAction !== null) {
-      alert(
-        "Another map action is underway. Please cancel or complete that map action before starting a new one."
-      );
-      return false;
-    } else {
-      return true;
-    }
+  // verify map action using a thunk to avoid subscribing to the mapDirective
+  const verifyNoActiveMapAction = async (): Promise<boolean> => {
+    return (await dispatch(thunkVerifyNoActiveMapAction())).payload;
   };
 
   //create a new position entry
   const handleCreate = async () => {
-    if (verifyNoActiveMapAction()) {
+    if (await verifyNoActiveMapAction()) {
       const newUuid = (await dispatch(thunkCreatePosEntry({ posTypeUuids: selectedPosTypeUuids })))
         .payload;
       if (newUuid) {
@@ -162,7 +157,7 @@ export const MapPositionMenu: FunctionComponent = () => {
     }
   };
   const handlePositionEdit = async (posEditingUuid: string) => {
-    if (verifyNoActiveMapAction()) {
+    if (await verifyNoActiveMapAction()) {
       dispatch(
         updateMapDirective({
           mapItemType: "posEntry",

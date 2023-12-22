@@ -26,16 +26,18 @@ import { upsertMission, upsertMissionByField } from "store/mission";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { updateMapDirective } from "store/map";
 import { toDecimal } from "utils/formatting";
+import { thunkVerifyNoActiveMapAction } from "store/thunk/thunkMap";
+import { thunkVerifyNoStationsBeingEdited } from "store/thunk/thunkStation";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
-  const stationsEditing = useAppSelector((state) => state.station.stationsEditing, shallowEqual);
+  const thisMapDirective = useAppSelector((state) => {
+    return state.map.mapDirective?.uuid === "lander" ? state.map.mapDirective : null;
+  }, shallowEqual);
+  const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   const [isDragging, setIsDragging] = useState(false);
-
-  const thisMapDirective = mapDirective?.uuid === "lander" ? mapDirective : null;
 
   const dispatchMissionMapAction = (mapAction: MapAction) => {
     dispatch(
@@ -47,31 +49,17 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     );
   };
 
-  const verifyNoActiveMapAction = (): boolean => {
-    // if another mapAction is underway, fire an alert and return false
-    if (mapDirective && mapDirective.mapAction !== null) {
-      alert(
-        "Another map action is underway. Please cancel or complete that map action before starting a new one."
-      );
-      return false;
-    } else {
-      return true;
-    }
+  // verify map action using a thunk to avoid subscribing to the mapDirective
+  const verifyNoActiveMapAction = async (): Promise<boolean> => {
+    return (await dispatch(thunkVerifyNoActiveMapAction())).payload;
   };
 
-  const verifyNoStationsBeingEdited = (): boolean => {
-    if (stationsEditing.length > 0) {
-      alert(
-        "You are currently editing a station. Please save or cancel your changes before attempting to move the lander location."
-      );
-      return false;
-    } else {
-      return true;
-    }
+  const verifyNoStationsBeingEdited = async (): Promise<boolean> => {
+    return (await dispatch(thunkVerifyNoStationsBeingEdited())).payload;
   };
 
-  const handleCreate = () => {
-    if (verifyNoActiveMapAction()) {
+  const handleCreate = async () => {
+    if (await verifyNoActiveMapAction()) {
       dispatchMissionMapAction("createMarker");
     }
   };
@@ -79,8 +67,8 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     dispatchMissionMapAction("cancelCreateMarker");
   };
 
-  const handleEdit = () => {
-    if (verifyNoActiveMapAction() && verifyNoStationsBeingEdited()) {
+  const handleEdit = async () => {
+    if ((await verifyNoActiveMapAction()) && (await verifyNoStationsBeingEdited())) {
       dispatchMissionMapAction("editMarker");
     }
   };
@@ -125,8 +113,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     },
     [earthThrottledFunc, isDragging]
   );
-
-  const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   return (
     <div className={paneStyles.rightBody}>

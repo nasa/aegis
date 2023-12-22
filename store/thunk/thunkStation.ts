@@ -763,3 +763,25 @@ export const thunkUpdateEVAsUsingStationForEgressIngress = appCreateAsyncThunk<{
     await dispatch(thunkFullUpdateTraverse({ traverseUuid: traverse.uuid, saveToDb: true }));
   });
 });
+
+/**
+ * Thunk used to verify stations in edit. This was created so that components do not
+ * have to subscribe to the entire state and cause un-necessary re-renders.
+ *
+ * If another station is being edited, fire an alert and return false
+ */
+export const thunkVerifyNoStationsBeingEdited = appCreateAsyncThunk<void, boolean, false>(
+  "verifyNoStationsBeingEdited",
+  async (_, { getState }) => {
+    const stationsEditing = getState().station.stationsEditing;
+
+    if (stationsEditing.length > 0) {
+      alert(
+        "You are currently editing a station. Please save or cancel your changes before attempting to move the lander location."
+      );
+      return false;
+    } else {
+      return true;
+    }
+  }
+);

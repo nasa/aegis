@@ -32,6 +32,7 @@ import { thunkUpdateActionLocation } from "store/thunk/thunkAction";
 import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
+import { thunkVerifyNoActiveMapAction } from "store/thunk/thunkMap";
 
 export const RightActionBody: FunctionComponent<{
   editMode: boolean;
@@ -52,8 +53,11 @@ export const RightActionBody: FunctionComponent<{
   );
 
   const planetRadius = useAppSelector((state) => state.mission.mission.planetRadius, refEqual);
-  const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
-  const thisMapDirective = mapDirective?.uuid === action.uuid ? mapDirective : null;
+  const thisMapDirective = useAppSelector((state) => {
+    return state.map.mapDirective?.uuid === action.uuid ? state.map.mapDirective : null;
+  }, shallowEqual);
+  const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
+
   const elevationPendingIndex = useAppSelector(
     (state) => state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === action.uuid),
     refEqual
@@ -76,8 +80,6 @@ export const RightActionBody: FunctionComponent<{
     }
   };
 
-  const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
-
   const dispatchStationMapAction = (mapAction: MapAction) => {
     dispatch(
       updateMapDirective({
@@ -88,21 +90,13 @@ export const RightActionBody: FunctionComponent<{
     );
   };
 
-  const verifyNoActiveMapAction = (): boolean => {
-    // if another mapAction is underway, fire an alert and return false
-
-    if (mapDirective && mapDirective.mapAction !== null) {
-      alert(
-        "Another map action is underway. Please cancel or complete that map action before starting a new one."
-      );
-      return false;
-    } else {
-      return true;
-    }
+  // verify map action using a thunk to avoid subscribing to the mapDirective
+  const verifyNoActiveMapAction = async (): Promise<boolean> => {
+    return (await dispatch(thunkVerifyNoActiveMapAction())).payload;
   };
 
-  const handleCreate = () => {
-    if (verifyNoActiveMapAction()) {
+  const handleCreate = async () => {
+    if (await verifyNoActiveMapAction()) {
       dispatchStationMapAction("createMarker");
     }
   };
@@ -110,8 +104,8 @@ export const RightActionBody: FunctionComponent<{
     dispatchStationMapAction("cancelCreateMarker");
   };
 
-  const handleEdit = () => {
-    if (verifyNoActiveMapAction()) {
+  const handleEdit = async () => {
+    if (await verifyNoActiveMapAction()) {
       dispatchStationMapAction("editMarker");
     }
   };
