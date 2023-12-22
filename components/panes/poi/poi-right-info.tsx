@@ -13,6 +13,7 @@ import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { round } from "lodash";
 import { validators } from "components/interface/form/formValidators";
 import { thunkUpdatePoiLatLngField } from "store/thunk/thunkPoi";
+import { thunkVerifyNoActiveMapAction } from "store/thunk/thunkMap";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -23,10 +24,10 @@ const Info_Panel: FunctionComponent<{
     (state) => state.poi.pois.find((poi) => poi.uuid === state.poi.selectedPoiUuid),
     shallowEqual
   );
-  const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
-  const stationsUsingThisPoi = useAppSelector(
+  const numStationsUsingPoi = useAppSelector(
     (state) =>
-      state.station.stations.filter((station) => station.poiUuids.includes(selectedPoi.uuid)),
+      state.station.stations.filter((station) => station.poiUuids.includes(selectedPoi.uuid))
+        .length,
     shallowEqual
   );
   const landerElevation = useAppSelector(
@@ -34,13 +35,16 @@ const Info_Panel: FunctionComponent<{
     shallowEqual
   );
 
-  const calculatedFields = useAppSelector(
+  const poiCalcFields = useAppSelector(
     (state) =>
       state.poi.calculatedFields.find((calculated) => calculated.uuid === selectedPoi.uuid),
     shallowEqual
   );
 
-  const thisMapDirective = mapDirective?.uuid === selectedPoi?.uuid ? mapDirective : null;
+  const thisMapDirective = useAppSelector((state) => {
+    return state.map.mapDirective?.uuid === selectedPoi.uuid ? state.map.mapDirective : null;
+  }, shallowEqual);
+  const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   const dispatchPoiMapAction = (mapAction: MapAction) => {
     dispatch(
@@ -52,20 +56,13 @@ const Info_Panel: FunctionComponent<{
     );
   };
 
-  const verifyNoActiveMapAction = (): boolean => {
-    // if another mapAction is underway, fire an alert and return false
-    if (mapDirective && mapDirective.mapAction !== null) {
-      alert(
-        "Another map action is underway. Please cancel or complete that map action before starting a new one."
-      );
-      return false;
-    } else {
-      return true;
-    }
+  // verify map action using a thunk to avoid subscribing to the mapDirective
+  const verifyNoActiveMapAction = async (): Promise<boolean> => {
+    return (await dispatch(thunkVerifyNoActiveMapAction())).payload;
   };
 
-  const handleCreate = () => {
-    if (verifyNoActiveMapAction()) {
+  const handleCreate = async () => {
+    if (await verifyNoActiveMapAction()) {
       dispatchPoiMapAction("createMarker");
     }
   };
@@ -73,8 +70,8 @@ const Info_Panel: FunctionComponent<{
     dispatchPoiMapAction("cancelCreateMarker");
   };
 
-  const handleEdit = () => {
-    if (verifyNoActiveMapAction()) {
+  const handleEdit = async () => {
+    if (await verifyNoActiveMapAction()) {
       dispatchPoiMapAction("editMarker");
     }
   };
@@ -82,8 +79,6 @@ const Info_Panel: FunctionComponent<{
   const handleCancelEdit = () => {
     dispatchPoiMapAction("cancelEditMarker");
   };
-
-  const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   return (
     <div className={paneStyles.rightBody}>
@@ -138,10 +133,10 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {calculatedFields?.totalActionTime?.durationLower === 0 ? (
+                        {poiCalcFields?.totalActionTime?.durationLower === 0 ? (
                           <>0</>
                         ) : (
-                          <>{displayFormattedTotalTimeObj(calculatedFields?.totalActionTime)}</>
+                          <>{displayFormattedTotalTimeObj(poiCalcFields?.totalActionTime)}</>
                         )}
                       </div>
                     </div>
@@ -153,9 +148,7 @@ const Info_Panel: FunctionComponent<{
                       <div className={paneStyles.displayFieldLabel}>Stations using this POI:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {stationsUsingThisPoi.length}
-                      </div>
+                      <div className={paneStyles.displayFieldValue}>{numStationsUsingPoi}</div>
                     </div>
                   </div>
                 </div>

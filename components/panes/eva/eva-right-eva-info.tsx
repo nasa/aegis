@@ -4,7 +4,7 @@ import { FunctionComponent, useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { upsertEvaByField } from "store/eva";
-import { shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
@@ -41,7 +41,16 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     (state) => state.mission.mission.equipmentItems,
     shallowEqual
   );
-  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
+  const stationUuidsAndNames = useAppSelector(
+    (state) =>
+      state.station.stations.map((s) => {
+        return {
+          uuid: s.uuid,
+          name: s.name,
+        };
+      }),
+    deepEqual
+  );
 
   const egressLocationIcon = useAppSelector((state) => {
     const station = state.station.stations.find(
@@ -174,7 +183,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             toolTip="Egress Location"
                           >
                             <option value="lander">Lander</option>
-                            {stations.map((station) => {
+                            {stationUuidsAndNames.map((station) => {
                               return (
                                 <option key={station.uuid} value={station.uuid}>
                                   {station.name}
@@ -224,7 +233,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             toolTip="Ingress Location"
                           >
                             <option value="lander">Lander</option>
-                            {stations.map((station) => {
+                            {stationUuidsAndNames.map((station) => {
                               return (
                                 <option key={station.uuid} value={station.uuid}>
                                   {station.name}
