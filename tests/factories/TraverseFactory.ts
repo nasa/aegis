@@ -6,19 +6,23 @@ import { EntityData } from "@mikro-orm/core";
 export default class TraverseFactory extends Factory<Traverse_db> {
   model = Traverse_db;
   definition(): EntityData<Traverse_db> {
-    return {
+    const traverse: Traverse_db = {
       uuid: uuidv4(),
       mission: null,
       name: "Jest Traverse-1",
+      status: "Candidate",
       path: [],
-      description: "",
+      pathSegmentDistances: null,
+      pathSegmentElevations: null,
       predictedDurationLower: 0,
       predictedDurationUpper: 0,
-      status: "Candidate",
+      description: "",
+      traverseRate: null,
       rexStatus: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    return traverse;
   }
 }
 

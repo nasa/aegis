@@ -6,13 +6,26 @@ import { EntityData } from "@mikro-orm/core";
 export default class STMObjectiveFactory extends Factory<STM_Objective_db> {
   model = STM_Objective_db;
   definition(): EntityData<STM_Objective_db> {
-    return {
+    const obj: STM_Objective_db = {
       uuid: uuidv4(),
       mission: null,
       name: "Jest STM Objective-1",
+      goals: null,
       numbering: "1",
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    return obj;
   }
 }
+
+export const createTestSTMObjective = (): STMObjective => {
+  return {
+    uuid: uuidv4(),
+    missionId: null,
+    name: "Jest STM Objective-1",
+    numbering: "1",
+    createdAt: new Date().toISOString(),
+    updatedAt: null,
+  };
+};

@@ -225,7 +225,7 @@ const EvaRightEva: FunctionComponent = () => {
                 icon={faTrashAlt}
                 onClick={() => {
                   if (window.confirm("Are you sure you want to delete this EVA?")) {
-                    dispatch(thunkDeleteEva({ eva: selectedEva }));
+                    dispatch(thunkDeleteEva({ evaUuid: selectedEva.uuid }));
                   }
                 }}
                 toolTip="Delete EVA"
@@ -250,7 +250,7 @@ const EvaRightEva: FunctionComponent = () => {
                 <Button
                   onClick={() => {
                     if (modified) {
-                      dispatch(thunkSaveEva({ eva: selectedEva }));
+                      dispatch(thunkSaveEva({ evaUuid: selectedEva.uuid }));
                     }
                   }}
                   icon={faFloppyDisk}
@@ -266,7 +266,7 @@ const EvaRightEva: FunctionComponent = () => {
                 />
                 <Button
                   onClick={() => {
-                    dispatch(thunkEvaCancel({ eva: selectedEva }));
+                    dispatch(thunkEvaCancel({ evaUuid: selectedEva.uuid }));
                   }}
                   icon={faBan}
                   toolTip="Cancel Edit"

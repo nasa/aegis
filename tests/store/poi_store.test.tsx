@@ -1,6 +1,6 @@
 import { upsertPoi } from "store/poi";
 import { createTestPoi } from "../factories/PoiFactory";
-import createTestStore from "../factories/makeTestStore";
+import { createCustomTestStore } from "../factories/makeTestStore";
 import { StoreType } from "store";
 import { initialState as poiInitialState } from "store/poi";
 
@@ -10,7 +10,7 @@ let testPoi: POI;
 beforeAll(() => {
   //populate the poi state in the store
   testPoi = createTestPoi();
-  store = createTestStore({
+  store = createCustomTestStore({
     poi: {
       ...poiInitialState,
       pois: [testPoi],

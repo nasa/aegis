@@ -1,5 +1,5 @@
 import appCreateAsyncThunk from "./thunkUtil";
-import * as InternalAPI from "http-client/mission";
+import * as httpClient_mission from "http-client/mission";
 import { cloneDeep, sortBy } from "lodash";
 import {
   upsertMission,
@@ -40,7 +40,7 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
     const sortedTemplates = sortBy(mission.actionTemplates, ["type", "templateName"]);
 
     //save mission to db
-    const upsertResponse = await InternalAPI.upsertMissions(
+    const upsertResponse = await httpClient_mission.upsertMissions(
       [
         {
           ...mission,
@@ -84,10 +84,10 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
         }
         //remove any radii that were deleted
         for (const uuid of Object.keys(newPresetUIState)) {
-          const isSublayer = getState().mission.sublayers.some(
+          const isSublayer = getState().mission.sublayers?.some(
             (sublayer) => sublayer.uuid === uuid
           );
-          const isHeaderLayer = getState().mission.layers.some((layer) => layer.uuid === uuid);
+          const isHeaderLayer = getState().mission.layers?.some((layer) => layer.uuid === uuid);
           const isCircle = sortedLanderRadii.some((landerRadius) => landerRadius.uuid === uuid);
 
           if (!isSublayer && !isHeaderLayer && !isCircle) delete newPresetUIState[uuid];
@@ -143,6 +143,8 @@ export const thunkMissionCancel = appCreateAsyncThunk<void>(
 export const thunkUpdateLanderLocation = appCreateAsyncThunk<{
   location: AEGISPoint;
 }>("updateLanderLocation", async ({ location }, { dispatch, getState }) => {
+  dispatch(upsertMissionByField("landerLocation", location));
+
   const thunkResponse = await dispatch(
     thunkGetElevation({
       path: [location],
@@ -151,18 +153,12 @@ export const thunkUpdateLanderLocation = appCreateAsyncThunk<{
     })
   );
 
-  if (thunkResponse.payload === false) {
+  if (!thunkResponse || thunkResponse.payload === false) {
     //gracefully reject?
   } else {
     const elevation = thunkResponse.payload as number;
     //upsert lander location and elevation
-    dispatch(
-      upsertMission({
-        ...getState().mission.mission,
-        landerLocation: location,
-        landerElevationMeters: elevation,
-      })
-    );
+    dispatch(upsertMissionByField("landerElevationMeters", elevation));
   }
 
   // loop through all stations and update their walkback traverses to snap to the new lander location
@@ -174,6 +170,7 @@ export const thunkUpdateLanderLocation = appCreateAsyncThunk<{
       })
     );
 
+    // evas are updated in thunkSaveStation when traverses to/from the station are updated
     if (newPath.payload !== false) {
       dispatch(
         thunkSaveStation({
@@ -218,7 +215,7 @@ export const thunkCreateActionTemplate = appCreateAsyncThunk<void>(
     //upsert action template
     const actionTemplates = cloneDeep(getState().mission.mission.actionTemplates) || [];
     actionTemplates.push(blankActionTemplate);
-    dispatch(upsertMission({ ...getState().mission.mission, actionTemplates: actionTemplates }));
+    dispatch(upsertMissionByField("actionTemplates", actionTemplates));
   }
 );
 
@@ -239,8 +236,6 @@ export const thunkUpdateActionTemplate = appCreateAsyncThunk<{
     )[fieldName] = value;
     dispatch(upsertMissionByField("actionTemplates", newActionTemplates));
   }
-
-  dispatch(upsertMission({ ...getState().mission.mission, actionTemplates: newActionTemplates }));
 });
 
 export const thunkDeleteActionTemplate = appCreateAsyncThunk<{ actionTemplateUuid: string }>(
@@ -249,7 +244,7 @@ export const thunkDeleteActionTemplate = appCreateAsyncThunk<{ actionTemplateUui
     const newActionTemplates = getState().mission.mission.actionTemplates?.filter(
       (item) => item.uuid !== actionTemplateUuid
     );
-    dispatch(upsertMission({ ...getState().mission.mission, actionTemplates: newActionTemplates }));
+    dispatch(upsertMissionByField("actionTemplates", newActionTemplates));
   }
 );
 

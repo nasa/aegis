@@ -2,8 +2,8 @@ import _ from "lodash";
 import {
   setTraverseCalculatedFields,
   setTraverseEditMode,
-  upsertTraverse,
-  upsertTraverseFromDb,
+  upsertTraverses,
+  upsertTraversesFromDb,
 } from "store/traverse";
 import { calculateAscentAndDescent, getTotalDistance, calcPathDurationMins } from "utils/geoMath";
 import appCreateAsyncThunk from "./thunkUtil";
@@ -29,12 +29,14 @@ export const thunkUpdateTraversePath = appCreateAsyncThunk<{
   //save traverse
   const traverse = getState().traverse.traverses.find((t) => t.uuid === traverseUuid);
   dispatch(
-    upsertTraverse({
-      ...traverse,
-      path: path,
-      pathSegmentDistances: pathSegmentDistances,
-      pathSegmentElevations: null,
-    })
+    upsertTraverses([
+      {
+        ...traverse,
+        path: path,
+        pathSegmentDistances: pathSegmentDistances,
+        pathSegmentElevations: null,
+      },
+    ])
   );
 });
 
@@ -197,10 +199,10 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
     if (saveToDb) {
       httpClient_Traverse.upsertTraverses([newTraverse], rexRunning);
       dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: false }));
-      dispatch(upsertTraverseFromDb(newTraverse));
+      dispatch(upsertTraversesFromDb([newTraverse]));
     }
     //update the store
-    dispatch(upsertTraverse(newTraverse, true));
+    dispatch(upsertTraverses([newTraverse], true));
 
     return newPath;
   }
@@ -405,8 +407,8 @@ export const thunkCycleTraverseRexToNextStatus = appCreateAsyncThunk<{ traverseU
       rexStatus = "in-progress";
     }
 
-    dispatch(upsertTraverse({ ...traverse, rexStatus }, true));
-    dispatch(upsertTraverseFromDb({ ...traverse, rexStatus }));
+    dispatch(upsertTraverses([{ ...traverse, rexStatus }], true));
+    dispatch(upsertTraversesFromDb([{ ...traverse, rexStatus }]));
 
     // update the station in the database
     httpClient_Traverse.upsertTraverses([{ ...traverse, rexStatus }], rexRunning);

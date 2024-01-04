@@ -36,7 +36,7 @@ export const thunkUpdatePoiLocation = appCreateAsyncThunk<{
   location: AEGISPoint;
   poiUuid: string;
 }>("updatePoiLocation", async ({ location, poiUuid }, { dispatch, getState }) => {
-  const elevation = await dispatch(
+  const elevationRes = await dispatch(
     thunkGetElevation({
       path: [location],
       pathSegmentDistances: [0],
@@ -44,12 +44,12 @@ export const thunkUpdatePoiLocation = appCreateAsyncThunk<{
     })
   );
   const poi = getState().poi.pois.find((s) => s.uuid === poiUuid);
-  if (elevation.payload === false) {
+  if (!elevationRes || elevationRes.payload === false) {
     //elevation failed - upsert without it
-    await dispatch(upsertPoi({ ...poi, location }));
+    dispatch(upsertPoi({ ...poi, location }));
   } else {
     //upsert location and elevation
-    await dispatch(upsertPoi({ ...poi, location, elevation: elevation.payload as number }));
+    dispatch(upsertPoi({ ...poi, location, elevation: elevationRes.payload as number }));
   }
 });
 
@@ -181,9 +181,7 @@ export const thunkSavePoi = appCreateAsyncThunk<{
   // find out if the actions in this poi have been modified and need to be persisted
   const actionsModified = isModified(poiActions, poiActionsFromDb);
   if (actionsModified) {
-    dispatch(
-      thunkSaveActions({ actions: poiActions, actionsFromDb: poiActionsFromDb, poiUuid: poi.uuid })
-    );
+    dispatch(thunkSaveActions({ actions: poiActions, actionsFromDb: poiActionsFromDb }));
   }
 
   dispatch(setPoiEditMode({ poiUuid: poi.uuid, editMode: false }));

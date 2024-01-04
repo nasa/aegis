@@ -7,7 +7,7 @@ import { roundDateToSecond } from "utils/formatting";
 export default class ActionFactory extends Factory<Action_db> {
   model = Action_db;
   definition(): EntityData<Action_db> {
-    return {
+    const action: Action_db = {
       uuid: uuidv4(),
       mission: null,
       poi: null,
@@ -19,6 +19,7 @@ export default class ActionFactory extends Factory<Action_db> {
       location: null,
       elevation: 0,
       durationLower: 0,
+      durationUpper: 0,
       status: "Candidate",
       enabled: true,
       equipmentItemsUsage: [],
@@ -27,9 +28,13 @@ export default class ActionFactory extends Factory<Action_db> {
       priority: null,
       mass: null,
       rexStatus: null,
+      stmUuidRefs: null,
+      parentAction: null,
+      parentCopyDate: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    return action;
   }
 }
 

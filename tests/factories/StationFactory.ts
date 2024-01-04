@@ -6,12 +6,13 @@ import { EntityData } from "@mikro-orm/core";
 export default class StationFactory extends Factory<Station_db> {
   model = Station_db;
   definition(): EntityData<Station_db> {
-    return {
+    const station: Station_db = {
       uuid: uuidv4(),
       owner: null,
       mission: null,
       poi: null,
-      actionOrderUuids: null,
+      action: null,
+      actionOrderUuids: [],
       name: "Jest Station-1",
       status: "Candidate",
       description: "",
@@ -21,13 +22,14 @@ export default class StationFactory extends Factory<Station_db> {
       walkbackPath: null,
       walkbackPathSegmentDistances: null,
       walkbackPathSegmentElevations: null,
+      icon: null,
       durationLower: null,
       durationUpper: null,
       rexStatus: null,
-      icon: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    return station;
   }
 }
 
@@ -37,7 +39,7 @@ export const createTestStation = (): Station => {
     ownerId: null,
     missionId: null,
     poiUuids: null,
-    actionOrderUuids: null,
+    actionOrderUuids: [],
     name: "Jest Station-1",
     status: "Candidate",
     description: "",

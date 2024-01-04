@@ -6,7 +6,7 @@ import { EntityData } from "@mikro-orm/core";
 export default class EvaFactory extends Factory<Eva_db> {
   model = Eva_db;
   definition(): EntityData<Eva_db> {
-    return {
+    const eva: Eva_db = {
       uuid: uuidv4(),
       owner: null,
       mission: null,
@@ -23,6 +23,7 @@ export default class EvaFactory extends Factory<Eva_db> {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    return eva;
   }
 }
 
