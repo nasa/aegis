@@ -312,7 +312,6 @@
 
 .rexStatusWrapper {
   flex: 0 0 20px;
-  cursor: pointer;
   user-select: none;
   align-self: center;
 }

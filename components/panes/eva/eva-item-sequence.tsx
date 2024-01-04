@@ -235,10 +235,12 @@ const EvaItemSequence: FunctionComponent<{
             >
               {evaItemIcon}
 
-              {runningRexFromDb && runningRexFromDb.selectedRexEvaUuid === evaUuid && editPerms && (
+              {runningRexFromDb && runningRexFromDb.selectedRexEvaUuid === evaUuid && (
                 <div
                   className={evaStyles.rexStatusWrapper}
+                  style={editPerms ? { cursor: "pointer" } : { cursor: "default" }}
                   onClick={() => {
+                    if (!editPerms) return;
                     if (sequenceItem.type === "station") {
                       dispatch(
                         thunkCycleStationRexToNextStatus({ stationUuid: sequenceItem.uuid })
