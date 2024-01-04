@@ -63,10 +63,10 @@ export const thunkUpdateStationLocation = appCreateAsyncThunk<{
   const station = getState().station.stations.find((s) => s.uuid === stationUuid);
   if (!elevation || elevation.payload === false) {
     //no elevation data, update just station location
-    await dispatch(upsertStation({ ...station, location }));
+    dispatch(upsertStation({ ...station, location }));
   } else {
     //upsert station location and elevation
-    await dispatch(upsertStation({ ...station, location, elevation: elevation.payload as number }));
+    dispatch(upsertStation({ ...station, location, elevation: elevation.payload as number }));
   }
 
   //update walkback path, elevation, and snap to new location
@@ -468,7 +468,6 @@ export const thunkSaveStation = appCreateAsyncThunk<{
       thunkSaveActions({
         actions: stationActions,
         actionsFromDb: stationActionsFromDb,
-        stationUuid: station.uuid,
       })
     );
   }

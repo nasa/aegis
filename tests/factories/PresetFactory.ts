@@ -6,7 +6,7 @@ import { EntityData } from "@mikro-orm/core";
 export default class PresetFactory extends Factory<Preset_db> {
   model = Preset_db;
   definition(): EntityData<Preset_db> {
-    return {
+    const preset: Preset_db = {
       uuid: v4(),
       owner: null,
       mission: null,
@@ -15,20 +15,42 @@ export default class PresetFactory extends Factory<Preset_db> {
       mapSublayerControls: {
         Basemaps: {
           name: "Basemaps",
-          type: "header",
-          style: {
-            opacity: 1,
-            contrast: 1,
-            brightness: 1,
-            saturation: 1,
-            blend: "normal",
-          },
-          enabled: false,
-          expanded: true,
+          sublayerUuid: v4(),
+          visible: true,
+          style: null,
         },
       },
+      missionPreset: false,
+      missionPresetDefault: false,
+      mapCircleControls: {},
+      layerOrder: [],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    return preset;
   }
 }
+
+export const createTestPreset = (): Preset => {
+  return {
+    uuid: v4(),
+    ownerId: null,
+    missionId: null,
+    name: "Jest Test Preset",
+    description: "Test Preset Description",
+    mapSublayerControls: {
+      Basemaps: {
+        name: "Basemaps",
+        sublayerUuid: v4(),
+        visible: true,
+        style: null,
+      },
+    },
+    missionPreset: false,
+    missionPresetDefault: false,
+    mapCircleControls: {},
+    layerOrder: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: null,
+  };
+};

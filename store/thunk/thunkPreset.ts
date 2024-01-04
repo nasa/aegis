@@ -9,11 +9,12 @@ import {
   setPresetUIStates,
   deletePresetByUuid,
   resetAllPresetUIStates,
-  setPresetsFromDb,
   upsertPresetFromDb,
+  deletePresetFromDbByUuid,
+  deletePresetUIStates,
 } from "store/preset";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
-import * as InternalAPI from "http-client/preset";
+import * as httpClient_preset from "http-client/preset";
 import { sortBy, cloneDeep } from "lodash";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { saveNewPreset } from "store/cross-slice";
@@ -27,7 +28,7 @@ export const thunkSavePreset = appCreateAsyncThunk<{
   const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
 
   // upsert the changed Preset to the DB
-  const upsertReponse = await InternalAPI.upsertPresets(
+  const upsertReponse = await httpClient_preset.upsertPresets(
     [
       {
         ...preset,
@@ -50,56 +51,51 @@ export const thunkSavePreset = appCreateAsyncThunk<{
 });
 
 export const thunkPresetCancel = appCreateAsyncThunk<{
-  preset: Preset;
-}>("presetCancel", async ({ preset }, { dispatch, getState }) => {
+  presetUuid: string;
+}>("presetCancel", async ({ presetUuid }, { dispatch, getState }) => {
   const presetFromDb = getState().preset.presetsFromDb.find(
-    (presetDb) => presetDb.uuid === preset.uuid
+    (presetDb) => presetDb.uuid === presetUuid
   );
 
   // if selected preset isn't in the db, delete it from the store
   if (!presetFromDb) {
-    dispatch(deletePresetByUuid(preset.uuid));
+    dispatch(deletePresetByUuid(presetUuid));
     dispatch(setSelectedPresetUuid(null));
     dispatch(setRightPanelOpen(false));
+    dispatch(deletePresetUIStates({ presetUuid }));
   } else {
     // if selected Preset is in the db, replace it with the one from the db (undoing any changes)
     dispatch(upsertPreset(presetFromDb, true));
+    dispatch(resetAllPresetUIStates({ presetUuid: presetUuid }));
   }
-  dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: false }));
-  dispatch(resetAllPresetUIStates({ presetUuid: preset.uuid }));
+  dispatch(setPresetEditMode({ presetUuid: presetUuid, editMode: false }));
 });
 
 export const thunkDeletePreset = appCreateAsyncThunk<{
-  preset: Preset;
-}>("presetDelete", async ({ preset }, { dispatch, getState }) => {
-  if (!preset) return;
+  presetUuid: string;
+}>("presetDelete", async ({ presetUuid }, { dispatch, getState }) => {
+  if (!presetUuid) return;
   const presetFromDb = getState().preset.presetsFromDb.find(
-    (presetDb) => presetDb.uuid === preset.uuid
+    (presetDb) => presetDb.uuid === presetUuid
   );
   //rex active?
   const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
   // if the selected preset is in presetsFromDb then delete it from the db
   if (presetFromDb) {
-    const missionId = getState().mission.mission?.id;
     // delete the preset from the DB via internal API call
-    const deleteResponse = await InternalAPI.deletePresets([preset.uuid], rexRunning);
+    const deleteResponse = await httpClient_preset.deletePresets([presetUuid], rexRunning);
     if (deleteResponse.status === "success") {
       // remove the corresponding preset from the store
-      dispatch(deletePresetByUuid(preset.uuid));
-
-      // get fresh copy of presets from DB
-      const presetData = await InternalAPI.getPresets(missionId);
-      if (presetData.data) {
-        dispatch(setPresetsFromDb(presetData.data));
-      }
+      dispatch(deletePresetByUuid(presetUuid));
+      dispatch(deletePresetFromDbByUuid(presetUuid));
     } else {
       console.error("Error deleting preset: " + deleteResponse.message);
     }
   } else {
     // if the selected preset is not in presetsFromDb then delete it from the store
-    dispatch(deletePresetByUuid(preset.uuid));
+    dispatch(deletePresetByUuid(presetUuid));
   }
-  dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: false }));
+  dispatch(setPresetEditMode({ presetUuid: presetUuid, editMode: false }));
   dispatch(setRightPanelOpen(false));
   const defaultPresetUuid = getState().preset.presets.find((p) => p.missionPresetDefault)?.uuid;
   dispatch(setSelectedPresetUuid(defaultPresetUuid));
@@ -127,16 +123,20 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
     }
 
     const blankMapSublayerControls = _.cloneDeep(getState().map.mapSublayerControls);
-    // make all sublayers invisible
-    for (const [key] of Object.entries(blankMapSublayerControls)) {
-      blankMapSublayerControls[key].visible = false;
+    if (blankMapSublayerControls) {
+      // make all sublayers invisible
+      for (const [key] of Object.entries(blankMapSublayerControls)) {
+        blankMapSublayerControls[key].visible = false;
+      }
     }
 
     const blankMapCircleControls = _.cloneDeep(getState().map.mapCircleControls);
-    // make all circles invisible
     if (blankMapCircleControls) {
-      for (const [key] of Object.entries(blankMapCircleControls)) {
-        blankMapCircleControls[key].visible = false;
+      // make all circles invisible
+      if (blankMapCircleControls) {
+        for (const [key] of Object.entries(blankMapCircleControls)) {
+          blankMapCircleControls[key].visible = false;
+        }
       }
     }
 
@@ -158,30 +158,37 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
 
     // create preset ui states entry
     const presetUIStates: PresetUIStates = {};
-    for (const layer of getState().mission.layers) {
-      presetUIStates[layer.uuid] = {
-        expanded: true,
-        tabSelected: null,
-        name: layer.name,
-        type: "layer",
-      };
+    if (getState().mission.layers) {
+      for (const layer of getState().mission.layers) {
+        presetUIStates[layer.uuid] = {
+          expanded: true,
+          tabSelected: null,
+          name: layer.name,
+          type: "layer",
+        };
+      }
     }
-    for (const sublayer of getState().mission.sublayers) {
-      presetUIStates[sublayer.uuid] = {
-        expanded: true,
-        tabSelected: null,
-        name: sublayer.name,
-        type: "sublayer",
-      };
+    if (getState().mission.sublayers) {
+      for (const sublayer of getState().mission.sublayers) {
+        presetUIStates[sublayer.uuid] = {
+          expanded: true,
+          tabSelected: null,
+          name: sublayer.name,
+          type: "sublayer",
+        };
+      }
     }
-    for (const landerRadius of getState().mission.mission.landerRadii) {
-      presetUIStates[landerRadius.uuid] = {
-        expanded: true,
-        tabSelected: null,
-        name: landerRadius.name,
-        type: "circle",
-      };
+    if (getState().mission.mission.landerRadii) {
+      for (const landerRadius of getState().mission.mission.landerRadii) {
+        presetUIStates[landerRadius.uuid] = {
+          expanded: true,
+          tabSelected: null,
+          name: landerRadius.name,
+          type: "circle",
+        };
+      }
     }
+
     dispatch(
       setPresetUIStates({
         presetUuid: blankPreset.uuid,

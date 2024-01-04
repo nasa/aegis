@@ -14,8 +14,8 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import {
   setSelectedTraverseRightNavItem,
   setTraverseEditMode,
-  upsertTraverse,
-  upsertTraverseFromDb,
+  upsertTraverses,
+  upsertTraversesFromDb,
 } from "store/traverse";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
@@ -118,8 +118,8 @@ const EvaRightTraverse: FunctionComponent = () => {
       rexRunning
     );
     if (persistResponse) {
-      dispatch(upsertTraverse(persistResponse.data[0], true));
-      dispatch(upsertTraverseFromDb(persistResponse.data[0]));
+      dispatch(upsertTraverses([persistResponse.data[0]], true));
+      dispatch(upsertTraversesFromDb([persistResponse.data[0]]));
     }
 
     // if there's an active traverse edit action, cancel it
@@ -147,7 +147,7 @@ const EvaRightTraverse: FunctionComponent = () => {
     }
     // revert to db version
     if (selectedTraverseFromDb) {
-      dispatch(upsertTraverse(selectedTraverseFromDb, true));
+      dispatch(upsertTraverses([selectedTraverseFromDb], true));
     }
   };
 

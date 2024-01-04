@@ -9,7 +9,6 @@ import {
   ResponseOptions,
 } from "node-mocks-http";
 import Login from "pages/api/auth/login";
-
 import { getORM, getEM, closeORM } from "utils/mikro";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
@@ -18,7 +17,6 @@ import SublayerFactory from "../factories/SublayerFactory";
 import handleSublayer from "pages/api/sublayer";
 import { Mission_db, Layer_db, User_db, Sublayer_db } from "server/database/models/_allModels";
 import { createNewSublayer } from "components/admin/helper";
-import fetchMock from "jest-fetch-mock";
 import { v4 as uuidv4 } from "uuid";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
@@ -62,8 +60,6 @@ beforeAll(async () => {
       sublayer.layer = testLayer;
     })
     .create(2);
-
-  fetchMock.resetMocks();
 });
 
 describe("Layer API Endpoint ", () => {

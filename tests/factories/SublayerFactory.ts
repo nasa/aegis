@@ -6,7 +6,7 @@ import { Sublayer_db } from "server/database/models/_allModels";
 export default class SublayerFactory extends Factory<Sublayer_db> {
   model = Sublayer_db;
   definition(): EntityData<Sublayer_db> {
-    return {
+    const sublayer: Sublayer_db = {
       uuid: v4(),
       mission: null,
       layer: null,
@@ -29,5 +29,6 @@ export default class SublayerFactory extends Factory<Sublayer_db> {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    return sublayer;
   }
 }

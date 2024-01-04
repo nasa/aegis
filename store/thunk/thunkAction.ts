@@ -164,65 +164,43 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
 export const thunkSaveActions = appCreateAsyncThunk<{
   actions: Action[];
   actionsFromDb: Action[];
-  stationUuid?: string;
-  poiUuid?: string;
-}>(
-  "actionSave",
-  async (
-    { actions, actionsFromDb, stationUuid = null, poiUuid = null },
-    { dispatch, getState }
-  ) => {
-    //rex active?
-    const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
-    //upsert any changed or new Actions to db
-    const changedActions: Action[] = [];
-    for (const action of actions) {
-      if (isModified([action], [actionsFromDb.find((a) => a.uuid === action.uuid)])) {
-        changedActions.push({
-          ...action,
-          updatedAt: roundDateToSecond(new Date()).toISOString(),
-        });
-      }
-    }
-    if (changedActions.length > 0) {
-      //action changed. upsert to db
-      const actionUpsertResponse = await httpClient_action.upsertActions(
-        changedActions,
-        rexRunning
-      );
-      if (actionUpsertResponse.status === "success") {
-        //upsert to both stores
-        dispatch(upsertActions(actionUpsertResponse.data, true));
-        dispatch(upsertActionsFromDb(actionUpsertResponse.data));
-      }
-    }
-
-    // filter out deleted actions using local state
-    const deletedActions: Action[] = actionsFromDb.filter((actionDb) => {
-      const found = actions.some((a) => {
-        return a.uuid === actionDb.uuid;
+}>("actionSave", async ({ actions, actionsFromDb }, { dispatch, getState }) => {
+  //rex active?
+  const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+  //upsert any changed or new Actions to db
+  const changedActions: Action[] = [];
+  for (const action of actions) {
+    if (isModified([action], [actionsFromDb.find((a) => a.uuid === action.uuid)])) {
+      changedActions.push({
+        ...action,
+        updatedAt: roundDateToSecond(new Date()).toISOString(),
       });
-      return !found;
-    });
-    if (deletedActions.length > 0) {
-      // take array of deleted actions and delete them in the db
-      const deletedActionUuids = deletedActions.map((a) => a.uuid);
-      await httpClient_action.deleteActions(deletedActionUuids, rexRunning);
-    }
-
-    // clear the store copy of the db and reload
-    dispatch(deleteActionsFromDbByUuid(actionsFromDb.map((a) => a.uuid)));
-
-    const actionData = await httpClient_action.getActions({
-      missionId: getState().mission.mission?.id,
-      stationUuid: stationUuid,
-      poiUuid: poiUuid,
-    });
-    if (actionData.data?.length > 0) {
-      dispatch(upsertActionsFromDb(actionData.data));
     }
   }
-);
+  if (changedActions.length > 0) {
+    //action changed. upsert to db
+    const actionUpsertResponse = await httpClient_action.upsertActions(changedActions, rexRunning);
+    if (actionUpsertResponse.status === "success") {
+      //upsert to both stores
+      dispatch(upsertActions(actionUpsertResponse.data, true));
+      dispatch(upsertActionsFromDb(actionUpsertResponse.data));
+    }
+  }
+
+  // filter out deleted actions using local state
+  const deletedActions: Action[] = actionsFromDb.filter((actionDb) => {
+    const found = actions.some((a) => {
+      return a.uuid === actionDb.uuid;
+    });
+    return !found;
+  });
+  if (deletedActions.length > 0) {
+    // take array of deleted actions and delete them in the db
+    const deletedActionUuids = deletedActions.map((a) => a.uuid);
+    await httpClient_action.deleteActions(deletedActionUuids, rexRunning);
+    dispatch(deleteActionsFromDbByUuid(deletedActionUuids));
+  }
+});
 
 export const thunkUpdateActionLocation = appCreateAsyncThunk<{
   location: AEGISPoint;
