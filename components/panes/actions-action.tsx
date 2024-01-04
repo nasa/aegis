@@ -81,12 +81,14 @@ const RightAction: FunctionComponent<{
     <>
       {action && (
         <>
-          {rexRunning && editPerms && (
+          {rexRunning && (
             <>
               {action.enabled ? (
                 <div
                   className={actionStyles.actionHeadingRexStatusWrapper}
+                  style={editPerms ? { cursor: "pointer" } : { cursor: "default" }}
                   onClick={() => {
+                    if (!editPerms) return;
                     dispatch(thunkCycleActionRexToNextStatus({ actionUuid: action.uuid }));
                   }}
                   data-tooltip-id="aegis-tooltip"
