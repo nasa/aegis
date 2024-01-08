@@ -15,6 +15,7 @@ import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import formStyles from "./globalFields.module.css";
 import CircularSlider from "@fseehawer/react-circular-slider";
 import _ from "lodash";
+import { CompactPicker } from "react-color";
 
 export const Button: FunctionComponent<{
   onClick: () => void;
@@ -411,6 +412,66 @@ export const DegreesInputSlider: FunctionComponent<{
         <FontAwesomeIcon icon={icon} />
       </CircularSlider>
     </div>
+  );
+};
+
+/**
+ * Color picker
+ */
+export const PathColorPickerMenu: FunctionComponent<{
+  currentColor: string;
+  editMode: boolean;
+  updateColor: (color: string) => void;
+  styleContainer?: CSSProperties;
+}> = ({ currentColor, editMode, updateColor, styleContainer }) => {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const handleMenuOpen = (e: React.MouseEvent) => {
+    const x = e.clientX - 250;
+    menuRef.current.style.left = `${x}px`;
+    menuRef.current.style.top = `${e.clientY}px`;
+
+    dialogRef.current?.showModal();
+  };
+
+  return (
+    <>
+      <dialog
+        ref={dialogRef}
+        className={styles.dialogContainer}
+        onClick={() => {
+          dialogRef.current?.close();
+        }}
+      >
+        <div className={styles.pickerMenu} ref={menuRef}>
+          <CompactPicker
+            color={currentColor}
+            onChange={(color) => {
+              updateColor(color.hex);
+            }}
+          />
+        </div>
+      </dialog>
+
+      <div
+        style={styleContainer}
+        className={`${styles.propertyPathColor} ${editMode ? styles.propertyEditMode : ""}`}
+        onClick={(e) => {
+          if (!editMode) return;
+          handleMenuOpen(e);
+          dialogRef.current?.showModal();
+          e.stopPropagation();
+        }}
+      >
+        <div
+          className={styles.pathColorSample}
+          style={{
+            backgroundColor: currentColor,
+          }}
+        ></div>
+      </div>
+    </>
   );
 };
 

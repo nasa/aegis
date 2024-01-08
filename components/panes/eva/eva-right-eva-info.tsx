@@ -1,5 +1,9 @@
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
-import { Dropdown, InLineEditInput } from "components/interface/form/globalFields";
+import {
+  Dropdown,
+  InLineEditInput,
+  PathColorPickerMenu,
+} from "components/interface/form/globalFields";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 
@@ -15,6 +19,7 @@ import {
   faPersonThroughWindow,
   faQuestionCircle,
   faToolbox,
+  faRoute,
 } from "@fortawesome/free-solid-svg-icons";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { regExValidators, validators } from "components/interface/form/formValidators";
@@ -127,6 +132,33 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                   dispatch(upsertEvaByField(selectedEva.uuid, "description", value));
                 }}
               />
+            </div>
+          </div>
+
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>
+              <SubpanelHeading icon={faRoute}>Path</SubpanelHeading>
+            </div>
+            <div className={paneStyles.panelSection2Column}>
+              <div className={paneStyles.panelColumnTable}>
+                <div className={paneStyles.panelColumnTableRow}>
+                  <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.displayFieldLabel}>Traverse Color:</div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={paneStyles.displayFieldValue}>
+                      <PathColorPickerMenu
+                        currentColor={selectedEva.traverseColor || "#03adfc"}
+                        editMode={editMode}
+                        updateColor={(val) => {
+                          dispatch(upsertEvaByField(selectedEva.uuid, "traverseColor", val));
+                        }}
+                        styleContainer={{ padding: "0px 5px 0px 5px" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

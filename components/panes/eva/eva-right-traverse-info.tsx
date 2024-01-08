@@ -6,7 +6,11 @@ import {
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
-import { Button, InLineEditInput } from "components/interface/form/globalFields";
+import {
+  Button,
+  InLineEditInput,
+  PathColorPickerMenu,
+} from "components/interface/form/globalFields";
 import { FunctionComponent, useEffect, useState } from "react";
 import { upsertTraverseByField } from "store/traverse";
 import { updateMapDirective } from "store/map";
@@ -31,7 +35,6 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
       state.traverse.traverses.find((traverse) => traverse.uuid === selectedEvaSequenceItemUuid),
     shallowEqual
   );
-
   const missionTraverseRate = useAppSelector(
     (state) => state.mission.mission?.traverseRate,
     refEqual
@@ -40,13 +43,15 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid)?.traverseRate,
     refEqual
   );
-
+  const selectedEvaTraverseColor = useAppSelector(
+    (state) => state.eva.evas.find((e) => e.uuid === state.eva.selectedEvaUuid)?.traverseColor,
+    refEqual
+  );
   const elevationPendingIndex = useAppSelector(
     (state) =>
       state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedTraverse.uuid),
     refEqual
   );
-
   const calculatedFields = useAppSelector(
     (state) =>
       state.traverse.calculatedFields.find(
@@ -54,7 +59,6 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
       ),
     shallowEqual
   );
-
   const thisMapDirective = useAppSelector((state) => {
     return state.map.mapDirective?.uuid === selectedTraverse.uuid ? state.map.mapDirective : null;
   }, shallowEqual);
@@ -110,6 +114,10 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
   const handlePathReset = async () => {
     //reset path to stations endpoints
     dispatch(thunkResetTraverse({ traverseUuid: selectedTraverse.uuid }));
+  };
+
+  const handleResetPathColor = async () => {
+    dispatch(upsertTraverseByField(selectedTraverse.uuid, "color", null));
   };
 
   return (
@@ -354,6 +362,45 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
                         {calculatedFields.durationMinutes.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className={`${paneStyles.panelColumnTableRow}`}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>
+                        Path Color:
+                        <br />
+                        {!selectedTraverse.color && <>(Using EVA Color)</>}
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue} style={{ display: "inherit" }}>
+                        <PathColorPickerMenu
+                          currentColor={
+                            selectedTraverse.color || selectedEvaTraverseColor || "#03adfc"
+                          }
+                          editMode={editMode}
+                          updateColor={(val) => {
+                            dispatch(upsertTraverseByField(selectedTraverse.uuid, "color", val));
+                          }}
+                          styleContainer={{
+                            padding: "0px 5px 0px 5px",
+                            width: "70px",
+                          }}
+                        />
+
+                        {editMode && selectedTraverse.color && (
+                          <div className={paneStyles.panelSectionRow} style={{ paddingTop: "3px" }}>
+                            <Button
+                              onClick={() => {
+                                handleResetPathColor();
+                              }}
+                              label="Use EVA Color"
+                              style={{ width: "100px", fontSize: "1em" }}
+                              toolTip="Use the traverse color defined at the EVA level"
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
