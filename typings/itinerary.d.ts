@@ -27,11 +27,11 @@ interface Eva {
   description: string;
   maxDuration: number; // minutes
   traverseRate: number; // km/hour
-
   egressDuration: number; // minutes
   ingressDuration: number; // minutes
   egressLocationUuid: string; // station uuid or "lander"
   ingressLocationUuid: string; // station uuid or "lander"
+  traverseColor: string;
 
   createdAt?: string;
   updatedAt?: string;
@@ -61,6 +61,7 @@ interface Traverse {
   predictedDurationUpper: number; //minutes
   description: string;
   traverseRate?: number; // km/hour
+  color?: string;
 
   rexStatus: RexStatus;
 

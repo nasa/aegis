@@ -20,6 +20,7 @@ export default class EvaFactory extends Factory<Eva_db> {
       ingressDuration: null,
       egressLocationUuid: "lander",
       ingressLocationUuid: "lander",
+      traverseColor: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -42,6 +43,7 @@ export const createTestEva = (): Eva => {
     ingressDuration: null,
     egressLocationUuid: "lander",
     ingressLocationUuid: "lander",
+    traverseColor: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

@@ -224,6 +224,7 @@ async function upsertEVAs(evas: Eva[]): Promise<Eva[]> {
       ingressDuration: evaToUpsert.ingressDuration,
       egressLocationUuid: evaToUpsert.egressLocationUuid,
       ingressLocationUuid: evaToUpsert.ingressLocationUuid,
+      traverseColor: evaToUpsert.traverseColor,
       updatedAt: new Date(evaToUpsert.updatedAt),
       createdAt: new Date(evaToUpsert.createdAt),
     };
@@ -281,6 +282,7 @@ function convertEVAs(dbevas: Eva_db[]): Eva[] {
       ingressDuration: dbeva.ingressDuration,
       egressLocationUuid: dbeva.egressLocationUuid,
       ingressLocationUuid: dbeva.ingressLocationUuid,
+      traverseColor: dbeva.traverseColor,
       createdAt: dbeva.createdAt.toISOString(),
       updatedAt: dbeva.updatedAt.toISOString(),
     };

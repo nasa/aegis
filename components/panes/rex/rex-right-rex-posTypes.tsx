@@ -4,7 +4,11 @@ import styles from "./rex.module.css";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faList, faPlusCircle, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
-import { Button, InLineEditInput } from "components/interface/form/globalFields";
+import {
+  Button,
+  InLineEditInput,
+  PathColorPickerMenu,
+} from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -17,7 +21,6 @@ import {
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
 import { decodeEmoji } from "utils/formatting";
-import { CompactPicker } from "react-color";
 
 const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -167,7 +170,7 @@ const PosType: FunctionComponent<{
         </div>
         <div className={styles.propertyRowPathColor}>
           <PathColorPickerMenu
-            item={item}
+            currentColor={item.pathColor}
             editMode={editMode}
             updateColor={(val) => {
               dispatch(
@@ -255,61 +258,6 @@ const PosIconMenu: FunctionComponent<{
         }}
       >
         {item.icon && decodeEmoji(item.icon)}
-      </div>
-    </>
-  );
-};
-
-const PathColorPickerMenu: FunctionComponent<{
-  item: PosType;
-  editMode: boolean;
-  updateColor: (color: string) => void;
-}> = ({ item, editMode, updateColor }) => {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const handleMenuOpen = (e: React.MouseEvent) => {
-    const x = e.clientX - 250;
-    menuRef.current.style.left = `${x}px`;
-    menuRef.current.style.top = `${e.clientY}px`;
-
-    dialogRef.current?.showModal();
-  };
-
-  return (
-    <>
-      <dialog
-        ref={dialogRef}
-        className={styles.dialogContainer}
-        onClick={() => {
-          dialogRef.current?.close();
-        }}
-      >
-        <div className={styles.pickerMenu} ref={menuRef}>
-          <CompactPicker
-            color={item.pathColor}
-            onChange={(color) => {
-              updateColor(color.hex);
-            }}
-          />
-        </div>
-      </dialog>
-
-      <div
-        className={`${styles.propertyPathColor} ${editMode ? styles.propertyEditMode : ""}`}
-        onClick={(e) => {
-          if (!editMode) return;
-          handleMenuOpen(e);
-          dialogRef.current?.showModal();
-          e.stopPropagation();
-        }}
-      >
-        <div
-          className={styles.pathColorSample}
-          style={{
-            backgroundColor: item?.pathColor,
-          }}
-        ></div>
       </div>
     </>
   );

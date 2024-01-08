@@ -470,6 +470,7 @@ export const thunkCreateEva = appCreateAsyncThunk<void>(
       ingressDuration: 10,
       egressLocationUuid: "lander",
       ingressLocationUuid: "lander",
+      traverseColor: null,
       createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
       updatedAt: null,
     };
@@ -613,6 +614,7 @@ const makeNewTraverse = (missionId: number): Traverse => {
     pathSegmentElevations: null,
     status: null,
     rexStatus: null,
+    color: null,
     updatedAt: null,
     createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
   };

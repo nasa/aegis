@@ -32,6 +32,8 @@ export class Eva_db implements Eva_db_type {
   egressLocationUuid!: string;
   @Property({ type: MikroTypes.string, nullable: true })
   ingressLocationUuid!: string;
+  @Property({ type: MikroTypes.string, nullable: true })
+  traverseColor: string;
 
   @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;
