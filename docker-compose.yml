@@ -21,21 +21,13 @@ services:
     restart: unless-stopped
     env_file:
       - ./.env
-    environment:           
+    environment:
       # Override what is in .env (which may be "localhost" to support native local dev) such
       # that it is always "database" in a full Docker-Compose setup.
       - AEGIS_DB_HOST=database
     depends_on:
       database:
         condition: service_healthy
-    ports:
-      # nextjs is hard-coded to run on 4000 in docker, and nginx proxies 4000. Hard-coding this and
-      # not making it configurable keeps docker config simpler.
-      - "4000:4000"
-
-      # VS Code debug port. This isn't needed in production, and won't be exposed by FIT servers,
-      # but is simpler config-wise to put here versus in the overrides file
-      - "9229:9229"
     volumes:
       - ${PUBLIC_STATIC_DIR}:/${PUBLIC_STATIC_DIR}
     networks:
@@ -55,8 +47,6 @@ services:
       timeout: 5s # fail if it takes longer than this
       retries: 6 # max consecutive failures
       start_period: 15s # db takes about 20 seconds to come up
-    ports:
-      - "5432:5432"
     volumes:
       # map the DB data to be stored outside the container
       - ${DOCKER_DB_DATA_DIR}:/var/lib/postgresql/data
@@ -71,8 +61,6 @@ services:
     # - nextjs
     volumes:
       - ${PUBLIC_STATIC_DIR}:/static
-    ports:
-      - "${GDAL_PORT}:80"
     networks:
       - aegis-network
 
