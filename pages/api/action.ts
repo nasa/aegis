@@ -233,7 +233,6 @@ async function upsertActions(actions: Action[]): Promise<void> {
       status: actionToUpsert.status,
       enabled: actionToUpsert.enabled,
       crewAssigned: actionToUpsert.crewAssigned,
-      rexStatus: actionToUpsert.rexStatus,
       updatedAt: new Date(actionToUpsert.updatedAt),
       createdAt: new Date(actionToUpsert.createdAt),
     };
@@ -296,7 +295,6 @@ function convertActions(dbactions: Action_db[]): Action[] {
       status: dbaction.status,
       enabled: dbaction.enabled,
       crewAssigned: dbaction.crewAssigned,
-      rexStatus: dbaction.rexStatus,
       createdAt: dbaction.createdAt?.toISOString(),
       updatedAt: dbaction.updatedAt?.toISOString(),
     };

@@ -25,7 +25,7 @@ export const thunkLogRexFull = appCreateAsyncThunk<{
 
   // package up EVA and children
 
-  const eva = getState().eva.evas.find((eva) => eva.uuid === exportRex.selectedRexEvaUuid);
+  const eva = getState().eva.evas.find((eva) => eva.uuid === exportRex.evaUuid);
 
   if (!eva) {
     const log: Log = {

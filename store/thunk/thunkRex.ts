@@ -71,10 +71,13 @@ export const thunkCreateRex = appCreateAsyncThunk<void>(
       petStartStopTimestamp: null,
       petValueAtStartStop: "+00:00:00",
       petRunning: false,
-      selectedRexEvaUuid: null,
-      rexRunning: false,
+      evaUuid: null,
+      isRunning: false,
       posEntries: null,
       posTypes: [posTypeEv1, posTypeEv2, posTypeCart],
+      stationEntries: null,
+      traverseEntries: null,
+      actionEntries: null,
       createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
       updatedAt: null,
     };
@@ -110,7 +113,7 @@ export const thunkSaveRex = appCreateAsyncThunk<{ rexUuid: string }>(
     if (!rexUuid) return;
 
     const rexToSave = getState().rex.rexes.find((rex) => rex.uuid === rexUuid);
-    const upsertResponse = await httpClient_Rex.upsertRexes([rexToSave], rexToSave.rexRunning);
+    const upsertResponse = await httpClient_Rex.upsertRexes([rexToSave], rexToSave.isRunning);
     if (upsertResponse.status === "success") {
       // upsert the changed rex to the store
       dispatch(upsertRex(upsertResponse.data[0], true));
@@ -123,12 +126,12 @@ export const thunkSaveRex = appCreateAsyncThunk<{ rexUuid: string }>(
     }
 
     // log an export of a full copy of this rex and associated eva to the log db table for posterity
-    dispatch(thunkLogRexFull({ rexUuid, directive: rexToSave.rexRunning ? "start" : "stop" }));
+    dispatch(thunkLogRexFull({ rexUuid, directive: rexToSave.isRunning ? "start" : "stop" }));
 
     // clear running state and stop the clocks of all other rexes in the db
     getState().rex.rexesFromDb.forEach(async (rex) => {
       //skip if this rex is the one being saved or if it isn't running
-      if (rex.uuid === rexUuid || !rex.rexRunning) return;
+      if (rex.uuid === rexUuid || !rex.isRunning) return;
 
       //set the rex to not running and stop the PET timer
       const rexCopy = _.cloneDeep(rex);
@@ -140,7 +143,7 @@ export const thunkSaveRex = appCreateAsyncThunk<{ rexUuid: string }>(
       rexCopy.petStartStopTimestamp = roundDateToSecond(getAccurateNow()).toISOString();
       rexCopy.updatedAt = roundDateToSecond(getAccurateNow()).toISOString();
 
-      const upsertReponse = await httpClient_Rex.upsertRexes([rexCopy], rex.rexRunning);
+      const upsertReponse = await httpClient_Rex.upsertRexes([rexCopy], rex.isRunning);
       if (upsertReponse.status === "success") {
         // update the rex in the store from the DB
         dispatch(upsertRexFromDb(upsertReponse.data[0]));
@@ -172,8 +175,7 @@ export const thunkDeleteRex = appCreateAsyncThunk<{ rexUuid: string }>(
   "rexDelete",
   async ({ rexUuid }, { dispatch, getState }) => {
     if (!rexUuid) return;
-    //rex active?
-    const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+    const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
     // take the rex out of edit mode
     dispatch(setRexEditMode({ rexUuid, editMode: false }));
@@ -184,7 +186,7 @@ export const thunkDeleteRex = appCreateAsyncThunk<{ rexUuid: string }>(
     dispatch(deleteRexFromDbByUuid(rexUuid));
 
     // delete the rex from the db
-    httpClient_Rex.deleteRexes([rexUuid], rexRunning);
+    httpClient_Rex.deleteRexes([rexUuid], isRexRunning);
   }
 );
 
@@ -217,7 +219,7 @@ export const thunkCreatePosEntry = appCreateAsyncThunk<
   false
 >("createPosEntry", async ({ posTypeUuids }, { dispatch, getState }) => {
   const uuid = uuidv4();
-  const runningRex = getState().rex.rexes.find((r) => r.rexRunning);
+  const runningRex = getState().rex.rexes.find((r) => r.isRunning);
   if (!runningRex) return null;
   const seconds = secondsFromhhmmss(
     runningRex.petRunning ? calculatePetValue(runningRex) : runningRex.petValueAtStartStop
@@ -249,8 +251,7 @@ export const thunkUpdatePosEntryLocation = appCreateAsyncThunk<{
     const selectedRex = getState().rex.rexes.find((r) => r.uuid === getState().rex.selectedRexUuid);
     const newRexPosEntries: PosEntry[] = _.cloneDeep(selectedRex.posEntries);
     const oldPosEntries = selectedRex.posEntries.find((c) => c.uuid === posEntryUuid);
-    // any rex running?
-    const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+    const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
     upsertToArrayByUuid(newRexPosEntries, { ...oldPosEntries, location });
 
@@ -263,7 +264,7 @@ export const thunkUpdatePosEntryLocation = appCreateAsyncThunk<{
           updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
         },
       ],
-      rexRunning
+      isRexRunning
     );
 
     if (rexUpsertResponse.status === "success") {
@@ -395,7 +396,7 @@ export const thunkPersistRexPosEntries = appCreateAsyncThunk<{
 
   //automatically save to the db.
   //check rex is running for logging
-  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
   const rexUpsertResponse = await httpClient_Rex.upsertRexes(
     [
       {
@@ -427,8 +428,7 @@ export const thunkDeletePosEntryByUuid = appCreateAsyncThunk<{
   const newRexPosEntries: PosEntry[] = _.cloneDeep(selectedRex.posEntries).filter(
     (c) => c.uuid !== posEntryUuid
   );
-  // any rex running?
-  const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
   //automatically save to the db.
   const rexUpsertResponse = await httpClient_Rex.upsertRexes(
@@ -439,7 +439,7 @@ export const thunkDeletePosEntryByUuid = appCreateAsyncThunk<{
         updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
       },
     ],
-    rexRunning
+    isRexRunning
   );
 
   if (rexUpsertResponse.status === "success") {
@@ -610,4 +610,68 @@ export const thunkMakeExportRexString = appCreateAsyncThunk<
   const dataStr = JSON.stringify(sortedJson, null, 2);
 
   return dataStr;
+});
+
+export const thunkAddRexStatusEntry = appCreateAsyncThunk<{
+  entryType: "station" | "traverse" | "action";
+  uuid: string; //uuid of the station, traverse, or action to add a status to
+  prevStatus?: RexStatus;
+}>("addRexStatusEntry", async ({ entryType, uuid, prevStatus }, { dispatch, getState }) => {
+  // Since cycling a status is an immediate persist to the DB, use the DB copy to avoid saving
+  //    any in-draft work that might be on the store copy
+  const runningRexFromDb = _.cloneDeep(getState().rex.rexesFromDb.find((rex) => rex.isRunning));
+  if (!runningRexFromDb) return;
+
+  // cycle the status to the next one
+  let rexStatus: RexStatus;
+  if (!prevStatus) {
+    rexStatus = "in-progress";
+  } else if (prevStatus === "in-progress") {
+    rexStatus = "complete";
+  } else if (prevStatus === "complete") {
+    rexStatus = "skipped";
+  } else if (prevStatus === "skipped") {
+    rexStatus = "pending";
+  } else if (prevStatus === "pending") {
+    rexStatus = "in-progress";
+  }
+
+  //modify the rex object based on the entry type. upsert to both copies in the store
+  if (entryType === "station") {
+    const newEntry: StationEntry = {
+      uuid: uuidv4(),
+      rexStatus,
+      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    };
+    const newEntries = _.cloneDeep(runningRexFromDb.stationEntries) || {};
+    (newEntries[uuid] ||= []).push(newEntry); //logical or assignment. will either return newEntries[uuid] or assign it to []
+    runningRexFromDb.stationEntries = newEntries;
+    dispatch(upsertRexByField(runningRexFromDb.uuid, "stationEntries", newEntries, true));
+    dispatch(upsertRexFromDb(runningRexFromDb));
+  } else if (entryType === "traverse") {
+    const newEntry: TraverseEntry = {
+      uuid: uuidv4(),
+      rexStatus,
+      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    };
+    const newEntries = _.cloneDeep(runningRexFromDb.traverseEntries) || {};
+    (newEntries[uuid] ||= []).push(newEntry); //logical or assignment. will either return newEntries[uuid] or assign it to []
+    runningRexFromDb.traverseEntries = newEntries;
+    dispatch(upsertRexByField(runningRexFromDb.uuid, "traverseEntries", newEntries, true));
+    dispatch(upsertRexFromDb(runningRexFromDb));
+  } else if (entryType === "action") {
+    const newEntry: ActionEntry = {
+      uuid: uuidv4(),
+      rexStatus,
+      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    };
+    const newEntries = _.cloneDeep(runningRexFromDb.actionEntries) || {};
+    (newEntries[uuid] ||= []).push(newEntry); //logical or assignment. will either return newEntries[uuid] or assign it to []
+    runningRexFromDb.actionEntries = newEntries;
+    dispatch(upsertRexByField(runningRexFromDb.uuid, "actionEntries", newEntries, true));
+    dispatch(upsertRexFromDb(runningRexFromDb));
+  }
+
+  // update the rex in the database
+  httpClient_Rex.upsertRexes([runningRexFromDb]);
 });

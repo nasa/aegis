@@ -31,7 +31,7 @@ const Actions_Panel: FunctionComponent<{
   );
 
   const stationInRunningRex: boolean = useAppSelector((state) => {
-    const runningRexEvaUuid = state.rex.rexes.find((rex) => rex.rexRunning)?.selectedRexEvaUuid;
+    const runningRexEvaUuid = state.rex.rexes.find((rex) => rex.isRunning)?.evaUuid;
     if (!runningRexEvaUuid) return false;
     const runningRexEva = state.eva.evas.find((eva) => eva.uuid === runningRexEvaUuid);
     const sequenceItem = runningRexEva.sequence.find(
@@ -81,7 +81,7 @@ const Actions_Panel: FunctionComponent<{
           actionParentUuid={{ stationUuid: selectedStation.uuid }}
           parentType="station"
           actionsCalculatedFields={actionsCalculatedFields}
-          rexRunning={stationInRunningRex}
+          isRexRunning={stationInRunningRex}
         />
       </div>
     </div>

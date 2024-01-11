@@ -60,8 +60,8 @@ const EvaRightTraverse: FunctionComponent = () => {
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = mapDirective?.uuid === selectedEvaSequenceItemUuid ? mapDirective : null;
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
-  const rexRunning = useAppSelector(
-    (state) => state.rex.rexes.find((rex) => rex.rexRunning)?.rexRunning,
+  const isRexRunning = useAppSelector(
+    (state) => state.rex.rexes.find((rex) => rex.isRunning)?.isRunning,
     refEqual
   );
 
@@ -115,7 +115,7 @@ const EvaRightTraverse: FunctionComponent = () => {
           updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
         },
       ],
-      rexRunning
+      isRexRunning
     );
     if (persistResponse) {
       dispatch(upsertTraverses([persistResponse.data[0]], true));

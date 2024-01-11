@@ -155,8 +155,7 @@ export const thunkSavePoi = appCreateAsyncThunk<{
   const poiActionsFromDb = getState().action.actionsFromDb.filter(
     (action) => action.poiUuid === poi.uuid
   );
-  //rex active?
-  const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
   //save poi to db
   const poiUpsertResponse = await httpClient_poi.upsertPOIs(
@@ -166,7 +165,7 @@ export const thunkSavePoi = appCreateAsyncThunk<{
         updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
       },
     ],
-    rexRunning
+    isRexRunning
   );
 
   if (poiUpsertResponse.status === "success") {
@@ -225,8 +224,7 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
   const selectedMissionId = getState().mission.mission?.id;
   const poiActions = getState().action.actions.filter((action) => action.poiUuid === poi.uuid);
   const poiFromDb = getState().poi.poisFromDb.find((poiFromDb) => poiFromDb.uuid === poi.uuid);
-  //rex active?
-  const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
   // if the selected poi is in poisFromDb then delete it from the db
   if (poiFromDb) {
@@ -235,7 +233,7 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
     if (actionUuidsToDelete.length > 0) {
       const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteActions(
         actionUuidsToDelete,
-        rexRunning
+        isRexRunning
       );
       if (actionDeleteResponse.status !== "success") {
         throw new Error("Error deleting actions for poi " + actionDeleteResponse.message);
@@ -250,7 +248,7 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
     }
 
     // delete the POI from the DB via internal API call
-    const deleteResponse = await httpClient_poi.deletePOIs([poi.uuid], rexRunning);
+    const deleteResponse = await httpClient_poi.deletePOIs([poi.uuid], isRexRunning);
     if (deleteResponse.status === "success") {
       // remove the corresponding POI from the store
       dispatch(deletePoiByUuid(poi.uuid));

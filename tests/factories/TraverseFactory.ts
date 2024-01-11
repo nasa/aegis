@@ -18,7 +18,6 @@ export default class TraverseFactory extends Factory<Traverse_db> {
       predictedDurationUpper: 0,
       description: "",
       traverseRate: null,
-      rexStatus: null,
       color: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -41,7 +40,6 @@ export const createTestTraverse = (): Traverse => {
     description: "",
     traverseRate: null,
     color: null,
-    rexStatus: null,
     createdAt: new Date().toISOString(),
     updatedAt: null,
   };

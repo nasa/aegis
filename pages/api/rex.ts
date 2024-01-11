@@ -174,14 +174,7 @@ export async function getRexes(missionId: number): Promise<Rex[]> {
   const em = getEM();
   const rexes = await em.find(Rex_db, { mission: missionId });
 
-  return rexes.map((rex: Rex_db) => {
-    return {
-      ...rex,
-      missionId: rex.mission.id,
-      createdAt: rex.createdAt.toISOString(),
-      updatedAt: rex.updatedAt.toISOString(),
-    } as Rex;
-  });
+  return convertRexes(rexes);
 }
 
 /**
@@ -204,10 +197,13 @@ async function upsertRexes(rexes: Rex[]): Promise<Rex[]> {
       petStartStopTimestamp: rexToUpsert.petStartStopTimestamp,
       petValueAtStartStop: rexToUpsert.petValueAtStartStop,
       petRunning: rexToUpsert.petRunning,
-      selectedRexEvaUuid: rexToUpsert.selectedRexEvaUuid,
-      rexRunning: rexToUpsert.rexRunning,
+      evaUuid: rexToUpsert.evaUuid,
+      isRunning: rexToUpsert.isRunning,
       posEntries: rexToUpsert.posEntries,
       posTypes: rexToUpsert.posTypes,
+      stationEntries: rexToUpsert.stationEntries,
+      traverseEntries: rexToUpsert.traverseEntries,
+      actionEntries: rexToUpsert.actionEntries,
       updatedAt: new Date(rexToUpsert.updatedAt),
       createdAt: new Date(rexToUpsert.createdAt),
     };
@@ -218,15 +214,7 @@ async function upsertRexes(rexes: Rex[]): Promise<Rex[]> {
   await em.flush();
 
   //convert foreign keys
-  const convertedRexes = rexesUpsertedToDb.map((r) => {
-    return {
-      ...r,
-      missionId: r.mission.id,
-      updatedAt: r.updatedAt.toISOString(),
-      createdAt: r.createdAt.toISOString(),
-    } as Rex;
-  });
-  return convertedRexes;
+  return convertRexes(rexesUpsertedToDb);
 }
 
 /**
@@ -246,6 +234,32 @@ async function deleteRexes(uuids: string[]): Promise<string[]> {
   }
   await em.flush(); //perform deletes
   return deletedUuids;
+}
+
+function convertRexes(dbRexes: Rex_db[]): Rex[] {
+  const rexes: Rex[] = [];
+  for (const dbRex of dbRexes) {
+    const convertedRex: Rex = {
+      uuid: dbRex.uuid,
+      missionId: dbRex.mission.id,
+      name: dbRex.name,
+      description: dbRex.description,
+      petStartStopTimestamp: dbRex.petStartStopTimestamp,
+      petValueAtStartStop: dbRex.petValueAtStartStop,
+      petRunning: dbRex.petRunning,
+      evaUuid: dbRex.evaUuid,
+      isRunning: dbRex.isRunning,
+      posEntries: dbRex.posEntries,
+      posTypes: dbRex.posTypes,
+      stationEntries: dbRex.stationEntries,
+      traverseEntries: dbRex.traverseEntries,
+      actionEntries: dbRex.actionEntries,
+      updatedAt: dbRex.createdAt.toISOString(),
+      createdAt: dbRex.updatedAt.toISOString(),
+    };
+    rexes.push(convertedRex);
+  }
+  return rexes;
 }
 
 export default withIronSessionApiRoute(withORM(handleRex), ironOptions);

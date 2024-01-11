@@ -29,9 +29,7 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
   "missionSave",
   async (_, { dispatch, getState }) => {
     const mission = getState().mission.mission;
-
-    //rex active?
-    const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+    const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
     //Alphabetize the items by name
     const sortedEquipmentItems = sortBy(mission.equipmentItems, "name");
@@ -51,7 +49,7 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
           updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
         },
       ],
-      rexRunning
+      isRexRunning
     );
 
     if (upsertResponse.status === "success") {

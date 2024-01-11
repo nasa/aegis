@@ -57,6 +57,11 @@ const NavTimeline: FunctionComponent = () => {
   const evaActions = useAppSelector(selectedEvaActions(), shallowEqual);
   const evaStations = useAppSelector(selectedEvaStations(), shallowEqual);
   const evaTraverses = useAppSelector(selectedEvaTraverses(), shallowEqual);
+  const runningRex = useAppSelector((state) => state.rex.rexes.find((r) => r.isRunning), deepEqual);
+  const runningRexFromDb = useAppSelector(
+    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
+    shallowEqual
+  );
   const stationCalculatedFields = useAppSelector(
     (state) => state.station.calculatedFields,
     shallowEqual
@@ -68,10 +73,6 @@ const NavTimeline: FunctionComponent = () => {
   );
   const showElevation = useAppSelector((state) => state.interface.timelineShowElevation, refEqual);
   const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, refEqual);
-  const runningRexFromDb = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((rex) => rex.rexRunning),
-    shallowEqual
-  );
 
   const canvas: MutableRefObject<HTMLCanvasElement> = useRef(null);
   const paperDataRef: MutableRefObject<PaperData> = useRef(null);
@@ -94,6 +95,7 @@ const NavTimeline: FunctionComponent = () => {
   const [completedSTMs, setCompletedSTMs] = useState<string[][]>(null);
   const [inProgressSTMs, setInProgressSTMs] = useState<string[][]>(null);
 
+  //gather stm states
   useEffect(() => {
     if (!evaActions) return;
     const newCompletedSTMs: string[][] = [];
@@ -103,15 +105,21 @@ const NavTimeline: FunctionComponent = () => {
     evaActions.forEach((action) => {
       if (action.enabled) {
         newCoveredSTMs.push(action.stmUuidRefs);
-        if (action.rexStatus === "complete") newCompletedSTMs.push(action.stmUuidRefs);
-        if (action.rexStatus === "in-progress") newInProgressSTMs.push(action.stmUuidRefs);
+        if (runningRex?.actionEntries) {
+          const rexStatus = _.last(runningRex.actionEntries[action.uuid])?.rexStatus;
+          if (rexStatus === "complete") {
+            newCompletedSTMs.push(action.stmUuidRefs);
+          } else if (rexStatus === "in-progress") {
+            newInProgressSTMs.push(action.stmUuidRefs);
+          }
+        }
       }
     });
 
     setCoveredSTMs(newCoveredSTMs);
     setCompletedSTMs(newCompletedSTMs);
     setInProgressSTMs(newInProgressSTMs);
-  }, [evaActions, selectedEva]);
+  }, [evaActions, selectedEva, runningRex]);
 
   // used to update the PET value via the PetInterval component
   const [rexPetTime, setRexPetTime] = useState("");

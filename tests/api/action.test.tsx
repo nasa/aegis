@@ -118,7 +118,6 @@ describe("Action API Endpoint", () => {
     status: "Candidate",
     enabled: true,
     crewAssigned: [],
-    rexStatus: null,
     createdAt: roundDateToSecond(new Date()).toISOString(),
     updatedAt: roundDateToSecond(new Date()).toISOString(),
   };

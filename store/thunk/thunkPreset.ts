@@ -24,8 +24,7 @@ export const thunkSavePreset = appCreateAsyncThunk<{
   preset: Preset;
 }>("presetSave", async ({ preset }, { dispatch, getState }) => {
   if (!preset) return;
-  //rex active?
-  const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
   // upsert the changed Preset to the DB
   const upsertReponse = await httpClient_preset.upsertPresets(
@@ -35,7 +34,7 @@ export const thunkSavePreset = appCreateAsyncThunk<{
         updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
       },
     ],
-    rexRunning
+    isRexRunning
   );
 
   if (upsertReponse.status === "success") {
@@ -78,12 +77,12 @@ export const thunkDeletePreset = appCreateAsyncThunk<{
   const presetFromDb = getState().preset.presetsFromDb.find(
     (presetDb) => presetDb.uuid === presetUuid
   );
-  //rex active?
-  const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
+
   // if the selected preset is in presetsFromDb then delete it from the db
   if (presetFromDb) {
     // delete the preset from the DB via internal API call
-    const deleteResponse = await httpClient_preset.deletePresets([presetUuid], rexRunning);
+    const deleteResponse = await httpClient_preset.deletePresets([presetUuid], isRexRunning);
     if (deleteResponse.status === "success") {
       // remove the corresponding preset from the store
       dispatch(deletePresetByUuid(presetUuid));

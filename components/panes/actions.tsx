@@ -22,7 +22,7 @@ const Actions: FunctionComponent<{
   actionParentUuid: Pick<Action, "poiUuid" | "stationUuid">;
   parentType: "poi" | "station" | "eva";
   actionsCalculatedFields: ActionsCalculatedFields;
-  rexRunning: boolean;
+  isRexRunning: boolean;
 }> = ({
   editMode,
   actionOrderUuids,
@@ -30,7 +30,7 @@ const Actions: FunctionComponent<{
   actionParentUuid,
   parentType,
   actionsCalculatedFields,
-  rexRunning,
+  isRexRunning,
 }) => {
   const dispatch = useAppDispatch();
 
@@ -96,7 +96,7 @@ const Actions: FunctionComponent<{
           editMode={editMode}
           parentType={parentType}
           editPerms={editPerms}
-          rexRunning={rexRunning}
+          isRexRunning={isRexRunning}
         />
       )}
       <div className={actionsStyles.actionListContainer}>
@@ -104,7 +104,7 @@ const Actions: FunctionComponent<{
           <ReactDragListView onDragEnd={reorder} nodeSelector="li" handleSelector="a">
             <ActionList
               editMode={editMode}
-              rexRunning={rexRunning}
+              isRexRunning={isRexRunning}
               actionOrderUuids={actionOrderUuids}
               highlightActions={highlightActions}
               isActionHiglighted={isActionHiglighted}
@@ -187,27 +187,41 @@ export const ActionsTopSection: FunctionComponent<{
     deepEqual
   );
 
-  const completedStmUuidRefs = useAppSelector(
-    (state) =>
-      state.action.actions
-        .filter((action) => actionOrderUuids?.includes(action.uuid))
-        .map((action) => {
-          if (action.rexStatus !== "complete") return null;
-          return action.stmUuidRefs;
-        }),
-    deepEqual
-  );
+  const completedStmUuidRefs = useAppSelector((state) => {
+    const runningRex = state.rex.rexes.find((r) => r.isRunning);
+    if (!runningRex) return null;
+    const stmUuidRefs: string[][] = [];
+    for (const actionUuid in runningRex.actionEntries) {
+      // check if this action is part of the current list (actionOrderUuids). this is to cover
+      //    the case in which actions were statused, and then deleted.
+      if (
+        _.last(runningRex.actionEntries[actionUuid])?.rexStatus === "complete" &&
+        actionOrderUuids.includes(actionUuid)
+      ) {
+        const action = state.action.actions.find((a) => a.uuid === actionUuid);
+        if (action.enabled) stmUuidRefs.push(action.stmUuidRefs);
+      }
+    }
+    return stmUuidRefs;
+  }, deepEqual);
 
-  const inProgressStmUuidRefs = useAppSelector(
-    (state) =>
-      state.action.actions
-        .filter((action) => actionOrderUuids?.includes(action.uuid))
-        .map((action) => {
-          if (action.rexStatus !== "in-progress") return null;
-          return action.stmUuidRefs;
-        }),
-    deepEqual
-  );
+  const inProgressStmUuidRefs = useAppSelector((state) => {
+    const runningRex = state.rex.rexes.find((r) => r.isRunning);
+    if (!runningRex) return null;
+    const stmUuidRefs: string[][] = [];
+    for (const actionUuid in runningRex.actionEntries) {
+      // check if this action is part of the current list (actionOrderUuids). this is to cover
+      //    the case in which actions were statused, and then deleted.
+      if (
+        _.last(runningRex.actionEntries[actionUuid])?.rexStatus === "in-progress" &&
+        actionOrderUuids.includes(actionUuid)
+      ) {
+        const action = state.action.actions.find((a) => a.uuid === actionUuid);
+        if (action.enabled) stmUuidRefs.push(action.stmUuidRefs);
+      }
+    }
+    return stmUuidRefs;
+  }, deepEqual);
 
   return (
     <div className={paneStyles.panelContainer}>
@@ -274,13 +288,17 @@ export const ActionsListHeadings: FunctionComponent<{
   editMode: boolean;
   parentType: "poi" | "station" | "eva";
   editPerms: boolean;
-  rexRunning: boolean;
-}> = ({ editMode, parentType, editPerms, rexRunning }) => {
+  isRexRunning: boolean;
+}> = ({ editMode, parentType, editPerms, isRexRunning }) => {
   return (
     <>
       {!editMode && (
         <div className={actionsStyles.actionListHeader}>
-          {rexRunning && editPerms ? <div className={actionsStyles.actionListHeaderRex} /> : <></>}
+          {isRexRunning && editPerms ? (
+            <div className={actionsStyles.actionListHeaderRex} />
+          ) : (
+            <></>
+          )}
           <div className={actionsStyles.actionListHeaderType}>
             <div className={actionsStyles.actionListHeaderLabel}>Type</div>
           </div>
@@ -311,8 +329,8 @@ export const ActionList: FunctionComponent<{
   isActionHiglighted: ActionHighlight[];
   stations: Station[];
   pois: POI[];
-  rexRunning: boolean;
-}> = ({ editMode, actionOrderUuids, isActionHiglighted, stations, pois, rexRunning }) => {
+  isRexRunning: boolean;
+}> = ({ editMode, actionOrderUuids, isActionHiglighted, stations, pois, isRexRunning }) => {
   return (
     <ul className={actionsStyles.actionlist}>
       {actionOrderUuids?.map((actionUuid, index) => {
@@ -334,7 +352,7 @@ export const ActionList: FunctionComponent<{
               parentType="eva"
               parentLocation={parentLocation}
               parentElevation={parentElevation}
-              rexRunning={rexRunning}
+              isRexRunning={isRexRunning}
             />
           </li>
         );

@@ -89,7 +89,6 @@ describe("Station API Endpoint", () => {
     walkbackPathSegmentElevations: null,
     durationLower: 0,
     durationUpper: 0,
-    rexStatus: null,
     createdAt: roundDateToSecond(new Date()).toISOString(),
     updatedAt: roundDateToSecond(new Date()).toISOString(),
   };

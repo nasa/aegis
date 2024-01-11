@@ -6,6 +6,7 @@ import { initialState as mapInitialState } from "store/map";
 import { createTestMission } from "../../factories/MissionFactory";
 import { createTestPosEntry, createTestRex } from "../../factories/RexFactory";
 import {
+  thunkAddRexStatusEntry,
   thunkCancelPosEntry,
   thunkCancelPosEntryLocation,
   thunkCancelRex,
@@ -19,6 +20,7 @@ import {
   thunkSaveRex,
   thunkUpdatePosEntryLocation,
 } from "store/thunk/thunkRex";
+import { v4 as uuidv4 } from "uuid";
 
 // mock all calls to the db so no transactions are actually made
 // CAUTION, the import line must be below the jest.mock
@@ -74,7 +76,7 @@ describe("Thunk Rex Tests", () => {
   test("thunkSaveRex", async () => {
     const rex = createTestRex();
     const runningRex = createTestRex();
-    runningRex.rexRunning = true;
+    runningRex.isRunning = true;
     const rexModified = { ...rex, name: "Jest Rex-1 Modified" };
     const store = createCustomTestStore({
       rex: {
@@ -172,7 +174,7 @@ describe("Thunk Rex Tests", () => {
 describe("Thunk Pos Tests", () => {
   test("thunkCreatePosItem", async () => {
     const rex = createTestRex();
-    rex.rexRunning = true;
+    rex.isRunning = true;
     rex.petRunning = false;
     rex.petValueAtStartStop = "+00:07:00";
     const store = createCustomTestStore({
@@ -331,5 +333,86 @@ describe("Thunk Pos Tests", () => {
     expect(store.getState().rex.rexes[0].posEntries).toEqual([]);
     expect(store.getState().rex.rexesFromDb[0].posEntries).toEqual([]);
     expect(httpClient_rex.upsertRexes).toHaveBeenCalledTimes(1);
+  });
+
+  test("thunkAddRexStatusEntry", async () => {
+    const rex = createTestRex();
+    rex.isRunning = true;
+    const store = createCustomTestStore({
+      rex: {
+        ...rexInitialState,
+        rexes: [rex],
+        rexesFromDb: [rex],
+        selectedRexUuid: rex.uuid,
+      },
+    });
+
+    const stationUuid = uuidv4();
+    const traverseUuid = uuidv4();
+    const actionUuid = uuidv4();
+
+    // check all station states
+    await store.dispatch(thunkAddRexStatusEntry({ entryType: "station", uuid: stationUuid }));
+    expect(store.getState().rex.rexes[0].stationEntries[stationUuid][0].rexStatus).toBe(
+      "in-progress"
+    );
+    await store.dispatch(
+      thunkAddRexStatusEntry({ entryType: "station", uuid: stationUuid, prevStatus: "in-progress" })
+    );
+    expect(store.getState().rex.rexes[0].stationEntries[stationUuid][1].rexStatus).toBe("complete");
+    await store.dispatch(
+      thunkAddRexStatusEntry({ entryType: "station", uuid: stationUuid, prevStatus: "complete" })
+    );
+    expect(store.getState().rex.rexes[0].stationEntries[stationUuid][2].rexStatus).toBe("skipped");
+    await store.dispatch(
+      thunkAddRexStatusEntry({ entryType: "station", uuid: stationUuid, prevStatus: "skipped" })
+    );
+    expect(store.getState().rex.rexes[0].stationEntries[stationUuid][3].rexStatus).toBe("pending");
+
+    //assert all traverse states
+    await store.dispatch(thunkAddRexStatusEntry({ entryType: "traverse", uuid: traverseUuid }));
+    expect(store.getState().rex.rexes[0].traverseEntries[traverseUuid][0].rexStatus).toBe(
+      "in-progress"
+    );
+    await store.dispatch(
+      thunkAddRexStatusEntry({
+        entryType: "traverse",
+        uuid: traverseUuid,
+        prevStatus: "in-progress",
+      })
+    );
+    expect(store.getState().rex.rexes[0].traverseEntries[traverseUuid][1].rexStatus).toBe(
+      "complete"
+    );
+    await store.dispatch(
+      thunkAddRexStatusEntry({ entryType: "traverse", uuid: traverseUuid, prevStatus: "complete" })
+    );
+    expect(store.getState().rex.rexes[0].traverseEntries[traverseUuid][2].rexStatus).toBe(
+      "skipped"
+    );
+    await store.dispatch(
+      thunkAddRexStatusEntry({ entryType: "traverse", uuid: traverseUuid, prevStatus: "skipped" })
+    );
+    expect(store.getState().rex.rexes[0].traverseEntries[traverseUuid][3].rexStatus).toBe(
+      "pending"
+    );
+
+    // assert all action states
+    await store.dispatch(thunkAddRexStatusEntry({ entryType: "action", uuid: actionUuid }));
+    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][0].rexStatus).toBe(
+      "in-progress"
+    );
+    await store.dispatch(
+      thunkAddRexStatusEntry({ entryType: "action", uuid: actionUuid, prevStatus: "in-progress" })
+    );
+    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][1].rexStatus).toBe("complete");
+    await store.dispatch(
+      thunkAddRexStatusEntry({ entryType: "action", uuid: actionUuid, prevStatus: "complete" })
+    );
+    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][2].rexStatus).toBe("skipped");
+    await store.dispatch(
+      thunkAddRexStatusEntry({ entryType: "action", uuid: actionUuid, prevStatus: "skipped" })
+    );
+    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][3].rexStatus).toBe("pending");
   });
 });

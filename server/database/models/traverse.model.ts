@@ -29,8 +29,6 @@ export class Traverse_db implements Traverse_db_type {
   @Property({ type: MikroTypes.double, nullable: true, default: null })
   traverseRate: number;
   @Property({ type: MikroTypes.string, nullable: true })
-  rexStatus: RexStatus;
-  @Property({ type: MikroTypes.string, nullable: true })
   color: string;
 
   @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })

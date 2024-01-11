@@ -162,7 +162,7 @@ const MapBody: FunctionComponent = () => {
   );
   const selectedOrRunningRex = useAppSelector((state) => {
     //if a rex is running, show that one. If not, just show whatever rex is selected
-    const runningRexFromDb = state.rex.rexesFromDb.find((r) => r.rexRunning);
+    const runningRexFromDb = state.rex.rexesFromDb.find((r) => r.isRunning);
     if (runningRexFromDb) {
       return runningRexFromDb;
     } else {
@@ -1357,7 +1357,7 @@ const MapBody: FunctionComponent = () => {
     setPosEntriesToShow([]);
     if (mapDisplayPosMarkers.show) {
       //if there is a running rex, or no running rex but we're on the rex section and there's a rex selected
-      if (selectedOrRunningRex?.rexRunning || (sectionSelected === "rex" && selectedOrRunningRex)) {
+      if (selectedOrRunningRex?.isRunning || (sectionSelected === "rex" && selectedOrRunningRex)) {
         setPosEntriesToShow(_.orderBy(selectedOrRunningRex.posEntries, ["createdAt"], "desc"));
       }
     }
