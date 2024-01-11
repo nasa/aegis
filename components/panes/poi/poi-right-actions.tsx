@@ -64,7 +64,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
           actionParentUuid={{ poiUuid: selectedPoiUuid }}
           parentType="poi"
           actionsCalculatedFields={actionsCalculatedFields}
-          rexRunning={false}
+          isRexRunning={false}
         />
       </div>
     </div>

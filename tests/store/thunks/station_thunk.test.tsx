@@ -565,41 +565,4 @@ describe("Thunk Station Tests", () => {
     //we mocked the thunk duplicate action, so no further conditions will be tested here
     expect(mockThunkDuplicateActions).toHaveBeenCalledTimes(1);
   });
-
-  test("thunkCycleStationRexToNextStatus()", async () => {
-    //populate the station state in the store
-    const station: Station = createTestStation();
-    const store = createCustomTestStore({
-      station: { ...stationInitialState, stations: [station], stationsFromDb: [station] },
-    });
-
-    await store.dispatch(
-      thunkStation.thunkCycleStationRexToNextStatus({ stationUuid: station.uuid })
-    );
-    expect(store.getState().station.stations[0].rexStatus).toEqual("in-progress");
-    expect(store.getState().station.stationsFromDb[0].rexStatus).toEqual("in-progress");
-    expect(store.getState().station.stations[0].updatedAt).toEqual(station.updatedAt);
-    expect(httpClient_station.upsertStations).toHaveBeenCalledTimes(1);
-    await store.dispatch(
-      thunkStation.thunkCycleStationRexToNextStatus({ stationUuid: station.uuid })
-    );
-    expect(store.getState().station.stations[0].rexStatus).toEqual("complete");
-    expect(store.getState().station.stationsFromDb[0].rexStatus).toEqual("complete");
-    expect(store.getState().station.stations[0].updatedAt).toEqual(station.updatedAt);
-    expect(httpClient_station.upsertStations).toHaveBeenCalledTimes(2);
-    await store.dispatch(
-      thunkStation.thunkCycleStationRexToNextStatus({ stationUuid: station.uuid })
-    );
-    expect(store.getState().station.stations[0].rexStatus).toEqual("skipped");
-    expect(store.getState().station.stationsFromDb[0].rexStatus).toEqual("skipped");
-    expect(store.getState().station.stations[0].updatedAt).toEqual(station.updatedAt);
-    expect(httpClient_station.upsertStations).toHaveBeenCalledTimes(3);
-    await store.dispatch(
-      thunkStation.thunkCycleStationRexToNextStatus({ stationUuid: station.uuid })
-    );
-    expect(store.getState().station.stations[0].rexStatus).toEqual("pending");
-    expect(store.getState().station.stationsFromDb[0].rexStatus).toEqual("pending");
-    expect(store.getState().station.stations[0].updatedAt).toEqual(station.updatedAt);
-    expect(httpClient_station.upsertStations).toHaveBeenCalledTimes(4);
-  });
 });

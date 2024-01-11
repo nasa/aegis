@@ -74,7 +74,6 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
             durationUpper: a.durationUpper,
             crewAssigned: a.crewAssigned,
             enabled: a.enabled,
-            rexStatus: a.rexStatus,
             equipmentItemsUsage: a.equipmentItemsUsage,
           };
         }),
@@ -385,7 +384,7 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
         dispatch(setRexesFromDb(rexData));
 
         //If REX is happening, then switch the interface to show the rex pane and EVA actions right panel
-        const runningRex = rexData.find((rex) => rex.rexRunning === true);
+        const runningRex = rexData.find((rex) => rex.isRunning === true);
         if (runningRex) {
           dispatch(setRunningRexView({ runningRexUuid: runningRex.uuid }));
         }

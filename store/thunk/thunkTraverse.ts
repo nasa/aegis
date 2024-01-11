@@ -70,8 +70,7 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
     { dispatch, getState }
   ) => {
     const traverse = getState().traverse.traverses.find((t) => t.uuid === traverseUuid);
-    // any rex running?
-    const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+    const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
     const eva = getState().eva.evas.find((eva) => {
       return eva.sequence.find((sequenceItem) => {
@@ -197,7 +196,7 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
       updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     if (saveToDb) {
-      httpClient_Traverse.upsertTraverses([newTraverse], rexRunning);
+      httpClient_Traverse.upsertTraverses([newTraverse], isRexRunning);
       dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: false }));
       dispatch(upsertTraversesFromDb([newTraverse]));
     }
@@ -378,39 +377,5 @@ export const thunkCreateTraverseCalculatedFields = appCreateAsyncThunk<void>(
       allCalculatedFields.push(newCalculatedFields);
     }
     dispatch(setTraverseCalculatedFields({ calculatedFields: allCalculatedFields }));
-  }
-);
-
-export const thunkCycleTraverseRexToNextStatus = appCreateAsyncThunk<{ traverseUuid: string }>(
-  "cycleTraverseRexToNextStatus",
-  async ({ traverseUuid }, { dispatch, getState }) => {
-    const traverse = getState().traverse.traverses.find((s) => s.uuid === traverseUuid);
-    // any rex running?
-    const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
-
-    let lastStatus: RexStatus = "pending";
-    if (traverse.rexStatus) {
-      lastStatus = traverse.rexStatus;
-    }
-
-    // cycle the status to the next one
-    let rexStatus: RexStatus;
-    if (!lastStatus) {
-      rexStatus = "in-progress";
-    } else if (lastStatus === "in-progress") {
-      rexStatus = "complete";
-    } else if (lastStatus === "complete") {
-      rexStatus = "skipped";
-    } else if (lastStatus === "skipped") {
-      rexStatus = "pending";
-    } else if (lastStatus === "pending") {
-      rexStatus = "in-progress";
-    }
-
-    dispatch(upsertTraverses([{ ...traverse, rexStatus }], true));
-    dispatch(upsertTraversesFromDb([{ ...traverse, rexStatus }]));
-
-    // update the station in the database
-    httpClient_Traverse.upsertTraverses([{ ...traverse, rexStatus }], rexRunning);
   }
 );

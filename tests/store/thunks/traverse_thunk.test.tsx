@@ -5,7 +5,6 @@ import { initialState as evaInitialState } from "store/eva";
 import { initialState as stationInitialState } from "store/station";
 import {
   thunkCreateTraverseCalculatedFields,
-  thunkCycleTraverseRexToNextStatus,
   thunkFullUpdateTraverse,
   thunkResetTraverse,
   thunkUpdateTraversePath,
@@ -322,33 +321,5 @@ describe("Thunk Traverse Tests", () => {
       .traverse.calculatedFields.find((c) => c.uuid === traverse3.uuid);
     expect(t3CalcFields.durationMinutes).toEqual(15);
     expect(t3CalcFields.reportItems).toEqual([]);
-  });
-
-  test("thunkCycleTraverseRexToNextStatus()", async () => {
-    //populate the station state in the store
-    const traverse: Traverse = createTestTraverse();
-    const store = createCustomTestStore({
-      traverse: { ...traverseInitialState, traverses: [traverse], traversesFromDb: [traverse] },
-    });
-    await store.dispatch(thunkCycleTraverseRexToNextStatus({ traverseUuid: traverse.uuid }));
-    expect(store.getState().traverse.traverses[0].rexStatus).toEqual("in-progress");
-    expect(store.getState().traverse.traversesFromDb[0].rexStatus).toEqual("in-progress");
-    expect(store.getState().traverse.traverses[0].updatedAt).toEqual(traverse.updatedAt);
-    expect(httpClient_traverse.upsertTraverses).toHaveBeenCalledTimes(1);
-    await store.dispatch(thunkCycleTraverseRexToNextStatus({ traverseUuid: traverse.uuid }));
-    expect(store.getState().traverse.traverses[0].rexStatus).toEqual("complete");
-    expect(store.getState().traverse.traversesFromDb[0].rexStatus).toEqual("complete");
-    expect(store.getState().traverse.traverses[0].updatedAt).toEqual(traverse.updatedAt);
-    expect(httpClient_traverse.upsertTraverses).toHaveBeenCalledTimes(2);
-    await store.dispatch(thunkCycleTraverseRexToNextStatus({ traverseUuid: traverse.uuid }));
-    expect(store.getState().traverse.traverses[0].rexStatus).toEqual("skipped");
-    expect(store.getState().traverse.traversesFromDb[0].rexStatus).toEqual("skipped");
-    expect(store.getState().traverse.traverses[0].updatedAt).toEqual(traverse.updatedAt);
-    expect(httpClient_traverse.upsertTraverses).toHaveBeenCalledTimes(3);
-    await store.dispatch(thunkCycleTraverseRexToNextStatus({ traverseUuid: traverse.uuid }));
-    expect(store.getState().traverse.traverses[0].rexStatus).toEqual("pending");
-    expect(store.getState().traverse.traversesFromDb[0].rexStatus).toEqual("pending");
-    expect(store.getState().traverse.traverses[0].updatedAt).toEqual(traverse.updatedAt);
-    expect(httpClient_traverse.upsertTraverses).toHaveBeenCalledTimes(4);
   });
 });

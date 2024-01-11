@@ -104,7 +104,7 @@ export const createFullTestStore = (): StoreType => {
   ];
 
   const rex1 = createTestRex();
-  rex1.selectedRexEvaUuid = eva1.uuid;
+  rex1.evaUuid = eva1.uuid;
   rex1.posEntries = [createTestPosEntry()];
 
   const preset1 = createTestPreset();

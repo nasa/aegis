@@ -41,7 +41,7 @@ export const MapPositionMenu: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const selectedRexIsRunning = useAppSelector((state) => {
     const running = state.rex.rexesFromDb.find((r) => r.uuid === state.rex.selectedRexUuid)
-      ?.rexRunning;
+      ?.isRunning;
     return running === undefined ? false : running; //must return bool (undefined is not acceptable)
   }, refEqual);
   const selectedRex = useAppSelector(

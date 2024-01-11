@@ -158,6 +158,11 @@
   font-weight: 500;
 }
 
+.evaItemNameRexSkipped {
+  background-color: var(--grey1);
+  color: var(--grey4);
+}
+
 .evaItemNameRexSkippedSelected {
   background-color: var(--grey5);
   color: var(--grey1);
@@ -166,11 +171,6 @@
 .evaItemNameRexComplete {
   background-color: var(--grey1);
   color: var(--grey5);
-}
-
-.evaItemNameRexSkipped {
-  background-color: var(--grey1);
-  color: var(--grey4);
 }
 
 .evaItemLeft {

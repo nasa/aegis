@@ -222,7 +222,6 @@ async function upsertTraverses(traverses: Traverse[]): Promise<Traverse[]> {
       description: traverseToUpsert.description,
       traverseRate: traverseToUpsert.traverseRate,
       color: traverseToUpsert.color,
-      rexStatus: traverseToUpsert.rexStatus,
       updatedAt: new Date(traverseToUpsert.updatedAt),
       createdAt: new Date(traverseToUpsert.createdAt),
     };
@@ -280,7 +279,6 @@ function convertTraverses(dbTraverses: Traverse_db[]): Traverse[] {
       description: dbtraverse.description,
       traverseRate: dbtraverse.traverseRate,
       color: dbtraverse.color,
-      rexStatus: dbtraverse.rexStatus,
       createdAt: dbtraverse.createdAt.toISOString(),
       updatedAt: dbtraverse.updatedAt.toISOString(),
     };

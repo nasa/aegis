@@ -8,7 +8,6 @@ import { initialState as poiInitialState } from "store/poi";
 import { v4 as uuidv4 } from "uuid";
 import {
   thunkCreateAction,
-  thunkCycleActionRexToNextStatus,
   thunkDeleteAction,
   thunkDuplicateActions,
   thunkGetHighlightedActions,
@@ -276,34 +275,5 @@ describe("Thunk Action Tests", () => {
     storeState = store.getState();
     expect(storeState.poi.pois[0].actionOrderUuids.length).toEqual(1);
     expect(storeState.action.actions.find((a) => a.uuid === poiAction.uuid)).toBeUndefined();
-  });
-
-  test("thunkCycleActionRexToNextStatus()", async () => {
-    //populate the action state in the store
-    const action: Action = createTestAction({ stationUuid: uuidv4() });
-    const store = createCustomTestStore({
-      action: { ...actionInitialState, actions: [action], actionsFromDb: [action] },
-    });
-
-    await store.dispatch(thunkCycleActionRexToNextStatus({ actionUuid: action.uuid }));
-    expect(store.getState().action.actions[0].rexStatus).toEqual("in-progress");
-    expect(store.getState().action.actionsFromDb[0].rexStatus).toEqual("in-progress");
-    expect(store.getState().action.actions[0].updatedAt).toEqual(action.updatedAt);
-    expect(httpClient_action.upsertActions).toHaveBeenCalledTimes(1);
-    await store.dispatch(thunkCycleActionRexToNextStatus({ actionUuid: action.uuid }));
-    expect(store.getState().action.actions[0].rexStatus).toEqual("complete");
-    expect(store.getState().action.actionsFromDb[0].rexStatus).toEqual("complete");
-    expect(store.getState().action.actions[0].updatedAt).toEqual(action.updatedAt);
-    expect(httpClient_action.upsertActions).toHaveBeenCalledTimes(2);
-    await store.dispatch(thunkCycleActionRexToNextStatus({ actionUuid: action.uuid }));
-    expect(store.getState().action.actions[0].rexStatus).toEqual("skipped");
-    expect(store.getState().action.actionsFromDb[0].rexStatus).toEqual("skipped");
-    expect(store.getState().action.actions[0].updatedAt).toEqual(action.updatedAt);
-    expect(httpClient_action.upsertActions).toHaveBeenCalledTimes(3);
-    await store.dispatch(thunkCycleActionRexToNextStatus({ actionUuid: action.uuid }));
-    expect(store.getState().action.actions[0].rexStatus).toEqual("pending");
-    expect(store.getState().action.actionsFromDb[0].rexStatus).toEqual("pending");
-    expect(store.getState().action.actions[0].updatedAt).toEqual(action.updatedAt);
-    expect(httpClient_action.upsertActions).toHaveBeenCalledTimes(4);
   });
 });

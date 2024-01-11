@@ -13,11 +13,11 @@ const Header: FunctionComponent = () => {
   const banner = useAppSelector((state) => state.mission.mission?.missionBanner, refEqual);
   const interfaceStore = useAppSelector((state) => state.interface, shallowEqual);
   const runningRex = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((rex) => rex.rexRunning),
+    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
     shallowEqual
   );
   const runningEvaName = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === runningRex?.selectedRexEvaUuid)?.name,
+    (state) => state.eva.evas.find((eva) => eva.uuid === runningRex?.evaUuid)?.name,
     refEqual
   );
 

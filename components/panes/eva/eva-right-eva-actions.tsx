@@ -14,9 +14,8 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     (state) => state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid),
     shallowEqual
   );
-  const thisEvaRexRunning = useAppSelector(
-    (state) =>
-      state.rex.rexes.find((rex) => rex.selectedRexEvaUuid === selectedEvaUuid)?.rexRunning,
+  const isSelectedEvaInARunningRex = useAppSelector(
+    (state) => state.rex.rexes.find((rex) => rex.evaUuid === selectedEvaUuid)?.isRunning,
     refEqual
   );
   const stations = useAppSelector((state) => state.station.stations, shallowEqual);
@@ -86,7 +85,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
           editMode={editMode}
           parentType="eva"
           editPerms={editPerms}
-          rexRunning={thisEvaRexRunning}
+          isRexRunning={isSelectedEvaInARunningRex}
         />
         <div className={actionsStyles.actionListContainer}>
           {selectedEva.sequence.map((sequenceItem) => {
@@ -103,7 +102,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                   isActionHiglighted={isActionHiglighted}
                   stations={stations}
                   pois={null}
-                  rexRunning={thisEvaRexRunning}
+                  isRexRunning={isSelectedEvaInARunningRex}
                 />
               </div>
             );

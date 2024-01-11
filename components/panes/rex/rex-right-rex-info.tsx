@@ -57,10 +57,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     {editMode ? (
                       <Dropdown
                         containerStyle={{ flex: "1 1 auto" }}
-                        selected={selectedRex.selectedRexEvaUuid || ""}
+                        selected={selectedRex.evaUuid || ""}
                         selectStyle={{ height: "20px" }}
                         onChange={(value) => {
-                          dispatch(upsertRexByField(selectedRex.uuid, "selectedRexEvaUuid", value));
+                          dispatch(upsertRexByField(selectedRex.uuid, "evaUuid", value));
                         }}
                       >
                         <option value="">Select EVA</option>
@@ -72,11 +72,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       </Dropdown>
                     ) : (
                       <div className={styles.selectedEvaLabelRight}>
-                        {
-                          evaDropdownItems.find(
-                            (item) => item.value === selectedRex.selectedRexEvaUuid
-                          )?.label
-                        }
+                        {evaDropdownItems.find((item) => item.value === selectedRex.evaUuid)?.label}
                       </div>
                     )}
                   </div>
@@ -86,15 +82,15 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     <div className={paneStyles.inputFieldLabel}>Execution Status:</div>
                   </div>
                   <div className={styles.evaDropdownContainer}>
-                    {editMode && selectedRex.selectedRexEvaUuid ? (
+                    {editMode && selectedRex.evaUuid ? (
                       <Button
                         onClick={() => {
-                          if (selectedRex.selectedRexEvaUuid) {
+                          if (selectedRex.evaUuid) {
                             dispatch(
                               upsertRexByField(
                                 selectedRex.uuid,
-                                "rexRunning",
-                                !selectedRex.rexRunning
+                                "isRunning",
+                                !selectedRex.isRunning
                               )
                             );
                             if (selectedRex.petRunning) {
@@ -110,13 +106,13 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             alert("Please select an EVA to start the Real-time execution");
                           }
                         }}
-                        label={selectedRex.rexRunning ? "Stop EVA Execution" : "Execute EVA"}
+                        label={selectedRex.isRunning ? "Stop EVA Execution" : "Execute EVA"}
                         style={{ width: "130px", marginTop: "10px" }}
                       />
                     ) : (
                       <div className={styles.selectedEvaLabelRight}>
                         <div className={styles.evaExecutionStatus}>
-                          {selectedRex.rexRunning ? "Executing" : "Not Started"}
+                          {selectedRex.isRunning ? "Executing" : "Not Started"}
                         </div>
                       </div>
                     )}
@@ -162,7 +158,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         />
                       )}
                     </div>
-                    {editMode && selectedRex.rexRunning && (
+                    {editMode && selectedRex.isRunning && (
                       <div className={styles.clockButtons}>
                         <div className={styles.clockButtonsIcon} style={{ marginLeft: "4px" }}>
                           <FontAwesomeIcon

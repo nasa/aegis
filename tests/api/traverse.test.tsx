@@ -82,7 +82,6 @@ describe("EVA API Endpoint", () => {
     predictedDurationUpper: 0,
     status: "Candidate",
     description: "",
-    rexStatus: null,
     createdAt: roundDateToSecond(new Date()).toISOString(),
     updatedAt: roundDateToSecond(new Date()).toISOString(),
   };

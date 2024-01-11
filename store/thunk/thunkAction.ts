@@ -4,7 +4,6 @@ import {
   setActions,
   setActionsFromDb,
   upsertAction,
-  upsertActionFromDb,
   upsertActions,
   upsertActionsFromDb,
 } from "store/action";
@@ -59,7 +58,6 @@ export const thunkCreateAction = appCreateAsyncThunk<{
       mass: null,
       priority: null,
       updatedAt: null,
-      rexStatus: null,
       createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
 
@@ -165,8 +163,7 @@ export const thunkSaveActions = appCreateAsyncThunk<{
   actions: Action[];
   actionsFromDb: Action[];
 }>("actionSave", async ({ actions, actionsFromDb }, { dispatch, getState }) => {
-  //rex active?
-  const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
   //upsert any changed or new Actions to db
   const changedActions: Action[] = [];
   for (const action of actions) {
@@ -179,7 +176,10 @@ export const thunkSaveActions = appCreateAsyncThunk<{
   }
   if (changedActions.length > 0) {
     //action changed. upsert to db
-    const actionUpsertResponse = await httpClient_action.upsertActions(changedActions, rexRunning);
+    const actionUpsertResponse = await httpClient_action.upsertActions(
+      changedActions,
+      isRexRunning
+    );
     if (actionUpsertResponse.status === "success") {
       //upsert to both stores
       dispatch(upsertActions(actionUpsertResponse.data, true));
@@ -197,7 +197,7 @@ export const thunkSaveActions = appCreateAsyncThunk<{
   if (deletedActions.length > 0) {
     // take array of deleted actions and delete them in the db
     const deletedActionUuids = deletedActions.map((a) => a.uuid);
-    await httpClient_action.deleteActions(deletedActionUuids, rexRunning);
+    await httpClient_action.deleteActions(deletedActionUuids, isRexRunning);
     dispatch(deleteActionsFromDbByUuid(deletedActionUuids));
   }
 });
@@ -557,38 +557,5 @@ export const thunkAuditActions = appCreateAsyncThunk<void>(
       dispatch(setActions(newActions));
       dispatch(setActionsFromDb(newActions));
     }
-  }
-);
-
-export const thunkCycleActionRexToNextStatus = appCreateAsyncThunk<{ actionUuid: string }>(
-  "cycleActionRexToNextStatus",
-  async ({ actionUuid }, { dispatch, getState }) => {
-    const action = getState().action.actions.find((a) => a.uuid === actionUuid);
-    if (!action) return;
-
-    let lastStatus: RexStatus = "pending";
-    if (action.rexStatus) {
-      lastStatus = action.rexStatus;
-    }
-
-    // cycle the status to the next one
-    let rexStatus: RexStatus;
-    if (!lastStatus) {
-      rexStatus = "in-progress";
-    } else if (lastStatus === "in-progress") {
-      rexStatus = "complete";
-    } else if (lastStatus === "complete") {
-      rexStatus = "skipped";
-    } else if (lastStatus === "skipped") {
-      rexStatus = "pending";
-    } else if (lastStatus === "pending") {
-      rexStatus = "in-progress";
-    }
-
-    dispatch(upsertAction({ ...action, rexStatus }, true));
-    dispatch(upsertActionFromDb({ ...action, rexStatus }));
-
-    // update the action in the database
-    httpClient_action.upsertActions([{ ...action, rexStatus }], true);
   }
 );

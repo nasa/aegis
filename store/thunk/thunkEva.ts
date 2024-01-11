@@ -229,8 +229,7 @@ export const thunkSaveEva = appCreateAsyncThunk<{
 }>("evaSave", async ({ evaUuid }, { dispatch, getState }) => {
   if (!evaUuid) return;
   const eva = getState().eva.evas.find((e) => e.uuid === evaUuid);
-  //rex active?
-  const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
   // find out if the traverses in this eva have been modified and need to be persisted
   const traverseUuidsInThisEva: string[] = [];
@@ -257,7 +256,7 @@ export const thunkSaveEva = appCreateAsyncThunk<{
   if (modifiedTraverses?.length > 0) {
     const traverseUpsertResponse = await httpClient_Traverse.upsertTraverses(
       modifiedTraverses,
-      rexRunning
+      isRexRunning
     );
     if (traverseUpsertResponse.status === "success") {
       // upsert the changed Traverse (with new updated date) to the store
@@ -279,7 +278,7 @@ export const thunkSaveEva = appCreateAsyncThunk<{
   });
   if (traversesToDelete.length > 0) {
     const traverseToDeleteUuids = traversesToDelete.map((t) => t.uuid);
-    await httpClient_Traverse.deleteTraverses(traverseToDeleteUuids, rexRunning);
+    await httpClient_Traverse.deleteTraverses(traverseToDeleteUuids, isRexRunning);
     dispatch(deleteTraversesFromDbByUuid(traverseToDeleteUuids));
     dispatch(deleteTraversesByUuid(traverseToDeleteUuids));
   }
@@ -292,7 +291,7 @@ export const thunkSaveEva = appCreateAsyncThunk<{
         updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
       },
     ],
-    rexRunning
+    isRexRunning
   );
   if (evaUpsertResponse.status === "success") {
     // upsert the changed eva (with new updated date) to the store
@@ -363,11 +362,10 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
 }>("evaDelete", async ({ evaUuid }, { dispatch, getState }) => {
   if (!evaUuid) return;
   const eva = getState().eva.evas.find((e) => e.uuid === evaUuid);
-  //rex active?
-  const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
   const runningRexUsingThisEva = getState().rex.rexes.find(
-    (rex) => rex.selectedRexEvaUuid === eva.uuid && rex.rexRunning
+    (rex) => rex.evaUuid === eva.uuid && rex.isRunning
   );
   if (runningRexUsingThisEva) {
     window.alert("Cannot delete EVA while it is being executed");
@@ -377,12 +375,12 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
   // unselect this EVA from all REXs
   const allRexes = getState().rex.rexes;
   allRexes.forEach((rex) => {
-    if (rex.selectedRexEvaUuid === eva.uuid) {
+    if (rex.evaUuid === eva.uuid) {
       if (confirm(`This EVA is selected in Real-time execution item ${rex.name}. Unselect it?`)) {
-        dispatch(upsertRex({ ...rex, selectedRexEvaUuid: null }, true));
-        dispatch(upsertRexFromDb({ ...rex, selectedRexEvaUuid: null }));
+        dispatch(upsertRex({ ...rex, evaUuid: null }, true));
+        dispatch(upsertRexFromDb({ ...rex, evaUuid: null }));
         // persist the change to rex in the db
-        httpClient_Rex.upsertRexes([{ ...rex, selectedRexEvaUuid: null }], rexRunning);
+        httpClient_Rex.upsertRexes([{ ...rex, evaUuid: null }], isRexRunning);
       }
     }
   });
@@ -411,7 +409,7 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
     if (traversesToDeleteFromDb.length > 0) {
       const deleteResponse: WrappedResponse<null> = await httpClient_Traverse.deleteTraverses(
         traversesToDeleteFromDb.map((t) => t.uuid),
-        rexRunning
+        isRexRunning
       );
       if (deleteResponse.status === "success") {
         // remove the corresponding traverse from the traversesFromDb store
@@ -427,7 +425,7 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
     // delete the Eva from the DB via internal API call
     const deleteResponse: WrappedResponse<number[]> = await httpClient_Eva.deleteEvas(
       [eva.uuid],
-      rexRunning
+      isRexRunning
     );
     if (deleteResponse.status === "success") {
       // remove the corresponding eva from the store
@@ -613,7 +611,6 @@ const makeNewTraverse = (missionId: number): Traverse => {
     pathSegmentDistances: null,
     pathSegmentElevations: null,
     status: null,
-    rexStatus: null,
     color: null,
     updatedAt: null,
     createdAt: roundDateToSecond(getAccurateNow()).toISOString(),

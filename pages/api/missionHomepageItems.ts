@@ -73,7 +73,7 @@ async function getHomepageMissionItems(
   const missionHomepageItems: MissionHomepageItem[] = [];
 
   for (const mission of missions) {
-    const rexDb = rexes.find((rex) => rex.mission.id === mission.id && rex.rexRunning);
+    const rexDb = rexes.find((rex) => rex.mission.id === mission.id && rex.isRunning);
 
     const rex: Rex = rexDb
       ? {
@@ -84,10 +84,13 @@ async function getHomepageMissionItems(
           petStartStopTimestamp: rexDb.petStartStopTimestamp,
           petValueAtStartStop: rexDb.petValueAtStartStop,
           petRunning: rexDb.petRunning,
-          selectedRexEvaUuid: rexDb.selectedRexEvaUuid,
-          rexRunning: rexDb.rexRunning,
+          evaUuid: rexDb.evaUuid,
+          isRunning: rexDb.isRunning,
           posEntries: rexDb.posEntries,
           posTypes: rexDb.posTypes,
+          stationEntries: rexDb.stationEntries,
+          traverseEntries: rexDb.traverseEntries,
+          actionEntries: rexDb.actionEntries,
           createdAt: rexDb.createdAt.toISOString(),
           updatedAt: rexDb.updatedAt.toISOString(),
         }

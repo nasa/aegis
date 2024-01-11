@@ -233,7 +233,7 @@ export const EvaEgressIngressListing: FunctionComponent<{
           </div>
 
           {/* {runningRexFromDb &&
-                  runningRexFromDb.selectedRexEvaUuid === eva.uuid &&
+                  runningRexFromDb.evaUuid === eva.uuid &&
                   stations.find((station) => station.uuid === sequenceItem.uuid)?.rexStatus ===
                     "in-progress" && (
                     <div

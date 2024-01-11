@@ -198,25 +198,21 @@ describe("Thunk EVA Tests", () => {
     await store.dispatch(thunkCreateEva());
     const evaFromDb = store.getState().eva.evasFromDb[0];
     const rex = store.getState().rex.rexes[0];
-    store.dispatch(upsertRexByField(rex.uuid, "selectedRexEvaUuid", evaFromDb.uuid));
+    store.dispatch(upsertRexByField(rex.uuid, "evaUuid", evaFromDb.uuid));
     store.dispatch(setEvaEditMode({ evaUuid: evaFromDb.uuid, editMode: true }));
 
     // assert cant delete if rex running
-    store.dispatch(upsertRexByField(rex.uuid, "rexRunning", true));
+    store.dispatch(upsertRexByField(rex.uuid, "isRunning", true));
     await store.dispatch(thunkDeleteEva({ evaUuid: evaFromDb.uuid }));
     expect(alertSpy).toHaveBeenCalledTimes(1);
 
-    store.dispatch(upsertRexByField(rex.uuid, "rexRunning", false));
+    store.dispatch(upsertRexByField(rex.uuid, "isRunning", false));
     await store.dispatch(thunkDeleteEva({ evaUuid: evaFromDb.uuid }));
 
     // assert rex deselected the eva
     expect(confirmSpy).toHaveBeenCalledTimes(1);
-    expect(
-      store.getState().rex.rexes.find((r) => r.uuid === rex.uuid).selectedRexEvaUuid
-    ).toBeNull();
-    expect(
-      store.getState().rex.rexesFromDb.find((r) => r.uuid === rex.uuid).selectedRexEvaUuid
-    ).toBeNull();
+    expect(store.getState().rex.rexes.find((r) => r.uuid === rex.uuid).evaUuid).toBeNull();
+    expect(store.getState().rex.rexesFromDb.find((r) => r.uuid === rex.uuid).evaUuid).toBeNull();
     expect(httpClient_rex.upsertRexes).toHaveBeenCalled();
 
     // assert traverses cleaned up

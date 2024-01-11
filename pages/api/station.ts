@@ -241,7 +241,6 @@ async function upsertStations(stations: Station[]): Promise<Station[]> {
       durationLower: stationToUpsert.durationLower,
       durationUpper: stationToUpsert.durationUpper,
       icon: stationToUpsert.icon,
-      rexStatus: stationToUpsert.rexStatus,
       updatedAt: new Date(stationToUpsert.updatedAt),
       createdAt: new Date(stationToUpsert.createdAt),
     };
@@ -315,7 +314,6 @@ function convertStations(dbstations: Station_db[]): Station[] {
       durationLower: dbstation.durationLower,
       durationUpper: dbstation.durationUpper,
       icon: dbstation.icon,
-      rexStatus: dbstation.rexStatus,
       createdAt: dbstation.createdAt.toISOString(),
       updatedAt: dbstation.updatedAt.toISOString(),
     };

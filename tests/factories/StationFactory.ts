@@ -25,7 +25,6 @@ export default class StationFactory extends Factory<Station_db> {
       icon: null,
       durationLower: null,
       durationUpper: null,
-      rexStatus: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -52,7 +51,6 @@ export const createTestStation = (): Station => {
     icon: null,
     durationLower: null,
     durationUpper: null,
-    rexStatus: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

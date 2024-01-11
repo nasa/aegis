@@ -5,6 +5,7 @@ import { AnyAction } from "@reduxjs/toolkit";
 import paper from "paper";
 import { getSlope } from "utils/geoMath";
 import { orderBy } from "lodash";
+import _ from "lodash";
 
 /**
  * Draws the vertical line wtih the rotated time at the bottom.
@@ -853,7 +854,7 @@ export const drawMouseHover = (
     if (flattenedGraphData.current.walkbackDistanceFromLanderXY?.length > 0) {
       //check we're in x range for this walkback elevation
       const firstPoint = flattenedGraphData.current.walkbackDistanceFromLanderXY[0];
-      const lastPoint = flattenedGraphData.current.walkbackDistanceFromLanderXY.slice(-1)[0];
+      const lastPoint = _.last(flattenedGraphData.current.walkbackDistanceFromLanderXY);
       if (hoverPoint.x < firstPoint.xPixel || hoverPoint.x > lastPoint.xPixel) {
         newHoverValues.walkbackDistanceFromLanderMeters = null;
       } else {
@@ -879,7 +880,7 @@ export const drawMouseHover = (
     if (flattenedGraphData.current.walkbackElevationXY?.length > 0) {
       //check we're in x range for this walkback elevation
       const firstPoint = flattenedGraphData.current.walkbackElevationXY[0];
-      const lastPoint = flattenedGraphData.current.walkbackElevationXY.slice(-1)[0];
+      const lastPoint = _.last(flattenedGraphData.current.walkbackElevationXY);
       if (hoverPoint.x < firstPoint.xPixel || hoverPoint.x > lastPoint.xPixel) {
         newHoverValues.walkbackElevationMeters = null;
       } else {
@@ -940,7 +941,7 @@ function getHoverValue(
   }
   if (!pointAfter) {
     //we're past the end of the graph data. Use last point as pointAfter
-    pointAfter = graphArray.slice(-1)[0];
+    pointAfter = _.last(graphArray);
   }
 
   //extrapolate percentage between the nearest points for estimated value
