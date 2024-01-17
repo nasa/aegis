@@ -10,9 +10,13 @@ import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselect
 const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
-  const actions = useAppSelector((state) => state.action.actions, shallowEqual);
   const selectedPoi = useAppSelector(
     (state) => state.poi.pois.find((poi) => poi.uuid === selectedPoiUuid),
+    shallowEqual
+  );
+  const poiActionUuids = useAppSelector(
+    (state) =>
+      state.action.actions.filter((a) => a.poiUuid === selectedPoiUuid)?.map((a) => a.uuid),
     shallowEqual
   );
 
@@ -24,20 +28,8 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     shallowEqual
   );
 
-  const [poiActions, setPoiActions] = useState<Action[]>(null); //contains all POI actions
   const [actionsCalculatedFields, setActionsCalculatedField] =
     useState<ActionsCalculatedFields>(null);
-
-  //gather all actions, then order them
-  useEffect(() => {
-    if (!selectedPoiUuid || !actions || !selectedPoi) return;
-
-    const allPoiActions: Action[] = [];
-
-    //get actions directly attached to this POI
-    allPoiActions.push(...actions.filter((action) => action.poiUuid === selectedPoiUuid));
-    setPoiActions(allPoiActions);
-  }, [selectedPoiUuid, actions, selectedPoi]);
 
   useEffect(() => {
     if (!calculatedFields) return;
@@ -57,7 +49,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitleContainer}>
         <div className={paneStyles.rightBodyTitle}>POI Actions</div>
-        <ExpandCollapseActionsButtons actionUuids={poiActions?.map((action) => action.uuid)} />
+        <ExpandCollapseActionsButtons actionUuids={poiActionUuids} />
       </div>
       <div className={paneStyles.rightBodyBody} style={{ overflowY: "hidden" }}>
         <Actions
@@ -72,7 +64,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
           actionParentUuid={{ poiUuid: selectedPoiUuid }}
           parentType="poi"
           actionsCalculatedFields={actionsCalculatedFields}
-          rexRunning={false}
+          isRexRunning={false}
         />
       </div>
     </div>

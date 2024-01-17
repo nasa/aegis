@@ -13,33 +13,21 @@ services:
       # AEGIS requires launchpad, so must be over HTTPS and not have a port specified in the URL
       # e.g. https://aegis.fit.nasa.gov not https://aegis.fit.nasa.gov:8000
       - "443:443"
-    networks:
-      - aegis-network
 
   nextjs:
     image: ${DOCKER_IMAGE_NEXTJS}
     restart: unless-stopped
     env_file:
       - ./.env
-    environment:           
+    environment:
       # Override what is in .env (which may be "localhost" to support native local dev) such
       # that it is always "database" in a full Docker-Compose setup.
       - AEGIS_DB_HOST=database
     depends_on:
       database:
         condition: service_healthy
-    ports:
-      # nextjs is hard-coded to run on 4000 in docker, and nginx proxies 4000. Hard-coding this and
-      # not making it configurable keeps docker config simpler.
-      - "4000:4000"
-
-      # VS Code debug port. This isn't needed in production, and won't be exposed by FIT servers,
-      # but is simpler config-wise to put here versus in the overrides file
-      - "9229:9229"
     volumes:
       - ${PUBLIC_STATIC_DIR}:/${PUBLIC_STATIC_DIR}
-    networks:
-      - aegis-network
 
   database:
     image: postgis/postgis:14-3.2-alpine
@@ -50,19 +38,15 @@ services:
       POSTGRES_PASSWORD: ${AEGIS_DB_PASS}
       POSTGRES_DB: ${AEGIS_DB_NAME}
     healthcheck:
-      test: "pg_isready -U postgres && psql --username=postgres --list && psql --username=postgres ${AEGIS_DB_NAME} -c ''"
+      test: "pg_isready -U postgres && psql --username=postgres --list && psql --username=postgres ${AEGIS_DB_NAME} -c 'SELECT * FROM Mission_db'"
       interval: 30s # how often to check health
       timeout: 5s # fail if it takes longer than this
       retries: 6 # max consecutive failures
       start_period: 15s # db takes about 20 seconds to come up
-    ports:
-      - "5432:5432"
     volumes:
       # map the DB data to be stored outside the container
       - ${DOCKER_DB_DATA_DIR}:/var/lib/postgresql/data
       - ${DOCKER_DB_INIT_DIR}:/docker-entrypoint-initdb.d
-    networks:
-      - aegis-network
 
   gdal:
     image: ${DOCKER_IMAGE_GDAL}
@@ -71,12 +55,3 @@ services:
     # - nextjs
     volumes:
       - ${PUBLIC_STATIC_DIR}:/static
-    ports:
-      - "${GDAL_PORT}:80"
-    networks:
-      - aegis-network
-
-#Docker Networks
-networks:
-  aegis-network:
-    driver: bridge

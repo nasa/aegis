@@ -197,7 +197,7 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
         dispatch(setPosEntryEditingUuid(null));
       }
       //if this rex is the new running rex, update selected rex
-      if (changedRex.rexRunning) {
+      if (changedRex.isRunning) {
         dispatch(setSelectedRexUuid(changedRex.uuid));
       }
     }

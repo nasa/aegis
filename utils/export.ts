@@ -4,6 +4,8 @@ import _ from "lodash";
 import { decodeEmoji } from "./formatting";
 
 const decodeWsywig = (string: string): string => {
+  if (!string) return string;
+
   // convert wysiwyg to html and strip the html tags
   let newString = stripHtml(
     _.reduce(
@@ -146,7 +148,7 @@ export const makeExportStations = (params: {
       } as ExportStationCalculatedFields,
       elevationRelative: station.elevation - missionStore.mission.landerElevationMeters,
       iconEmojiDecoded: decodeEmoji(station.icon),
-      poisAssociatedReadable: station.poiUuids.map((poiUuid) => {
+      poisAssociatedReadable: station.poiUuids?.map((poiUuid) => {
         const poi = pois.find((p) => p.uuid === poiUuid);
         if (poi) {
           return {

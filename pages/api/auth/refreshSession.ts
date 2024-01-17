@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
-import { ironOptions } from "server/session/config";
+import { ironOptions } from "utils/ironSession";
 import { IronSessionData } from "iron-session";
 import { getEM, withORM } from "utils/mikro";
 import { User_db } from "server/database/models/_allModels";

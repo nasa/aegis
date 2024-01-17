@@ -1,41 +1,30 @@
-import createTestStore from "../factories/makeTestStore";
-import { createTestStation } from "../factories/StationFactory";
+import { createCustomTestStore } from "../../factories/makeTestStore";
+import { createTestStation } from "../../factories/StationFactory";
 import { roundDateToSecond } from "utils/formatting";
-import { createTestAction } from "../factories/ActionFactory";
-import { createTestEva } from "../factories/EVAFactory";
-import { createTestMission } from "../factories/MissionFactory";
+import { createTestAction } from "../../factories/ActionFactory";
+import { createTestEva } from "../../factories/EVAFactory";
+import { createTestMission } from "../../factories/MissionFactory";
 import { initialState as evaInitialState } from "store/eva";
 import { initialState as stationInitialState } from "store/station";
 import { initialState as missionInitialState } from "store/mission";
 import { initialState as mapInitialState } from "store/map";
 import { initialState as actionInitialState } from "store/action";
 import { isEqual } from "lodash";
+import * as thunkStation from "store/thunk/thunkStation";
+
+// mock all calls to the db so no transactions are actually made
+// CAUTION, the import line must be below the jest.mock
+jest.mock("http-client/station");
+jest.mock("http-client/action");
 import * as httpClient_station from "http-client/station";
 import * as httpClient_action from "http-client/action";
-import * as thunkStation from "store/thunk/thunkStation";
-import * as thunkMap from "store/thunk/thunkMap";
-jest.mock("http-client/station", () => {
-  return {
-    __esModule: true,
-    ...jest.requireActual("http-client/station"),
-  };
-});
-jest.mock("http-client/action", () => {
-  return {
-    __esModule: true,
-    ...jest.requireActual("http-client/action"),
-  };
-});
-jest.mock("store/thunk/thunkStation", () => {
-  return {
-    __esModule: true,
-    ...jest.requireActual("store/thunk/thunkStation"),
-  };
-});
+
+const mockThunkCancelMarkerMapDirective = jest.fn();
 jest.mock("store/thunk/thunkMap", () => {
   return {
     __esModule: true,
     ...jest.requireActual("store/thunk/thunkMap"),
+    thunkCancelMarkerMapDirective: () => mockThunkCancelMarkerMapDirective,
   };
 });
 
@@ -57,7 +46,14 @@ jest.mock("store/thunk/thunkTraverse", () => ({
   thunkUpdateTraversesAroundStation: () => mockThunkUpdateTraversesAroundStation,
 }));
 
+beforeEach(async () => {
+  jest.clearAllMocks(); // clear call count
+});
+
 afterAll(() => {
+  // restoreAllMocks() only restores mocks with .spyOn(). All others must be called manually
+  // Modules mocked with jest.mock are only mocked for the file
+  // https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options
   jest.restoreAllMocks();
 });
 
@@ -66,7 +62,7 @@ describe("Thunk Station Tests", () => {
     //populate the station state in the store
     const newStation: Station = createTestStation();
     const blankMission: Mission = createTestMission();
-    const store = createTestStore({
+    const store = createCustomTestStore({
       station: { ...stationInitialState, stations: [newStation] },
       mission: {
         ...missionInitialState,
@@ -84,15 +80,15 @@ describe("Thunk Station Tests", () => {
       })
     );
     expect(store.getState().station.stations[0].location).toEqual(newLocation);
-    expect(mockThunkGetElevation).toBeCalled();
-    expect(mockThunkUpdateTraversesAroundStation).toBeCalledTimes(1);
+    expect(mockThunkGetElevation).toHaveBeenCalled();
+    expect(mockThunkUpdateTraversesAroundStation).toHaveBeenCalledTimes(1);
   });
 
   test("thunkUpdateWalkbackPath()", async () => {
     //populate the station state in the store
     const newStation: Station = createTestStation();
     const blankMission: Mission = createTestMission();
-    const store = createTestStore({
+    const store = createCustomTestStore({
       station: { ...stationInitialState, stations: [newStation] },
       mission: { ...missionInitialState, mission: { ...blankMission, planetRadius: 1737400 } },
     });
@@ -124,7 +120,7 @@ describe("Thunk Station Tests", () => {
     //populate the station state in the store
     const newStation: Station = createTestStation();
     const blankMission: Mission = createTestMission();
-    const store = createTestStore({
+    const store = createCustomTestStore({
       station: {
         ...stationInitialState,
         stations: [{ ...newStation, location: { lat: 1.3, lng: 2.3 } }],
@@ -154,7 +150,7 @@ describe("Thunk Station Tests", () => {
     expect(store.getState().station.stations[0].walkbackPathSegmentDistances.length).toEqual(2);
     expect(store.getState().station.stations[0].walkbackPathSegmentElevations).toBeNull();
     expect(response.payload).toEqual(expectedPath);
-    expect(mockThunkGetElevation).toBeCalled();
+    expect(mockThunkGetElevation).toHaveBeenCalled();
 
     //empty path
     expectedPath = [
@@ -168,14 +164,14 @@ describe("Thunk Station Tests", () => {
     expect(store.getState().station.stations[0].walkbackPathSegmentDistances.length).toEqual(1);
     expect(store.getState().station.stations[0].walkbackPathSegmentElevations).toBeNull();
     expect(response.payload).toEqual(expectedPath);
-    expect(mockThunkGetElevation).toBeCalled();
+    expect(mockThunkGetElevation).toHaveBeenCalled();
   });
 
   test("thunkResetWalkback()", async () => {
     //populate the station state in the store
     const newStation: Station = createTestStation();
     const blankMission: Mission = createTestMission();
-    const store = createTestStore({
+    const store = createCustomTestStore({
       station: {
         ...stationInitialState,
         stations: [
@@ -205,7 +201,7 @@ describe("Thunk Station Tests", () => {
     expect(store.getState().station.stations[0].walkbackPath).toEqual(expectedPath);
     expect(store.getState().station.stations[0].walkbackPathSegmentDistances.length).toEqual(1);
     expect(store.getState().station.stations[0].walkbackPathSegmentElevations).toBeNull();
-    expect(mockThunkGetElevation).toBeCalled();
+    expect(mockThunkGetElevation).toHaveBeenCalled();
   });
 
   test("thunkCreateStationCalculatedFields()", async () => {
@@ -230,7 +226,7 @@ describe("Thunk Station Tests", () => {
       durationLower: 1,
       durationUpper: 1,
     };
-    const store = createTestStore({
+    const store = createCustomTestStore({
       station: {
         ...stationInitialState,
         stations: [station, stationNoActions],
@@ -315,20 +311,6 @@ describe("Thunk Station Tests", () => {
   });
 
   test("thunkSaveStation() - no modified actions", async () => {
-    //mock the call to upsert to the DB (we don't actually want to upsert)
-    const mockDbUpsertStation = jest
-      .spyOn(httpClient_station, "upsertStations")
-      .mockImplementation(async (stations) => {
-        //just return the station that was passed in
-        const res: WrappedResponse<Station[]> = {
-          status: "success",
-          message: "Station upserted",
-          data: stations,
-        };
-        return res;
-      });
-    const mockThunkCancelMarkerMapDirective = jest.spyOn(thunkMap, "thunkCancelMarkerMapDirective");
-
     //populate the station state in the store
     const station: Station = createTestStation();
     const stationModified = {
@@ -340,7 +322,7 @@ describe("Thunk Station Tests", () => {
     const newStationAction: Action = createTestAction({ stationUuid: station.uuid });
     const eva: Eva = createTestEva();
     eva.sequence = [{ type: "station", uuid: station.uuid }];
-    const store = createTestStore({
+    const store = createCustomTestStore({
       station: {
         ...stationInitialState,
         stations: [stationModified],
@@ -371,30 +353,14 @@ describe("Thunk Station Tests", () => {
     expect(storeState.station.stationsFromDb[0].updatedAt).toEqual(stationModified.updatedAt);
     expect(storeState.station.stationsFromDb[0].description).toEqual("modified description");
     expect(storeState.station.stationsEditing.length).toEqual(0);
-    expect(mockDbUpsertStation).toBeCalledTimes(1); //check the db call was made
-    expect(mockThunkSaveActions).toBeCalledTimes(0);
+    expect(httpClient_station.upsertStations).toHaveBeenCalledTimes(1); //check the db call was made
+    expect(mockThunkSaveActions).toHaveBeenCalledTimes(0);
     expect(storeState.action.actions[0]).toEqual(storeState.action.actionsFromDb[0]); //no actions were modified
-    expect(mockThunkCancelMarkerMapDirective).toBeCalledTimes(1);
+    expect(mockThunkCancelMarkerMapDirective).toHaveBeenCalledTimes(1);
     expect(storeState.map.mapDirective.mapAction).toEqual("saveEditPolyline");
-    //restore the mock back to normal
-    mockDbUpsertStation.mockRestore();
-    mockThunkCancelMarkerMapDirective.mockRestore();
   });
 
   test("thunkSaveStation() - saves actions", async () => {
-    //mock the call to upsert to the DB (we don't actually want to upsert)
-    const mockDbUpsertStation = jest
-      .spyOn(httpClient_station, "upsertStations")
-      .mockImplementation(async (stations) => {
-        const res: WrappedResponse<Station[]> = {
-          status: "success",
-          message: "Station upserted",
-          data: stations,
-        };
-        return res;
-      });
-    const mockThunkCancelMarkerMapDirective = jest.spyOn(thunkMap, "thunkCancelMarkerMapDirective");
-
     //populate the station state in the store
     const station: Station = createTestStation();
     const stationAction: Action = createTestAction({ stationUuid: station.uuid });
@@ -403,7 +369,7 @@ describe("Thunk Station Tests", () => {
       description: "modified description",
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
-    const store = createTestStore({
+    const store = createCustomTestStore({
       station: {
         ...stationInitialState,
         stations: [station],
@@ -424,18 +390,13 @@ describe("Thunk Station Tests", () => {
     //call the thunk
     await store.dispatch(thunkStation.thunkSaveStation({ station: station }));
     storeState = store.getState();
-    expect(mockDbUpsertStation).toBeCalledTimes(1); //check the db call was made
-    expect(mockThunkSaveActions).toBeCalledTimes(1);
-    expect(mockThunkCancelMarkerMapDirective).toBeCalledTimes(1);
+    expect(httpClient_station.upsertStations).toHaveBeenCalledTimes(1); //check the db call was made
+    expect(mockThunkSaveActions).toHaveBeenCalledTimes(1);
+    expect(mockThunkCancelMarkerMapDirective).toHaveBeenCalledTimes(1);
     expect(storeState.station.stationsEditing.length).toEqual(0);
-
-    mockDbUpsertStation.mockRestore(); //restore the mock back to normal
-    mockThunkCancelMarkerMapDirective.mockRestore();
   });
 
   test("thunkStationCancel()", async () => {
-    const mockThunkCancelMarkerMapDirective = jest.spyOn(thunkMap, "thunkCancelMarkerMapDirective");
-
     //populate the station state in the store
     const station: Station = createTestStation();
     const stationModified = {
@@ -453,7 +414,7 @@ describe("Thunk Station Tests", () => {
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
     const newStationAction: Action = createTestAction({ stationUuid: station.uuid });
-    const store = createTestStore({
+    const store = createCustomTestStore({
       station: {
         ...stationInitialState,
         stations: [stationModified, unsavedStation],
@@ -485,9 +446,9 @@ describe("Thunk Station Tests", () => {
     expect(storeState.action.actions.filter((a) => a.stationUuid === station.uuid).length).toEqual(
       1
     );
-    expect(mockThunkUpdateTraversesAroundStation).toBeCalled();
+    expect(mockThunkUpdateTraversesAroundStation).toHaveBeenCalled();
     expect(storeState.map.mapDirective.mapAction).toEqual("cancelEditPolyline");
-    expect(mockThunkCancelMarkerMapDirective).toBeCalled();
+    expect(mockThunkCancelMarkerMapDirective).toHaveBeenCalled();
 
     //cancel a station that hasn't been saved to the db
     expect(storeState.station.stations.length).toEqual(2);
@@ -498,55 +459,11 @@ describe("Thunk Station Tests", () => {
     expect(storeState.station.stationsFromDb.length).toEqual(1);
     expect(storeState.station.selectedStationUuid).toBeNull();
     expect(storeState.action.actions.length).toEqual(1);
-    expect(mockThunkCancelMarkerMapDirective).toBeCalled();
-
-    //restore mock
-    mockThunkCancelMarkerMapDirective.mockRestore();
+    expect(mockThunkCancelMarkerMapDirective).toHaveBeenCalled();
   });
 
   test("thunkDeleteStation()", async () => {
-    const mockThunkCancelMarkerMapDirective = jest.spyOn(thunkMap, "thunkCancelMarkerMapDirective");
     const mockAlert = jest.spyOn(window, "alert").mockImplementation(jest.fn());
-
-    //mock the calls the DB
-    const mockDbDeleteAction = jest
-      .spyOn(httpClient_action, "deleteActions")
-      .mockImplementation(async () => {
-        const res: WrappedResponse<null> = {
-          status: "success",
-          message: "Action Deleted",
-        };
-        return res;
-      });
-    const mockDbGetActions = jest
-      .spyOn(httpClient_action, "getActions")
-      .mockImplementation(async () => {
-        const res: WrappedResponse<Action[]> = {
-          status: "success",
-          message: "actions retrieved",
-          data: [],
-        };
-        return res;
-      });
-    const mockDbDeleteStation = jest
-      .spyOn(httpClient_station, "deleteStations")
-      .mockImplementation(async () => {
-        const res: WrappedResponse<null> = {
-          status: "success",
-          message: "Station Deleted",
-        };
-        return res;
-      });
-    const mockDbGetStations = jest
-      .spyOn(httpClient_station, "getStations")
-      .mockImplementation(async () => {
-        const res: WrappedResponse<Station[]> = {
-          status: "success",
-          message: "Stations retrieved",
-          data: [],
-        };
-        return res;
-      });
 
     //populate the station state in the store
     const station: Station = createTestStation();
@@ -555,7 +472,7 @@ describe("Thunk Station Tests", () => {
     const unsavedStationAction: Action = createTestAction({ stationUuid: unsavedStation.uuid });
     const stationInEva: Station = createTestStation();
     const eva: Eva = createTestEva();
-    const store = createTestStore({
+    const store = createCustomTestStore({
       station: {
         ...stationInitialState,
         stations: [station, unsavedStation, stationInEva],
@@ -585,10 +502,10 @@ describe("Thunk Station Tests", () => {
     expect(storeState.action.actionsFromDb.find((a) => a.uuid === stationAction.uuid)).toBeFalsy();
     expect(storeState.action.actions.find((a) => a.uuid === stationAction.uuid)).toBeFalsy();
     expect(storeState.station.selectedStationUuid).toBeFalsy();
-    expect(mockDbDeleteStation).toBeCalledTimes(1);
-    expect(mockDbGetStations).toBeCalledTimes(1);
-    expect(mockDbGetActions).toBeCalledTimes(1);
-    expect(mockThunkCancelMarkerMapDirective).toBeCalled();
+    expect(httpClient_station.deleteStations).toHaveBeenCalledTimes(1);
+    expect(httpClient_station.getStations).toHaveBeenCalledTimes(1);
+    expect(httpClient_action.getActions).toHaveBeenCalledTimes(1);
+    expect(mockThunkCancelMarkerMapDirective).toHaveBeenCalled();
 
     //delete an unsaved station
     await store.dispatch(thunkStation.thunkDeleteStation({ station: unsavedStation }));
@@ -596,28 +513,23 @@ describe("Thunk Station Tests", () => {
     expect(storeState.station.stations.find((p) => p.uuid === unsavedStation.uuid)).toBeFalsy();
     expect(storeState.station.stationsEditing.includes(unsavedStation.uuid)).toBeFalsy();
     expect(storeState.action.actions.find((a) => a.uuid === unsavedStationAction.uuid)).toBeFalsy();
-    expect(mockDbDeleteStation).toBeCalledTimes(1); //no additional calls should have been made from the earlier call
-    expect(mockDbGetStations).toBeCalledTimes(1); //no additional calls should have been made from the earlier call
-    expect(mockThunkCancelMarkerMapDirective).toBeCalled();
+    expect(httpClient_station.deleteStations).toHaveBeenCalledTimes(1); //no additional calls should have been made from the earlier call
+    expect(httpClient_station.getStations).toHaveBeenCalledTimes(1); //no additional calls should have been made from the earlier call
+    expect(mockThunkCancelMarkerMapDirective).toHaveBeenCalled();
 
     //try to delete a station being used in eva
     await store.dispatch(thunkStation.thunkDeleteStation({ station: stationInEva }));
     storeState = store.getState();
     expect(storeState.station.stations.find((p) => p.uuid === stationInEva.uuid)).toBeTruthy();
-    expect(mockAlert).toBeCalled();
+    expect(mockAlert).toHaveBeenCalled();
 
     //reset the mock back to normal
-    mockDbDeleteAction.mockRestore();
-    mockDbGetActions.mockRestore();
-    mockDbDeleteStation.mockRestore();
-    mockDbGetStations.mockRestore();
-    mockThunkCancelMarkerMapDirective.mockRestore();
     mockAlert.mockRestore();
   });
 
   test("thunkCreateStation()", async () => {
     //populate the station state in the store
-    const store = createTestStore({
+    const store = createCustomTestStore({
       station: stationInitialState,
     });
 
@@ -635,7 +547,7 @@ describe("Thunk Station Tests", () => {
     const stationAction1: Action = createTestAction({ stationUuid: station.uuid });
     const stationAction2: Action = createTestAction({ stationUuid: station.uuid });
     station.actionOrderUuids = [stationAction1.uuid, stationAction2.uuid];
-    const store = createTestStore({
+    const store = createCustomTestStore({
       station: { ...stationInitialState, stations: [station], stationsFromDb: [station] },
       action: {
         ...actionInitialState,
@@ -651,57 +563,6 @@ describe("Thunk Station Tests", () => {
     expect(storeState.station.selectedStationUuid).toBeTruthy();
     expect(storeState.station.selectedRightNavItem).toEqual("info_panel");
     //we mocked the thunk duplicate action, so no further conditions will be tested here
-    expect(mockThunkDuplicateActions).toBeCalledTimes(1);
-  });
-
-  test("thunkCycleStationRexToNextStatus()", async () => {
-    //mock the call to upsert to the DB (we don't actually want to upsert)
-    const mockDbUpsertStation = jest
-      .spyOn(httpClient_station, "upsertStations")
-      .mockImplementation(async (stations) => {
-        const res: WrappedResponse<Station[]> = {
-          status: "success",
-          message: "Station upserted",
-          data: stations,
-        };
-        return res;
-      });
-
-    //populate the station state in the store
-    const station: Station = createTestStation();
-    const store = createTestStore({
-      station: { ...stationInitialState, stations: [station], stationsFromDb: [station] },
-    });
-
-    await store.dispatch(
-      thunkStation.thunkCycleStationRexToNextStatus({ stationUuid: station.uuid })
-    );
-    expect(store.getState().station.stations[0].rexStatus).toEqual("in-progress");
-    expect(store.getState().station.stationsFromDb[0].rexStatus).toEqual("in-progress");
-    expect(store.getState().station.stations[0].updatedAt).toEqual(station.updatedAt);
-    expect(mockDbUpsertStation).toBeCalledTimes(1);
-    await store.dispatch(
-      thunkStation.thunkCycleStationRexToNextStatus({ stationUuid: station.uuid })
-    );
-    expect(store.getState().station.stations[0].rexStatus).toEqual("complete");
-    expect(store.getState().station.stationsFromDb[0].rexStatus).toEqual("complete");
-    expect(store.getState().station.stations[0].updatedAt).toEqual(station.updatedAt);
-    expect(mockDbUpsertStation).toBeCalledTimes(2);
-    await store.dispatch(
-      thunkStation.thunkCycleStationRexToNextStatus({ stationUuid: station.uuid })
-    );
-    expect(store.getState().station.stations[0].rexStatus).toEqual("skipped");
-    expect(store.getState().station.stationsFromDb[0].rexStatus).toEqual("skipped");
-    expect(store.getState().station.stations[0].updatedAt).toEqual(station.updatedAt);
-    expect(mockDbUpsertStation).toBeCalledTimes(3);
-    await store.dispatch(
-      thunkStation.thunkCycleStationRexToNextStatus({ stationUuid: station.uuid })
-    );
-    expect(store.getState().station.stations[0].rexStatus).toEqual("pending");
-    expect(store.getState().station.stationsFromDb[0].rexStatus).toEqual("pending");
-    expect(store.getState().station.stations[0].updatedAt).toEqual(station.updatedAt);
-    expect(mockDbUpsertStation).toBeCalledTimes(4);
-
-    mockDbUpsertStation.mockRestore();
+    expect(mockThunkDuplicateActions).toHaveBeenCalledTimes(1);
   });
 });

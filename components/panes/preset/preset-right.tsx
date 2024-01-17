@@ -115,7 +115,7 @@ const PresetEditorRight: FunctionComponent = () => {
               <Button
                 icon={faTrashAlt}
                 onClick={() => {
-                  dispatch(thunkDeletePreset({ preset: selectedPreset }));
+                  dispatch(thunkDeletePreset({ presetUuid: selectedPreset.uuid }));
                 }}
                 toolTip="Delete Preset"
                 style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
@@ -155,7 +155,7 @@ const PresetEditorRight: FunctionComponent = () => {
                 />
                 <Button
                   onClick={() => {
-                    dispatch(thunkPresetCancel({ preset: selectedPreset }));
+                    dispatch(thunkPresetCancel({ presetUuid: selectedPreset.uuid }));
                   }}
                   icon={faBan}
                   toolTip="Cancel Edit"

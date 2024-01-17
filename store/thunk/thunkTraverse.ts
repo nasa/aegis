@@ -2,8 +2,8 @@ import _ from "lodash";
 import {
   setTraverseCalculatedFields,
   setTraverseEditMode,
-  upsertTraverse,
-  upsertTraverseFromDb,
+  upsertTraverses,
+  upsertTraversesFromDb,
 } from "store/traverse";
 import { calculateAscentAndDescent, getTotalDistance, calcPathDurationMins } from "utils/geoMath";
 import appCreateAsyncThunk from "./thunkUtil";
@@ -29,12 +29,14 @@ export const thunkUpdateTraversePath = appCreateAsyncThunk<{
   //save traverse
   const traverse = getState().traverse.traverses.find((t) => t.uuid === traverseUuid);
   dispatch(
-    upsertTraverse({
-      ...traverse,
-      path: path,
-      pathSegmentDistances: pathSegmentDistances,
-      pathSegmentElevations: null,
-    })
+    upsertTraverses([
+      {
+        ...traverse,
+        path: path,
+        pathSegmentDistances: pathSegmentDistances,
+        pathSegmentElevations: null,
+      },
+    ])
   );
 });
 
@@ -68,8 +70,7 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
     { dispatch, getState }
   ) => {
     const traverse = getState().traverse.traverses.find((t) => t.uuid === traverseUuid);
-    // any rex running?
-    const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+    const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
     const eva = getState().eva.evas.find((eva) => {
       return eva.sequence.find((sequenceItem) => {
@@ -195,12 +196,12 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
       updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     if (saveToDb) {
-      httpClient_Traverse.upsertTraverses([newTraverse], rexRunning);
+      httpClient_Traverse.upsertTraverses([newTraverse], isRexRunning);
       dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: false }));
-      dispatch(upsertTraverseFromDb(newTraverse));
+      dispatch(upsertTraversesFromDb([newTraverse]));
     }
     //update the store
-    dispatch(upsertTraverse(newTraverse, true));
+    dispatch(upsertTraverses([newTraverse], true));
 
     return newPath;
   }
@@ -216,18 +217,41 @@ export const thunkResetTraverse = appCreateAsyncThunk<{
     (eva) => eva.uuid === getState().eva.selectedEvaUuid
   );
 
-  //reset path to a single segment with stations endpoints
+  let fromStationLoc: AEGISPoint;
+  let toStationLoc: AEGISPoint;
+
   const sequenceIndex = selectedEva.sequence.findIndex(
-    (sequenceItem) => sequenceItem.uuid === getState().eva.selectedEvaSequenceItemUuid
+    (sequenceItem) => sequenceItem.uuid === traverseUuid
   );
-  if (sequenceIndex < 1) return;
-  const fromStation = getState().station.stations.find(
-    (station) => station.uuid === selectedEva.sequence[sequenceIndex - 1].uuid
-  );
-  const toStation = getState().station.stations.find(
-    (station) => station.uuid === selectedEva.sequence[sequenceIndex + 1].uuid
-  );
-  const newPath = [fromStation.location, toStation.location];
+  if (sequenceIndex === 0) {
+    //first traverse in sequence. get egress location.
+    if (selectedEva.egressLocationUuid === "lander") {
+      fromStationLoc = getState().mission.mission.landerLocation;
+    } else {
+      fromStationLoc = getState().station.stations.find(
+        (s) => s.uuid === selectedEva.egressLocationUuid
+      )?.location;
+    }
+  } else {
+    fromStationLoc = getState().station.stations.find(
+      (station) => station.uuid === selectedEva.sequence[sequenceIndex - 1].uuid
+    )?.location;
+  }
+  if (sequenceIndex === selectedEva.sequence.length - 1) {
+    //last traverse in sequence. get ingress location
+    if (selectedEva.ingressLocationUuid === "lander") {
+      toStationLoc = getState().mission.mission.landerLocation;
+    } else {
+      toStationLoc = getState().station.stations.find(
+        (s) => s.uuid === selectedEva.ingressLocationUuid
+      )?.location;
+    }
+  } else {
+    toStationLoc = getState().station.stations.find(
+      (station) => station.uuid === selectedEva.sequence[sequenceIndex + 1].uuid
+    )?.location;
+  }
+  const newPath = [fromStationLoc, toStationLoc];
 
   await dispatch(
     thunkFullUpdateTraverse({
@@ -353,39 +377,5 @@ export const thunkCreateTraverseCalculatedFields = appCreateAsyncThunk<void>(
       allCalculatedFields.push(newCalculatedFields);
     }
     dispatch(setTraverseCalculatedFields({ calculatedFields: allCalculatedFields }));
-  }
-);
-
-export const thunkCycleTraverseRexToNextStatus = appCreateAsyncThunk<{ traverseUuid: string }>(
-  "cycleTraverseRexToNextStatus",
-  async ({ traverseUuid }, { dispatch, getState }) => {
-    const traverse = getState().traverse.traverses.find((s) => s.uuid === traverseUuid);
-    // any rex running?
-    const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
-
-    let lastStatus: RexStatus = "pending";
-    if (traverse.rexStatus) {
-      lastStatus = traverse.rexStatus;
-    }
-
-    // cycle the status to the next one
-    let rexStatus: RexStatus;
-    if (!lastStatus) {
-      rexStatus = "in-progress";
-    } else if (lastStatus === "in-progress") {
-      rexStatus = "complete";
-    } else if (lastStatus === "complete") {
-      rexStatus = "skipped";
-    } else if (lastStatus === "skipped") {
-      rexStatus = "pending";
-    } else if (lastStatus === "pending") {
-      rexStatus = "in-progress";
-    }
-
-    dispatch(upsertTraverse({ ...traverse, rexStatus }, true));
-    dispatch(upsertTraverseFromDb({ ...traverse, rexStatus }));
-
-    // update the station in the database
-    httpClient_Traverse.upsertTraverses([{ ...traverse, rexStatus }], rexRunning);
   }
 );

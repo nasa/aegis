@@ -32,8 +32,8 @@ const EvaRexLeft: FunctionComponent = () => {
   // sort the rexes by name
   const rexesSorted = _.sortBy(rexes, ["name"]);
 
-  const rexRunningFromDb = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((rex) => rex.rexRunning),
+  const isRexRunningFromDb = useAppSelector(
+    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
     refEqual
   );
 
@@ -42,9 +42,9 @@ const EvaRexLeft: FunctionComponent = () => {
     <>
       <div className={styles.leftContainer}>
         <div className={styles.leftBody}>
-          {rexRunningFromDb ? (
+          {isRexRunningFromDb ? (
             <div className={styles.panelContainer}>
-              <EvaRexItem rexUuid={rexRunningFromDb.uuid} />
+              <EvaRexItem rexUuid={isRexRunningFromDb.uuid} />
             </div>
           ) : (
             <>
@@ -57,7 +57,7 @@ const EvaRexLeft: FunctionComponent = () => {
           )}
         </div>
 
-        {editPerms && !rexRunningFromDb && (
+        {editPerms && !isRexRunningFromDb && (
           <div className={styles.evasLeftFooter}>
             <div className={paneStyles.iconButtons}>
               <Button
@@ -116,13 +116,13 @@ const EvaRexItem: FunctionComponent<{ rexUuid: string }> = ({ rexUuid }) => {
     refEqual
   );
   const selectedRexEvaName = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === rex.selectedRexEvaUuid)?.name,
+    (state) => state.eva.evas.find((eva) => eva.uuid === rex.evaUuid)?.name,
     refEqual
   );
 
-  const selectedRexEvaUuid = rex?.selectedRexEvaUuid;
+  const evaUuid = rex?.evaUuid;
   const selectedRexEva = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === rex?.selectedRexEvaUuid),
+    (state) => state.eva.evas.find((eva) => eva.uuid === rex?.evaUuid),
     refEqual
   );
 
@@ -148,7 +148,7 @@ const EvaRexItem: FunctionComponent<{ rexUuid: string }> = ({ rexUuid }) => {
     <>
       <div className={styles.rexContainer}>
         <div className={styles.nameitem} key={rex.uuid}>
-          {!rexFromDb?.rexRunning && (
+          {!rexFromDb?.isRunning && (
             <div
               className={styles.nameCaret}
               onClick={() => {
@@ -174,7 +174,7 @@ const EvaRexItem: FunctionComponent<{ rexUuid: string }> = ({ rexUuid }) => {
           )}
           <div
             className={`${styles.name} ${rexSelectionStyle}`}
-            style={rexFromDb?.rexRunning ? { marginLeft: "5px" } : {}}
+            style={rexFromDb?.isRunning ? { marginLeft: "5px" } : {}}
             onClick={() => {
               if (selectedRexUuid !== rex.uuid) {
                 dispatch(setSelectedRexUuid(rex.uuid));
@@ -202,16 +202,13 @@ const EvaRexItem: FunctionComponent<{ rexUuid: string }> = ({ rexUuid }) => {
           </div>
         </div>
         {expandedRexUuids.find((uuid) => uuid === rex.uuid) && (
-          <div
-            className={styles.rexBody}
-            style={rexFromDb?.rexRunning ? { marginLeft: "1px" } : {}}
-          >
+          <div className={styles.rexBody} style={rexFromDb?.isRunning ? { marginLeft: "1px" } : {}}>
             <RexClocks selectedRex={rex} />
             <div className={styles.rexEvaDropdown}>
               <div
                 className={`${styles.selectedEvaLabelContainer}  ${evaLabelSelectedStyle}`}
                 onClick={() => {
-                  dispatch(setSelectedEvaUuid(selectedRexEvaUuid));
+                  dispatch(setSelectedEvaUuid(evaUuid));
                   dispatch(setSelectedEvaSequenceItemUuid(null));
                 }}
               >

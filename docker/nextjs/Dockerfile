@@ -12,18 +12,11 @@ FROM $NEXTJS_BASE_IMAGE as base
 RUN mkdir /app
 WORKDIR /app
 COPY package*.json ./
-COPY docker/nextjs/docker-entrypoint.sh /
-RUN dos2unix /docker-entrypoint.sh && \
-  chmod +x /docker-entrypoint.sh
-ENTRYPOINT [ "/docker-entrypoint.sh" ]
 
 #
 # IMAGE: prod
 #
 FROM base as prod
-
-# Prod build doesn't run `npm i` at container start. Dev does. See docker-entrypoint.sh
-ENV RUN_NPM_INSTALL_ON_START=no
 
 # Ultimately should set `ENV NODE_ENV=production` prior to running install, so npm
 # doesn't install devDependencies. Also consider --no-optional. However, since the
@@ -51,12 +44,11 @@ CMD ["/bin/sh", "-c", "npm run migrate:up; npm run start"]
 #
 FROM base as dev
 
-# Prod build doesn't run `npm i` at container start. Dev does. See docker-entrypoint.sh
-ENV RUN_NPM_INSTALL_ON_START=yes
-
 ENV NODE_ENV=development
 RUN npm install
 
 # runs on port 4000
-# CMD "/bin/sh -c 'npm i; npm run migrate:up; npm run dev;'"
-CMD ["npm", "run", "dev"]
+# In dev we wan to run `npm i` again when the container starts. This is because the dependencies could
+# change from the time the docker image was built to the time the image was used to create the
+# container. In prod the dependencies are locked, so we don't need to re-run. 
+CMD ["/bin/sh", "-c", "npm i; npm run migrate:up; npm run dev"]

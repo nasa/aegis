@@ -1,10 +1,14 @@
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
-import { Dropdown, InLineEditInput } from "components/interface/form/globalFields";
+import {
+  Dropdown,
+  InLineEditInput,
+  PathColorPickerMenu,
+} from "components/interface/form/globalFields";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { upsertEvaByField } from "store/eva";
-import { shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
@@ -15,6 +19,7 @@ import {
   faPersonThroughWindow,
   faQuestionCircle,
   faToolbox,
+  faRoute,
 } from "@fortawesome/free-solid-svg-icons";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { regExValidators, validators } from "components/interface/form/formValidators";
@@ -41,7 +46,16 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     (state) => state.mission.mission.equipmentItems,
     shallowEqual
   );
-  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
+  const stationUuidsAndNames = useAppSelector(
+    (state) =>
+      state.station.stations.map((s) => {
+        return {
+          uuid: s.uuid,
+          name: s.name,
+        };
+      }),
+    deepEqual
+  );
 
   const egressLocationIcon = useAppSelector((state) => {
     const station = state.station.stations.find(
@@ -122,6 +136,33 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
           </div>
 
           <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>
+              <SubpanelHeading icon={faRoute}>Path</SubpanelHeading>
+            </div>
+            <div className={paneStyles.panelSection2Column}>
+              <div className={paneStyles.panelColumnTable}>
+                <div className={paneStyles.panelColumnTableRow}>
+                  <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.displayFieldLabel}>Traverse Color:</div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={paneStyles.displayFieldValue}>
+                      <PathColorPickerMenu
+                        currentColor={selectedEva.traverseColor || "#03adfc"}
+                        editMode={editMode}
+                        updateColor={(val) => {
+                          dispatch(upsertEvaByField(selectedEva.uuid, "traverseColor", val));
+                        }}
+                        styleContainer={{ padding: "0px 5px 0px 5px" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "3px" }}>
               <SubpanelHeading icon={faPersonThroughWindow}>Egress and Ingress</SubpanelHeading>
             </div>
@@ -174,7 +215,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             toolTip="Egress Location"
                           >
                             <option value="lander">Lander</option>
-                            {stations.map((station) => {
+                            {stationUuidsAndNames.map((station) => {
                               return (
                                 <option key={station.uuid} value={station.uuid}>
                                   {station.name}
@@ -224,7 +265,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             toolTip="Ingress Location"
                           >
                             <option value="lander">Lander</option>
-                            {stations.map((station) => {
+                            {stationUuidsAndNames.map((station) => {
                               return (
                                 <option key={station.uuid} value={station.uuid}>
                                   {station.name}

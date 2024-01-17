@@ -9,16 +9,13 @@ import {
   ResponseOptions,
 } from "node-mocks-http";
 import Login from "pages/api/auth/login";
-
 import { getORM, getEM, closeORM } from "utils/mikro";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
 import handleLayer from "pages/api/layer";
 import LayerFactory from "../factories/LayerFactory";
 import { Mission_db, Layer_db, User_db } from "server/database/models/_allModels";
-
 import { createNewLayer } from "components/admin/helper";
-import fetchMock from "jest-fetch-mock";
 import { v4 as uuidv4 } from "uuid";
 import { TextEncoder, TextDecoder } from "util";
 import { IronSessionData } from "iron-session";
@@ -59,8 +56,6 @@ beforeAll(async () => {
       layer.mission = testMissions[0];
     })
     .create(2);
-
-  fetchMock.resetMocks();
 });
 
 describe("Layer API Endpoint ", () => {

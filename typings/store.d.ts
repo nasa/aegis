@@ -149,9 +149,6 @@ type StationCalculatedFields = LocationCalculatedFields & {
   walkbackDistanceMeters: number;
   walkbackAscentDescent: TotalAscentDescentObj;
   equipmentItems: EquipmentItemUsage[];
-  totalCompletedEv1Time: TotalTimeObj;
-  totalCompletedEv2Time: TotalTimeObj;
-  totalCompletedDwellTime: TotalTimeObj;
 };
 
 type TraverseCalculatedFields = CalculatedFields & {

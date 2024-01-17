@@ -1,11 +1,12 @@
-import createTestStore from "../factories/makeTestStore";
+import { createCustomTestStore } from "../../factories/makeTestStore";
 import { initialState as missionInitialState } from "store/mission";
 import { initialState as rexInitialState } from "store/rex";
 import { initialState as interfaceInitialState } from "store/interface";
 import { initialState as mapInitialState } from "store/map";
-import { createTestMission } from "../factories/MissionFactory";
-import { createTestPosEntry, createTestRex } from "../factories/RexFactory";
+import { createTestMission } from "../../factories/MissionFactory";
+import { createTestPosEntry, createTestRex } from "../../factories/RexFactory";
 import {
+  thunkAddRexStatusEntry,
   thunkCancelPosEntry,
   thunkCancelPosEntryLocation,
   thunkCancelRex,
@@ -19,13 +20,12 @@ import {
   thunkSaveRex,
   thunkUpdatePosEntryLocation,
 } from "store/thunk/thunkRex";
+import { v4 as uuidv4 } from "uuid";
+
+// mock all calls to the db so no transactions are actually made
+// CAUTION, the import line must be below the jest.mock
+jest.mock("http-client/rex");
 import * as httpClient_rex from "http-client/rex";
-jest.mock("http-client/rex", () => {
-  return {
-    __esModule: true,
-    ...jest.requireActual("http-client/rex"),
-  };
-});
 
 //I don't understand what is even calling this that is causing me to mock it
 jest.mock("string-strip-html", () => ({
@@ -37,10 +37,18 @@ jest.mock("store/thunk/thunkLog", () => ({
   thunkLogRexFull: () => mockThunkLogRexFull,
 }));
 
+beforeEach(async () => {
+  jest.clearAllMocks(); // clear call count
+});
+
+afterAll(() => {
+  jest.restoreAllMocks();
+});
+
 describe("Thunk Rex Tests", () => {
   test("thunkCreateRex", async () => {
     const mission = createTestMission();
-    const store = createTestStore({
+    const store = createCustomTestStore({
       mission: { ...missionInitialState, mission: mission },
       rex: { ...rexInitialState },
       interface: { ...interfaceInitialState },
@@ -55,7 +63,7 @@ describe("Thunk Rex Tests", () => {
 
   test("thunkDuplicateRex", async () => {
     const rex = createTestRex();
-    const store = createTestStore({
+    const store = createCustomTestStore({
       rex: { ...rexInitialState, rexes: [rex] },
     });
     await store.dispatch(thunkDuplicateRex({ rexUuid: rex.uuid }));
@@ -66,23 +74,11 @@ describe("Thunk Rex Tests", () => {
   });
 
   test("thunkSaveRex", async () => {
-    //mock the call to upsert to the DB (we don't actually want to upsert)
-    const mockDbUpsertRex = jest
-      .spyOn(httpClient_rex, "upsertRexes")
-      .mockImplementation(async (rexes) => {
-        const res: WrappedResponse<Rex[]> = {
-          status: "success",
-          message: "Rex upserted",
-          data: rexes,
-        };
-        return res;
-      });
-
     const rex = createTestRex();
     const runningRex = createTestRex();
-    runningRex.rexRunning = true;
+    runningRex.isRunning = true;
     const rexModified = { ...rex, name: "Jest Rex-1 Modified" };
-    const store = createTestStore({
+    const store = createCustomTestStore({
       rex: {
         ...rexInitialState,
         rexes: [rexModified],
@@ -92,8 +88,8 @@ describe("Thunk Rex Tests", () => {
     });
     await store.dispatch(thunkSaveRex({ rexUuid: rexModified.uuid }));
     const storeState = store.getState();
-    expect(mockThunkLogRexFull).toBeCalledTimes(1);
-    expect(mockDbUpsertRex).toBeCalledTimes(2);
+    expect(mockThunkLogRexFull).toHaveBeenCalledTimes(1);
+    expect(httpClient_rex.upsertRexes).toHaveBeenCalledTimes(2);
     expect(storeState.rex.rexesFromDb.find((r) => r.uuid === rex.uuid).name).toEqual(
       "Jest Rex-1 Modified"
     );
@@ -101,15 +97,13 @@ describe("Thunk Rex Tests", () => {
     expect(storeState.rex.rexesFromDb.find((r) => r.uuid === runningRex.uuid).petRunning).toEqual(
       false
     );
-
-    mockDbUpsertRex.mockRestore();
   });
 
   test("thunkCancelRex", async () => {
     const rex = createTestRex();
     const rexModified = { ...rex, name: "Jest Rex-1 Modified" };
     const rexUnsaved = createTestRex();
-    const store = createTestStore({
+    const store = createCustomTestStore({
       rex: {
         ...rexInitialState,
         rexes: [rexModified, rexUnsaved],
@@ -128,22 +122,10 @@ describe("Thunk Rex Tests", () => {
   });
 
   test("thunkDeleteRex", async () => {
-    //mock the call to upsert to the DB (we don't actually want to upsert)
-    const mockDbDeleteRex = jest
-      .spyOn(httpClient_rex, "deleteRexes")
-      .mockImplementation(async () => {
-        const res: WrappedResponse<null> = {
-          status: "success",
-          message: "Rex deleted",
-          data: null,
-        };
-        return res;
-      });
-
     const rex = createTestRex();
     const rexModified = { ...rex, name: "Jest Rex-1 Modified" };
     const rexUnsaved = createTestRex();
-    const store = createTestStore({
+    const store = createCustomTestStore({
       rex: {
         ...rexInitialState,
         rexes: [rexModified, rexUnsaved],
@@ -158,12 +140,12 @@ describe("Thunk Rex Tests", () => {
     expect(store.getState().rex.rexesEditing.includes(rexUnsaved.uuid)).toBeFalsy();
     expect(store.getState().rex.rexesFromDb.length).toEqual(0);
     expect(store.getState().rex.selectedRexUuid).toBeNull();
-    expect(mockDbDeleteRex).toBeCalledTimes(2);
+    expect(httpClient_rex.deleteRexes).toHaveBeenCalledTimes(2);
   });
 
   test("thunkRexPetStartStop", async () => {
     const rex = createTestRex();
-    const store = createTestStore({
+    const store = createCustomTestStore({
       rex: {
         ...rexInitialState,
         rexes: [rex],
@@ -192,10 +174,10 @@ describe("Thunk Rex Tests", () => {
 describe("Thunk Pos Tests", () => {
   test("thunkCreatePosItem", async () => {
     const rex = createTestRex();
-    rex.rexRunning = true;
+    rex.isRunning = true;
     rex.petRunning = false;
     rex.petValueAtStartStop = "+00:07:00";
-    const store = createTestStore({
+    const store = createCustomTestStore({
       rex: { ...rexInitialState, rexes: [rex], selectedRexUuid: rex.uuid },
     });
 
@@ -209,22 +191,10 @@ describe("Thunk Pos Tests", () => {
   });
 
   test("thunkUpdatePosEntryLocation", async () => {
-    //mock the call to upsert to the DB (we don't actually want to upsert)
-    const mockDbUpsertRex = jest
-      .spyOn(httpClient_rex, "upsertRexes")
-      .mockImplementation(async (rexes) => {
-        const res: WrappedResponse<Rex[]> = {
-          status: "success",
-          message: "Rex upserted",
-          data: rexes,
-        };
-        return res;
-      });
-
     const rex = createTestRex();
     const posEntry = createTestPosEntry();
     rex.posEntries = [posEntry];
-    const store = createTestStore({
+    const store = createCustomTestStore({
       rex: {
         ...rexInitialState,
         rexes: [rex],
@@ -243,9 +213,7 @@ describe("Thunk Pos Tests", () => {
     expect(store.getState().rex.rexes[0].updatedAt).not.toBeNull();
     expect(store.getState().rex.posEntryEditingUuid).toBeNull();
     expect(store.getState().rex.rexesPosEntriesEditing.length).toEqual(0);
-    expect(mockDbUpsertRex).toBeCalledTimes(1);
-
-    mockDbUpsertRex.mockRestore();
+    expect(httpClient_rex.upsertRexes).toHaveBeenCalledTimes(1);
   });
 
   test("thunkCancelPosEntriesLocation", async () => {
@@ -254,7 +222,7 @@ describe("Thunk Pos Tests", () => {
     const posEntryWithLoc = createTestPosEntry();
     posEntryWithLoc.location = { lat: 1, lng: 2 };
     rex.posEntries = [posEntry, posEntryWithLoc];
-    const store = createTestStore({
+    const store = createCustomTestStore({
       rex: {
         ...rexInitialState,
         rexes: [rex],
@@ -295,7 +263,7 @@ describe("Thunk Pos Tests", () => {
     const rex = createTestRex();
     const posEntry = createTestPosEntry();
     const posEntryModified = { ...posEntry, location: { lat: 1, lng: 2 } };
-    const store = createTestStore({
+    const store = createCustomTestStore({
       rex: {
         ...rexInitialState,
         rexes: [{ ...rex, posEntries: [posEntryModified] }],
@@ -326,23 +294,11 @@ describe("Thunk Pos Tests", () => {
   });
 
   test("thunkPersistRexPosEntries", async () => {
-    //mock the call to upsert to the DB (we don't actually want to upsert)
-    const mockDbUpsertRex = jest
-      .spyOn(httpClient_rex, "upsertRexes")
-      .mockImplementation(async (rexes) => {
-        const res: WrappedResponse<Rex[]> = {
-          status: "success",
-          message: "Rex upserted",
-          data: rexes,
-        };
-        return res;
-      });
-
     const rex = createTestRex();
     const posEntry1 = createTestPosEntry();
     const posEntry2 = createTestPosEntry();
     rex.posEntries = [posEntry1, posEntry2];
-    const store = createTestStore({
+    const store = createCustomTestStore({
       rex: {
         ...rexInitialState,
         rexes: [rex],
@@ -357,28 +313,14 @@ describe("Thunk Pos Tests", () => {
     expect(store.getState().rex.rexesPosEntriesEditing.length).toEqual(0);
     expect(store.getState().rex.posEntryEditingUuid).toBeNull();
     expect(store.getState().rex.rexes[0].posEntries.length).toEqual(2);
-    expect(mockDbUpsertRex).toBeCalledTimes(1);
-
-    mockDbUpsertRex.mockRestore();
+    expect(httpClient_rex.upsertRexes).toHaveBeenCalledTimes(1);
   });
 
   test("thunkDeletePosEntryByUuid", async () => {
-    //mock the call to upsert to the DB (we don't actually want to upsert)
-    const mockDbUpsertRex = jest
-      .spyOn(httpClient_rex, "upsertRexes")
-      .mockImplementation(async (rexes) => {
-        const res: WrappedResponse<Rex[]> = {
-          status: "success",
-          message: "Rex upserted",
-          data: rexes,
-        };
-        return res;
-      });
-
     const rex = createTestRex();
     const posEntry = createTestPosEntry();
     rex.posEntries = [posEntry];
-    const store = createTestStore({
+    const store = createCustomTestStore({
       rex: {
         ...rexInitialState,
         rexes: [rex],
@@ -390,8 +332,87 @@ describe("Thunk Pos Tests", () => {
     await store.dispatch(thunkDeletePosEntryByUuid({ posEntryUuid: posEntry.uuid }));
     expect(store.getState().rex.rexes[0].posEntries).toEqual([]);
     expect(store.getState().rex.rexesFromDb[0].posEntries).toEqual([]);
-    expect(mockDbUpsertRex).toBeCalledTimes(1);
+    expect(httpClient_rex.upsertRexes).toHaveBeenCalledTimes(1);
+  });
 
-    mockDbUpsertRex.mockRestore();
+  test("thunkAddRexStatusEntry", async () => {
+    const rex = createTestRex();
+    rex.isRunning = true;
+    const store = createCustomTestStore({
+      rex: {
+        ...rexInitialState,
+        rexes: [rex],
+        rexesFromDb: [rex],
+        selectedRexUuid: rex.uuid,
+      },
+    });
+
+    const stationUuid = uuidv4();
+    const traverseUuid = uuidv4();
+    const actionUuid = uuidv4();
+
+    // check all station states
+    await store.dispatch(thunkAddRexStatusEntry({ entryType: "station", uuid: stationUuid }));
+    expect(store.getState().rex.rexes[0].stationEntries[stationUuid][0].rexStatus).toBe(
+      "in-progress"
+    );
+    await store.dispatch(
+      thunkAddRexStatusEntry({ entryType: "station", uuid: stationUuid, prevStatus: "in-progress" })
+    );
+    expect(store.getState().rex.rexes[0].stationEntries[stationUuid][1].rexStatus).toBe("complete");
+    await store.dispatch(
+      thunkAddRexStatusEntry({ entryType: "station", uuid: stationUuid, prevStatus: "complete" })
+    );
+    expect(store.getState().rex.rexes[0].stationEntries[stationUuid][2].rexStatus).toBe("skipped");
+    await store.dispatch(
+      thunkAddRexStatusEntry({ entryType: "station", uuid: stationUuid, prevStatus: "skipped" })
+    );
+    expect(store.getState().rex.rexes[0].stationEntries[stationUuid][3].rexStatus).toBe("pending");
+
+    //assert all traverse states
+    await store.dispatch(thunkAddRexStatusEntry({ entryType: "traverse", uuid: traverseUuid }));
+    expect(store.getState().rex.rexes[0].traverseEntries[traverseUuid][0].rexStatus).toBe(
+      "in-progress"
+    );
+    await store.dispatch(
+      thunkAddRexStatusEntry({
+        entryType: "traverse",
+        uuid: traverseUuid,
+        prevStatus: "in-progress",
+      })
+    );
+    expect(store.getState().rex.rexes[0].traverseEntries[traverseUuid][1].rexStatus).toBe(
+      "complete"
+    );
+    await store.dispatch(
+      thunkAddRexStatusEntry({ entryType: "traverse", uuid: traverseUuid, prevStatus: "complete" })
+    );
+    expect(store.getState().rex.rexes[0].traverseEntries[traverseUuid][2].rexStatus).toBe(
+      "skipped"
+    );
+    await store.dispatch(
+      thunkAddRexStatusEntry({ entryType: "traverse", uuid: traverseUuid, prevStatus: "skipped" })
+    );
+    expect(store.getState().rex.rexes[0].traverseEntries[traverseUuid][3].rexStatus).toBe(
+      "pending"
+    );
+
+    // assert all action states
+    await store.dispatch(thunkAddRexStatusEntry({ entryType: "action", uuid: actionUuid }));
+    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][0].rexStatus).toBe(
+      "in-progress"
+    );
+    await store.dispatch(
+      thunkAddRexStatusEntry({ entryType: "action", uuid: actionUuid, prevStatus: "in-progress" })
+    );
+    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][1].rexStatus).toBe("complete");
+    await store.dispatch(
+      thunkAddRexStatusEntry({ entryType: "action", uuid: actionUuid, prevStatus: "complete" })
+    );
+    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][2].rexStatus).toBe("skipped");
+    await store.dispatch(
+      thunkAddRexStatusEntry({ entryType: "action", uuid: actionUuid, prevStatus: "skipped" })
+    );
+    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][3].rexStatus).toBe("pending");
   });
 });

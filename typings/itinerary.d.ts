@@ -1,21 +1,3 @@
-/**
- * Itinerary hierarchy. Traverses can have POIs too, but these would be limited to things that don't require a stopover.
- *
- * 1. Itinerary A (e.g. EVA 1)
- *    1. Station A (e.g. EVA 1A)
- *       a. POI A (e.g. M-19)
- *          1. Action A (e.g. M-19A)
- *          2. Action B (e.g. M-19B)
- *       b. POI B
- *       c. POI C
- *       d. Action C (e.g. EVA 1A-C)
- *    2. Traverse A (e.g. EVA 1-2)
- *       a. POI (e.g. M-20
- *         1. Action A (e.g. M-20A)
- * 2. Itinerary B
- *    1. ...
- */
-
 interface Eva {
   uuid: string;
   ownerId: number;
@@ -27,11 +9,11 @@ interface Eva {
   description: string;
   maxDuration: number; // minutes
   traverseRate: number; // km/hour
-
   egressDuration: number; // minutes
   ingressDuration: number; // minutes
   egressLocationUuid: string; // station uuid or "lander"
   ingressLocationUuid: string; // station uuid or "lander"
+  traverseColor: string;
 
   createdAt?: string;
   updatedAt?: string;
@@ -61,8 +43,7 @@ interface Traverse {
   predictedDurationUpper: number; //minutes
   description: string;
   traverseRate?: number; // km/hour
-
-  rexStatus: RexStatus;
+  color?: string;
 
   createdAt?: string;
   updatedAt?: string;
@@ -103,8 +84,6 @@ interface Station {
    */
   durationLower: number; // in minutes
   durationUpper?: number; // in minutes
-
-  rexStatus: RexStatus;
 
   createdAt?: string;
   updatedAt?: string;
@@ -232,12 +211,9 @@ type Action = {
   status: ActionStatus;
   enabled: boolean;
   crewAssigned: Crew[];
-  rexStatus: RexStatus;
   createdAt?: string;
   updatedAt?: string;
 };
-
-type RexStatus = "pending" | "in-progress" | "complete" | "skipped";
 
 type Action_db_type = Omit<
   Action,
@@ -286,83 +262,4 @@ type TotalTimeObj = {
 type TotalAscentDescentObj = {
   totalMetersClimbed: number;
   totalMetersDescended: number;
-};
-
-type Rex = {
-  missionId: number;
-  uuid: string;
-  name: string;
-  description: string;
-  petStartStopTimestamp: string; // the timestamp the play/pause button was clicked
-  petValueAtStartStop: string; // the value of the pet timer when the play/pause button was clicked in "+hh:mm:ss"
-  petRunning: boolean; // whether the timer is currently running
-  selectedRexEvaUuid: string;
-  rexRunning: boolean;
-  posEntries: PosEntry[];
-  posTypes: PosType[];
-  createdAt?: string;
-  updatedAt?: string;
-};
-
-type Rex_db_type = Omit<Rex, "missionId" | "createdAt" | "updatedAt"> & {
-  mission: Mission_db_type;
-  createdAt?: Date;
-  updatedAt?: Date;
-};
-
-type EvaRexEvent = {
-  uuid: string;
-  creationDate: string;
-};
-
-interface PosEntry {
-  uuid: string;
-  location: AEGISPoint;
-  elevation: number;
-  seconds: number;
-  posTypeUuids: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface PosType {
-  uuid: string;
-  abbr: string;
-  name: string;
-  icon: string;
-  pathColor: string;
-}
-
-type LogType =
-  | "missionUpsert"
-  | "missionDelete"
-  | "presetUpsert"
-  | "presetDelete"
-  | "poiUpsert"
-  | "poiDelete"
-  | "stationUpsert"
-  | "stationDelete"
-  | "traverseUpsert"
-  | "traverseDelete"
-  | "actionUpsert"
-  | "actionDelete"
-  | "evaUpsert"
-  | "evaDelete"
-  | "rexUpsert"
-  | "rexDelete"
-  | "fullRexStart"
-  | "fullRexStop";
-
-type Log = {
-  uuid: string;
-  missionId: number;
-  type: LogType;
-
-  payloadJson: string;
-  createdAt: string;
-};
-
-type Log_db_type = Omit<Log, "missionId" | "createdAt"> & {
-  mission: Mission_db_type;
-  createdAt: Date;
 };

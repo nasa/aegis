@@ -1,7 +1,7 @@
 import { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import BoxSDK from "box-node-sdk";
-import { ironOptions } from "server/session/config";
+import { ironOptions } from "utils/ironSession";
 
 const handler: NextApiHandler<WrappedResponse<BoxItemsResponse>> = async (
   req: NextApiRequest,

@@ -149,8 +149,7 @@ export const crossSlice = createSlice({
       interfaceSlice.caseReducers.setRightPanelOpen(state.interface, { payload: true });
       interfaceSlice.caseReducers.setSectionSelected(state.interface, { payload: "rex" });
       evaSlice.caseReducers.setSelectedEvaUuid(state.eva, {
-        payload: state.rex.rexes.find((rex) => rex.uuid === action.payload.runningRexUuid)
-          .selectedRexEvaUuid,
+        payload: state.rex.rexes.find((rex) => rex.uuid === action.payload.runningRexUuid).evaUuid,
       });
     },
     setAllStoreLoadingStatuses(state, action: PayloadAction<LoadingStatus>) {

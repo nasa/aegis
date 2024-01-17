@@ -6,10 +6,11 @@ import { EntityData } from "@mikro-orm/core";
 export default class PoiFactory extends Factory<Poi_db> {
   model = Poi_db;
   definition(): EntityData<Poi_db> {
-    return {
+    const poi: Poi_db = {
       uuid: uuidv4(),
       mission: null,
       owner: null,
+      station: null,
       name: "Jest Poi-1",
       description: "",
       actionOrderUuids: [],
@@ -23,6 +24,7 @@ export default class PoiFactory extends Factory<Poi_db> {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    return poi;
   }
 }
 

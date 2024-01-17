@@ -83,6 +83,7 @@ describe("EVA API Endpoint", () => {
     traverseRate: null,
     egressDuration: null,
     ingressDuration: null,
+    traverseColor: null,
     egressLocationUuid: "lander",
     ingressLocationUuid: "lander",
     createdAt: roundDateToSecond(new Date()).toISOString(),

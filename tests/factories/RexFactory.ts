@@ -6,7 +6,7 @@ import { EntityData } from "@mikro-orm/core";
 export default class RexFactory extends Factory<Rex_db> {
   model = Rex_db;
   definition(): EntityData<Rex_db> {
-    return {
+    const rex: Rex_db = {
       uuid: uuidv4(),
       mission: null,
       name: "Jest Rex-1",
@@ -14,13 +14,17 @@ export default class RexFactory extends Factory<Rex_db> {
       petStartStopTimestamp: null,
       petValueAtStartStop: "+00:00:00",
       petRunning: false,
-      selectedRexEvaUuid: null,
-      rexRunning: false,
+      evaUuid: null,
+      isRunning: false,
       posEntries: null,
       posTypes: null,
+      stationEntries: null,
+      traverseEntries: null,
+      actionEntries: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    return rex;
   }
 }
 
@@ -33,23 +37,37 @@ export const createTestRex = (): Rex => {
     petStartStopTimestamp: null,
     petValueAtStartStop: "+00:00:00",
     petRunning: false,
-    selectedRexEvaUuid: null,
-    rexRunning: false,
+    evaUuid: null,
+    isRunning: false,
     posEntries: null,
     posTypes: null,
+    stationEntries: null,
+    traverseEntries: null,
+    actionEntries: null,
     createdAt: new Date().toISOString(),
     updatedAt: null,
   };
 };
 
 export const createTestPosEntry = (): PosEntry => {
+  const posType = createTestPosType();
   return {
     uuid: uuidv4(),
     location: null,
     elevation: null,
-    seconds: null,
-    posTypeUuids: null,
+    seconds: 0,
+    posTypeUuids: [posType.uuid],
     createdAt: new Date().toISOString(),
     updatedAt: null,
+  };
+};
+
+export const createTestPosType = (): PosType => {
+  return {
+    uuid: uuidv4(),
+    abbr: "1",
+    name: "EV1",
+    icon: "",
+    pathColor: "",
   };
 };

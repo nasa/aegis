@@ -14,8 +14,8 @@ import _ from "lodash";
 import { collapseActions, expandActions } from "store/interface";
 import { RightActionBody } from "./actions-action-body";
 import { ActionMenu } from "./actions-action-menu";
-import { thunkCycleActionRexToNextStatus } from "store/thunk/thunkAction";
 import { getRexStatusDisplayProperties } from "../../utils/rex";
+import { thunkAddRexStatusEntry } from "store/thunk/thunkRex";
 
 const RightAction: FunctionComponent<{
   editMode: boolean;
@@ -24,7 +24,7 @@ const RightAction: FunctionComponent<{
   parentType: "station" | "poi" | "eva";
   parentLocation: AEGISPoint | null;
   parentElevation: number | null;
-  rexRunning: boolean;
+  isRexRunning: boolean;
 }> = ({
   editMode,
   actionUuid,
@@ -32,7 +32,7 @@ const RightAction: FunctionComponent<{
   parentType,
   parentLocation,
   parentElevation,
-  rexRunning,
+  isRexRunning,
 }) => {
   const dispatch = useAppDispatch();
 
@@ -41,7 +41,15 @@ const RightAction: FunctionComponent<{
     deepEqual
   );
   const actionsExpanded = useAppSelector((state) => state.interface.actionsExpanded, shallowEqual);
-  const actionRexStatusEntry = action?.rexStatus;
+  const actionRexStatusEntry = useAppSelector((state) => {
+    //find all action entry that match this action uuid for the running rex. return the status of the last one.
+    const runningRexFromDb = state.rex.rexesFromDb.find((rex) => rex.isRunning);
+    if (!runningRexFromDb?.actionEntries || !runningRexFromDb.actionEntries[actionUuid]) {
+      return null;
+    } else {
+      return _.last(runningRexFromDb.actionEntries[actionUuid]).rexStatus;
+    }
+  }, refEqual);
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
@@ -81,13 +89,21 @@ const RightAction: FunctionComponent<{
     <>
       {action && (
         <>
-          {rexRunning && editPerms && (
+          {isRexRunning && (
             <>
               {action.enabled ? (
                 <div
                   className={actionStyles.actionHeadingRexStatusWrapper}
+                  style={editPerms ? { cursor: "pointer" } : { cursor: "default" }}
                   onClick={() => {
-                    dispatch(thunkCycleActionRexToNextStatus({ actionUuid: action.uuid }));
+                    if (!editPerms) return;
+                    dispatch(
+                      thunkAddRexStatusEntry({
+                        entryType: "action",
+                        uuid: action.uuid,
+                        prevStatus: actionRexStatusEntry,
+                      })
+                    );
                   }}
                   data-tooltip-id="aegis-tooltip"
                   data-tooltip-html={getRexStatusDisplayProperties(actionRexStatusEntry).tooltip}

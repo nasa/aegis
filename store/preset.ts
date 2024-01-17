@@ -221,13 +221,12 @@ export const presetSlice = createSlice({
       });
     },
     setPresetEditMode: (state, action: { payload: { presetUuid: string; editMode: boolean } }) => {
-      const preset = state.presets.find((preset) => preset.uuid === action.payload.presetUuid);
-      if (preset) {
-        if (action.payload.editMode) {
-          state.presetsEditing.push(preset.uuid);
-        } else {
-          state.presetsEditing = state.presetsEditing.filter((uuid) => uuid !== preset.uuid);
-        }
+      if (action.payload.editMode) {
+        state.presetsEditing.push(action.payload.presetUuid);
+      } else {
+        state.presetsEditing = state.presetsEditing.filter(
+          (uuid) => uuid !== action.payload.presetUuid
+        );
       }
     },
     setStateForNewPreset: (state, action: { payload: { uuid: string } }) => {

@@ -6,12 +6,13 @@ import { EntityData } from "@mikro-orm/core";
 export default class LogFactory extends Factory<Log_db> {
   model = Log_db;
   definition(): EntityData<Log_db> {
-    return {
+    const log: Log_db = {
       uuid: uuidv4(),
       mission: null,
       type: "rexUpsert",
       payloadJson: "",
       createdAt: new Date(),
     };
+    return log;
   }
 }

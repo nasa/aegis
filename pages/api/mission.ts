@@ -1,11 +1,11 @@
 import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
-import { ironOptions } from "server/session/config";
+import { ironOptions } from "utils/ironSession";
 import { withORM, getEM } from "utils/mikro";
 
 import _ from "lodash";
 import { Mission_db } from "server/database/models/_allModels";
-import { EntityData, ForeignKeyConstraintViolationException } from "@mikro-orm/core";
+import { EntityData, ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/core";
 import { hasPerms } from "utils/permissions";
 import { emitStoreUpsert } from "./socketio";
 import { v4 as uuidv4 } from "uuid";
@@ -220,9 +220,13 @@ export async function getMission(missionIdList: number | number[] = null): Promi
   const em = getEM();
   let missions: Mission_db[];
   if (!missionIdList) {
-    missions = await em.find(Mission_db, {});
+    missions = await em.find(Mission_db, {}, { orderBy: [{ id: QueryOrder.ASC }] });
   } else {
-    missions = await em.find(Mission_db, { id: missionIdList });
+    missions = await em.find(
+      Mission_db,
+      { id: missionIdList },
+      { orderBy: [{ id: QueryOrder.ASC }] }
+    );
   }
 
   return missions.map((mission: Mission_db) => {

@@ -1,33 +1,34 @@
-import createTestStore from "../factories/makeTestStore";
+import { createCustomTestStore } from "../../factories/makeTestStore";
 import { roundDateToSecond } from "utils/formatting";
-import { createTestAction } from "../factories/ActionFactory";
-import { createTestStation } from "../factories/StationFactory";
+import { createTestAction } from "../../factories/ActionFactory";
+import { createTestStation } from "../../factories/StationFactory";
 import { initialState as actionInitialState } from "store/action";
 import { initialState as stationInitialState } from "store/station";
 import { initialState as poiInitialState } from "store/poi";
 import { v4 as uuidv4 } from "uuid";
 import {
   thunkCreateAction,
-  thunkCycleActionRexToNextStatus,
   thunkDeleteAction,
   thunkDuplicateActions,
   thunkGetHighlightedActions,
   thunkSaveActions,
   thunkUpdateActionLocation,
 } from "store/thunk/thunkAction";
-import { createTestPoi } from "../factories/PoiFactory";
+import { createTestPoi } from "../../factories/PoiFactory";
+
+// mock all calls to the db so no transactions are actually made
+// CAUTION, the import line must be below the jest.mock
+jest.mock("http-client/action");
 import * as httpClient_action from "http-client/action";
-jest.mock("http-client/action", () => {
-  return {
-    __esModule: true,
-    ...jest.requireActual("http-client/action"),
-  };
-});
 
 const mockThunkGetElevation = jest.fn();
 jest.mock("store/thunk/thunkElevation", () => ({
   thunkGetElevation: () => mockThunkGetElevation,
 }));
+
+beforeEach(async () => {
+  jest.clearAllMocks(); // clear call count
+});
 
 afterAll(() => {
   jest.restoreAllMocks();
@@ -36,7 +37,7 @@ afterAll(() => {
 describe("Thunk Action Tests", () => {
   test("thunkCreateAction()", async () => {
     //populate the action state in the store
-    const store = createTestStore({
+    const store = createCustomTestStore({
       action: actionInitialState,
     });
 
@@ -56,8 +57,8 @@ describe("Thunk Action Tests", () => {
     expect(newAction.uuid).not.toBeNull();
     expect(newAction.icon).toBeTruthy();
     expect(newAction.createdAt).toBeTruthy();
-    expect(mockSetActionOrderUuids).toBeCalledTimes(1);
-    expect(mockSetActionOrderUuids).toBeCalledWith([newAction.uuid]);
+    expect(mockSetActionOrderUuids).toHaveBeenCalledTimes(1);
+    expect(mockSetActionOrderUuids).toHaveBeenCalledWith([newAction.uuid]);
   });
 
   test("thunkDuplicateAction()", async () => {
@@ -70,7 +71,7 @@ describe("Thunk Action Tests", () => {
     const poiAction: Action = createTestAction({ poiUuid: poi.uuid });
     poiAction.name = "test poi action";
     poi.actionOrderUuids = [poiAction.uuid];
-    const store = createTestStore({
+    const store = createCustomTestStore({
       station: { ...stationInitialState, stations: [station] },
       poi: { ...poiInitialState, pois: [poi] },
       action: {
@@ -137,7 +138,7 @@ describe("Thunk Action Tests", () => {
     unsavedStationAction.name = "Unsaved action";
     const deletedStationAction: Action = createTestAction({ stationUuid: station.uuid });
     deletedStationAction.name = "Deleted action";
-    const store = createTestStore({
+    const store = createCustomTestStore({
       action: {
         ...actionInitialState,
         actions: [stationActionModified, unsavedStationAction],
@@ -145,44 +146,11 @@ describe("Thunk Action Tests", () => {
       },
     });
 
-    //mock the call to upsert to the DB (we don't actually want to upsert)
-    const mockDbDeleteAction = jest
-      .spyOn(httpClient_action, "deleteActions")
-      .mockImplementation(async () => {
-        const res: WrappedResponse<null> = {
-          status: "success",
-          message: "Action Deleted",
-        };
-        return res;
-      });
-    const mockDbGetActions = jest
-      .spyOn(httpClient_action, "getActions")
-      .mockImplementation(async () => {
-        const res: WrappedResponse<Action[]> = {
-          status: "success",
-          message: "Actions retrieved",
-          data: [stationActionModified, unsavedStationAction],
-        };
-        return res;
-      });
-    const mockDbUpsertAction = jest
-      .spyOn(httpClient_action, "upsertActions")
-      .mockImplementation(async (actions) => {
-        //just return the action that was passed in
-        const res: WrappedResponse<Action[]> = {
-          status: "success",
-          message: "Action upserted",
-          data: actions,
-        };
-        return res;
-      });
-
     //call the thunk
     await store.dispatch(
       thunkSaveActions({
         actions: store.getState().action.actions,
         actionsFromDb: store.getState().action.actionsFromDb,
-        stationUuid: station.uuid,
       })
     );
     const storeState = store.getState(); //get the new state (always has to be called when state changes)
@@ -196,24 +164,18 @@ describe("Thunk Action Tests", () => {
       storeState.action.actionsFromDb.find((a) => a.uuid === deletedStationAction.uuid)
     ).toBeFalsy();
 
-    expect(mockDbUpsertAction).toBeCalledTimes(1); //check the db call was made
-    expect(mockDbDeleteAction).toBeCalledTimes(1);
-    expect(mockDbGetActions).toBeCalledTimes(1);
+    expect(httpClient_action.upsertActions).toHaveBeenCalledTimes(1); //check the db call was made
+    expect(httpClient_action.deleteActions).toHaveBeenCalledTimes(1);
 
     expect(storeState.action.actions.map((a) => a.uuid)).toEqual(
       storeState.action.actionsFromDb.map((a) => a.uuid)
     );
-
-    //restore the mock back to normal
-    mockDbUpsertAction.mockRestore();
-    mockDbDeleteAction.mockRestore();
-    mockDbGetActions.mockRestore();
   });
 
   test("thunkUpdateActionLocation()", async () => {
     //populate the action state in the store
     const action: Action = createTestAction({ stationUuid: uuidv4() });
-    const store = createTestStore({
+    const store = createCustomTestStore({
       action: { ...actionInitialState, actions: [action], actionsFromDb: [action] },
     });
 
@@ -227,7 +189,7 @@ describe("Thunk Action Tests", () => {
       })
     );
     expect(store.getState().action.actions[0].location).toEqual(newLocation);
-    expect(mockThunkGetElevation).toBeCalled();
+    expect(mockThunkGetElevation).toHaveBeenCalled();
   });
 
   test("thunkGetHighlightedActions()", async () => {
@@ -239,7 +201,7 @@ describe("Thunk Action Tests", () => {
     const action2: Action = createTestAction({ stationUuid: uuidv4() });
     action2.stmUuidRefs = [stmUuid1, uuidv4()];
     const actionWithNoStm: Action = createTestAction({ stationUuid: uuidv4() });
-    const store = createTestStore({
+    const store = createCustomTestStore({
       action: {
         ...actionInitialState,
         actions: [action1, action2, actionWithNoStm],
@@ -296,7 +258,7 @@ describe("Thunk Action Tests", () => {
     const poiAction: Action = createTestAction({ poiUuid: poi.uuid });
     poi.actionOrderUuids = [poiAction.uuid, uuidv4()];
 
-    const store = createTestStore({
+    const store = createCustomTestStore({
       station: { ...stationInitialState, stations: [station] },
       poi: { ...poiInitialState, pois: [poi] },
       action: { ...actionInitialState, actions: [stationAction, poiAction], actionsFromDb: [] },
@@ -313,48 +275,5 @@ describe("Thunk Action Tests", () => {
     storeState = store.getState();
     expect(storeState.poi.pois[0].actionOrderUuids.length).toEqual(1);
     expect(storeState.action.actions.find((a) => a.uuid === poiAction.uuid)).toBeUndefined();
-  });
-
-  test("thunkCycleActionRexToNextStatus()", async () => {
-    //mock the call to upsert to the DB (we don't actually want to upsert)
-    const mockDbUpsertAction = jest
-      .spyOn(httpClient_action, "upsertActions")
-      .mockImplementation(async (actions: Action[]) => {
-        const res: WrappedResponse<Action[]> = {
-          status: "success",
-          message: "Action upserted",
-          data: actions,
-        };
-        return res;
-      });
-
-    //populate the action state in the store
-    const action: Action = createTestAction({ stationUuid: uuidv4() });
-    const store = createTestStore({
-      action: { ...actionInitialState, actions: [action], actionsFromDb: [action] },
-    });
-
-    await store.dispatch(thunkCycleActionRexToNextStatus({ actionUuid: action.uuid }));
-    expect(store.getState().action.actions[0].rexStatus).toEqual("in-progress");
-    expect(store.getState().action.actionsFromDb[0].rexStatus).toEqual("in-progress");
-    expect(store.getState().action.actions[0].updatedAt).toEqual(action.updatedAt);
-    expect(mockDbUpsertAction).toBeCalledTimes(1);
-    await store.dispatch(thunkCycleActionRexToNextStatus({ actionUuid: action.uuid }));
-    expect(store.getState().action.actions[0].rexStatus).toEqual("complete");
-    expect(store.getState().action.actionsFromDb[0].rexStatus).toEqual("complete");
-    expect(store.getState().action.actions[0].updatedAt).toEqual(action.updatedAt);
-    expect(mockDbUpsertAction).toBeCalledTimes(2);
-    await store.dispatch(thunkCycleActionRexToNextStatus({ actionUuid: action.uuid }));
-    expect(store.getState().action.actions[0].rexStatus).toEqual("skipped");
-    expect(store.getState().action.actionsFromDb[0].rexStatus).toEqual("skipped");
-    expect(store.getState().action.actions[0].updatedAt).toEqual(action.updatedAt);
-    expect(mockDbUpsertAction).toBeCalledTimes(3);
-    await store.dispatch(thunkCycleActionRexToNextStatus({ actionUuid: action.uuid }));
-    expect(store.getState().action.actions[0].rexStatus).toEqual("pending");
-    expect(store.getState().action.actionsFromDb[0].rexStatus).toEqual("pending");
-    expect(store.getState().action.actions[0].updatedAt).toEqual(action.updatedAt);
-    expect(mockDbUpsertAction).toBeCalledTimes(4);
-
-    mockDbUpsertAction.mockRestore();
   });
 });

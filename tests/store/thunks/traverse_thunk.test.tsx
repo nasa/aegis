@@ -1,32 +1,37 @@
-import createTestStore from "../factories/makeTestStore";
+import { createCustomTestStore } from "../../factories/makeTestStore";
 import { initialState as traverseInitialState } from "store/traverse";
 import { initialState as missionInitialState } from "store/mission";
 import { initialState as evaInitialState } from "store/eva";
 import { initialState as stationInitialState } from "store/station";
 import {
   thunkCreateTraverseCalculatedFields,
-  thunkCycleTraverseRexToNextStatus,
   thunkFullUpdateTraverse,
   thunkResetTraverse,
   thunkUpdateTraversePath,
   thunkUpdateTraversesAroundStation,
 } from "store/thunk/thunkTraverse";
-import { createTestTraverse } from "../factories/TraverseFactory";
-import { createTestMission } from "../factories/MissionFactory";
-import { createTestStation } from "../factories/StationFactory";
-import { createTestEva } from "../factories/EVAFactory";
+import { createTestTraverse } from "../../factories/TraverseFactory";
+import { createTestMission } from "../../factories/MissionFactory";
+import { createTestStation } from "../../factories/StationFactory";
+import { createTestEva } from "../../factories/EVAFactory";
+
+// mock all calls to the db so no transactions are actually made
+// CAUTION, the import line must be below the jest.mock
+jest.mock("http-client/traverse");
 import * as httpClient_traverse from "http-client/traverse";
-jest.mock("http-client/traverse", () => {
-  return {
-    __esModule: true,
-    ...jest.requireActual("http-client/traverse"),
-  };
-});
 
 const mockThunkGetElevation = jest.fn();
 jest.mock("store/thunk/thunkElevation", () => ({
   thunkGetElevation: () => mockThunkGetElevation,
 }));
+
+beforeEach(async () => {
+  jest.clearAllMocks(); // clear call count
+});
+
+afterAll(() => {
+  jest.restoreAllMocks();
+});
 
 describe("Thunk Traverse Tests", () => {
   test("thunkUpdateTraversePath()", async () => {
@@ -37,7 +42,7 @@ describe("Thunk Traverse Tests", () => {
       { lat: 1, lng: 2 },
       { lat: 1.2, lng: 2.2 },
     ];
-    const store = createTestStore({
+    const store = createCustomTestStore({
       traverse: { ...traverseInitialState, traverses: [traverse] },
       mission: {
         ...missionInitialState,
@@ -52,18 +57,6 @@ describe("Thunk Traverse Tests", () => {
   });
 
   test("thunkFullUpdateTraverse()", async () => {
-    const mockdbUpsertTraverse = jest
-      .spyOn(httpClient_traverse, "upsertTraverses")
-      .mockImplementation(async (traverses: Traverse[]) => {
-        //just return the traverse that was passed in
-        const res: WrappedResponse<Traverse[]> = {
-          status: "success",
-          message: "Traverse upserted",
-          data: traverses,
-        };
-        return res;
-      });
-
     const traverseEgress: Traverse = createTestTraverse();
     const traverseIngress: Traverse = createTestTraverse();
     const traverse: Traverse = createTestTraverse();
@@ -87,7 +80,7 @@ describe("Thunk Traverse Tests", () => {
       { lat: 1.6, lng: 2.6 },
       station2.location,
     ];
-    const store = createTestStore({
+    const store = createCustomTestStore({
       traverse: {
         ...traverseInitialState,
         traverses: [traverseEgress, traverse, traverseIngress, traverseNoEva],
@@ -128,8 +121,8 @@ describe("Thunk Traverse Tests", () => {
     ]);
     expect(resultTraverse.pathSegmentDistances.length).toEqual(3);
     expect(resultTraverse.updatedAt).not.toBeNull();
-    expect(mockThunkGetElevation).toBeCalledTimes(1);
-    expect(mockdbUpsertTraverse).toBeCalledTimes(1);
+    expect(mockThunkGetElevation).toHaveBeenCalledTimes(1);
+    expect(httpClient_traverse.upsertTraverses).toHaveBeenCalledTimes(1);
     expect(storeState.traverse.traversesFromDb.length).toEqual(1);
     expect(storeState.traverse.traversesEditing.length).toEqual(0);
 
@@ -143,27 +136,33 @@ describe("Thunk Traverse Tests", () => {
       storeState.mission.mission.landerLocation,
     ]);
     expect(storeState.traverse.traversesFromDb.length).toEqual(1);
-    expect(mockdbUpsertTraverse).toBeCalledTimes(1);
-    expect(mockThunkGetElevation).toBeCalledTimes(2);
-
-    mockdbUpsertTraverse.mockRestore();
+    expect(httpClient_traverse.upsertTraverses).toHaveBeenCalledTimes(1);
+    expect(mockThunkGetElevation).toHaveBeenCalledTimes(2);
   });
 
   test("thunkResetTraverse", async () => {
     const traverse = createTestTraverse();
+    const traverse2 = createTestTraverse();
+    const traverse3 = createTestTraverse();
     const station1: Station = createTestStation();
     station1.location = { lat: 1, lng: 1.1 };
     const station2: Station = createTestStation();
     station2.location = { lat: 2, lng: 2.1 };
+    const station3: Station = createTestStation();
+    station3.location = { lat: 3, lng: 2.1 };
     const mission = createTestMission();
     const eva = createTestEva();
+    eva.egressLocationUuid = station3.uuid;
+    eva.ingressLocationUuid = "lander";
     eva.sequence = [
+      { uuid: traverse2.uuid, type: "traverse" },
       { uuid: station1.uuid, type: "station" },
       { uuid: traverse.uuid, type: "traverse" },
       { uuid: station2.uuid, type: "station" },
+      { uuid: traverse3.uuid, type: "traverse" },
     ];
-    const store = createTestStore({
-      traverse: { ...traverseInitialState, traverses: [traverse] },
+    const store = createCustomTestStore({
+      traverse: { ...traverseInitialState, traverses: [traverse, traverse2, traverse3] },
       eva: {
         ...evaInitialState,
         evas: [eva],
@@ -174,13 +173,21 @@ describe("Thunk Traverse Tests", () => {
         ...missionInitialState,
         mission: { ...mission, planetRadius: 1737400, landerLocation: { lat: 3, lng: 3 } },
       },
-      station: { ...stationInitialState, stations: [station1, station2] },
+      station: { ...stationInitialState, stations: [station1, station2, station3] },
     });
     await store.dispatch(thunkResetTraverse({ traverseUuid: traverse.uuid }));
-    expect(store.getState().traverse.traverses[0].path).toEqual([
+    expect(store.getState().traverse.traverses.find((t) => t.uuid === traverse.uuid).path).toEqual([
       station1.location,
       station2.location,
     ]);
+    await store.dispatch(thunkResetTraverse({ traverseUuid: traverse2.uuid }));
+    expect(store.getState().traverse.traverses.find((t) => t.uuid === traverse2.uuid).path).toEqual(
+      [station3.location, station1.location]
+    );
+    await store.dispatch(thunkResetTraverse({ traverseUuid: traverse3.uuid }));
+    expect(store.getState().traverse.traverses.find((t) => t.uuid === traverse3.uuid).path).toEqual(
+      [station2.location, store.getState().mission.mission.landerLocation]
+    );
   });
 
   test("thunkUpdateTraversesAroundStation", async () => {
@@ -210,7 +217,7 @@ describe("Thunk Traverse Tests", () => {
       { uuid: traverse4.uuid, type: "traverse" },
     ];
 
-    const store = createTestStore({
+    const store = createCustomTestStore({
       traverse: {
         ...traverseInitialState,
         traverses: [traverse1, traverse2, traverse3, traverse4],
@@ -274,7 +281,7 @@ describe("Thunk Traverse Tests", () => {
       { uuid: traverse2.uuid, type: "traverse" },
       { uuid: station3.uuid, type: "station" },
     ];
-    const store = createTestStore({
+    const store = createCustomTestStore({
       traverse: { ...traverseInitialState, traverses: [traverse1, traverse2, traverse3] },
       station: { ...stationInitialState, stations: [station1, station2, station3] },
       eva: { ...evaInitialState, evas: [eva1, eva2] },
@@ -314,48 +321,5 @@ describe("Thunk Traverse Tests", () => {
       .traverse.calculatedFields.find((c) => c.uuid === traverse3.uuid);
     expect(t3CalcFields.durationMinutes).toEqual(15);
     expect(t3CalcFields.reportItems).toEqual([]);
-  });
-
-  test("thunkCycleTraverseRexToNextStatus()", async () => {
-    //mock the call to upsert to the DB (we don't actually want to upsert)
-    const mockDbUpsertTraverse = jest
-      .spyOn(httpClient_traverse, "upsertTraverses")
-      .mockImplementation(async (traverses: Traverse[]) => {
-        //just return the traverse that was passed in
-        const res: WrappedResponse<Traverse[]> = {
-          status: "success",
-          message: "Traverse upserted",
-          data: traverses,
-        };
-        return res;
-      });
-
-    //populate the station state in the store
-    const traverse: Traverse = createTestTraverse();
-    const store = createTestStore({
-      traverse: { ...traverseInitialState, traverses: [traverse], traversesFromDb: [traverse] },
-    });
-    await store.dispatch(thunkCycleTraverseRexToNextStatus({ traverseUuid: traverse.uuid }));
-    expect(store.getState().traverse.traverses[0].rexStatus).toEqual("in-progress");
-    expect(store.getState().traverse.traversesFromDb[0].rexStatus).toEqual("in-progress");
-    expect(store.getState().traverse.traverses[0].updatedAt).toEqual(traverse.updatedAt);
-    expect(mockDbUpsertTraverse).toBeCalledTimes(1);
-    await store.dispatch(thunkCycleTraverseRexToNextStatus({ traverseUuid: traverse.uuid }));
-    expect(store.getState().traverse.traverses[0].rexStatus).toEqual("complete");
-    expect(store.getState().traverse.traversesFromDb[0].rexStatus).toEqual("complete");
-    expect(store.getState().traverse.traverses[0].updatedAt).toEqual(traverse.updatedAt);
-    expect(mockDbUpsertTraverse).toBeCalledTimes(2);
-    await store.dispatch(thunkCycleTraverseRexToNextStatus({ traverseUuid: traverse.uuid }));
-    expect(store.getState().traverse.traverses[0].rexStatus).toEqual("skipped");
-    expect(store.getState().traverse.traversesFromDb[0].rexStatus).toEqual("skipped");
-    expect(store.getState().traverse.traverses[0].updatedAt).toEqual(traverse.updatedAt);
-    expect(mockDbUpsertTraverse).toBeCalledTimes(3);
-    await store.dispatch(thunkCycleTraverseRexToNextStatus({ traverseUuid: traverse.uuid }));
-    expect(store.getState().traverse.traverses[0].rexStatus).toEqual("pending");
-    expect(store.getState().traverse.traversesFromDb[0].rexStatus).toEqual("pending");
-    expect(store.getState().traverse.traverses[0].updatedAt).toEqual(traverse.updatedAt);
-    expect(mockDbUpsertTraverse).toBeCalledTimes(4);
-
-    mockDbUpsertTraverse.mockRestore();
   });
 });

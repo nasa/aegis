@@ -36,7 +36,7 @@ export const thunkUpdatePoiLocation = appCreateAsyncThunk<{
   location: AEGISPoint;
   poiUuid: string;
 }>("updatePoiLocation", async ({ location, poiUuid }, { dispatch, getState }) => {
-  const elevation = await dispatch(
+  const elevationRes = await dispatch(
     thunkGetElevation({
       path: [location],
       pathSegmentDistances: [0],
@@ -44,12 +44,12 @@ export const thunkUpdatePoiLocation = appCreateAsyncThunk<{
     })
   );
   const poi = getState().poi.pois.find((s) => s.uuid === poiUuid);
-  if (elevation.payload === false) {
+  if (!elevationRes || elevationRes.payload === false) {
     //elevation failed - upsert without it
-    await dispatch(upsertPoi({ ...poi, location }));
+    dispatch(upsertPoi({ ...poi, location }));
   } else {
     //upsert location and elevation
-    await dispatch(upsertPoi({ ...poi, location, elevation: elevation.payload as number }));
+    dispatch(upsertPoi({ ...poi, location, elevation: elevationRes.payload as number }));
   }
 });
 
@@ -155,8 +155,7 @@ export const thunkSavePoi = appCreateAsyncThunk<{
   const poiActionsFromDb = getState().action.actionsFromDb.filter(
     (action) => action.poiUuid === poi.uuid
   );
-  //rex active?
-  const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
   //save poi to db
   const poiUpsertResponse = await httpClient_poi.upsertPOIs(
@@ -166,7 +165,7 @@ export const thunkSavePoi = appCreateAsyncThunk<{
         updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
       },
     ],
-    rexRunning
+    isRexRunning
   );
 
   if (poiUpsertResponse.status === "success") {
@@ -181,9 +180,7 @@ export const thunkSavePoi = appCreateAsyncThunk<{
   // find out if the actions in this poi have been modified and need to be persisted
   const actionsModified = isModified(poiActions, poiActionsFromDb);
   if (actionsModified) {
-    dispatch(
-      thunkSaveActions({ actions: poiActions, actionsFromDb: poiActionsFromDb, poiUuid: poi.uuid })
-    );
+    dispatch(thunkSaveActions({ actions: poiActions, actionsFromDb: poiActionsFromDb }));
   }
 
   dispatch(setPoiEditMode({ poiUuid: poi.uuid, editMode: false }));
@@ -227,8 +224,7 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
   const selectedMissionId = getState().mission.mission?.id;
   const poiActions = getState().action.actions.filter((action) => action.poiUuid === poi.uuid);
   const poiFromDb = getState().poi.poisFromDb.find((poiFromDb) => poiFromDb.uuid === poi.uuid);
-  //rex active?
-  const rexRunning: boolean = getState().rex.rexes.find((rex) => rex.rexRunning)?.rexRunning;
+  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
   // if the selected poi is in poisFromDb then delete it from the db
   if (poiFromDb) {
@@ -237,7 +233,7 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
     if (actionUuidsToDelete.length > 0) {
       const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteActions(
         actionUuidsToDelete,
-        rexRunning
+        isRexRunning
       );
       if (actionDeleteResponse.status !== "success") {
         throw new Error("Error deleting actions for poi " + actionDeleteResponse.message);
@@ -252,7 +248,7 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
     }
 
     // delete the POI from the DB via internal API call
-    const deleteResponse = await httpClient_poi.deletePOIs([poi.uuid], rexRunning);
+    const deleteResponse = await httpClient_poi.deletePOIs([poi.uuid], isRexRunning);
     if (deleteResponse.status === "success") {
       // remove the corresponding POI from the store
       dispatch(deletePoiByUuid(poi.uuid));

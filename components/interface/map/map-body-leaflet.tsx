@@ -59,6 +59,7 @@ import { thunkUpdatePosEntryLocation } from "store/thunk/thunkRex";
 import PetInterval from "../page/petInterval";
 import ReactDOMServer from "react-dom/server";
 import { isWindows10 } from "utils/browser";
+import Color from "color";
 
 type MissionSelectProperties = Pick<
   Mission,
@@ -161,7 +162,7 @@ const MapBody: FunctionComponent = () => {
   );
   const selectedOrRunningRex = useAppSelector((state) => {
     //if a rex is running, show that one. If not, just show whatever rex is selected
-    const runningRexFromDb = state.rex.rexesFromDb.find((r) => r.rexRunning);
+    const runningRexFromDb = state.rex.rexesFromDb.find((r) => r.isRunning);
     if (runningRexFromDb) {
       return runningRexFromDb;
     } else {
@@ -807,6 +808,7 @@ const MapBody: FunctionComponent = () => {
       dashArray,
       onClick,
       drawAntPath,
+      isSelected,
     }: {
       name: string;
       uuid: string;
@@ -816,6 +818,7 @@ const MapBody: FunctionComponent = () => {
       dashArray?: string;
       mapItemType: MapPolylineType;
       drawAntPath: boolean;
+      isSelected: boolean;
     }) => {
       // if the location isn't the null default, draw it on the map
       if (
@@ -831,14 +834,16 @@ const MapBody: FunctionComponent = () => {
       }
 
       const typeName = mapItemType.charAt(0).toUpperCase() + mapItemType.slice(1);
+      const selectedColor = Color(color).lighten(0.5).hex();
 
       const polyline = new HighlightablePolyline(path as AEGISPoint[], {
         color: color,
-        weight: 3,
+        weight: 4,
         dashArray,
-        opacity: 0.5,
+        opacity: 0.75,
         smoothFactor: 1,
-        outlineColor: "#8b8680",
+        outlineWeight: isSelected ? 8 : 0,
+        outlineColor: selectedColor,
         raised: false,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any; //TODO: figure out the weird HighlightablePolyline typescript implementation
@@ -877,7 +882,7 @@ const MapBody: FunctionComponent = () => {
         const aPath = antPath(path, {
           delay: 9000,
           dashArray: [10, 20],
-          weight: 5,
+          weight: 4,
           opacity: 1,
           color: "rgb(0, 0, 0, 0)",
           pulseColor: "rgb(255, 255, 255, 1)",
@@ -1352,7 +1357,7 @@ const MapBody: FunctionComponent = () => {
     setPosEntriesToShow([]);
     if (mapDisplayPosMarkers.show) {
       //if there is a running rex, or no running rex but we're on the rex section and there's a rex selected
-      if (selectedOrRunningRex?.rexRunning || (sectionSelected === "rex" && selectedOrRunningRex)) {
+      if (selectedOrRunningRex?.isRunning || (sectionSelected === "rex" && selectedOrRunningRex)) {
         setPosEntriesToShow(_.orderBy(selectedOrRunningRex.posEntries, ["createdAt"], "desc"));
       }
     }
@@ -1613,6 +1618,7 @@ const MapBody: FunctionComponent = () => {
           dispatch(setSelectedStationUuid(selectedStation.uuid));
         },
         drawAntPath: false,
+        isSelected: false,
       });
     }
   }, [
@@ -1640,9 +1646,10 @@ const MapBody: FunctionComponent = () => {
           map.current.removeLayer(layer);
         }
       });
-
       // draw all traverses in the selectedEva sequence
       traversesToShow.forEach((traverse) => {
+        const baseColor = traverse.color || selectedEva?.traverseColor || "#03adfc";
+
         drawPolylineOnMap({
           name: traverse.name,
           uuid: traverse.uuid,
@@ -1652,9 +1659,10 @@ const MapBody: FunctionComponent = () => {
             dispatch(selectEVASequenceItem({ sequenceItemUuid: traverse.uuid }));
             dispatch(setSelectedPosEntryUuid(null));
           },
-          color: selectedEvaSequenceItemUuid === traverse.uuid ? "#64ceff" : "#03adfc",
+          color: baseColor,
           mapItemType: "traverse",
-          drawAntPath: selectedEvaSequenceItemUuid !== traverse.uuid, //make it an ant path if this is not the selected traverse
+          drawAntPath: true,
+          isSelected: selectedEvaSequenceItemUuid === traverse.uuid,
         });
       });
     }
@@ -1666,6 +1674,7 @@ const MapBody: FunctionComponent = () => {
     traversesToShow,
     selectedEvaSequenceItemUuid,
     showArrows,
+    selectedEva,
   ]);
 
   /**
@@ -2289,7 +2298,7 @@ const MapBody: FunctionComponent = () => {
         //highlight polylines (aka traverses)
         const polyline = L.polyline(latLngs, {
           color: "#ffffff",
-          weight: 3,
+          weight: 4,
           opacity: 1,
           smoothFactor: 1,
         }) as AEGISPolyline;

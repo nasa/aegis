@@ -1,6 +1,6 @@
 import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
-import { ironOptions } from "server/session/config";
+import { ironOptions } from "utils/ironSession";
 import { getEM, withORM } from "utils/mikro";
 import {
   EntityData,
@@ -221,7 +221,7 @@ async function upsertTraverses(traverses: Traverse[]): Promise<Traverse[]> {
       predictedDurationUpper: traverseToUpsert.predictedDurationUpper,
       description: traverseToUpsert.description,
       traverseRate: traverseToUpsert.traverseRate,
-      rexStatus: traverseToUpsert.rexStatus,
+      color: traverseToUpsert.color,
       updatedAt: new Date(traverseToUpsert.updatedAt),
       createdAt: new Date(traverseToUpsert.createdAt),
     };
@@ -278,7 +278,7 @@ function convertTraverses(dbTraverses: Traverse_db[]): Traverse[] {
       predictedDurationUpper: dbtraverse.predictedDurationUpper,
       description: dbtraverse.description,
       traverseRate: dbtraverse.traverseRate,
-      rexStatus: dbtraverse.rexStatus,
+      color: dbtraverse.color,
       createdAt: dbtraverse.createdAt.toISOString(),
       updatedAt: dbtraverse.updatedAt.toISOString(),
     };

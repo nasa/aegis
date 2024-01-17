@@ -22,13 +22,19 @@ export class Rex_db implements Rex_db_type {
   @Property({ type: MikroTypes.boolean, nullable: true })
   petRunning: boolean;
   @Property({ type: MikroTypes.string, nullable: true })
-  selectedRexEvaUuid: string;
+  evaUuid: string;
   @Property({ type: MikroTypes.boolean, nullable: true })
-  rexRunning: boolean;
+  isRunning: boolean;
   @Property({ type: MikroTypes.json, nullable: true })
   posEntries: PosEntry[];
   @Property({ type: MikroTypes.json, nullable: true })
   posTypes: PosType[];
+  @Property({ type: MikroTypes.json, nullable: true })
+  stationEntries: StationEntries;
+  @Property({ type: MikroTypes.json, nullable: true })
+  traverseEntries: TraverseEntries;
+  @Property({ type: MikroTypes.json, nullable: true })
+  actionEntries: ActionEntries;
 
   @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;

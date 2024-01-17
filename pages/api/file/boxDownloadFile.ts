@@ -1,7 +1,7 @@
 import { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
 import BoxSDK from "box-node-sdk";
-import { ironOptions } from "server/session/config";
+import { ironOptions } from "utils/ironSession";
 import { unzip } from "server/file/file";
 import fs from "fs";
 import BoxClient from "box-node-sdk/lib/box-client";
@@ -51,6 +51,9 @@ const handler: NextApiHandler<WrappedResponse<BoxItemsResponse>> = async (
       }
     } else {
       // if the file is not a zip file, move it to the correct location
+
+      // Non-issue: this is not using user-supplied values for FS function
+      // nosemgrep: eslint.detect-non-literal-fs-filename
       fs.renameSync(
         downloadFilePath + "/" + metadata.name,
         downloadFilePath + "/" + path + "/" + metadata.name

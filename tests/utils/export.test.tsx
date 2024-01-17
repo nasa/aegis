@@ -2,6 +2,8 @@ import { createTestMission } from "../factories/MissionFactory";
 import { getStmNames, makeEquipmentReadable } from "utils/export";
 import { v4 as uuidv4 } from "uuid";
 
+// jest will fail to parse thunkMission.ts due to the fact the file imports a function in utils/export.ts,
+//    and export.ts imports from the library "string-strip-html". Mock the module here.
 jest.mock("string-strip-html", () => ({
   stripHtml: () => jest.fn(),
 }));

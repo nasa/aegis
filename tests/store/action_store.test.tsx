@@ -9,7 +9,7 @@ import { getORM, getEM, closeORM } from "utils/mikro";
 import { v4 as uuidv4 } from "uuid";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
-import createTestStore from "../factories/makeTestStore";
+import { createCustomTestStore } from "../factories/makeTestStore";
 import { Mission_db, User_db } from "server/database/models/_allModels";
 import { initialState as actionInitialState } from "store/action";
 
@@ -62,7 +62,6 @@ describe("Action Store Tests", () => {
           type: "measurement",
           status: "Candidate",
           missionId: 5000,
-          rexStatus: null,
           createdAt: "test",
           updatedAt: "test",
         } as Action,
@@ -96,7 +95,6 @@ describe("Action Store Tests", () => {
           enabled: true,
           missionId: 5000,
           crewAssigned: [],
-          rexStatus: null,
           createdAt: "test",
           updatedAt: "test",
         },
@@ -117,7 +115,6 @@ describe("Action Store Tests", () => {
           enabled: true,
           missionId: 2002,
           crewAssigned: [],
-          rexStatus: null,
           createdAt: "test2",
           updatedAt: "test2",
         },
@@ -153,7 +150,6 @@ describe("Action Store Tests", () => {
           enabled: true,
           missionId: 5000,
           crewAssigned: [],
-          rexStatus: null,
           createdAt: "test",
           updatedAt: "test",
         },
@@ -174,7 +170,6 @@ describe("Action Store Tests", () => {
           enabled: true,
           missionId: 2002,
           crewAssigned: [],
-          rexStatus: null,
           createdAt: "test2",
           updatedAt: "test2",
         },
@@ -241,7 +236,6 @@ describe("Action Store Tests", () => {
           enabled: true,
           missionId: 5000,
           crewAssigned: [],
-          rexStatus: null,
           createdAt: "test",
           updatedAt: "test",
         },
@@ -262,7 +256,6 @@ describe("Action Store Tests", () => {
           enabled: true,
           missionId: 2002,
           crewAssigned: [],
-          rexStatus: null,
           createdAt: "test2",
           updatedAt: "test2",
         },
@@ -290,7 +283,7 @@ describe("Action Store Tests with mock store", () => {
   test("Delete actions", () => {
     const uuids = [uuidv4(), uuidv4(), uuidv4(), uuidv4()];
 
-    const store = createTestStore({
+    const store = createCustomTestStore({
       action: {
         ...actionInitialState,
         actions: [],
@@ -309,7 +302,6 @@ describe("Action Store Tests with mock store", () => {
             equipmentItemsUsage: [],
             geographicUnitsUsage: [],
             crewAssigned: [],
-            rexStatus: null,
             mass: 1,
             status: "Approved",
             enabled: true,
@@ -328,7 +320,6 @@ describe("Action Store Tests with mock store", () => {
             equipmentItemsUsage: [],
             geographicUnitsUsage: [],
             crewAssigned: [],
-            rexStatus: null,
             mass: 1,
             status: "Approved",
             enabled: true,
@@ -347,7 +338,6 @@ describe("Action Store Tests with mock store", () => {
             equipmentItemsUsage: [],
             geographicUnitsUsage: [],
             crewAssigned: [],
-            rexStatus: null,
             mass: 1,
             status: "Approved",
             enabled: true,
@@ -366,7 +356,6 @@ describe("Action Store Tests with mock store", () => {
             equipmentItemsUsage: [],
             geographicUnitsUsage: [],
             crewAssigned: [],
-            rexStatus: null,
             mass: 1,
             status: "Approved",
             enabled: true,

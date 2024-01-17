@@ -22,8 +22,8 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
   const selectedPreset = presets.find((preset) => preset.uuid === selectedPresetUuid);
-  const rexRunning = useAppSelector(
-    (state) => state.rex.rexes.find((rex) => rex.rexRunning)?.rexRunning,
+  const isRexRunning = useAppSelector(
+    (state) => state.rex.rexes.find((rex) => rex.isRunning)?.isRunning,
     refEqual
   );
 
@@ -41,7 +41,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           const updatedPreset = { ...preset, missionPresetDefault: false, updatedAt: modifiedDate };
           dispatch(upsertPreset(updatedPreset, true));
           dispatch(upsertPresetFromDb(updatedPreset));
-          httpClient_Preset.upsertPresets([updatedPreset], rexRunning);
+          httpClient_Preset.upsertPresets([updatedPreset], isRexRunning);
           dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: false }));
         }
       });

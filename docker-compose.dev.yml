@@ -25,6 +25,14 @@ services:
       context: .
       dockerfile: ./docker/nextjs/Dockerfile
       target: dev
+    ports:
+      # nextjs is hard-coded to run on 4000 in docker, and nginx proxies 4000. Hard-coding this and
+      # not making it configurable keeps docker config simpler.
+      - "4000:4000"
+
+      # VS Code debug port. This isn't needed in production, and won't be exposed by FIT servers,
+      # but is simpler config-wise to put here versus in the overrides file
+      - "9229:9229"
     volumes:
       # In dev we want the host's code to be present on the container
       - ./:/app
@@ -33,6 +41,12 @@ services:
       # `./:/app` volume. We don't want to use the host's node_modules, since it'll be constructed
       # for the host's OS. We want a node_modules set up for this container's OS.
       - container_only_node_modules:/app/node_modules
+
+  database:
+    ports:
+      # For local dev, expose the database outside the docker network in case devs want to use
+      # a SQL client on their machine (e.g. HeidiSQL, etc)
+      - "5432:5432"
 
   gdal:
     # See comment above regarding `image`/`build` overrides
@@ -44,6 +58,7 @@ services:
     volumes:
       - ./server/python:/app
     ports:
+      - "${GDAL_PORT}:80"
       - 5678:5678
 
 volumes:
