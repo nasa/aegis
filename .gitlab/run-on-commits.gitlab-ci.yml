@@ -544,9 +544,10 @@ z:db-import:dev1:
   needs: ["z:db-export:prod"]
   environment:
     name: development1
-    url: https://aegis-dev1.fit.nasa.gov
+    url: $URL
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1
+    URL: https://aegis-dev1.fit.nasa.gov
 
 z:db-import:int:
   extends: .db-import-template
@@ -554,31 +555,10 @@ z:db-import:int:
   needs: ["z:db-export:prod"]
   environment:
     name: integration
-    url: https://aegis-int.fit.nasa.gov
+    url: $URL
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT
-
-z:db-nuke:dev1:
-  tags: ["emss-aegis-dev1"]
-  needs: []
-  environment:
-    name: development1
-    url: https://aegis-dev1.fit.nasa.gov
-  when: manual
-  stage: stageless
-  timeout: 10 minutes
-  variables:
-    GIT_STRATEGY: none
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1
-  script:
-    # init sudo ability
-    - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
-
-    - cd /opt/aegis
-    - sudo /usr/bin/docker compose down --remove-orphans
-    - sudo rm -rf /d1/postgres
-    - sudo /usr/bin/docker compose up -d
-    - docker compose exec nextjs npm run migrate:up
+    URL: https://aegis-int.fit.nasa.gov
 
 .container-logs-template:
   when: manual
