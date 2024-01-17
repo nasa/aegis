@@ -1,7 +1,7 @@
 import _ from "lodash";
 import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
-import { ironOptions } from "server/session/config";
+import { ironOptions } from "utils/ironSession";
 
 const handleLastEditEvent: NextApiHandler<WrappedResponse<EditEvent>> = async (
   req,

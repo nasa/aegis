@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { deleteFile } from "server/file/file";
 import { withIronSessionApiRoute } from "iron-session/next";
-import { ironOptions } from "server/session/config";
+import { ironOptions } from "utils/ironSession";
 
 /**
  * `/api/file/delete?path=`

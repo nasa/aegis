@@ -4,7 +4,7 @@ import multer from "multer";
 import nextConnect, { RequestHandler } from "next-connect";
 import path from "path";
 import { withIronSessionApiRoute } from "iron-session/next";
-import { ironOptions } from "server/session/config";
+import { ironOptions } from "utils/ironSession";
 
 /**
  * `/api/file/upload`

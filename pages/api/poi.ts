@@ -1,6 +1,6 @@
 import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
-import { ironOptions } from "server/session/config";
+import { ironOptions } from "utils/ironSession";
 import { withORM, getEM } from "utils/mikro";
 import { EntityData, QueryOrder } from "@mikro-orm/core";
 import { Poi_db } from "server/database/models/_allModels";

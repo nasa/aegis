@@ -1,6 +1,6 @@
 import type { NextApiHandler } from "next";
 import { withIronSessionApiRoute } from "iron-session/next";
-import { ironOptions } from "server/session/config";
+import { ironOptions } from "utils/ironSession";
 import { getEM, withORM } from "utils/mikro";
 
 import _ from "lodash";

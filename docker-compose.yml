@@ -13,8 +13,6 @@ services:
       # AEGIS requires launchpad, so must be over HTTPS and not have a port specified in the URL
       # e.g. https://aegis.fit.nasa.gov not https://aegis.fit.nasa.gov:8000
       - "443:443"
-    networks:
-      - aegis-network
 
   nextjs:
     image: ${DOCKER_IMAGE_NEXTJS}
@@ -30,8 +28,6 @@ services:
         condition: service_healthy
     volumes:
       - ${PUBLIC_STATIC_DIR}:/${PUBLIC_STATIC_DIR}
-    networks:
-      - aegis-network
 
   database:
     image: postgis/postgis:14-3.2-alpine
@@ -51,8 +47,6 @@ services:
       # map the DB data to be stored outside the container
       - ${DOCKER_DB_DATA_DIR}:/var/lib/postgresql/data
       - ${DOCKER_DB_INIT_DIR}:/docker-entrypoint-initdb.d
-    networks:
-      - aegis-network
 
   gdal:
     image: ${DOCKER_IMAGE_GDAL}
@@ -61,10 +55,3 @@ services:
     # - nextjs
     volumes:
       - ${PUBLIC_STATIC_DIR}:/static
-    networks:
-      - aegis-network
-
-#Docker Networks
-networks:
-  aegis-network:
-    driver: bridge
