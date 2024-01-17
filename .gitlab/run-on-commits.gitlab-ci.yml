@@ -207,7 +207,9 @@ node-sbom:
 
 test:
   extends: .test_template
-  needs: ["install_dependencies"]
+  needs:
+    - install_dependencies
+    - make-dotenv
   script:
     - npm run migrate:up
     - npm run lint
