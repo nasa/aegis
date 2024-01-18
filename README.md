@@ -1,4 +1,12 @@
-# AEGIS Zero
+# Artemis EVA GIS (AEGIS)
+
+AEGIS is building the EVA composition and execution tool that seamlessly integrates map data into the EVA product development process to plan, train, fly, explore lunar surface EVA
+
+Wiki: https://wiki.jsc.nasa.gov/fod/index.php/Artemis_EVA_GIS
+
+- Production: https://aegis.fit.nasa.gov/
+- Integration: https://aegis-int.fit.nasa.gov/
+- Development: https://aegis-dev1.fit.nasa.gov/
 
 ## Getting Started
 
@@ -21,27 +29,30 @@ For all install methods, do the following:
       ```
 5. Perform steps for either "Fully docker-compose" or "Just database via docker-compose" below.
 
-### Fully docker-compose
+### Option 1: Fully docker-compose
 
 Perform "All install methods" instructions above before performing the following.
 
-1. Run Docker Compose:
-   1. Dev mode: `npm run docker:dev`
-   2. Production preview: `npm run docker:preview`
+1. Run Docker:
+   - Dev mode: `npm run docker:dev`
+   - Production preview: `npm run docker:preview`
 2. Import a dump of the database from one of the environments using the instructions outlined in "Import a database dump from one of the AEGIS environments" below.
-3. Open [https://aegis-local.fit.nasa.gov](https://aegis-local.fit.nasa.gov) with your browser. In dev, username and password are both `admin`.
+3. Open [https://aegis-local.fit.nasa.gov](https://aegis-local.fit.nasa.gov) with your browser.
 
 To stop, run `docker compose down`.
 
-### Just database via docker-compose
+### Option 2: Just database via docker-compose
+
+This option is useful if you want to use vs code's debugging features
 
 Perform "All install methods" instructions above before performing the following.
 
-1. Run Docker Compose: `docker-compose up -d database` to start only the database.
-2. Setup the database: `npm run migrate:up`
-3. Import a dump of the database from one of the environments using the instructions outlined in "Import a database dump from one of the AEGIS environments" below.
-4. Run `npm run dev` to start the frontend.
-5. Open [http://aegis-local.fit.nasa.gov:4000](http://aegis-local.fit.nasa.gov:4000) with your browser (lack of https). In dev, username and password are both `admin`.
+1. Run Docker only starting the database:
+   - Dev mode: `npm run docker:dev database`
+   - Production preview: `npm run docker:preview database`
+2. Import a dump of the database from one of the environments using the instructions outlined in "Import a database dump from one of the AEGIS environments" below.
+3. Run `npm run dev` to start the frontend.
+4. Open [http://aegis-local.fit.nasa.gov:4000](http://aegis-local.fit.nasa.gov:4000) with your browser (lack of https).
 
 ## Setting up tiles for local development
 
@@ -58,89 +69,47 @@ Setup local environment using the instructions above before performing the follo
 9. Select `NAC_DTM_APOLLO14.zip` and submit and upload it for elevation data.
 10. Add `{"dem":"Data/NAC_DTM_APOLLO14.TIF","resolution":10}` to `Measure` object in `mission config.s`
 
-## Helpful docker commands
+## Nuking the local database
 
-### Seeing container logs
+To delete all the database data, delete the `./.local/database` directory. This directory saves database state on the host, meaning that executing just `docker-compose down` will not remove the data.
 
-```bash
-docker logs nginx -f
-docker logs nextjs -f
-docker logs database -f
-```
+## Importing a DB dump from an AEGIS environment
 
-### Restart individual services
+1. Stop the `aegis-database-1` container
+2. Delete your `./.local/database` directory
+3. Retrieve a dump from CI/CD by executing one of the export jobs (such as `z:db-export:dev1`). The job will generate an artifact called `aegis.sql`. Download this sql dump.
+4. Drop the .sql file into the `.local/db-init/` folder.
+5. Start the `aegis-database-1` container.
+6. If there are any db changes to apply on your current branch, run `npm run migrate:up`
 
-```bash
-docker restart nginx
-docker restart nextjs
-docker restart database
-```
+## Mikro ORM
 
-## Nuke your local database
+### Squashing migrations
 
-Delete your `./.local/database` directory. This directory saves database state on your host, even if you do `docker-compose down` you'll still have the database data saved. By deleting `./.local/database` you remove all data.
+There is little benefit to squashing migrations. Migrations take up minimal space and conveniently contain a history of all database changes. However if you wish to squash migrations (for example we're deciding to open source), perform the steps below.
 
-## Import a database dump from one of the AEGIS environments
+In order to squash migrations, we have to fool mikro into thinking the new "squashed" migration has already been executed. Mikro uses the database table `mikro_orm_migrations` to determine which migrations have already been applied. Since we are unable to modify this table in production, we will trick mikro by overwriting the last executed migration file with the new squashed migration code.
 
-- Stop the `aegis_database_1` container
-- Delete your `./.local/database` directory
-- Retrieve dump from CI/CD using artifacts generated by one of the export jobs such as `z:db-export:dev1`. This file is called `aegis.sql`
-- Start the `aegis_database_1` container
-- Run the following command in your local system (with equivalent path to `aegis.sql` file) `docker exec -i aegis-database-1 psql -U postgres -d aegis < aegis.sql`
-- Run `npm run migrate:up` if there are any db changes to apply
-- Run aegis and it will use the database newly imported
+The result of the squash will be a single migration file in the `server/database/migrations` folder. There will still be a full table of previous migratons in the `mikro_orm_migrations` database table. Becuase of this, do not `migrate:down` after squashing. Mikro will attempt to locate previous migration files listed in the database table and fail.
 
-## Using the app
+#### To Squash
 
-- Login with admin/admin
-- Select a Mission (such as Apollo 14)
-- Choose map imagery from left gutter
-- Expand the Map Imagery Detailed Settings and turn on a layer (such as a Basemap)
-- The hamburger menu will take you back to the login screen
+1. Ensure your local model is fully up to date (suggest running `npm run migrate:up` to be safe)
+2. Delete all files in the server/migrations folder except the last one
+3. Generate new migration code for the entire schema
+   1. Stop the aegis-database-1 container
+   2. Delete your `./local/database` folder. Ensure the `./local/db-init/` folder is empty
+   3. Start the aegis-database-1 container. There should now be an empty database called AEGIS
+   4. Run `npm run migrate:create` to generate the migration code that matches your current model
+   5. Open the new mgiraton file located in `server/database/migrations` and copy out all the SQL commands for the `up()` and `down()`
+   6. Delete the new migration file
+4. Open the last executed migration file and overwrite the sql commands with the copied versions from the previous step.
+5. Reload the database with valid data from a db dump: `docker exec -i aegis-database-1 psql -U postgres -d aegis < <insert path to aegis.sql file>`
+6. Verify
+   - Running `npx mikro-orm migration:check` should return "No changes required, schema is up-to-date"
+   - Running `npx mikro-orm migration:pending` should return "No pending migrations"
 
-## Trying out the different methods of starting AEGIS
-
-To try each of the methods of starting AEGIS locally, do the following.
-
-```bash
-# 1. Make sure you've got the right deps
-npm i
-
-# 2. Get a clean env prior to each test (no containers, nuke database)
-docker-compose down --remove-orphans
-rm -rf ./.local/database
-
-# 3. Test docker in preview production mode
-npm run docker:preview:rebuild
-npm run docker:preview
-docker-compose exec nextjs npm run seed
-# VERIFY https://aegis-local.fit.nasa.gov, make note of speed
-
-# 4. Clean env
-docker-compose down --remove-orphans
-rm -rf ./.local/database
-
-# 5. Test docker in dev mode
-npm run docker:dev:rebuild
-npm run docker:dev
-docker-compose exec nextjs npm run seed
-# VERIFY https://aegis-local.fit.nasa.gov, report slowness compared to "preview"
-
-# 6. Clean env
-docker-compose down --remove-orphans
-rm -rf ./.local/database
-
-# 7. TEST local node, container database
-docker-compose up -d database # just booting database container
-# wait about 30 seconds. Database isn't really ready right away.
-npm run migrate:up # if this fails, wait a little longer then try again (waiting for database)
-npm run seed
-npm run dev # note: not docker in dev mode. Running node locally.
-# NOTE following URL is http (not https) and has port 4000, since not behind nginx proxy
-# VERIFY http://aegis-local.fit.nasa.gov:4000, report slowness compared to "preview"
-```
-
-## Mikro ORM notes
+### Useful Mikro links
 
 - [Mikro ORM docs](https://mikro-orm.io/docs/defining-entities/)
 - [Mikro ORM types](https://mikro-orm.io/docs/types/)
@@ -149,29 +118,34 @@ npm run dev # note: not docker in dev mode. Running node locally.
 - [Mikro ORM CLI](https://mikro-orm.io/docs/cli/)
 - [Mikro ORM CLI commands](https://mikro-orm.io/docs/cli/#commands)
 
-### Helpful Mikro ORM commands
+### Useful Mikro commands
 
 ```bash
-# Generate a migration
+# Generate a new migration based on the differences between the model files and the current schema int he db
 npm run migrate:create
 
-# Run migrations
+# Run migrations that haven't been executed yet (uses the mikro_orm_mgiration table in the db to determine anything pending)
 npm run migrate:up
 
-# Rollback migrations
+# Rollback one mgiration
 npm run migrate:down
 
-# Seed the database
+# Seed the database (currently only seeds the user table with an admin and guest)
 npm run seed
 
-# Fresh start (drop database, run migrations, seed)
+# Fresh start (drop database, run all migrations, and seed)
 npm run migrate:fresh
 ```
 
-### In case of migration squash please do the following on production [This could be automated in the future]
+## Helpful Docker Commands
 
-- Backup Current Table Structure and Data
-- Delete Table Structure
-- Delete Migration Files and Snapshot.json
-- Run fresh migration with new file
-- Import backedup data into database.
+```bash
+# List all containers
+docker container list
+
+# Viewing container logs in follow mode
+docker logs <container name> -f
+
+# Restart individual services
+docker restart <container name>
+```
