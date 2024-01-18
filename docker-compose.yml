@@ -1,6 +1,7 @@
 version: "3.9"
 services:
   nginx:
+    container_name: aegis-nginx-1
     image: ${DOCKER_IMAGE_NGINX}
     restart: unless-stopped
     depends_on:
@@ -15,6 +16,7 @@ services:
       - "443:443"
 
   nextjs:
+    container_name: aegis-nextjs-1
     image: ${DOCKER_IMAGE_NEXTJS}
     restart: unless-stopped
     env_file:
@@ -30,6 +32,7 @@ services:
       - ${PUBLIC_STATIC_DIR}:/${PUBLIC_STATIC_DIR}
 
   database:
+    container_name: aegis-database-1
     image: postgis/postgis:14-3.2-alpine
     restart: unless-stopped
     environment:
@@ -49,6 +52,7 @@ services:
       - ${DOCKER_DB_INIT_DIR}:/docker-entrypoint-initdb.d
 
   gdal:
+    container_name: aegis-gdal-1
     image: ${DOCKER_IMAGE_GDAL}
     restart: unless-stopped
     # depends_on:
