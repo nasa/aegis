@@ -19,7 +19,7 @@ import { createTestActionTemplate, createTestMission } from "./MissionFactory";
 import { createTestEva } from "./EVAFactory";
 import { createTestAction } from "./ActionFactory";
 import { createTestPoi } from "./PoiFactory";
-import { createTestPosEntry, createTestRex } from "./RexFactory";
+import { createTestPosEntry, createTestPosType, createTestRex } from "./RexFactory";
 import { createTestPreset } from "./PresetFactory";
 import { createTestUser } from "./UserFactory";
 import { createTestSTMGoal } from "./STMGoalFactory";
@@ -68,7 +68,7 @@ export const createFullTestStore = (): StoreType => {
   }
 
   const stations: Station[] = [];
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 4; i++) {
     const station = createTestStation();
     station.location = { lat: i, lng: i + 0.1 };
     stations.push(station);
@@ -82,7 +82,7 @@ export const createFullTestStore = (): StoreType => {
   }
 
   const traverses: Traverse[] = [];
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 6; i++) {
     traverses.push(createTestTraverse());
   }
   const eva1 = createTestEva();
@@ -94,18 +94,24 @@ export const createFullTestStore = (): StoreType => {
     { uuid: traverses[1].uuid, type: "traverse" },
     { uuid: stations[1].uuid, type: "station" },
     { uuid: traverses[2].uuid, type: "traverse" },
+    { uuid: stations[2].uuid, type: "station" },
+    { uuid: traverses[3].uuid, type: "traverse" },
   ];
   const eva2: Eva = createTestEva();
   eva2.traverseRate = 2;
   eva2.sequence = [
-    { uuid: traverses[3].uuid, type: "traverse" },
-    { uuid: stations[2].uuid, type: "station" },
     { uuid: traverses[4].uuid, type: "traverse" },
+    { uuid: stations[3].uuid, type: "station" },
+    { uuid: traverses[5].uuid, type: "traverse" },
   ];
 
   const rex1 = createTestRex();
   rex1.evaUuid = eva1.uuid;
-  rex1.posEntries = [createTestPosEntry()];
+
+  const posType1 = createTestPosType("EV1");
+  const posType2 = createTestPosType("EV2");
+  rex1.posTypes = [posType1, posType2];
+  rex1.posEntries = [createTestPosEntry(posType1.uuid)];
 
   const preset1 = createTestPreset();
   const presetsUIStates = { [preset1.uuid]: {} };

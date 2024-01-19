@@ -13,12 +13,13 @@ import { v4 as uuidv4 } from "uuid";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 
 /**
- * Export a full log of a REX. This is the only logging function that comes from the client due to wanting calculated values etc.
+ * Save a full log of a REX, EVA and it's children to the DB.
+ * This is the only logging function that comes from the client store (does not use the fromDB versions) due to wanting calculated values etc.
  * The other logging functions are server-side only in the API endpoints directly.
  */
 export const thunkLogRexFull = appCreateAsyncThunk<{
   rexUuid: string;
-  directive: "start" | "stop";
+  directive: "fullRexStart" | "fullRexStop";
 }>("logRexFull", async ({ rexUuid, directive }, { getState }) => {
   const rex = _.cloneDeep(getState().rex.rexes.find((rex) => rex.uuid === rexUuid));
   const exportRex: ExportRex = makeExportRexes({ rexes: [rex] })[0];
@@ -31,7 +32,7 @@ export const thunkLogRexFull = appCreateAsyncThunk<{
     const log: Log = {
       uuid: uuidv4(),
       missionId: getState().mission.mission.id,
-      type: directive === "start" ? "fullRexStart" : "fullRexStop",
+      type: directive,
       payloadJson: JSON.stringify({ noEvaSelected: true }),
       createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
@@ -115,7 +116,7 @@ export const thunkLogRexFull = appCreateAsyncThunk<{
   const log: Log = {
     uuid: uuidv4(),
     missionId: getState().mission.mission.id,
-    type: directive === "start" ? "fullRexStart" : "fullRexStop",
+    type: directive,
     payloadJson: JSON.stringify({
       rex: exportRex,
       eva: exportedEvas[0],

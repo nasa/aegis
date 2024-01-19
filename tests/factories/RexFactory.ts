@@ -49,24 +49,23 @@ export const createTestRex = (): Rex => {
   };
 };
 
-export const createTestPosEntry = (): PosEntry => {
-  const posType = createTestPosType();
+export const createTestPosEntry = (posTypeUuid?: string): PosEntry => {
   return {
     uuid: uuidv4(),
     location: null,
     elevation: null,
     seconds: 0,
-    posTypeUuids: [posType.uuid],
+    posTypeUuids: [posTypeUuid],
     createdAt: new Date().toISOString(),
     updatedAt: null,
   };
 };
 
-export const createTestPosType = (): PosType => {
+export const createTestPosType = (posName?: string): PosType => {
   return {
     uuid: uuidv4(),
     abbr: "1",
-    name: "EV1",
+    name: posName || "EV1",
     icon: "",
     pathColor: "",
   };
