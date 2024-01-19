@@ -1,4 +1,4 @@
-import { createCustomTestStore } from "../../factories/makeTestStore";
+import { createCustomTestStore, createFullTestStore } from "../../factories/makeTestStore";
 import { initialState as missionInitialState } from "store/mission";
 import { initialState as rexInitialState } from "store/rex";
 import { initialState as interfaceInitialState } from "store/interface";
@@ -13,12 +13,15 @@ import {
   thunkCreatePosEntry,
   thunkCreateRex,
   thunkDeletePosEntryByUuid,
+  thunkDeletePosType,
   thunkDeleteRex,
   thunkDuplicateRex,
   thunkPersistRexPosEntries,
   thunkRexPetStartStop,
   thunkSaveRex,
   thunkUpdatePosEntryLocation,
+  thunkUpdatePosTypeField,
+  thunkUpdatePosTypesOnPosEntry,
 } from "store/thunk/thunkRex";
 import { v4 as uuidv4 } from "uuid";
 
@@ -37,12 +40,17 @@ jest.mock("store/thunk/thunkLog", () => ({
   thunkLogRexFull: () => mockThunkLogRexFull,
 }));
 
+const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {
+  return true;
+});
+
 beforeEach(async () => {
   jest.clearAllMocks(); // clear call count
 });
 
 afterAll(() => {
   jest.restoreAllMocks();
+  alertSpy.mockRestore();
 });
 
 describe("Thunk Rex Tests", () => {
@@ -169,10 +177,12 @@ describe("Thunk Rex Tests", () => {
     expect(store.getState().rex.rexesFromDb[0].petRunning).toBeFalsy();
     expect(store.getState().rex.rexesFromDb[0].petStartStopTimestamp).toBeNull();
   });
+
+  //test("thunkMakeExportRexString", async () => {});
 });
 
-describe("Thunk Pos Tests", () => {
-  test("thunkCreatePosItem", async () => {
+describe("Thunk Position Entry Tests", () => {
+  test("thunkCreatePosEntry", async () => {
     const rex = createTestRex();
     rex.isRunning = true;
     rex.petRunning = false;
@@ -214,6 +224,23 @@ describe("Thunk Pos Tests", () => {
     expect(store.getState().rex.posEntryEditingUuid).toBeNull();
     expect(store.getState().rex.rexesPosEntriesEditing.length).toEqual(0);
     expect(httpClient_rex.upsertRexes).toHaveBeenCalledTimes(1);
+  });
+
+  test("thunkUpdatePosTypesOnPosEntry", async () => {
+    const store = createFullTestStore();
+    const rex = store.getState().rex.rexes[0];
+    await store.dispatch(
+      thunkUpdatePosTypesOnPosEntry({
+        rex: rex,
+        posEntryUuid: rex.posEntries[0].uuid,
+        posTypeUuids: [rex.posTypes[1].uuid],
+      })
+    );
+
+    const updatedRex = store.getState().rex.rexes.find((r) => r.uuid === rex.uuid);
+    expect(
+      updatedRex.posEntries.find((e) => e.uuid === rex.posEntries[0].uuid).posTypeUuids[0]
+    ).toEqual(rex.posTypes[1].uuid);
   });
 
   test("thunkCancelPosEntriesLocation", async () => {
@@ -333,6 +360,52 @@ describe("Thunk Pos Tests", () => {
     expect(store.getState().rex.rexes[0].posEntries).toEqual([]);
     expect(store.getState().rex.rexesFromDb[0].posEntries).toEqual([]);
     expect(httpClient_rex.upsertRexes).toHaveBeenCalledTimes(1);
+  });
+
+  test("thunkUpdatePosTypeField", async () => {
+    const store = createFullTestStore();
+    const rex = store.getState().rex.rexes[0];
+    await store.dispatch(
+      thunkUpdatePosTypeField({
+        rexUuid: rex.uuid,
+        uuid: rex.posTypes[0].uuid,
+        fieldName: "name",
+        value: "Jest Test Pos Type Name",
+      })
+    );
+
+    const updatedRex = store.getState().rex.rexes.find((r) => r.uuid === rex.uuid);
+    expect(updatedRex.posTypes.find((p) => p.uuid === rex.posTypes[0].uuid).name).toEqual(
+      "Jest Test Pos Type Name"
+    );
+  });
+
+  test("thunkDeletePosType", async () => {
+    const store = createFullTestStore();
+    const rex = store.getState().rex.rexes[0];
+
+    //delete used pos type
+    await store.dispatch(
+      thunkDeletePosType({
+        rexUuid: rex.uuid,
+        posTypeUuid: rex.posTypes[0].uuid,
+      })
+    );
+    expect(alertSpy).toHaveBeenCalledTimes(1);
+    expect(store.getState().rex.rexes.find((r) => r.uuid === rex.uuid).posTypes.length).toEqual(
+      rex.posTypes.length
+    );
+
+    //delete unused pos type
+    await store.dispatch(
+      thunkDeletePosType({
+        rexUuid: rex.uuid,
+        posTypeUuid: rex.posTypes[1].uuid,
+      })
+    );
+    expect(store.getState().rex.rexes.find((r) => r.uuid === rex.uuid).posTypes.length).toEqual(
+      rex.posTypes.length - 1
+    );
   });
 
   test("thunkAddRexStatusEntry", async () => {

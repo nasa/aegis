@@ -126,7 +126,9 @@ export const thunkSaveRex = appCreateAsyncThunk<{ rexUuid: string }>(
     }
 
     // log an export of a full copy of this rex and associated eva to the log db table for posterity
-    dispatch(thunkLogRexFull({ rexUuid, directive: rexToSave.isRunning ? "start" : "stop" }));
+    dispatch(
+      thunkLogRexFull({ rexUuid, directive: rexToSave.isRunning ? "fullRexStart" : "fullRexStop" })
+    );
 
     // clear running state and stop the clocks of all other rexes in the db
     getState().rex.rexesFromDb.forEach(async (rex) => {
