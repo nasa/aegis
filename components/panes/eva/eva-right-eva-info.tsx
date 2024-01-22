@@ -11,7 +11,7 @@ import { upsertEvaByField } from "store/eva";
 import { deepEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
-import { displayFormattedTotalTimeObj } from "utils/component-helpers";
+import { displayFormattedTotalTimeObj, makeTraverseRateString } from "utils/component-helpers";
 import { formatNumberWithCommas, toDecimal } from "utils/formatting";
 import {
   faCalculator,
@@ -413,17 +413,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div
-                        className={paneStyles.inputFieldLabel}
-                        data-tooltip-id="aegis-tooltip"
-                        data-tooltip-html={`${
-                          selectedEva?.traverseRate ? "EVA" : "Mission"
-                        } Default: ${selectedEva?.traverseRate || missionTraverseRate} km/hr`}
-                      >
-                        Traverse Rate (km/hr):
-                        <br />
-                        (Mission Default: {missionTraverseRate})
-                      </div>
+                      <div className={paneStyles.inputFieldLabel}>Traverse Rate (km/hr):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
@@ -449,6 +439,17 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                           }}
                           key={`${selectedEva.uuid}-traverseRate`}
                         />
+                      </div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div style={{ color: "var(--grey5)" }} className={paneStyles.inputFieldLabel}>
+                        {makeTraverseRateString(
+                          selectedEva.traverseRate,
+                          null,
+                          missionTraverseRate
+                        )}
                       </div>
                     </div>
                   </div>

@@ -23,6 +23,7 @@ import { formatNumberWithCommas, toDecimal } from "utils/formatting";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import { thunkVerifyNoActiveMapAction } from "store/thunk/thunkMap";
+import { makeTraverseRateString } from "utils/component-helpers";
 
 const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -229,19 +230,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div
-                        className={paneStyles.inputFieldLabel}
-                        data-tooltip-id="aegis-tooltip"
-                        data-tooltip-html={`${
-                          selectedEvaTraverseRate ? "EVA" : "Mission"
-                        } Default: ${selectedEvaTraverseRate || missionTraverseRate} km/hr`}
-                      >
-                        Traverse Rate (km/hr):
-                        <br />
-                        (EVA Default: {selectedEvaTraverseRate})
-                        <br />
-                        (Mission Default: {missionTraverseRate})
-                      </div>
+                      <div className={paneStyles.inputFieldLabel}>Traverse Rate (km/hr):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
@@ -250,7 +239,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                           editing={editMode}
                           fieldProps={{
                             name: "traverseRate",
-                            ariaLabel: "Traverse Rate",
+                            ariaLabel: "Average Traverse Rate",
                             style: { width: "55px" },
                             validators: [validators.mustBeNumber, validators.maxLength(4)],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -271,6 +260,17 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                           }}
                           key={`${selectedTraverse.uuid}-traverseRate`}
                         />
+                      </div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div style={{ color: "var(--grey5)" }} className={paneStyles.inputFieldLabel}>
+                        {makeTraverseRateString(
+                          selectedTraverse.traverseRate,
+                          selectedEvaTraverseRate,
+                          missionTraverseRate
+                        )}
                       </div>
                     </div>
                   </div>
