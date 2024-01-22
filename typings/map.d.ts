@@ -47,3 +47,15 @@ interface MapPosDisplay {
   showLatestLabels: boolean;
   fadeOldPositions: boolean;
 }
+
+/**
+ * Cookie for map view settings
+ */
+type EyeballMenuCookieAEGISMapViewSettings = {
+  mapDisplayPois: MapMarkersDisplay;
+  mapDisplayStations: MapMarkersDisplay;
+  mapDisplayActions: MapMarkersDisplay;
+  mapDisplayPosMarkers: MapPosDisplay;
+  showArrows: boolean;
+  showGridLabels: boolean;
+};
