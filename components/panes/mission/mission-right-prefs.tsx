@@ -501,7 +501,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           editing={editMode}
                           fieldProps={{
                             name: "defaultTraverseRate",
-                            ariaLabel: "Default traverse rate",
+                            ariaLabel: "Average traverse rate",
                             style: { width: "45px" },
                             validators: [validators.mustBeNumber],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {

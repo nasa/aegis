@@ -75,3 +75,17 @@ export const isModified = <T extends MustContain>(obj1: T[], obj2: T[]): boolean
   }
   return isDiff;
 };
+
+export const makeTraverseRateString = (
+  value: number,
+  evaDefault?: number,
+  missionDefault?: number
+): string => {
+  if (value) {
+    return null;
+  } else if (evaDefault) {
+    return `Using EVA Rate: ${evaDefault}`;
+  } else {
+    return `Using Mission Rate: ${missionDefault}`;
+  }
+};
