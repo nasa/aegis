@@ -60,6 +60,7 @@ import PetInterval from "../page/petInterval";
 import ReactDOMServer from "react-dom/server";
 import { isWindows10 } from "utils/browser";
 import Color from "color";
+import { useCookies } from "react-cookie";
 
 type MissionSelectProperties = Pick<
   Mission,
@@ -188,6 +189,8 @@ const MapBody: FunctionComponent = () => {
   const [traversesToShow, setTraversesToShow] = useState<Traverse[]>([]);
   const [actionsToShow, setActionsToShow] = useState<Action[]>([]);
   const [posEntriesToShow, setPosEntriesToShow] = useState<PosEntry[]>([]);
+
+  /*** Eyeball menu toggles */
   const [mapDisplayPois, setMapDisplayPois] = useState<MapMarkersDisplay>({
     show: true,
     showLabels: false,
@@ -207,6 +210,11 @@ const MapBody: FunctionComponent = () => {
     showLatestLabels: true,
     fadeOldPositions: false,
   });
+  const [showArrows, setShowArrows] = useState(false);
+  const [showGridLabels, setShowGridLabels] = useState(true);
+
+  const [eyeballMenuCookie, setEyeballMenuCookie] = useCookies(["AEGIS_Map_View_Settings"]);
+  /*** end Eyeball menu toggles */
 
   const [mapPosition, setMapPosition] = useState<string[]>([]);
 
@@ -214,8 +222,6 @@ const MapBody: FunctionComponent = () => {
   const [mapZoom, setMapZoom] = useState(null); // value used to show correct scale bar
   const [mapBounds, setMapBounds] = useState<L.LatLngBoundsLiteral>(null);
   const [gridLabels, setGridLabels] = useState<GridLabelItem[]>([]);
-  const [showArrows, setShowArrows] = useState(false);
-  const [showGridLabels, setShowGridLabels] = useState(true);
 
   // used to update the PET value via the PetInterval component
   const [rexPetTime, setRexPetTime] = useState("");
@@ -232,6 +238,49 @@ const MapBody: FunctionComponent = () => {
       `saturate:${getPercentOrDefault(lControls[sublayerUuid].style?.saturation)}%`,
     ];
   };
+
+  /**
+   * Set the eyeball menu toggles from the cookie
+   */
+  useEffect(() => {
+    if (!eyeballMenuCookie["AEGIS_Map_View_Settings"]) return;
+    const eyeballMenuSettings: EyeballMenuCookieAEGISMapViewSettings =
+      eyeballMenuCookie["AEGIS_Map_View_Settings"];
+    setMapDisplayPois(eyeballMenuSettings.mapDisplayPois);
+    setMapDisplayStations(eyeballMenuSettings.mapDisplayStations);
+    setMapDisplayActions(eyeballMenuSettings.mapDisplayActions);
+    setMapDisplayPosMarkers(eyeballMenuSettings.mapDisplayPosMarkers);
+    setShowArrows(eyeballMenuSettings.showArrows);
+    setShowGridLabels(eyeballMenuSettings.showGridLabels);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * When the eyeball menu toggles change, update the cookie
+   */
+  useEffect(() => {
+    setEyeballMenuCookie(
+      "AEGIS_Map_View_Settings",
+      JSON.stringify({
+        mapDisplayPois,
+        mapDisplayStations,
+        mapDisplayActions,
+        mapDisplayPosMarkers,
+        showArrows,
+        showGridLabels,
+      }),
+      { path: "/" }
+    );
+  }, [
+    setEyeballMenuCookie,
+    mapDisplayPois,
+    mapDisplayStations,
+    mapDisplayActions,
+    mapDisplayPosMarkers,
+    showArrows,
+    showGridLabels,
+  ]);
 
   /**
    * If the window layout changes, resize the map

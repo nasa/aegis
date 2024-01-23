@@ -18,6 +18,8 @@ import { obliterateEntireStore } from "store/cross-slice";
 import { IronSessionData } from "iron-session";
 import _ from "lodash";
 import PetInterval from "components/interface/page/petInterval";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEnvelope } from "@fortawesome/free-solid-svg-icons";
 
 const Head = dynamic(import("next/head"), {
   ssr: false,
@@ -189,7 +191,9 @@ const MissionHomepageItem = ({
         <td>{missionHomepageItem.name}</td>
         {missionHomepageItem.runningRex ? (
           <td>
-            EVA Executing <span className={styles.petTime}>{rexPetTime}</span> PET
+            EVA Executing
+            <br />
+            <span className={styles.petTime}>{rexPetTime}</span> PET
           </td>
         ) : (
           <td></td>
@@ -258,8 +262,8 @@ const Left: FunctionComponent = () => {
         <div className={styles.description}>
           <div className={styles.strong}>Artemis EVA Geographic Information System</div>
           <p>
-            Making maps meaningful and useful for EVA. <br />A collaboration between JSC XI, CX, SK
-            and JPL.
+            Exploration EVA planning and execution tool. <br />A collaboration between JSC XI, CX,
+            SK.
           </p>
         </div>
         {user ? (
@@ -273,14 +277,25 @@ const Left: FunctionComponent = () => {
       </div>
       <div className={styles.leftBottom}>
         <div className={styles.aboutSection}>
-          <div className={styles.aboutSectionTitle}>Useful Links</div>
+          <div className={styles.aboutSectionTitle}>Email for Help</div>
           <ul>
-            <li>
+            <li className={styles.link}>
+              <a href={"mailto:JSC-DL-EMSS-AEGIS@mail.nasa.gov"} target={"_blank"}>
+                <FontAwesomeIcon className={styles.emailIconDistro} icon={faEnvelope} size={"xs"} />
+                Team Distro List
+              </a>
+            </li>
+          </ul>
+          <div style={{ marginTop: "10px" }} className={styles.aboutSectionTitle}>
+            Useful Links
+          </div>
+          <ul>
+            <li className={styles.link}>
               <a href={"https://wiki.jsc.nasa.gov/fod/index.php/Artemis_EVA_GIS"} target={"_blank"}>
                 About AEGIS
               </a>
             </li>
-            <li>
+            <li className={styles.link}>
               <a
                 href={"https://wiki.jsc.nasa.gov/fod/index.php/EVA_Mission_Systems_Software"}
                 target={"_blank"}
@@ -298,20 +313,19 @@ const Left: FunctionComponent = () => {
                 <li>
                   <div>
                     <a className={styles.teamName} href={"mailto:benjamin.f.feist@nasa.gov"}>
+                      <FontAwesomeIcon className={styles.emailIcon} icon={faEnvelope} size={"xs"} />
                       Ben Feist
                     </a>
                   </div>
                   <div className={styles.teamTitle}>
-                    Software Engineering
+                    Software Engineering Lead
                     <br />
-                    <a className={styles.smallText} href={"mailto:benjamin.f.feist@nasa.gov"}>
-                      Email for help
-                    </a>
                   </div>
                 </li>
                 <li>
                   <div className={styles.creditHeading}>
                     <a className={styles.teamName} href={"mailto:jackie.vu@nasa.gov"}>
+                      <FontAwesomeIcon className={styles.emailIcon} icon={faEnvelope} size={"xs"} />
                       Jackie Vu
                     </a>
                   </div>
@@ -319,15 +333,19 @@ const Left: FunctionComponent = () => {
                 </li>
                 <li>
                   <div className={styles.creditHeading}>
-                    <a className={styles.teamName} href={"mailto:david.w.charney@nasa.gov"}>
-                      David Charney
+                    <a className={styles.teamName} href={"mailto:luke.a.mcsherry@nasa.gov"}>
+                      {" "}
+                      <FontAwesomeIcon className={styles.emailIcon} icon={faEnvelope} size={"xs"} />
+                      Luke McSherry
                     </a>
                   </div>
-                  <div className={styles.teamTitle}>Interaction and Visual Design</div>
+                  <div className={styles.teamTitle}>Software Engineering</div>
                 </li>
                 <li>
                   <div className={styles.creditHeading}>
                     <a className={styles.teamName} href={"mailto:omar.a.baig@nasa.gov"}>
+                      {" "}
+                      <FontAwesomeIcon className={styles.emailIcon} icon={faEnvelope} size={"xs"} />
                       Omar Baig
                     </a>
                   </div>
@@ -340,34 +358,29 @@ const Left: FunctionComponent = () => {
                 <li>
                   <div className={styles.creditHeading}>
                     <a className={styles.teamName} href={"mailto:matthew.j.miller-1@nasa.gov"}>
+                      {" "}
+                      <FontAwesomeIcon className={styles.emailIcon} icon={faEnvelope} size={"xs"} />
                       Matthew Miller
                     </a>
                   </div>
-                  <div className={styles.teamTitle}>
-                    Project Management,
-                    <br />
-                    Concept Design
-                  </div>
+                  <div className={styles.teamTitle}>Project Management, Concept</div>
                 </li>
                 <li>
                   <div className={styles.creditHeading}>
-                    <a className={styles.teamName} href={"mailto:david.c.rynearson@nasa.gov"}>
-                      David Rynearson
+                    <a className={styles.teamName} href={"mailto:david.w.charney@nasa.gov"}>
+                      {" "}
+                      <FontAwesomeIcon className={styles.emailIcon} icon={faEnvelope} size={"xs"} />
+                      David Charney
                     </a>
                   </div>
-                  <div className={styles.teamTitle}>Software Engineering</div>
+                  <div className={styles.teamTitle}>Interaction and Visual Design</div>
                 </li>
-                <li>
-                  <div className={styles.creditHeading}>
-                    <a className={styles.teamName} href={"mailto:luke.a.mcsherry@nasa.gov"}>
-                      Luke McSherry
-                    </a>
-                  </div>
-                  <div className={styles.teamTitle}>Software Engineering</div>
-                </li>
+
                 <li>
                   <div className={styles.creditHeading}>
                     <a className={styles.teamName} href={"mailto:edwin.j.montalvo@nasa.gov"}>
+                      {" "}
+                      <FontAwesomeIcon className={styles.emailIcon} icon={faEnvelope} size={"xs"} />
                       James Montalvo
                     </a>
                   </div>

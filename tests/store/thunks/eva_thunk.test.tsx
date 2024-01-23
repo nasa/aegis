@@ -2,11 +2,15 @@ import { StoreType } from "store";
 import { createFullTestStore } from "tests/factories/makeTestStore";
 import { v4 as uuidv4 } from "uuid";
 import {
+  thunkAddStationToEva,
+  thunkChangeStationInEva,
   thunkCreateEva,
   thunkDeleteEva,
+  thunkDeleteStationFromEva,
   thunkDuplicateEva,
   thunkEvaCancel,
   thunkGetStationOrTraverse,
+  thunkReorderStationInEva,
   thunkSaveEva,
 } from "store/thunk/thunkEva";
 import { createTestTraverse } from "tests/factories/TraverseFactory";
@@ -16,7 +20,7 @@ import {
   upsertTraverses,
   upsertTraversesFromDb,
 } from "store/traverse";
-import { setEvaEditMode, upsertEva, upsertEvaByField } from "store/eva";
+import { setEvaEditMode, upsertEva, upsertEvaByField, upsertEvas } from "store/eva";
 import { createTestEva } from "tests/factories/EVAFactory";
 import { upsertRexByField } from "store/rex";
 import _ from "lodash";
@@ -29,6 +33,7 @@ jest.mock("http-client/rex");
 import * as httpClient_traverse from "http-client/traverse";
 import * as httpClient_eva from "http-client/eva";
 import * as httpClient_rex from "http-client/rex";
+import { createTestStation } from "tests/factories/StationFactory";
 
 const confirmSpy = jest.spyOn(window, "confirm").mockImplementation(() => {
   return true;
@@ -40,6 +45,13 @@ const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {
 const mockThunkGetElevation = jest.fn();
 jest.mock("store/thunk/thunkElevation", () => ({
   thunkGetElevation: () => mockThunkGetElevation,
+}));
+
+const mockThunkFullUpdateTraverse = jest.fn();
+const mockThunkUpdateTraversesAroundStation = jest.fn();
+jest.mock("store/thunk/thunkTraverse", () => ({
+  thunkFullUpdateTraverse: () => mockThunkFullUpdateTraverse,
+  thunkUpdateTraversesAroundStation: () => mockThunkUpdateTraversesAroundStation,
 }));
 
 let store: StoreType;
@@ -271,11 +283,114 @@ describe("Thunk EVA Tests", () => {
     expect(store.getState().station.stations.length).toEqual(numStations + numStationsInEva);
   });
 
-  // it("thunkAddStationToEva", async () => {});
+  describe("Sequence Tests", () => {
+    it("thunkAddStationToEva", async () => {
+      //add to existing sequence
+      const eva = store.getState().eva.evas[0];
+      const evaSequenceCount = eva.sequence.length;
+      const traverseCount = store.getState().traverse.traverses.length;
+      await store.dispatch(thunkAddStationToEva({ evaUuid: eva.uuid }));
+      expect(store.getState().traverse.traverses.length).toEqual(traverseCount + 1);
+      expect(store.getState().eva.evas.find((e) => e.uuid === eva.uuid).sequence.length).toEqual(
+        evaSequenceCount + 2
+      );
 
-  // it("thunkDeleteStationFromEva", async () => {});
+      //add to blank sequence
+      const newEva = createTestEva();
+      store.dispatch(upsertEvas([newEva]));
+      const traverseCount2 = store.getState().traverse.traverses.length;
+      await store.dispatch(thunkAddStationToEva({ evaUuid: newEva.uuid }));
+      expect(store.getState().traverse.traverses.length).toEqual(traverseCount2 + 2);
+      expect(store.getState().eva.evas.find((e) => e.uuid === newEva.uuid).sequence.length).toEqual(
+        3
+      );
+    });
 
-  // it("thunkChangeStationInEva", async () => {});
+    it("thunkDeleteStationFromEva first station", async () => {
+      const testStore = createFullTestStore();
+      const eva = testStore.getState().eva.evas.find((e) => e.sequence.length === 7);
+      const evaSequence = eva.sequence;
+      const traverseCount = testStore.getState().traverse.traverses.length;
 
-  // it("thunkReorderStationInEva", async () => {});
+      //delete first station in sequence
+      await testStore.dispatch(
+        thunkDeleteStationFromEva({ evaSequence, sequenceIndex: 1, evaUuid: eva.uuid })
+      );
+      const newSequence = testStore.getState().eva.evas.find((e) => e.uuid === eva.uuid).sequence;
+      expect(newSequence.length).toEqual(evaSequence.length - 2);
+      expect(testStore.getState().traverse.traverses.length).toEqual(traverseCount - 1);
+      expect(mockThunkFullUpdateTraverse).toHaveBeenCalledTimes(1);
+    });
+
+    it("thunkDeleteStationFromEva middle station", async () => {
+      const testStore = createFullTestStore();
+      const eva = testStore.getState().eva.evas.find((e) => e.sequence.length === 7);
+      const evaSequence = eva.sequence;
+      const traverseCount = testStore.getState().traverse.traverses.length;
+
+      //delete middle station in sequence
+      await testStore.dispatch(
+        thunkDeleteStationFromEva({ evaSequence, sequenceIndex: 3, evaUuid: eva.uuid })
+      );
+      const newSequence = testStore.getState().eva.evas.find((e) => e.uuid === eva.uuid).sequence;
+      expect(newSequence.length).toEqual(evaSequence.length - 2);
+      expect(testStore.getState().traverse.traverses.length).toEqual(traverseCount - 1);
+      expect(mockThunkFullUpdateTraverse).toHaveBeenCalledTimes(1);
+    });
+
+    it("thunkDeleteStationFromEva last station", async () => {
+      const testStore = createFullTestStore();
+      const eva = testStore.getState().eva.evas.find((e) => e.sequence.length === 7);
+      const evaSequence = eva.sequence;
+      const traverseCount = testStore.getState().traverse.traverses.length;
+
+      //delete last item in sequence
+      await testStore.dispatch(
+        thunkDeleteStationFromEva({ evaSequence, sequenceIndex: 5, evaUuid: eva.uuid })
+      );
+      const newSequence = testStore.getState().eva.evas.find((e) => e.uuid === eva.uuid).sequence;
+      expect(newSequence.length).toEqual(evaSequence.length - 2);
+      expect(testStore.getState().traverse.traverses.length).toEqual(traverseCount - 1);
+      expect(mockThunkFullUpdateTraverse).toHaveBeenCalledTimes(1);
+    });
+
+    it("thunkChangeStationInEva", async () => {
+      const eva = store.getState().eva.evas.find((e) => e.sequence.length > 3);
+      const evaSequence = eva.sequence;
+
+      const newStation = createTestStation();
+      await store.dispatch(
+        thunkChangeStationInEva({
+          evaSequence,
+          sequenceIndex: 1,
+          newStationUuid: newStation.uuid,
+          evaUuid: eva.uuid,
+        })
+      );
+      expect(store.getState().eva.evas.find((e) => e.uuid === eva.uuid).sequence[1].uuid).toEqual(
+        newStation.uuid
+      );
+      expect(mockThunkUpdateTraversesAroundStation).toHaveBeenCalledTimes(1);
+    });
+
+    it("thunkReorderStationInEva", async () => {
+      const testStore = createFullTestStore();
+      const eva = testStore.getState().eva.evas.find((e) => e.sequence.length >= 5);
+
+      await testStore.dispatch(
+        thunkReorderStationInEva({
+          direction: "up",
+          evaSequence: eva.sequence,
+          stationIndex: 3,
+          evaUuid: eva.uuid,
+        })
+      );
+      const updatedEvaSequence = testStore
+        .getState()
+        .eva.evas.find((e) => e.uuid === eva.uuid).sequence;
+      expect(updatedEvaSequence[1].uuid).toEqual(eva.sequence[3].uuid);
+      expect(updatedEvaSequence[3].uuid).toEqual(eva.sequence[1].uuid);
+      expect(mockThunkFullUpdateTraverse).toHaveBeenCalledTimes(3);
+    });
+  });
 });

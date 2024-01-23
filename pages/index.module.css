@@ -121,7 +121,7 @@
 }
 
 .aboutSection .aboutSectionTitle {
-  font-size: 1.3em;
+  font-size: 1.2em;
   color: #eeeeee;
   text-align: left;
   margin-top: 0;
@@ -139,6 +139,22 @@
 
 .aboutSection .theTeamUl li {
   padding: 5px;
+}
+
+.link {
+  font-size: 0.9em;
+}
+
+.emailIcon {
+  color: var(--grey4);
+  margin-right: 5px;
+}
+
+.emailIconDistro {
+  font-size: 0.8rem;
+  color: var(--grey4);
+  margin-right: 5px;
+  margin-bottom: -2px;
 }
 
 .aboutSection a {
@@ -167,7 +183,7 @@
 
 .title {
   font-size: 1.2em;
-  margin: 20px 0 0 0;
+  margin: 20px 0 10px 0;
 }
 
 .login {
@@ -211,6 +227,13 @@
   font-size: 0.8em;
   margin-bottom: 10px;
 }
+.container {
+  max-height: 450px;
+  overflow-y: auto;
+  padding: 0 10px 0 10px;
+  border-radius: var(--panelRadius);
+  background-color: var(--grey0);
+}
 
 .container > span {
   display: inline-block;
@@ -233,12 +256,12 @@
 }
 
 .table tr:first-child {
-  border-top: var(--grey4) 1px solid;
+  border-top: none;
 }
 
 .table td:first-child {
   font-weight: 400;
-  white-space: nowrap;
+  width: 350px;
 }
 
 .table td:last-child {
@@ -260,5 +283,4 @@
 .petTime {
   font-weight: 500;
   color: var(--rex);
-  margin: 0 0 0 10px;
 }

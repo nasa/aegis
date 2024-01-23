@@ -71,7 +71,7 @@ const handleLog: NextApiHandler<WrappedResponse<Log[] | Log>> = async (
         } else {
           return res.status(200).json({
             status: "success",
-            message: `Rex upserted with uuid ${upsertResponse.map((l) => l.uuid)}`,
+            message: `Log upserted with uuid ${upsertResponse.map((l) => l.uuid)}`,
             data: upsertResponse,
           });
         }
