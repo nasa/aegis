@@ -82,6 +82,11 @@ export const MapPositionMenu: FunctionComponent = () => {
   const [modified, setModified] = useState(false); //track modified
   const [showMenu, setShowMenu] = useState(true);
 
+  //clear the selected pos type uuids when the selected rex changes
+  useEffect(() => {
+    setSelectedPosTypeUuids([]);
+  }, [selectedRex]);
+
   //for enable/disable save button
   useEffect(() => {
     if (!posEntryEditingUuid) return;
