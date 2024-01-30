@@ -15,7 +15,7 @@ default:
 
 variables:
   HOME: "/tmp" # required for openshift for now
-  CURRENT_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:20.9.0-alpine"
+  CURRENT_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:20.11.0-alpine"
   # "Future" might be older if waiting on a newer version to come out
   FUTURE_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:21-alpine"
 
@@ -54,6 +54,11 @@ include:
   - project: "emss/gitlab-templates"
     ref: main
     file: "/jobs/fitdock-deploy.gitlab-ci.yml"
+
+  # Kaniko build template
+  - project: "emss/gitlab-templates"
+    ref: main
+    file: "/jobs/kaniko-build.gitlab-ci.yml"
 
 # Overrride some properties on FIT jobs. Unfortunately using a template for these
 # make GitLab angry, so a lot of repetition
@@ -196,9 +201,6 @@ node-sbom:
     # plug those same variables into the Postgres container we're spinning up
     POSTGRES_PASSWORD: test-only-password
     POSTGRES_DB: aegis
-
-    # used for the api/file tests that need to perform file actions
-    PUBLIC_STATIC_DIR: ./public/static
   services:
     # image should match database used in docker-compose.yml
     - name: $CI_REGISTRY/emss/docker-images/postgres:postgis-14-alpine
@@ -228,9 +230,9 @@ test:
 
 # test against next version of node that AEGIS may use, but allow to fail
 test-node-next:
+  extends: .test_template
   image: "$FUTURE_NODE_VERSION_IMAGE"
   needs: ["install_dependencies"]
-  extends: .test_template
   allow_failure: true
   script:
     - npm run migrate:up
@@ -277,91 +279,46 @@ make-dotenv:
     paths:
       - .env
 
+#
+# Build container images
+# Vite is not used in production, so we don't need to build it
+#
+
 .kaniko-build-template:
+  extends: .emss-kaniko-build
   stage: stageless
-  image:
-    # Specify the Docker image to be used for the job, which is the latest
-    # official kaniko executor debug image, as the debug image includes the
-    # shell needed for GitLab CI to function
-    name: gcr.io/kaniko-project/executor:debug
-    # Entrypoint is overridden to allow a script to be run
-    entrypoint: [""]
   tags: ["docker", "linux"]
   needs:
     - make-dotenv
-  script:
-    # Make the directory where the config file created in the following setup
-    # will reside
-    - mkdir -p /kaniko/.docker
 
-    # Add the GitLab container registry and the registry user credentials to
-    # JSON config file for use by the executor
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" > /kaniko/.docker/config.json
-
-    # IMAGE_VERSION is from make-dotenv job
-    - TEMP_IMAGE_NAME="${CI_REGISTRY_IMAGE}/${SERVICE_NAME}:preview-${IMAGE_VERSION}"
-    - echo "Temp image name = ${TEMP_IMAGE_NAME}"
-
-    # If present, turn $MAP_ENV_VARS_TO_BUILD_ARGS into a string like:
-    # --build-arg VARNAME=VALUE --build-arg VAR2=VAL2 --build-arg VAR3=VAL3
-    - MORE_BUILD_ARGS=""
-    - |
-      if [ -z "${MAP_ENV_VARS_TO_BUILD_ARGS}" ]; then
-        echo 'No env vars to map to build args'
-      else
-        echo "${MAP_ENV_VARS_TO_BUILD_ARGS}" > args.txt
-        while read VARNAME; do
-          if [ -z "${VARNAME}" ]; then
-            echo "empty varname"
-          else
-            VALUE=$(eval "echo \${${VARNAME}}")
-            NEW_BUILD_ARG="--build-arg ${VARNAME}=${VALUE}"
-            MORE_BUILD_ARGS="${MORE_BUILD_ARGS} ${NEW_BUILD_ARG}"
-            echo "Added new build arg: ${NEW_BUILD_ARG}"
-          fi
-        done <args.txt
-      fi
-
-    - echo "${MORE_BUILD_ARGS}"
-
-    - >
-      /kaniko/executor
-      --context "${CI_PROJECT_DIR}"
-      --target "${MULTISTAGE_TARGET}"
-      --build-arg "${BASE_IMAGE_VAR}=${BASE_IMAGE_VALUE}"
-      $(echo ${MORE_BUILD_ARGS})
-      --skip-unused-stages
-      --dockerfile "${CI_PROJECT_DIR}/docker/${SERVICE_NAME}/Dockerfile"
-      --destination "${TEMP_IMAGE_NAME}"
-
-#
-# Build container images
-#
 docker:build:nginx:
   extends: .kaniko-build-template
   variables:
     SERVICE_NAME: nginx
-    MULTISTAGE_TARGET: base
-    BASE_IMAGE_VAR: NGINX_BASE_IMAGE
-    BASE_IMAGE_VALUE: eegitlabregistry.fit.nasa.gov/emss/docker-images/nginx:1.23.0-alpine
-
-docker:build:nextjs:
-  extends: .kaniko-build-template
-  variables:
-    SERVICE_NAME: nextjs
     MULTISTAGE_TARGET: prod
-    BASE_IMAGE_VAR: NEXTJS_BASE_IMAGE
-    BASE_IMAGE_VALUE: $CURRENT_NODE_VERSION_IMAGE
+    NGINX_BASE_IMAGE: eegitlabregistry.fit.nasa.gov/emss/docker-images/nginx:1.23.0-alpine
+    NODE_BASE_IMAGE: $CURRENT_NODE_VERSION_IMAGE
     MAP_ENV_VARS_TO_BUILD_ARGS: |
-      NEXT_PUBLIC_IN_CI_ENVIRONMENT
+      NGINX_BASE_IMAGE
+      NODE_BASE_IMAGE
 
 docker:build:gdal:
   extends: .kaniko-build-template
   variables:
     SERVICE_NAME: gdal
     MULTISTAGE_TARGET: base
-    BASE_IMAGE_VAR: GDAL_BASE_IMAGE
-    BASE_IMAGE_VALUE: eegitlabregistry.fit.nasa.gov/emss/docker-images/deploy:gdal
+    GDAL_BASE_IMAGE: eegitlabregistry.fit.nasa.gov/emss/docker-images/deploy:gdal
+    MAP_ENV_VARS_TO_BUILD_ARGS: |
+      GDAL_BASE_IMAGE
+
+docker:build:apiv1:
+  extends: .kaniko-build-template
+  variables:
+    SERVICE_NAME: apiv1
+    MULTISTAGE_TARGET: prod
+    APIV1_BASE_IMAGE: $CURRENT_NODE_VERSION_IMAGE
+    MAP_ENV_VARS_TO_BUILD_ARGS: |
+      APIV1_BASE_IMAGE
 
 #
 # Retag docker images after necessary jobs pass (e.g. unit testing passes)
@@ -378,9 +335,9 @@ docker:retag:
       artifacts: false
     - job: docker:build:nginx
       artifacts: false
-    - job: docker:build:nextjs
-      artifacts: false
     - job: docker:build:gdal
+      artifacts: false
+    - job: docker:build:apiv1
       artifacts: false
   script:
     # Login to registry
@@ -392,12 +349,12 @@ docker:retag:
     - FINAL_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:${IMAGE_VERSION}"
     - skopeo copy "docker://${TEMP_IMAGE}" "docker://${FINAL_IMAGE}"
 
-    - SERVICE=nextjs
+    - SERVICE=gdal
     - TEMP_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:preview-${IMAGE_VERSION}"
     - FINAL_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:${IMAGE_VERSION}"
     - skopeo copy docker://$TEMP_IMAGE docker://$FINAL_IMAGE
 
-    - SERVICE=gdal
+    - SERVICE=apiv1
     - TEMP_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:preview-${IMAGE_VERSION}"
     - FINAL_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:${IMAGE_VERSION}"
     - skopeo copy docker://$TEMP_IMAGE docker://$FINAL_IMAGE
@@ -418,10 +375,6 @@ deploy:artifactize-committed-files:
   extends: .emss-fitdock-deploy # use job template from gitlab-templates repo
   stage: stageless
   timeout: 10 minutes
-  after_script:
-    # hit the aegis socket.io endpoint to start up the socket server
-    - sleep 10
-    - curl -k --silent --connect-timeout 1 $URL/api/socketio || true
 
 deploy:dev1:
   extends: .deploy-template
@@ -498,19 +451,19 @@ z:db-export:prod:
   when: always
   tags: ["emss-aegis-prod"]
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD #CI/CD Variable
 
 z:db-export:int:
   extends: .db-export-template
   tags: ["emss-aegis-int"]
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
 
 z:db-export:dev1:
   extends: .db-export-template
   tags: ["emss-aegis-dev1"]
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1 #CI/CD Variable
 
 .db-import-template:
   when: manual
@@ -534,11 +487,7 @@ z:db-export:dev1:
     - sudo rm -f /d1/db-init/aegis.sql
 
     # Run any migrations the dump didn't have in place
-    - docker compose exec nextjs npm run migrate:up
-
-    # hit the aegis socket.io endpoint to start up the socket server
-    - sleep 10
-    - curl -k --silent --connect-timeout 1 $URL/api/socketio || true
+    - docker compose exec apiv1 npm run migrate:up
 
 z:db-import:dev1:
   extends: .db-import-template
@@ -548,7 +497,7 @@ z:db-import:dev1:
     name: development1
     url: $URL
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1 #CI/CD Variable
     URL: https://aegis-dev1.fit.nasa.gov
 
 z:db-import:int:
@@ -559,7 +508,7 @@ z:db-import:int:
     name: integration
     url: $URL
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
     URL: https://aegis-int.fit.nasa.gov
 
 .container-logs-template:
@@ -572,25 +521,25 @@ z:db-import:int:
   script:
     - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
     - cd /opt/aegis
-    - sudo docker compose logs nextjs
     - sudo docker compose logs nginx
     - sudo docker compose logs database
     - sudo docker compose logs gdal
+    - sudo docker compose logs apiv1
 
 z:logs:dev1:
   extends: .container-logs-template
   tags: ["emss-aegis-dev1"]
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1 #CI/CD Variable
 
 z:logs:int:
   extends: .container-logs-template
   tags: ["emss-aegis-int"]
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
 
 z:logs:prod:
   extends: .container-logs-template
   tags: ["emss-aegis-prod"]
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD #CI/CD Variable

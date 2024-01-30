@@ -21,6 +21,7 @@
 **/secrets.dev.yaml
 **/values.dev.yaml
 **/missionFiles
+**/dist
 .gitlab
 .local
 .next

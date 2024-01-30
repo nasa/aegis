@@ -17,21 +17,6 @@
       "label": "docker-run: release",
       "dependsOn": ["docker-build"],
       "platform": "node"
-    },
-    {
-      "type": "docker-run",
-      "label": "docker-run: debug",
-      "dependsOn": ["docker-build"],
-      "dockerRun": {
-        "env": {
-          "DEBUG": "*",
-          "NODE_ENV": "development"
-        },
-        "command": "next dev -p 4000"
-      },
-      "node": {
-        "enableDebugging": true
-      }
     }
   ]
 }

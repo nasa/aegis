@@ -24,7 +24,7 @@ fi
 # Write back to .env.secret with all our passwords
 echo "export AEGIS_DB_PASS=${AEGIS_DB_PASS@Q}
 export ADMIN_RECOVERY_KEY=${ADMIN_RECOVERY_KEY@Q}
-export IRON_SESSION_PASSWORD=${IRON_SESSION_PASSWORD}
+export SESSION_PASSWORD=${SESSION_PASSWORD}
 export BOX_CLIENT_ID=${BOX_CLIENT_ID@Q}
 export BOX_CLIENT_SECRET=${BOX_CLIENT_SECRET@Q}
 export BOX_ENTERPRISE_ID=${BOX_ENTERPRISE_ID@Q}
@@ -38,34 +38,33 @@ if [ -z "${CI+set}" ]; then # if not in CI (aka local)
     export DOCKER_SSL_CERTS_DIR=./.local/certs
     export DOCKER_SSL_PRIVATE_DIR=./.local/private
 
-    export PUBLIC_STATIC_DIR=./public/static
+    export STATIC_DIR=../aegis_static
     export DOCKER_DB_DATA_DIR=./.local/database
     export DOCKER_DB_INIT_DIR=./.local/db-init
 
     export GDAL_HOST=localhost
     export GDAL_PORT=4200
 
-    export NEXT_PUBLIC_IN_CI_ENVIRONMENT=false
-
-    export DOCKER_IMAGE_NGINX=eegitlabregistry.fit.nasa.gov/emss/aegis:nginx-dev
-    export DOCKER_IMAGE_NEXTJS=eegitlabregistry.fit.nasa.gov/emss/aegis:nextjs-dev
-    export DOCKER_IMAGE_GDAL=eegitlabregistry.fit.nasa.gov/emss/aegis:gdal-dev    
+    # These values are not used locally since the docker-compose is overriden by
+    #   the docker-compose.dev or docker-compose.prevew files. Those files build
+    #   the images directly from the Dockerfiles
+    export DOCKER_IMAGE_NGINX=NOT_USED_LOCALLY
+    export DOCKER_IMAGE_APIV1=NOT_USED_LOCALLY
+    export DOCKER_IMAGE_GDAL=NOT_USED_LOCALLY
 else
     export DOCKER_SSL_CERTS_DIR=/etc/pki/tls/certs
     export DOCKER_SSL_PRIVATE_DIR=/etc/pki/tls/private
 
-    export PUBLIC_STATIC_DIR=/d1/static
+    export STATIC_DIR=/d1/static
     export DOCKER_DB_DATA_DIR=/d1/postgres
     export DOCKER_DB_INIT_DIR=/d1/db-init
 
     export GDAL_HOST=gdal
     export GDAL_PORT=80
 
-    export NEXT_PUBLIC_IN_CI_ENVIRONMENT=true
-
-    # IMAGE_VERSION is from the pipeline job
+    # IMAGE_VERSION is defined in the pipeline job
     export DOCKER_IMAGE_NGINX="eegitlabregistry.fit.nasa.gov/emss/aegis/nginx:${IMAGE_VERSION}";
-    export DOCKER_IMAGE_NEXTJS="eegitlabregistry.fit.nasa.gov/emss/aegis/nextjs:${IMAGE_VERSION}";
+    export DOCKER_IMAGE_APIV1="eegitlabregistry.fit.nasa.gov/emss/aegis/apiv1:${IMAGE_VERSION}";
     export DOCKER_IMAGE_GDAL="eegitlabregistry.fit.nasa.gov/emss/aegis/gdal:${IMAGE_VERSION}";
 fi
 
