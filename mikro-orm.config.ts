@@ -1,5 +1,14 @@
-import { Options } from "@mikro-orm/core";
+import dotenv from "dotenv"; //needed to allow jest to init Mikro in globalTeardown
+dotenv.config();
 
+// The following 3 lines are needed to make the MikroORM 6.0.x import for the PostgreSqlDriver work in jest.
+import { TextEncoder, TextDecoder } from "util";
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
+import { PostgreSqlDriver, defineConfig } from "@mikro-orm/postgresql";
+import { Migrator } from "@mikro-orm/migrations";
+import { SeedManager } from "@mikro-orm/seeder";
 import {
   User_db,
   Mission_db,
@@ -16,21 +25,21 @@ import {
   STM_Investigation_db,
   Sublayer_db,
   Traverse_db,
-} from "./server/database/models/_allModels";
+} from "./src/server/database/models/_allModels";
 import path from "path";
 
-const config: Options = {
+export default defineConfig({
   dbName: process.env.AEGIS_DB_NAME,
   host: process.env.AEGIS_DB_HOST,
   port: 5432, //default port
-  type: "postgresql",
+  driver: PostgreSqlDriver,
   password: process.env.AEGIS_DB_PASS,
   migrations: {
-    path: path.join(__dirname, "./server/database/migrations"), // path to the folder with migrations
+    path: path.join(__dirname, "./src/server/database/migrations"), // path to the folder with migrations
     snapshot: false,
   },
   seeder: {
-    path: path.join(__dirname, "./server/database/seeds"), // path to the folder with seed files
+    path: path.join(__dirname, "./src/server/database/seeds"), // path to the folder with seed files
   },
   entitiesTs: [
     User_db,
@@ -68,6 +77,5 @@ const config: Options = {
   ],
   debug: process.env.DEBUG === "true" || process.env.DEBUG?.includes("db"),
   allowGlobalContext: true,
-};
-
-export default config;
+  extensions: [Migrator, SeedManager],
+});

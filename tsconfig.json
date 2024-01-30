@@ -1,33 +1,41 @@
 {
   "compilerOptions": {
-    "target": "es6",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
+    "target": "es2022",
+    "jsx": "react-jsx",
+    "module": "es2022",
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "outDir": "./.local/vite/dist",
+    "rootDir": ".",
+    "resolveJsonModule": true,
+    "preserveConstEnums": true,
+    "esModuleInterop": true,
+    "baseUrl": "./src",
+    "forceConsistentCasingInFileNames": true,
     "strict": false,
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": false,
+    "types": ["node", "jest", "@testing-library/jest-dom"],
+
+    "skipLibCheck": true /* Skip type checking all .d.ts files. */,
+
+    "lib": ["dom", "dom.iterable", "es2022"],
+    "allowJs": true,
     "alwaysStrict": true,
     "strictBindCallApply": true,
     "noImplicitThis": true,
     "useUnknownInCatchVariables": true,
     "strictFunctionTypes": false, // causes type check errors = 81
-    "noImplicitAny": true,
     "strictNullChecks": false, // causes type check errors = 876
     "strictPropertyInitialization": false, // requires strictNullChecks=true, increased errors = 41
-    "forceConsistentCasingInFileNames": true,
     "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
     "incremental": true,
-    "baseUrl": ".",
-    "types": ["node", "webpack-env", "jest", "@testing-library/jest-dom"],
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "declaration": false
+    "declaration": false,
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", ".local", "public", "static"],
 }

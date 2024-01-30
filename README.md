@@ -14,10 +14,14 @@ Wiki: https://wiki.jsc.nasa.gov/fod/index.php/Artemis_EVA_GIS
 
 For all install methods, do the following:
 
-1. Create a `./.env` and `./.env.secret` file by running `./scripts/make-dotenv.sh` in the terminal.
-2. Get the secret values to place in `.env.secret` from another AEGIS developer.
-3. Run `./scripts/make-dev-ssl-cert.sh` in a terminal to setup a self-signed certificate.
-4. **Elevated privileges required:** Add `127.0.0.1 aegis-local.fit.nasa.gov` to your "hosts" file.
+1. Create a folder for static assets. This is the location where the hundreds of thousands of GIS map assets will be stored.
+   - Make an empty folder called `aegis_static` that is next to the folder the AEGIS project was cloned to.
+     - For example, if your AEGIS repo is at `C:\aegis`, make an empty folder at `C:\aegis_static`
+2. Create a `./.env` and `./.env.secret` file by running `./scripts/make-dotenv.sh` in the terminal.
+   - The `make-dotenv.sh` script defaults the local dev static asset path to `../aegis_static`.
+3. Get the secret values to place in `.env.secret` from another AEGIS developer.
+4. Run `./scripts/make-dev-ssl-cert.sh` in a terminal to setup a self-signed certificate.
+5. **Elevated privileges required:** Add `127.0.0.1 aegis-local.fit.nasa.gov` to your "hosts" file.
    1. Windows: Open the start menu, type "notepad", right-click on "Notepad" and select "open as administrator". In Notepad go to `C:\Windows\System32\drivers\etc`, show all files, and open the `hosts` file.
    2. Mac: Edit `/etc/hosts`
    3. Content to add at the bottom of the file (add CODA/Maestro/Labs while you're at it):
@@ -27,9 +31,21 @@ For all install methods, do the following:
       127.0.0.1 maestro-local.fit.nasa.gov
       127.0.0.1 emss-labs-local.fit.nasa.gov
       ```
-5. Perform steps for either "Fully docker-compose" or "Just database via docker-compose" below.
+6. Perform steps for either "Fully docker-compose" or "Just database via docker-compose" below.
 
-### Option 1: Fully docker-compose
+### Option 1: Just database and service containers via docker-compose
+
+This option is useful if you want to use vs code's debugging features
+
+Perform "All install methods" instructions above before performing the following.
+
+1. Run Docker only starting the service containers required for local dev:
+   - Dev mode: `npm run docker:dev:services`
+2. Import a dump of the database from one of the environments using the instructions outlined in "Import a database dump from one of the AEGIS environments" below.
+3. Run `npm run dev` to start the frontend.
+4. Open [http://aegis-local.fit.nasa.gov:4000](http://aegis-local.fit.nasa.gov:4000) with your browser (lack of https).
+
+### Option 2: Fully docker-compose (not recommended)
 
 Perform "All install methods" instructions above before performing the following.
 
@@ -41,22 +57,16 @@ Perform "All install methods" instructions above before performing the following
 
 To stop, run `docker compose down`.
 
-### Option 2: Just database via docker-compose
-
-This option is useful if you want to use vs code's debugging features
-
-Perform "All install methods" instructions above before performing the following.
-
-1. Run Docker only starting the database:
-   - Dev mode: `npm run docker:dev database`
-   - Production preview: `npm run docker:preview database`
-2. Import a dump of the database from one of the environments using the instructions outlined in "Import a database dump from one of the AEGIS environments" below.
-3. Run `npm run dev` to start the frontend.
-4. Open [http://aegis-local.fit.nasa.gov:4000](http://aegis-local.fit.nasa.gov:4000) with your browser (lack of https).
-
-## Setting up tiles for local development
+## Setting up GIS products for local development
 
 Setup local environment using the instructions above before performing the following.
+
+### Option 1: Download assets using the AEGIS admin interface
+
+- The `https://aegis-local.fit.nasa.gov/admin` interface allows AEGIS admins to download asset zips from the AEGIS Box source folder to the AEGIS GIS products location.
+- Use the interface itself to download assets as needed to match the missions in the system (from the prod dump of `aegis.sql`)
+
+### Option 2: Manual install assets for Apollo 14 mission
 
 1. Download the [Apollo 14 zips](https://nasa-ext.app.box.com/s/kpisqjexem99biar7h21xt773apcvcm2/folder/198248141077) and extract the contents anywhere on your computer.
 2. Open [https://aegis-local.fit.nasa.gov/admin](https://aegis-local.fit.nasa.gov/admin) or [http://aegis-local.fit.nasa.gov:4000/admin](http://aegis-local.fit.nasa.gov:4000/admin) depending on whether you started the full docker-compose or just the database.
@@ -77,7 +87,7 @@ To delete all the database data, delete the `./.local/database` directory. This 
 
 1. Stop the `aegis-database-1` container
 2. Delete your `./.local/database` directory
-3. Retrieve a dump from CI/CD by executing one of the export jobs (such as `z:db-export:dev1`). The job will generate an artifact called `aegis.sql`. Download this sql dump.
+3. Retrieve a dump from CI/CD by executing one of the export jobs (such as `z:db-export:prod`). The job will generate an artifact called `aegis.sql`. Download this sql dump.
 4. Drop the .sql file into the `.local/db-init/` folder.
 5. Start the `aegis-database-1` container.
 6. If there are any db changes to apply on your current branch, run `npm run migrate:up`
