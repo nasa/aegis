@@ -1,14 +1,8 @@
-import nextJest from "next/jest";
-
-const createJestConfig = nextJest({
-  // Your Next.js config
-  dir: "./",
-});
-
 const config = {
   preset: "ts-jest/presets/js-with-ts",
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "node"],
   moduleDirectories: ["node_modules", "src"],
+  rootDir: "./src",
   moduleNameMapper: {
     "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$":
       "<rootDir>/tests/__mocks__/fileMock.js",
@@ -30,7 +24,7 @@ const config = {
     "**/*.{js,jsx,ts,tsx}",
     "!**/*.d.ts",
     "!jest.config.ts",
-    "!next.config.js",
+    "!vite.config.mts",
     "!**/node_modules/**",
     "!<rootDir>/out/**",
     "!<rootDir>/.next/**",
@@ -50,24 +44,19 @@ const config = {
   //     lines: 90,
   // }, },
   coverageReporters: ["text", "lcov", "cobertura"],
-  globalSetup: "<rootDir>/jest.globalSetup.ts",
-  globalTeardown: "<rootDir>/jest.globalTeardown.ts",
-  setupFiles: ["<rootDir>/jest.setup.ts"],
+  globalSetup: "<rootDir>/../jest.globalSetup.ts",
+  globalTeardown: "<rootDir>/../jest.globalTeardown.ts",
+  setupFiles: ["<rootDir>/../jest.setup.ts", "dotenv/config"],
   setupFilesAfterEnv: ["<rootDir>/utils/jest-extends.ts"],
-  testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/", "<rootDir>/out"],
+  testPathIgnorePatterns: ["<rootDir>/.local", "<rootDir>/node_modules/"],
   globals: {
-    "ts-jest": {
-      tsconfig: "tsconfig.jest.json",
-      // https://huafu.github.io/ts-jest/user/config/diagnostics#examples
-      warnOnly: true,
-    },
     window: {},
     document: {},
   },
   transform: {
-    "^.+\\.(ts|tsx)$": "ts-jest",
+    "^.+\\.(ts|tsx)$": ["ts-jest", { tsconfig: "tsconfig.jest.json", warnOnly: true }],
   },
   testEnvironment: "jest-environment-jsdom",
 };
 
-export default createJestConfig(config);
+export default config;

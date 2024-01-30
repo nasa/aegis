@@ -3,11 +3,8 @@
     "browser": true,
     "es2021": true
   },
-  "extends": [
-    "next/core-web-vitals",
-    "prettier"
-  ],
-  "ignorePatterns": ["**/public/**/*", "out/**/*"],
+  "extends": ["prettier", "plugin:react-hooks/recommended"],
+  "ignorePatterns": ["**/public/**/*", "out/**/*", "coverage", ".local"],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "ecmaFeatures": {
@@ -16,12 +13,7 @@
     "ecmaVersion": 12,
     "sourceType": "module"
   },
-  "plugins": [
-    "react",
-    "@typescript-eslint",
-    "@next/eslint-plugin-next",
-    "prettier"
-  ],
+  "plugins": ["react", "react-hooks", "@typescript-eslint", "prettier"],
   "rules": {
     "no-warning-comments": [
       "error",
@@ -40,10 +32,7 @@
     "no-empty": ["error", { "allowEmptyCatch": true }],
     "no-extra-bind": "error",
     "no-extra-label": "error",
-    "no-implicit-coercion": [
-      "error",
-      { "string": true, "boolean": false, "number": false }
-    ],
+    "no-implicit-coercion": ["error", { "string": true, "boolean": false, "number": false }],
     "no-implicit-globals": "error",
     "no-label-var": "error",
     "no-loop-func": "error",
@@ -63,7 +52,7 @@
           {
             "name": "react-redux",
             "importNames": ["useSelector", "shallowEqual"],
-            "message":"Use useAppSelector() instead of useSelector(), and refEqual()/shallowEqual()/deepEqual() from useAppSelector.ts versus other locations. These functions provide better Aegis-specific defaults."
+            "message": "Use useAppSelector() instead of useSelector(), and refEqual()/shallowEqual()/deepEqual() from useAppSelector.ts versus other locations. These functions provide better Aegis-specific defaults."
           },
           {
             "name": "assert",
@@ -73,7 +62,7 @@
           {
             "name": "react-redux",
             "importNames": ["useDispatch"],
-            "message":"Use utils/useAppDispatch() instead of useDispatch(). This will allow usage of the full store types"
+            "message": "Use utils/useAppDispatch() instead of useDispatch(). This will allow usage of the full store types"
           }
         ]
       }
@@ -115,7 +104,6 @@
     ],
     "no-import-assign": "error",
     "no-unreachable": "error",
-    "@next/next/no-img-element": "off",
     "react/jsx-no-target-blank": "off"
   },
   "settings": {

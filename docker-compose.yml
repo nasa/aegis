@@ -5,19 +5,23 @@ services:
     image: ${DOCKER_IMAGE_NGINX}
     restart: unless-stopped
     depends_on:
-      - nextjs
+      - apiv1
     volumes:
-      - ${PUBLIC_STATIC_DIR}:/usr/share/nginx/static:ro
+      - ${STATIC_DIR}:/usr/share/nginx/html/static:ro
       - ${DOCKER_SSL_CERTS_DIR}:/etc/pki/tls/certs
       - ${DOCKER_SSL_PRIVATE_DIR}:/etc/pki/tls/private
+
     ports:
       # AEGIS requires launchpad, so must be over HTTPS and not have a port specified in the URL
       # e.g. https://aegis.fit.nasa.gov not https://aegis.fit.nasa.gov:8000
       - "443:443"
 
-  nextjs:
-    container_name: aegis-nextjs-1
-    image: ${DOCKER_IMAGE_NEXTJS}
+  apiv1:
+    container_name: aegis-apiv1-1
+    image: ${DOCKER_IMAGE_APIV1}
+    depends_on:
+      database:
+        condition: service_healthy
     restart: unless-stopped
     env_file:
       - ./.env
@@ -25,11 +29,8 @@ services:
       # Override what is in .env (which may be "localhost" to support native local dev) such
       # that it is always "database" in a full Docker-Compose setup.
       - AEGIS_DB_HOST=database
-    depends_on:
-      database:
-        condition: service_healthy
     volumes:
-      - ${PUBLIC_STATIC_DIR}:/${PUBLIC_STATIC_DIR}
+      - ${STATIC_DIR}:/${STATIC_DIR}
 
   database:
     container_name: aegis-database-1
@@ -55,7 +56,5 @@ services:
     container_name: aegis-gdal-1
     image: ${DOCKER_IMAGE_GDAL}
     restart: unless-stopped
-    # depends_on:
-    # - nextjs
     volumes:
-      - ${PUBLIC_STATIC_DIR}:/static
+      - ${STATIC_DIR}:/static

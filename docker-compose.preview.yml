@@ -5,20 +5,22 @@
 # SUMMARY:
 # Do the exact same thing as the production `docker-compose.yml`, just build locally as a way to
 # quickly preview what a production build would do.
+# Don't pull an image from container registry: build it locally from a Dockerfile.
 #
-version: '3.9'
+version: "3.9"
 services:
   nginx:
     image: aegis-preview-nginx:latest
     build:
       context: .
       dockerfile: ./docker/nginx/Dockerfile
+      target: prod
 
-  nextjs:
-    image: aegis-preview-nextjs:latest
+  apiv1:
+    image: aegis-preview-apiv1:latest
     build:
       context: .
-      dockerfile: ./docker/nextjs/Dockerfile
+      dockerfile: ./docker/apiv1/Dockerfile
       target: prod
 
   gdal:
@@ -26,3 +28,4 @@ services:
     build:
       context: .
       dockerfile: ./docker/gdal/Dockerfile
+      target: base

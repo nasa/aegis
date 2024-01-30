@@ -4,9 +4,9 @@
     {
       "type": "node",
       "request": "attach",
-      "name": "Node Attach",
+      "name": "Express Attach",
       "skipFiles": ["<node_internals>/**"],
-      "port": 9229
+      "port": 8229
     },
     {
       "type": "chrome",
@@ -14,7 +14,7 @@
       "name": "Chrome Attach",
       "port": 9222,
       "urlFilter": "http://aegis-local.fit.nasa.gov:4000/*",
-      "webRoot": "${workspaceFolder}"
+      "webRoot": "${workspaceFolder}/src"
     },
     {
       "name": "gdal: Remote Attach",
