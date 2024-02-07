@@ -192,7 +192,7 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
               color: sublayer.color || "#FFFFFF",
               weight: sublayer.weight || 1,
               fillColor: sublayer.fillColor || "#FFFFFF",
-              fillOpacity: sublayer.fillOpacity || 0.2,
+              fillOpacity: sublayer.fillOpacity || 0,
             },
           };
         });
