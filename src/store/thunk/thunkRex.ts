@@ -617,26 +617,10 @@ export const thunkMakeExportRexString = appCreateAsyncThunk<
 export const thunkAddRexStatusEntry = appCreateAsyncThunk<{
   entryType: "station" | "traverse" | "action";
   uuid: string; //uuid of the station, traverse, or action to add a status to
-  prevStatus?: RexStatus;
-}>("addRexStatusEntry", async ({ entryType, uuid, prevStatus }, { dispatch, getState }) => {
-  // Since cycling a status is an immediate persist to the DB, use the DB copy to avoid saving
-  //    any in-draft work that might be on the store copy
+  rexStatus: RexStatus;
+}>("addRexStatusEntry", async ({ entryType, uuid, rexStatus }, { dispatch, getState }) => {
   const runningRexFromDb = _.cloneDeep(getState().rex.rexesFromDb.find((rex) => rex.isRunning));
   if (!runningRexFromDb) return;
-
-  // cycle the status to the next one
-  let rexStatus: RexStatus;
-  if (!prevStatus) {
-    rexStatus = "in-progress";
-  } else if (prevStatus === "in-progress") {
-    rexStatus = "complete";
-  } else if (prevStatus === "complete") {
-    rexStatus = "skipped";
-  } else if (prevStatus === "skipped") {
-    rexStatus = "pending";
-  } else if (prevStatus === "pending") {
-    rexStatus = "in-progress";
-  }
 
   //modify the rex object based on the entry type. upsert to both copies in the store
   if (entryType === "station") {

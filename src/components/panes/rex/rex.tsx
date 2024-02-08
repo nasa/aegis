@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { FunctionComponent } from "react";
+import { FunctionComponent, useRef } from "react";
 
 import styles from "./rex.module.css";
 import paneStyles from "../global-pane-styles.module.css";
@@ -17,7 +17,7 @@ import { Button } from "components/interface/form/globalFields";
 import { setSelectedEvaSequenceItemUuid, setSelectedEvaUuid } from "store/eva";
 import EvaItemSequence from "../eva/eva-item-sequence";
 import RexClocks from "./rex-clocks";
-import { thunkCreateRex } from "store/thunk/thunkRex";
+import { thunkAddRexStatusEntry, thunkCreateRex } from "store/thunk/thunkRex";
 import { setExpandedRexUuids, setSelectedRexRightNavItem, setSelectedRexUuid } from "store/rex";
 import { setRightPanelOpen } from "store/interface";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
@@ -25,6 +25,7 @@ import { setSelectedStationUuid } from "store/station";
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import { thunkAddStationToEva } from "store/thunk/thunkEva";
 import { EvaEgressIngressListing } from "../eva/eva-item";
+import { getRexStatusDisplayProperties } from "utils/rex";
 
 const EvaRexLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -247,5 +248,101 @@ const EvaRexItem: FunctionComponent<{ rexUuid: string }> = ({ rexUuid }) => {
         )}
       </div>
     </>
+  );
+};
+
+export const RexStatusMenu: FunctionComponent<{
+  rexStatus: RexStatus;
+  divClassName: string;
+  entryType: "action" | "station" | "traverse";
+  uuid: string;
+  editPerms: boolean;
+}> = ({ rexStatus, divClassName, entryType, uuid, editPerms }): JSX.Element => {
+  const dispatch = useAppDispatch();
+  const rexStatusDisplayProperties = getRexStatusDisplayProperties(rexStatus);
+  const dialogRef = useRef(null);
+  const menuRef = useRef(null);
+
+  const handleMenuOpen = (e: React.MouseEvent) => {
+    const x = e.clientX + 5; // width of the menu
+    menuRef.current.style.left = `${x}px`;
+    menuRef.current.style.top = `${e.clientY}px`;
+  };
+
+  const handleRexStatusClick = (rexStatus: RexStatus) => {
+    dispatch(thunkAddRexStatusEntry({ entryType, uuid, rexStatus }));
+    dialogRef.current?.close();
+  };
+
+  return (
+    <>
+      <dialog
+        ref={dialogRef}
+        className={styles.rexStatusContainer}
+        onClick={() => {
+          dialogRef.current?.close();
+        }}
+      >
+        <div ref={menuRef} className={styles.rexStatusMenu}>
+          <RexStatusMenuItem
+            rexStatus="pending"
+            title="Pending"
+            handleRexStatusClick={handleRexStatusClick}
+          />
+          <RexStatusMenuItem
+            rexStatus="in-progress"
+            title="In-Progress"
+            handleRexStatusClick={handleRexStatusClick}
+          />
+          <RexStatusMenuItem
+            rexStatus="complete"
+            title="Complete"
+            handleRexStatusClick={handleRexStatusClick}
+          />
+          <RexStatusMenuItem
+            rexStatus="skipped"
+            title="Skipped"
+            handleRexStatusClick={handleRexStatusClick}
+          />
+        </div>
+      </dialog>
+      <div
+        className={divClassName}
+        style={editPerms ? { cursor: "pointer" } : { cursor: "default" }}
+        onClick={(e) => {
+          handleMenuOpen(e);
+          dialogRef.current?.showModal();
+          e.stopPropagation();
+        }}
+        data-tooltip-id="aegis-tooltip"
+        data-tooltip-html={rexStatusDisplayProperties.tooltip}
+      >
+        <FontAwesomeIcon
+          icon={rexStatusDisplayProperties.icon}
+          className={`${evaStyles.rexStatusIcon} ${rexStatusDisplayProperties.iconStyle}`}
+        />
+      </div>
+    </>
+  );
+};
+
+const RexStatusMenuItem: FunctionComponent<{
+  rexStatus: RexStatus;
+  title: string;
+  handleRexStatusClick: Function;
+}> = ({ rexStatus, title, handleRexStatusClick }) => {
+  return (
+    <div
+      className={styles.rexStatusMenuItem}
+      onClick={() => {
+        handleRexStatusClick(rexStatus);
+      }}
+    >
+      <FontAwesomeIcon
+        icon={getRexStatusDisplayProperties(rexStatus).icon}
+        className={`${evaStyles.rexStatusMenuIcon} ${getRexStatusDisplayProperties(rexStatus).iconStyle}`}
+      />
+      <div className={styles.rexStatusMenuItemTitle}>{title}</div>
+    </div>
   );
 };

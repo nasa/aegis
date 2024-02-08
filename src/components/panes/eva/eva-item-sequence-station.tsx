@@ -24,7 +24,7 @@ import {
 import { getRexStatusDisplayProperties } from "../../../utils/rex";
 import _ from "lodash";
 import PetInterval from "components/interface/page/petInterval";
-import { thunkAddRexStatusEntry } from "store/thunk/thunkRex";
+import { RexStatusMenu } from "../rex/rex";
 
 const SequenceItemStation: FunctionComponent<{
   evaUuid: string;
@@ -194,29 +194,13 @@ const SequenceItemStation: FunctionComponent<{
         )}
 
         {isRexRunning && (
-          <div
-            className={evaStyles.rexStatusWrapper}
-            style={editPerms ? { cursor: "pointer" } : { cursor: "default" }}
-            onClick={() => {
-              if (!editPerms) return;
-              dispatch(
-                thunkAddRexStatusEntry({
-                  entryType: "station",
-                  uuid: stationUuid,
-                  prevStatus: stationRexStatus,
-                })
-              );
-            }}
-            data-tooltip-id="aegis-tooltip"
-            data-tooltip-html={getRexStatusDisplayProperties(stationRexStatus).tooltip}
-          >
-            <FontAwesomeIcon
-              icon={getRexStatusDisplayProperties(stationRexStatus).icon}
-              className={`${evaStyles.rexStatusIcon} ${
-                getRexStatusDisplayProperties(stationRexStatus).iconStyle
-              }`}
-            />
-          </div>
+          <RexStatusMenu
+            rexStatus={stationRexStatus}
+            divClassName={evaStyles.rexStatusWrapper}
+            entryType="station"
+            uuid={stationUuid}
+            editPerms={editPerms}
+          />
         )}
 
         {!editMode ? (

@@ -3,7 +3,6 @@ import { FunctionComponent, useCallback, useEffect, useState } from "react";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import { setSelectedEvaRightNavItem, setSelectedEvaUuid } from "store/eva";
 import evaStyles from "./eva.module.css";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { secondsFromhhmmss, hhmmssFromSeconds, hmmFromMinutes } from "utils/formatting";
 import { setRightPanelOpen } from "store/interface";
 import { setHoverUuidsForSequence } from "store/hover";
@@ -12,7 +11,7 @@ import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { getRexStatusDisplayProperties } from "../../../utils/rex";
 import _ from "lodash";
 import PetInterval from "components/interface/page/petInterval";
-import { thunkAddRexStatusEntry } from "store/thunk/thunkRex";
+import { RexStatusMenu } from "../rex/rex";
 
 const SequenceItemTraverse: FunctionComponent<{
   evaUuid: string;
@@ -169,29 +168,13 @@ const SequenceItemTraverse: FunctionComponent<{
         </div>
 
         {isRexRunning && (
-          <div
-            className={evaStyles.rexStatusWrapper}
-            style={editPerms ? { cursor: "pointer" } : { cursor: "default" }}
-            onClick={() => {
-              if (!editPerms) return;
-              dispatch(
-                thunkAddRexStatusEntry({
-                  entryType: "traverse",
-                  uuid: traverseUuid,
-                  prevStatus: traverseRexStatus,
-                })
-              );
-            }}
-            data-tooltip-id="aegis-tooltip"
-            data-tooltip-html={getRexStatusDisplayProperties(traverseRexStatus).tooltip}
-          >
-            <FontAwesomeIcon
-              icon={getRexStatusDisplayProperties(traverseRexStatus).icon}
-              className={`${evaStyles.rexStatusIcon} ${
-                getRexStatusDisplayProperties(traverseRexStatus).iconStyle
-              }`}
-            />
-          </div>
+          <RexStatusMenu
+            rexStatus={traverseRexStatus}
+            divClassName={evaStyles.rexStatusWrapper}
+            entryType="traverse"
+            uuid={traverseUuid}
+            editPerms={editPerms}
+          />
         )}
         <div
           className={`${evaStyles.evaItemName} ${
