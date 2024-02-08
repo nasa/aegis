@@ -1,13 +1,12 @@
 /// <reference types="vite/client" />
 import { UserConfig, defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
-import eslint from "vite-plugin-eslint";
 import path from "path";
 
 export const config: UserConfig = {
   root: "./src",
   envDir: "../",
-  plugins: [react(), eslint()],
+  plugins: [react()],
   resolve: {
     //alias paths so that the import statements are shorter and start from the src folder
     alias: {

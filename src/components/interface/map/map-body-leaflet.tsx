@@ -210,7 +210,7 @@ const MapBody: FunctionComponent = () => {
     showLatestLabels: true,
     fadeOldPositions: false,
   });
-  const [showArrows, setShowArrows] = useState(false);
+  const [showArrows, setShowArrows] = useState(true);
   const [showGridLabels, setShowGridLabels] = useState(true);
 
   const [eyeballMenuCookie, setEyeballMenuCookie] = useCookies(["AEGIS_Map_View_Settings"]);
