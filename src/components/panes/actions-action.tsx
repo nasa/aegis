@@ -15,7 +15,7 @@ import { collapseActions, expandActions } from "store/interface";
 import { RightActionBody } from "./actions-action-body";
 import { ActionMenu } from "./actions-action-menu";
 import { getRexStatusDisplayProperties } from "../../utils/rex";
-import { thunkAddRexStatusEntry } from "store/thunk/thunkRex";
+import { RexStatusMenu } from "./rex/rex";
 
 const RightAction: FunctionComponent<{
   editMode: boolean;
@@ -92,29 +92,13 @@ const RightAction: FunctionComponent<{
           {isRexRunning && (
             <>
               {action.enabled ? (
-                <div
-                  className={actionStyles.actionHeadingRexStatusWrapper}
-                  style={editPerms ? { cursor: "pointer" } : { cursor: "default" }}
-                  onClick={() => {
-                    if (!editPerms) return;
-                    dispatch(
-                      thunkAddRexStatusEntry({
-                        entryType: "action",
-                        uuid: action.uuid,
-                        prevStatus: actionRexStatusEntry,
-                      })
-                    );
-                  }}
-                  data-tooltip-id="aegis-tooltip"
-                  data-tooltip-html={getRexStatusDisplayProperties(actionRexStatusEntry).tooltip}
-                >
-                  <FontAwesomeIcon
-                    icon={getRexStatusDisplayProperties(actionRexStatusEntry).icon}
-                    className={`${actionStyles.actionHeadingRexStatusIcon} ${
-                      getRexStatusDisplayProperties(actionRexStatusEntry).iconStyle
-                    }`}
-                  />
-                </div>
+                <RexStatusMenu
+                  rexStatus={actionRexStatusEntry}
+                  divClassName={actionStyles.actionHeadingRexStatusWrapper}
+                  entryType="action"
+                  uuid={action.uuid}
+                  editPerms={editPerms}
+                />
               ) : (
                 <div className={actionStyles.actionHeadingRexStatusWrapper}>
                   <div className={actionStyles.actionHeadingRexStatusIconBlank}></div>

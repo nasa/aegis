@@ -362,3 +362,47 @@
   border: none;
   background-color: rgb(0, 0, 0, 0);
 }
+
+.rexStatusContainer {
+  position: relative;
+  padding: 0;
+  border: none;
+  background-color: rgb(0, 0, 0, 0);
+}
+.rexStatusMenu {
+  position: fixed;
+  z-index: 100;
+  width: 120px;
+  background-color: var(--grey3);
+  color: var(--grey5);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  font-weight: normal;
+}
+.rexStatusMenuItem {
+  display: flex;
+  flex-direction: row;
+  font-size: 0.9em;
+  padding: 5px;
+  cursor: pointer;
+  column-gap: 3px;
+  align-items: center;
+}
+.rexStatusMenuIcon {
+  width: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  margin-left: 3px;
+}
+.rexStatusMenuItemTitle {
+  margin-left: 3px;
+}
+.rexStatusMenuItem:hover {
+  background-color: var(--grey2);
+  border-radius: var(--radius);
+}
+.rexStatusMenuItem:not(:last-child) {
+  border-bottom: 1px solid var(--grey4);
+}
