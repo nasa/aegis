@@ -1,8 +1,7 @@
-import { faEye } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEye, faCaretRight, faCaretDown, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { Dispatch, FunctionComponent, SetStateAction, useState } from "react";
 import styles from "./map-menu-view.module.css";
-import { Checkbox } from "../form/globalFields";
 
 export const MapViewMenu: FunctionComponent<{
   mapDisplayPois: MapMarkersDisplay;
@@ -36,256 +35,242 @@ export const MapViewMenu: FunctionComponent<{
   return (
     <div className={styles.menuContainer}>
       <div
-        className={styles.menuIcon}
+        className={`${styles.menuHeader} ${showMenu && styles.menuHeaderBorder}`}
         onClick={(e) => {
           setShowMenu(!showMenu);
           e.stopPropagation();
         }}
-        data-tooltip-id="aegis-tooltip"
-        data-tooltip-html="Map View Settings"
       >
-        <FontAwesomeIcon
-          icon={faEye}
-          size="sm"
-          style={{ marginTop: "3px", width: "15px", color: "var(--grey5)", outline: "none" }}
-          tabIndex={0}
-        />
-        <div className={styles.bottomTriangle} />
+        <div className={styles.menuHeaderEyeIcon}>
+          <FontAwesomeIcon icon={faEye} size="sm" />
+        </div>
+        {showMenu && (
+          <div className={styles.menuHeaderTitleContainer}>
+            <div className={styles.menuHeaderTitle}>Map Item Visibility</div>
+            <div className={styles.menuHeaderClose}>
+              <FontAwesomeIcon icon={faXmark} />
+            </div>
+          </div>
+        )}
+        {!showMenu && <div className={styles.bottomTriangle} />}
+        {showMenu && <div className={styles.topTriangle} />}
       </div>
-
       <div className={`${styles.menu} ${!showMenu && styles.hideMenu}`}>
         <div className={styles.mapDisplay}>
           <div className={styles.controlsContainer}>
-            <div className={styles.controlContainer}>
-              <div className={styles.control}>
-                <div className={styles.controlCheckbox}>
-                  <Checkbox
-                    checked={mapDisplayPois.show}
-                    onChange={(e) => {
-                      setMapDisplayPois({
-                        ...mapDisplayPois,
-                        show: e.target.checked,
-                      });
-                    }}
-                    toolTip="Toggle POIs on map"
-                    label="POIs"
-                    labelStyle={{ alignSelf: "center" }}
-                    uniqueId="showHidePoi"
-                  />
-                </div>
-              </div>
-              <div className={styles.subControl}>
-                <div className={styles.controlCheckbox}>
-                  <Checkbox
-                    checked={mapDisplayPois.showLabels}
-                    onChange={(e) => {
-                      setMapDisplayPois({
-                        ...mapDisplayPois,
-                        showLabels: e.target.checked,
-                        ...(e.target.checked && { show: true }),
-                      });
-                    }}
-                    toolTip="Toggle POI labels on map"
-                    label="Labels"
-                    labelStyle={{ alignSelf: "center" }}
-                    uniqueId="showHidePoiLabels"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className={styles.controlContainer}>
-              <div className={styles.control}>
-                <div className={styles.controlCheckbox}>
-                  <Checkbox
-                    checked={mapDisplayStations.show}
-                    onChange={(e) => {
-                      setMapDisplayStations({
-                        ...mapDisplayStations,
-                        show: e.target.checked,
-                      });
-                    }}
-                    toolTip="Toggle all Stations on map"
-                    label="Stations"
-                    labelStyle={{ alignSelf: "center" }}
-                    uniqueId="showHideStations"
-                  />
-                </div>
-              </div>
-              <div className={styles.subControl}>
-                <div className={styles.controlCheckbox}>
-                  <Checkbox
-                    checked={mapDisplayStations.showLabels}
-                    onChange={(e) => {
-                      setMapDisplayStations({
-                        ...mapDisplayStations,
-                        showLabels: e.target.checked,
-                        ...(e.target.checked && { show: true }),
-                      });
-                    }}
-                    toolTip="Toggle Station labels on map"
-                    label="Labels"
-                    labelStyle={{ alignSelf: "center" }}
-                    uniqueId="showHideStationLabels"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className={styles.controlContainer}>
-              <div className={styles.control}>
-                <div className={styles.controlCheckbox}>
-                  <Checkbox
-                    checked={mapDisplayActions.show}
-                    onChange={(e) => {
-                      setMapDisplayActions({
-                        ...mapDisplayActions,
-                        show: e.target.checked,
-                      });
-                    }}
-                    toolTip="Toggle Actions on map"
-                    label="Actions"
-                    labelStyle={{ alignSelf: "center" }}
-                    uniqueId="showHideActions"
-                  />
-                </div>
-              </div>
-              <div className={styles.subControl}>
-                <div className={styles.controlCheckbox}>
-                  <Checkbox
-                    checked={mapDisplayActions.showLabels}
-                    onChange={(e) => {
-                      setMapDisplayActions({
-                        ...mapDisplayActions,
-                        showLabels: e.target.checked,
-                        ...(e.target.checked && { show: true }),
-                      });
-                    }}
-                    toolTip="Toggle Actions labels on map"
-                    label="Labels"
-                    labelStyle={{ alignSelf: "center" }}
-                    uniqueId="showHideActionLabels"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className={styles.controlContainer}>
-              <div className={styles.control}>
-                <div className={styles.controlCheckbox}>
-                  <Checkbox
-                    checked={mapDisplayPosMarkers.show}
-                    onChange={(e) => {
-                      setMapDisplayPosMarkers({
-                        ...mapDisplayPosMarkers,
-                        show: e.target.checked,
-                      });
-                    }}
-                    toolTip="Toggle position markers on map"
-                    label="Position Markers"
-                    labelStyle={{ alignSelf: "center" }}
-                    uniqueId="showHidePos"
-                  />
-                </div>
-              </div>
-              <div className={styles.subControl}>
-                <div className={styles.controlCheckbox}>
-                  <Checkbox
-                    checked={mapDisplayPosMarkers.showAllLabels}
-                    onChange={(e) => {
-                      setMapDisplayPosMarkers({
-                        ...mapDisplayPosMarkers,
-                        showAllLabels: e.target.checked,
-                        ...(e.target.checked && { show: true }),
-                      });
-                    }}
-                    toolTip="Toggle position marker timers on map for position markers"
-                    label="All Labels"
-                    labelStyle={{ alignSelf: "center" }}
-                    uniqueId="showHidePosAllLabels"
-                  />
-                </div>
-                <div className={styles.controlCheckbox}>
-                  <Checkbox
-                    checked={mapDisplayPosMarkers.showLatestLabels}
-                    onChange={(e) => {
-                      setMapDisplayPosMarkers({
-                        ...mapDisplayPosMarkers,
-                        showLatestLabels: e.target.checked,
-                        ...(e.target.checked && { show: true }),
-                      });
-                    }}
-                    toolTip="Toggle position marker labels on map for latest position markers"
-                    label="Latest Labels"
-                    labelStyle={{ alignSelf: "center" }}
-                    uniqueId="showHidePosLatestLabels"
-                  />
-                </div>
-                <div className={styles.controlCheckbox}>
-                  <Checkbox
-                    checked={mapDisplayPosMarkers.showPaths}
-                    onChange={(e) => {
-                      setMapDisplayPosMarkers({
-                        ...mapDisplayPosMarkers,
-                        showPaths: e.target.checked,
-                        ...(e.target.checked && { show: true }),
-                      });
-                    }}
-                    toolTip="Toggle position markers on map"
-                    label="Pos Marker Paths"
-                    labelStyle={{ alignSelf: "center" }}
-                    uniqueId="showHidePosPaths"
-                  />
-                </div>
-                <div className={styles.controlCheckbox}>
-                  <Checkbox
-                    checked={mapDisplayPosMarkers.fadeOldPositions}
-                    onChange={(e) => {
-                      setMapDisplayPosMarkers({
-                        ...mapDisplayPosMarkers,
-                        fadeOldPositions: e.target.checked,
-                        ...(e.target.checked && { show: true }),
-                      });
-                    }}
-                    toolTip="Toggle fading old crew positions on map"
-                    label="Fade Old Pos"
-                    labelStyle={{ alignSelf: "center" }}
-                    uniqueId="fadeOldPositions"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className={styles.controlContainer}>
-              <div className={styles.subControl}>
-                <div className={styles.controlCheckbox}>
-                  <Checkbox
-                    checked={showArrows}
-                    onChange={(e) => {
-                      setShowArrows(e.target.checked);
-                    }}
-                    toolTip="Toggle arrows on traverses"
-                    label="Traverse Arrows"
-                    labelStyle={{ alignSelf: "center" }}
-                    uniqueId="showHideArrows"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className={styles.controlContainer}>
-              <div className={styles.subControl}>
-                <div className={styles.controlCheckbox}>
-                  <Checkbox
-                    checked={showGridLabels}
-                    onChange={(e) => {
-                      setShowGridLabels(e.target.checked);
-                    }}
-                    toolTip="Toggle labels on grid layers"
-                    label="Grid Labels"
-                    labelStyle={{ alignSelf: "center" }}
-                    uniqueId="showHideGridLabels"
-                  />
-                </div>
-              </div>
-            </div>
+            <MenuItem
+              title="POIs"
+              selected={mapDisplayPois.show}
+              setSelected={() => {
+                setMapDisplayPois({
+                  ...mapDisplayPois,
+                  show: !mapDisplayPois.show,
+                  showLabels: mapDisplayPois.show ? false : mapDisplayPois.showLabels,
+                });
+              }}
+              collapsible={true}
+            >
+              <MenuItem
+                title="Labels"
+                selected={mapDisplayPois.showLabels}
+                setSelected={() => {
+                  setMapDisplayPois({
+                    ...mapDisplayPois,
+                    showLabels: !mapDisplayPois.showLabels,
+                    show: !mapDisplayPois.show ? true : mapDisplayPois.show,
+                  });
+                }}
+                collapsible={false}
+              />
+            </MenuItem>
+            <MenuItem
+              title="Stations"
+              selected={mapDisplayStations.show}
+              setSelected={() => {
+                setMapDisplayStations({
+                  ...mapDisplayStations,
+                  show: !mapDisplayStations.show,
+                  showLabels: mapDisplayStations.show ? false : mapDisplayStations.showLabels,
+                });
+              }}
+              collapsible={true}
+            >
+              <MenuItem
+                title="Labels"
+                selected={mapDisplayStations.showLabels}
+                setSelected={() => {
+                  setMapDisplayStations({
+                    ...mapDisplayStations,
+                    showLabels: !mapDisplayStations.showLabels,
+                    show: !mapDisplayStations.show ? true : mapDisplayStations.show,
+                  });
+                }}
+                collapsible={false}
+              />
+            </MenuItem>
+            <MenuItem
+              title="Actions"
+              selected={mapDisplayActions.show}
+              setSelected={() => {
+                setMapDisplayActions({
+                  ...mapDisplayActions,
+                  show: !mapDisplayActions.show,
+                  showLabels: mapDisplayActions.show ? false : mapDisplayActions.showLabels,
+                });
+              }}
+              collapsible={true}
+            >
+              <MenuItem
+                title="Labels"
+                selected={mapDisplayActions.showLabels}
+                setSelected={() => {
+                  setMapDisplayActions({
+                    ...mapDisplayActions,
+                    showLabels: !mapDisplayActions.showLabels,
+                    show: !mapDisplayActions.show ? true : mapDisplayActions.show,
+                  });
+                }}
+                collapsible={false}
+              />
+            </MenuItem>
+            <MenuItem
+              title="Position Markers"
+              selected={mapDisplayPosMarkers.show}
+              setSelected={() => {
+                setMapDisplayPosMarkers({
+                  ...mapDisplayPosMarkers,
+                  show: !mapDisplayPosMarkers.show,
+                });
+              }}
+              collapsible={true}
+            >
+              <MenuItem
+                title="All Labels"
+                selected={mapDisplayPosMarkers.showAllLabels}
+                setSelected={() => {
+                  setMapDisplayPosMarkers({
+                    ...mapDisplayPosMarkers,
+                    showAllLabels: !mapDisplayPosMarkers.showAllLabels,
+                    show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                  });
+                }}
+                collapsible={false}
+              />
+              <MenuItem
+                title="Latest Labels"
+                selected={mapDisplayPosMarkers.showLatestLabels}
+                setSelected={() => {
+                  setMapDisplayPosMarkers({
+                    ...mapDisplayPosMarkers,
+                    showLatestLabels: !mapDisplayPosMarkers.showLatestLabels,
+                    show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                  });
+                }}
+                collapsible={false}
+              />
+              <MenuItem
+                title="Position Marker Paths"
+                selected={mapDisplayPosMarkers.showPaths}
+                setSelected={() => {
+                  setMapDisplayPosMarkers({
+                    ...mapDisplayPosMarkers,
+                    showPaths: !mapDisplayPosMarkers.showPaths,
+                    show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                  });
+                }}
+                collapsible={false}
+              />
+              <MenuItem
+                title="Fade Old Marker Positions"
+                selected={mapDisplayPosMarkers.fadeOldPositions}
+                setSelected={() => {
+                  setMapDisplayPosMarkers({
+                    ...mapDisplayPosMarkers,
+                    fadeOldPositions: !mapDisplayPosMarkers.fadeOldPositions,
+                    show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                  });
+                }}
+                collapsible={false}
+              />
+            </MenuItem>
+
+            <MenuItem
+              title="Traverse Arrows"
+              selected={showArrows}
+              setSelected={() => {
+                setShowArrows(!showArrows);
+              }}
+              collapsible={false}
+            />
+
+            <MenuItem
+              title="Grid Labels"
+              selected={showGridLabels}
+              setSelected={() => {
+                setShowGridLabels(!showGridLabels);
+              }}
+              collapsible={false}
+            />
           </div>
         </div>
+      </div>
+    </div>
+  );
+};
+
+const MenuItem: FunctionComponent<{
+  title: string;
+  selected: boolean;
+  setSelected: Function;
+  children?: JSX.Element | JSX.Element[];
+  collapsible: boolean;
+}> = ({ title, selected, setSelected, children, collapsible = false }) => {
+  const [open, setOpen] = useState(true);
+  return (
+    <div>
+      <div className={styles.menuItem}>
+        {collapsible && (
+          <div
+            className={styles.menuItemIcon}
+            onClick={() => {
+              setOpen(!open);
+            }}
+          >
+            <FontAwesomeIcon
+              icon={open ? faCaretDown : faCaretRight}
+              size="sm"
+              style={{ marginTop: "3px", width: "15px", color: "var(--grey5)", outline: "none" }}
+              tabIndex={0}
+            />
+          </div>
+        )}
+        <div
+          className={styles.menuItemTitleContainer}
+          onClick={() => {
+            setSelected();
+          }}
+        >
+          <div className={styles.menuEyeIcon}>
+            <FontAwesomeIcon
+              icon={faEye}
+              size="sm"
+              style={{
+                marginTop: "3px",
+                width: "15px",
+                color: selected ? "var(--grey5)" : "var(--grey3)",
+                outline: "none",
+              }}
+              tabIndex={0}
+            />
+          </div>
+          <div className={styles.menuItemTitle}>{title}</div>
+        </div>
+      </div>
+      <div
+        className={`${styles.menuItemContent} ${!open && styles.hideContent}`}
+        style={{ paddingBottom: children ? "5px" : "0px" }}
+      >
+        {children}
       </div>
     </div>
   );

@@ -1,8 +1,38 @@
-.menuIcon {
+.menuContainer {
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--grey3);
-  padding: 3px 6px 3px 6px;
+  padding: 3px 6px 6px 6px;
   background-color: var(--grey2);
 }
+.menuHeader {
+  display: flex;
+  cursor: pointer;
+  margin-top: 3px;
+}
+.menuHeaderBorder {
+  border-bottom: 1px solid var(--grey3);
+  padding: 0 0 5px 0;
+}
+.menuHeaderTitleContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+}
+.menuHeaderTitle {
+  font-size: 0.9em;
+  padding: 0 0 0 8px;
+  user-select: none;
+  flex: 1 1 auto;
+}
+.menuHeaderClose {
+  padding: 0 5px 0 5px;
+  font-size: 0.9em;
+  color: var(--grey5);
+  flex: 0;
+}
+
 .bottomTriangle {
   width: 0;
   height: 0;
@@ -12,57 +42,56 @@
   right: 2px;
   bottom: 2px;
 }
-
-.menuContainer {
-  display: flex;
-  flex-direction: column;
+.topTriangle {
+  width: 0;
+  height: 0;
+  border-right: 5px solid transparent;
+  border-top: 5px solid var(--grey5);
+  position: absolute;
+  left: 2px;
+  top: 2px;
 }
+
 .menu {
   background-color: var(--grey3);
   color: var(--grey5);
   border-radius: var(--radius);
+  margin: 5px 0 0 0;
 }
 .hideMenu {
   display: none;
 }
 
-.mapDisplay {
-  position: absolute;
+.menuItem {
   display: flex;
+  user-select: none;
+  cursor: pointer;
+}
+.hideContent {
+  display: none;
+}
+.menuItemTitleContainer {
+  display: flex;
+}
+.menuEyeIcon {
+  padding: 0 5px 0 3px;
+}
+.menuItemTitle {
+  font-size: 0.9em;
+  color: var(--grey5);
+}
+.menuItemContent {
+  padding: 0 0 0 35px;
+}
+
+.mapDisplay {
+  display: flex;
+  width: 300px;
   flex-direction: column;
-  border: 2px solid rgba(0, 0, 0, 0.2);
-  border-radius: var(--radius);
   margin-left: -2px;
 }
 .controlsContainer {
   display: flex;
   flex-direction: column;
   background-color: var(--grey2);
-}
-
-.controlContainer {
-  display: flex;
-  flex-direction: row;
-  border: 1px solid var(--grey3);
-  padding: 3px 5px 3px 5px;
-  justify-content: space-between;
-  column-gap: 5px;
-}
-
-.control {
-  flex: 0 0 90px;
-  display: flex;
-  flex-direction: column;
-}
-
-.subControl {
-  display: flex;
-  flex-direction: column;
-  width: 140px;
-}
-
-.controlCheckbox {
-  align-self: flex-start;
-  margin-right: 4px;
-  font-size: 0.8em;
 }
