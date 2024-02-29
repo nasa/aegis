@@ -205,6 +205,7 @@ const StationEditorRight: FunctionComponent = () => {
                 dispatch(upsertStationByField(selectedStation.uuid, "name", val));
               }}
               key={`${selectedStation.uuid}-name`}
+              toFocus={selectedStation.createdAt === selectedStation.updatedAt}
             />
           </div>
         </div>
