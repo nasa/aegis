@@ -25,6 +25,7 @@ const RightAction: FunctionComponent<{
   parentLocation: AEGISPoint | null;
   parentElevation: number | null;
   isRexRunning: boolean;
+  toFocus: boolean;
 }> = ({
   editMode,
   actionUuid,
@@ -33,6 +34,7 @@ const RightAction: FunctionComponent<{
   parentLocation,
   parentElevation,
   isRexRunning,
+  toFocus,
 }) => {
   const dispatch = useAppDispatch();
 
@@ -208,6 +210,7 @@ const RightAction: FunctionComponent<{
                       dispatch(upsertActionByField(action.uuid, "name", value));
                     }}
                     key={`${action.uuid}-name`}
+                    toFocus={toFocus}
                   />
                 </div>
               </div>

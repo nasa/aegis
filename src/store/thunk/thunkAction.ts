@@ -21,17 +21,21 @@ import * as httpClient_action from "http-client/action";
 import * as httpClient_station from "http-client/station";
 import * as httpClient_poi from "http-client/poi";
 
-export const thunkCreateAction = appCreateAsyncThunk<{
-  actionParentUuid: ActionParentUuid;
-  actionOrderUuids: string[];
-  setActionOrderUuids: (actionOrderUuids: string[]) => void;
-  actionTemplate?: ActionTemplate;
-}>(
+export const thunkCreateAction = appCreateAsyncThunk<
+  {
+    actionParentUuid: ActionParentUuid;
+    actionOrderUuids: string[];
+    setActionOrderUuids: (actionOrderUuids: string[]) => void;
+    actionTemplate?: ActionTemplate;
+  },
+  string
+>(
   "actionCreate",
   async (
     { actionParentUuid, actionOrderUuids, setActionOrderUuids, actionTemplate },
     { dispatch, getState }
   ) => {
+    const actionUuid = uuidv4();
     const randomName = generateUniqueName({
       dictName: "starTrek",
       existingNames: getState().action.actions.map((a: Action) => a.name),
@@ -40,7 +44,7 @@ export const thunkCreateAction = appCreateAsyncThunk<{
     let blankAction: Action = {
       ...actionParentUuid,
       missionId: getState().mission.mission?.id,
-      uuid: uuidv4(),
+      uuid: actionUuid,
       name: randomName,
       description: "",
       icon: "26cf-fe0f", //default pickaxe icon
@@ -74,6 +78,8 @@ export const thunkCreateAction = appCreateAsyncThunk<{
     const actionOrder = _.cloneDeep(actionOrderUuids);
     actionOrder.push(blankAction.uuid);
     setActionOrderUuids(actionOrder);
+
+    return actionUuid;
   }
 );
 

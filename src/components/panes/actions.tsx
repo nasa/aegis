@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback, useState } from "react";
+import { FunctionComponent, useCallback, useEffect, useState } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionsStyles from "./actions.module.css";
 import { Button, Dropdown } from "components/interface/form/globalFields";
@@ -54,6 +54,7 @@ const Actions: FunctionComponent<{
 
   const [isActionHiglighted, setIsActionHighlighted] = useState<ActionHighlight[]>([]);
   const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>("");
+  const [newActionUuid, setNewActionUuid] = useState(undefined);
 
   //set state of highlighted actions when the STM is hovered over
   const highlightActions = useCallback(
@@ -83,6 +84,14 @@ const Actions: FunctionComponent<{
     [actionOrderUuids, setActionOrderUuids]
   );
 
+  useEffect(() => {
+    if (newActionUuid !== undefined) {
+      setTimeout(() => {
+        setNewActionUuid(undefined);
+      }, 300);
+    }
+  }, [newActionUuid]);
+
   return (
     <>
       <ActionsTopSection
@@ -110,6 +119,7 @@ const Actions: FunctionComponent<{
               isActionHiglighted={isActionHiglighted}
               stations={useAppSelector((state) => state.station.stations, shallowEqual)}
               pois={useAppSelector((state) => state.poi.pois, shallowEqual)}
+              newActionUuid={newActionUuid}
             />
           </ReactDragListView>
         </div>
@@ -130,17 +140,21 @@ const Actions: FunctionComponent<{
               icon={faPlusCircle}
               label="Add Action"
               style={{ width: "100px" }}
-              onClick={() => {
+              onClick={async () => {
                 const actionTemplate = selectedTemplateUuid
                   ? actionTemplates.find((t) => t.uuid === selectedTemplateUuid)
                   : null;
-                dispatch(
-                  thunkCreateAction({
-                    actionParentUuid,
-                    actionOrderUuids,
-                    setActionOrderUuids,
-                    actionTemplate,
-                  })
+                setNewActionUuid(
+                  (
+                    await dispatch(
+                      thunkCreateAction({
+                        actionParentUuid,
+                        actionOrderUuids,
+                        setActionOrderUuids,
+                        actionTemplate,
+                      })
+                    )
+                  ).payload
                 );
               }}
             />
@@ -330,7 +344,16 @@ export const ActionList: FunctionComponent<{
   stations: Station[];
   pois: POI[];
   isRexRunning: boolean;
-}> = ({ editMode, actionOrderUuids, isActionHiglighted, stations, pois, isRexRunning }) => {
+  newActionUuid: string;
+}> = ({
+  editMode,
+  actionOrderUuids,
+  isActionHiglighted,
+  stations,
+  pois,
+  isRexRunning,
+  newActionUuid,
+}) => {
   return (
     <ul className={actionsStyles.actionlist}>
       {actionOrderUuids?.map((actionUuid, index) => {
@@ -354,6 +377,7 @@ export const ActionList: FunctionComponent<{
               parentLocation={parentLocation}
               parentElevation={parentElevation}
               isRexRunning={isRexRunning}
+              toFocus={newActionUuid === actionUuid}
             />
           </li>
         );

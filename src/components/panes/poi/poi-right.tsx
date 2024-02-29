@@ -154,6 +154,7 @@ const PoiEditorRight: FunctionComponent = () => {
                 dispatch(upsertPoiByField(selectedPoi.uuid, "name", val));
               }}
               key={`${selectedPoi.uuid}-name`}
+              toFocus={selectedPoi.createdAt === selectedPoi.updatedAt}
             />
           </div>
         </div>
