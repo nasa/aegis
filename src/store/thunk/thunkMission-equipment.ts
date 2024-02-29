@@ -88,11 +88,13 @@ export const thunkDeleteEquipment = appCreateAsyncThunk<{ equipmentItemUuid: str
   }
 );
 
-export const thunkCreateEquipment = appCreateAsyncThunk<void>(
+export const thunkCreateEquipment = appCreateAsyncThunk<void, string>(
   "createEquipment",
   async (_, { dispatch, getState }) => {
+    const equipmentUuid = uuidv4();
+
     const blankEquipmentItem: EquipmentItem = {
-      uuid: uuidv4(),
+      uuid: equipmentUuid,
       name: "(Equipment Name)",
       quantity: 1,
       singleUse: false,
@@ -101,5 +103,7 @@ export const thunkCreateEquipment = appCreateAsyncThunk<void>(
     const equipmentItems = getState().mission.mission.equipmentItems || [];
     const newEquipmentItems = [...equipmentItems, blankEquipmentItem];
     dispatch(upsertMission({ ...getState().mission.mission, equipmentItems: newEquipmentItems }));
+
+    return equipmentUuid;
   }
 );

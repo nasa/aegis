@@ -182,7 +182,7 @@ export const thunkUpdateLanderLocation = appCreateAsyncThunk<{
   }
 });
 
-export const thunkCreateActionTemplate = appCreateAsyncThunk<void>(
+export const thunkCreateActionTemplate = appCreateAsyncThunk<void, string>(
   "createActionTemplate",
   async (_, { dispatch, getState }) => {
     const randomName = generateUniqueName({
@@ -190,10 +190,12 @@ export const thunkCreateActionTemplate = appCreateAsyncThunk<void>(
       existingNames: getState().mission.mission.actionTemplates?.map((a) => a.type) || [],
     });
 
+    const templateUuid = uuidv4();
+
     const blankActionTemplate: ActionTemplate = {
       templateName: randomName,
       missionId: getState().mission.mission?.id,
-      uuid: uuidv4(),
+      uuid: templateUuid,
       name: "",
       description: "",
       status: "Candidate",
@@ -214,6 +216,8 @@ export const thunkCreateActionTemplate = appCreateAsyncThunk<void>(
     const actionTemplates = cloneDeep(getState().mission.mission.actionTemplates) || [];
     actionTemplates.push(blankActionTemplate);
     dispatch(upsertMissionByField("actionTemplates", actionTemplates));
+
+    return templateUuid;
   }
 );
 

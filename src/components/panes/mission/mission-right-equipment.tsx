@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import styles from "./mission.module.css";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
@@ -18,6 +18,15 @@ import {
 const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
+  const [newEquipmentUuid, setNewEquipmentUuid] = useState(undefined);
+
+  useEffect(() => {
+    if (newEquipmentUuid !== undefined) {
+      setTimeout(() => {
+        setNewEquipmentUuid(undefined);
+      }, 300);
+    }
+  }, [newEquipmentUuid]);
 
   return (
     <div className={paneStyles.rightBody}>
@@ -51,6 +60,7 @@ const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                       item={item}
                       editMode={editMode}
                       evenRow={index % 2 === 0}
+                      toFocus={newEquipmentUuid === item.uuid}
                     />
                   </li>
                 ))}
@@ -61,8 +71,8 @@ const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                   icon={faPlusCircle}
                   label="Add Equipment Type"
                   style={{ width: "155px", marginLeft: "18px", marginTop: "8px" }}
-                  onClick={() => {
-                    dispatch(thunkCreateEquipment());
+                  onClick={async () => {
+                    setNewEquipmentUuid((await dispatch(thunkCreateEquipment())).payload);
                   }}
                 />
               )}
@@ -80,7 +90,8 @@ const EquipmentItem: FunctionComponent<{
   item: EquipmentItem;
   editMode: boolean;
   evenRow: boolean;
-}> = ({ item, editMode, evenRow }) => {
+  toFocus: boolean;
+}> = ({ item, editMode, evenRow, toFocus }) => {
   const dispatch = useAppDispatch();
 
   let backgroundColor: string = "var(--grey2)";
@@ -110,6 +121,7 @@ const EquipmentItem: FunctionComponent<{
               );
             }}
             key={`${item.uuid}-name`}
+            toFocus={toFocus}
           />
         </div>
         <div className={styles.propertyRowQuantity}>
