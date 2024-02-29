@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import _ from "lodash";
 import { faPlusCircle, faTrashAlt, faList } from "@fortawesome/free-solid-svg-icons";
@@ -73,8 +73,8 @@ const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => 
                   icon={faPlusCircle}
                   label="Add New Radii"
                   style={{ width: "120px", marginLeft: "18px", marginTop: "8px" }}
-                  onClick={() => {
-                    dispatch(thunkCreateLanderRadius());
+                  onClick={async () => {
+                    await dispatch(thunkCreateLanderRadius());
                   }}
                 />
               )}
@@ -94,11 +94,21 @@ const RadiusItem: FunctionComponent<{
   evenRow: boolean;
 }> = ({ landerRadius, editMode, evenRow }) => {
   const dispatch = useAppDispatch();
+  const [toFocus, setToFocus] = useState(landerRadius.name === "(Lander Radius Name)");
 
   let backgroundColor: string = "var(--grey2)";
   if (!editMode) {
     backgroundColor = evenRow ? "var(--grey2)" : "var(--grey1)";
   }
+
+  useEffect(() => {
+    if (toFocus) {
+      setTimeout(() => {
+        setToFocus(false);
+      }, 300);
+    }
+  }, [toFocus]);
+
   return (
     <div className={paneStyles.descriptionContainer}>
       <div className={styles.propertyRow} style={{ backgroundColor }}>
@@ -122,6 +132,7 @@ const RadiusItem: FunctionComponent<{
               );
             }}
             key={`${landerRadius.uuid}-name`}
+            toFocus={toFocus}
           />
         </div>
         <div className={styles.propertyRowQuantity}>

@@ -1,7 +1,15 @@
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
-import { FunctionComponent, useState, CSSProperties, ChangeEvent, ReactNode, useRef } from "react";
+import {
+  FunctionComponent,
+  useState,
+  CSSProperties,
+  ChangeEvent,
+  ReactNode,
+  useRef,
+  useEffect,
+} from "react";
 import styles from "./globalFields.module.css";
 import { TagsInput } from "react-tag-input-component";
 import { decodeEmoji } from "utils/formatting";
@@ -10,7 +18,7 @@ import React from "react";
 import { Field, FieldMetaState } from "react-final-form";
 import { composeValidators } from "components/interface/form/formValidators";
 import Select from "react-select";
-import { FFTextProps, FFCheckboxProps, FFSelectProps } from "typings/form";
+import { FFTextProps, FFCheckboxProps, FFSelectProps, FFTextAreaProps } from "typings/form";
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import formStyles from "./globalFields.module.css";
 import CircularSlider from "@fseehawer/react-circular-slider";
@@ -206,7 +214,8 @@ export const InLineEditInput: FunctionComponent<{
   styleValue?: CSSProperties;
   styleContainer?: CSSProperties;
   onSubmit?: (value: string) => void;
-}> = ({ value, editing, styleValue, styleContainer, onSubmit, fieldProps }) => {
+  toFocus?: boolean;
+}> = ({ value, editing, styleValue, styleContainer, onSubmit, fieldProps, toFocus }) => {
   const debouncedSubmitRef = useRef(
     _.debounce((formValue) => {
       if (onSubmit) onSubmit(formValue);
@@ -232,6 +241,7 @@ export const InLineEditInput: FunctionComponent<{
                   onChange={() => {
                     form.submit();
                   }}
+                  toFocus={toFocus}
                 />
               </form>
             );
@@ -489,9 +499,22 @@ export const FFInput: FunctionComponent<FFTextProps> = ({
   classNameError,
   style,
   initialValue,
+  toFocus,
   onChange,
   onBlur,
 }) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const handleFocus = (event: React.FocusEvent<HTMLInputElement>) => {
+    // if set to autoFocus select all text on focus
+    if (toFocus) event.target.select();
+  };
+
+  useEffect(() => {
+    if (toFocus) {
+      inputRef.current?.focus();
+    }
+  }, [toFocus]);
+
   return (
     <Field
       name={name}
@@ -529,6 +552,11 @@ export const FFInput: FunctionComponent<FFTextProps> = ({
               onClick={(event) => {
                 event.stopPropagation();
               }}
+              onFocus={(event) => {
+                input.onFocus(event);
+                handleFocus(event);
+              }}
+              ref={inputRef}
             />
             <ValidationErrors meta={meta} />
           </div>
@@ -543,7 +571,7 @@ export const FFInput: FunctionComponent<FFTextProps> = ({
  * @param param0
  * @returns
  */
-export const FFTextArea: FunctionComponent<FFTextProps> = ({
+export const FFTextArea: FunctionComponent<FFTextAreaProps> = ({
   name,
   ariaLabel,
   label = false,
