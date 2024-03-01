@@ -344,7 +344,7 @@ export const ActionList: FunctionComponent<{
   stations: Station[];
   pois: POI[];
   isRexRunning: boolean;
-  newActionUuid: string;
+  newActionUuid?: string;
 }> = ({
   editMode,
   actionOrderUuids,

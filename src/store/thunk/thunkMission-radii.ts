@@ -28,11 +28,12 @@ export const thunkDeleteLanderRadius = appCreateAsyncThunk<{ landerRadiusUuid: s
   }
 );
 
-export const thunkCreateLanderRadius = appCreateAsyncThunk<void>(
+export const thunkCreateLanderRadius = appCreateAsyncThunk<void, string>(
   "createLanderRadius",
   async (_, { dispatch, getState }) => {
+    const landerRadiusUuid = uuidv4();
     const blankLanderRadius: LanderRadius = {
-      uuid: uuidv4(),
+      uuid: landerRadiusUuid,
       name: "(Lander Radius Name)",
       radius: 0,
     };
@@ -41,5 +42,7 @@ export const thunkCreateLanderRadius = appCreateAsyncThunk<void>(
     const landerRadius = blankLanderRadius;
     const newLanderRadii = [...landerRadii, landerRadius];
     dispatch(upsertMission({ ...getState().mission.mission, landerRadii: newLanderRadii }));
+
+    return landerRadiusUuid;
   }
 );

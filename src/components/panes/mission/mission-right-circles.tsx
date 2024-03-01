@@ -18,6 +18,15 @@ import {
 const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
+  const [newRadiusUuid, setNewRadiusUuid] = useState(undefined);
+
+  useEffect(() => {
+    if (newRadiusUuid !== undefined) {
+      setTimeout(() => {
+        setNewRadiusUuid(undefined);
+      }, 300);
+    }
+  }, [newRadiusUuid]);
 
   return (
     <div className={paneStyles.rightBody}>
@@ -62,6 +71,7 @@ const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => 
                         landerRadius={item}
                         editMode={editMode}
                         evenRow={index % 2 === 0}
+                        toFocus={newRadiusUuid === item.uuid}
                       />
                     </li>
                   ))}
@@ -92,22 +102,14 @@ const RadiusItem: FunctionComponent<{
   landerRadius: LanderRadius;
   editMode: boolean;
   evenRow: boolean;
-}> = ({ landerRadius, editMode, evenRow }) => {
+  toFocus: boolean;
+}> = ({ landerRadius, editMode, evenRow, toFocus }) => {
   const dispatch = useAppDispatch();
-  const [toFocus, setToFocus] = useState(landerRadius.name === "(Lander Radius Name)");
 
   let backgroundColor: string = "var(--grey2)";
   if (!editMode) {
     backgroundColor = evenRow ? "var(--grey2)" : "var(--grey1)";
   }
-
-  useEffect(() => {
-    if (toFocus) {
-      setTimeout(() => {
-        setToFocus(false);
-      }, 300);
-    }
-  }, [toFocus]);
 
   return (
     <div className={paneStyles.descriptionContainer}>
