@@ -36,7 +36,7 @@ export const ActionTemplateMenu: FunctionComponent<{
             }}
           >
             <div className={actionStyles.menuItemIcon}>
-              <FontAwesomeIcon icon={faClone} size="lg" />
+              <FontAwesomeIcon icon={faClone} />
             </div>
             <div className={actionStyles.menuItemText}>Duplicate Template</div>
           </div>
@@ -51,7 +51,7 @@ export const ActionTemplateMenu: FunctionComponent<{
             }}
           >
             <div className={actionStyles.menuItemIcon}>
-              <FontAwesomeIcon icon={faTrashAlt} size="sm" />
+              <FontAwesomeIcon icon={faTrashAlt} />
             </div>
             <div className={actionStyles.menuItemText}>Delete Template</div>
           </div>
