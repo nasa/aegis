@@ -20,6 +20,7 @@ const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
   const [newEquipmentUuid, setNewEquipmentUuid] = useState(undefined);
 
+  // Unmarks newest list item as "new" after a short timeout (for autofocusing)
   useEffect(() => {
     if (newEquipmentUuid !== undefined) {
       setTimeout(() => {

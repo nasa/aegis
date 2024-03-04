@@ -84,6 +84,7 @@ const Actions: FunctionComponent<{
     [actionOrderUuids, setActionOrderUuids]
   );
 
+  // Unmarks newest list item as "new" after a short timeout (for autofocusing)
   useEffect(() => {
     if (newActionUuid !== undefined) {
       setTimeout(() => {

@@ -50,6 +50,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
   const [newTemplateUuid, setNewTemplateUuid] = useState(undefined);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
+  // Unmarks newest list item as "new" after a short timeout (for autofocusing)
   useEffect(() => {
     if (newTemplateUuid !== undefined) {
       setTimeout(() => {

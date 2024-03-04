@@ -19,6 +19,7 @@ const GeographiUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
   const [newGeoUuid, setNewGeoUuid] = useState(undefined);
 
+  // Unmarks newest list item as "new" after a short timeout (for autofocusing)
   useEffect(() => {
     if (newGeoUuid !== undefined) {
       setTimeout(() => {
