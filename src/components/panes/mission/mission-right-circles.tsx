@@ -84,7 +84,7 @@ const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => 
                   label="Add New Radii"
                   style={{ width: "120px", marginLeft: "18px", marginTop: "8px" }}
                   onClick={async () => {
-                    await dispatch(thunkCreateLanderRadius());
+                    setNewRadiusUuid((await dispatch(thunkCreateLanderRadius())).payload);
                   }}
                 />
               )}
