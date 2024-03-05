@@ -1,13 +1,13 @@
 import * as L from "leaflet";
 L.Icon.Default.imagePath = "/leaflet/images/";
 // Import the plugin libraries so they will modify L
-import { HighlightablePolyline } from "leaflet-highlightable-layers";
-import DraggableLines from "leaflet-draggable-lines";
-import { antPath } from "leaflet-ant-path";
 import "leaflet-textpath";
 import "leaflet.tilelayer.colorfilter";
 import "proj4leaflet";
 import "leaflet-polylineoffset";
+import { antPath } from "leaflet-ant-path";
+import DraggableLines from "leaflet-draggable-lines";
+import { HighlightablePolyline } from "leaflet-highlightable-layers";
 import * as geojson from "geojson";
 
 import styles from "components/interface/map/map-body.module.css";
@@ -57,10 +57,10 @@ import { MapViewMenu } from "./map-menu-view";
 import { MapPositionMenu } from "./map-menu-pos";
 import { thunkUpdatePosEntryLocation } from "store/thunk/thunkRex";
 import PetInterval from "../page/petInterval";
-import ReactDOMServer from "react-dom/server";
 import { isWindows10 } from "utils/browser";
 import Color from "color";
 import { useCookies } from "react-cookie";
+import ReactDOMServer from "react-dom/server";
 
 type MissionSelectProperties = Pick<
   Mission,
@@ -900,15 +900,6 @@ const MapBody: FunctionComponent = () => {
       polyline.uuid = uuid;
       polyline.mapItemType = mapItemType;
 
-      // polyline arrows
-      if (showArrows) {
-        polyline.setText("➤             ", {
-          repeat: true,
-          offset: 6,
-          attributes: { fill: color, "font-weight": "bold", "font-size": "16" },
-        });
-      }
-
       // polyline handlers
       polyline
         .bindTooltip(`${name} ${typeName}`, {
@@ -927,6 +918,15 @@ const MapBody: FunctionComponent = () => {
         });
 
       map.current.addLayer(polyline);
+
+      // polyline arrows. must be after addLayer to fix git issue #528
+      if (showArrows) {
+        polyline.setText("➤             ", {
+          repeat: true,
+          offset: 6,
+          attributes: { fill: color, "font-weight": "bold", "font-size": "16" },
+        });
+      }
 
       if (drawAntPath && !showArrows) {
         const aPath = antPath(path, {
@@ -1888,13 +1888,14 @@ const MapBody: FunctionComponent = () => {
         path.uuid = uuid;
         path.mapItemType = "posPath";
 
+        posEntryFeatureGroup.current.addLayer(path);
+
+        //must be after addLayer to fix git issue #528
         path.setText("➤             ", {
           repeat: true,
           offset: 4,
           attributes: { fill: color, "font-weight": "bold", "font-size": "12", opacity: 0.6 },
         });
-
-        posEntryFeatureGroup.current.addLayer(path);
       }
     },
     [getMapItemByUuid]

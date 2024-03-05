@@ -136,28 +136,34 @@ export const thunkObliterateEntireStore = appCreateAsyncThunk<void>(
   }
 );
 
-export const thunkSetRunningRexView = appCreateAsyncThunk<{
-  runningRexUuid: string;
-}>("cross/setRunningRexView", async ({ runningRexUuid }, { dispatch, getState }) => {
-  const state = getState() as RootState;
+//sets the selected tab to the current running rex
+export const thunkSetRunningRexView = appCreateAsyncThunk<void>(
+  "cross/setRunningRexView",
+  async (_, { dispatch, getState }) => {
+    const runningRex = getState().rex.rexes.find((rex) => rex.isRunning === true);
+    if (runningRex) {
+      const runningRexUuid = runningRex.uuid;
+      const state = getState() as RootState;
 
-  // Set the selected Rex UUID in the rex slice
-  dispatch(rexSlice.actions.setSelectedRexUuid(runningRexUuid));
+      // Set the selected Rex UUID in the rex slice
+      dispatch(rexSlice.actions.setSelectedRexUuid(runningRexUuid));
 
-  // Expand the Rex UUIDs in the rex slice
-  dispatch(rexSlice.actions.setExpandedRexUuids([runningRexUuid]));
+      // Expand the Rex UUIDs in the rex slice
+      dispatch(rexSlice.actions.setExpandedRexUuids([runningRexUuid]));
 
-  // Set the right panel in the interface slice
-  dispatch(interfaceSlice.actions.setRightPanelOpen(true));
-  dispatch(interfaceSlice.actions.setSectionSelected("rex"));
+      // Set the right panel in the interface slice
+      dispatch(interfaceSlice.actions.setRightPanelOpen(true));
+      dispatch(interfaceSlice.actions.setSectionSelected("rex"));
 
-  // Find the EVA UUID associated with the Rex and set it in the eva slice
-  const evaUuid = state.rex.rexes.find((rex) => rex.uuid === runningRexUuid)?.evaUuid;
-  if (evaUuid) {
-    dispatch(evaSlice.actions.setSelectedEvaUuid(evaUuid));
-    dispatch(evaSlice.actions.setSelectedEvaRightNavItem("actions_panel"));
+      // Find the EVA UUID associated with the Rex and set it in the eva slice
+      const evaUuid = state.rex.rexes.find((rex) => rex.uuid === runningRexUuid)?.evaUuid;
+      if (evaUuid) {
+        dispatch(evaSlice.actions.setSelectedEvaUuid(evaUuid));
+        dispatch(evaSlice.actions.setSelectedEvaRightNavItem("actions_panel"));
+      }
+    }
   }
-});
+);
 
 export const thunkSetAllStoreLoadingStatuses = appCreateAsyncThunk<{
   loadingStatus: LoadingStatus;
