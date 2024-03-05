@@ -142,6 +142,7 @@
 
 .actionHeadingRight {
   display: flex;
+  margin: 4px 4px 0 auto;
   user-select: none;
 }
 
@@ -156,6 +157,13 @@
 .actionHeadingCrew {
   display: flex;
   flex-direction: row;
+}
+
+.actionQuickButton {
+  display: inline-flex;
+  margin: 0 4px 0 4px;
+  flex-direction: column;
+  cursor: pointer;
 }
 
 .actionHeadingCrewLeft {
@@ -223,6 +231,18 @@
 .menu {
   position: fixed;
   width: 130px;
+  z-index: 100;
+  background-color: var(--grey3);
+  color: var(--grey5);
+  border-radius: var(--radius);
+  font-size: 0.8em;
+  display: flex;
+  flex-direction: column;
+}
+
+.templateMenu {
+  position: fixed;
+  width: 140px;
   z-index: 100;
   background-color: var(--grey3);
   color: var(--grey5);

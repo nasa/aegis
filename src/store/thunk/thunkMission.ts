@@ -13,6 +13,7 @@ import { setPresetUIStates } from "store/preset";
 import { thunkSavePreset } from "./thunkPreset";
 import { setMapCircleControls } from "store/map";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -362,5 +363,27 @@ export const thunkMakeExportString = appCreateAsyncThunk<
     const dataStr = JSON.stringify(sortedJson, null, 2);
 
     return dataStr;
+  }
+);
+
+export const thunkDuplicateActionTemplate = appCreateAsyncThunk<{ actionTemplateUuid: string }>(
+  "duplicateActionTemplate",
+  async ({ actionTemplateUuid }, { dispatch, getState }) => {
+    const actionTemplates = cloneDeep(getState().mission.mission.actionTemplates) || [];
+    const itemIndex = actionTemplates.findIndex((t) => t.uuid === actionTemplateUuid);
+    const modelTemplate = actionTemplates[itemIndex];
+
+    const duplicatedActionTemplate: ActionTemplate = cloneDeep(modelTemplate);
+    duplicatedActionTemplate.uuid = uuidv4();
+    duplicatedActionTemplate.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
+    duplicatedActionTemplate.updatedAt = roundDateToSecond(getAccurateNow()).toISOString();
+    duplicatedActionTemplate.templateName = makeUniqueStringCopy(
+      modelTemplate.templateName,
+      actionTemplates.map((a) => a.templateName)
+    );
+
+    //upsert action template
+    actionTemplates.push(duplicatedActionTemplate);
+    dispatch(upsertMissionByField("actionTemplates", actionTemplates));
   }
 );

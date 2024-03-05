@@ -18,7 +18,6 @@ import {
   faPersonWalkingLuggage,
   faPlusCircle,
   faTableList,
-  faTrashAlt,
   faWeightHanging,
 } from "@fortawesome/free-solid-svg-icons";
 import { Button, Dropdown, InLineEditInput } from "components/interface/form/globalFields";
@@ -28,11 +27,7 @@ import {
   ExpandCollapseActionsButtons,
   GeographicUnitSelector,
 } from "../actions-action-body-multiselectors";
-import {
-  thunkCreateActionTemplate,
-  thunkDeleteActionTemplate,
-  thunkUpdateActionTemplate,
-} from "store/thunk/thunkMission";
+import { thunkCreateActionTemplate, thunkUpdateActionTemplate } from "store/thunk/thunkMission";
 import { collapseActions, expandActions } from "store/interface";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { validators, regExValidators } from "components/interface/form/formValidators";
@@ -41,6 +36,7 @@ import { decodeEmoji, toDecimal } from "utils/formatting";
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
 import STMSelector from "../stm/stm-selector";
+import { ActionTemplateMenu } from "../mission-actionTemplates-menu";
 
 const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -163,23 +159,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                     )}
                     <div className={actionActionStyles.actionsHeadingTitle}></div>
                     <div className={actionActionStyles.actionHeadingRight}>
-                      {editMode && (
-                        <FontAwesomeIcon
-                          icon={faTrashAlt}
-                          size="sm"
-                          onClick={(e) => {
-                            if (window.confirm("Are you sure you want to delete this Template?")) {
-                              dispatch(
-                                thunkDeleteActionTemplate({
-                                  actionTemplateUuid: actionTemplate.uuid,
-                                })
-                              );
-                              e.stopPropagation();
-                            }
-                          }}
-                          style={{ marginTop: "3px" }}
-                        />
-                      )}
+                      {editMode && <ActionTemplateMenu actionTemplate={actionTemplate} />}
                     </div>
                   </div>
                   {actionsExpanded.includes(actionTemplate.uuid) && (
