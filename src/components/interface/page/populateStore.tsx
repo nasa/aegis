@@ -384,10 +384,7 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
         dispatch(setRexesFromDb(rexData));
 
         //If REX is happening, then switch the interface to show the rex pane and EVA actions right panel
-        const runningRex = rexData.find((rex) => rex.isRunning === true);
-        if (runningRex) {
-          dispatch(thunkSetRunningRexView({ runningRexUuid: runningRex.uuid }));
-        }
+        dispatch(thunkSetRunningRexView());
       }
       dispatch(setRexLoadingStatus("loaded"));
     })();
