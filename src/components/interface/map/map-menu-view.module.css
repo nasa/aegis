@@ -1,0 +1,97 @@
+.menuContainer {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--grey3);
+  padding: 3px 6px 6px 6px;
+  background-color: var(--grey2);
+}
+.menuHeader {
+  display: flex;
+  cursor: pointer;
+  margin-top: 3px;
+}
+.menuHeaderBorder {
+  border-bottom: 1px solid var(--grey3);
+  padding: 0 0 5px 0;
+}
+.menuHeaderTitleContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+}
+.menuHeaderTitle {
+  font-size: 0.9em;
+  padding: 0 0 0 8px;
+  user-select: none;
+  flex: 1 1 auto;
+}
+.menuHeaderClose {
+  padding: 0 5px 0 5px;
+  font-size: 0.9em;
+  color: var(--grey5);
+  flex: 0;
+}
+
+.bottomTriangle {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-bottom: 5px solid var(--grey5);
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+}
+.topTriangle {
+  width: 0;
+  height: 0;
+  border-right: 5px solid transparent;
+  border-top: 5px solid var(--grey5);
+  position: absolute;
+  left: 2px;
+  top: 2px;
+}
+
+.menu {
+  background-color: var(--grey3);
+  color: var(--grey5);
+  border-radius: var(--radius);
+  margin: 5px 0 0 0;
+}
+.hideMenu {
+  display: none;
+}
+
+.menuItem {
+  display: flex;
+  user-select: none;
+  cursor: pointer;
+}
+.hideContent {
+  display: none;
+}
+.menuItemTitleContainer {
+  display: flex;
+}
+.menuEyeIcon {
+  padding: 0 5px 0 3px;
+}
+.menuItemTitle {
+  font-size: 0.9em;
+  color: var(--grey5);
+}
+.menuItemContent {
+  padding: 0 0 0 35px;
+}
+
+.mapDisplay {
+  display: flex;
+  width: 300px;
+  flex-direction: column;
+  margin-left: -2px;
+}
+.controlsContainer {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--grey2);
+}

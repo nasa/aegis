@@ -1,0 +1,60 @@
+export async function getActions(filter: ActionFilterOptions): Promise<WrappedResponse<Action[]>> {
+  let urlParams = "";
+
+  if (filter.missionId) urlParams += `missionId=${filter.missionId}`;
+  if (filter.actionUuid) urlParams += `&uuid=${filter.actionUuid}`;
+  if (filter.poiUuid) urlParams += `&poiUuid=${filter.poiUuid}`;
+  if (filter.stationUuid) urlParams += `&stationUuid=${filter.stationUuid}`;
+
+  const res: Response = await fetch(`/api/v1/action?${urlParams}`);
+  const response: WrappedResponse<Action[]> = await res.json();
+  return response;
+}
+
+export async function upsertActions(
+  actions: Action[],
+  log: boolean = false
+): Promise<WrappedResponse<Action[]>> {
+  const missionId =
+    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
+  const logStr = log ? "&log=true" : "";
+  const res = await fetch(`/api/v1/action?socketId=${socketId}&missionId=${missionId}${logStr}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(actions),
+  });
+  const response: WrappedResponse<Action[]> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error saving actions to database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
+  return response;
+}
+
+export async function deleteActions(
+  actionUuids: string[],
+  log: boolean = false
+): Promise<WrappedResponse<null>> {
+  const missionId =
+    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
+  const logStr = log ? "&log=true" : "";
+  const res = await fetch(`/api/v1/action?socketId=${socketId}&missionId=${missionId}${logStr}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(actionUuids),
+  });
+  const response: WrappedResponse<null> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error deleting actions from database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
+  return response;
+}

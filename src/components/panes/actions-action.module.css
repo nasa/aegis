@@ -1,0 +1,276 @@
+.actionPanelContainer {
+  margin: 0;
+
+  padding: 1px 0 1px 0px;
+}
+
+.highlightAction {
+  background-color: #2b6092;
+  border-radius: var(--panelRadius);
+}
+
+.verticalCenter {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.reorderIcon {
+  display: flex;
+  margin-left: 5px;
+  transform: scaleX(0.8);
+  cursor: pointer;
+}
+
+.iconFaded {
+  color: var(--grey4);
+  outline: none;
+}
+
+.selectorContainer {
+  padding-left: 0;
+}
+
+.propertyList {
+  margin-left: 18px;
+}
+
+.propertyItem {
+  display: flex;
+  flex-direction: row;
+  font-size: 0.8em;
+}
+
+.propertyItemLabel {
+  font-size: 0.8em;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.propertyListDoubleColumn {
+  display: flex;
+  flex-direction: row;
+  padding-left: 15px;
+  width: 100%;
+}
+
+.propertyListColumn {
+  flex: 0 0 50%;
+}
+
+.actionIndent {
+  padding-left: 25px;
+  padding-bottom: 5px;
+  border-left: 1px solid var(--grey2);
+}
+
+.actionHeading {
+  display: flex;
+  gap: 4px;
+  min-height: 20px;
+  margin-left: 1px;
+  margin-right: 1px;
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
+  border-top-right-radius: var(--panelRadius);
+  border-bottom-right-radius: var(--panelRadius);
+}
+
+.actionHeadingDisabled {
+  background-color: var(--grey1);
+  color: var(--grey3);
+}
+
+.actionHeadingSkipped {
+  color: var(--grey4);
+  text-decoration: line-through;
+}
+
+.actionHeadingRexStatusWrapper {
+  margin: 2px 4px 0 2px;
+  user-select: none;
+}
+
+.actionHeadingType {
+  font-size: 0.8rem;
+  font-weight: 400;
+  min-width: 58px;
+  max-width: 58px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.actionHeadingTitle {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: row;
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.actionHeadingTitleTextonly {
+  flex-grow: 1;
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.actionHeadingTitleIcon {
+  width: 17px;
+  font-size: 0.8rem;
+  text-align: center;
+  cursor: pointer;
+}
+
+.actionHeadingCaret {
+  margin-left: 2px;
+  margin-top: 1px;
+  cursor: pointer;
+}
+
+.actionHeadingCaretRight {
+  margin-top: 0;
+  margin-right: 2px;
+}
+
+.actionHeadingCaretDown {
+  margin-top: 0;
+}
+
+.actionHeadingRight {
+  display: flex;
+  margin: 4px 4px 0 auto;
+  user-select: none;
+}
+
+.actionHeadingRightItem {
+  font-size: 0.8em;
+  margin: 0 4px 0 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.actionHeadingCrew {
+  display: flex;
+  flex-direction: row;
+}
+
+.actionQuickButton {
+  display: inline-flex;
+  margin: 0 4px 0 4px;
+  flex-direction: column;
+  cursor: pointer;
+}
+
+.actionHeadingCrewLeft {
+  font-size: 0.8rem;
+  background-color: var(--grey3);
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
+  padding: 2px 4px 2px 4px;
+  margin-right: 1px;
+}
+.actionHeadingCrewRight {
+  font-size: 0.8rem;
+  background-color: var(--grey3);
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+  padding: 2px 4px 2px 4px;
+}
+.actionHeadingCrewSelected {
+  background-color: var(--grey4);
+  color: var(--grey1);
+  font-weight: 600;
+}
+.actionHeadingCrewDisabled {
+  width: 31px;
+}
+
+.statusLoading {
+  width: 18px;
+  min-height: 18px;
+  display: inline-block;
+  margin-left: 0.1em;
+  padding-right: 0.4em;
+
+  background-size: 18px 18px;
+  background-repeat: no-repeat;
+
+  background-position: center;
+  background-image: url(/images/icon_status_loading.svg);
+}
+
+.iconDisplayButton {
+  cursor: pointer;
+  margin-right: 5px;
+}
+
+.iconPickerContainer {
+  position: relative;
+}
+
+.iconPicker {
+  position: absolute;
+  left: -60px;
+  top: -440px;
+  z-index: 100;
+}
+
+.menuContainer {
+  position: relative;
+  padding: 0;
+  border: none;
+  /* border-radius: var(--radius); */
+  background-color: rgb(0, 0, 0, 0);
+}
+
+.menu {
+  position: fixed;
+  width: 130px;
+  z-index: 100;
+  background-color: var(--grey3);
+  color: var(--grey5);
+  border-radius: var(--radius);
+  font-size: 0.8em;
+  display: flex;
+  flex-direction: column;
+}
+
+.templateMenu {
+  position: fixed;
+  width: 140px;
+  z-index: 100;
+  background-color: var(--grey3);
+  color: var(--grey5);
+  border-radius: var(--radius);
+  font-size: 0.8em;
+  display: flex;
+  flex-direction: column;
+}
+
+.menuItem {
+  display: flex;
+  flex-direction: row;
+  padding: 5px;
+  cursor: pointer;
+}
+
+.menuItem:hover {
+  background-color: var(--grey2);
+}
+
+.menuItem:not(:last-child) {
+  border-bottom: 1px solid var(--grey4);
+}
+
+.menuItemIcon {
+  flex: 0 0 18px;
+}
+
+.menuItemText {
+  flex: 1 1 auto;
+}
