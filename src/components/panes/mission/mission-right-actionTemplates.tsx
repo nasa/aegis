@@ -1,4 +1,4 @@
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import missionStyles from "./mission.module.css";
 import actionStyles from "../actions.module.css";
@@ -43,7 +43,17 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
   const actionsExpanded = useAppSelector((state) => state.interface.actionsExpanded, shallowEqual);
 
+  const [newTemplateUuid, setNewTemplateUuid] = useState(undefined);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  // Unmarks newest list item as "new" after a short timeout (for autofocusing)
+  useEffect(() => {
+    if (newTemplateUuid !== undefined) {
+      setTimeout(() => {
+        setNewTemplateUuid(undefined);
+      }, 300);
+    }
+  }, [newTemplateUuid]);
 
   return (
     <div className={paneStyles.rightBody}>
@@ -153,6 +163,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                               );
                             }}
                             key={`${actionTemplate.uuid}-templateName`}
+                            toFocus={actionTemplate.uuid === newTemplateUuid}
                           />
                         </div>
                       </>
@@ -622,8 +633,8 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
               icon={faPlusCircle}
               label="Add Template"
               style={{ width: "120px" }}
-              onClick={() => {
-                dispatch(thunkCreateActionTemplate());
+              onClick={async () => {
+                setNewTemplateUuid((await dispatch(thunkCreateActionTemplate())).payload);
               }}
             />
           )}

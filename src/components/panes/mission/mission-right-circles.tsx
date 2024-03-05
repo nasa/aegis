@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import _ from "lodash";
 import { faPlusCircle, faTrashAlt, faList } from "@fortawesome/free-solid-svg-icons";
@@ -18,6 +18,16 @@ import {
 const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
+  const [newRadiusUuid, setNewRadiusUuid] = useState(undefined);
+
+  // Unmarks newest list item as "new" after a short timeout (for autofocusing)
+  useEffect(() => {
+    if (newRadiusUuid !== undefined) {
+      setTimeout(() => {
+        setNewRadiusUuid(undefined);
+      }, 300);
+    }
+  }, [newRadiusUuid]);
 
   return (
     <div className={paneStyles.rightBody}>
@@ -62,6 +72,7 @@ const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => 
                         landerRadius={item}
                         editMode={editMode}
                         evenRow={index % 2 === 0}
+                        toFocus={newRadiusUuid === item.uuid}
                       />
                     </li>
                   ))}
@@ -73,8 +84,8 @@ const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => 
                   icon={faPlusCircle}
                   label="Add New Radii"
                   style={{ width: "120px", marginLeft: "18px", marginTop: "8px" }}
-                  onClick={() => {
-                    dispatch(thunkCreateLanderRadius());
+                  onClick={async () => {
+                    setNewRadiusUuid((await dispatch(thunkCreateLanderRadius())).payload);
                   }}
                 />
               )}
@@ -92,13 +103,15 @@ const RadiusItem: FunctionComponent<{
   landerRadius: LanderRadius;
   editMode: boolean;
   evenRow: boolean;
-}> = ({ landerRadius, editMode, evenRow }) => {
+  toFocus: boolean;
+}> = ({ landerRadius, editMode, evenRow, toFocus }) => {
   const dispatch = useAppDispatch();
 
   let backgroundColor: string = "var(--grey2)";
   if (!editMode) {
     backgroundColor = evenRow ? "var(--grey2)" : "var(--grey1)";
   }
+
   return (
     <div className={paneStyles.descriptionContainer}>
       <div className={styles.propertyRow} style={{ backgroundColor }}>
@@ -122,6 +135,7 @@ const RadiusItem: FunctionComponent<{
               );
             }}
             key={`${landerRadius.uuid}-name`}
+            toFocus={toFocus}
           />
         </div>
         <div className={styles.propertyRowQuantity}>

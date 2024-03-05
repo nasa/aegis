@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import styles from "./mission.module.css";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
@@ -17,6 +17,16 @@ import {
 const GeographiUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
   const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
+  const [newGeoUuid, setNewGeoUuid] = useState(undefined);
+
+  // Unmarks newest list item as "new" after a short timeout (for autofocusing)
+  useEffect(() => {
+    if (newGeoUuid !== undefined) {
+      setTimeout(() => {
+        setNewGeoUuid(undefined);
+      }, 300);
+    }
+  }, [newGeoUuid]);
 
   return (
     <div className={paneStyles.rightBody}>
@@ -48,6 +58,7 @@ const GeographiUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
                       item={item}
                       editMode={editMode}
                       evenRow={index % 2 === 0}
+                      toFocus={newGeoUuid === item.uuid}
                     />
                   </li>
                 ))}
@@ -58,8 +69,8 @@ const GeographiUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
                   icon={faPlusCircle}
                   label="Add Geographic Unit"
                   style={{ width: "155px", marginLeft: "18px", marginTop: "8px" }}
-                  onClick={() => {
-                    dispatch(thunkCreateGeoUnit());
+                  onClick={async () => {
+                    setNewGeoUuid((await dispatch(thunkCreateGeoUnit())).payload);
                   }}
                 />
               )}
@@ -77,7 +88,8 @@ const GeographicUnit: FunctionComponent<{
   item: GeographicUnit;
   editMode: boolean;
   evenRow: boolean;
-}> = ({ item, editMode, evenRow }) => {
+  toFocus: boolean;
+}> = ({ item, editMode, evenRow, toFocus }) => {
   const dispatch = useAppDispatch();
 
   let backgroundColor: string = "var(--grey2)";
@@ -101,6 +113,7 @@ const GeographicUnit: FunctionComponent<{
               dispatch(thunkUpdateGeoUnit({ uuid: item.uuid, fieldName: "name", value: val }));
             }}
             key={`${item.uuid}-name`}
+            toFocus={toFocus}
           />
         </div>
 

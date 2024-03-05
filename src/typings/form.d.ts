@@ -38,6 +38,20 @@ interface FFTextProps {
   className?: string;
   classNameError?: string;
   initialValue?: string;
+  toFocus?: boolean;
+  onChange?: React.ChangeEventHandler;
+  onBlur?: React.FocusEventHandler;
+}
+
+interface FFTextAreaProps {
+  name: string;
+  ariaLabel?: string;
+  label?: label | false;
+  validators?: FieldValidator<unknown>[];
+  style?: React.CSSProperties;
+  className?: string;
+  classNameError?: string;
+  initialValue?: string;
   onChange?: React.ChangeEventHandler;
   onBlur?: React.FocusEventHandler;
 }

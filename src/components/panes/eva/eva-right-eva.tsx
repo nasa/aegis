@@ -210,6 +210,7 @@ const EvaRightEva: FunctionComponent = () => {
                 dispatch(upsertEvaByField(selectedEva.uuid, "name", val));
               }}
               key={`${selectedEva.uuid}-name`}
+              toFocus={selectedEva.createdAt === selectedEva.updatedAt}
             />
           </div>
         </div>

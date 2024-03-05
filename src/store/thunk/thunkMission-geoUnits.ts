@@ -85,16 +85,19 @@ export const thunkDeleteGeoUnit = appCreateAsyncThunk<{ geographicUnitUuid: stri
   }
 );
 
-export const thunkCreateGeoUnit = appCreateAsyncThunk<void>(
+export const thunkCreateGeoUnit = appCreateAsyncThunk<void, string>(
   "createGeoUnit",
   async (_, { dispatch, getState }) => {
+    const newGeoUuid = uuidv4();
     const blankItem: GeographicUnit = {
-      uuid: uuidv4(),
+      uuid: newGeoUuid,
       name: "(Geographic Unit Name)",
     };
 
     const geographicUnits = getState().mission.mission.geographicUnits || [];
     const newGeographicUnits = [...geographicUnits, blankItem];
     dispatch(upsertMission({ ...getState().mission.mission, geographicUnits: newGeographicUnits }));
+
+    return newGeoUuid;
   }
 );
