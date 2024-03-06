@@ -1,5 +1,5 @@
 import styles from "./header.module.css";
-import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
 import { useNavigate } from "react-router-dom";
 
 import { faBars, faEye, faPen, faPersonWalkingArrowRight } from "@fortawesome/free-solid-svg-icons";
@@ -11,10 +11,10 @@ const Header: FunctionComponent = () => {
   const navigate = useNavigate();
   const missionName = useAppSelector((state) => state.mission.mission?.name, refEqual);
   const banner = useAppSelector((state) => state.mission.mission?.missionBanner, refEqual);
-  const interfaceStore = useAppSelector((state) => state.interface, shallowEqual);
+  const socketStatus = useAppSelector((state) => state.interface?.socketStatus, shallowEqual);
   const runningRex = useAppSelector(
     (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
-    shallowEqual
+    deepEqual
   );
   const runningEvaName = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === runningRex?.evaUuid)?.name,
@@ -75,27 +75,23 @@ const Header: FunctionComponent = () => {
           className={styles.userCount}
           data-tooltip-id="aegis-tooltip"
           data-tooltip-html={
-            interfaceStore?.socketStatus?.connectionStatus === "connected"
+            socketStatus?.connectionStatus === "connected"
               ? `Users active in this Mission:<br>` +
-                `Editors: ${interfaceStore?.socketStatus.visitorCounts.editors || 0}<br>` +
-                `Visitors: ${interfaceStore?.socketStatus.visitorCounts.viewers || 0}<br>` +
+                `Editors: ${socketStatus?.visitorCounts.editors || 0}<br>` +
+                `Visitors: ${socketStatus?.visitorCounts.viewers || 0}<br>` +
                 `These numbers include you`
               : "Connection to server lost"
           }
           style={
-            interfaceStore?.socketStatus?.connectionStatus === "connected"
+            socketStatus?.connectionStatus === "connected"
               ? { color: "var(--grey5)" }
               : { color: "var(--grey3)" }
           }
         >
           <FontAwesomeIcon icon={faPen} />
-          <div className={styles.userCountText}>
-            {interfaceStore?.socketStatus?.visitorCounts?.editors || 0}
-          </div>
+          <div className={styles.userCountText}>{socketStatus?.visitorCounts?.editors || 0}</div>
           <FontAwesomeIcon icon={faEye} style={{ marginLeft: "6px" }} />
-          <div className={styles.userCountText}>
-            {interfaceStore?.socketStatus?.visitorCounts?.viewers || 0}
-          </div>
+          <div className={styles.userCountText}>{socketStatus?.visitorCounts?.viewers || 0}</div>
         </div>
         <div className={styles.verticalCenter}>
           <span className={styles.wordMark}>AEGIS</span>

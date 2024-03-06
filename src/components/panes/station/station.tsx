@@ -3,7 +3,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent } from "react";
 import { Button } from "components/interface/form/globalFields";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import StationItem from "./station-item";
 import _ from "lodash";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -11,16 +11,16 @@ import { thunkCreateStation, thunkDuplicateStation } from "store/thunk/thunkStat
 
 const StationEditorLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
+  const stations = useAppSelector((state) => state.station.stations, deepEqual);
 
-  const stationsFromDb = useAppSelector((state) => state.station.stationsFromDb, shallowEqual);
+  const stationsFromDb = useAppSelector((state) => state.station.stationsFromDb, deepEqual);
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
     refEqual
   );
   const selectedStation = stations.find((station) => station.uuid === selectedStationUuid);
-  const actions = useAppSelector((state) => state.action.actions, shallowEqual);
-  const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, shallowEqual);
+  const actions = useAppSelector((state) => state.action.actions, deepEqual);
+  const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, deepEqual);
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   return (

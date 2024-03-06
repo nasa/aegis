@@ -38,7 +38,7 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
   missionId,
   hasPermissions,
 }) => {
-  const missionStore = useAppSelector((state) => state.mission, shallowEqual);
+  const missionStore = useAppSelector((state) => state.mission, deepEqual);
   const missionTraverseRate = useAppSelector(
     (state) => state.mission.mission?.traverseRate,
     refEqual
@@ -126,15 +126,15 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
     (state) => state.preset.presets.map((p) => p.uuid),
     shallowEqual
   );
-  const rexes = useAppSelector((state) => state.rex.rexes, shallowEqual);
+  const rexes = useAppSelector((state) => state.rex.rexes, deepEqual);
 
   const stationsCalculatedFields = useAppSelector(
     (state) => state.station.calculatedFields,
-    shallowEqual
+    deepEqual
   );
   const traversesCalculatedFields = useAppSelector(
     (state) => state.traverse.calculatedFields,
-    shallowEqual
+    deepEqual
   );
 
   const actionsAudited = useRef(false);

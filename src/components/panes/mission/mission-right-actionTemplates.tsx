@@ -3,7 +3,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import missionStyles from "./mission.module.css";
 import actionStyles from "../actions.module.css";
 import actionActionStyles from "../actions-action.module.css";
-import { useAppSelector, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, deepEqual } from "utils/useAppSelector";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
 import {
   faAtlas,
@@ -40,7 +40,7 @@ import { ActionTemplateMenu } from "../mission-actionTemplates-menu";
 
 const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
+  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
   const actionsExpanded = useAppSelector((state) => state.interface.actionsExpanded, shallowEqual);
 
   const [newTemplateUuid, setNewTemplateUuid] = useState(undefined);

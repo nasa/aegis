@@ -29,12 +29,12 @@ const PoiEditorRight: FunctionComponent = () => {
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
   const selectedPoi = useAppSelector(
     (state) => state.poi.pois.find((poi) => poi.uuid === selectedPoiUuid),
-    shallowEqual
+    deepEqual
   );
   const poisEditing = useAppSelector((state) => state.poi.poisEditing, shallowEqual);
   const calculatedFields = useAppSelector(
     (state) => state.poi.calculatedFields.find((calculated) => calculated.uuid === selectedPoiUuid),
-    shallowEqual
+    deepEqual
   );
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
@@ -62,7 +62,7 @@ const PoiEditorRight: FunctionComponent = () => {
   );
   const selectedPoiFromDb = useAppSelector(
     (state) => state.poi.poisFromDb.find((poi) => poi.uuid === selectedPoiUuid),
-    shallowEqual
+    deepEqual
   );
   useEffect(() => {
     const poiModified = isModified([selectedPoi], [selectedPoiFromDb]);

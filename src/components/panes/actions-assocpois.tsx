@@ -2,7 +2,7 @@ import { FunctionComponent, useState } from "react";
 import assocPoisStyles from "./actions-assocpois.module.css";
 import actionStyles from "./actions-action.module.css";
 import paneStyles from "./global-pane-styles.module.css";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import { faCaretDown, faCaretRight, faCheck, faClone } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setSelectedPoiUuid } from "store/poi";
@@ -74,12 +74,14 @@ const Assoc_POI: FunctionComponent<{
 }> = ({ poiUuid, stationActionUuids, editMode }) => {
   const dispatch = useAppDispatch();
 
-  const stationActions = useAppSelector((state) => state.action.actions, shallowEqual).filter(
-    (action) => stationActionUuids.includes(action.uuid)
+  const stationActions = useAppSelector(
+    (state) => state.action.actions.filter((action) => stationActionUuids.includes(action.uuid)),
+    deepEqual
   );
 
-  const poiActions = useAppSelector((state) => state.action.actions, shallowEqual).filter(
-    (action) => action.poiUuid === poiUuid
+  const poiActions = useAppSelector(
+    (state) => state.action.actions.filter((action) => action.poiUuid === poiUuid),
+    deepEqual
   );
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
@@ -91,7 +93,7 @@ const Assoc_POI: FunctionComponent<{
   );
   const poi = useAppSelector(
     (state) => state.poi.pois.find((poi) => poi.uuid === poiUuid),
-    shallowEqual
+    deepEqual
   );
 
   // sort the actions by the order in the POI

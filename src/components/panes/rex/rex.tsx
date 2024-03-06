@@ -12,7 +12,7 @@ import {
   faSliders,
 } from "@fortawesome/free-solid-svg-icons";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { Button } from "components/interface/form/globalFields";
 import { setSelectedEvaSequenceItemUuid, setSelectedEvaUuid } from "store/eva";
 import EvaItemSequence from "../eva/eva-item-sequence";
@@ -29,7 +29,7 @@ import { getRexStatusDisplayProperties } from "utils/rex";
 
 const EvaRexLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const rexes = useAppSelector((state) => state.rex.rexes, shallowEqual);
+  const rexes = useAppSelector((state) => state.rex.rexes, deepEqual);
   // sort the rexes by name
   const rexesSorted = _.sortBy(rexes, ["name"]);
 
@@ -93,17 +93,17 @@ export default EvaRexLeft;
 const EvaRexItem: FunctionComponent<{ rexUuid: string }> = ({ rexUuid }) => {
   const dispatch = useAppDispatch();
   const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
-  const expandedRexUuids = useAppSelector((state) => state.rex.expandedRexUuids, refEqual);
+  const expandedRexUuids = useAppSelector((state) => state.rex.expandedRexUuids, shallowEqual);
   const rex = useAppSelector(
     (state) => state.rex.rexes.find((rex) => rex.uuid === rexUuid),
-    shallowEqual
+    deepEqual
   );
 
-  const evasEditing = useAppSelector((state) => state.eva.evasEditing, refEqual);
+  const evasEditing = useAppSelector((state) => state.eva.evasEditing, shallowEqual);
 
   const rexFromDb = useAppSelector(
     (state) => state.rex.rexesFromDb?.find((rexFromDb) => rexFromDb.uuid === rex.uuid),
-    refEqual
+    deepEqual
   );
 
   const selectedRexRightNavItem = useAppSelector(
@@ -124,7 +124,7 @@ const EvaRexItem: FunctionComponent<{ rexUuid: string }> = ({ rexUuid }) => {
   const evaUuid = rex?.evaUuid;
   const selectedRexEva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === rex?.evaUuid),
-    refEqual
+    deepEqual
   );
 
   let rexSelectionStyle = null;

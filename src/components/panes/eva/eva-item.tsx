@@ -1,7 +1,7 @@
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import { Button } from "components/interface/form/globalFields";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
 import {
   setSelectedEvaRightNavItem,
   setExpandedEvaUuids,
@@ -28,18 +28,15 @@ import { setHoverUuidsForSequence } from "store/hover";
 
 const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
   const dispatch = useAppDispatch();
-  const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, shallowEqual);
+  const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
 
   const thisEvaFromDb = useAppSelector(
     (state) => state.eva.evasFromDb.find((evaItem) => evaItem.uuid === eva.uuid),
-    shallowEqual
+    deepEqual
   );
 
-  const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
-  const editMode = useAppSelector(
-    (state) => state.eva.evasEditing.includes(eva.uuid),
-    shallowEqual
-  );
+  const traverses = useAppSelector((state) => state.traverse.traverses, deepEqual);
+  const editMode = useAppSelector((state) => state.eva.evasEditing.includes(eva.uuid), refEqual);
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
@@ -183,7 +180,7 @@ export const EvaEgressIngressListing: FunctionComponent<{
     return state.station.stations.find(
       (station) => station.uuid === (isEgress ? eva.egressLocationUuid : eva.ingressLocationUuid)
     );
-  }, shallowEqual);
+  }, deepEqual);
 
   const icon = station ? station.icon : "1f680"; //rocket
   const name = `${isEgress ? "Egress" : "Ingress"} at ${station ? station.name : "Lander"}`;

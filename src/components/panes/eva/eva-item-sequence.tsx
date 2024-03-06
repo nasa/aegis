@@ -1,5 +1,5 @@
 import { FunctionComponent } from "react";
-import { useAppSelector, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import evaStyles from "./eva.module.css";
 
 import _ from "lodash";
@@ -13,7 +13,7 @@ const EvaItemSequence: FunctionComponent<{
 }> = ({ evaUuid, evaSequence, editMode }) => {
   const thisEvaInRunningRexFromDb = useAppSelector(
     (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning && rex.evaUuid === evaUuid),
-    shallowEqual
+    deepEqual
   );
 
   return (

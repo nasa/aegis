@@ -1,7 +1,7 @@
 import { FunctionComponent, useRef } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import styles from "./rex.module.css";
-import { useAppSelector, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faList, faPlusCircle, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -26,7 +26,7 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
   const dispatch = useAppDispatch();
   const selectedRex = useAppSelector(
     (state) => state.rex.rexes.find((rex) => rex.uuid === state.rex.selectedRexUuid),
-    shallowEqual
+    deepEqual
   );
 
   return (

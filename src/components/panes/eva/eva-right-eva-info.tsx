@@ -8,7 +8,7 @@ import { FunctionComponent, useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { upsertEvaByField } from "store/eva";
-import { deepEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
 import { displayFormattedTotalTimeObj, makeTraverseRateString } from "utils/component-helpers";
@@ -29,18 +29,18 @@ import { decodeEmoji } from "utils/formatting";
 
 const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, shallowEqual);
+  const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
   const selectedEva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid),
-    shallowEqual
+    deepEqual
   );
   const missionTraverseRate = useAppSelector(
     (state) => state.mission.mission?.traverseRate,
-    shallowEqual
+    refEqual
   );
   const evaCalculatedFields = useAppSelector(
     (state) => state.eva.calculatedFields.find((calculated) => calculated.uuid === selectedEvaUuid),
-    shallowEqual
+    deepEqual
   );
   const missionEquipItems = useAppSelector(
     (state) => state.mission.mission.equipmentItems,
@@ -62,13 +62,13 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
       (station) => station.uuid === selectedEva.egressLocationUuid
     );
     return station ? station.icon : "1f680"; //rocket
-  }, shallowEqual);
+  }, refEqual);
   const egressLocationName = useAppSelector((state) => {
     const station = state.station.stations.find(
       (station) => station.uuid === selectedEva.egressLocationUuid
     );
     return station ? station.name : "Lander";
-  }, shallowEqual);
+  }, refEqual);
 
   const ingressLocationIcon = useAppSelector((state) => {
     const station = state.station.stations.find(
@@ -76,14 +76,14 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     );
     if (!station) return "1f680"; //rocket
     return station ? station.icon : "1f680"; //rocket
-  }, shallowEqual);
+  }, refEqual);
 
   const ingressLocationName = useAppSelector((state) => {
     const station = state.station.stations.find(
       (station) => station.uuid === selectedEva.ingressLocationUuid
     );
     return station ? station.name : "Lander";
-  }, shallowEqual);
+  }, refEqual);
 
   const [consumablesCol1, setConsumablesCol1] = useState<EquipmentItemDisplay[]>(null);
   const [consumablesCol2, setConsumablesCol2] = useState<EquipmentItemDisplay[]>(null);

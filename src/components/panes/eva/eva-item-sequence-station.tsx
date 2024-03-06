@@ -47,22 +47,22 @@ const SequenceItemStation: FunctionComponent<{
   }, deepEqual);
   const thisStation = useAppSelector(
     (state) => state.station.stations.find((station) => station.uuid === stationUuid),
-    shallowEqual
+    deepEqual
   );
   const thisStationFromDb = useAppSelector(
     (state) => state.station.stationsFromDb.find((station) => station.uuid === stationUuid),
-    shallowEqual
+    deepEqual
   );
   const thisStationCalculatedFields = useAppSelector(
     (state) =>
       state.station.calculatedFields.find((stationData) => stationData.uuid === stationUuid),
-    shallowEqual
+    deepEqual
   );
   const stationRexStatus = useAppSelector((state) => {
     const rex = state.rex.rexesFromDb.find((rex) => rex.isRunning);
     if (!rex || !rex.stationEntries) return null;
     return _.last(rex.stationEntries[stationUuid])?.rexStatus;
-  }, refEqual);
+  }, shallowEqual);
 
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
@@ -80,7 +80,7 @@ const SequenceItemStation: FunctionComponent<{
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
   const runningRexFromDb = useAppSelector(
     (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
-    shallowEqual
+    deepEqual
   );
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
   const index = evaSequence.findIndex((s) => s.uuid === stationUuid);

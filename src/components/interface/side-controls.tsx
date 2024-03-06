@@ -1,7 +1,7 @@
 import _ from "lodash";
 import styles from "./side-controls.module.css";
 import { FunctionComponent, useEffect } from "react";
-import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -171,8 +171,8 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
   selectedNavItem,
 }) => {
   const dispatch = useAppDispatch();
-  const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
-  const missionFromDb = useAppSelector((state) => state.mission.missionFromDb, shallowEqual);
+  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
+  const missionFromDb = useAppSelector((state) => state.mission.missionFromDb, deepEqual);
   const pois = useAppSelector(
     (state) =>
       state.poi.pois.map((p) => {

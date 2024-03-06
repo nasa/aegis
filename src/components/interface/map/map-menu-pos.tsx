@@ -47,7 +47,7 @@ export const MapPositionMenu: FunctionComponent = () => {
   }, refEqual);
   const selectedRex = useAppSelector(
     (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid),
-    shallowEqual
+    deepEqual
   );
   const posEntries = useAppSelector((state) => {
     const posEntries = state.rex.rexes.find((r) => r.uuid === selectedRex?.uuid)?.posEntries;
@@ -399,7 +399,10 @@ export const PositionRow: FunctionComponent<{
 }> = ({ posEntry, showKabob, numbering, setSelectedPosTypes }) => {
   const dispatch = useAppDispatch();
 
-  const landerLocation = useAppSelector((state) => state.mission.mission.landerLocation, refEqual);
+  const landerLocation = useAppSelector(
+    (state) => state.mission.mission.landerLocation,
+    shallowEqual
+  );
   const traverseRate = useAppSelector((state) => {
     const eva = state.eva.evas.find((e) => e.uuid === state.eva.selectedEvaUuid);
     if (eva?.traverseRate) {
@@ -424,7 +427,7 @@ export const PositionRow: FunctionComponent<{
   );
   const selectedRex = useAppSelector(
     (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid),
-    shallowEqual
+    deepEqual
   );
 
   const posNameList = posEntry.posTypeUuids?.map((uuid) => {

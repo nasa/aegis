@@ -5,12 +5,12 @@ import { faFileExport } from "@fortawesome/free-solid-svg-icons";
 import { Button, Checkbox } from "components/interface/form/globalFields";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkMakeExportString } from "store/thunk/thunkMission";
-import { shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import styles from "./mission.module.css";
 
 const Export_panel: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const missionStore = useAppSelector((state) => state.mission, shallowEqual);
+  const missionStore = useAppSelector((state) => state.mission, deepEqual);
 
   const [selectEvas, setSelectEvas] = useState(true);
   const [selectMission, setSelectMission] = useState(false);

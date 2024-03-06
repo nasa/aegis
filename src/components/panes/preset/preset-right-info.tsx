@@ -3,7 +3,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import presetStyles from "./preset.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 import * as httpClient_Preset from "http-client/preset";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import {
   setPresetEditMode,
   upsertPreset,
@@ -20,7 +20,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
 
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
-  const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
+  const presets = useAppSelector((state) => state.preset.presets, deepEqual);
   const selectedPreset = presets.find((preset) => preset.uuid === selectedPresetUuid);
   const isRexRunning = useAppSelector(
     (state) => state.rex.rexes.find((rex) => rex.isRunning)?.isRunning,
