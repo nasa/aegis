@@ -5,7 +5,7 @@ import { FunctionComponent, useCallback, useState, useEffect } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { RootState } from "store";
 import _ from "lodash";
 import { collapseActions, expandActions } from "store/interface";
@@ -182,7 +182,7 @@ export const GeographicUnitSelector: FunctionComponent<{
 }> = ({ geographicUnitsUsage, editMode, onChange, uniqueId }) => {
   const geographicUnits = useAppSelector(
     (state: RootState) => state.mission.mission.geographicUnits,
-    refEqual
+    shallowEqual
   );
 
   const [geographicUnitDisplayList, setGeographicUnitDisplayList] = useState<string[]>([]);

@@ -5,7 +5,7 @@ import { LastEdited, SubpanelHeading } from "components/interface/_global-elemen
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { useAppDispatch } from "utils/useAppDispatch";
 
-import { useAppSelector, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
 import { setSelectedPOIRightNavItem, upsertPoiByField } from "store/poi";
 import { updateMapDirective } from "store/map";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
@@ -22,23 +22,23 @@ const Info_Panel: FunctionComponent<{
   const dispatch = useAppDispatch();
   const selectedPoi = useAppSelector(
     (state) => state.poi.pois.find((poi) => poi.uuid === state.poi.selectedPoiUuid),
-    shallowEqual
+    deepEqual
   );
   const numStationsUsingPoi = useAppSelector(
     (state) =>
       state.station.stations.filter((station) => station.poiUuids.includes(selectedPoi.uuid))
         .length,
-    shallowEqual
+    refEqual
   );
   const landerElevation = useAppSelector(
     (state) => state.mission.mission.landerElevationMeters,
-    shallowEqual
+    refEqual
   );
 
   const poiCalcFields = useAppSelector(
     (state) =>
       state.poi.calculatedFields.find((calculated) => calculated.uuid === selectedPoi.uuid),
-    shallowEqual
+    deepEqual
   );
 
   const thisMapDirective = useAppSelector((state) => {

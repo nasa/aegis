@@ -34,17 +34,17 @@ const EvaRightEva: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector(
     (state) => state.eva.selectedEvaRightNavItem,
-    shallowEqual
+    refEqual
   );
-  const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, shallowEqual);
+  const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
   const evasEditing = useAppSelector((state) => state.eva.evasEditing, shallowEqual);
   const selectedEva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid),
-    shallowEqual
+    deepEqual
   );
   const selectedEvaFromDb = useAppSelector(
     (state) => state.eva.evasFromDb.find((eva) => eva.uuid === selectedEvaUuid),
-    shallowEqual
+    deepEqual
   );
   const traverses = useAppSelector(
     (state) =>
@@ -62,16 +62,16 @@ const EvaRightEva: FunctionComponent = () => {
   );
   const allTraverseCalculatedFields = useAppSelector(
     (state) => state.traverse.calculatedFields,
-    shallowEqual
+    deepEqual
   );
   const allStationCalculatedFields = useAppSelector(
     (state) => state.station.calculatedFields,
-    shallowEqual
+    deepEqual
   );
   const calculatedFields = useAppSelector(
     (state) =>
       state.eva.calculatedFields.find((calculated) => calculated.uuid === selectedEva?.uuid),
-    shallowEqual
+    deepEqual
   );
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 

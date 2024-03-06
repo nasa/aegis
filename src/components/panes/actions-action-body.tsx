@@ -21,7 +21,7 @@ import actionStyles from "./actions-action.module.css";
 import { upsertActionByField } from "store/action";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { decodeEmoji, longdateFromDateString, toDecimal } from "utils/formatting";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import ReactDOMServer from "react-dom/server";
 import STMSelector from "./stm/stm-selector";
 import { validators, regExValidators } from "components/interface/form/formValidators";
@@ -45,11 +45,11 @@ export const RightActionBody: FunctionComponent<{
   const parentAction = useAppSelector(
     (state) =>
       state.action.actions.find((storeAction) => storeAction.uuid === action.parentActionUuid),
-    shallowEqual
+    deepEqual
   );
   const parentPoiName = useAppSelector(
     (state) => state.poi.pois.find((storePoi) => storePoi.uuid === parentAction?.poiUuid)?.name,
-    shallowEqual
+    refEqual
   );
 
   const planetRadius = useAppSelector((state) => state.mission.mission.planetRadius, refEqual);

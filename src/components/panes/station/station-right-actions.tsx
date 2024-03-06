@@ -1,6 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import { useAppSelector, shallowEqual, deepEqual } from "utils/useAppSelector";
+import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import Actions from "../actions";
 import { setStationEditMode, upsertStationByField } from "store/station";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -27,7 +27,7 @@ const Actions_Panel: FunctionComponent<{
       state.station.calculatedFields.find(
         (calculatedFields) => calculatedFields.uuid === selectedStation.uuid
       ),
-    shallowEqual
+    deepEqual
   );
 
   const stationInRunningRex: boolean = useAppSelector((state) => {
@@ -39,7 +39,7 @@ const Actions_Panel: FunctionComponent<{
     );
     if (!sequenceItem) return false;
     return true;
-  }, shallowEqual);
+  }, refEqual);
 
   const [actionsCalculatedFields, setActionsCalculatedField] =
     useState<ActionsCalculatedFields>(null);

@@ -127,39 +127,36 @@ const MapBody: FunctionComponent = () => {
       ]),
     deepEqual
   );
-  const missionLayers = useAppSelector((state) => state.mission.layers, shallowEqual);
-  const missionSublayers = useAppSelector((state) => state.mission.sublayers, shallowEqual);
-  const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, shallowEqual);
+  const missionLayers = useAppSelector((state) => state.mission.layers, deepEqual);
+  const missionSublayers = useAppSelector((state) => state.mission.sublayers, deepEqual);
+  const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, refEqual);
   const sectionSelected = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
 
-  const mapSublayerControls = useAppSelector(
-    (state) => state.map.mapSublayerControls,
-    shallowEqual
-  );
+  const mapSublayerControls = useAppSelector((state) => state.map.mapSublayerControls, deepEqual);
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
 
-  const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
+  const presets = useAppSelector((state) => state.preset.presets, deepEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const selectedPreset = useAppSelector(
     (state) => state.preset.presets.find((p) => p.uuid === selectedPresetUuid),
-    shallowEqual
+    deepEqual
   );
 
-  const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
-  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
-  const actions = useAppSelector((state) => state.action.actions, shallowEqual);
+  const pois = useAppSelector((state) => state.poi.pois, deepEqual);
+  const stations = useAppSelector((state) => state.station.stations, deepEqual);
+  const actions = useAppSelector((state) => state.action.actions, deepEqual);
   const selectedPoi = useAppSelector(
     (state) => state.poi.pois.find((poi) => poi.uuid === state.poi.selectedPoiUuid),
-    refEqual
+    deepEqual
   );
   const selectedStation = useAppSelector(
     (state) =>
       state.station.stations.find((station) => station.uuid === state.station.selectedStationUuid),
-    refEqual
+    deepEqual
   );
   const selectedEva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
-    refEqual
+    deepEqual
   );
   const selectedOrRunningRex = useAppSelector((state) => {
     //if a rex is running, show that one. If not, just show whatever rex is selected
@@ -169,7 +166,7 @@ const MapBody: FunctionComponent = () => {
     } else {
       return state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid);
     }
-  }, shallowEqual);
+  }, deepEqual);
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
@@ -177,7 +174,7 @@ const MapBody: FunctionComponent = () => {
   const hover = useAppSelector((state) => state.hover, shallowEqual); //astronaut hover timeline
 
   const selectedPosEntryUuid = useAppSelector((state) => state.rex.selectedPosEntryUuid, refEqual);
-  const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
+  const traverses = useAppSelector((state) => state.traverse.traverses, deepEqual);
 
   const mapHoverItemUuid = useAppSelector((state) => state.hover.mapItemUuid, refEqual);
 

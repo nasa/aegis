@@ -1,5 +1,5 @@
 import { FunctionComponent } from "react";
-import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { refEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
 import StationEditorRight from "components/panes/station/station-right";
 import EvaRightEva from "components/panes/eva/eva-right-eva";
 import EvaRightTraverse from "components/panes/eva/eva-right-traverse";
@@ -12,7 +12,7 @@ const RexRight: FunctionComponent = () => {
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
-  const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
+  const evas = useAppSelector((state) => state.eva.evas, deepEqual);
 
   let rightPanelSetToDisplay = <></>;
 

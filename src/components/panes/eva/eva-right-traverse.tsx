@@ -17,7 +17,7 @@ import {
   upsertTraverses,
   upsertTraversesFromDb,
 } from "store/traverse";
-import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
 import Info_Panel from "./eva-right-traverse-info";
@@ -37,19 +37,19 @@ const EvaRightTraverse: FunctionComponent = () => {
   const selectedTraverse = useAppSelector(
     (state) =>
       state.traverse.traverses.find((traverse) => traverse.uuid === selectedEvaSequenceItemUuid),
-    shallowEqual
+    deepEqual
   );
   const selectedTraverseFromDb = useAppSelector(
     (state) =>
       state.traverse.traversesFromDb.find(
         (traverse) => traverse.uuid === selectedEvaSequenceItemUuid
       ),
-    shallowEqual
+    deepEqual
   );
   const traversesEditing = useAppSelector((state) => state.traverse.traversesEditing, shallowEqual);
   const selectedRightNavItem = useAppSelector(
     (state) => state.traverse.selectedTraverseRightNavItem,
-    shallowEqual
+    refEqual
   );
   const elevationPendingIndex = useAppSelector(
     (state) =>
@@ -70,7 +70,7 @@ const EvaRightTraverse: FunctionComponent = () => {
       state.traverse.calculatedFields.find(
         (calculated) => calculated.uuid === selectedTraverse.uuid
       ),
-    shallowEqual
+    deepEqual
   );
 
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");

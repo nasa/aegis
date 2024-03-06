@@ -2,7 +2,7 @@ import styles from "./preset.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faGlobe, faPlusCircle, faUser } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent, useState } from "react";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { setMapSublayerControls } from "store/map";
 import { setSelectedPresetUuid, setSelectedPresetRightNavItem } from "store/preset";
 import { ModifiedIndicator } from "components/interface/_global-elements";
@@ -14,7 +14,7 @@ import { thunkCreatePreset, thunkDuplicatePreset } from "store/thunk/thunkPreset
 
 const PresetEditorLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
+  const presets = useAppSelector((state) => state.preset.presets, deepEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
@@ -81,7 +81,7 @@ const PresetList: FunctionComponent<{
   selectedPresetUuid: string;
 }> = ({ presets, selectedPresetUuid }) => {
   const dispatch = useAppDispatch();
-  const presetsFromDb = useAppSelector((state) => state.preset.presetsFromDb, shallowEqual);
+  const presetsFromDb = useAppSelector((state) => state.preset.presetsFromDb, deepEqual);
   const selectedRightNavItem = useAppSelector(
     (state) => state.preset.selectedRightNavItem,
     refEqual

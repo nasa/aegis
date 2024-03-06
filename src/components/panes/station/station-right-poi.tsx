@@ -2,7 +2,7 @@ import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import { upsertStationByField } from "store/station";
 import poiStyles from "../poi/poi.module.css";
 import stationStyles from "./station.module.css";
@@ -24,9 +24,9 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   );
   const selectedStation = useAppSelector(
     (state) => state.station.stations.find((station) => station.uuid === selectedStationUuid),
-    shallowEqual
+    deepEqual
   );
-  const pois = useAppSelector((state) => state.poi.poisFromDb, shallowEqual);
+  const pois = useAppSelector((state) => state.poi.poisFromDb, deepEqual);
 
   const [selectedPois, setSelectedPois] = useState<POI[]>([]);
 

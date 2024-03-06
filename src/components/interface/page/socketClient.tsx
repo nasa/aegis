@@ -6,7 +6,7 @@ import {
   setSocketConnectionStatus,
   setVisitorCounts,
 } from "store/interface";
-import { shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -16,8 +16,8 @@ import { clientFetchWithTimeout } from "utils/fetch-with-timeout";
 
 const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
   const dispatch = useAppDispatch();
-  const user = useAppSelector((state) => state.user, shallowEqual);
-  const interfaceStore = useAppSelector((state) => state.interface, shallowEqual);
+  const user = useAppSelector((state) => state.user, deepEqual);
+  const interfaceStore = useAppSelector((state) => state.interface, deepEqual);
 
   // all stores are stored in refs so that the socket event handlers can access the latest values
   const userRef = useRef(user);

@@ -1,6 +1,6 @@
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import { FunctionComponent, useCallback, useEffect, useState } from "react";
-import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
 import { setSelectedEvaRightNavItem, setSelectedEvaUuid } from "store/eva";
 import evaStyles from "./eva.module.css";
 import { secondsFromhhmmss, hhmmssFromSeconds, hmmFromMinutes } from "utils/formatting";
@@ -23,22 +23,22 @@ const SequenceItemTraverse: FunctionComponent<{
 
   const thisTraverse = useAppSelector(
     (state) => state.traverse.traverses.find((traverse) => traverse.uuid === traverseUuid),
-    shallowEqual
+    deepEqual
   );
   const thisTraverseFromDb = useAppSelector(
     (state) => state.traverse.traversesFromDb.find((traverse) => traverse.uuid === traverseUuid),
-    shallowEqual
+    deepEqual
   );
   const thisTraverseCalculatedFields = useAppSelector(
     (state) =>
       state.traverse.calculatedFields.find((traverseData) => traverseData.uuid === traverseUuid),
-    shallowEqual
+    deepEqual
   );
   const traverseRexStatus = useAppSelector((state) => {
     const rex = state.rex.rexesFromDb.find((rex) => rex.isRunning);
     if (!rex || !rex.traverseEntries) return null;
     return _.last(rex.traverseEntries[traverseUuid])?.rexStatus;
-  }, refEqual);
+  }, shallowEqual);
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
@@ -55,7 +55,7 @@ const SequenceItemTraverse: FunctionComponent<{
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
   const runningRexFromDb = useAppSelector(
     (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
-    shallowEqual
+    deepEqual
   );
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 

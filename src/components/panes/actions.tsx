@@ -118,8 +118,8 @@ const Actions: FunctionComponent<{
               actionOrderUuids={actionOrderUuids}
               highlightActions={highlightActions}
               isActionHiglighted={isActionHiglighted}
-              stations={useAppSelector((state) => state.station.stations, shallowEqual)}
-              pois={useAppSelector((state) => state.poi.pois, shallowEqual)}
+              stations={useAppSelector((state) => state.station.stations, deepEqual)}
+              pois={useAppSelector((state) => state.poi.pois, deepEqual)}
               newActionUuid={newActionUuid}
             />
           </ReactDragListView>

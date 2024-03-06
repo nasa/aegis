@@ -38,20 +38,20 @@ const StationEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector(
     (state) => state.station.selectedRightNavItem,
-    shallowEqual
+    refEqual
   );
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
-    shallowEqual
+    refEqual
   );
   const stationsEditing = useAppSelector((state) => state.station.stationsEditing, shallowEqual);
   const selectedStation = useAppSelector(
     (state) => state.station.stations.find((station) => station.uuid === selectedStationUuid),
-    shallowEqual
+    deepEqual
   );
   const selectedStationFromDb = useAppSelector(
     (state) => state.station.stationsFromDb.find((station) => station.uuid === selectedStationUuid),
-    shallowEqual
+    deepEqual
   );
 
   const stationActions = useAppSelector(
@@ -76,14 +76,14 @@ const StationEditorRight: FunctionComponent = () => {
   const elevationPendingIndex = useAppSelector(
     (state) =>
       state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedStationUuid),
-    shallowEqual
+    refEqual
   );
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   const calculatedFields = useAppSelector(
     (state) =>
       state.station.calculatedFields.find((calculated) => calculated.uuid === selectedStationUuid),
-    shallowEqual
+    deepEqual
   );
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
   const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--station)");

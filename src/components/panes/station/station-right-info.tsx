@@ -13,7 +13,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, upsertStationByField } from "store/station";
 import { updateMapDirective } from "store/map";
 import { calcCentroidofCoordinates } from "utils/geoMath";
@@ -40,7 +40,7 @@ const Info_Panel: FunctionComponent<{
   const selectedStation = useAppSelector(
     (state) =>
       state.station.stations.find((station) => station.uuid === state.station.selectedStationUuid),
-    shallowEqual
+    deepEqual
   );
   const landerLocation = useAppSelector(
     (state) => state.mission.mission.landerLocation,
@@ -48,7 +48,7 @@ const Info_Panel: FunctionComponent<{
   );
   const landerElevation = useAppSelector(
     (state) => state.mission.mission.landerElevationMeters,
-    shallowEqual
+    refEqual
   );
   const thisMapDirective = useAppSelector((state) => {
     return state.map.mapDirective?.uuid === selectedStation.uuid ? state.map.mapDirective : null;
@@ -91,7 +91,7 @@ const Info_Panel: FunctionComponent<{
   const calculatedFields = useAppSelector(
     (state) =>
       state.station.calculatedFields.find((calculated) => calculated.uuid === selectedStation.uuid),
-    shallowEqual
+    deepEqual
   );
   const missionEquipItems = useAppSelector(
     (state) => state.mission.mission.equipmentItems,

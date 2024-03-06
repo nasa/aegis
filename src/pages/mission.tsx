@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { useAppSelector, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import { useParams } from "react-router-dom";
 
 import styles from "./mission.module.css";
@@ -25,7 +25,7 @@ type RouteParams = {
 const Main = (): JSX.Element => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const missionStore = useAppSelector((state) => state.mission, shallowEqual);
+  const missionStore = useAppSelector((state) => state.mission, deepEqual);
 
   const [hasPermissions, setHasPermissions] = useState(false);
 

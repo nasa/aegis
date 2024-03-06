@@ -1,7 +1,7 @@
 import { FunctionComponent, useCallback, useEffect, useState } from "react";
 import actionsStyles from "../actions.module.css";
 import paneStyles from "../global-pane-styles.module.css";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import { ActionsTopSection, ActionsListHeadings, ActionList } from "../actions";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
 import { thunkGetHighlightedActions } from "store/thunk/thunkAction";
@@ -12,20 +12,20 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
   const selectedEva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid),
-    shallowEqual
+    deepEqual
   );
   const isSelectedEvaInARunningRex = useAppSelector(
     (state) => state.rex.rexes.find((rex) => rex.evaUuid === selectedEvaUuid)?.isRunning,
     refEqual
   );
-  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
+  const stations = useAppSelector((state) => state.station.stations, deepEqual);
 
   const calculatedFields = useAppSelector(
     (state) =>
       state.eva.calculatedFields.find(
         (calculatedFields) => calculatedFields.uuid === selectedEvaUuid
       ),
-    shallowEqual
+    deepEqual
   );
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);

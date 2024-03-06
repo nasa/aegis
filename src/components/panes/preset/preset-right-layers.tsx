@@ -12,7 +12,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { useAppDispatch } from "utils/useAppDispatch";
 
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setMapSublayerControls } from "store/map";
 import {
@@ -28,12 +28,12 @@ import { cloneDeep, sortBy } from "lodash";
 
 const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const missionLayers = useAppSelector((state) => state.mission.layers, shallowEqual);
-  const missionSublayers = useAppSelector((state) => state.mission.sublayers, shallowEqual);
+  const missionLayers = useAppSelector((state) => state.mission.layers, deepEqual);
+  const missionSublayers = useAppSelector((state) => state.mission.sublayers, deepEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const selectedPreset = useAppSelector(
     (state) => state.preset.presets.find((preset) => preset.uuid === selectedPresetUuid),
-    shallowEqual
+    deepEqual
   );
   const presetUIStates = useAppSelector(
     (state) => state.preset.presetsUIStates[selectedPresetUuid],

@@ -3,17 +3,17 @@ import paneStyles from "../global-pane-styles.module.css";
 import styles from "./preset-right-layers.module.css";
 import { faEye, faEyeSlash, faSliders } from "@fortawesome/free-solid-svg-icons";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setPresetUIState, togglePresetCircleVisible } from "store/preset";
 import Settings_subpanel from "./preset-right-layers-settings";
 
 const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
-  const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
+  const landerRadii = useAppSelector((state) => state.mission.mission?.landerRadii, shallowEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const selectedPreset = useAppSelector(
     (state) => state.preset.presets.find((preset) => preset.uuid === selectedPresetUuid),
-    shallowEqual
+    deepEqual
   );
   const presetUIStates = useAppSelector(
     (state) => state.preset.presetsUIStates[selectedPresetUuid],
@@ -28,14 +28,14 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
           <div className={paneStyles.panelContainer}>
             <div className={styles.layersContainer}>
               <div className={styles.layersBody}>
-                {mission?.landerRadii && presetUIStates && (
+                {landerRadii && presetUIStates && (
                   <div className={styles.layerGroup}>
                     <div className={styles.layer}>
                       <div>Lander Radius Layers</div>
                     </div>
                     <div className={styles.sublayerGroup}>
-                      {mission?.landerRadii &&
-                        mission?.landerRadii.map((landerRadius: LanderRadius) => {
+                      {landerRadii &&
+                        landerRadii.map((landerRadius: LanderRadius) => {
                           return (
                             selectedPreset.mapCircleControls[landerRadius.uuid] &&
                             presetUIStates[landerRadius.uuid] && (

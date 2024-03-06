@@ -34,14 +34,14 @@ const MissionPrefsRight: FunctionComponent = () => {
     refEqual
   );
 
-  const missionUpdatedAt = useAppSelector((state) => state.mission.mission.updatedAt, shallowEqual);
+  const missionUpdatedAt = useAppSelector((state) => state.mission.mission.updatedAt, refEqual);
   const missionFromDbUpdatedAt = useAppSelector(
     (state) => state.mission.missionFromDb.updatedAt,
-    shallowEqual
+    refEqual
   );
   const missionSectionsEditing = useAppSelector(
     (state) => state.mission.missionSectionsEditing,
-    refEqual
+    shallowEqual
   );
   const editPerms = useAppSelector(
     (state) =>

@@ -1,7 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import styles from "./mission.module.css";
-import { useAppSelector, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faList, faPlusCircle, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
@@ -16,7 +16,7 @@ import {
 
 const GeographiUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
+  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
   const [newGeoUuid, setNewGeoUuid] = useState(undefined);
 
   // Unmarks newest list item as "new" after a short timeout (for autofocusing)
