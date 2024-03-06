@@ -2,7 +2,7 @@ import paneStyles from "components/panes/global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 import {
   faCircleInfo,
@@ -56,15 +56,21 @@ const StationEditorRight: FunctionComponent = () => {
 
   const stationActions = useAppSelector(
     (state) =>
-      state.action.actions.filter((storeAction) => storeAction.stationUuid === selectedStationUuid),
-    shallowEqual
+      state.action.actions
+        .filter((storeAction) => storeAction.stationUuid === selectedStationUuid)
+        .map((sa) => {
+          return { uuid: sa.uuid, updatedAt: sa.updatedAt };
+        }),
+    deepEqual
   );
   const stationActionsFromDb = useAppSelector(
     (state) =>
-      state.action.actionsFromDb.filter(
-        (storeAction) => storeAction.stationUuid === selectedStationUuid
-      ),
-    shallowEqual
+      state.action.actionsFromDb
+        .filter((storeAction) => storeAction.stationUuid === selectedStationUuid)
+        .map((sa) => {
+          return { uuid: sa.uuid, updatedAt: sa.updatedAt };
+        }),
+    deepEqual
   );
 
   const elevationPendingIndex = useAppSelector(
@@ -122,9 +128,9 @@ const StationEditorRight: FunctionComponent = () => {
     if (elevationPendingIndex > -1) {
       setSaveButtonState("pending");
     } else {
-      const stationEqual = isModified([selectedStation], [selectedStationFromDb]);
-      const actionEqual = isModified(stationActions, stationActionsFromDb);
-      const modified = stationEqual || actionEqual;
+      const stationModified = isModified([selectedStation], [selectedStationFromDb]);
+      const actionModified = isModified(stationActions, stationActionsFromDb);
+      const modified = stationModified || actionModified;
       setSaveButtonState(modified ? "enabled" : "disabled");
     }
   }, [

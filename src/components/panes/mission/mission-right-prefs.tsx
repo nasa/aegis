@@ -173,12 +173,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 value={mission.description}
                 editing={editMode}
                 onChange={(value) => {
-                  dispatch(
-                    upsertMission({
-                      ...mission,
-                      description: value,
-                    })
-                  );
+                  dispatch(upsertMissionByField("description", value));
                 }}
               />
             </div>
