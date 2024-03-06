@@ -1,7 +1,7 @@
 import paneStyles from "../global-pane-styles.module.css";
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import {
   faCircleInfo,
   faBan,
@@ -46,8 +46,20 @@ const EvaRightEva: FunctionComponent = () => {
     (state) => state.eva.evasFromDb.find((eva) => eva.uuid === selectedEvaUuid),
     shallowEqual
   );
-  const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
-  const traversesFromDb = useAppSelector((state) => state.traverse.traversesFromDb, shallowEqual);
+  const traverses = useAppSelector(
+    (state) =>
+      state.traverse.traverses.map((t) => {
+        return { uuid: t.uuid, updatedAt: t.updatedAt };
+      }),
+    deepEqual
+  );
+  const traversesFromDb = useAppSelector(
+    (state) =>
+      state.traverse.traversesFromDb.map((t) => {
+        return { uuid: t.uuid, updatedAt: t.updatedAt };
+      }),
+    deepEqual
+  );
   const allTraverseCalculatedFields = useAppSelector(
     (state) => state.traverse.calculatedFields,
     shallowEqual
@@ -68,7 +80,7 @@ const EvaRightEva: FunctionComponent = () => {
 
   useEffect(() => {
     if (!selectedEva) return;
-    const evaEqual = isModified([selectedEva], [selectedEvaFromDb]);
+    const evaModifieid = isModified([selectedEva], [selectedEvaFromDb]);
 
     const traverseUuidsInThisEva: string[] = [];
     selectedEva.sequence.forEach((sequenceItem) => {
@@ -82,8 +94,8 @@ const EvaRightEva: FunctionComponent = () => {
     const thisEvasTraversesFromDb = traversesFromDb.filter((traverse) => {
       return traverseUuidsInThisEva.includes(traverse.uuid);
     });
-    const traversesEqual = isModified(thisEvasTraverses, thisEvasTraversesFromDb);
-    setModified(evaEqual || traversesEqual);
+    const traversesModified = isModified(thisEvasTraverses, thisEvasTraversesFromDb);
+    setModified(evaModifieid || traversesModified);
   }, [selectedEva, selectedEvaFromDb, traverses, traversesFromDb]);
 
   // generate evaReportSequenceItems from the eva sequence
