@@ -29,7 +29,7 @@ import {
 } from "store/thunk/thunkRex";
 import { setPosEntryEditingUuid, setSelectedPosEntryUuid } from "store/rex";
 import { hhmmssFromSeconds } from "utils/formatting";
-import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
+import { thunkClearAllMapSelections, thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { setHoverUuidsForPosEntry } from "store/hover";
 import { PosKabobMenu } from "./map-menu-pos-menu";
 import { orderBy } from "lodash";
@@ -70,6 +70,14 @@ export const MapPositionMenu: FunctionComponent = () => {
         ?.posEntries?.find((c) => c.uuid === state.rex.posEntryEditingUuid),
     deepEqual
   );
+  const selectedRexUuid = useAppSelector(
+    (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid).uuid,
+    refEqual
+  );
+  const selectedRexPosTypes = useAppSelector(
+    (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid).posTypes,
+    deepEqual
+  );
 
   const thisMapDirective = useAppSelector((state) => {
     return state.map.mapDirective?.uuid === posEntryEditingUuid ? state.map.mapDirective : null;
@@ -83,10 +91,10 @@ export const MapPositionMenu: FunctionComponent = () => {
   const [modified, setModified] = useState(false); //track modified
   const [showMenu, setShowMenu] = useState(true);
 
-  //clear the selected pos type uuids when the selected rex changes
+  //clear the selected pos type uuids when the selected rex uuid changes or when the posType list changes
   useEffect(() => {
     setSelectedPosTypeUuids([]);
-  }, [selectedRex]);
+  }, [selectedRexUuid, selectedRexPosTypes]);
 
   //for enable/disable save button
   useEffect(() => {
@@ -149,6 +157,7 @@ export const MapPositionMenu: FunctionComponent = () => {
   //create a new position entry
   const handleCreate = async () => {
     if (await verifyNoActiveMapAction()) {
+      await dispatch(thunkClearAllMapSelections());
       const newUuid = (await dispatch(thunkCreatePosEntry({ posTypeUuids: selectedPosTypeUuids })))
         .payload;
       if (newUuid) {
