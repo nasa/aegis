@@ -53,17 +53,3 @@ COPY /docker/nginx/nginx.conf /etc/nginx/nginx.conf
 # This image is intended to be run with docker-compose. See docker-compose*.yml files for necessary
 # environment variables
 CMD ["nginx", "-g", "daemon off;"]
-
-
-# # # # # # # #
-# DEV image   #
-# # # # # # # #
-
-# This build doesn't actually need the "AS base" except that it simplifies our .gitlab-ci.yml by
-# allowing us to specify `--target base`
-FROM base as dev
-
-# dev nginx config file is mapped in as a volume so changes can be made without rebuilding docker image
-# all React app requests are proxied to a vitedev docker container
-
-CMD ["nginx", "-g", "daemon off;"]

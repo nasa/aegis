@@ -33,25 +33,24 @@ For all install methods, do the following:
       ```
 6. Perform steps for either "Fully docker-compose" or "Just database via docker-compose" below.
 
-### Option 1: Just database and service containers via docker-compose
+### Development with service containers
 
-This option is useful if you want to use vs code's debugging features
+This is for doing local development with the Database and Gdal containers running
 
 Perform "All install methods" instructions above before performing the following.
 
-1. Run Docker only starting the service containers required for local dev:
-   - Dev mode: `npm run docker:dev:services`
+1. Run Docker only starting the service containers (gdal and database): `npm run docker:services`
 2. Import a dump of the database from one of the environments using the instructions outlined in "Import a database dump from one of the AEGIS environments" below.
 3. Run `npm run dev` to start the frontend.
-4. Open [http://aegis-local.fit.nasa.gov:4000](http://aegis-local.fit.nasa.gov:4000) with your browser (lack of https).
+4. Open [http://aegis-local.fit.nasa.gov:4000](http://aegis-local.fit.nasa.gov:4000) with your browser (note lack of https).
 
-### Option 2: Fully docker-compose (not recommended)
+### Preview: Fully docker-compose
+
+This is for previewing AEGIS in a full docker setup as it would be configured on the pipeline
 
 Perform "All install methods" instructions above before performing the following.
 
-1. Run Docker:
-   - Dev mode: `npm run docker:dev`
-   - Production preview: `npm run docker:preview`
+1. Run Docker for production preview. This will start the service containers plus additional containers: `npm run docker:preview`
 2. Import a dump of the database from one of the environments using the instructions outlined in "Import a database dump from one of the AEGIS environments" below.
 3. Open [https://aegis-local.fit.nasa.gov](https://aegis-local.fit.nasa.gov) with your browser.
 

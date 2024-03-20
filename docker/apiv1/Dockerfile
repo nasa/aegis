@@ -40,23 +40,3 @@ COPY --from=builder /serverbuild/.local/express/dist/api.js /app
 # This image is intended to be run with docker-compose. See docker-compose.dev.yml for necessary
 # environment variables
 CMD "node" "/app/api.js"
-
-
-# # # # # # #
-# DEV image #
-# # # # # # #
-FROM base AS dev
-RUN mkdir /app
-WORKDIR /app
-
-RUN mkdir /serverbuild
-WORKDIR /serverbuild
-
-COPY package*.json .
-RUN npm install
-
-COPY . /serverbuild
-
-# This image is intended to be run with docker-compose. See docker-compose.dev.yml for necessary
-# environment variables
-CMD  ["npm", "run", "api:dev"]
