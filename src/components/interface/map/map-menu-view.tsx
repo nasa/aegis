@@ -4,16 +4,16 @@ import { Dispatch, FunctionComponent, SetStateAction, useState } from "react";
 import styles from "./map-menu-view.module.css";
 
 export const MapViewMenu: FunctionComponent<{
-  mapDisplayPois: MapMarkersDisplay;
-  setMapDisplayPois: Dispatch<SetStateAction<MapMarkersDisplay>>;
-  mapDisplayStations: MapMarkersDisplay;
-  setMapDisplayStations: Dispatch<SetStateAction<MapMarkersDisplay>>;
-  mapDisplayActions: MapMarkersDisplay;
-  setMapDisplayActions: Dispatch<SetStateAction<MapMarkersDisplay>>;
+  mapDisplayPois: MapDisplayMarkers;
+  setMapDisplayPois: Dispatch<SetStateAction<MapDisplayMarkers>>;
+  mapDisplayStations: MapDisplayMarkers;
+  setMapDisplayStations: Dispatch<SetStateAction<MapDisplayMarkers>>;
+  mapDisplayActions: MapDisplayMarkers;
+  setMapDisplayActions: Dispatch<SetStateAction<MapDisplayMarkers>>;
   showArrows: boolean;
   setShowArrows: Dispatch<SetStateAction<boolean>>;
-  mapDisplayPosMarkers: MapPosDisplay;
-  setMapDisplayPosMarkers: Dispatch<SetStateAction<MapPosDisplay>>;
+  mapDisplayPosMarkers: MapDisplayPositions;
+  setMapDisplayPosMarkers: Dispatch<SetStateAction<MapDisplayPositions>>;
   showGridLabels: boolean;
   setShowGridLabels: Dispatch<SetStateAction<boolean>>;
 }> = ({
@@ -58,83 +58,125 @@ export const MapViewMenu: FunctionComponent<{
       <div className={`${styles.menu} ${!showMenu && styles.hideMenu}`}>
         <div className={styles.mapDisplay}>
           <div className={styles.controlsContainer}>
-            <MenuItem
-              title="POIs"
-              selected={mapDisplayPois.show}
-              setSelected={() => {
-                setMapDisplayPois({
-                  ...mapDisplayPois,
-                  show: !mapDisplayPois.show,
-                  showLabels: mapDisplayPois.show ? false : mapDisplayPois.showLabels,
-                });
-              }}
-              collapsible={true}
-            >
-              <MenuItem
-                title="Labels"
-                selected={mapDisplayPois.showLabels}
-                setSelected={() => {
+            <div className={styles.menuItemTitleContainer}>
+              <div
+                className={styles.menuEyeIcon}
+                onClick={() => {
+                  setMapDisplayPois({
+                    ...mapDisplayPois,
+                    show: !mapDisplayPois.show,
+                    showLabels: mapDisplayPois.show ? false : mapDisplayPois.showLabels,
+                  });
+                }}
+              >
+                <FontAwesomeIcon
+                  icon={faEye}
+                  size="sm"
+                  style={{
+                    marginTop: "3px",
+                    width: "15px",
+                    color: mapDisplayPois.show ? "var(--grey5)" : "var(--grey3)",
+                    outline: "none",
+                  }}
+                  tabIndex={0}
+                />
+              </div>
+              <div className={styles.menuItemTitle}>POIs</div>
+              <div
+                className={`${styles.toggleSingle} ${styles.center} ${
+                  mapDisplayPois.showLabels && styles.toggleSelected
+                }`}
+                onClick={() => {
                   setMapDisplayPois({
                     ...mapDisplayPois,
                     showLabels: !mapDisplayPois.showLabels,
                     show: !mapDisplayPois.show ? true : mapDisplayPois.show,
                   });
                 }}
-                collapsible={false}
-              />
-            </MenuItem>
-            <MenuItem
-              title="Stations"
-              selected={mapDisplayStations.show}
-              setSelected={() => {
-                setMapDisplayStations({
-                  ...mapDisplayStations,
-                  show: !mapDisplayStations.show,
-                  showLabels: mapDisplayStations.show ? false : mapDisplayStations.showLabels,
-                });
-              }}
-              collapsible={true}
-            >
-              <MenuItem
-                title="Labels"
-                selected={mapDisplayStations.showLabels}
-                setSelected={() => {
+              >
+                Labels
+              </div>
+            </div>
+            <div className={styles.menuItemTitleContainer}>
+              <div
+                className={styles.menuEyeIcon}
+                onClick={() => {
+                  setMapDisplayStations({
+                    ...mapDisplayStations,
+                    show: !mapDisplayStations.show,
+                    showLabels: mapDisplayStations.show ? false : mapDisplayStations.showLabels,
+                  });
+                }}
+              >
+                <FontAwesomeIcon
+                  icon={faEye}
+                  size="sm"
+                  style={{
+                    marginTop: "3px",
+                    width: "15px",
+                    color: mapDisplayStations.show ? "var(--grey5)" : "var(--grey3)",
+                    outline: "none",
+                  }}
+                  tabIndex={0}
+                />
+              </div>
+              <div className={styles.menuItemTitle}>Stations</div>
+              <div
+                className={`${styles.toggleSingle} ${styles.center} ${
+                  mapDisplayStations.showLabels && styles.toggleSelected
+                }`}
+                onClick={() => {
                   setMapDisplayStations({
                     ...mapDisplayStations,
                     showLabels: !mapDisplayStations.showLabels,
                     show: !mapDisplayStations.show ? true : mapDisplayStations.show,
                   });
                 }}
-                collapsible={false}
-              />
-            </MenuItem>
-            <MenuItem
-              title="Actions"
-              selected={mapDisplayActions.show}
-              setSelected={() => {
-                setMapDisplayActions({
-                  ...mapDisplayActions,
-                  show: !mapDisplayActions.show,
-                  showLabels: mapDisplayActions.show ? false : mapDisplayActions.showLabels,
-                });
-              }}
-              collapsible={true}
-            >
-              <MenuItem
-                title="Labels"
-                selected={mapDisplayActions.showLabels}
-                setSelected={() => {
+              >
+                Labels
+              </div>
+            </div>
+            <div className={styles.menuItemTitleContainer}>
+              <div
+                className={styles.menuEyeIcon}
+                onClick={() => {
+                  setMapDisplayActions({
+                    ...mapDisplayActions,
+                    show: !mapDisplayActions.show,
+                    showLabels: mapDisplayActions.show ? false : mapDisplayActions.showLabels,
+                  });
+                }}
+              >
+                <FontAwesomeIcon
+                  icon={faEye}
+                  size="sm"
+                  style={{
+                    marginTop: "3px",
+                    width: "15px",
+                    color: mapDisplayActions.show ? "var(--grey5)" : "var(--grey3)",
+                    outline: "none",
+                  }}
+                  tabIndex={0}
+                />
+              </div>
+              <div className={styles.menuItemTitle}>Actions</div>
+              <div
+                className={`${styles.toggleSingle} ${styles.center} ${
+                  mapDisplayActions.showLabels && styles.toggleSelected
+                }`}
+                onClick={() => {
                   setMapDisplayActions({
                     ...mapDisplayActions,
                     showLabels: !mapDisplayActions.showLabels,
                     show: !mapDisplayActions.show ? true : mapDisplayActions.show,
                   });
                 }}
-                collapsible={false}
-              />
-            </MenuItem>
+              >
+                Labels
+              </div>
+            </div>
             <MenuItem
-              title="Position Markers"
+              title="Positions"
               selected={mapDisplayPosMarkers.show}
               setSelected={() => {
                 setMapDisplayPosMarkers({
@@ -144,73 +186,257 @@ export const MapViewMenu: FunctionComponent<{
               }}
               collapsible={true}
             >
-              <MenuItem
-                title="All Labels"
-                selected={mapDisplayPosMarkers.showAllLabels}
-                setSelected={() => {
-                  setMapDisplayPosMarkers({
-                    ...mapDisplayPosMarkers,
-                    showAllLabels: !mapDisplayPosMarkers.showAllLabels,
-                    show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
-                  });
-                }}
-                collapsible={false}
-              />
-              <MenuItem
-                title="Latest Labels"
-                selected={mapDisplayPosMarkers.showLatestLabels}
-                setSelected={() => {
-                  setMapDisplayPosMarkers({
-                    ...mapDisplayPosMarkers,
-                    showLatestLabels: !mapDisplayPosMarkers.showLatestLabels,
-                    show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
-                  });
-                }}
-                collapsible={false}
-              />
-              <MenuItem
-                title="Position Marker Paths"
-                selected={mapDisplayPosMarkers.showPaths}
-                setSelected={() => {
-                  setMapDisplayPosMarkers({
-                    ...mapDisplayPosMarkers,
-                    showPaths: !mapDisplayPosMarkers.showPaths,
-                    show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
-                  });
-                }}
-                collapsible={false}
-              />
-              <MenuItem
-                title="Fade Old Marker Positions"
-                selected={mapDisplayPosMarkers.fadeOldPositions}
-                setSelected={() => {
-                  setMapDisplayPosMarkers({
-                    ...mapDisplayPosMarkers,
-                    fadeOldPositions: !mapDisplayPosMarkers.fadeOldPositions,
-                    show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
-                  });
-                }}
-                collapsible={false}
-              />
+              <div className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle}`}>
+                Markers
+                <div
+                  className={`${styles.toggleLeft} ${styles.center} ${
+                    mapDisplayPosMarkers.showOldMarkers &&
+                    !mapDisplayPosMarkers.fadeOldMarkers &&
+                    mapDisplayPosMarkers.showMarkers &&
+                    styles.toggleSelected
+                  }`}
+                  onClick={() => {
+                    setMapDisplayPosMarkers({
+                      ...mapDisplayPosMarkers,
+                      showOldMarkers: true,
+                      fadeOldMarkers: false,
+                      showMarkers: true,
+                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                    });
+                  }}
+                >
+                  All
+                </div>
+                <div
+                  className={`${styles.toggleMiddle} ${styles.center} ${
+                    !mapDisplayPosMarkers.showOldMarkers &&
+                    !mapDisplayPosMarkers.fadeOldMarkers &&
+                    mapDisplayPosMarkers.showMarkers &&
+                    styles.toggleSelected
+                  }`}
+                  onClick={() => {
+                    setMapDisplayPosMarkers({
+                      ...mapDisplayPosMarkers,
+                      showOldMarkers: false,
+                      fadeOldMarkers: false,
+                      showMarkers: true,
+                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                    });
+                  }}
+                >
+                  Latest
+                </div>
+                <div
+                  className={`${styles.toggleMiddle} ${styles.center} ${
+                    mapDisplayPosMarkers.showOldMarkers &&
+                    mapDisplayPosMarkers.fadeOldMarkers &&
+                    mapDisplayPosMarkers.showMarkers &&
+                    styles.toggleSelected
+                  }`}
+                  onClick={() => {
+                    setMapDisplayPosMarkers({
+                      ...mapDisplayPosMarkers,
+                      showOldMarkers: true,
+                      fadeOldMarkers: true,
+                      showMarkers: true,
+                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                    });
+                  }}
+                >
+                  Fade Past
+                </div>
+                <div
+                  className={`${styles.toggleRight} ${styles.center} ${
+                    !mapDisplayPosMarkers.showOldMarkers &&
+                    !mapDisplayPosMarkers.fadeOldMarkers &&
+                    !mapDisplayPosMarkers.showMarkers &&
+                    styles.toggleSelected
+                  }`}
+                  onClick={() => {
+                    setMapDisplayPosMarkers({
+                      ...mapDisplayPosMarkers,
+                      showOldMarkers: false,
+                      fadeOldMarkers: false,
+                      showMarkers: false,
+                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                    });
+                  }}
+                >
+                  None
+                </div>
+              </div>
+              <div
+                className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle} ${styles.menuItemContent}`}
+              >
+                Labels
+                <div
+                  className={`${styles.toggleLeft} ${styles.center} ${
+                    mapDisplayPosMarkers.showAllLabels &&
+                    !mapDisplayPosMarkers.showLatestLabels &&
+                    styles.toggleSelected
+                  }`}
+                  onClick={() => {
+                    setMapDisplayPosMarkers({
+                      ...mapDisplayPosMarkers,
+                      showAllLabels: true,
+                      showLatestLabels: false,
+                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                    });
+                  }}
+                >
+                  All
+                </div>
+                <div
+                  className={`${styles.toggleMiddle} ${styles.center} ${
+                    !mapDisplayPosMarkers.showAllLabels &&
+                    mapDisplayPosMarkers.showLatestLabels &&
+                    styles.toggleSelected
+                  }`}
+                  onClick={() => {
+                    setMapDisplayPosMarkers({
+                      ...mapDisplayPosMarkers,
+                      showAllLabels: false,
+                      showLatestLabels: true,
+                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                    });
+                  }}
+                >
+                  Latest
+                </div>
+                <div
+                  className={`${styles.toggleRight} ${styles.center} ${
+                    !mapDisplayPosMarkers.showAllLabels &&
+                    !mapDisplayPosMarkers.showLatestLabels &&
+                    styles.toggleSelected
+                  }`}
+                  onClick={() => {
+                    setMapDisplayPosMarkers({
+                      ...mapDisplayPosMarkers,
+                      showAllLabels: false,
+                      showLatestLabels: false,
+                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                    });
+                  }}
+                >
+                  None
+                </div>
+              </div>
+              <div className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle}`}>
+                Paths
+                <div
+                  className={`${styles.toggleLeft} ${styles.center} ${
+                    mapDisplayPosMarkers.showOldPaths &&
+                    !mapDisplayPosMarkers.fadeOldPaths &&
+                    mapDisplayPosMarkers.showPaths &&
+                    styles.toggleSelected
+                  }`}
+                  onClick={() => {
+                    setMapDisplayPosMarkers({
+                      ...mapDisplayPosMarkers,
+                      showOldPaths: true,
+                      fadeOldPaths: false,
+                      showPaths: true,
+                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                    });
+                  }}
+                >
+                  All
+                </div>
+                <div
+                  className={`${styles.toggleMiddle} ${styles.center} ${
+                    !mapDisplayPosMarkers.showOldPaths &&
+                    !mapDisplayPosMarkers.fadeOldPaths &&
+                    mapDisplayPosMarkers.showPaths &&
+                    styles.toggleSelected
+                  }`}
+                  onClick={() => {
+                    setMapDisplayPosMarkers({
+                      ...mapDisplayPosMarkers,
+                      showOldPaths: false,
+                      fadeOldPaths: false,
+                      showPaths: true,
+                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                    });
+                  }}
+                >
+                  Latest
+                </div>
+                <div
+                  className={`${styles.toggleMiddle} ${styles.center} ${
+                    mapDisplayPosMarkers.showOldPaths &&
+                    mapDisplayPosMarkers.fadeOldPaths &&
+                    mapDisplayPosMarkers.showPaths &&
+                    styles.toggleSelected
+                  }`}
+                  onClick={() => {
+                    setMapDisplayPosMarkers({
+                      ...mapDisplayPosMarkers,
+                      showOldPaths: true,
+                      fadeOldPaths: true,
+                      showPaths: true,
+                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                    });
+                  }}
+                >
+                  Fade Past
+                </div>
+                <div
+                  className={`${styles.toggleRight} ${styles.center} ${
+                    !mapDisplayPosMarkers.showOldPaths &&
+                    !mapDisplayPosMarkers.fadeOldPaths &&
+                    !mapDisplayPosMarkers.showPaths &&
+                    styles.toggleSelected
+                  }`}
+                  onClick={() => {
+                    setMapDisplayPosMarkers({
+                      ...mapDisplayPosMarkers,
+                      showOldPaths: false,
+                      fadeOldPaths: false,
+                      showPaths: false,
+                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                    });
+                  }}
+                >
+                  None
+                </div>
+              </div>
             </MenuItem>
-
-            <MenuItem
-              title="Traverse Arrows"
-              selected={showArrows}
-              setSelected={() => {
-                setShowArrows(!showArrows);
-              }}
-              collapsible={false}
-            />
-
-            <MenuItem
-              title="Grid Labels"
-              selected={showGridLabels}
-              setSelected={() => {
-                setShowGridLabels(!showGridLabels);
-              }}
-              collapsible={false}
-            />
+            <div className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle}`}>
+              Traverse
+              <div
+                className={`${styles.toggleLeft} ${styles.center} ${
+                  showArrows && styles.toggleSelected
+                }`}
+                onClick={() => {
+                  setShowArrows(!showArrows);
+                }}
+              >
+                Arrows
+              </div>
+              <div
+                className={`${styles.toggleRight} ${styles.center} ${
+                  !showArrows && styles.toggleSelected
+                }`}
+                onClick={() => {
+                  setShowArrows(!showArrows);
+                }}
+              >
+                Animated
+              </div>
+            </div>
+            <div className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle}`}>
+              Grid
+              <div
+                className={`${styles.toggleSingle} ${styles.center} ${
+                  showGridLabels && styles.toggleSelected
+                }`}
+                onClick={() => {
+                  setShowGridLabels(!showGridLabels);
+                }}
+              >
+                Labels
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -155,10 +155,12 @@ const SequenceItemTraverse: FunctionComponent<{
         className={evaStyles.evaItem}
         key={`${traverseUuid}`}
         onMouseEnter={() => {
-          dispatch(setHoverUuidsForSequence(traverseUuid));
+          dispatch(
+            setHoverUuidsForSequence({ sequenceUuid: traverseUuid, mapItemType: "traverse" })
+          );
         }}
         onMouseLeave={() => {
-          dispatch(setHoverUuidsForSequence(null));
+          dispatch(setHoverUuidsForSequence({ sequenceUuid: null, mapItemType: null }));
         }}
       >
         <div className={evaStyles.evaTraverseIndicator}>

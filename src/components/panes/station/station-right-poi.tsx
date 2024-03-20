@@ -9,7 +9,7 @@ import stationStyles from "./station.module.css";
 import _ from "lodash";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { Checkbox } from "components/interface/form/globalFields";
-import { setMapItemHoverUuid } from "store/hover";
+import { setMapItemHoverType, setMapItemHoverUuid } from "store/hover";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { faMessage } from "@fortawesome/free-solid-svg-icons";
@@ -99,8 +99,14 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         <div
                           className={stationStyles.poiItem}
                           key={poi.uuid}
-                          onMouseEnter={() => dispatch(setMapItemHoverUuid(poi.uuid))}
-                          onMouseLeave={() => dispatch(setMapItemHoverUuid(null))}
+                          onMouseEnter={() => {
+                            dispatch(setMapItemHoverUuid(poi.uuid));
+                            dispatch(setMapItemHoverType("poi"));
+                          }}
+                          onMouseLeave={() => {
+                            dispatch(setMapItemHoverUuid(null));
+                            dispatch(setMapItemHoverType(null));
+                          }}
                         >
                           <Checkbox
                             checked={checked}

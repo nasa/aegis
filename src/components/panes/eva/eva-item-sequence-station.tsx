@@ -181,10 +181,10 @@ const SequenceItemStation: FunctionComponent<{
         className={evaStyles.evaItem}
         key={`${index}${evaUuid}${stationUuid}`}
         onMouseEnter={() => {
-          dispatch(setHoverUuidsForSequence(stationUuid));
+          dispatch(setHoverUuidsForSequence({ sequenceUuid: stationUuid, mapItemType: "station" }));
         }}
         onMouseLeave={() => {
-          dispatch(setHoverUuidsForSequence(null));
+          dispatch(setHoverUuidsForSequence({ sequenceUuid: null, mapItemType: null }));
         }}
       >
         {thisStation ? (

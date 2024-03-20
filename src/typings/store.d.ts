@@ -2,6 +2,7 @@ interface HoverState {
   timelineSeqItemUuid: string; //when hovering over the timeline
   leftPanelHoverItemUuid: string;
   mapItemUuid: string;
+  mapItemType: MapItemType;
   posEntryItemUuid: string;
   evaSecondsElapsed: number /** Seconds representing the time into the mission that the mouse is hovering on via the nav-timeline */;
   sequenceItemPercentElapsed: number; //when hovering over the timline, represents % duration elapsed for that sequence item at that point in time

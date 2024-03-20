@@ -32,7 +32,7 @@ interface MapDirective {
 /**
  * Station / POI map view state
  */
-interface MapMarkersDisplay {
+interface MapDisplayMarkers {
   show: boolean;
   showLabels: boolean;
 }
@@ -40,22 +40,26 @@ interface MapMarkersDisplay {
 /**
  * Pos map view state
  */
-interface MapPosDisplay {
+interface MapDisplayPositions {
   show: boolean;
-  showPaths: boolean;
   showAllLabels: boolean;
   showLatestLabels: boolean;
-  fadeOldPositions: boolean;
+  showPaths: boolean;
+  showOldPaths: boolean;
+  fadeOldPaths: boolean;
+  showMarkers: boolean;
+  showOldMarkers: boolean;
+  fadeOldMarkers: boolean;
 }
 
 /**
  * Cookie for map view settings
  */
 type EyeballMenuCookieAEGISMapViewSettings = {
-  mapDisplayPois: MapMarkersDisplay;
-  mapDisplayStations: MapMarkersDisplay;
-  mapDisplayActions: MapMarkersDisplay;
-  mapDisplayPosMarkers: MapPosDisplay;
+  mapDisplayPois: MapDisplayMarkers;
+  mapDisplayStations: MapDisplayMarkers;
+  mapDisplayActions: MapDisplayMarkers;
+  mapDisplayPositions: MapDisplayPositions;
   showArrows: boolean;
   showGridLabels: boolean;
 };

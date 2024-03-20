@@ -14,7 +14,12 @@ type AEGISPolyline = L.Polyline & {
   mapItemType: MapPolylineType;
 };
 
-type MapPolylineType = "traverse" | "walkback" | "antPath" | "hover" | "posPath";
+type MapPolylineType = "traverse" | "walkback" | "hover" | "posPath";
+
+type AEGISDecorator = L.polylineDecorator & {
+  uuid?: string;
+  mapItemType: MapPolylineType;
+};
 
 type AEGISMapDrawingLayer = L.Layer & {
   uuid?: string;

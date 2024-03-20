@@ -48,10 +48,10 @@ const StationItem: FunctionComponent<{
         }
       }}
       onMouseEnter={() => {
-        dispatch(setHoverUuidsForSequence(station.uuid));
+        dispatch(setHoverUuidsForSequence({ sequenceUuid: station.uuid, mapItemType: "station" }));
       }}
       onMouseLeave={() => {
-        dispatch(setHoverUuidsForSequence(null));
+        dispatch(setHoverUuidsForSequence({ sequenceUuid: null, mapItemType: null }));
       }}
     >
       <div className={stationStyles.itemIcon}>
