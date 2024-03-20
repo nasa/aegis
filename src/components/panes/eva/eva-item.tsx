@@ -210,10 +210,15 @@ export const EvaEgressIngressListing: FunctionComponent<{
           dispatch(setSelectedEvaSequenceItemUuid(null));
         }}
         onMouseEnter={() => {
-          dispatch(setHoverUuidsForSequence(isEgress ? "egress" : "ingress"));
+          dispatch(
+            setHoverUuidsForSequence({
+              sequenceUuid: isEgress ? "egress" : "ingress",
+              mapItemType: null,
+            })
+          );
         }}
         onMouseLeave={() => {
-          dispatch(setHoverUuidsForSequence(null));
+          dispatch(setHoverUuidsForSequence({ sequenceUuid: null, mapItemType: null }));
         }}
       >
         <div className={evaStyles.evaItemLeft}>

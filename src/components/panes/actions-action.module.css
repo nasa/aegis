@@ -182,7 +182,7 @@
   padding: 2px 4px 2px 4px;
 }
 .actionHeadingCrewSelected {
-  background-color: var(--grey4);
+  background-color: var(--grey5);
   color: var(--grey1);
   font-weight: 600;
 }

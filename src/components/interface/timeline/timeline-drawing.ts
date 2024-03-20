@@ -796,6 +796,7 @@ export const drawMouseHover = (
 
     //determine sequence item
     let sequenceUuid = null;
+    let sequenceType = null;
     let sequenceItemPercentElapsed = null;
     for (const bkgBlock of paperGroupsRef.current.graphBkg.children) {
       if (bkgBlock.contains(new paper.Point(hoverPoint.x, paperVars.timelineTop + 1))) {
@@ -804,6 +805,7 @@ export const drawMouseHover = (
         const sequenceItem = storeRef.current.sequenceItems.find(
           (seqItem) => seqItem.uuid === bkgBlock.name
         );
+        sequenceType = sequenceItem.type;
         sequenceItemPercentElapsed =
           (seconds - sequenceItem.secondsStart) / (sequenceItem.totalDurationMins * 60);
         break;
@@ -908,7 +910,14 @@ export const drawMouseHover = (
 
     //save hover data to store
     dispatch(setLeftPanelHoverUuid(sequenceUuid));
-    dispatch(setMapItemHover({ seconds, sequenceUuid, sequenceItemPercentElapsed }));
+    dispatch(
+      setMapItemHover({
+        seconds,
+        sequenceUuid,
+        mapItemType: sequenceType,
+        sequenceItemPercentElapsed,
+      })
+    );
   } else {
     //mouse is outside of the graph area but is still inside paper canvas
     paperGroupsRef.current.hoverLine.visible = false;

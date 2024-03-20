@@ -68,10 +68,10 @@ const PoiItem: FunctionComponent<{
         }
       }}
       onMouseEnter={() => {
-        dispatch(setHoverUuidsForSequence(poi.uuid));
+        dispatch(setHoverUuidsForSequence({ sequenceUuid: poi.uuid, mapItemType: "poi" }));
       }}
       onMouseLeave={() => {
-        dispatch(setHoverUuidsForSequence(null));
+        dispatch(setHoverUuidsForSequence({ sequenceUuid: null, mapItemType: null }));
       }}
     >
       <div className={poiStyles.itemIcon}>{decodeEmoji(poi.icon)}</div>
