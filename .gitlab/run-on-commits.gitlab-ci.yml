@@ -65,39 +65,33 @@ include:
 project-check:
   stage: stageless
   needs: []
-  tags: ["openshift"]
-eslint-sast:
-  stage: stageless
-  needs: []
-  tags: ["openshift"]
 nodejs-scan-sast:
   stage: stageless
   needs: []
-  tags: ["openshift"]
 semgrep-sast:
   stage: stageless
   needs: []
-  tags: ["openshift"]
 sast:
   stage: stageless
   needs: []
-  tags: ["openshift"]
 secret_detection:
   stage: stageless
   needs: []
-  tags: ["openshift"]
 code-count:
   stage: stageless
   needs: []
-  tags: ["openshift"]
 yaml-lint:
   stage: stageless
   needs: []
-  tags: ["openshift"]
 job-report-visualization:
   stage: stageless
   needs: []
-  tags: ["openshift"]
+deprecated-keywords:
+  stage: stageless
+  needs: []
+file-count:
+  stage: stageless
+  needs: []
 # accessibility:
 #   stage: stageless
 #   needs: ["some deploy job or a running system in GitLab"]
