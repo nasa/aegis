@@ -24,6 +24,7 @@
 .menuIcon {
   flex: 0 0 18px;
   user-select: none;
+  cursor: pointer;
 }
 .menuContainer {
   display: flex;

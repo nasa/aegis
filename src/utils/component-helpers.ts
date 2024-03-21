@@ -33,7 +33,7 @@ export const getAlertColor = (
 
   let alertIconColor = "white";
   if (maxAlertLevel === "error") {
-    alertIconColor = "var(--error)";
+    alertIconColor = "var(--alert)";
   } else if (maxAlertLevel === "warning") {
     alertIconColor = "var(--warning)";
   }

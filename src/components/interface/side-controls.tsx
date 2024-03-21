@@ -435,7 +435,7 @@ export const RightTabs: FunctionComponent<{
                 color:
                   selectedRightNavItem === panelType
                     ? panelTypes[panelType].selectedColor
-                    : "white",
+                    : panelTypes[panelType].unselectedColor || "white",
               }}
               data-tooltip-id="aegis-tooltip"
               data-tooltip-html={panelTypes[panelType].title}

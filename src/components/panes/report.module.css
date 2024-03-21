@@ -7,6 +7,9 @@
 .error {
   color: var(--error);
 }
+.alert {
+  color: var(--alert);
+}
 .reportItems {
   display: flex;
   flex-direction: column;

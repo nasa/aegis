@@ -41,9 +41,9 @@ const RexRightRex: FunctionComponent = () => {
   const selectedRexFromDb = useAppSelector((state) => {
     const r = state.rex.rexesFromDb?.find((rex) => rex.uuid === state.rex.selectedRexUuid);
     return {
-      uuid: r.uuid,
-      updatedAt: r.updatedAt,
-      name: r.name,
+      uuid: r?.uuid,
+      updatedAt: r?.updatedAt,
+      name: r?.name,
     };
   }, deepEqual);
   const rexesEditing = useAppSelector((state) => state.rex.rexesEditing, shallowEqual);
