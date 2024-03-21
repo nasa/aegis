@@ -28,25 +28,50 @@ export const thunkCancelMarkerMapDirective = appCreateAsyncThunk<{ uuid: string 
   }
 );
 
-/**
- * Thunk used to verify map action. This was created so that components do not
- * have to subscribe to the entire mapDirective state in the store and cause
- * un-necessary re-renders.
- *
- * If another mapAction is underway, fire an alert and return false
- */
-export const thunkVerifyNoActiveMapAction = appCreateAsyncThunk<void, boolean, false>(
-  "verifyNoActiveMapAction",
-  async (_, { getState }) => {
-    const mapDirective = getState().map.mapDirective;
+// TODO: this approach might work once map directive is a queue
+// export const thunkCancelAnyActiveMapAction = appCreateAsyncThunk<void, void, false>(
+//   "cancelAnyActiveMapAction",
+//   async (__, { dispatch, getState }) => {
+//     const mapDirective = getState().map.mapDirective;
 
-    if (mapDirective && mapDirective.mapAction !== null) {
-      alert(
-        "Another map action is underway. Please cancel or complete that map action before starting a new one."
-      );
-      return false;
-    } else {
-      return true;
-    }
+//     if (mapDirective && mapDirective.mapAction !== null) {
+//       // cancel the active map action
+//       if (mapDirective.mapAction === "createMarker") {
+//         dispatch(
+//           updateMapDirective({
+//             ...mapDirective,
+//             mapAction: "cancelCreateMarker",
+//           })
+//         );
+//       } else if (mapDirective.mapAction === "editMarker") {
+//         dispatch(
+//           updateMapDirective({
+//             ...mapDirective,
+//             mapAction: "cancelEditMarker",
+//           })
+//         );
+//       } else if (mapDirective.mapAction === "editPolyline") {
+//         dispatch(
+//           updateMapDirective({
+//             ...mapDirective,
+//             mapAction:
+//               mapDirective.mapItemType === "measurement"
+//                 ? "saveEditPolyline"
+//                 : "cancelEditPolyline",
+//           })
+//         );
+//       }
+//     }
+//   }
+// );
+
+export const thunkUpdateMapDirective = appCreateAsyncThunk<MapDirective, void, false>(
+  "updateMapDirective",
+  async (mapDirective, { dispatch }) => {
+    //TODO: turn mapDirective into a queue so that cancel actions can happen while other actions are underway
+    // await dispatch(thunkCancelAnyActiveMapAction());
+    setTimeout(() => {
+      dispatch(updateMapDirective(mapDirective));
+    }, 200);
   }
 );

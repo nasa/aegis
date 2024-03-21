@@ -13,7 +13,6 @@ import {
 } from "components/interface/form/globalFields";
 import { FunctionComponent, useEffect, useState } from "react";
 import { upsertTraverseByField } from "store/traverse";
-import { updateMapDirective } from "store/map";
 import { refEqual, shallowEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
@@ -22,7 +21,7 @@ import { thunkResetTraverse } from "store/thunk/thunkTraverse";
 import { formatNumberWithCommas, toDecimal } from "utils/formatting";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { validators, regExValidators } from "components/interface/form/formValidators";
-import { thunkVerifyNoActiveMapAction } from "store/thunk/thunkMap";
+import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { makeTraverseRateString } from "utils/component-helpers";
 
 const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
@@ -75,26 +74,19 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
     }
   }, [elevationPendingIndex]);
 
-  // verify map action using a thunk to avoid subscribing to the mapDirective
-  const verifyNoActiveMapAction = async (): Promise<boolean> => {
-    return (await dispatch(thunkVerifyNoActiveMapAction())).payload;
-  };
-
   const handlePathEdit = async () => {
-    if (await verifyNoActiveMapAction()) {
-      dispatch(
-        updateMapDirective({
-          uuid: selectedTraverse.uuid,
-          mapItemType: "traverse",
-          mapAction: "editPolyline",
-        })
-      );
-    }
+    dispatch(
+      thunkUpdateMapDirective({
+        uuid: selectedTraverse.uuid,
+        mapItemType: "traverse",
+        mapAction: "editPolyline",
+      })
+    );
   };
 
   const handlePathFinished = async () => {
     dispatch(
-      updateMapDirective({
+      thunkUpdateMapDirective({
         uuid: selectedTraverse.uuid,
         mapItemType: "traverse",
         mapAction: "saveEditPolyline",
@@ -104,7 +96,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
 
   const handleCancelPathEdit = () => {
     dispatch(
-      updateMapDirective({
+      thunkUpdateMapDirective({
         uuid: selectedTraverse.uuid,
         mapItemType: "traverse",
         mapAction: "cancelEditPolyline",

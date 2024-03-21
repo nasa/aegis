@@ -13,6 +13,7 @@ import { initialState as hoverInitialState } from "store/hover";
 import { initialState as stmInitialState } from "store/stm";
 import { initialState as userInitialState } from "store/user";
 import { initialState as interfaceInitialState } from "store/interface";
+import { initialState as measureInitialState } from "store/measure";
 import { createTestTraverse } from "./TraverseFactory";
 import { createTestStation } from "./StationFactory";
 import { createTestActionTemplate, createTestMission } from "./MissionFactory";
@@ -160,6 +161,7 @@ export const createFullTestStore = (): StoreType => {
     },
     traverse: { ...traverseInitialState, traverses: traverses, traversesFromDb: traverses },
     rex: { ...rexInitialState, rexes: [rex1], rexesFromDb: [rex1] },
+    measure: { ...measureInitialState },
   };
 
   return configureStore({

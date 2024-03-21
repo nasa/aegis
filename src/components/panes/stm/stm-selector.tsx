@@ -1,6 +1,6 @@
 import CheckboxTree, { Node } from "react-checkbox-tree";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useAppSelector, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import stmStyles from "./stm-selector.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight, faCheckSquare } from "@fortawesome/free-solid-svg-icons";
@@ -15,12 +15,12 @@ const STMSelector: FunctionComponent<{
 }> = ({ editMode, stmUuidRefs, onSTMChange }) => {
   const allSTMObjectives: STMObjective[] = useAppSelector(
     (state) => state.stm.objectives,
-    shallowEqual
+    deepEqual
   );
-  const allSTMGoals: STMGoal[] = useAppSelector((state) => state.stm.goals, shallowEqual);
+  const allSTMGoals: STMGoal[] = useAppSelector((state) => state.stm.goals, deepEqual);
   const allSTMInvstgs: STMInvestigation[] = useAppSelector(
     (state) => state.stm.investigations,
-    shallowEqual
+    deepEqual
   );
 
   const [expanded, setExpanded] = useState<string[]>([]); //array of values at the parent levels that are expanded

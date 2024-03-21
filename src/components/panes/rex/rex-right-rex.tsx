@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import {
   faBan,
   faCircleInfo,
@@ -46,7 +46,7 @@ const RexRightRex: FunctionComponent = () => {
       name: r?.name,
     };
   }, deepEqual);
-  const rexesEditing = useAppSelector((state) => state.rex.rexesEditing, shallowEqual);
+  const rexesEditing = useAppSelector((state) => state.rex.rexesEditing, deepEqual);
 
   const [modified, setModified] = useState(false);
 

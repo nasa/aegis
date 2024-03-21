@@ -25,14 +25,13 @@ import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppS
 import ReactDOMServer from "react-dom/server";
 import STMSelector from "./stm/stm-selector";
 import { validators, regExValidators } from "components/interface/form/formValidators";
-import _, { round } from "lodash";
+import { round } from "lodash";
 import { EquipmentSelector, GeographicUnitSelector } from "./actions-action-body-multiselectors";
-import { updateMapDirective } from "store/map";
 import { thunkUpdateActionLocation } from "store/thunk/thunkAction";
 import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
-import { thunkVerifyNoActiveMapAction } from "store/thunk/thunkMap";
+import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 
 export const RightActionBody: FunctionComponent<{
   editMode: boolean;
@@ -82,7 +81,7 @@ export const RightActionBody: FunctionComponent<{
 
   const dispatchStationMapAction = (mapAction: MapAction) => {
     dispatch(
-      updateMapDirective({
+      thunkUpdateMapDirective({
         mapItemType: "action",
         uuid: action.uuid,
         mapAction,
@@ -90,24 +89,15 @@ export const RightActionBody: FunctionComponent<{
     );
   };
 
-  // verify map action using a thunk to avoid subscribing to the mapDirective
-  const verifyNoActiveMapAction = async (): Promise<boolean> => {
-    return (await dispatch(thunkVerifyNoActiveMapAction())).payload;
-  };
-
   const handleCreate = async () => {
-    if (await verifyNoActiveMapAction()) {
-      dispatchStationMapAction("createMarker");
-    }
+    dispatchStationMapAction("createMarker");
   };
   const handleCancelCreate = () => {
     dispatchStationMapAction("cancelCreateMarker");
   };
 
   const handleEdit = async () => {
-    if (await verifyNoActiveMapAction()) {
-      dispatchStationMapAction("editMarker");
-    }
+    dispatchStationMapAction("editMarker");
   };
 
   const handleCancelEdit = () => {

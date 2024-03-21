@@ -1,11 +1,11 @@
-import { Dispatch, MutableRefObject } from "react";
-import { clearMapItemHover, setLeftPanelHoverUuid, setMapItemHover } from "store/hover";
+import { MutableRefObject } from "react";
+import { clearMapItemHover, setLeftPanelHoverUuid, setSequenceHover } from "store/hover";
 import { padZeros } from "utils/formatting";
-import { AnyAction } from "@reduxjs/toolkit";
 import paper from "paper";
-import { getSlope } from "utils/geoMath";
 import { orderBy } from "lodash";
 import _ from "lodash";
+import { Dispatch } from "@reduxjs/toolkit";
+import { getHoverValue } from "utils/paper";
 
 /**
  * Draws the vertical line wtih the rotated time at the bottom.
@@ -62,7 +62,7 @@ export function drawTimeMarker(
  * @returns
  */
 export function drawMeterMarker(
-  paperDataRef: MutableRefObject<PaperData>,
+  fontFamily: string,
   xLoc: number,
   yLoc: number,
   label: string,
@@ -79,7 +79,7 @@ export function drawMeterMarker(
   const meterLabel = new paper.PointText({
     point: new paper.Point(xLoc + 15 * (align === "right" ? -1 : 1), yLoc + 4),
     justification: align,
-    fontFamily: paperDataRef.current.styles.gNavigatorFontFamilyActivity,
+    fontFamily,
     fontSize: 12,
     fillColor: color,
     content: label,
@@ -211,7 +211,7 @@ export function drawGraphAxis(
 
   //draw distance lander marker
   drawMeterMarker(
-    paperDataRef,
+    paperDataRef.current.styles.gNavigatorFontFamilyActivity,
     paperVars.timelineLeft,
     paperVars.timelineTop + paperVars.graphHeight,
     "Lander",
@@ -224,7 +224,7 @@ export function drawGraphAxis(
   for (let i = 1; i < numMarkersAboveLander; i++) {
     const distanceFromLander = i * distanceInterval;
     drawMeterMarker(
-      paperDataRef,
+      paperDataRef.current.styles.gNavigatorFontFamilyActivity,
       paperVars.timelineLeft,
       paperVars.timelineTop +
         paperVars.graphHeight -
@@ -242,7 +242,7 @@ export function drawGraphAxis(
   if (storeRef.current.landerElevationMeters) {
     //right lander horizontal axis line and marker
     drawMeterMarker(
-      paperDataRef,
+      paperDataRef.current.styles.gNavigatorFontFamilyActivity,
       xLocRightYaxis,
       paperVars.timelineTop + paperVars.landerElevationFromGraphTop,
       `Lander`,
@@ -286,7 +286,7 @@ export function drawGraphAxis(
     numMarkers = markerArea / elevationIntervalInPixels;
     for (let i = 1; i < numMarkers; i++) {
       drawMeterMarker(
-        paperDataRef,
+        paperDataRef.current.styles.gNavigatorFontFamilyActivity,
         xLocRightYaxis,
         yLocLanderElevation + elevationIntervalInPixels * i,
         `-${Math.round(i * elevationInterval).toLocaleString("en-US")}`,
@@ -300,7 +300,7 @@ export function drawGraphAxis(
     numMarkers = markerArea / elevationIntervalInPixels;
     for (let i = 1; i < numMarkers; i++) {
       drawMeterMarker(
-        paperDataRef,
+        paperDataRef.current.styles.gNavigatorFontFamilyActivity,
         xLocRightYaxis,
         yLocLanderElevation - elevationIntervalInPixels * i,
         `${Math.round(i * elevationInterval).toLocaleString("en-US")}`,
@@ -753,7 +753,7 @@ export const drawPositionMarkers = (
  * @returns
  */
 export const drawMouseHover = (
-  dispatch: Dispatch<AnyAction>,
+  dispatch: Dispatch,
   paperDataRef: MutableRefObject<PaperData>,
   paperGroupsRef: MutableRefObject<PaperGroups>,
   storeRef: MutableRefObject<EvaCalculated_PaperJS>,
@@ -813,7 +813,7 @@ export const drawMouseHover = (
     }
 
     //get hover values and draw diamonds
-    const newHoverValues: HoverValues = {
+    const newHoverValues: TimelineHoverValues = {
       distanceFromLanderMeters: null,
       elevationMeters: null,
       slopeDegrees: null,
@@ -911,12 +911,7 @@ export const drawMouseHover = (
     //save hover data to store
     dispatch(setLeftPanelHoverUuid(sequenceUuid));
     dispatch(
-      setMapItemHover({
-        seconds,
-        sequenceUuid,
-        mapItemType: sequenceType,
-        sequenceItemPercentElapsed,
-      })
+      setSequenceHover({ sequenceUuid, sequenceItemPercentElapsed, mapItemType: sequenceType })
     );
   } else {
     //mouse is outside of the graph area but is still inside paper canvas
@@ -925,52 +920,3 @@ export const drawMouseHover = (
     dispatch(clearMapItemHover());
   }
 };
-
-/**
- * Get the hover data from an array of graph data items given a mouse hover x point
- * Extrapolate values if the hover x point falls between two array points
- * Also calculate slope for optional usage
- * @param graphArray
- * @param hoverPoint
- * @returns the y pixel, the extrapolated value, and optional slope from the surrounding points before/after.
- */
-function getHoverValue(
-  graphArray: GraphDataItem[],
-  hoverPointX: number
-): { y: number; val: number; slope: number } {
-  let pointBefore: GraphDataItem = null;
-  let pointAfter: GraphDataItem = null;
-  for (const graphDataItem of graphArray) {
-    if (hoverPointX > graphDataItem.xPixel) {
-      pointBefore = graphDataItem;
-    } else if (hoverPointX < graphDataItem.xPixel) {
-      pointAfter = graphDataItem;
-      break;
-    }
-  }
-  if (!pointAfter) {
-    //we're past the end of the graph data. Use last point as pointAfter
-    pointAfter = _.last(graphArray);
-  }
-
-  //extrapolate percentage between the nearest points for estimated value
-  let newVal: number;
-  let newYPixel: number;
-  if (pointBefore.val === pointAfter.val) {
-    //we're at a station. Don't extrapolate values or y pixel
-    newVal = pointBefore.val;
-    newYPixel = pointBefore.yPixel;
-  } else {
-    const percent = (hoverPointX - pointBefore.xPixel) / (pointAfter.xPixel - pointBefore.xPixel);
-    newVal = pointBefore.val + (pointAfter.val - pointBefore.val) * percent;
-    newYPixel = pointBefore.yPixel + (pointAfter.yPixel - pointBefore.yPixel) * percent;
-  }
-
-  const slope = getSlope(pointBefore.xPixel, pointBefore.val, pointAfter.xPixel, pointAfter.val);
-
-  return {
-    y: newYPixel,
-    val: newVal,
-    slope,
-  };
-}

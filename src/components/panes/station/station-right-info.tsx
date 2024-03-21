@@ -15,7 +15,6 @@ import { LastEdited, SubpanelHeading } from "components/interface/_global-elemen
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, upsertStationByField } from "store/station";
-import { updateMapDirective } from "store/map";
 import { calcCentroidofCoordinates } from "utils/geoMath";
 import { formatNumberWithCommas, toDecimal } from "utils/formatting";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -29,7 +28,7 @@ import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { round } from "lodash";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import CalculatedDwell from "../calculated-dwell";
-import { thunkVerifyNoActiveMapAction } from "store/thunk/thunkMap";
+import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -138,7 +137,7 @@ const Info_Panel: FunctionComponent<{
 
   const dispatchStationMapAction = (mapAction: MapAction) => {
     dispatch(
-      updateMapDirective({
+      thunkUpdateMapDirective({
         mapItemType: "station",
         uuid: selectedStation.uuid,
         mapAction,
@@ -146,24 +145,15 @@ const Info_Panel: FunctionComponent<{
     );
   };
 
-  // verify map action using a thunk to avoid subscribing to the mapDirective
-  const verifyNoActiveMapAction = async (): Promise<boolean> => {
-    return (await dispatch(thunkVerifyNoActiveMapAction())).payload;
-  };
-
   const handleCreate = async () => {
-    if (await verifyNoActiveMapAction()) {
-      dispatchStationMapAction("createMarker");
-    }
+    dispatchStationMapAction("createMarker");
   };
   const handleCancelCreate = () => {
     dispatchStationMapAction("cancelCreateMarker");
   };
 
   const handleEdit = async () => {
-    if (await verifyNoActiveMapAction()) {
-      dispatchStationMapAction("editMarker");
-    }
+    dispatchStationMapAction("editMarker");
   };
 
   const handleCancelEdit = () => {
@@ -176,20 +166,18 @@ const Info_Panel: FunctionComponent<{
   };
 
   const handleEditWalkback = async () => {
-    if (await verifyNoActiveMapAction()) {
-      dispatch(
-        updateMapDirective({
-          mapItemType: "walkback",
-          uuid: selectedStation.uuid,
-          mapAction: "editPolyline",
-        })
-      );
-    }
+    dispatch(
+      thunkUpdateMapDirective({
+        mapItemType: "walkback",
+        uuid: selectedStation.uuid,
+        mapAction: "editPolyline",
+      })
+    );
   };
 
   const handleCancelEditWalkback = () => {
     dispatch(
-      updateMapDirective({
+      thunkUpdateMapDirective({
         mapItemType: "walkback",
         uuid: selectedStation.uuid,
         mapAction: "cancelEditPolyline",
@@ -199,7 +187,7 @@ const Info_Panel: FunctionComponent<{
 
   const handleSaveEditWalkback = () => {
     dispatch(
-      updateMapDirective({
+      thunkUpdateMapDirective({
         mapItemType: "walkback",
         uuid: selectedStation.uuid,
         mapAction: "saveEditPolyline",

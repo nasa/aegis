@@ -6,6 +6,7 @@ export const initialState: MapState = {
   activeSelectedName: null,
   mousePosition: null,
   mapDirective: null,
+  measureInitialCoords: [],
 };
 
 export const mapSlice = createSlice({
@@ -25,10 +26,18 @@ export const mapSlice = createSlice({
       //eslint-disable-next-line
       state = Object.assign(state, initialState);
     },
+    setMeasureInitialCoords: (state, action: { payload: AEGISPoint[] }) => {
+      state.measureInitialCoords = action.payload;
+    },
   },
 });
 
-export const { setMapSublayerControls, setMapCircleControls, updateMapDirective, obliterateState } =
-  mapSlice.actions;
+export const {
+  setMapSublayerControls,
+  setMapCircleControls,
+  updateMapDirective,
+  obliterateState,
+  setMeasureInitialCoords,
+} = mapSlice.actions;
 
 export default mapSlice.reducer;

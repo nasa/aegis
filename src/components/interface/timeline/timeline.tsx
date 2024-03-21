@@ -82,7 +82,7 @@ const NavTimeline: FunctionComponent = () => {
   const graphSequenceItems: MutableRefObject<GraphSequenceItems> = useRef(null);
   const flattenedGraphData: MutableRefObject<GraphData> = useRef(null);
 
-  const initHoverValues: HoverValues = {
+  const initHoverValues: TimelineHoverValues = {
     distanceFromLanderMeters: null,
     elevationMeters: null,
     slopeDegrees: null,
@@ -90,7 +90,7 @@ const NavTimeline: FunctionComponent = () => {
     walkbackElevationMeters: null,
     walkbackSlopeDegrees: null,
   };
-  const [hoverValues, setHoverValues] = useState<HoverValues>(initHoverValues);
+  const [hoverValues, setHoverValues] = useState<TimelineHoverValues>(initHoverValues);
   const [coveredSTMs, setCoveredSTMs] = useState<string[][]>(null);
   const [completedSTMs, setCompletedSTMs] = useState<string[][]>(null);
   const [inProgressSTMs, setInProgressSTMs] = useState<string[][]>(null);
@@ -522,7 +522,6 @@ const NavTimeline: FunctionComponent = () => {
       processPosEntriesFromStore();
     }
     processEvaDataFromStore(); //loads data into the storeRef
-    drawTimeline();
 
     paper.view.onMouseMove = _.throttle(onMouseMove, 15, {
       leading: true,
@@ -575,6 +574,8 @@ const NavTimeline: FunctionComponent = () => {
         return;
       }
     };
+
+    drawTimeline();
 
     return () => paper.project.remove();
     // eslint-disable-next-line react-hooks/exhaustive-deps

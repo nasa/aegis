@@ -1,10 +1,9 @@
 import { StoreType } from "store";
 import { updateMapDirective } from "store/map";
-import { thunkCancelMarkerMapDirective, thunkVerifyNoActiveMapAction } from "store/thunk/thunkMap";
+import { thunkCancelMarkerMapDirective } from "store/thunk/thunkMap";
 import { createFullTestStore } from "tests/factories/makeTestStore";
 
 let store: StoreType;
-const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {});
 
 beforeAll(() => {
   store = createFullTestStore();
@@ -50,23 +49,5 @@ describe("Thunk Map Tests", () => {
       ...newMapDirective_create,
       mapAction: "cancelCreateMarker",
     });
-  });
-
-  it("thunkVerifyNoActiveMapAction", async () => {
-    // no map directive
-    store.dispatch(updateMapDirective(null));
-    let thunkRes = await store.dispatch(thunkVerifyNoActiveMapAction());
-    expect(thunkRes.payload).toBeTruthy();
-
-    // add a map directive
-    const newMapDirective: MapDirective = {
-      uuid: store.getState().station.stations[0].uuid,
-      mapItemType: "station",
-      mapAction: "editMarker",
-    };
-    store.dispatch(updateMapDirective(newMapDirective));
-    thunkRes = await store.dispatch(thunkVerifyNoActiveMapAction());
-    expect(alertSpy).toHaveBeenCalledTimes(1);
-    expect(thunkRes.payload).toBeFalsy();
   });
 });
