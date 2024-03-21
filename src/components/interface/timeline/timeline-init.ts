@@ -31,6 +31,7 @@ export function initPaperRefs(
       grey2: new paper.Color("#a9a9a9"),
       grey3: new paper.Color("#424653"),
       grey4: new paper.Color("#313440"),
+      grey5: new paper.Color("#d3d3d3"),
       white: new paper.Color("#EEEEEE"),
       red: new paper.Color("#FC5454"),
     },

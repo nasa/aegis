@@ -6,8 +6,9 @@ export const initialState: HoverState = {
   mapItemUuid: null,
   mapItemType: null,
   posEntryItemUuid: null,
-  evaSecondsElapsed: null,
   sequenceItemPercentElapsed: null,
+  measurementUuid: null,
+  measurementPercentDistance: null,
 };
 
 export const hoverSlice = createSlice({
@@ -34,30 +35,36 @@ export const hoverSlice = createSlice({
     setPosEntryItemHoverUuid: (state, action: { payload: string }) => {
       state.posEntryItemUuid = action.payload;
     },
-    setMapItemHover: (
+    setSequenceHover: (
       state,
       action: {
         payload: {
-          seconds: number;
           sequenceUuid: string;
-          mapItemType: MapItemType;
           sequenceItemPercentElapsed: number;
+          mapItemType: MapItemType;
         };
       }
     ) => {
-      state.evaSecondsElapsed = action.payload.seconds;
       state.mapItemUuid = action.payload.sequenceUuid;
       state.mapItemType = action.payload.mapItemType;
       state.sequenceItemPercentElapsed = action.payload.sequenceItemPercentElapsed;
     },
+    setMeasurementHover: (
+      state,
+      action: { payload: { measurementUuid: string; measurementPercentDistance: number } }
+    ) => {
+      state.measurementUuid = action.payload.measurementUuid;
+      state.measurementPercentDistance = action.payload.measurementPercentDistance;
+    },
     clearMapItemHover: (state) => {
-      state.evaSecondsElapsed = null;
       state.sequenceItemPercentElapsed = null;
       state.mapItemUuid = null;
       state.mapItemType = null;
       state.posEntryItemUuid = null;
       state.leftPanelHoverItemUuid = null;
       state.timelineSeqItemUuid = null;
+      state.measurementUuid = null;
+      state.measurementPercentDistance = null;
     },
     setHoverUuidsForSequence: (
       state,
@@ -87,7 +94,8 @@ export const {
   setMapItemHoverType,
   setMapItemHoverUuid,
   setPosEntryItemHoverUuid,
-  setMapItemHover,
+  setSequenceHover,
+  setMeasurementHover,
   clearMapItemHover,
   setHoverUuidsForSequence,
   setHoverUuidsForPosEntry,

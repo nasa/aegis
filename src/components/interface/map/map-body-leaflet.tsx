@@ -23,9 +23,9 @@ import {
   useLayoutEffect,
 } from "react";
 import _ from "lodash";
-import { setMapSublayerControls, updateMapDirective } from "store/map";
+import { setMapSublayerControls, setMeasureInitialCoords, updateMapDirective } from "store/map";
 import { setSelectedPoiUuid } from "store/poi";
-import { setRightPanelOpen, setSectionSelected } from "store/interface";
+import { setBottomSectionSelected, setRightPanelOpen, setSectionSelected } from "store/interface";
 import { revertWalkbackPath, setSelectedStationUuid } from "store/station";
 import { revertTraversePath } from "store/traverse";
 import { setSelectedPosEntryUuid } from "store/rex";
@@ -60,6 +60,8 @@ import { isWindows10 } from "utils/browser";
 import Color from "color";
 import { useCookies } from "react-cookie";
 import ReactDOMServer from "react-dom/server";
+import { thunkUpdateMeasurementPath } from "store/thunk/thunkMeasurement";
+import { setSelectedMeasurementUuid } from "store/measure";
 
 type MissionSelectProperties = Pick<
   Mission,
@@ -176,6 +178,11 @@ const MapBody: FunctionComponent = () => {
 
   const selectedPosEntryUuid = useAppSelector((state) => state.rex.selectedPosEntryUuid, refEqual);
   const traverses = useAppSelector((state) => state.traverse.traverses, deepEqual);
+  const measurements = useAppSelector((state) => state.measure.measurements, deepEqual);
+  const selectedMeasurementUuid = useAppSelector(
+    (state) => state.measure.selectedMeasurementUuid,
+    refEqual
+  );
 
   const mapHoverItemUuid = useAppSelector((state) => state.hover.mapItemUuid, refEqual);
   const mapHoverItemType = useAppSelector((state) => state.hover.mapItemType, refEqual);
@@ -187,6 +194,9 @@ const MapBody: FunctionComponent = () => {
   const [latestPosEntriesByType, setLatestPosEntriesByType] = useState<{
     [key: string]: PosEntry[];
   }>({});
+
+  const [measurementsToShow, setMeasurementsToShow] = useState<Measurement[]>([]);
+  const [isWin10, setIsWin10] = useState(false);
 
   /*** Eyeball menu toggles */
   const [mapDisplayPois, setMapDisplayPois] = useState<MapDisplayMarkers>({
@@ -887,7 +897,7 @@ const MapBody: FunctionComponent = () => {
       const typeName = mapItemType.charAt(0).toUpperCase() + mapItemType.slice(1);
       const selectedColor = Color(color).lighten(0.5).hex();
       const opacity = 0.75;
-      const weight = mapItemType === "traverse" ? 4 : 3;
+      const weight = 3;
 
       const polyline = new HighlightablePolyline(path as AEGISPoint[], {
         color: color,
@@ -929,7 +939,7 @@ const MapBody: FunctionComponent = () => {
           endOffset: 10,
           repeat: 50,
           symbol: L.Symbol.arrowHead({
-            pixelSize: 15,
+            pixelSize: 10,
             polygon: true,
             pathOptions: {
               stroke: false,
@@ -1007,6 +1017,11 @@ const MapBody: FunctionComponent = () => {
   useLayoutEffect(() => {
     if (!mapRef.current || !map || !mission) return;
 
+    (async () => {
+      const isWin10 = await isWindows10();
+      setIsWin10(isWin10);
+    })();
+
     // instantiate the prog4leaflet crs using the values in the mission config
     if (mission.projIsCustom === true) {
       const baseRes = mission.projResUnitsPerPixel * Math.pow(2, mission.projResZoomLevel);
@@ -1065,6 +1080,21 @@ const MapBody: FunctionComponent = () => {
   }, [mapRef, map, draggableLines, mission]);
 
   /**
+   * Set the initial coords for where new measure tool lines will be initially drawn
+   */
+  const setInitialCoords = useCallback(() => {
+    // set measureInitialCoords to 1/3 of the way to the top left of the map and 1/3 of the way to the top right of the map
+    const mapSize = map.current.getSize();
+    const mapTopLeft = convertLeafletLatLngToAegisPoint(
+      map.current.containerPointToLatLng([0 + mapSize.x / 3, 0 + mapSize.y / 3])
+    );
+    const mapTopRight = convertLeafletLatLngToAegisPoint(
+      map.current.containerPointToLatLng([mapSize.x - mapSize.x / 3, 0 + mapSize.y / 3])
+    );
+    dispatch(setMeasureInitialCoords([mapTopLeft, mapTopRight]));
+  }, [map, dispatch]);
+
+  /**
    * Set the center of the map to the center of the selected mission
    */
   useEffect(() => {
@@ -1087,7 +1117,8 @@ const MapBody: FunctionComponent = () => {
       [bounds.getNorthEast().lat, bounds.getNorthEast().lng],
     ];
     setMapBounds(boundsArray);
-  }, [mission, map, calculateScale]);
+    setInitialCoords();
+  }, [mission, map, calculateScale, setInitialCoords]);
 
   /**
    * Map event listeners, redefined when state values changes via useEffect to allow their functions to access the latest state values
@@ -1134,6 +1165,7 @@ const MapBody: FunctionComponent = () => {
         [bounds.getNorthEast().lat, bounds.getNorthEast().lng],
       ];
       setMapBounds(boundsArray);
+      setInitialCoords();
     });
 
     map.current.on("moveend", () => {
@@ -1144,6 +1176,7 @@ const MapBody: FunctionComponent = () => {
         [bounds.getNorthEast().lat, bounds.getNorthEast().lng],
       ];
       setMapBounds(boundsArray);
+      setInitialCoords();
     });
 
     map.current.on("load", () => {
@@ -1164,17 +1197,17 @@ const MapBody: FunctionComponent = () => {
         map.current.off("click");
       }
     };
-  }, [map, mapDirective, saveUpdatedItemPosition, dispatch]);
+  }, [map, mapDirective, saveUpdatedItemPosition, dispatch, setInitialCoords]);
 
   /**
-   * Listen for mapDirective for stations, pois, actions, and traverses, and trigger map draw/edit modes appropriately
+   * Listen for mapDirective for stations, pois, actions, traverses, and measurements, and trigger map draw/edit modes appropriately
    */
   useEffect(() => {
     if (!map.current || !draggableLines || !mapDirective) return;
 
     switch (mapDirective.mapAction) {
       case "createMarker":
-        // create events only come from Marker obejcts (pois and stations) since traverses are initially created by the app
+        // create events only come from Marker objects (pois and stations) since traverses are initially created by the app
         map.current.getContainer().style.cursor = "crosshair";
         break;
 
@@ -1245,8 +1278,7 @@ const MapBody: FunctionComponent = () => {
                   mapItemType: "traverse",
                 });
               }
-            }
-            if (e.layer.mapItemType === "walkback") {
+            } else if (e.layer.mapItemType === "walkback") {
               if (!saveElevation) {
                 //update just the path
                 await dispatch(
@@ -1270,6 +1302,8 @@ const MapBody: FunctionComponent = () => {
                   mapItemType: "walkback",
                 });
               }
+            } else if (e.layer.mapItemType === "measurement") {
+              dispatch(thunkUpdateMeasurementPath({ path, measurementUuid: mapDirective.uuid }));
             }
           };
 
@@ -1296,9 +1330,13 @@ const MapBody: FunctionComponent = () => {
         // **** no need to save because we love updating the store with the new location as the user drags the polyline ****
 
         // find this polyline layer on the map
-        draggableLines.current.disableForLayer(
-          getMapItemByUuid(mapDirective.uuid, mapDirective.mapItemType) as L.Polyline
-        );
+        const mapItemByUuid = getMapItemByUuid(
+          mapDirective.uuid,
+          mapDirective.mapItemType
+        ) as L.Polyline;
+        if (mapItemByUuid) {
+          draggableLines.current.disableForLayer(mapItemByUuid);
+        }
 
         draggableLines.current.off("drag");
         draggableLines.current.off("remove");
@@ -1564,6 +1602,21 @@ const MapBody: FunctionComponent = () => {
   ]);
 
   /**
+   * Populate measurements to show when measurements change
+   */
+  useEffect(() => {
+    if (!measurements) return;
+    if (selectedMeasurementUuid === null) {
+      setMeasurementsToShow([]);
+      return;
+    }
+    const selectedMeasurement = measurements.find((m) => m.uuid === selectedMeasurementUuid);
+    if (selectedMeasurement) {
+      setMeasurementsToShow([selectedMeasurement]);
+    }
+  }, [measurements, selectedMeasurementUuid]);
+
+  /**
    * Populate lander radii
    */
   useEffect(() => {
@@ -1727,8 +1780,6 @@ const MapBody: FunctionComponent = () => {
       if (!selectedOrRunningRex || isNaN(posEntry?.location?.lat) || isNaN(posEntry?.location?.lng))
         return;
       const mapItemType: MapItemType = "posEntry";
-
-      const isWin10 = await isWindows10();
 
       const makeIconFromPosTypeUuid = (posTypeUuid: string, count: number): JSX.Element => {
         const entryPosType = selectedOrRunningRex.posTypes?.find(
@@ -2178,10 +2229,10 @@ const MapBody: FunctionComponent = () => {
    */
   useEffect(() => {
     (async () => {
-      if (!map.current || mapDirective) return;
+      if (!map.current) return;
 
       //hoverSeconds is null meaning we're not hovering.
-      if (!hover.evaSecondsElapsed || !selectedEva) {
+      if (!hover.sequenceItemPercentElapsed || !selectedEva) {
         //Remove the marker from map if exists
         hoverAstronautFeatureGroup.current.clearLayers();
         return;
@@ -2269,6 +2320,12 @@ const MapBody: FunctionComponent = () => {
             }
           }
         }
+        const html = ReactDOMServer.renderToString(
+          <div className={isWin10 ? styles.mapIconWin10 : styles.mapIcon}>
+            {decodeEmoji("1f468-200d-1f680")}
+          </div>
+        );
+        const icon = L.divIcon({ html });
 
         if (isNaN(location.lat) || isNaN(location.lng)) return;
         //if exists, set location
@@ -2283,10 +2340,6 @@ const MapBody: FunctionComponent = () => {
           existingLayer.setLatLng(location as L.LatLng);
         } else {
           //marker doesn't exist, draw it and add it to leaflet
-          const html = ReactDOMServer.renderToString(
-            <div className={styles.mapIcon}>{decodeEmoji("1f468-200d-1f680")}</div>
-          );
-          const icon = L.divIcon({ html });
           const marker = L.marker(location as AEGISPoint, {
             icon,
           }) as AEGISMarker;
@@ -2298,7 +2351,147 @@ const MapBody: FunctionComponent = () => {
         }
       }
     })();
-  }, [hover, getMapItemByUuid, mapDirective, selectedEva, dispatch, mission.planetRadius]);
+  }, [hover, getMapItemByUuid, mapDirective, selectedEva, dispatch, mission.planetRadius, isWin10]);
+
+  /**
+   * Draw measure tool on the map for each measure store entry
+   */
+  useEffect(() => {
+    if (!map.current || mapDirective) return;
+
+    // delete all measurements from the map
+    map.current.eachLayer((layer: AEGISMapDrawingLayer) => {
+      if (layer.mapItemType === "measurement") {
+        map.current.removeLayer(layer);
+      }
+    });
+
+    // draw all measurements
+    measurementsToShow.forEach((measurement) => {
+      if (measurement.path.length > 1) {
+        drawPolylineOnMap({
+          name: "",
+          uuid: measurement.uuid,
+          path: measurement.path,
+          color: measurement.color,
+          mapItemType: "measurement",
+          isSelected: false,
+          onClick: () => {
+            dispatch(setBottomSectionSelected("measure"));
+            dispatch(setSelectedMeasurementUuid(measurement.uuid));
+          },
+        });
+      }
+    });
+  }, [measurementsToShow, map, mapDirective, drawPolylineOnMap, dispatch]);
+
+  /**
+   * Draw or update hover measure marker (cross mark) on the map when the hover x value changes.
+   */
+  useEffect(() => {
+    if (!map.current) return;
+
+    if (!hover.measurementUuid) {
+      //if no hover, remove the layer from leaflet
+      const measureHover = getMapItemByUuid("measure-hover-marker-uuid") as AEGISMarker;
+      if (measureHover) map.current.removeLayer(measureHover);
+      return;
+    }
+
+    //search for marker on the map
+    let measureHover = getMapItemByUuid("measure-hover-marker-uuid") as AEGISMarker;
+    if (!measureHover) {
+      //if doesn't exist, draw it and add it to leaflet
+      measureHover = L.marker([0, 0], {
+        icon: L.divIcon({
+          html: ReactDOMServer.renderToString(
+            <div className={isWin10 ? styles.mapIconWin10 : styles.mapIcon}>
+              {decodeEmoji("274c")}
+            </div>
+          ),
+        }),
+      }) as AEGISMarker;
+      measureHover.uuid = "measure-hover-marker-uuid";
+      measureHover.mapItemType = "hover";
+      measureHover.setZIndexOffset(2000);
+      map.current.addLayer(measureHover);
+    }
+
+    const measurement = measurementsToShow.find((m) => m.uuid === hover.measurementUuid);
+
+    if (!measurement?.pathSegmentDistances) return;
+
+    //how far (in distance) are we along the entire measurement. Ex: 5m into a 25m measurement
+    const percentAlongTotalDistanceMeters =
+      measurement.pathSegmentDistances.reduce(
+        (accumulator, currentValue) => accumulator + currentValue,
+        0
+      ) * hover.measurementPercentDistance;
+
+    let cumulativePrevSegDistances = 0;
+    let location: AEGISPoint = { lat: 0, lng: 0 };
+    for (let i = 0; i < measurement.pathSegmentDistances.length; i++) {
+      if (
+        cumulativePrevSegDistances + measurement.pathSegmentDistances[i] >
+        percentAlongTotalDistanceMeters
+      ) {
+        //we are in this segment
+
+        // Here we use the fact that Leaflet is already projecting the map and we convert
+        // between pixel points on the leaflet instance against the coordinates underlying those points.
+        // This helps us around the south pole where we can't really use bearing to deterine our path to the next point.
+        // This method results in a parabola at the south pole
+
+        // get the x, y pixel coordinates of the source and destination points
+        const sourcePixelCoords = map.current.latLngToLayerPoint(
+          new L.LatLng(measurement.path[i].lat, measurement.path[i].lng)
+        );
+        const destPixelCoords = map.current.latLngToLayerPoint(
+          new L.LatLng(measurement.path[i + 1].lat, measurement.path[i + 1].lng)
+        );
+
+        // get the distance between the two points in pixels using pythagorean theorem
+        const distancePixels = Math.sqrt(
+          Math.pow(destPixelCoords.x - sourcePixelCoords.x, 2) +
+            Math.pow(destPixelCoords.y - sourcePixelCoords.y, 2)
+        );
+
+        // distance of segment in meters
+        const distanceMeters = measurement.pathSegmentDistances[i];
+
+        // distance along this segment in meters
+        const percentAlongSegmentDistanceMeters =
+          measurement.pathSegmentDistances[i] -
+          (cumulativePrevSegDistances +
+            measurement.pathSegmentDistances[i] -
+            percentAlongTotalDistanceMeters);
+
+        // distance along this segment in pixels using ratio comparison
+        const percentAlongSegmentDistancePixels =
+          (percentAlongSegmentDistanceMeters * distancePixels) / distanceMeters;
+
+        // x, y pixel coordinates of the point along the segment using the sourcePixelCoords as the origin
+        const x =
+          sourcePixelCoords.x +
+          (percentAlongSegmentDistancePixels * (destPixelCoords.x - sourcePixelCoords.x)) /
+            distancePixels;
+        const y =
+          sourcePixelCoords.y +
+          (percentAlongSegmentDistancePixels * (destPixelCoords.y - sourcePixelCoords.y)) /
+            distancePixels;
+
+        // convert the pixel coordinates back to lat/lng
+        const latLng = map.current.layerPointToLatLng(new L.Point(x, y));
+        location = { lat: latLng.lat, lng: latLng.lng };
+
+        break;
+      } else {
+        cumulativePrevSegDistances += measurement.pathSegmentDistances[i];
+      }
+    }
+    if (isNaN(location.lat) || isNaN(location.lng)) return;
+    measureHover.setLatLng(location as L.LatLng);
+  }, [map, mapDirective, hover, measurementsToShow, getMapItemByUuid, isWin10]);
 
   const removeSelectedMarker = useCallback(() => {
     // remove any existing highlight layers
@@ -2378,6 +2571,11 @@ const MapBody: FunctionComponent = () => {
         )?.location;
         highlightLocation = posLocation;
         panMapToLocation = posLocation;
+      } else if (selectedMeasurementUuid) {
+        const measurement = measurements.find((m) => m.uuid === selectedMeasurementUuid);
+        if (measurement) {
+          panMapToLocation = getMidpoint(measurement.path);
+        }
       }
 
       if (highlightLocation) {
@@ -2405,6 +2603,8 @@ const MapBody: FunctionComponent = () => {
     selectedEvaSequenceItemUuid,
     selectedPosEntryUuid,
     selectedOrRunningRex,
+    selectedMeasurementUuid,
+    measurements,
   ]);
 
   /**

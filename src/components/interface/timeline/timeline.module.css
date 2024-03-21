@@ -1,6 +1,7 @@
 .timelineContainer {
   display: flex;
   height: 250px;
+  width: 100%;
   background-color: var(--grey1);
 }
 
@@ -12,7 +13,7 @@
 
 .timelineRight {
   padding-left: 4px;
-  margin: 4px 4px 4px 0;
+  margin: 4px 0 4px 0;
   width: 60px;
   background-color: var(--grey2);
   border-radius: var(--panelRadius);
@@ -33,13 +34,14 @@
   background-color: var(--grey1);
   font-size: 0.8rem;
   border-radius: var(--panelRadius);
-  margin-top: 4px;
-  margin-bottom: 4px;
+
+  margin: 4px 0 4px 4px;
 }
 
 .timelineHoverValues {
   background-color: var(--grey2);
   border-radius: var(--panelRadius);
+  flex-grow: 1;
 }
 
 .timelineHoverValueItem {
@@ -48,6 +50,11 @@
 
 .timelineHoverValueTitle {
   color: var(--grey4);
+  user-select: none;
+}
+
+.timelineHoverValue {
+  height: 1em;
 }
 
 .timelineButton {

@@ -23,10 +23,10 @@ import evaStyles from "./eva.module.css";
 import Info_Panel from "./eva-right-traverse-info";
 import Report_Panel from "../report";
 import * as httpClient_Traverse from "http-client/traverse";
-import { updateMapDirective } from "store/map";
 import { getAlertColor, isModified } from "utils/component-helpers";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { RightTabs } from "components/interface/side-controls";
+import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 
 const EvaRightTraverse: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -125,7 +125,7 @@ const EvaRightTraverse: FunctionComponent = () => {
     // if there's an active traverse edit action, cancel it
     if (thisMapDirective?.mapAction === "editPolyline") {
       dispatch(
-        updateMapDirective({
+        thunkUpdateMapDirective({
           ...thisMapDirective,
           mapAction: "saveEditPolyline",
         })
@@ -139,7 +139,7 @@ const EvaRightTraverse: FunctionComponent = () => {
     // if there's an active traverse edit action, cancel it
     if (thisMapDirective?.mapAction === "editPolyline") {
       dispatch(
-        updateMapDirective({
+        thunkUpdateMapDirective({
           ...thisMapDirective,
           mapAction: "cancelEditPolyline",
         })

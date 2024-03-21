@@ -13,6 +13,7 @@ import { actionSlice, initialState as actionInitialState } from "./action";
 import { traverseSlice, initialState as traverseInitialState } from "./traverse";
 import { userSlice, initialState as userInitialState } from "./user";
 import { rexSlice, initialState as rexInitialState } from "./rex";
+import { measureSlice, initialState as measureInitialState } from "./measure";
 
 export const initialState = {
   hover: hoverInitialState,
@@ -28,6 +29,7 @@ export const initialState = {
   action: actionInitialState,
   traverse: traverseInitialState,
   rex: rexInitialState,
+  measure: measureInitialState,
 };
 
 export const sliceReducers = combineReducers({
@@ -44,6 +46,7 @@ export const sliceReducers = combineReducers({
   action: actionSlice.reducer,
   traverse: traverseSlice.reducer,
   rex: rexSlice.reducer,
+  measure: measureSlice.reducer,
 });
 
 export type RootState = ReturnType<typeof sliceReducers>;

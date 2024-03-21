@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 
 export const initialState: InterfaceState = {
   sectionSelectedLabel: "preset",
+  bottomSectionSelectedLabel: "timeline",
   leftPanelOpen: true,
   rightPanelOpen: true,
   bottomPanelOpen: true,
@@ -26,6 +27,9 @@ export const interfaceSlice = createSlice({
   reducers: {
     setSectionSelected: (state, action: { payload: InterfaceSection }) => {
       state.sectionSelectedLabel = action.payload;
+    },
+    setBottomSectionSelected: (state, action: { payload: BottomInterfaceSection }) => {
+      state.bottomSectionSelectedLabel = action.payload;
     },
     setLeftPanelOpen: (state, action: { payload: boolean }) => {
       state.leftPanelOpen = action.payload;
@@ -85,6 +89,7 @@ export const interfaceSlice = createSlice({
 
 export const {
   setSectionSelected,
+  setBottomSectionSelected,
   setLeftPanelOpen,
   setRightPanelOpen,
   setBottomPanelOpen,

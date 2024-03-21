@@ -24,9 +24,8 @@ import {
 import { regExValidators, validators } from "components/interface/form/formValidators";
 import { upsertMission, upsertMissionByField } from "store/mission";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
-import { updateMapDirective } from "store/map";
 import { toDecimal } from "utils/formatting";
-import { thunkVerifyNoActiveMapAction } from "store/thunk/thunkMap";
+import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { thunkVerifyNoStationsBeingEdited } from "store/thunk/thunkStation";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
@@ -41,7 +40,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
 
   const dispatchMissionMapAction = (mapAction: MapAction) => {
     dispatch(
-      updateMapDirective({
+      thunkUpdateMapDirective({
         mapItemType: "lander",
         uuid: "lander",
         mapAction,
@@ -49,26 +48,19 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     );
   };
 
-  // verify map action using a thunk to avoid subscribing to the mapDirective
-  const verifyNoActiveMapAction = async (): Promise<boolean> => {
-    return (await dispatch(thunkVerifyNoActiveMapAction())).payload;
-  };
-
   const verifyNoStationsBeingEdited = async (): Promise<boolean> => {
     return (await dispatch(thunkVerifyNoStationsBeingEdited())).payload;
   };
 
   const handleCreate = async () => {
-    if (await verifyNoActiveMapAction()) {
-      dispatchMissionMapAction("createMarker");
-    }
+    dispatchMissionMapAction("createMarker");
   };
   const handleCancelCreate = () => {
     dispatchMissionMapAction("cancelCreateMarker");
   };
 
   const handleEdit = async () => {
-    if ((await verifyNoActiveMapAction()) && (await verifyNoStationsBeingEdited())) {
+    if (await verifyNoStationsBeingEdited()) {
       dispatchMissionMapAction("editMarker");
     }
   };

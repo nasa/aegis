@@ -98,12 +98,9 @@ const devDeepEqual: EqualityFn = (a, b) => {
       { a, b }
     );
   }
+
   return productionDeepEqual(a, b);
 };
-
-export const refEqual = productionRefEqual;
-export const shallowEqual = productionShallowEqual;
-export const deepEqual = productionDeepEqual;
 
 /**
  * For dev/testing only. Just wraps an equality function and console.logs when it's invoked. Use
@@ -124,7 +121,7 @@ const selectorEqualityNotify = (equalityFn: EqualityFn): EqualityFn => {
     // Essentially, these are places where we should be using deepEqual instead of the current equalityFn
     const deepEqual = productionDeepEqual(prev, next);
     if (prevAndNextEqual !== deepEqual) {
-      console.log("equalityFn not match DeepEqual", { prev, next, equalityFn });
+      console.error("equalityFn not match DeepEqual", { prev, next, equalityFn });
     }
 
     // console.log(
@@ -135,6 +132,10 @@ const selectorEqualityNotify = (equalityFn: EqualityFn): EqualityFn => {
   };
   return wrapper;
 };
+
+export const refEqual = productionRefEqual;
+export const shallowEqual = productionShallowEqual;
+export const deepEqual = productionDeepEqual;
 
 // Wrap the equality functions in the notify function for dev/testing
 // export const refEqual = selectorEqualityNotify(productionRefEqual);

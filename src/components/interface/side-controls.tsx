@@ -6,6 +6,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   setBottomPanelOpen,
+  setBottomSectionSelected,
   setLeftPanelOpen,
   setRightPanelOpen,
   setSectionSelected,
@@ -17,11 +18,14 @@ import NavTimeline from "components/interface/timeline/timeline";
 import { isModified } from "utils/component-helpers";
 import paneStyles from "../panes/global-pane-styles.module.css";
 import {
+  faChartArea,
   faChevronDown,
   faChevronLeft,
   faChevronRight,
   faChevronUp,
+  faRuler,
 } from "@fortawesome/free-solid-svg-icons";
+import Measure from "./measure/measure";
 
 /* This control sits at the left side of the screen and loads the selected component based on the NavGutter icon selected */
 export const LeftControlPanel: FunctionComponent = () => {
@@ -76,6 +80,10 @@ export const BottomControlPanel: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const bottomPanelOpen = useAppSelector((state) => state.interface.bottomPanelOpen, refEqual);
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
+  const selectedBottomNavItem = useAppSelector(
+    (state) => state.interface.bottomSectionSelectedLabel,
+    refEqual
+  );
 
   useEffect(() => {
     if (selectedEvaUuid) {
@@ -108,7 +116,8 @@ export const BottomControlPanel: FunctionComponent = () => {
       </div>
       {bottomPanelOpen && (
         <div className={styles.activeComponentBottom}>
-          <NavTimeline />
+          <BottomGutter />
+          {selectedBottomNavItem === "timeline" ? <NavTimeline /> : <Measure />}
         </div>
       )}
     </>
@@ -167,10 +176,61 @@ export const RightControlPanel: FunctionComponent = () => {
   );
 };
 
+const BottomGutter: FunctionComponent = () => {
+  const dispatch = useAppDispatch();
+  const selectedBottomNavItem = useAppSelector(
+    (state) => state.interface.bottomSectionSelectedLabel,
+    refEqual
+  );
+  const bottomPanelOpen = useAppSelector((state) => state.interface.bottomPanelOpen, refEqual);
+  let timelineIconContainerStyle = styles.iconContainer;
+  let measureIconContainerStyle = styles.iconContainer;
+  if (bottomPanelOpen) {
+    timelineIconContainerStyle =
+      selectedBottomNavItem === "timeline" ? styles.iconContainerSelected : styles.iconContainer;
+    measureIconContainerStyle =
+      selectedBottomNavItem === "measure" ? styles.iconContainerSelected : styles.iconContainer;
+  }
+
+  return (
+    <div className={styles.bottomGutter}>
+      <div className={timelineIconContainerStyle}>
+        <div
+          className={styles.icon}
+          style={{ color: "var(--grey5)" }}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-html={"Timeline"}
+          onClick={() => {
+            if (!bottomPanelOpen) dispatch(setBottomPanelOpen(true));
+            dispatch(setBottomSectionSelected("timeline"));
+          }}
+        >
+          <FontAwesomeIcon icon={faChartArea} size="lg" />
+        </div>
+      </div>
+      <div className={measureIconContainerStyle}>
+        <div
+          className={styles.icon}
+          style={{ color: "var(--grey5)" }}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-html={"Measurements"}
+          onClick={() => {
+            if (!bottomPanelOpen) dispatch(setBottomPanelOpen(true));
+            dispatch(setBottomSectionSelected("measure"));
+          }}
+        >
+          <FontAwesomeIcon icon={faRuler} size="lg" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
   selectedNavItem,
 }) => {
   const dispatch = useAppDispatch();
+  const bottomPanelOpen = useAppSelector((state) => state.interface.bottomPanelOpen, refEqual);
   const mission = useAppSelector((state) => state.mission.mission, deepEqual);
   const missionFromDb = useAppSelector((state) => state.mission.missionFromDb, deepEqual);
   const pois = useAppSelector(
@@ -307,105 +367,108 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
   );
 
   return (
-    <div className={styles.iconGutter}>
-      {/* Loop through all of the paneTypes and draw them on the gutter */}
-      {Object.keys(paneTypes).map((paneType: InterfaceSection) => {
-        let itemModified = false;
-        switch (paneType) {
-          case "mission":
-            itemModified = mission?.updatedAt !== missionFromDb?.updatedAt;
-            break;
-          case "preset":
-            itemModified = isModified(presets, presetsFromDb);
-            break;
-          case "poi":
-            const poiModified = isModified(pois, poisFromDb);
-            const poiActionModified = isModified(poiActions, poiActionsFromDb);
-            itemModified = poiModified || poiActionModified;
-            break;
-          case "station":
-            const stationsModified = isModified(stations, stationsFromDb);
-            const stationActionModified = isModified(stationActions, stationActionsFromDb);
-            itemModified = stationsModified || stationActionModified;
-            break;
-          case "evas":
-            const evasModified = isModified(evas, evasFromDb);
-            const traversesModified = isModified(traverses, traversesFromDb);
-            const evaStationUuids = _.uniq(
-              _.flatten(
-                evas.map((eva) => {
-                  const stationSeqItems = eva.sequence.filter(
-                    (seqItem) => seqItem.type === "station"
-                  );
-                  return stationSeqItems.map((s) => s.uuid);
-                })
-              )
-            );
-            const evaStations = stations.filter((s) => evaStationUuids.includes(s.uuid));
-            const evaStationsFromDb = stationsFromDb.filter((s) =>
-              evaStationUuids.includes(s.uuid)
-            );
-            const evaStationsModified = isModified(evaStations, evaStationsFromDb);
-            itemModified = evasModified || traversesModified || evaStationsModified;
-            break;
-          case "rex":
-            itemModified = isModified(rexes, rexesFromDb);
-            break;
-        }
+    <div className={styles.iconGutterContainer}>
+      <div className={styles.iconGutter}>
+        {/* Loop through all of the paneTypes and draw them on the gutter */}
+        {Object.keys(paneTypes).map((paneType: InterfaceSection) => {
+          let itemModified = false;
+          switch (paneType) {
+            case "mission":
+              itemModified = mission?.updatedAt !== missionFromDb?.updatedAt;
+              break;
+            case "preset":
+              itemModified = isModified(presets, presetsFromDb);
+              break;
+            case "poi":
+              const poiModified = isModified(pois, poisFromDb);
+              const poiActionModified = isModified(poiActions, poiActionsFromDb);
+              itemModified = poiModified || poiActionModified;
+              break;
+            case "station":
+              const stationsModified = isModified(stations, stationsFromDb);
+              const stationActionModified = isModified(stationActions, stationActionsFromDb);
+              itemModified = stationsModified || stationActionModified;
+              break;
+            case "evas":
+              const evasModified = isModified(evas, evasFromDb);
+              const traversesModified = isModified(traverses, traversesFromDb);
+              const evaStationUuids = _.uniq(
+                _.flatten(
+                  evas.map((eva) => {
+                    const stationSeqItems = eva.sequence.filter(
+                      (seqItem) => seqItem.type === "station"
+                    );
+                    return stationSeqItems.map((s) => s.uuid);
+                  })
+                )
+              );
+              const evaStations = stations.filter((s) => evaStationUuids.includes(s.uuid));
+              const evaStationsFromDb = stationsFromDb.filter((s) =>
+                evaStationUuids.includes(s.uuid)
+              );
+              const evaStationsModified = isModified(evaStations, evaStationsFromDb);
+              itemModified = evasModified || traversesModified || evaStationsModified;
+              break;
+            case "rex":
+              itemModified = isModified(rexes, rexesFromDb);
+              break;
+          }
 
-        const pane: PaneType = paneTypes[paneType as keyof PaneTypes];
-        return (
-          <div
-            key={paneType}
-            className={
-              selectedNavItem === paneType ? styles.iconContainerSelected : styles.iconContainer
-            }
-          >
+          const pane: PaneType = paneTypes[paneType as keyof PaneTypes];
+          return (
             <div
-              className={styles.icon}
-              style={{ color: pane.color }}
-              data-tooltip-id="aegis-tooltip"
-              data-tooltip-html={pane.title}
-              onClick={() => {
-                dispatch(setLeftPanelOpen(true));
-                dispatch(setSectionSelected(paneType));
-                switch (paneType) {
-                  case "mission":
-                    dispatch(setRightPanelOpen(true));
-                    break;
-                  case "preset":
-                    dispatch(setRightPanelOpen(selectedPresetUuid !== null));
-                    dispatch(setSelectedEvaUuid(null));
-                    break;
-                  case "poi":
-                    dispatch(setRightPanelOpen(selectedPoiUuid !== null));
-                    dispatch(setSelectedEvaUuid(null));
-                    break;
-                  case "station":
-                    dispatch(setRightPanelOpen(selectedStationUuid !== null));
-                    dispatch(setSelectedEvaUuid(null));
-                    break;
-                  case "evas":
-                    dispatch(setRightPanelOpen(false));
-                    break;
-                  case "rex":
-                    dispatch(setSelectedEvaUuid(null));
-                    dispatch(setRightPanelOpen(selectedRexUuid !== null));
-                    if (!selectedEvaRightNavItem)
-                      dispatch(setSelectedEvaRightNavItem("info_panel"));
-                }
-              }}
+              key={paneType}
+              className={
+                selectedNavItem === paneType ? styles.iconContainerSelected : styles.iconContainer
+              }
             >
-              <FontAwesomeIcon icon={pane.icon} size="lg" />
-              {itemModified && (
-                <svg height="6" width="6" style={{ position: "absolute", top: "31", left: "31" }}>
-                  <circle cx="3" cy="3" r="3" fill="#ff0000" />
-                </svg>
-              )}
+              <div
+                className={styles.icon}
+                style={{ color: pane.color }}
+                data-tooltip-id="aegis-tooltip"
+                data-tooltip-html={pane.title}
+                onClick={() => {
+                  dispatch(setLeftPanelOpen(true));
+                  dispatch(setSectionSelected(paneType));
+                  switch (paneType) {
+                    case "mission":
+                      dispatch(setRightPanelOpen(true));
+                      break;
+                    case "preset":
+                      dispatch(setRightPanelOpen(selectedPresetUuid !== null));
+                      dispatch(setSelectedEvaUuid(null));
+                      break;
+                    case "poi":
+                      dispatch(setRightPanelOpen(selectedPoiUuid !== null));
+                      dispatch(setSelectedEvaUuid(null));
+                      break;
+                    case "station":
+                      dispatch(setRightPanelOpen(selectedStationUuid !== null));
+                      dispatch(setSelectedEvaUuid(null));
+                      break;
+                    case "evas":
+                      dispatch(setRightPanelOpen(false));
+                      break;
+                    case "rex":
+                      dispatch(setSelectedEvaUuid(null));
+                      dispatch(setRightPanelOpen(selectedRexUuid !== null));
+                      if (!selectedEvaRightNavItem)
+                        dispatch(setSelectedEvaRightNavItem("info_panel"));
+                  }
+                }}
+              >
+                <FontAwesomeIcon icon={pane.icon} size="lg" />
+                {itemModified && (
+                  <svg height="6" width="6" style={{ position: "absolute", top: "31", left: "31" }}>
+                    <circle cx="3" cy="3" r="3" fill="#ff0000" />
+                  </svg>
+                )}
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+      {!bottomPanelOpen && <BottomGutter />}
     </div>
   );
 };

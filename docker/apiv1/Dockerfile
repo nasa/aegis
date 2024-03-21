@@ -9,14 +9,14 @@ ARG APIV1_BASE_IMAGE=node:20.11.0-alpine
 # # # # # # # #
 FROM $APIV1_BASE_IMAGE as base
 
+# Set the environment to production so that dev dependencies are not installed and express is optimized for production performance
+ENV NODE_ENV production
+
 # # # # # # # # # # # # # # # # #
 # BUILDER image for production  #
 # # # # # # # # # # # # # # # # #
 # Put these steps in a different stage since we don't need node modules in the prod image. All we need is the final built api.js file
 FROM base AS builder
-
-# Set the environment to production so that dev dependencies are not installed and express is optimized for production performance
-ENV NODE_ENV production
 
 RUN mkdir /serverbuild
 WORKDIR /serverbuild

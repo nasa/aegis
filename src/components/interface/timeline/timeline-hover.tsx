@@ -9,7 +9,9 @@ import { Button } from "components/interface/form/globalFields";
 import { faChartArea, faChartLine } from "@fortawesome/free-solid-svg-icons";
 import { setShowDistanceFromLander, setShowElevation } from "store/interface";
 
-const TimelineHoverValues: FunctionComponent<{ hoverValues: HoverValues }> = ({ hoverValues }) => {
+const TimelineHoverValues: FunctionComponent<{ hoverValues: TimelineHoverValues }> = ({
+  hoverValues,
+}) => {
   const dispatch = useAppDispatch();
   const showDistanceFromLander = useAppSelector(
     (state) => state.interface.timelineShowDistanceFromLander,
@@ -34,6 +36,7 @@ const TimelineHoverValues: FunctionComponent<{ hoverValues: HoverValues }> = ({ 
             width: "30px",
             fontSize: "1em",
             paddingLeft: "10px",
+            marginRight: "2px",
           }}
         />
         <Button
@@ -52,31 +55,25 @@ const TimelineHoverValues: FunctionComponent<{ hoverValues: HoverValues }> = ({ 
       </div>
       <div className={styles.timelineHoverValues}>
         <div className={styles.timelineHoverValueItem}>
-          <div className={styles.timelineHoverValueTitle}>Lander Distance</div>
+          <div className={styles.timelineHoverValueTitle}>Lander Distance (m)</div>
           <div className={styles.timelineHoverValue}>
-            {hoverValues.distanceFromLanderMeters?.toFixed(2)}{" "}
-            {hoverValues.distanceFromLanderMeters ? "m" : "\u00A0"}
+            {hoverValues.distanceFromLanderMeters?.toFixed(0)}
           </div>
         </div>
         <div className={styles.timelineHoverValueItem}>
-          <div className={styles.timelineHoverValueTitle}>Relative Elevation</div>
+          <div className={styles.timelineHoverValueTitle}>Relative Elevation (m)</div>
+          <div className={styles.timelineHoverValue}>{hoverValues.elevationMeters?.toFixed(0)}</div>
+        </div>
+        <div className={styles.timelineHoverValueItem}>
+          <div className={styles.timelineHoverValueTitle}>Walkback Dist (m)</div>
           <div className={styles.timelineHoverValue}>
-            {hoverValues.elevationMeters?.toFixed(2)}
-            {hoverValues.elevationMeters ? " m" : "\u00A0"}
+            {hoverValues.walkbackDistanceFromLanderMeters?.toFixed(0)}
           </div>
         </div>
         <div className={styles.timelineHoverValueItem}>
-          <div className={styles.timelineHoverValueTitle}>Walkback Lander Dist</div>
+          <div className={styles.timelineHoverValueTitle}>Walkback Elevation (m)</div>
           <div className={styles.timelineHoverValue}>
-            {hoverValues.walkbackDistanceFromLanderMeters?.toFixed(2)}
-            {hoverValues.walkbackDistanceFromLanderMeters ? " m" : "\u00A0"}
-          </div>
-        </div>
-        <div className={styles.timelineHoverValueItem}>
-          <div className={styles.timelineHoverValueTitle}>Walkback Elevation</div>
-          <div className={styles.timelineHoverValue}>
-            {hoverValues.walkbackElevationMeters?.toFixed(2)}
-            {hoverValues.walkbackElevationMeters ? " m" : "\u00A0"}
+            {hoverValues.walkbackElevationMeters?.toFixed(0)}
           </div>
         </div>
       </div>

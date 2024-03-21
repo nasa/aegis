@@ -8,26 +8,35 @@ interface PaperGroups {
   positionMarkers: paper.Group;
 }
 
+interface MeasurePaperGroups {
+  axisGroup: paper.Group;
+  lineSegmentMarksGroup: paper.Group;
+  hoverGroup: paper.Group;
+}
+
+type PaperStyles = {
+  gNavigatorFontFamilyActivity: string;
+  blue: paper.Color;
+  brightBlue: paper.Color;
+  green: paper.Color;
+  brightGreen: paper.Color;
+  yellow: paper.Color;
+  lightYellow: paper.Color;
+  grey1: paper.Color;
+  grey2: paper.Color;
+  grey3: paper.Color;
+  grey4: paper.Color;
+  grey5: paper.Color;
+  white: paper.Color;
+  red: paper.Color;
+};
+
 /**
  * Contains styles, conversion rates, and boundaries that we
  *  need to determine where/how to draw things
  */
 interface PaperData {
-  styles: {
-    gNavigatorFontFamilyActivity: string;
-    blue: paper.Color;
-    brightBlue: paper.Color;
-    green: paper.Color;
-    brightGreen: paper.Color;
-    yellow: paper.Color;
-    lightYellow: paper.Color;
-    grey1: paper.Color;
-    grey2: paper.Color;
-    grey3: paper.Color;
-    grey4: paper.Color;
-    white: paper.Color;
-    red: paper.Color;
-  };
+  styles: PaperStyles;
   paperVars: {
     //paper vars to help with math.
     canvasWidth: number; //full drawing area
@@ -44,6 +53,31 @@ interface PaperData {
     pixelsPerMeterElevationY: number;
     landerElevationFromGraphTop: number;
   };
+}
+
+interface MeasurePaperData {
+  styles: PaperStyles;
+  paperVars: {
+    canvasWidth: number; //full drawing area
+    canvasHeight: number;
+    drawingHeight: number; //just the drawing drawing area
+    drawingWidth: number;
+    drawingTop: number;
+    drawingLeft: number;
+    graphHeight: number; //just the graph area that has the line graphs
+    pixelsPerMeterDistanceX: number;
+    pixelsPerMeterElevationY: number;
+    startElevationFromGraphTop: number;
+  };
+}
+
+interface MeasureDerivedValues {
+  startElevationMeters: number;
+  minElevationMeters: number;
+  maxElevationMeters: number;
+  relativeElevationsMeters: number[][];
+  elevationGraphValues: GraphDataItem[];
+  totalDistanceMeters: number;
 }
 
 /**
@@ -89,13 +123,20 @@ interface Path_PaperJS {
   segmentedDistancesMeters: number[]; //Not subdivided. Distance between the original segments
 }
 
-interface HoverValues {
+interface TimelineHoverValues {
   distanceFromLanderMeters: number;
   elevationMeters: number;
   slopeDegrees: number;
   walkbackDistanceFromLanderMeters: number;
   walkbackElevationMeters: number;
   walkbackSlopeDegrees: number;
+}
+
+interface MeasureHoverValues {
+  totalDistanceMeters: number;
+  distanceFromStartMeters: number;
+  elevationMeters: number;
+  slopeDegrees: number;
 }
 
 interface GraphDataItem {

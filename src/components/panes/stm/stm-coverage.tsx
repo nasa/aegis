@@ -1,6 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import stmStyles from "./stm-coverage.module.css";
-import { useAppSelector, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import _ from "lodash";
 import ReactDOMServer from "react-dom/server";
 
@@ -19,9 +19,9 @@ export const STM_Coverage: FunctionComponent<{
   stmUuidRefsCompleted?: string[][];
   stmUuidRefsInProgress?: string[][];
 }) => {
-  const allSTMObjectives = useAppSelector((state) => state.stm.objectives, shallowEqual);
-  const allSTMGoals = useAppSelector((state) => state.stm.goals, shallowEqual);
-  const allSTMInvstgs = useAppSelector((state) => state.stm.investigations, shallowEqual);
+  const allSTMObjectives = useAppSelector((state) => state.stm.objectives, deepEqual);
+  const allSTMGoals = useAppSelector((state) => state.stm.goals, deepEqual);
+  const allSTMInvstgs = useAppSelector((state) => state.stm.investigations, deepEqual);
 
   const [invstgs, setInvstgs] = useState<STMInvestigation[]>(null);
   const [completedInvstgUuids, setCompletedInvstgUuids] = useState<string[]>([]);
