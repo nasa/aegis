@@ -2,7 +2,7 @@ import paneStyles from "components/panes/global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 import {
   faCircleInfo,
@@ -38,46 +38,52 @@ const StationEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector(
     (state) => state.station.selectedRightNavItem,
-    shallowEqual
+    refEqual
   );
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
-    shallowEqual
+    refEqual
   );
   const stationsEditing = useAppSelector((state) => state.station.stationsEditing, shallowEqual);
   const selectedStation = useAppSelector(
     (state) => state.station.stations.find((station) => station.uuid === selectedStationUuid),
-    shallowEqual
+    deepEqual
   );
   const selectedStationFromDb = useAppSelector(
     (state) => state.station.stationsFromDb.find((station) => station.uuid === selectedStationUuid),
-    shallowEqual
+    deepEqual
   );
 
   const stationActions = useAppSelector(
     (state) =>
-      state.action.actions.filter((storeAction) => storeAction.stationUuid === selectedStationUuid),
-    shallowEqual
+      state.action.actions
+        .filter((storeAction) => storeAction.stationUuid === selectedStationUuid)
+        .map((sa) => {
+          return { uuid: sa.uuid, updatedAt: sa.updatedAt };
+        }),
+    deepEqual
   );
   const stationActionsFromDb = useAppSelector(
     (state) =>
-      state.action.actionsFromDb.filter(
-        (storeAction) => storeAction.stationUuid === selectedStationUuid
-      ),
-    shallowEqual
+      state.action.actionsFromDb
+        .filter((storeAction) => storeAction.stationUuid === selectedStationUuid)
+        .map((sa) => {
+          return { uuid: sa.uuid, updatedAt: sa.updatedAt };
+        }),
+    deepEqual
   );
 
   const elevationPendingIndex = useAppSelector(
     (state) =>
       state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedStationUuid),
-    shallowEqual
+    refEqual
   );
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   const calculatedFields = useAppSelector(
     (state) =>
       state.station.calculatedFields.find((calculated) => calculated.uuid === selectedStationUuid),
-    shallowEqual
+    deepEqual
   );
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
   const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--station)");
@@ -112,7 +118,7 @@ const StationEditorRight: FunctionComponent = () => {
       panel: (
         <Report_Panel reportItems={calculatedFields?.reportItems} reportTitle={"Station Report"} />
       ),
-      selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "white",
+      selectedColor: reportsTabIconColor === "var(--alert)" ? "var(--error)" : "white",
       unselectedColor: reportsTabIconColor,
       icon: calculatedFields?.reportItems.length > 0 ? faTriangleExclamation : faCheck,
     },
@@ -122,9 +128,9 @@ const StationEditorRight: FunctionComponent = () => {
     if (elevationPendingIndex > -1) {
       setSaveButtonState("pending");
     } else {
-      const stationEqual = isModified([selectedStation], [selectedStationFromDb]);
-      const actionEqual = isModified(stationActions, stationActionsFromDb);
-      const modified = stationEqual || actionEqual;
+      const stationModified = isModified([selectedStation], [selectedStationFromDb]);
+      const actionModified = isModified(stationActions, stationActionsFromDb);
+      const modified = stationModified || actionModified;
       setSaveButtonState(modified ? "enabled" : "disabled");
     }
   }, [

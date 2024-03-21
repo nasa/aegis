@@ -2,7 +2,7 @@ import PopulateStore from "components/interface/page/populateStore";
 import _ from "lodash";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FunctionComponent, useEffect, useState } from "react";
-import { shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import styles from "components/admin/admin.module.css";
 import { Checkbox } from "components/interface/form/globalFields";
 import { isLoggedIn } from "http-client/login";
@@ -23,7 +23,7 @@ const ExportPage: React.FunctionComponent = () => {
   const missionId = query.get("missionId");
   const intMissionId = missionId ? parseInt(missionId as string) : null;
 
-  const missionStore = useAppSelector((state) => state.mission, shallowEqual);
+  const missionStore = useAppSelector((state) => state.mission, deepEqual);
   const [selectedOutput, setSelectedOutput] = useState("");
   const [selectEvas, setSelectEvas] = useState(true);
   const [selectMission, setSelectMission] = useState(false);

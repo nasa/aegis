@@ -24,9 +24,16 @@ export const PosKabobMenu: FunctionComponent<{
   const posEntryEditingUuid = useAppSelector((state) => state.rex.posEntryEditingUuid, refEqual);
 
   const handleMenuOpen = (e: React.MouseEvent) => {
-    const x = e.clientX + 5; // width of the menu
+    const x = e.clientX + 5;
     menuRef.current.style.left = `${x}px`;
     menuRef.current.style.top = `${e.clientY}px`;
+    if (x + 150 > window.innerWidth) {
+      //width of kabob menu is 150
+      menuRef.current.style.transform = `translateX(-100%)`;
+      menuRef.current.style.whiteSpace = "nowrap";
+    } else {
+      menuRef.current.style.transform = `translateX(0)`;
+    }
   };
 
   const handleEdit = async (posEntryUuid: string) => {

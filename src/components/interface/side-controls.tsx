@@ -1,7 +1,7 @@
 import _ from "lodash";
 import styles from "./side-controls.module.css";
 import { FunctionComponent, useEffect } from "react";
-import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -171,42 +171,134 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
   selectedNavItem,
 }) => {
   const dispatch = useAppDispatch();
-  const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
-  const missionFromDb = useAppSelector((state) => state.mission.missionFromDb, shallowEqual);
-  const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
-  const poisFromDb = useAppSelector((state) => state.poi.poisFromDb, shallowEqual);
+  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
+  const missionFromDb = useAppSelector((state) => state.mission.missionFromDb, deepEqual);
+  const pois = useAppSelector(
+    (state) =>
+      state.poi.pois.map((p) => {
+        return { uuid: p.uuid, updatedAt: p.updatedAt };
+      }),
+    deepEqual
+  );
+  const poisFromDb = useAppSelector(
+    (state) =>
+      state.poi.poisFromDb.map((p) => {
+        return { uuid: p.uuid, updatedAt: p.updatedAt };
+      }),
+    deepEqual
+  );
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
-  const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
-  const presetsFromDb = useAppSelector((state) => state.preset.presetsFromDb, shallowEqual);
+  const presets = useAppSelector(
+    (state) =>
+      state.preset.presets.map((p) => {
+        return { uuid: p.uuid, updatedAt: p.updatedAt };
+      }),
+    deepEqual
+  );
+  const presetsFromDb = useAppSelector(
+    (state) =>
+      state.preset.presetsFromDb.map((p) => {
+        return { uuid: p.uuid, updatedAt: p.updatedAt };
+      }),
+    deepEqual
+  );
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
-  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
-  const stationsFromDb = useAppSelector((state) => state.station.stationsFromDb, shallowEqual);
+  const stations = useAppSelector(
+    (state) =>
+      state.station.stations.map((s) => {
+        return { uuid: s.uuid, updatedAt: s.updatedAt };
+      }),
+    deepEqual
+  );
+  const stationsFromDb = useAppSelector(
+    (state) =>
+      state.station.stationsFromDb.map((s) => {
+        return { uuid: s.uuid, updatedAt: s.updatedAt };
+      }),
+    deepEqual
+  );
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
     refEqual
   );
   const poiActions = useAppSelector(
-    (state) => state.action.actions.filter((storeAction) => storeAction.poiUuid),
-    shallowEqual
+    (state) =>
+      state.action.actions
+        .filter((storeAction) => storeAction.poiUuid)
+        .map((a) => {
+          return { uuid: a.uuid, updatedAt: a.updatedAt };
+        }),
+    deepEqual
   );
   const poiActionsFromDb = useAppSelector(
-    (state) => state.action.actionsFromDb.filter((storeAction) => storeAction.poiUuid),
-    shallowEqual
+    (state) =>
+      state.action.actionsFromDb
+        .filter((storeAction) => storeAction.poiUuid)
+        .map((a) => {
+          return { uuid: a.uuid, updatedAt: a.updatedAt };
+        }),
+    deepEqual
   );
   const stationActions = useAppSelector(
-    (state) => state.action.actions.filter((storeAction) => storeAction.stationUuid),
-    shallowEqual
+    (state) =>
+      state.action.actions
+        .filter((storeAction) => storeAction.stationUuid)
+        .map((sa) => {
+          return { uuid: sa.uuid, updatedAt: sa.updatedAt };
+        }),
+    deepEqual
   );
   const stationActionsFromDb = useAppSelector(
-    (state) => state.action.actionsFromDb.filter((storeAction) => storeAction.stationUuid),
-    shallowEqual
+    (state) =>
+      state.action.actionsFromDb
+        .filter((storeAction) => storeAction.stationUuid)
+        .map((sa) => {
+          return { uuid: sa.uuid, updatedAt: sa.updatedAt };
+        }),
+    deepEqual
   );
-  const evas = useAppSelector((state) => state.eva.evas, shallowEqual);
-  const evasFromDb = useAppSelector((state) => state.eva.evasFromDb, shallowEqual);
-  const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
-  const traversesFromDb = useAppSelector((state) => state.traverse.traversesFromDb, shallowEqual);
-  const rexes = useAppSelector((state) => state.rex.rexes, shallowEqual);
-  const rexesFromDb = useAppSelector((state) => state.rex.rexesFromDb, shallowEqual);
+  const evas = useAppSelector(
+    (state) =>
+      state.eva.evas.map((e) => {
+        return { uuid: e.uuid, updatedAt: e.updatedAt, sequence: e.sequence };
+      }),
+    deepEqual
+  );
+  const evasFromDb = useAppSelector(
+    (state) =>
+      state.eva.evasFromDb.map((e) => {
+        return { uuid: e.uuid, updatedAt: e.updatedAt };
+      }),
+    deepEqual
+  );
+  const traverses = useAppSelector(
+    (state) =>
+      state.traverse.traverses.map((t) => {
+        return { uuid: t.uuid, updatedAt: t.updatedAt };
+      }),
+    deepEqual
+  );
+  const traversesFromDb = useAppSelector(
+    (state) =>
+      state.traverse.traversesFromDb.map((t) => {
+        return { uuid: t.uuid, updatedAt: t.updatedAt };
+      }),
+    deepEqual
+  );
+  const rexes = useAppSelector(
+    (state) =>
+      state.rex.rexes.map((r) => {
+        return { uuid: r.uuid, updatedAt: r.updatedAt };
+      }),
+    deepEqual
+  );
+  const rexesFromDb = useAppSelector(
+    (state) =>
+      state.rex.rexesFromDb.map((r) => {
+        return { uuid: r.uuid, updatedAt: r.updatedAt };
+      }),
+    deepEqual
+  );
   const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
 
   const selectedEvaRightNavItem = useAppSelector(
@@ -227,18 +319,18 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
             itemModified = isModified(presets, presetsFromDb);
             break;
           case "poi":
-            const poiEqual = isModified(pois, poisFromDb);
-            const poiActionEqual = isModified(poiActions, poiActionsFromDb);
-            itemModified = poiEqual || poiActionEqual;
+            const poiModified = isModified(pois, poisFromDb);
+            const poiActionModified = isModified(poiActions, poiActionsFromDb);
+            itemModified = poiModified || poiActionModified;
             break;
           case "station":
-            const stationsEqual = isModified(stations, stationsFromDb);
-            const stationActionEqual = isModified(stationActions, stationActionsFromDb);
-            itemModified = stationsEqual || stationActionEqual;
+            const stationsModified = isModified(stations, stationsFromDb);
+            const stationActionModified = isModified(stationActions, stationActionsFromDb);
+            itemModified = stationsModified || stationActionModified;
             break;
           case "evas":
-            const evasEqual = isModified(evas, evasFromDb);
-            const traversesEqual = isModified(traverses, traversesFromDb);
+            const evasModified = isModified(evas, evasFromDb);
+            const traversesModified = isModified(traverses, traversesFromDb);
             const evaStationUuids = _.uniq(
               _.flatten(
                 evas.map((eva) => {
@@ -253,8 +345,8 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
             const evaStationsFromDb = stationsFromDb.filter((s) =>
               evaStationUuids.includes(s.uuid)
             );
-            const evaStationsEqual = isModified(evaStations, evaStationsFromDb);
-            itemModified = evasEqual || traversesEqual || evaStationsEqual;
+            const evaStationsModified = isModified(evaStations, evaStationsFromDb);
+            itemModified = evasModified || traversesModified || evaStationsModified;
             break;
           case "rex":
             itemModified = isModified(rexes, rexesFromDb);
@@ -343,7 +435,7 @@ export const RightTabs: FunctionComponent<{
                 color:
                   selectedRightNavItem === panelType
                     ? panelTypes[panelType].selectedColor
-                    : "white",
+                    : panelTypes[panelType].unselectedColor || "white",
               }}
               data-tooltip-id="aegis-tooltip"
               data-tooltip-html={panelTypes[panelType].title}

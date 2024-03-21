@@ -3,7 +3,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent } from "react";
 import { Button } from "components/interface/form/globalFields";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import PoiItem from "./poi-item";
 import _ from "lodash";
 import { thunkCreatePoi, thunkDuplicatePoi } from "store/thunk/thunkPoi";
@@ -11,14 +11,14 @@ import { useAppDispatch } from "utils/useAppDispatch";
 
 const PoiEditorLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
-  const poisFromDb = useAppSelector((state) => state.poi.poisFromDb, shallowEqual);
+  const pois = useAppSelector((state) => state.poi.pois, deepEqual);
+  const poisFromDb = useAppSelector((state) => state.poi.poisFromDb, deepEqual);
 
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
   const selectedPoi = pois.find((poi) => poi.uuid === selectedPoiUuid);
 
-  const actions = useAppSelector((state) => state.action.actions, shallowEqual);
-  const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, shallowEqual);
+  const actions = useAppSelector((state) => state.action.actions, deepEqual);
+  const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, deepEqual);
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   return (

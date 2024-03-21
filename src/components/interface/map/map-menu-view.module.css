@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   border: 1px solid var(--grey3);
-  padding: 3px 6px 6px 6px;
+  /* padding: 3px 6px 3px 6px; */
   background-color: var(--grey2);
 }
 .menuHeader {
@@ -10,9 +10,12 @@
   cursor: pointer;
   margin-top: 3px;
 }
+.menuHeaderEyeIcon {
+  padding: 3px 6px 3px 6px;
+}
 .menuHeaderBorder {
   border-bottom: 1px solid var(--grey3);
-  padding: 0 0 5px 0;
+  padding: 0 0 1px 0;
 }
 .menuHeaderTitleContainer {
   display: flex;
@@ -56,7 +59,7 @@
   background-color: var(--grey3);
   color: var(--grey5);
   border-radius: var(--radius);
-  margin: 5px 0 0 0;
+  margin: 5px 10px 10px 10px;
 }
 .hideMenu {
   display: none;
@@ -72,9 +75,11 @@
 }
 .menuItemTitleContainer {
   display: flex;
+  align-items: baseline;
 }
 .menuEyeIcon {
   padding: 0 5px 0 3px;
+  cursor: pointer;
 }
 .menuItemTitle {
   font-size: 0.9em;
@@ -86,7 +91,6 @@
 
 .mapDisplay {
   display: flex;
-  width: 300px;
   flex-direction: column;
   margin-left: -2px;
 }
@@ -94,4 +98,65 @@
   display: flex;
   flex-direction: column;
   background-color: var(--grey2);
+}
+
+.toggleMenuItemRow {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+}
+.toggleLeft {
+  font-size: 0.8rem;
+  background-color: var(--grey3);
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
+  margin: 2px 0px 0px 5px;
+  padding: 2px 4px 2px 4px;
+  min-width: 20px;
+  margin-right: 1px;
+  text-align: center;
+  user-select: none;
+  cursor: pointer;
+}
+.toggleMiddle {
+  font-size: 0.8rem;
+  background-color: var(--grey3);
+  margin: 2px 0px;
+  padding: 2px 4px 2px 4px;
+  min-width: 20px;
+  margin-right: 1px;
+  text-align: center;
+  user-select: none;
+  cursor: pointer;
+}
+.toggleRight {
+  font-size: 0.8rem;
+  background-color: var(--grey3);
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+  min-width: 20px;
+  margin: 2px 0px;
+  padding: 2px 4px 2px 4px;
+  text-align: center;
+  user-select: none;
+  cursor: pointer;
+}
+.toggleSingle {
+  font-size: 0.8rem;
+  background-color: var(--grey3);
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
+  min-width: 20px;
+  margin: 2px 0px 0px 5px;
+  padding: 2px 4px 2px 4px;
+  text-align: center;
+  user-select: none;
+  cursor: pointer;
+}
+.toggleSelected {
+  background-color: var(--grey5);
+  color: var(--grey1);
+  font-weight: 600;
 }

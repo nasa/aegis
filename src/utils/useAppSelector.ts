@@ -31,25 +31,75 @@ For testing can replace refEqual with this function to help find places where re
 shallowEqual or deepEqual. For now this is just left as commented-out code to be enabled when
 useful, but ultimately could/should be made a more full-featured option to be enabled during
 some/all development, and perhaps to be enabled during CI (to find inefficient selectors)
+*/
 
 const isPrimitive = (arg: unknown): boolean => {
-	const type = typeof arg;
-	return arg === null || (type !== 'object' && type !== 'function');
+  const type = typeof arg;
+  return type !== "object" && type !== "function";
 };
 
+// @ts-ignore unused declaration
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const devRefEqual: EqualityFn = (a, b) => {
-	if (!isPrimitive(a) || !isPrimitive(b)) {
-		console.error(
-			new Error(
-				`Redux selector using refEqual() with non-primitive values.
+  if (
+    a !== null &&
+    a !== undefined &&
+    b !== null &&
+    b !== undefined &&
+    (!isPrimitive(a) || !isPrimitive(b))
+  ) {
+    console.error(
+      new Error(
+        `Redux selector using refEqual() with non-primitive values.
 				shallowEqual() or deepEqual() probably desired`
-			),
-			{ a, b }
-		);
-	}
-	return productionRefEqual(a, b);
+      ),
+      { a, b }
+    );
+  }
+  return productionRefEqual(a, b);
 };
-*/
+
+// @ts-ignore unused declaration
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const devShallowEqual: EqualityFn = (a, b) => {
+  if (
+    a !== null &&
+    a !== undefined &&
+    b !== null &&
+    b !== undefined &&
+    (isPrimitive(a) || isPrimitive(b))
+  ) {
+    console.error(
+      new Error(
+        `Redux selector using shallowEqual() with primitive values.
+				refEqual() probably desired`
+      ),
+      { a, b }
+    );
+  }
+  return productionShallowEqual(a, b);
+};
+
+// @ts-ignore unused declaration
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const devDeepEqual: EqualityFn = (a, b) => {
+  if (
+    a !== null &&
+    a !== undefined &&
+    b !== null &&
+    b !== undefined &&
+    (isPrimitive(a) || isPrimitive(b))
+  ) {
+    console.error(
+      new Error(
+        `Redux selector using deepEqual() with primitive values.
+				refEqual() probably desired`
+      ),
+      { a, b }
+    );
+  }
+  return productionDeepEqual(a, b);
+};
 
 export const refEqual = productionRefEqual;
 export const shallowEqual = productionShallowEqual;
@@ -64,14 +114,29 @@ export const deepEqual = productionDeepEqual;
  * And now the console will inform whenever the selector equality function is called and whether or
  * not it drives a re-render.
  */
-export const selectorEqualityNotify = (equalityFn: EqualityFn): EqualityFn => {
+// @ts-ignore unused declaration
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const selectorEqualityNotify = (equalityFn: EqualityFn): EqualityFn => {
   const wrapper: EqualityFn = (prev, next) => {
     const prevAndNextEqual = equalityFn(prev, next);
-    console.log(
-      prevAndNextEqual ? "Selector called, no render" : "Selector called, will re-render",
-      { prev, next, prevAndNextEqual }
-    );
+
+    // Output if the current equality function being used triggered a re-render, but deepEquality would not have
+    // Essentially, these are places where we should be using deepEqual instead of the current equalityFn
+    const deepEqual = productionDeepEqual(prev, next);
+    if (prevAndNextEqual !== deepEqual) {
+      console.log("equalityFn not match DeepEqual", { prev, next, equalityFn });
+    }
+
+    // console.log(
+    //   prevAndNextEqual ? "Selector called, no render" : "Selector called, will re-render",
+    //   { prev, next, prevAndNextEqual }
+    // );
     return prevAndNextEqual;
   };
   return wrapper;
 };
+
+// Wrap the equality functions in the notify function for dev/testing
+// export const refEqual = selectorEqualityNotify(productionRefEqual);
+// export const shallowEqual = selectorEqualityNotify(productionShallowEqual);
+// export const deepEqual = selectorEqualityNotify(productionDeepEqual);

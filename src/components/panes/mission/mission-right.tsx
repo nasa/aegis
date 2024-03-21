@@ -34,11 +34,14 @@ const MissionPrefsRight: FunctionComponent = () => {
     refEqual
   );
 
-  const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
-  const missionFromDb = useAppSelector((state) => state.mission.missionFromDb, shallowEqual);
+  const missionUpdatedAt = useAppSelector((state) => state.mission.mission.updatedAt, refEqual);
+  const missionFromDbUpdatedAt = useAppSelector(
+    (state) => state.mission.missionFromDb.updatedAt,
+    refEqual
+  );
   const missionSectionsEditing = useAppSelector(
     (state) => state.mission.missionSectionsEditing,
-    refEqual
+    shallowEqual
   );
   const editPerms = useAppSelector(
     (state) =>
@@ -50,8 +53,13 @@ const MissionPrefsRight: FunctionComponent = () => {
   const [modified, setModified] = useState(false);
 
   useEffect(() => {
-    setModified(isModified([{ ...mission, uuid: null }], [{ ...missionFromDb, uuid: null }]));
-  }, [mission, missionFromDb]);
+    setModified(
+      isModified(
+        [{ updatedAt: missionUpdatedAt, uuid: null }],
+        [{ updatedAt: missionFromDbUpdatedAt, uuid: null }]
+      )
+    );
+  }, [missionUpdatedAt, missionFromDbUpdatedAt]);
 
   const panelTypes: PanelTypes = {
     prefs_panel: {

@@ -14,7 +14,7 @@ import {
 import { FunctionComponent, useEffect, useState } from "react";
 import { upsertTraverseByField } from "store/traverse";
 import { updateMapDirective } from "store/map";
-import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { refEqual, shallowEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -34,7 +34,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
   const selectedTraverse = useAppSelector(
     (state) =>
       state.traverse.traverses.find((traverse) => traverse.uuid === selectedEvaSequenceItemUuid),
-    shallowEqual
+    deepEqual
   );
   const missionTraverseRate = useAppSelector(
     (state) => state.mission.mission?.traverseRate,
@@ -58,7 +58,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
       state.traverse.calculatedFields.find(
         (calculated) => calculated.uuid === selectedTraverse.uuid
       ),
-    shallowEqual
+    deepEqual
   );
   const thisMapDirective = useAppSelector((state) => {
     return state.map.mapDirective?.uuid === selectedTraverse.uuid ? state.map.mapDirective : null;

@@ -2,7 +2,7 @@ import { FunctionComponent, useCallback, useRef, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 
-import { useAppSelector, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, deepEqual } from "utils/useAppSelector";
 import _, { round } from "lodash";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
 import {
@@ -31,7 +31,7 @@ import { thunkVerifyNoStationsBeingEdited } from "store/thunk/thunkStation";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
+  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
   const thisMapDirective = useAppSelector((state) => {
     return state.map.mapDirective?.uuid === "lander" ? state.map.mapDirective : null;
   }, shallowEqual);
@@ -173,12 +173,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 value={mission.description}
                 editing={editMode}
                 onChange={(value) => {
-                  dispatch(
-                    upsertMission({
-                      ...mission,
-                      description: value,
-                    })
-                  );
+                  dispatch(upsertMissionByField("description", value));
                 }}
               />
             </div>

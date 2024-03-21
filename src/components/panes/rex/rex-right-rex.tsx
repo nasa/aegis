@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import {
   faBan,
   faCircleInfo,
@@ -30,14 +30,22 @@ const RexRightRex: FunctionComponent = () => {
     refEqual
   );
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
-  const selectedRex = useAppSelector(
-    (state) => state.rex.rexes.find((rex) => rex.uuid === state.rex.selectedRexUuid),
-    shallowEqual
-  );
-  const selectedRexFromDb = useAppSelector(
-    (state) => state.rex.rexesFromDb?.find((rex) => rex.uuid === state.rex.selectedRexUuid),
-    shallowEqual
-  );
+  const selectedRex = useAppSelector((state) => {
+    const r = state.rex.rexes.find((rex) => rex.uuid === state.rex.selectedRexUuid);
+    return {
+      uuid: r.uuid,
+      updatedAt: r.updatedAt,
+      name: r.name,
+    };
+  }, deepEqual);
+  const selectedRexFromDb = useAppSelector((state) => {
+    const r = state.rex.rexesFromDb?.find((rex) => rex.uuid === state.rex.selectedRexUuid);
+    return {
+      uuid: r?.uuid,
+      updatedAt: r?.updatedAt,
+      name: r?.name,
+    };
+  }, deepEqual);
   const rexesEditing = useAppSelector((state) => state.rex.rexesEditing, shallowEqual);
 
   const [modified, setModified] = useState(false);

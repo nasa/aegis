@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import {
   faCircleInfo,
@@ -18,7 +18,6 @@ import Info_Panel from "./poi-right-info";
 import Actions_Panel from "./poi-right-actions";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkSavePoi, thunkDeletePoi, thunkPoiCancel } from "store/thunk/thunkPoi";
-import { selectPoiActions } from "store/selectors";
 import Report_Panel from "../report";
 import { getAlertColor, isModified } from "utils/component-helpers";
 import { validators } from "components/interface/form/formValidators";
@@ -30,12 +29,12 @@ const PoiEditorRight: FunctionComponent = () => {
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
   const selectedPoi = useAppSelector(
     (state) => state.poi.pois.find((poi) => poi.uuid === selectedPoiUuid),
-    shallowEqual
+    deepEqual
   );
   const poisEditing = useAppSelector((state) => state.poi.poisEditing, shallowEqual);
   const calculatedFields = useAppSelector(
     (state) => state.poi.calculatedFields.find((calculated) => calculated.uuid === selectedPoiUuid),
-    shallowEqual
+    deepEqual
   );
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
@@ -43,20 +42,32 @@ const PoiEditorRight: FunctionComponent = () => {
   const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--station)");
 
   //these selectors from the store are only used to calculate modified. refactor?
-  const poiActions = useAppSelector(selectPoiActions(selectedPoiUuid), shallowEqual);
+  const poiActions = useAppSelector(
+    (state) =>
+      state.action.actions
+        .filter((storeAction) => storeAction.poiUuid === selectedPoiUuid)
+        .map((a) => {
+          return { uuid: a.uuid, updatedAt: a.updatedAt };
+        }),
+    deepEqual
+  );
   const poiActionsFromDb = useAppSelector(
     (state) =>
-      state.action.actionsFromDb.filter((storeAction) => storeAction.poiUuid === selectedPoiUuid),
-    shallowEqual
+      state.action.actionsFromDb
+        .filter((storeAction) => storeAction.poiUuid === selectedPoiUuid)
+        .map((a) => {
+          return { uuid: a.uuid, updatedAt: a.updatedAt };
+        }),
+    deepEqual
   );
   const selectedPoiFromDb = useAppSelector(
     (state) => state.poi.poisFromDb.find((poi) => poi.uuid === selectedPoiUuid),
-    shallowEqual
+    deepEqual
   );
   useEffect(() => {
-    const poiEqual = isModified([selectedPoi], [selectedPoiFromDb]);
-    const actionEqual = isModified(poiActions, poiActionsFromDb);
-    setModified(poiEqual || actionEqual);
+    const poiModified = isModified([selectedPoi], [selectedPoiFromDb]);
+    const actionModified = isModified(poiActions, poiActionsFromDb);
+    setModified(poiModified || actionModified);
   }, [selectedPoi, selectedPoiFromDb, poiActions, poiActionsFromDb]);
 
   const panelTypes: PanelTypes = {

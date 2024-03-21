@@ -8,7 +8,7 @@ import { upsertRexByField } from "store/rex";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBackwardFast, faPause, faPlay } from "@fortawesome/free-solid-svg-icons";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { deepEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import { Button, Dropdown, InLineEditInput } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
 import { thunkRexPetStartStop } from "store/thunk/thunkRex";
@@ -25,7 +25,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
 
   const selectedRex = useAppSelector(
     (state) => state.rex.rexes.find((rex) => rex.uuid === state.rex.selectedRexUuid),
-    shallowEqual
+    deepEqual
   );
 
   const evaDropdownItems: EvaDropdownItem[] = useAppSelector(

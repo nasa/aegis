@@ -6,13 +6,13 @@ import {
   useRef,
   useState,
 } from "react";
-import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import styles from "./map-sunearth.module.css";
 import React from "react";
 
 export const SunEarthPosition: FunctionComponent = () => {
   const containerRef = useRef<HTMLDivElement>();
-  const mission = useAppSelector((state) => state.mission.mission, refEqual);
+  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
   const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, shallowEqual);
 
   const [containerSize, setContainerSize] = useState<number[]>([0, 0]);

@@ -1,10 +1,9 @@
 import * as L from "leaflet";
 L.Icon.Default.imagePath = "/leaflet/images/";
 // Import the plugin libraries so they will modify L
-import "leaflet-textpath";
 import "leaflet.tilelayer.colorfilter";
 import "proj4leaflet";
-import "leaflet-polylineoffset";
+import "leaflet-polylinedecorator";
 import { antPath } from "leaflet-ant-path";
 import DraggableLines from "leaflet-draggable-lines";
 import { HighlightablePolyline } from "leaflet-highlightable-layers";
@@ -104,6 +103,8 @@ const MapBody: FunctionComponent = () => {
   const actionFeatureGroup = useRef<L.FeatureGroup>(null);
   const gridLabelFeatureGroup = useRef<L.FeatureGroup>(null);
   const posEntryFeatureGroup = useRef<L.FeatureGroup>(null);
+  const hoverFeatureGroup = useRef<L.FeatureGroup>(null);
+  const hoverAstronautFeatureGroup = useRef<L.FeatureGroup>(null);
 
   const mission: MissionSelectProperties = useAppSelector(
     (state) =>
@@ -127,39 +128,36 @@ const MapBody: FunctionComponent = () => {
       ]),
     deepEqual
   );
-  const missionLayers = useAppSelector((state) => state.mission.layers, shallowEqual);
-  const missionSublayers = useAppSelector((state) => state.mission.sublayers, shallowEqual);
-  const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, shallowEqual);
+  const missionLayers = useAppSelector((state) => state.mission.layers, deepEqual);
+  const missionSublayers = useAppSelector((state) => state.mission.sublayers, deepEqual);
+  const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, refEqual);
   const sectionSelected = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
 
-  const mapSublayerControls = useAppSelector(
-    (state) => state.map.mapSublayerControls,
-    shallowEqual
-  );
+  const mapSublayerControls = useAppSelector((state) => state.map.mapSublayerControls, deepEqual);
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
 
-  const presets = useAppSelector((state) => state.preset.presets, shallowEqual);
+  const presets = useAppSelector((state) => state.preset.presets, deepEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const selectedPreset = useAppSelector(
     (state) => state.preset.presets.find((p) => p.uuid === selectedPresetUuid),
-    shallowEqual
+    deepEqual
   );
 
-  const pois = useAppSelector((state) => state.poi.pois, shallowEqual);
-  const stations = useAppSelector((state) => state.station.stations, shallowEqual);
-  const actions = useAppSelector((state) => state.action.actions, shallowEqual);
+  const pois = useAppSelector((state) => state.poi.pois, deepEqual);
+  const stations = useAppSelector((state) => state.station.stations, deepEqual);
+  const actions = useAppSelector((state) => state.action.actions, deepEqual);
   const selectedPoi = useAppSelector(
     (state) => state.poi.pois.find((poi) => poi.uuid === state.poi.selectedPoiUuid),
-    refEqual
+    deepEqual
   );
   const selectedStation = useAppSelector(
     (state) =>
       state.station.stations.find((station) => station.uuid === state.station.selectedStationUuid),
-    refEqual
+    deepEqual
   );
   const selectedEva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
-    refEqual
+    deepEqual
   );
   const selectedOrRunningRex = useAppSelector((state) => {
     //if a rex is running, show that one. If not, just show whatever rex is selected
@@ -169,7 +167,7 @@ const MapBody: FunctionComponent = () => {
     } else {
       return state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid);
     }
-  }, shallowEqual);
+  }, deepEqual);
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
@@ -177,38 +175,42 @@ const MapBody: FunctionComponent = () => {
   const hover = useAppSelector((state) => state.hover, shallowEqual); //astronaut hover timeline
 
   const selectedPosEntryUuid = useAppSelector((state) => state.rex.selectedPosEntryUuid, refEqual);
-  const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
+  const traverses = useAppSelector((state) => state.traverse.traverses, deepEqual);
 
   const mapHoverItemUuid = useAppSelector((state) => state.hover.mapItemUuid, refEqual);
+  const mapHoverItemType = useAppSelector((state) => state.hover.mapItemType, refEqual);
 
   const [layersOnMap, setLayersOnMap] = useState([]);
   const [showSelectedItemOnMap, setShowSelectedItemOnMap] = useState(true); //click selected items
 
-  const [poisToShow, setPoisToShow] = useState<POI[]>([]);
-  const [stationsToShow, setStationsToShow] = useState<Station[]>([]);
-  const [traversesToShow, setTraversesToShow] = useState<Traverse[]>([]);
-  const [actionsToShow, setActionsToShow] = useState<Action[]>([]);
-  const [posEntriesToShow, setPosEntriesToShow] = useState<PosEntry[]>([]);
+  const [posEntriesShowing, setPosEntriesShowing] = useState<PosEntry[]>([]);
+  const [latestPosEntriesByType, setLatestPosEntriesByType] = useState<{
+    [key: string]: PosEntry[];
+  }>({});
 
   /*** Eyeball menu toggles */
-  const [mapDisplayPois, setMapDisplayPois] = useState<MapMarkersDisplay>({
+  const [mapDisplayPois, setMapDisplayPois] = useState<MapDisplayMarkers>({
     show: true,
     showLabels: false,
   });
-  const [mapDisplayStations, setMapDisplayStations] = useState<MapMarkersDisplay>({
+  const [mapDisplayStations, setMapDisplayStations] = useState<MapDisplayMarkers>({
     show: true,
     showLabels: false,
   });
-  const [mapDisplayActions, setMapDisplayActions] = useState<MapMarkersDisplay>({
+  const [mapDisplayActions, setMapDisplayActions] = useState<MapDisplayMarkers>({
     show: true,
     showLabels: false,
   });
-  const [mapDisplayPosMarkers, setMapDisplayPosMarkers] = useState<MapPosDisplay>({
+  const [mapDisplayPositions, setMapDisplayPositions] = useState<MapDisplayPositions>({
     show: true,
-    showPaths: true,
     showAllLabels: false,
     showLatestLabels: true,
-    fadeOldPositions: false,
+    showPaths: true,
+    showOldPaths: true,
+    fadeOldPaths: true,
+    showMarkers: true,
+    showOldMarkers: false,
+    fadeOldMarkers: false,
   });
   const [showArrows, setShowArrows] = useState(true);
   const [showGridLabels, setShowGridLabels] = useState(true);
@@ -217,7 +219,6 @@ const MapBody: FunctionComponent = () => {
   /*** end Eyeball menu toggles */
 
   const [mapPosition, setMapPosition] = useState<string[]>([]);
-
   const [scale, setScale] = useState(0);
   const [mapZoom, setMapZoom] = useState(null); // value used to show correct scale bar
   const [mapBounds, setMapBounds] = useState<L.LatLngBoundsLiteral>(null);
@@ -249,7 +250,9 @@ const MapBody: FunctionComponent = () => {
     setMapDisplayPois(eyeballMenuSettings.mapDisplayPois);
     setMapDisplayStations(eyeballMenuSettings.mapDisplayStations);
     setMapDisplayActions(eyeballMenuSettings.mapDisplayActions);
-    setMapDisplayPosMarkers(eyeballMenuSettings.mapDisplayPosMarkers);
+    if (eyeballMenuSettings.mapDisplayPositions) {
+      setMapDisplayPositions(eyeballMenuSettings.mapDisplayPositions);
+    }
     setShowArrows(eyeballMenuSettings.showArrows);
     setShowGridLabels(eyeballMenuSettings.showGridLabels);
 
@@ -266,7 +269,7 @@ const MapBody: FunctionComponent = () => {
         mapDisplayPois,
         mapDisplayStations,
         mapDisplayActions,
-        mapDisplayPosMarkers,
+        mapDisplayPositions,
         showArrows,
         showGridLabels,
       }),
@@ -277,7 +280,7 @@ const MapBody: FunctionComponent = () => {
     mapDisplayPois,
     mapDisplayStations,
     mapDisplayActions,
-    mapDisplayPosMarkers,
+    mapDisplayPositions,
     showArrows,
     showGridLabels,
   ]);
@@ -779,7 +782,7 @@ const MapBody: FunctionComponent = () => {
               if (mapItemType === "posEntry") {
                 dispatch(setHoverUuidsForPosEntry(marker.uuid));
               } else {
-                dispatch(setHoverUuidsForSequence(marker.uuid));
+                dispatch(setHoverUuidsForSequence({ sequenceUuid: marker.uuid, mapItemType }));
               }
             })
             .on("mouseout", () => {
@@ -857,7 +860,6 @@ const MapBody: FunctionComponent = () => {
       color,
       dashArray,
       onClick,
-      drawAntPath,
       isSelected,
     }: {
       name: string;
@@ -867,7 +869,6 @@ const MapBody: FunctionComponent = () => {
       color: string;
       dashArray?: string;
       mapItemType: MapPolylineType;
-      drawAntPath: boolean;
       isSelected: boolean;
     }) => {
       // if the location isn't the null default, draw it on the map
@@ -885,12 +886,14 @@ const MapBody: FunctionComponent = () => {
 
       const typeName = mapItemType.charAt(0).toUpperCase() + mapItemType.slice(1);
       const selectedColor = Color(color).lighten(0.5).hex();
+      const opacity = 0.75;
+      const weight = mapItemType === "traverse" ? 4 : 3;
 
       const polyline = new HighlightablePolyline(path as AEGISPoint[], {
         color: color,
-        weight: 4,
+        weight,
         dashArray,
-        opacity: 0.75,
+        opacity,
         smoothFactor: 1,
         outlineWeight: isSelected ? 8 : 0,
         outlineColor: selectedColor,
@@ -911,7 +914,7 @@ const MapBody: FunctionComponent = () => {
           onClick();
         })
         .on("mouseover", () => {
-          dispatch(setHoverUuidsForSequence(polyline.uuid));
+          dispatch(setHoverUuidsForSequence({ sequenceUuid: polyline.uuid, mapItemType }));
         })
         .on("mouseout", () => {
           dispatch(clearMapItemHover());
@@ -919,30 +922,57 @@ const MapBody: FunctionComponent = () => {
 
       map.current.addLayer(polyline);
 
-      // polyline arrows. must be after addLayer to fix git issue #528
-      if (showArrows) {
-        polyline.setText("➤             ", {
-          repeat: true,
-          offset: 6,
-          attributes: { fill: color, "font-weight": "bold", "font-size": "16" },
-        });
-      }
-
-      if (drawAntPath && !showArrows) {
-        const aPath = antPath(path, {
-          delay: 9000,
-          dashArray: [10, 20],
-          weight: 4,
-          opacity: 1,
-          color: "rgb(0, 0, 0, 0)",
-          pulseColor: "rgb(255, 255, 255, 1)",
-          paused: false,
-          reverse: false,
-          hardwareAccelerated: true,
-        });
-        aPath.mapItemType = "antPath" as MapItemType;
-
-        map.current.addLayer(aPath);
+      // draw arrows on the path
+      const arrowPattern = [
+        {
+          offset: 10,
+          endOffset: 10,
+          repeat: 50,
+          symbol: L.Symbol.arrowHead({
+            pixelSize: 15,
+            polygon: true,
+            pathOptions: {
+              stroke: false,
+              fill: true,
+              fillColor: color,
+              fillOpacity: opacity,
+            },
+          }),
+        },
+      ];
+      if (mapItemType === "traverse") {
+        // *only* traverses can be either arrow or antpath
+        if (showArrows) {
+          const arrows = L.polylineDecorator(polyline, {
+            patterns: arrowPattern,
+          }) as AEGISDecorator;
+          arrows.uuid = uuid + "Arrows";
+          arrows.mapItemType = mapItemType;
+          map.current.addLayer(arrows);
+        } else {
+          const aPath = antPath(path, {
+            delay: 9000,
+            dashArray: [10, 20],
+            weight: 4,
+            opacity: 1,
+            color: "rgb(0, 0, 0, 0)",
+            pulseColor: "rgb(255, 255, 255, 1)",
+            paused: false,
+            reverse: false,
+            hardwareAccelerated: true,
+          });
+          aPath.mapItemType = "traverse" as MapItemType;
+          aPath.uuid = uuid + "Antpath";
+          map.current.addLayer(aPath);
+        }
+      } else {
+        // arrows for all other polyline types (walkbacks)
+        const arrows = L.polylineDecorator(polyline, {
+          patterns: arrowPattern,
+        }) as AEGISDecorator;
+        arrows.uuid = uuid + "Arrows";
+        arrows.mapItemType = mapItemType;
+        map.current.addLayer(arrows);
       }
     },
     [map, dispatch, showArrows]
@@ -1008,29 +1038,29 @@ const MapBody: FunctionComponent = () => {
     if (crs.current) {
       map.current.options.crs = crs.current;
     }
-
     if (!draggableLines.current) {
       draggableLines.current = new DraggableLines(map.current, { allowExtendingLine: false });
     }
-
     if (!stationFeatureGroup.current) {
       stationFeatureGroup.current = L.featureGroup().addTo(map.current);
     }
-
     if (!poiFeatureGroup.current) {
       poiFeatureGroup.current = L.featureGroup().addTo(map.current);
     }
-
     if (!actionFeatureGroup.current) {
       actionFeatureGroup.current = L.featureGroup().addTo(map.current);
     }
-
     if (!gridLabelFeatureGroup.current) {
       gridLabelFeatureGroup.current = L.featureGroup().addTo(map.current);
     }
-
     if (!posEntryFeatureGroup.current) {
       posEntryFeatureGroup.current = L.featureGroup().addTo(map.current);
+    }
+    if (!hoverFeatureGroup.current) {
+      hoverFeatureGroup.current = L.featureGroup().addTo(map.current);
+    }
+    if (!hoverAstronautFeatureGroup.current) {
+      hoverAstronautFeatureGroup.current = L.featureGroup().addTo(map.current);
     }
   }, [mapRef, map, draggableLines, mission]);
 
@@ -1310,83 +1340,185 @@ const MapBody: FunctionComponent = () => {
   }, [map, draggableLines, mapDirective, dispatch, getMapItemByUuid, updatePolylineOnMap]);
 
   /**
-   * Populate stationsToShow when stations or selections change
+   * Determine stations to show and draw them on map when stations or selections change
    */
   useEffect(() => {
-    if (!stations) return;
+    if (!stations || !map.current || mapDirective) return;
+
+    let stationsToShow: Station[] = [];
     if (mapDisplayStations.show) {
-      setStationsToShow(stations);
-      return;
-    }
-    if (selectedEva) {
-      const stationSequenceItems = selectedEva.sequence.filter((item) => item.type === "station");
-      const stationsInEva = stations.filter((station) =>
-        stationSequenceItems.find((item) => item.uuid === station.uuid)
-      );
-      setStationsToShow(stationsInEva);
-      return;
-    }
-    if (selectedStation && (sectionSelected === "station" || sectionSelected === "evas")) {
-      setStationsToShow([selectedStation]);
-      return;
-    }
-    setStationsToShow([]);
-  }, [stations, selectedStation, selectedEva, mapDisplayStations, sectionSelected, actions]);
-
-  /**
-   * Populate actions to show when actions or selections change
-   */
-  useEffect(() => {
-    if (!actions) return;
-    if (!mapDisplayActions.show) {
-      setActionsToShow([]);
-      return;
-    }
-    if ((sectionSelected === "station" || sectionSelected === "evas") && selectedStation) {
-      // set actions to show
-      const actionsInStation = actions.filter(
-        (action) => action.stationUuid === selectedStation.uuid && action.enabled
-      );
-      setActionsToShow(actionsInStation);
-    } else if (sectionSelected === "poi" && selectedPoi) {
-      // set actions to show
-      const actionsInPoi = actions.filter(
-        (action) => action.poiUuid === selectedPoi.uuid && action.enabled
-      );
-      setActionsToShow(actionsInPoi);
+      stationsToShow = stations;
     } else {
-      setActionsToShow([]);
+      if (selectedEva) {
+        const stationSequenceItems = selectedEva.sequence.filter((item) => item.type === "station");
+        const stationsInEva = stations.filter((station) =>
+          stationSequenceItems.find((item) => item.uuid === station.uuid)
+        );
+        stationsToShow = stationsInEva;
+      } else if (selectedStation && (sectionSelected === "station" || sectionSelected === "evas")) {
+        stationsToShow = [selectedStation];
+      }
     }
-  }, [actions, selectedStation, selectedPoi, mapDisplayActions, sectionSelected]);
+
+    // remove all stations from the map
+    stationFeatureGroup.current.clearLayers();
+
+    // draw all stations
+    stationsToShow.forEach((station) => {
+      if (station.location) {
+        drawOrUpdateMarkerOnMap({
+          name: station.name,
+          uuid: station.uuid,
+          iconEmoji: station.icon ? station.icon : "2754", //default to question mark
+          mapItemType: "station",
+          location: station.location,
+          onClick: () => {
+            setShowSelectedItemOnMap(true);
+            dispatch(setSectionSelected("station"));
+            dispatch(setSelectedStationUuid(station.uuid));
+            dispatch(setRightPanelOpen(true));
+          },
+          onDragEnd: (marker: AEGISMarker) => {
+            const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
+            saveUpdatedItemPosition(station.uuid, "station", newLocation);
+            dispatch(updateMapDirective(null));
+          },
+          permanentLabel: mapDisplayStations.showLabels,
+        });
+      }
+    });
+
+    stationFeatureGroup.current.setZIndex(999);
+  }, [
+    stations,
+    selectedStation,
+    selectedEva,
+    mapDisplayStations,
+    sectionSelected,
+    mapDirective,
+    drawOrUpdateMarkerOnMap,
+    dispatch,
+    saveUpdatedItemPosition,
+  ]);
 
   /**
-   * Populate POIs to show when POIs or selections change
+   * Determine actions to show and draw them on map when actions or selections change
    */
   useEffect(() => {
-    if (!pois) return;
+    if (!actions || !map.current || mapDirective) return;
+
+    let actionsToShow: Action[] = [];
+    if (mapDisplayActions.show) {
+      if ((sectionSelected === "station" || sectionSelected === "evas") && selectedStation) {
+        const actionsInStation = actions.filter(
+          (action) => action.stationUuid === selectedStation.uuid && action.enabled
+        );
+        actionsToShow = actionsInStation;
+      } else if (sectionSelected === "poi" && selectedPoi) {
+        const actionsInPoi = actions.filter(
+          (action) => action.poiUuid === selectedPoi.uuid && action.enabled
+        );
+        actionsToShow = actionsInPoi;
+      }
+    }
+
+    // delete all actions in leaflet
+    actionFeatureGroup.current.clearLayers();
+
+    // draw or update all actions
+    actionsToShow.forEach((action) => {
+      if (action.location) {
+        drawOrUpdateMarkerOnMap({
+          name: `${titleCase(action.type)}: ${action.name}`,
+          uuid: action.uuid,
+          iconEmoji: action.icon ? action.icon : "2754", //default to question mark
+          mapItemType: "action",
+          location: action.location,
+          onDragEnd: (marker: AEGISMarker) => {
+            const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
+            saveUpdatedItemPosition(action.uuid, "action", newLocation);
+            dispatch(updateMapDirective(null));
+          },
+          permanentLabel: mapDisplayActions.showLabels,
+        });
+      }
+    });
+  }, [
+    actions,
+    selectedStation,
+    selectedPoi,
+    mapDisplayActions,
+    sectionSelected,
+    mapDirective,
+    drawOrUpdateMarkerOnMap,
+    saveUpdatedItemPosition,
+    dispatch,
+  ]);
+
+  /**
+   * Determine POIs to show and draw them on map when POIs or selections change
+   */
+  useEffect(() => {
+    if (!pois || !map.current || mapDirective) return;
+    let poisToShow: POI[] = [];
+
     if (mapDisplayPois.show) {
-      setPoisToShow(pois);
-      return;
+      poisToShow = pois;
+    } else {
+      if (selectedPoi && sectionSelected === "poi") {
+        poisToShow = [selectedPoi];
+      }
     }
-    if (selectedPoi && sectionSelected === "poi") {
-      setPoisToShow([selectedPoi]);
-      return;
-    }
-    setPoisToShow([]);
-  }, [pois, selectedPoi, mapDisplayPois, sectionSelected, actions]);
+
+    // delete all pois in leaflet
+    poiFeatureGroup.current.clearLayers();
+
+    // draw or update all pois
+    poisToShow.forEach((poi) => {
+      if (poi.location) {
+        drawOrUpdateMarkerOnMap({
+          name: poi.name,
+          uuid: poi.uuid,
+          iconEmoji: poi.icon, // no default because object always starts red circle
+          mapItemType: "poi",
+          location: poi.location,
+          onClick: () => {
+            setShowSelectedItemOnMap(true);
+            dispatch(setSectionSelected("poi"));
+            dispatch(setSelectedPoiUuid(poi.uuid));
+            dispatch(setRightPanelOpen(true));
+          },
+          onDragEnd: (marker: AEGISMarker) => {
+            const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
+            saveUpdatedItemPosition(poi.uuid, "poi", newLocation);
+            dispatch(updateMapDirective(null));
+          },
+          permanentLabel: mapDisplayPois.showLabels,
+        });
+      }
+    });
+  }, [
+    pois,
+    selectedPoi,
+    mapDisplayPois,
+    sectionSelected,
+    mapDirective,
+    drawOrUpdateMarkerOnMap,
+    dispatch,
+    saveUpdatedItemPosition,
+  ]);
 
   /**
-   * Populate traverses to show when traverses or selections change
+   * Determine traverses to show and draw them on map when traverses or selections change
    */
   useEffect(() => {
-    if (!traverses) return;
+    if (!traverses || !map.current || mapDirective) return;
 
+    let traversesToShow: Traverse[] = [];
     if (selectedEvaSequenceItemUuid) {
       const traverse = traverses.find((traverse) => traverse.uuid === selectedEvaSequenceItemUuid);
       if (traverse) {
-        setTraversesToShow([traverse]);
-      } else {
-        setTraversesToShow([]);
+        traversesToShow = [traverse];
       }
     }
     if (selectedEva) {
@@ -1394,24 +1526,42 @@ const MapBody: FunctionComponent = () => {
       const traversesInEva = traverses.filter((traverse) =>
         traverseSequenceItems.find((item) => item.uuid === traverse.uuid)
       );
-      setTraversesToShow(traversesInEva);
-    } else {
-      setTraversesToShow([]);
+      traversesToShow = traversesInEva;
     }
-  }, [traverses, selectedEvaSequenceItemUuid, selectedEva]);
 
-  /**
-   * Populate pos entries to show when pos or selections change
-   */
-  useEffect(() => {
-    setPosEntriesToShow([]);
-    if (mapDisplayPosMarkers.show) {
-      //if there is a running rex, or no running rex but we're on the rex section and there's a rex selected
-      if (selectedOrRunningRex?.isRunning || (sectionSelected === "rex" && selectedOrRunningRex)) {
-        setPosEntriesToShow(_.orderBy(selectedOrRunningRex.posEntries, ["createdAt"], "desc"));
+    // delete all traverses from the map
+    map.current.eachLayer((layer: AEGISMapDrawingLayer) => {
+      if (layer.mapItemType === "traverse") {
+        map.current.removeLayer(layer);
       }
-    }
-  }, [selectedOrRunningRex, sectionSelected, mapDisplayPosMarkers]);
+    });
+    // draw all traverses in the selectedEva sequence
+    traversesToShow.forEach((traverse) => {
+      const baseColor = traverse.color || selectedEva?.traverseColor || "#03adfc";
+
+      drawPolylineOnMap({
+        name: traverse.name,
+        uuid: traverse.uuid,
+        path: traverse.path,
+        onClick: () => {
+          dispatch(setSectionSelected("evas"));
+          dispatch(thunkSelectEVASequenceItem({ sequenceItemUuid: traverse.uuid }));
+          dispatch(setSelectedPosEntryUuid(null));
+        },
+        color: baseColor,
+        mapItemType: "traverse",
+        isSelected: selectedEvaSequenceItemUuid === traverse.uuid,
+      });
+    });
+  }, [
+    traverses,
+    selectedEvaSequenceItemUuid,
+    selectedEva,
+    mapDirective,
+    drawPolylineOnMap,
+    dispatch,
+    showArrows,
+  ]);
 
   /**
    * Populate lander radii
@@ -1511,134 +1661,6 @@ const MapBody: FunctionComponent = () => {
   ]);
 
   /**
-   * Draw or update POIs on the map when pois change. Serves as draw when page loads
-   */
-  useEffect(() => {
-    if (!map.current || mapDirective) return;
-
-    // delete all pois in leaflet
-    poiFeatureGroup.current.clearLayers();
-
-    // draw or update all pois
-    poisToShow.forEach((poi) => {
-      if (poi.location) {
-        drawOrUpdateMarkerOnMap({
-          name: poi.name,
-          uuid: poi.uuid,
-          iconEmoji: poi.icon, // no default because object always starts red circle
-          mapItemType: "poi",
-          location: poi.location,
-          onClick: () => {
-            setShowSelectedItemOnMap(true);
-            dispatch(setSectionSelected("poi"));
-            dispatch(setSelectedPoiUuid(poi.uuid));
-            dispatch(setRightPanelOpen(true));
-          },
-          onDragEnd: (marker: AEGISMarker) => {
-            const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
-            saveUpdatedItemPosition(poi.uuid, "poi", newLocation);
-            dispatch(updateMapDirective(null));
-          },
-          permanentLabel: mapDisplayPois.showLabels,
-        });
-      }
-    });
-  }, [
-    map,
-    mapDirective,
-    drawOrUpdateMarkerOnMap,
-    saveUpdatedItemPosition,
-    dispatch,
-    poisToShow,
-    mapDisplayPois,
-  ]);
-
-  /**
-   * Draw or update actions on the map when actions change. Serves as draw when page loads
-   */
-  useEffect(() => {
-    if (!map.current || mapDirective) return;
-
-    // delete all actions in leaflet
-    actionFeatureGroup.current.clearLayers();
-
-    // draw or update all actions
-    actionsToShow.forEach((action) => {
-      if (action.location) {
-        drawOrUpdateMarkerOnMap({
-          name: `${titleCase(action.type)}: ${action.name}`,
-          uuid: action.uuid,
-          iconEmoji: action.icon ? action.icon : "2754", //default to question mark
-          mapItemType: "action",
-          location: action.location,
-          onDragEnd: (marker: AEGISMarker) => {
-            const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
-            saveUpdatedItemPosition(action.uuid, "action", newLocation);
-            dispatch(updateMapDirective(null));
-          },
-          permanentLabel: mapDisplayActions.showLabels,
-        });
-      }
-    });
-  }, [
-    map,
-    mapDirective,
-    drawOrUpdateMarkerOnMap,
-    saveUpdatedItemPosition,
-    dispatch,
-    actionsToShow,
-    mapDisplayActions,
-    selectedPoi,
-    selectedStation,
-    actions,
-  ]);
-
-  /**
-   * Draw stationsToShow on the map when stations or selections change. Linked to checkbox at top of map.
-   */
-  useEffect(() => {
-    if (!map.current || mapDirective) return;
-
-    // remove all stations from the map
-    stationFeatureGroup.current.clearLayers();
-
-    // draw all stations
-    stationsToShow.forEach((station) => {
-      if (station.location) {
-        drawOrUpdateMarkerOnMap({
-          name: station.name,
-          uuid: station.uuid,
-          iconEmoji: station.icon ? station.icon : "2754", //default to question mark
-          mapItemType: "station",
-          location: station.location,
-          onClick: () => {
-            setShowSelectedItemOnMap(true);
-            dispatch(setSectionSelected("station"));
-            dispatch(setSelectedStationUuid(station.uuid));
-            dispatch(setRightPanelOpen(true));
-          },
-          onDragEnd: (marker: AEGISMarker) => {
-            const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
-            saveUpdatedItemPosition(station.uuid, "station", newLocation);
-            dispatch(updateMapDirective(null));
-          },
-          permanentLabel: mapDisplayStations.showLabels,
-        });
-      }
-    });
-
-    stationFeatureGroup.current.setZIndex(999);
-  }, [
-    map,
-    mapDirective,
-    drawOrUpdateMarkerOnMap,
-    saveUpdatedItemPosition,
-    dispatch,
-    stationsToShow,
-    mapDisplayStations,
-  ]);
-
-  /**
    * Draw station walkback on the map when the selected station changes
    */
   useEffect(() => {
@@ -1667,7 +1689,6 @@ const MapBody: FunctionComponent = () => {
           dispatch(setSectionSelected("station"));
           dispatch(setSelectedStationUuid(selectedStation.uuid));
         },
-        drawAntPath: false,
         isSelected: false,
       });
     }
@@ -1682,78 +1703,35 @@ const MapBody: FunctionComponent = () => {
   ]);
 
   /**
-   * Draw or update traverses on the map when selections or traverses change. Serves as draw when page loads
+   * Draw a pos marker on the map. Serves as draw when page loads
    */
-  useEffect(() => {
-    if (!map.current) return;
-    // abort if there is an active map action ongoing
-    if (mapDirective) return;
-
-    if (traversesToShow) {
-      // delete all traverses from the map
-      map.current.eachLayer((layer: AEGISMapDrawingLayer) => {
-        if (layer.mapItemType === "traverse" || layer.mapItemType === "antPath") {
-          map.current.removeLayer(layer);
-        }
-      });
-      // draw all traverses in the selectedEva sequence
-      traversesToShow.forEach((traverse) => {
-        const baseColor = traverse.color || selectedEva?.traverseColor || "#03adfc";
-
-        drawPolylineOnMap({
-          name: traverse.name,
-          uuid: traverse.uuid,
-          path: traverse.path,
-          onClick: () => {
-            dispatch(setSectionSelected("evas"));
-            dispatch(thunkSelectEVASequenceItem({ sequenceItemUuid: traverse.uuid }));
-            dispatch(setSelectedPosEntryUuid(null));
-          },
-          color: baseColor,
-          mapItemType: "traverse",
-          drawAntPath: true,
-          isSelected: selectedEvaSequenceItemUuid === traverse.uuid,
-        });
-      });
-    }
-  }, [
-    map,
-    mapDirective,
-    drawPolylineOnMap,
-    dispatch,
-    traversesToShow,
-    selectedEvaSequenceItemUuid,
-    showArrows,
-    selectedEva,
-  ]);
-
-  /**
-   * Draw or update pos entries on the map when pos changes. Serves as draw when page loads
-   */
-  const drawOrUpdatePosOnMap = useCallback(
+  const drawPosMarkerOnMap = useCallback(
     async ({
       posEntry,
-      permanentLabel,
+      keepTooltipOpen,
       onClick = () => {},
       onDragEnd = () => {},
       markerOptions,
       tooltipOptions = {},
+      customPosTypesUuids, //optional custom pos types to draw if we don't want to draw the ones in posEntry
     }: {
       posEntry: PosEntry;
-      permanentLabel: boolean;
+      keepTooltipOpen: boolean;
       onClick: Function;
       onDragEnd: Function;
       markerOptions: L.MarkerOptions;
       tooltipOptions: L.TooltipOptions;
+      customPosTypesUuids?: string[];
     }) => {
       const { uuid, location, posTypeUuids: posTypeUuids } = posEntry;
-      if (isNaN(posEntry?.location?.lat) || isNaN(posEntry?.location?.lng)) return;
+      if (!selectedOrRunningRex || isNaN(posEntry?.location?.lat) || isNaN(posEntry?.location?.lng))
+        return;
       const mapItemType: MapItemType = "posEntry";
 
       const isWin10 = await isWindows10();
 
       const makeIconFromPosTypeUuid = (posTypeUuid: string, count: number): JSX.Element => {
-        const entryPosType = selectedOrRunningRex?.posTypes?.find(
+        const entryPosType = selectedOrRunningRex.posTypes?.find(
           (posType) => posType.uuid === posTypeUuid
         );
         const jsx = (
@@ -1769,24 +1747,28 @@ const MapBody: FunctionComponent = () => {
       };
 
       const getColorFromPosTypeUuid = (posTypeUuid: string): string => {
-        const entryPosType = selectedOrRunningRex?.posTypes?.find(
+        const entryPosType = selectedOrRunningRex.posTypes?.find(
           (posType) => posType.uuid === posTypeUuid
         );
         return entryPosType?.pathColor;
       };
 
+      // draw emojis
+      const posTypeUuidsEmojisToShow = mapDisplayPositions.showOldMarkers
+        ? posTypeUuids
+        : customPosTypesUuids || posTypeUuids;
       // draw icons in reverse order so the first one is on top
       const jsx = (
         <div className={styles.iconWrapper}>
-          {posTypeUuids?.length > 0 &&
-            posTypeUuids
+          {posTypeUuidsEmojisToShow?.length > 0 &&
+            posTypeUuidsEmojisToShow
               .slice(0)
               .reverse()
-              .map((posTypeUuid, index, posTypeUuids) =>
-                makeIconFromPosTypeUuid(posTypeUuid, posTypeUuids.length - index - 1)
+              .map((posTypeUuid, index, posTypesToDraw) =>
+                makeIconFromPosTypeUuid(posTypeUuid, posTypesToDraw.length - index - 1)
               )}
           <div className={styles.posBar}>
-            {posTypeUuids?.map((posTypeUuid, index) => (
+            {posTypeUuidsEmojisToShow?.map((posTypeUuid, index) => (
               <div
                 key={`bar_${index}`}
                 className={styles.posBarItem}
@@ -1796,143 +1778,175 @@ const MapBody: FunctionComponent = () => {
           </div>
         </div>
       );
-
       const html = ReactDOMServer.renderToString(jsx);
       const icon = L.divIcon({ html });
 
-      const existingLayer = getMapItemByUuid(uuid, mapItemType) as AEGISMarker;
-      if (existingLayer && existingLayer.mapItemType === mapItemType) {
-        existingLayer.setLatLng(location as L.LatLng);
-        existingLayer.setIcon(icon);
-      } else {
-        const marker = L.marker(location as AEGISPoint, {
-          icon,
-          ...markerOptions,
-        }) as AEGISMarker;
-        marker.uuid = uuid;
-        marker.mapItemType = mapItemType;
+      // create leaflet marker object
+      const marker = L.marker(location as AEGISPoint, {
+        icon,
+        ...markerOptions,
+      }) as AEGISMarker;
+      marker.uuid = uuid;
+      marker.mapItemType = mapItemType;
 
-        // marker handlers
-        marker.bindTooltip(``, {
-          sticky: false,
-          direction: "top",
-          offset: new L.Point(0, -10),
-          permanent: permanentLabel,
-          className: "leaflet-tooltip-own",
-          ...tooltipOptions,
-        });
+      // create tooltip
+      marker.bindTooltip(``, {
+        sticky: false,
+        direction: "top",
+        offset: new L.Point(0, -10),
+        permanent: keepTooltipOpen, // Whether to open the tooltip permanently or only on mouseover.
+        className: "leaflet-tooltip-own",
+        ...tooltipOptions,
+      });
+
+      // if the rex is NOT running, build the tooltip.
+      // if the rex is running, the tooltip will be generated by the ticking useEffect
+      if (!selectedOrRunningRex.isRunning) {
+        const markerPosTypeAbbrs: string[] = [];
+        const posTypeUuidsLabelsToShow = mapDisplayPositions.showLatestLabels
+          ? customPosTypesUuids || posTypeUuids
+          : posTypeUuids;
+
+        for (const posTypeUuid of posTypeUuidsLabelsToShow) {
+          const posTypeAbbr = selectedOrRunningRex?.posTypes?.find(
+            (posTypeFromRex) => posTypeFromRex.uuid === posTypeUuid
+          )?.abbr;
+          markerPosTypeAbbrs.push(posTypeAbbr);
+        }
 
         const rexPetSeconds = secondsFromhhmmss(rexPetTime);
         const timeToShow = hhmmssFromSeconds(rexPetSeconds - posEntry.seconds);
-        const markerPosTypeAbbrs = posEntry.posTypeUuids.map((posTypeUuid) => {
-          const posType = selectedOrRunningRex?.posTypes?.find(
-            (posType) => posType.uuid === posTypeUuid
-          );
-          return posType?.abbr;
-        });
         const newLabel = `<div style="text-align: center">${timeToShow} / ${markerPosTypeAbbrs}</div>`;
         marker.setTooltipContent(newLabel);
-
-        marker
-          .on("click", () => {
-            onClick();
-          })
-          .on("mouseover", () => {
-            dispatch(setHoverUuidsForPosEntry(marker.uuid));
-          })
-          .on("mouseout", () => {
-            dispatch(clearMapItemHover());
-          });
-        if (onDragEnd) {
-          // dragend handler that causes edit to be saved on mouseup
-          marker.on("dragend", (e) => {
-            map.current.getContainer().style.cursor = "grab";
-            onDragEnd(e.target as AEGISMarker);
-          });
-        }
-        posEntryFeatureGroup.current.addLayer(marker);
       }
-    },
-    [map, getMapItemByUuid, dispatch, selectedOrRunningRex, rexPetTime]
-  );
 
-  /**
-   * Draw or update pos entries on the map when pos changes. Serves as draw when page loads
-   */
-
-  const drawPosPath = useCallback(
-    ({
-      coords,
-      color,
-      uuid,
-      offset,
-    }: {
-      coords: AEGISPoint[];
-      color: string;
-      uuid: string;
-      offset: number;
-    }) => {
-      const existingPath = getMapItemByUuid(uuid, "posPath") as AEGISPolyline;
-      if (existingPath && existingPath.mapItemType === "posPath") {
-        existingPath.setLatLngs(coords);
-      } else {
-        // polyline offset doesn't have correct type override, so using any
-        const path = L.polyline(coords, {
-          color,
-          weight: 2,
-          opacity: 0.6,
-          smoothFactor: 1,
-          offset,
-          //eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any) as any; // being able to set the text and offset is a custom extension to the polyline class
-        path.uuid = uuid;
-        path.mapItemType = "posPath";
-
-        posEntryFeatureGroup.current.addLayer(path);
-
-        //must be after addLayer to fix git issue #528
-        path.setText("➤             ", {
-          repeat: true,
-          offset: 4,
-          attributes: { fill: color, "font-weight": "bold", "font-size": "12", opacity: 0.6 },
+      // marker handlers
+      marker
+        .on("click", () => {
+          onClick();
+        })
+        .on("mouseover", () => {
+          dispatch(setHoverUuidsForPosEntry(marker.uuid));
+        })
+        .on("mouseout", () => {
+          dispatch(clearMapItemHover());
+        });
+      if (onDragEnd) {
+        // dragend handler that causes edit to be saved on mouseup
+        marker.on("dragend", (e) => {
+          map.current.getContainer().style.cursor = "grab";
+          onDragEnd(e.target as AEGISMarker);
         });
       }
+      posEntryFeatureGroup.current.addLayer(marker);
     },
-    [getMapItemByUuid]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dispatch, mapDisplayPositions, selectedOrRunningRex] // do not include dependency for rexPetTime
   );
 
   /**
-   * General Pos Entry drawing function
+   * Draw or update pos path on the map. Serves as draw when page loads
+   */
+
+  const drawPosPathOnMap = useCallback(
+    ({
+      coords,
+      uuid,
+      opacity,
+      pathColor,
+    }: {
+      coords: AEGISPoint[]; // array of path coordinates
+      uuid: string; // uuid for this path
+      opacity: number;
+      pathColor: string;
+    }) => {
+      const weight = 2;
+
+      const path = L.polyline(coords, {
+        color: pathColor,
+        weight,
+        opacity,
+        smoothFactor: 1,
+      }) as AEGISPolyline;
+      path.uuid = uuid;
+      path.mapItemType = "posPath";
+      posEntryFeatureGroup.current.addLayer(path);
+
+      // add arrows to polyline
+      const arrows = L.polylineDecorator(path, {
+        patterns: [
+          {
+            offset: 10,
+            endOffset: 10,
+            repeat: 50,
+            symbol: L.Symbol.arrowHead({
+              pixelSize: 10,
+              polygon: true,
+              pathOptions: {
+                stroke: false,
+                fill: true,
+                fillColor: pathColor,
+                fillOpacity: opacity,
+              },
+            }),
+          },
+        ],
+      }) as AEGISDecorator;
+      arrows.uuid = uuid + "Arrows";
+      arrows.mapItemType = "posPath";
+      posEntryFeatureGroup.current.addLayer(arrows);
+    },
+    []
+  );
+
+  /**
+   * General Pos Entry drawing function. Determines which pos entries to show and draws them on the map. Also determines latest pos entries for each pos type.
    */
   useEffect(() => {
-    if (!map.current || mapDirective) return;
+    if (!map.current) return;
+
+    let posEntriesToShow: PosEntry[] = [];
+    const posTypeLatestEntries: { [key: string]: PosEntry[] } = {};
+
+    // determine which pos entries to show
+    if (mapDisplayPositions.show) {
+      //if there is a running rex, or no running rex but we're on the rex section and there's a rex selected
+      if (selectedOrRunningRex?.isRunning || (sectionSelected === "rex" && selectedOrRunningRex)) {
+        posEntriesToShow = _.orderBy(selectedOrRunningRex.posEntries, ["createdAt"], "desc");
+        // gather the latest 2 pos entries (need 2 in order to draw a polyline) for each type. Most recent/latest entry is first in the array.
+        const posEntriesToShowSortedByTime = _.orderBy(
+          selectedOrRunningRex.posEntries,
+          ["createdAt"],
+          ["desc"]
+        );
+        posEntriesToShowSortedByTime.forEach((posEntry) => {
+          posEntry.posTypeUuids.forEach((posTypeUuid) => {
+            // for each pos type in this pos entry, if we haven't seen 6 entries for it yet, add this entry to the list
+            if (
+              !posTypeLatestEntries[posTypeUuid] ||
+              posTypeLatestEntries[posTypeUuid].length < 2
+            ) {
+              posTypeLatestEntries[posTypeUuid] = posTypeLatestEntries[posTypeUuid] || [];
+              posTypeLatestEntries[posTypeUuid].push(posEntry);
+            }
+          });
+        });
+      }
+    }
 
     // delete all pos entries in leaflet
     posEntryFeatureGroup.current.clearLayers();
 
-    // track first occurrences for display of faded markers
-    const posTypeFirstOccurrence: { [key: string]: boolean } = {};
+    if (!selectedOrRunningRex) return;
 
-    // track the last pos entry for each pos type for display of latest markers
-    const posTypeLastEntryUuids: { [key: string]: string } = {};
-
-    const posEntriesToShowSortedByTime = _.orderBy(posEntriesToShow, ["createdAt"], ["desc"]);
-    // find the latest pos entry for each type
-    posEntriesToShowSortedByTime.forEach((posEntry) => {
-      posEntry.posTypeUuids.forEach((posTypeUuid) => {
-        if (!posTypeLastEntryUuids[posTypeUuid]) {
-          posTypeLastEntryUuids[posTypeUuid] = posEntry.uuid;
-        }
-      });
-    });
-
-    // draw or update all pos entries
-    posEntriesToShow.forEach((posEntry, index) => {
-      if (!posEntry.location) return;
+    // draw or update all pos markers
+    for (const [index, posEntry] of posEntriesToShow.entries()) {
+      if (!mapDisplayPositions.showMarkers) break; //exit for, no markers need to be drawn
+      if (!posEntry.location) continue; // go to next pos entry
 
       //if this is the most recent pos entries, add a circle around it
       if (index === 0) {
-        // highlight current pos entries
+        // highlight current pos entry
         const marker = L.circleMarker(
           { lat: posEntry.location.lat, lng: posEntry.location.lng },
           {
@@ -1947,33 +1961,46 @@ const MapBody: FunctionComponent = () => {
         posEntryFeatureGroup.current.addLayer(marker);
       }
 
-      let opacity: number = 1;
-      if (mapDisplayPosMarkers.fadeOldPositions) {
-        //if any posType has not been seen yet, make this position opaque and mark it as seen
-        let allPosTypesSeen = true;
-        posEntry.posTypeUuids.forEach((posTypeUuid) => {
-          if (!posTypeFirstOccurrence[posTypeUuid]) {
-            posTypeFirstOccurrence[posTypeUuid] = true;
-            allPosTypesSeen = false;
-          }
-        });
-        //make all old positions semi-transparent
-        if (allPosTypesSeen) {
-          opacity = 0.4;
+      // determine if this is one of the latest entries. If so, determine which latest pos types exist in this entry
+      const customPosTypesUuids: string[] = [];
+      let isRecent = false;
+      posEntry.posTypeUuids.forEach((posTypeUuid) => {
+        if (posTypeLatestEntries[posTypeUuid][0]?.uuid === posEntry.uuid) {
+          isRecent = true;
+          customPosTypesUuids.push(posTypeUuid);
         }
+      });
+
+      // determine if this position entry should be drawn
+      if (!mapDisplayPositions.showOldMarkers) {
+        if (!isRecent) continue; //this is an old pos entry, go to next entry
+      }
+      // all pos entries are being drawn. determine if this entry should be faded
+      let opacity: number = 1;
+      if (mapDisplayPositions.fadeOldMarkers) {
+        let lastEntry = false;
+        // check if this is the latest (most recent) entry for a pos type
+        for (const posTypeUuid in posTypeLatestEntries) {
+          if (posTypeLatestEntries[posTypeUuid][0].uuid === posEntry.uuid) {
+            lastEntry = true;
+            break;
+          }
+        }
+        if (!lastEntry) opacity = 0.4;
       }
 
-      let permanentLabel = mapDisplayPosMarkers.showAllLabels;
-      if (mapDisplayPosMarkers.showLatestLabels) {
-        // if posTypeLastEntryUuids has this pos entry's uuid, then this is the latest entry for this pos type
+      // determine if label should be shown
+      let keepTooltipOpen = mapDisplayPositions.showAllLabels;
+      if (mapDisplayPositions.showLatestLabels) {
+        // check each pos type for this pos entry
         posEntry.posTypeUuids.forEach((posTypeUuid) => {
-          if (posTypeLastEntryUuids[posTypeUuid] === posEntry.uuid) {
-            permanentLabel = true;
+          if (posTypeLatestEntries[posTypeUuid][0]?.uuid === posEntry.uuid) {
+            keepTooltipOpen = true;
           }
         });
       }
 
-      drawOrUpdatePosOnMap({
+      drawPosMarkerOnMap({
         posEntry: posEntry,
         onClick: () => {
           setShowSelectedItemOnMap(true);
@@ -1985,80 +2012,166 @@ const MapBody: FunctionComponent = () => {
           saveUpdatedItemPosition(posEntry.uuid, "posEntry", newLocation);
           dispatch(updateMapDirective(null));
         },
-        permanentLabel,
+        keepTooltipOpen,
         markerOptions: { opacity },
         tooltipOptions: { opacity: 1 },
-      });
-    });
-
-    // draw or update path
-    if (mapDisplayPosMarkers.showPaths) {
-      const reversePosTypes = _.reverse(_.clone(selectedOrRunningRex?.posTypes));
-      reversePosTypes?.forEach((posType, index) => {
-        const posEntriesToShowForType = posEntriesToShow.filter((posEntry) =>
-          posEntry.posTypeUuids.includes(posType.uuid)
-        );
-        // reverse the array so that the oldest entry is first
-        posEntriesToShowForType.reverse();
-
-        if (posEntriesToShowForType.length > 1) {
-          drawPosPath({
-            coords: posEntriesToShowForType.map((posEntry) => {
-              return posEntry.location;
-            }),
-            color: posType.pathColor,
-            uuid: posType.uuid,
-            offset: index,
-          });
-        }
+        customPosTypesUuids: customPosTypesUuids.length > 0 ? customPosTypesUuids : null,
       });
     }
+
+    // draw or update path
+    if (mapDisplayPositions.showPaths) {
+      //hide old paths
+      if (!mapDisplayPositions.showOldPaths) {
+        for (const posType of selectedOrRunningRex.posTypes) {
+          if (!posTypeLatestEntries[posType.uuid] || posTypeLatestEntries[posType.uuid].length <= 1)
+            continue;
+          //loop over posTypes and get their latest entries
+          drawPosPathOnMap({
+            coords: _.reverse(
+              posTypeLatestEntries[posType.uuid].map((posEntry) => {
+                return posEntry.location;
+              })
+            ),
+            uuid: posType.uuid,
+            opacity: 0.6, //default path opacity
+            pathColor: posType.pathColor,
+          });
+        }
+      } else {
+        // show all paths
+        const posTypes = selectedOrRunningRex.posTypes;
+        posTypes?.forEach((posType) => {
+          const posEntriesForType = posEntriesToShow.filter((posEntry) =>
+            posEntry.posTypeUuids.includes(posType.uuid)
+          );
+
+          if (posEntriesForType.length > 1) {
+            // determine if should fade old paths
+            if (mapDisplayPositions.fadeOldPaths) {
+              // fade old paths
+              drawPosPathOnMap({
+                coords: _.reverse(
+                  posEntriesForType.slice(1).map((posEntry) => {
+                    return posEntry.location;
+                  })
+                ),
+                uuid: `${posType.uuid} faded`,
+                opacity: 0.2,
+                pathColor: posType.pathColor,
+              });
+              // latest path is a separate polyline thats not faded
+              drawPosPathOnMap({
+                coords: _.reverse(
+                  posEntriesForType.slice(0, 2).map((posEntry) => {
+                    return posEntry.location;
+                  })
+                ),
+                uuid: posType.uuid,
+                opacity: 0.6, //default path opacity
+                pathColor: posType.pathColor,
+              });
+            } else {
+              // no fade
+              drawPosPathOnMap({
+                coords: _.reverse(
+                  posEntriesForType.map((posEntry) => {
+                    return posEntry.location;
+                  })
+                ),
+                uuid: posType.uuid,
+                opacity: 0.6, //default path opacity
+                pathColor: posType.pathColor,
+              });
+            }
+          }
+        });
+      }
+    }
+
+    //set in local state to be used in other use effects. Do this last so markers exist
+    setLatestPosEntriesByType(posTypeLatestEntries);
+    setPosEntriesShowing(posEntriesToShow);
   }, [
     map,
-    mapDirective,
-    rexPetTime,
-    drawOrUpdatePosOnMap,
+    drawPosMarkerOnMap,
     saveUpdatedItemPosition,
     dispatch,
-    posEntriesToShow,
-    mapDisplayPosMarkers,
-    drawPosPath,
+    mapDisplayPositions,
+    drawPosPathOnMap,
     selectedOrRunningRex,
+    sectionSelected,
   ]);
 
-  //handle when rex is ticking
+  /**
+   * Update position entry tooltips when rex is ticking
+   */
   useEffect(() => {
-    if (!posEntriesToShow || posEntriesToShow.length === 0) return;
-    for (let i = 0; i < posEntriesToShow.length; i++) {
-      const posMarker = getMapItemByUuid(posEntriesToShow[i].uuid) as AEGISMarker;
-      if (posMarker) {
-        const rexPetSeconds = secondsFromhhmmss(rexPetTime);
-        const timeToShow = hhmmssFromSeconds(rexPetSeconds - posEntriesToShow[i].seconds);
-        const markerPosTypeAbbrs = posEntriesToShow[i].posTypeUuids.map((posTypeUuid) => {
+    if (!posEntriesShowing || posEntriesShowing.length === 0) return;
+    const rexPetSeconds = secondsFromhhmmss(rexPetTime);
+
+    // turn on latest label only
+    if (mapDisplayPositions.showLatestLabels) {
+      // get a unique array of the latest pos entries. Multiple types may share the same entry
+      const uniqueLatestPosEntries = _.uniqBy(
+        Object.values(latestPosEntriesByType).map((posEntries) => {
+          return posEntries[0];
+        }),
+        "uuid"
+      );
+      for (const latestPosEntry of _.orderBy(uniqueLatestPosEntries, ["createdAt", "asc"])) {
+        const posMarker = getMapItemByUuid(latestPosEntry.uuid) as AEGISMarker;
+        if (!posMarker) continue;
+
+        // build the abbreviation string
+        const markerPosTypeAbbrs: string[] = [];
+        for (const posTypeUuidFromEntry of latestPosEntry.posTypeUuids) {
+          // check if this entryPosType is in any other more recent posEntry
+          const otherPosEntriesWithThisType = uniqueLatestPosEntries.filter(
+            (entry) =>
+              entry.posTypeUuids.includes(posTypeUuidFromEntry) &&
+              entry.createdAt > latestPosEntry.createdAt
+          );
+          if (otherPosEntriesWithThisType.length === 0) {
+            const posTypeAbbr = selectedOrRunningRex?.posTypes?.find(
+              (posTypeFromRex) => posTypeFromRex.uuid === posTypeUuidFromEntry
+            )?.abbr;
+            markerPosTypeAbbrs.push(posTypeAbbr);
+          }
+        }
+
+        // set the marker tooltip
+        const timeToShow = hhmmssFromSeconds(rexPetSeconds - latestPosEntry.seconds);
+        const newLabel = `<div style="text-align: center">${timeToShow} / ${markerPosTypeAbbrs}</div>`;
+        posMarker.setTooltipContent(newLabel);
+      }
+    } else {
+      // update all timers on all tooltips
+      for (let i = 0; i < posEntriesShowing.length; i++) {
+        //build label
+        const timeToShow = hhmmssFromSeconds(rexPetSeconds - posEntriesShowing[i].seconds);
+        const markerPosTypeAbbrs = posEntriesShowing[i].posTypeUuids.map((posTypeUuid) => {
           const posType = selectedOrRunningRex?.posTypes?.find(
             (posType) => posType.uuid === posTypeUuid
           );
           return posType?.abbr;
         });
         const newLabel = `<div style="text-align: center">${timeToShow} / ${markerPosTypeAbbrs}</div>`;
-        posMarker.setTooltipContent(newLabel);
+
+        const posMarker = getMapItemByUuid(posEntriesShowing[i].uuid) as AEGISMarker;
+        if (posMarker) {
+          posMarker.setTooltipContent(newLabel);
+        }
       }
     }
-    if (mapDisplayPosMarkers.showLatestLabels) {
-      const posEntriesToShowSortedByTime = _.orderBy(posEntriesToShow, ["createdAt"], ["desc"]);
-
-      // find the latest pos entry for each type
-      selectedOrRunningRex?.posTypes?.forEach((posType) => {
-        const latestPosMarker = posEntriesToShowSortedByTime.find((posEntry) =>
-          posEntry.posTypeUuids.includes(posType.uuid)
-        );
-        if (latestPosMarker) {
-          const posMarker = getMapItemByUuid(latestPosMarker.uuid) as AEGISMarker;
-          if (posMarker) posMarker.openTooltip();
-        }
-      });
-    }
-  }, [rexPetTime, posEntriesToShow, mapDisplayPosMarkers, getMapItemByUuid, selectedOrRunningRex]);
+  }, [
+    rexPetTime,
+    posEntriesShowing,
+    latestPosEntriesByType,
+    mapDisplayPositions,
+    getMapItemByUuid,
+    selectedOrRunningRex,
+  ]);
 
   /**
    * Draw or update hover timeline marker (astronaut) on the map when the hover seconds change.
@@ -2067,13 +2180,10 @@ const MapBody: FunctionComponent = () => {
     (async () => {
       if (!map.current || mapDirective) return;
 
-      //search for marker on the map
-      const existingLayer = getMapItemByUuid("hover-marker-uuid") as AEGISMarker;
-
       //hoverSeconds is null meaning we're not hovering.
       if (!hover.evaSecondsElapsed || !selectedEva) {
-        //Also remove the marker from map if exists
-        if (existingLayer) map.current.removeLayer(existingLayer);
+        //Remove the marker from map if exists
+        hoverAstronautFeatureGroup.current.clearLayers();
         return;
       }
 
@@ -2159,18 +2269,24 @@ const MapBody: FunctionComponent = () => {
             }
           }
         }
-        const html = ReactDOMServer.renderToString(
-          <div className={styles.mapIcon}>{decodeEmoji("1f468-200d-1f680")}</div>
-        );
-        const icon = L.divIcon({ html });
 
         if (isNaN(location.lat) || isNaN(location.lng)) return;
         //if exists, set location
+        //for each layer in hoverAstronautFeatureGroup find the one with the uuid
+        const existingLayer = hoverAstronautFeatureGroup.current
+          .getLayers()
+          .find((layer: AEGISMarker | AEGISPolyline) => {
+            return layer.uuid === "hover-marker-uuid";
+          }) as AEGISMarker;
+
         if (existingLayer) {
           existingLayer.setLatLng(location as L.LatLng);
-          existingLayer.setIcon(icon);
         } else {
           //marker doesn't exist, draw it and add it to leaflet
+          const html = ReactDOMServer.renderToString(
+            <div className={styles.mapIcon}>{decodeEmoji("1f468-200d-1f680")}</div>
+          );
+          const icon = L.divIcon({ html });
           const marker = L.marker(location as AEGISPoint, {
             icon,
           }) as AEGISMarker;
@@ -2178,7 +2294,7 @@ const MapBody: FunctionComponent = () => {
           marker.mapItemType = "hover";
           marker.setZIndexOffset(2000);
 
-          map.current.addLayer(marker);
+          hoverAstronautFeatureGroup.current.addLayer(marker);
         }
       }
     })();
@@ -2305,31 +2421,57 @@ const MapBody: FunctionComponent = () => {
    * This is the hover on item
    */
   useEffect(() => {
-    // remove hoverMarker layer
-    // remove any existing highlight layers
-    map.current.eachLayer((layer: AEGISCircleMarker | AEGISPolyline) => {
-      if (layer?.mapItemType === "hover") {
-        map.current.removeLayer(layer);
-      }
-    });
+    // remove hoverMarker layer and any existing highlight layers
+    hoverFeatureGroup.current?.clearLayers();
 
     if (mapHoverItemUuid) {
       // search for this item on the map to get the lat lng
       let latLngs: L.LatLng[] = [];
-      map.current.eachLayer((layer: AEGISMapDrawingLayer) => {
-        if (
-          layer?.uuid === mapHoverItemUuid &&
-          (layer.mapItemType === "poi" ||
-            layer.mapItemType === "station" ||
-            layer.mapItemType === "posEntry")
-        ) {
-          const markerLayer = layer as AEGISMarker;
-          latLngs.push(markerLayer.getLatLng());
-        } else if (layer?.uuid === mapHoverItemUuid && layer.mapItemType === "traverse") {
-          const polylineLayer = layer as AEGISPolyline;
-          latLngs = polylineLayer.getLatLngs() as L.LatLng[];
+      if (mapHoverItemType) {
+        if (mapHoverItemType === "poi") {
+          poiFeatureGroup.current.eachLayer((layer: AEGISMarker) => {
+            if (layer?.uuid === mapHoverItemUuid) {
+              latLngs.push(layer.getLatLng());
+            }
+          });
+        } else if (mapHoverItemType === "station") {
+          stationFeatureGroup.current.eachLayer((layer: AEGISMarker) => {
+            if (layer?.uuid === mapHoverItemUuid) {
+              latLngs.push(layer.getLatLng());
+            }
+          });
+        } else if (mapHoverItemType === "posEntry") {
+          posEntryFeatureGroup.current.eachLayer((layer: AEGISMarker) => {
+            if (layer?.uuid === mapHoverItemUuid) {
+              latLngs.push(layer.getLatLng());
+            }
+          });
+        } else if (mapHoverItemType === "traverse") {
+          map.current.eachLayer((layer: AEGISPolyline) => {
+            if (layer?.uuid === mapHoverItemUuid) {
+              latLngs = layer.getLatLngs() as L.LatLng[];
+            }
+          });
         }
-      });
+      } else {
+        // no map type defined. Search the brute force way
+        map.current.eachLayer((layer: AEGISMapDrawingLayer) => {
+          if (layer?.uuid === mapHoverItemUuid) {
+            if (
+              layer.mapItemType === "poi" ||
+              layer.mapItemType === "station" ||
+              layer.mapItemType === "posEntry"
+            ) {
+              const markerLayer = layer as AEGISMarker;
+              latLngs.push(markerLayer.getLatLng());
+            } else if (layer.mapItemType === "traverse") {
+              const polylineLayer = layer as AEGISPolyline;
+              latLngs = polylineLayer.getLatLngs() as L.LatLng[];
+            }
+          }
+        });
+      }
+
       if (latLngs.length === 1) {
         // highlight markers
         // create markers that are dotted stroke with no fill
@@ -2344,7 +2486,7 @@ const MapBody: FunctionComponent = () => {
         }) as AEGISCircleMarker;
         marker.mapItemType = "hover";
         marker.bringToFront();
-        map.current.addLayer(marker);
+        hoverFeatureGroup.current.addLayer(marker);
       } else if (latLngs.length > 1) {
         //highlight polylines (aka traverses)
         const polyline = L.polyline(latLngs, {
@@ -2355,10 +2497,10 @@ const MapBody: FunctionComponent = () => {
         }) as AEGISPolyline;
         polyline.mapItemType = "hover";
         polyline.bringToFront();
-        map.current.addLayer(polyline);
+        hoverFeatureGroup.current.addLayer(polyline);
       }
     }
-  }, [mapHoverItemUuid]);
+  }, [mapHoverItemUuid, mapHoverItemType]);
 
   return (
     <div className={styles.mapContainer}>
@@ -2379,8 +2521,8 @@ const MapBody: FunctionComponent = () => {
           setMapDisplayActions={setMapDisplayActions}
           showArrows={showArrows}
           setShowArrows={setShowArrows}
-          mapDisplayPosMarkers={mapDisplayPosMarkers}
-          setMapDisplayPosMarkers={setMapDisplayPosMarkers}
+          mapDisplayPosMarkers={mapDisplayPositions}
+          setMapDisplayPosMarkers={setMapDisplayPositions}
           showGridLabels={showGridLabels}
           setShowGridLabels={setShowGridLabels}
         />

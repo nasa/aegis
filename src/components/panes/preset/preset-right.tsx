@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import {
   faBan,
   faBullseye,
@@ -37,11 +37,11 @@ const PresetEditorRight: FunctionComponent = () => {
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const selectedPreset = useAppSelector(
     (state) => state.preset.presets.find((preset) => preset.uuid === selectedPresetUuid),
-    shallowEqual
+    deepEqual
   );
   const selectedPresetFromDb = useAppSelector(
     (state) => state.preset.presetsFromDb.find((preset) => preset.uuid === selectedPresetUuid),
-    shallowEqual
+    deepEqual
   );
   const presetsEditing = useAppSelector((state) => state.preset.presetsEditing, shallowEqual);
 

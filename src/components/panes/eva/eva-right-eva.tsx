@@ -1,7 +1,7 @@
 import paneStyles from "../global-pane-styles.module.css";
 import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import {
   faCircleInfo,
   faBan,
@@ -34,32 +34,44 @@ const EvaRightEva: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector(
     (state) => state.eva.selectedEvaRightNavItem,
-    shallowEqual
+    refEqual
   );
-  const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, shallowEqual);
+  const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
   const evasEditing = useAppSelector((state) => state.eva.evasEditing, shallowEqual);
   const selectedEva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid),
-    shallowEqual
+    deepEqual
   );
   const selectedEvaFromDb = useAppSelector(
     (state) => state.eva.evasFromDb.find((eva) => eva.uuid === selectedEvaUuid),
-    shallowEqual
+    deepEqual
   );
-  const traverses = useAppSelector((state) => state.traverse.traverses, shallowEqual);
-  const traversesFromDb = useAppSelector((state) => state.traverse.traversesFromDb, shallowEqual);
+  const traverses = useAppSelector(
+    (state) =>
+      state.traverse.traverses.map((t) => {
+        return { uuid: t.uuid, updatedAt: t.updatedAt };
+      }),
+    deepEqual
+  );
+  const traversesFromDb = useAppSelector(
+    (state) =>
+      state.traverse.traversesFromDb.map((t) => {
+        return { uuid: t.uuid, updatedAt: t.updatedAt };
+      }),
+    deepEqual
+  );
   const allTraverseCalculatedFields = useAppSelector(
     (state) => state.traverse.calculatedFields,
-    shallowEqual
+    deepEqual
   );
   const allStationCalculatedFields = useAppSelector(
     (state) => state.station.calculatedFields,
-    shallowEqual
+    deepEqual
   );
   const calculatedFields = useAppSelector(
     (state) =>
       state.eva.calculatedFields.find((calculated) => calculated.uuid === selectedEva?.uuid),
-    shallowEqual
+    deepEqual
   );
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
@@ -68,7 +80,7 @@ const EvaRightEva: FunctionComponent = () => {
 
   useEffect(() => {
     if (!selectedEva) return;
-    const evaEqual = isModified([selectedEva], [selectedEvaFromDb]);
+    const evaModifieid = isModified([selectedEva], [selectedEvaFromDb]);
 
     const traverseUuidsInThisEva: string[] = [];
     selectedEva.sequence.forEach((sequenceItem) => {
@@ -82,8 +94,8 @@ const EvaRightEva: FunctionComponent = () => {
     const thisEvasTraversesFromDb = traversesFromDb.filter((traverse) => {
       return traverseUuidsInThisEva.includes(traverse.uuid);
     });
-    const traversesEqual = isModified(thisEvasTraverses, thisEvasTraversesFromDb);
-    setModified(evaEqual || traversesEqual);
+    const traversesModified = isModified(thisEvasTraverses, thisEvasTraversesFromDb);
+    setModified(evaModifieid || traversesModified);
   }, [selectedEva, selectedEvaFromDb, traverses, traversesFromDb]);
 
   // generate evaReportSequenceItems from the eva sequence

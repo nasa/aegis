@@ -2,14 +2,14 @@ import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import { upsertStationByField } from "store/station";
 import poiStyles from "../poi/poi.module.css";
 import stationStyles from "./station.module.css";
 import _ from "lodash";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { Checkbox } from "components/interface/form/globalFields";
-import { setMapItemHoverUuid } from "store/hover";
+import { setMapItemHoverType, setMapItemHoverUuid } from "store/hover";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { faMessage } from "@fortawesome/free-solid-svg-icons";
@@ -24,9 +24,9 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   );
   const selectedStation = useAppSelector(
     (state) => state.station.stations.find((station) => station.uuid === selectedStationUuid),
-    shallowEqual
+    deepEqual
   );
-  const pois = useAppSelector((state) => state.poi.poisFromDb, shallowEqual);
+  const pois = useAppSelector((state) => state.poi.poisFromDb, deepEqual);
 
   const [selectedPois, setSelectedPois] = useState<POI[]>([]);
 
@@ -99,8 +99,14 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         <div
                           className={stationStyles.poiItem}
                           key={poi.uuid}
-                          onMouseEnter={() => dispatch(setMapItemHoverUuid(poi.uuid))}
-                          onMouseLeave={() => dispatch(setMapItemHoverUuid(null))}
+                          onMouseEnter={() => {
+                            dispatch(setMapItemHoverUuid(poi.uuid));
+                            dispatch(setMapItemHoverType("poi"));
+                          }}
+                          onMouseLeave={() => {
+                            dispatch(setMapItemHoverUuid(null));
+                            dispatch(setMapItemHoverType(null));
+                          }}
                         >
                           <Checkbox
                             checked={checked}

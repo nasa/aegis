@@ -2,7 +2,7 @@ import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 
-import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import { setPoiEditMode, upsertPoiByField } from "store/poi";
 import Actions from "../actions";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
@@ -12,7 +12,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
   const selectedPoi = useAppSelector(
     (state) => state.poi.pois.find((poi) => poi.uuid === selectedPoiUuid),
-    shallowEqual
+    deepEqual
   );
   const poiActionUuids = useAppSelector(
     (state) =>
@@ -25,7 +25,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
       state.poi.calculatedFields.find(
         (calculatedFields) => calculatedFields.uuid === selectedPoiUuid
       ),
-    shallowEqual
+    deepEqual
   );
 
   const [actionsCalculatedFields, setActionsCalculatedField] =

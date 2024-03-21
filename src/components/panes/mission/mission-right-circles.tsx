@@ -7,7 +7,7 @@ import styles from "./mission.module.css";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SubpanelHeading } from "components/interface/_global-elements";
-import { useAppSelector, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
   thunkCreateLanderRadius,
@@ -17,7 +17,7 @@ import {
 
 const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
+  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
   const [newRadiusUuid, setNewRadiusUuid] = useState(undefined);
 
   // Unmarks newest list item as "new" after a short timeout (for autofocusing)

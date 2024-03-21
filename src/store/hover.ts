@@ -4,6 +4,7 @@ export const initialState: HoverState = {
   timelineSeqItemUuid: null,
   leftPanelHoverItemUuid: null,
   mapItemUuid: null,
+  mapItemType: null,
   posEntryItemUuid: null,
   evaSecondsElapsed: null,
   sequenceItemPercentElapsed: null,
@@ -27,36 +28,51 @@ export const hoverSlice = createSlice({
     setMapItemHoverUuid: (state, action: { payload: string }) => {
       state.mapItemUuid = action.payload;
     },
+    setMapItemHoverType: (state, action: { payload: MapItemType }) => {
+      state.mapItemType = action.payload;
+    },
     setPosEntryItemHoverUuid: (state, action: { payload: string }) => {
       state.posEntryItemUuid = action.payload;
     },
     setMapItemHover: (
       state,
       action: {
-        payload: { seconds: number; sequenceUuid: string; sequenceItemPercentElapsed: number };
+        payload: {
+          seconds: number;
+          sequenceUuid: string;
+          mapItemType: MapItemType;
+          sequenceItemPercentElapsed: number;
+        };
       }
     ) => {
       state.evaSecondsElapsed = action.payload.seconds;
       state.mapItemUuid = action.payload.sequenceUuid;
+      state.mapItemType = action.payload.mapItemType;
       state.sequenceItemPercentElapsed = action.payload.sequenceItemPercentElapsed;
     },
     clearMapItemHover: (state) => {
       state.evaSecondsElapsed = null;
       state.sequenceItemPercentElapsed = null;
       state.mapItemUuid = null;
+      state.mapItemType = null;
       state.posEntryItemUuid = null;
       state.leftPanelHoverItemUuid = null;
       state.timelineSeqItemUuid = null;
     },
-    setHoverUuidsForSequence: (state, action: { payload: string }) => {
-      state.timelineSeqItemUuid = action.payload;
-      state.leftPanelHoverItemUuid = action.payload;
-      state.mapItemUuid = action.payload;
+    setHoverUuidsForSequence: (
+      state,
+      action: { payload: { sequenceUuid: string; mapItemType: MapItemType } }
+    ) => {
+      state.timelineSeqItemUuid = action.payload.sequenceUuid;
+      state.leftPanelHoverItemUuid = action.payload.sequenceUuid;
+      state.mapItemUuid = action.payload.sequenceUuid;
+      state.mapItemType = action.payload.mapItemType;
     },
     setHoverUuidsForPosEntry: (state, action: { payload: string }) => {
       state.posEntryItemUuid = action.payload;
       state.timelineSeqItemUuid = action.payload;
       state.mapItemUuid = action.payload;
+      state.mapItemType = "posEntry";
     },
     obliterateState: (state) => {
       //eslint-disable-next-line
@@ -68,6 +84,7 @@ export const hoverSlice = createSlice({
 export const {
   setTimelineHoverUuid,
   setLeftPanelHoverUuid,
+  setMapItemHoverType,
   setMapItemHoverUuid,
   setPosEntryItemHoverUuid,
   setMapItemHover,

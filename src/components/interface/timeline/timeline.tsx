@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 
 import styles from "./timeline.module.css";
 import { addPointsAtMeters, getDistanceBetweenTwoCoordinates } from "utils/geoMath";
@@ -38,7 +38,7 @@ const NavTimeline: FunctionComponent = () => {
   );
   const selectedEva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
-    shallowEqual
+    deepEqual
   );
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
@@ -53,18 +53,18 @@ const NavTimeline: FunctionComponent = () => {
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid)?.traverseRate,
     refEqual
   );
-  const mission = useAppSelector((state) => state.mission.mission, shallowEqual);
-  const evaActions = useAppSelector(selectedEvaActions(), shallowEqual);
-  const evaStations = useAppSelector(selectedEvaStations(), shallowEqual);
-  const evaTraverses = useAppSelector(selectedEvaTraverses(), shallowEqual);
+  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
+  const evaActions = useAppSelector(selectedEvaActions(), deepEqual);
+  const evaStations = useAppSelector(selectedEvaStations(), deepEqual);
+  const evaTraverses = useAppSelector(selectedEvaTraverses(), deepEqual);
   const runningRex = useAppSelector((state) => state.rex.rexes.find((r) => r.isRunning), deepEqual);
   const runningRexFromDb = useAppSelector(
     (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
-    shallowEqual
+    deepEqual
   );
   const stationCalculatedFields = useAppSelector(
     (state) => state.station.calculatedFields,
-    shallowEqual
+    deepEqual
   );
 
   const showDistanceFromLander = useAppSelector(

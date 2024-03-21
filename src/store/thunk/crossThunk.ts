@@ -178,3 +178,13 @@ export const thunkSetAllStoreLoadingStatuses = appCreateAsyncThunk<{
   dispatch(stmSlice.actions.setStmLoadingStatus(loadingStatus));
   dispatch(rexSlice.actions.setRexLoadingStatus(loadingStatus));
 });
+
+export const thunkClearAllMapSelections = appCreateAsyncThunk<void>(
+  "cross/thunkClearAllSelections",
+  async (_, { dispatch }) => {
+    dispatch(poiSlice.actions.setSelectedPoiUuid(null));
+    dispatch(stationSlice.actions.setSelectedStationUuid(null));
+    dispatch(evaSlice.actions.setSelectedEvaSequenceItemUuid(null));
+    dispatch(rexSlice.actions.setSelectedPosEntryUuid(null));
+  }
+);
