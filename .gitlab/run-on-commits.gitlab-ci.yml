@@ -34,12 +34,12 @@ cache:
 include:
   # Common jobs that basically all repos should run
   - project: "developer-ecosystem/ci-job-templates"
-    ref: 3.3.0
+    ref: 5.4.2
     file: "/rollups/all-projects.gitlab-ci.yml"
 
   # Docker-in-Docker template for building docker images using docker runners
   - project: "developer-ecosystem/ci-job-templates"
-    ref: 3.3.0
+    ref: 5.4.2
     file: "/extends/dind.gitlab-ci.yml"
 
   # A11y tests. Disabled for now.
@@ -90,54 +90,22 @@ code-count:
   stage: stageless
   needs: []
   tags: ["openshift"]
+yaml-lint:
+  stage: stageless
+  needs: []
+  tags: ["openshift"]
+job-report-visualization:
+  stage: stageless
+  needs: []
+  tags: ["openshift"]
 # accessibility:
 #   stage: stageless
 #   needs: ["some deploy job or a running system in GitLab"]
 #   tags: ["openshift"]
-
-# manually overwrite the dependency-check to add our own suppression.xml
 dependency-check:
   stage: stageless
+  tags: ["docker", "linux"] # can't use openshift (yet?)
   needs: ["install_dependencies"] # dependency-check takes a while, don't wait for "test" job
-  tags: ["docker", "linux"] # can't use openshift yet. "current" eliminates runner 2 which has been causing problems
-  image:
-    # Specify the Docker image to be used for the job, which is a customized image for running OWASP
-    # dependency-check in a GitLab CI job
-    name: $CI_REGISTRY/developer-ecosystem/dependency-check:latest
-    # Entrypoint is overridden to allow a script to be run
-    entrypoint: [""]
-  script:
-    # Run dependency-check from the location installed in the Docker container with the following arguments:
-    # --scan "./"                                         Scans all files and folders within the working folder,
-    #                                                     which contains the repository files as well as any
-    #                                                     artifacts from prior jobs in the pipeline
-    # --format ALL                                        Saves output in all formats so that HTML and JSON
-    #                                                     files are available
-    # --project "$CI_PROJECT_NAME"                        Use the GitLab project name, which is included in
-    #                                                     the report
-    # --failOnCVSS 0                                      Forces job to fail if any vulnerabilities are found
-    # --suppression /suppressions/fp-cpe-suppression.xml  Suppress false positives where the dependency is
-    #                                                     improperly identified
-    # --suppression /suppressions/fp-cve-suppression.xml  Suppress false positives where the dependency is
-    #                                                     properly identified, but the  CVE is a false positive
-    - >
-      /usr/share/dependency-check/bin/dependency-check.sh --scan "./"
-      --format ALL
-      --project "$CI_PROJECT_NAME"
-      --failOnCVSS 0
-      --suppression /suppressions/fp-cpe-suppression.xml
-      --suppression /suppressions/fp-cve-suppression.xml
-      --suppression ./.gitlab/dependency-check-suppression.xml
-
-  # Allow failure will report a failure, but continue execution of the pipeline
-  allow_failure: true
-  artifacts:
-    # Saving artifacts always forces them to be saved on failure as well as success
-    when: always
-    # Save the HTML and JSON formatted results as artifacts
-    paths:
-      - "./dependency-check-report.html"
-      - "./dependency-check-report.json"
 
 npm-audit:
   stage: stageless
