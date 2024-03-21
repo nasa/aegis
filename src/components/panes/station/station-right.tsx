@@ -118,7 +118,7 @@ const StationEditorRight: FunctionComponent = () => {
       panel: (
         <Report_Panel reportItems={calculatedFields?.reportItems} reportTitle={"Station Report"} />
       ),
-      selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "white",
+      selectedColor: reportsTabIconColor === "var(--alert)" ? "var(--error)" : "white",
       unselectedColor: reportsTabIconColor,
       icon: calculatedFields?.reportItems.length > 0 ? faTriangleExclamation : faCheck,
     },
