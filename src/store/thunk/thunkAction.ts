@@ -484,13 +484,13 @@ export const thunkAuditActions = appCreateAsyncThunk<void>(
      * Audit the stm UUID refs on each action to ensure they still exist.
      * They may not exist if they were deleted from the admin side.
      */
-    const stmInvstgUuids = getState().stm.investigations.map((i) => i.uuid);
+    const stmLevel3Uuids = getState().stm.level3s.map((i) => i.uuid);
     for (const action of newActions) {
       if (!action.stmUuidRefs) continue;
       let newUuidRefs = _.clone(action.stmUuidRefs); //make a copy to splice from
       let isChanged = false;
       for (const stmUuid of action.stmUuidRefs) {
-        if (stmInvstgUuids.indexOf(stmUuid) < 0) {
+        if (stmLevel3Uuids.indexOf(stmUuid) < 0) {
           //stm doesn't exist. remove it from our copy
           isChanged = true;
           newUuidRefs = newUuidRefs.filter((uuid) => uuid != stmUuid);

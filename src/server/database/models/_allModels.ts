@@ -10,9 +10,9 @@ import { Eva_db } from "./eva.model";
 import { Layer_db } from "./layer.model";
 import { Preset_db } from "./preset.model";
 import { Rex_db } from "./rex.model";
-import { STM_Objective_db } from "./stm_objective.model";
-import { STM_Goal_db } from "./stm_goal.model";
-import { STM_Investigation_db } from "./stm_investigation.model";
+import { STM_Level1_db } from "./stm_level1.model";
+import { STM_Level2_db } from "./stm_level2.model";
+import { STM_Level3_db } from "./stm_level3.model";
 import { Sublayer_db } from "./sublayer.model";
 import { Traverse_db } from "./traverse.model";
 
@@ -27,9 +27,9 @@ export {
   Layer_db,
   Preset_db,
   Rex_db,
-  STM_Objective_db,
-  STM_Goal_db,
-  STM_Investigation_db,
+  STM_Level1_db,
+  STM_Level2_db,
+  STM_Level3_db,
   Sublayer_db,
   Traverse_db,
 };

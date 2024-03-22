@@ -1,28 +1,28 @@
 import { Factory } from "@mikro-orm/seeder";
-import { STM_Goal_db } from "server/database/models/_allModels";
+import { STM_Level2_db } from "server/database/models/_allModels";
 import { v4 as uuidv4 } from "uuid";
 import { EntityData } from "@mikro-orm/core";
 
-export default class STMGoalFactory extends Factory<STM_Goal_db> {
-  model = STM_Goal_db;
-  definition(): EntityData<STM_Goal_db> {
-    const goal: STM_Goal_db = {
+export default class STMLevel2Factory extends Factory<STM_Level2_db> {
+  model = STM_Level2_db;
+  definition(): EntityData<STM_Level2_db> {
+    const level2: STM_Level2_db = {
       uuid: uuidv4(),
       name: "Jest STM-1",
       numbering: "1",
-      objective: null,
-      investigations: null,
+      level1: null,
+      level3s: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    return goal;
+    return level2;
   }
 }
 
-export const createTestSTMGoal = (): STMGoal => {
+export const createTestSTMLevel2 = (): STMLevel2 => {
   return {
     uuid: uuidv4(),
-    objectiveUuid: null,
+    level1Uuid: null,
     name: "Jest STM-1",
     numbering: "1",
     createdAt: new Date().toISOString(),

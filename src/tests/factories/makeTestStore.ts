@@ -23,9 +23,9 @@ import { createTestPoi } from "./PoiFactory";
 import { createTestPosEntry, createTestPosType, createTestRex } from "./RexFactory";
 import { createTestPreset } from "./PresetFactory";
 import { createTestUser } from "./UserFactory";
-import { createTestSTMGoal } from "./STMGoalFactory";
-import { createTestSTMObjective } from "./STMObjectiveFactory";
-import { createTestSTMInvstg } from "./STMInvestigationFactory";
+import { createTestSTMLevel2 } from "./STMLevel2Factory";
+import { createTestSTMLevel1 } from "./STMLevel1Factory";
+import { createTestSTMLevel3 } from "./STMLevel3Factory";
 
 export const createCustomTestStore = (partialPreloadedState: Partial<RootState>): StoreType => {
   const newState = { ...initialState, ...partialPreloadedState };
@@ -43,7 +43,7 @@ export const createCustomTestStore = (partialPreloadedState: Partial<RootState>)
  *    1 rex with 1 pos and a selected eva
  *    1 preset
  *    1 user
- *    STM with 1 objective, 1 goal, and 1 invstg linked together
+ *    STM with 1 level1, 1 level2, and 1 level3 linked together
  * @returns
  */
 export const createFullTestStore = (): StoreType => {
@@ -118,11 +118,11 @@ export const createFullTestStore = (): StoreType => {
   const preset1 = createTestPreset();
   const presetsUIStates = { [preset1.uuid]: {} };
 
-  const stmObj1 = createTestSTMObjective();
-  const stmGoal1 = createTestSTMGoal();
-  stmGoal1.objectiveUuid = stmObj1.uuid;
-  const stmInvstg1 = createTestSTMInvstg();
-  stmInvstg1.goalUuid = stmGoal1.uuid;
+  const stmLevel1_1 = createTestSTMLevel1();
+  const stmLevel2_1 = createTestSTMLevel2();
+  stmLevel2_1.level1Uuid = stmLevel1_1.uuid;
+  const stmLevel3_1 = createTestSTMLevel3();
+  stmLevel3_1.level2Uuid = stmLevel2_1.uuid;
 
   const testState: RootState = {
     hover: { ...hoverInitialState },
@@ -143,9 +143,9 @@ export const createFullTestStore = (): StoreType => {
     interface: { ...interfaceInitialState },
     stm: {
       ...stmInitialState,
-      objectives: [stmObj1],
-      goals: [stmGoal1],
-      investigations: [stmInvstg1],
+      level1s: [stmLevel1_1],
+      level2s: [stmLevel2_1],
+      level3s: [stmLevel3_1],
     },
     preset: {
       ...presetInitialState,

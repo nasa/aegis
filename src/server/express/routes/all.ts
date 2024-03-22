@@ -12,7 +12,7 @@ import { getPois } from "./poi";
 import { getPresets } from "./preset";
 import { getRexes } from "./rex";
 import { getStations } from "./station";
-import { getGoals, getInvestigations, getObjectives } from "./stm";
+import { getLevel1s, getLevel2s, getLevel3s } from "./stm";
 import { getTraverses } from "./traverse";
 
 const router = express.Router();
@@ -68,9 +68,9 @@ export async function getAll(missionId: number): Promise<OneMissionToRuleThemAll
     presets: [],
     rexes: [],
     stations: [],
-    objectives: [],
-    goals: [],
-    invstgs: [],
+    level1s: [],
+    level2s: [],
+    level3s: [],
     traverses: [],
   };
 
@@ -83,9 +83,9 @@ export async function getAll(missionId: number): Promise<OneMissionToRuleThemAll
   everything.presets = await getPresets(missionId);
   everything.rexes = await getRexes(missionId);
   everything.stations = await getStations(missionId);
-  everything.objectives = await getObjectives(missionId);
-  everything.goals = await getGoals(missionId);
-  everything.invstgs = await getInvestigations(missionId);
+  everything.level1s = await getLevel1s(missionId);
+  everything.level2s = await getLevel2s(missionId);
+  everything.level3s = await getLevel3s(missionId);
   everything.traverses = await getTraverses(missionId);
 
   return everything;

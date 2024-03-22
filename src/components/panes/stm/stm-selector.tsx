@@ -13,95 +13,89 @@ const STMSelector: FunctionComponent<{
   stmUuidRefs: string[];
   onSTMChange: Function;
 }> = ({ editMode, stmUuidRefs, onSTMChange }) => {
-  const allSTMObjectives: STMObjective[] = useAppSelector(
-    (state) => state.stm.objectives,
-    deepEqual
-  );
-  const allSTMGoals: STMGoal[] = useAppSelector((state) => state.stm.goals, deepEqual);
-  const allSTMInvstgs: STMInvestigation[] = useAppSelector(
-    (state) => state.stm.investigations,
-    deepEqual
-  );
+  const allSTMLevel1: STMLevel1[] = useAppSelector((state) => state.stm.level1s, deepEqual);
+  const allSTMLevel2: STMLevel2[] = useAppSelector((state) => state.stm.level2s, deepEqual);
+  const allSTMLevel3: STMLevel3[] = useAppSelector((state) => state.stm.level3s, deepEqual);
 
   const [expanded, setExpanded] = useState<string[]>([]); //array of values at the parent levels that are expanded
   const [stmTreeNodes, setStmTreeNodes] = useState<Node[]>([]);
 
   //build the stm tree
   useEffect(() => {
-    if (allSTMInvstgs?.length > 0 && allSTMGoals && allSTMInvstgs) {
+    if (allSTMLevel3?.length > 0 && allSTMLevel2 && allSTMLevel3) {
       // build the expanded list to include all nodes so expanded by default
       const newExpandedList: string[] = [];
       const stmTree: Node[] = [];
-      for (const objective of allSTMObjectives) {
-        newExpandedList.push(objective.uuid);
-        const objectiveNode: Node = {
-          value: objective.uuid,
+      for (const level1 of allSTMLevel1) {
+        newExpandedList.push(level1.uuid);
+        const level1Node: Node = {
+          value: level1.uuid,
           label: (
             <>
-              <span className={stmStyles.stmHeading}>Objective {objective.numbering}</span> -{" "}
-              <span data-tooltip-id="aegis-tooltip" data-tooltip-html={objective.name}>
-                {objective.name}
+              <span className={stmStyles.stmHeading}>Goal {level1.numbering}</span> -{" "}
+              <span data-tooltip-id="aegis-tooltip" data-tooltip-html={level1.name}>
+                {level1.name}
               </span>
             </>
           ),
           className: `${stmStyles.stmText}`,
           children: [],
-          title: objective.name,
+          title: level1.name,
         };
-        const objGoals: STMGoal[] = allSTMGoals.filter(
-          (goal) => goal.objectiveUuid === objective.uuid
+        const objLevel2s: STMLevel2[] = allSTMLevel2.filter(
+          (level2) => level2.level1Uuid === level1.uuid
         );
-        const objChildren: Node[] = [];
-        for (const goal of objGoals) {
-          newExpandedList.push(goal.uuid);
-          const goalNode: Node = {
-            value: goal.uuid,
+        const level1Children: Node[] = [];
+        for (const level2 of objLevel2s) {
+          newExpandedList.push(level2.uuid);
+          const level2Node: Node = {
+            value: level2.uuid,
             label: (
               <>
                 <span className={stmStyles.stmHeading}>
-                  Goal {objective.numbering}
-                  {goal.numbering}
+                  Objective {level1.numbering}
+                  {level2.numbering}
                 </span>{" "}
                 -{" "}
-                <span data-tooltip-id="aegis-tooltip" data-tooltip-html={goal.name}>
-                  {goal.name}
+                <span data-tooltip-id="aegis-tooltip" data-tooltip-html={level2.name}>
+                  {level2.name}
                 </span>
               </>
             ),
             className: `${stmStyles.stmText}`,
             children: [],
-            title: goal.name,
+            title: level2.name,
           };
-          const goalInvstg: STMInvestigation[] = allSTMInvstgs.filter(
-            (invstg) => invstg.goalUuid === goal.uuid
+          const objLevel3s: STMLevel3[] = allSTMLevel3.filter(
+            (level3) => level3.level2Uuid === level2.uuid
           );
-          const goalChildren: Node[] = [];
-          for (const invstg of goalInvstg) {
-            newExpandedList.push(invstg.uuid);
-            const invstgNode: Node = {
-              value: invstg.uuid,
+          const level2Children: Node[] = [];
+          for (const level3 of objLevel3s) {
+            newExpandedList.push(level3.uuid);
+            const level3Node: Node = {
+              value: level3.uuid,
               label: (
                 <>
                   <span className={stmStyles.stmHeading}>
-                    Investigation {objective.numbering}
-                    {goal.numbering}-{invstg.numbering}
+                    Investigation {level1.numbering}
+                    {level2.numbering}-{level3.numbering}
                   </span>{" "}
                   -{" "}
-                  <span data-tooltip-id="aegis-tooltip" data-tooltip-html={invstg.name}>
-                    {invstg.name}
+                  <span data-tooltip-id="aegis-tooltip" data-tooltip-html={level3.name}>
+                    {level3.name}
                   </span>
                 </>
               ),
               className: `${stmStyles.stmText}`,
-              title: invstg.name,
+              title: level3.name,
             };
-            goalChildren.push(invstgNode);
+            level2Children.push(level3Node);
           }
-          goalNode.children = goalChildren;
-          objChildren.push(goalNode);
+          level2Node.children = level2Children;
+          level1Children.push(level2Node);
         }
-        objectiveNode.children = objChildren;
-        stmTree.push(objectiveNode);
+        level1Node.children = level1Children;
+        stmTree.push(level1Node);
       }
       setStmTreeNodes([
         {
@@ -114,7 +108,7 @@ const STMSelector: FunctionComponent<{
 
       setExpanded(newExpandedList);
     }
-  }, [allSTMInvstgs, allSTMGoals, allSTMObjectives]);
+  }, [allSTMLevel3, allSTMLevel2, allSTMLevel1]);
 
   return (
     <>

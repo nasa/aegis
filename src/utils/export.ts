@@ -25,17 +25,17 @@ const decodeWsywig = (string: string): string => {
 
 export const getStmNames = (params: {
   stmUuidRefs: string[];
-  investigations: STMInvestigation[];
-  goals: STMGoal[];
-  objectives: STMObjective[];
+  level3s: STMLevel3[];
+  level2s: STMLevel2[];
+  level1s: STMLevel1[];
 }): string[] => {
-  const { stmUuidRefs, investigations, goals, objectives } = params;
+  const { stmUuidRefs, level3s, level2s, level1s } = params;
   return stmUuidRefs?.map((stmUuidRef) => {
-    const stmInvestigation = investigations.find((s) => s.uuid === stmUuidRef);
-    const stmGoal = goals.find((s) => s.uuid === stmInvestigation?.goalUuid);
-    const stmObjective = objectives.find((s) => s.uuid === stmGoal?.objectiveUuid);
-    if (stmInvestigation)
-      return `${stmObjective.numbering}${stmGoal.numbering}${stmInvestigation.numbering} ${stmInvestigation.name}`;
+    const stmLevel3 = level3s.find((s) => s.uuid === stmUuidRef);
+    const stmLevel2 = level2s.find((s) => s.uuid === stmLevel3?.level2Uuid);
+    const stmLevel1 = level1s.find((s) => s.uuid === stmLevel2?.level1Uuid);
+    if (stmLevel3)
+      return `${stmLevel1.numbering}${stmLevel2.numbering}${stmLevel3.numbering} ${stmLevel3.name}`;
     return "";
   });
 };
@@ -75,9 +75,9 @@ export const makeExportActions = (params: {
       parentPoiName: pois.find((p) => p.uuid === action.poiUuid)?.name,
       stmNames: getStmNames({
         stmUuidRefs: action.stmUuidRefs,
-        objectives: stmStore.objectives,
-        goals: stmStore.goals,
-        investigations: stmStore.investigations,
+        level1s: stmStore.level1s,
+        level2s: stmStore.level2s,
+        level3s: stmStore.level3s,
       }),
       iconEmojiDecoded: decodeEmoji(action.icon),
       equipmentItemsUsageReadable: makeEquipmentReadable({
