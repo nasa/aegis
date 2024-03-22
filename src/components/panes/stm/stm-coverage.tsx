@@ -8,47 +8,47 @@ export const STM_Coverage: FunctionComponent<{
   stmUuidRefs: string[][]; //2d array of action stmUuidRefs
   mini: boolean;
   horizontal: boolean;
-  onInvstgHover?: (invstgUUID: string) => void;
+  onLevel3Hover?: (level3Uuid: string) => void;
   stmUuidRefsCompleted?: string[][]; //used in rex mode
   stmUuidRefsInProgress?: string[][]; //used in rex mode
 }> = (props: {
   stmUuidRefs: string[][];
   mini: boolean;
   horizontal: boolean;
-  onInvstgHover?: (invstgUUID: string) => void;
+  onLevel3Hover?: (level3Uuid: string) => void;
   stmUuidRefsCompleted?: string[][];
   stmUuidRefsInProgress?: string[][];
 }) => {
-  const allSTMObjectives = useAppSelector((state) => state.stm.objectives, deepEqual);
-  const allSTMGoals = useAppSelector((state) => state.stm.goals, deepEqual);
-  const allSTMInvstgs = useAppSelector((state) => state.stm.investigations, deepEqual);
+  const allSTMLevel1 = useAppSelector((state) => state.stm.level1s, deepEqual);
+  const allSTMLevel2 = useAppSelector((state) => state.stm.level2s, deepEqual);
+  const allSTMLevel3 = useAppSelector((state) => state.stm.level3s, deepEqual);
 
-  const [invstgs, setInvstgs] = useState<STMInvestigation[]>(null);
-  const [completedInvstgUuids, setCompletedInvstgUuids] = useState<string[]>([]);
-  const [inProgressInvstgUuids, setInProgressInvstgUuids] = useState<string[]>([]);
+  const [level3s, setLevel3s] = useState<STMLevel3[]>(null);
+  const [completedLevel3Uuids, setCompletedLevel3Uuids] = useState<string[]>([]);
+  const [inProgressLevel3Uuids, setInProgressLevel3Uuids] = useState<string[]>([]);
 
-  //get all STM investigations
+  //get all STM level3s
   useEffect(() => {
-    if (props.stmUuidRefs && allSTMInvstgs) {
-      const stms: STMInvestigation[] = [];
+    if (props.stmUuidRefs && allSTMLevel3) {
+      const stms: STMLevel3[] = [];
       //get all stms for actions
       for (const stmUuidRefs of props.stmUuidRefs) {
         if (!stmUuidRefs || stmUuidRefs.length === 0) {
           continue; //no referenced uuids. skip to next action
         } else {
-          //loop through all uuids and find the stm investigation
+          //loop through all uuids and find the stm level3
           for (const stmUuidRef of stmUuidRefs) {
-            const invstg = allSTMInvstgs.find((investigation) => investigation.uuid === stmUuidRef);
-            if (invstg) stms.push(invstg);
+            const level3 = allSTMLevel3.find((level3) => level3.uuid === stmUuidRef);
+            if (level3) stms.push(level3);
           }
         }
       }
       //filter unique and sort
-      setInvstgs(_.uniqBy(stms, "uuid"));
+      setLevel3s(_.uniqBy(stms, "uuid"));
     }
-  }, [props.stmUuidRefs, allSTMInvstgs]);
+  }, [props.stmUuidRefs, allSTMLevel3]);
 
-  //get all in progress stm investigations uuids
+  //get all in progress stm level3s uuids
   useEffect(() => {
     if (props.stmUuidRefsInProgress) {
       let stms: string[] = [];
@@ -61,11 +61,11 @@ export const STM_Coverage: FunctionComponent<{
         }
       }
       //filter unique and sort
-      setInProgressInvstgUuids(_.uniq(stms));
+      setInProgressLevel3Uuids(_.uniq(stms));
     }
   }, [props.stmUuidRefsInProgress]);
 
-  //get all completed stm investigations uuids
+  //get all completed stm level3s uuids
   useEffect(() => {
     if (props.stmUuidRefsCompleted) {
       let stms: string[] = [];
@@ -78,7 +78,7 @@ export const STM_Coverage: FunctionComponent<{
         }
       }
       //filter unique and sort
-      setCompletedInvstgUuids(_.uniq(stms));
+      setCompletedLevel3Uuids(_.uniq(stms));
     }
   }, [props.stmUuidRefsCompleted]);
 
@@ -86,64 +86,62 @@ export const STM_Coverage: FunctionComponent<{
   function buildSTMTooltip(stmUuid: string, stmType: string, full: boolean) {
     let toolTip: JSX.Element;
 
-    if (stmType === "objective") {
-      const objective = allSTMObjectives.find((eachObj) => eachObj.uuid === stmUuid);
+    if (stmType === "level1") {
+      const level1 = allSTMLevel1.find((eachObj) => eachObj.uuid === stmUuid);
       toolTip = (
         <div key={"tooltip_" + stmUuid}>
-          <b>{"Objective " + objective.numbering}</b> - {objective.name}
+          <b>{"Goal " + level1.numbering}</b> - {level1.name}
         </div>
       );
-    } else if (stmType === "goal") {
-      const goal = allSTMGoals.find((eachGoal) => eachGoal.uuid === stmUuid);
-      const objective = allSTMObjectives.find((eachObj) => eachObj.uuid === goal.objectiveUuid);
+    } else if (stmType === "level2") {
+      const level2 = allSTMLevel2.find((eachLevel2) => eachLevel2.uuid === stmUuid);
+      const level1 = allSTMLevel1.find((eachLevel1) => eachLevel1.uuid === level2.level1Uuid);
       if (full) {
         toolTip = (
-          <div key={"tooltip_" + goal.uuid}>
-            <b>Objective {objective.numbering}</b> - {objective.name}
+          <div key={"tooltip_" + level2.uuid}>
+            <b>Objective {level1.numbering}</b> - {level1.name}
             <br />
             <b>
-              Goal {objective.numbering}
-              {goal.numbering}
+              Objective {level1.numbering}
+              {level2.numbering}
             </b>
-            - {goal.name}
+            - {level2.name}
           </div>
         );
       } else {
         toolTip = (
           <div key={"tooltip_" + stmUuid}>
-            <b>{"Goal " + objective.numbering + goal.numbering}</b> - {goal.name}
+            <b>{"Objective " + level1.numbering + level2.numbering}</b> - {level2.name}
           </div>
         );
       }
-    } else if (stmType === "investigation") {
-      const invstg = allSTMInvstgs.find((eachInvstg) => eachInvstg.uuid === stmUuid);
-      const goal = allSTMGoals.find((eachGoal) => eachGoal.uuid === invstg.goalUuid);
-      const objective = allSTMObjectives.find((eachObj) => eachObj.uuid === goal.objectiveUuid);
+    } else if (stmType === "level3") {
+      const level3 = allSTMLevel3.find((eachLevel3) => eachLevel3.uuid === stmUuid);
+      const level2 = allSTMLevel2.find((eachLevel2) => eachLevel2.uuid === level3.level2Uuid);
+      const level1 = allSTMLevel1.find((eachLevel1) => eachLevel1.uuid === level2.level1Uuid);
       if (full) {
         toolTip = (
-          <div key={"tooltip_" + goal.uuid}>
-            <b>Objective {objective.numbering}</b> - {objective.name}
+          <div key={"tooltip_" + level2.uuid}>
+            <b>Goal {level1.numbering}</b> - {level1.name}
             <br />
             <b>
-              Goal {objective.numbering}
-              {goal.numbering}
+              Objective {level1.numbering}
+              {level2.numbering}
             </b>
-            - {goal.name}
+            - {level2.name}
             <br />
             <b>
-              Investigation {objective.numbering}
-              {goal.numbering}-{invstg.numbering}
+              Investigation {level1.numbering}
+              {level2.numbering}-{level3.numbering}
             </b>
-            - {invstg.name}
+            - {level3.name}
           </div>
         );
       } else {
         toolTip = (
           <div key={"tooltip_" + stmUuid}>
-            <b>
-              {"Investigation " + objective.numbering + goal.numbering + "-" + invstg.numbering}
-            </b>{" "}
-            - {invstg.name}
+            <b>{"Investigation " + level1.numbering + level2.numbering + "-" + level3.numbering}</b>{" "}
+            - {level3.name}
           </div>
         );
       }
@@ -153,8 +151,8 @@ export const STM_Coverage: FunctionComponent<{
   }
 
   function handleHover(uuid: string) {
-    if (!props.onInvstgHover) return;
-    props.onInvstgHover(uuid);
+    if (!props.onLevel3Hover) return;
+    props.onLevel3Hover(uuid);
   }
 
   return (
@@ -164,81 +162,81 @@ export const STM_Coverage: FunctionComponent<{
           props.horizontal ? stmStyles.stmHorizontal_mini : stmStyles.stmVertical_mini
         }`}
       >
-        {invstgs &&
-          allSTMObjectives.map((objective) => {
+        {level3s &&
+          allSTMLevel1.map((level1) => {
             const tooltipString = ReactDOMServer.renderToStaticMarkup(
-              buildSTMTooltip(objective.uuid, "objective", true)
+              buildSTMTooltip(level1.uuid, "level1", true)
             );
             return (
               <div
-                key={objective.uuid}
-                className={`${stmStyles.objective_mini} ${
+                key={level1.uuid}
+                className={`${stmStyles.level1_mini} ${
                   props.horizontal ? stmStyles.flexRow : stmStyles.flexColumn
                 }`}
               >
                 <div
                   className={`${
                     props.horizontal
-                      ? stmStyles.objectiveNumberingCol_mini
-                      : stmStyles.objectiveNumberingRow_mini
+                      ? stmStyles.level1NumberingCol_mini
+                      : stmStyles.level1NumberingRow_mini
                   }`}
                   data-tooltip-id="aegis-tooltip"
                   data-tooltip-html={tooltipString}
                 >
-                  {objective.numbering}
+                  {level1.numbering}
                 </div>
                 <div
                   className={`${stmStyles.goalsContainer_mini} ${
                     props.horizontal ? stmStyles.flexRow : stmStyles.flexColumn
                   }`}
                 >
-                  {allSTMGoals
-                    .filter((goal) => goal.objectiveUuid === objective.uuid)
+                  {allSTMLevel2
+                    .filter((goal) => goal.level1Uuid === level1.uuid)
                     .map((goal) => {
                       return (
                         <div
                           key={goal.uuid}
-                          className={`${stmStyles.invstgsContainer} ${
+                          className={`${stmStyles.level3sContainer} ${
                             props.horizontal ? stmStyles.flexRow : stmStyles.flexColumn
                           }`}
                         >
-                          {allSTMInvstgs
-                            .filter((invstg) => invstg.goalUuid === goal.uuid)
-                            .map((invstg, index, array) => {
+                          {allSTMLevel3
+                            .filter((level3) => level3.level2Uuid === goal.uuid)
+                            .map((level3, index, array) => {
                               const tooltipString = ReactDOMServer.renderToStaticMarkup(
-                                buildSTMTooltip(invstg.uuid, "investigation", true)
+                                buildSTMTooltip(level3.uuid, "level3", true)
                               );
                               return (
-                                <div key={invstg.uuid}>
+                                <div key={level3.uuid}>
                                   <div
                                     className={`${
                                       props.horizontal
-                                        ? stmStyles.invstgNumberingRow_mini
-                                        : stmStyles.invstgNumberingCol_mini
+                                        ? stmStyles.level3NumberingRow_mini
+                                        : stmStyles.level3NumberingCol_mini
                                     } ${
                                       index === 0 &&
                                       (props.horizontal
-                                        ? stmStyles.invstgNumberingRow_miniStart
-                                        : stmStyles.invstgNumberingCol_miniStart)
+                                        ? stmStyles.level3NumberingRow_miniStart
+                                        : stmStyles.level3NumberingCol_miniStart)
                                     } ${
                                       index === array.length - 1 &&
                                       (props.horizontal
-                                        ? stmStyles.investgNumberingRow_miniEnd
-                                        : stmStyles.investgNumberingCol_miniEnd)
-                                    } ${invstgs?.includes(invstg) && stmStyles.highlight}
+                                        ? stmStyles.level3NumberingRow_miniEnd
+                                        : stmStyles.level3NumberingCol_miniEnd)
+                                    } ${level3s?.includes(level3) && stmStyles.highlight}
                                     ${
-                                      completedInvstgUuids?.includes(invstg.uuid) &&
+                                      completedLevel3Uuids?.includes(level3.uuid) &&
                                       stmStyles.rexCompleted
                                     }
                                     ${
-                                      inProgressInvstgUuids?.includes(invstg.uuid) &&
-                                      !completedInvstgUuids?.includes(invstg.uuid) &&
+                                      inProgressLevel3Uuids?.includes(level3.uuid) &&
+                                      !completedLevel3Uuids?.includes(level3.uuid) &&
                                       stmStyles.rexInProgress
                                     }`}
                                     data-tooltip-id="aegis-tooltip"
                                     data-tooltip-html={tooltipString}
                                     onMouseOver={() => {
-                                      handleHover(invstg.uuid);
+                                      handleHover(level3.uuid);
                                     }}
                                     onMouseOut={() => {
                                       handleHover(null);

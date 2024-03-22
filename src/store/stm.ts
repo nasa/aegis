@@ -1,9 +1,9 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 export const initialState: STMState = {
-  objectives: [],
-  goals: [],
-  investigations: [],
+  level1s: [],
+  level2s: [],
+  level3s: [],
   loadingStatus: "unloaded",
 };
 
@@ -12,16 +12,16 @@ export const stmSlice = createSlice({
   initialState,
   reducers: {
     /* only called for populating store  */
-    setObjectives: (state, action: { payload: STMObjective[] }) => {
-      state.objectives = action.payload;
+    setLevel1s: (state, action: { payload: STMLevel1[] }) => {
+      state.level1s = action.payload;
     },
     /* only called for populating store  */
-    setGoals: (state, action: { payload: STMGoal[] }) => {
-      state.goals = action.payload;
+    setLevel2s: (state, action: { payload: STMLevel2[] }) => {
+      state.level2s = action.payload;
     },
     /* only called for populating store  */
-    setInvestigations: (state, action: { payload: STMInvestigation[] }) => {
-      state.investigations = action.payload;
+    setLevel3s: (state, action: { payload: STMLevel3[] }) => {
+      state.level3s = action.payload;
     },
     setStmLoadingStatus: (state, action: { payload: LoadingStatus }) => {
       state.loadingStatus = action.payload;
@@ -33,5 +33,5 @@ export const stmSlice = createSlice({
   },
 });
 
-export const { setObjectives, setGoals, setInvestigations, setStmLoadingStatus, obliterateState } =
+export const { setLevel1s, setLevel2s, setLevel3s, setStmLoadingStatus, obliterateState } =
   stmSlice.actions;

@@ -28,7 +28,7 @@
   flex-direction: column;
 }
 
-.objective_mini {
+.level1_mini {
   display: flex;
   border-radius: var(--radius);
   padding: 3px;
@@ -36,12 +36,12 @@
   row-gap: 3px;
   align-items: center;
 }
-.objectiveNumberingRow_mini {
+.level1NumberingRow_mini {
   color: white;
   font-size: 0.7rem;
   font-family: sans-serif;
 }
-.objectiveNumberingCol_mini {
+.level1NumberingCol_mini {
   color: white;
   font-size: 0.7rem;
   font-family: sans-serif;
@@ -54,38 +54,38 @@
   align-items: center;
 }
 
-.invstgsContainer {
+.level3sContainer {
   display: flex;
   column-gap: 1px;
   row-gap: 1px;
 }
-.invstgNumberingCol_mini {
+.level3NumberingCol_mini {
   background-color: var(--grey1);
   color: black;
   text-align: center;
   font-size: 0.4rem;
   width: 0.5rem;
 }
-.invstgNumberingCol_miniStart {
+.level3NumberingCol_miniStart {
   border-top-left-radius: 2px;
   border-top-right-radius: 2px;
 }
-.investgNumberingCol_miniEnd {
+.level3NumberingCol_miniEnd {
   border-bottom-left-radius: 2px;
   border-bottom-right-radius: 2px;
 }
-.invstgNumberingRow_mini {
+.level3NumberingRow_mini {
   background-color: var(--grey1);
   color: black;
   text-align: center;
   font-size: 0.5rem;
   width: 0.4rem;
 }
-.invstgNumberingRow_miniStart {
+.level3NumberingRow_miniStart {
   border-top-left-radius: 2px;
   border-bottom-left-radius: 2px;
 }
-.investgNumberingRow_miniEnd {
+.level3NumberingRow_miniEnd {
   border-top-right-radius: 2px;
   border-bottom-right-radius: 2px;
 }

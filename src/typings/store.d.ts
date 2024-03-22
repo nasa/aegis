@@ -92,9 +92,9 @@ interface InterfaceState {
 }
 
 interface STMState {
-  objectives: STMObjective[];
-  goals: STMGoal[];
-  investigations: STMInvestigation[];
+  level1s: STMLevel1[];
+  level2s: STMLevel2[];
+  level3s: STMLevel3[];
   loadingStatus: LoadingStatus;
 }
 

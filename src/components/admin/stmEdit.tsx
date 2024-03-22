@@ -7,49 +7,49 @@ import { roundDateToSecond } from "utils/formatting";
 interface STMProps {
   reloadSTMfromDB: (missionId: number) => void;
   missionId: number;
-  allObjectives: STMObjective[];
-  allGoals: STMGoal[];
-  allInvestigations: STMInvestigation[];
+  allLevel1s: STMLevel1[];
+  allLevel2s: STMLevel2[];
+  allLevel3s: STMLevel3[];
 }
 
 const STMEdit: FunctionComponent<STMProps> = (props: STMProps) => {
-  const allObjectives = props.allObjectives;
+  const allLevel1s = props.allLevel1s;
 
   //track states of selected STM items in the drop downs
-  const [selectedObjUUID, setSelectedObjUUID] = useState(null);
-  const [selectedGoalUUID, setSelectedGoalUUID] = useState(null);
+  const [selectedLevel1Uuid, setSelectedLevel1Uuid] = useState(null);
+  const [selectedLevel2Uuid, setSelectedLevel2Uuid] = useState(null);
 
-  //set default objective selected uuid
+  //set default level1 selected uuid
   useEffect(() => {
-    if (!selectedObjUUID && allObjectives?.length > 0) {
-      setSelectedObjUUID(allObjectives[0].uuid);
-    } else if (!allObjectives || allObjectives.length === 0) {
-      setSelectedObjUUID(null);
+    if (!selectedLevel1Uuid && allLevel1s?.length > 0) {
+      setSelectedLevel1Uuid(allLevel1s[0].uuid);
+    } else if (!allLevel1s || allLevel1s.length === 0) {
+      setSelectedLevel1Uuid(null);
     }
-  }, [allObjectives, selectedObjUUID]);
+  }, [allLevel1s, selectedLevel1Uuid]);
 
   return (
     <>
       <div id="stmEdit_div">
         <div>
           <div className={stmStyles.div_select} />
-          <div id="div_addObjective" className={stmStyles.div_add}>
-            <NewObjectiveFields missionId={props.missionId} reloadSTM={props.reloadSTMfromDB} />
+          <div id="div_addLevel1" className={stmStyles.div_add}>
+            <NewLevel1Fields missionId={props.missionId} reloadSTM={props.reloadSTMfromDB} />
           </div>
         </div>
-        {allObjectives?.length > 0 && selectedObjUUID && (
+        {allLevel1s?.length > 0 && selectedLevel1Uuid && (
           <div>
-            <div id="div_selectObjective" className={stmStyles.div_select}>
-              <ObjectiveSelect
-                objectives={props.allObjectives}
-                selectedObjUUID={selectedObjUUID}
-                setSelectedObjUUID={setSelectedObjUUID}
-                setSelectedGoalUUID={setSelectedGoalUUID}
+            <div id="div_selectLevel1s" className={stmStyles.div_select}>
+              <Level1Select
+                level1s={props.allLevel1s}
+                selectedLevel1Uuid={selectedLevel1Uuid}
+                setSelectedLevel1Uuid={setSelectedLevel1Uuid}
+                setSelectedLevel2UUID={setSelectedLevel2Uuid}
               />
             </div>
-            <div id="div_addGoal" className={stmStyles.div_add}>
-              <NewGoalFields
-                objectiveUUID={selectedObjUUID}
+            <div id="div_addLevel2" className={stmStyles.div_add}>
+              <NewLevel2Fields
+                level1Uuid={selectedLevel1Uuid}
                 missionId={props.missionId}
                 reloadSTM={props.reloadSTMfromDB}
               />
@@ -57,17 +57,17 @@ const STMEdit: FunctionComponent<STMProps> = (props: STMProps) => {
           </div>
         )}
         <div>
-          <div id="div_selectGoal" className={stmStyles.div_select}>
-            <GoalSelect
-              allGoals={props.allGoals}
-              objectiveUUID={selectedObjUUID}
-              selectedGoalUUID={selectedGoalUUID}
-              setSelectedGoalUUID={setSelectedGoalUUID}
+          <div id="div_selectLevel2" className={stmStyles.div_select}>
+            <Level2Select
+              allLevel2s={props.allLevel2s}
+              level1Uuid={selectedLevel1Uuid}
+              selectedLevel2Uuid={selectedLevel2Uuid}
+              setSelectedLevel2Uuid={setSelectedLevel2Uuid}
             />
           </div>
-          <div id="div_addInvestigation" className={stmStyles.div_add}>
-            <NewInvstgFields
-              goalUUID={selectedGoalUUID}
+          <div id="div_addLevel3" className={stmStyles.div_add}>
+            <NewLevel3Fields
+              level2Uuid={selectedLevel2Uuid}
               missionId={props.missionId}
               reloadSTM={props.reloadSTMfromDB}
             />
@@ -78,9 +78,9 @@ const STMEdit: FunctionComponent<STMProps> = (props: STMProps) => {
       <h3>Import/Export STM</h3>
       <div className={stmStyles.importExport}>
         <ExportSTM
-          allObjectives={props.allObjectives}
-          allGoals={props.allGoals}
-          allInvestigations={props.allInvestigations}
+          allLevel1s={props.allLevel1s}
+          allLevel2s={props.allLevel2s}
+          allLevel3s={props.allLevel3s}
         />
         <ImportSTM missionId={props.missionId} reloadSTMfromDB={props.reloadSTMfromDB} />
       </div>
@@ -94,8 +94,8 @@ const destructiveImportSTM = async (stmJson: string, missionId: number) => {
   deleteSTMs(missionId, "ALL");
 
   // add all STM items from the imported JSON to the store
-  stm.objectives?.forEach(async (obj: STMObjective) => {
-    const newObjective: STMObjective = {
+  stm.level1s?.forEach(async (obj: STMLevel1) => {
+    const newLevel1: STMLevel1 = {
       uuid: uuidv4(),
       name: obj.name,
       numbering: obj.numbering,
@@ -103,75 +103,73 @@ const destructiveImportSTM = async (stmJson: string, missionId: number) => {
       createdAt: new Date(Date.now()).toISOString(),
       updatedAt: new Date(Date.now()).toISOString(),
     };
-    await upsertSTMs(missionId, [newObjective], "Objective");
+    await upsertSTMs(missionId, [newLevel1], "Level1");
 
-    //get nested goals
-    const childGoals = stm.goals.filter((g: STMGoal) => g.objectiveUuid === obj.uuid);
-    childGoals.forEach(async (goal: STMGoal) => {
-      const newGoal: STMGoal = {
+    //get nested level2s
+    const childLevel2s = stm.level2s.filter((g: STMLevel2) => g.level1Uuid === obj.uuid);
+    childLevel2s.forEach(async (level2: STMLevel2) => {
+      const newLevel2: STMLevel2 = {
         uuid: uuidv4(),
-        name: goal.name,
-        numbering: goal.numbering,
-        objectiveUuid: newObjective.uuid,
+        name: level2.name,
+        numbering: level2.numbering,
+        level1Uuid: newLevel1.uuid,
         createdAt: new Date(Date.now()).toISOString(),
         updatedAt: new Date(Date.now()).toISOString(),
       };
-      await upsertSTMs(missionId, [newGoal], "Goal");
+      await upsertSTMs(missionId, [newLevel2], "Level2");
 
-      //get nested invstg
-      const childInvstg = stm.investigations.filter(
-        (i: STMInvestigation) => i.goalUuid === goal.uuid
-      );
-      childInvstg.forEach(async (invstg: STMInvestigation) => {
-        const newInvstg: STMInvestigation = {
+      //get nested level3s
+      const childLevel3 = stm.level3s.filter((i: STMLevel3) => i.level2Uuid === level2.uuid);
+      childLevel3.forEach(async (level3s: STMLevel3) => {
+        const newLevel3: STMLevel3 = {
           uuid: uuidv4(),
-          name: invstg.name,
-          numbering: invstg.numbering,
-          goalUuid: newGoal.uuid,
+          name: level3s.name,
+          numbering: level3s.numbering,
+          level2Uuid: newLevel2.uuid,
           createdAt: new Date(Date.now()).toISOString(),
           updatedAt: new Date(Date.now()).toISOString(),
         };
-        await upsertSTMs(missionId, [newInvstg], "Investigation");
+        await upsertSTMs(missionId, [newLevel3], "Level3");
       });
     });
   });
 };
 
 const ExportSTM = (props: {
-  allObjectives: STMObjective[];
-  allGoals: STMGoal[];
-  allInvestigations: STMInvestigation[];
+  allLevel1s: STMLevel1[];
+  allLevel2s: STMLevel2[];
+  allLevel3s: STMLevel3[];
 }) => {
   // strip out missionId, createdAt, and updatedAt from all STM items
   // keep uuid in order to maintain relationship
-  const objectives = props.allObjectives.map((obj: STMObjective) => {
+  const level1s = props.allLevel1s.map((level1: STMLevel1) => {
     return {
-      uuid: obj.uuid,
-      name: obj.name,
-      numbering: obj.numbering,
+      uuid: level1.uuid,
+      name: level1.name,
+      numbering: level1.numbering,
     };
   });
-  const goals = props.allGoals.map((goal: STMGoal) => {
+  const level2s = props.allLevel2s.map((level2: STMLevel2) => {
     return {
-      uuid: goal.uuid,
-      name: goal.name,
-      numbering: goal.numbering,
-      objectiveUuid: goal.objectiveUuid,
+      uuid: level2.uuid,
+      name: level2.name,
+      numbering: level2.numbering,
+      level1Uuid: level2.level1Uuid,
     };
   });
-  const investigations = props.allInvestigations.map((invstg: STMInvestigation) => {
+  const level3s = props.allLevel3s.map((level3: STMLevel3) => {
     return {
-      uuid: invstg.uuid,
-      name: invstg.name,
-      numbering: invstg.numbering,
-      goalUuid: invstg.goalUuid,
+      uuid: level3.uuid,
+      name: level3.name,
+      numbering: level3.numbering,
+      level2Uuid: level3.level2Uuid,
     };
   });
 
   const stm = {
-    objectives: objectives,
-    goals: goals,
-    investigations: investigations,
+    level1s,
+    level2s,
+    level3s,
   };
 
   const exportSTM = () => {
@@ -229,29 +227,29 @@ const ImportSTM = (props: { missionId: number; reloadSTMfromDB: Function }) => {
 /** ADD/EDIT STM COMPONENTS **/
 /*****************************/
 
-//Objective select component.
-const ObjectiveSelect = (props: {
-  objectives: STMObjective[];
-  selectedObjUUID: string;
-  setSelectedObjUUID: (uuid: string) => void;
-  setSelectedGoalUUID: (uuid: string) => void;
+//Level1 select component.
+const Level1Select = (props: {
+  level1s: STMLevel1[];
+  selectedLevel1Uuid: string;
+  setSelectedLevel1Uuid: (uuid: string) => void;
+  setSelectedLevel2UUID: (uuid: string) => void;
 }) => {
   return (
     <>
       <label htmlFor="objSelect" className={stmStyles.selectLabel}>
-        Select Objective
+        Select Level1
       </label>
       <select
         id="objSelect"
         onChange={(e) => {
-          props.setSelectedObjUUID(e.target.value);
-          //reset selected goal when objective changes
-          props.setSelectedGoalUUID(null);
+          props.setSelectedLevel1Uuid(e.target.value);
+          //reset selected level2 when level1 changes
+          props.setSelectedLevel2UUID(null);
         }}
-        value={props.selectedObjUUID}
+        value={props.selectedLevel1Uuid}
         className={stmStyles.selectField}
       >
-        {props.objectives.map((obj: STMObjective) => {
+        {props.level1s.map((obj: STMLevel1) => {
           return (
             <option key={obj.uuid} value={obj.uuid}>
               {`${obj.numbering}: ${obj.name}`}
@@ -263,44 +261,44 @@ const ObjectiveSelect = (props: {
   );
 };
 
-//Goal select component
-const GoalSelect = (props: {
-  allGoals: STMGoal[];
-  objectiveUUID: string;
-  selectedGoalUUID: string;
-  setSelectedGoalUUID: (uuid: string) => void;
+//Level2 select component
+const Level2Select = (props: {
+  allLevel2s: STMLevel2[];
+  level1Uuid: string;
+  selectedLevel2Uuid: string;
+  setSelectedLevel2Uuid: (uuid: string) => void;
 }) => {
-  const [filteredGoals, setFilteredGoals] = useState<STMGoal[]>([]);
+  const [filteredLevel2s, setFilteredLevel2s] = useState<STMLevel2[]>([]);
 
-  //filter down goals
+  //filter down level2s
   useEffect(() => {
-    const goals = props.allGoals.filter((goal) => {
-      return goal.objectiveUuid === props.objectiveUUID;
+    const level2s = props.allLevel2s.filter((level2) => {
+      return level2.level1Uuid === props.level1Uuid;
     });
-    setFilteredGoals(goals);
-    if (!props.selectedGoalUUID) {
-      if (goals.length > 0) {
-        props.setSelectedGoalUUID(goals[0].uuid);
+    setFilteredLevel2s(level2s);
+    if (!props.selectedLevel2Uuid) {
+      if (level2s.length > 0) {
+        props.setSelectedLevel2Uuid(level2s[0].uuid);
       } else {
-        props.setSelectedGoalUUID(null);
+        props.setSelectedLevel2Uuid(null);
       }
     }
   }, [props]);
 
   return (
-    filteredGoals?.length > 0 &&
-    props.selectedGoalUUID && (
+    filteredLevel2s?.length > 0 &&
+    props.selectedLevel2Uuid && (
       <>
-        <label htmlFor="goalSelect" className={stmStyles.selectLabel}>
-          Select Goal
+        <label htmlFor="level2Select" className={stmStyles.selectLabel}>
+          Select Level2
         </label>
         <select
-          id="goalSelect"
-          onChange={(e) => props.setSelectedGoalUUID(e.target.value)}
-          value={props.selectedGoalUUID}
+          id="level2Select"
+          onChange={(e) => props.setSelectedLevel2Uuid(e.target.value)}
+          value={props.selectedLevel2Uuid}
           className={stmStyles.selectField}
         >
-          {filteredGoals.map((obj: STMGoal) => {
+          {filteredLevel2s.map((obj: STMLevel2) => {
             return (
               <option key={obj.uuid} value={obj.uuid}>
                 {`${obj.numbering}: ${obj.name}`}
@@ -313,25 +311,25 @@ const GoalSelect = (props: {
   );
 };
 
-//Add new objective component
-const NewObjectiveFields = (props: { missionId: number; reloadSTM: (id: number) => void }) => {
-  const [newObjective, setNewObjective] = useState<STMObjective>({
+//Add new level1 component
+const NewLevel1Fields = (props: { missionId: number; reloadSTM: (id: number) => void }) => {
+  const [newLevel1, setNewLevel1] = useState<STMLevel1>({
     uuid: null,
     name: "",
     numbering: "",
     missionId: null,
   });
 
-  //add new objective
-  async function addNewObjective() {
-    const upsertRecord: STMObjective = {
-      ...newObjective,
+  //add new level1
+  async function addNewLevel1() {
+    const upsertRecord: STMLevel1 = {
+      ...newLevel1,
       missionId: props.missionId,
       createdAt: roundDateToSecond(new Date()).toISOString(),
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
-    await upsertSTMs(props.missionId, [upsertRecord], "Objective");
-    setNewObjective({
+    await upsertSTMs(props.missionId, [upsertRecord], "Level1");
+    setNewLevel1({
       uuid: null,
       name: "",
       numbering: "",
@@ -347,9 +345,9 @@ const NewObjectiveFields = (props: { missionId: number; reloadSTM: (id: number) 
         id="newObjNumbering"
         type="text"
         onChange={(e) => {
-          setNewObjective({ ...newObjective, numbering: e.target.value });
+          setNewLevel1({ ...newLevel1, numbering: e.target.value });
         }}
-        value={newObjective?.numbering}
+        value={newLevel1?.numbering}
         className={stmStyles.numberingField}
       />
       &nbsp;
@@ -358,156 +356,156 @@ const NewObjectiveFields = (props: { missionId: number; reloadSTM: (id: number) 
         id="newObjName"
         type="text"
         onChange={(e) => {
-          setNewObjective({ ...newObjective, name: e.target.value });
+          setNewLevel1({ ...newLevel1, name: e.target.value });
         }}
-        value={newObjective?.name}
+        value={newLevel1?.name}
         className={stmStyles.nameField}
       />
       &nbsp;
       <button
         type="button"
         onClick={() => {
-          addNewObjective();
+          addNewLevel1();
         }}
       >
-        Add New Objective
+        Add New Level1
       </button>
     </>
   );
 };
 
 //Add new goal component
-const NewGoalFields = (props: {
-  objectiveUUID: string;
+const NewLevel2Fields = (props: {
+  level1Uuid: string;
   missionId: number;
   reloadSTM: (id: number) => void;
 }) => {
-  const [newGoal, setNewGoal] = useState<STMGoal>({
+  const [newLevel2, setNewLevel2] = useState<STMLevel2>({
     uuid: null,
     name: "",
     numbering: "",
-    objectiveUuid: "",
+    level1Uuid: "",
   });
 
   //add new goal
-  async function addNewGoal() {
-    const upsertRecord: STMGoal = {
-      ...newGoal,
-      objectiveUuid: props.objectiveUUID,
+  async function addNewLevel2() {
+    const upsertRecord: STMLevel2 = {
+      ...newLevel2,
+      level1Uuid: props.level1Uuid,
       createdAt: roundDateToSecond(new Date()).toISOString(),
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
-    await upsertSTMs(props.missionId, [upsertRecord], "Goal");
-    setNewGoal({
+    await upsertSTMs(props.missionId, [upsertRecord], "Level2");
+    setNewLevel2({
       uuid: null,
       name: "",
       numbering: "",
-      objectiveUuid: "",
+      level1Uuid: "",
     }); //reset to blank new object with new uuid
     props.reloadSTM(props.missionId);
   }
 
   return (
-    props.objectiveUUID && (
+    props.level1Uuid && (
       <>
-        <label htmlFor="newGoalNumbering">Lettering</label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <label htmlFor="newLevel2Numbering">Lettering</label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <input
-          id="newGoalNumbering"
+          id="newLevel2Numbering"
           type="text"
           onChange={(e) => {
-            setNewGoal({ ...newGoal, numbering: e.target.value });
+            setNewLevel2({ ...newLevel2, numbering: e.target.value });
           }}
-          value={newGoal.numbering}
+          value={newLevel2.numbering}
           className={stmStyles.numberingField}
         />
         &nbsp;
-        <label htmlFor="newGoalName">Name</label>&nbsp;
+        <label htmlFor="newLevel2Name">Name</label>&nbsp;
         <input
-          id="newGoalName"
+          id="newLevel2Name"
           type="text"
           onChange={(e) => {
-            setNewGoal({ ...newGoal, name: e.target.value });
+            setNewLevel2({ ...newLevel2, name: e.target.value });
           }}
-          value={newGoal.name}
+          value={newLevel2.name}
           className={stmStyles.nameField}
         />
         &nbsp;
         <button
           type="button"
           onClick={() => {
-            addNewGoal();
+            addNewLevel2();
           }}
         >
-          Add New Goal to Objective
+          Add New Level2 to Level1
         </button>
       </>
     )
   );
 };
 
-//Add new investigation component
-const NewInvstgFields = (props: {
-  goalUUID: string;
+//Add new level3 component
+const NewLevel3Fields = (props: {
+  level2Uuid: string;
   missionId: number;
   reloadSTM: (id: number) => void;
 }) => {
-  const [newInvstg, setNewInvstg] = useState<STMInvestigation>({
+  const [newLevel3, setNewLevel3] = useState<STMLevel3>({
     uuid: null,
     name: "",
     numbering: "",
-    goalUuid: "",
+    level2Uuid: "",
   });
 
-  //add new investigation
-  async function addNewInvstg() {
-    const upsertRecord: STMInvestigation = {
-      ...newInvstg,
-      goalUuid: props.goalUUID,
+  //add new level3
+  async function addNewLevel3() {
+    const upsertRecord: STMLevel3 = {
+      ...newLevel3,
+      level2Uuid: props.level2Uuid,
       createdAt: roundDateToSecond(new Date()).toISOString(),
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
-    await upsertSTMs(props.missionId, [upsertRecord], "Investigation");
-    setNewInvstg({
+    await upsertSTMs(props.missionId, [upsertRecord], "Level3");
+    setNewLevel3({
       uuid: null,
       numbering: "",
       name: "",
-      goalUuid: "",
+      level2Uuid: "",
     });
     props.reloadSTM(props.missionId);
   }
 
   return (
-    props.goalUUID && (
+    props.level2Uuid && (
       <>
-        <label htmlFor="newInvstgNumbering">Numbering</label>&nbsp;
+        <label htmlFor="newLevel3Numbering">Numbering</label>&nbsp;
         <input
-          id="newInvstgNumbering"
+          id="newLevel3Numbering"
           type="text"
           onChange={(e) => {
-            setNewInvstg({ ...newInvstg, numbering: e.target.value });
+            setNewLevel3({ ...newLevel3, numbering: e.target.value });
           }}
-          value={newInvstg?.numbering}
+          value={newLevel3?.numbering}
           className={stmStyles.numberingField}
         />
         &nbsp;
-        <label htmlFor="newInvstgName">Name</label>&nbsp;
+        <label htmlFor="newLevel3Name">Name</label>&nbsp;
         <input
-          id="newInvstgName"
+          id="newLevel3Name"
           type="text"
           onChange={(e) => {
-            setNewInvstg({ ...newInvstg, name: e.target.value });
+            setNewLevel3({ ...newLevel3, name: e.target.value });
           }}
-          value={newInvstg?.name}
+          value={newLevel3?.name}
           className={stmStyles.nameField}
         />
         &nbsp;
         <button
           type="button"
           onClick={() => {
-            addNewInvstg();
+            addNewLevel3();
           }}
         >
-          Add New Investigation to Goal
+          Add New Level3 to Level2
         </button>
       </>
     )

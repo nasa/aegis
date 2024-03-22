@@ -1,53 +1,53 @@
 /****** GET ******/
-export async function getObjectives(urlParams?: {
+export async function getSTMLevel1s(urlParams?: {
   missionId: number;
-  objectiveUUID?: string;
-}): Promise<WrappedResponse<STMObjective[]>> {
-  let params = `stmType=o&missionId=${urlParams.missionId}`;
+  level1Uuid?: string;
+}): Promise<WrappedResponse<STMLevel1[]>> {
+  let params = `stmType=l1&missionId=${urlParams.missionId}`;
 
-  if (urlParams?.objectiveUUID) params += `&o=${urlParams.objectiveUUID}`;
+  if (urlParams?.level1Uuid) params += `&l1=${urlParams.level1Uuid}`;
   const res = await fetch(`/api/v1/stm?${params}`);
-  const response: WrappedResponse<STMObjective[]> = await res.json();
+  const response: WrappedResponse<STMLevel1[]> = await res.json();
   return response;
 }
 
-export async function getGoals(urlParams?: {
+export async function getStmLevel2s(urlParams?: {
   missionId: number;
-  objectiveUUID?: string;
-  goalUUID?: string;
-}): Promise<WrappedResponse<STMGoal[]>> {
-  let params = `stmType=g&missionId=${urlParams.missionId}`;
-  if (urlParams?.objectiveUUID) params += `&o=${urlParams.objectiveUUID}`;
-  if (urlParams?.goalUUID) params += `&g=${urlParams.goalUUID}`;
+  level1Uuid?: string;
+  level2Uuid?: string;
+}): Promise<WrappedResponse<STMLevel2[]>> {
+  let params = `stmType=l2&missionId=${urlParams.missionId}`;
+  if (urlParams?.level1Uuid) params += `&l1=${urlParams.level1Uuid}`;
+  if (urlParams?.level2Uuid) params += `&l2=${urlParams.level2Uuid}`;
 
   const res = await fetch(`/api/v1/stm?${params}`);
-  const response: WrappedResponse<STMGoal[]> = await res.json();
+  const response: WrappedResponse<STMLevel2[]> = await res.json();
   return response;
 }
 
-export async function getInvestigations(urlParams?: {
+export async function getSTMLevel3s(urlParams?: {
   missionId: number;
-  objectiveUUID?: string;
-  goalUUID?: string;
-  investigationUUID?: string;
-}): Promise<WrappedResponse<STMInvestigation[]>> {
-  let params = `stmType=i&missionId=${urlParams.missionId}`;
-  if (urlParams?.objectiveUUID) params += `&o=${urlParams.objectiveUUID}`;
-  if (urlParams?.goalUUID) params += `&g=${urlParams.goalUUID}`;
-  if (urlParams?.investigationUUID) params += `&i=${urlParams.investigationUUID}`;
+  level1Uuid?: string;
+  level2Uuid?: string;
+  level3Uuid?: string;
+}): Promise<WrappedResponse<STMLevel3[]>> {
+  let params = `stmType=l3&missionId=${urlParams.missionId}`;
+  if (urlParams?.level1Uuid) params += `&l1=${urlParams.level1Uuid}`;
+  if (urlParams?.level2Uuid) params += `&l2=${urlParams.level2Uuid}`;
+  if (urlParams?.level3Uuid) params += `&l3=${urlParams.level3Uuid}`;
 
   const res = await fetch(`/api/v1/stm?${params}`);
-  const response: WrappedResponse<STMInvestigation[]> = await res.json();
+  const response: WrappedResponse<STMLevel3[]> = await res.json();
   return response;
 }
 
 /****** UPSERT ******/
 export async function upsertSTMs(
   mission: number,
-  stmObjects: STMObjective[] | STMGoal[] | STMInvestigation[],
-  stmType: "Objective" | "Goal" | "Investigation"
-): Promise<WrappedResponse<STMObjective[] | STMGoal[] | STMInvestigation[]>> {
-  const stmParam: string = stmType.charAt(0).toLowerCase();
+  stmObjects: STMLevel1[] | STMLevel2[] | STMLevel3[],
+  stmType: "Level1" | "Level2" | "Level3"
+): Promise<WrappedResponse<STMLevel1[] | STMLevel2[] | STMLevel3[]>> {
+  const stmParam: string = stmType.toLowerCase();
 
   const res = await fetch(`/api/v1/stm?stmType=${stmParam}&missionId=${mission}`, {
     method: "POST",
@@ -68,10 +68,10 @@ export async function upsertSTMs(
 /****** DELETE ******/
 export async function deleteSTMs(
   missionId: number,
-  stmType: "Objective" | "Goal" | "Investigation" | "ALL",
+  stmType: "Level1" | "Level2" | "Level3" | "ALL",
   uuids: string[] = []
 ): Promise<WrappedResponse<null>> {
-  const stmParam: string = stmType.charAt(0).toLowerCase();
+  const stmParam: string = stmType.toLowerCase();
   const res = await fetch(`/api/v1/stm?stmType=${stmParam}&missionId=${missionId}`, {
     method: "DELETE",
     headers: {

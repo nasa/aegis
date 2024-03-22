@@ -58,10 +58,10 @@ const Actions: FunctionComponent<{
 
   //set state of highlighted actions when the STM is hovered over
   const highlightActions = useCallback(
-    async (invstgUUID: string) => {
+    async (level3Uuid: string) => {
       if (!actionOrderUuids) return;
       const resHighlightActions = await dispatch(
-        thunkGetHighlightedActions({ actionUuids: actionOrderUuids, stmUuid: invstgUUID })
+        thunkGetHighlightedActions({ actionUuids: actionOrderUuids, stmUuid: level3Uuid })
       );
       if (resHighlightActions.payload) {
         setIsActionHighlighted(resHighlightActions.payload);
@@ -188,7 +188,7 @@ export default Actions;
 export const ActionsTopSection: FunctionComponent<{
   actionOrderUuids: string[];
   parentType: "poi" | "station" | "eva";
-  highlightActions: (invstgUUID: string) => void;
+  highlightActions: (level3Uuid: string) => void;
   actionsCalculatedFields: ActionsCalculatedFields;
 }> = ({ actionOrderUuids, parentType, highlightActions, actionsCalculatedFields }) => {
   const stmUuidRefs = useAppSelector(
@@ -246,7 +246,7 @@ export const ActionsTopSection: FunctionComponent<{
             stmUuidRefs={stmUuidRefs}
             mini={true}
             horizontal={true}
-            onInvstgHover={highlightActions}
+            onLevel3Hover={highlightActions}
             stmUuidRefsCompleted={completedStmUuidRefs}
             stmUuidRefsInProgress={inProgressStmUuidRefs}
           />
@@ -340,7 +340,7 @@ export const ActionsListHeadings: FunctionComponent<{
 export const ActionList: FunctionComponent<{
   editMode: boolean;
   actionOrderUuids: string[];
-  highlightActions: (invstgUUID: string) => void;
+  highlightActions: (level3Uuid: string) => void;
   isActionHiglighted: ActionHighlight[];
   stations: Station[];
   pois: POI[];

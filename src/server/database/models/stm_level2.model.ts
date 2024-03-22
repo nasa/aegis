@@ -7,17 +7,17 @@ import {
   Collection,
   types as MikroTypes,
 } from "@mikro-orm/core";
-import { Mission_db, STM_Goal_db } from "./_allModels";
+import { STM_Level3_db, STM_Level1_db } from "./_allModels";
 
 @Entity()
-export class STM_Objective_db implements STMObjective_db_type {
+export class STM_Level2_db implements STMLevel2_db_type {
   @PrimaryKey({ type: MikroTypes.string })
   uuid!: string;
 
-  @ManyToOne(() => Mission_db) //many objectives have one mission
-  mission!: Mission_db;
-  @OneToMany(() => STM_Goal_db, (i) => i.objective) //one objective has many goals
-  goals = new Collection<STM_Goal_db>(this);
+  @ManyToOne(() => STM_Level1_db) //many level2s have one level1
+  level1!: STM_Level1_db;
+  @OneToMany(() => STM_Level3_db, (i) => i.level2) //one level2 has many level3s
+  level3s = new Collection<STM_Level3_db>(this);
 
   @Property({ type: MikroTypes.text })
   name!: string;

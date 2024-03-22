@@ -1,16 +1,16 @@
 import { Factory } from "@mikro-orm/seeder";
-import { STM_Objective_db } from "server/database/models/_allModels";
+import { STM_Level1_db } from "server/database/models/_allModels";
 import { v4 as uuidv4 } from "uuid";
 import { EntityData } from "@mikro-orm/core";
 
-export default class STMObjectiveFactory extends Factory<STM_Objective_db> {
-  model = STM_Objective_db;
-  definition(): EntityData<STM_Objective_db> {
-    const obj: STM_Objective_db = {
+export default class STMLevel1Factory extends Factory<STM_Level1_db> {
+  model = STM_Level1_db;
+  definition(): EntityData<STM_Level1_db> {
+    const obj: STM_Level1_db = {
       uuid: uuidv4(),
       mission: null,
-      name: "Jest STM Objective-1",
-      goals: null,
+      name: "Jest STM Level1-1",
+      level2s: null,
       numbering: "1",
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -19,11 +19,11 @@ export default class STMObjectiveFactory extends Factory<STM_Objective_db> {
   }
 }
 
-export const createTestSTMObjective = (): STMObjective => {
+export const createTestSTMLevel1 = (): STMLevel1 => {
   return {
     uuid: uuidv4(),
     missionId: null,
-    name: "Jest STM Objective-1",
+    name: "Jest STM Level1-1",
     numbering: "1",
     createdAt: new Date().toISOString(),
     updatedAt: null,
