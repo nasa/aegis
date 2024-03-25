@@ -1447,7 +1447,12 @@ const MapBody: FunctionComponent = () => {
 
     let actionsToShow: Action[] = [];
     if (mapDisplayActions.show) {
-      if ((sectionSelected === "station" || sectionSelected === "evas") && selectedStation) {
+      if (
+        (sectionSelected === "station" ||
+          sectionSelected === "evas" ||
+          sectionSelected === "rex") &&
+        selectedStation
+      ) {
         const actionsInStation = actions.filter(
           (action) => action.stationUuid === selectedStation.uuid && action.enabled
         );
