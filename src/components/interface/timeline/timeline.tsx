@@ -72,7 +72,7 @@ const NavTimeline: FunctionComponent = () => {
     refEqual
   );
   const showElevation = useAppSelector((state) => state.interface.timelineShowElevation, refEqual);
-  const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, refEqual);
+  const rightPanelIsOpen = useAppSelector((state) => state.interface.rightPanelIsOpen, refEqual);
 
   const canvas: MutableRefObject<HTMLCanvasElement> = useRef(null);
   const paperDataRef: MutableRefObject<PaperData> = useRef(null);
@@ -588,7 +588,7 @@ const NavTimeline: FunctionComponent = () => {
     selectedEvaSequenceItemUuid,
     showDistanceFromLander,
     showElevation,
-    rightPanelOpen,
+    rightPanelIsOpen,
   ]);
 
   // populated the flattenedGraphData ref walkback data based on the selected station

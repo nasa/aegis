@@ -1,7 +1,6 @@
 import { generateUniqueName } from "utils/names/unique-name";
 import appCreateAsyncThunk from "./thunkUtil";
 import { v4 as uuidv4 } from "uuid";
-import { setRightPanelOpen } from "store/interface";
 import {
   upsertPreset,
   setPresetEditMode,
@@ -19,6 +18,7 @@ import { sortBy, cloneDeep } from "lodash";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { thunkSaveNewPreset } from "./crossThunk";
 import _ from "lodash";
+import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 
 export const thunkSavePreset = appCreateAsyncThunk<{
   preset: Preset;
@@ -60,7 +60,7 @@ export const thunkPresetCancel = appCreateAsyncThunk<{
   if (!presetFromDb) {
     dispatch(deletePresetByUuid(presetUuid));
     dispatch(setSelectedPresetUuid(null));
-    dispatch(setRightPanelOpen(false));
+    dispatch(thunkSetRightPanelIsOpenIfAuto(false));
     dispatch(deletePresetUIStates({ presetUuid }));
   } else {
     // if selected Preset is in the db, replace it with the one from the db (undoing any changes)
@@ -95,7 +95,7 @@ export const thunkDeletePreset = appCreateAsyncThunk<{
     dispatch(deletePresetByUuid(presetUuid));
   }
   dispatch(setPresetEditMode({ presetUuid: presetUuid, editMode: false }));
-  dispatch(setRightPanelOpen(false));
+  dispatch(thunkSetRightPanelIsOpenIfAuto(false));
   const defaultPresetUuid = getState().preset.presets.find((p) => p.missionPresetDefault)?.uuid;
   dispatch(setSelectedPresetUuid(defaultPresetUuid));
 });

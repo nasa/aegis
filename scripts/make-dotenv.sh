@@ -46,7 +46,7 @@ if [ -z "${CI+set}" ]; then # if not in CI (aka local)
     export GDAL_PORT=4200
 
     # These values are not used locally since the docker-compose is overriden by
-    #   the docker-compose.dev or docker-compose.prevew files. Those files build
+    #   the docker-compose.services or docker-compose.prevew files. Those files build
     #   the images directly from the Dockerfiles
     export DOCKER_IMAGE_NGINX=NOT_USED_LOCALLY
     export DOCKER_IMAGE_APIV1=NOT_USED_LOCALLY

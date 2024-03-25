@@ -66,7 +66,7 @@ describe("Thunk Rex Tests", () => {
     expect(store.getState().rex.rexesEditing).not.toBeNull();
     expect(store.getState().rex.selectedRexUuid).not.toBeNull();
     expect(store.getState().rex.expandedRexUuids.length).toEqual(1);
-    expect(store.getState().interface.rightPanelOpen).toEqual(true);
+    expect(store.getState().interface.rightPanelIsOpen).toEqual(true);
   });
 
   test("thunkDuplicateRex", async () => {

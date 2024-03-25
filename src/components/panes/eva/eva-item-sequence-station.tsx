@@ -12,7 +12,6 @@ import {
   hmmFromMinutes,
   decodeEmoji,
 } from "utils/formatting";
-import { setRightPanelOpen } from "store/interface";
 import { setHoverUuidsForSequence } from "store/hover";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
@@ -25,6 +24,7 @@ import { getRexStatusDisplayProperties } from "../../../utils/rex";
 import _ from "lodash";
 import PetInterval from "components/interface/page/petInterval";
 import { RexStatusMenu } from "../rex/rex";
+import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 
 const SequenceItemStation: FunctionComponent<{
   evaUuid: string;
@@ -163,7 +163,7 @@ const SequenceItemStation: FunctionComponent<{
       } else {
         dispatch(setSelectedEvaUuid(evaUuid));
         dispatch(thunkSelectEVASequenceItem({ sequenceItemUuid }));
-        dispatch(setRightPanelOpen(true));
+        dispatch(thunkSetRightPanelIsOpenIfAuto(true));
       }
     },
     [dispatch, evaUuid, selectedEvaSequenceItemUuid]

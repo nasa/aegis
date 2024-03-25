@@ -8,9 +8,9 @@ import { setSelectedPresetUuid, setSelectedPresetRightNavItem } from "store/pres
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import { Button } from "components/interface/form/globalFields";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { setRightPanelOpen } from "store/interface";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreatePreset, thunkDuplicatePreset } from "store/thunk/thunkPreset";
+import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 
 const PresetEditorLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -97,7 +97,7 @@ const PresetList: FunctionComponent<{
     dispatch(setSelectedPresetUuid(currentPreset.uuid));
     dispatch(setMapSublayerControls(currentPreset.mapSublayerControls));
     if (!selectedRightNavItem) dispatch(setSelectedPresetRightNavItem("info_panel"));
-    dispatch(setRightPanelOpen(true));
+    dispatch(thunkSetRightPanelIsOpenIfAuto(true));
   };
 
   return (

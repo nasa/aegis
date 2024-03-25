@@ -5,11 +5,13 @@ import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  setBottomPanelOpen,
+  setBottomPanelIsOpen,
   setBottomSectionSelected,
-  setLeftPanelOpen,
-  setRightPanelOpen,
+  setLeftPanelIsOpen,
+  setAutoRightPanelOpen,
+  setRightPanelIsOpen,
   setSectionSelected,
+  setAutoBottomPanelOpen,
 } from "store/interface";
 
 import { paneTypes } from "components/interface/_paneTypes";
@@ -26,11 +28,12 @@ import {
   faRuler,
 } from "@fortawesome/free-solid-svg-icons";
 import Measure from "./measure/measure";
+import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 
 /* This control sits at the left side of the screen and loads the selected component based on the NavGutter icon selected */
 export const LeftControlPanel: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const leftPanelOpen = useAppSelector((state) => state.interface.leftPanelOpen, refEqual);
+  const leftPanelOpen = useAppSelector((state) => state.interface.leftPanelIsOpen, refEqual);
   const interfaceStateLabel = useAppSelector(
     (state) => state.interface.sectionSelectedLabel,
     refEqual
@@ -56,7 +59,10 @@ export const LeftControlPanel: FunctionComponent = () => {
           <ActiveComponent />
         </div>
       )}
-      <div className={styles.drawerLeft} onClick={() => dispatch(setLeftPanelOpen(!leftPanelOpen))}>
+      <div
+        className={styles.drawerLeft}
+        onClick={() => dispatch(setLeftPanelIsOpen(!leftPanelOpen))}
+      >
         <div className={styles.drawerLeftTab}>
           {leftPanelOpen ? (
             <FontAwesomeIcon className={styles.drawerLeftIcon} color="white" icon={faChevronLeft} />
@@ -78,26 +84,34 @@ export const LeftControlPanel: FunctionComponent = () => {
 
 export const BottomControlPanel: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const bottomPanelOpen = useAppSelector((state) => state.interface.bottomPanelOpen, refEqual);
+  const bottomPanelOpen = useAppSelector((state) => state.interface.bottomPanelIsOpen, refEqual);
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
   const selectedBottomNavItem = useAppSelector(
     (state) => state.interface.bottomSectionSelectedLabel,
     refEqual
   );
+  const autoBottomPanelOpen = useAppSelector(
+    (state) => state.interface.autoBottomPanelOpen,
+    refEqual
+  );
 
   useEffect(() => {
+    if (!autoBottomPanelOpen) return;
     if (selectedEvaUuid) {
-      dispatch(setBottomPanelOpen(true));
+      dispatch(setBottomPanelIsOpen(true));
     } else {
-      dispatch(setBottomPanelOpen(false));
+      dispatch(setBottomPanelIsOpen(false));
     }
-  }, [selectedEvaUuid, dispatch]);
+  }, [selectedEvaUuid, dispatch, autoBottomPanelOpen]);
 
   return (
     <>
       <div
         className={styles.drawerBottom}
-        onClick={() => dispatch(setBottomPanelOpen(!bottomPanelOpen))}
+        onClick={() => {
+          dispatch(setBottomPanelIsOpen(!bottomPanelOpen));
+          dispatch(setAutoBottomPanelOpen(false));
+        }}
       >
         <div className={styles.drawerBottomTab}>
           {bottomPanelOpen ? (
@@ -131,7 +145,7 @@ export const RightControlPanel: FunctionComponent = () => {
     (state) => state.interface.sectionSelectedLabel,
     refEqual
   );
-  const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, refEqual);
+  const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelIsOpen, refEqual);
 
   let ActiveComponent = null;
   const paneType: PaneType = paneTypes[interfaceStateLabel as keyof PaneTypes];
@@ -143,7 +157,10 @@ export const RightControlPanel: FunctionComponent = () => {
     <>
       <div
         className={styles.drawerRight}
-        onClick={() => dispatch(setRightPanelOpen(!rightPanelOpen))}
+        onClick={() => {
+          dispatch(setRightPanelIsOpen(!rightPanelOpen));
+          dispatch(setAutoRightPanelOpen(false));
+        }}
       >
         <div className={styles.drawerRightTab}>
           {rightPanelOpen ? (
@@ -182,7 +199,7 @@ const BottomGutter: FunctionComponent = () => {
     (state) => state.interface.bottomSectionSelectedLabel,
     refEqual
   );
-  const bottomPanelOpen = useAppSelector((state) => state.interface.bottomPanelOpen, refEqual);
+  const bottomPanelOpen = useAppSelector((state) => state.interface.bottomPanelIsOpen, refEqual);
   let timelineIconContainerStyle = styles.iconContainer;
   let measureIconContainerStyle = styles.iconContainer;
   if (bottomPanelOpen) {
@@ -201,7 +218,7 @@ const BottomGutter: FunctionComponent = () => {
           data-tooltip-id="aegis-tooltip"
           data-tooltip-html={"Timeline"}
           onClick={() => {
-            if (!bottomPanelOpen) dispatch(setBottomPanelOpen(true));
+            if (!bottomPanelOpen) dispatch(setBottomPanelIsOpen(true));
             dispatch(setBottomSectionSelected("timeline"));
           }}
         >
@@ -215,7 +232,7 @@ const BottomGutter: FunctionComponent = () => {
           data-tooltip-id="aegis-tooltip"
           data-tooltip-html={"Measurements"}
           onClick={() => {
-            if (!bottomPanelOpen) dispatch(setBottomPanelOpen(true));
+            if (!bottomPanelOpen) dispatch(setBottomPanelIsOpen(true));
             dispatch(setBottomSectionSelected("measure"));
           }}
         >
@@ -230,7 +247,7 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
   selectedNavItem,
 }) => {
   const dispatch = useAppDispatch();
-  const bottomPanelOpen = useAppSelector((state) => state.interface.bottomPanelOpen, refEqual);
+  const bottomPanelOpen = useAppSelector((state) => state.interface.bottomPanelIsOpen, refEqual);
   const mission = useAppSelector((state) => state.mission.mission, deepEqual);
   const missionFromDb = useAppSelector((state) => state.mission.missionFromDb, deepEqual);
   const pois = useAppSelector(
@@ -428,30 +445,30 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
                 data-tooltip-id="aegis-tooltip"
                 data-tooltip-html={pane.title}
                 onClick={() => {
-                  dispatch(setLeftPanelOpen(true));
+                  dispatch(setLeftPanelIsOpen(true));
                   dispatch(setSectionSelected(paneType));
                   switch (paneType) {
                     case "mission":
-                      dispatch(setRightPanelOpen(true));
+                      dispatch(thunkSetRightPanelIsOpenIfAuto(true));
                       break;
                     case "preset":
-                      dispatch(setRightPanelOpen(selectedPresetUuid !== null));
+                      dispatch(thunkSetRightPanelIsOpenIfAuto(selectedPresetUuid !== null));
                       dispatch(setSelectedEvaUuid(null));
                       break;
                     case "poi":
-                      dispatch(setRightPanelOpen(selectedPoiUuid !== null));
+                      dispatch(thunkSetRightPanelIsOpenIfAuto(selectedPoiUuid !== null));
                       dispatch(setSelectedEvaUuid(null));
                       break;
                     case "station":
-                      dispatch(setRightPanelOpen(selectedStationUuid !== null));
+                      dispatch(thunkSetRightPanelIsOpenIfAuto(selectedStationUuid !== null));
                       dispatch(setSelectedEvaUuid(null));
                       break;
                     case "evas":
-                      dispatch(setRightPanelOpen(false));
+                      dispatch(thunkSetRightPanelIsOpenIfAuto(false));
                       break;
                     case "rex":
                       dispatch(setSelectedEvaUuid(null));
-                      dispatch(setRightPanelOpen(selectedRexUuid !== null));
+                      dispatch(thunkSetRightPanelIsOpenIfAuto(selectedRexUuid !== null));
                       if (!selectedEvaRightNavItem)
                         dispatch(setSelectedEvaRightNavItem("info_panel"));
                   }

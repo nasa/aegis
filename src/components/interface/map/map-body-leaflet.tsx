@@ -25,7 +25,7 @@ import {
 import _ from "lodash";
 import { setMapSublayerControls, setMeasureInitialCoords, updateMapDirective } from "store/map";
 import { setSelectedPoiUuid } from "store/poi";
-import { setBottomSectionSelected, setRightPanelOpen, setSectionSelected } from "store/interface";
+import { setBottomSectionSelected, setSectionSelected } from "store/interface";
 import { revertWalkbackPath, setSelectedStationUuid } from "store/station";
 import { revertTraversePath } from "store/traverse";
 import { setSelectedPosEntryUuid } from "store/rex";
@@ -62,6 +62,7 @@ import { useCookies } from "react-cookie";
 import ReactDOMServer from "react-dom/server";
 import { thunkUpdateMeasurementPath } from "store/thunk/thunkMeasurement";
 import { setSelectedMeasurementUuid } from "store/measure";
+import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 
 type MissionSelectProperties = Pick<
   Mission,
@@ -132,7 +133,7 @@ const MapBody: FunctionComponent = () => {
   );
   const missionLayers = useAppSelector((state) => state.mission.layers, deepEqual);
   const missionSublayers = useAppSelector((state) => state.mission.sublayers, deepEqual);
-  const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, refEqual);
+  const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelIsOpen, refEqual);
   const sectionSelected = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
 
   const mapSublayerControls = useAppSelector((state) => state.map.mapSublayerControls, deepEqual);
@@ -1414,7 +1415,7 @@ const MapBody: FunctionComponent = () => {
             setShowSelectedItemOnMap(true);
             dispatch(setSectionSelected("station"));
             dispatch(setSelectedStationUuid(station.uuid));
-            dispatch(setRightPanelOpen(true));
+            dispatch(thunkSetRightPanelIsOpenIfAuto(true));
           },
           onDragEnd: (marker: AEGISMarker) => {
             const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
@@ -1529,7 +1530,7 @@ const MapBody: FunctionComponent = () => {
             setShowSelectedItemOnMap(true);
             dispatch(setSectionSelected("poi"));
             dispatch(setSelectedPoiUuid(poi.uuid));
-            dispatch(setRightPanelOpen(true));
+            dispatch(thunkSetRightPanelIsOpenIfAuto(true));
           },
           onDragEnd: (marker: AEGISMarker) => {
             const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
@@ -1701,7 +1702,7 @@ const MapBody: FunctionComponent = () => {
       location: mission.landerLocation,
       onClick: () => {
         dispatch(setSectionSelected("mission"));
-        dispatch(setRightPanelOpen(true));
+        dispatch(thunkSetRightPanelIsOpenIfAuto(true));
       },
       onDragEnd: (marker: AEGISMarker) => {
         const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
