@@ -81,9 +81,11 @@ type BottomInterfaceSection = "timeline" | "measure";
 interface InterfaceState {
   sectionSelectedLabel: InterfaceSection;
   bottomSectionSelectedLabel: BottomInterfaceSection;
-  leftPanelOpen: boolean;
-  rightPanelOpen: boolean;
-  bottomPanelOpen: boolean;
+  leftPanelIsOpen: boolean;
+  rightPanelIsOpen: boolean;
+  bottomPanelIsOpen: boolean;
+  autoRightPanelOpen: boolean;
+  autoBottomPanelOpen: boolean;
   elevationPendingItemUuids: string[];
   timelineShowDistanceFromLander: boolean;
   timelineShowElevation: boolean;

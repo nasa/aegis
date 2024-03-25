@@ -7,8 +7,8 @@ import { setSelectedStationRightNavItem, setSelectedStationUuid } from "store/st
 import stationStyles from "./station.module.css";
 import { clearEvaSelections } from "store/eva";
 import { decodeEmoji } from "utils/formatting";
-import { setRightPanelOpen } from "store/interface";
 import { setHoverUuidsForSequence } from "store/hover";
+import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 
 const StationItem: FunctionComponent<{
   selectedStationUuid: string;
@@ -22,7 +22,6 @@ const StationItem: FunctionComponent<{
     (state) => state.station.selectedRightNavItem,
     refEqual
   );
-
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
 
   let isStationSelectedOrHoveredStyle = null;
@@ -39,12 +38,12 @@ const StationItem: FunctionComponent<{
       onClick={() => {
         if (selectedStationUuid === station.uuid) {
           dispatch(setSelectedStationUuid(null)); //hide station right panel
-          dispatch(setRightPanelOpen(false));
+          dispatch(thunkSetRightPanelIsOpenIfAuto(false));
         } else {
           dispatch(setSelectedStationUuid(station.uuid));
           dispatch(clearEvaSelections());
           if (!selectedRightNavItem) dispatch(setSelectedStationRightNavItem("info_panel"));
-          dispatch(setRightPanelOpen(true));
+          dispatch(thunkSetRightPanelIsOpenIfAuto(true));
         }
       }}
       onMouseEnter={() => {

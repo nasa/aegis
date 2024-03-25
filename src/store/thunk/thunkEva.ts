@@ -13,7 +13,6 @@ import appCreateAsyncThunk from "./thunkUtil";
 import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
 import { thunkSaveNewEva, thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
-import { setRightPanelOpen } from "store/interface";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import {
   setTraverseEditMode,
@@ -32,6 +31,7 @@ import { isModified } from "utils/component-helpers";
 import { mergeEquipmentItems } from "utils/store";
 import { thunkDuplicateStation } from "./thunkStation";
 import { upsertRex, upsertRexFromDb } from "store/rex";
+import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 
 export const thunkCreateEvasCalculatedFields = appCreateAsyncThunk<void>(
   "createEvasCalculatedFields",
@@ -352,7 +352,7 @@ export const thunkEvaCancel = appCreateAsyncThunk<{
 
     // eva hasn't been saved to the db. delete the eva and actions from the store
     dispatch(deleteEvaByUuid(eva.uuid));
-    dispatch(setRightPanelOpen(false));
+    dispatch(thunkSetRightPanelIsOpenIfAuto(false));
   }
   dispatch(setEvaEditMode({ evaUuid: eva.uuid, editMode: false }));
 });
@@ -443,7 +443,7 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
   dispatch(
     setExpandedEvaUuids(getState().eva.expandedEvaUuids.filter((uuid) => uuid !== eva.uuid))
   );
-  dispatch(setRightPanelOpen(false));
+  dispatch(thunkSetRightPanelIsOpenIfAuto(false));
 });
 
 export const thunkCreateEva = appCreateAsyncThunk<void>(

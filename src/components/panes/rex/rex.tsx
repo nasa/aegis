@@ -19,13 +19,13 @@ import EvaItemSequence from "../eva/eva-item-sequence";
 import RexClocks from "./rex-clocks";
 import { thunkAddRexStatusEntry, thunkCreateRex } from "store/thunk/thunkRex";
 import { setExpandedRexUuids, setSelectedRexRightNavItem, setSelectedRexUuid } from "store/rex";
-import { setRightPanelOpen } from "store/interface";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { setSelectedStationUuid } from "store/station";
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import { thunkAddStationToEva } from "store/thunk/thunkEva";
 import { EvaEgressIngressListing } from "../eva/eva-item";
 import { getRexStatusDisplayProperties } from "utils/rex";
+import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 
 const EvaRexLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -182,7 +182,7 @@ const EvaRexItem: FunctionComponent<{ rexUuid: string }> = ({ rexUuid }) => {
               }
 
               if (!selectedRexRightNavItem) dispatch(setSelectedRexRightNavItem("info_panel"));
-              dispatch(setRightPanelOpen(true));
+              dispatch(thunkSetRightPanelIsOpenIfAuto(true));
 
               // add this rex uuid to the expanded list if it's not already there
               if (expandedRexUuids.indexOf(rex.uuid) === -1) {

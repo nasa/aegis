@@ -3,9 +3,11 @@ import { createSlice } from "@reduxjs/toolkit";
 export const initialState: InterfaceState = {
   sectionSelectedLabel: "preset",
   bottomSectionSelectedLabel: "timeline",
-  leftPanelOpen: true,
-  rightPanelOpen: true,
-  bottomPanelOpen: true,
+  leftPanelIsOpen: true,
+  rightPanelIsOpen: true,
+  bottomPanelIsOpen: true,
+  autoRightPanelOpen: true,
+  autoBottomPanelOpen: true,
   elevationPendingItemUuids: [],
   timelineShowDistanceFromLander: true,
   timelineShowElevation: true,
@@ -31,14 +33,20 @@ export const interfaceSlice = createSlice({
     setBottomSectionSelected: (state, action: { payload: BottomInterfaceSection }) => {
       state.bottomSectionSelectedLabel = action.payload;
     },
-    setLeftPanelOpen: (state, action: { payload: boolean }) => {
-      state.leftPanelOpen = action.payload;
+    setLeftPanelIsOpen: (state, action: { payload: boolean }) => {
+      state.leftPanelIsOpen = action.payload;
     },
-    setRightPanelOpen: (state, action: { payload: boolean }) => {
-      state.rightPanelOpen = action.payload;
+    setRightPanelIsOpen: (state, action: { payload: boolean }) => {
+      state.rightPanelIsOpen = action.payload;
     },
-    setBottomPanelOpen: (state, action: { payload: boolean }) => {
-      state.bottomPanelOpen = action.payload;
+    setBottomPanelIsOpen: (state, action: { payload: boolean }) => {
+      state.bottomPanelIsOpen = action.payload;
+    },
+    setAutoRightPanelOpen: (state, action: { payload: boolean }) => {
+      state.autoRightPanelOpen = action.payload;
+    },
+    setAutoBottomPanelOpen: (state, action: { payload: boolean }) => {
+      state.autoBottomPanelOpen = action.payload;
     },
     insertElevationPending: (state, action: { payload: string }) => {
       state.elevationPendingItemUuids.push(action.payload);
@@ -90,9 +98,11 @@ export const interfaceSlice = createSlice({
 export const {
   setSectionSelected,
   setBottomSectionSelected,
-  setLeftPanelOpen,
-  setRightPanelOpen,
-  setBottomPanelOpen,
+  setLeftPanelIsOpen,
+  setRightPanelIsOpen,
+  setBottomPanelIsOpen,
+  setAutoRightPanelOpen,
+  setAutoBottomPanelOpen,
   insertElevationPending,
   removeElevationPending,
   setShowDistanceFromLander,

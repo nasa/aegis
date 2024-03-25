@@ -19,7 +19,6 @@ import _ from "lodash";
 import { thunkFullUpdateTraverse, thunkUpdateTraversesAroundStation } from "./thunkTraverse";
 import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
-import { setRightPanelOpen } from "store/interface";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { deleteActionsByUuid, setActionsFromDb, upsertActions } from "store/action";
 import * as httpClient_station from "http-client/station";
@@ -31,6 +30,7 @@ import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import { thunkSaveNewStation } from "./crossThunk";
 import { mergeEquipmentItems } from "utils/store";
+import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 
 export const thunkUpdateStationLatLngField = appCreateAsyncThunk<{
   stationUuid: string;
@@ -486,7 +486,7 @@ export const thunkStationCancel = appCreateAsyncThunk<{
     dispatch(deleteStationByUuid(station.uuid));
     dispatch(setSelectedStationUuid(null));
     dispatch(deleteActionsByUuid(stationActions.map((a) => a.uuid)));
-    dispatch(setRightPanelOpen(false));
+    dispatch(thunkSetRightPanelIsOpenIfAuto(false));
   }
 
   // if the walkback is in edit mode, save the walkback
@@ -592,7 +592,7 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
   dispatch(thunkCancelMarkerMapDirective({ uuid: station.uuid }));
   dispatch(setStationEditMode({ stationUuid: station.uuid, editMode: false }));
   // close right panel
-  dispatch(setRightPanelOpen(false));
+  dispatch(thunkSetRightPanelIsOpenIfAuto(false));
 });
 
 export const thunkCreateStation = appCreateAsyncThunk<void>(

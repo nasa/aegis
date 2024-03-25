@@ -6,7 +6,6 @@ import * as httpClient_action from "http-client/action";
 import { upsertActions, deleteActionsByUuid, setActionsFromDb } from "store/action";
 import { thunkObliteratePoi, thunkSaveNewPoi } from "./crossThunk";
 import { setPoiEditMode, setPoisFromDb, setSelectedPoiUuid, upsertPoi } from "store/poi";
-import { setRightPanelOpen } from "store/interface";
 import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
@@ -15,6 +14,7 @@ import _ from "lodash";
 import { thunkDuplicateActions, thunkSaveActions } from "./thunkAction";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
+import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 
 export const thunkUpdatePoiLatLngField = appCreateAsyncThunk<{
   poiUuid: string;
@@ -274,7 +274,7 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
   dispatch(thunkCancelMarkerMapDirective({ uuid: poi.uuid }));
 
   // close right panel
-  dispatch(setRightPanelOpen(false));
+  dispatch(thunkSetRightPanelIsOpenIfAuto(false));
 });
 
 export const thunkCreatePoi = appCreateAsyncThunk<void>(

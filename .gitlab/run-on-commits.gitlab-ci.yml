@@ -448,8 +448,7 @@ z:db-export:dev1:
     - sudo /usr/bin/docker compose up -d
     - sudo rm -f /d1/db-init/aegis.sql
 
-    # Run any migrations the dump didn't have in place
-    - docker compose exec apiv1 npm run migrate:up
+    # Migrations will be run when the apiv1 container restarts
 
 z:db-import:dev1:
   extends: .db-import-template
