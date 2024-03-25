@@ -43,6 +43,7 @@ export const thunkSelectEVASequenceItem = appCreateAsyncThunk<{
     dispatch(stationSlice.actions.setSelectedStationUuid(sequenceItemUuid));
   } else if (sequenceItem?.type === "traverse") {
     dispatch(traverseSlice.actions.setSelectedTraverseRightNavItem("info_panel"));
+    dispatch(stationSlice.actions.setSelectedStationUuid(null));
   }
 });
 

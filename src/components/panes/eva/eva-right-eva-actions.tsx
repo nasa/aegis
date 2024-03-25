@@ -15,7 +15,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     deepEqual
   );
   const isSelectedEvaInARunningRex = useAppSelector(
-    (state) => state.rex.rexes.find((rex) => rex.evaUuid === selectedEvaUuid)?.isRunning,
+    (state) => state.rex.rexes.find((rex) => rex.isRunning)?.evaUuid === selectedEvaUuid,
     refEqual
   );
   const stations = useAppSelector((state) => state.station.stations, deepEqual);
