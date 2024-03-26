@@ -164,6 +164,10 @@ type Poi_db_type = Omit<POI, "ownerId" | "missionId" | "createdAt" | "updatedAt"
 
 type POIStatus = "Archived" | "Candidate" | "In Review" | "Approved";
 
+type StmPriorities = {
+  [key: string]: number; // key is the uuid of the STM level
+};
+
 /**
  * Action to be taken by crew on the surface (photograph, describe, take sample, etc)
  */
@@ -185,7 +189,8 @@ type Action = {
   /**
    * Allow linkage to any part of the STM hierarchy
    */
-  stmUuidRefs?: string[];
+  stmUuidRefs: string[];
+  stmPriorities: StmPriorities;
   /**
    * The type of action to be taken
    */

@@ -98,6 +98,7 @@ export const createTestActionTemplate = (): ActionTemplate => {
     durationLower: null,
     durationUpper: null,
     stmUuidRefs: null,
+    stmPriorities: null,
     equipmentItemsUsage: null,
     geographicUnitsUsage: null,
     crewAssigned: [],

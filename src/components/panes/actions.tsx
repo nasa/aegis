@@ -13,6 +13,7 @@ import { thunkCreateAction, thunkGetHighlightedActions } from "store/thunk/thunk
 import CalculatedDwell from "./calculated-dwell";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { Assoc_POIs } from "./actions-assocpois";
+import { getStmUuidRefs } from "utils/store";
 
 const Actions: FunctionComponent<{
   editMode: boolean;
@@ -191,13 +192,14 @@ export const ActionsTopSection: FunctionComponent<{
   highlightActions: (level3Uuid: string) => void;
   actionsCalculatedFields: ActionsCalculatedFields;
 }> = ({ actionOrderUuids, parentType, highlightActions, actionsCalculatedFields }) => {
+  // make an array of uuids by action, of the STMs that are referenced by the action in the action STMPriorities object
   const stmUuidRefs = useAppSelector(
     (state) =>
       state.action.actions
         .filter((action) => actionOrderUuids?.includes(action.uuid))
         .map((action) => {
           if (action.enabled === false) return null;
-          return action.stmUuidRefs;
+          return getStmUuidRefs(action.stmPriorities);
         }),
     deepEqual
   );
@@ -214,7 +216,8 @@ export const ActionsTopSection: FunctionComponent<{
         actionOrderUuids.includes(actionUuid)
       ) {
         const action = state.action.actions.find((a) => a.uuid === actionUuid);
-        if (action.enabled) stmUuidRefs.push(action.stmUuidRefs);
+        if (action.enabled === false) return null;
+        stmUuidRefs.push(getStmUuidRefs(action.stmPriorities));
       }
     }
     return stmUuidRefs;
@@ -232,7 +235,8 @@ export const ActionsTopSection: FunctionComponent<{
         actionOrderUuids.includes(actionUuid)
       ) {
         const action = state.action.actions.find((a) => a.uuid === actionUuid);
-        if (action.enabled) stmUuidRefs.push(action.stmUuidRefs);
+        if (action.enabled === false) return null;
+        stmUuidRefs.push(getStmUuidRefs(action.stmPriorities));
       }
     }
     return stmUuidRefs;

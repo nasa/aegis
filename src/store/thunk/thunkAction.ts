@@ -56,6 +56,7 @@ export const thunkCreateAction = appCreateAsyncThunk<
       durationLower: 5,
       durationUpper: 6,
       stmUuidRefs: null,
+      stmPriorities: null,
       equipmentItemsUsage: null,
       geographicUnitsUsage: null,
       crewAssigned: [],
@@ -521,6 +522,41 @@ export const thunkAuditActions = appCreateAsyncThunk<void>(
         }
       }
       if (isChanged) action.stmUuidRefs = newUuidRefs;
+    }
+
+    /**
+     * Action stmPriorities Audit
+     * Add stmPriorities for any missing stmUuidRefs and make the default priority 3
+     */
+    for (const action of newActions) {
+      if (!action.stmUuidRefs) continue;
+      // if action.stmPriorities is null, create it
+      let newPriorities: StmPriorities = {};
+      if (action.stmPriorities) newPriorities = _.clone(action.stmPriorities); //make a copy to splice from
+      let isChanged = false;
+      for (const stmUuid of action.stmUuidRefs) {
+        if (!newPriorities[stmUuid] && stmLevel3Uuids.indexOf(stmUuid) >= 0) {
+          //stm doesn't exist. add it to our copy
+          isChanged = true;
+          newPriorities[stmUuid] = 2;
+        }
+      }
+      if (isChanged) action.stmPriorities = newPriorities;
+
+      // if there is an stmPriorities object, remove any stmPriorities that don't have a matching stmUuidRef
+      if (!action.stmPriorities) return;
+      for (const [key, __] of Object.entries(newPriorities)) {
+        if (!action.stmUuidRefs.some((uuid) => uuid === key)) {
+          delete newPriorities[key];
+        }
+      }
+    }
+    /**
+     * Action template stmPriorities Audit
+     * Add stmPriorities = null for any actionTemplate in the mission store
+     */
+    for (const actionTemplate of getState().mission.mission.actionTemplates) {
+      actionTemplate.stmPriorities = null;
     }
 
     /**
