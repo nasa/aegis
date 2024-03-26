@@ -126,7 +126,6 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
     (state) => state.preset.presets.map((p) => p.uuid),
     shallowEqual
   );
-  const rexes = useAppSelector((state) => state.rex.rexes, deepEqual);
 
   const stationsCalculatedFields = useAppSelector(
     (state) => state.station.calculatedFields,
@@ -547,13 +546,13 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
    * TODO: This is a temporary fix to audit REX positions to conver them from the old hard coded EV1, EV2, Cart format to the new flexible type format
    */
   useEffect(() => {
-    if (rexLoadingStatus !== "loaded") return;
+    if (rexLoadingStatus !== "loaded" || rexPosAudited.current) return;
 
     // audit crew positions
     dispatch(thunkAuditRexPositions());
 
     rexPosAudited.current = true;
-  }, [rexes, rexLoadingStatus, dispatch]);
+  }, [rexLoadingStatus, rexPosAudited, dispatch]);
 
   return <></>;
 };
