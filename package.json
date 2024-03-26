@@ -1,6 +1,6 @@
 {
   "name": "aegis-zero",
-  "version": "1.0",
+  "version": "1.0.1",
   "private": true,
   "scripts": {
     "dev": "concurrently -n vite,api \"npm run vite:dev\" \"npm run api:dev\"",

@@ -26,6 +26,7 @@ import { selectedEvaActions, selectedEvaStations, selectedEvaTraverses } from "s
 import { secondsFromhhmmss } from "utils/formatting";
 import { setSelectedPosEntryUuid } from "store/rex";
 import PetInterval from "../page/petInterval";
+import { getStmUuidRefs } from "utils/store";
 
 /**
  * Renders the navigation timeline presented at the bottom of the window
@@ -104,13 +105,13 @@ const NavTimeline: FunctionComponent = () => {
 
     evaActions.forEach((action) => {
       if (action.enabled) {
-        newCoveredSTMs.push(action.stmUuidRefs);
+        newCoveredSTMs.push(getStmUuidRefs(action.stmPriorities));
         if (runningRex?.actionEntries) {
           const rexStatus = _.last(runningRex.actionEntries[action.uuid])?.rexStatus;
           if (rexStatus === "complete") {
-            newCompletedSTMs.push(action.stmUuidRefs);
+            newCompletedSTMs.push(getStmUuidRefs(action.stmPriorities));
           } else if (rexStatus === "in-progress") {
-            newInProgressSTMs.push(action.stmUuidRefs);
+            newInProgressSTMs.push(getStmUuidRefs(action.stmPriorities));
           }
         }
       }

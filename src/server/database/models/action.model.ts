@@ -26,6 +26,8 @@ export class Action_db implements Action_db_type {
   priority: number;
   @Property({ type: MikroTypes.json, nullable: true })
   stmUuidRefs: string[];
+  @Property({ type: MikroTypes.json, nullable: true })
+  stmPriorities: StmPriorities;
   @Property({ type: MikroTypes.string })
   type!: ActionType;
   @Property({ type: MikroTypes.text })

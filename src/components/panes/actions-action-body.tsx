@@ -206,7 +206,7 @@ export const RightActionBody: FunctionComponent<{
 
       <div className={paneStyles.panelSection}>
         <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-          <SubpanelHeading icon={faListOl}>Priority</SubpanelHeading>
+          <SubpanelHeading icon={faListOl}>Task Priority</SubpanelHeading>
         </div>
         <div className={paneStyles.panelSectionRow}>
           <div className={paneStyles.panelSection2Column}>
@@ -319,10 +319,8 @@ export const RightActionBody: FunctionComponent<{
         <div className={actionStyles.selectorContainer}>
           <STMSelector
             editMode={editMode}
-            stmUuidRefs={action.stmUuidRefs}
-            onSTMChange={(stmUuidRefs: string[]) => {
-              dispatch(upsertActionByField(action.uuid, "stmUuidRefs", stmUuidRefs));
-            }}
+            stmPriorities={action.stmPriorities}
+            actionUuid={action.uuid}
           />
         </div>
       </div>

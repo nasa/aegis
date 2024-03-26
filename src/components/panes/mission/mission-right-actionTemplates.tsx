@@ -17,7 +17,6 @@ import {
   faMessage,
   faPersonWalkingLuggage,
   faPlusCircle,
-  faTableList,
   faWeightHanging,
 } from "@fortawesome/free-solid-svg-icons";
 import { Button, Dropdown, InLineEditInput } from "components/interface/form/globalFields";
@@ -35,7 +34,6 @@ import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { decodeEmoji, toDecimal } from "utils/formatting";
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
-import STMSelector from "../stm/stm-selector";
 import { ActionTemplateMenu } from "../mission-actionTemplates-menu";
 
 const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
@@ -530,30 +528,6 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                               }}
                               uniqueId={actionTemplate.uuid}
                             />{" "}
-                          </div>
-                        </div>
-
-                        <div className={paneStyles.panelSection}>
-                          <div
-                            className={paneStyles.panelSectionTitle}
-                            style={{ marginBottom: "8px" }}
-                          >
-                            <SubpanelHeading icon={faTableList}>STM Coverage</SubpanelHeading>
-                          </div>
-                          <div className={actionActionStyles.selectorContainer}>
-                            <STMSelector
-                              editMode={editMode}
-                              stmUuidRefs={actionTemplate.stmUuidRefs}
-                              onSTMChange={(stmUuidRefs: string[]) => {
-                                dispatch(
-                                  thunkUpdateActionTemplate({
-                                    uuid: actionTemplate.uuid,
-                                    fieldName: "stmUuidRefs",
-                                    value: stmUuidRefs,
-                                  })
-                                );
-                              }}
-                            />
                           </div>
                         </div>
 

@@ -103,6 +103,8 @@ describe("Action API Endpoint", () => {
     equipmentItemsUsage: null,
     geographicUnitsUsage: null,
     mass: null,
+    stmUuidRefs: null,
+    stmPriorities: null,
     status: "Candidate",
     enabled: true,
     crewAssigned: [],

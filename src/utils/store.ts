@@ -54,3 +54,12 @@ export function mergeEquipmentItems(
 
   return totalEquipItems;
 }
+
+export const getStmUuidRefs = (stmPriorities: StmPriorities): string[] => {
+  const stmUuidRefs: string[] = [];
+  if (_.isEmpty(stmPriorities)) return stmUuidRefs;
+  for (const [key, __] of Object.entries(stmPriorities)) {
+    stmUuidRefs.push(key);
+  }
+  return stmUuidRefs;
+};
