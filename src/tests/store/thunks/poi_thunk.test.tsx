@@ -209,7 +209,7 @@ describe("Thunk POI Tests", () => {
     expect(storeState.poi.selectedPoiUuid).toBeFalsy();
     expect(httpClient_poi.deletePOIs).toHaveBeenCalledTimes(1);
     expect(httpClient_poi.getPOIs).toHaveBeenCalledTimes(1);
-    expect(httpClient_action.getActions).toHaveBeenCalledTimes(1);
+    expect(httpClient_action.deleteActions).toHaveBeenCalledTimes(1);
 
     //delete an unsaved poi
     await store.dispatch(thunkDeletePoi({ poi: unsavedPoi }));

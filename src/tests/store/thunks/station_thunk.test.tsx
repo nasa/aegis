@@ -504,7 +504,7 @@ describe("Thunk Station Tests", () => {
     expect(storeState.station.selectedStationUuid).toBeFalsy();
     expect(httpClient_station.deleteStations).toHaveBeenCalledTimes(1);
     expect(httpClient_station.getStations).toHaveBeenCalledTimes(1);
-    expect(httpClient_action.getActions).toHaveBeenCalledTimes(1);
+    expect(httpClient_action.deleteActions).toHaveBeenCalledTimes(1);
     expect(mockThunkCancelMarkerMapDirective).toHaveBeenCalled();
 
     //delete an unsaved station

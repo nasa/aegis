@@ -1,5 +1,5 @@
 import {
-  deleteActionByUuid,
+  deleteActionsByUuid,
   deleteActionsFromDbByUuid,
   setActions,
   setActionsFromDb,
@@ -251,9 +251,12 @@ export const thunkGetHighlightedActions = appCreateAsyncThunk<
   return actionHighlights;
 });
 
-export const thunkDeleteAction = appCreateAsyncThunk<{
+/**
+ * Deletes an action from a station or poi and also from the store (but not from db)
+ */
+export const thunkDeleteActionFromStore = appCreateAsyncThunk<{
   uuid: string;
-}>("deleteAction", async ({ uuid }, { dispatch, getState }) => {
+}>("deleteActionFromStore", async ({ uuid }, { dispatch, getState }) => {
   // look for the action in stations and remove it from the station's action order
   getState().station.stations.forEach((station) => {
     const actionOrderUuids = _.cloneDeep(station.actionOrderUuids);
@@ -281,11 +284,32 @@ export const thunkDeleteAction = appCreateAsyncThunk<{
   });
 
   // delete the action from the store
-  dispatch(deleteActionByUuid(uuid));
+  dispatch(deleteActionsByUuid([uuid]));
 });
 
 /**
- * Audits and rectonciles the actionOrderUuids in stations and pois with the actions table
+ * Deletes an array of actions from the database, and from both copies in the store
+ */
+export const thunkDeleteActionFromDbAndStore = appCreateAsyncThunk<{
+  uuids: string[];
+}>("deleteActionFromDbAndStore", async ({ uuids }, { dispatch, getState }) => {
+  if (uuids.length > 0) {
+    //delete from db
+    const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteActions(
+      uuids,
+      getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning
+    );
+    if (actionDeleteResponse.status !== "success") {
+      throw new Error("Error deleting actions " + actionDeleteResponse.message);
+    }
+    // delete actions from the store and fromdb
+    dispatch(deleteActionsByUuid(uuids));
+    dispatch(deleteActionsFromDbByUuid(uuids));
+  }
+});
+
+/**
+ * Audits and reconciles the actionOrderUuids in stations and pois with the actions table
  */
 export const thunkAuditActions = appCreateAsyncThunk<void>(
   "auditActions",
