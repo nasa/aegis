@@ -522,6 +522,20 @@ export const thunkAuditActions = appCreateAsyncThunk<void>(
         }
       }
       if (isChanged) action.stmUuidRefs = newUuidRefs;
+
+      // also check the action.stmPriorities and remove any that don't have a matching stmUuid
+      if (action.stmPriorities) {
+        const newPriorities: StmPriorities = _.clone(action.stmPriorities); //make a copy to splice from
+        isChanged = false;
+        for (const stmUuid of Object.keys(action.stmPriorities)) {
+          if (stmLevel3Uuids.indexOf(stmUuid) < 0) {
+            //stm doesn't exist. remove it from our copy
+            isChanged = true;
+            delete newPriorities[stmUuid];
+          }
+        }
+        if (isChanged) action.stmPriorities = newPriorities;
+      }
     }
 
     /**
@@ -535,28 +549,12 @@ export const thunkAuditActions = appCreateAsyncThunk<void>(
       if (action.stmPriorities) newPriorities = _.clone(action.stmPriorities); //make a copy to splice from
       let isChanged = false;
       for (const stmUuid of action.stmUuidRefs) {
-        if (!newPriorities[stmUuid] && stmLevel3Uuids.indexOf(stmUuid) >= 0) {
-          //stm doesn't exist. add it to our copy
+        if (!newPriorities[stmUuid]) {
           isChanged = true;
           newPriorities[stmUuid] = 2;
         }
       }
       if (isChanged) action.stmPriorities = newPriorities;
-
-      // if there is an stmPriorities object, remove any stmPriorities that don't have a matching stmUuidRef
-      if (!action.stmPriorities) return;
-      for (const [key, __] of Object.entries(newPriorities)) {
-        if (!action.stmUuidRefs.some((uuid) => uuid === key)) {
-          delete newPriorities[key];
-        }
-      }
-    }
-    /**
-     * Action template stmPriorities Audit
-     * Add stmPriorities = null for any actionTemplate in the mission store
-     */
-    for (const actionTemplate of getState().mission.mission.actionTemplates) {
-      actionTemplate.stmPriorities = null;
     }
 
     /**
