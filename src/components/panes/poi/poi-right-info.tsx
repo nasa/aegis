@@ -7,13 +7,12 @@ import { useAppDispatch } from "utils/useAppDispatch";
 
 import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
 import { setSelectedPOIRightNavItem, upsertPoiByField } from "store/poi";
-import { updateMapDirective } from "store/map";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { round } from "lodash";
 import { validators } from "components/interface/form/formValidators";
 import { thunkUpdatePoiLatLngField } from "store/thunk/thunkPoi";
-import { thunkVerifyNoActiveMapAction } from "store/thunk/thunkMap";
+import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -48,7 +47,7 @@ const Info_Panel: FunctionComponent<{
 
   const dispatchPoiMapAction = (mapAction: MapAction) => {
     dispatch(
-      updateMapDirective({
+      thunkUpdateMapDirective({
         mapItemType: "poi",
         uuid: selectedPoi.uuid,
         mapAction,
@@ -56,24 +55,15 @@ const Info_Panel: FunctionComponent<{
     );
   };
 
-  // verify map action using a thunk to avoid subscribing to the mapDirective
-  const verifyNoActiveMapAction = async (): Promise<boolean> => {
-    return (await dispatch(thunkVerifyNoActiveMapAction())).payload;
-  };
-
   const handleCreate = async () => {
-    if (await verifyNoActiveMapAction()) {
-      dispatchPoiMapAction("createMarker");
-    }
+    dispatchPoiMapAction("createMarker");
   };
   const handleCancelCreate = () => {
     dispatchPoiMapAction("cancelCreateMarker");
   };
 
   const handleEdit = async () => {
-    if (await verifyNoActiveMapAction()) {
-      dispatchPoiMapAction("editMarker");
-    }
+    dispatchPoiMapAction("editMarker");
   };
 
   const handleCancelEdit = () => {

@@ -26,6 +26,7 @@ import { selectedEvaActions, selectedEvaStations, selectedEvaTraverses } from "s
 import { secondsFromhhmmss } from "utils/formatting";
 import { setSelectedPosEntryUuid } from "store/rex";
 import PetInterval from "../page/petInterval";
+import { getStmUuidRefs } from "utils/store";
 
 /**
  * Renders the navigation timeline presented at the bottom of the window
@@ -72,7 +73,7 @@ const NavTimeline: FunctionComponent = () => {
     refEqual
   );
   const showElevation = useAppSelector((state) => state.interface.timelineShowElevation, refEqual);
-  const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, refEqual);
+  const rightPanelIsOpen = useAppSelector((state) => state.interface.rightPanelIsOpen, refEqual);
 
   const canvas: MutableRefObject<HTMLCanvasElement> = useRef(null);
   const paperDataRef: MutableRefObject<PaperData> = useRef(null);
@@ -82,7 +83,7 @@ const NavTimeline: FunctionComponent = () => {
   const graphSequenceItems: MutableRefObject<GraphSequenceItems> = useRef(null);
   const flattenedGraphData: MutableRefObject<GraphData> = useRef(null);
 
-  const initHoverValues: HoverValues = {
+  const initHoverValues: TimelineHoverValues = {
     distanceFromLanderMeters: null,
     elevationMeters: null,
     slopeDegrees: null,
@@ -90,7 +91,7 @@ const NavTimeline: FunctionComponent = () => {
     walkbackElevationMeters: null,
     walkbackSlopeDegrees: null,
   };
-  const [hoverValues, setHoverValues] = useState<HoverValues>(initHoverValues);
+  const [hoverValues, setHoverValues] = useState<TimelineHoverValues>(initHoverValues);
   const [coveredSTMs, setCoveredSTMs] = useState<string[][]>(null);
   const [completedSTMs, setCompletedSTMs] = useState<string[][]>(null);
   const [inProgressSTMs, setInProgressSTMs] = useState<string[][]>(null);
@@ -104,13 +105,13 @@ const NavTimeline: FunctionComponent = () => {
 
     evaActions.forEach((action) => {
       if (action.enabled) {
-        newCoveredSTMs.push(action.stmUuidRefs);
+        newCoveredSTMs.push(getStmUuidRefs(action.stmPriorities));
         if (runningRex?.actionEntries) {
           const rexStatus = _.last(runningRex.actionEntries[action.uuid])?.rexStatus;
           if (rexStatus === "complete") {
-            newCompletedSTMs.push(action.stmUuidRefs);
+            newCompletedSTMs.push(getStmUuidRefs(action.stmPriorities));
           } else if (rexStatus === "in-progress") {
-            newInProgressSTMs.push(action.stmUuidRefs);
+            newInProgressSTMs.push(getStmUuidRefs(action.stmPriorities));
           }
         }
       }
@@ -522,7 +523,6 @@ const NavTimeline: FunctionComponent = () => {
       processPosEntriesFromStore();
     }
     processEvaDataFromStore(); //loads data into the storeRef
-    drawTimeline();
 
     paper.view.onMouseMove = _.throttle(onMouseMove, 15, {
       leading: true,
@@ -576,6 +576,8 @@ const NavTimeline: FunctionComponent = () => {
       }
     };
 
+    drawTimeline();
+
     return () => paper.project.remove();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -587,7 +589,7 @@ const NavTimeline: FunctionComponent = () => {
     selectedEvaSequenceItemUuid,
     showDistanceFromLander,
     showElevation,
-    rightPanelOpen,
+    rightPanelIsOpen,
   ]);
 
   // populated the flattenedGraphData ref walkback data based on the selected station

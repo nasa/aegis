@@ -2,19 +2,22 @@ import { deletePoiByUuid, setPoiCalculatedFields, upsertPoiFromDb } from "store/
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkGetElevation } from "./thunkElevation";
 import * as httpClient_poi from "http-client/poi";
-import * as httpClient_action from "http-client/action";
-import { upsertActions, deleteActionsByUuid, setActionsFromDb } from "store/action";
+import { upsertActions, deleteActionsByUuid } from "store/action";
 import { thunkObliteratePoi, thunkSaveNewPoi } from "./crossThunk";
 import { setPoiEditMode, setPoisFromDb, setSelectedPoiUuid, upsertPoi } from "store/poi";
-import { setRightPanelOpen } from "store/interface";
 import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { thunkCancelMarkerMapDirective } from "./thunkMap";
 import _ from "lodash";
-import { thunkDuplicateActions, thunkSaveActions } from "./thunkAction";
+import {
+  thunkDeleteActionFromDbAndStore,
+  thunkDuplicateActions,
+  thunkSaveActions,
+} from "./thunkAction";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
+import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 
 export const thunkUpdatePoiLatLngField = appCreateAsyncThunk<{
   poiUuid: string;
@@ -202,7 +205,7 @@ export const thunkPoiCancel = appCreateAsyncThunk<{
     dispatch(upsertPoi(poiFromDb, true));
     dispatch(upsertActions(poiActionsFromDb, true));
 
-    //delete newly added actions that user doesn't want to save
+    //delete newly added actions from the store that user doesn't want to save
     const addedActionsToDelete: Action[] = poiActions.filter(
       // only delete actions that don't exist in the db
       (action) => poiActionsFromDb.findIndex((actionDb) => actionDb.uuid === action.uuid) === -1
@@ -231,20 +234,7 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
     // delete actions from the db via internal api call
     const actionUuidsToDelete = poiActions.map((a) => a.uuid);
     if (actionUuidsToDelete.length > 0) {
-      const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteActions(
-        actionUuidsToDelete,
-        isRexRunning
-      );
-      if (actionDeleteResponse.status !== "success") {
-        throw new Error("Error deleting actions for poi " + actionDeleteResponse.message);
-      }
-      // delete actions from the store
-      dispatch(deleteActionsByUuid(actionUuidsToDelete));
-      // update store copy of the db with a fresh copy of actions for this mission from the db
-      const actionData = await httpClient_action.getActions({ missionId: selectedMissionId });
-      if (actionData.data) {
-        dispatch(setActionsFromDb(actionData.data));
-      }
+      await dispatch(thunkDeleteActionFromDbAndStore({ uuids: actionUuidsToDelete }));
     }
 
     // delete the POI from the DB via internal API call
@@ -274,7 +264,7 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
   dispatch(thunkCancelMarkerMapDirective({ uuid: poi.uuid }));
 
   // close right panel
-  dispatch(setRightPanelOpen(false));
+  dispatch(thunkSetRightPanelIsOpenIfAuto(false));
 });
 
 export const thunkCreatePoi = appCreateAsyncThunk<void>(

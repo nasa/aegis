@@ -19,18 +19,21 @@ import _ from "lodash";
 import { thunkFullUpdateTraverse, thunkUpdateTraversesAroundStation } from "./thunkTraverse";
 import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
-import { setRightPanelOpen } from "store/interface";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
-import { deleteActionsByUuid, setActionsFromDb, upsertActions } from "store/action";
+import { deleteActionsByUuid, upsertActions } from "store/action";
 import * as httpClient_station from "http-client/station";
-import * as httpClient_action from "http-client/action";
 import { updateMapDirective } from "store/map";
 import { thunkCancelMarkerMapDirective } from "./thunkMap";
-import { thunkDuplicateActions, thunkSaveActions } from "./thunkAction";
+import {
+  thunkDeleteActionFromDbAndStore,
+  thunkDuplicateActions,
+  thunkSaveActions,
+} from "./thunkAction";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import { thunkSaveNewStation } from "./crossThunk";
 import { mergeEquipmentItems } from "utils/store";
+import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 
 export const thunkUpdateStationLatLngField = appCreateAsyncThunk<{
   stationUuid: string;
@@ -486,7 +489,7 @@ export const thunkStationCancel = appCreateAsyncThunk<{
     dispatch(deleteStationByUuid(station.uuid));
     dispatch(setSelectedStationUuid(null));
     dispatch(deleteActionsByUuid(stationActions.map((a) => a.uuid)));
-    dispatch(setRightPanelOpen(false));
+    dispatch(thunkSetRightPanelIsOpenIfAuto(false));
   }
 
   // if the walkback is in edit mode, save the walkback
@@ -545,24 +548,9 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
   // if the selected station is in stationsFromDb then delete it from the db
   if (stationFromDb) {
     // delete actions from the db via internal api call
-    const actionuuidsToDelete: string[] = stationActions.map((a) => a.uuid);
-    if (actionuuidsToDelete.length > 0) {
-      const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteActions(
-        actionuuidsToDelete,
-        isRexRunning
-      );
-      if (actionDeleteResponse.status !== "success") {
-        throw new Error("Error deleting actions for station " + actionDeleteResponse.message);
-      }
-      // delete actions from the store
-      dispatch(deleteActionsByUuid(actionuuidsToDelete));
-      // update store copy of the db with a fresh copy of actions for this mission from the db
-      const actionData = await httpClient_action.getActions({
-        missionId: getState().mission.mission?.id,
-      });
-      if (actionData.data) {
-        dispatch(setActionsFromDb(actionData.data));
-      }
+    const actionUuidsToDelete: string[] = stationActions.map((a) => a.uuid);
+    if (actionUuidsToDelete.length > 0) {
+      await dispatch(thunkDeleteActionFromDbAndStore({ uuids: actionUuidsToDelete }));
     }
 
     // delete the Station from the DB via internal API call
@@ -592,7 +580,7 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
   dispatch(thunkCancelMarkerMapDirective({ uuid: station.uuid }));
   dispatch(setStationEditMode({ stationUuid: station.uuid, editMode: false }));
   // close right panel
-  dispatch(setRightPanelOpen(false));
+  dispatch(thunkSetRightPanelIsOpenIfAuto(false));
 });
 
 export const thunkCreateStation = appCreateAsyncThunk<void>(

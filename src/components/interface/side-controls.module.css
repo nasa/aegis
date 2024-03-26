@@ -10,6 +10,11 @@
   height: 100%;
 }
 
+.iconGutterContainer {
+  display: flex;
+  flex-direction: column;
+}
+
 .iconGutter {
   display: flex;
   flex-direction: column;
@@ -19,12 +24,9 @@
 }
 
 .iconContainer {
-  display: block;
   position: relative;
-  width: 100%;
   border-bottom-left-radius: 3px;
   border-top-left-radius: 3px;
-  z-index: 0;
   cursor: pointer;
 }
 
@@ -34,10 +36,10 @@
 
 .iconContainerSelected {
   position: relative;
-  background-color: var(--grey1);
-  cursor: pointer;
   border-bottom-left-radius: 3px;
   border-top-left-radius: 3px;
+  cursor: pointer;
+  background-color: var(--grey1);
 }
 
 .icon {
@@ -70,6 +72,19 @@
   height: 100%;
 }
 
+.activeComponentBottom {
+  display: flex;
+  flex-direction: row;
+  position: relative;
+  z-index: 2;
+}
+
+.bottomGutter {
+  display: flex;
+  flex-direction: column;
+  width: 40px;
+}
+
 .drawerBottom {
   position: relative;
   width: 58px;
@@ -92,7 +107,7 @@
   left: 0;
   top: -22px;
   transform: rotate(90deg);
-  z-index: 55;
+  z-index: 1;
 }
 
 .drawerBottomIcon {

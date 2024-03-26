@@ -1,6 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import adminStyles from "./admin.module.css";
-import { getObjectives, getGoals, getInvestigations, deleteSTMs } from "http-client/stm";
+import { getSTMLevel1s, getStmLevel2s, getSTMLevel3s, deleteSTMs } from "http-client/stm";
 import STMEdit from "components/admin/stmEdit";
 
 const MissionSTM: FunctionComponent<{ mission: Mission }> = (props: { mission: Mission }) => {
@@ -8,30 +8,30 @@ const MissionSTM: FunctionComponent<{ mission: Mission }> = (props: { mission: M
   const [message, setMessage] = useState("");
 
   //responses from the DB
-  const [allObjectives, setAllObjectives] = useState<STMObjective[]>([]);
-  const [allGoals, setAllGoals] = useState<STMGoal[]>([]);
-  const [allInvestigations, setAllInvestigations] = useState<STMInvestigation[]>([]);
+  const [allLevel1s, setAllLevel1s] = useState<STMLevel1[]>([]);
+  const [allLevel2s, setAllLevel2s] = useState<STMLevel2[]>([]);
+  const [allLevel3s, setAllLevel3s] = useState<STMLevel3[]>([]);
 
   const mission = props.mission;
 
   async function loadSTMfromDB(missionId: number) {
     if (missionId) {
-      //load objectives
-      const objectives = await getObjectives({ missionId: missionId });
-      if (objectives.data) {
-        setAllObjectives(objectives.data);
+      //load level1s
+      const level1s = await getSTMLevel1s({ missionId: missionId });
+      if (level1s.data) {
+        setAllLevel1s(level1s.data);
       }
 
-      //load goals
-      const goals = await getGoals({ missionId: missionId });
-      if (goals.data) {
-        setAllGoals(goals.data);
+      //load level2s
+      const level2s = await getStmLevel2s({ missionId: missionId });
+      if (level2s.data) {
+        setAllLevel2s(level2s.data);
       }
 
-      //load investigations
-      const investigations = await getInvestigations({ missionId: missionId });
-      if (investigations.data) {
-        setAllInvestigations(investigations.data);
+      //load level3s
+      const level3s = await getSTMLevel3s({ missionId: missionId });
+      if (level3s.data) {
+        setAllLevel3s(level3s.data);
       }
     }
   }
@@ -47,17 +47,17 @@ const MissionSTM: FunctionComponent<{ mission: Mission }> = (props: { mission: M
     loadSTMfromDB(missionIdSlug);
   }, [missionIdSlug]);
 
-  //delete an objective, goal, or investigation
-  async function delSTM(uuid: string, stmType: "Objective" | "Goal" | "Investigation") {
+  //delete a level 1, 2, or 3
+  async function delSTM(uuid: string, stmType: "Level1" | "Level2" | "Level3") {
     if (confirm("Are you sure you want to delete " + stmType)) {
       //check if there are children for this STM item
       let showAlert = false;
-      if (stmType === "Objective") {
-        if (allGoals.findIndex((goal) => goal.objectiveUuid === uuid) >= 0) {
+      if (stmType === "Level1") {
+        if (allLevel2s.findIndex((level2) => level2.level1Uuid === uuid) >= 0) {
           showAlert = true;
         }
-      } else if (stmType === "Goal") {
-        if (allInvestigations.findIndex((invstg) => invstg.goalUuid === uuid) >= 0) {
+      } else if (stmType === "Level2") {
+        if (allLevel3s.findIndex((level3) => level3.level2Uuid === uuid) >= 0) {
           showAlert = true;
         }
       }
@@ -85,19 +85,19 @@ const MissionSTM: FunctionComponent<{ mission: Mission }> = (props: { mission: M
           <h2>Mission: {mission.name}</h2>
           Status: {message}
           <h3>Science Tracability Matrix</h3>
-          <ObjectiveList
-            objectives={allObjectives}
-            goals={allGoals}
-            investigations={allInvestigations}
+          <Level1List
+            level1s={allLevel1s}
+            level2s={allLevel2s}
+            level3s={allLevel3s}
             delSTM={delSTM}
           />
           <div id="editSTM_div">
             <h3>Add/Delete STM</h3>
             <STMEdit
               missionId={missionIdSlug}
-              allObjectives={allObjectives}
-              allGoals={allGoals}
-              allInvestigations={allInvestigations}
+              allLevel1s={allLevel1s}
+              allLevel2s={allLevel2s}
+              allLevel3s={allLevel3s}
               reloadSTMfromDB={loadSTMfromDB}
             />
           </div>
@@ -111,34 +111,34 @@ const MissionSTM: FunctionComponent<{ mission: Mission }> = (props: { mission: M
 /** STM DISPLAY LIST COMPONENTS **/
 /*********************************/
 
-//Objective list component
-const ObjectiveList = (props: {
-  objectives: STMObjective[];
-  goals: STMGoal[];
-  investigations: STMInvestigation[];
+//Level1 list component
+const Level1List = (props: {
+  level1s: STMLevel1[];
+  level2s: STMLevel2[];
+  level3s: STMLevel3[];
   delSTM: (uuid: string, stmType: string) => void;
 }) => {
-  if (props.objectives.length > 0) {
+  if (props.level1s.length > 0) {
     return (
       <ul>
-        {props.objectives.map((objv: STMObjective) => {
+        {props.level1s.map((objv: STMLevel1) => {
           return (
             <li key={objv.uuid}>
-              Objective {objv.numbering}: {objv.name}
+              Goal {objv.numbering}: {objv.name}
               <button
                 className={adminStyles.deleteButton}
                 type="button"
                 onClick={() => {
-                  props.delSTM(objv.uuid, "Objective");
+                  props.delSTM(objv.uuid, "Level1");
                 }}
               >
-                Delete Objective
+                Delete Goal
               </button>
-              <GoalList
+              <Level2List
                 parentNumbering={objv.numbering}
                 parentuuid={objv.uuid}
-                goals={props.goals}
-                investigations={props.investigations}
+                level2s={props.level2s}
+                level3s={props.level3s}
                 delSTM={props.delSTM}
               />
             </li>
@@ -151,37 +151,37 @@ const ObjectiveList = (props: {
   }
 };
 
-//Goal list component
-const GoalList = (props: {
+//Level2 list component
+const Level2List = (props: {
   parentuuid: string;
   parentNumbering: string;
-  goals: STMGoal[];
-  investigations: STMInvestigation[];
+  level2s: STMLevel2[];
+  level3s: STMLevel3[];
   delSTM: (uuid: string, stmType: string) => void;
 }) => {
-  if (props.goals) {
+  if (props.level2s) {
     return (
       <ul>
-        {props.goals
-          .filter((goal) => goal.objectiveUuid === props.parentuuid)
-          .map((goal: STMGoal) => {
-            const goalNumbering = `${props.parentNumbering}${goal.numbering}`;
+        {props.level2s
+          .filter((level2) => level2.level1Uuid === props.parentuuid)
+          .map((level2: STMLevel2) => {
+            const level2Numbering = `${props.parentNumbering}${level2.numbering}`;
             return (
-              <li key={goal.uuid}>
-                Goal {goalNumbering}: {goal.name}
+              <li key={level2.uuid}>
+                Objective {level2Numbering}: {level2.name}
                 <button
                   className={adminStyles.deleteButton}
                   type="button"
                   onClick={() => {
-                    props.delSTM(goal.uuid, "Goal");
+                    props.delSTM(level2.uuid, "Level2");
                   }}
                 >
-                  Delete Goal
+                  Delete Objective
                 </button>
-                <InvestigationList
-                  parentNumbering={goalNumbering}
-                  parentuuid={goal.uuid}
-                  investigations={props.investigations}
+                <Level3List
+                  parentNumbering={level2Numbering}
+                  parentuuid={level2.uuid}
+                  level3s={props.level3s}
                   delSTM={props.delSTM}
                 />
               </li>
@@ -192,27 +192,27 @@ const GoalList = (props: {
   }
 };
 
-//Investigation list component.
-const InvestigationList = (props: {
+//Level3 list component.
+const Level3List = (props: {
   parentuuid: string;
   parentNumbering: string;
-  investigations: STMInvestigation[];
+  level3s: STMLevel3[];
   delSTM: (uuid: string, stmType: string) => void;
 }) => {
-  if (props.investigations) {
+  if (props.level3s) {
     return (
       <ul>
-        {props.investigations
-          .filter((invstg) => invstg.goalUuid === props.parentuuid)
-          .map((invstg: STMInvestigation) => {
+        {props.level3s
+          .filter((level3) => level3.level2Uuid === props.parentuuid)
+          .map((level3: STMLevel3) => {
             return (
-              <li key={invstg.uuid}>
-                Investigation {`${props.parentNumbering}-${invstg.numbering}`}: {invstg.name}
+              <li key={level3.uuid}>
+                Investigation {`${props.parentNumbering}-${level3.numbering}`}: {level3.name}
                 <button
                   className={adminStyles.deleteButton}
                   type="button"
                   onClick={() => {
-                    props.delSTM(invstg.uuid, "Investigation");
+                    props.delSTM(level3.uuid, "Level3");
                   }}
                 >
                   Delete Investigation

@@ -15,7 +15,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     deepEqual
   );
   const isSelectedEvaInARunningRex = useAppSelector(
-    (state) => state.rex.rexes.find((rex) => rex.evaUuid === selectedEvaUuid)?.isRunning,
+    (state) => state.rex.rexes.find((rex) => rex.isRunning)?.evaUuid === selectedEvaUuid,
     refEqual
   );
   const stations = useAppSelector((state) => state.station.stations, deepEqual);
@@ -42,10 +42,10 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
 
   //set state of highlighted actions when the STM is hovered over
   const highlightActions = useCallback(
-    async (invstgUUID: string) => {
+    async (level3Uuid: string) => {
       if (!evaActionOrderUuids) return;
       const resHighlightActions = await dispatch(
-        thunkGetHighlightedActions({ actionUuids: evaActionOrderUuids, stmUuid: invstgUUID })
+        thunkGetHighlightedActions({ actionUuids: evaActionOrderUuids, stmUuid: level3Uuid })
       );
       if (resHighlightActions.payload) {
         setIsActionHighlighted(resHighlightActions.payload);

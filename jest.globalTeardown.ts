@@ -17,9 +17,9 @@ const globalTeardown = async (): Promise<void> => {
   delete from "traverse_db" where mission_id in (select id from "mission_db" where name like '%Jest%' );
   delete from "eva_db" where mission_id in (select id from "mission_db" where name like '%Jest%' );
   delete from "rex_db" where mission_id in (select id from "mission_db" where name like '%Jest%' );
-  delete from "stm_investigation_db" where goal_uuid in (select uuid from "stm_goal_db" where uuid in (select uuid from "stm_objective_db" where mission_id in (select id from "mission_db" where name like '%Jest%' )));
-  delete from "stm_goal_db" where objective_uuid in (select uuid from "stm_objective_db" where mission_id in (select id from "mission_db" where name like '%Jest%' ));
-  delete from "stm_objective_db" where mission_id in (select id from "mission_db" where name like '%Jest%' );
+  delete from "stm_level3_db" where level2_uuid in (select uuid from "stm_level2_db" where uuid in (select uuid from "stm_level1_db" where mission_id in (select id from "mission_db" where name like '%Jest%' )));
+  delete from "stm_level2_db" where level1_uuid in (select uuid from "stm_level1_db" where mission_id in (select id from "mission_db" where name like '%Jest%' ));
+  delete from "stm_level1_db" where mission_id in (select id from "mission_db" where name like '%Jest%' );
   delete from "mission_db" where name like '%Jest%';
   delete from "user_db" where username like '%Jest%';`;
   await em.getConnection().execute(sql);

@@ -4,8 +4,10 @@ interface HoverState {
   mapItemUuid: string;
   mapItemType: MapItemType;
   posEntryItemUuid: string;
-  evaSecondsElapsed: number /** Seconds representing the time into the mission that the mouse is hovering on via the nav-timeline */;
-  sequenceItemPercentElapsed: number; //when hovering over the timline, represents % duration elapsed for that sequence item at that point in time
+  mapItemUuid: string;
+  sequenceItemPercentElapsed: number; //when hovering over the timeline, represents % duration elapsed for that sequence item at that point in time
+  measurementUuid: string;
+  measurementPercentDistance: number;
 }
 
 interface MissionState {
@@ -28,8 +30,9 @@ interface MapState {
   mapSublayerControls: MapSublayerControls;
   mapCircleControls: MapCircleControls;
   activeSelectedName: string;
-  mousePosition: LatLng;
+  mousePosition: AEGISPoint;
   mapDirective: MapDirective;
+  measureInitialCoords: AEGISPoint[];
 }
 
 interface EvaState {
@@ -74,11 +77,15 @@ interface PresetState {
 }
 
 type InterfaceSection = "mission" | "preset" | "poi" | "station" | "evas" | "rex";
+type BottomInterfaceSection = "timeline" | "measure";
 interface InterfaceState {
   sectionSelectedLabel: InterfaceSection;
-  leftPanelOpen: boolean;
-  rightPanelOpen: boolean;
-  bottomPanelOpen: boolean;
+  bottomSectionSelectedLabel: BottomInterfaceSection;
+  leftPanelIsOpen: boolean;
+  rightPanelIsOpen: boolean;
+  bottomPanelIsOpen: boolean;
+  autoRightPanelOpen: boolean;
+  autoBottomPanelOpen: boolean;
   elevationPendingItemUuids: string[];
   timelineShowDistanceFromLander: boolean;
   timelineShowElevation: boolean;
@@ -87,9 +94,9 @@ interface InterfaceState {
 }
 
 interface STMState {
-  objectives: STMObjective[];
-  goals: STMGoal[];
-  investigations: STMInvestigation[];
+  level1s: STMLevel1[];
+  level2s: STMLevel2[];
+  level3s: STMLevel3[];
   loadingStatus: LoadingStatus;
 }
 
@@ -120,6 +127,20 @@ interface RexState {
   selectedPosEntryUuid: string;
   posEntryEditingUuid: string; //only one can be in edit mode at a time
   loadingStatus: LoadingStatus;
+}
+
+interface MeasureState {
+  measurements: Measurement[];
+  selectedMeasurementUuid: string;
+}
+
+interface Measurement {
+  uuid: string;
+  createdAt: string;
+  color: string;
+  path: AEGISPoint[];
+  pathSegmentDistances: number[]; //meters
+  pathSegmentElevations: number[][]; //meters
 }
 
 type ReportItem = {

@@ -17,7 +17,6 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "../form/globalFields";
-import { updateMapDirective } from "store/map";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { shallowEqual, deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import {
@@ -35,7 +34,7 @@ import { PosKabobMenu } from "./map-menu-pos-menu";
 import { orderBy } from "lodash";
 import { calcPathDurationMins, getDistanceBetweenTwoCoordinates } from "utils/geoMath";
 import _ from "lodash";
-import { thunkVerifyNoActiveMapAction } from "store/thunk/thunkMap";
+import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 
 export const MapPositionMenu: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -149,38 +148,29 @@ export const MapPositionMenu: FunctionComponent = () => {
     }
   });
 
-  // verify map action using a thunk to avoid subscribing to the mapDirective
-  const verifyNoActiveMapAction = async (): Promise<boolean> => {
-    return (await dispatch(thunkVerifyNoActiveMapAction())).payload;
-  };
-
   //create a new position entry
   const handleCreate = async () => {
-    if (await verifyNoActiveMapAction()) {
-      await dispatch(thunkClearAllMapSelections());
-      const newUuid = (await dispatch(thunkCreatePosEntry({ posTypeUuids: selectedPosTypeUuids })))
-        .payload;
-      if (newUuid) {
-        dispatch(
-          updateMapDirective({
-            mapItemType: "posEntry",
-            uuid: newUuid,
-            mapAction: "createMarker",
-          })
-        );
-      }
-    }
-  };
-  const handlePositionEdit = async (posEditingUuid: string) => {
-    if (await verifyNoActiveMapAction()) {
+    await dispatch(thunkClearAllMapSelections());
+    const newUuid = (await dispatch(thunkCreatePosEntry({ posTypeUuids: selectedPosTypeUuids })))
+      .payload;
+    if (newUuid) {
       dispatch(
-        updateMapDirective({
+        thunkUpdateMapDirective({
           mapItemType: "posEntry",
-          uuid: posEditingUuid,
-          mapAction: "editMarker",
+          uuid: newUuid,
+          mapAction: "createMarker",
         })
       );
     }
+  };
+  const handlePositionEdit = async (posEditingUuid: string) => {
+    dispatch(
+      thunkUpdateMapDirective({
+        mapItemType: "posEntry",
+        uuid: posEditingUuid,
+        mapAction: "editMarker",
+      })
+    );
   };
   return (
     <div className={styles.mapPosDisplayContainer}>

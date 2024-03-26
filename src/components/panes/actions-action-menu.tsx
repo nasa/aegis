@@ -4,7 +4,7 @@ import { FunctionComponent, useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import actionStyles from "./actions-action.module.css";
 import { upsertAction } from "store/action";
-import { thunkDeleteAction } from "store/thunk/thunkAction";
+import { thunkDeleteActionFromStore } from "store/thunk/thunkAction";
 
 export const ActionMenu: FunctionComponent<{
   action: Action;
@@ -47,7 +47,7 @@ export const ActionMenu: FunctionComponent<{
             className={actionStyles.menuItem}
             onClick={(e) => {
               if (window.confirm("Are you sure you want to delete this Action?")) {
-                dispatch(thunkDeleteAction({ uuid: action.uuid }));
+                dispatch(thunkDeleteActionFromStore({ uuid: action.uuid }));
                 e.stopPropagation();
               }
               dialogRef.current?.close();

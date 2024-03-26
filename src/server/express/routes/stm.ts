@@ -14,36 +14,32 @@ import {
   Loaded,
   QueryOrder,
 } from "@mikro-orm/core";
-import {
-  STM_Objective_db,
-  STM_Goal_db,
-  STM_Investigation_db,
-} from "server/database/models/_allModels";
+import { STM_Level1_db, STM_Level2_db, STM_Level3_db } from "server/database/models/_allModels";
 
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { missionId, stmType, o, g, i } = query;
+  const { missionId, stmType, l1, l2, l3 } = query;
   const queryObj = {
     missionId: missionId ? parseInt(missionId as string) : undefined,
     stmType: stmType ? stmType.toString() : undefined,
-    o: o ? o.toString() : undefined,
-    g: g ? g.toString() : undefined,
-    i: i ? i.toString() : undefined,
+    l1: l1 ? l1.toString() : undefined,
+    l2: l2 ? l2.toString() : undefined,
+    l3: l3 ? l3.toString() : undefined,
   };
   return queryObj;
 };
 type QueryParamDict = {
-  o: string;
-  g: string;
-  i: string;
+  l1: string;
+  l2: string;
+  l3: string;
   a: string;
 };
 
-const queryParamDict = {
-  o: "Objective",
-  g: "Goal",
-  i: "Investigation",
+const queryParamDict: QueryParamDict = {
+  l1: "Level1",
+  l2: "level2",
+  l3: "level3",
   a: "ALL",
 };
 
@@ -65,14 +61,14 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
   try {
-    let records: STMObjective[] | STMGoal[] | STMInvestigation[] = [];
+    let records: STMLevel1[] | STMLevel2[] | STMLevel3[] = [];
 
-    if (queryObj.stmType === "o") {
-      records = await getObjectives(queryObj.missionId, queryObj.o);
-    } else if (queryObj.stmType === "g") {
-      records = await getGoals(queryObj.missionId, queryObj.o, queryObj.g);
-    } else if (queryObj.stmType === "i") {
-      records = await getInvestigations(queryObj.missionId, queryObj.o, queryObj.g, queryObj.i);
+    if (queryObj.stmType === "l1") {
+      records = await getLevel1s(queryObj.missionId, queryObj.l1);
+    } else if (queryObj.stmType === "l2") {
+      records = await getLevel2s(queryObj.missionId, queryObj.l1, queryObj.l2);
+    } else if (queryObj.stmType === "l3") {
+      records = await getLevel3s(queryObj.missionId, queryObj.l1, queryObj.l2, queryObj.l3);
     } else {
       res.status(500).json({ status: "error", message: "Invalid stm type" });
       return;
@@ -99,19 +95,19 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    let upsertResponse: STMObjective[] | STMGoal[] | STMInvestigation[] = [];
-    let upsertObjects: STMObjective[] | STMGoal[] | STMInvestigation[];
-    let upsertType: "Objective" | "Goal" | "Investigation";
+    let upsertResponse: STMLevel1[] | STMLevel2[] | STMLevel3[] = [];
+    let upsertObjects: STMLevel1[] | STMLevel2[] | STMLevel3[];
+    let upsertType: "Level1" | "Level2" | "Level3" = null;
 
-    if (queryObj.stmType === "o") {
-      upsertObjects = req.body as STMObjective[];
-      upsertType = "Objective";
-    } else if (queryObj.stmType === "g") {
-      upsertObjects = req.body as STMGoal[];
-      upsertType = "Goal";
-    } else if (queryObj.stmType === "i") {
-      upsertObjects = req.body as STMInvestigation[];
-      upsertType = "Investigation";
+    if (queryObj.stmType === "level1") {
+      upsertObjects = req.body as STMLevel1[];
+      upsertType = "Level1";
+    } else if (queryObj.stmType === "level2") {
+      upsertObjects = req.body as STMLevel2[];
+      upsertType = "Level2";
+    } else if (queryObj.stmType === "level3") {
+      upsertObjects = req.body as STMLevel3[];
+      upsertType = "Level3";
     } else {
       res.status(500).json({ status: "error", message: "Invalid type" });
       return;
@@ -155,13 +151,13 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     let deletedResponse: string[];
     const uuidsToDelete: string[] = req.body;
 
-    if (queryObj.stmType === "o") {
-      deletedResponse = await deleteSTMs(uuidsToDelete, "Objective");
-    } else if (queryObj.stmType === "g") {
-      deletedResponse = await deleteSTMs(uuidsToDelete, "Goal");
-    } else if (queryObj.stmType === "i") {
-      deletedResponse = await deleteSTMs(uuidsToDelete, "Investigation");
-    } else if (queryObj.stmType === "a" && queryObj.missionId) {
+    if (queryObj.stmType === "level1") {
+      deletedResponse = await deleteSTMs(uuidsToDelete, "Level1");
+    } else if (queryObj.stmType === "level2") {
+      deletedResponse = await deleteSTMs(uuidsToDelete, "Level2");
+    } else if (queryObj.stmType === "level3") {
+      deletedResponse = await deleteSTMs(uuidsToDelete, "Level3");
+    } else if (queryObj.stmType === "all" && queryObj.missionId) {
       deletedResponse = [await deleteSTMTree(queryObj.missionId)];
     } else {
       res.status(500).json({ status: "error", message: "Invalid url parameters" });
@@ -200,192 +196,186 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
 export default router;
 
 /**
- * get objective(s) from the database.
+ * get level1(s) from the database.
  * @param missionId the mission id. required
- * @param objectiveUUID optional objective uuid to retrieve. No value will retrieve all objectives for the mission
- * @returns array of stm objectives. returns empty array if no records found
+ * @param level1Uuid optional level1 uuid to retrieve. No value will retrieve all level1s for the mission
+ * @returns array of stm level1s. returns empty array if no records found
  */
-export async function getObjectives(
-  missionId: number,
-  objectiveUUID?: string
-): Promise<STMObjective[]> {
+export async function getLevel1s(missionId: number, level1Uuid?: string): Promise<STMLevel1[]> {
   const em = getEM();
 
-  let objectives: Loaded<STM_Objective_db, never>[];
-  if (objectiveUUID) {
-    objectives = await em.find(
-      STM_Objective_db,
-      { uuid: objectiveUUID, mission: { id: missionId } },
+  let level1s: Loaded<STM_Level1_db, never>[];
+  if (level1Uuid) {
+    level1s = await em.find(
+      STM_Level1_db,
+      { uuid: level1Uuid, mission: { id: missionId } },
       { orderBy: { numbering: QueryOrder.ASC } }
     );
   } else {
-    objectives = await em.find(
-      STM_Objective_db,
+    level1s = await em.find(
+      STM_Level1_db,
       { mission: { id: missionId } },
       { orderBy: { numbering: QueryOrder.ASC } }
     );
   }
 
-  if (objectives) {
+  if (level1s) {
     //convert fks
-    const objectivesConverted: STMObjective[] = objectives.map((objectives_db) => {
-      const objective: STMObjective = {
-        uuid: objectives_db.uuid,
-        numbering: objectives_db.numbering,
-        name: objectives_db.name,
-        missionId: objectives_db.mission.id,
-        createdAt: objectives_db.createdAt.toISOString(),
-        updatedAt: objectives_db.updatedAt.toISOString(),
+    const level1sConverted: STMLevel1[] = level1s.map((level1s_db) => {
+      const level1: STMLevel1 = {
+        uuid: level1s_db.uuid,
+        numbering: level1s_db.numbering,
+        name: level1s_db.name,
+        missionId: level1s_db.mission.id,
+        createdAt: level1s_db.createdAt.toISOString(),
+        updatedAt: level1s_db.updatedAt.toISOString(),
       };
-      return objective;
+      return level1;
     });
-    return objectivesConverted;
+    return level1sConverted;
   } else {
     return [];
   }
 }
 
 /**
- * get goal(s) from the database
+ * get level2(s) from the database
  * @param missionId the mission id. required
- * @param objectiveUUID optional objective uuid. If specified, all goals under this objective are returned
- * @param goalUUID optional goal uuid to retrieve. No value will retrieve all goals for the mission/objective
- * @returns array of stm goals. returns empty array if no records found
+ * @param level1Uuid optional level1 uuid. If specified, all level2s under this level1 are returned
+ * @param level2Uuid optional level2 uuid to retrieve. No value will retrieve all level2s for the mission/level1
+ * @returns array of stm level2s. returns empty array if no records found
  */
-export async function getGoals(
+export async function getLevel2s(
   missionId: number,
-  objectiveUUID?: string,
-  goalUUID?: string
-): Promise<STMGoal[]> {
+  level1Uuid?: string,
+  level2Uuid?: string
+): Promise<STMLevel2[]> {
   const em = getEM();
 
   //build the "where" options in Mikro ORM syntax
-  const objectiveWhereClause: { uuid?: string; mission: { id: number } } = {
+  const level1WhereClause: { uuid?: string; mission: { id: number } } = {
     mission: { id: missionId },
   };
-  if (objectiveUUID) objectiveWhereClause.uuid = objectiveUUID;
+  if (level1Uuid) level1WhereClause.uuid = level1Uuid;
 
-  const goalWhereClause: { uuid?: string; objective: {} } = { objective: objectiveWhereClause };
-  if (goalUUID) goalWhereClause.uuid = goalUUID;
+  const level2WhereClause: { uuid?: string; level1: {} } = { level1: level1WhereClause };
+  if (level2Uuid) level2WhereClause.uuid = level2Uuid;
 
-  const goals: Loaded<STM_Goal_db, never>[] = await em.find(
-    STM_Goal_db,
-    { ...goalWhereClause },
-    { orderBy: [{ objective: { numbering: QueryOrder.ASC } }, { numbering: QueryOrder.ASC }] }
+  const level2s: Loaded<STM_Level2_db, never>[] = await em.find(
+    STM_Level2_db,
+    { ...level2WhereClause },
+    { orderBy: [{ level1: { numbering: QueryOrder.ASC } }, { numbering: QueryOrder.ASC }] }
   );
 
-  if (goals) {
+  if (level2s) {
     //convert fks
-    const goalsConverted: STMGoal[] = goals.map((goal_db) => {
-      const goal: STMGoal = {
-        uuid: goal_db.uuid,
-        numbering: goal_db.numbering,
-        name: goal_db.name,
-        objectiveUuid: goal_db.objective.uuid,
-        createdAt: goal_db.createdAt.toISOString(),
-        updatedAt: goal_db.updatedAt.toISOString(),
+    const level2sConverted: STMLevel2[] = level2s.map((level2_db) => {
+      const level2: STMLevel2 = {
+        uuid: level2_db.uuid,
+        numbering: level2_db.numbering,
+        name: level2_db.name,
+        level1Uuid: level2_db.level1.uuid,
+        createdAt: level2_db.createdAt.toISOString(),
+        updatedAt: level2_db.updatedAt.toISOString(),
       };
-      return goal;
+      return level2;
     });
-    return goalsConverted;
+    return level2sConverted;
   } else {
     return [];
   }
 }
 
 /**
- * get investigation(s) from the database
+ * get level3(s) from the database
  * @param missionId the mission id. required
- * @param objectiveUUID optional objective uuid. If specified, all investigations under this objective are returned
- * @param goalUUID optional goal uuid. If specified, all investigations under this goal are returned
- * @param investigationUUID optional investigation uuid to retrieve. No value will retrieve all investigations for the mission/objective/goal
- * @returns array of stm investigations. returns empty array if no records found
+ * @param level1Uuid optional level1 uuid. If specified, all level3s under this level1 are returned
+ * @param level2Uuid optional level2 uuid. If specified, all level3s under this level2 are returned
+ * @param level3Uuid optional level3 uuid to retrieve. No value will retrieve all level3s for the mission/level1/level2
+ * @returns array of stm level3s. returns empty array if no records found
  */
-export async function getInvestigations(
+export async function getLevel3s(
   missionId: number,
-  objectiveUUID?: string,
-  goalUUID?: string,
-  investigationUUID?: string
-): Promise<STMInvestigation[]> {
+  level1Uuid?: string,
+  level2Uuid?: string,
+  level3Uuid?: string
+): Promise<STMLevel3[]> {
   const em = getEM();
 
   //build the "where" options in Mikro ORM syntax
-  const objectiveWhereClause: { uuid?: string; mission: { id: number } } = {
+  const level1WhereClause: { uuid?: string; mission: { id: number } } = {
     mission: { id: missionId },
   };
-  if (objectiveUUID) objectiveWhereClause.uuid = objectiveUUID;
+  if (level1Uuid) level1WhereClause.uuid = level1Uuid;
 
-  const goalWhereClause: { uuid?: string; objective: {} } = { objective: objectiveWhereClause };
-  if (goalUUID) goalWhereClause.uuid = goalUUID;
+  const level2WhereClause: { uuid?: string; level1: {} } = { level1: level1WhereClause };
+  if (level2Uuid) level2WhereClause.uuid = level2Uuid;
 
-  const invstgWhereClause: { uuid?: string; goal: {} } = { goal: goalWhereClause };
-  if (investigationUUID) invstgWhereClause.uuid = investigationUUID;
+  const level3WhereClause: { uuid?: string; level2: {} } = { level2: level2WhereClause };
+  if (level3Uuid) level3WhereClause.uuid = level3Uuid;
 
-  const invstgs: Loaded<STM_Investigation_db, never>[] = await em.find(
-    STM_Investigation_db,
-    { ...invstgWhereClause },
+  const level3s: Loaded<STM_Level3_db, never>[] = await em.find(
+    STM_Level3_db,
+    { ...level3WhereClause },
     {
       orderBy: [
-        { goal: { objective: { numbering: QueryOrder.ASC } } },
-        { goal: { numbering: QueryOrder.ASC } },
+        { level2: { level1: { numbering: QueryOrder.ASC } } },
+        { level2: { numbering: QueryOrder.ASC } },
         { numbering: QueryOrder.ASC },
       ],
     }
   );
 
-  if (invstgs) {
+  if (level3s) {
     //convert fks
-    const invstgConverted: STMInvestigation[] = invstgs.map((invstgs_db) => {
-      const invstg: STMInvestigation = {
-        uuid: invstgs_db.uuid,
-        numbering: invstgs_db.numbering,
-        name: invstgs_db.name,
-        goalUuid: invstgs_db.goal.uuid,
-        createdAt: invstgs_db.createdAt.toISOString(),
-        updatedAt: invstgs_db.updatedAt.toISOString(),
+    const level3Converted: STMLevel3[] = level3s.map((level3_db) => {
+      const level3: STMLevel3 = {
+        uuid: level3_db.uuid,
+        numbering: level3_db.numbering,
+        name: level3_db.name,
+        level2Uuid: level3_db.level2.uuid,
+        createdAt: level3_db.createdAt.toISOString(),
+        updatedAt: level3_db.updatedAt.toISOString(),
       };
-      return invstg;
+      return level3;
     });
-    return invstgConverted;
+    return level3Converted;
   } else {
     return [];
   }
 }
 
 /**
- * Inserts or Updates either objectives, goals, or investigations into the database.
+ * Inserts or Updates either level1s, level2, or level3s into the database.
  * Takes the object and converts fks to upsert, then converts them back on return
- * @param stmObjects the STM objectives, goals, or investigations object to upsert
+ * @param stmObjects the STM level1s, level2, or level3s object to upsert
  * @param stmType a string representation of the record type. This is used to type check at runtime since these are custom typescript types
  * @returns a copy of the STM objects that were upserted
  */
 export async function upsertSTMs(
-  stmObjects: STMObjective[] | STMGoal[] | STMInvestigation[],
-  stmType: "Objective" | "Goal" | "Investigation"
-): Promise<STMObjective[] | STMGoal[] | STMInvestigation[]> {
+  stmObjects: STMLevel1[] | STMLevel2[] | STMLevel3[],
+  stmType: "Level1" | "Level2" | "Level3"
+): Promise<STMLevel1[] | STMLevel2[] | STMLevel3[]> {
   const em = getEM();
 
   //determine the db table and perform upsert
-  if (stmType === "Objective") {
-    const stmsUpsertedToDb: STMObjective[] = [];
+  if (stmType === "Level1") {
+    const stmsUpsertedToDb: STMLevel1[] = [];
     for (const stmObject of stmObjects) {
-      const objective = stmObject as STMObjective;
-      const convertedObjective: EntityData<STM_Objective_db> = {
-        uuid: objective.uuid || uuidv4(),
-        numbering: objective.numbering,
-        name: objective.name,
-        mission: objective.missionId,
-        createdAt: new Date(objective.createdAt),
-        updatedAt: new Date(objective.updatedAt),
+      const level1 = stmObject as STMLevel1;
+      const convertedLevel1: EntityData<STM_Level1_db> = {
+        uuid: level1.uuid || uuidv4(),
+        numbering: level1.numbering,
+        name: level1.name,
+        mission: level1.missionId,
+        createdAt: new Date(level1.createdAt),
+        updatedAt: new Date(level1.updatedAt),
       }; //convert fks
 
-      const upsertReference: STM_Objective_db = await em.upsert(
-        STM_Objective_db,
-        convertedObjective
-      );
+      const upsertReference: STM_Level1_db = await em.upsert(STM_Level1_db, convertedLevel1);
       em.persist(upsertReference);
 
-      const upsertedObjective: STMObjective = {
+      const upsertedLevel1: STMLevel1 = {
         uuid: upsertReference.uuid,
         numbering: upsertReference.numbering,
         name: upsertReference.name,
@@ -393,65 +383,62 @@ export async function upsertSTMs(
         createdAt: upsertReference.createdAt.toISOString(),
         updatedAt: upsertReference.updatedAt.toISOString(),
       };
-      stmsUpsertedToDb.push(upsertedObjective);
+      stmsUpsertedToDb.push(upsertedLevel1);
     }
     await em.flush();
     return stmsUpsertedToDb;
-  } else if (stmType === "Goal") {
-    const stmsUpsertedToDb: STMGoal[] = [];
+  } else if (stmType === "Level2") {
+    const stmsUpsertedToDb: STMLevel2[] = [];
     for (const stmObject of stmObjects) {
-      const goal = stmObject as STMGoal;
-      const convertedGoal: EntityData<STM_Goal_db> = {
-        uuid: goal.uuid || uuidv4(),
-        numbering: goal.numbering,
-        name: goal.name,
-        objective: goal.objectiveUuid,
-        createdAt: new Date(goal.createdAt),
-        updatedAt: new Date(goal.updatedAt),
+      const level2 = stmObject as STMLevel2;
+      const convertedLevel2: EntityData<STM_Level2_db> = {
+        uuid: level2.uuid || uuidv4(),
+        numbering: level2.numbering,
+        name: level2.name,
+        level1: level2.level1Uuid,
+        createdAt: new Date(level2.createdAt),
+        updatedAt: new Date(level2.updatedAt),
       }; //convert fks
 
-      const upsertReference: STM_Goal_db = await em.upsert(STM_Goal_db, convertedGoal);
+      const upsertReference: STM_Level2_db = await em.upsert(STM_Level2_db, convertedLevel2);
       em.persist(upsertReference);
 
-      const upsertedGoal: STMGoal = {
+      const upsertedLevel2: STMLevel2 = {
         uuid: upsertReference.uuid,
         numbering: upsertReference.numbering,
         name: upsertReference.name,
-        objectiveUuid: upsertReference.objective.uuid,
+        level1Uuid: upsertReference.level1.uuid,
         createdAt: upsertReference.createdAt.toISOString(),
         updatedAt: upsertReference.updatedAt.toISOString(),
       };
-      stmsUpsertedToDb.push(upsertedGoal);
+      stmsUpsertedToDb.push(upsertedLevel2);
     }
     await em.flush();
     return stmsUpsertedToDb;
   } else {
-    const stmsUpsertedToDb: STMInvestigation[] = [];
+    const stmsUpsertedToDb: STMLevel3[] = [];
     for (const stmObject of stmObjects) {
-      const invstg = stmObject as STMInvestigation;
-      const convertedInvstg: EntityData<STM_Investigation_db> = {
-        uuid: invstg.uuid || uuidv4(),
-        numbering: invstg.numbering,
-        name: invstg.name,
-        goal: invstg.goalUuid,
-        createdAt: new Date(invstg.createdAt),
-        updatedAt: new Date(invstg.updatedAt),
+      const level3 = stmObject as STMLevel3;
+      const convertedLevel3: EntityData<STM_Level3_db> = {
+        uuid: level3.uuid || uuidv4(),
+        numbering: level3.numbering,
+        name: level3.name,
+        level2: level3.level2Uuid,
+        createdAt: new Date(level3.createdAt),
+        updatedAt: new Date(level3.updatedAt),
       };
-      const upsertReference: STM_Investigation_db = await em.upsert(
-        STM_Investigation_db,
-        convertedInvstg
-      );
+      const upsertReference: STM_Level3_db = await em.upsert(STM_Level3_db, convertedLevel3);
       em.persist(upsertReference);
 
-      const upsertedInvstg: STMInvestigation = {
+      const upsertedLevel3: STMLevel3 = {
         uuid: upsertReference.uuid,
         numbering: upsertReference.numbering,
         name: upsertReference.name,
-        goalUuid: upsertReference.goal.uuid,
+        level2Uuid: upsertReference.level2.uuid,
         createdAt: upsertReference.createdAt.toISOString(),
         updatedAt: upsertReference.updatedAt.toISOString(),
       };
-      stmsUpsertedToDb.push(upsertedInvstg);
+      stmsUpsertedToDb.push(upsertedLevel3);
     }
     await em.flush();
     return stmsUpsertedToDb;
@@ -459,25 +446,25 @@ export async function upsertSTMs(
 }
 
 /**
- * Deletes objectives, goals, or investigations for given UUIDs
- * @param stmUUID UUIDs of the objective, goal, or investigation to delete
+ * Deletes level1s, level2s, or level3s for given UUIDs
+ * @param stmUUID UUIDs of the level1, level2, or level3 to delete
  * @param stmType the type of STM object
  * @return Retruns a promise of a string uuids of the entity deleted
  */
 export async function deleteSTMs(
   stmUuids: string[],
-  stmType: "Objective" | "Goal" | "Investigation"
+  stmType: "Level1" | "Level2" | "Level3"
 ): Promise<string[]> {
   const em = getEM();
   const deletedUuids = [];
-  let tableEntity: EntityName<STM_Objective_db | STM_Goal_db | STM_Investigation_db>;
+  let tableEntity: EntityName<STM_Level1_db | STM_Level2_db | STM_Level3_db>;
 
-  if (stmType === "Objective") {
-    tableEntity = STM_Objective_db;
-  } else if (stmType === "Goal") {
-    tableEntity = STM_Goal_db;
+  if (stmType === "Level1") {
+    tableEntity = STM_Level1_db;
+  } else if (stmType === "Level2") {
+    tableEntity = STM_Level2_db;
   } else {
-    tableEntity = STM_Investigation_db;
+    tableEntity = STM_Level3_db;
   }
   for (const stmUuid of stmUuids) {
     const entity = await em.findOne(tableEntity, stmUuid);
@@ -497,19 +484,19 @@ export async function deleteSTMTree(missionId: number): Promise<string> {
   const em = getEM();
 
   // loop through hierarchy and delete. There's probably a better way to do this but I burned hours so this is it for now
-  const objectives = await getObjectives(missionId);
-  for (const objective of objectives) {
-    const goals = await getGoals(missionId, objective.uuid);
-    for (const goal of goals) {
-      const investigations = await getInvestigations(missionId, null, goal.uuid);
-      for (const investigation of investigations) {
-        const entity = await em.findOne(STM_Investigation_db, investigation.uuid);
+  const level1s = await getLevel1s(missionId);
+  for (const level1 of level1s) {
+    const level2s = await getLevel2s(missionId, level1.uuid);
+    for (const level2 of level2s) {
+      const level3s = await getLevel3s(missionId, null, level2.uuid);
+      for (const level3 of level3s) {
+        const entity = await em.findOne(STM_Level3_db, level3.uuid);
         em.remove(entity);
       }
-      const entity = await em.findOne(STM_Goal_db, goal.uuid);
+      const entity = await em.findOne(STM_Level2_db, level2.uuid);
       em.remove(entity);
     }
-    const entity = await em.findOne(STM_Objective_db, objective.uuid);
+    const entity = await em.findOne(STM_Level1_db, level1.uuid);
     em.remove(entity);
   }
   await em.flush();

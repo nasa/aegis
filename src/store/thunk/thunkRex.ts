@@ -111,8 +111,22 @@ export const thunkSaveRex = appCreateAsyncThunk<{ rexUuid: string }>(
   "rexSave",
   async ({ rexUuid }, { dispatch, getState }) => {
     if (!rexUuid) return;
+    const rex = getState().rex.rexes.find((rex) => rex.uuid === rexUuid);
 
-    const rexToSave = getState().rex.rexes.find((rex) => rex.uuid === rexUuid);
+    const rexToSave: Rex = _.cloneDeep(rex);
+    // check if pos entry is mid-edit
+    if (getState().rex.posEntryEditingUuid) {
+      const positionEntryInEdit = rex.posEntries.find(
+        (c) => c.uuid === getState().rex.posEntryEditingUuid
+      );
+      if (positionEntryInEdit) {
+        await dispatch(thunkCancelPosEntry({ posEntryUuid: positionEntryInEdit.uuid }));
+        // the record will be removed via reducer but it may not hit the store before we upsert. Manually change it here
+        const newAllPosEntries = rex.posEntries.filter((c) => c.uuid !== positionEntryInEdit.uuid);
+        rexToSave.posEntries = newAllPosEntries;
+      }
+    }
+
     const upsertResponse = await httpClient_Rex.upsertRexes([rexToSave], rexToSave.isRunning);
     if (upsertResponse.status === "success") {
       // upsert the changed rex to the store
@@ -311,8 +325,8 @@ export const thunkCancelPosEntryLocation = appCreateAsyncThunk<{
   const allpositionEntries = getState().rex.rexes.find(
     (r) => r.uuid === getState().rex.selectedRexUuid
   )?.posEntries;
-  const positionEntry = allpositionEntries.find((c) => c.uuid === posEntryEditingUuid);
-  if (!positionEntry.location) {
+  const positionEntryInEdit = allpositionEntries.find((c) => c.uuid === posEntryEditingUuid);
+  if (!positionEntryInEdit.location) {
     //no location means this is a newly created crew pos. delete the uuid currently being edited
     dispatch(
       deletePosEntryByUuid({
@@ -377,16 +391,8 @@ export const thunkCancelPosEntry = appCreateAsyncThunk<{
     newAllPosEntries = newAllPosEntries.filter((c) => c.uuid !== posEntryUuid);
   }
 
-  // upsert the changed rex (with new updated date) to the store
-  dispatch(
-    upsertRex(
-      {
-        ...selectedRex,
-        posEntries: newAllPosEntries,
-      },
-      true
-    )
-  );
+  // upsert the changed rex to the store
+  dispatch(upsertRexByField(selectedRex.uuid, "posEntries", newAllPosEntries, true));
   dispatch(setPosEntryEditingUuid(null));
   dispatch(setRexesPosEntryEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: false }));
 });
@@ -548,6 +554,12 @@ export const thunkAuditRexPositions = appCreateAsyncThunk<void>(
       if (!newRex.posTypes || newRex.posTypes?.length === 0) {
         newRex.posTypes = defaultPosTypes;
       }
+
+      // clear out any pos entries with no location
+      const posEntryCopy: PosEntry[] = (newRex.posEntries as PosEntry[]).filter(
+        (e) => e.location !== null
+      );
+      newRex.posEntries = posEntryCopy;
 
       // check if posEntries is the old crewPos format
       if (newRex.posEntries?.length > 0 && newRex.posEntries[0].crew) {

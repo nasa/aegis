@@ -19,12 +19,12 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { setSelectedStationUuid } from "store/station";
 import EvaItemSequence from "./eva-item-sequence";
-import { setRightPanelOpen } from "store/interface";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkAddStationToEva } from "store/thunk/thunkEva";
 import { decodeEmoji, hmmFromMinutes } from "utils/formatting";
 import { setHoverUuidsForSequence } from "store/hover";
+import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 
 const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
   const dispatch = useAppDispatch();
@@ -116,12 +116,12 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
           onClick={() => {
             if (selectedEvaUuid === eva.uuid && selectedEvaSequenceItemUuid === null) {
               dispatch(setSelectedEvaUuid(null));
-              dispatch(setRightPanelOpen(false));
+              dispatch(thunkSetRightPanelIsOpenIfAuto(false));
             } else {
               dispatch(setSelectedEvaUuid(eva.uuid));
 
               if (!selectedRightNavItem) dispatch(setSelectedEvaRightNavItem("info_panel"));
-              dispatch(setRightPanelOpen(true));
+              dispatch(thunkSetRightPanelIsOpenIfAuto(true));
 
               // add this eva uuid to the expanded list if it's not already there
               if (expandedEvaUuids.indexOf(eva.uuid) === -1) {
@@ -206,7 +206,7 @@ export const EvaEgressIngressListing: FunctionComponent<{
         style={{ cursor: "pointer" }}
         onClick={() => {
           dispatch(setSelectedEvaUuid(eva.uuid));
-          dispatch(setRightPanelOpen(true));
+          dispatch(thunkSetRightPanelIsOpenIfAuto(true));
           dispatch(setSelectedEvaSequenceItemUuid(null));
         }}
         onMouseEnter={() => {
@@ -233,23 +233,6 @@ export const EvaEgressIngressListing: FunctionComponent<{
           >
             {hmmFromMinutes(isEgress ? eva.egressDuration : eva.ingressDuration)}
           </div>
-
-          {/* {runningRexFromDb &&
-                  runningRexFromDb.evaUuid === eva.uuid &&
-                  stations.find((station) => station.uuid === sequenceItem.uuid)?.rexStatus ===
-                    "in-progress" && (
-                    <div
-                      className={evaStyles.evaItemRightItem}
-                      data-tooltip-id="aegis-tooltip"
-                      data-tooltip-html={"Time remaining (hh:mm:ss)"}
-                      data-tooltip-place="right"
-                    >
-                      {displayInProgressItemTimeRemaining(
-                        secondsFromhhmmss(rexPetTime),
-                        sequenceItem.uuid
-                      )}
-                    </div>
-                  )} */}
         </div>
       </div>
     </div>

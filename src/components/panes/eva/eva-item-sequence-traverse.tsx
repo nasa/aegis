@@ -4,7 +4,6 @@ import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppS
 import { setSelectedEvaRightNavItem, setSelectedEvaUuid } from "store/eva";
 import evaStyles from "./eva.module.css";
 import { secondsFromhhmmss, hhmmssFromSeconds, hmmFromMinutes } from "utils/formatting";
-import { setRightPanelOpen } from "store/interface";
 import { setHoverUuidsForSequence } from "store/hover";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
@@ -12,6 +11,7 @@ import { getRexStatusDisplayProperties } from "../../../utils/rex";
 import _ from "lodash";
 import PetInterval from "components/interface/page/petInterval";
 import { RexStatusMenu } from "../rex/rex";
+import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 
 const SequenceItemTraverse: FunctionComponent<{
   evaUuid: string;
@@ -137,7 +137,7 @@ const SequenceItemTraverse: FunctionComponent<{
       } else {
         dispatch(setSelectedEvaUuid(evaUuid));
         dispatch(thunkSelectEVASequenceItem({ sequenceItemUuid }));
-        dispatch(setRightPanelOpen(true));
+        dispatch(thunkSetRightPanelIsOpenIfAuto(true));
       }
     },
     [dispatch, evaUuid, selectedEvaSequenceItemUuid]

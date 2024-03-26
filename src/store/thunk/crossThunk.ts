@@ -25,6 +25,8 @@ import { obliterateState as stationObliterateState } from "store/station";
 import { obliterateState as stmObliterateState } from "store/stm";
 import { obliterateState as traverseObliterateState } from "store/traverse";
 import { obliterateState as userObliterateState } from "store/user";
+import { obliterateState as measurementObliterateState } from "store/measure";
+import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 
 export const thunkSelectEVASequenceItem = appCreateAsyncThunk<{
   sequenceItemUuid: string;
@@ -42,6 +44,7 @@ export const thunkSelectEVASequenceItem = appCreateAsyncThunk<{
     dispatch(stationSlice.actions.setSelectedStationUuid(sequenceItemUuid));
   } else if (sequenceItem?.type === "traverse") {
     dispatch(traverseSlice.actions.setSelectedTraverseRightNavItem("info_panel"));
+    dispatch(stationSlice.actions.setSelectedStationUuid(null));
   }
 });
 
@@ -50,7 +53,7 @@ export const thunkSaveNewEva = appCreateAsyncThunk<{
 }>("cross/saveNewEva", async ({ eva }, { dispatch }) => {
   dispatch(evaSlice.actions.upsertEva(eva));
   dispatch(evaSlice.actions.setStateForNewEva({ uuid: eva.uuid }));
-  dispatch(interfaceSlice.actions.setRightPanelOpen(true));
+  dispatch(thunkSetRightPanelIsOpenIfAuto(true));
 });
 
 export const thunkSaveNewPoi = appCreateAsyncThunk<{ poi: POI }>(
@@ -58,7 +61,7 @@ export const thunkSaveNewPoi = appCreateAsyncThunk<{ poi: POI }>(
   async ({ poi }, { dispatch }) => {
     dispatch(poiSlice.actions.upsertPoi(poi));
     dispatch(poiSlice.actions.setStateForNewPoi({ uuid: poi.uuid }));
-    dispatch(interfaceSlice.actions.setRightPanelOpen(true));
+    dispatch(thunkSetRightPanelIsOpenIfAuto(true));
   }
 );
 
@@ -73,7 +76,7 @@ export const thunkSaveNewPreset = appCreateAsyncThunk<{
   dispatch(presetSlice.actions.setStateForNewPreset({ uuid: preset.uuid }));
 
   // Open the right panel
-  dispatch(interfaceSlice.actions.setRightPanelOpen(true));
+  dispatch(thunkSetRightPanelIsOpenIfAuto(true));
 });
 
 // Assuming the relevant action creators are defined in the stationSlice and interfaceSlice
@@ -87,7 +90,7 @@ export const thunkSaveNewStation = appCreateAsyncThunk<{
   dispatch(stationSlice.actions.setStateForNewStation({ uuid: station.uuid }));
 
   // Open the right panel
-  dispatch(interfaceSlice.actions.setRightPanelOpen(true));
+  dispatch(thunkSetRightPanelIsOpenIfAuto(true));
 });
 
 // Assuming the relevant action creators are defined in the rexSlice and interfaceSlice
@@ -101,7 +104,7 @@ export const thunkSaveNewRex = appCreateAsyncThunk<{
   dispatch(rexSlice.actions.setStateForNewRex({ rexUuid: rex.uuid }));
 
   // Open the right panel
-  dispatch(interfaceSlice.actions.setRightPanelOpen(true));
+  dispatch(thunkSetRightPanelIsOpenIfAuto(true));
 });
 
 // Thunk for obliteratePoi
@@ -113,7 +116,7 @@ export const thunkObliteratePoi = appCreateAsyncThunk<{ poiUuid: string }>(
     dispatch(poiSlice.actions.deletePoiByUuid(poiUuid));
     dispatch(poiSlice.actions.setSelectedPoiUuid(null));
     dispatch(actionSlice.actions.deleteActionsByUuid(actions.map((action) => action.uuid)));
-    dispatch(interfaceSlice.actions.setRightPanelOpen(false));
+    dispatch(thunkSetRightPanelIsOpenIfAuto(false));
   }
 );
 export const thunkObliterateEntireStore = appCreateAsyncThunk<void>(
@@ -133,6 +136,7 @@ export const thunkObliterateEntireStore = appCreateAsyncThunk<void>(
     dispatch(stmObliterateState());
     dispatch(traverseObliterateState());
     dispatch(userObliterateState());
+    dispatch(measurementObliterateState());
   }
 );
 
@@ -152,7 +156,7 @@ export const thunkSetRunningRexView = appCreateAsyncThunk<void>(
       dispatch(rexSlice.actions.setExpandedRexUuids([runningRexUuid]));
 
       // Set the right panel in the interface slice
-      dispatch(interfaceSlice.actions.setRightPanelOpen(true));
+      dispatch(thunkSetRightPanelIsOpenIfAuto(true));
       dispatch(interfaceSlice.actions.setSectionSelected("rex"));
 
       // Find the EVA UUID associated with the Rex and set it in the eva slice

@@ -433,12 +433,14 @@ export const PathColorPickerMenu: FunctionComponent<{
   editMode: boolean;
   updateColor: (color: string) => void;
   styleContainer?: CSSProperties;
-}> = ({ currentColor, editMode, updateColor, styleContainer }) => {
+  direction?: "left" | "right";
+}> = ({ currentColor, editMode, updateColor, styleContainer, direction = "left" }) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const handleMenuOpen = (e: React.MouseEvent) => {
-    const x = e.clientX - 250;
+    const directionPadding = direction === "left" ? -250 : 0;
+    const x = e.clientX + directionPadding;
     menuRef.current.style.left = `${x}px`;
     menuRef.current.style.top = `${e.clientY}px`;
 

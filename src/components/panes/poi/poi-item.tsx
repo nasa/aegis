@@ -8,8 +8,8 @@ import _ from "lodash";
 import { setSelectedPoiUuid, setSelectedPOIRightNavItem } from "store/poi";
 import { clearEvaSelections } from "store/eva";
 import { decodeEmoji } from "utils/formatting";
-import { setRightPanelOpen } from "store/interface";
 import { setHoverUuidsForSequence } from "store/hover";
+import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 
 const PoiItem: FunctionComponent<{
   selectedPoiUuid: string;
@@ -59,12 +59,12 @@ const PoiItem: FunctionComponent<{
       onClick={() => {
         if (selectedPoiUuid === poi.uuid) {
           dispatch(setSelectedPoiUuid(null)); //hide poi right panel
-          dispatch(setRightPanelOpen(false));
+          dispatch(thunkSetRightPanelIsOpenIfAuto(false));
         } else {
           dispatch(setSelectedPoiUuid(poi.uuid));
           dispatch(clearEvaSelections());
           if (!selectedRightNavItem) dispatch(setSelectedPOIRightNavItem("info_panel"));
-          dispatch(setRightPanelOpen(true));
+          dispatch(thunkSetRightPanelIsOpenIfAuto(true));
         }
       }}
       onMouseEnter={() => {

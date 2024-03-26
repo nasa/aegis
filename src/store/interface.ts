@@ -2,9 +2,12 @@ import { createSlice } from "@reduxjs/toolkit";
 
 export const initialState: InterfaceState = {
   sectionSelectedLabel: "preset",
-  leftPanelOpen: true,
-  rightPanelOpen: true,
-  bottomPanelOpen: true,
+  bottomSectionSelectedLabel: "timeline",
+  leftPanelIsOpen: true,
+  rightPanelIsOpen: true,
+  bottomPanelIsOpen: true,
+  autoRightPanelOpen: true,
+  autoBottomPanelOpen: true,
   elevationPendingItemUuids: [],
   timelineShowDistanceFromLander: true,
   timelineShowElevation: true,
@@ -27,14 +30,23 @@ export const interfaceSlice = createSlice({
     setSectionSelected: (state, action: { payload: InterfaceSection }) => {
       state.sectionSelectedLabel = action.payload;
     },
-    setLeftPanelOpen: (state, action: { payload: boolean }) => {
-      state.leftPanelOpen = action.payload;
+    setBottomSectionSelected: (state, action: { payload: BottomInterfaceSection }) => {
+      state.bottomSectionSelectedLabel = action.payload;
     },
-    setRightPanelOpen: (state, action: { payload: boolean }) => {
-      state.rightPanelOpen = action.payload;
+    setLeftPanelIsOpen: (state, action: { payload: boolean }) => {
+      state.leftPanelIsOpen = action.payload;
     },
-    setBottomPanelOpen: (state, action: { payload: boolean }) => {
-      state.bottomPanelOpen = action.payload;
+    setRightPanelIsOpen: (state, action: { payload: boolean }) => {
+      state.rightPanelIsOpen = action.payload;
+    },
+    setBottomPanelIsOpen: (state, action: { payload: boolean }) => {
+      state.bottomPanelIsOpen = action.payload;
+    },
+    setAutoRightPanelOpen: (state, action: { payload: boolean }) => {
+      state.autoRightPanelOpen = action.payload;
+    },
+    setAutoBottomPanelOpen: (state, action: { payload: boolean }) => {
+      state.autoBottomPanelOpen = action.payload;
     },
     insertElevationPending: (state, action: { payload: string }) => {
       state.elevationPendingItemUuids.push(action.payload);
@@ -85,9 +97,12 @@ export const interfaceSlice = createSlice({
 
 export const {
   setSectionSelected,
-  setLeftPanelOpen,
-  setRightPanelOpen,
-  setBottomPanelOpen,
+  setBottomSectionSelected,
+  setLeftPanelIsOpen,
+  setRightPanelIsOpen,
+  setBottomPanelIsOpen,
+  setAutoRightPanelOpen,
+  setAutoBottomPanelOpen,
   insertElevationPending,
   removeElevationPending,
   setShowDistanceFromLander,

@@ -140,6 +140,10 @@ body {
   -ms-interpolation-mode: nearest-neighbor; /* IE8+           */
 }
 
+.leaflet-pane > svg path.leaflet-interactive:focus {
+  outline: none;
+}
+
 /* metatag component styling */
 .rti--container {
   --rti-bg: var(--grey1) !important;
@@ -189,7 +193,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-bottom: 2px;
+  padding-bottom: 0;
 }
 .rct-node-clickable:hover {
   background-color: var(--grey1) !important;
@@ -210,4 +214,8 @@ body {
 .rct-checkbox {
   margin-left: 5px;
   padding: 0 3px 0 0 !important;
+}
+
+.react-checkbox-tree label {
+  display: none;
 }

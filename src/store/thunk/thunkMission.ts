@@ -204,6 +204,7 @@ export const thunkCreateActionTemplate = appCreateAsyncThunk<void, string>(
       durationLower: 5,
       durationUpper: 6,
       stmUuidRefs: null,
+      stmPriorities: null,
       equipmentItemsUsage: null,
       geographicUnitsUsage: null,
       crewAssigned: [],

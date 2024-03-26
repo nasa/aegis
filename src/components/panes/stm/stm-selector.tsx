@@ -1,108 +1,124 @@
 import CheckboxTree, { Node } from "react-checkbox-tree";
-import { FunctionComponent, useEffect, useState } from "react";
-import { useAppSelector, shallowEqual } from "utils/useAppSelector";
+import { FunctionComponent, useCallback, useEffect, useState } from "react";
+import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import stmStyles from "./stm-selector.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCaretDown, faCaretRight, faCheckSquare } from "@fortawesome/free-solid-svg-icons";
+import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
 import "react-checkbox-tree/lib/react-checkbox-tree.css";
-import { faSquare, faSquareMinus } from "@fortawesome/free-regular-svg-icons";
 import { STM_Coverage } from "./stm-coverage";
+import { upsertActionByField } from "store/action";
+import { useAppDispatch } from "utils/useAppDispatch";
 
 const STMSelector: FunctionComponent<{
   editMode: boolean;
-  stmUuidRefs: string[];
-  onSTMChange: Function;
-}> = ({ editMode, stmUuidRefs, onSTMChange }) => {
-  const allSTMObjectives: STMObjective[] = useAppSelector(
-    (state) => state.stm.objectives,
-    shallowEqual
-  );
-  const allSTMGoals: STMGoal[] = useAppSelector((state) => state.stm.goals, shallowEqual);
-  const allSTMInvstgs: STMInvestigation[] = useAppSelector(
-    (state) => state.stm.investigations,
-    shallowEqual
-  );
+  stmPriorities: StmPriorities;
+  actionUuid: string;
+}> = ({ editMode, stmPriorities, actionUuid }) => {
+  const dispatch = useAppDispatch();
+  const allSTMLevel1: STMLevel1[] = useAppSelector((state) => state.stm.level1s, deepEqual);
+  const allSTMLevel2: STMLevel2[] = useAppSelector((state) => state.stm.level2s, deepEqual);
+  const allSTMLevel3: STMLevel3[] = useAppSelector((state) => state.stm.level3s, deepEqual);
 
   const [expanded, setExpanded] = useState<string[]>([]); //array of values at the parent levels that are expanded
   const [stmTreeNodes, setStmTreeNodes] = useState<Node[]>([]);
 
+  const stmUuidRefs = [];
+  if (stmPriorities) {
+    for (const [key, __] of Object.entries(stmPriorities)) {
+      stmUuidRefs.push(key);
+    }
+  }
+
+  const changeSTMPriority = useCallback(
+    (stmUuid: string, priority: number) => {
+      const newStmPriorities: StmPriorities = stmPriorities ? { ...stmPriorities } : {};
+      // if newStmPriorities already contains the stmUuid, remove it
+      if (newStmPriorities[stmUuid] === priority) {
+        delete newStmPriorities[stmUuid];
+      } else {
+        newStmPriorities[stmUuid] = priority;
+      }
+      dispatch(upsertActionByField(actionUuid, "stmPriorities", newStmPriorities));
+    },
+    [actionUuid, dispatch, stmPriorities]
+  );
+
   //build the stm tree
   useEffect(() => {
-    if (allSTMInvstgs?.length > 0 && allSTMGoals && allSTMInvstgs) {
+    if (allSTMLevel3?.length > 0 && allSTMLevel2 && allSTMLevel3) {
       // build the expanded list to include all nodes so expanded by default
       const newExpandedList: string[] = [];
       const stmTree: Node[] = [];
-      for (const objective of allSTMObjectives) {
-        newExpandedList.push(objective.uuid);
-        const objectiveNode: Node = {
-          value: objective.uuid,
+      for (const level1 of allSTMLevel1) {
+        newExpandedList.push(level1.uuid);
+        const level1Node: Node = {
+          value: level1.uuid,
           label: (
             <>
-              <span className={stmStyles.stmHeading}>Objective {objective.numbering}</span> -{" "}
-              <span data-tooltip-id="aegis-tooltip" data-tooltip-html={objective.name}>
-                {objective.name}
+              <span className={stmStyles.stmHeading}>Goal {level1.numbering}</span> -{" "}
+              <span data-tooltip-id="aegis-tooltip" data-tooltip-html={level1.name}>
+                {level1.name}
               </span>
             </>
           ),
           className: `${stmStyles.stmText}`,
           children: [],
-          title: objective.name,
+          title: level1.name,
         };
-        const objGoals: STMGoal[] = allSTMGoals.filter(
-          (goal) => goal.objectiveUuid === objective.uuid
+        const objLevel2s: STMLevel2[] = allSTMLevel2.filter(
+          (level2) => level2.level1Uuid === level1.uuid
         );
-        const objChildren: Node[] = [];
-        for (const goal of objGoals) {
-          newExpandedList.push(goal.uuid);
-          const goalNode: Node = {
-            value: goal.uuid,
+        const level1Children: Node[] = [];
+        for (const level2 of objLevel2s) {
+          newExpandedList.push(level2.uuid);
+          const level2Node: Node = {
+            value: level2.uuid,
             label: (
               <>
                 <span className={stmStyles.stmHeading}>
-                  Goal {objective.numbering}
-                  {goal.numbering}
+                  Objective {level1.numbering}
+                  {level2.numbering}
                 </span>{" "}
                 -{" "}
-                <span data-tooltip-id="aegis-tooltip" data-tooltip-html={goal.name}>
-                  {goal.name}
+                <span data-tooltip-id="aegis-tooltip" data-tooltip-html={level2.name}>
+                  {level2.name}
                 </span>
               </>
             ),
             className: `${stmStyles.stmText}`,
             children: [],
-            title: goal.name,
+            title: level2.name,
           };
-          const goalInvstg: STMInvestigation[] = allSTMInvstgs.filter(
-            (invstg) => invstg.goalUuid === goal.uuid
+          const objLevel3s: STMLevel3[] = allSTMLevel3.filter(
+            (level3) => level3.level2Uuid === level2.uuid
           );
-          const goalChildren: Node[] = [];
-          for (const invstg of goalInvstg) {
-            newExpandedList.push(invstg.uuid);
-            const invstgNode: Node = {
-              value: invstg.uuid,
+          const level2Children: Node[] = [];
+          for (const level3 of objLevel3s) {
+            newExpandedList.push(level3.uuid);
+            const priority: number = stmPriorities ? stmPriorities[level3?.uuid] || null : null;
+            const level3Node: Node = {
+              value: level3.uuid,
               label: (
-                <>
-                  <span className={stmStyles.stmHeading}>
-                    Investigation {objective.numbering}
-                    {goal.numbering}-{invstg.numbering}
-                  </span>{" "}
-                  -{" "}
-                  <span data-tooltip-id="aegis-tooltip" data-tooltip-html={invstg.name}>
-                    {invstg.name}
-                  </span>
-                </>
+                <STMLabelLevel3
+                  level1={level1}
+                  level2={level2}
+                  level3={level3}
+                  priority={priority}
+                  changeSTMPriority={changeSTMPriority}
+                />
               ),
               className: `${stmStyles.stmText}`,
-              title: invstg.name,
+              title: level3.name,
             };
-            goalChildren.push(invstgNode);
+            level2Children.push(level3Node);
           }
-          goalNode.children = goalChildren;
-          objChildren.push(goalNode);
+          level2Node.children = level2Children;
+          level1Children.push(level2Node);
         }
-        objectiveNode.children = objChildren;
-        stmTree.push(objectiveNode);
+        level1Node.children = level1Children;
+        stmTree.push(level1Node);
       }
+      newExpandedList.push("root"); //expand the root node
       setStmTreeNodes([
         {
           value: "root",
@@ -111,72 +127,27 @@ const STMSelector: FunctionComponent<{
           className: `${stmStyles.stmText}`,
         } as Node,
       ]);
-
       setExpanded(newExpandedList);
     }
-  }, [allSTMInvstgs, allSTMGoals, allSTMObjectives]);
+  }, [allSTMLevel3, allSTMLevel2, allSTMLevel1, stmPriorities, changeSTMPriority]);
 
   return (
     <>
       {editMode ? (
         <CheckboxTree
           nodes={stmTreeNodes}
-          checked={stmUuidRefs || []}
           expanded={expanded}
-          onCheck={(checked: string[]) => onSTMChange(checked)}
-          onExpand={(expanded) => setExpanded(expanded)}
+          checkModel="leaf" //only leaf nodes can be checked, ie investigations
+          onExpand={(newExpanded) => setExpanded(newExpanded)}
           showNodeIcon={false}
-          onClick={(onCheckNode) => {
-            let newStmUuidRefs: string[] = [];
-            if (stmUuidRefs && stmUuidRefs.includes(onCheckNode.value)) {
-              const uuidsToRemove: string[] = [onCheckNode.value];
-              // recursively add all children to the list of uuids to remove
-              const addChildren = (node: Node) => {
-                if (node.children) {
-                  node.children.forEach((child) => {
-                    uuidsToRemove.push(child.value);
-                    addChildren(child);
-                  });
-                }
-              };
-              addChildren(onCheckNode);
-
-              //remove the nodes from the list
-              stmUuidRefs.forEach((stmUuidRef) => {
-                if (stmUuidRef && !uuidsToRemove.includes(stmUuidRef)) {
-                  newStmUuidRefs.push(stmUuidRef);
-                }
-              });
-            } else {
-              //add the node to the list
-              if (stmUuidRefs) newStmUuidRefs = [...stmUuidRefs];
-              newStmUuidRefs.push(onCheckNode.value);
-
-              // recursively add all children to the list
-              const addChildren = (node: Node) => {
-                if (node.children) {
-                  node.children.forEach((child) => {
-                    newStmUuidRefs.push(child.value);
-                    addChildren(child);
-                  });
-                }
-              };
-              addChildren(onCheckNode);
-            }
-            onSTMChange(newStmUuidRefs);
-          }}
+          onClick={() => {}} // needed or component dies
           icons={{
             expandClose: <FontAwesomeIcon className="rct-icon" icon={faCaretRight} />,
             expandOpen: <FontAwesomeIcon className="rct-icon" icon={faCaretDown} />,
-            check: (
-              <FontAwesomeIcon className={`${stmStyles.highlight} rct-icon`} icon={faCheckSquare} />
-            ),
-            uncheck: <FontAwesomeIcon className="rct-icon" icon={faSquare} />,
-            halfCheck: <FontAwesomeIcon className="rct-icon" icon={faSquareMinus} />,
           }}
         />
       ) : (
-        <div className={stmStyles.stmText}>
+        <div>
           <STM_Coverage stmUuidRefs={[stmUuidRefs]} mini={true} horizontal={true} />
         </div>
       )}
@@ -185,3 +156,78 @@ const STMSelector: FunctionComponent<{
 };
 
 export default STMSelector;
+
+const STMLabelLevel3: FunctionComponent<{
+  level1: STMLevel1;
+  level2: STMLevel2;
+  level3: STMLevel3;
+  priority: number;
+  changeSTMPriority: Function;
+}> = ({ level1, level2, level3, priority, changeSTMPriority }) => {
+  const changePriority = useCallback(
+    (priority: number) => {
+      changeSTMPriority(level3.uuid, priority);
+    },
+    [changeSTMPriority, level3.uuid]
+  );
+
+  const priorityClass = (buttonPriority: number) => {
+    switch (buttonPriority) {
+      case 1:
+        return stmStyles.toggleLeft;
+      case 2:
+        return stmStyles.toggleMiddle;
+      case 3:
+        return stmStyles.toggleRight;
+      default:
+        return "";
+    }
+  };
+
+  return (
+    <span className={stmStyles.stmLevel3Container}>
+      <span
+        className={stmStyles.toggleContainer}
+        data-tooltip-id="aegis-tooltip"
+        data-tooltip-html="STM Priority"
+      >
+        <span
+          className={`${priorityClass(1)} ${priority === 1 ? stmStyles.toggleSelected : ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            changePriority(1);
+          }}
+        >
+          H
+        </span>
+
+        <span
+          className={`${priorityClass(2)} ${priority === 2 ? stmStyles.toggleSelected : ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            changePriority(2);
+          }}
+        >
+          M
+        </span>
+        <span
+          className={`${priorityClass(3)} ${priority === 3 ? stmStyles.toggleSelected : ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            changePriority(3);
+          }}
+        >
+          L
+        </span>
+      </span>
+      <span className={stmStyles.stmHeading}>
+        Investigation {level1.numbering}
+        {level2.numbering}
+        {level3.numbering} -{" "}
+      </span>
+      <span data-tooltip-id="aegis-tooltip" data-tooltip-html={level3.name}>
+        {level3.name}
+      </span>
+    </span>
+  );
+};

@@ -132,9 +132,9 @@ type OneMissionToRuleThemAll = {
   presets: Preset[];
   rexes: Rex[];
   stations: Station[];
-  objectives: STMObjective[];
-  goals: STMGoal[];
-  invstgs: STMInvestigation[];
+  level1s: STMLevel1[];
+  level2s: STMLevel2[];
+  level3s: STMLevel3[];
   sublayers: Sublayer[];
   traverses: Traverse[];
 };

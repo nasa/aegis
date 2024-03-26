@@ -1,5 +1,5 @@
 import {
-  deleteActionByUuid,
+  deleteActionsByUuid,
   deleteActionsFromDbByUuid,
   setActions,
   setActionsFromDb,
@@ -56,6 +56,7 @@ export const thunkCreateAction = appCreateAsyncThunk<
       durationLower: 5,
       durationUpper: 6,
       stmUuidRefs: null,
+      stmPriorities: null,
       equipmentItemsUsage: null,
       geographicUnitsUsage: null,
       crewAssigned: [],
@@ -251,9 +252,12 @@ export const thunkGetHighlightedActions = appCreateAsyncThunk<
   return actionHighlights;
 });
 
-export const thunkDeleteAction = appCreateAsyncThunk<{
+/**
+ * Deletes an action from a station or poi and also from the store (but not from db)
+ */
+export const thunkDeleteActionFromStore = appCreateAsyncThunk<{
   uuid: string;
-}>("deleteAction", async ({ uuid }, { dispatch, getState }) => {
+}>("deleteActionFromStore", async ({ uuid }, { dispatch, getState }) => {
   // look for the action in stations and remove it from the station's action order
   getState().station.stations.forEach((station) => {
     const actionOrderUuids = _.cloneDeep(station.actionOrderUuids);
@@ -281,11 +285,32 @@ export const thunkDeleteAction = appCreateAsyncThunk<{
   });
 
   // delete the action from the store
-  dispatch(deleteActionByUuid(uuid));
+  dispatch(deleteActionsByUuid([uuid]));
 });
 
 /**
- * Audits and rectonciles the actionOrderUuids in stations and pois with the actions table
+ * Deletes an array of actions from the database, and from both copies in the store
+ */
+export const thunkDeleteActionFromDbAndStore = appCreateAsyncThunk<{
+  uuids: string[];
+}>("deleteActionFromDbAndStore", async ({ uuids }, { dispatch, getState }) => {
+  if (uuids.length > 0) {
+    //delete from db
+    const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteActions(
+      uuids,
+      getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning
+    );
+    if (actionDeleteResponse.status !== "success") {
+      throw new Error("Error deleting actions " + actionDeleteResponse.message);
+    }
+    // delete actions from the store and fromdb
+    dispatch(deleteActionsByUuid(uuids));
+    dispatch(deleteActionsFromDbByUuid(uuids));
+  }
+});
+
+/**
+ * Audits and reconciles the actionOrderUuids in stations and pois with the actions table
  */
 export const thunkAuditActions = appCreateAsyncThunk<void>(
   "auditActions",
@@ -484,19 +509,52 @@ export const thunkAuditActions = appCreateAsyncThunk<void>(
      * Audit the stm UUID refs on each action to ensure they still exist.
      * They may not exist if they were deleted from the admin side.
      */
-    const stmInvstgUuids = getState().stm.investigations.map((i) => i.uuid);
+    const stmLevel3Uuids = getState().stm.level3s.map((i) => i.uuid);
     for (const action of newActions) {
       if (!action.stmUuidRefs) continue;
       let newUuidRefs = _.clone(action.stmUuidRefs); //make a copy to splice from
       let isChanged = false;
       for (const stmUuid of action.stmUuidRefs) {
-        if (stmInvstgUuids.indexOf(stmUuid) < 0) {
+        if (stmLevel3Uuids.indexOf(stmUuid) < 0) {
           //stm doesn't exist. remove it from our copy
           isChanged = true;
           newUuidRefs = newUuidRefs.filter((uuid) => uuid != stmUuid);
         }
       }
       if (isChanged) action.stmUuidRefs = newUuidRefs;
+
+      // also check the action.stmPriorities and remove any that don't have a matching stmUuid
+      if (action.stmPriorities) {
+        const newPriorities: StmPriorities = _.clone(action.stmPriorities); //make a copy to splice from
+        isChanged = false;
+        for (const stmUuid of Object.keys(action.stmPriorities)) {
+          if (stmLevel3Uuids.indexOf(stmUuid) < 0) {
+            //stm doesn't exist. remove it from our copy
+            isChanged = true;
+            delete newPriorities[stmUuid];
+          }
+        }
+        if (isChanged) action.stmPriorities = newPriorities;
+      }
+    }
+
+    /**
+     * Action stmPriorities Audit
+     * Add stmPriorities for any missing stmUuidRefs and make the default priority 3
+     */
+    for (const action of newActions) {
+      if (!action.stmUuidRefs) continue;
+      // if action.stmPriorities is null, create it
+      let newPriorities: StmPriorities = {};
+      if (action.stmPriorities) newPriorities = _.clone(action.stmPriorities); //make a copy to splice from
+      let isChanged = false;
+      for (const stmUuid of action.stmUuidRefs) {
+        if (!newPriorities[stmUuid]) {
+          isChanged = true;
+          newPriorities[stmUuid] = 2;
+        }
+      }
+      if (isChanged) action.stmPriorities = newPriorities;
     }
 
     /**

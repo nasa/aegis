@@ -8,7 +8,8 @@ import { initialState as poiInitialState } from "store/poi";
 import { v4 as uuidv4 } from "uuid";
 import {
   thunkCreateAction,
-  thunkDeleteAction,
+  thunkDeleteActionFromDbAndStore,
+  thunkDeleteActionFromStore,
   thunkDuplicateActions,
   thunkGetHighlightedActions,
   thunkSaveActions,
@@ -249,7 +250,7 @@ describe("Thunk Action Tests", () => {
     ]);
   });
 
-  test("thunkDeleteAction()", async () => {
+  test("thunkDeleteActionFromStore()", async () => {
     //populate the action state in the store
     const station: Station = createTestStation();
     const stationAction: Action = createTestAction({ stationUuid: station.uuid });
@@ -265,15 +266,30 @@ describe("Thunk Action Tests", () => {
     });
 
     //delete from station
-    await store.dispatch(thunkDeleteAction({ uuid: stationAction.uuid }));
+    await store.dispatch(thunkDeleteActionFromStore({ uuid: stationAction.uuid }));
     let storeState = store.getState();
     expect(storeState.station.stations[0].actionOrderUuids.length).toEqual(0);
     expect(storeState.action.actions.find((a) => a.uuid === stationAction.uuid)).toBeUndefined();
 
     //delete from poi
-    await store.dispatch(thunkDeleteAction({ uuid: poiAction.uuid }));
+    await store.dispatch(thunkDeleteActionFromStore({ uuid: poiAction.uuid }));
     storeState = store.getState();
     expect(storeState.poi.pois[0].actionOrderUuids.length).toEqual(1);
     expect(storeState.action.actions.find((a) => a.uuid === poiAction.uuid)).toBeUndefined();
+  });
+
+  test("thunkDeleteActionFromDbAndStore()", async () => {
+    //populate the action state in the store
+    const testAction: Action = createTestAction({});
+
+    const store = createCustomTestStore({
+      action: { ...actionInitialState, actions: [testAction], actionsFromDb: [testAction] },
+    });
+
+    await store.dispatch(thunkDeleteActionFromDbAndStore({ uuids: [testAction.uuid] }));
+    const storeState = store.getState();
+    expect(httpClient_action.deleteActions).toHaveBeenCalledTimes(1);
+    expect(storeState.action.actions.find((a) => a.uuid === testAction.uuid)).toBeUndefined();
+    expect(storeState.action.actionsFromDb.find((a) => a.uuid === testAction.uuid)).toBeUndefined();
   });
 });

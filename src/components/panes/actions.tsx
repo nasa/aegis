@@ -13,6 +13,7 @@ import { thunkCreateAction, thunkGetHighlightedActions } from "store/thunk/thunk
 import CalculatedDwell from "./calculated-dwell";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { Assoc_POIs } from "./actions-assocpois";
+import { getStmUuidRefs } from "utils/store";
 
 const Actions: FunctionComponent<{
   editMode: boolean;
@@ -58,10 +59,10 @@ const Actions: FunctionComponent<{
 
   //set state of highlighted actions when the STM is hovered over
   const highlightActions = useCallback(
-    async (invstgUUID: string) => {
+    async (level3Uuid: string) => {
       if (!actionOrderUuids) return;
       const resHighlightActions = await dispatch(
-        thunkGetHighlightedActions({ actionUuids: actionOrderUuids, stmUuid: invstgUUID })
+        thunkGetHighlightedActions({ actionUuids: actionOrderUuids, stmUuid: level3Uuid })
       );
       if (resHighlightActions.payload) {
         setIsActionHighlighted(resHighlightActions.payload);
@@ -188,16 +189,17 @@ export default Actions;
 export const ActionsTopSection: FunctionComponent<{
   actionOrderUuids: string[];
   parentType: "poi" | "station" | "eva";
-  highlightActions: (invstgUUID: string) => void;
+  highlightActions: (level3Uuid: string) => void;
   actionsCalculatedFields: ActionsCalculatedFields;
 }> = ({ actionOrderUuids, parentType, highlightActions, actionsCalculatedFields }) => {
+  // make an array of uuids by action, of the STMs that are referenced by the action in the action STMPriorities object
   const stmUuidRefs = useAppSelector(
     (state) =>
       state.action.actions
         .filter((action) => actionOrderUuids?.includes(action.uuid))
         .map((action) => {
           if (action.enabled === false) return null;
-          return action.stmUuidRefs;
+          return getStmUuidRefs(action.stmPriorities);
         }),
     deepEqual
   );
@@ -214,7 +216,8 @@ export const ActionsTopSection: FunctionComponent<{
         actionOrderUuids.includes(actionUuid)
       ) {
         const action = state.action.actions.find((a) => a.uuid === actionUuid);
-        if (action.enabled) stmUuidRefs.push(action.stmUuidRefs);
+        if (action.enabled === false) return null;
+        stmUuidRefs.push(getStmUuidRefs(action.stmPriorities));
       }
     }
     return stmUuidRefs;
@@ -232,7 +235,8 @@ export const ActionsTopSection: FunctionComponent<{
         actionOrderUuids.includes(actionUuid)
       ) {
         const action = state.action.actions.find((a) => a.uuid === actionUuid);
-        if (action.enabled) stmUuidRefs.push(action.stmUuidRefs);
+        if (action.enabled === false) return null;
+        stmUuidRefs.push(getStmUuidRefs(action.stmPriorities));
       }
     }
     return stmUuidRefs;
@@ -246,7 +250,7 @@ export const ActionsTopSection: FunctionComponent<{
             stmUuidRefs={stmUuidRefs}
             mini={true}
             horizontal={true}
-            onInvstgHover={highlightActions}
+            onLevel3Hover={highlightActions}
             stmUuidRefsCompleted={completedStmUuidRefs}
             stmUuidRefsInProgress={inProgressStmUuidRefs}
           />
@@ -340,7 +344,7 @@ export const ActionsListHeadings: FunctionComponent<{
 export const ActionList: FunctionComponent<{
   editMode: boolean;
   actionOrderUuids: string[];
-  highlightActions: (invstgUUID: string) => void;
+  highlightActions: (level3Uuid: string) => void;
   isActionHiglighted: ActionHighlight[];
   stations: Station[];
   pois: POI[];

@@ -13,7 +13,10 @@ import React from "react";
 export const SunEarthPosition: FunctionComponent = () => {
   const containerRef = useRef<HTMLDivElement>();
   const mission = useAppSelector((state) => state.mission.mission, deepEqual);
-  const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelOpen, shallowEqual);
+  const rightPanelIsOpen = useAppSelector(
+    (state) => state.interface.rightPanelIsOpen,
+    shallowEqual
+  );
 
   const [containerSize, setContainerSize] = useState<number[]>([0, 0]);
 
@@ -43,7 +46,7 @@ export const SunEarthPosition: FunctionComponent = () => {
 
   useEffect(() => {
     updateSize();
-  }, [rightPanelOpen, updateSize]);
+  }, [rightPanelIsOpen, updateSize]);
 
   const generateLineWithChevrons = (i: number, x: number, color: string) => {
     const chevronLength = 5;

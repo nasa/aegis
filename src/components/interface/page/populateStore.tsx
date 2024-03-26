@@ -19,7 +19,7 @@ import {
 } from "store/mission";
 import { setStations, setStationsFromDb, setStationLoadingStatus } from "store/station";
 import { setActions, setActionsFromDb, setActionLoadingStatus } from "store/action";
-import { setGoals, setInvestigations, setObjectives, setStmLoadingStatus } from "store/stm";
+import { setLevel2s, setLevel3s, setLevel1s, setStmLoadingStatus } from "store/stm";
 import { setEvaLoadingStatus, setEvas, setEvasFromDb } from "store/eva";
 import { setTraversesFromDb, setTraverses, setTraverseLoadingStatus } from "store/traverse";
 import { thunkCreateStationCalculatedFields } from "store/thunk/thunkStation";
@@ -126,7 +126,6 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
     (state) => state.preset.presets.map((p) => p.uuid),
     shallowEqual
   );
-  const rexes = useAppSelector((state) => state.rex.rexes, deepEqual);
 
   const stationsCalculatedFields = useAppSelector(
     (state) => state.station.calculatedFields,
@@ -369,12 +368,12 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
       dispatch(setTraverseLoadingStatus("loaded"));
 
       //Populate stm
-      const objectiveData = allDataRes.data.objectives;
-      if (objectiveData) dispatch(setObjectives(objectiveData));
-      const goalData = allDataRes.data.goals;
-      if (goalData) dispatch(setGoals(goalData));
-      const invstgData = allDataRes.data.invstgs;
-      if (invstgData) dispatch(setInvestigations(invstgData));
+      const level1Data = allDataRes.data.level1s;
+      if (level1Data) dispatch(setLevel1s(level1Data));
+      const level2Data = allDataRes.data.level2s;
+      if (level2Data) dispatch(setLevel2s(level2Data));
+      const level3Data = allDataRes.data.level3s;
+      if (level3Data) dispatch(setLevel3s(level3Data));
       dispatch(setStmLoadingStatus("loaded"));
 
       //Populate rex
@@ -547,13 +546,13 @@ const PopulateStore: FunctionComponent<{ missionId: number; hasPermissions: bool
    * TODO: This is a temporary fix to audit REX positions to conver them from the old hard coded EV1, EV2, Cart format to the new flexible type format
    */
   useEffect(() => {
-    if (rexLoadingStatus !== "loaded") return;
+    if (rexLoadingStatus !== "loaded" || rexPosAudited.current) return;
 
     // audit crew positions
     dispatch(thunkAuditRexPositions());
 
     rexPosAudited.current = true;
-  }, [rexes, rexLoadingStatus, dispatch]);
+  }, [rexLoadingStatus, rexPosAudited, dispatch]);
 
   return <></>;
 };
