@@ -210,8 +210,8 @@ describe("Action Store Tests", () => {
       // Assert
       expect(result.actions[0]).toEqual(nextAction.payload);
       const deleteAction = {
-        type: "action/deleteActionByUuid",
-        payload: "test",
+        type: "action/deleteActionsByUuid",
+        payload: ["test"],
       };
       const result2 = reducer(result, deleteAction);
       expect(result2.actions.length).toEqual(0);

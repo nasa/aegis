@@ -96,9 +96,6 @@ export const actionSlice = createSlice({
     setActionsFromDb: (state, action: { payload: Action[] }) => {
       state.actionsFromDb = action.payload;
     },
-    deleteActionByUuid: (state, action: { payload: string }) => {
-      state.actions = state.actions.filter((a) => a.uuid !== action.payload);
-    },
     deleteActionFromDbByUuid: (state, action: { payload: string }) => {
       state.actionsFromDb = state.actionsFromDb.filter((a) => a.uuid !== action.payload);
     },
@@ -126,7 +123,6 @@ export const {
   upsertActionByField,
   setActions,
   setActionsFromDb,
-  deleteActionByUuid,
   deleteActionFromDbByUuid,
   deleteActionsByUuid,
   deleteActionsFromDbByUuid,
