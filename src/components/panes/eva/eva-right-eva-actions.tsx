@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback, useEffect, useState } from "react";
+import { FunctionComponent, useCallback, useState } from "react";
 import actionsStyles from "../actions.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
@@ -6,6 +6,7 @@ import { ActionsTopSection, ActionsListHeadings, ActionList } from "../actions";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
 import { thunkGetHighlightedActions } from "store/thunk/thunkAction";
 import { useAppDispatch } from "utils/useAppDispatch";
+import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
 
 const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -20,18 +21,23 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   );
   const stations = useAppSelector((state) => state.station.stations, deepEqual);
 
-  const calculatedFields = useAppSelector(
-    (state) =>
-      state.eva.calculatedFields.find(
-        (calculatedFields) => calculatedFields.uuid === selectedEvaUuid
-      ),
-    deepEqual
-  );
+  const actionsCalculatedFields = useAppSelector((state) => {
+    const evaCalculatedFields = getCalculatedFieldsByEva({
+      evaUuid: selectedEvaUuid,
+      wholeStoreState: state,
+    });
+    const newActionsCalculatedFields: ActionsCalculatedFields = {
+      actionCount: evaCalculatedFields.actionCount,
+      totalActionTime: evaCalculatedFields.totalActionTime,
+      totalEv1Time: evaCalculatedFields.totalEv1Time,
+      totalEv2Time: evaCalculatedFields.totalEv2Time,
+      totalUnassignedTime: evaCalculatedFields.totalUnassignedTime,
+      totalDwellTime: evaCalculatedFields.totalDwellTime,
+    };
+    return newActionsCalculatedFields;
+  }, deepEqual);
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
-
-  const [actionsCalculatedFields, setActionsCalculatedField] =
-    useState<ActionsCalculatedFields>(null);
 
   const evaActionOrderUuids = selectedEva?.sequence.flatMap((sequenceItem) => {
     if (sequenceItem.type !== "station") return null;
@@ -53,20 +59,6 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     },
     [evaActionOrderUuids, dispatch]
   );
-
-  useEffect(() => {
-    if (!calculatedFields) return;
-    // create the calulated action fields for the action tab
-    const newActionsCalculatedFields: ActionsCalculatedFields = {
-      actionCount: calculatedFields.actionCount,
-      totalActionTime: calculatedFields.totalActionTime,
-      totalEv1Time: calculatedFields.totalEv1Time,
-      totalEv2Time: calculatedFields.totalEv2Time,
-      totalUnassignedTime: calculatedFields.totalUnassignedTime,
-      totalDwellTime: calculatedFields.totalDwellTime,
-    };
-    setActionsCalculatedField(newActionsCalculatedFields);
-  }, [calculatedFields]);
 
   return (
     <div className={paneStyles.rightBody}>

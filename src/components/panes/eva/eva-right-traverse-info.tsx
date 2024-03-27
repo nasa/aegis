@@ -23,6 +23,7 @@ import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { makeTraverseRateString } from "utils/component-helpers";
+import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
 
 const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -54,9 +55,10 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
   );
   const calculatedFields = useAppSelector(
     (state) =>
-      state.traverse.calculatedFields.find(
-        (calculated) => calculated.uuid === selectedTraverse.uuid
-      ),
+      getCalculatedFieldsByTraverse({
+        traverseUuid: selectedTraverse.uuid,
+        wholeStoreState: state,
+      }),
     deepEqual
   );
   const thisMapDirective = useAppSelector((state) => {

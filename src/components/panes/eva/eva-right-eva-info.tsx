@@ -26,6 +26,7 @@ import { regExValidators, validators } from "components/interface/form/formValid
 import CalculatedDwell from "../calculated-dwell";
 import { thunkFullUpdateTraverse } from "store/thunk/thunkTraverse";
 import { decodeEmoji } from "utils/formatting";
+import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
 
 const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -39,7 +40,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     refEqual
   );
   const evaCalculatedFields = useAppSelector(
-    (state) => state.eva.calculatedFields.find((calculated) => calculated.uuid === selectedEvaUuid),
+    (state) => getCalculatedFieldsByEva({ evaUuid: selectedEvaUuid, wholeStoreState: state }),
     deepEqual
   );
   const missionEquipItems = useAppSelector(

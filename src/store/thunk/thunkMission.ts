@@ -25,6 +25,12 @@ import {
   makeExportTraverses,
 } from "utils/export";
 import * as jsonKeysSort from "json-keys-sort";
+import {
+  getCalculatedFieldsByEva,
+  getCalculatedFieldsByPoi,
+  getCalculatedFieldsByStation,
+  getCalculatedFieldsByTraverse,
+} from "store/processing/calculatedFields";
 
 export const thunkMissionSave = appCreateAsyncThunk<void>(
   "missionSave",
@@ -294,6 +300,12 @@ export const thunkMakeExportString = appCreateAsyncThunk<
      */
     const pois: ExportPOI[] = makeExportPois({
       poiStore: getState().poi,
+      poiCalculatedFields: getState().poi?.pois.map((poi) =>
+        getCalculatedFieldsByPoi({
+          poiUuid: poi.uuid,
+          wholeStoreState: getState(),
+        })
+      ),
       actions,
       missionStore: getState().mission,
     });
@@ -303,6 +315,12 @@ export const thunkMakeExportString = appCreateAsyncThunk<
      */
     const stations: ExportStation[] = makeExportStations({
       stationStore: getState().station,
+      stationCalculatedFields: getState().station?.stations.map((station) =>
+        getCalculatedFieldsByStation({
+          stationUuid: station.uuid,
+          wholeStoreState: getState(),
+        })
+      ),
       actions,
       missionStore: getState().mission,
       pois,
@@ -313,7 +331,12 @@ export const thunkMakeExportString = appCreateAsyncThunk<
      */
     const traverses: ExportTraverse[] = makeExportTraverses({
       traverses: getState().traverse?.traverses,
-      calculatedFields: getState().traverse?.calculatedFields,
+      calculatedFields: getState().traverse?.traverses.map((traverse) =>
+        getCalculatedFieldsByTraverse({
+          traverseUuid: traverse.uuid,
+          wholeStoreState: getState(),
+        })
+      ),
     });
 
     /**
@@ -321,7 +344,12 @@ export const thunkMakeExportString = appCreateAsyncThunk<
      */
     const evas: ExportEva[] = makeExportEvas({
       evas: getState().eva?.evas,
-      evaCalculatedFields: getState().eva?.calculatedFields,
+      evaCalculatedFields: getState().eva?.evas.map((eva) =>
+        getCalculatedFieldsByEva({
+          evaUuid: eva.uuid,
+          wholeStoreState: getState(),
+        })
+      ),
       stations,
       traverses,
       missionStore: getState().mission,

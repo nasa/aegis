@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 
@@ -6,6 +6,7 @@ import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppS
 import { setPoiEditMode, upsertPoiByField } from "store/poi";
 import Actions from "../actions";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
+import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
 
 const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -20,30 +21,21 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     shallowEqual
   );
 
-  const calculatedFields = useAppSelector(
-    (state) =>
-      state.poi.calculatedFields.find(
-        (calculatedFields) => calculatedFields.uuid === selectedPoiUuid
-      ),
-    deepEqual
-  );
-
-  const [actionsCalculatedFields, setActionsCalculatedField] =
-    useState<ActionsCalculatedFields>(null);
-
-  useEffect(() => {
-    if (!calculatedFields) return;
-    // create the calulated action fields for the action tab
+  const actionsCalculatedFields = useAppSelector((state) => {
+    const poiCalculatedFields = getCalculatedFieldsByPoi({
+      poiUuid: selectedPoiUuid,
+      wholeStoreState: state,
+    });
     const newActionsCalculatedFields: ActionsCalculatedFields = {
-      actionCount: calculatedFields.actionCount,
-      totalActionTime: calculatedFields.totalActionTime,
-      totalEv1Time: calculatedFields.totalEv1Time,
-      totalEv2Time: calculatedFields.totalEv2Time,
-      totalUnassignedTime: calculatedFields.totalUnassignedTime,
-      totalDwellTime: calculatedFields.totalDwellTime,
+      actionCount: poiCalculatedFields.actionCount,
+      totalActionTime: poiCalculatedFields.totalActionTime,
+      totalEv1Time: poiCalculatedFields.totalEv1Time,
+      totalEv2Time: poiCalculatedFields.totalEv2Time,
+      totalUnassignedTime: poiCalculatedFields.totalUnassignedTime,
+      totalDwellTime: poiCalculatedFields.totalDwellTime,
     };
-    setActionsCalculatedField(newActionsCalculatedFields);
-  }, [calculatedFields]);
+    return newActionsCalculatedFields;
+  }, deepEqual);
 
   return (
     <div className={paneStyles.rightBody}>

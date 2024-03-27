@@ -27,6 +27,7 @@ import { getAlertColor, isModified } from "utils/component-helpers";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { RightTabs } from "components/interface/side-controls";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
+import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
 
 const EvaRightTraverse: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -67,9 +68,10 @@ const EvaRightTraverse: FunctionComponent = () => {
 
   const calculatedFields = useAppSelector(
     (state) =>
-      state.traverse.calculatedFields.find(
-        (calculated) => calculated.uuid === selectedTraverse.uuid
-      ),
+      getCalculatedFieldsByTraverse({
+        traverseUuid: selectedEvaSequenceItemUuid,
+        wholeStoreState: state,
+      }),
     deepEqual
   );
 

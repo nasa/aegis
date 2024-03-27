@@ -5,6 +5,7 @@ import Actions from "../actions";
 import { setStationEditMode, upsertStationByField } from "store/station";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
+import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
 
 const Actions_Panel: FunctionComponent<{
   editMode: boolean;
@@ -24,9 +25,10 @@ const Actions_Panel: FunctionComponent<{
   );
   const stationCalcFields = useAppSelector(
     (state) =>
-      state.station.calculatedFields.find(
-        (calculatedFields) => calculatedFields.uuid === selectedStation.uuid
-      ),
+      getCalculatedFieldsByStation({
+        stationUuid: selectedStation.uuid,
+        wholeStoreState: state,
+      }),
     deepEqual
   );
 

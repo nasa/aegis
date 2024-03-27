@@ -71,8 +71,6 @@ afterAll(() => {
 });
 
 describe("Thunk EVA Tests", () => {
-  // it("thunkCreateEvasCalculatedFields", async () => {});
-
   it("thunkGetStationOrTraverse", async () => {
     const station = store.getState().station.stations[0];
     const traverse = store.getState().traverse.traverses[0];

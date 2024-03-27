@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import { upsertToArrayByUuid } from "../utils/store";
 import _, { cloneDeep } from "lodash";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { setAllSliceStores } from "store/crossActions";
 
 export const initialState: PresetState = {
   presets: [],
@@ -10,7 +11,6 @@ export const initialState: PresetState = {
   selectedRightNavItem: "info_panel",
   presetsUIStates: {},
   presetsEditing: [],
-  loadingStatus: "unloaded",
 };
 
 export const presetSlice = createSlice({
@@ -234,13 +234,16 @@ export const presetSlice = createSlice({
       state.selectedPresetUuid = action.payload.uuid; // select the newly created Preset
       state.selectedRightNavItem = "info_panel";
     },
-    setPresetLoadingStatus: (state, action: { payload: LoadingStatus }) => {
-      state.loadingStatus = action.payload;
-    },
     obliterateState: (state) => {
       //eslint-disable-next-line
       state = Object.assign(state, initialState);
     },
+  },
+  extraReducers: (builder) => {
+    // reducer called across slices. This handles this slice's portion of the reducer's state
+    builder.addCase(setAllSliceStores, (state, action: { payload: WholeStoreState }) => {
+      state = Object.assign(state, action.payload.preset);
+    });
   },
 });
 
@@ -270,6 +273,5 @@ export const {
   deletePresetUIStates,
   setPresetEditMode,
   resetAllPresetUIStates,
-  setPresetLoadingStatus,
   obliterateState,
 } = presetSlice.actions;

@@ -41,6 +41,11 @@ app.use(
   })
 );
 
+// Serve a successful response. For use with wait-on
+app.get("/api/v1/health", (req, res) => {
+  res.send({ status: "ok" });
+});
+
 // static asset passthrough for dev. This path is one level above src (relative from build output folder)
 app.use("/static", express.static(path.join(__dirname, `../../../${process.env.STATIC_DIR}`)));
 

@@ -11,6 +11,12 @@ import {
 import * as httpClient_Log from "http-client/log";
 import { v4 as uuidv4 } from "uuid";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import {
+  getCalculatedFieldsByEva,
+  getCalculatedFieldsByPoi,
+  getCalculatedFieldsByStation,
+  getCalculatedFieldsByTraverse,
+} from "store/processing/calculatedFields";
 
 /**
  * Save a full log of a REX, EVA and it's children to the DB.
@@ -79,6 +85,9 @@ export const thunkLogRexFull = appCreateAsyncThunk<{
    */
   const exportedPois: ExportPOI[] = makeExportPois({
     poiStore: getState().poi,
+    poiCalculatedFields: getState().poi.pois.map((poi) =>
+      getCalculatedFieldsByPoi({ poiUuid: poi.uuid, wholeStoreState: getState() })
+    ),
     actions: exportActions,
     missionStore: getState().mission,
   });
@@ -88,6 +97,12 @@ export const thunkLogRexFull = appCreateAsyncThunk<{
    */
   const exportedStations: ExportStation[] = makeExportStations({
     stationStore: getState().station,
+    stationCalculatedFields: getState().station.stations.map((station) =>
+      getCalculatedFieldsByStation({
+        stationUuid: station.uuid,
+        wholeStoreState: getState(),
+      })
+    ),
     actions: exportActions,
     missionStore: getState().mission,
     pois: exportedPois,
@@ -98,7 +113,12 @@ export const thunkLogRexFull = appCreateAsyncThunk<{
    */
   const exportedTraverses: ExportTraverse[] = makeExportTraverses({
     traverses: traversesInEva,
-    calculatedFields: getState().traverse.calculatedFields,
+    calculatedFields: traversesInEva.map((traverse) =>
+      getCalculatedFieldsByTraverse({
+        traverseUuid: traverse.uuid,
+        wholeStoreState: getState(),
+      })
+    ),
   });
 
   /**
@@ -106,7 +126,12 @@ export const thunkLogRexFull = appCreateAsyncThunk<{
    */
   const exportedEvas: ExportEva[] = makeExportEvas({
     evas: [eva],
-    evaCalculatedFields: getState().eva.calculatedFields,
+    evaCalculatedFields: getState().eva.evas.map((eva) =>
+      getCalculatedFieldsByEva({
+        evaUuid: eva.uuid,
+        wholeStoreState: getState(),
+      })
+    ),
     stations: exportedStations,
     traverses: exportedTraverses,
     missionStore: getState().mission,

@@ -29,6 +29,11 @@ import {
 } from "store/thunk/thunkEva";
 import { validators } from "components/interface/form/formValidators";
 import { RightTabs } from "components/interface/side-controls";
+import {
+  getCalculatedFieldsByEva,
+  getCalculatedFieldsByStation,
+  getCalculatedFieldsByTraverse,
+} from "store/processing/calculatedFields";
 
 const EvaRightEva: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -60,19 +65,58 @@ const EvaRightEva: FunctionComponent = () => {
       }),
     deepEqual
   );
-  const allTraverseCalculatedFields = useAppSelector(
-    (state) => state.traverse.calculatedFields,
-    deepEqual
-  );
-  const allStationCalculatedFields = useAppSelector(
-    (state) => state.station.calculatedFields,
-    deepEqual
-  );
+
   const calculatedFields = useAppSelector(
     (state) =>
-      state.eva.calculatedFields.find((calculated) => calculated.uuid === selectedEva?.uuid),
+      getCalculatedFieldsByEva({
+        evaUuid: selectedEvaUuid,
+        wholeStoreState: state,
+      }),
     deepEqual
   );
+
+  const traverseCalculatedFieldsInSequence = useAppSelector((state) => {
+    const eva = state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid);
+    if (!eva) return [];
+    const traverseUuidsInThisEva: string[] = [];
+    eva.sequence.forEach((sequenceItem) => {
+      if (sequenceItem.type === "traverse") {
+        traverseUuidsInThisEva.push(sequenceItem.uuid);
+      }
+    });
+    const traverseCalculatedFields: TraverseCalculatedFields[] = [];
+    for (const traverseUuid of traverseUuidsInThisEva) {
+      traverseCalculatedFields.push(
+        getCalculatedFieldsByTraverse({
+          traverseUuid,
+          wholeStoreState: state,
+        })
+      );
+    }
+    return traverseCalculatedFields;
+  }, deepEqual);
+
+  const stationCalculatedFieldsInSequence = useAppSelector((state) => {
+    const eva = state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid);
+    if (!eva) return [];
+    const stationUuidsInThisEva: string[] = [];
+    eva.sequence.forEach((sequenceItem) => {
+      if (sequenceItem.type === "station") {
+        stationUuidsInThisEva.push(sequenceItem.uuid);
+      }
+    });
+    const stationCalculatedFields: StationCalculatedFields[] = [];
+    for (const stationUuid of stationUuidsInThisEva) {
+      stationCalculatedFields.push(
+        getCalculatedFieldsByStation({
+          stationUuid,
+          wholeStoreState: state,
+        })
+      );
+    }
+    return stationCalculatedFields;
+  }, deepEqual);
+
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   const [evaReportSequenceItems, setEvaReportSequenceItems] = useState<EvaReportSequenceItem[]>([]);
@@ -109,7 +153,7 @@ const EvaRightEva: FunctionComponent = () => {
 
           if (seqItemRes.payload.type === "traverse") {
             const traverse = seqItemRes.payload.item as Traverse;
-            const travereCalculatedFields = allTraverseCalculatedFields.find(
+            const travereCalculatedFields = traverseCalculatedFieldsInSequence.find(
               (traverseCalculatedFields) => traverseCalculatedFields.uuid === sequenceItem.uuid
             );
             if (traverse) {
@@ -122,7 +166,7 @@ const EvaRightEva: FunctionComponent = () => {
             }
           } else if (seqItemRes.payload.type === "station") {
             const station = seqItemRes.payload.item as Station;
-            const stationCalculatedFields = allStationCalculatedFields.find(
+            const stationCalculatedFields = stationCalculatedFieldsInSequence.find(
               (stationCalculatedFields) => stationCalculatedFields.uuid === sequenceItem.uuid
             );
             if (station) {
@@ -139,7 +183,12 @@ const EvaRightEva: FunctionComponent = () => {
       }
       setEvaReportSequenceItems(evaReportSequenceItems);
     })();
-  }, [selectedEva, allTraverseCalculatedFields, allStationCalculatedFields, dispatch]);
+  }, [
+    selectedEva,
+    traverseCalculatedFieldsInSequence,
+    stationCalculatedFieldsInSequence,
+    dispatch,
+  ]);
 
   const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--eva)");
   const [reportsTabIcon, setReportsTabIcon] = useState<IconDefinition>(faTriangleExclamation);

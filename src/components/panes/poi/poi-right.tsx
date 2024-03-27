@@ -22,6 +22,7 @@ import Report_Panel from "../report";
 import { getAlertColor, isModified } from "utils/component-helpers";
 import { validators } from "components/interface/form/formValidators";
 import { RightTabs } from "components/interface/side-controls";
+import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
 
 const PoiEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -33,7 +34,7 @@ const PoiEditorRight: FunctionComponent = () => {
   );
   const poisEditing = useAppSelector((state) => state.poi.poisEditing, shallowEqual);
   const calculatedFields = useAppSelector(
-    (state) => state.poi.calculatedFields.find((calculated) => calculated.uuid === selectedPoiUuid),
+    (state) => getCalculatedFieldsByPoi({ poiUuid: selectedPoiUuid, wholeStoreState: state }),
     deepEqual
   );
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);

@@ -2,14 +2,11 @@ import appCreateAsyncThunk from "./thunkUtil";
 import { RootState } from "store";
 import { actionSlice } from "store/action";
 import { evaSlice } from "store/eva";
-import { interfaceSlice } from "store/interface";
-import { missionSlice } from "store/mission";
 import { poiSlice } from "store/poi";
 import { presetSlice } from "store/preset";
 import { rexSlice } from "store/rex";
 import { selectPoiActions } from "store/selectors";
 import { stationSlice } from "store/station";
-import { stmSlice } from "store/stm";
 import { traverseSlice } from "store/traverse";
 
 import { obliterateState as actionObliterateState } from "store/action";
@@ -139,49 +136,6 @@ export const thunkObliterateEntireStore = appCreateAsyncThunk<void>(
     dispatch(measurementObliterateState());
   }
 );
-
-//sets the selected tab to the current running rex
-export const thunkSetRunningRexView = appCreateAsyncThunk<void>(
-  "cross/setRunningRexView",
-  async (_, { dispatch, getState }) => {
-    const runningRex = getState().rex.rexes.find((rex) => rex.isRunning === true);
-    if (runningRex) {
-      const runningRexUuid = runningRex.uuid;
-      const state = getState() as RootState;
-
-      // Set the selected Rex UUID in the rex slice
-      dispatch(rexSlice.actions.setSelectedRexUuid(runningRexUuid));
-
-      // Expand the Rex UUIDs in the rex slice
-      dispatch(rexSlice.actions.setExpandedRexUuids([runningRexUuid]));
-
-      // Set the right panel in the interface slice
-      dispatch(thunkSetRightPanelIsOpenIfAuto(true));
-      dispatch(interfaceSlice.actions.setSectionSelected("rex"));
-
-      // Find the EVA UUID associated with the Rex and set it in the eva slice
-      const evaUuid = state.rex.rexes.find((rex) => rex.uuid === runningRexUuid)?.evaUuid;
-      if (evaUuid) {
-        dispatch(evaSlice.actions.setSelectedEvaUuid(evaUuid));
-        dispatch(evaSlice.actions.setSelectedEvaRightNavItem("actions_panel"));
-      }
-    }
-  }
-);
-
-export const thunkSetAllStoreLoadingStatuses = appCreateAsyncThunk<{
-  loadingStatus: LoadingStatus;
-}>("cross/setAllStoreLoadingStatuses", async ({ loadingStatus }, { dispatch }) => {
-  dispatch(missionSlice.actions.setMissionLoadingStatus(loadingStatus));
-  dispatch(presetSlice.actions.setPresetLoadingStatus(loadingStatus));
-  dispatch(poiSlice.actions.setPoiLoadingStatus(loadingStatus));
-  dispatch(stationSlice.actions.setStationLoadingStatus(loadingStatus));
-  dispatch(actionSlice.actions.setActionLoadingStatus(loadingStatus));
-  dispatch(evaSlice.actions.setEvaLoadingStatus(loadingStatus));
-  dispatch(traverseSlice.actions.setTraverseLoadingStatus(loadingStatus));
-  dispatch(stmSlice.actions.setStmLoadingStatus(loadingStatus));
-  dispatch(rexSlice.actions.setRexLoadingStatus(loadingStatus));
-});
 
 export const thunkClearAllMapSelections = appCreateAsyncThunk<void>(
   "cross/thunkClearAllSelections",

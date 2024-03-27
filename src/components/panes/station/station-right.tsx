@@ -33,6 +33,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDeleteStation, thunkSaveStation, thunkStationCancel } from "store/thunk/thunkStation";
 import { validators } from "components/interface/form/formValidators";
 import { RightTabs } from "components/interface/side-controls";
+import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -82,7 +83,10 @@ const StationEditorRight: FunctionComponent = () => {
 
   const calculatedFields = useAppSelector(
     (state) =>
-      state.station.calculatedFields.find((calculated) => calculated.uuid === selectedStationUuid),
+      getCalculatedFieldsByStation({
+        stationUuid: selectedStationUuid,
+        wholeStoreState: state,
+      }),
     deepEqual
   );
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
