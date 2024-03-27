@@ -29,6 +29,7 @@ import { round } from "lodash";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import CalculatedDwell from "../calculated-dwell";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
+import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -89,7 +90,10 @@ const Info_Panel: FunctionComponent<{
 
   const calculatedFields = useAppSelector(
     (state) =>
-      state.station.calculatedFields.find((calculated) => calculated.uuid === selectedStation.uuid),
+      getCalculatedFieldsByStation({
+        stationUuid: selectedStation.uuid,
+        wholeStoreState: state,
+      }),
     deepEqual
   );
   const missionEquipItems = useAppSelector(

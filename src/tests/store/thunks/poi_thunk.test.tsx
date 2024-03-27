@@ -1,6 +1,5 @@
 import {
   thunkCreatePoi,
-  thunkCreatePoiCalculatedFields,
   thunkDeletePoi,
   thunkDuplicatePoi,
   thunkPoiCancel,
@@ -258,74 +257,5 @@ describe("Thunk POI Tests", () => {
     expect(storeState.poi.selectedRightNavItem).toEqual("info_panel");
     //we mocked the thunk duplicate action, so no further conditions will be tested here
     expect(mockThunkDuplicateActions).toHaveBeenCalledTimes(1);
-  });
-
-  it("thunkCreatePoiCalculatedFields()", async () => {
-    //populate the poi state in the store
-    const poi: POI = createTestPoi();
-    const poiNoActions: POI = createTestPoi();
-    const poiAction1: Action = {
-      ...createTestAction({ poiUuid: poi.uuid }),
-      durationLower: 5,
-      durationUpper: 10,
-      crewAssigned: ["EV1"],
-    };
-    const poiAction2: Action = {
-      ...createTestAction({ poiUuid: poi.uuid }),
-      durationLower: 2,
-      durationUpper: 4,
-      crewAssigned: ["EV2"],
-    };
-    const poiAction3: Action = {
-      ...createTestAction({ poiUuid: poi.uuid }),
-      durationLower: 1,
-      durationUpper: 1,
-    };
-    const store = createCustomTestStore({
-      poi: { ...poiInitialState, pois: [poi, poiNoActions], poisFromDb: [poi, poiNoActions] },
-      action: {
-        ...actionInitialState,
-        actions: [poiAction1, poiAction2, poiAction3],
-        actionsFromDb: [poiAction1, poiAction2, poiAction3],
-      },
-    });
-
-    await store.dispatch(thunkCreatePoiCalculatedFields());
-    const storeState = store.getState();
-    //check poi that has no actions
-    expect(storeState.poi.calculatedFields.length).toEqual(2);
-    const poiNoActionsCalcField = storeState.poi.calculatedFields.find(
-      (c) => c.uuid === poiNoActions.uuid
-    );
-    expect(poiNoActionsCalcField.reportItems.length).toEqual(1);
-    expect(poiNoActionsCalcField.reportItems[0]).toEqual({
-      message: "POI has no actions",
-      type: "warning",
-    });
-
-    //check poi with actions
-    const poiCalcField = storeState.poi.calculatedFields.find((c) => c.uuid === poi.uuid);
-    expect(poiCalcField.uuid).toEqual(poi.uuid);
-    expect(poiCalcField.totalActionTime).toEqual({
-      durationLower: 8,
-      durationUpper: 15,
-    });
-    expect(poiCalcField.totalEv1Time).toEqual({
-      durationLower: 5,
-      durationUpper: 10,
-    });
-    expect(poiCalcField.totalEv2Time).toEqual({
-      durationLower: 2,
-      durationUpper: 4,
-    });
-    expect(poiCalcField.totalUnassignedTime).toEqual({
-      durationLower: 1,
-      durationUpper: 1,
-    });
-    expect(poiCalcField.totalDwellTime).toEqual({
-      durationLower: 5,
-      durationUpper: 10,
-    });
-    expect(poiCalcField.actionCount).toEqual(3);
   });
 });

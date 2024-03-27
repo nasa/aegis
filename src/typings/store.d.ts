@@ -17,7 +17,6 @@ interface MissionState {
   sublayers: Sublayer[];
   selectedRightNavItem: string;
   missionSectionsEditing: string[];
-  loadingStatus: LoadingStatus;
 }
 
 interface UserState {
@@ -43,8 +42,6 @@ interface EvaState {
   evas: Eva[];
   evasFromDb: Eva[];
   evasEditing: string[];
-  calculatedFields: EvaCalculatedFields[];
-  loadingStatus: LoadingStatus;
 }
 
 interface TraverseState {
@@ -52,8 +49,6 @@ interface TraverseState {
   traversesFromDb: Traverse[];
   traversesEditing: string[];
   selectedTraverseRightNavItem: string;
-  calculatedFields: TraverseCalculatedFields[];
-  loadingStatus: LoadingStatus;
 }
 
 interface PoiState {
@@ -62,8 +57,6 @@ interface PoiState {
   selectedPoiUuid: string;
   selectedRightNavItem: string;
   poisEditing: string[];
-  calculatedFields: PoiCalculatedFields[];
-  loadingStatus: LoadingStatus;
 }
 
 interface PresetState {
@@ -73,7 +66,6 @@ interface PresetState {
   selectedRightNavItem: string;
   presetsUIStates: PresetsUIStates;
   presetsEditing: string[];
-  loadingStatus: LoadingStatus;
 }
 
 type InterfaceSection = "mission" | "preset" | "poi" | "station" | "evas" | "rex";
@@ -97,7 +89,6 @@ interface STMState {
   level1s: STMLevel1[];
   level2s: STMLevel2[];
   level3s: STMLevel3[];
-  loadingStatus: LoadingStatus;
 }
 
 interface StationState {
@@ -106,14 +97,11 @@ interface StationState {
   selectedStationUuid: string;
   selectedRightNavItem: string;
   stationsEditing: string[];
-  calculatedFields: StationCalculatedFields[];
-  loadingStatus: LoadingStatus;
 }
 
 interface ActionState {
   actions: Action[];
   actionsFromDb: Action[];
-  loadingStatus: LoadingStatus;
 }
 
 interface RexState {
@@ -126,12 +114,6 @@ interface RexState {
   rexesPosEntriesEditing: string[];
   selectedPosEntryUuid: string;
   posEntryEditingUuid: string; //only one can be in edit mode at a time
-  loadingStatus: LoadingStatus;
-}
-
-interface MeasureState {
-  measurements: Measurement[];
-  selectedMeasurementUuid: string;
 }
 
 interface Measurement {
@@ -141,6 +123,28 @@ interface Measurement {
   path: AEGISPoint[];
   pathSegmentDistances: number[]; //meters
   pathSegmentElevations: number[][]; //meters
+}
+
+interface MeasureState {
+  measurements: Measurement[];
+  selectedMeasurementUuid: string;
+}
+
+interface WholeStoreState {
+  hover: HoverState;
+  mission: MissionState;
+  user: UserState;
+  map: MapState;
+  eva: EvaState;
+  traverse: TraverseState;
+  poi: PoiState;
+  preset: PresetState;
+  interface: InterfaceState;
+  stm: STMState;
+  station: StationState;
+  action: ActionState;
+  rex: RexState;
+  measure: MeasureState;
 }
 
 type ReportItem = {
@@ -164,14 +168,15 @@ type ActionsCalculatedFields = {
 
 type LocationCalculatedFields = CalculatedFields & ActionsCalculatedFields;
 
-type PoiCalculatedFields = LocationCalculatedFields;
+type PoiCalculatedFields = CalculatedFields & ActionsCalculatedFields;
 
-type StationCalculatedFields = LocationCalculatedFields & {
-  walkbackDurationMinutes: number;
-  walkbackDistanceMeters: number;
-  walkbackAscentDescent: TotalAscentDescentObj;
-  equipmentItems: EquipmentItemUsage[];
-};
+type StationCalculatedFields = CalculatedFields &
+  ActionsCalculatedFields & {
+    walkbackDurationMinutes: number;
+    walkbackDistanceMeters: number;
+    walkbackAscentDescent: TotalAscentDescentObj;
+    equipmentItems: EquipmentItemUsage[];
+  };
 
 type TraverseCalculatedFields = CalculatedFields & {
   durationMinutes: number;
@@ -191,14 +196,15 @@ type EvaSequenceItemCalculatedData = {
   endSeconds: number;
 };
 
-type EvaCalculatedFields = LocationCalculatedFields & {
-  totalTraverseTime: number;
-  totalTraverseDistanceMeters: number;
-  totalTraverseAscentDescent: TotalAscentDescentObj;
-  totalEvaTime: TotalTimeObj;
-  equipmentItems: EquipmentItemUsage[];
-  sequenceItemsCalculatedData: EvaSequenceItemCalculatedData[];
-};
+type EvaCalculatedFields = CalculatedFields &
+  ActionsCalculatedFields & {
+    totalTraverseTime: number;
+    totalTraverseDistanceMeters: number;
+    totalTraverseAscentDescent: TotalAscentDescentObj;
+    totalEvaTime: TotalTimeObj;
+    equipmentItems: EquipmentItemUsage[];
+    sequenceItemsCalculatedData: EvaSequenceItemCalculatedData[];
+  };
 
 interface MustContain {
   uuid: string;

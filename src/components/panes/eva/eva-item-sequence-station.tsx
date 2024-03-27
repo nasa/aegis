@@ -25,6 +25,10 @@ import _ from "lodash";
 import PetInterval from "components/interface/page/petInterval";
 import { RexStatusMenu } from "../rex/rex";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
+import {
+  getCalculatedFieldsByEva,
+  getCalculatedFieldsByStation,
+} from "store/processing/calculatedFields";
 
 const SequenceItemStation: FunctionComponent<{
   evaUuid: string;
@@ -55,9 +59,13 @@ const SequenceItemStation: FunctionComponent<{
   );
   const thisStationCalculatedFields = useAppSelector(
     (state) =>
-      state.station.calculatedFields.find((stationData) => stationData.uuid === stationUuid),
+      getCalculatedFieldsByStation({
+        stationUuid,
+        wholeStoreState: state,
+      }),
     deepEqual
   );
+
   const stationRexStatus = useAppSelector((state) => {
     const rex = state.rex.rexesFromDb.find((rex) => rex.isRunning);
     if (!rex || !rex.stationEntries) return null;
@@ -71,10 +79,11 @@ const SequenceItemStation: FunctionComponent<{
 
   const sequenceItemMetadata = useAppSelector(
     (state) =>
-      state.eva.calculatedFields
-        .find((c) => c.uuid === evaUuid)
-        ?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === stationUuid),
-    shallowEqual
+      getCalculatedFieldsByEva({
+        evaUuid,
+        wholeStoreState: state,
+      })?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === stationUuid),
+    deepEqual
   );
 
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);

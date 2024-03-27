@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { cloneDeep } from "lodash";
+import { setAllSliceStores } from "store/crossActions";
 
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
@@ -12,8 +13,6 @@ export const initialState: EvaState = {
   evas: [],
   evasFromDb: [],
   evasEditing: [],
-  calculatedFields: [],
-  loadingStatus: "unloaded",
 };
 
 export const evaSlice = createSlice({
@@ -165,24 +164,22 @@ export const evaSlice = createSlice({
       state.expandedEvaUuids.push(action.payload.uuid); // expand the newly created eva
       state.selectedEvaRightNavItem = "info_panel"; // set the selected tab to the EVA's info tab
     },
-    setEvasCalculatedFields: (
-      state,
-      action: { payload: { calculatedFields: EvaCalculatedFields[] } }
-    ) => {
-      state.calculatedFields = action.payload.calculatedFields;
-    },
+
     clearEvaSelections: (state) => {
       state.selectedEvaRightNavItem = "";
       state.selectedEvaUuid = "";
       state.selectedEvaSequenceItemUuid = "";
     },
-    setEvaLoadingStatus: (state, action: { payload: LoadingStatus }) => {
-      state.loadingStatus = action.payload;
-    },
     obliterateState: (state) => {
       //eslint-disable-next-line
       state = Object.assign(state, initialState);
     },
+  },
+  extraReducers: (builder) => {
+    // reducer called across slices. This handles this slice's portion of the reducer's state
+    builder.addCase(setAllSliceStores, (state, action: { payload: WholeStoreState }) => {
+      state = Object.assign(state, action.payload.eva);
+    });
   },
 });
 
@@ -205,8 +202,6 @@ export const {
   setExpandedEvaUuids,
   setEvaSequence,
   setEvaEditMode,
-  setEvasCalculatedFields,
   clearEvaSelections,
-  setEvaLoadingStatus,
   obliterateState,
 } = evaSlice.actions;

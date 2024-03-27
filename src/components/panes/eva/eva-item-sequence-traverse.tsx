@@ -12,6 +12,10 @@ import _ from "lodash";
 import PetInterval from "components/interface/page/petInterval";
 import { RexStatusMenu } from "../rex/rex";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
+import {
+  getCalculatedFieldsByEva,
+  getCalculatedFieldsByTraverse,
+} from "store/processing/calculatedFields";
 
 const SequenceItemTraverse: FunctionComponent<{
   evaUuid: string;
@@ -31,9 +35,13 @@ const SequenceItemTraverse: FunctionComponent<{
   );
   const thisTraverseCalculatedFields = useAppSelector(
     (state) =>
-      state.traverse.calculatedFields.find((traverseData) => traverseData.uuid === traverseUuid),
+      getCalculatedFieldsByTraverse({
+        traverseUuid,
+        wholeStoreState: state,
+      }),
     deepEqual
   );
+
   const traverseRexStatus = useAppSelector((state) => {
     const rex = state.rex.rexesFromDb.find((rex) => rex.isRunning);
     if (!rex || !rex.traverseEntries) return null;
@@ -46,10 +54,11 @@ const SequenceItemTraverse: FunctionComponent<{
 
   const sequenceItemMetadata = useAppSelector(
     (state) =>
-      state.eva.calculatedFields
-        .find((c) => c.uuid === evaUuid)
-        ?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === traverseUuid),
-    shallowEqual
+      getCalculatedFieldsByEva({
+        evaUuid,
+        wholeStoreState: state,
+      })?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === traverseUuid),
+    deepEqual
   );
 
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);

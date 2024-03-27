@@ -1,4 +1,4 @@
-import PopulateStore from "components/interface/page/populateStore";
+import { populateStore } from "pages/mission";
 import _ from "lodash";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FunctionComponent, useEffect, useState } from "react";
@@ -11,6 +11,7 @@ import { getMissions } from "http-client/mission";
 import * as httpClient_log from "http-client/log";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkMakeExportString } from "store/thunk/thunkMission";
+import { setAllSliceStores } from "store/crossActions";
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search);
@@ -50,6 +51,17 @@ const ExportPage: React.FunctionComponent = () => {
       if (!missions.find((m) => m.id === intMissionId)) navigate("/admin");
     })();
   }, [navigate, intMissionId]);
+
+  useEffect(() => {
+    (async () => {
+      const wholeStoreState = await populateStore({ missionId: intMissionId });
+      /**
+       * dispatch a single action to populate the stores across all slices using the wholeStoreState
+       */
+      dispatch(setAllSliceStores(wholeStoreState));
+    })();
+    //eslint-disable-next-line
+  }, []);
 
   if (!intMissionId) return <div>No missionId provided</div>;
 
@@ -169,8 +181,6 @@ const ExportPage: React.FunctionComponent = () => {
         </div>
         <ExporLogs missionId={intMissionId} missionName={missionStore.mission?.name} />
       </div>
-
-      <PopulateStore missionId={intMissionId} hasPermissions={true} />
     </>
   );
 };

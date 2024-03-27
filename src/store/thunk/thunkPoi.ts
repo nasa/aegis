@@ -1,4 +1,4 @@
-import { deletePoiByUuid, setPoiCalculatedFields, upsertPoiFromDb } from "store/poi";
+import { deletePoiByUuid, upsertPoiFromDb } from "store/poi";
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkGetElevation } from "./thunkElevation";
 import * as httpClient_poi from "http-client/poi";
@@ -55,101 +55,6 @@ export const thunkUpdatePoiLocation = appCreateAsyncThunk<{
     dispatch(upsertPoi({ ...poi, location, elevation: elevationRes.payload as number }));
   }
 });
-
-/**
- * Create reports for all pois
- */
-export const thunkCreatePoiCalculatedFields = appCreateAsyncThunk<void>(
-  "createPoiCalculatedFields",
-  async (_, { dispatch, getState }) => {
-    const pois = getState().poi.pois;
-    const allCalculatedFields: PoiCalculatedFields[] = [];
-    for (const poi of pois) {
-      //get poi actions
-      const poiActions = getState().action.actions.filter(
-        (storeAction) => storeAction.poiUuid === poi.uuid && storeAction.enabled
-      );
-
-      //calculate total time
-      let totalDurationLower = 0;
-      let totalDurationUpper = 0;
-      let totalEv1DurationLower = 0;
-      let totalEv1DurationUpper = 0;
-      let totalEv2DurationLower = 0;
-      let totalEv2DurationUpper = 0;
-      let totalUnassignedDurationLower = 0;
-      let totalUnassignedDurationUpper = 0;
-      let totalDwellTimeLower = 0;
-      let totalDwellTimeUpper = 0;
-      let actionCount = 0;
-      poiActions.forEach((action) => {
-        totalDurationLower += action.durationLower;
-        totalDurationUpper += action.durationUpper;
-        if (action.crewAssigned && action.crewAssigned.includes("EV1")) {
-          totalEv1DurationLower += action.durationLower;
-          totalEv1DurationUpper += action.durationUpper;
-        }
-        if (action.crewAssigned && action.crewAssigned.includes("EV2")) {
-          totalEv2DurationLower += action.durationLower;
-          totalEv2DurationUpper += action.durationUpper;
-        }
-        if (!action.crewAssigned || action.crewAssigned.length === 0) {
-          totalUnassignedDurationLower += action.durationLower;
-          totalUnassignedDurationUpper += action.durationUpper;
-        }
-        totalDwellTimeLower =
-          totalEv1DurationLower > totalEv2DurationLower
-            ? totalEv1DurationLower
-            : totalEv2DurationLower;
-
-        totalDwellTimeUpper =
-          totalEv1DurationUpper > totalEv2DurationUpper
-            ? totalEv1DurationUpper
-            : totalEv2DurationUpper;
-        actionCount++;
-      });
-
-      //generate report messages
-      const newReportItems: ReportItem[] = [];
-
-      // check if no actions
-      if (poiActions.length === 0) {
-        newReportItems.push({
-          message: "POI has no actions",
-          type: "warning",
-        } as ReportItem);
-      }
-
-      const newCalculatedFields: PoiCalculatedFields = {
-        uuid: poi.uuid,
-        reportItems: newReportItems,
-        totalActionTime: {
-          durationLower: totalDurationLower,
-          durationUpper: totalDurationUpper,
-        },
-        totalEv1Time: {
-          durationLower: totalEv1DurationLower,
-          durationUpper: totalEv1DurationUpper,
-        },
-        totalEv2Time: {
-          durationLower: totalEv2DurationLower,
-          durationUpper: totalEv2DurationUpper,
-        },
-        totalUnassignedTime: {
-          durationLower: totalUnassignedDurationLower,
-          durationUpper: totalUnassignedDurationUpper,
-        },
-        totalDwellTime: {
-          durationLower: totalDwellTimeLower,
-          durationUpper: totalDwellTimeUpper,
-        },
-        actionCount,
-      };
-      allCalculatedFields.push(newCalculatedFields);
-    }
-    dispatch(setPoiCalculatedFields({ calculatedFields: allCalculatedFields }));
-  }
-);
 
 export const thunkSavePoi = appCreateAsyncThunk<{
   poi: POI;

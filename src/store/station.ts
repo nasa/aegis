@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { cloneDeep } from "lodash";
+import { setAllSliceStores } from "store/crossActions";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
 
@@ -9,8 +10,6 @@ export const initialState: StationState = {
   selectedStationUuid: null,
   selectedRightNavItem: "info_panel",
   stationsEditing: [],
-  calculatedFields: [],
-  loadingStatus: "unloaded",
 };
 
 export const stationSlice = createSlice({
@@ -152,19 +151,17 @@ export const stationSlice = createSlice({
         station.walkbackPathSegmentElevations = stationFromDb.walkbackPathSegmentElevations;
       }
     },
-    setStationCalculatedFields: (
-      state,
-      action: { payload: { calculatedFields: StationCalculatedFields[] } }
-    ) => {
-      state.calculatedFields = action.payload.calculatedFields;
-    },
-    setStationLoadingStatus: (state, action: { payload: LoadingStatus }) => {
-      state.loadingStatus = action.payload;
-    },
+
     obliterateState: (state) => {
       //eslint-disable-next-line
       state = Object.assign(state, initialState);
     },
+  },
+  extraReducers: (builder) => {
+    // reducer called across slices. This handles this slice's portion of the reducer's state
+    builder.addCase(setAllSliceStores, (state, action: { payload: WholeStoreState }) => {
+      state = Object.assign(state, action.payload.station);
+    });
   },
 });
 
@@ -185,7 +182,5 @@ export const {
   setStateForNewStation,
   setStationEditMode,
   revertWalkbackPath,
-  setStationCalculatedFields,
-  setStationLoadingStatus,
   obliterateState,
 } = stationSlice.actions;

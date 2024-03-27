@@ -4,7 +4,6 @@ import { initialState as missionInitialState } from "store/mission";
 import { initialState as evaInitialState } from "store/eva";
 import { initialState as stationInitialState } from "store/station";
 import {
-  thunkCreateTraverseCalculatedFields,
   thunkFullUpdateTraverse,
   thunkResetTraverse,
   thunkUpdateTraversePath,
@@ -247,79 +246,5 @@ describe("Thunk Traverse Tests", () => {
     expect(t2.name).toEqual("Jest Station-1 to Jest Station-2");
     expect(t3.name).toEqual("Jest Station-2 to Jest Station-3");
     expect(t4.name).toEqual("Jest Station-3 to Lander");
-  });
-
-  test("thunkCreateTraverseCalculatedFields", async () => {
-    const mission = createTestMission();
-    const traverse1 = createTestTraverse();
-    traverse1.pathSegmentDistances = [500];
-    traverse1.pathSegmentElevations = [[2, 4]];
-    const traverse2 = createTestTraverse();
-    traverse2.traverseRate = 1;
-    traverse2.pathSegmentDistances = [500];
-    traverse2.predictedDurationLower = 50;
-    traverse2.predictedDurationUpper = 50;
-    const traverse3 = createTestTraverse();
-    traverse3.pathSegmentDistances = [500];
-    traverse3.predictedDurationLower = 15;
-    traverse3.predictedDurationUpper = 15;
-    const station1: Station = createTestStation();
-    const station2: Station = createTestStation();
-    const station3: Station = createTestStation();
-    const eva1: Eva = createTestEva();
-    eva1.sequence = [
-      { uuid: station1.uuid, type: "station" },
-      { uuid: traverse1.uuid, type: "traverse" },
-      { uuid: station2.uuid, type: "station" },
-    ];
-    const eva2: Eva = createTestEva();
-    eva2.traverseRate = 2;
-    eva2.sequence = [
-      { uuid: station1.uuid, type: "station" },
-      { uuid: traverse3.uuid, type: "traverse" },
-      { uuid: station2.uuid, type: "station" },
-      { uuid: traverse2.uuid, type: "traverse" },
-      { uuid: station3.uuid, type: "station" },
-    ];
-    const store = createCustomTestStore({
-      traverse: { ...traverseInitialState, traverses: [traverse1, traverse2, traverse3] },
-      station: { ...stationInitialState, stations: [station1, station2, station3] },
-      eva: { ...evaInitialState, evas: [eva1, eva2] },
-      mission: {
-        ...missionInitialState,
-        mission: { ...mission, traverseRate: 3 },
-      },
-    });
-    store.dispatch(thunkCreateTraverseCalculatedFields());
-    const t1CalcFields = store
-      .getState()
-      .traverse.calculatedFields.find((c) => c.uuid === traverse1.uuid);
-    expect(t1CalcFields).toEqual({
-      uuid: traverse1.uuid,
-      reportItems: [
-        {
-          message: "Calculated traverse duration is over predicted maximum traverse time",
-          type: "error",
-        },
-      ],
-      durationMinutes: 10,
-      distanceMeters: 500,
-      ascentDescent: { totalMetersClimbed: 2, totalMetersDescended: 0 },
-    });
-    const t2CalcFields = store
-      .getState()
-      .traverse.calculatedFields.find((c) => c.uuid === traverse2.uuid);
-    expect(t2CalcFields.durationMinutes).toEqual(30);
-    expect(t2CalcFields.reportItems).toEqual([
-      {
-        message: "Calculated traverse duration is under predicted nominal traverse time",
-        type: "info",
-      },
-    ]);
-    const t3CalcFields = store
-      .getState()
-      .traverse.calculatedFields.find((c) => c.uuid === traverse3.uuid);
-    expect(t3CalcFields.durationMinutes).toEqual(15);
-    expect(t3CalcFields.reportItems).toEqual([]);
   });
 });

@@ -9,7 +9,6 @@ import { initialState as stationInitialState } from "store/station";
 import { initialState as missionInitialState } from "store/mission";
 import { initialState as mapInitialState } from "store/map";
 import { initialState as actionInitialState } from "store/action";
-import { isEqual } from "lodash";
 import * as thunkStation from "store/thunk/thunkStation";
 
 // mock all calls to the db so no transactions are actually made
@@ -204,112 +203,6 @@ describe("Thunk Station Tests", () => {
     expect(mockThunkGetElevation).toHaveBeenCalled();
   });
 
-  test("thunkCreateStationCalculatedFields()", async () => {
-    //populate the station state in the store
-    const station: Station = createTestStation();
-    const blankMission: Mission = createTestMission();
-    const stationNoActions: Station = createTestStation();
-    const stationAction1: Action = {
-      ...createTestAction({ stationUuid: station.uuid }),
-      durationLower: 5,
-      durationUpper: 10,
-      crewAssigned: ["EV1"],
-    };
-    const stationAction2: Action = {
-      ...createTestAction({ stationUuid: station.uuid }),
-      durationLower: 2,
-      durationUpper: 4,
-      crewAssigned: ["EV2"],
-    };
-    const stationAction3: Action = {
-      ...createTestAction({ stationUuid: station.uuid }),
-      durationLower: 1,
-      durationUpper: 1,
-    };
-    const store = createCustomTestStore({
-      station: {
-        ...stationInitialState,
-        stations: [station, stationNoActions],
-        stationsFromDb: [station, stationNoActions],
-        selectedStationUuid: null,
-        selectedRightNavItem: "",
-        stationsEditing: [],
-        calculatedFields: [],
-      },
-      action: {
-        ...actionInitialState,
-        actions: [stationAction1, stationAction2, stationAction3],
-        actionsFromDb: [stationAction1, stationAction2, stationAction3],
-      },
-      mission: {
-        ...missionInitialState,
-        mission: { ...blankMission, traverseRate: 2 },
-      },
-    });
-
-    await store.dispatch(thunkStation.thunkCreateStationCalculatedFields());
-    const storeState = store.getState();
-    //two calculated fields for the 2 stations in the store
-    expect(storeState.station.calculatedFields.length).toEqual(2);
-
-    //check station that has no actions
-    const stationNoActionsCalcField = storeState.station.calculatedFields.find(
-      (c) => c.uuid === stationNoActions.uuid
-    );
-    expect(stationNoActionsCalcField.reportItems.length).toEqual(3);
-    expect(
-      stationNoActionsCalcField.reportItems.find((r) =>
-        isEqual(r, {
-          message: "Station has no actions",
-          type: "warning",
-        })
-      )
-    ).toBeTruthy();
-    expect(
-      stationNoActionsCalcField.reportItems.find((r) =>
-        isEqual(r, {
-          message: "Station location not yet set",
-          type: "warning",
-        })
-      )
-    ).toBeTruthy();
-    expect(
-      stationNoActionsCalcField.reportItems.find((r) =>
-        isEqual(r, {
-          message: "Station has no associated POIs",
-          type: "info",
-        })
-      )
-    ).toBeTruthy();
-
-    //check station with actions
-    const stationCalcField = storeState.station.calculatedFields.find(
-      (c) => c.uuid === station.uuid
-    );
-    expect(stationCalcField.uuid).toEqual(station.uuid);
-    expect(stationCalcField.totalActionTime).toEqual({
-      durationLower: 8,
-      durationUpper: 15,
-    });
-    expect(stationCalcField.totalEv1Time).toEqual({
-      durationLower: 5,
-      durationUpper: 10,
-    });
-    expect(stationCalcField.totalEv2Time).toEqual({
-      durationLower: 2,
-      durationUpper: 4,
-    });
-    expect(stationCalcField.totalUnassignedTime).toEqual({
-      durationLower: 1,
-      durationUpper: 1,
-    });
-    expect(stationCalcField.totalDwellTime).toEqual({
-      durationLower: 5,
-      durationUpper: 10,
-    });
-    expect(stationCalcField.actionCount).toEqual(3);
-  });
-
   test("thunkSaveStation() - no modified actions", async () => {
     //populate the station state in the store
     const station: Station = createTestStation();
@@ -480,7 +373,6 @@ describe("Thunk Station Tests", () => {
         selectedStationUuid: station.uuid,
         selectedRightNavItem: "info_panel",
         stationsEditing: [station.uuid, unsavedStation.uuid],
-        calculatedFields: [],
       },
       action: {
         ...actionInitialState,

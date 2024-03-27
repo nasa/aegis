@@ -1,10 +1,10 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { setAllSliceStores } from "store/crossActions";
 
 export const initialState: STMState = {
   level1s: [],
   level2s: [],
   level3s: [],
-  loadingStatus: "unloaded",
 };
 
 export const stmSlice = createSlice({
@@ -23,15 +23,17 @@ export const stmSlice = createSlice({
     setLevel3s: (state, action: { payload: STMLevel3[] }) => {
       state.level3s = action.payload;
     },
-    setStmLoadingStatus: (state, action: { payload: LoadingStatus }) => {
-      state.loadingStatus = action.payload;
-    },
     obliterateState: (state) => {
       //eslint-disable-next-line
       state = Object.assign(state, initialState);
     },
   },
+  extraReducers: (builder) => {
+    // reducer called across slices. This handles this slice's portion of the reducer's state
+    builder.addCase(setAllSliceStores, (state, action: { payload: WholeStoreState }) => {
+      state = Object.assign(state, action.payload.stm);
+    });
+  },
 });
 
-export const { setLevel1s, setLevel2s, setLevel3s, setStmLoadingStatus, obliterateState } =
-  stmSlice.actions;
+export const { setLevel1s, setLevel2s, setLevel3s, obliterateState } = stmSlice.actions;

@@ -96,10 +96,11 @@ export const makeExportActions = (params: {
 
 export const makeExportPois = (params: {
   poiStore: PoiState;
+  poiCalculatedFields: PoiCalculatedFields[];
   actions: ExportAction[];
   missionStore: MissionState;
 }): ExportPOI[] => {
-  const { poiStore, actions, missionStore } = params;
+  const { poiStore, poiCalculatedFields, actions, missionStore } = params;
   const exportPois: ExportPOI[] = poiStore.pois.map((poi) => {
     const actionsReadable: ExportAction[] = [];
     poi.actionOrderUuids.forEach((actionUuid) => {
@@ -111,7 +112,7 @@ export const makeExportPois = (params: {
       _itemType: "POI",
       actionsReadable,
       descriptionReadable: decodeWsywig(poi.description),
-      calculatedFields: poiStore.calculatedFields.find((c) => c.uuid === poi.uuid),
+      calculatedFields: poiCalculatedFields.find((c) => c.uuid === poi.uuid),
       elevationRelative: poi.elevation - missionStore.mission.landerElevationMeters,
       iconEmojiDecoded: decodeEmoji(poi.icon),
     };
@@ -122,11 +123,12 @@ export const makeExportPois = (params: {
 
 export const makeExportStations = (params: {
   stationStore: StationState;
+  stationCalculatedFields: StationCalculatedFields[];
   actions: ExportAction[];
   missionStore: MissionState;
   pois: POI[];
 }): ExportStation[] => {
-  const { stationStore, actions, missionStore, pois } = params;
+  const { stationStore, stationCalculatedFields, actions, missionStore, pois } = params;
   const exportStations: ExportStation[] = stationStore.stations.map((station) => {
     const actionsReadable: ExportAction[] = [];
     station.actionOrderUuids.forEach((actionUuid: string) => {
@@ -139,9 +141,9 @@ export const makeExportStations = (params: {
       descriptionReadable: decodeWsywig(station.description),
       actionsReadable,
       calculatedFields: {
-        ...stationStore.calculatedFields.find((c) => c.uuid === station.uuid),
+        ...stationCalculatedFields.find((c) => c.uuid === station.uuid),
         equipmentItemsReadable: makeEquipmentReadable({
-          equipmentItems: stationStore.calculatedFields.find((c) => c.uuid === station.uuid)
+          equipmentItems: stationCalculatedFields.find((c) => c.uuid === station.uuid)
             ?.equipmentItems,
           mission: missionStore.mission,
         }),

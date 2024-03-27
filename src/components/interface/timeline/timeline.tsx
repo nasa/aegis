@@ -27,6 +27,7 @@ import { secondsFromhhmmss } from "utils/formatting";
 import { setSelectedPosEntryUuid } from "store/rex";
 import PetInterval from "../page/petInterval";
 import { getStmUuidRefs } from "utils/store";
+import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
 
 /**
  * Renders the navigation timeline presented at the bottom of the window
@@ -63,10 +64,23 @@ const NavTimeline: FunctionComponent = () => {
     (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
     deepEqual
   );
-  const stationCalculatedFields = useAppSelector(
-    (state) => state.station.calculatedFields,
-    deepEqual
-  );
+
+  const stationCalculatedFieldsInSelectedEva = useAppSelector((state) => {
+    const eva = state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid);
+    const stationsInEvaSequence = eva?.sequence
+      ? eva.sequence.filter((s) => s.type === "station")
+      : [];
+    const allStationCalculatedFields: StationCalculatedFields[] = [];
+    for (const station of stationsInEvaSequence) {
+      allStationCalculatedFields.push(
+        getCalculatedFieldsByStation({
+          stationUuid: station.uuid,
+          wholeStoreState: state,
+        })
+      );
+    }
+    return allStationCalculatedFields;
+  }, deepEqual);
 
   const showDistanceFromLander = useAppSelector(
     (state) => state.interface.timelineShowDistanceFromLander,
@@ -204,7 +218,7 @@ const NavTimeline: FunctionComponent = () => {
           sequenceItemForPaperJS.traverseRateMSec = traverseRate * (1000 / 3600); //convert to m/sec
 
           // get calculatedFieldValues for this station
-          const calculatedFields = stationCalculatedFields.find(
+          const calculatedFields = stationCalculatedFieldsInSelectedEva.find(
             (calculated) => calculated.uuid === station.uuid
           );
 
@@ -404,7 +418,7 @@ const NavTimeline: FunctionComponent = () => {
     missionTraverseRate,
     evaStations,
     evaTraverses,
-    stationCalculatedFields,
+    stationCalculatedFieldsInSelectedEva,
   ]);
 
   const processPosEntriesFromStore = useCallback(() => {
