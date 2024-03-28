@@ -1,13 +1,12 @@
 import { faArrowsDownToLine, faArrowsUpToLine } from "@fortawesome/free-solid-svg-icons";
 
 import { Button, Checkbox } from "components/interface/form/globalFields";
-import { FunctionComponent, useCallback, useState, useEffect } from "react";
+import { FunctionComponent, useCallback } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { RootState } from "store";
-import _ from "lodash";
 import { collapseActions, expandActions } from "store/interface";
 
 export const EquipmentSelector: FunctionComponent<{
@@ -21,29 +20,21 @@ export const EquipmentSelector: FunctionComponent<{
     shallowEqual
   );
 
-  const [equipmentItemDisplayList, setEquipmentItemDisplayList] = useState<EquipmentItemDisplay[]>(
-    []
-  );
-
   // create sorted list of equipment item display objects. Used to show the list when not in edit mode
-  useEffect(() => {
-    const newEquipmentItemDisplayList = equipmentItemsUsage?.map((equipmentItemUsage) => {
-      const equipmentItem = equipmentItems?.find(
-        (equipmentItem) => equipmentItem.uuid === equipmentItemUsage.uuid
-      );
-      return {
-        name: equipmentItem?.name ? equipmentItem.name : "",
-        quantityUsed: equipmentItemUsage?.quantityUsed,
-      } as EquipmentItemDisplay;
-    });
+  const equipmentItemDisplayList = equipmentItemsUsage?.map((equipmentItemUsage) => {
+    const equipmentItem = equipmentItems?.find(
+      (equipmentItem) => equipmentItem.uuid === equipmentItemUsage.uuid
+    );
+    return {
+      name: equipmentItem?.name ? equipmentItem.name : "",
+      quantityUsed: equipmentItemUsage?.quantityUsed,
+    } as EquipmentItemDisplay;
+  });
 
-    // sort by name
-    newEquipmentItemDisplayList?.sort((a, b) => {
-      return a.name.localeCompare(b.name);
-    });
-
-    setEquipmentItemDisplayList(newEquipmentItemDisplayList);
-  }, [equipmentItemsUsage, equipmentItems]);
+  // sort by name
+  equipmentItemDisplayList?.sort((a, b) => {
+    return a.name.localeCompare(b.name);
+  });
 
   const addEquipmentItem = (equipmentItemUuid: string, quantity: number) => {
     const newEquipmentItemUsage: EquipmentItemUsage = {
@@ -185,24 +176,18 @@ export const GeographicUnitSelector: FunctionComponent<{
     shallowEqual
   );
 
-  const [geographicUnitDisplayList, setGeographicUnitDisplayList] = useState<string[]>([]);
-
   // create sorted list of geographic units. Used to show the list when not in edit mode
-  useEffect(() => {
-    const newGeographicUnitDisplayList = geographicUnitsUsage?.map((geographicUnitUuid) => {
-      const geographicUnit = geographicUnits?.find(
-        (geographicUnit) => geographicUnit.uuid === geographicUnitUuid
-      );
-      return geographicUnit?.name;
-    });
+  const geographicUnitDisplayList = geographicUnitsUsage?.map((geographicUnitUuid) => {
+    const geographicUnit = geographicUnits?.find(
+      (geographicUnit) => geographicUnit.uuid === geographicUnitUuid
+    );
+    return geographicUnit?.name;
+  });
 
-    // sort by name
-    newGeographicUnitDisplayList?.sort((a, b) => {
-      return a.localeCompare(b);
-    });
-
-    setGeographicUnitDisplayList(newGeographicUnitDisplayList);
-  }, [geographicUnitsUsage, geographicUnits]);
+  // sort by name
+  geographicUnitDisplayList?.sort((a, b) => {
+    return a.localeCompare(b);
+  });
 
   const addGeographicUnit = (geographicUnitUuid: string) => {
     let newGeographicUnitsUsage: string[] = [];

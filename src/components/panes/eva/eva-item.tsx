@@ -1,6 +1,6 @@
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import { Button } from "components/interface/form/globalFields";
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
 import {
   setSelectedEvaRightNavItem,
@@ -35,7 +35,21 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
     deepEqual
   );
 
-  const traverses = useAppSelector((state) => state.traverse.traverses, deepEqual);
+  const traversesInEva = useAppSelector((state) => {
+    const traverseUuidInEva = eva.sequence.filter((item) => item.type === "traverse");
+    const traverseSubset = state.traverse.traverses.filter((traverse) =>
+      traverseUuidInEva.find((traverseUuid) => traverseUuid.uuid === traverse.uuid)
+    );
+    return traverseSubset;
+  }, deepEqual);
+  const traversesInEvaFromDb = useAppSelector((state) => {
+    const traverseUuidInEva = thisEvaFromDb.sequence.filter((item) => item.type === "traverse");
+    const traverseSubset = state.traverse.traverses.filter((traverse) =>
+      traverseUuidInEva.find((traverseUuid) => traverseUuid.uuid === traverse.uuid)
+    );
+    return traverseSubset;
+  }, deepEqual);
+
   const editMode = useAppSelector((state) => state.eva.evasEditing.includes(eva.uuid), refEqual);
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
@@ -46,29 +60,6 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
     refEqual
   );
   const expandedEvaUuids = useAppSelector((state) => state.eva.expandedEvaUuids, shallowEqual);
-
-  const [traversesInEva, setTraversesInEva] = useState<Traverse[]>([]);
-  const [traversesInEvaFromDb, setTraversesInEvaFromDb] = useState<Traverse[]>([]);
-
-  useEffect(() => {
-    if (eva.sequence) {
-      const traverseUuidInEva = eva.sequence.filter((item) => item.type === "traverse");
-      const traverseSubset = traverses.filter((traverse) =>
-        traverseUuidInEva.find((traverseUuid) => traverseUuid.uuid === traverse.uuid)
-      );
-      setTraversesInEva(traverseSubset);
-    }
-  }, [eva, traverses]);
-
-  useEffect(() => {
-    if (thisEvaFromDb?.sequence) {
-      const traverseUuidInEva = thisEvaFromDb.sequence.filter((item) => item.type === "traverse");
-      const traverseSubset = traverses.filter((traverse) =>
-        traverseUuidInEva.find((traverseUuid) => traverseUuid.uuid === traverse.uuid)
-      );
-      setTraversesInEvaFromDb(traverseSubset);
-    }
-  }, [thisEvaFromDb, traverses]);
 
   let evaSelectionStyle = null;
   let settingsIconColor = "var(--grey4)";

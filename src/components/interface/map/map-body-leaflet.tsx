@@ -427,7 +427,7 @@ const MapBody: FunctionComponent = () => {
         // if layer isn't already on the map, add it
         if (!isLayerOnMapByName(map, sublayer.name)) {
           // fetch geojson object from url
-          (async () => {
+          const fetchGeojsonAsync = async () => {
             const res = await fetch(`${layerBaseURL}/${mission.id}/Data/${sublayer.filePath}`, {
               method: "GET",
               headers: {
@@ -504,7 +504,8 @@ const MapBody: FunctionComponent = () => {
             if (sublayer.name.includes("Grid")) {
               setGridLabels(newGridLabels);
             }
-          })();
+          };
+          fetchGeojsonAsync();
         } else {
           // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
           const layer = getLayerByName(map, sublayer.name);
@@ -1018,10 +1019,11 @@ const MapBody: FunctionComponent = () => {
   useLayoutEffect(() => {
     if (!mapRef.current || !map || !mission) return;
 
-    (async () => {
+    const isWin10Async = async () => {
       const isWin10 = await isWindows10();
       setIsWin10(isWin10);
-    })();
+    };
+    isWin10Async();
 
     // instantiate the prog4leaflet crs using the values in the mission config
     if (mission.projIsCustom === true) {
@@ -2234,7 +2236,7 @@ const MapBody: FunctionComponent = () => {
    * Draw or update hover timeline marker (astronaut) on the map when the hover seconds change.
    */
   useEffect(() => {
-    (async () => {
+    const updateHoverTimelineMarkerAsync = async () => {
       if (!map.current) return;
 
       //hoverSeconds is null meaning we're not hovering.
@@ -2356,7 +2358,8 @@ const MapBody: FunctionComponent = () => {
           hoverAstronautFeatureGroup.current.addLayer(marker);
         }
       }
-    })();
+    };
+    updateHoverTimelineMarkerAsync();
   }, [hover, getMapItemByUuid, mapDirective, selectedEva, dispatch, mission.planetRadius, isWin10]);
 
   /**

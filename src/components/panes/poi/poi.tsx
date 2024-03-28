@@ -17,8 +17,6 @@ const PoiEditorLeft: FunctionComponent = () => {
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
   const selectedPoi = pois.find((poi) => poi.uuid === selectedPoiUuid);
 
-  const actions = useAppSelector((state) => state.action.actions, deepEqual);
-  const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, deepEqual);
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   return (
@@ -34,8 +32,6 @@ const PoiEditorLeft: FunctionComponent = () => {
                   selectedPoiUuid={selectedPoiUuid}
                   poi={poi}
                   poiFromDb={poiFromDb}
-                  actions={actions}
-                  actionsFromDb={actionsFromDb}
                 />
               );
             })}

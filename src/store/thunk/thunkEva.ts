@@ -347,7 +347,8 @@ export const thunkDuplicateEva = appCreateAsyncThunk<{
     const evaStations = getState().station.stations.filter((s) => evaStationUuids.includes(s.uuid));
     for (const station of evaStations) {
       //make a copy
-      const newStationRes = (await dispatch(thunkDuplicateStation({ station }))).payload;
+      const newStationRes = (await dispatch(thunkDuplicateStation({ stationUuid: station.uuid })))
+        .payload;
       if (newStationRes) {
         //update this station uuid in new eva sequence
         const sequenceIndex = newEva.sequence.findIndex((seqItem) => seqItem.uuid === station.uuid);

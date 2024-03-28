@@ -18,7 +18,6 @@ const StationEditorLeft: FunctionComponent = () => {
     (state) => state.station.selectedStationUuid,
     refEqual
   );
-  const selectedStation = stations.find((station) => station.uuid === selectedStationUuid);
   const actions = useAppSelector((state) => state.action.actions, deepEqual);
   const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, deepEqual);
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
@@ -65,7 +64,7 @@ const StationEditorLeft: FunctionComponent = () => {
           />
           <Button
             onClick={() => {
-              dispatch(thunkDuplicateStation({ station: selectedStation }));
+              dispatch(thunkDuplicateStation({ stationUuid: selectedStationUuid }));
             }}
             label="Duplicate"
             icon={faClone}

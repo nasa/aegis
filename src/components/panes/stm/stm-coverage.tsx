@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import stmStyles from "./stm-coverage.module.css";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import _ from "lodash";
@@ -23,64 +23,55 @@ export const STM_Coverage: FunctionComponent<{
   const allSTMLevel2 = useAppSelector((state) => state.stm.level2s, deepEqual);
   const allSTMLevel3 = useAppSelector((state) => state.stm.level3s, deepEqual);
 
-  const [level3s, setLevel3s] = useState<STMLevel3[]>(null);
-  const [completedLevel3Uuids, setCompletedLevel3Uuids] = useState<string[]>([]);
-  const [inProgressLevel3Uuids, setInProgressLevel3Uuids] = useState<string[]>([]);
-
   //get all STM level3s
-  useEffect(() => {
-    if (props.stmUuidRefs && allSTMLevel3) {
-      const stms: STMLevel3[] = [];
-      //get all stms for actions
-      for (const stmUuidRefs of props.stmUuidRefs) {
-        if (!stmUuidRefs || stmUuidRefs.length === 0) {
-          continue; //no referenced uuids. skip to next action
-        } else {
-          //loop through all uuids and find the stm level3
-          for (const stmUuidRef of stmUuidRefs) {
-            const level3 = allSTMLevel3.find((level3) => level3.uuid === stmUuidRef);
-            if (level3) stms.push(level3);
-          }
+  const stms3s: STMLevel3[] = [];
+  //get all stms for actions
+  if (props.stmUuidRefs) {
+    for (const stmUuidRefs of props?.stmUuidRefs) {
+      if (!stmUuidRefs || stmUuidRefs.length === 0) {
+        continue; //no referenced uuids. skip to next action
+      } else {
+        //loop through all uuids and find the stm level3
+        for (const stmUuidRef of stmUuidRefs) {
+          const level3 = allSTMLevel3?.find((level3) => level3.uuid === stmUuidRef);
+          if (level3) stms3s.push(level3);
         }
       }
-      //filter unique and sort
-      setLevel3s(_.uniqBy(stms, "uuid"));
     }
-  }, [props.stmUuidRefs, allSTMLevel3]);
+  }
+  //filter unique and sort
+  const level3s = _.uniqBy(stms3s, "uuid");
 
   //get all in progress stm level3s uuids
-  useEffect(() => {
-    if (props.stmUuidRefsInProgress) {
-      let stms: string[] = [];
-      //get all stms for actions
-      for (const stmUuidRefs of props.stmUuidRefsInProgress) {
-        if (!stmUuidRefs || stmUuidRefs.length === 0) {
-          continue; //no referenced uuids. skip to next action
-        } else {
-          stms = stms.concat(stmUuidRefs);
-        }
+
+  let stmsInPrg: string[] = [];
+  //get all stms for actions
+  if (props.stmUuidRefsInProgress) {
+    for (const stmUuidRefs of props?.stmUuidRefsInProgress) {
+      if (!stmUuidRefs || stmUuidRefs.length === 0) {
+        continue; //no referenced uuids. skip to next action
+      } else {
+        stmsInPrg = stmsInPrg.concat(stmUuidRefs);
       }
-      //filter unique and sort
-      setInProgressLevel3Uuids(_.uniq(stms));
     }
-  }, [props.stmUuidRefsInProgress]);
+  }
+  //filter unique and sort
+  const inProgressLevel3Uuids = _.uniq(stmsInPrg);
 
   //get all completed stm level3s uuids
-  useEffect(() => {
-    if (props.stmUuidRefsCompleted) {
-      let stms: string[] = [];
-      //get all stms for actions
-      for (const stmUuidRefs of props.stmUuidRefsCompleted) {
-        if (!stmUuidRefs || stmUuidRefs.length === 0) {
-          continue; //no referenced uuids. skip to next action
-        } else {
-          stms = stms.concat(stmUuidRefs);
-        }
+  let stmsCmplt: string[] = [];
+  //get all stms for actions
+  if (props.stmUuidRefsCompleted) {
+    for (const stmUuidRefs of props.stmUuidRefsCompleted) {
+      if (!stmUuidRefs || stmUuidRefs.length === 0) {
+        continue; //no referenced uuids. skip to next action
+      } else {
+        stmsCmplt = stmsCmplt.concat(stmUuidRefs);
       }
-      //filter unique and sort
-      setCompletedLevel3Uuids(_.uniq(stms));
     }
-  }, [props.stmUuidRefsCompleted]);
+  }
+  //filter unique and sort
+  const completedLevel3Uuids = _.uniq(stmsCmplt);
 
   //build hover tooltip jsx
   function buildSTMTooltip(stmUuid: string, stmType: string, full: boolean) {

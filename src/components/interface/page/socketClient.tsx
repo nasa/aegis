@@ -58,7 +58,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
         return;
       }
 
-      (async () => {
+      const handleUpsertAsync = async () => {
         const thunkResponse = await dispatch(
           thunkSocketsHandleUpsert({ storeUpsert: storePayload })
         );
@@ -70,7 +70,8 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
             alert(alertStrings.join("\n"));
           }
         }
-      })();
+      };
+      handleUpsertAsync();
     },
     [dispatch, missionId]
   );
@@ -105,7 +106,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
         return;
       }
 
-      (async () => {
+      const handleDeleteAsync = async () => {
         const thunkResponse = await dispatch(thunkSocketsHandleDelete({ storeDelete }));
         if (thunkResponse.payload === false) {
           //gracefully reject?
@@ -115,7 +116,8 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
             alert(alertStrings.join("\n"));
           }
         }
-      })();
+      };
+      handleDeleteAsync();
     },
     [dispatch, missionId]
   );
@@ -179,7 +181,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
 
       // hit the API to get the lastest edit event and compare it to the one in the store
       // if they are different, then alert the user and refresh the page
-      (async () => {
+      const fetchLastEventAsync = async () => {
         const wrappedLastEditResponse = await clientFetchWithTimeout(
           `${window.location.origin}/api/socketLastEditEvent?missionId=${missionId}`,
           null,
@@ -202,7 +204,8 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
             );
           }
         }
-      })();
+      };
+      fetchLastEventAsync();
     });
 
     // Incoming AEGIS version number

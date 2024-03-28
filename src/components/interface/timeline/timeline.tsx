@@ -106,35 +106,25 @@ const NavTimeline: FunctionComponent = () => {
     walkbackSlopeDegrees: null,
   };
   const [hoverValues, setHoverValues] = useState<TimelineHoverValues>(initHoverValues);
-  const [coveredSTMs, setCoveredSTMs] = useState<string[][]>(null);
-  const [completedSTMs, setCompletedSTMs] = useState<string[][]>(null);
-  const [inProgressSTMs, setInProgressSTMs] = useState<string[][]>(null);
 
   //gather stm states
-  useEffect(() => {
-    if (!evaActions) return;
-    const newCompletedSTMs: string[][] = [];
-    const newInProgressSTMs: string[][] = [];
-    const newCoveredSTMs: string[][] = [];
+  const completedSTMs: string[][] = [];
+  const inProgressSTMs: string[][] = [];
+  const coveredSTMs: string[][] = [];
 
-    evaActions.forEach((action) => {
-      if (action.enabled) {
-        newCoveredSTMs.push(getStmUuidRefs(action.stmPriorities));
-        if (runningRex?.actionEntries) {
-          const rexStatus = _.last(runningRex.actionEntries[action.uuid])?.rexStatus;
-          if (rexStatus === "complete") {
-            newCompletedSTMs.push(getStmUuidRefs(action.stmPriorities));
-          } else if (rexStatus === "in-progress") {
-            newInProgressSTMs.push(getStmUuidRefs(action.stmPriorities));
-          }
+  evaActions?.forEach((action) => {
+    if (action.enabled) {
+      coveredSTMs.push(getStmUuidRefs(action.stmPriorities));
+      if (runningRex?.actionEntries) {
+        const rexStatus = _.last(runningRex.actionEntries[action.uuid])?.rexStatus;
+        if (rexStatus === "complete") {
+          completedSTMs.push(getStmUuidRefs(action.stmPriorities));
+        } else if (rexStatus === "in-progress") {
+          inProgressSTMs.push(getStmUuidRefs(action.stmPriorities));
         }
       }
-    });
-
-    setCoveredSTMs(newCoveredSTMs);
-    setCompletedSTMs(newCompletedSTMs);
-    setInProgressSTMs(newInProgressSTMs);
-  }, [evaActions, selectedEva, runningRex]);
+    }
+  });
 
   // used to update the PET value via the PetInterval component
   const [rexPetTime, setRexPetTime] = useState("");

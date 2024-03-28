@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import Actions from "../actions";
@@ -23,14 +23,21 @@ const Actions_Panel: FunctionComponent<{
         ?.map((a) => a.uuid),
     deepEqual
   );
-  const stationCalcFields = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByStation({
-        stationUuid: selectedStation.uuid,
-        wholeStoreState: state,
-      }),
-    deepEqual
-  );
+  const actionsCalculatedFields = useAppSelector((state) => {
+    const calculatedFields = getCalculatedFieldsByStation({
+      stationUuid: selectedStation.uuid,
+      wholeStoreState: state,
+    });
+    const newActionsCalculatedFields: ActionsCalculatedFields = {
+      actionCount: calculatedFields.actionCount,
+      totalActionTime: calculatedFields.totalActionTime,
+      totalEv1Time: calculatedFields.totalEv1Time,
+      totalEv2Time: calculatedFields.totalEv2Time,
+      totalUnassignedTime: calculatedFields.totalUnassignedTime,
+      totalDwellTime: calculatedFields.totalDwellTime,
+    };
+    return newActionsCalculatedFields;
+  }, deepEqual);
 
   const stationInRunningRex: boolean = useAppSelector((state) => {
     const runningRexEvaUuid = state.rex.rexes.find((rex) => rex.isRunning)?.evaUuid;
@@ -42,23 +49,6 @@ const Actions_Panel: FunctionComponent<{
     if (!sequenceItem) return false;
     return true;
   }, refEqual);
-
-  const [actionsCalculatedFields, setActionsCalculatedField] =
-    useState<ActionsCalculatedFields>(null);
-
-  useEffect(() => {
-    if (!stationCalcFields) return;
-    // create the calculated action fields for the action tab
-    const newActionsCalculatedFields: ActionsCalculatedFields = {
-      actionCount: stationCalcFields.actionCount,
-      totalActionTime: stationCalcFields.totalActionTime,
-      totalEv1Time: stationCalcFields.totalEv1Time,
-      totalEv2Time: stationCalcFields.totalEv2Time,
-      totalUnassignedTime: stationCalcFields.totalUnassignedTime,
-      totalDwellTime: stationCalcFields.totalDwellTime,
-    };
-    setActionsCalculatedField(newActionsCalculatedFields);
-  }, [stationCalcFields]);
 
   return (
     <div className={paneStyles.rightBody}>

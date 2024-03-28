@@ -87,7 +87,6 @@ export const MapPositionMenu: FunctionComponent = () => {
 
   const [selectedPosTypeUuids, setSelectedPosTypeUuids] = useState<string[]>([]);
   const [showPosList, setShowPosList] = useState(false);
-  const [modified, setModified] = useState(false); //track modified
   const [showMenu, setShowMenu] = useState(true);
 
   //clear the selected pos type uuids when the selected rex uuid changes or when the posType list changes
@@ -95,11 +94,7 @@ export const MapPositionMenu: FunctionComponent = () => {
     setSelectedPosTypeUuids([]);
   }, [selectedRexUuid, selectedRexPosTypes]);
 
-  //for enable/disable save button
-  useEffect(() => {
-    if (!posEntryEditingUuid) return;
-    setModified(!_.isEqual([editingPosEntry], [editingPosEntryFromDb]));
-  }, [posEntryEditingUuid, editingPosEntry, editingPosEntryFromDb]);
+  const modified = !_.isEqual([editingPosEntry], [editingPosEntryFromDb]);
 
   const togglePosType = useCallback(
     async (posTypeUuid: string) => {

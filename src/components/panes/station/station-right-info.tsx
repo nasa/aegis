@@ -102,34 +102,6 @@ const Info_Panel: FunctionComponent<{
   );
 
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
-  const [consumablesCol1, setConsumablesCol1] = useState<EquipmentItemDisplay[]>(null);
-  const [consumablesCol2, setConsumablesCol2] = useState<EquipmentItemDisplay[]>(null);
-
-  //split, sort, and pull names for each equipment item
-  useEffect(() => {
-    if (!calculatedFields?.equipmentItems || !missionEquipItems) return;
-    //get names
-    const consumablesDisplay: EquipmentItemDisplay[] = [];
-    calculatedFields?.equipmentItems?.forEach((equipItem) => {
-      //find item in mission
-      const missionEquipItem = missionEquipItems.find((item) => item.uuid === equipItem.uuid);
-      if (missionEquipItem?.singleUse) {
-        consumablesDisplay.push({
-          name: missionEquipItem.name,
-          quantityUsed: equipItem.quantityUsed,
-        });
-      }
-    });
-
-    //sort by name
-    consumablesDisplay.sort((a, b) => {
-      return a.name.localeCompare(b.name);
-    });
-
-    //split
-    setConsumablesCol1(consumablesDisplay.slice(0, Math.ceil(consumablesDisplay.length / 2)));
-    setConsumablesCol2(consumablesDisplay.slice(Math.ceil(consumablesDisplay.length / 2)));
-  }, [calculatedFields?.equipmentItems, missionEquipItems]);
 
   useEffect(() => {
     if (elevationPendingIndex > -1) {
@@ -138,6 +110,26 @@ const Info_Panel: FunctionComponent<{
       setSaveButtonState("enabled");
     }
   }, [elevationPendingIndex]);
+
+  //get names
+  const consumablesDisplay: EquipmentItemDisplay[] = [];
+  calculatedFields?.equipmentItems?.forEach((equipItem) => {
+    //find item in mission
+    const missionEquipItem = missionEquipItems?.find((item) => item.uuid === equipItem.uuid);
+    if (missionEquipItem?.singleUse) {
+      consumablesDisplay.push({
+        name: missionEquipItem.name,
+        quantityUsed: equipItem.quantityUsed,
+      });
+    }
+  });
+  const consumablesCol1 = consumablesDisplay.slice(0, Math.ceil(consumablesDisplay.length / 2));
+  const consumablesCol2 = consumablesDisplay.slice(Math.ceil(consumablesDisplay.length / 2));
+
+  //sort by name
+  consumablesDisplay.sort((a, b) => {
+    return a.name.localeCompare(b.name);
+  });
 
   const dispatchStationMapAction = (mapAction: MapAction) => {
     dispatch(

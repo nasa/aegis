@@ -1,5 +1,4 @@
-import _ from "lodash";
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import {
   faBan,
@@ -45,11 +44,7 @@ const PresetEditorRight: FunctionComponent = () => {
   );
   const presetsEditing = useAppSelector((state) => state.preset.presetsEditing, shallowEqual);
 
-  const [modified, setModified] = useState(false);
-
-  useEffect(() => {
-    setModified(isModified([selectedPreset], [selectedPresetFromDb]));
-  }, [selectedPreset, selectedPresetFromDb]);
+  const modified = isModified([selectedPreset], [selectedPresetFromDb]);
 
   const panelTypes: PanelTypes = {
     info_panel: {

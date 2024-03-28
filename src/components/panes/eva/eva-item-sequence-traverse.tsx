@@ -1,5 +1,5 @@
 import { ModifiedIndicator } from "components/interface/_global-elements";
-import { FunctionComponent, useCallback, useEffect, useState } from "react";
+import { FunctionComponent, useCallback, useState } from "react";
 import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
 import { setSelectedEvaRightNavItem, setSelectedEvaUuid } from "store/eva";
 import evaStyles from "./eva.module.css";
@@ -70,37 +70,33 @@ const SequenceItemTraverse: FunctionComponent<{
 
   // used to update the PET value via the PetInterval component
   const [rexPetTime, setRexPetTime] = useState("");
-  const [evaSequenceStyle, setEvaSequenceStyle] = useState<string>(null);
 
-  useEffect(() => {
-    let isEvaSequenceItemSelectedOrHoveredStyle = null;
-    if (traverseUuid === selectedEvaSequenceItemUuid) {
-      isEvaSequenceItemSelectedOrHoveredStyle = evaStyles.evaItemNameSelected;
-    } else if (traverseUuid === hoverItemUuid) {
-      isEvaSequenceItemSelectedOrHoveredStyle = evaStyles.evaItemNameHoverMode;
-    }
+  let evaSequenceStyle = null;
+  if (traverseUuid === selectedEvaSequenceItemUuid) {
+    evaSequenceStyle = evaStyles.evaItemNameSelected;
+  } else if (traverseUuid === hoverItemUuid) {
+    evaSequenceStyle = evaStyles.evaItemNameHoverMode;
+  }
 
-    // add rex status styles
-    if (isRexRunning) {
-      if (traverseRexStatus === "in-progress") {
-        isEvaSequenceItemSelectedOrHoveredStyle = evaStyles.evaItemNameRexInProgress;
-        if (traverseUuid === selectedEvaSequenceItemUuid) {
-          isEvaSequenceItemSelectedOrHoveredStyle = evaStyles.evaItemNameRexInProgressSelected;
-        }
-      } else if (traverseRexStatus === "complete") {
-        isEvaSequenceItemSelectedOrHoveredStyle = evaStyles.evaItemNameRexComplete;
-        if (traverseUuid === selectedEvaSequenceItemUuid) {
-          isEvaSequenceItemSelectedOrHoveredStyle = evaStyles.evaItemNameSelected;
-        }
-      } else if (traverseRexStatus === "skipped") {
-        isEvaSequenceItemSelectedOrHoveredStyle = evaStyles.evaItemNameRexSkipped;
-        if (traverseUuid === selectedEvaSequenceItemUuid) {
-          isEvaSequenceItemSelectedOrHoveredStyle = evaStyles.evaItemNameRexSkippedSelected;
-        }
+  // add rex status styles
+  if (isRexRunning) {
+    if (traverseRexStatus === "in-progress") {
+      evaSequenceStyle = evaStyles.evaItemNameRexInProgress;
+      if (traverseUuid === selectedEvaSequenceItemUuid) {
+        evaSequenceStyle = evaStyles.evaItemNameRexInProgressSelected;
+      }
+    } else if (traverseRexStatus === "complete") {
+      evaSequenceStyle = evaStyles.evaItemNameRexComplete;
+      if (traverseUuid === selectedEvaSequenceItemUuid) {
+        evaSequenceStyle = evaStyles.evaItemNameSelected;
+      }
+    } else if (traverseRexStatus === "skipped") {
+      evaSequenceStyle = evaStyles.evaItemNameRexSkipped;
+      if (traverseUuid === selectedEvaSequenceItemUuid) {
+        evaSequenceStyle = evaStyles.evaItemNameRexSkippedSelected;
       }
     }
-    setEvaSequenceStyle(isEvaSequenceItemSelectedOrHoveredStyle);
-  }, [hoverItemUuid, isRexRunning, traverseRexStatus, selectedEvaSequenceItemUuid, traverseUuid]);
+  }
 
   const displayTraverseDuration = useCallback(() => {
     const durationMinutes = thisTraverseCalculatedFields?.durationMinutes || null;
