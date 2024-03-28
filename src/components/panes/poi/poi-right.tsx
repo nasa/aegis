@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import {
@@ -39,9 +39,6 @@ const PoiEditorRight: FunctionComponent = () => {
   );
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
-  const [modified, setModified] = useState(false);
-  const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--station)");
-
   //these selectors from the store are only used to calculate modified. refactor?
   const poiActions = useAppSelector(
     (state) =>
@@ -65,11 +62,12 @@ const PoiEditorRight: FunctionComponent = () => {
     (state) => state.poi.poisFromDb.find((poi) => poi.uuid === selectedPoiUuid),
     deepEqual
   );
-  useEffect(() => {
-    const poiModified = isModified([selectedPoi], [selectedPoiFromDb]);
-    const actionModified = isModified(poiActions, poiActionsFromDb);
-    setModified(poiModified || actionModified);
-  }, [selectedPoi, selectedPoiFromDb, poiActions, poiActionsFromDb]);
+
+  const poiModified = isModified([selectedPoi], [selectedPoiFromDb]);
+  const actionModified = isModified(poiActions, poiActionsFromDb);
+  const modified = poiModified || actionModified;
+
+  const reportsTabIconColor = getAlertColor(calculatedFields?.reportItems) || "var(--station)";
 
   const panelTypes: PanelTypes = {
     info_panel: {
@@ -99,11 +97,6 @@ const PoiEditorRight: FunctionComponent = () => {
       icon: calculatedFields?.reportItems.length > 0 ? faTriangleExclamation : faCheck,
     },
   };
-
-  // set reports tab icon color
-  useEffect(() => {
-    setReportsTabIconColor(getAlertColor(calculatedFields?.reportItems));
-  }, [calculatedFields]);
 
   let activeComponent = null;
   if (!_.isNil(panelTypes[selectedRightNavItem])) {

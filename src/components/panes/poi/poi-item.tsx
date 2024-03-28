@@ -1,8 +1,8 @@
 import { ModifiedIndicator } from "components/interface/_global-elements";
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 
-import { useAppSelector, refEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import poiStyles from "./poi.module.css";
 import _ from "lodash";
 import { setSelectedPoiUuid, setSelectedPOIRightNavItem } from "store/poi";
@@ -15,12 +15,24 @@ const PoiItem: FunctionComponent<{
   selectedPoiUuid: string;
   poi: POI;
   poiFromDb: POI;
-  actions: Action[];
-  actionsFromDb: Action[];
-}> = ({ selectedPoiUuid, poi, poiFromDb, actions, actionsFromDb }) => {
+}> = ({ selectedPoiUuid, poi, poiFromDb }) => {
   const dispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector((state) => state.poi.selectedRightNavItem, refEqual);
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
+  const poiActions = useAppSelector((state) => {
+    const filteredactions = _.sortBy(
+      state.action.actions.filter((storeAction: Action) => storeAction.poiUuid === poi.uuid),
+      ["createdAt"]
+    );
+    return filteredactions;
+  }, deepEqual);
+  const poiActionsFromDb = useAppSelector((state) => {
+    const filteredactions = _.sortBy(
+      state.action.actionsFromDb.filter((storeAction: Action) => storeAction.poiUuid === poi.uuid),
+      ["createdAt"]
+    );
+    return filteredactions;
+  }, deepEqual);
 
   let isPoiSelectedOrHoveredStyle = null;
   if (poi.uuid === selectedPoiUuid) {
@@ -28,29 +40,6 @@ const PoiItem: FunctionComponent<{
   } else if (poi.uuid === hoverItemUuid) {
     isPoiSelectedOrHoveredStyle = poiStyles.nameHovered;
   }
-
-  const [poiActions, setPoiActions] = useState<Action[]>([]);
-  const [poiActionsFromDb, setPoiActionsFromDb] = useState<Action[]>([]);
-  useEffect(() => {
-    if (actions) {
-      const filteredactions = _.sortBy(
-        actions.filter((storeAction: Action) => storeAction.poiUuid === poi.uuid),
-        ["createdAt"]
-      );
-
-      setPoiActions(filteredactions);
-    }
-  }, [actions, poi.uuid]);
-  useEffect(() => {
-    if (actionsFromDb) {
-      const filteredactions = _.sortBy(
-        actionsFromDb.filter((storeAction: Action) => storeAction.poiUuid === poi.uuid),
-        ["createdAt"]
-      );
-
-      setPoiActionsFromDb(filteredactions);
-    }
-  }, [actionsFromDb, poi.uuid]);
 
   return (
     <div

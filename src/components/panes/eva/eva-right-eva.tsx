@@ -120,31 +120,27 @@ const EvaRightEva: FunctionComponent = () => {
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   const [evaReportSequenceItems, setEvaReportSequenceItems] = useState<EvaReportSequenceItem[]>([]);
-  const [modified, setModified] = useState(false); //track modified
 
-  useEffect(() => {
-    if (!selectedEva) return;
-    const evaModifieid = isModified([selectedEva], [selectedEvaFromDb]);
+  const evaModifieid = isModified([selectedEva], [selectedEvaFromDb]);
 
-    const traverseUuidsInThisEva: string[] = [];
-    selectedEva.sequence.forEach((sequenceItem) => {
-      if (sequenceItem.type === "traverse") {
-        traverseUuidsInThisEva.push(sequenceItem.uuid);
-      }
-    });
-    const thisEvasTraverses = traverses.filter((traverse) => {
-      return traverseUuidsInThisEva.includes(traverse.uuid);
-    });
-    const thisEvasTraversesFromDb = traversesFromDb.filter((traverse) => {
-      return traverseUuidsInThisEva.includes(traverse.uuid);
-    });
-    const traversesModified = isModified(thisEvasTraverses, thisEvasTraversesFromDb);
-    setModified(evaModifieid || traversesModified);
-  }, [selectedEva, selectedEvaFromDb, traverses, traversesFromDb]);
+  const traverseUuidsInThisEva: string[] = [];
+  selectedEva.sequence.forEach((sequenceItem) => {
+    if (sequenceItem.type === "traverse") {
+      traverseUuidsInThisEva.push(sequenceItem.uuid);
+    }
+  });
+  const thisEvasTraverses = traverses.filter((traverse) => {
+    return traverseUuidsInThisEva.includes(traverse.uuid);
+  });
+  const thisEvasTraversesFromDb = traversesFromDb.filter((traverse) => {
+    return traverseUuidsInThisEva.includes(traverse.uuid);
+  });
+  const traversesModified = isModified(thisEvasTraverses, thisEvasTraversesFromDb);
+  const modified = evaModifieid || traversesModified;
 
   // generate evaReportSequenceItems from the eva sequence
   useEffect(() => {
-    (async () => {
+    const generateEvaReportSequenceItemsAsync = async () => {
       const evaReportSequenceItems: EvaReportSequenceItem[] = [];
       if (selectedEva) {
         for (const sequenceItem of selectedEva.sequence) {
@@ -182,7 +178,8 @@ const EvaRightEva: FunctionComponent = () => {
         }
       }
       setEvaReportSequenceItems(evaReportSequenceItems);
-    })();
+    };
+    generateEvaReportSequenceItemsAsync();
   }, [
     selectedEva,
     traverseCalculatedFieldsInSequence,

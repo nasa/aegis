@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, useEffect } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import styles from "./preset-right-layers.module.css";
 import {
@@ -39,30 +39,32 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
     (state) => state.preset.presetsUIStates[selectedPresetUuid],
     shallowEqual
   );
-  const presetMapLayerControls = selectedPreset?.mapSublayerControls;
-  const [orderedLayerUuids, setOrderedLayerUuids] = useState<PresetLayerOrder[]>(null); //contains all actions in order
 
-  useEffect(() => {
-    if (!missionLayers || !missionSublayers || !selectedPreset) return;
+  const presetMapLayerControls = useAppSelector(
+    (state) =>
+      state.preset.presets.find((preset) => preset.uuid === selectedPresetUuid)
+        ?.mapSublayerControls,
+    deepEqual
+  );
 
-    if (selectedPreset.layerOrder) {
-      setOrderedLayerUuids(selectedPreset.layerOrder);
-    } else {
-      //if no ordering is defined, order by name
-      const defaultOrder: PresetLayerOrder[] = [];
-      for (const layer of sortBy(missionLayers, ["name"])) {
-        const sublayers: Sublayer[] = sortBy(
-          missionSublayers.filter((s) => s.layerUuid === layer.uuid),
-          ["name"]
-        );
-        defaultOrder.push({
-          layerUuid: layer.uuid,
-          sublayerUuids: sublayers.map((s) => s.uuid),
-        });
-      }
-      setOrderedLayerUuids(defaultOrder);
+  let orderedLayerUuids: PresetLayerOrder[]; //contains all actions in order
+  if (selectedPreset.layerOrder) {
+    orderedLayerUuids = selectedPreset?.layerOrder;
+  } else {
+    //if no ordering is defined, order by name
+    const defaultOrder: PresetLayerOrder[] = [];
+    for (const layer of sortBy(missionLayers, ["name"])) {
+      const sublayers: Sublayer[] = sortBy(
+        missionSublayers?.filter((s) => s.layerUuid === layer.uuid),
+        ["name"]
+      );
+      defaultOrder.push({
+        layerUuid: layer.uuid,
+        sublayerUuids: sublayers.map((s) => s.uuid),
+      });
     }
-  }, [selectedPreset, missionLayers, missionSublayers]);
+    orderedLayerUuids = defaultOrder;
+  }
 
   useEffect(() => {
     dispatch(setMapSublayerControls(presetMapLayerControls));

@@ -1,5 +1,4 @@
-import _ from "lodash";
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import {
   faAtlas,
@@ -50,16 +49,10 @@ const MissionPrefsRight: FunctionComponent = () => {
     refEqual
   );
 
-  const [modified, setModified] = useState(false);
-
-  useEffect(() => {
-    setModified(
-      isModified(
-        [{ updatedAt: missionUpdatedAt, uuid: null }],
-        [{ updatedAt: missionFromDbUpdatedAt, uuid: null }]
-      )
-    );
-  }, [missionUpdatedAt, missionFromDbUpdatedAt]);
+  const modified = isModified(
+    [{ updatedAt: missionUpdatedAt, uuid: null }],
+    [{ updatedAt: missionFromDbUpdatedAt, uuid: null }]
+  );
 
   const panelTypes: PanelTypes = {
     prefs_panel: {

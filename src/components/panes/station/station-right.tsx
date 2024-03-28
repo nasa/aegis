@@ -89,9 +89,24 @@ const StationEditorRight: FunctionComponent = () => {
       }),
     deepEqual
   );
-  const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
-  const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--station)");
+
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  useEffect(() => {
+    if (!stationsEditing.includes(selectedStationUuid)) setShowEmojiPicker(false);
+  }, [stationsEditing, selectedStationUuid]);
+
+  //track modified
+  let saveButtonState = "pending";
+  if (elevationPendingIndex < 0) {
+    const stationModified = isModified([selectedStation], [selectedStationFromDb]);
+    const actionModified = isModified(stationActions, stationActionsFromDb);
+    const modified = stationModified || actionModified;
+    saveButtonState = modified ? "enabled" : "disabled";
+  }
+
+  // set reports tab icon color
+  const reportsTabIconColor = getAlertColor(calculatedFields?.reportItems);
 
   const panelTypes: PanelTypes = {
     info_panel: {
@@ -127,32 +142,6 @@ const StationEditorRight: FunctionComponent = () => {
       icon: calculatedFields?.reportItems.length > 0 ? faTriangleExclamation : faCheck,
     },
   };
-  //track modified
-  useEffect(() => {
-    if (elevationPendingIndex > -1) {
-      setSaveButtonState("pending");
-    } else {
-      const stationModified = isModified([selectedStation], [selectedStationFromDb]);
-      const actionModified = isModified(stationActions, stationActionsFromDb);
-      const modified = stationModified || actionModified;
-      setSaveButtonState(modified ? "enabled" : "disabled");
-    }
-  }, [
-    elevationPendingIndex,
-    selectedStation,
-    selectedStationFromDb,
-    stationActions,
-    stationActionsFromDb,
-  ]);
-
-  // set reports tab icon color
-  useEffect(() => {
-    setReportsTabIconColor(getAlertColor(calculatedFields?.reportItems));
-  }, [calculatedFields]);
-
-  useEffect(() => {
-    if (!stationsEditing.includes(selectedStationUuid)) setShowEmojiPicker(false);
-  }, [stationsEditing, selectedStationUuid]);
 
   let activeComponent: FunctionComponent = null;
   if (!_.isNil(panelTypes[selectedRightNavItem])) {

@@ -211,14 +211,15 @@ const Left: FunctionComponent = () => {
 
   // Populate the user store with iron session login state via API call
   useEffect(() => {
-    (async () => {
+    const isLoggedInAsync = async () => {
       const response = await isLoggedIn();
       if (response.status === "success") {
         setUser(response.data.user);
       } else {
         setUser(null);
       }
-    })();
+    };
+    isLoggedInAsync();
   }, []);
 
   return (

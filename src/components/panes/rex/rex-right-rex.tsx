@@ -1,5 +1,4 @@
-import _ from "lodash";
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import {
   faBan,
@@ -48,11 +47,7 @@ const RexRightRex: FunctionComponent = () => {
   }, deepEqual);
   const rexesEditing = useAppSelector((state) => state.rex.rexesEditing, deepEqual);
 
-  const [modified, setModified] = useState(false);
-
-  useEffect(() => {
-    setModified(isModified([selectedRex], [selectedRexFromDb]));
-  }, [selectedRex, selectedRexFromDb]);
+  const modified = isModified([selectedRex], [selectedRexFromDb]);
 
   const panelTypes: PanelTypes = {
     info_panel: {

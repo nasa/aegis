@@ -447,10 +447,11 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
   }
 );
 
-export const thunkDuplicateStation = appCreateAsyncThunk<{ station: Station }, Station, false>(
+export const thunkDuplicateStation = appCreateAsyncThunk<{ stationUuid: String }, Station, false>(
   "stationDuplicate",
-  async ({ station }, { dispatch, getState }) => {
-    if (!station) return;
+  async ({ stationUuid }, { dispatch, getState }) => {
+    if (!stationUuid) return;
+    const station = getState().station.stations.find((s) => s.uuid === stationUuid);
     //duplicate station
     const newStation: Station = _.cloneDeep(station);
     newStation.uuid = uuidv4();

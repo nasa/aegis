@@ -11,7 +11,7 @@ import {
   InLineEditInput,
   PathColorPickerMenu,
 } from "components/interface/form/globalFields";
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import { upsertTraverseByField } from "store/traverse";
 import { refEqual, shallowEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
@@ -66,15 +66,12 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
   }, shallowEqual);
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
-  const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
-
-  useEffect(() => {
-    if (elevationPendingIndex > -1) {
-      setSaveButtonState("pending");
-    } else {
-      setSaveButtonState("enabled");
-    }
-  }, [elevationPendingIndex]);
+  let saveButtonState: saveButtonState = "disabled";
+  if (elevationPendingIndex > -1) {
+    saveButtonState = "pending";
+  } else {
+    saveButtonState = "enabled";
+  }
 
   const handlePathEdit = async () => {
     dispatch(

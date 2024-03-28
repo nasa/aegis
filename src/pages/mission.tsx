@@ -41,13 +41,14 @@ const Main = (): JSX.Element => {
   const intMissionId = parseInt(slug);
 
   useEffect(() => {
-    (async () => {
+    const populateStoreAsync = async () => {
       const wholeStoreState = await populateStore({ missionId: intMissionId });
       /**
        * dispatch a single action to populate the stores across all slices using the wholeStoreState
        */
       dispatch(setAllSliceStores(wholeStoreState));
-    })();
+    };
+    populateStoreAsync();
     //eslint-disable-next-line
   }, []);
 
@@ -58,7 +59,7 @@ const Main = (): JSX.Element => {
 
   useEffect(() => {
     if (!intMissionId) return;
-    (async () => {
+    const isLoggedInAsync = async () => {
       const response = await isLoggedIn();
       if (response.status === "success") {
         dispatch(setUserStore({ isLoggedIn: true, user: response.data.user, missionPerms: null }));
@@ -77,7 +78,8 @@ const Main = (): JSX.Element => {
       } else {
         navigate("/");
       }
-    })();
+    };
+    isLoggedInAsync();
   }, [navigate, intMissionId, dispatch]);
 
   const showSunEarth =

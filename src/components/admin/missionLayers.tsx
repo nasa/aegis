@@ -18,7 +18,7 @@ const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission
   const mission = props.mission;
 
   const reloadLayers = useCallback(() => {
-    (async () => {
+    const getLayersAsync = async () => {
       //load layers
       const resLayers = await getLayers(mission.id);
       if (resLayers.data) {
@@ -31,7 +31,8 @@ const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission
       if (resSublayer.data) {
         setAllSublayers(resSublayer.data);
       }
-    })();
+    };
+    getLayersAsync();
   }, [mission.id]);
 
   //adds a new blank sublayer object to the parent layer and sets it for edit

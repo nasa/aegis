@@ -448,7 +448,7 @@ describe("Thunk Station Tests", () => {
       },
     });
 
-    await store.dispatch(thunkStation.thunkDuplicateStation({ station }));
+    await store.dispatch(thunkStation.thunkDuplicateStation({ stationUuid: station.uuid }));
     const storeState = store.getState();
     expect(storeState.station.stations.length).toEqual(2);
     expect(storeState.station.stationsEditing.length).toEqual(1);
