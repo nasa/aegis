@@ -3,9 +3,9 @@ import { getORM, getEM, closeORM } from "utils/mikro";
 import { User_db } from "server/database/models/_allModels";
 import UserFactory from "../factories/UserFactory";
 import { TextEncoder, TextDecoder } from "util";
-import { roundDateToSecond } from "utils/formatting";
 import supertest from "supertest";
 import app from "server/express/restApi";
+import { generateBlankUser } from "store/storeUtils/user";
 
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
@@ -28,12 +28,10 @@ beforeAll(async () => {
 describe("User API Endpoint", () => {
   let aegisSessionCookie: string;
   let aegisSessionSigCookie: string;
-  let newUser: Partial<User> = {
+  let newUser: Partial<User> = generateBlankUser({
     username: "JestUserForUserTest",
     password: "password",
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
-  };
+  });
 
   test("Returns auth failure", async () => {
     const res = await supertest(app).get("/api/v1/users");

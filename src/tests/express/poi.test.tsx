@@ -5,10 +5,10 @@ import UserFactory from "../factories/UserFactory";
 import PoiFactory from "../factories/PoiFactory";
 import MissionFactory from "../factories/MissionFactory";
 import { TextEncoder, TextDecoder } from "util";
-import { roundDateToSecond } from "utils/formatting";
 import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
 import app from "server/express/restApi";
+import { generateBlankPoi } from "store/storeUtils/poi";
 jest.mock("server/express/sockets", () => {
   return {
     __esModule: true,
@@ -61,23 +61,7 @@ beforeAll(async () => {
 describe("Poi API Endpoint", () => {
   let aegisSessionCookie: string;
   let aegisSessionSigCookie: string;
-  let newPoi: POI = {
-    uuid: null,
-    missionId: null,
-    ownerId: null,
-    name: "Jest Test New Poi",
-    description: "",
-    actionOrderUuids: [],
-    priorityOverride: null,
-    radius: 0,
-    location: null,
-    elevation: null,
-    icon: null,
-    tags: null,
-    status: "Candidate",
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
-  };
+  let newPoi: POI = generateBlankPoi({ name: "Jest Test New Poi" });
 
   test("Returns auth failure", async () => {
     const res = await supertest(app).get("/api/v1/poi").query({ missionId: testMissions[0].id });

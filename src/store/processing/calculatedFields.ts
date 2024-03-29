@@ -99,7 +99,7 @@ export const getCalculatedFieldsByStation = (params: {
 
   //get station actions
   const stationActions = wholeStoreState.action.actions.filter(
-    (storeAction) => storeAction.stationUuid === station.uuid && storeAction.enabled
+    (storeAction) => storeAction.stationUuid === station?.uuid && storeAction.enabled
   );
 
   //calculate total station time
@@ -248,6 +248,7 @@ export const getCalculatedFieldsByTraverse = (params: {
   const traverse = wholeStoreState.traverse.traverses.find(
     (storeTraverse) => storeTraverse.uuid === traverseUuid
   );
+  if (!traverse) return;
   const missionTraverseRate = wholeStoreState.mission.mission?.traverseRate;
 
   const newReportItems: ReportItem[] = [];
@@ -260,7 +261,7 @@ export const getCalculatedFieldsByTraverse = (params: {
   });
 
   let traverseRate = missionTraverseRate;
-  if (eva?.traverseRate) {
+  if (eva.traverseRate) {
     traverseRate = eva?.traverseRate;
   }
   if (traverse.traverseRate) {

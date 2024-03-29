@@ -16,6 +16,10 @@ import { v4 as uuidv4 } from "uuid";
 import { Station_db, Poi_db } from "server/database/models/_allModels";
 import { upsertLogs } from "./log";
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
+import {
+  convertStationsTypeDbToStore,
+  convertStationsTypeStoreToDb,
+} from "store/storeUtils/station";
 
 const router = express.Router();
 
@@ -209,7 +213,7 @@ export async function getStations(missionId: number, stationUUID?: string): Prom
   }
 
   //convert foreign keys
-  return convertStations(dbstations);
+  return convertStationsTypeDbToStore(dbstations);
 }
 
 /**
@@ -224,26 +228,9 @@ export async function upsertStations(stations: Station[]): Promise<Station[]> {
   const stationsUpsertedToDb = [];
 
   for (const stationToUpsert of stationsToUpsert) {
-    const convertedStation: EntityData<Station_db> = {
-      uuid: stationToUpsert.uuid || uuidv4(),
-      owner: stationToUpsert.ownerId,
-      mission: stationToUpsert.missionId,
-      actionOrderUuids: stationToUpsert.actionOrderUuids,
-      name: stationToUpsert.name,
-      status: stationToUpsert.status,
-      description: stationToUpsert.description,
-      radius: stationToUpsert.radius,
-      location: stationToUpsert.location,
-      elevation: stationToUpsert.elevation,
-      walkbackPath: stationToUpsert.walkbackPath,
-      walkbackPathSegmentDistances: stationToUpsert.walkbackPathSegmentDistances,
-      walkbackPathSegmentElevations: stationToUpsert.walkbackPathSegmentElevations,
-      durationLower: stationToUpsert.durationLower,
-      durationUpper: stationToUpsert.durationUpper,
-      icon: stationToUpsert.icon,
-      updatedAt: new Date(stationToUpsert.updatedAt),
-      createdAt: new Date(stationToUpsert.createdAt),
-    };
+    const convertedStation: EntityData<Station_db> = convertStationsTypeStoreToDb([
+      stationToUpsert,
+    ])[0];
 
     //upsert station
     const stationRefFromDb: Station_db = await em.upsert(Station_db, convertedStation);
@@ -265,7 +252,7 @@ export async function upsertStations(stations: Station[]): Promise<Station[]> {
 
   await em.flush();
   //convert foreign keys
-  return convertStations(stationsUpsertedToDb);
+  return convertStationsTypeDbToStore(stationsUpsertedToDb);
 }
 
 /**
@@ -286,46 +273,4 @@ export async function deleteStations(stationUuids: string[]): Promise<string[]> 
     await em.flush(); //perform deletes
     return deletedUuids;
   }
-}
-
-/**
- * Converts db station fks to their plain uuid/id arrays
- * @param dbstations an array of stations in mikro db format
- * @returns an array of stations
- */
-function convertStations(dbstations: Station_db[]): Station[] {
-  const stations: Station[] = [];
-  for (const dbstation of dbstations) {
-    //convert station object
-    const convertedStation: Station = {
-      uuid: dbstation.uuid,
-      ownerId: dbstation.owner.id,
-      missionId: dbstation.mission.id,
-      actionOrderUuids: dbstation.actionOrderUuids,
-      name: dbstation.name,
-      status: dbstation.status,
-      description: dbstation.description,
-      radius: dbstation.radius,
-      location: dbstation.location,
-      elevation: dbstation.elevation,
-      walkbackPath: dbstation.walkbackPath,
-      walkbackPathSegmentDistances: dbstation.walkbackPathSegmentDistances,
-      walkbackPathSegmentElevations: dbstation.walkbackPathSegmentElevations,
-      durationLower: dbstation.durationLower,
-      durationUpper: dbstation.durationUpper,
-      icon: dbstation.icon,
-      createdAt: dbstation.createdAt.toISOString(),
-      updatedAt: dbstation.updatedAt.toISOString(),
-    };
-    //convert collection of poi's to just an array of poi uuids
-    convertedStation.poiUuids = [];
-    if (dbstation.poi.length > 0) {
-      for (const poi of dbstation.poi) {
-        convertedStation.poiUuids.push(poi.uuid);
-      }
-    }
-
-    stations.push(convertedStation);
-  }
-  return stations;
 }

@@ -114,7 +114,9 @@ const RexRightRex: FunctionComponent = () => {
                 <Button
                   icon={faTrashAlt}
                   onClick={() => {
-                    dispatch(thunkDeleteRex({ rexUuid: selectedRex.uuid }));
+                    if (window.confirm("Are you sure you want to delete this Rex?")) {
+                      dispatch(thunkDeleteRex({ rexUuid: selectedRex.uuid }));
+                    }
                   }}
                   toolTip="Delete Rex Item"
                   style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}

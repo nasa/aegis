@@ -16,6 +16,7 @@ import { thunkGetElevation } from "./thunkElevation";
 import { upsertStation } from "store/station";
 import { upsertPoi } from "store/poi";
 import * as httpClient_action from "http-client/action";
+import { generateBlankAction } from "store/storeUtils/action";
 
 export const thunkCreateAction = appCreateAsyncThunk<
   {
@@ -37,30 +38,12 @@ export const thunkCreateAction = appCreateAsyncThunk<
       existingNames: getState().action.actions.map((a: Action) => a.name),
     });
 
-    let blankAction: Action = {
+    let blankAction = generateBlankAction({
       ...actionParentUuid,
       missionId: getState().mission.mission?.id,
       uuid: actionUuid,
       name: randomName,
-      description: "",
-      icon: "26cf-fe0f", //default pickaxe icon
-      location: null,
-      elevation: null,
-      status: "Candidate",
-      enabled: true,
-      type: "other",
-      durationLower: 5,
-      durationUpper: 6,
-      stmUuidRefs: null,
-      stmPriorities: null,
-      equipmentItemsUsage: null,
-      geographicUnitsUsage: null,
-      crewAssigned: [],
-      mass: null,
-      priority: null,
-      updatedAt: null,
-      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    };
+    });
 
     if (actionTemplate) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars

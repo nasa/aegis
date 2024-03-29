@@ -27,6 +27,7 @@ import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import { thunkSaveNewStation } from "./crossThunk";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
+import { generateBlankStation } from "store/storeUtils/station";
 
 export const thunkUpdateStationLatLngField = appCreateAsyncThunk<{
   stationUuid: string;
@@ -422,27 +423,10 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
       existingNames: getState().station.stations.map((item) => item.name),
     });
 
-    const blankStation: Station = {
-      ownerId: null,
+    const blankStation = generateBlankStation({
       missionId: getState().mission.mission?.id,
-      uuid: uuidv4(),
       name: randomName,
-      status: "Candidate",
-      description: "",
-      actionOrderUuids: [],
-      radius: 5,
-      location: null,
-      elevation: null,
-      durationLower: 10,
-      durationUpper: 15,
-      walkbackPath: null,
-      walkbackPathSegmentDistances: null,
-      walkbackPathSegmentElevations: null,
-      icon: null,
-      poiUuids: [],
-      updatedAt: null,
-      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    };
+    });
     dispatch(thunkSaveNewStation({ station: blankStation }));
   }
 );

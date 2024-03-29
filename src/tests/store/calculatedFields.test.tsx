@@ -1,8 +1,4 @@
 import { initialState as wholeStoreInitialState } from "store/index";
-import { createTestMission } from "../factories/MissionFactory";
-import { createTestTraverse } from "../factories/TraverseFactory";
-import { createTestStation } from "../factories/StationFactory";
-import { createTestEva } from "../factories/EVAFactory";
 import {
   getCalculatedFieldsByPoi,
   getCalculatedFieldsByTraverse,
@@ -10,29 +6,33 @@ import {
   getCalculatedFieldsByEva,
 } from "store/processing/calculatedFields";
 import _ from "lodash";
-import { createTestAction } from "tests/factories/ActionFactory";
-import { createTestPoi } from "tests/factories/PoiFactory";
+import { generateBlankAction } from "store/storeUtils/action";
+import { generateBlankEVA } from "store/storeUtils/eva";
+import { generateBlankMission } from "store/storeUtils/mission";
+import { generateBlankPoi } from "store/storeUtils/poi";
+import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankTraverse } from "store/storeUtils/traverse";
 
 describe("Calculated fields", () => {
   it("getCalculatedFieldsByPoi()", async () => {
     const wholeStoreState: WholeStoreState = _.cloneDeep(wholeStoreInitialState);
     //populate the poi state in the store
-    const poi: POI = createTestPoi();
-    const poiNoActions: POI = createTestPoi();
+    const poi: POI = generateBlankPoi({ name: "Jest Poi-1" });
+    const poiNoActions: POI = generateBlankPoi({ name: "Jest Poi-1" });
     const poiAction1: Action = {
-      ...createTestAction({ poiUuid: poi.uuid }),
+      ...generateBlankAction({ name: "Jest Test Action-1", poiUuid: poi.uuid }),
       durationLower: 5,
       durationUpper: 10,
       crewAssigned: ["EV1"],
     };
     const poiAction2: Action = {
-      ...createTestAction({ poiUuid: poi.uuid }),
+      ...generateBlankAction({ name: "Jest Test Action-1", poiUuid: poi.uuid }),
       durationLower: 2,
       durationUpper: 4,
       crewAssigned: ["EV2"],
     };
     const poiAction3: Action = {
-      ...createTestAction({ poiUuid: poi.uuid }),
+      ...generateBlankAction({ name: "Jest Test Action-1", poiUuid: poi.uuid }),
       durationLower: 1,
       durationUpper: 1,
     };
@@ -85,23 +85,23 @@ describe("Calculated fields", () => {
     const wholeStoreState: WholeStoreState = _.cloneDeep(wholeStoreInitialState);
 
     //populate the station state in the store
-    const station: Station = createTestStation();
-    const blankMission: Mission = createTestMission();
-    const stationNoActions: Station = createTestStation();
+    const station: Station = generateBlankStation({ name: "Jest Station-1" });
+    const blankMission: Mission = generateBlankMission({ name: "Jest Mission-1" });
+    const stationNoActions: Station = generateBlankStation({ name: "Jest Station-1" });
     const stationAction1: Action = {
-      ...createTestAction({ stationUuid: station.uuid }),
+      ...generateBlankAction({ name: "Jest Test Action-1", stationUuid: station.uuid }),
       durationLower: 5,
       durationUpper: 10,
       crewAssigned: ["EV1"],
     };
     const stationAction2: Action = {
-      ...createTestAction({ stationUuid: station.uuid }),
+      ...generateBlankAction({ name: "Jest Test Action-1", stationUuid: station.uuid }),
       durationLower: 2,
       durationUpper: 4,
       crewAssigned: ["EV2"],
     };
     const stationAction3: Action = {
-      ...createTestAction({ stationUuid: station.uuid }),
+      ...generateBlankAction({ name: "Jest Test Action-1", stationUuid: station.uuid }),
       durationLower: 1,
       durationUpper: 1,
     };
@@ -183,30 +183,35 @@ describe("Calculated fields", () => {
   test("getCalculatedFieldsByTraverse", async () => {
     const wholeStoreState: WholeStoreState = _.cloneDeep(wholeStoreInitialState);
 
-    const mission = createTestMission();
-    mission.traverseRate = 3;
-    const traverse1 = createTestTraverse();
-    traverse1.pathSegmentDistances = [500];
-    traverse1.pathSegmentElevations = [[2, 4]];
-    const traverse2 = createTestTraverse();
-    traverse2.traverseRate = 1;
-    traverse2.pathSegmentDistances = [500];
-    traverse2.predictedDurationLower = 50;
-    traverse2.predictedDurationUpper = 50;
-    const traverse3 = createTestTraverse();
-    traverse3.pathSegmentDistances = [500];
-    traverse3.predictedDurationLower = 15;
-    traverse3.predictedDurationUpper = 15;
-    const station1: Station = createTestStation();
-    const station2: Station = createTestStation();
-    const station3: Station = createTestStation();
-    const eva1: Eva = createTestEva();
+    const mission = generateBlankMission({ name: "Jest Mission-1", traverseRate: 3 });
+    const traverse1 = generateBlankTraverse({
+      name: "Jest Traverse-1",
+      pathSegmentDistances: [500],
+      pathSegmentElevations: [[2, 4]],
+    });
+    const traverse2 = generateBlankTraverse({
+      name: "Jest Traverse-1",
+      traverseRate: 1,
+      pathSegmentDistances: [500],
+      predictedDurationLower: 50,
+      predictedDurationUpper: 50,
+    });
+    const traverse3 = generateBlankTraverse({
+      name: "Jest Traverse-1",
+      pathSegmentDistances: [500],
+      predictedDurationLower: 15,
+      predictedDurationUpper: 15,
+    });
+    const station1: Station = generateBlankStation({ name: "Jest Station-1" });
+    const station2: Station = generateBlankStation({ name: "Jest Station-1" });
+    const station3: Station = generateBlankStation({ name: "Jest Station-1" });
+    const eva1: Eva = generateBlankEVA({ name: "Jest Eva-1" });
     eva1.sequence = [
       { uuid: station1.uuid, type: "station" },
       { uuid: traverse1.uuid, type: "traverse" },
       { uuid: station2.uuid, type: "station" },
     ];
-    const eva2: Eva = createTestEva();
+    const eva2: Eva = generateBlankEVA({ name: "Jest Eva-1" });
     eva2.traverseRate = 2;
     eva2.sequence = [
       { uuid: station1.uuid, type: "station" },
@@ -256,14 +261,19 @@ describe("Calculated fields", () => {
   test("getCalculatedFieldsByEva", async () => {
     const wholeStoreState: WholeStoreState = _.cloneDeep(wholeStoreInitialState);
 
-    const mission = createTestMission();
-    mission.traverseRate = 3;
-    const traverse = createTestTraverse();
-    traverse.pathSegmentDistances = [500];
-    traverse.pathSegmentElevations = [[2, 4]];
-    const station1: Station = createTestStation();
-    const station2: Station = createTestStation();
-    const eva: Eva = createTestEva();
+    const mission = generateBlankMission({ name: "Jest Mission-1", traverseRate: 3 });
+    const traverse = generateBlankTraverse({
+      name: "Jest Traverse-1",
+      pathSegmentDistances: [500],
+      pathSegmentElevations: [[2, 4]],
+    });
+    const station1: Station = generateBlankStation({ name: "Jest Station-1" });
+    const station2: Station = generateBlankStation({ name: "Jest Station-1" });
+    const eva: Eva = generateBlankEVA({
+      name: "Jest Eva-1",
+      egressDuration: null,
+      ingressDuration: null,
+    });
     eva.sequence = [
       { uuid: station1.uuid, type: "station" },
       { uuid: traverse.uuid, type: "traverse" },

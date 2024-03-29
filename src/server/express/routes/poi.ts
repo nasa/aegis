@@ -11,6 +11,7 @@ import { Poi_db } from "server/database/models/_allModels";
 import { v4 as uuidv4 } from "uuid";
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { upsertLogs } from "./log";
+import { convertPoisTypeDbToStore, convertPoisTypeStoreToDb } from "store/storeUtils/poi";
 
 const router = express.Router();
 
@@ -170,30 +171,8 @@ export async function getPois(missionId: number): Promise<POI[]> {
     { orderBy: { name: QueryOrder.ASC } }
   );
 
-  /** transform the Mikro Poi objects into POI objects used in the Store */
-  const transformedPois: POI[] = [];
-  for (const poiItem of dbPois) {
-    const convertedPoi: POI = {
-      uuid: poiItem.uuid,
-      ownerId: poiItem.owner.id,
-      missionId: poiItem.mission.id,
-      actionOrderUuids: poiItem.actionOrderUuids,
-      name: poiItem.name,
-      description: poiItem.description,
-      priorityOverride: poiItem.priorityOverride,
-      radius: poiItem.radius,
-      location: poiItem.location,
-      elevation: poiItem.elevation,
-      icon: poiItem.icon,
-      tags: poiItem.tags,
-      status: poiItem.status,
-      createdAt: poiItem.createdAt.toISOString(),
-      updatedAt: poiItem.updatedAt.toISOString(),
-    };
-    transformedPois.push(convertedPoi);
-  }
-
-  return transformedPois;
+  /** transform the Mikro Poi types into POI types used in the Store */
+  return convertPoisTypeDbToStore(dbPois);
 }
 
 /**
@@ -210,23 +189,7 @@ export async function upsertPois(pois: POI[]): Promise<POI[]> {
   //build poi to upsert
   for (const poiToUpsert of poisToUpsert) {
     //convert fks
-    const convertedPoi: EntityData<Poi_db> = {
-      uuid: poiToUpsert.uuid || uuidv4(),
-      owner: poiToUpsert.ownerId,
-      mission: poiToUpsert.missionId,
-      actionOrderUuids: poiToUpsert.actionOrderUuids,
-      name: poiToUpsert.name,
-      description: poiToUpsert.description,
-      priorityOverride: poiToUpsert.priorityOverride,
-      radius: poiToUpsert.radius,
-      location: poiToUpsert.location,
-      elevation: poiToUpsert.elevation,
-      icon: poiToUpsert.icon,
-      tags: poiToUpsert.tags,
-      status: poiToUpsert.status,
-      createdAt: new Date(poiToUpsert.createdAt),
-      updatedAt: new Date(poiToUpsert.updatedAt),
-    };
+    const convertedPoi: EntityData<Poi_db> = convertPoisTypeStoreToDb([poiToUpsert])[0];
     const poiUpsertReference: Poi_db = await em.upsert(Poi_db, convertedPoi);
     em.persist(poiUpsertReference);
     poisUpsertedToDb.push(poiUpsertReference);
@@ -234,26 +197,7 @@ export async function upsertPois(pois: POI[]): Promise<POI[]> {
 
   await em.flush();
   //convert foreign keys
-  const convertedPois = poisUpsertedToDb.map((p) => {
-    return {
-      uuid: p.uuid,
-      missionId: p.mission.id,
-      ownerId: p.owner.id,
-      actionOrderUuids: p.actionOrderUuids,
-      name: p.name,
-      description: p.description,
-      priorityOverride: p.priorityOverride,
-      radius: p.radius,
-      location: p.location,
-      elevation: p.elevation,
-      icon: p.icon,
-      tags: p.tags,
-      status: p.status,
-      createdAt: p.createdAt.toISOString(),
-      updatedAt: p.updatedAt.toISOString(),
-    };
-  });
-  return convertedPois;
+  return convertPoisTypeDbToStore(poisUpsertedToDb);
 }
 
 /**

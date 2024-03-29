@@ -1,23 +1,23 @@
 import { StoreType } from "store";
 import { createFullTestStore } from "tests/factories/makeTestStore";
-import { createTestPreset } from "tests/factories/PresetFactory";
 import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/thunkSockets";
 import _ from "lodash";
 import { setPresetEditMode, upsertPreset } from "store/preset";
-import { createTestPoi } from "tests/factories/PoiFactory";
 import { setPoiEditMode, upsertPoi } from "store/poi";
 import { setStationEditMode, upsertStation } from "store/station";
 import { setEvaEditMode, upsertEva } from "store/eva";
-import { createTestEva } from "tests/factories/EVAFactory";
-import { createTestStation } from "tests/factories/StationFactory";
-import { createTestAction } from "tests/factories/ActionFactory";
-import { createTestTraverse } from "tests/factories/TraverseFactory";
 import { setTraverseEditMode, upsertTraverses } from "store/traverse";
-import { createTestMission } from "tests/factories/MissionFactory";
 import { setMissionSectionEditing } from "store/mission";
-import { createTestRex } from "tests/factories/RexFactory";
 import { setRexEditMode, upsertRexes } from "store/rex";
 import { upsertAction } from "store/action";
+import { generateBlankAction } from "store/storeUtils/action";
+import { generateBlankEVA } from "store/storeUtils/eva";
+import { generateBlankMission } from "store/storeUtils/mission";
+import { generateBlankPoi } from "store/storeUtils/poi";
+import { generateBlankPreset } from "store/storeUtils/preset";
+import { generateBlankRex } from "store/storeUtils/rex";
+import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankTraverse } from "store/storeUtils/traverse";
 
 let store: StoreType;
 
@@ -36,7 +36,7 @@ afterAll(() => {
 describe("Thunk Socket Tests", () => {
   describe("thunkSocketsHandleUpsert", () => {
     it("preset", async () => {
-      const data = createTestPreset();
+      const data = generateBlankPreset({ name: "Jest Test Preset" });
       const storeUpsert: StoreUpsert<Preset> = {
         socketId: null,
         missionId: null,
@@ -73,7 +73,7 @@ describe("Thunk Socket Tests", () => {
     });
 
     it("poi", async () => {
-      const data = createTestPoi();
+      const data = generateBlankPoi({ name: "Jest Poi-1" });
       const storeUpsert: StoreUpsert<POI> = {
         socketId: null,
         missionId: null,
@@ -110,7 +110,7 @@ describe("Thunk Socket Tests", () => {
     });
 
     it("station", async () => {
-      const data = createTestStation();
+      const data = generateBlankStation({ name: "Jest Station-1" });
       const storeUpsert: StoreUpsert<Station> = {
         socketId: null,
         missionId: null,
@@ -153,7 +153,7 @@ describe("Thunk Socket Tests", () => {
     });
 
     it("eva", async () => {
-      const data = createTestEva();
+      const data = generateBlankEVA({ name: "Jest Eva-1" });
       const storeUpsert: StoreUpsert<Eva> = {
         socketId: null,
         missionId: null,
@@ -190,7 +190,7 @@ describe("Thunk Socket Tests", () => {
     });
 
     it("action", async () => {
-      const data = createTestAction({});
+      const data = generateBlankAction({ name: "Jest Action-1" });
       const storeUpsert: StoreUpsert<Action> = {
         socketId: null,
         missionId: null,
@@ -217,7 +217,7 @@ describe("Thunk Socket Tests", () => {
     });
 
     it("traverse", async () => {
-      const data = createTestTraverse();
+      const data = generateBlankTraverse({ name: "Jest Traverse-1" });
       const storeUpsert: StoreUpsert<Traverse> = {
         socketId: null,
         missionId: null,
@@ -260,7 +260,7 @@ describe("Thunk Socket Tests", () => {
     });
 
     it("mission", async () => {
-      const data = createTestMission();
+      const data = generateBlankMission({ name: "Jest Mission-1" });
       const storeUpsert: StoreUpsert<Mission> = {
         socketId: null,
         missionId: null,
@@ -291,7 +291,7 @@ describe("Thunk Socket Tests", () => {
     });
 
     it("rex", async () => {
-      const data = createTestRex();
+      const data = generateBlankRex({ name: "Jest Rex-1" });
       const storeUpsert: StoreUpsert<Rex> = {
         socketId: null,
         missionId: null,
@@ -330,8 +330,8 @@ describe("Thunk Socket Tests", () => {
 
   describe("thunkSocketsHandleDelete", () => {
     it("preset", async () => {
-      const data = createTestPreset();
-      const dataInEditMode = createTestPreset();
+      const data = generateBlankPreset({ name: "Jest Test Preset" });
+      const dataInEditMode = generateBlankPreset({ name: "Jest Test Preset" });
       store.dispatch(upsertPreset(data));
       store.dispatch(upsertPreset(dataInEditMode));
       store.dispatch(setPresetEditMode({ presetUuid: dataInEditMode.uuid, editMode: true }));
@@ -368,8 +368,8 @@ describe("Thunk Socket Tests", () => {
     });
 
     it("poi", async () => {
-      const data = createTestPoi();
-      const dataInEditMode = createTestPoi();
+      const data = generateBlankPoi({ name: "Jest Poi-1" });
+      const dataInEditMode = generateBlankPoi({ name: "Jest Poi-1" });
       store.dispatch(upsertPoi(data));
       store.dispatch(upsertPoi(dataInEditMode));
       store.dispatch(setPoiEditMode({ poiUuid: dataInEditMode.uuid, editMode: true }));
@@ -404,8 +404,8 @@ describe("Thunk Socket Tests", () => {
     });
 
     it("station", async () => {
-      const data = createTestStation();
-      const dataInEditMode = createTestStation();
+      const data = generateBlankStation({ name: "Jest Station-1" });
+      const dataInEditMode = generateBlankStation({ name: "Jest Station-1" });
       store.dispatch(upsertStation(data));
       store.dispatch(upsertStation(dataInEditMode));
       store.dispatch(setStationEditMode({ stationUuid: dataInEditMode.uuid, editMode: true }));
@@ -442,8 +442,8 @@ describe("Thunk Socket Tests", () => {
     });
 
     it("eva", async () => {
-      const data = createTestEva();
-      const dataInEditMode = createTestEva();
+      const data = generateBlankEVA({ name: "Jest Eva-1" });
+      const dataInEditMode = generateBlankEVA({ name: "Jest Eva-1" });
       store.dispatch(upsertEva(data));
       store.dispatch(upsertEva(dataInEditMode));
       store.dispatch(setEvaEditMode({ evaUuid: dataInEditMode.uuid, editMode: true }));
@@ -478,8 +478,8 @@ describe("Thunk Socket Tests", () => {
     });
 
     it("action", async () => {
-      const data = createTestAction({});
-      const dataInEditMode = createTestAction({});
+      const data = generateBlankAction({ name: "Jest Action-1" });
+      const dataInEditMode = generateBlankAction({ name: "Jest Action-1" });
       store.dispatch(upsertAction(data));
       store.dispatch(upsertAction(dataInEditMode));
       const storeDelete: StoreDelete = {
@@ -501,8 +501,8 @@ describe("Thunk Socket Tests", () => {
     });
 
     it("traverse", async () => {
-      const data = createTestTraverse();
-      const dataInEditMode = createTestTraverse();
+      const data = generateBlankTraverse({ name: "Jest Traverse-1" });
+      const dataInEditMode = generateBlankTraverse({ name: "Jest Traverse-1" });
       store.dispatch(upsertTraverses([data]));
       store.dispatch(upsertTraverses([dataInEditMode]));
       store.dispatch(setTraverseEditMode({ uuid: dataInEditMode.uuid, editMode: true }));
@@ -541,8 +541,8 @@ describe("Thunk Socket Tests", () => {
     });
 
     it("rex", async () => {
-      const data = createTestRex();
-      const dataInEditMode = createTestRex();
+      const data = generateBlankRex({ name: "Jest Rex-1" });
+      const dataInEditMode = generateBlankRex({ name: "Jest Rex-1" });
       store.dispatch(upsertRexes([data]));
       store.dispatch(upsertRexes([dataInEditMode]));
       store.dispatch(setRexEditMode({ rexUuid: dataInEditMode.uuid, editMode: true }));

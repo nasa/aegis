@@ -5,11 +5,11 @@ import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
 import LayerFactory from "../factories/LayerFactory";
 import { Mission_db, Layer_db, User_db } from "server/database/models/_allModels";
-import { createNewLayer } from "components/admin/helper";
 import { v4 as uuidv4 } from "uuid";
 import { TextEncoder, TextDecoder } from "util";
 import supertest from "supertest";
 import app from "server/express/restApi";
+import { generateBlankLayer } from "store/storeUtils/layer";
 
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
@@ -52,7 +52,7 @@ beforeAll(async () => {
 describe("Layer API Endpoint ", () => {
   let aegisSessionCookie: string;
   let aegisSessionSigCookie: string;
-  let newLayer: Layer = createNewLayer();
+  let newLayer: Layer = generateBlankLayer();
 
   test("Returns auth failure", async () => {
     const res = await supertest(app).get("/api/v1/eva");

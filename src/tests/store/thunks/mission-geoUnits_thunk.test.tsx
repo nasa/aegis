@@ -1,6 +1,5 @@
 import { createFullTestStore } from "tests/factories/makeTestStore";
 import { StoreType } from "store";
-import { createTestActionTemplate } from "tests/factories/MissionFactory";
 import { upsertActionByField } from "store/action";
 import { upsertMissionByField } from "store/mission";
 import {
@@ -8,6 +7,7 @@ import {
   thunkDeleteGeoUnit,
   thunkUpdateGeoUnit,
 } from "store/thunk/thunkMission-geoUnits";
+import { generateBlankActionTemplate } from "store/storeUtils/mission";
 
 let store: StoreType;
 const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {});
@@ -85,8 +85,10 @@ describe("Thunk Mission Geo Unit Tests", () => {
 
     // assign an geo unit to a template
     const geoUnitUuidForTemplate = store.getState().mission.mission.geographicUnits[0].uuid;
-    const actionTemplate = createTestActionTemplate();
-    actionTemplate.geographicUnitsUsage = [geoUnitUuidForTemplate];
+    const actionTemplate = generateBlankActionTemplate({
+      templateName: "Jest Action Template",
+      geographicUnitsUsage: [geoUnitUuidForTemplate],
+    });
     store.dispatch(upsertMissionByField("actionTemplates", [actionTemplate]));
 
     // try to delete

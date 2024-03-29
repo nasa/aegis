@@ -4,10 +4,10 @@ import { Mission_db, User_db } from "server/database/models/_allModels";
 import MissionFactory from "../factories/MissionFactory";
 import UserFactory from "../factories/UserFactory";
 import { TextEncoder, TextDecoder } from "util";
-import { roundDateToSecond } from "utils/formatting";
 import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
 import app from "server/express/restApi";
+import { generateBlankMission } from "store/storeUtils/mission";
 jest.mock("server/express/sockets", () => {
   return {
     __esModule: true,
@@ -67,12 +67,7 @@ beforeAll(async () => {
 describe("Mission API Endpoint", () => {
   let aegisSessionCookie: string;
   let aegisSessionSigCookie: string;
-
-  newMission = {
-    name: "Jest Mission-1",
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
-  };
+  newMission = generateBlankMission({ name: "Jest Mission-1" });
 
   test("Returns auth failure", async () => {
     const res = await supertest(app).get("/api/v1/mission");
@@ -184,7 +179,7 @@ describe("Mission API Endpoint", () => {
       expect(res.body.data).not.toBeNull();
       const upsertedMission = res.body.data[0];
       expect(upsertedMission).not.toBeNull();
-      expect(upsertedMission.version).toEqual(2);
+      expect(upsertedMission.version).toEqual(1);
       expect(upsertedMission.name).toEqual("Jest Mission-1 Modified");
     });
   });

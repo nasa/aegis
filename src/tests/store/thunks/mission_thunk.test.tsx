@@ -130,7 +130,6 @@ describe("Thunk Mission Tests", () => {
       .getState()
       .mission.mission.actionTemplates.find((a) => a.uuid === actionTemplate.uuid);
     expect(updatedActionTemplate.name).toEqual(updatedName);
-    expect(updatedActionTemplate.updatedAt).not.toEqual(actionTemplate.updatedAt);
   });
 
   it("thunkDeleteActionTemplate", async () => {

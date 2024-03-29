@@ -3,12 +3,12 @@ import { getORM, getEM, closeORM } from "utils/mikro";
 import { Mission_db, Traverse_db, User_db } from "server/database/models/_allModels";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
-import TraverseFactory from "../factories/TraverseFactory";
+import TraverseFactory from "tests/factories/TraverseFactory";
 import { TextEncoder, TextDecoder } from "util";
-import { roundDateToSecond } from "utils/formatting";
 import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
 import app from "server/express/restApi";
+import { generateBlankTraverse } from "store/storeUtils/traverse";
 jest.mock("server/express/sockets", () => {
   return {
     __esModule: true,
@@ -60,20 +60,7 @@ beforeAll(async () => {
 describe("EVA API Endpoint", () => {
   let aegisSessionCookie: string;
   let aegisSessionSigCookie: string;
-  let newTraverse: Traverse = {
-    uuid: null,
-    missionId: null,
-    name: "Jest Traverse-1",
-    path: null,
-    pathSegmentDistances: [0],
-    pathSegmentElevations: [[0]],
-    predictedDurationLower: 0,
-    predictedDurationUpper: 0,
-    status: "Candidate",
-    description: "",
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
-  };
+  let newTraverse: Traverse = generateBlankTraverse({ name: "Jest Traverse-1" });
 
   test("Returns auth failure", async () => {
     const res = await supertest(app).get("/api/v1/traverse");

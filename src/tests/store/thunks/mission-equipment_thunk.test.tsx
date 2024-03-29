@@ -5,9 +5,9 @@ import {
 } from "store/thunk/thunkMission-equipment";
 import { createFullTestStore } from "tests/factories/makeTestStore";
 import { StoreType } from "store";
-import { createTestActionTemplate } from "tests/factories/MissionFactory";
 import { upsertActionByField } from "store/action";
 import { upsertMissionByField } from "store/mission";
+import { generateBlankActionTemplate } from "store/storeUtils/mission";
 
 const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {});
 
@@ -90,8 +90,10 @@ describe("Thunk Mission Equipment Tests", () => {
 
     // assign an equip item to a template
     const equipUuidForTemplate = store.getState().mission.mission.equipmentItems[0].uuid;
-    const actionTemplate = createTestActionTemplate();
-    actionTemplate.equipmentItemsUsage = [{ uuid: equipUuidForTemplate, quantityUsed: 1 }];
+    const actionTemplate = generateBlankActionTemplate({
+      templateName: "Jest Action Template",
+      equipmentItemsUsage: [{ uuid: equipUuidForTemplate, quantityUsed: 1 }],
+    });
     store.dispatch(upsertMissionByField("actionTemplates", [actionTemplate]));
 
     // try to delete

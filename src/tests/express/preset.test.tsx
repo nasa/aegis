@@ -4,12 +4,11 @@ import { Mission_db, Preset_db, User_db } from "server/database/models/_allModel
 import MissionFactory from "../factories/MissionFactory";
 import PresetFactory from "../factories/PresetFactory";
 import UserFactory from "../factories/UserFactory";
-import { v4 as uuidv4 } from "uuid";
 import { TextEncoder, TextDecoder } from "util";
-import { roundDateToSecond } from "utils/formatting";
 import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
 import app from "server/express/restApi";
+import { generateBlankPreset } from "store/storeUtils/preset";
 jest.mock("server/express/sockets", () => {
   return {
     __esModule: true,
@@ -62,20 +61,7 @@ beforeAll(async () => {
 describe("Preset API Endpoint", () => {
   let aegisSessionCookie: string;
   let aegisSessionSigCookie: string;
-  let newPreset: Preset = {
-    name: "Preset Jest Test",
-    uuid: uuidv4(),
-    ownerId: null,
-    missionId: null,
-    description: null,
-    missionPreset: false,
-    missionPresetDefault: false,
-    mapCircleControls: null,
-    mapSublayerControls: null,
-    layerOrder: null,
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
-  };
+  let newPreset: Preset = generateBlankPreset({ name: "Preset Jest Test" });
 
   test("Returns auth failure", async () => {
     const res = await supertest(app).get("/api/v1/preset").query({ missionId: testMissions[0].id });

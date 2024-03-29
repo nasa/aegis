@@ -30,6 +30,8 @@ import { isModified } from "utils/component-helpers";
 import { thunkDuplicateStation } from "./thunkStation";
 import { upsertRex, upsertRexFromDb } from "store/rex";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
+import { generateBlankEVA } from "store/storeUtils/eva";
+import { generateBlankTraverse } from "store/storeUtils/traverse";
 
 /** Get an Station or Traverse object from a UUID
  * This would typically be used when needing to get the full object from an EVA sequence
@@ -245,7 +247,7 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
   const evaFromDb = getState().eva.evasFromDb.find((evaFromDb) => evaFromDb.uuid === eva.uuid);
   if (evaFromDb) {
     // delete the Eva from the DB via internal API call
-    const deleteResponse: WrappedResponse<number[]> = await httpClient_Eva.deleteEvas(
+    const deleteResponse: WrappedResponse<null> = await httpClient_Eva.deleteEvas(
       [eva.uuid],
       isRexRunning
     );
@@ -276,27 +278,15 @@ export const thunkCreateEva = appCreateAsyncThunk<void>(
       existingNames: getState().eva.evas.map((item) => item.name),
     });
 
-    const blankEva: Eva = {
-      ownerId: null,
+    const blankEva: Eva = generateBlankEVA({
       missionId: getState().mission.mission?.id,
-      uuid: uuidv4(),
       name: randomName,
-      status: "Candidate",
-      sequence: [],
-      description: "",
       traverseRate: getState().mission.mission.traverseRate,
       maxDuration: getState().mission.mission.defaultEvaDuration,
-      egressDuration: 10,
-      ingressDuration: 10,
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
-      traverseColor: null,
-      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-      updatedAt: null,
-    };
+    });
 
     //create an empty traverse
-    const newTraverse: Traverse = makeNewTraverse(blankEva.missionId);
+    const newTraverse: Traverse = generateBlankTraverse({ missionId: blankEva.missionId });
     dispatch(upsertTraverses([newTraverse]));
 
     //add the traverse to the sequence
@@ -422,25 +412,6 @@ export const thunkDuplicateEva = appCreateAsyncThunk<{
   dispatch(thunkSaveNewEva({ eva: newEva }));
 });
 
-const makeNewTraverse = (missionId: number): Traverse => {
-  const newTraverse: Traverse = {
-    missionId: missionId,
-    uuid: uuidv4(),
-    name: "",
-    description: "",
-    predictedDurationLower: null,
-    predictedDurationUpper: null,
-    path: [],
-    pathSegmentDistances: null,
-    pathSegmentElevations: null,
-    status: null,
-    color: null,
-    updatedAt: null,
-    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-  };
-  return newTraverse;
-};
-
 export const thunkAddStationToEva = appCreateAsyncThunk<{ evaUuid: string }>(
   "evaAddStation",
   async ({ evaUuid }, { dispatch, getState }) => {
@@ -453,7 +424,7 @@ export const thunkAddStationToEva = appCreateAsyncThunk<{ evaUuid: string }>(
     };
     if (newEvaSequence.length === 0) {
       // add traverse for "from lander"
-      const newTraverse = makeNewTraverse(eva.missionId);
+      const newTraverse = generateBlankTraverse({ missionId: eva.missionId });
       dispatch(upsertTraverses([newTraverse]));
       newEvaSequence.push({
         type: "traverse",
@@ -464,7 +435,7 @@ export const thunkAddStationToEva = appCreateAsyncThunk<{ evaUuid: string }>(
       newEvaSequence.push(newStationSequenceItem);
 
       // add traverse for "to lander"
-      const newTraverse2 = makeNewTraverse(eva.missionId);
+      const newTraverse2 = generateBlankTraverse({ missionId: eva.missionId });
       dispatch(upsertTraverses([newTraverse2]));
       newEvaSequence.push({
         type: "traverse",
@@ -472,7 +443,7 @@ export const thunkAddStationToEva = appCreateAsyncThunk<{ evaUuid: string }>(
       });
     } else {
       // add a traverse before the station
-      const newTraverse = makeNewTraverse(eva.missionId);
+      const newTraverse = generateBlankTraverse({ missionId: eva.missionId });
       dispatch(upsertTraverses([newTraverse]));
 
       // add new station to the end of the sequence

@@ -13,9 +13,13 @@ import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in
 import STMLevel1Factory from "../factories/STMLevel1Factory";
 import STMLevel3Factory from "../factories/STMLevel3Factory";
 import STMLevel2Factory from "../factories/STMLevel2Factory";
-import { roundDateToSecond } from "utils/formatting";
 import supertest from "supertest";
 import app from "server/express/restApi";
+import {
+  generateBlankStmLvl1,
+  generateBlankStmLvl2,
+  generateBlankStmLvl3,
+} from "store/storeUtils/stm";
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -250,30 +254,9 @@ describe("STM API Endpoint", () => {
     });
   });
 
-  let newLevel1: STMLevel1 = {
-    uuid: null,
-    numbering: "1",
-    name: "Jest Test STM Level1",
-    missionId: null,
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
-  };
-  let newLevel2: STMLevel2 = {
-    uuid: null,
-    numbering: "a",
-    name: "Jest Test STM Level2",
-    level1Uuid: null,
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
-  };
-  let newLevel3: STMLevel3 = {
-    uuid: null,
-    numbering: "1",
-    name: "Jest Test STM Level3",
-    level2Uuid: null,
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
-  };
+  let newLevel1: STMLevel1 = generateBlankStmLvl1({ name: "Jest STM Level1-1", numbering: "1" });
+  let newLevel2: STMLevel2 = generateBlankStmLvl2({ name: "Jest STM Level2-1", numbering: "a" });
+  let newLevel3: STMLevel3 = generateBlankStmLvl3({ name: "Jest STM Level3-1", numbering: "1" });
 
   describe("POST requests", () => {
     test("No permissions", async () => {

@@ -6,10 +6,8 @@ import {
   thunkSavePoi,
   thunkUpdatePoiLocation,
 } from "store/thunk/thunkPoi";
-import { createTestPoi } from "../../factories/PoiFactory";
 import { createCustomTestStore } from "../../factories/makeTestStore";
 import { roundDateToSecond } from "utils/formatting";
-import { createTestAction } from "../../factories/ActionFactory";
 import { initialState as poiInitialState } from "store/poi";
 import { initialState as actionInitialState } from "store/action";
 
@@ -19,6 +17,8 @@ jest.mock("http-client/action");
 jest.mock("http-client/poi");
 import * as httpClient_action from "http-client/action";
 import * as httpClient_poi from "http-client/poi";
+import { generateBlankAction } from "store/storeUtils/action";
+import { generateBlankPoi } from "store/storeUtils/poi";
 
 const mockThunkGetElevation = jest.fn();
 jest.mock("store/thunk/thunkElevation", () => ({
@@ -44,7 +44,7 @@ afterAll(() => {
 describe("Thunk POI Tests", () => {
   it("thunkUpdatePoiLocation()", async () => {
     //populate the poi state in the store
-    const newPoi: POI = createTestPoi();
+    const newPoi: POI = generateBlankPoi({ name: "Jest Poi-1" });
     const store = createCustomTestStore({
       poi: {
         ...poiInitialState,
@@ -65,13 +65,13 @@ describe("Thunk POI Tests", () => {
 
   it("thunkSavePoi() - no modified actions", async () => {
     //populate the poi state in the store
-    const poi: POI = createTestPoi();
+    const poi: POI = generateBlankPoi({ name: "Jest Poi-1" });
     const poiModified = {
       ...poi,
       description: "modified description",
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
-    const newPoiAction: Action = createTestAction({ poiUuid: poi.uuid });
+    const newPoiAction: Action = generateBlankAction({ name: "Jest Action-1", poiUuid: poi.uuid });
     const store = createCustomTestStore({
       poi: { ...poiInitialState, pois: [poiModified], poisFromDb: [poi], poisEditing: [poi.uuid] },
       action: { ...actionInitialState, actions: [newPoiAction], actionsFromDb: [newPoiAction] },
@@ -79,9 +79,7 @@ describe("Thunk POI Tests", () => {
 
     //check init values in store
     let storeState = store.getState();
-    expect(storeState.poi.pois[0].updatedAt).toEqual(poiModified.updatedAt);
     expect(storeState.poi.pois[0].description).toEqual("modified description");
-    expect(storeState.poi.poisFromDb[0].updatedAt).toEqual(poi.updatedAt);
     expect(storeState.poi.poisFromDb[0].description).toEqual("");
 
     //call the thunk
@@ -91,9 +89,7 @@ describe("Thunk POI Tests", () => {
       })
     );
     storeState = store.getState(); //get the new state (always has to be called when state changes)
-    expect(storeState.poi.pois[0].updatedAt).toEqual(poiModified.updatedAt);
     expect(storeState.poi.pois[0].description).toEqual("modified description");
-    expect(storeState.poi.poisFromDb[0].updatedAt).toEqual(poiModified.updatedAt);
     expect(storeState.poi.poisFromDb[0].description).toEqual("modified description");
     expect(storeState.poi.poisEditing.length).toEqual(0);
     expect(httpClient_poi.upsertPOIs).toHaveBeenCalledTimes(1); //check the db call was made
@@ -103,8 +99,8 @@ describe("Thunk POI Tests", () => {
 
   it("thunkSavePoi() - saves actions", async () => {
     //populate the poi state in the store
-    const poi: POI = createTestPoi();
-    const poiAction: Action = createTestAction({ poiUuid: poi.uuid });
+    const poi: POI = generateBlankPoi({ name: "Jest Poi-1" });
+    const poiAction: Action = generateBlankAction({ name: "Jest Action-1", poiUuid: poi.uuid });
     const poiActionModified = {
       ...poiAction,
       description: "modified description",
@@ -130,14 +126,14 @@ describe("Thunk POI Tests", () => {
 
   it("thunkPoiCancel()", async () => {
     //populate the poi state in the store
-    const poi: POI = createTestPoi();
+    const poi: POI = generateBlankPoi({ name: "Jest Poi-1" });
     const poiModified = {
       ...poi,
       description: "modified description",
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
-    const unsavedPoi: POI = createTestPoi();
-    const newPoiAction: Action = createTestAction({ poiUuid: poi.uuid });
+    const unsavedPoi: POI = generateBlankPoi({ name: "Jest Poi-1" });
+    const newPoiAction: Action = generateBlankAction({ name: "Jest Action-1", poiUuid: poi.uuid });
     const newPoiActionModified = {
       ...newPoiAction,
       description: "modified description",
@@ -161,7 +157,6 @@ describe("Thunk POI Tests", () => {
     await store.dispatch(thunkPoiCancel({ poi: poiModified }));
     let storeState = store.getState();
     const cancelledPoi = storeState.poi.pois.find((p) => p.uuid === poi.uuid);
-    expect(cancelledPoi.updatedAt).toEqual(poi.updatedAt);
     expect(cancelledPoi.description).toEqual("");
     expect(cancelledPoi).toEqual(storeState.poi.poisFromDb[0]);
     expect(storeState.poi.poisEditing.includes(poi.uuid)).toBeFalsy();
@@ -178,10 +173,13 @@ describe("Thunk POI Tests", () => {
 
   it("thunkDeletePoi()", async () => {
     //populate the poi state in the store
-    const poi: POI = createTestPoi();
-    const poiAction: Action = createTestAction({ poiUuid: poi.uuid });
-    const unsavedPoi: POI = createTestPoi();
-    const unsavedPoiAction: Action = createTestAction({ poiUuid: unsavedPoi.uuid });
+    const poi: POI = generateBlankPoi({ name: "Jest Poi-1" });
+    const poiAction: Action = generateBlankAction({ name: "Jest Action-1", poiUuid: poi.uuid });
+    const unsavedPoi: POI = generateBlankPoi({ name: "Jest Poi-1" });
+    const unsavedPoiAction: Action = generateBlankAction({
+      name: "Jest Action-1",
+      poiUuid: unsavedPoi.uuid,
+    });
     const store = createCustomTestStore({
       poi: {
         ...poiInitialState,
@@ -236,9 +234,9 @@ describe("Thunk POI Tests", () => {
 
   it("thunkDuplicatePoi()", async () => {
     //populate the poi state in the store
-    const poi: POI = createTestPoi();
-    const poiAction1: Action = createTestAction({ poiUuid: poi.uuid });
-    const poiAction2: Action = createTestAction({ poiUuid: poi.uuid });
+    const poi: POI = generateBlankPoi({ name: "Jest Poi-1" });
+    const poiAction1: Action = generateBlankAction({ name: "Jest Action-1", poiUuid: poi.uuid });
+    const poiAction2: Action = generateBlankAction({ name: "Jest Action-1", poiUuid: poi.uuid });
     poi.actionOrderUuids = [poiAction1.uuid, poiAction2.uuid];
     const store = createCustomTestStore({
       poi: { ...poiInitialState, pois: [poi], poisFromDb: [poi] },

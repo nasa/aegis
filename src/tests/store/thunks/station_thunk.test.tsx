@@ -1,9 +1,5 @@
 import { createCustomTestStore } from "../../factories/makeTestStore";
-import { createTestStation } from "../../factories/StationFactory";
 import { roundDateToSecond } from "utils/formatting";
-import { createTestAction } from "../../factories/ActionFactory";
-import { createTestEva } from "../../factories/EVAFactory";
-import { createTestMission } from "../../factories/MissionFactory";
 import { initialState as evaInitialState } from "store/eva";
 import { initialState as stationInitialState } from "store/station";
 import { initialState as missionInitialState } from "store/mission";
@@ -17,6 +13,10 @@ jest.mock("http-client/station");
 jest.mock("http-client/action");
 import * as httpClient_station from "http-client/station";
 import * as httpClient_action from "http-client/action";
+import { generateBlankAction } from "store/storeUtils/action";
+import { generateBlankEVA } from "store/storeUtils/eva";
+import { generateBlankMission } from "store/storeUtils/mission";
+import { generateBlankStation } from "store/storeUtils/station";
 
 const mockThunkCancelMarkerMapDirective = jest.fn();
 jest.mock("store/thunk/thunkMap", () => {
@@ -59,13 +59,16 @@ afterAll(() => {
 describe("Thunk Station Tests", () => {
   test("thunkUpdateStationLocation()", async () => {
     //populate the station state in the store
-    const newStation: Station = createTestStation();
-    const blankMission: Mission = createTestMission();
+    const newStation: Station = generateBlankStation({ name: "Jest Station-1" });
+    const blankMission: Mission = generateBlankMission({
+      name: "Jest Mission-1",
+      landerLocation: { lat: 1.2, lng: 2.1 },
+    });
     const store = createCustomTestStore({
       station: { ...stationInitialState, stations: [newStation] },
       mission: {
         ...missionInitialState,
-        mission: { ...blankMission, planetRadius: 1737400, landerLocation: { lat: 1.2, lng: 2.1 } },
+        mission: { ...blankMission },
       },
     });
 
@@ -85,11 +88,11 @@ describe("Thunk Station Tests", () => {
 
   test("thunkUpdateWalkbackPath()", async () => {
     //populate the station state in the store
-    const newStation: Station = createTestStation();
-    const blankMission: Mission = createTestMission();
+    const newStation: Station = generateBlankStation({ name: "Jest Station-1" });
+    const blankMission: Mission = generateBlankMission({ name: "Jest Mission-1" });
     const store = createCustomTestStore({
       station: { ...stationInitialState, stations: [newStation] },
-      mission: { ...missionInitialState, mission: { ...blankMission, planetRadius: 1737400 } },
+      mission: { ...missionInitialState, mission: { ...blankMission } },
     });
     expect(store.getState().station.stations[0].walkbackPath).toBeNull();
 
@@ -117,16 +120,22 @@ describe("Thunk Station Tests", () => {
 
   test("thunkFullUpdateWalkback()", async () => {
     //populate the station state in the store
-    const newStation: Station = createTestStation();
-    const blankMission: Mission = createTestMission();
+    const newStation: Station = generateBlankStation({
+      name: "Jest Station-1",
+      location: { lat: 1.3, lng: 2.3 },
+    });
+    const blankMission: Mission = generateBlankMission({
+      name: "Jest Mission-1",
+      landerLocation: { lat: 1.2, lng: 2.1 },
+    });
     const store = createCustomTestStore({
       station: {
         ...stationInitialState,
-        stations: [{ ...newStation, location: { lat: 1.3, lng: 2.3 } }],
+        stations: [newStation],
       },
       mission: {
         ...missionInitialState,
-        mission: { ...blankMission, planetRadius: 1737400, landerLocation: { lat: 1.2, lng: 2.1 } },
+        mission: blankMission,
       },
     });
     expect(store.getState().station.stations[0].walkbackPath).toBeNull();
@@ -168,26 +177,27 @@ describe("Thunk Station Tests", () => {
 
   test("thunkResetWalkback()", async () => {
     //populate the station state in the store
-    const newStation: Station = createTestStation();
-    const blankMission: Mission = createTestMission();
+    const newStation: Station = generateBlankStation({
+      name: "Jest Station-1",
+      location: { lat: 1.3, lng: 2.3 },
+      walkbackPath: [
+        { lat: 1, lng: 2 },
+        { lat: 1, lng: 2.3 },
+        { lat: 1, lng: 2.6 },
+      ],
+    });
+    const blankMission: Mission = generateBlankMission({
+      name: "Jest Mission-1",
+      landerLocation: { lat: 1.2, lng: 2.1 },
+    });
     const store = createCustomTestStore({
       station: {
         ...stationInitialState,
-        stations: [
-          {
-            ...newStation,
-            location: { lat: 1.3, lng: 2.3 },
-            walkbackPath: [
-              { lat: 1, lng: 2 },
-              { lat: 1, lng: 2.3 },
-              { lat: 1, lng: 2.6 },
-            ],
-          },
-        ],
+        stations: [newStation],
       },
       mission: {
         ...missionInitialState,
-        mission: { ...blankMission, planetRadius: 1737400, landerLocation: { lat: 1.2, lng: 2.1 } },
+        mission: blankMission,
       },
     });
     expect(store.getState().station.stations[0].walkbackPath.length).toEqual(3);
@@ -205,15 +215,18 @@ describe("Thunk Station Tests", () => {
 
   test("thunkSaveStation() - no modified actions", async () => {
     //populate the station state in the store
-    const station: Station = createTestStation();
+    const station: Station = generateBlankStation({ name: "Jest Station-1" });
     const stationModified = {
       ...station,
       name: "Jest Station-1 Modified",
       description: "modified description",
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
-    const newStationAction: Action = createTestAction({ stationUuid: station.uuid });
-    const eva: Eva = createTestEva();
+    const newStationAction: Action = generateBlankAction({
+      name: "Jest Action-1",
+      stationUuid: station.uuid,
+    });
+    const eva: Eva = generateBlankEVA({ name: "Jest Eva-1" });
     eva.sequence = [{ type: "station", uuid: station.uuid }];
     const store = createCustomTestStore({
       station: {
@@ -255,8 +268,11 @@ describe("Thunk Station Tests", () => {
 
   test("thunkSaveStation() - saves actions", async () => {
     //populate the station state in the store
-    const station: Station = createTestStation();
-    const stationAction: Action = createTestAction({ stationUuid: station.uuid });
+    const station: Station = generateBlankStation({ name: "Jest Station-1" });
+    const stationAction: Action = generateBlankAction({
+      name: "Jest Action-1",
+      stationUuid: station.uuid,
+    });
     const stationActionModified: Action = {
       ...stationAction,
       description: "modified description",
@@ -291,22 +307,31 @@ describe("Thunk Station Tests", () => {
 
   test("thunkStationCancel()", async () => {
     //populate the station state in the store
-    const station: Station = createTestStation();
+    const station: Station = generateBlankStation({ name: "Jest Station-1" });
     const stationModified = {
       ...station,
       description: "modified description",
       updatedAt: roundDateToSecond(new Date()).toISOString(),
       location: { lat: 1, lng: 2 },
     };
-    const unsavedStation: Station = createTestStation();
-    const unsavedStationAction: Action = createTestAction({ stationUuid: unsavedStation.uuid });
-    const stationAction: Action = createTestAction({ stationUuid: station.uuid });
+    const unsavedStation: Station = generateBlankStation({ name: "Jest Station-1" });
+    const unsavedStationAction: Action = generateBlankAction({
+      name: "Jest Action-1",
+      stationUuid: unsavedStation.uuid,
+    });
+    const stationAction: Action = generateBlankAction({
+      name: "Jest Action-1",
+      stationUuid: station.uuid,
+    });
     const stationActionModified = {
       ...stationAction,
       description: "modified description",
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
-    const newStationAction: Action = createTestAction({ stationUuid: station.uuid });
+    const newStationAction: Action = generateBlankAction({
+      name: "Jest Action-1",
+      stationUuid: station.uuid,
+    });
     const store = createCustomTestStore({
       station: {
         ...stationInitialState,
@@ -359,12 +384,18 @@ describe("Thunk Station Tests", () => {
     const mockAlert = jest.spyOn(window, "alert").mockImplementation(jest.fn());
 
     //populate the station state in the store
-    const station: Station = createTestStation();
-    const stationAction: Action = createTestAction({ stationUuid: station.uuid });
-    const unsavedStation: Station = createTestStation();
-    const unsavedStationAction: Action = createTestAction({ stationUuid: unsavedStation.uuid });
-    const stationInEva: Station = createTestStation();
-    const eva: Eva = createTestEva();
+    const station: Station = generateBlankStation({ name: "Jest Station-1" });
+    const stationAction: Action = generateBlankAction({
+      name: "Jest Action-1",
+      stationUuid: station.uuid,
+    });
+    const unsavedStation: Station = generateBlankStation({ name: "Jest Station-1" });
+    const unsavedStationAction: Action = generateBlankAction({
+      name: "Jest Action-1",
+      stationUuid: unsavedStation.uuid,
+    });
+    const stationInEva: Station = generateBlankStation({ name: "Jest Station-1" });
+    const eva: Eva = generateBlankEVA({ name: "Jest Eva-1" });
     const store = createCustomTestStore({
       station: {
         ...stationInitialState,
@@ -435,9 +466,15 @@ describe("Thunk Station Tests", () => {
 
   test("thunkDuplicateStation()", async () => {
     //populate the station state in the store
-    const station: Station = createTestStation();
-    const stationAction1: Action = createTestAction({ stationUuid: station.uuid });
-    const stationAction2: Action = createTestAction({ stationUuid: station.uuid });
+    const station: Station = generateBlankStation({ name: "Jest Station-1" });
+    const stationAction1: Action = generateBlankAction({
+      name: "Jest Action-1",
+      stationUuid: station.uuid,
+    });
+    const stationAction2: Action = generateBlankAction({
+      name: "Jest Action-1",
+      stationUuid: station.uuid,
+    });
     station.actionOrderUuids = [stationAction1.uuid, stationAction2.uuid];
     const store = createCustomTestStore({
       station: { ...stationInitialState, stations: [station], stationsFromDb: [station] },

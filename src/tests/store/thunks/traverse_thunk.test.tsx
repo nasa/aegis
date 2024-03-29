@@ -9,15 +9,15 @@ import {
   thunkUpdateTraversePath,
   thunkUpdateTraversesAroundStation,
 } from "store/thunk/thunkTraverse";
-import { createTestTraverse } from "../../factories/TraverseFactory";
-import { createTestMission } from "../../factories/MissionFactory";
-import { createTestStation } from "../../factories/StationFactory";
-import { createTestEva } from "../../factories/EVAFactory";
 
 // mock all calls to the db so no transactions are actually made
 // CAUTION, the import line must be below the jest.mock
 jest.mock("http-client/traverse");
 import * as httpClient_traverse from "http-client/traverse";
+import { generateBlankEVA } from "store/storeUtils/eva";
+import { generateBlankMission } from "store/storeUtils/mission";
+import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankTraverse } from "store/storeUtils/traverse";
 
 const mockThunkGetElevation = jest.fn();
 jest.mock("store/thunk/thunkElevation", () => ({
@@ -34,8 +34,8 @@ afterAll(() => {
 
 describe("Thunk Traverse Tests", () => {
   test("thunkUpdateTraversePath()", async () => {
-    const traverse: Traverse = createTestTraverse();
-    const blankMission: Mission = createTestMission();
+    const traverse: Traverse = generateBlankTraverse({ name: "Jest Traverse-1" });
+    const blankMission: Mission = generateBlankMission({ name: "Jest Mission-1" });
 
     const newPath = [
       { lat: 1, lng: 2 },
@@ -45,7 +45,7 @@ describe("Thunk Traverse Tests", () => {
       traverse: { ...traverseInitialState, traverses: [traverse] },
       mission: {
         ...missionInitialState,
-        mission: { ...blankMission, planetRadius: 1737400 },
+        mission: { ...blankMission },
       },
     });
 
@@ -56,16 +56,23 @@ describe("Thunk Traverse Tests", () => {
   });
 
   test("thunkFullUpdateTraverse()", async () => {
-    const traverseEgress: Traverse = createTestTraverse();
-    const traverseIngress: Traverse = createTestTraverse();
-    const traverse: Traverse = createTestTraverse();
-    const traverseNoEva: Traverse = createTestTraverse();
-    const mission: Mission = createTestMission();
-    const station1: Station = createTestStation();
-    station1.location = { lat: 1, lng: 1.1 };
-    const station2: Station = createTestStation();
-    station2.location = { lat: 2, lng: 2.1 };
-    const eva: Eva = createTestEva();
+    const traverseEgress: Traverse = generateBlankTraverse({ name: "Jest Traverse-1" });
+    const traverseIngress: Traverse = generateBlankTraverse({ name: "Jest Traverse-1" });
+    const traverse: Traverse = generateBlankTraverse({ name: "Jest Traverse-1" });
+    const traverseNoEva: Traverse = generateBlankTraverse({ name: "Jest Traverse-1" });
+    const mission: Mission = generateBlankMission({
+      name: "Jest Mission-1",
+      landerLocation: { lat: 3, lng: 3 },
+    });
+    const station1: Station = generateBlankStation({
+      name: "Jest Station-1",
+      location: { lat: 1, lng: 1.1 },
+    });
+    const station2: Station = generateBlankStation({
+      name: "Jest Station-1",
+      location: { lat: 2, lng: 2.1 },
+    });
+    const eva: Eva = generateBlankEVA({ name: "Jest Eva-1" });
     eva.sequence = [
       { uuid: traverseEgress.uuid, type: "traverse" },
       { uuid: station1.uuid, type: "station" },
@@ -87,7 +94,7 @@ describe("Thunk Traverse Tests", () => {
       },
       mission: {
         ...missionInitialState,
-        mission: { ...mission, planetRadius: 1737400, landerLocation: { lat: 3, lng: 3 } },
+        mission,
       },
       eva: {
         ...evaInitialState,
@@ -140,19 +147,27 @@ describe("Thunk Traverse Tests", () => {
   });
 
   test("thunkResetTraverse", async () => {
-    const traverse = createTestTraverse();
-    const traverse2 = createTestTraverse();
-    const traverse3 = createTestTraverse();
-    const station1: Station = createTestStation();
-    station1.location = { lat: 1, lng: 1.1 };
-    const station2: Station = createTestStation();
-    station2.location = { lat: 2, lng: 2.1 };
-    const station3: Station = createTestStation();
-    station3.location = { lat: 3, lng: 2.1 };
-    const mission = createTestMission();
-    const eva = createTestEva();
+    const traverse = generateBlankTraverse({ name: "Jest Traverse-1" });
+    const traverse2 = generateBlankTraverse({ name: "Jest Traverse-1" });
+    const traverse3 = generateBlankTraverse({ name: "Jest Traverse-1" });
+    const station1: Station = generateBlankStation({
+      name: "Jest Station-1",
+      location: { lat: 1, lng: 1.1 },
+    });
+    const station2: Station = generateBlankStation({
+      name: "Jest Station-2",
+      location: { lat: 2, lng: 2.1 },
+    });
+    const station3: Station = generateBlankStation({
+      name: "Jest Station-3",
+      location: { lat: 3, lng: 2.1 },
+    });
+    const mission = generateBlankMission({
+      name: "Jest Mission-1",
+      landerLocation: { lat: 3, lng: 3 },
+    });
+    const eva = generateBlankEVA({ name: "Jest Eva-1" });
     eva.egressLocationUuid = station3.uuid;
-    eva.ingressLocationUuid = "lander";
     eva.sequence = [
       { uuid: traverse2.uuid, type: "traverse" },
       { uuid: station1.uuid, type: "station" },
@@ -170,7 +185,7 @@ describe("Thunk Traverse Tests", () => {
       },
       mission: {
         ...missionInitialState,
-        mission: { ...mission, planetRadius: 1737400, landerLocation: { lat: 3, lng: 3 } },
+        mission,
       },
       station: { ...stationInitialState, stations: [station1, station2, station3] },
     });
@@ -190,22 +205,28 @@ describe("Thunk Traverse Tests", () => {
   });
 
   test("thunkUpdateTraversesAroundStation", async () => {
-    const traverse1 = createTestTraverse();
-    const traverse2 = createTestTraverse();
-    const traverse3 = createTestTraverse();
-    const traverse4 = createTestTraverse();
-    const station1: Station = createTestStation();
-    station1.location = { lat: 1, lng: 1.1 };
-    station1.name = "Jest Station-1";
-    const station2: Station = createTestStation();
-    station2.location = { lat: 2, lng: 2.1 };
-    station2.name = "Jest Station-2";
-    const station3: Station = createTestStation();
-    station3.location = { lat: 3, lng: 2.1 };
-    station3.name = "Jest Station-3";
+    const traverse1 = generateBlankTraverse({ name: "Jest Traverse-1" });
+    const traverse2 = generateBlankTraverse({ name: "Jest Traverse-1" });
+    const traverse3 = generateBlankTraverse({ name: "Jest Traverse-1" });
+    const traverse4 = generateBlankTraverse({ name: "Jest Traverse-1" });
+    const station1: Station = generateBlankStation({
+      name: "Jest Station-1",
+      location: { lat: 1, lng: 1.1 },
+    });
+    const station2: Station = generateBlankStation({
+      name: "Jest Station-2",
+      location: { lat: 2, lng: 2.1 },
+    });
+    const station3: Station = generateBlankStation({
+      name: "Jest Station-3",
+      location: { lat: 3, lng: 2.1 },
+    });
 
-    const mission = createTestMission();
-    const eva1 = createTestEva();
+    const mission = generateBlankMission({
+      name: "Jest Mission-1",
+      landerLocation: { lat: 3, lng: 3 },
+    });
+    const eva1 = generateBlankEVA({ name: "Jest Eva-1" });
     eva1.sequence = [
       { uuid: traverse1.uuid, type: "traverse" },
       { uuid: station1.uuid, type: "station" },
@@ -227,7 +248,7 @@ describe("Thunk Traverse Tests", () => {
       },
       mission: {
         ...missionInitialState,
-        mission: { ...mission, planetRadius: 1737400, landerLocation: { lat: 3, lng: 3 } },
+        mission,
       },
       station: { ...stationInitialState, stations: [station1, station2, station3] },
     });

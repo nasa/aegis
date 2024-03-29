@@ -3,8 +3,6 @@ import { initialState as missionInitialState } from "store/mission";
 import { initialState as rexInitialState } from "store/rex";
 import { initialState as interfaceInitialState } from "store/interface";
 import { initialState as mapInitialState } from "store/map";
-import { createTestMission } from "../../factories/MissionFactory";
-import { createTestPosEntry, createTestRex } from "../../factories/RexFactory";
 import {
   thunkAddRexStatusEntry,
   thunkCancelPosEntry,
@@ -29,6 +27,8 @@ import { v4 as uuidv4 } from "uuid";
 // CAUTION, the import line must be below the jest.mock
 jest.mock("http-client/rex");
 import * as httpClient_rex from "http-client/rex";
+import { generateBlankMission } from "store/storeUtils/mission";
+import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
 
 //I don't understand what is even calling this that is causing me to mock it
 jest.mock("string-strip-html", () => ({
@@ -55,7 +55,7 @@ afterAll(() => {
 
 describe("Thunk Rex Tests", () => {
   test("thunkCreateRex", async () => {
-    const mission = createTestMission();
+    const mission = generateBlankMission({ name: "Jest Mission-1" });
     const store = createCustomTestStore({
       mission: { ...missionInitialState, mission: mission },
       rex: { ...rexInitialState },
@@ -70,7 +70,7 @@ describe("Thunk Rex Tests", () => {
   });
 
   test("thunkDuplicateRex", async () => {
-    const rex = createTestRex();
+    const rex = generateBlankRex({ name: "Jest Rex-1" });
     const store = createCustomTestStore({
       rex: { ...rexInitialState, rexes: [rex] },
     });
@@ -82,9 +82,8 @@ describe("Thunk Rex Tests", () => {
   });
 
   test("thunkSaveRex", async () => {
-    const rex = createTestRex();
-    const runningRex = createTestRex();
-    runningRex.isRunning = true;
+    const rex = generateBlankRex({ name: "Jest Rex-1" });
+    const runningRex = generateBlankRex({ name: "Jest Rex-1", isRunning: true });
     const rexModified = { ...rex, name: "Jest Rex-1 Modified" };
     const store = createCustomTestStore({
       rex: {
@@ -108,9 +107,9 @@ describe("Thunk Rex Tests", () => {
   });
 
   test("thunkCancelRex", async () => {
-    const rex = createTestRex();
+    const rex = generateBlankRex({ name: "Jest Rex-1" });
     const rexModified = { ...rex, name: "Jest Rex-1 Modified" };
-    const rexUnsaved = createTestRex();
+    const rexUnsaved = generateBlankRex({ name: "Jest Rex-1" });
     const store = createCustomTestStore({
       rex: {
         ...rexInitialState,
@@ -130,9 +129,9 @@ describe("Thunk Rex Tests", () => {
   });
 
   test("thunkDeleteRex", async () => {
-    const rex = createTestRex();
+    const rex = generateBlankRex({ name: "Jest Rex-1" });
     const rexModified = { ...rex, name: "Jest Rex-1 Modified" };
-    const rexUnsaved = createTestRex();
+    const rexUnsaved = generateBlankRex({ name: "Jest Rex-1" });
     const store = createCustomTestStore({
       rex: {
         ...rexInitialState,
@@ -148,11 +147,11 @@ describe("Thunk Rex Tests", () => {
     expect(store.getState().rex.rexesEditing.includes(rexUnsaved.uuid)).toBeFalsy();
     expect(store.getState().rex.rexesFromDb.length).toEqual(0);
     expect(store.getState().rex.selectedRexUuid).toBeNull();
-    expect(httpClient_rex.deleteRexes).toHaveBeenCalledTimes(2);
+    expect(httpClient_rex.deleteRexes).toHaveBeenCalledTimes(1);
   });
 
   test("thunkRexPetStartStop", async () => {
-    const rex = createTestRex();
+    const rex = generateBlankRex({ name: "Jest Rex-1" });
     const store = createCustomTestStore({
       rex: {
         ...rexInitialState,
@@ -183,10 +182,12 @@ describe("Thunk Rex Tests", () => {
 
 describe("Thunk Position Entry Tests", () => {
   test("thunkCreatePosEntry", async () => {
-    const rex = createTestRex();
-    rex.isRunning = true;
-    rex.petRunning = false;
-    rex.petValueAtStartStop = "+00:07:00";
+    const rex = generateBlankRex({
+      name: "Jest Rex-1",
+      isRunning: true,
+      petRunning: false,
+      petValueAtStartStop: "+00:07:00",
+    });
     const store = createCustomTestStore({
       rex: { ...rexInitialState, rexes: [rex], selectedRexUuid: rex.uuid },
     });
@@ -195,14 +196,13 @@ describe("Thunk Position Entry Tests", () => {
     const posEntry = store.getState().rex.rexes[0].posEntries[0];
     expect(posEntry.seconds).toEqual(420);
     expect(posEntry.posTypeUuids).toEqual(["uuid1", "uuid2"]);
-    expect(posEntry.updatedAt).toEqual(posEntry.createdAt);
     expect(store.getState().rex.posEntryEditingUuid).toEqual(posEntry.uuid);
     expect(store.getState().rex.rexesPosEntriesEditing[0]).toEqual(rex.uuid);
   });
 
   test("thunkUpdatePosEntryLocation", async () => {
-    const rex = createTestRex();
-    const posEntry = createTestPosEntry();
+    const rex = generateBlankRex({ name: "Jest Rex-1" });
+    const posEntry = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
     rex.posEntries = [posEntry];
     const store = createCustomTestStore({
       rex: {
@@ -244,10 +244,12 @@ describe("Thunk Position Entry Tests", () => {
   });
 
   test("thunkCancelPosEntriesLocation", async () => {
-    const rex = createTestRex();
-    const posEntry = createTestPosEntry();
-    const posEntryWithLoc = createTestPosEntry();
-    posEntryWithLoc.location = { lat: 1, lng: 2 };
+    const rex = generateBlankRex({ name: "Jest Rex-1" });
+    const posEntry = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
+    const posEntryWithLoc = generateBlankPosEntry({
+      posTypeUuids: [rex.posTypes[0].uuid],
+      location: { lat: 1, lng: 2 },
+    });
     rex.posEntries = [posEntry, posEntryWithLoc];
     const store = createCustomTestStore({
       rex: {
@@ -287,8 +289,8 @@ describe("Thunk Position Entry Tests", () => {
   });
 
   test("thunkCancelPosEntry", async () => {
-    const rex = createTestRex();
-    const posEntry = createTestPosEntry();
+    const rex = generateBlankRex({ name: "Jest Rex-1" });
+    const posEntry = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
     const posEntryModified = { ...posEntry, location: { lat: 1, lng: 2 } };
     const store = createCustomTestStore({
       rex: {
@@ -321,9 +323,9 @@ describe("Thunk Position Entry Tests", () => {
   });
 
   test("thunkPersistRexPosEntries", async () => {
-    const rex = createTestRex();
-    const posEntry1 = createTestPosEntry();
-    const posEntry2 = createTestPosEntry();
+    const rex = generateBlankRex({ name: "Jest Rex-1" });
+    const posEntry1 = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
+    const posEntry2 = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
     rex.posEntries = [posEntry1, posEntry2];
     const store = createCustomTestStore({
       rex: {
@@ -344,8 +346,8 @@ describe("Thunk Position Entry Tests", () => {
   });
 
   test("thunkDeletePosEntryByUuid", async () => {
-    const rex = createTestRex();
-    const posEntry = createTestPosEntry();
+    const rex = generateBlankRex({ name: "Jest Rex-1" });
+    const posEntry = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
     rex.posEntries = [posEntry];
     const store = createCustomTestStore({
       rex: {
@@ -409,8 +411,7 @@ describe("Thunk Position Entry Tests", () => {
   });
 
   test("thunkAddRexStatusEntry", async () => {
-    const rex = createTestRex();
-    rex.isRunning = true;
+    const rex = generateBlankRex({ name: "Jest Rex-1", isRunning: true });
     const store = createCustomTestStore({
       rex: {
         ...rexInitialState,

@@ -5,10 +5,10 @@ import UserFactory from "../factories/UserFactory";
 import StationFactory from "../factories/StationFactory";
 import MissionFactory from "../factories/MissionFactory";
 import { TextEncoder, TextDecoder } from "util";
-import { roundDateToSecond } from "utils/formatting";
 import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
 import app from "server/express/restApi";
+import { generateBlankStation } from "store/storeUtils/station";
 jest.mock("server/express/sockets", () => {
   return {
     __esModule: true,
@@ -61,26 +61,7 @@ beforeAll(async () => {
 describe("Station API Endpoint", () => {
   let aegisSessionCookie: string;
   let aegisSessionSigCookie: string;
-  let newStation: Station = {
-    uuid: null,
-    ownerId: null,
-    missionId: null,
-    name: "Jest Station-1",
-    status: "Candidate",
-    description: "",
-    actionOrderUuids: [],
-    radius: 0,
-    location: null,
-    elevation: null,
-    icon: null,
-    walkbackPath: null,
-    walkbackPathSegmentDistances: [0],
-    walkbackPathSegmentElevations: null,
-    durationLower: 0,
-    durationUpper: 0,
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
-  };
+  let newStation: Station = generateBlankStation({ name: "Jest Station-1" });
 
   test("Returns auth failure", async () => {
     const res = await supertest(app).get("/api/v1/station");

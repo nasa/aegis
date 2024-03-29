@@ -14,18 +14,21 @@ import { initialState as stmInitialState } from "store/stm";
 import { initialState as userInitialState } from "store/user";
 import { initialState as interfaceInitialState } from "store/interface";
 import { initialState as measureInitialState } from "store/measure";
-import { createTestTraverse } from "./TraverseFactory";
-import { createTestStation } from "./StationFactory";
-import { createTestActionTemplate, createTestMission } from "./MissionFactory";
-import { createTestEva } from "./EVAFactory";
-import { createTestAction } from "./ActionFactory";
-import { createTestPoi } from "./PoiFactory";
-import { createTestPosEntry, createTestPosType, createTestRex } from "./RexFactory";
-import { createTestPreset } from "./PresetFactory";
-import { createTestUser } from "./UserFactory";
-import { createTestSTMLevel2 } from "./STMLevel2Factory";
-import { createTestSTMLevel1 } from "./STMLevel1Factory";
-import { createTestSTMLevel3 } from "./STMLevel3Factory";
+import { generateBlankAction } from "store/storeUtils/action";
+import { generateBlankEVA } from "store/storeUtils/eva";
+import { generateBlankActionTemplate, generateBlankMission } from "store/storeUtils/mission";
+import { generateBlankPoi } from "store/storeUtils/poi";
+import { generateBlankPreset } from "store/storeUtils/preset";
+import { v4 as uuidv4 } from "uuid";
+import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
+import { generateBlankStation } from "store/storeUtils/station";
+import {
+  generateBlankStmLvl1,
+  generateBlankStmLvl2,
+  generateBlankStmLvl3,
+} from "store/storeUtils/stm";
+import { generateBlankTraverse } from "store/storeUtils/traverse";
+import { generateBlankUser } from "store/storeUtils/user";
 
 export const createCustomTestStore = (partialPreloadedState: Partial<RootState>): StoreType => {
   const newState = { ...initialState, ...partialPreloadedState };
@@ -47,22 +50,20 @@ export const createCustomTestStore = (partialPreloadedState: Partial<RootState>)
  * @returns
  */
 export const createFullTestStore = (): StoreType => {
-  const mission = createTestMission();
-  mission.name = "Jest Test Mission";
-  mission.planetRadius = 1737400;
-  mission.landerLocation = { lat: 3, lng: 3 };
-  mission.actionTemplates = [createTestActionTemplate()];
-
+  const mission = generateBlankMission({
+    name: "Jest Test Mission",
+    landerLocation: { lat: 3, lng: 3 },
+    actionTemplates: [generateBlankActionTemplate({ templateName: "Jest Action Template" })],
+  });
   const actions: Action[] = [];
 
   const pois: POI[] = [];
   for (let i = 0; i < 3; i++) {
-    const poi = createTestPoi();
-    poi.location = { lat: i + 0.1, lng: i };
+    const poi = generateBlankPoi({ location: { lat: i + 0.1, lng: i } });
     pois.push(poi);
   }
   for (let i = 0; i < pois.length; i++) {
-    const action = createTestAction({ poiUuid: pois[i].uuid });
+    const action = generateBlankAction({ name: "Jest Action-1", poiUuid: pois[i].uuid });
     action.durationLower = i + 1;
     action.durationUpper = action.durationLower + 5;
     actions.push(action);
@@ -71,12 +72,14 @@ export const createFullTestStore = (): StoreType => {
 
   const stations: Station[] = [];
   for (let i = 0; i < 4; i++) {
-    const station = createTestStation();
-    station.location = { lat: i, lng: i + 0.1 };
+    const station = generateBlankStation({
+      name: "Jest Station-1",
+      location: { lat: i, lng: i + 0.1 },
+    });
     stations.push(station);
   }
   for (let i = 0; i < stations.length; i++) {
-    const action = createTestAction({ stationUuid: stations[i].uuid });
+    const action = generateBlankAction({ name: "Jest Action-1", stationUuid: stations[i].uuid });
     action.durationLower = i + 1;
     action.durationUpper = action.durationLower + 5;
     actions.push(action);
@@ -85,11 +88,9 @@ export const createFullTestStore = (): StoreType => {
 
   const traverses: Traverse[] = [];
   for (let i = 0; i < 6; i++) {
-    traverses.push(createTestTraverse());
+    traverses.push(generateBlankTraverse({ name: `Jest Traverse-${i + 1}` }));
   }
-  const eva1 = createTestEva();
-  eva1.egressLocationUuid = "lander";
-  eva1.ingressLocationUuid = "lander";
+  const eva1 = generateBlankEVA({ name: "Jest Eva-1" });
   eva1.sequence = [
     { uuid: traverses[0].uuid, type: "traverse" },
     { uuid: stations[0].uuid, type: "station" },
@@ -99,7 +100,7 @@ export const createFullTestStore = (): StoreType => {
     { uuid: stations[2].uuid, type: "station" },
     { uuid: traverses[3].uuid, type: "traverse" },
   ];
-  const eva2: Eva = createTestEva();
+  const eva2: Eva = generateBlankEVA({ name: "Jest Eva-1" });
   eva2.traverseRate = 2;
   eva2.sequence = [
     { uuid: traverses[4].uuid, type: "traverse" },
@@ -107,21 +108,26 @@ export const createFullTestStore = (): StoreType => {
     { uuid: traverses[5].uuid, type: "traverse" },
   ];
 
-  const rex1 = createTestRex();
-  rex1.evaUuid = eva1.uuid;
+  const rex1 = generateBlankRex({ name: "Jest Rex-1", evaUuid: eva1.uuid });
+  rex1.posEntries = [generateBlankPosEntry({ posTypeUuids: [rex1.posTypes[0].uuid] })];
 
-  const posType1 = createTestPosType("EV1");
-  const posType2 = createTestPosType("EV2");
-  rex1.posTypes = [posType1, posType2];
-  rex1.posEntries = [createTestPosEntry(posType1.uuid)];
-
-  const preset1 = createTestPreset();
+  const preset1 = generateBlankPreset({
+    name: "Jest Test Preset",
+    mapSublayerControls: {
+      Basemaps: {
+        name: "Basemaps",
+        sublayerUuid: uuidv4(),
+        visible: true,
+        style: null,
+      },
+    },
+  });
   const presetsUIStates = { [preset1.uuid]: {} };
 
-  const stmLevel1_1 = createTestSTMLevel1();
-  const stmLevel2_1 = createTestSTMLevel2();
+  const stmLevel1_1 = generateBlankStmLvl1({ name: "Jest STM Level1-1", numbering: "1" });
+  const stmLevel2_1 = generateBlankStmLvl2({ name: "Jest STM Level2-1", numbering: "1" });
   stmLevel2_1.level1Uuid = stmLevel1_1.uuid;
-  const stmLevel3_1 = createTestSTMLevel3();
+  const stmLevel3_1 = generateBlankStmLvl3({ name: "Jest STM Level3-1", numbering: "1" });
   stmLevel3_1.level2Uuid = stmLevel2_1.uuid;
 
   const testState: RootState = {
@@ -131,7 +137,10 @@ export const createFullTestStore = (): StoreType => {
       mission: mission,
       missionFromDb: mission,
     },
-    user: { ...userInitialState, user: createTestUser() },
+    user: {
+      ...userInitialState,
+      user: generateBlankUser({ username: "Jest testUser", password: "superSecretPassword" }),
+    },
     map: { ...mapInitialState },
     eva: {
       ...evaInitialState,

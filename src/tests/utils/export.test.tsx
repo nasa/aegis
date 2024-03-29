@@ -1,4 +1,4 @@
-import { createTestMission } from "../factories/MissionFactory";
+import { generateBlankMission } from "store/storeUtils/mission";
 import { getStmNames, makeEquipmentReadable } from "utils/export";
 import { v4 as uuidv4 } from "uuid";
 
@@ -33,14 +33,16 @@ describe("Export tests", () => {
   });
 
   test("makeEquipmentReadable", () => {
-    const mission = createTestMission();
     const equipmentItem: EquipmentItem = {
       uuid: uuidv4(),
       name: "test equipment",
       quantity: 99,
       singleUse: false,
     };
-    mission.equipmentItems = [equipmentItem];
+    const mission = generateBlankMission({
+      name: "Jest Mission-1",
+      equipmentItems: [equipmentItem],
+    });
     const equipmentItemUsage: EquipmentItemUsage = { uuid: equipmentItem.uuid, quantityUsed: 5 };
     const equipmentItemUsageNotFound: EquipmentItemUsage = { uuid: uuidv4(), quantityUsed: 3 };
     const readable = makeEquipmentReadable({

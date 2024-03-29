@@ -19,6 +19,7 @@ import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { thunkSaveNewPreset } from "./crossThunk";
 import _ from "lodash";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
+import { generateBlankPreset } from "store/storeUtils/preset";
 
 export const thunkSavePreset = appCreateAsyncThunk<{
   preset: Preset;
@@ -139,20 +140,13 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
       }
     }
 
-    const blankPreset: Preset = {
-      uuid: uuidv4(),
+    const blankPreset = generateBlankPreset({
       name: randomName,
-      description: "",
-      ownerId: null,
       missionId: getState().mission.mission?.id,
-      missionPreset: false,
-      missionPresetDefault: false,
       layerOrder: defaultOrder,
       mapSublayerControls: blankMapSublayerControls,
       mapCircleControls: blankMapCircleControls,
-      updatedAt: null,
-      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    };
+    });
     dispatch(thunkSaveNewPreset({ preset: blankPreset }));
 
     // create preset ui states entry
