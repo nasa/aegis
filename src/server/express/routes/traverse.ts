@@ -16,6 +16,10 @@ import { v4 as uuidv4 } from "uuid";
 import { Traverse_db } from "server/database/models/_allModels";
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { upsertLogs } from "./log";
+import {
+  convertTraversesTypeDbToStore,
+  convertTraversesTypeStoreToDb,
+} from "store/storeUtils/traverse";
 
 const router = express.Router();
 
@@ -195,7 +199,7 @@ export async function getTraverses(missionId: number, traverseUuid?: string): Pr
   }
 
   //convert foreign keys
-  return convertTraverses(dbtraverses);
+  return convertTraversesTypeDbToStore(dbtraverses);
 }
 
 /**
@@ -210,22 +214,9 @@ export async function upsertTraverses(traverses: Traverse[]): Promise<Traverse[]
   const traversesUpsertedToDb = [];
 
   for (const traverseToUpsert of traversesToUpsert) {
-    const convertedTraverse: EntityData<Traverse_db> = {
-      uuid: traverseToUpsert.uuid || uuidv4(),
-      mission: traverseToUpsert.missionId,
-      name: traverseToUpsert.name,
-      path: traverseToUpsert.path,
-      pathSegmentDistances: traverseToUpsert.pathSegmentDistances,
-      pathSegmentElevations: traverseToUpsert.pathSegmentElevations,
-      status: traverseToUpsert.status,
-      predictedDurationLower: traverseToUpsert.predictedDurationLower,
-      predictedDurationUpper: traverseToUpsert.predictedDurationUpper,
-      description: traverseToUpsert.description,
-      traverseRate: traverseToUpsert.traverseRate,
-      color: traverseToUpsert.color,
-      updatedAt: new Date(traverseToUpsert.updatedAt),
-      createdAt: new Date(traverseToUpsert.createdAt),
-    };
+    const convertedTraverse: EntityData<Traverse_db> = convertTraversesTypeStoreToDb([
+      traverseToUpsert,
+    ])[0];
 
     //upsert traverse
     const traverseRefFromDb: Traverse_db = await em.upsert(Traverse_db, convertedTraverse);
@@ -235,7 +226,7 @@ export async function upsertTraverses(traverses: Traverse[]): Promise<Traverse[]
 
   await em.flush();
   //convert foreign keys
-  return convertTraverses(traversesUpsertedToDb);
+  return convertTraversesTypeDbToStore(traversesUpsertedToDb);
 }
 
 /**
@@ -256,34 +247,4 @@ export async function deleteTraverses(traverseUuids: string[]): Promise<string[]
 
   await em.flush(); //perform deletes
   return deletedUuids;
-}
-
-/**
- * Converts db traverse fks to their plain uuid/id arrays
- * @param dbTraverses an array of Traverse in mikro db format
- * @returns an array of Traverse
- */
-function convertTraverses(dbTraverses: Traverse_db[]): Traverse[] {
-  const traverses: Traverse[] = [];
-  for (const dbtraverse of dbTraverses) {
-    //convert traverse object
-    const convertedTraverse: Traverse = {
-      uuid: dbtraverse.uuid,
-      missionId: dbtraverse.mission.id,
-      name: dbtraverse.name,
-      path: dbtraverse.path,
-      pathSegmentDistances: dbtraverse.pathSegmentDistances,
-      pathSegmentElevations: dbtraverse.pathSegmentElevations,
-      status: dbtraverse.status,
-      predictedDurationLower: dbtraverse.predictedDurationLower,
-      predictedDurationUpper: dbtraverse.predictedDurationUpper,
-      description: dbtraverse.description,
-      traverseRate: dbtraverse.traverseRate,
-      color: dbtraverse.color,
-      createdAt: dbtraverse.createdAt.toISOString(),
-      updatedAt: dbtraverse.updatedAt.toISOString(),
-    };
-    traverses.push(convertedTraverse);
-  }
-  return traverses;
 }

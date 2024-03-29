@@ -12,8 +12,11 @@ import {
   QueryOrder,
   ForeignKeyConstraintViolationException,
 } from "@mikro-orm/core";
-import { v4 as uuidv4 } from "uuid";
 import { Sublayer_db } from "server/database/models/_allModels";
+import {
+  convertSublayersTypeDbToStore,
+  convertSublayersTypeStoreToDb,
+} from "store/storeUtils/sublayer";
 
 const router = express.Router();
 
@@ -152,33 +155,7 @@ export async function getSublayers(missionId: number, sublayerUUID?: string): Pr
   }
 
   if (sublayers_db) {
-    //convert fks
-    return sublayers_db.map((sublayer_db) => {
-      const sublayer: Sublayer = {
-        uuid: sublayer_db.uuid,
-        missionId: sublayer_db.mission.id,
-        layerUuid: sublayer_db.layer.uuid,
-        name: sublayer_db.name,
-        description: sublayer_db.description,
-        legend: sublayer_db.legend,
-        url: sublayer_db.url,
-        type: sublayer_db.type,
-        filePath: sublayer_db.filePath,
-        boundingBox: sublayer_db.boundingBox,
-        tileFormat: sublayer_db.tileFormat,
-        minNativeZoom: sublayer_db.minNativeZoom,
-        maxNativeZoom: sublayer_db.maxNativeZoom,
-        maxZoom: sublayer_db.maxZoom,
-        color: sublayer_db.color,
-        opacity: sublayer_db.opacity,
-        fillColor: sublayer_db.fillColor,
-        fillOpacity: sublayer_db.fillOpacity,
-        weight: sublayer_db.weight,
-        createdAt: sublayer_db.createdAt.toISOString(),
-        updatedAt: sublayer_db.updatedAt.toISOString(),
-      };
-      return sublayer;
-    });
+    return convertSublayersTypeDbToStore(sublayers_db);
   } else {
     return [];
   }
@@ -196,29 +173,9 @@ export async function upsertSublayers(sublayers: Sublayer[]): Promise<Sublayer[]
 
   for (const sublayerToUpsert of sublayersToUpsert) {
     //convert fks and upsert
-    const convertedRecord: EntityData<Sublayer_db> = {
-      uuid: sublayerToUpsert.uuid || uuidv4(),
-      mission: sublayerToUpsert.missionId,
-      layer: sublayerToUpsert.layerUuid,
-      name: sublayerToUpsert.name,
-      description: sublayerToUpsert.description,
-      legend: sublayerToUpsert.legend,
-      type: sublayerToUpsert.type,
-      url: sublayerToUpsert.url,
-      filePath: sublayerToUpsert.filePath,
-      boundingBox: sublayerToUpsert.boundingBox,
-      tileFormat: sublayerToUpsert.tileFormat,
-      minNativeZoom: sublayerToUpsert.minNativeZoom,
-      maxNativeZoom: sublayerToUpsert.maxNativeZoom,
-      maxZoom: sublayerToUpsert.maxZoom,
-      color: sublayerToUpsert.color,
-      opacity: sublayerToUpsert.opacity,
-      fillColor: sublayerToUpsert.fillColor,
-      fillOpacity: sublayerToUpsert.fillOpacity,
-      weight: sublayerToUpsert.weight,
-      createdAt: new Date(sublayerToUpsert.createdAt),
-      updatedAt: new Date(sublayerToUpsert.updatedAt),
-    };
+    const convertedRecord: EntityData<Sublayer_db> = convertSublayersTypeStoreToDb([
+      sublayerToUpsert,
+    ])[0];
     const upsertReference = await em.upsert(Sublayer_db, convertedRecord);
     em.persist(upsertReference);
     sublayersUpsertedToDb.push(upsertReference);
@@ -227,33 +184,7 @@ export async function upsertSublayers(sublayers: Sublayer[]): Promise<Sublayer[]
   await em.flush();
 
   //convert fks back
-  const convertedSublayers = sublayersUpsertedToDb.map((s) => {
-    return {
-      uuid: s.uuid,
-      missionId: s.mission.id,
-      layerUuid: s.layer.uuid,
-      name: s.name,
-      description: s.description,
-      legend: s.legend,
-      url: s.url,
-      type: s.type,
-      filePath: s.filePath,
-      boundingBox: s.boundingBox,
-      tileFormat: s.tileFormat,
-      minNativeZoom: s.minNativeZoom,
-      maxNativeZoom: s.maxNativeZoom,
-      maxZoom: s.maxZoom,
-      color: s.color,
-      opacity: s.opacity,
-      fillColor: s.fillColor,
-      fillOpacity: s.fillOpacity,
-      weight: s.weight,
-      createdAt: s.createdAt.toISOString(),
-      updatedAt: s.updatedAt.toISOString(),
-    };
-  });
-
-  return convertedSublayers;
+  return convertSublayersTypeDbToStore(sublayersUpsertedToDb);
 }
 
 /**

@@ -4,11 +4,11 @@ import { User_db, Mission_db, Rex_db } from "server/database/models/_allModels";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
 import { TextEncoder, TextDecoder } from "util";
-import { roundDateToSecond } from "utils/formatting";
 import RexFactory from "../factories/RexFactory";
 import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
 import app from "server/express/restApi";
+import { generateBlankRex } from "store/storeUtils/rex";
 jest.mock("server/express/sockets", () => {
   return {
     __esModule: true,
@@ -60,24 +60,7 @@ beforeAll(async () => {
 describe("REX API Endpoint", () => {
   let aegisSessionCookie: string;
   let aegisSessionSigCookie: string;
-  let newRex: Rex = {
-    uuid: null,
-    missionId: null,
-    name: "Jest Rex-1",
-    description: null,
-    petStartStopTimestamp: null,
-    petValueAtStartStop: null,
-    petRunning: null,
-    evaUuid: null,
-    isRunning: null,
-    posEntries: null,
-    stationEntries: null,
-    traverseEntries: null,
-    actionEntries: null,
-    posTypes: null,
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
-  };
+  let newRex: Rex = generateBlankRex({ name: "Jest Rex-1" });
 
   test("Returns auth failure", async () => {
     const res = await supertest(app).get("/api/v1/rex");

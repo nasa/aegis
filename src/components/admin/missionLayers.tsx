@@ -3,10 +3,10 @@ import adminStyles from "./admin.module.css";
 import LayerEdit from "components/admin/layerEdit";
 import SublayerEdit from "components/admin/sublayerEdit";
 import { deleteLayers, getLayers } from "http-client/layer";
-import { createNewLayer, createNewSublayer } from "components/admin/helper";
-import _ from "lodash";
 import FileManager from "components/admin/fileManager";
 import { deleteSublayers, getSublayers } from "http-client/sublayer";
+import { generateBlankLayer } from "store/storeUtils/layer";
+import { generateBlankSublayer } from "store/storeUtils/sublayer";
 
 const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission: Mission }) => {
   const [allLayers, setAllLayers] = useState<Layer[]>(null);
@@ -37,7 +37,10 @@ const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission
 
   //adds a new blank sublayer object to the parent layer and sets it for edit
   function addNewSublayer() {
-    const newSublayer = createNewSublayer(editSublayerParentUUID, mission.id);
+    const newSublayer = generateBlankSublayer({
+      layerUuid: editSublayerParentUUID,
+      missionId: mission.id,
+    });
     setEditComponent(
       <SublayerEdit
         sublayer={newSublayer}
@@ -49,7 +52,7 @@ const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission
   }
 
   function addNewLayer() {
-    const newLayer = createNewLayer(mission.id);
+    const newLayer = generateBlankLayer({ missionId: mission.id });
     setEditComponent(<LayerEdit layer={newLayer} refreshLayerList={reloadLayers} />);
   }
 

@@ -13,7 +13,6 @@ import {
   thunkReorderStationInEva,
   thunkSaveEva,
 } from "store/thunk/thunkEva";
-import { createTestTraverse } from "tests/factories/TraverseFactory";
 import {
   setTraverseEditMode,
   upsertTraverseByField,
@@ -21,9 +20,7 @@ import {
   upsertTraversesFromDb,
 } from "store/traverse";
 import { setEvaEditMode, upsertEva, upsertEvaByField, upsertEvas } from "store/eva";
-import { createTestEva } from "tests/factories/EVAFactory";
 import { upsertRexByField } from "store/rex";
-import _ from "lodash";
 
 // mock all calls to the db so no transactions are actually made
 // CAUTION, the import line must be below the jest.mock
@@ -33,7 +30,9 @@ jest.mock("http-client/rex");
 import * as httpClient_traverse from "http-client/traverse";
 import * as httpClient_eva from "http-client/eva";
 import * as httpClient_rex from "http-client/rex";
-import { createTestStation } from "tests/factories/StationFactory";
+import { generateBlankEVA } from "store/storeUtils/eva";
+import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankTraverse } from "store/storeUtils/traverse";
 
 const confirmSpy = jest.spyOn(window, "confirm").mockImplementation(() => {
   return true;
@@ -102,7 +101,7 @@ describe("Thunk EVA Tests", () => {
     const newTraverseName = "Jest Test Traverse Modified";
     store.dispatch(upsertTraverseByField(traverse.uuid, "name", newTraverseName));
 
-    const newTraverse = createTestTraverse();
+    const newTraverse = generateBlankTraverse({ name: "Jest Traverse-1" });
     store.dispatch(upsertTraverses([newTraverse]));
     store.dispatch(upsertTraversesFromDb([newTraverse]));
 
@@ -150,7 +149,7 @@ describe("Thunk EVA Tests", () => {
     store.dispatch(upsertTraverseByField(traverse.uuid, "name", newTraverseName));
 
     // insert a traverse at the end of the sequence for testing (this might not make sense for a real sequence)
-    const newTraverse = createTestTraverse();
+    const newTraverse = generateBlankTraverse({ name: "Jest Traverse-1" });
     store.dispatch(upsertTraverses([newTraverse]));
     store.dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: false }));
     store.dispatch(
@@ -179,8 +178,8 @@ describe("Thunk EVA Tests", () => {
   });
 
   it("thunkEvaCancel unsaved eva", async () => {
-    const unsavedEva = createTestEva();
-    const newTraverse = createTestTraverse();
+    const unsavedEva = generateBlankEVA({ name: "Jest Eva-1" });
+    const newTraverse = generateBlankTraverse({ name: "Jest Traverse-1" });
     unsavedEva.sequence = [{ uuid: newTraverse.uuid, type: "traverse" }];
     store.dispatch(upsertEva(unsavedEva));
     store.dispatch(setEvaEditMode({ evaUuid: unsavedEva.uuid, editMode: true }));
@@ -294,7 +293,7 @@ describe("Thunk EVA Tests", () => {
       );
 
       //add to blank sequence
-      const newEva = createTestEva();
+      const newEva = generateBlankEVA({ name: "Jest Eva-1" });
       store.dispatch(upsertEvas([newEva]));
       const traverseCount2 = store.getState().traverse.traverses.length;
       await store.dispatch(thunkAddStationToEva({ evaUuid: newEva.uuid }));
@@ -357,7 +356,7 @@ describe("Thunk EVA Tests", () => {
       const eva = testStore.getState().eva.evas.find((e) => e.sequence.length >= 3);
       const evaSequence = eva?.sequence;
 
-      const newStation = createTestStation();
+      const newStation = generateBlankStation({ name: "Jest Station-1" });
       await testStore.dispatch(
         thunkChangeStationInEva({
           evaSequence,

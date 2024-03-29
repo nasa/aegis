@@ -18,6 +18,7 @@ import {
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
+import { generateBlankPoi } from "store/storeUtils/poi";
 
 export const thunkUpdatePoiLatLngField = appCreateAsyncThunk<{
   poiUuid: string;
@@ -180,23 +181,10 @@ export const thunkCreatePoi = appCreateAsyncThunk<void>(
       existingNames: getState().poi.pois.map((item: POI) => item.name),
     });
 
-    const blankPoi: POI = {
-      ownerId: null,
+    const blankPoi = generateBlankPoi({
       missionId: getState().mission.mission?.id,
-      uuid: uuidv4(),
       name: randomName,
-      description: "",
-      actionOrderUuids: [],
-      priorityOverride: 0,
-      radius: 5,
-      location: null,
-      elevation: null,
-      icon: "1F534",
-      tags: [],
-      status: "Candidate",
-      updatedAt: null,
-      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    };
+    });
     dispatch(thunkSaveNewPoi({ poi: blankPoi }));
   }
 );

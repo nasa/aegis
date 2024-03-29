@@ -7,9 +7,7 @@ import {
   Station_db,
   Poi_db,
 } from "server/database/models/_allModels";
-import { v4 as uuidv4 } from "uuid";
 import { TextEncoder, TextDecoder } from "util";
-import { roundDateToSecond } from "utils/formatting";
 import UserFactory from "../factories/UserFactory";
 import ActionFactory from "../factories/ActionFactory";
 import MissionFactory from "../factories/MissionFactory";
@@ -18,6 +16,7 @@ import PoiFactory from "../factories/PoiFactory";
 import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
 import app from "server/express/restApi";
+import { generateBlankAction } from "store/storeUtils/action";
 jest.mock("server/express/sockets", () => {
   return {
     __esModule: true,
@@ -86,31 +85,7 @@ beforeAll(async () => {
 describe("Action API Endpoint", () => {
   let aegisSessionCookie: string;
   let aegisSessionSigCookie: string;
-  let newAction: Action = {
-    uuid: uuidv4(),
-    missionId: null,
-    poiUuid: null,
-    stationUuid: null,
-    name: "Jest Test New Action",
-    type: "measurement",
-    description: "",
-    location: null,
-    elevation: null,
-    icon: null,
-    durationUpper: 0,
-    durationLower: 0,
-    priority: null,
-    equipmentItemsUsage: null,
-    geographicUnitsUsage: null,
-    mass: null,
-    stmUuidRefs: null,
-    stmPriorities: null,
-    status: "Candidate",
-    enabled: true,
-    crewAssigned: [],
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
-  };
+  let newAction: Action = generateBlankAction({ name: "Jest Test New Action" });
 
   test("Returns auth failure", async () => {
     const res = await supertest(app).get("/api/v1/action");

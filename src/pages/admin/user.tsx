@@ -10,6 +10,7 @@ import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { getMissions } from "../../http-client/mission";
 import React from "react";
 import { roundDateToSecond } from "utils/formatting";
+import { generateBlankUser } from "store/storeUtils/user";
 
 const User: React.FunctionComponent = () => {
   const navigate = useNavigate();
@@ -135,17 +136,12 @@ const User: React.FunctionComponent = () => {
         missionId: mission.id,
       };
     });
+    const blankUser: User = generateBlankUser({ permissionList });
 
     // create a blank user
     setUser({
       ...user,
-      isAdmin: false,
-      isSuperAdmin: false,
-      username: "",
-      password: "",
-      permissionList,
-      createdAt: roundDateToSecond(new Date()).toISOString(),
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      ...blankUser,
     });
   };
 

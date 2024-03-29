@@ -9,9 +9,9 @@ import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import MissionEditor from "components/admin/missionEditor";
 import { isLoggedIn } from "http-client/login";
 import { Tooltip } from "react-tooltip";
-import { roundDateToSecond } from "utils/formatting";
 import MissionLayers from "components/admin/missionLayers";
 import MissionSTM from "components/admin/missionSTM";
+import { generateBlankMission } from "store/storeUtils/mission";
 
 const Mission: React.FunctionComponent = () => {
   const navigate = useNavigate();
@@ -79,43 +79,7 @@ const Mission: React.FunctionComponent = () => {
   }, [navigate, loadMissionsFromDB]);
 
   function createNewMission() {
-    const newMission: Mission = {
-      id: null,
-      version: 0,
-      name: "",
-      description: "",
-      missionBanner: "",
-      landerLocation: null,
-      landerElevationMeters: 0,
-      traverseRate: 2,
-      sunAzimuth: 0,
-      sunAzimuthVisible: false,
-      earthAzimuth: 0,
-      earthAzimuthVisible: false,
-      defaultEvaDuration: 240,
-      walkbackRate: 2,
-      equipmentItems: [],
-      geographicUnits: [],
-      planetRadius: 1737400, // moon
-      initialZoom: 14,
-      demFilePath: "",
-      demResolution: 0,
-      projIsCustom: false,
-      projEpsg: "",
-      projProj4String: "",
-      projBoundsMinX: 0,
-      projBoundsMinY: 0,
-      projBoundsMaxX: 0,
-      projBoundsMaxY: 0,
-      projOriginX: 0,
-      projOriginY: 0,
-      projResZoomLevel: 0,
-      projResUnitsPerPixel: 0,
-      landerRadii: [],
-      actionTemplates: null,
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
-      createdAt: roundDateToSecond(new Date()).toISOString(),
-    };
+    const newMission: Mission = generateBlankMission();
 
     setMission(newMission);
     setEditingAttr("Mission");

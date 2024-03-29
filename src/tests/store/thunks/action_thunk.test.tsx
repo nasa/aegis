@@ -1,7 +1,5 @@
 import { createCustomTestStore } from "../../factories/makeTestStore";
 import { roundDateToSecond } from "utils/formatting";
-import { createTestAction } from "../../factories/ActionFactory";
-import { createTestStation } from "../../factories/StationFactory";
 import { initialState as actionInitialState } from "store/action";
 import { initialState as stationInitialState } from "store/station";
 import { initialState as poiInitialState } from "store/poi";
@@ -15,12 +13,14 @@ import {
   thunkSaveActions,
   thunkUpdateActionLocation,
 } from "store/thunk/thunkAction";
-import { createTestPoi } from "../../factories/PoiFactory";
 
 // mock all calls to the db so no transactions are actually made
 // CAUTION, the import line must be below the jest.mock
 jest.mock("http-client/action");
 import * as httpClient_action from "http-client/action";
+import { generateBlankAction } from "store/storeUtils/action";
+import { generateBlankPoi } from "store/storeUtils/poi";
+import { generateBlankStation } from "store/storeUtils/station";
 
 const mockThunkGetElevation = jest.fn();
 jest.mock("store/thunk/thunkElevation", () => ({
@@ -64,12 +64,15 @@ describe("Thunk Action Tests", () => {
 
   test("thunkDuplicateAction()", async () => {
     //populate the action state in the store
-    const station: Station = createTestStation();
-    const poi: POI = createTestPoi();
-    const stationAction: Action = createTestAction({ stationUuid: station.uuid });
+    const station: Station = generateBlankStation({ name: "Jest Station-1" });
+    const poi: POI = generateBlankPoi({ name: "Jest Poi-1" });
+    const stationAction: Action = generateBlankAction({
+      name: "Jest Action-1",
+      stationUuid: station.uuid,
+    });
     stationAction.name = "test station action";
     station.actionOrderUuids = [stationAction.uuid];
-    const poiAction: Action = createTestAction({ poiUuid: poi.uuid });
+    const poiAction: Action = generateBlankAction({ name: "Jest Action-1", poiUuid: poi.uuid });
     poiAction.name = "test poi action";
     poi.actionOrderUuids = [poiAction.uuid];
     const store = createCustomTestStore({
@@ -127,17 +130,26 @@ describe("Thunk Action Tests", () => {
 
   test("thunkSaveAction()", async () => {
     //populate the action state in the store
-    const station: Station = createTestStation();
-    const stationAction: Action = createTestAction({ stationUuid: station.uuid });
+    const station: Station = generateBlankStation({ name: "Jest Station-1" });
+    const stationAction: Action = generateBlankAction({
+      name: "Jest Action-1",
+      stationUuid: station.uuid,
+    });
     const stationActionModified = {
       ...stationAction,
       name: "Jest Action-1 Modified",
       description: "modified description",
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
-    const unsavedStationAction: Action = createTestAction({ stationUuid: station.uuid });
+    const unsavedStationAction: Action = generateBlankAction({
+      name: "Jest Action-1",
+      stationUuid: station.uuid,
+    });
     unsavedStationAction.name = "Unsaved action";
-    const deletedStationAction: Action = createTestAction({ stationUuid: station.uuid });
+    const deletedStationAction: Action = generateBlankAction({
+      name: "Jest Action-1",
+      stationUuid: station.uuid,
+    });
     deletedStationAction.name = "Deleted action";
     const store = createCustomTestStore({
       action: {
@@ -175,7 +187,7 @@ describe("Thunk Action Tests", () => {
 
   test("thunkUpdateActionLocation()", async () => {
     //populate the action state in the store
-    const action: Action = createTestAction({ stationUuid: uuidv4() });
+    const action: Action = generateBlankAction({ name: "Jest Action-1", stationUuid: uuidv4() });
     const store = createCustomTestStore({
       action: { ...actionInitialState, actions: [action], actionsFromDb: [action] },
     });
@@ -197,11 +209,14 @@ describe("Thunk Action Tests", () => {
     //populate the action state in the store
     const stmUuid1 = uuidv4();
     const stmUuid2 = uuidv4();
-    const action1: Action = createTestAction({ stationUuid: uuidv4() });
+    const action1: Action = generateBlankAction({ name: "Jest Action-1", stationUuid: uuidv4() });
     action1.stmUuidRefs = [stmUuid1, stmUuid2];
-    const action2: Action = createTestAction({ stationUuid: uuidv4() });
+    const action2: Action = generateBlankAction({ name: "Jest Action-1", stationUuid: uuidv4() });
     action2.stmUuidRefs = [stmUuid1, uuidv4()];
-    const actionWithNoStm: Action = createTestAction({ stationUuid: uuidv4() });
+    const actionWithNoStm: Action = generateBlankAction({
+      name: "Jest Action-1",
+      stationUuid: uuidv4(),
+    });
     const store = createCustomTestStore({
       action: {
         ...actionInitialState,
@@ -252,11 +267,14 @@ describe("Thunk Action Tests", () => {
 
   test("thunkDeleteActionFromStore()", async () => {
     //populate the action state in the store
-    const station: Station = createTestStation();
-    const stationAction: Action = createTestAction({ stationUuid: station.uuid });
+    const station: Station = generateBlankStation({ name: "Jest Station-1" });
+    const stationAction: Action = generateBlankAction({
+      name: "Jest Action-1",
+      stationUuid: station.uuid,
+    });
     station.actionOrderUuids = [stationAction.uuid];
-    const poi: POI = createTestPoi();
-    const poiAction: Action = createTestAction({ poiUuid: poi.uuid });
+    const poi: POI = generateBlankPoi({ name: "Jest Poi-1" });
+    const poiAction: Action = generateBlankAction({ name: "Jest Action-1", poiUuid: poi.uuid });
     poi.actionOrderUuids = [poiAction.uuid, uuidv4()];
 
     const store = createCustomTestStore({
@@ -280,7 +298,7 @@ describe("Thunk Action Tests", () => {
 
   test("thunkDeleteActionFromDbAndStore()", async () => {
     //populate the action state in the store
-    const testAction: Action = createTestAction({});
+    const testAction: Action = generateBlankAction({ name: "Jest Action-1" });
 
     const store = createCustomTestStore({
       action: { ...actionInitialState, actions: [testAction], actionsFromDb: [testAction] },

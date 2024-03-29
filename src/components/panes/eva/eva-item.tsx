@@ -43,9 +43,9 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
     return traverseSubset;
   }, deepEqual);
   const traversesInEvaFromDb = useAppSelector((state) => {
-    const traverseUuidInEva = thisEvaFromDb.sequence.filter((item) => item.type === "traverse");
+    const traverseUuidInEva = thisEvaFromDb?.sequence.filter((item) => item.type === "traverse");
     const traverseSubset = state.traverse.traverses.filter((traverse) =>
-      traverseUuidInEva.find((traverseUuid) => traverseUuid.uuid === traverse.uuid)
+      traverseUuidInEva?.find((traverseUuid) => traverseUuid.uuid === traverse.uuid)
     );
     return traverseSubset;
   }, deepEqual);

@@ -5,10 +5,10 @@ import MissionFactory from "../factories/MissionFactory";
 import { User_db, Mission_db, Eva_db } from "server/database/models/_allModels";
 import EvaFactory from "../factories/EVAFactory";
 import { TextEncoder, TextDecoder } from "util";
-import { roundDateToSecond } from "utils/formatting";
 import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
 import app from "server/express/restApi";
+import { generateBlankEVA } from "store/storeUtils/eva";
 jest.mock("server/express/sockets", () => {
   return {
     __esModule: true,
@@ -60,24 +60,7 @@ beforeAll(async () => {
 describe("EVA API Endpoint", () => {
   let aegisSessionCookie: string;
   let aegisSessionSigCookie: string;
-  let newEVA: Eva = {
-    uuid: null,
-    ownerId: null,
-    missionId: null,
-    name: "Jest Eva-1",
-    status: "Candidate",
-    sequence: null,
-    description: "",
-    maxDuration: null,
-    traverseRate: null,
-    egressDuration: null,
-    ingressDuration: null,
-    traverseColor: null,
-    egressLocationUuid: "lander",
-    ingressLocationUuid: "lander",
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
-  };
+  let newEVA: Eva = generateBlankEVA({ name: "Jest Eva-1" });
 
   test("Returns auth failure", async () => {
     const res = await supertest(app).get("/api/v1/eva");

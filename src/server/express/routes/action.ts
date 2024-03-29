@@ -14,6 +14,7 @@ import { Action_db } from "server/database/models/_allModels";
 import { emitStoreDelete, emitStoreUpsert } from "server/express/sockets";
 import { upsertLogs } from "./log";
 import { getEM } from "utils/mikro";
+import { convertActionsTypeDbToStore, convertActionsTypeStoreToDb } from "store/storeUtils/action";
 
 const router = express.Router();
 
@@ -198,7 +199,7 @@ export async function getActions(filter: ActionFilterOptions): Promise<Action[]>
   );
 
   //convert foreign keys
-  const actions = convertActions(dbactions) as Action[];
+  const actions = convertActionsTypeDbToStore(dbactions) as Action[];
   return actions;
 }
 
@@ -213,36 +214,7 @@ export async function upsertActions(actions: Action[]): Promise<void> {
   const actionsToUpsert = _.cloneDeep(actions); //create a copy to manipulate
   //convert fks
   for (const actionToUpsert of actionsToUpsert) {
-    const convertedRecord: EntityData<Action_db> = {
-      uuid: actionToUpsert.uuid || uuidv4(),
-      name: actionToUpsert.name,
-      mission: actionToUpsert.missionId,
-      poi: actionToUpsert.poiUuid,
-      station: actionToUpsert.stationUuid,
-      parentAction: actionToUpsert.parentActionUuid,
-      parentCopyDate: actionToUpsert.parentCopyDate
-        ? new Date(actionToUpsert.parentCopyDate)
-        : null,
-      priority: actionToUpsert.priority,
-      stmUuidRefs: actionToUpsert.stmUuidRefs,
-      stmPriorities: actionToUpsert.stmPriorities,
-      type: actionToUpsert.type,
-      description: actionToUpsert.description,
-      icon: actionToUpsert.icon,
-      location: actionToUpsert.location,
-      elevation: actionToUpsert.elevation,
-      durationLower: actionToUpsert.durationLower,
-      durationUpper: actionToUpsert.durationUpper,
-      equipmentItemsUsage: actionToUpsert.equipmentItemsUsage,
-      geographicUnitsUsage: actionToUpsert.geographicUnitsUsage,
-      mass: actionToUpsert.mass,
-      status: actionToUpsert.status,
-      enabled: actionToUpsert.enabled,
-      crewAssigned: actionToUpsert.crewAssigned,
-      updatedAt: new Date(actionToUpsert.updatedAt),
-      createdAt: new Date(actionToUpsert.createdAt),
-    };
-
+    const convertedRecord: EntityData<Action_db> = convertActionsTypeStoreToDb([actionToUpsert])[0];
     const upsertReference: Action_db = await em.upsert(Action_db, convertedRecord);
     em.persist(upsertReference);
   }
@@ -267,45 +239,4 @@ export async function deleteActions(actionUuids: string[]): Promise<string[]> {
   }
   await em.flush();
   return deletedUuids;
-}
-
-/**
- * Converts db action fks to their uuid/id arrays
- * @param dbactions an array of actions in mikro db format
- * @returns an a converted array of actions or a single action
- */
-function convertActions(dbactions: Action_db[]): Action[] {
-  const actions: Action[] = [];
-  for (const dbaction of dbactions) {
-    //convert mission and owner ids
-    const convertedAction: Action = {
-      uuid: dbaction.uuid,
-      name: dbaction.name,
-      missionId: dbaction.mission.id,
-      poiUuid: dbaction.poi?.uuid,
-      stationUuid: dbaction.station?.uuid,
-      parentActionUuid: dbaction.parentAction?.uuid,
-      parentCopyDate: dbaction.parentCopyDate?.toISOString(),
-      priority: dbaction.priority,
-      stmUuidRefs: dbaction.stmUuidRefs,
-      stmPriorities: dbaction.stmPriorities,
-      type: dbaction.type,
-      description: dbaction.description,
-      icon: dbaction.icon,
-      location: dbaction.location,
-      elevation: dbaction.elevation,
-      durationLower: dbaction.durationLower,
-      durationUpper: dbaction.durationUpper,
-      equipmentItemsUsage: dbaction.equipmentItemsUsage,
-      geographicUnitsUsage: dbaction.geographicUnitsUsage,
-      mass: dbaction.mass,
-      status: dbaction.status,
-      enabled: dbaction.enabled,
-      crewAssigned: dbaction.crewAssigned,
-      createdAt: dbaction.createdAt?.toISOString(),
-      updatedAt: dbaction.updatedAt?.toISOString(),
-    };
-    actions.push(convertedAction);
-  }
-  return actions;
 }

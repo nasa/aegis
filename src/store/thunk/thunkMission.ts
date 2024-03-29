@@ -31,6 +31,7 @@ import {
   getCalculatedFieldsByStation,
   getCalculatedFieldsByTraverse,
 } from "store/processing/calculatedFields";
+import { generateBlankActionTemplate } from "store/storeUtils/mission";
 
 export const thunkMissionSave = appCreateAsyncThunk<void>(
   "missionSave",
@@ -197,35 +198,17 @@ export const thunkCreateActionTemplate = appCreateAsyncThunk<void, string>(
       existingNames: getState().mission.mission.actionTemplates?.map((a) => a.type) || [],
     });
 
-    const templateUuid = uuidv4();
-
-    const blankActionTemplate: ActionTemplate = {
+    const blankActionTemplate: ActionTemplate = generateBlankActionTemplate({
       templateName: randomName,
       missionId: getState().mission.mission?.id,
-      uuid: templateUuid,
-      name: "",
-      description: "",
-      status: "Candidate",
-      type: "other",
-      durationLower: 5,
-      durationUpper: 6,
-      stmUuidRefs: null,
-      stmPriorities: null,
-      equipmentItemsUsage: null,
-      geographicUnitsUsage: null,
-      crewAssigned: [],
-      mass: null,
-      priority: null,
-      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    };
+    });
 
     //upsert action template
     const actionTemplates = cloneDeep(getState().mission.mission.actionTemplates) || [];
     actionTemplates.push(blankActionTemplate);
     dispatch(upsertMissionByField("actionTemplates", actionTemplates));
 
-    return templateUuid;
+    return blankActionTemplate.uuid;
   }
 );
 

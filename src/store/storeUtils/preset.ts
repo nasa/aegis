@@ -1,0 +1,81 @@
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { v4 as uuidv4 } from "uuid";
+import { Preset_db } from "server/database/models/_allModels";
+import { EntityData } from "@mikro-orm/core";
+
+/**
+ * Generate a blank preset
+ * @param partialPreset any fields that are to be overriden from default
+ * @returns the generated preset
+ */
+export const generateBlankPreset = (partialPreset?: Partial<Preset>): Preset => {
+  const defaultNewPreset: Preset = {
+    uuid: uuidv4(),
+    name: "",
+    missionId: null,
+    ownerId: null,
+    description: "",
+    missionPreset: false,
+    missionPresetDefault: false,
+    layerOrder: [],
+    mapSublayerControls: null,
+    mapCircleControls: {},
+    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    updatedAt: null,
+  };
+  return { ...defaultNewPreset, ...partialPreset };
+};
+
+/**
+ * Converts db preset fks to their uuid/id arrays
+ * @param dbPresets an array of presets in mikro db format
+ * @returns an a converted array of presets or a single preset
+ */
+export function convertPresetsTypeDbToStore(dbPresets: Preset_db[]): Preset[] {
+  const presets: Preset[] = [];
+  for (const dbPreset of dbPresets) {
+    const convertedPreset: Preset = {
+      uuid: dbPreset.uuid,
+      missionId: dbPreset.mission.id,
+      ownerId: dbPreset.owner.id,
+      name: dbPreset.name,
+      description: dbPreset.description,
+      missionPreset: dbPreset.missionPreset,
+      missionPresetDefault: dbPreset.missionPresetDefault,
+      mapSublayerControls: dbPreset.mapSublayerControls,
+      mapCircleControls: dbPreset.mapCircleControls,
+      layerOrder: dbPreset.layerOrder,
+      createdAt: dbPreset.createdAt.toISOString(),
+      updatedAt: dbPreset.updatedAt.toISOString(),
+    };
+    presets.push(convertedPreset);
+  }
+  return presets;
+}
+
+/**
+ * Converts presets that come from the store into the db type
+ * @param storePresets
+ * @returns
+ */
+export function convertPresetsTypeStoreToDb(storePresets: Preset[]): EntityData<Preset_db>[] {
+  const dbPresets: EntityData<Preset_db>[] = [];
+  for (const storePreset of storePresets) {
+    const convertedRecord: EntityData<Preset_db> = {
+      uuid: storePreset.uuid,
+      owner: storePreset.ownerId,
+      mission: storePreset.missionId,
+      name: storePreset.name,
+      description: storePreset.description,
+      missionPreset: storePreset.missionPreset,
+      missionPresetDefault: storePreset.missionPresetDefault,
+      mapSublayerControls: storePreset.mapSublayerControls,
+      mapCircleControls: storePreset.mapCircleControls,
+      layerOrder: storePreset.layerOrder,
+      createdAt: new Date(storePreset.createdAt),
+      updatedAt: new Date(storePreset.updatedAt),
+    };
+    dbPresets.push(convertedRecord);
+  }
+  return dbPresets;
+}

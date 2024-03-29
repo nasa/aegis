@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Preset_db } from "server/database/models/_allModels";
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { upsertLogs } from "./log";
+import { convertPresetsTypeDbToStore, convertPresetsTypeStoreToDb } from "store/storeUtils/preset";
 
 const router = express.Router();
 
@@ -164,28 +165,9 @@ export async function getPresets(missionId: number): Promise<Preset[]> {
   const model = getEM();
   const dbPresets = await model.find(Preset_db, { mission: missionId });
 
-  /** transform the Mikro Preset_db objects into Preset objects used in the Store.
+  /** transform the Mikro Preset_db types into Preset types used in the Store.
    */
-  const transformedPresets: Preset[] = [];
-  for (const presetItem of dbPresets) {
-    const convertedPreset: Preset = {
-      uuid: presetItem.uuid,
-      ownerId: presetItem.owner.id,
-      missionId: presetItem.mission.id,
-      name: presetItem.name,
-      description: presetItem.description,
-      missionPreset: presetItem.missionPreset,
-      missionPresetDefault: presetItem.missionPresetDefault,
-      mapSublayerControls: presetItem.mapSublayerControls,
-      mapCircleControls: presetItem.mapCircleControls,
-      layerOrder: presetItem.layerOrder,
-      createdAt: presetItem.createdAt.toISOString(),
-      updatedAt: presetItem.updatedAt.toISOString(),
-    };
-    transformedPresets.push(convertedPreset);
-  }
-
-  return transformedPresets;
+  return convertPresetsTypeDbToStore(dbPresets);
 }
 
 export async function upsertPresets(presets: Preset[]): Promise<Preset[]> {
@@ -196,20 +178,7 @@ export async function upsertPresets(presets: Preset[]): Promise<Preset[]> {
 
   for (const presetToUpsert of presetsToUpsert) {
     const em = getEM();
-    const convertedPreset: EntityData<Preset_db> = {
-      uuid: presetToUpsert.uuid || uuidv4(),
-      owner: presetToUpsert.ownerId,
-      mission: presetToUpsert.missionId,
-      name: presetToUpsert.name,
-      description: presetToUpsert.description,
-      missionPreset: presetToUpsert.missionPreset,
-      missionPresetDefault: presetToUpsert.missionPresetDefault,
-      mapSublayerControls: presetToUpsert.mapSublayerControls,
-      mapCircleControls: presetToUpsert.mapCircleControls,
-      layerOrder: presetToUpsert.layerOrder,
-      createdAt: new Date(presetToUpsert.createdAt),
-      updatedAt: new Date(presetToUpsert.updatedAt),
-    };
+    const convertedPreset: EntityData<Preset_db> = convertPresetsTypeStoreToDb([presetToUpsert])[0];
     const upsertedPreset = await em.upsert(Preset_db, convertedPreset);
 
     //upsert poi
@@ -219,23 +188,7 @@ export async function upsertPresets(presets: Preset[]): Promise<Preset[]> {
 
   await em.flush();
   //convert foreign keys
-  const convertedPresets = presetsUpsertedToDb.map((p) => {
-    return {
-      uuid: p.uuid,
-      missionId: p.mission.id,
-      ownerId: p.owner.id,
-      name: p.name,
-      description: p.description,
-      missionPreset: p.missionPreset,
-      missionPresetDefault: p.missionPresetDefault,
-      mapSublayerControls: p.mapSublayerControls,
-      mapCircleControls: p.mapCircleControls,
-      layerOrder: p.layerOrder,
-      createdAt: p.createdAt.toISOString(),
-      updatedAt: p.updatedAt.toISOString(),
-    };
-  });
-  return convertedPresets;
+  return convertPresetsTypeDbToStore(presetsUpsertedToDb);
 }
 
 export async function deletePresets(presetUuids: string[]): Promise<string[]> {

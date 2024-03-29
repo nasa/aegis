@@ -7,6 +7,7 @@ import { getEM } from "utils/mikro";
 import { EntityData } from "@mikro-orm/core";
 import { User_db } from "server/database/models/_allModels";
 import bcrypt from "bcryptjs";
+import { convertUsersTypeDbToStore, convertUsersTypeStoreToDb } from "store/storeUtils/user";
 
 const router = express.Router();
 
@@ -111,13 +112,7 @@ export async function getUsers(userId: number = null): Promise<User[]> {
     users = await model.find(User_db, { id: userId });
   }
 
-  return users.map((user: User_db) => {
-    return {
-      ...user,
-      createdAt: user.createdAt.toISOString(),
-      updatedAt: user.updatedAt.toISOString(),
-    } as User;
-  });
+  return convertUsersTypeDbToStore(users);
 }
 
 /**
@@ -131,11 +126,7 @@ export async function upsertUsers(users: User[]): Promise<User[]> {
   const usersUpsertedToDb = [];
 
   for (const userToUpsert of usersToUpsert) {
-    const convertedUser: EntityData<User_db> = {
-      ...userToUpsert,
-      updatedAt: new Date(userToUpsert.updatedAt),
-      createdAt: new Date(userToUpsert.createdAt),
-    };
+    const convertedUser: EntityData<User_db> = convertUsersTypeStoreToDb([userToUpsert])[0];
 
     if (convertedUser.id) {
       //upserting
@@ -152,21 +143,16 @@ export async function upsertUsers(users: User[]): Promise<User[]> {
       em.persist(updatedUser);
       usersUpsertedToDb.push(updatedUser);
     } else {
-      //creating. passwords are salted in the @beforeCreate() in the user model
+      // Creating. passwords are salted in the @beforeCreate() in the user model
+      // Can't use "upsert" to insert a new record if there's no other unique column in the table
+      delete convertedUser.id; // Attempting to insert with an id of null will throw a mikro error. remove the property completely so mikro can give us a new id.
       const createReference = em.create(User_db, convertedUser);
       em.persist(createReference);
       usersUpsertedToDb.push(createReference);
     }
 
     await em.flush();
-    const convertedUsers = usersUpsertedToDb.map((u) => {
-      return {
-        ...u,
-        updatedAt: u.updatedAt.toISOString(),
-        createdAt: u.createdAt.toISOString(),
-      };
-    });
-    return convertedUsers;
+    return convertUsersTypeDbToStore(usersUpsertedToDb);
   }
 }
 

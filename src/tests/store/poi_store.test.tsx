@@ -1,15 +1,15 @@
 import { upsertPoi } from "store/poi";
-import { createTestPoi } from "../factories/PoiFactory";
 import { createCustomTestStore } from "../factories/makeTestStore";
 import { StoreType } from "store";
 import { initialState as poiInitialState } from "store/poi";
+import { generateBlankPoi } from "store/storeUtils/poi";
 
 let store: StoreType;
 let testPoi: POI;
 
 beforeAll(() => {
   //populate the poi state in the store
-  testPoi = createTestPoi();
+  testPoi = generateBlankPoi({ name: "Jest Poi-1" });
   store = createCustomTestStore({
     poi: {
       ...poiInitialState,
@@ -21,7 +21,7 @@ beforeAll(() => {
 describe("POI Store Reducers", () => {
   it("upsert poi", async () => {
     //upsert a new poi
-    const newPoi: POI = createTestPoi();
+    const newPoi: POI = generateBlankPoi({ name: "Jest Poi-1" });
     let poiCount = store.getState().poi.pois.length;
     store.dispatch(upsertPoi(newPoi));
     expect(store.getState().poi.pois.length).toEqual(poiCount + 1);

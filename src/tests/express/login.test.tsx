@@ -48,7 +48,7 @@ describe("Login functions", () => {
           username: testAdmin.username,
           isAdmin: true,
           isSuperAdmin: false,
-          permissionList: [],
+          permissionList: null,
         },
       },
     });
@@ -69,7 +69,7 @@ describe("Login functions", () => {
           username: testAdmin.username,
           isAdmin: true,
           isSuperAdmin: false,
-          permissionList: [],
+          permissionList: null,
         },
       },
     });

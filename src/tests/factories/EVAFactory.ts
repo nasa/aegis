@@ -1,50 +1,12 @@
 import { Factory } from "@mikro-orm/seeder";
 import { Eva_db } from "server/database/models/_allModels";
-import { v4 as uuidv4 } from "uuid";
 import { EntityData } from "@mikro-orm/core";
+import { convertEVAsTypeStoreToDb, generateBlankEVA } from "store/storeUtils/eva";
 
 export default class EvaFactory extends Factory<Eva_db> {
   model = Eva_db;
   definition(): EntityData<Eva_db> {
-    const eva: Eva_db = {
-      uuid: uuidv4(),
-      owner: null,
-      mission: null,
-      name: "Jest Eva-1",
-      status: "Candidate",
-      sequence: [],
-      description: "",
-      maxDuration: null,
-      traverseRate: null,
-      egressDuration: null,
-      ingressDuration: null,
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
-      traverseColor: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    const eva = convertEVAsTypeStoreToDb([generateBlankEVA({ name: "Jest Eva-1" })])[0];
     return eva;
   }
 }
-
-export const createTestEva = (): Eva => {
-  return {
-    uuid: uuidv4(),
-    ownerId: null,
-    missionId: null,
-    name: "Jest Eva-1",
-    status: "Candidate",
-    sequence: [],
-    description: null,
-    maxDuration: null,
-    traverseRate: null,
-    egressDuration: null,
-    ingressDuration: null,
-    egressLocationUuid: "lander",
-    ingressLocationUuid: "lander",
-    traverseColor: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-};

@@ -15,6 +15,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Eva_db } from "server/database/models/_allModels";
 import { emitStoreDelete, emitStoreUpsert } from "server/express/sockets";
 import { upsertLogs } from "./log";
+import { convertEVAsTypeDbToStore, convertEVAsTypeStoreToDb } from "store/storeUtils/eva";
 
 const router = express.Router();
 
@@ -197,7 +198,7 @@ export async function getEVAs(missionId: number, evaUuid?: string): Promise<Eva[
   }
 
   //convert foreign keys
-  return convertEVAs(dbevas);
+  return convertEVAsTypeDbToStore(dbevas);
 }
 
 /**
@@ -212,28 +213,7 @@ export async function upsertEVAs(evas: Eva[]): Promise<Eva[]> {
   const evasUpsertedToDb = [];
 
   for (const evaToUpsert of evasToUpsert) {
-    const convertedEva: EntityData<Eva_db> = {
-      // ...
-
-      uuid: evaToUpsert.uuid || uuidv4(),
-      owner: evaToUpsert.ownerId,
-      mission: evaToUpsert.missionId,
-      name: evaToUpsert.name,
-      status: evaToUpsert.status,
-      sequence: evaToUpsert.sequence,
-      description: evaToUpsert.description,
-      maxDuration: evaToUpsert.maxDuration,
-      traverseRate: evaToUpsert.traverseRate,
-      egressDuration: evaToUpsert.egressDuration,
-      ingressDuration: evaToUpsert.ingressDuration,
-      egressLocationUuid: evaToUpsert.egressLocationUuid,
-      ingressLocationUuid: evaToUpsert.ingressLocationUuid,
-      traverseColor: evaToUpsert.traverseColor,
-      updatedAt: new Date(evaToUpsert.updatedAt),
-      createdAt: new Date(evaToUpsert.createdAt),
-    };
-
-    //upsert eva
+    const convertedEva: EntityData<Eva_db> = convertEVAsTypeStoreToDb([evaToUpsert])[0];
     const evaRefFromDb: Eva_db = await em.upsert(Eva_db, convertedEva);
     em.persist(evaRefFromDb);
     evasUpsertedToDb.push(evaRefFromDb);
@@ -241,7 +221,7 @@ export async function upsertEVAs(evas: Eva[]): Promise<Eva[]> {
 
   await em.flush();
   //convert foreign keys
-  return convertEVAs(evasUpsertedToDb);
+  return convertEVAsTypeDbToStore(evasUpsertedToDb);
 }
 
 /**
@@ -261,36 +241,4 @@ export async function deleteEVAs(evaUuids: string[]): Promise<string[]> {
   }
   await em.flush(); //perform deletes
   return deletedUuids;
-}
-
-/**
- * Converts db eva fks to their plain uuid/id arrays
- * @param dbevas an array of EVA in mikro db format
- * @returns an array of EVA
- */
-function convertEVAs(dbevas: Eva_db[]): Eva[] {
-  const evas: Eva[] = [];
-  for (const dbeva of dbevas) {
-    //convert eva object
-    const convertedEva: Eva = {
-      uuid: dbeva.uuid,
-      ownerId: dbeva.owner.id,
-      missionId: dbeva.mission.id,
-      name: dbeva.name,
-      status: dbeva.status,
-      sequence: dbeva.sequence,
-      description: dbeva.description,
-      maxDuration: dbeva.maxDuration,
-      traverseRate: dbeva.traverseRate,
-      egressDuration: dbeva.egressDuration,
-      ingressDuration: dbeva.ingressDuration,
-      egressLocationUuid: dbeva.egressLocationUuid,
-      ingressLocationUuid: dbeva.ingressLocationUuid,
-      traverseColor: dbeva.traverseColor,
-      createdAt: dbeva.createdAt.toISOString(),
-      updatedAt: dbeva.updatedAt.toISOString(),
-    };
-    evas.push(convertedEva);
-  }
-  return evas;
 }

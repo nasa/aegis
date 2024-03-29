@@ -29,6 +29,7 @@ import { updateMapDirective } from "store/map";
 import { thunkLogRexFull } from "./thunkLog";
 import { makeExportRexes } from "utils/export";
 import * as jsonKeysSort from "json-keys-sort";
+import { generateBlankRex } from "store/storeUtils/rex";
 
 export const thunkCreateRex = appCreateAsyncThunk<void>(
   "rexCreate",
@@ -38,49 +39,10 @@ export const thunkCreateRex = appCreateAsyncThunk<void>(
       existingNames: getState().rex.rexes.map((rex) => rex.name),
     });
 
-    // default crew position item types
-    const posTypeEv1: PosType = {
-      uuid: uuidv4(),
-      abbr: "1",
-      name: "EV1",
-      icon: "1f468-200d-1f680", //crew
-      pathColor: "#ff0000",
-    };
-
-    const posTypeEv2: PosType = {
-      uuid: uuidv4(),
-      abbr: "2",
-      name: "EV2",
-      icon: "1f469-200d-1f680", //crew
-      pathColor: "#ffffff",
-    };
-
-    const posTypeCart: PosType = {
-      uuid: uuidv4(),
-      abbr: "C",
-      name: "Cart",
-      icon: "1f6d2", //shopping cart
-      pathColor: "#AAAAAA",
-    };
-
-    const blankRex: Rex = {
+    const blankRex = generateBlankRex({
       missionId: getState().mission.mission.id,
-      uuid: uuidv4(),
       name: "REX Event " + randomName,
-      description: "",
-      petStartStopTimestamp: null,
-      petValueAtStartStop: "+00:00:00",
-      petRunning: false,
-      evaUuid: null,
-      isRunning: false,
-      posEntries: null,
-      posTypes: [posTypeEv1, posTypeEv2, posTypeCart],
-      stationEntries: null,
-      traverseEntries: null,
-      actionEntries: null,
-      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-      updatedAt: null,
-    };
+    });
     dispatch(thunkSaveNewRex({ rex: blankRex }));
   }
 );
@@ -199,10 +161,19 @@ export const thunkDeleteRex = appCreateAsyncThunk<{ rexUuid: string }>(
 
     // delete the rex from the store
     dispatch(deleteRexByUuid(rexUuid));
-    dispatch(deleteRexFromDbByUuid(rexUuid));
 
-    // delete the rex from the db
-    httpClient_Rex.deleteRexes([rexUuid], isRexRunning);
+    //check if rex has been saved to the db
+    const rexFromDb = getState().rex.rexesFromDb.find((rexDb) => rexDb.uuid === rexUuid);
+    if (rexFromDb) {
+      // delete the rex from the db and dbstore
+      const deleteResponse = await httpClient_Rex.deleteRexes([rexUuid], isRexRunning);
+      if (deleteResponse.status === "success") {
+        // remove the corresponding eva from the store
+        dispatch(deleteRexFromDbByUuid(rexUuid));
+      } else {
+        console.error("Error deleting Rex: " + deleteResponse.message);
+      }
+    }
   }
 );
 

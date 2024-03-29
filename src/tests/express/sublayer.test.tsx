@@ -6,11 +6,11 @@ import MissionFactory from "../factories/MissionFactory";
 import LayerFactory from "../factories/LayerFactory";
 import SublayerFactory from "../factories/SublayerFactory";
 import { Mission_db, Layer_db, User_db, Sublayer_db } from "server/database/models/_allModels";
-import { createNewSublayer } from "components/admin/helper";
 import { v4 as uuidv4 } from "uuid";
 import { TextEncoder, TextDecoder } from "util";
 import supertest from "supertest";
 import app from "server/express/restApi";
+import { generateBlankSublayer } from "store/storeUtils/sublayer";
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
@@ -56,7 +56,7 @@ beforeAll(async () => {
 describe("Layer API Endpoint ", () => {
   let aegisSessionCookie: string;
   let aegisSessionSigCookie: string;
-  let newSublayer: Sublayer = createNewSublayer(uuidv4());
+  let newSublayer: Sublayer = generateBlankSublayer({ layerUuid: uuidv4() });
 
   test("Returns auth failure", async () => {
     const res = await supertest(app).get("/api/v1/sublayer");
