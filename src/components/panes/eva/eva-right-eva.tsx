@@ -12,12 +12,14 @@ import {
   faTriangleExclamation,
   faCheck,
   IconDefinition,
+  faFileExport,
 } from "@fortawesome/free-solid-svg-icons";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
 
 import Info_Panel from "./eva-right-eva-info";
 import Actions_Panel from "./eva-right-eva-actions";
 import Report_Panel from "../report";
+import Export_Panel from "./eva-right-eva-export";
 import { setEvaEditMode, setSelectedEvaRightNavItem, upsertEvaByField } from "store/eva";
 import { getAlertColor, isModified } from "utils/component-helpers";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -215,6 +217,12 @@ const EvaRightEva: FunctionComponent = () => {
       selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "var(--eva)",
       unselectedColor: reportsTabIconColor,
       icon: reportsTabIcon,
+    },
+    export_panel: {
+      title: "Export AEGIS Data",
+      panel: <Export_Panel />,
+      selectedColor: "white",
+      icon: faFileExport,
     },
   };
 
