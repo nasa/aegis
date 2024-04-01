@@ -65,6 +65,12 @@ Setup local environment using the instructions above before performing the follo
 
 - The `https://aegis-local.fit.nasa.gov/admin` interface allows AEGIS admins to download asset zips from the AEGIS Box source folder to the AEGIS GIS products location.
 - Use the interface itself to download assets as needed to match the missions in the system (from the prod dump of `aegis.sql`)
+- Example for Apollo 14 mission:
+   1. Head to `Missions`.
+   3. Under `Apollo 14` select `Edit Layers`.
+   4. Under `Manage files in the /Layers folder for this mission` section, there is a `Download from Box` section.
+   5. Select `Apollo_14` > `Layers` and download the required files.
+   6. The downloads will show under `Directory Listing` and will be visible in the `aegis_static` folder created during the initial setup.
 
 ### Option 2: Manual install assets for Apollo 14 mission
 
