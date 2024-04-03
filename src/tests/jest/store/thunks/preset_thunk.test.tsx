@@ -1,5 +1,5 @@
 import { StoreType } from "store";
-import { createFullTestStore } from "tests/factories/makeTestStore";
+import { createFullTestStore } from "tests/jest/factories/makeTestStore";
 
 // mock all calls to the db so no transactions are actually made
 // CAUTION, the import line must be below the jest.mock

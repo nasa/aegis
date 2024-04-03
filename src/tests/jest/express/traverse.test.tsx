@@ -3,7 +3,7 @@ import { getORM, getEM, closeORM } from "utils/mikro";
 import { Mission_db, Traverse_db, User_db } from "server/database/models/_allModels";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
-import TraverseFactory from "tests/factories/TraverseFactory";
+import TraverseFactory from "tests/jest/factories/TraverseFactory";
 import { TextEncoder, TextDecoder } from "util";
 import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";

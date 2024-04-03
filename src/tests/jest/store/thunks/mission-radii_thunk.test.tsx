@@ -1,4 +1,4 @@
-import { createFullTestStore } from "tests/factories/makeTestStore";
+import { createFullTestStore } from "tests/jest/factories/makeTestStore";
 import { StoreType } from "store";
 import {
   thunkCreateLanderRadius,

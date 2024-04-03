@@ -53,7 +53,11 @@ export const LeftControlPanel: FunctionComponent = () => {
 
       {leftPanelOpen && (
         <div className={styles.activeComponent}>
-          <div className={styles.activeComponentTitle} style={{ color: paneType.color }}>
+          <div
+            className={styles.activeComponentTitle}
+            style={{ color: paneType.color }}
+            aria-label="leftPanelTitle"
+          >
             {title}
           </div>
           <ActiveComponent />
@@ -438,6 +442,7 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
               className={
                 selectedNavItem === paneType ? styles.iconContainerSelected : styles.iconContainer
               }
+              aria-label={`${paneType} Section`}
             >
               <div
                 className={styles.icon}

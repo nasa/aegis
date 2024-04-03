@@ -172,6 +172,7 @@ const PoiEditorRight: FunctionComponent = () => {
           <div className={paneStyles.saveCancelContainer}>
             {poisEditing.includes(selectedPoiUuid) && (
               <Button
+                ariaLabel="deletePoi"
                 icon={faTrashAlt}
                 onClick={() => {
                   if (selectedPoi) {
@@ -190,6 +191,7 @@ const PoiEditorRight: FunctionComponent = () => {
             )}
             {!poisEditing.includes(selectedPoiUuid) && editPerms && (
               <Button
+                ariaLabel="editPoi"
                 icon={faEdit}
                 onClick={() => {
                   dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: true }));
@@ -204,6 +206,7 @@ const PoiEditorRight: FunctionComponent = () => {
             {poisEditing.includes(selectedPoiUuid) && (
               <>
                 <Button
+                  ariaLabel="savePoi"
                   onClick={() => {
                     if (selectedPoi && modified) {
                       dispatch(
@@ -225,6 +228,7 @@ const PoiEditorRight: FunctionComponent = () => {
                   }}
                 />
                 <Button
+                  ariaLabel="cancelPoi"
                   onClick={() => {
                     dispatch(
                       thunkPoiCancel({

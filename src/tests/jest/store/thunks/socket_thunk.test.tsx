@@ -1,5 +1,5 @@
 import { StoreType } from "store";
-import { createFullTestStore } from "tests/factories/makeTestStore";
+import { createFullTestStore } from "tests/jest/factories/makeTestStore";
 import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/thunkSockets";
 import _ from "lodash";
 import { setPresetEditMode, upsertPreset } from "store/preset";

@@ -4,7 +4,7 @@ import { getORM, getEM, closeORM } from "utils/mikro";
 import UserFactory from "../factories/UserFactory";
 import { User_db } from "server/database/models/user.model";
 import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
-import MissionFactory from "tests/factories/MissionFactory";
+import MissionFactory from "tests/jest/factories/MissionFactory";
 import { Mission_db } from "server/database/models/_allModels";
 import * as fileFunctions from "server/file/file";
 

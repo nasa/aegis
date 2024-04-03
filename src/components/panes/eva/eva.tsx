@@ -22,9 +22,9 @@ const EvaPlannerLeft: FunctionComponent = () => {
   return (
     <>
       <div className={styles.evasLeftContainer}>
-        <div className={styles.evasLeftBody}>
+        <div className={styles.evasLeftBody} aria-label="evaList">
           {_.sortBy(evas, ["name"]).map((eva) => (
-            <div className={styles.evaPanelContainer} key={eva.uuid}>
+            <div className={styles.evaPanelContainer} key={eva.uuid} aria-label="evaList-item">
               <EvaItem eva={eva} key={eva.uuid} />
             </div>
           ))}
@@ -34,6 +34,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
           <div className={styles.evasLeftFooter}>
             <div className={paneStyles.iconButtons}>
               <Button
+                ariaLabel="addEva"
                 onClick={() => {
                   dispatch(thunkCreateEva());
                 }}
@@ -43,6 +44,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
                 toolTip="Add a new EVA"
               />
               <Button
+                ariaLabel="duplicateEva"
                 onClick={() => {
                   if (selectedEva) {
                     dispatch(thunkDuplicateEva({ eva: selectedEva, includeStations: false }));
@@ -55,6 +57,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
                 toolTip="Duplicate this EVA and its Traverses"
               />
               <Button
+                ariaLabel="duplicateEvaWithStations"
                 onClick={() => {
                   if (selectedEva) {
                     if (

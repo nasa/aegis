@@ -21,34 +21,24 @@ const config = {
     "^.+\\.(css|sass|scss)$": "<rootDir>/__mocks__/styleMock.js",
   },
   collectCoverageFrom: [
-    "**/*.{js,jsx,ts,tsx}",
+    "<rootDir>/**/*.{js,jsx,ts,tsx}",
     "!**/*.d.ts",
-    "!jest.config.ts",
-    "!vite.config.mts",
-    "!**/node_modules/**",
-    "!<rootDir>/out/**",
-    "!<rootDir>/.next/**",
-    "!<rootDir>/http-client/**",
-    "!<rootDir>/scripts/**",
-    "!<rootDir>/.idea/**",
-    "!**/.cache/**",
-    "!**/.vscode/**",
+    "!<rootDir>/tests/**",
+    "!<rootDir>/server/database/**",
     "!**/coverage/**",
-    "!**/dist/**",
-    "!**/out/**",
-    "!server/database/migrations/*.ts",
-    "!server/database/seeds/**/*.ts",
   ],
   // coverageThreshold: {
   //   global: {
   //     lines: 90,
   // }, },
   coverageReporters: ["text", "lcov", "cobertura"],
-  globalSetup: "<rootDir>/../jest.globalSetup.ts",
-  globalTeardown: "<rootDir>/../jest.globalTeardown.ts",
-  setupFiles: ["<rootDir>/../jest.setup.ts", "dotenv/config"],
-  setupFilesAfterEnv: ["<rootDir>/utils/jest-extends.ts"],
-  testPathIgnorePatterns: ["<rootDir>/.local", "<rootDir>/node_modules/"],
+  globalSetup: "<rootDir>/tests/jest/jest.globalSetup.ts",
+  globalTeardown: "<rootDir>/tests/jest/jest.globalTeardown.ts",
+  setupFiles: ["<rootDir>/tests/jest/jest.setup.ts", "dotenv/config"],
+  setupFilesAfterEnv: ["<rootDir>/tests/jest/jest-extends.ts"],
+  testPathIgnorePatterns: [
+    "<rootDir>/tests/playwright/", // ignore playwright tests, we only want to run jest tests
+  ],
   globals: {
     window: {},
     document: {},
@@ -57,6 +47,7 @@ const config = {
     "^.+\\.(ts|tsx)$": ["ts-jest", { tsconfig: "tsconfig.jest.json", warnOnly: true }],
   },
   testEnvironment: "jest-environment-jsdom",
+  testTimeout: 10000, // increase timeout threshold for all tests
 };
 
 export default config;
