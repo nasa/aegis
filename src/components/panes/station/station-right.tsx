@@ -217,6 +217,7 @@ const StationEditorRight: FunctionComponent = () => {
           <div className={paneStyles.saveCancelContainer}>
             {stationsEditing.includes(selectedStationUuid) && !(saveButtonState === "pending") ? (
               <Button
+                ariaLabel="deleteStation"
                 icon={faTrashAlt}
                 onClick={() => {
                   if (window.confirm("Are you sure you want to delete this Station?")) {
@@ -235,6 +236,7 @@ const StationEditorRight: FunctionComponent = () => {
             )}
             {!stationsEditing.includes(selectedStationUuid) && editPerms && (
               <Button
+                ariaLabel="editStation"
                 icon={faEdit}
                 onClick={() => {
                   dispatch(
@@ -256,6 +258,7 @@ const StationEditorRight: FunctionComponent = () => {
               ) : (
                 <>
                   <Button
+                    ariaLabel="saveStation"
                     onClick={() => {
                       if (saveButtonState === "enabled") {
                         dispatch(
@@ -280,6 +283,7 @@ const StationEditorRight: FunctionComponent = () => {
                     }}
                   />
                   <Button
+                    ariaLabel="cancelStation"
                     onClick={() => {
                       dispatch(
                         thunkStationCancel({

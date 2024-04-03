@@ -23,7 +23,7 @@ const PoiEditorLeft: FunctionComponent = () => {
     <>
       <div className={paneStyles.leftPanelContainer}>
         <div className={poiStyles.container}>
-          <div className={poiStyles.body}>
+          <div className={poiStyles.body} aria-label="poiList">
             {_.sortBy(pois, "name").map((poi) => {
               const poiFromDb = poisFromDb.find((poiFromDb) => poiFromDb.uuid === poi.uuid);
               return (
@@ -41,6 +41,7 @@ const PoiEditorLeft: FunctionComponent = () => {
       {editPerms && (
         <div className={paneStyles.iconButtons}>
           <Button
+            ariaLabel="addPoi"
             onClick={() => {
               dispatch(thunkCreatePoi());
             }}
@@ -49,6 +50,7 @@ const PoiEditorLeft: FunctionComponent = () => {
             style={{ width: "65px" }}
           />
           <Button
+            ariaLabel="duplicatePoi"
             onClick={() => {
               dispatch(thunkDuplicatePoi({ poi: selectedPoi }));
             }}

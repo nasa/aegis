@@ -1,5 +1,5 @@
 import { StoreType } from "store";
-import { createFullTestStore } from "tests/factories/makeTestStore";
+import { createFullTestStore } from "tests/jest/factories/makeTestStore";
 import { thunkLogRexFull } from "store/thunk/thunkLog";
 
 // mock all calls to the db so no transactions are actually made

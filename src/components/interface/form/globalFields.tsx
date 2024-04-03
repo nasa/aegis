@@ -28,13 +28,14 @@ import { CompactPicker } from "react-color";
 export const Button: FunctionComponent<{
   onClick: () => void;
   label?: string;
+  ariaLabel?: string;
   toolTip?: string;
   icon?: IconDefinition;
   style?: CSSProperties;
   labelStyle?: CSSProperties;
   size?: "xs" | "lg";
   enabled?: boolean;
-}> = ({ onClick, label, toolTip, icon, style, labelStyle, size, enabled = true }) => {
+}> = ({ onClick, label, toolTip, icon, style, labelStyle, size, enabled = true, ariaLabel }) => {
   const enabledStyle = !enabled ? styles.buttonDisabled : "";
   return (
     <div
@@ -45,6 +46,7 @@ export const Button: FunctionComponent<{
         if (enabled) onClick();
       }}
       style={style}
+      aria-label={ariaLabel || label || ""}
     >
       {icon && <FontAwesomeIcon icon={icon} size={size} className={styles.buttonLabelIcon} />}
       <div style={labelStyle}>{label}</div>
@@ -254,6 +256,7 @@ export const InLineEditInput: FunctionComponent<{
           style={styleValue}
           data-tooltip-id="aegis-tooltip"
           data-tooltip-html={fieldProps.ariaLabel}
+          aria-label={fieldProps.ariaLabel}
         >
           {value}
         </div>

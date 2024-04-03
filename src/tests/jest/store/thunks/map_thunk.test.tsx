@@ -1,7 +1,7 @@
 import { StoreType } from "store";
 import { updateMapDirective } from "store/map";
 import { thunkCancelMarkerMapDirective } from "store/thunk/thunkMap";
-import { createFullTestStore } from "tests/factories/makeTestStore";
+import { createFullTestStore } from "tests/jest/factories/makeTestStore";
 
 let store: StoreType;
 

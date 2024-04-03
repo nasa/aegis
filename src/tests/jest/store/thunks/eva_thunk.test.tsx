@@ -1,5 +1,5 @@
 import { StoreType } from "store";
-import { createFullTestStore } from "tests/factories/makeTestStore";
+import { createFullTestStore } from "tests/jest/factories/makeTestStore";
 import { v4 as uuidv4 } from "uuid";
 import {
   thunkAddStationToEva,

@@ -43,6 +43,7 @@ const PoiItem: FunctionComponent<{
 
   return (
     <div
+      aria-label="poiList-item"
       className={poiStyles.poiItem}
       key={poi.uuid}
       onClick={() => {

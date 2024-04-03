@@ -262,7 +262,7 @@ const EvaRightEva: FunctionComponent = () => {
               editing={evasEditing.includes(selectedEvaUuid)}
               fieldProps={{
                 name: "name",
-                ariaLabel: "Station",
+                ariaLabel: "Eva",
                 style: {
                   width: "100%",
                   color: "var(--eva)",
@@ -289,6 +289,7 @@ const EvaRightEva: FunctionComponent = () => {
           <div className={paneStyles.saveCancelContainer}>
             {evasEditing.includes(selectedEvaUuid) && (
               <Button
+                ariaLabel="deleteEva"
                 icon={faTrashAlt}
                 onClick={() => {
                   if (window.confirm("Are you sure you want to delete this EVA?")) {
@@ -301,6 +302,7 @@ const EvaRightEva: FunctionComponent = () => {
             )}
             {!evasEditing.includes(selectedEvaUuid) && editPerms && (
               <Button
+                ariaLabel="editEva"
                 icon={faEdit}
                 onClick={() => {
                   dispatch(setEvaEditMode({ evaUuid: selectedEva.uuid, editMode: true }));
@@ -315,6 +317,7 @@ const EvaRightEva: FunctionComponent = () => {
             {evasEditing.includes(selectedEvaUuid) && (
               <>
                 <Button
+                  ariaLabel="saveEva"
                   onClick={() => {
                     if (modified) {
                       dispatch(thunkSaveEva({ evaUuid: selectedEva.uuid }));
@@ -332,6 +335,7 @@ const EvaRightEva: FunctionComponent = () => {
                   }}
                 />
                 <Button
+                  ariaLabel="cancelEva"
                   onClick={() => {
                     dispatch(thunkEvaCancel({ evaUuid: selectedEva.uuid }));
                   }}
