@@ -7,10 +7,8 @@ import { hasPerms } from "utils/permissions";
 
 import { getEM } from "utils/mikro";
 import { EntityData } from "@mikro-orm/core";
-import { v4 as uuidv4 } from "uuid";
 import { Preset_db } from "server/database/models/_allModels";
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
-import { upsertLogs } from "./log";
 import { convertPresetsTypeDbToStore, convertPresetsTypeStoreToDb } from "store/storeUtils/preset";
 
 const router = express.Router();
@@ -80,24 +78,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       return;
     }
     // emit the upserted preset to all clients via socket.io
-    emitStoreUpsert({
-      missionId: queryObj.missionId,
-      socketId: queryObj.socketId,
-      type: "preset",
-      data: upsertResponse,
-    } as StoreUpsert<Preset>);
-
-    if (queryObj.logAction) {
-      // log this upsert to the log table
-      const log: Log = {
-        uuid: uuidv4(),
+    emitStoreUpsert(
+      {
         missionId: queryObj.missionId,
-        type: "presetUpsert",
-        payloadJson: JSON.stringify(presetsToUpsert),
-        createdAt: new Date().toISOString(),
-      };
-      upsertLogs([log]);
-    }
+        socketId: queryObj.socketId,
+        type: "preset",
+        data: upsertResponse,
+      } as StoreUpsert<Preset>,
+      queryObj.logAction
+    );
 
     res.status(200).json({
       status: "success",
@@ -124,24 +113,15 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     const deletedUuids = await deletePresets(uuidsToDelete);
     if (deletedUuids.length > 0) {
       // emit the deleted preset to all clients via socket.io
-      emitStoreDelete({
-        missionId: queryObj.missionId,
-        socketId: queryObj.socketId,
-        type: "preset",
-        uuids: deletedUuids,
-      } as StoreDelete);
-
-      if (queryObj.logAction) {
-        // log this deletion to the log table
-        const log: Log = {
-          uuid: uuidv4(),
+      emitStoreDelete(
+        {
           missionId: queryObj.missionId,
-          type: "presetDelete",
-          payloadJson: JSON.stringify({ uuidsToDelete }),
-          createdAt: new Date().toISOString(),
-        };
-        upsertLogs([log]);
-      }
+          socketId: queryObj.socketId,
+          type: "preset",
+          uuids: deletedUuids,
+        } as StoreDelete,
+        queryObj.logAction
+      );
 
       res.status(200).json({
         status: "success",

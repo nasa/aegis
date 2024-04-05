@@ -8,9 +8,7 @@ import { hasPerms } from "utils/permissions";
 import { getEM } from "utils/mikro";
 import { EntityData, QueryOrder } from "@mikro-orm/core";
 import { Poi_db } from "server/database/models/_allModels";
-import { v4 as uuidv4 } from "uuid";
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
-import { upsertLogs } from "./log";
 import { convertPoisTypeDbToStore, convertPoisTypeStoreToDb } from "store/storeUtils/poi";
 
 const router = express.Router();
@@ -81,24 +79,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     }
 
     // emit the upserted item to all clients via socket.io
-    emitStoreUpsert({
-      missionId: queryObj.missionId,
-      socketId: queryObj.socketId,
-      type: "poi",
-      data: upsertResponse,
-    } as StoreUpsert<POI>);
-
-    if (queryObj.logAction) {
-      // log this upsert to the log table
-      const log: Log = {
-        uuid: uuidv4(),
+    emitStoreUpsert(
+      {
         missionId: queryObj.missionId,
-        type: "poiUpsert",
-        payloadJson: JSON.stringify(poisToUpsert),
-        createdAt: new Date().toISOString(),
-      };
-      upsertLogs([log]);
-    }
+        socketId: queryObj.socketId,
+        type: "poi",
+        data: upsertResponse,
+      } as StoreUpsert<POI>,
+      queryObj.logAction
+    );
 
     res.status(200).json({
       status: "success",
@@ -126,24 +115,15 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
 
     if (deletedUuids.length > 0) {
       // emit the deleted item to all clients via socket.io
-      emitStoreDelete({
-        missionId: queryObj.missionId,
-        socketId: queryObj.socketId,
-        type: "poi",
-        uuids: deletedUuids,
-      } as StoreDelete);
-
-      if (queryObj.logAction) {
-        // log this deletion to the log table
-        const log: Log = {
-          uuid: uuidv4(),
+      emitStoreDelete(
+        {
           missionId: queryObj.missionId,
-          type: "poiDelete",
-          payloadJson: JSON.stringify({ uuidsToDelete }),
-          createdAt: new Date().toISOString(),
-        };
-        upsertLogs([log]);
-      }
+          socketId: queryObj.socketId,
+          type: "poi",
+          uuids: deletedUuids,
+        } as StoreDelete,
+        queryObj.logAction
+      );
 
       res.status(200).json({
         status: "success",

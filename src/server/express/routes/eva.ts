@@ -11,10 +11,8 @@ import {
   QueryOrder,
 } from "@mikro-orm/core";
 import { hasPerms } from "utils/permissions";
-import { v4 as uuidv4 } from "uuid";
 import { Eva_db } from "server/database/models/_allModels";
 import { emitStoreDelete, emitStoreUpsert } from "server/express/sockets";
-import { upsertLogs } from "./log";
 import { convertEVAsTypeDbToStore, convertEVAsTypeStoreToDb } from "store/storeUtils/eva";
 
 const router = express.Router();
@@ -88,24 +86,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       return;
     } else {
       // emit the upserted item to all clients via socket.io
-      emitStoreUpsert({
-        missionId: queryObj.missionId,
-        socketId: queryObj.socketId,
-        type: "eva",
-        data: upsertResponse,
-      } as StoreUpsert<Eva>);
-      if (queryObj.logAction) {
-        // log this upsert to the log table
-        const log: Log = {
-          uuid: uuidv4(),
+      emitStoreUpsert(
+        {
           missionId: queryObj.missionId,
-          type: "evaUpsert",
-          payloadJson: JSON.stringify(evasToUpsert),
-          createdAt: new Date().toISOString(),
-        };
-        upsertLogs([log]);
-      }
-
+          socketId: queryObj.socketId,
+          type: "eva",
+          data: upsertResponse,
+        } as StoreUpsert<Eva>,
+        queryObj.logAction
+      );
       res.status(200).json({
         status: "success",
         message: `EVAs upserted with Uuids ${upsertResponse.map((e) => e.uuid)}`,
@@ -132,24 +121,15 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     const deletedUuids = await deleteEVAs(uuidsToDelete);
     if (deletedUuids.length > 0) {
       // emit the deleted item to all clients via socket.io
-      emitStoreDelete({
-        missionId: queryObj.missionId,
-        socketId: queryObj.socketId,
-        type: "eva",
-        uuids: deletedUuids,
-      } as StoreDelete);
-      if (queryObj.logAction) {
-        // log this deletion to the log table
-        const log: Log = {
-          uuid: uuidv4(),
+      emitStoreDelete(
+        {
           missionId: queryObj.missionId,
-          type: "evaDelete",
-          payloadJson: JSON.stringify({ uuidsToDelete }),
-          createdAt: new Date().toISOString(),
-        };
-        upsertLogs([log]);
-      }
-
+          socketId: queryObj.socketId,
+          type: "eva",
+          uuids: deletedUuids,
+        } as StoreDelete,
+        queryObj.logAction
+      );
       res.status(200).json({
         status: "success",
         message: "EVA Deleted",
