@@ -108,24 +108,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     //  messages that match the missionId field.
     for (const upsertedMission of upsertResponse) {
       // emit the upserted item to all clients via socket.io
-      emitStoreUpsert({
-        missionId: upsertedMission.id,
-        socketId: queryObj.socketId,
-        type: "mission",
-        data: [upsertedMission],
-      } as StoreUpsert<Mission>);
-      if (queryObj.logAction) {
-        // log this upsert to the log table
-        const log: Log = {
-          uuid: uuidv4(),
+      emitStoreUpsert(
+        {
           missionId: upsertedMission.id,
-          type: "missionUpsert",
-          payloadJson: JSON.stringify(upsertedMission),
-          createdAt: new Date().toISOString(),
-        };
-        upsertLogs([log]);
-      }
-
+          socketId: queryObj.socketId,
+          type: "mission",
+          data: [upsertedMission],
+        } as StoreUpsert<Mission>,
+        queryObj.logAction
+      );
       res.status(200).json({
         status: "success",
         message: `Mission upserted with IDs ${upsertResponse.map((m) => m.id)}`,

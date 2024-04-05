@@ -12,10 +12,8 @@ import {
   QueryOrder,
   ForeignKeyConstraintViolationException,
 } from "@mikro-orm/core";
-import { v4 as uuidv4 } from "uuid";
 import { Traverse_db } from "server/database/models/_allModels";
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
-import { upsertLogs } from "./log";
 import {
   convertTraversesTypeDbToStore,
   convertTraversesTypeStoreToDb,
@@ -84,24 +82,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     }
 
     // emit the upserted item to all clients via socket.io
-    emitStoreUpsert({
-      missionId: queryObj.missionId,
-      socketId: queryObj.socketId,
-      type: "traverse",
-      data: upsertResponse,
-    } as StoreUpsert<Traverse>);
-
-    if (queryObj.logAction) {
-      // log this upsert to the log table
-      const log: Log = {
-        uuid: uuidv4(),
+    emitStoreUpsert(
+      {
         missionId: queryObj.missionId,
-        type: "traverseUpsert",
-        payloadJson: JSON.stringify(traversesToUpsert),
-        createdAt: new Date().toISOString(),
-      };
-      upsertLogs([log]);
-    }
+        socketId: queryObj.socketId,
+        type: "traverse",
+        data: upsertResponse,
+      } as StoreUpsert<Traverse>,
+      queryObj.logAction
+    );
 
     res.status(200).json({
       status: "success",
@@ -128,24 +117,15 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     const deletedUuids = await deleteTraverses(uuidsToDelete);
     if (deletedUuids.length > 0) {
       // emit the deleted item to all clients via socket.io
-      emitStoreDelete({
-        missionId: queryObj.missionId,
-        socketId: queryObj.socketId,
-        type: "traverse",
-        uuids: deletedUuids,
-      } as StoreDelete);
-
-      if (queryObj.logAction) {
-        // log this deletion to the log table
-        const log: Log = {
-          uuid: uuidv4(),
+      emitStoreDelete(
+        {
           missionId: queryObj.missionId,
-          type: "traverseDelete",
-          payloadJson: JSON.stringify({ deletedUuids }),
-          createdAt: new Date().toISOString(),
-        };
-        upsertLogs([log]);
-      }
+          socketId: queryObj.socketId,
+          type: "traverse",
+          uuids: deletedUuids,
+        } as StoreDelete,
+        queryObj.logAction
+      );
 
       res.status(200).json({
         status: "success",

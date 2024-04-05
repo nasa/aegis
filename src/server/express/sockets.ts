@@ -2,6 +2,8 @@ import packagejson from "../../../package.json";
 
 import _ from "lodash";
 import { globalValues } from "./global";
+import { upsertLogs } from "./routes/log";
+import { v4 as uuidv4 } from "uuid";
 
 export const setupSocketIO = (): void => {
   // initialize the global object that will store the visitor tracking data and last edit events
@@ -111,7 +113,8 @@ export const getStatusFromServer = (missionId: number): StatusFromServer => {
 };
 
 export const emitStoreUpsert = (
-  payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission | Rex>
+  payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission | Rex>,
+  logAction: boolean = false
 ): void => {
   const io = globalValues.socketio;
   if (io) {
@@ -119,16 +122,28 @@ export const emitStoreUpsert = (
       POI | Preset | Station | Eva | Action | Traverse | Mission | Rex
     >;
     io.to(payload.missionId.toString()).emit("storeUpsert", payload);
+
+    // Check if logging is required
+    if (logAction) {
+      const logType = `${payload.type}Upsert` as LogType;
+      const logPayload: Log = createLogPayload(payload.missionId, logType, payload);
+      upsertLogs([logPayload]);
+    }
   } else {
     console.log("Unable to emit upsert. Socket.io not initialized");
   }
 };
 
-export const emitStoreDelete = (payload: StoreDelete): void => {
+export const emitStoreDelete = (payload: StoreDelete, logAction: boolean = false): void => {
   const io = globalValues.socketio;
   if (io) {
     payload = addLastEditEvent(payload) as StoreDelete;
     io.to(payload.missionId.toString()).emit("storeDelete", payload);
+    if (logAction) {
+      const logType = `${payload.type}Delete` as LogType;
+      const logPayload: Log = createLogPayload(payload.missionId, logType, payload);
+      upsertLogs([logPayload]);
+    }
   } else {
     console.log("Unable to emit delete. Socket.io not initialized");
   }
@@ -150,3 +165,15 @@ const addLastEditEvent = (
   payload.lastEditEvent = globalValues.serverSocketStatus.lastEditEvents[payload.missionId];
   return payload;
 };
+
+export const createLogPayload = (
+  missionId: number,
+  type: LogType,
+  data: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission | Rex> | StoreDelete
+): Log => ({
+  uuid: uuidv4(),
+  missionId: missionId,
+  type: type,
+  payloadJson: JSON.stringify(data),
+  createdAt: new Date().toISOString(),
+});

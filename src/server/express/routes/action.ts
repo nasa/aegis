@@ -3,7 +3,6 @@ import express, { Request, Response } from "express";
 import _ from "lodash";
 import { hasPerms } from "utils/permissions";
 import { Query } from "express-serve-static-core";
-import { v4 as uuidv4 } from "uuid";
 import {
   EntityData,
   ForeignKeyConstraintViolationException,
@@ -12,7 +11,6 @@ import {
 } from "@mikro-orm/core";
 import { Action_db } from "server/database/models/_allModels";
 import { emitStoreDelete, emitStoreUpsert } from "server/express/sockets";
-import { upsertLogs } from "./log";
 import { getEM } from "utils/mikro";
 import { convertActionsTypeDbToStore, convertActionsTypeStoreToDb } from "store/storeUtils/action";
 
@@ -79,25 +77,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     await upsertActions(actionsToUpsert);
 
     // emit the upserted item to all clients via socket.io
-    emitStoreUpsert({
-      missionId: queryObj.missionId,
-      socketId: queryObj.socketId,
-      type: "action",
-      data: actionsToUpsert,
-    } as StoreUpsert<Action>);
-
-    if (queryObj.logAction) {
-      // log this upsert to the log table
-      const log: Log = {
-        uuid: uuidv4(),
+    emitStoreUpsert(
+      {
         missionId: queryObj.missionId,
-        type: "actionUpsert",
-        payloadJson: JSON.stringify(actionsToUpsert),
-        createdAt: new Date().toISOString(),
-      };
-      upsertLogs([log]);
-    }
-
+        socketId: queryObj.socketId,
+        type: "action",
+        data: actionsToUpsert,
+      } as StoreUpsert<Action>,
+      queryObj.logAction
+    );
     res.status(200).json({
       status: "success",
       message: `Action(s) upserted with Uuids ${actionsToUpsert.map((a) => a.uuid)}`,
@@ -126,25 +114,15 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     const deletedUuids = await deleteActions(uuidsToDelete);
     if (deletedUuids.length > 0) {
       // emit the deleted item to all clients via socket.io
-      emitStoreDelete({
-        missionId: queryObj.missionId,
-        socketId: queryObj.socketId,
-        type: "action",
-        uuids: deletedUuids,
-      } as StoreDelete);
-
-      if (queryObj.logAction) {
-        // log this deletion to the log table
-        const log: Log = {
-          uuid: uuidv4(),
+      emitStoreDelete(
+        {
           missionId: queryObj.missionId,
-          type: "actionDelete",
-          payloadJson: JSON.stringify({ deletedUuids }),
-          createdAt: new Date().toISOString(),
-        };
-        upsertLogs([log]);
-      }
-
+          socketId: queryObj.socketId,
+          type: "action",
+          uuids: deletedUuids,
+        } as StoreDelete,
+        queryObj.logAction
+      );
       res.status(200).json({
         status: "success",
         message: "Action Deleted",

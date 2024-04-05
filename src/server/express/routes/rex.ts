@@ -7,10 +7,8 @@ import { hasPerms } from "utils/permissions";
 
 import { getEM } from "utils/mikro";
 import { EntityData, ForeignKeyConstraintViolationException } from "@mikro-orm/core";
-import { v4 as uuidv4 } from "uuid";
 import { Rex_db } from "server/database/models/_allModels";
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
-import { upsertLogs } from "./log";
 import { convertRexesTypeDbToStore, convertRexesTypeStoreToDb } from "store/storeUtils/rex";
 
 const router = express.Router();
@@ -77,24 +75,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     }
 
     // emit the upserted item to all clients via socket.io
-    emitStoreUpsert({
-      missionId: queryObj.missionId,
-      socketId: queryObj.socketId,
-      type: "rex",
-      data: upsertResponse,
-    } as StoreUpsert<Rex>);
-
-    if (queryObj.logAction) {
-      // log this upsert to the log table
-      const log: Log = {
-        uuid: uuidv4(),
+    emitStoreUpsert(
+      {
         missionId: queryObj.missionId,
-        type: "rexUpsert",
-        payloadJson: JSON.stringify(rexes),
-        createdAt: new Date().toISOString(),
-      };
-      upsertLogs([log]);
-    }
+        socketId: queryObj.socketId,
+        type: "rex",
+        data: upsertResponse,
+      } as StoreUpsert<Rex>,
+      queryObj.logAction
+    );
 
     res.status(200).json({
       status: "success",
@@ -120,24 +109,15 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     const uuidsToDelete: string[] = req.body;
     const deletedRexUuids: string[] = await deleteRexes(uuidsToDelete);
     if (deletedRexUuids.length > 0) {
-      emitStoreDelete({
-        missionId: queryObj.missionId,
-        socketId: queryObj.socketId,
-        type: "rex",
-        uuids: deletedRexUuids,
-      } as StoreDelete);
-
-      if (queryObj.logAction) {
-        // log this deletion to the log table
-        const log: Log = {
-          uuid: uuidv4(),
+      emitStoreDelete(
+        {
           missionId: queryObj.missionId,
-          type: "rexDelete",
-          payloadJson: JSON.stringify({ deletedRexUuids }),
-          createdAt: new Date().toISOString(),
-        };
-        upsertLogs([log]);
-      }
+          socketId: queryObj.socketId,
+          type: "rex",
+          uuids: deletedRexUuids,
+        } as StoreDelete,
+        queryObj.logAction
+      );
 
       res.status(200).json({
         status: "success",
