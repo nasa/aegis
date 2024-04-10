@@ -66,25 +66,28 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms(queryObj.missionId, "edit", req.session.user);
+  const { socketId, missionId, log, actions: actionsToUpsert } = req.body;
+  const logAction = log === true;
+  const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
   try {
-    const actionsToUpsert: Action[] = req.body as Action[];
+    if (!Array.isArray(actionsToUpsert)) {
+      throw new Error("Expected actionsToUpsert to be an array.");
+    }
     await upsertActions(actionsToUpsert);
 
     // emit the upserted item to all clients via socket.io
     emitStoreUpsert(
       {
-        missionId: queryObj.missionId,
-        socketId: queryObj.socketId,
+        missionId,
+        socketId,
         type: "action",
         data: actionsToUpsert,
-      } as StoreUpsert<Action>,
-      queryObj.logAction
+      },
+      logAction
     );
     res.status(200).json({
       status: "success",
@@ -101,27 +104,29 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms(queryObj.missionId, "edit", req.session.user);
+  const { socketId, missionId, log, actionUuids } = req.body;
+  const logAction = log === true;
+  const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   try {
-    const uuidsToDelete: string[] = req.body;
-    //const uuidsToDelete: string[] = req.body as string[];
-    const deletedUuids = await deleteActions(uuidsToDelete);
+    if (!Array.isArray(actionUuids)) {
+      throw new Error("Expected actionUuids to be an array.");
+    }
+    const deletedUuids = await deleteActions(actionUuids);
     if (deletedUuids.length > 0) {
       // emit the deleted item to all clients via socket.io
       emitStoreDelete(
         {
-          missionId: queryObj.missionId,
-          socketId: queryObj.socketId,
+          middionId,
+          socketId,
           type: "action",
           uuids: deletedUuids,
-        } as StoreDelete,
-        queryObj.logAction
+        },
+        logAction
       );
       res.status(200).json({
         status: "success",
