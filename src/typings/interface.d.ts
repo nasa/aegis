@@ -7,6 +7,7 @@ interface PaneType {
   rightPane: FunctionComponent;
   color: string;
   icon: IconProp;
+  fullScreen?: boolean;
 }
 
 interface PaneTypes {

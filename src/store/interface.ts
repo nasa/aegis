@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { actionTypes } from "utils/store";
 
 export const initialState: InterfaceState = {
   sectionSelectedLabel: "preset",
@@ -21,6 +22,13 @@ export const initialState: InterfaceState = {
     lastEditEvent: null,
     AEGISVersion: null,
   },
+  stmViewExpandedItems: [],
+  stmViewSelectedEvas: [],
+  stmViewSelectedActionTypes: [...actionTypes],
+  stmViewExpandTopTiers: true,
+  stmViewShowCrosshairs: true,
+  stmViewHoveredTopItem: null,
+  stmViewHoveredLeftItem: null,
 };
 
 export const interfaceSlice = createSlice({
@@ -92,6 +100,51 @@ export const interfaceSlice = createSlice({
       //eslint-disable-next-line
       state = Object.assign(state, initialState);
     },
+    stmViewExpandItem: (state, action: { payload: STMViewExpandedItem }) => {
+      state.stmViewExpandedItems.push(action.payload);
+    },
+    stmViewCollapseItem: (state, action: { payload: STMViewExpandedItem }) => {
+      const newExpandedItems: STMViewExpandedItem[] = [];
+      for (const expandedItem of state.stmViewExpandedItems) {
+        if (expandedItem.uuid == action.payload.uuid && expandedItem.type === action.payload.type) {
+          continue;
+        } else {
+          newExpandedItems.push(expandedItem);
+        }
+      }
+      state.stmViewExpandedItems = newExpandedItems;
+    },
+    stmViewSetExpandedItems: (state, action: { payload: STMViewExpandedItem[] }) => {
+      state.stmViewExpandedItems = action.payload;
+    },
+    stmViewToggleEva: (state, action: { payload: string }) => {
+      const index = state.stmViewSelectedEvas.indexOf(action.payload);
+      if (index > -1) {
+        state.stmViewSelectedEvas.splice(index, 1);
+      } else {
+        state.stmViewSelectedEvas.push(action.payload);
+      }
+    },
+    stmViewToggleSelectedActionType: (state, action: { payload: ActionType }) => {
+      const index = state.stmViewSelectedActionTypes.indexOf(action.payload);
+      if (index > -1) {
+        state.stmViewSelectedActionTypes.splice(index, 1);
+      } else {
+        state.stmViewSelectedActionTypes.push(action.payload);
+      }
+    },
+    stmViewToggleExpandTopTiers: (state) => {
+      state.stmViewExpandTopTiers = !state.stmViewExpandTopTiers;
+    },
+    stmViewSetHoveredTopItem: (state, action: { payload: string }) => {
+      state.stmViewHoveredTopItem = action.payload;
+    },
+    stmViewSetHoveredLeftItem: (state, action: { payload: string }) => {
+      state.stmViewHoveredLeftItem = action.payload;
+    },
+    stmViewToggleCrosshairs: (state) => {
+      state.stmViewShowCrosshairs = !state.stmViewShowCrosshairs;
+    },
   },
 });
 
@@ -114,4 +167,13 @@ export const {
   setLastEditEvent,
   setAEGISVersion,
   obliterateState,
+  stmViewExpandItem,
+  stmViewCollapseItem,
+  stmViewSetExpandedItems,
+  stmViewToggleEva,
+  stmViewToggleSelectedActionType,
+  stmViewToggleExpandTopTiers,
+  stmViewToggleCrosshairs,
+  stmViewSetHoveredTopItem,
+  stmViewSetHoveredLeftItem,
 } = interfaceSlice.actions;

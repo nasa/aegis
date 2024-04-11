@@ -1,0 +1,159 @@
+.stmTables {
+  display: grid;
+  grid-auto-rows: min-content;
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-size: 0.9em;
+}
+
+.table {
+  cursor: pointer;
+  user-select: none;
+}
+
+.gridCellLevel1Expanded {
+  display: grid;
+  grid-template-columns: 20px 135px auto;
+  border-left: 1px solid var(--grey0);
+  border-bottom: 4px solid var(--grey0);
+}
+.gridCellLevel1Collapsed {
+  display: grid;
+  grid-template-columns: 20px auto;
+  border-left: 1px solid var(--grey0);
+  border-bottom: 4px solid var(--grey0);
+}
+
+.gridCellLevel1Ordinal {
+  padding: 3px 3px 0 3px;
+}
+.gridCellLevel1Name {
+  padding: 3px 3px 0 3px;
+}
+
+.gridCellLevel2expanded {
+  display: grid;
+  grid-template-columns: 20px 155px auto;
+  border-bottom: 1px solid var(--grey0);
+}
+.gridCellLevel2Collapsed {
+  display: grid;
+  grid-template-columns: 20px auto;
+  border-bottom: 1px solid var(--grey0);
+}
+.gridCellLevel2:last-child {
+  border-bottom: none;
+}
+.gridCellLevel2Ordinal {
+  padding: 3px 3px 0 4px;
+  border-left: 1px solid var(--grey0);
+}
+.gridCellLevel2Name {
+  padding: 3px 3px 0 3px;
+}
+
+.gridCellLevel3Container {
+  display: grid;
+  grid-template-rows: auto;
+  border-bottom: 1px solid var(--grey0);
+  border-right: 1px solid var(--grey0);
+  border-left: 1px solid var(--grey0);
+}
+.gridCellLevel3Container:last-child {
+  border-bottom: none;
+}
+.gridCellLevel3Heading {
+  display: grid;
+  grid-template-columns: 10px 25px 428px auto;
+  gap: 5px;
+}
+.gridCellLevel3Ordinal {
+  font-family: "Roboto Mono";
+  font-size: 0.9em;
+  justify-self: right;
+  padding-top: 2px;
+}
+.gridCellLevel3Name {
+  padding: 3px 3px 0 0;
+}
+.nameCaret {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 0 3px;
+}
+
+.level3ActionTypesContainer {
+  display: grid;
+  grid-template-rows: auto;
+}
+.level3ActionTypeHeading {
+  display: grid;
+  grid-template-columns: 25px 443px auto;
+  gap: 5px;
+  background-color: var(--grey3);
+  border-bottom: 1px solid var(--grey0);
+  overflow: hidden;
+}
+.level3ActionTypeHeading:first-child {
+  border-top: 1px solid var(--grey0);
+}
+.level3ActionTypeHeading:last-child {
+  border-bottom: none;
+}
+.level3ActionTypeCaret {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 0 15px;
+}
+.level3ActionTypeName {
+  display: flex;
+  padding: 2px 3px 0 0;
+}
+.nameLozenge {
+  background-color: var(--grey1);
+  border-radius: var(--radius);
+  padding: 0px 5px 0px 5px;
+  height: 19px;
+}
+.actionCount {
+  font-size: 0.8em;
+  padding: 2px 0 2px 5px;
+}
+
+.level3ActionsContainer {
+  display: grid;
+  grid-template-rows: auto;
+  background-color: var(--grey2);
+}
+.level3ActionHeading {
+  display: grid;
+  grid-template-columns: 40px 438px auto;
+  border-bottom: 1px solid var(--grey0);
+}
+.level3ActionHeadingTitle {
+  padding: 3px 0 0 0;
+}
+
+.truncateXLine {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.15em;
+  max-height: 1.3em; /* 1.2em line height * 1 line */
+  /*
+  the -webkit-line clamp and max-height are set with a style directive on the div
+  */
+}
+
+.truncate1Line {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2em;
+  max-height: 1.3em; /* 1.2em line height * 1 line */
+}

@@ -9,10 +9,7 @@ test("create edit cancel delete eva", async ({ page }) => {
   );
 
   // add eva
-  const startingNumEvas = await page
-    .getByLabel("evaList-item", { exact: true })
-
-    .count();
+  const startingNumEvas = await page.getByLabel("evaList-item", { exact: true }).count();
   await page.getByLabel("addEva", { exact: true }).click();
   await expect(page.getByLabel("evaList-item", { exact: true })).toHaveCount(startingNumEvas + 1);
 

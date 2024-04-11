@@ -209,7 +209,7 @@ const NavTimeline: FunctionComponent = () => {
 
           // get calculatedFieldValues for this station
           const calculatedFields = stationCalculatedFieldsInSelectedEva.find(
-            (calculated) => calculated.uuid === station.uuid
+            (calculated) => calculated?.uuid === station.uuid
           );
 
           //calculate duration from actions assigned to station

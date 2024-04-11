@@ -10,7 +10,9 @@ import MissionConfig from "components/panes/mission/mission";
 import MissionConfigRight from "components/panes/mission/mission-right";
 import RexLeft from "components/panes/rex/rex";
 import RexRight from "components/panes/rex/rex-right";
+import StmViewerPage from "components/panes/stm-viewer/stm-viewer-page";
 import {
+  faFlask,
   faGlobe,
   faLocationDot,
   faPersonWalkingArrowRight,
@@ -18,6 +20,7 @@ import {
   faRoute,
 } from "@fortawesome/free-solid-svg-icons";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
+import { FunctionComponent } from "react";
 
 export const paneTypes: PaneTypes = {
   mission: {
@@ -61,5 +64,13 @@ export const paneTypes: PaneTypes = {
     rightPane: RexRight,
     color: "var(--rex)",
     icon: faPersonWalkingArrowRight,
+  },
+  stmViewer: {
+    title: "STM Viewer",
+    leftPane: (): FunctionComponent => null,
+    rightPane: StmViewerPage,
+    color: "var(--stmViewer)",
+    icon: faFlask,
+    fullScreen: true,
   },
 };

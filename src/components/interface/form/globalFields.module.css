@@ -364,3 +364,44 @@
   border: none;
   background-color: rgb(0, 0, 0, 0);
 }
+
+.multiselectDropdownContainer {
+  position: absolute;
+  width: 400px;
+  border: 1px solid var(--grey2);
+  border-radius: var(--radius);
+  background-color: var(--grey3);
+  cursor: pointer;
+  user-select: none;
+  padding: 5px;
+}
+
+.multiselectDropdownHeader {
+  height: 18px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 5px 0 4px;
+  font-size: 0.9em;
+}
+
+.multiselectDropdownItems {
+  border-top: 1px solid var(--grey2);
+  margin-top: 5px;
+  padding-top: 2px;
+}
+
+.multiselectDropdownItem {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  padding: 0 0 0 0;
+  font-size: 0.8em;
+}
+
+.multiselectDropdownItemTitle {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}

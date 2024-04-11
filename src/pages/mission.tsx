@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { useAppSelector, deepEqual } from "utils/useAppSelector";
+import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useParams } from "react-router-dom";
 
 import styles from "./mission.module.css";
@@ -10,7 +10,7 @@ import { isLoggedIn } from "http-client/login";
 import { useNavigate } from "react-router-dom";
 
 import Header from "components/interface/header";
-import { LeftControlPanel } from "components/interface/side-controls";
+import { LeftControlPanel, NavGutter } from "components/interface/side-controls";
 import { RightControlPanel } from "components/interface/side-controls";
 import { SunEarthPosition } from "components/interface/map/map-sunearth";
 import { BottomControlPanel } from "components/interface/side-controls";
@@ -25,6 +25,8 @@ import {
   generatePresetUIStates,
 } from "store/processing/audits";
 import _ from "lodash";
+import { paneTypes } from "components/interface/_paneTypes";
+
 type RouteParams = {
   id: string;
 };
@@ -33,12 +35,18 @@ const Main = (): JSX.Element => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const missionStore = useAppSelector((state) => state.mission, deepEqual);
+  const interfaceStateLabel = useAppSelector(
+    (state) => state.interface.sectionSelectedLabel,
+    refEqual
+  );
 
   const [hasPermissions, setHasPermissions] = useState(false);
 
   const params = useParams<RouteParams>();
   const slug = params.id;
   const intMissionId = parseInt(slug);
+
+  const paneType: PaneType = paneTypes[interfaceStateLabel as keyof PaneTypes];
 
   useEffect(() => {
     const populateStoreAsync = async () => {
@@ -100,21 +108,34 @@ const Main = (): JSX.Element => {
           <div className={styles.header}>
             <Header />
           </div>
-          <div className={styles.body}>
-            <div className={styles.bodyLeft}>
-              <div className={styles.leftUpper}>
-                <div className={styles.leftControl}>
-                  <LeftControlPanel />
-                </div>
-                <div className={styles.mapBody}>
-                  {missionStore.mission && missionStore.layers && <MapBody />}
-                  {showSunEarth && <SunEarthPosition />}
-                </div>
+          {paneType?.fullScreen ? (
+            <div className={styles.body}>
+              <div className={styles.leftControl}>
+                <NavGutter selectedNavItem={interfaceStateLabel} />
               </div>
-              <BottomControlPanel />
+
+              <div className={styles.bodyRight}>
+                <paneType.rightPane />
+              </div>
             </div>
-            <RightControlPanel />
-          </div>
+          ) : (
+            <div className={styles.body}>
+              <div className={styles.bodyLeft}>
+                <div className={styles.leftUpper}>
+                  <div className={styles.leftControl}>
+                    <NavGutter selectedNavItem={interfaceStateLabel} />
+                    <LeftControlPanel />
+                  </div>
+                  <div className={styles.mapBody}>
+                    {missionStore.mission && missionStore.layers && <MapBody />}
+                    {showSunEarth && <SunEarthPosition />}
+                  </div>
+                </div>
+                <BottomControlPanel />
+              </div>
+              <RightControlPanel />
+            </div>
+          )}
 
           <SocketClient missionId={intMissionId} />
         </div>
