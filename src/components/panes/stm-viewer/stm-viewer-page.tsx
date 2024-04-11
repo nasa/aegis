@@ -159,13 +159,33 @@ const StationGroupTitles: FunctionComponent = () => {
 };
 
 const StationGroupTitle: FunctionComponent<{ evaUuid?: string }> = ({ evaUuid }) => {
+  const allStations = useAppSelector(
+    (state) => _.sortBy(state.station.stations, "name"),
+    deepEqual
+  );
   const eva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === evaUuid),
     deepEqual
   );
-  const numberOfStationsInEva = evaUuid
-    ? eva?.sequence.filter((sequenceItem) => sequenceItem.type === "station").length || 0
-    : 5;
+  // filter stations by evaUuid
+  let stations: Station[] = [];
+  if (eva) {
+    // filter stations by evaUuid
+    const stationUuids = eva.sequence
+      .filter((sequenceItem) => sequenceItem.type === "station")
+      .map((sequenceItem) => sequenceItem.uuid);
+    // preserve the order of stationUuids because this is the sequence order
+    for (const stationUuid of stationUuids) {
+      const station = allStations.find((station) => station.uuid === stationUuid);
+      if (station) {
+        stations.push(station);
+      }
+    }
+  } else {
+    stations = allStations;
+  }
+
+  const numberOfStationsInEva = evaUuid ? stations.length : 5;
   return (
     <div className={styles.stationGroupTitleContainer}>
       <div
@@ -180,7 +200,7 @@ const StationGroupTitle: FunctionComponent<{ evaUuid?: string }> = ({ evaUuid })
         <div className={styles.stationGroupTitleStyling}>
           {Array(numberOfStationsInEva)
             .fill(0)
-            .map((_, index) => (
+            .map((__, index) => (
               <div key={index} className={styles.stationGroupTitleStylingItem}>
                 <div className={styles.evaCircle}></div>
                 <div className={styles.evaLine}></div>
