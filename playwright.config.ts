@@ -4,6 +4,9 @@ export default defineConfig({
   // Look for test files in the "tests" directory, relative to this configuration file.
   testDir: "./src/tests/playwright",
 
+  // Set the timeout for each test.
+  timeout: 10000,
+
   // Run all tests in parallel.
   fullyParallel: true,
 

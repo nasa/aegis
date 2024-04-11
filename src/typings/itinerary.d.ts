@@ -256,7 +256,20 @@ type ActionHighlight = {
   highlight: boolean;
 };
 
-type ActionType = "measurement" | "observation" | "sample" | "photo" | "other";
+type ActionType =
+  | "measurement"
+  | "observation"
+  | "sample"
+  | "photo"
+  | "other"
+  | "drive tube"
+  | "double drive tube"
+  | "scoop"
+  | "sealed scoop"
+  | "trench"
+  | "rake"
+  | "float"
+  | "chip";
 
 // used for display of time ranges
 type TotalTimeObj = {

@@ -48,9 +48,7 @@ export const LeftControlPanel: FunctionComponent = () => {
   }
 
   return (
-    <div className={styles.body}>
-      <NavGutter selectedNavItem={interfaceStateLabel} />
-
+    <>
       {leftPanelOpen && (
         <div className={styles.activeComponent}>
           <div
@@ -82,7 +80,7 @@ export const LeftControlPanel: FunctionComponent = () => {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -247,7 +245,7 @@ const BottomGutter: FunctionComponent = () => {
   );
 };
 
-const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
+export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
   selectedNavItem,
 }) => {
   const dispatch = useAppDispatch();
@@ -387,13 +385,15 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
     refEqual
   );
 
+  const selectedPaneType: PaneType = paneTypes[selectedNavItem as keyof PaneTypes];
+
   return (
     <div className={styles.iconGutterContainer}>
       <div className={styles.iconGutter}>
         {/* Loop through all of the paneTypes and draw them on the gutter */}
-        {Object.keys(paneTypes).map((paneType: InterfaceSection) => {
+        {Object.keys(paneTypes).map((interfaceSection: InterfaceSection) => {
           let itemModified = false;
-          switch (paneType) {
+          switch (interfaceSection) {
             case "mission":
               itemModified = mission?.updatedAt !== missionFromDb?.updatedAt;
               break;
@@ -435,14 +435,16 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
               break;
           }
 
-          const pane: PaneType = paneTypes[paneType as keyof PaneTypes];
+          const pane: PaneType = paneTypes[interfaceSection as keyof PaneTypes];
           return (
             <div
-              key={paneType}
+              key={interfaceSection}
               className={
-                selectedNavItem === paneType ? styles.iconContainerSelected : styles.iconContainer
+                selectedNavItem === interfaceSection
+                  ? styles.iconContainerSelected
+                  : styles.iconContainer
               }
-              aria-label={`${paneType} Section`}
+              aria-label={`${interfaceSection} Section`}
             >
               <div
                 className={styles.icon}
@@ -451,8 +453,8 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
                 data-tooltip-html={pane.title}
                 onClick={() => {
                   dispatch(setLeftPanelIsOpen(true));
-                  dispatch(setSectionSelected(paneType));
-                  switch (paneType) {
+                  dispatch(setSectionSelected(interfaceSection));
+                  switch (interfaceSection) {
                     case "mission":
                       dispatch(thunkSetRightPanelIsOpenIfAuto(true));
                       break;
@@ -490,7 +492,8 @@ const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }> = ({
           );
         })}
       </div>
-      {!bottomPanelOpen && <BottomGutter />}
+
+      {!bottomPanelOpen && !selectedPaneType.fullScreen && <BottomGutter />}
     </div>
   );
 };

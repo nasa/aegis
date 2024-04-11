@@ -7,7 +7,7 @@ import actionsStyles from "./actions.module.css";
 import actionStyles from "./actions-action.module.css";
 import { upsertAction, upsertActionByField } from "store/action";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { decodeEmoji, hmmFromMinutes } from "utils/formatting";
+import { decodeEmoji, hmmFromMinutes, titleCase } from "utils/formatting";
 import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
 import { validators } from "components/interface/form/formValidators";
 import _ from "lodash";
@@ -16,6 +16,7 @@ import { RightActionBody } from "./actions-action-body";
 import { ActionMenu } from "./actions-action-menu";
 import { getRexStatusDisplayProperties } from "../../utils/rex";
 import { RexStatusMenu } from "./rex/rex";
+import { actionTypes } from "utils/store";
 
 const RightAction: FunctionComponent<{
   editMode: boolean;
@@ -183,11 +184,11 @@ const RightAction: FunctionComponent<{
                   toolTip="Action Type"
                   arrowStyle={{ color: "var(--grey5)" }}
                 >
-                  <option value="measurement">Measurement</option>
-                  <option value="observation">Observation</option>
-                  <option value="sample">Sample</option>
-                  <option value="photo">Photo</option>
-                  <option value="other">Other</option>
+                  {actionTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {titleCase(type)}
+                    </option>
+                  ))}
                 </Dropdown>
               )}
 

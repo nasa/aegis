@@ -165,7 +165,7 @@ const EvaRightEva: FunctionComponent = () => {
           } else if (seqItemRes.payload.type === "station") {
             const station = seqItemRes.payload.item as Station;
             const stationCalculatedFields = stationCalculatedFieldsInSequence.find(
-              (stationCalculatedFields) => stationCalculatedFields.uuid === sequenceItem.uuid
+              (fields) => fields?.uuid === sequenceItem.uuid
             );
             if (station) {
               evaReportSequenceItems.push({

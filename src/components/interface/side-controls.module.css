@@ -1,9 +1,3 @@
-.body {
-  display: flex;
-  flex-direction: row;
-  height: 100%;
-}
-
 .rightBody {
   display: flex;
   flex-direction: row;
@@ -18,7 +12,6 @@
 .iconGutter {
   display: flex;
   flex-direction: column;
-  width: 40px;
   height: 100%;
   text-align: center;
 }

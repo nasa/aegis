@@ -36,6 +36,8 @@ body {
   --rex: #52f075;
   --rexDim: #39634d;
 
+  --stmViewer: #5f97ff;
+
   --alert: #cb0000;
   --alert-disabled: #650000;
 
@@ -43,6 +45,8 @@ body {
   --warning: #ddce00;
   --error: #ff4040;
   --errorText: #cb0000;
+
+  --stmTableHover: #fff50050;
 
   --radius: 3px;
   --panelRadius: 6px;

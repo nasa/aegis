@@ -68,7 +68,12 @@ interface PresetState {
   presetsEditing: string[];
 }
 
-type InterfaceSection = "mission" | "preset" | "poi" | "station" | "evas" | "rex";
+interface STMViewExpandedItem {
+  uuid: string;
+  type: ActionType | "level3" | "action";
+}
+
+type InterfaceSection = "mission" | "preset" | "poi" | "station" | "evas" | "rex" | "stmViewer";
 type BottomInterfaceSection = "timeline" | "measure";
 interface InterfaceState {
   sectionSelectedLabel: InterfaceSection;
@@ -83,6 +88,13 @@ interface InterfaceState {
   timelineShowElevation: boolean;
   actionsExpanded: string[];
   socketStatus: SocketStatus;
+  stmViewExpandedItems: STMViewExpandedItem[];
+  stmViewSelectedEvas: string[];
+  stmViewSelectedActionTypes: ActionType[];
+  stmViewExpandTopTiers: boolean;
+  stmViewShowCrosshairs: boolean;
+  stmViewHoveredTopItem: string;
+  stmViewHoveredLeftItem: string;
 }
 
 interface STMState {
