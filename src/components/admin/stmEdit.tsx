@@ -3,6 +3,11 @@ import stmStyles from "./stmEdit.module.css";
 import { deleteSTMs, upsertSTMs } from "http-client/stm";
 import { v4 as uuidv4 } from "uuid";
 import { roundDateToSecond } from "utils/formatting";
+import {
+  generateBlankStmLvl1,
+  generateBlankStmLvl2,
+  generateBlankStmLvl3,
+} from "store/storeUtils/stm";
 
 interface STMProps {
   reloadSTMfromDB: (missionId: number) => void;
@@ -313,12 +318,7 @@ const Level2Select = (props: {
 
 //Add new level1 component
 const NewLevel1Fields = (props: { missionId: number; reloadSTM: (id: number) => void }) => {
-  const [newLevel1, setNewLevel1] = useState<STMLevel1>({
-    uuid: null,
-    name: "",
-    numbering: "",
-    missionId: null,
-  });
+  const [newLevel1, setNewLevel1] = useState<STMLevel1>(generateBlankStmLvl1());
 
   //add new level1
   async function addNewLevel1() {
@@ -329,12 +329,7 @@ const NewLevel1Fields = (props: { missionId: number; reloadSTM: (id: number) => 
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
     await upsertSTMs(props.missionId, [upsertRecord], "Level1");
-    setNewLevel1({
-      uuid: null,
-      name: "",
-      numbering: "",
-      missionId: null,
-    }); //reset to blank new object
+    setNewLevel1(generateBlankStmLvl1()); //reset to blank new object
     props.reloadSTM(props.missionId);
   }
 
@@ -380,12 +375,7 @@ const NewLevel2Fields = (props: {
   missionId: number;
   reloadSTM: (id: number) => void;
 }) => {
-  const [newLevel2, setNewLevel2] = useState<STMLevel2>({
-    uuid: null,
-    name: "",
-    numbering: "",
-    level1Uuid: "",
-  });
+  const [newLevel2, setNewLevel2] = useState<STMLevel2>(generateBlankStmLvl2());
 
   //add new goal
   async function addNewLevel2() {
@@ -396,12 +386,7 @@ const NewLevel2Fields = (props: {
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
     await upsertSTMs(props.missionId, [upsertRecord], "Level2");
-    setNewLevel2({
-      uuid: null,
-      name: "",
-      numbering: "",
-      level1Uuid: "",
-    }); //reset to blank new object with new uuid
+    setNewLevel2(generateBlankStmLvl2()); //reset to blank new object with new uuid
     props.reloadSTM(props.missionId);
   }
 
@@ -449,12 +434,7 @@ const NewLevel3Fields = (props: {
   missionId: number;
   reloadSTM: (id: number) => void;
 }) => {
-  const [newLevel3, setNewLevel3] = useState<STMLevel3>({
-    uuid: null,
-    name: "",
-    numbering: "",
-    level2Uuid: "",
-  });
+  const [newLevel3, setNewLevel3] = useState<STMLevel3>(generateBlankStmLvl3());
 
   //add new level3
   async function addNewLevel3() {
@@ -465,12 +445,7 @@ const NewLevel3Fields = (props: {
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
     await upsertSTMs(props.missionId, [upsertRecord], "Level3");
-    setNewLevel3({
-      uuid: null,
-      numbering: "",
-      name: "",
-      level2Uuid: "",
-    });
+    setNewLevel3(generateBlankStmLvl3());
     props.reloadSTM(props.missionId);
   }
 

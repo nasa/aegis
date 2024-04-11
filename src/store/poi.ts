@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { cloneDeep } from "lodash";
+import { setAllSliceStores } from "store/crossActions";
 
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
@@ -10,8 +11,6 @@ export const initialState: PoiState = {
   selectedPoiUuid: null,
   selectedRightNavItem: "info_panel",
   poisEditing: [],
-  calculatedFields: [],
-  loadingStatus: "unloaded",
 };
 
 export const poiSlice = createSlice({
@@ -134,19 +133,17 @@ export const poiSlice = createSlice({
         state.poisEditing = state.poisEditing.filter((uuid) => uuid !== action.payload.poiUuid);
       }
     },
-    setPoiCalculatedFields: (
-      state,
-      action: { payload: { calculatedFields: PoiCalculatedFields[] } }
-    ) => {
-      state.calculatedFields = action.payload.calculatedFields;
-    },
-    setPoiLoadingStatus: (state, action: { payload: LoadingStatus }) => {
-      state.loadingStatus = action.payload;
-    },
+
     obliterateState: (state) => {
       //eslint-disable-next-line
       state = Object.assign(state, initialState);
     },
+  },
+  extraReducers: (builder) => {
+    // reducer called across slices. This handles this slice's portion of the reducer's state
+    builder.addCase(setAllSliceStores, (state, action: { payload: WholeStoreState }) => {
+      state = Object.assign(state, action.payload.poi);
+    });
   },
 });
 
@@ -166,7 +163,5 @@ export const {
   setSelectedPoiUuid,
   setStateForNewPoi,
   setPoiEditMode,
-  setPoiCalculatedFields,
-  setPoiLoadingStatus,
   obliterateState,
 } = poiSlice.actions;

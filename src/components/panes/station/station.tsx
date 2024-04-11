@@ -18,7 +18,6 @@ const StationEditorLeft: FunctionComponent = () => {
     (state) => state.station.selectedStationUuid,
     refEqual
   );
-  const selectedStation = stations.find((station) => station.uuid === selectedStationUuid);
   const actions = useAppSelector((state) => state.action.actions, deepEqual);
   const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, deepEqual);
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
@@ -27,7 +26,7 @@ const StationEditorLeft: FunctionComponent = () => {
     <>
       <div className={paneStyles.leftPanelContainer}>
         <div className={styles.container}>
-          <div className={styles.body}>
+          <div className={styles.body} aria-label="stationList">
             {_.sortBy(stations, "name").map((station) => {
               const stationFromDb = stationsFromDb.find(
                 (stationFromDb) => stationFromDb.uuid === station.uuid
@@ -56,6 +55,7 @@ const StationEditorLeft: FunctionComponent = () => {
       {editPerms && (
         <div className={paneStyles.iconButtons}>
           <Button
+            ariaLabel="addStation"
             onClick={() => {
               dispatch(thunkCreateStation());
             }}
@@ -64,8 +64,9 @@ const StationEditorLeft: FunctionComponent = () => {
             style={{ width: "65px" }}
           />
           <Button
+            ariaLabel="duplicateStation"
             onClick={() => {
-              dispatch(thunkDuplicateStation({ station: selectedStation }));
+              dispatch(thunkDuplicateStation({ stationUuid: selectedStationUuid }));
             }}
             label="Duplicate"
             icon={faClone}

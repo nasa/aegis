@@ -17,11 +17,12 @@ For all install methods, do the following:
 1. Create a folder for static assets. This is the location where the hundreds of thousands of GIS map assets will be stored.
    - Make an empty folder called `aegis_static` that is next to the folder the AEGIS project was cloned to.
      - For example, if your AEGIS repo is at `C:\aegis`, make an empty folder at `C:\aegis_static`
-2. Create a `./.env` and `./.env.secret` file by running `./scripts/make-dotenv.sh` in the terminal.
-   - The `make-dotenv.sh` script defaults the local dev static asset path to `../aegis_static`.
+2. Install JavaScript dependencies: `npm i`
 3. Get the secret values to place in `.env.secret` from another AEGIS developer.
-4. Run `./scripts/make-dev-ssl-cert.sh` in a terminal to setup a self-signed certificate.
-5. **Elevated privileges required:** Add `127.0.0.1 aegis-local.fit.nasa.gov` to your "hosts" file.
+4. Create a `./.env` and `./.env.secret` file by running `./scripts/make-dotenv.sh` in the terminal.
+   - The `make-dotenv.sh` script defaults the local dev static asset path to `../aegis_static`.
+5. Run `./scripts/make-dev-ssl-cert.sh` in a terminal to setup a self-signed certificate.
+6. **Elevated privileges required:** Add `127.0.0.1 aegis-local.fit.nasa.gov` to your "hosts" file.
    1. Windows: Open the start menu, type "notepad", right-click on "Notepad" and select "open as administrator". In Notepad go to `C:\Windows\System32\drivers\etc`, show all files, and open the `hosts` file.
    2. Mac: Edit `/etc/hosts`
    3. Content to add at the bottom of the file (add CODA/Maestro/Labs while you're at it):
@@ -31,7 +32,7 @@ For all install methods, do the following:
       127.0.0.1 maestro-local.fit.nasa.gov
       127.0.0.1 emss-labs-local.fit.nasa.gov
       ```
-6. Perform steps for either "Fully docker-compose" or "Just database via docker-compose" below.
+7. Perform steps for either "Fully docker-compose" or "Just database via docker-compose" below.
 
 ### Development with service containers
 
@@ -64,6 +65,12 @@ Setup local environment using the instructions above before performing the follo
 
 - The `https://aegis-local.fit.nasa.gov/admin` interface allows AEGIS admins to download asset zips from the AEGIS Box source folder to the AEGIS GIS products location.
 - Use the interface itself to download assets as needed to match the missions in the system (from the prod dump of `aegis.sql`)
+- Example for Apollo 14 mission:
+   1. Head to `Missions`.
+   3. Under `Apollo 14` select `Edit Layers`.
+   4. Under `Manage files in the /Layers folder for this mission` section, there is a `Download from Box` section.
+   5. Select `Apollo_14` > `Layers` and download the required files.
+   6. The downloads will show under `Directory Listing` and will be visible in the `aegis_static` folder created during the initial setup.
 
 ### Option 2: Manual install assets for Apollo 14 mission
 

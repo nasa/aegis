@@ -27,7 +27,7 @@ const PoiPage: React.FunctionComponent = () => {
   const [currentUser, setCurrentUser] = useState<User>();
   //on load check login and mission id
   useEffect(() => {
-    (async () => {
+    const isLoggedInAsync = async () => {
       const response = await isLoggedIn();
       if (response.status === "success") {
         const user = response.data.user;
@@ -43,7 +43,8 @@ const PoiPage: React.FunctionComponent = () => {
 
       const missions = (await getMissions()).data;
       setMissionList(missions);
-    })();
+    };
+    isLoggedInAsync();
   }, [navigate]);
 
   const handleBack = () => {

@@ -1,0 +1,180 @@
+import { configureStore } from "@reduxjs/toolkit";
+import { StoreType, sliceReducers as reducer, RootState, initialState } from "../../../store";
+import { initialState as actionInitialState } from "store/action";
+import { initialState as evaInitialState } from "store/eva";
+import { initialState as traverseInitialState } from "store/traverse";
+import { initialState as mapInitialState } from "store/map";
+import { initialState as missionInitialState } from "store/mission";
+import { initialState as poiInitialState } from "store/poi";
+import { initialState as presetInitialState } from "store/preset";
+import { initialState as stationInitialState } from "store/station";
+import { initialState as rexInitialState } from "store/rex";
+import { initialState as hoverInitialState } from "store/hover";
+import { initialState as stmInitialState } from "store/stm";
+import { initialState as userInitialState } from "store/user";
+import { initialState as interfaceInitialState } from "store/interface";
+import { initialState as measureInitialState } from "store/measure";
+import { generateBlankAction } from "store/storeUtils/action";
+import { generateBlankEVA } from "store/storeUtils/eva";
+import { generateBlankActionTemplate, generateBlankMission } from "store/storeUtils/mission";
+import { generateBlankPoi } from "store/storeUtils/poi";
+import { generateBlankPreset } from "store/storeUtils/preset";
+import { v4 as uuidv4 } from "uuid";
+import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
+import { generateBlankStation } from "store/storeUtils/station";
+import {
+  generateBlankStmLvl1,
+  generateBlankStmLvl2,
+  generateBlankStmLvl3,
+} from "store/storeUtils/stm";
+import { generateBlankTraverse } from "store/storeUtils/traverse";
+import { generateBlankUser } from "store/storeUtils/user";
+
+export const createCustomTestStore = (partialPreloadedState: Partial<RootState>): StoreType => {
+  const newState = { ...initialState, ...partialPreloadedState };
+  return configureStore({
+    reducer,
+    preloadedState: newState,
+  });
+};
+
+/**
+ * Create a store pre filled with objects. Any record that needs an id from the db are null (ex: mission and user)
+ *    3 pois each with 1 action
+ *    3 stations each with 1 action
+ *    2 evas
+ *    1 rex with 1 pos and a selected eva
+ *    1 preset
+ *    1 user
+ *    STM with 1 level1, 1 level2, and 1 level3 linked together
+ * @returns
+ */
+export const createFullTestStore = (): StoreType => {
+  const mission = generateBlankMission({
+    name: "Jest Test Mission",
+    landerLocation: { lat: 3, lng: 3 },
+    actionTemplates: [generateBlankActionTemplate({ templateName: "Jest Action Template" })],
+  });
+  const actions: Action[] = [];
+
+  const pois: POI[] = [];
+  for (let i = 0; i < 3; i++) {
+    const poi = generateBlankPoi({ location: { lat: i + 0.1, lng: i } });
+    pois.push(poi);
+  }
+  for (let i = 0; i < pois.length; i++) {
+    const action = generateBlankAction({ name: "Jest Action-1", poiUuid: pois[i].uuid });
+    action.durationLower = i + 1;
+    action.durationUpper = action.durationLower + 5;
+    actions.push(action);
+    pois[i].actionOrderUuids.push(action.uuid);
+  }
+
+  const stations: Station[] = [];
+  for (let i = 0; i < 4; i++) {
+    const station = generateBlankStation({
+      name: "Jest Station-1",
+      location: { lat: i, lng: i + 0.1 },
+    });
+    stations.push(station);
+  }
+  for (let i = 0; i < stations.length; i++) {
+    const action = generateBlankAction({ name: "Jest Action-1", stationUuid: stations[i].uuid });
+    action.durationLower = i + 1;
+    action.durationUpper = action.durationLower + 5;
+    actions.push(action);
+    stations[i].actionOrderUuids.push(action.uuid);
+  }
+
+  const traverses: Traverse[] = [];
+  for (let i = 0; i < 6; i++) {
+    traverses.push(generateBlankTraverse({ name: `Jest Traverse-${i + 1}` }));
+  }
+  const eva1 = generateBlankEVA({ name: "Jest Eva-1" });
+  eva1.sequence = [
+    { uuid: traverses[0].uuid, type: "traverse" },
+    { uuid: stations[0].uuid, type: "station" },
+    { uuid: traverses[1].uuid, type: "traverse" },
+    { uuid: stations[1].uuid, type: "station" },
+    { uuid: traverses[2].uuid, type: "traverse" },
+    { uuid: stations[2].uuid, type: "station" },
+    { uuid: traverses[3].uuid, type: "traverse" },
+  ];
+  const eva2: Eva = generateBlankEVA({ name: "Jest Eva-1" });
+  eva2.traverseRate = 2;
+  eva2.sequence = [
+    { uuid: traverses[4].uuid, type: "traverse" },
+    { uuid: stations[3].uuid, type: "station" },
+    { uuid: traverses[5].uuid, type: "traverse" },
+  ];
+
+  const rex1 = generateBlankRex({ name: "Jest Rex-1", evaUuid: eva1.uuid });
+  rex1.posEntries = [generateBlankPosEntry({ posTypeUuids: [rex1.posTypes[0].uuid] })];
+
+  const preset1 = generateBlankPreset({
+    name: "Jest Test Preset",
+    mapSublayerControls: {
+      Basemaps: {
+        name: "Basemaps",
+        sublayerUuid: uuidv4(),
+        visible: true,
+        style: null,
+      },
+    },
+  });
+  const presetsUIStates = { [preset1.uuid]: {} };
+
+  const stmLevel1_1 = generateBlankStmLvl1({ name: "Jest STM Level1-1", numbering: "1" });
+  const stmLevel2_1 = generateBlankStmLvl2({ name: "Jest STM Level2-1", numbering: "1" });
+  stmLevel2_1.level1Uuid = stmLevel1_1.uuid;
+  const stmLevel3_1 = generateBlankStmLvl3({ name: "Jest STM Level3-1", numbering: "1" });
+  stmLevel3_1.level2Uuid = stmLevel2_1.uuid;
+
+  const testState: RootState = {
+    hover: { ...hoverInitialState },
+    mission: {
+      ...missionInitialState,
+      mission: mission,
+      missionFromDb: mission,
+    },
+    user: {
+      ...userInitialState,
+      user: generateBlankUser({ username: "Jest testUser", password: "superSecretPassword" }),
+    },
+    map: { ...mapInitialState },
+    eva: {
+      ...evaInitialState,
+      evas: [eva1, eva2],
+      evasFromDb: [eva1, eva2],
+      selectedEvaUuid: eva1.uuid,
+    },
+    poi: { ...poiInitialState, pois: pois, poisFromDb: pois },
+    interface: { ...interfaceInitialState },
+    stm: {
+      ...stmInitialState,
+      level1s: [stmLevel1_1],
+      level2s: [stmLevel2_1],
+      level3s: [stmLevel3_1],
+    },
+    preset: {
+      ...presetInitialState,
+      presets: [preset1],
+      presetsFromDb: [preset1],
+      presetsUIStates,
+    },
+    station: { ...stationInitialState, stations: stations, stationsFromDb: stations },
+    action: {
+      ...actionInitialState,
+      actions: actions,
+      actionsFromDb: actions,
+    },
+    traverse: { ...traverseInitialState, traverses: traverses, traversesFromDb: traverses },
+    rex: { ...rexInitialState, rexes: [rex1], rexesFromDb: [rex1] },
+    measure: { ...measureInitialState },
+  };
+
+  return configureStore({
+    reducer,
+    preloadedState: testState,
+  });
+};

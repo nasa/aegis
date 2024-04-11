@@ -9,9 +9,9 @@ import {
   Loaded,
   QueryOrder,
 } from "@mikro-orm/core";
-import { v4 as uuidv4 } from "uuid";
 import { Layer_db } from "server/database/models/_allModels";
 import _ from "lodash";
+import { convertLayersTypeDbToStore, convertLayersTypeStoreToDb } from "store/storeUtils/layer";
 
 const router = express.Router();
 
@@ -153,13 +153,7 @@ export async function getLayers(missionId: number, layerUUID?: string): Promise<
   if (layers_db) {
     //convert fks
     return layers_db.map((layer_db) => {
-      const layer: Layer = {
-        uuid: layer_db.uuid,
-        missionId: layer_db.mission.id,
-        name: layer_db.name,
-        createdAt: layer_db.createdAt.toISOString(),
-        updatedAt: layer_db.updatedAt.toISOString(),
-      };
+      const layer: Layer = convertLayersTypeDbToStore([layer_db])[0];
       return layer;
     });
   } else {
@@ -180,25 +174,13 @@ export async function upsertLayers(layers: Layer[]): Promise<Layer[]> {
 
   for (const layerToUpsert of layersToUpsert) {
     //convert fks and upsert
-    const convertedRecord: EntityData<Layer_db> = {
-      uuid: layerToUpsert.uuid || uuidv4(),
-      mission: layerToUpsert.missionId,
-      name: layerToUpsert.name,
-      createdAt: new Date(layerToUpsert.createdAt),
-      updatedAt: new Date(layerToUpsert.updatedAt),
-    };
+    const convertedRecord: EntityData<Layer_db> = convertLayersTypeStoreToDb([layerToUpsert])[0];
     const upsertReference = await em.upsert(Layer_db, convertedRecord);
 
     em.persist(upsertReference);
 
     //convert fks back
-    const convertedLayer: Layer = {
-      uuid: upsertReference.uuid,
-      missionId: upsertReference.mission.id,
-      name: upsertReference.name,
-      createdAt: upsertReference.createdAt.toISOString(),
-      updatedAt: upsertReference.updatedAt.toISOString(),
-    };
+    const convertedLayer: Layer = convertLayersTypeDbToStore([upsertReference])[0];
     layersUpsertedToDb.push(convertedLayer);
   }
   await em.flush();

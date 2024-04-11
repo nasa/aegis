@@ -29,6 +29,7 @@ import { updateMapDirective } from "store/map";
 import { thunkLogRexFull } from "./thunkLog";
 import { makeExportRexes } from "utils/export";
 import * as jsonKeysSort from "json-keys-sort";
+import { generateBlankRex } from "store/storeUtils/rex";
 
 export const thunkCreateRex = appCreateAsyncThunk<void>(
   "rexCreate",
@@ -38,49 +39,10 @@ export const thunkCreateRex = appCreateAsyncThunk<void>(
       existingNames: getState().rex.rexes.map((rex) => rex.name),
     });
 
-    // default crew position item types
-    const posTypeEv1: PosType = {
-      uuid: uuidv4(),
-      abbr: "1",
-      name: "EV1",
-      icon: "1f468-200d-1f680", //crew
-      pathColor: "#ff0000",
-    };
-
-    const posTypeEv2: PosType = {
-      uuid: uuidv4(),
-      abbr: "2",
-      name: "EV2",
-      icon: "1f469-200d-1f680", //crew
-      pathColor: "#ffffff",
-    };
-
-    const posTypeCart: PosType = {
-      uuid: uuidv4(),
-      abbr: "C",
-      name: "Cart",
-      icon: "1f6d2", //shopping cart
-      pathColor: "#AAAAAA",
-    };
-
-    const blankRex: Rex = {
+    const blankRex = generateBlankRex({
       missionId: getState().mission.mission.id,
-      uuid: uuidv4(),
       name: "REX Event " + randomName,
-      description: "",
-      petStartStopTimestamp: null,
-      petValueAtStartStop: "+00:00:00",
-      petRunning: false,
-      evaUuid: null,
-      isRunning: false,
-      posEntries: null,
-      posTypes: [posTypeEv1, posTypeEv2, posTypeCart],
-      stationEntries: null,
-      traverseEntries: null,
-      actionEntries: null,
-      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-      updatedAt: null,
-    };
+    });
     dispatch(thunkSaveNewRex({ rex: blankRex }));
   }
 );
@@ -199,10 +161,19 @@ export const thunkDeleteRex = appCreateAsyncThunk<{ rexUuid: string }>(
 
     // delete the rex from the store
     dispatch(deleteRexByUuid(rexUuid));
-    dispatch(deleteRexFromDbByUuid(rexUuid));
 
-    // delete the rex from the db
-    httpClient_Rex.deleteRexes([rexUuid], isRexRunning);
+    //check if rex has been saved to the db
+    const rexFromDb = getState().rex.rexesFromDb.find((rexDb) => rexDb.uuid === rexUuid);
+    if (rexFromDb) {
+      // delete the rex from the db and dbstore
+      const deleteResponse = await httpClient_Rex.deleteRexes([rexUuid], isRexRunning);
+      if (deleteResponse.status === "success") {
+        // remove the corresponding eva from the store
+        dispatch(deleteRexFromDbByUuid(rexUuid));
+      } else {
+        console.error("Error deleting Rex: " + deleteResponse.message);
+      }
+    }
   }
 );
 
@@ -513,91 +484,6 @@ export const thunkDeletePosType = appCreateAsyncThunk<{ rexUuid: string; posType
     //this item is not being used. All good to delete it
     const newRexPosTypes = _.cloneDeep(rex.posTypes).filter((item) => item.uuid !== posTypeUuid);
     dispatch(upsertRexByField(rexUuid, "posTypes", newRexPosTypes));
-  }
-);
-
-export const thunkAuditRexPositions = appCreateAsyncThunk<void>(
-  "auditRexPositions",
-  async (__, { dispatch, getState }) => {
-    const defaultPosTypes: PosType[] = [
-      {
-        uuid: "EV1",
-        abbr: "1",
-        name: "EV1",
-        icon: "1f468-200d-1f680", //crew
-        pathColor: "#ff0000",
-      },
-      {
-        uuid: "EV2",
-        abbr: "2",
-        name: "EV2",
-        icon: "1f469-200d-1f680", //crew
-        pathColor: "#ffffff",
-      },
-      {
-        uuid: "Cart",
-        abbr: "C",
-        name: "Cart",
-        icon: "1f6d2", //shopping cart
-        pathColor: "#AAAAAA",
-      },
-    ];
-
-    type UnconvertedPosEntry = PosEntry & { crew?: string[] };
-
-    getState().rex.rexes.forEach(async (rex) => {
-      // using any type because the type of rex might be an old one no longer compatible with our types
-      //eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const newRex: any = _.cloneDeep(rex);
-
-      // search each rex for missing posTypes and add a default one if needed
-      if (!newRex.posTypes || newRex.posTypes?.length === 0) {
-        newRex.posTypes = defaultPosTypes;
-      }
-
-      // clear out any pos entries with no location
-      const posEntryCopy: PosEntry[] = (newRex.posEntries as PosEntry[]).filter(
-        (e) => e.location !== null
-      );
-      newRex.posEntries = posEntryCopy;
-
-      // check if posEntries is the old crewPos format
-      if (newRex.posEntries?.length > 0 && newRex.posEntries[0].crew) {
-        // convert this posEntry from old crewPos format to new posEntry format
-
-        const newRexPosEntries: PosEntry[] = [];
-        // convert each crewPos to a posEntry
-        newRex.posEntries.forEach((oldPosEntry: UnconvertedPosEntry) => {
-          const newRexPosEntry: PosEntry = {
-            uuid: uuidv4(),
-            location: oldPosEntry.location,
-            elevation: oldPosEntry.elevation,
-            seconds: oldPosEntry.seconds,
-            posTypeUuids: oldPosEntry.crew, // crew is an array of strings. We have made the default posTypes uuids above match the old strings
-            createdAt: oldPosEntry.createdAt,
-            updatedAt: oldPosEntry.updatedAt,
-          };
-          // add the new posEntry to the rex
-          newRexPosEntries.push(newRexPosEntry);
-        });
-
-        // add the new posEntries to the rex
-        newRex.posEntries = newRexPosEntries;
-      }
-
-      // update the rex in the store
-      if (!_.isEqual(rex, newRex)) {
-        // update the rex in the database
-        const upsertReponse = await httpClient_Rex.upsertRexes([newRex], false);
-        if (upsertReponse.status === "success") {
-          // update the rex in the store from the DB
-          dispatch(upsertRex(upsertReponse.data[0], true));
-          dispatch(upsertRexFromDb(upsertReponse.data[0]));
-        } else {
-          throw new Error("Error saving audited Rexes: " + upsertReponse.message);
-        }
-      }
-    });
   }
 );
 

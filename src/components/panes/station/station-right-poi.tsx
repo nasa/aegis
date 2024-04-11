@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 
@@ -28,18 +28,11 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   );
   const pois = useAppSelector((state) => state.poi.poisFromDb, deepEqual);
 
-  const [selectedPois, setSelectedPois] = useState<POI[]>([]);
-
   // maintain a list of selected POIs for the selected station, so we can display them
-  useEffect(() => {
-    if (selectedStation) {
-      const selectedPois: POI[] = _.sortBy(
-        pois.filter((poi) => selectedStation.poiUuids?.includes(poi.uuid)),
-        "name"
-      );
-      setSelectedPois(selectedPois);
-    }
-  }, [selectedStation, pois]);
+  const selectedPois = _.sortBy(
+    pois.filter((poi) => selectedStation.poiUuids?.includes(poi.uuid)),
+    "name"
+  );
 
   return (
     <div className={paneStyles.rightBody}>

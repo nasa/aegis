@@ -33,6 +33,7 @@ const StationItem: FunctionComponent<{
 
   return (
     <div
+      aria-label="stationList-item"
       className={stationStyles.stationItem}
       key={station.uuid}
       onClick={() => {

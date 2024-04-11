@@ -6,7 +6,6 @@ import _ from "lodash";
 import { hasPerms } from "utils/permissions";
 
 import { getEM } from "utils/mikro";
-import { v4 as uuidv4 } from "uuid";
 import {
   EntityData,
   EntityName,
@@ -15,6 +14,14 @@ import {
   QueryOrder,
 } from "@mikro-orm/core";
 import { STM_Level1_db, STM_Level2_db, STM_Level3_db } from "server/database/models/_allModels";
+import {
+  convertStms1TypeDbToStore,
+  convertStms1TypeStoreToDb,
+  convertStms2TypeDbToStore,
+  convertStms2TypeStoreToDb,
+  convertStms3TypeDbToStore,
+  convertStms3TypeStoreToDb,
+} from "store/storeUtils/stm";
 
 const router = express.Router();
 
@@ -220,19 +227,7 @@ export async function getLevel1s(missionId: number, level1Uuid?: string): Promis
   }
 
   if (level1s) {
-    //convert fks
-    const level1sConverted: STMLevel1[] = level1s.map((level1s_db) => {
-      const level1: STMLevel1 = {
-        uuid: level1s_db.uuid,
-        numbering: level1s_db.numbering,
-        name: level1s_db.name,
-        missionId: level1s_db.mission.id,
-        createdAt: level1s_db.createdAt.toISOString(),
-        updatedAt: level1s_db.updatedAt.toISOString(),
-      };
-      return level1;
-    });
-    return level1sConverted;
+    return convertStms1TypeDbToStore(level1s); //convert fks
   } else {
     return [];
   }
@@ -268,19 +263,7 @@ export async function getLevel2s(
   );
 
   if (level2s) {
-    //convert fks
-    const level2sConverted: STMLevel2[] = level2s.map((level2_db) => {
-      const level2: STMLevel2 = {
-        uuid: level2_db.uuid,
-        numbering: level2_db.numbering,
-        name: level2_db.name,
-        level1Uuid: level2_db.level1.uuid,
-        createdAt: level2_db.createdAt.toISOString(),
-        updatedAt: level2_db.updatedAt.toISOString(),
-      };
-      return level2;
-    });
-    return level2sConverted;
+    return convertStms2TypeDbToStore(level2s); //convert fks
   } else {
     return [];
   }
@@ -327,19 +310,7 @@ export async function getLevel3s(
   );
 
   if (level3s) {
-    //convert fks
-    const level3Converted: STMLevel3[] = level3s.map((level3_db) => {
-      const level3: STMLevel3 = {
-        uuid: level3_db.uuid,
-        numbering: level3_db.numbering,
-        name: level3_db.name,
-        level2Uuid: level3_db.level2.uuid,
-        createdAt: level3_db.createdAt.toISOString(),
-        updatedAt: level3_db.updatedAt.toISOString(),
-      };
-      return level3;
-    });
-    return level3Converted;
+    return convertStms3TypeDbToStore(level3s); //convert fks
   } else {
     return [];
   }
@@ -363,26 +334,12 @@ export async function upsertSTMs(
     const stmsUpsertedToDb: STMLevel1[] = [];
     for (const stmObject of stmObjects) {
       const level1 = stmObject as STMLevel1;
-      const convertedLevel1: EntityData<STM_Level1_db> = {
-        uuid: level1.uuid || uuidv4(),
-        numbering: level1.numbering,
-        name: level1.name,
-        mission: level1.missionId,
-        createdAt: new Date(level1.createdAt),
-        updatedAt: new Date(level1.updatedAt),
-      }; //convert fks
+      const convertedLevel1: EntityData<STM_Level1_db> = convertStms1TypeStoreToDb([level1])[0]; //convert fks
 
       const upsertReference: STM_Level1_db = await em.upsert(STM_Level1_db, convertedLevel1);
       em.persist(upsertReference);
 
-      const upsertedLevel1: STMLevel1 = {
-        uuid: upsertReference.uuid,
-        numbering: upsertReference.numbering,
-        name: upsertReference.name,
-        missionId: upsertReference.mission.id,
-        createdAt: upsertReference.createdAt.toISOString(),
-        updatedAt: upsertReference.updatedAt.toISOString(),
-      };
+      const upsertedLevel1: STMLevel1 = convertStms1TypeDbToStore([upsertReference])[0];
       stmsUpsertedToDb.push(upsertedLevel1);
     }
     await em.flush();
@@ -391,26 +348,12 @@ export async function upsertSTMs(
     const stmsUpsertedToDb: STMLevel2[] = [];
     for (const stmObject of stmObjects) {
       const level2 = stmObject as STMLevel2;
-      const convertedLevel2: EntityData<STM_Level2_db> = {
-        uuid: level2.uuid || uuidv4(),
-        numbering: level2.numbering,
-        name: level2.name,
-        level1: level2.level1Uuid,
-        createdAt: new Date(level2.createdAt),
-        updatedAt: new Date(level2.updatedAt),
-      }; //convert fks
+      const convertedLevel2: EntityData<STM_Level2_db> = convertStms2TypeStoreToDb([level2])[0]; //convert fks
 
       const upsertReference: STM_Level2_db = await em.upsert(STM_Level2_db, convertedLevel2);
       em.persist(upsertReference);
 
-      const upsertedLevel2: STMLevel2 = {
-        uuid: upsertReference.uuid,
-        numbering: upsertReference.numbering,
-        name: upsertReference.name,
-        level1Uuid: upsertReference.level1.uuid,
-        createdAt: upsertReference.createdAt.toISOString(),
-        updatedAt: upsertReference.updatedAt.toISOString(),
-      };
+      const upsertedLevel2: STMLevel2 = convertStms2TypeDbToStore([upsertReference])[0];
       stmsUpsertedToDb.push(upsertedLevel2);
     }
     await em.flush();
@@ -419,25 +362,12 @@ export async function upsertSTMs(
     const stmsUpsertedToDb: STMLevel3[] = [];
     for (const stmObject of stmObjects) {
       const level3 = stmObject as STMLevel3;
-      const convertedLevel3: EntityData<STM_Level3_db> = {
-        uuid: level3.uuid || uuidv4(),
-        numbering: level3.numbering,
-        name: level3.name,
-        level2: level3.level2Uuid,
-        createdAt: new Date(level3.createdAt),
-        updatedAt: new Date(level3.updatedAt),
-      };
+      const convertedLevel3: EntityData<STM_Level3_db> = convertStms3TypeStoreToDb([level3])[0];
+
       const upsertReference: STM_Level3_db = await em.upsert(STM_Level3_db, convertedLevel3);
       em.persist(upsertReference);
 
-      const upsertedLevel3: STMLevel3 = {
-        uuid: upsertReference.uuid,
-        numbering: upsertReference.numbering,
-        name: upsertReference.name,
-        level2Uuid: upsertReference.level2.uuid,
-        createdAt: upsertReference.createdAt.toISOString(),
-        updatedAt: upsertReference.updatedAt.toISOString(),
-      };
+      const upsertedLevel3: STMLevel3 = convertStms3TypeDbToStore([upsertReference])[0];
       stmsUpsertedToDb.push(upsertedLevel3);
     }
     await em.flush();

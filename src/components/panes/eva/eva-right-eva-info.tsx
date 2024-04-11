@@ -4,7 +4,7 @@ import {
   InLineEditInput,
   PathColorPickerMenu,
 } from "components/interface/form/globalFields";
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { upsertEvaByField } from "store/eva";
@@ -26,6 +26,7 @@ import { regExValidators, validators } from "components/interface/form/formValid
 import CalculatedDwell from "../calculated-dwell";
 import { thunkFullUpdateTraverse } from "store/thunk/thunkTraverse";
 import { decodeEmoji } from "utils/formatting";
+import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
 
 const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -39,7 +40,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     refEqual
   );
   const evaCalculatedFields = useAppSelector(
-    (state) => state.eva.calculatedFields.find((calculated) => calculated.uuid === selectedEvaUuid),
+    (state) => getCalculatedFieldsByEva({ evaUuid: selectedEvaUuid, wholeStoreState: state }),
     deepEqual
   );
   const missionEquipItems = useAppSelector(
@@ -85,34 +86,29 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     return station ? station.name : "Lander";
   }, refEqual);
 
-  const [consumablesCol1, setConsumablesCol1] = useState<EquipmentItemDisplay[]>(null);
-  const [consumablesCol2, setConsumablesCol2] = useState<EquipmentItemDisplay[]>(null);
-
   //split, sort, and pull names for each equipment item
-  useEffect(() => {
-    if (!evaCalculatedFields?.equipmentItems || !missionEquipItems) return;
-    //get names
-    const consumablesDisplay: EquipmentItemDisplay[] = [];
-    evaCalculatedFields?.equipmentItems?.forEach((equipItem) => {
-      //find item in mission
-      const missionEquipItem = missionEquipItems.find((item) => item.uuid === equipItem.uuid);
-      if (missionEquipItem.singleUse) {
-        consumablesDisplay.push({
-          name: missionEquipItem.name,
-          quantityUsed: equipItem.quantityUsed,
-        });
-      }
-    });
 
-    //sort by name
-    consumablesDisplay.sort((a, b) => {
-      return a.name.localeCompare(b.name);
-    });
+  //get names
+  const consumablesDisplay: EquipmentItemDisplay[] = [];
+  evaCalculatedFields?.equipmentItems?.forEach((equipItem) => {
+    //find item in mission
+    const missionEquipItem = missionEquipItems?.find((item) => item.uuid === equipItem.uuid);
+    if (missionEquipItem.singleUse) {
+      consumablesDisplay.push({
+        name: missionEquipItem.name,
+        quantityUsed: equipItem.quantityUsed,
+      });
+    }
+  });
 
-    //split
-    setConsumablesCol1(consumablesDisplay.slice(0, Math.ceil(consumablesDisplay.length / 2)));
-    setConsumablesCol2(consumablesDisplay.slice(Math.ceil(consumablesDisplay.length / 2)));
-  }, [evaCalculatedFields?.equipmentItems, missionEquipItems]);
+  //sort by name
+  consumablesDisplay.sort((a, b) => {
+    return a.name.localeCompare(b.name);
+  });
+
+  //split
+  const consumablesCol1 = consumablesDisplay.slice(0, Math.ceil(consumablesDisplay.length / 2));
+  const consumablesCol2 = consumablesDisplay.slice(Math.ceil(consumablesDisplay.length / 2));
 
   return (
     <div className={paneStyles.rightBody}>

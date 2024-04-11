@@ -119,7 +119,7 @@ const FileManager: FunctionComponent<{
   }
 
   useEffect(() => {
-    (async () => {
+    const isLoggedInAsync = async () => {
       const response = await isLoggedIn(); //check user is logged in
       if (response.status === "success") {
         await getDirListing(); //load directory listing on mount/start
@@ -127,7 +127,8 @@ const FileManager: FunctionComponent<{
         //user is not logged in. Redirect to homepage using react-router
         navigate("/");
       }
-    })();
+    };
+    isLoggedInAsync();
   }, [navigate, getDirListing]);
 
   return (

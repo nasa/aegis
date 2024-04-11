@@ -1,0 +1,44 @@
+.indicatorGridRow {
+  display: flex;
+  flex-direction: row;
+}
+.indicatorGridRow:first-child {
+  border-top: 2px solid var(--grey0);
+}
+
+.indicatorGridCell {
+  flex: 0 0 22px;
+  height: 22px;
+  border-left: 1px solid var(--grey0);
+}
+
+.indicatorGridCell:last-child {
+  border-right: 1px solid var(--grey0);
+}
+.indicatorGridCellDivider {
+  flex: 0 0 22px;
+  background-color: var(--grey0);
+}
+.indicatorGridCellIndicator {
+  width: 100%;
+  height: 100%;
+  color: var(--grey0);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.indicatorGridCellIndicatorText {
+  font-size: 0.7em;
+  font-weight: 600;
+}
+
+.indicatorHigh {
+  background-color: #f3f3f399;
+}
+.indicatorMedium {
+  background-color: #a2a6b099;
+}
+.indicatorLow {
+  background-color: #666e8199;
+}

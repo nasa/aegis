@@ -1,5 +1,4 @@
-import _ from "lodash";
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import {
   faBan,
@@ -48,11 +47,7 @@ const RexRightRex: FunctionComponent = () => {
   }, deepEqual);
   const rexesEditing = useAppSelector((state) => state.rex.rexesEditing, deepEqual);
 
-  const [modified, setModified] = useState(false);
-
-  useEffect(() => {
-    setModified(isModified([selectedRex], [selectedRexFromDb]));
-  }, [selectedRex, selectedRexFromDb]);
+  const modified = isModified([selectedRex], [selectedRexFromDb]);
 
   const panelTypes: PanelTypes = {
     info_panel: {
@@ -119,7 +114,9 @@ const RexRightRex: FunctionComponent = () => {
                 <Button
                   icon={faTrashAlt}
                   onClick={() => {
-                    dispatch(thunkDeleteRex({ rexUuid: selectedRex.uuid }));
+                    if (window.confirm("Are you sure you want to delete this Rex?")) {
+                      dispatch(thunkDeleteRex({ rexUuid: selectedRex.uuid }));
+                    }
                   }}
                   toolTip="Delete Rex Item"
                   style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}

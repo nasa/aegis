@@ -13,6 +13,7 @@ import { round } from "lodash";
 import { validators } from "components/interface/form/formValidators";
 import { thunkUpdatePoiLatLngField } from "store/thunk/thunkPoi";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
+import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -36,7 +37,10 @@ const Info_Panel: FunctionComponent<{
 
   const poiCalcFields = useAppSelector(
     (state) =>
-      state.poi.calculatedFields.find((calculated) => calculated.uuid === selectedPoi.uuid),
+      getCalculatedFieldsByPoi({
+        poiUuid: selectedPoi.uuid,
+        wholeStoreState: state,
+      }),
     deepEqual
   );
 

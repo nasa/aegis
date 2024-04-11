@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { cloneDeep } from "lodash";
+import { setAllSliceStores } from "store/crossActions";
 
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
@@ -14,7 +15,6 @@ export const initialState: RexState = {
   rexesPosEntriesEditing: [],
   selectedPosEntryUuid: null,
   posEntryEditingUuid: null,
-  loadingStatus: "unloaded",
 };
 
 export const rexSlice = createSlice({
@@ -209,13 +209,16 @@ export const rexSlice = createSlice({
       const rex = state.rexes.find((f) => f.uuid === action.payload.rexUuid);
       rex.posEntries = rex.posEntries.filter((c) => c.uuid !== action.payload.posEntryUuid);
     },
-    setRexLoadingStatus: (state, action: { payload: LoadingStatus }) => {
-      state.loadingStatus = action.payload;
-    },
     obliterateState: (state) => {
       //eslint-disable-next-line
       state = Object.assign(state, initialState);
     },
+  },
+  extraReducers: (builder) => {
+    // reducer called across slices. This handles this slice's portion of the reducer's state
+    builder.addCase(setAllSliceStores, (state, action: { payload: WholeStoreState }) => {
+      state = Object.assign(state, action.payload.rex);
+    });
   },
 });
 
@@ -242,6 +245,5 @@ export const {
   setPosEntryEditingUuid,
   upsertPosEntry,
   deletePosEntryByUuid,
-  setRexLoadingStatus,
   obliterateState,
 } = rexSlice.actions;

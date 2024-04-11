@@ -17,15 +17,13 @@ const PoiEditorLeft: FunctionComponent = () => {
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
   const selectedPoi = pois.find((poi) => poi.uuid === selectedPoiUuid);
 
-  const actions = useAppSelector((state) => state.action.actions, deepEqual);
-  const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, deepEqual);
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   return (
     <>
       <div className={paneStyles.leftPanelContainer}>
         <div className={poiStyles.container}>
-          <div className={poiStyles.body}>
+          <div className={poiStyles.body} aria-label="poiList">
             {_.sortBy(pois, "name").map((poi) => {
               const poiFromDb = poisFromDb.find((poiFromDb) => poiFromDb.uuid === poi.uuid);
               return (
@@ -34,8 +32,6 @@ const PoiEditorLeft: FunctionComponent = () => {
                   selectedPoiUuid={selectedPoiUuid}
                   poi={poi}
                   poiFromDb={poiFromDb}
-                  actions={actions}
-                  actionsFromDb={actionsFromDb}
                 />
               );
             })}
@@ -45,6 +41,7 @@ const PoiEditorLeft: FunctionComponent = () => {
       {editPerms && (
         <div className={paneStyles.iconButtons}>
           <Button
+            ariaLabel="addPoi"
             onClick={() => {
               dispatch(thunkCreatePoi());
             }}
@@ -53,6 +50,7 @@ const PoiEditorLeft: FunctionComponent = () => {
             style={{ width: "65px" }}
           />
           <Button
+            ariaLabel="duplicatePoi"
             onClick={() => {
               dispatch(thunkDuplicatePoi({ poi: selectedPoi }));
             }}

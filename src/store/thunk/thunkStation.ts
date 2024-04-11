@@ -1,19 +1,13 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import {
   upsertStation,
-  setStationCalculatedFields as setStationCalculatedFields,
   setStationEditMode,
   setSelectedStationUuid,
   setStationsFromDb,
   deleteStationByUuid,
   upsertStationFromDb,
 } from "store/station";
-import {
-  calculateAscentAndDescent,
-  getDistanceBetweenTwoCoordinates,
-  getTotalDistance,
-  calcPathDurationMins,
-} from "utils/geoMath";
+import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/geoMath";
 import { thunkGetElevation } from "./thunkElevation";
 import _ from "lodash";
 import { thunkFullUpdateTraverse, thunkUpdateTraversesAroundStation } from "./thunkTraverse";
@@ -32,8 +26,8 @@ import {
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import { thunkSaveNewStation } from "./crossThunk";
-import { mergeEquipmentItems } from "utils/store";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
+import { generateBlankStation } from "store/storeUtils/station";
 
 export const thunkUpdateStationLatLngField = appCreateAsyncThunk<{
   stationUuid: string;
@@ -225,168 +219,6 @@ export const thunkResetWalkback = appCreateAsyncThunk<{
     })
   );
 });
-
-/**
- * Create reports for all stations
- */
-export const thunkCreateStationCalculatedFields = appCreateAsyncThunk<void>(
-  "createStationCalculatedFields",
-  async (_, { dispatch, getState }) => {
-    const stations = getState().station.stations;
-    const allCalculatedFields: StationCalculatedFields[] = [];
-    const missionTraverseRate = getState().mission.mission?.traverseRate;
-    for (const station of stations) {
-      //get station actions
-      const stationActions = getState().action.actions.filter(
-        (storeAction) => storeAction.stationUuid === station.uuid && storeAction.enabled
-      );
-
-      //calculate total station time
-      let totalDurationLower = 0;
-      let totalDurationUpper = 0;
-      let totalEv1DurationLower = 0;
-      let totalEv1DurationUpper = 0;
-      let totalEv2DurationLower = 0;
-      let totalEv2DurationUpper = 0;
-      let totalUnassignedDurationLower = 0;
-      let totalUnassignedDurationUpper = 0;
-      let totalDwellTimeLower = 0;
-      let totalDwellTimeUpper = 0;
-
-      let actionCount = 0;
-      let totalEquipmentItems: EquipmentItemUsage[] = [];
-      stationActions.forEach((action) => {
-        totalDurationLower += action.durationLower;
-        totalDurationUpper += action.durationUpper;
-        if (action.crewAssigned?.includes("EV1")) {
-          totalEv1DurationLower += action.durationLower;
-          totalEv1DurationUpper += action.durationUpper;
-        }
-        if (action.crewAssigned?.includes("EV2")) {
-          totalEv2DurationLower += action.durationLower;
-          totalEv2DurationUpper += action.durationUpper;
-        }
-        if (!action.crewAssigned || action.crewAssigned.length === 0) {
-          totalUnassignedDurationLower += action.durationLower;
-          totalUnassignedDurationUpper += action.durationUpper;
-        }
-        totalDwellTimeLower =
-          totalEv1DurationLower > totalEv2DurationLower
-            ? totalEv1DurationLower
-            : totalEv2DurationLower;
-
-        totalDwellTimeUpper =
-          totalEv1DurationUpper > totalEv2DurationUpper
-            ? totalEv1DurationUpper
-            : totalEv2DurationUpper;
-
-        totalEquipmentItems = mergeEquipmentItems(action.equipmentItemsUsage, totalEquipmentItems);
-        actionCount++;
-      });
-
-      //generate station report messages
-      if (!station) return;
-      const newReportItems: ReportItem[] = [];
-
-      // check if station has no actions
-      if (stationActions.length === 0) {
-        newReportItems.push({
-          message: "Station has no actions",
-          type: "warning",
-        } as ReportItem);
-      }
-
-      // check if station has no location
-      if (!station.location) {
-        newReportItems.push({
-          message: "Station location not yet set",
-          type: "warning",
-        } as ReportItem);
-      }
-
-      // check if station durationLower is greater than totalDurationLower
-      if (station.durationLower < totalDwellTimeLower) {
-        newReportItems.push({
-          message:
-            "Estimated nominal dwell time is less than calculated maximum dwell time from actions",
-          type: "error",
-        } as ReportItem);
-      }
-
-      // check if station durationUpper is greater than totalDurationUpper
-      if (station.durationUpper < totalDwellTimeUpper) {
-        newReportItems.push({
-          message:
-            "Estimated maximum dwell time is less than calculated maximum dwell time from actions",
-          type: "error",
-        } as ReportItem);
-      }
-      // check if station has any unassigned action time
-      if (totalUnassignedDurationLower > 0 || totalUnassignedDurationUpper > 0) {
-        newReportItems.push({
-          message: "Station has actions with no crew assigned. Dwell time calculation is incorrect",
-          type: "error",
-        } as ReportItem);
-      }
-      // check if station has no associated POIs
-      if (!station.poiUuids || station.poiUuids.length === 0) {
-        newReportItems.push({
-          message: "Station has no associated POIs",
-          type: "info",
-        } as ReportItem);
-      }
-
-      // get walback duration minutes
-      const walkbackDurationMinutes = calcPathDurationMins(
-        station.walkbackPathSegmentDistances,
-        missionTraverseRate
-      );
-
-      // get walkback distance meters
-      const walkbackDistanceMeters = station.walkbackPathSegmentDistances?.reduce(
-        (accumulator, currentVal) => accumulator + currentVal,
-        0
-      );
-
-      // total ascended and descended
-      const walkbackAscentDescent = calculateAscentAndDescent(
-        station.walkbackPathSegmentElevations
-      );
-
-      const newCalculatedFields: StationCalculatedFields = {
-        uuid: station.uuid,
-        reportItems: newReportItems,
-        totalActionTime: {
-          durationLower: totalDurationLower,
-          durationUpper: totalDurationUpper,
-        },
-        totalEv1Time: {
-          durationLower: totalEv1DurationLower,
-          durationUpper: totalEv1DurationUpper,
-        },
-        totalEv2Time: {
-          durationLower: totalEv2DurationLower,
-          durationUpper: totalEv2DurationUpper,
-        },
-        totalUnassignedTime: {
-          durationLower: totalUnassignedDurationLower,
-          durationUpper: totalUnassignedDurationUpper,
-        },
-        totalDwellTime: {
-          durationLower: totalDwellTimeLower,
-          durationUpper: totalDwellTimeUpper,
-        },
-        actionCount,
-        walkbackDurationMinutes,
-        walkbackDistanceMeters,
-        walkbackAscentDescent,
-        equipmentItems: totalEquipmentItems,
-      };
-      allCalculatedFields.push(newCalculatedFields);
-    }
-    dispatch(setStationCalculatedFields({ calculatedFields: allCalculatedFields }));
-  }
-);
 
 export const thunkSaveStation = appCreateAsyncThunk<{
   station: Station;
@@ -591,35 +423,19 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
       existingNames: getState().station.stations.map((item) => item.name),
     });
 
-    const blankStation: Station = {
-      ownerId: null,
+    const blankStation = generateBlankStation({
       missionId: getState().mission.mission?.id,
-      uuid: uuidv4(),
       name: randomName,
-      status: "Candidate",
-      description: "",
-      actionOrderUuids: [],
-      radius: 5,
-      location: null,
-      elevation: null,
-      durationLower: 10,
-      durationUpper: 15,
-      walkbackPath: null,
-      walkbackPathSegmentDistances: null,
-      walkbackPathSegmentElevations: null,
-      icon: null,
-      poiUuids: [],
-      updatedAt: null,
-      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    };
+    });
     dispatch(thunkSaveNewStation({ station: blankStation }));
   }
 );
 
-export const thunkDuplicateStation = appCreateAsyncThunk<{ station: Station }, Station, false>(
+export const thunkDuplicateStation = appCreateAsyncThunk<{ stationUuid: String }, Station, false>(
   "stationDuplicate",
-  async ({ station }, { dispatch, getState }) => {
-    if (!station) return;
+  async ({ stationUuid }, { dispatch, getState }) => {
+    if (!stationUuid) return;
+    const station = getState().station.stations.find((s) => s.uuid === stationUuid);
     //duplicate station
     const newStation: Station = _.cloneDeep(station);
     newStation.uuid = uuidv4();

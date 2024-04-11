@@ -2,11 +2,11 @@ import { createSlice } from "@reduxjs/toolkit";
 import { cloneDeep } from "lodash";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "utils/store";
+import { setAllSliceStores } from "store/crossActions";
 
 export const initialState: ActionState = {
   actions: [],
   actionsFromDb: [],
-  loadingStatus: "unloaded",
 };
 
 export const actionSlice = createSlice({
@@ -105,13 +105,16 @@ export const actionSlice = createSlice({
     deleteActionsFromDbByUuid: (state, action: { payload: string[] }) => {
       state.actionsFromDb = state.actionsFromDb.filter((a) => !action.payload.includes(a.uuid));
     },
-    setActionLoadingStatus: (state, action: { payload: LoadingStatus }) => {
-      state.loadingStatus = action.payload;
-    },
     obliterateState: (state) => {
       //eslint-disable-next-line
       state = Object.assign(state, initialState);
     },
+  },
+  extraReducers: (builder) => {
+    // reducer called across slices. This handles this slice's portion of the reducer's state
+    builder.addCase(setAllSliceStores, (state, action: { payload: WholeStoreState }) => {
+      state = Object.assign(state, action.payload.action);
+    });
   },
 });
 
@@ -126,7 +129,6 @@ export const {
   deleteActionFromDbByUuid,
   deleteActionsByUuid,
   deleteActionsFromDbByUuid,
-  setActionLoadingStatus,
   obliterateState,
 } = actionSlice.actions;
 

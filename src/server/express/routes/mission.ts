@@ -14,6 +14,10 @@ import { getEM } from "utils/mikro";
 import { emitStoreUpsert } from "../sockets";
 import { upsertLogs } from "./log";
 import { v4 as uuidv4 } from "uuid";
+import {
+  convertMissionsTypeDbToStore,
+  convertMissionsTypeStoreToDb,
+} from "store/storeUtils/mission";
 
 const router = express.Router();
 
@@ -104,24 +108,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     //  messages that match the missionId field.
     for (const upsertedMission of upsertResponse) {
       // emit the upserted item to all clients via socket.io
-      emitStoreUpsert({
-        missionId: upsertedMission.id,
-        socketId: queryObj.socketId,
-        type: "mission",
-        data: [upsertedMission],
-      } as StoreUpsert<Mission>);
-      if (queryObj.logAction) {
-        // log this upsert to the log table
-        const log: Log = {
-          uuid: uuidv4(),
+      emitStoreUpsert(
+        {
           missionId: upsertedMission.id,
-          type: "missionUpsert",
-          payloadJson: JSON.stringify(upsertedMission),
-          createdAt: new Date().toISOString(),
-        };
-        upsertLogs([log]);
-      }
-
+          socketId: queryObj.socketId,
+          type: "mission",
+          data: [upsertedMission],
+        } as StoreUpsert<Mission>,
+        queryObj.logAction
+      );
       res.status(200).json({
         status: "success",
         message: `Mission upserted with IDs ${upsertResponse.map((m) => m.id)}`,
@@ -211,13 +206,7 @@ export async function getMission(missionIdList: number | number[] = null): Promi
     missions = await em.find(Mission_db, { id: missionIdList });
   }
 
-  return missions.map((mission: Mission_db) => {
-    return {
-      ...mission,
-      createdAt: mission.createdAt.toISOString(),
-      updatedAt: mission.updatedAt.toISOString(),
-    } as Mission;
-  });
+  return convertMissionsTypeDbToStore(missions);
 }
 
 /**
@@ -229,14 +218,10 @@ export async function upsertMissions(missions: Mission[]): Promise<Mission[]> {
   const em = getEM();
 
   const missionsCopy: Mission[] = _.cloneDeep(missions);
-  const missionsUpsertedToDb = [];
+  const missionsUpsertedToDb: Mission[] = [];
 
   for (const missionCopy of missionsCopy) {
-    const upsertRecord: EntityData<Mission_db> = {
-      ...missionCopy,
-      updatedAt: new Date(missionCopy.updatedAt),
-      createdAt: new Date(missionCopy.createdAt),
-    };
+    const upsertRecord: EntityData<Mission_db> = convertMissionsTypeStoreToDb([missionCopy])[0];
 
     let dbReference: Mission_db;
     if (missionCopy.id) {
@@ -253,11 +238,7 @@ export async function upsertMissions(missions: Mission[]): Promise<Mission[]> {
 
     //have to both persist and flush in order to get the new mission id back
     await em.persistAndFlush(dbReference);
-    missionsUpsertedToDb.push({
-      ...dbReference,
-      updatedAt: dbReference.updatedAt.toISOString(),
-      createdAt: dbReference.createdAt.toISOString(),
-    } as Mission);
+    missionsUpsertedToDb.push(convertMissionsTypeDbToStore([dbReference])[0]);
   }
   return missionsUpsertedToDb;
 }

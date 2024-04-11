@@ -8,7 +8,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { Button } from "components/interface/form/globalFields";
 import _ from "lodash";
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import {
@@ -27,6 +27,7 @@ import { getAlertColor, isModified } from "utils/component-helpers";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { RightTabs } from "components/interface/side-controls";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
+import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
 
 const EvaRightTraverse: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -67,24 +68,22 @@ const EvaRightTraverse: FunctionComponent = () => {
 
   const calculatedFields = useAppSelector(
     (state) =>
-      state.traverse.calculatedFields.find(
-        (calculated) => calculated.uuid === selectedTraverse.uuid
-      ),
+      getCalculatedFieldsByTraverse({
+        traverseUuid: selectedEvaSequenceItemUuid,
+        wholeStoreState: state,
+      }),
     deepEqual
   );
 
-  const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
+  let saveButtonState: saveButtonState = "disabled";
+  if (elevationPendingIndex > -1) {
+    saveButtonState = "pending";
+  } else {
+    const modified = isModified([selectedTraverse], [selectedTraverseFromDb]);
+    saveButtonState = modified ? "enabled" : "disabled";
+  }
 
-  useEffect(() => {
-    if (elevationPendingIndex > -1) {
-      setSaveButtonState("pending");
-    } else {
-      const modified = isModified([selectedTraverse], [selectedTraverseFromDb]);
-      setSaveButtonState(modified ? "enabled" : "disabled");
-    }
-  }, [elevationPendingIndex, selectedTraverse, selectedTraverseFromDb]);
-
-  const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("white");
+  const reportsTabIconColor = getAlertColor(calculatedFields?.reportItems) || "white";
 
   const panelTypes: PanelTypes = {
     info_panel: {
@@ -154,11 +153,6 @@ const EvaRightTraverse: FunctionComponent = () => {
   const handleEdit = async () => {
     dispatch(setTraverseEditMode({ uuid: selectedEvaSequenceItemUuid, editMode: true }));
   };
-
-  // set reports tab icon color
-  useEffect(() => {
-    setReportsTabIconColor(getAlertColor(calculatedFields?.reportItems));
-  }, [calculatedFields]);
 
   let activeComponent: FunctionComponent = null;
   if (!_.isNil(panelTypes[selectedRightNavItem])) {

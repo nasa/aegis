@@ -2,7 +2,6 @@ import { IconProp } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { FunctionComponent, ReactNode } from "react";
 import styles from "./_global-elements.module.css";
-import _ from "lodash";
 import { longdateFromDateString } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 

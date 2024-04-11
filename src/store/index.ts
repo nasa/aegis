@@ -15,7 +15,7 @@ import { userSlice, initialState as userInitialState } from "./user";
 import { rexSlice, initialState as rexInitialState } from "./rex";
 import { measureSlice, initialState as measureInitialState } from "./measure";
 
-export const initialState = {
+export const initialState: WholeStoreState = {
   hover: hoverInitialState,
   mission: missionInitialState,
   user: userInitialState,

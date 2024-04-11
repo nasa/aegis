@@ -11,7 +11,7 @@ import {
   InLineEditInput,
   PathColorPickerMenu,
 } from "components/interface/form/globalFields";
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import { upsertTraverseByField } from "store/traverse";
 import { refEqual, shallowEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
@@ -23,6 +23,7 @@ import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { makeTraverseRateString } from "utils/component-helpers";
+import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
 
 const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -54,9 +55,10 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
   );
   const calculatedFields = useAppSelector(
     (state) =>
-      state.traverse.calculatedFields.find(
-        (calculated) => calculated.uuid === selectedTraverse.uuid
-      ),
+      getCalculatedFieldsByTraverse({
+        traverseUuid: selectedTraverse.uuid,
+        wholeStoreState: state,
+      }),
     deepEqual
   );
   const thisMapDirective = useAppSelector((state) => {
@@ -64,15 +66,12 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
   }, shallowEqual);
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
-  const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
-
-  useEffect(() => {
-    if (elevationPendingIndex > -1) {
-      setSaveButtonState("pending");
-    } else {
-      setSaveButtonState("enabled");
-    }
-  }, [elevationPendingIndex]);
+  let saveButtonState: saveButtonState = "disabled";
+  if (elevationPendingIndex > -1) {
+    saveButtonState = "pending";
+  } else {
+    saveButtonState = "enabled";
+  }
 
   const handlePathEdit = async () => {
     dispatch(

@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { setAllSliceStores } from "./crossActions";
 
 export const initialState: MapState = {
   mapSublayerControls: null,
@@ -29,6 +30,12 @@ export const mapSlice = createSlice({
     setMeasureInitialCoords: (state, action: { payload: AEGISPoint[] }) => {
       state.measureInitialCoords = action.payload;
     },
+  },
+  extraReducers: (builder) => {
+    // reducer called across slices. This handles this slice's portion of the reducer's state
+    builder.addCase(setAllSliceStores, (state, action: { payload: WholeStoreState }) => {
+      state = Object.assign(state, action.payload.map);
+    });
   },
 });
 

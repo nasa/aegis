@@ -27,6 +27,7 @@ import { secondsFromhhmmss } from "utils/formatting";
 import { setSelectedPosEntryUuid } from "store/rex";
 import PetInterval from "../page/petInterval";
 import { getStmUuidRefs } from "utils/store";
+import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
 
 /**
  * Renders the navigation timeline presented at the bottom of the window
@@ -63,10 +64,23 @@ const NavTimeline: FunctionComponent = () => {
     (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
     deepEqual
   );
-  const stationCalculatedFields = useAppSelector(
-    (state) => state.station.calculatedFields,
-    deepEqual
-  );
+
+  const stationCalculatedFieldsInSelectedEva = useAppSelector((state) => {
+    const eva = state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid);
+    const stationsInEvaSequence = eva?.sequence
+      ? eva.sequence.filter((s) => s.type === "station")
+      : [];
+    const allStationCalculatedFields: StationCalculatedFields[] = [];
+    for (const station of stationsInEvaSequence) {
+      allStationCalculatedFields.push(
+        getCalculatedFieldsByStation({
+          stationUuid: station.uuid,
+          wholeStoreState: state,
+        })
+      );
+    }
+    return allStationCalculatedFields;
+  }, deepEqual);
 
   const showDistanceFromLander = useAppSelector(
     (state) => state.interface.timelineShowDistanceFromLander,
@@ -92,35 +106,25 @@ const NavTimeline: FunctionComponent = () => {
     walkbackSlopeDegrees: null,
   };
   const [hoverValues, setHoverValues] = useState<TimelineHoverValues>(initHoverValues);
-  const [coveredSTMs, setCoveredSTMs] = useState<string[][]>(null);
-  const [completedSTMs, setCompletedSTMs] = useState<string[][]>(null);
-  const [inProgressSTMs, setInProgressSTMs] = useState<string[][]>(null);
 
   //gather stm states
-  useEffect(() => {
-    if (!evaActions) return;
-    const newCompletedSTMs: string[][] = [];
-    const newInProgressSTMs: string[][] = [];
-    const newCoveredSTMs: string[][] = [];
+  const completedSTMs: string[][] = [];
+  const inProgressSTMs: string[][] = [];
+  const coveredSTMs: string[][] = [];
 
-    evaActions.forEach((action) => {
-      if (action.enabled) {
-        newCoveredSTMs.push(getStmUuidRefs(action.stmPriorities));
-        if (runningRex?.actionEntries) {
-          const rexStatus = _.last(runningRex.actionEntries[action.uuid])?.rexStatus;
-          if (rexStatus === "complete") {
-            newCompletedSTMs.push(getStmUuidRefs(action.stmPriorities));
-          } else if (rexStatus === "in-progress") {
-            newInProgressSTMs.push(getStmUuidRefs(action.stmPriorities));
-          }
+  evaActions?.forEach((action) => {
+    if (action.enabled) {
+      coveredSTMs.push(getStmUuidRefs(action.stmPriorities));
+      if (runningRex?.actionEntries) {
+        const rexStatus = _.last(runningRex.actionEntries[action.uuid])?.rexStatus;
+        if (rexStatus === "complete") {
+          completedSTMs.push(getStmUuidRefs(action.stmPriorities));
+        } else if (rexStatus === "in-progress") {
+          inProgressSTMs.push(getStmUuidRefs(action.stmPriorities));
         }
       }
-    });
-
-    setCoveredSTMs(newCoveredSTMs);
-    setCompletedSTMs(newCompletedSTMs);
-    setInProgressSTMs(newInProgressSTMs);
-  }, [evaActions, selectedEva, runningRex]);
+    }
+  });
 
   // used to update the PET value via the PetInterval component
   const [rexPetTime, setRexPetTime] = useState("");
@@ -204,8 +208,8 @@ const NavTimeline: FunctionComponent = () => {
           sequenceItemForPaperJS.traverseRateMSec = traverseRate * (1000 / 3600); //convert to m/sec
 
           // get calculatedFieldValues for this station
-          const calculatedFields = stationCalculatedFields.find(
-            (calculated) => calculated.uuid === station.uuid
+          const calculatedFields = stationCalculatedFieldsInSelectedEva.find(
+            (calculated) => calculated?.uuid === station.uuid
           );
 
           //calculate duration from actions assigned to station
@@ -404,7 +408,7 @@ const NavTimeline: FunctionComponent = () => {
     missionTraverseRate,
     evaStations,
     evaTraverses,
-    stationCalculatedFields,
+    stationCalculatedFieldsInSelectedEva,
   ]);
 
   const processPosEntriesFromStore = useCallback(() => {

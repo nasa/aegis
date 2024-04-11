@@ -1,6 +1,6 @@
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import { Dropdown } from "components/interface/form/globalFields";
-import { FunctionComponent, useCallback, useEffect, useState } from "react";
+import { FunctionComponent, useCallback, useState } from "react";
 import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
 import { setSelectedEvaRightNavItem, setSelectedEvaUuid } from "store/eva";
 import evaStyles from "./eva.module.css";
@@ -25,6 +25,10 @@ import _ from "lodash";
 import PetInterval from "components/interface/page/petInterval";
 import { RexStatusMenu } from "../rex/rex";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
+import {
+  getCalculatedFieldsByEva,
+  getCalculatedFieldsByStation,
+} from "store/processing/calculatedFields";
 
 const SequenceItemStation: FunctionComponent<{
   evaUuid: string;
@@ -55,9 +59,13 @@ const SequenceItemStation: FunctionComponent<{
   );
   const thisStationCalculatedFields = useAppSelector(
     (state) =>
-      state.station.calculatedFields.find((stationData) => stationData.uuid === stationUuid),
+      getCalculatedFieldsByStation({
+        stationUuid,
+        wholeStoreState: state,
+      }),
     deepEqual
   );
+
   const stationRexStatus = useAppSelector((state) => {
     const rex = state.rex.rexesFromDb.find((rex) => rex.isRunning);
     if (!rex || !rex.stationEntries) return null;
@@ -71,10 +79,11 @@ const SequenceItemStation: FunctionComponent<{
 
   const sequenceItemMetadata = useAppSelector(
     (state) =>
-      state.eva.calculatedFields
-        .find((c) => c.uuid === evaUuid)
-        ?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === stationUuid),
-    shallowEqual
+      getCalculatedFieldsByEva({
+        evaUuid,
+        wholeStoreState: state,
+      })?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === stationUuid),
+    deepEqual
   );
 
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
@@ -87,37 +96,33 @@ const SequenceItemStation: FunctionComponent<{
 
   // used to update the PET value via the PetInterval component
   const [rexPetTime, setRexPetTime] = useState("");
-  const [evaSequenceStyle, setEvaSequenceStyle] = useState<string>(null);
 
-  useEffect(() => {
-    let isEvaSequenceItemSelectedOrHoveredStyle = null;
-    if (stationUuid === selectedEvaSequenceItemUuid) {
-      isEvaSequenceItemSelectedOrHoveredStyle = evaStyles.evaItemNameSelected;
-    } else if (stationUuid === hoverItemUuid) {
-      isEvaSequenceItemSelectedOrHoveredStyle = evaStyles.evaItemNameHoverMode;
-    }
+  let evaSequenceStyle = null;
+  if (stationUuid === selectedEvaSequenceItemUuid) {
+    evaSequenceStyle = evaStyles.evaItemNameSelected;
+  } else if (stationUuid === hoverItemUuid) {
+    evaSequenceStyle = evaStyles.evaItemNameHoverMode;
+  }
 
-    // add rex status styles
-    if (isRexRunning) {
-      if (stationRexStatus === "in-progress") {
-        isEvaSequenceItemSelectedOrHoveredStyle = evaStyles.evaItemNameRexInProgress;
-        if (stationUuid === selectedEvaSequenceItemUuid) {
-          isEvaSequenceItemSelectedOrHoveredStyle = evaStyles.evaItemNameRexInProgressSelected;
-        }
-      } else if (stationRexStatus === "complete") {
-        isEvaSequenceItemSelectedOrHoveredStyle = evaStyles.evaItemNameRexComplete;
-        if (stationUuid === selectedEvaSequenceItemUuid) {
-          isEvaSequenceItemSelectedOrHoveredStyle = evaStyles.evaItemNameSelected;
-        }
-      } else if (stationRexStatus === "skipped") {
-        isEvaSequenceItemSelectedOrHoveredStyle = evaStyles.evaItemNameRexSkipped;
-        if (stationUuid === selectedEvaSequenceItemUuid) {
-          isEvaSequenceItemSelectedOrHoveredStyle = evaStyles.evaItemNameRexSkippedSelected;
-        }
+  // add rex status styles
+  if (isRexRunning) {
+    if (stationRexStatus === "in-progress") {
+      evaSequenceStyle = evaStyles.evaItemNameRexInProgress;
+      if (stationUuid === selectedEvaSequenceItemUuid) {
+        evaSequenceStyle = evaStyles.evaItemNameRexInProgressSelected;
+      }
+    } else if (stationRexStatus === "complete") {
+      evaSequenceStyle = evaStyles.evaItemNameRexComplete;
+      if (stationUuid === selectedEvaSequenceItemUuid) {
+        evaSequenceStyle = evaStyles.evaItemNameSelected;
+      }
+    } else if (stationRexStatus === "skipped") {
+      evaSequenceStyle = evaStyles.evaItemNameRexSkipped;
+      if (stationUuid === selectedEvaSequenceItemUuid) {
+        evaSequenceStyle = evaStyles.evaItemNameRexSkippedSelected;
       }
     }
-    setEvaSequenceStyle(isEvaSequenceItemSelectedOrHoveredStyle);
-  }, [hoverItemUuid, isRexRunning, stationRexStatus, selectedEvaSequenceItemUuid, stationUuid]);
+  }
 
   const handleMoveStationUp = (index: number) => {
     dispatch(

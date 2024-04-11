@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import {
@@ -22,6 +22,7 @@ import Report_Panel from "../report";
 import { getAlertColor, isModified } from "utils/component-helpers";
 import { validators } from "components/interface/form/formValidators";
 import { RightTabs } from "components/interface/side-controls";
+import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
 
 const PoiEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -33,13 +34,10 @@ const PoiEditorRight: FunctionComponent = () => {
   );
   const poisEditing = useAppSelector((state) => state.poi.poisEditing, shallowEqual);
   const calculatedFields = useAppSelector(
-    (state) => state.poi.calculatedFields.find((calculated) => calculated.uuid === selectedPoiUuid),
+    (state) => getCalculatedFieldsByPoi({ poiUuid: selectedPoiUuid, wholeStoreState: state }),
     deepEqual
   );
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
-
-  const [modified, setModified] = useState(false);
-  const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--station)");
 
   //these selectors from the store are only used to calculate modified. refactor?
   const poiActions = useAppSelector(
@@ -64,11 +62,12 @@ const PoiEditorRight: FunctionComponent = () => {
     (state) => state.poi.poisFromDb.find((poi) => poi.uuid === selectedPoiUuid),
     deepEqual
   );
-  useEffect(() => {
-    const poiModified = isModified([selectedPoi], [selectedPoiFromDb]);
-    const actionModified = isModified(poiActions, poiActionsFromDb);
-    setModified(poiModified || actionModified);
-  }, [selectedPoi, selectedPoiFromDb, poiActions, poiActionsFromDb]);
+
+  const poiModified = isModified([selectedPoi], [selectedPoiFromDb]);
+  const actionModified = isModified(poiActions, poiActionsFromDb);
+  const modified = poiModified || actionModified;
+
+  const reportsTabIconColor = getAlertColor(calculatedFields?.reportItems) || "var(--station)";
 
   const panelTypes: PanelTypes = {
     info_panel: {
@@ -98,11 +97,6 @@ const PoiEditorRight: FunctionComponent = () => {
       icon: calculatedFields?.reportItems.length > 0 ? faTriangleExclamation : faCheck,
     },
   };
-
-  // set reports tab icon color
-  useEffect(() => {
-    setReportsTabIconColor(getAlertColor(calculatedFields?.reportItems));
-  }, [calculatedFields]);
 
   let activeComponent = null;
   if (!_.isNil(panelTypes[selectedRightNavItem])) {
@@ -178,6 +172,7 @@ const PoiEditorRight: FunctionComponent = () => {
           <div className={paneStyles.saveCancelContainer}>
             {poisEditing.includes(selectedPoiUuid) && (
               <Button
+                ariaLabel="deletePoi"
                 icon={faTrashAlt}
                 onClick={() => {
                   if (selectedPoi) {
@@ -196,6 +191,7 @@ const PoiEditorRight: FunctionComponent = () => {
             )}
             {!poisEditing.includes(selectedPoiUuid) && editPerms && (
               <Button
+                ariaLabel="editPoi"
                 icon={faEdit}
                 onClick={() => {
                   dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: true }));
@@ -210,6 +206,7 @@ const PoiEditorRight: FunctionComponent = () => {
             {poisEditing.includes(selectedPoiUuid) && (
               <>
                 <Button
+                  ariaLabel="savePoi"
                   onClick={() => {
                     if (selectedPoi && modified) {
                       dispatch(
@@ -231,6 +228,7 @@ const PoiEditorRight: FunctionComponent = () => {
                   }}
                 />
                 <Button
+                  ariaLabel="cancelPoi"
                   onClick={() => {
                     dispatch(
                       thunkPoiCancel({

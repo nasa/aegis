@@ -7,10 +7,9 @@ import { hasPerms } from "utils/permissions";
 
 import { getEM } from "utils/mikro";
 import { EntityData, ForeignKeyConstraintViolationException } from "@mikro-orm/core";
-import { v4 as uuidv4 } from "uuid";
 import { Rex_db } from "server/database/models/_allModels";
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
-import { upsertLogs } from "./log";
+import { convertRexesTypeDbToStore, convertRexesTypeStoreToDb } from "store/storeUtils/rex";
 
 const router = express.Router();
 
@@ -76,24 +75,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     }
 
     // emit the upserted item to all clients via socket.io
-    emitStoreUpsert({
-      missionId: queryObj.missionId,
-      socketId: queryObj.socketId,
-      type: "rex",
-      data: upsertResponse,
-    } as StoreUpsert<Rex>);
-
-    if (queryObj.logAction) {
-      // log this upsert to the log table
-      const log: Log = {
-        uuid: uuidv4(),
+    emitStoreUpsert(
+      {
         missionId: queryObj.missionId,
-        type: "rexUpsert",
-        payloadJson: JSON.stringify(rexes),
-        createdAt: new Date().toISOString(),
-      };
-      upsertLogs([log]);
-    }
+        socketId: queryObj.socketId,
+        type: "rex",
+        data: upsertResponse,
+      } as StoreUpsert<Rex>,
+      queryObj.logAction
+    );
 
     res.status(200).json({
       status: "success",
@@ -119,24 +109,15 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     const uuidsToDelete: string[] = req.body;
     const deletedRexUuids: string[] = await deleteRexes(uuidsToDelete);
     if (deletedRexUuids.length > 0) {
-      emitStoreDelete({
-        missionId: queryObj.missionId,
-        socketId: queryObj.socketId,
-        type: "rex",
-        uuids: deletedRexUuids,
-      } as StoreDelete);
-
-      if (queryObj.logAction) {
-        // log this deletion to the log table
-        const log: Log = {
-          uuid: uuidv4(),
+      emitStoreDelete(
+        {
           missionId: queryObj.missionId,
-          type: "rexDelete",
-          payloadJson: queryObj.uuid,
-          createdAt: new Date().toISOString(),
-        };
-        upsertLogs([log]);
-      }
+          socketId: queryObj.socketId,
+          type: "rex",
+          uuids: deletedRexUuids,
+        } as StoreDelete,
+        queryObj.logAction
+      );
 
       res.status(200).json({
         status: "success",
@@ -171,7 +152,7 @@ export async function getRexes(missionId: number): Promise<Rex[]> {
   const em = getEM();
   const rexes = await em.find(Rex_db, { mission: missionId });
 
-  return convertRexes(rexes);
+  return convertRexesTypeDbToStore(rexes);
 }
 
 /**
@@ -186,24 +167,7 @@ export async function upsertRexes(rexes: Rex[]): Promise<Rex[]> {
   const rexesUpsertedToDb = [];
 
   for (const rexToUpsert of rexesToUpsert) {
-    const upsertRecord: EntityData<Rex_db> = {
-      mission: rexToUpsert.missionId,
-      uuid: rexToUpsert.uuid || uuidv4(),
-      name: rexToUpsert.name,
-      description: rexToUpsert.description,
-      petStartStopTimestamp: rexToUpsert.petStartStopTimestamp,
-      petValueAtStartStop: rexToUpsert.petValueAtStartStop,
-      petRunning: rexToUpsert.petRunning,
-      evaUuid: rexToUpsert.evaUuid,
-      isRunning: rexToUpsert.isRunning,
-      posEntries: rexToUpsert.posEntries,
-      posTypes: rexToUpsert.posTypes,
-      stationEntries: rexToUpsert.stationEntries,
-      traverseEntries: rexToUpsert.traverseEntries,
-      actionEntries: rexToUpsert.actionEntries,
-      updatedAt: new Date(rexToUpsert.updatedAt),
-      createdAt: new Date(rexToUpsert.createdAt),
-    };
+    const upsertRecord: EntityData<Rex_db> = convertRexesTypeStoreToDb([rexToUpsert])[0];
     const rexUpsertReference: Rex_db = await em.upsert(Rex_db, upsertRecord);
     em.persist(rexUpsertReference);
     rexesUpsertedToDb.push(rexUpsertReference);
@@ -211,7 +175,7 @@ export async function upsertRexes(rexes: Rex[]): Promise<Rex[]> {
   await em.flush();
 
   //convert foreign keys
-  return convertRexes(rexesUpsertedToDb);
+  return convertRexesTypeDbToStore(rexesUpsertedToDb);
 }
 
 /**
@@ -231,30 +195,4 @@ export async function deleteRexes(uuids: string[]): Promise<string[]> {
   }
   await em.flush(); //perform deletes
   return deletedUuids;
-}
-
-export function convertRexes(dbRexes: Rex_db[]): Rex[] {
-  const rexes: Rex[] = [];
-  for (const dbRex of dbRexes) {
-    const convertedRex: Rex = {
-      uuid: dbRex.uuid,
-      missionId: dbRex.mission.id,
-      name: dbRex.name,
-      description: dbRex.description,
-      petStartStopTimestamp: dbRex.petStartStopTimestamp,
-      petValueAtStartStop: dbRex.petValueAtStartStop,
-      petRunning: dbRex.petRunning,
-      evaUuid: dbRex.evaUuid,
-      isRunning: dbRex.isRunning,
-      posEntries: dbRex.posEntries,
-      posTypes: dbRex.posTypes,
-      stationEntries: dbRex.stationEntries,
-      traverseEntries: dbRex.traverseEntries,
-      actionEntries: dbRex.actionEntries,
-      updatedAt: dbRex.createdAt.toISOString(),
-      createdAt: dbRex.updatedAt.toISOString(),
-    };
-    rexes.push(convertedRex);
-  }
-  return rexes;
 }

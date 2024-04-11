@@ -1,0 +1,90 @@
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { v4 as uuidv4 } from "uuid";
+import { Poi_db } from "server/database/models/_allModels";
+import { EntityData } from "@mikro-orm/core";
+
+/**
+ * Generate a blank poi
+ * @param partialPoi any fields that are to be overriden from default
+ * @returns the generated poi
+ */
+export const generateBlankPoi = (partialPoi?: Partial<POI>): POI => {
+  const defaultNewPoi: POI = {
+    uuid: uuidv4(),
+    ownerId: null,
+    missionId: null,
+    name: "",
+    description: "",
+    actionOrderUuids: [],
+    priorityOverride: 0,
+    radius: 5,
+    location: null,
+    elevation: null,
+    icon: "1F534",
+    tags: [],
+    status: "Candidate",
+    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    updatedAt: null,
+  };
+  return { ...defaultNewPoi, ...partialPoi };
+};
+
+/**
+ * Converts db poi fks to their uuid/id arrays
+ * @param dbPois an array of pois in mikro db format
+ * @returns an a converted array of pois or a single poi
+ */
+export function convertPoisTypeDbToStore(dbPois: Poi_db[]): POI[] {
+  const pois: POI[] = [];
+  for (const dbPoi of dbPois) {
+    const convertedPoi: POI = {
+      uuid: dbPoi.uuid,
+      missionId: dbPoi.mission.id,
+      ownerId: dbPoi.owner.id,
+      actionOrderUuids: dbPoi.actionOrderUuids,
+      name: dbPoi.name,
+      description: dbPoi.description,
+      priorityOverride: dbPoi.priorityOverride,
+      radius: dbPoi.radius,
+      location: dbPoi.location,
+      elevation: dbPoi.elevation,
+      icon: dbPoi.icon,
+      tags: dbPoi.tags,
+      status: dbPoi.status,
+      createdAt: dbPoi.createdAt.toISOString(),
+      updatedAt: dbPoi.updatedAt.toISOString(),
+    };
+    pois.push(convertedPoi);
+  }
+  return pois;
+}
+
+/**
+ * Converts pois that come from the store into the db type
+ * @param storePois
+ * @returns
+ */
+export function convertPoisTypeStoreToDb(storePois: POI[]): EntityData<Poi_db>[] {
+  const dbPois: EntityData<Poi_db>[] = [];
+  for (const storePoi of storePois) {
+    const convertedRecord: EntityData<Poi_db> = {
+      uuid: storePoi.uuid,
+      owner: storePoi.ownerId,
+      mission: storePoi.missionId,
+      actionOrderUuids: storePoi.actionOrderUuids,
+      name: storePoi.name,
+      description: storePoi.description,
+      priorityOverride: storePoi.priorityOverride,
+      radius: storePoi.radius,
+      location: storePoi.location,
+      elevation: storePoi.elevation,
+      icon: storePoi.icon,
+      tags: storePoi.tags,
+      status: storePoi.status,
+      createdAt: new Date(storePoi.createdAt),
+      updatedAt: new Date(storePoi.updatedAt),
+    };
+    dbPois.push(convertedRecord);
+  }
+  return dbPois;
+}

@@ -283,3 +283,11 @@ export const calculatePetValue = ({
 
   return hhmmssFromSeconds(newPetSeconds);
 };
+
+/**
+ * Abbreviate a string to a certain length and add ellipsis if necessary
+ */
+export function abbreviateString(str: string, maxLength: number): string {
+  if (str.length <= maxLength) return str;
+  return str.substring(0, maxLength - 3) + "...";
+}

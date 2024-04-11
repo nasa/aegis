@@ -1,4 +1,4 @@
-import PopulateStore from "components/interface/page/populateStore";
+import { populateStore } from "pages/mission";
 import _ from "lodash";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FunctionComponent, useEffect, useState } from "react";
@@ -11,6 +11,7 @@ import { getMissions } from "http-client/mission";
 import * as httpClient_log from "http-client/log";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkMakeExportString } from "store/thunk/thunkMission";
+import { setAllSliceStores } from "store/crossActions";
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search);
@@ -35,7 +36,7 @@ const ExportPage: React.FunctionComponent = () => {
 
   //on load check login and mission id
   useEffect(() => {
-    (async () => {
+    const isLoggedInAsync = async () => {
       const response = await isLoggedIn();
       if (response.status === "success") {
         const user = response.data.user;
@@ -48,8 +49,21 @@ const ExportPage: React.FunctionComponent = () => {
 
       const missions = (await getMissions()).data;
       if (!missions.find((m) => m.id === intMissionId)) navigate("/admin");
-    })();
+    };
+    isLoggedInAsync();
   }, [navigate, intMissionId]);
+
+  useEffect(() => {
+    const populateStoreAsync = async () => {
+      const wholeStoreState = await populateStore({ missionId: intMissionId });
+      /**
+       * dispatch a single action to populate the stores across all slices using the wholeStoreState
+       */
+      dispatch(setAllSliceStores(wholeStoreState));
+    };
+    populateStoreAsync();
+    //eslint-disable-next-line
+  }, []);
 
   if (!intMissionId) return <div>No missionId provided</div>;
 
@@ -105,7 +119,7 @@ const ExportPage: React.FunctionComponent = () => {
           />
           <button
             onClick={() => {
-              (async () => {
+              const makeExportStringAsync = async () => {
                 const output = await dispatch(
                   thunkMakeExportString({
                     selectEvas,
@@ -118,14 +132,15 @@ const ExportPage: React.FunctionComponent = () => {
                   })
                 );
                 setSelectedOutput(output.payload as string);
-              })();
+              };
+              makeExportStringAsync();
             }}
           >
             Export as JSON to Text Field
           </button>
           <button
             onClick={() => {
-              (async () => {
+              const makeExportStringAsync = async () => {
                 const output = await dispatch(
                   thunkMakeExportString({
                     selectEvas,
@@ -154,7 +169,8 @@ const ExportPage: React.FunctionComponent = () => {
                 element.download = filename;
                 document.body.appendChild(element); // Required for this to work in FireFox
                 element.click();
-              })();
+              };
+              makeExportStringAsync();
             }}
           >
             Export as JSON File
@@ -169,8 +185,6 @@ const ExportPage: React.FunctionComponent = () => {
         </div>
         <ExporLogs missionId={intMissionId} missionName={missionStore.mission?.name} />
       </div>
-
-      <PopulateStore missionId={intMissionId} hasPermissions={true} />
     </>
   );
 };
@@ -204,17 +218,18 @@ const ExporLogs: FunctionComponent<{ missionId: number; missionName: string }> =
       <div style={{ userSelect: "none" }}>
         <button
           onClick={() => {
-            (async () => {
+            const setExportOutputAsync = async () => {
               const logs = await getLogs();
               setExportOutput(JSON.stringify(logs, null, 2));
-            })();
+            };
+            setExportOutputAsync();
           }}
         >
           Export Logs as JSON to Text Field
         </button>
         <button
           onClick={() => {
-            (async () => {
+            const makeElementAsync = async () => {
               const logs = await getLogs();
               const element = document.createElement("a");
               const file = new Blob([JSON.stringify(logs, null, 2)], { type: "text/json" });
@@ -223,14 +238,15 @@ const ExporLogs: FunctionComponent<{ missionId: number; missionName: string }> =
               element.download = filename;
               document.body.appendChild(element); // Required for this to work in FireFox
               element.click();
-            })();
+            };
+            makeElementAsync();
           }}
         >
           Export Logs as JSON to File
         </button>
         <button
           onClick={() => {
-            (async () => {
+            const confirmAsync = async () => {
               if (
                 confirm(
                   "Are you sure you want to delete all Real-time execution logs for this mission?"
@@ -242,7 +258,8 @@ const ExporLogs: FunctionComponent<{ missionId: number; missionName: string }> =
                   setExportOutput("");
                 }
               }
-            })();
+            };
+            confirmAsync();
           }}
         >
           Delete Logs for this Mission

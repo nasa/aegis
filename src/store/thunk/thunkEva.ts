@@ -3,7 +3,6 @@ import {
   deleteEvaFromDbByUuid,
   setEvaEditMode,
   setEvaSequence,
-  setEvasCalculatedFields,
   setExpandedEvaUuids,
   setSelectedEvaUuid,
   upsertEva,
@@ -28,186 +27,11 @@ import _ from "lodash";
 import { thunkFullUpdateTraverse, thunkUpdateTraversesAroundStation } from "./thunkTraverse";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
-import { mergeEquipmentItems } from "utils/store";
 import { thunkDuplicateStation } from "./thunkStation";
 import { upsertRex, upsertRexFromDb } from "store/rex";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
-
-export const thunkCreateEvasCalculatedFields = appCreateAsyncThunk<void>(
-  "createEvasCalculatedFields",
-  async (_, { dispatch, getState }) => {
-    const stationsCalculatedFields = getState().station.calculatedFields;
-    const traversesCalculatedFields = getState().traverse.calculatedFields;
-    const evas = getState().eva.evas;
-
-    const allCalculatedFields: EvaCalculatedFields[] = [];
-    for (const eva of evas) {
-      // go through eva sequence and calculate things
-      const evaSequence = eva.sequence;
-
-      //generate report messages
-      const newReportItems: ReportItem[] = [];
-
-      // check if no sequence items
-      if (eva.sequence.length === 0) {
-        newReportItems.push({
-          message: "EVA has no stations or traverses",
-          type: "warning",
-        } as ReportItem);
-      }
-
-      const evaCalculatedFields: EvaCalculatedFields = {
-        uuid: eva.uuid,
-        reportItems: [], // report items for the eva itself
-        totalActionTime: {
-          durationLower: 0,
-          durationUpper: 0,
-        },
-        totalEv1Time: {
-          durationLower: 0,
-          durationUpper: 0,
-        },
-        totalEv2Time: {
-          durationLower: 0,
-          durationUpper: 0,
-        },
-        totalUnassignedTime: {
-          durationLower: 0,
-          durationUpper: 0,
-        },
-        totalDwellTime: {
-          durationLower: 0,
-          durationUpper: 0,
-        },
-        actionCount: 0,
-        totalTraverseTime: 0,
-        totalTraverseDistanceMeters: 0,
-        totalTraverseAscentDescent: {
-          totalMetersClimbed: 0,
-          totalMetersDescended: 0,
-        },
-        totalEvaTime: {
-          durationLower: 0,
-          durationUpper: 0,
-        },
-        equipmentItems: [],
-        sequenceItemsCalculatedData: [],
-      };
-
-      let runningEvaSeconds = eva.egressDuration * 60; // start with egress duration
-      for (const seqItem of evaSequence) {
-        const thisStationCalculatedFields = stationsCalculatedFields.find(
-          (stationCalculatedFields) => stationCalculatedFields.uuid === seqItem.uuid
-        );
-        const thisTraverseCalculatedFields = traversesCalculatedFields.find(
-          (traverseCalculatedFields) => traverseCalculatedFields.uuid === seqItem.uuid
-        );
-        if (thisStationCalculatedFields) {
-          evaCalculatedFields.totalActionTime.durationLower +=
-            thisStationCalculatedFields.totalActionTime.durationLower;
-          evaCalculatedFields.totalActionTime.durationUpper +=
-            thisStationCalculatedFields.totalActionTime.durationUpper;
-          evaCalculatedFields.totalEv1Time.durationLower +=
-            thisStationCalculatedFields.totalEv1Time.durationLower;
-          evaCalculatedFields.totalEv1Time.durationUpper +=
-            thisStationCalculatedFields.totalEv1Time.durationUpper;
-          evaCalculatedFields.totalEv2Time.durationLower +=
-            thisStationCalculatedFields.totalEv2Time.durationLower;
-          evaCalculatedFields.totalEv2Time.durationUpper +=
-            thisStationCalculatedFields.totalEv2Time.durationUpper;
-          evaCalculatedFields.totalUnassignedTime.durationLower +=
-            thisStationCalculatedFields.totalUnassignedTime.durationLower;
-          evaCalculatedFields.totalUnassignedTime.durationUpper +=
-            thisStationCalculatedFields.totalUnassignedTime.durationUpper;
-          evaCalculatedFields.totalDwellTime.durationLower +=
-            thisStationCalculatedFields.totalDwellTime.durationLower;
-          evaCalculatedFields.totalDwellTime.durationUpper +=
-            thisStationCalculatedFields.totalDwellTime.durationUpper;
-          evaCalculatedFields.actionCount += thisStationCalculatedFields.actionCount;
-          evaCalculatedFields.equipmentItems = mergeEquipmentItems(
-            thisStationCalculatedFields.equipmentItems,
-            evaCalculatedFields.equipmentItems
-          );
-          evaCalculatedFields.sequenceItemsCalculatedData.push({
-            uuid: seqItem.uuid,
-            startSeconds: runningEvaSeconds,
-            endSeconds:
-              runningEvaSeconds + thisStationCalculatedFields.totalDwellTime.durationUpper * 60,
-          });
-          runningEvaSeconds += thisStationCalculatedFields.totalDwellTime.durationUpper * 60;
-        } else if (thisTraverseCalculatedFields) {
-          evaCalculatedFields.totalTraverseTime += thisTraverseCalculatedFields.durationMinutes;
-          evaCalculatedFields.totalTraverseDistanceMeters +=
-            thisTraverseCalculatedFields.distanceMeters;
-          evaCalculatedFields.totalTraverseAscentDescent.totalMetersClimbed +=
-            thisTraverseCalculatedFields.ascentDescent.totalMetersClimbed;
-          evaCalculatedFields.totalTraverseAscentDescent.totalMetersDescended +=
-            thisTraverseCalculatedFields.ascentDescent.totalMetersDescended;
-          evaCalculatedFields.sequenceItemsCalculatedData.push({
-            uuid: seqItem.uuid,
-            startSeconds: runningEvaSeconds,
-            endSeconds: runningEvaSeconds + thisTraverseCalculatedFields.durationMinutes * 60,
-          });
-          runningEvaSeconds += thisTraverseCalculatedFields.durationMinutes * 60;
-        }
-      }
-      evaCalculatedFields.totalEvaTime.durationLower =
-        evaCalculatedFields.totalDwellTime.durationLower +
-        evaCalculatedFields.totalTraverseTime +
-        eva.egressDuration +
-        eva.ingressDuration;
-      evaCalculatedFields.totalEvaTime.durationUpper =
-        evaCalculatedFields.totalDwellTime.durationUpper +
-        evaCalculatedFields.totalTraverseTime +
-        eva.egressDuration +
-        eva.ingressDuration;
-
-      // check if max time exceeds limit
-
-      // check if max time exceeds limit but is still within nominal
-      if (
-        eva.maxDuration &&
-        evaCalculatedFields.totalEvaTime.durationUpper > eva.maxDuration &&
-        evaCalculatedFields.totalEvaTime.durationLower <= eva.maxDuration
-      ) {
-        newReportItems.push({
-          message:
-            "Calculated max EVA duration exceeds defined maximum by " +
-            (evaCalculatedFields.totalEvaTime.durationUpper - eva.maxDuration).toFixed(0) +
-            " minutes but calculated nominal EVA duration is within limit",
-          type: "warning",
-        } as ReportItem);
-      } else if (
-        // check if max time exceeds limit and is also above nominal
-        eva.maxDuration &&
-        evaCalculatedFields.totalEvaTime.durationUpper > eva.maxDuration
-      ) {
-        newReportItems.push({
-          message:
-            "Calculated max EVA duration exceeds defined maximum by " +
-            (evaCalculatedFields.totalEvaTime.durationUpper - eva.maxDuration).toFixed(0) +
-            " minutes",
-          type: "error",
-        } as ReportItem);
-      }
-      // check if nominal time exceeds limit
-      if (eva.maxDuration && evaCalculatedFields.totalEvaTime.durationLower > eva.maxDuration) {
-        newReportItems.push({
-          message:
-            "Calculated nominal EVA duration exceeds defined maximum by " +
-            (evaCalculatedFields.totalEvaTime.durationLower - eva.maxDuration).toFixed(0) +
-            " minutes",
-          type: "error",
-        } as ReportItem);
-      }
-
-      evaCalculatedFields.reportItems = newReportItems;
-
-      allCalculatedFields.push(evaCalculatedFields);
-    }
-    dispatch(setEvasCalculatedFields({ calculatedFields: allCalculatedFields }));
-  }
-);
+import { generateBlankEVA } from "store/storeUtils/eva";
+import { generateBlankTraverse } from "store/storeUtils/traverse";
 
 /** Get an Station or Traverse object from a UUID
  * This would typically be used when needing to get the full object from an EVA sequence
@@ -423,7 +247,7 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
   const evaFromDb = getState().eva.evasFromDb.find((evaFromDb) => evaFromDb.uuid === eva.uuid);
   if (evaFromDb) {
     // delete the Eva from the DB via internal API call
-    const deleteResponse: WrappedResponse<number[]> = await httpClient_Eva.deleteEvas(
+    const deleteResponse: WrappedResponse<null> = await httpClient_Eva.deleteEvas(
       [eva.uuid],
       isRexRunning
     );
@@ -454,27 +278,15 @@ export const thunkCreateEva = appCreateAsyncThunk<void>(
       existingNames: getState().eva.evas.map((item) => item.name),
     });
 
-    const blankEva: Eva = {
-      ownerId: null,
+    const blankEva: Eva = generateBlankEVA({
       missionId: getState().mission.mission?.id,
-      uuid: uuidv4(),
       name: randomName,
-      status: "Candidate",
-      sequence: [],
-      description: "",
       traverseRate: getState().mission.mission.traverseRate,
       maxDuration: getState().mission.mission.defaultEvaDuration,
-      egressDuration: 10,
-      ingressDuration: 10,
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
-      traverseColor: null,
-      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-      updatedAt: null,
-    };
+    });
 
     //create an empty traverse
-    const newTraverse: Traverse = makeNewTraverse(blankEva.missionId);
+    const newTraverse: Traverse = generateBlankTraverse({ missionId: blankEva.missionId });
     dispatch(upsertTraverses([newTraverse]));
 
     //add the traverse to the sequence
@@ -525,7 +337,8 @@ export const thunkDuplicateEva = appCreateAsyncThunk<{
     const evaStations = getState().station.stations.filter((s) => evaStationUuids.includes(s.uuid));
     for (const station of evaStations) {
       //make a copy
-      const newStationRes = (await dispatch(thunkDuplicateStation({ station }))).payload;
+      const newStationRes = (await dispatch(thunkDuplicateStation({ stationUuid: station.uuid })))
+        .payload;
       if (newStationRes) {
         //update this station uuid in new eva sequence
         const sequenceIndex = newEva.sequence.findIndex((seqItem) => seqItem.uuid === station.uuid);
@@ -599,25 +412,6 @@ export const thunkDuplicateEva = appCreateAsyncThunk<{
   dispatch(thunkSaveNewEva({ eva: newEva }));
 });
 
-const makeNewTraverse = (missionId: number): Traverse => {
-  const newTraverse: Traverse = {
-    missionId: missionId,
-    uuid: uuidv4(),
-    name: "",
-    description: "",
-    predictedDurationLower: null,
-    predictedDurationUpper: null,
-    path: [],
-    pathSegmentDistances: null,
-    pathSegmentElevations: null,
-    status: null,
-    color: null,
-    updatedAt: null,
-    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-  };
-  return newTraverse;
-};
-
 export const thunkAddStationToEva = appCreateAsyncThunk<{ evaUuid: string }>(
   "evaAddStation",
   async ({ evaUuid }, { dispatch, getState }) => {
@@ -630,7 +424,7 @@ export const thunkAddStationToEva = appCreateAsyncThunk<{ evaUuid: string }>(
     };
     if (newEvaSequence.length === 0) {
       // add traverse for "from lander"
-      const newTraverse = makeNewTraverse(eva.missionId);
+      const newTraverse = generateBlankTraverse({ missionId: eva.missionId });
       dispatch(upsertTraverses([newTraverse]));
       newEvaSequence.push({
         type: "traverse",
@@ -641,7 +435,7 @@ export const thunkAddStationToEva = appCreateAsyncThunk<{ evaUuid: string }>(
       newEvaSequence.push(newStationSequenceItem);
 
       // add traverse for "to lander"
-      const newTraverse2 = makeNewTraverse(eva.missionId);
+      const newTraverse2 = generateBlankTraverse({ missionId: eva.missionId });
       dispatch(upsertTraverses([newTraverse2]));
       newEvaSequence.push({
         type: "traverse",
@@ -649,7 +443,7 @@ export const thunkAddStationToEva = appCreateAsyncThunk<{ evaUuid: string }>(
       });
     } else {
       // add a traverse before the station
-      const newTraverse = makeNewTraverse(eva.missionId);
+      const newTraverse = generateBlankTraverse({ missionId: eva.missionId });
       dispatch(upsertTraverses([newTraverse]));
 
       // add new station to the end of the sequence
@@ -769,133 +563,3 @@ export const thunkReorderStationInEva = appCreateAsyncThunk<{
     }
   }
 });
-
-/**
- * Check all EVA sequences to make sure a traverse "from lander" is at the beginning and "to lander" is at the end
- * Create any missing traverses as needed and add them to the sequence
- * Check all evas to make sure they have a default egress and ingress duration of 10 minutes
- */
-export const thunkAuditEvas = appCreateAsyncThunk<void>(
-  "auditEvas",
-  async (__, { dispatch, getState }) => {
-    const evas = getState().eva.evas;
-    for (const eva of evas) {
-      const newEvaSequence = _.cloneDeep(eva.sequence);
-
-      let egressLocationUuid = eva.egressLocationUuid;
-      let egressDuration = eva.egressDuration;
-      let ingressLocationUuid = eva.ingressLocationUuid;
-      let ingressDuration = eva.ingressDuration;
-
-      // if this eva has no sequence, add a traverse "from lander" and "to lander"
-      if (newEvaSequence.length === 0) {
-        const newTraverse = makeNewTraverse(eva.missionId);
-        dispatch(upsertTraverses([newTraverse]));
-
-        newEvaSequence.push({
-          type: "traverse",
-          uuid: newTraverse.uuid,
-        });
-
-        // set the egressLocationUuid to "lander" and the ingressLocationUuid to "lander"
-        egressLocationUuid = "lander";
-        ingressLocationUuid = "lander";
-      } else {
-        // check if there isn't a traverse at the beginning of the sequence
-        if (newEvaSequence[0].type !== "traverse") {
-          // This EVA hasn't been converted yet
-
-          // Get the first station in the sequence
-          const firstStation = getState().station.stations.find(
-            (station) => station.uuid === newEvaSequence[0].uuid
-          );
-          // If the first station's name is "Egress" then set the egressLocationUuid to "lander"
-          if (firstStation.name === "Egress") {
-            egressLocationUuid = "lander";
-          } else {
-            // otherwise set the egressLocationUuid to the first station
-            egressLocationUuid = firstStation.uuid;
-          }
-          //set duration
-          egressDuration = getTotalDwellTimeUpper(
-            getState().action.actions.filter((a) => a.stationUuid === firstStation.uuid)
-          );
-
-          // delete the first station from the sequence
-          newEvaSequence.splice(0, 1);
-        }
-
-        // check if there isn't a traverse at the end of the sequence
-        if (newEvaSequence[newEvaSequence.length - 1]?.type !== "traverse") {
-          // This EVA hasn't been converted yet
-
-          // Get the last station in the sequence
-          const lastStation = getState().station.stations.find(
-            (station) => station.uuid === newEvaSequence[newEvaSequence.length - 1].uuid
-          );
-          // If the last station's name is "Ingress" then set the ingressLocationUuid to "lander"
-
-          if (lastStation.name === "Ingress") {
-            ingressLocationUuid = "lander";
-          } else {
-            // otherwise set the ingressLocationUuid to the last station
-            ingressLocationUuid = lastStation.uuid;
-          }
-          //set duration
-          ingressDuration = getTotalDwellTimeUpper(
-            getState().action.actions.filter((a) => a.stationUuid === lastStation.uuid)
-          );
-
-          // delete the last station from the sequence
-          newEvaSequence.splice(newEvaSequence.length - 1, 1);
-        }
-      }
-
-      const newEva: Eva = {
-        ...eva,
-        sequence: newEvaSequence,
-        egressDuration,
-        ingressDuration,
-        egressLocationUuid,
-        ingressLocationUuid,
-      };
-
-      if (!_.isEqual(eva, newEva)) {
-        dispatch(upsertEva(newEva));
-        await dispatch(thunkSaveEva({ evaUuid: newEva.uuid }));
-
-        // get first and last traverses in this EVA
-        const firstLastTraverseUuidsInThisEva: string[] = [];
-        firstLastTraverseUuidsInThisEva.push(newEva.sequence[0].uuid);
-        firstLastTraverseUuidsInThisEva.push(newEva.sequence[newEva.sequence.length - 1].uuid);
-
-        // full update the first and last traverses in this EVA
-        for (const traverseUuid of firstLastTraverseUuidsInThisEva) {
-          await dispatch(
-            thunkFullUpdateTraverse({
-              traverseUuid,
-              evaSequence: newEvaSequence,
-              rename: true,
-              saveToDb: true,
-            })
-          );
-        }
-      }
-    }
-  }
-);
-
-// calculates total dwell time for an array of actions. used to determine station dwell time in thunkAduitEvas
-const getTotalDwellTimeUpper = (actions: Action[]): number => {
-  let ev1Time = 0;
-  let ev2Time = 0;
-  actions.forEach((action) => {
-    if (action.crewAssigned?.includes("EV1")) {
-      ev1Time += action.durationUpper;
-    }
-    if (action.crewAssigned?.includes("EV2")) {
-      ev2Time += action.durationUpper;
-    }
-  });
-  return ev1Time > ev2Time ? ev1Time : ev2Time;
-};

@@ -1,6 +1,6 @@
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
+import { faChevronDown, faChevronUp } from "@fortawesome/free-solid-svg-icons";
 import {
   FunctionComponent,
   useState,
@@ -28,13 +28,26 @@ import { CompactPicker } from "react-color";
 export const Button: FunctionComponent<{
   onClick: () => void;
   label?: string;
+  ariaLabel?: string;
   toolTip?: string;
   icon?: IconDefinition;
   style?: CSSProperties;
   labelStyle?: CSSProperties;
   size?: "xs" | "lg";
   enabled?: boolean;
-}> = ({ onClick, label, toolTip, icon, style, labelStyle, size, enabled = true }) => {
+  iconStyle?: CSSProperties;
+}> = ({
+  onClick,
+  label,
+  ariaLabel,
+  toolTip,
+  icon,
+  style,
+  labelStyle,
+  size,
+  enabled = true,
+  iconStyle,
+}) => {
   const enabledStyle = !enabled ? styles.buttonDisabled : "";
   return (
     <div
@@ -45,8 +58,16 @@ export const Button: FunctionComponent<{
         if (enabled) onClick();
       }}
       style={style}
+      aria-label={ariaLabel || label || ""}
     >
-      {icon && <FontAwesomeIcon icon={icon} size={size} className={styles.buttonLabelIcon} />}
+      {icon && (
+        <FontAwesomeIcon
+          icon={icon}
+          size={size}
+          className={styles.buttonLabelIcon}
+          style={iconStyle}
+        />
+      )}
       <div style={labelStyle}>{label}</div>
     </div>
   );
@@ -199,6 +220,70 @@ export const IconDropdown: FunctionComponent<{
   }
 };
 
+export const MultiSelectDropdown: FunctionComponent<{
+  items: { label: string; value: string }[];
+  selectedItems: string[];
+  //eslint-disable-next-line
+  toggleItem: (item: any) => void;
+  titleLabel: string;
+  zIndex?: number;
+}> = ({ items, selectedItems, toggleItem, titleLabel, zIndex }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  return (
+    <>
+      <div className={styles.multiselectDropdownContainer} style={{ zIndex: zIndex }}>
+        <div
+          className={styles.multiselectDropdownHeader}
+          onClick={() => {
+            setMenuOpen(!menuOpen);
+          }}
+        >
+          {titleLabel}
+          <FontAwesomeIcon
+            icon={menuOpen ? faChevronUp : faChevronDown}
+            style={{ width: "15px", color: "var(--grey5)", outline: "none" }}
+            tabIndex={0}
+          />
+        </div>
+        {menuOpen && (
+          <div
+            className={styles.multiselectDropdownItems}
+            onClick={() => {
+              setMenuOpen(false);
+            }}
+          >
+            {items.map((item) => (
+              <div key={item.value} className={styles.multiselectDropdownItem}>
+                <Checkbox
+                  checked={selectedItems.includes(item.value)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onChange={() => {
+                    // toggle the selectedItem
+                    toggleItem(item.value);
+                  }}
+                  labelStyle={{ marginRight: "5px" }}
+                />
+                <div
+                  className={styles.multiselectDropdownItemTitle}
+                  onClick={(e) => {
+                    // toggle the selectedItem
+                    toggleItem(item.value);
+                    e.stopPropagation();
+                  }}
+                >
+                  {item.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+};
+
 /**
  * This component wraps the {@link FFInput} component inside a react-final-form {@link Form}
  *    to allow each input to validate and submit individually (no singular save button for the entire page)
@@ -254,6 +339,7 @@ export const InLineEditInput: FunctionComponent<{
           style={styleValue}
           data-tooltip-id="aegis-tooltip"
           data-tooltip-html={fieldProps.ariaLabel}
+          aria-label={fieldProps.ariaLabel}
         >
           {value}
         </div>
@@ -301,6 +387,7 @@ export const Tags: FunctionComponent<{
 export const Checkbox: FunctionComponent<{
   checked: boolean;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onClick?: (event: React.MouseEvent) => void;
   editable?: boolean;
   toolTip?: string;
   label?: string | ReactNode;
@@ -312,6 +399,7 @@ export const Checkbox: FunctionComponent<{
   checked,
   editable = true,
   onChange,
+  onClick,
   toolTip,
   label,
   labelStyle,
@@ -324,6 +412,7 @@ export const Checkbox: FunctionComponent<{
   return (
     <div
       className={`${styles.checkboxContainer} ${editableStyle}`}
+      onClick={onClick}
       data-tooltip-id="aegis-tooltip"
       data-tooltip-html={toolTip}
     >

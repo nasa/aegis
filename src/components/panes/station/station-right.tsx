@@ -33,6 +33,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDeleteStation, thunkSaveStation, thunkStationCancel } from "store/thunk/thunkStation";
 import { validators } from "components/interface/form/formValidators";
 import { RightTabs } from "components/interface/side-controls";
+import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -82,12 +83,30 @@ const StationEditorRight: FunctionComponent = () => {
 
   const calculatedFields = useAppSelector(
     (state) =>
-      state.station.calculatedFields.find((calculated) => calculated.uuid === selectedStationUuid),
+      getCalculatedFieldsByStation({
+        stationUuid: selectedStationUuid,
+        wholeStoreState: state,
+      }),
     deepEqual
   );
-  const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
-  const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--station)");
+
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  useEffect(() => {
+    if (!stationsEditing.includes(selectedStationUuid)) setShowEmojiPicker(false);
+  }, [stationsEditing, selectedStationUuid]);
+
+  //track modified
+  let saveButtonState = "pending";
+  if (elevationPendingIndex < 0) {
+    const stationModified = isModified([selectedStation], [selectedStationFromDb]);
+    const actionModified = isModified(stationActions, stationActionsFromDb);
+    const modified = stationModified || actionModified;
+    saveButtonState = modified ? "enabled" : "disabled";
+  }
+
+  // set reports tab icon color
+  const reportsTabIconColor = getAlertColor(calculatedFields?.reportItems);
 
   const panelTypes: PanelTypes = {
     info_panel: {
@@ -123,32 +142,6 @@ const StationEditorRight: FunctionComponent = () => {
       icon: calculatedFields?.reportItems.length > 0 ? faTriangleExclamation : faCheck,
     },
   };
-  //track modified
-  useEffect(() => {
-    if (elevationPendingIndex > -1) {
-      setSaveButtonState("pending");
-    } else {
-      const stationModified = isModified([selectedStation], [selectedStationFromDb]);
-      const actionModified = isModified(stationActions, stationActionsFromDb);
-      const modified = stationModified || actionModified;
-      setSaveButtonState(modified ? "enabled" : "disabled");
-    }
-  }, [
-    elevationPendingIndex,
-    selectedStation,
-    selectedStationFromDb,
-    stationActions,
-    stationActionsFromDb,
-  ]);
-
-  // set reports tab icon color
-  useEffect(() => {
-    setReportsTabIconColor(getAlertColor(calculatedFields?.reportItems));
-  }, [calculatedFields]);
-
-  useEffect(() => {
-    if (!stationsEditing.includes(selectedStationUuid)) setShowEmojiPicker(false);
-  }, [stationsEditing, selectedStationUuid]);
 
   let activeComponent: FunctionComponent = null;
   if (!_.isNil(panelTypes[selectedRightNavItem])) {
@@ -224,6 +217,7 @@ const StationEditorRight: FunctionComponent = () => {
           <div className={paneStyles.saveCancelContainer}>
             {stationsEditing.includes(selectedStationUuid) && !(saveButtonState === "pending") ? (
               <Button
+                ariaLabel="deleteStation"
                 icon={faTrashAlt}
                 onClick={() => {
                   if (window.confirm("Are you sure you want to delete this Station?")) {
@@ -242,6 +236,7 @@ const StationEditorRight: FunctionComponent = () => {
             )}
             {!stationsEditing.includes(selectedStationUuid) && editPerms && (
               <Button
+                ariaLabel="editStation"
                 icon={faEdit}
                 onClick={() => {
                   dispatch(
@@ -263,6 +258,7 @@ const StationEditorRight: FunctionComponent = () => {
               ) : (
                 <>
                   <Button
+                    ariaLabel="saveStation"
                     onClick={() => {
                       if (saveButtonState === "enabled") {
                         dispatch(
@@ -287,6 +283,7 @@ const StationEditorRight: FunctionComponent = () => {
                     }}
                   />
                   <Button
+                    ariaLabel="cancelStation"
                     onClick={() => {
                       dispatch(
                         thunkStationCancel({

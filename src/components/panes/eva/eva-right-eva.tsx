@@ -12,12 +12,14 @@ import {
   faTriangleExclamation,
   faCheck,
   IconDefinition,
+  faFileExport,
 } from "@fortawesome/free-solid-svg-icons";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
 
 import Info_Panel from "./eva-right-eva-info";
 import Actions_Panel from "./eva-right-eva-actions";
 import Report_Panel from "../report";
+import Export_Panel from "./eva-right-eva-export";
 import { setEvaEditMode, setSelectedEvaRightNavItem, upsertEvaByField } from "store/eva";
 import { getAlertColor, isModified } from "utils/component-helpers";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -29,6 +31,11 @@ import {
 } from "store/thunk/thunkEva";
 import { validators } from "components/interface/form/formValidators";
 import { RightTabs } from "components/interface/side-controls";
+import {
+  getCalculatedFieldsByEva,
+  getCalculatedFieldsByStation,
+  getCalculatedFieldsByTraverse,
+} from "store/processing/calculatedFields";
 
 const EvaRightEva: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -60,47 +67,82 @@ const EvaRightEva: FunctionComponent = () => {
       }),
     deepEqual
   );
-  const allTraverseCalculatedFields = useAppSelector(
-    (state) => state.traverse.calculatedFields,
-    deepEqual
-  );
-  const allStationCalculatedFields = useAppSelector(
-    (state) => state.station.calculatedFields,
-    deepEqual
-  );
+
   const calculatedFields = useAppSelector(
     (state) =>
-      state.eva.calculatedFields.find((calculated) => calculated.uuid === selectedEva?.uuid),
+      getCalculatedFieldsByEva({
+        evaUuid: selectedEvaUuid,
+        wholeStoreState: state,
+      }),
     deepEqual
   );
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
-  const [evaReportSequenceItems, setEvaReportSequenceItems] = useState<EvaReportSequenceItem[]>([]);
-  const [modified, setModified] = useState(false); //track modified
-
-  useEffect(() => {
-    if (!selectedEva) return;
-    const evaModifieid = isModified([selectedEva], [selectedEvaFromDb]);
-
+  const traverseCalculatedFieldsInSequence = useAppSelector((state) => {
+    const eva = state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid);
+    if (!eva) return [];
     const traverseUuidsInThisEva: string[] = [];
-    selectedEva.sequence.forEach((sequenceItem) => {
+    eva.sequence.forEach((sequenceItem) => {
       if (sequenceItem.type === "traverse") {
         traverseUuidsInThisEva.push(sequenceItem.uuid);
       }
     });
-    const thisEvasTraverses = traverses.filter((traverse) => {
-      return traverseUuidsInThisEva.includes(traverse.uuid);
+    const traverseCalculatedFields: TraverseCalculatedFields[] = [];
+    for (const traverseUuid of traverseUuidsInThisEva) {
+      traverseCalculatedFields.push(
+        getCalculatedFieldsByTraverse({
+          traverseUuid,
+          wholeStoreState: state,
+        })
+      );
+    }
+    return traverseCalculatedFields;
+  }, deepEqual);
+
+  const stationCalculatedFieldsInSequence = useAppSelector((state) => {
+    const eva = state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid);
+    if (!eva) return [];
+    const stationUuidsInThisEva: string[] = [];
+    eva.sequence.forEach((sequenceItem) => {
+      if (sequenceItem.type === "station") {
+        stationUuidsInThisEva.push(sequenceItem.uuid);
+      }
     });
-    const thisEvasTraversesFromDb = traversesFromDb.filter((traverse) => {
-      return traverseUuidsInThisEva.includes(traverse.uuid);
-    });
-    const traversesModified = isModified(thisEvasTraverses, thisEvasTraversesFromDb);
-    setModified(evaModifieid || traversesModified);
-  }, [selectedEva, selectedEvaFromDb, traverses, traversesFromDb]);
+    const stationCalculatedFields: StationCalculatedFields[] = [];
+    for (const stationUuid of stationUuidsInThisEva) {
+      stationCalculatedFields.push(
+        getCalculatedFieldsByStation({
+          stationUuid,
+          wholeStoreState: state,
+        })
+      );
+    }
+    return stationCalculatedFields;
+  }, deepEqual);
+
+  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+
+  const [evaReportSequenceItems, setEvaReportSequenceItems] = useState<EvaReportSequenceItem[]>([]);
+
+  const evaModifieid = isModified([selectedEva], [selectedEvaFromDb]);
+
+  const traverseUuidsInThisEva: string[] = [];
+  selectedEva.sequence.forEach((sequenceItem) => {
+    if (sequenceItem.type === "traverse") {
+      traverseUuidsInThisEva.push(sequenceItem.uuid);
+    }
+  });
+  const thisEvasTraverses = traverses.filter((traverse) => {
+    return traverseUuidsInThisEva.includes(traverse.uuid);
+  });
+  const thisEvasTraversesFromDb = traversesFromDb.filter((traverse) => {
+    return traverseUuidsInThisEva.includes(traverse.uuid);
+  });
+  const traversesModified = isModified(thisEvasTraverses, thisEvasTraversesFromDb);
+  const modified = evaModifieid || traversesModified;
 
   // generate evaReportSequenceItems from the eva sequence
   useEffect(() => {
-    (async () => {
+    const generateEvaReportSequenceItemsAsync = async () => {
       const evaReportSequenceItems: EvaReportSequenceItem[] = [];
       if (selectedEva) {
         for (const sequenceItem of selectedEva.sequence) {
@@ -109,7 +151,7 @@ const EvaRightEva: FunctionComponent = () => {
 
           if (seqItemRes.payload.type === "traverse") {
             const traverse = seqItemRes.payload.item as Traverse;
-            const travereCalculatedFields = allTraverseCalculatedFields.find(
+            const travereCalculatedFields = traverseCalculatedFieldsInSequence.find(
               (traverseCalculatedFields) => traverseCalculatedFields.uuid === sequenceItem.uuid
             );
             if (traverse) {
@@ -122,8 +164,8 @@ const EvaRightEva: FunctionComponent = () => {
             }
           } else if (seqItemRes.payload.type === "station") {
             const station = seqItemRes.payload.item as Station;
-            const stationCalculatedFields = allStationCalculatedFields.find(
-              (stationCalculatedFields) => stationCalculatedFields.uuid === sequenceItem.uuid
+            const stationCalculatedFields = stationCalculatedFieldsInSequence.find(
+              (fields) => fields?.uuid === sequenceItem.uuid
             );
             if (station) {
               evaReportSequenceItems.push({
@@ -138,8 +180,14 @@ const EvaRightEva: FunctionComponent = () => {
         }
       }
       setEvaReportSequenceItems(evaReportSequenceItems);
-    })();
-  }, [selectedEva, allTraverseCalculatedFields, allStationCalculatedFields, dispatch]);
+    };
+    generateEvaReportSequenceItemsAsync();
+  }, [
+    selectedEva,
+    traverseCalculatedFieldsInSequence,
+    stationCalculatedFieldsInSequence,
+    dispatch,
+  ]);
 
   const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--eva)");
   const [reportsTabIcon, setReportsTabIcon] = useState<IconDefinition>(faTriangleExclamation);
@@ -169,6 +217,12 @@ const EvaRightEva: FunctionComponent = () => {
       selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "var(--eva)",
       unselectedColor: reportsTabIconColor,
       icon: reportsTabIcon,
+    },
+    export_panel: {
+      title: "Export AEGIS Data",
+      panel: <Export_Panel />,
+      selectedColor: "white",
+      icon: faFileExport,
     },
   };
 
@@ -208,7 +262,7 @@ const EvaRightEva: FunctionComponent = () => {
               editing={evasEditing.includes(selectedEvaUuid)}
               fieldProps={{
                 name: "name",
-                ariaLabel: "Station",
+                ariaLabel: "Eva",
                 style: {
                   width: "100%",
                   color: "var(--eva)",
@@ -235,6 +289,7 @@ const EvaRightEva: FunctionComponent = () => {
           <div className={paneStyles.saveCancelContainer}>
             {evasEditing.includes(selectedEvaUuid) && (
               <Button
+                ariaLabel="deleteEva"
                 icon={faTrashAlt}
                 onClick={() => {
                   if (window.confirm("Are you sure you want to delete this EVA?")) {
@@ -247,6 +302,7 @@ const EvaRightEva: FunctionComponent = () => {
             )}
             {!evasEditing.includes(selectedEvaUuid) && editPerms && (
               <Button
+                ariaLabel="editEva"
                 icon={faEdit}
                 onClick={() => {
                   dispatch(setEvaEditMode({ evaUuid: selectedEva.uuid, editMode: true }));
@@ -261,6 +317,7 @@ const EvaRightEva: FunctionComponent = () => {
             {evasEditing.includes(selectedEvaUuid) && (
               <>
                 <Button
+                  ariaLabel="saveEva"
                   onClick={() => {
                     if (modified) {
                       dispatch(thunkSaveEva({ evaUuid: selectedEva.uuid }));
@@ -278,6 +335,7 @@ const EvaRightEva: FunctionComponent = () => {
                   }}
                 />
                 <Button
+                  ariaLabel="cancelEva"
                   onClick={() => {
                     dispatch(thunkEvaCancel({ evaUuid: selectedEva.uuid }));
                   }}
