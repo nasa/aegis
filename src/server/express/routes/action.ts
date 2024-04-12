@@ -1,5 +1,5 @@
 import express, { Request, Response } from "express";
-import { ActionUpsertRequest } from "../../../typings/network/clientTypes";
+import { ActionUpsertRequest, ActionDeleteRequest } from "../../../typings/network/clientTypes";
 
 import _ from "lodash";
 import { hasPerms } from "utils/permissions";
@@ -68,15 +68,12 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { socketId, missionId, log, actions } = req.body as ActionUpsertRequest;
-  // const missionIdNumber = parseInt(missionId);
-  // const logAction = Boolean(log);
   const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
   try {
-    // const actionsToUpsert: Action[] = req.body as Action[];
     await upsertActions(actions);
 
     // emit the upserted item to all clients via socket.io
@@ -104,27 +101,25 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms(queryObj.missionId, "edit", req.session.user);
+  const { socketId, missionId, log, actionUuids } = req.body as ActionDeleteRequest;
+  const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   try {
-    const uuidsToDelete: string[] = req.body;
-    //const uuidsToDelete: string[] = req.body as string[];
-    const deletedUuids = await deleteActions(uuidsToDelete);
+    const deletedUuids = await deleteActions(actionUuids);
     if (deletedUuids.length > 0) {
       // emit the deleted item to all clients via socket.io
       emitStoreDelete(
         {
-          missionId: queryObj.missionId,
-          socketId: queryObj.socketId,
+          missionId,
+          socketId,
           type: "action",
           uuids: deletedUuids,
         } as StoreDelete,
-        queryObj.logAction
+        log
       );
       res.status(200).json({
         status: "success",

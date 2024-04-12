@@ -1,4 +1,4 @@
-import { ActionUpsertRequest } from "typings/network/clientTypes";
+import { ActionUpsertRequest, ActionDeleteRequest } from "typings/network/clientTypes";
 
 export async function getActions(filter: ActionFilterOptions): Promise<WrappedResponse<Action[]>> {
   let urlParams = "";
@@ -60,7 +60,7 @@ export async function deleteActions(
       missionId,
       log,
       actionUuids,
-    }),
+    } as ActionDeleteRequest),
   });
   const response: WrappedResponse<null> = await res.json();
   if (res.status !== 200) {
