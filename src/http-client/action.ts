@@ -17,9 +17,10 @@ export async function upsertActions(
   actions: Action[],
   log: boolean = false
 ): Promise<WrappedResponse<Action[]>> {
-  const missionId =
+  const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const res = await fetch(`/api/v1/action`, {
     method: "POST",
     headers: {
@@ -30,7 +31,7 @@ export async function upsertActions(
       missionId,
       log,
       actions,
-    }),
+    } as ActionUpsertRequest),
   });
   const response: WrappedResponse<Action[]> = await res.json();
   if (res.status !== 200) {
@@ -45,10 +46,11 @@ export async function deleteActions(
   actionUuids: string[],
   log: boolean = false
 ): Promise<WrappedResponse<null>> {
-  const missionId =
+  const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-  const res = await fetch(`/api/v1/action1`, {
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
+  const res = await fetch(`/api/v1/action`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
