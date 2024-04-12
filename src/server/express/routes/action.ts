@@ -1,5 +1,4 @@
 import express, { Request, Response } from "express";
-import { ActionUpsertRequest, ActionDeleteRequest } from "../../../typings/network/clientTypes";
 
 import _ from "lodash";
 import { hasPerms } from "utils/permissions";

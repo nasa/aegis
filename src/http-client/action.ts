@@ -1,5 +1,3 @@
-import { ActionUpsertRequest, ActionDeleteRequest } from "typings/network/clientTypes";
-
 export async function getActions(filter: ActionFilterOptions): Promise<WrappedResponse<Action[]>> {
   let urlParams = "";
 
