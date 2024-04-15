@@ -6,19 +6,20 @@ export async function getRexes(missionId: number = null): Promise<WrappedRespons
 }
 
 export async function upsertRexes(
-  rexObjs: Rex[],
+  rexes: Rex[],
   log: boolean = false
 ): Promise<WrappedResponse<Rex[]>> {
-  const missionId =
+  const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-  const logStr = log ? "&log=true" : "";
-  const res = await fetch(`/api/v1/rex?socketId=${socketId}&missionId=${missionId}${logStr}`, {
+  const requestBody: RexUpsertRequest = { missionId, socketId, log, rexes };
+  const res = await fetch(`/api/v1/rex`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(rexObjs),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<Rex[]> = await res.json();
   if (res.status !== 200) {
@@ -33,16 +34,17 @@ export async function deleteRexes(
   uuids: string[],
   log: boolean = false
 ): Promise<WrappedResponse<null>> {
-  const missionId =
+  const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-  const logStr = log ? "&log=true" : "";
-  const res = await fetch(`/api/v1/rex?socketId=${socketId}&missionId=${missionId}${logStr}`, {
+  const requestBody: RexDeleteRequest = { missionId, socketId, log, uuids };
+  const res = await fetch(`/api/v1/rex`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(uuids),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<null> = await res.json();
   if (res.status !== 200) {

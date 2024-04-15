@@ -60,16 +60,15 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms(queryObj.missionId, "edit", req.session.user);
+  const { missionId, socketId, log, traverses } = req.body as TraverseUpsertRequest;
+  const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   try {
-    const traversesToUpsert: Traverse[] = req.body as Traverse[];
-    const upsertResponse: Traverse[] = await upsertTraverses(traversesToUpsert);
+    const upsertResponse: Traverse[] = await upsertTraverses(traverses);
 
     //check response
     if (upsertResponse.length === 0) {
@@ -84,12 +83,12 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     // emit the upserted item to all clients via socket.io
     emitStoreUpsert(
       {
-        missionId: queryObj.missionId,
-        socketId: queryObj.socketId,
+        missionId,
+        socketId,
         type: "traverse",
         data: upsertResponse,
       } as StoreUpsert<Traverse>,
-      queryObj.logAction
+      log
     );
 
     res.status(200).json({
@@ -105,26 +104,25 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms(queryObj.missionId, "edit", req.session.user);
+  const { missionId, socketId, log, traverseUuids } = req.body as TraverseDeleteRequest;
+  const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   try {
-    const uuidsToDelete: string[] = req.body;
-    const deletedUuids = await deleteTraverses(uuidsToDelete);
+    const deletedUuids = await deleteTraverses(traverseUuids);
     if (deletedUuids.length > 0) {
       // emit the deleted item to all clients via socket.io
       emitStoreDelete(
         {
-          missionId: queryObj.missionId,
-          socketId: queryObj.socketId,
+          missionId,
+          socketId,
           type: "traverse",
           uuids: deletedUuids,
         } as StoreDelete,
-        queryObj.logAction
+        log
       );
 
       res.status(200).json({

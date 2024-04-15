@@ -13,16 +13,17 @@ export async function upsertTraverses(
   traverses: Traverse[],
   log: boolean = false
 ): Promise<WrappedResponse<Traverse[]>> {
-  const missionId =
+  const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-  const logStr = log ? "&log=true" : "";
-  const res = await fetch(`/api/v1/traverse?socketId=${socketId}&missionId=${missionId}${logStr}`, {
+  const requestBody: TraverseUpsertRequest = { missionId, socketId, log, traverses };
+  const res = await fetch(`/api/v1/traverse`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(traverses),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<Traverse[]> = await res.json();
   if (res.status !== 200) {
@@ -37,16 +38,17 @@ export async function deleteTraverses(
   traverseUuids: string[],
   log: boolean = false
 ): Promise<WrappedResponse<null>> {
-  const missionId =
+  const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-  const logStr = log ? "&log=true" : "";
-  const res = await fetch(`/api/v1/traverse?socketId=${socketId}&missionId=${missionId}${logStr}`, {
+  const requestBody: TraverseDeleteRequest = { missionId, socketId, log, traverseUuids };
+  const res = await fetch(`/api/v1/traverse`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(traverseUuids),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<null> = await res.json();
   if (res.status !== 200) {

@@ -94,8 +94,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms(queryObj.missionId, "edit", req.session.user);
+  const { missionId, stmObjects, stmType } = req.body as STMUpsertRequest;
+  const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
@@ -103,33 +103,27 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
   try {
     let upsertResponse: STMLevel1[] | STMLevel2[] | STMLevel3[] = [];
-    let upsertObjects: STMLevel1[] | STMLevel2[] | STMLevel3[];
-    let upsertType: "Level1" | "Level2" | "Level3" = null;
 
-    if (queryObj.stmType === "level1") {
-      upsertObjects = req.body as STMLevel1[];
-      upsertType = "Level1";
-    } else if (queryObj.stmType === "level2") {
-      upsertObjects = req.body as STMLevel2[];
-      upsertType = "Level2";
-    } else if (queryObj.stmType === "level3") {
-      upsertObjects = req.body as STMLevel3[];
-      upsertType = "Level3";
-    } else {
-      res.status(500).json({ status: "error", message: "Invalid type" });
-      return;
+    switch (stmType) {
+      case "Level1":
+        upsertResponse = await upsertSTMs(stmObjects as STMLevel1[], stmType);
+        break;
+      case "Level2":
+        upsertResponse = await upsertSTMs(stmObjects as STMLevel2[], stmType);
+        break;
+      case "Level3":
+        upsertResponse = await upsertSTMs(stmObjects as STMLevel3[], stmType);
+        break;
+      default:
+        res.status(500).json({ status: "error", message: "Invalid STM type provided" });
+        return;
     }
-
-    //perform the upsert
-    upsertResponse = await upsertSTMs(upsertObjects, upsertType);
 
     //check response
     if (upsertResponse.length > 0) {
       res.status(200).json({
         status: "success",
-        message: `${
-          queryParamDict[queryObj.stmType as keyof QueryParamDict]
-        } upserted with uuid ${upsertResponse.map((s) => s.uuid)}`,
+        message: `${stmType} upserted with uuid ${upsertResponse.map((s) => s.uuid)}`,
         data: upsertResponse,
       });
     } else {
@@ -147,8 +141,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms(queryObj.missionId, "edit", req.session.user);
+  const { missionId, stmType, uuids } = req.body as STMDeleteRequest;
+  const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
@@ -156,25 +150,25 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
 
   try {
     let deletedResponse: string[];
-    const uuidsToDelete: string[] = req.body;
 
-    if (queryObj.stmType === "level1") {
-      deletedResponse = await deleteSTMs(uuidsToDelete, "Level1");
-    } else if (queryObj.stmType === "level2") {
-      deletedResponse = await deleteSTMs(uuidsToDelete, "Level2");
-    } else if (queryObj.stmType === "level3") {
-      deletedResponse = await deleteSTMs(uuidsToDelete, "Level3");
-    } else if (queryObj.stmType === "all" && queryObj.missionId) {
-      deletedResponse = [await deleteSTMTree(queryObj.missionId)];
+    if (stmType === "Level1") {
+      deletedResponse = await deleteSTMs(uuids, "Level1");
+    } else if (stmType === "Level2") {
+      deletedResponse = await deleteSTMs(uuids, "Level2");
+    } else if (stmType === "Level3") {
+      deletedResponse = await deleteSTMs(uuids, "Level3");
+    } else if (stmType === "ALL" && missionId) {
+      const deleteMessage = await deleteSTMTree(missionId);
+      deletedResponse = [deleteMessage];
     } else {
-      res.status(500).json({ status: "error", message: "Invalid url parameters" });
+      res.status(500).json({ status: "error", message: "Invalid STM type provided" });
       return;
     }
 
     if (deletedResponse.length > 0) {
       res.status(200).json({
         status: "success",
-        message: `${queryParamDict[queryObj.stmType as keyof QueryParamDict]} deleted`,
+        message: `${stmType} deleted`,
       });
     } else {
       res.status(404).json({
