@@ -147,3 +147,11 @@ type TraverseDeleteRequest = {
   log: boolean;
   traverseUuids: string[];
 };
+
+type UserUpsertRequest = {
+  users: User[];
+};
+
+type UserDeleteRequest = {
+  userIds: number[];
+};
