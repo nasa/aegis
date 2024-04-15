@@ -19,17 +19,13 @@ export async function upsertActions(
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
+  const requestBody: ActionUpsertRequest = { socketId, missionId, log, actions };
   const res = await fetch(`/api/v1/action`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      socketId,
-      missionId,
-      log,
-      actions,
-    } as ActionUpsertRequest),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<Action[]> = await res.json();
   if (res.status !== 200) {
@@ -48,17 +44,13 @@ export async function deleteActions(
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
+  const requestBody: ActionDeleteRequest = { socketId, missionId, log, actionUuids };
   const res = await fetch(`/api/v1/action`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      socketId,
-      missionId,
-      log,
-      actionUuids,
-    } as ActionDeleteRequest),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<null> = await res.json();
   if (res.status !== 200) {
