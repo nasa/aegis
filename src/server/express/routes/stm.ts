@@ -102,22 +102,12 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    let upsertResponse: STMLevel1[] | STMLevel2[] | STMLevel3[] = [];
-
-    switch (stmType) {
-      case "Level1":
-        upsertResponse = await upsertSTMs(stmObjects as STMLevel1[], stmType);
-        break;
-      case "Level2":
-        upsertResponse = await upsertSTMs(stmObjects as STMLevel2[], stmType);
-        break;
-      case "Level3":
-        upsertResponse = await upsertSTMs(stmObjects as STMLevel3[], stmType);
-        break;
-      default:
-        res.status(500).json({ status: "error", message: "Invalid STM type provided" });
-        return;
+    if (!["Level1", "Level2", "Level3"].includes(stmType)) {
+      res.status(500).json({ status: "error", message: "Invalid STM type provided" });
+      return;
     }
+
+    const upsertResponse = await upsertSTMs(stmObjects, stmType);
 
     //check response
     if (upsertResponse.length > 0) {
@@ -149,32 +139,27 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    let deletedResponse: string[];
-
-    if (stmType === "Level1") {
-      deletedResponse = await deleteSTMs(uuids, "Level1");
-    } else if (stmType === "Level2") {
-      deletedResponse = await deleteSTMs(uuids, "Level2");
-    } else if (stmType === "Level3") {
-      deletedResponse = await deleteSTMs(uuids, "Level3");
-    } else if (stmType === "ALL" && missionId) {
+    if (stmType === "ALL" && missionId) {
       const deleteMessage = await deleteSTMTree(missionId);
-      deletedResponse = [deleteMessage];
-    } else {
-      res.status(500).json({ status: "error", message: "Invalid STM type provided" });
-      return;
-    }
-
-    if (deletedResponse.length > 0) {
       res.status(200).json({
         status: "success",
-        message: `${stmType} deleted`,
+        message: `All STM entries for missionId ${missionId} deleted: ${deleteMessage}`,
       });
+    } else if (["Level1", "Level2", "Level3"].includes(stmType)) {
+      const deletedUuids = await deleteSTMs(uuids, stmType as "Level1" | "Level2" | "Level3");
+      if (deletedUuids.length > 0) {
+        res.status(200).json({
+          status: "success",
+          message: `${stmType} deleted`,
+        });
+      } else {
+        res.status(404).json({
+          status: "failure",
+          message: `Record not found. Nothing deleted`,
+        });
+      }
     } else {
-      res.status(404).json({
-        status: "failure",
-        message: `Record not found. Nothing deleted`,
-      });
+      res.status(500).json({ status: "error", message: "Invalid STM type provided" });
     }
   } catch (e) {
     console.error(e);
