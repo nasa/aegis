@@ -144,11 +144,20 @@ describe("EVA API Endpoint", () => {
     });
 
     test("Create new Traverse", async () => {
+      const sampleTraverse = {
+        ...newTraverse,
+        missionId: testMissions[0].id,
+        ownerId: testUser.id,
+      };
       const res = await supertest(app)
         .post("/api/v1/traverse")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([{ ...newTraverse, missionId: testMissions[0].id, ownerId: testUser.id }])
-        .query({ missionId: testMissions[0].id });
+        .send({
+          missionId: testMissions[0].id,
+          socketId: "someSocketId",
+          log: false,
+          traverses: [sampleTraverse],
+        });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data[0].uuid).not.toBeNull();
@@ -165,8 +174,12 @@ describe("EVA API Endpoint", () => {
       const res = await supertest(app)
         .post("/api/v1/traverse")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([newTraverse])
-        .query({ missionId: testMissions[0].id });
+        .send({
+          missionId: testMissions[0].id,
+          socketId: "someSocketId",
+          log: false,
+          traverses: [newTraverse],
+        });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data[0]).not.toBeNull();
@@ -188,8 +201,12 @@ describe("EVA API Endpoint", () => {
       const res = await supertest(app)
         .delete("/api/v1/traverse")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id })
-        .send([newTraverse.uuid]);
+        .send({
+          missionId: testMissions[0].id,
+          socketId: "someSocketId",
+          log: false,
+          traverseUuids: [newTraverse.uuid],
+        });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
