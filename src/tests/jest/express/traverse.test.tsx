@@ -127,8 +127,12 @@ describe("EVA API Endpoint", () => {
       const res = await supertest(app)
         .post("/api/v1/traverse")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send({ ...newTraverse, missionId: testMissions[2].id })
-        .query({ missionId: testMissions[2].id });
+        .send({
+          missionId: testMissions[2].id,
+          socketId: "someSocketId",
+          log: false,
+          traverses: [newTraverse],
+        });
 
       expect(res.statusCode).toBe(401);
     });
@@ -137,8 +141,12 @@ describe("EVA API Endpoint", () => {
       const res = await supertest(app)
         .post("/api/v1/traverse")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send({ ...newTraverse, missionId: testMissions[1].id })
-        .query({ missionId: testMissions[1].id });
+        .send({
+          missionId: testMissions[1].id,
+          socketId: "someSocketId",
+          log: false,
+          traverses: [newTraverse],
+        });
 
       expect(res.statusCode).toBe(401);
     });
@@ -192,7 +200,12 @@ describe("EVA API Endpoint", () => {
       const res = await supertest(app)
         .delete("/api/v1/traverse")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id });
+        .send({
+          missionId: testMissions[2].id,
+          socketId: "someSocketId",
+          log: false,
+          traverseUuids: [],
+        });
 
       expect(res.statusCode).toBe(401);
     });
