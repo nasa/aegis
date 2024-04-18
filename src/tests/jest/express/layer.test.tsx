@@ -122,31 +122,44 @@ describe("Layer API Endpoint ", () => {
   //upsert and delete tests must occur in order
   describe("POST request", () => {
     test("No permissions", async () => {
+      const requestBody: LayerUpsertRequest = {
+        missionId: testMissions[2].id,
+        layers: [newLayer],
+      };
       const res = await supertest(app)
         .post("/api/v1/layer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([{ ...newLayer, missionId: testMissions[2].id }])
-        .query({ missionId: testMissions[2].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
+      const requestBody: LayerUpsertRequest = {
+        missionId: testMissions[1].id,
+        layers: [newLayer],
+      };
       const res = await supertest(app)
         .post("/api/v1/layer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([{ ...newLayer, missionId: testMissions[1].id }])
-        .query({ missionId: testMissions[1].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("Create new layer", async () => {
+      const newLayerData = {
+        ...newLayer,
+        missionId: testMissions[0].id,
+      };
+      const requestBody: LayerUpsertRequest = {
+        missionId: testMissions[0].id,
+        layers: [newLayerData],
+      };
       const res = await supertest(app)
         .post("/api/v1/layer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([{ ...newLayer, missionId: testMissions[0].id }])
-        .query({ missionId: testMissions[0].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
 
@@ -163,12 +176,15 @@ describe("Layer API Endpoint ", () => {
     test("Update a layer", async () => {
       newLayer.name = "Jest Test Layer Modified";
       newLayer.missionId = testMissions[0].id;
+      const requestBody: LayerUpsertRequest = {
+        missionId: testMissions[0].id,
+        layers: [newLayer],
+      };
 
       const res = await supertest(app)
         .post("/api/v1/layer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([newLayer])
-        .query({ missionId: testMissions[0].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
 
@@ -180,31 +196,42 @@ describe("Layer API Endpoint ", () => {
 
   describe("DELETE request", () => {
     test("No permissions", async () => {
+      const requestBody: LayerDeleteRequest = {
+        missionId: testMissions[2].id,
+        layerUuids: [newLayer.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/layer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
+      const requestBody: LayerDeleteRequest = {
+        missionId: testMissions[1].id,
+        layerUuids: [newLayer.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/layer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[1].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("Delete a layer", async () => {
+      const requestBody: LayerDeleteRequest = {
+        missionId: testMissions[0].id,
+        layerUuids: [newLayer.uuid],
+      };
       newLayer.missionId = testMissions[0].id;
 
       const res = await supertest(app)
         .delete("/api/v1/layer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([newLayer.uuid])
-        .query({ missionId: testMissions[0].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
 
