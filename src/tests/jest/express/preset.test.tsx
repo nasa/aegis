@@ -114,31 +114,46 @@ describe("Preset API Endpoint", () => {
   //upsert and delete tests must occur in order
   describe("POST request", () => {
     test("No permissions", async () => {
+      const requestBody: PresetUpsertRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[2].id,
+        presets: [newPreset],
+      };
       const res = await supertest(app)
         .post("/api/v1/preset")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id })
-        .send([{ ...newPreset, missionId: testMissions[2].id }]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
+      const requestBody: PresetUpsertRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[1].id,
+        presets: [newPreset],
+      };
       const res = await supertest(app)
         .post("/api/v1/preset")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[1].id })
-        .send([{ ...newPreset, missionId: testMissions[1].id }]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("Create new preset", async () => {
+      const requestBody: PresetUpsertRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[0].id,
+        presets: [{ ...newPreset, missionId: testMissions[0].id, ownerId: testUser.id }],
+      };
       const res = await supertest(app)
         .post("/api/v1/preset")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id })
-        .send([{ ...newPreset, missionId: testMissions[0].id, ownerId: testUser.id }]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data[0].uuid).not.toBeNull();
@@ -152,11 +167,16 @@ describe("Preset API Endpoint", () => {
 
     test("Update a preset", async () => {
       newPreset.name = "Preset Jest Test Modified";
+      const requestBody: PresetUpsertRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[0].id,
+        presets: [newPreset],
+      };
       const res = await supertest(app)
         .post("/api/v1/preset")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id })
-        .send([newPreset]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data[0]).not.toBeNull();
@@ -166,29 +186,46 @@ describe("Preset API Endpoint", () => {
 
   describe("DELETE request", () => {
     test("No permissions", async () => {
+      const requestBody: PresetDeleteRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[2].id,
+        presetUuids: [newPreset.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/preset")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
+      const requestBody: PresetDeleteRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[1].id,
+        presetUuids: [newPreset.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/preset")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[1].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("Delete a preset", async () => {
+      const requestBody: PresetDeleteRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[0].id,
+        presetUuids: [newPreset.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/preset")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id })
-        .send([newPreset.uuid]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
