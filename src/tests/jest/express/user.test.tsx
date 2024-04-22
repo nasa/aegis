@@ -116,10 +116,13 @@ describe("User API Endpoint", () => {
 
     describe("POST request", () => {
       test("Create new user", async () => {
+        const requestBody: UserUpsertRequest = {
+          users: [newUser as User],
+        };
         const res = await supertest(app)
           .post("/api/v1/users")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .send([newUser]);
+          .send(requestBody);
 
         expect(res.statusCode).toBe(200);
         expect(res.body.data[0].id).not.toBeNull();
@@ -133,10 +136,13 @@ describe("User API Endpoint", () => {
 
       test("Update a user", async () => {
         newUser.username = "Jest new user Modified";
+        const requestBody: UserUpsertRequest = {
+          users: [newUser as User],
+        };
         const res = await supertest(app)
           .post("/api/v1/users")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .send([newUser]);
+          .send(requestBody);
 
         expect(res.statusCode).toBe(200);
         expect(res.body.data[0]).not.toBeNull();
@@ -146,10 +152,13 @@ describe("User API Endpoint", () => {
 
     describe("DELETE request", () => {
       test("Delete a user", async () => {
+        const requestBody: UserDeleteRequest = {
+          userIds: [newUser.id],
+        };
         const res = await supertest(app)
           .delete("/api/v1/users")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .send([newUser.id]);
+          .send(requestBody);
 
         expect(res.statusCode).toBe(200);
         expect(res.body.status).toBe("success");
