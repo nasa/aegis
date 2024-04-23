@@ -142,38 +142,50 @@ describe("Mission API Endpoint", () => {
   //upsert and delete tests must occur in order
   describe("POST request", () => {
     test("No permissions", async () => {
+      const requestBody = {
+        missions: [testMissions[2]],
+      };
       const res = await supertest(app)
         .post("/api/v1/mission")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([testMissions[2]]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
+      const requestBody = {
+        missions: [testMissions[1]],
+      };
       const res = await supertest(app)
         .post("/api/v1/mission")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([testMissions[1]]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("Create new mission - No permissions", async () => {
+      const requestBody = {
+        missions: [newMission],
+      };
       const res = await supertest(app)
         .post("/api/v1/mission")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([newMission]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("Update a mission", async () => {
       testMissions[0].name = "Jest Mission-1 Modified";
+      const requestBody = {
+        missions: [testMissions[0]],
+      };
       const res = await supertest(app)
         .post("/api/v1/mission")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([testMissions[0]]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data).not.toBeNull();
@@ -186,28 +198,37 @@ describe("Mission API Endpoint", () => {
 
   describe("DELETE request", () => {
     test("No permissions", async () => {
+      const requestBody = {
+        missionIds: [testMissions[2].id],
+      };
       const res = await supertest(app)
         .delete("/api/v1/mission")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([testMissions[2].id]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
+      const requestBody = {
+        missionIds: [testMissions[1].id],
+      };
       const res = await supertest(app)
         .delete("/api/v1/mission")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([testMissions[1].id]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("Delete a mission", async () => {
+      const requestBody = {
+        missionIds: [testMissions[0].id],
+      };
       const res = await supertest(app)
         .delete("/api/v1/mission")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([testMissions[0].id]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
