@@ -23,7 +23,6 @@ beforeAll(async () => {
   await getORM();
   const em = getEM();
   testMissions = await new MissionFactory(em).create(3);
-  await em.flush();
   testUser = await new UserFactory(em).createOne({
     username: "JestSublayer",
     permissionList: [
@@ -46,7 +45,6 @@ beforeAll(async () => {
   testLayer = await new LayerFactory(em).createOne({
     mission: testMissions[0],
   });
-  await em.flush();
   testSublayers = await new SublayerFactory(em)
     .each((sublayer) => {
       sublayer.mission = testMissions[0];
@@ -123,7 +121,7 @@ describe("Layer API Endpoint ", () => {
   describe("POST request", () => {
     test("No permissions", async () => {
       const requestBody: SublayerUpsertRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissions[2].id,
         sublayers: [{ ...generateBlankSublayer(), layerUuid: testLayer.uuid }],
       };
       const res = await supertest(app)
