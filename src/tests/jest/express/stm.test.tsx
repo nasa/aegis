@@ -254,9 +254,21 @@ describe("STM API Endpoint", () => {
     });
   });
 
-  let newLevel1: STMLevel1 = generateBlankStmLvl1({ name: "Jest STM Level1-1", numbering: "1" });
-  let newLevel2: STMLevel2 = generateBlankStmLvl2({ name: "Jest STM Level2-1", numbering: "a" });
-  let newLevel3: STMLevel3 = generateBlankStmLvl3({ name: "Jest STM Level3-1", numbering: "1" });
+  let newLevel1: STMLevel1 = generateBlankStmLvl1({
+    name: "Jest STM Level1-1",
+    numbering: "1",
+    missionId: testMissions[0].id,
+  });
+  let newLevel2: STMLevel2 = generateBlankStmLvl2({
+    name: "Jest STM Level2-1",
+    numbering: "a",
+    level1Uuid: newLevel1.uuid,
+  });
+  let newLevel3: STMLevel3 = generateBlankStmLvl3({
+    name: "Jest STM Level3-1",
+    numbering: "1",
+    level2Uuid: newLevel2.uuid,
+  });
 
   describe("POST requests", () => {
     test("No permissions", async () => {
