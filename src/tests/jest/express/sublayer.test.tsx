@@ -23,6 +23,7 @@ beforeAll(async () => {
   await getORM();
   const em = getEM();
   testMissions = await new MissionFactory(em).create(3);
+  await em.flush();
   testUser = await new UserFactory(em).createOne({
     username: "JestSublayer",
     permissionList: [
@@ -45,6 +46,7 @@ beforeAll(async () => {
   testLayer = await new LayerFactory(em).createOne({
     mission: testMissions[0],
   });
+  await em.flush();
   testSublayers = await new SublayerFactory(em)
     .each((sublayer) => {
       sublayer.mission = testMissions[0];
@@ -120,31 +122,42 @@ describe("Layer API Endpoint ", () => {
   //upsert and delete tests must occur in order
   describe("POST request", () => {
     test("No permissions", async () => {
+      const requestBody: SublayerUpsertRequest = {
+        missionId: testMissions[0].id,
+        sublayers: [{ ...generateBlankSublayer(), layerUuid: testLayer.uuid }],
+      };
       const res = await supertest(app)
         .post("/api/v1/sublayer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([{ ...newSublayer, layerUuid: testLayer.uuid, missionId: testMissions[2].id }])
-        .query({ missionId: testMissions[2].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
+      const requestBody: SublayerUpsertRequest = {
+        missionId: testMissions[1].id,
+        sublayers: [{ ...newSublayer, layerUuid: testLayer.uuid }],
+      };
       const res = await supertest(app)
         .post("/api/v1/sublayer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([{ ...newSublayer, layerUuid: testLayer.uuid, missionId: testMissions[1].id }])
-        .query({ missionId: testMissions[1].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("Create new sublayer", async () => {
+      const requestBody: SublayerUpsertRequest = {
+        missionId: testMissions[0].id,
+        sublayers: [
+          { ...generateBlankSublayer(), layerUuid: testLayer.uuid, missionId: testMissions[0].id },
+        ],
+      };
       const res = await supertest(app)
         .post("/api/v1/sublayer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([{ ...newSublayer, layerUuid: testLayer.uuid, missionId: testMissions[0].id }])
-        .query({ missionId: testMissions[0].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data[0].uuid).not.toBeNull();
@@ -159,12 +172,15 @@ describe("Layer API Endpoint ", () => {
     test("Update a sublayer", async () => {
       newSublayer.name = "Jest Test Sublayer Modified";
       newSublayer.missionId = testMissions[0].id;
+      const requestBody: SublayerUpsertRequest = {
+        missionId: testMissions[0].id,
+        sublayers: [newSublayer],
+      };
 
       const res = await supertest(app)
         .post("/api/v1/sublayer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([newSublayer])
-        .query({ missionId: testMissions[0].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data[0]).not.toBeNull();
@@ -174,31 +190,42 @@ describe("Layer API Endpoint ", () => {
 
   describe("DELETE request", () => {
     test("No permissions", async () => {
+      const requestBody: SublayerDeleteRequest = {
+        missionId: testMissions[2].id,
+        sublayerUuids: [newSublayer.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/sublayer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
+      const requestBody: SublayerDeleteRequest = {
+        missionId: testMissions[1].id,
+        sublayerUuids: [newSublayer.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/sublayer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[1].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("Delete a sublayer", async () => {
       newSublayer.missionId = testMissions[0].id;
+      const requestBody: SublayerDeleteRequest = {
+        missionId: testMissions[0].id,
+        sublayerUuids: [newSublayer.uuid],
+      };
 
       const res = await supertest(app)
         .delete("/api/v1/sublayer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([newSublayer.uuid])
-        .query({ missionId: testMissions[0].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
