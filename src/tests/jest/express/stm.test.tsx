@@ -73,6 +73,28 @@ beforeAll(async () => {
     .create(2);
 });
 
+let newLevel1: STMLevel1;
+let newLevel2: STMLevel2;
+let newLevel3: STMLevel3;
+
+beforeEach(() => {
+  newLevel1 = generateBlankStmLvl1({
+    name: "Jest STM Level1-1",
+    numbering: "1",
+    missionId: testMissions[0].id,
+  });
+  newLevel2 = generateBlankStmLvl2({
+    name: "Jest STM Level2-1",
+    numbering: "a",
+    level1Uuid: newLevel1.uuid,
+  });
+  newLevel3 = generateBlankStmLvl3({
+    name: "Jest STM Level3-1",
+    numbering: "1",
+    level2Uuid: newLevel2.uuid,
+  });
+});
+
 describe("STM API Endpoint", () => {
   let aegisSessionCookie: string;
   let aegisSessionSigCookie: string;
@@ -82,7 +104,7 @@ describe("STM API Endpoint", () => {
     expect(res.statusCode).toBe(401);
   });
 
-  test("Returns login session", async () => {
+  test.only("Returns login session", async () => {
     const res = await supertest(app)
       .post("/api/v1/auth/login")
       .send({ username: testUser.username, password: "superSecretPassword" });
@@ -254,22 +276,6 @@ describe("STM API Endpoint", () => {
     });
   });
 
-  let newLevel1: STMLevel1 = generateBlankStmLvl1({
-    name: "Jest STM Level1-1",
-    numbering: "1",
-    missionId: testMissions[0].id,
-  });
-  let newLevel2: STMLevel2 = generateBlankStmLvl2({
-    name: "Jest STM Level2-1",
-    numbering: "a",
-    level1Uuid: newLevel1.uuid,
-  });
-  let newLevel3: STMLevel3 = generateBlankStmLvl3({
-    name: "Jest STM Level3-1",
-    numbering: "1",
-    level2Uuid: newLevel2.uuid,
-  });
-
   describe("POST requests", () => {
     test("No permissions", async () => {
       const requestBody: STMUpsertRequest = {
@@ -343,7 +349,7 @@ describe("STM API Endpoint", () => {
     });
 
     describe("Level2", () => {
-      test("Create new level2", async () => {
+      test.only("Create new level2", async () => {
         const requestBody: STMUpsertRequest = {
           missionId: testMissions[0].id,
           stmObjects: [{ ...newLevel2, level1Uuid: newLevel1.uuid }],
@@ -353,6 +359,10 @@ describe("STM API Endpoint", () => {
           .post("/api/v1/stm")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
           .send(requestBody);
+
+        if (res.statusCode !== 200) {
+          console.log("Response Body:", res.body); // This will help understand the error better
+        }
 
         expect(res.statusCode).toBe(200);
         const upsertedSTM = res.body.data[0];
