@@ -73,28 +73,6 @@ beforeAll(async () => {
     .create(2);
 });
 
-let newLevel1: STMLevel1;
-let newLevel2: STMLevel2;
-let newLevel3: STMLevel3;
-
-beforeEach(() => {
-  newLevel1 = generateBlankStmLvl1({
-    name: "Jest STM Level1-1",
-    numbering: "1",
-    missionId: testMissions[0].id,
-  });
-  newLevel2 = generateBlankStmLvl2({
-    name: "Jest STM Level2-1",
-    numbering: "a",
-    level1Uuid: newLevel1.uuid,
-  });
-  newLevel3 = generateBlankStmLvl3({
-    name: "Jest STM Level3-1",
-    numbering: "1",
-    level2Uuid: newLevel2.uuid,
-  });
-});
-
 describe("STM API Endpoint", () => {
   let aegisSessionCookie: string;
   let aegisSessionSigCookie: string;
@@ -104,7 +82,7 @@ describe("STM API Endpoint", () => {
     expect(res.statusCode).toBe(401);
   });
 
-  test.only("Returns login session", async () => {
+  test("Returns login session", async () => {
     const res = await supertest(app)
       .post("/api/v1/auth/login")
       .send({ username: testUser.username, password: "superSecretPassword" });
@@ -276,46 +254,38 @@ describe("STM API Endpoint", () => {
     });
   });
 
+  let newLevel1: STMLevel1 = generateBlankStmLvl1({ name: "Jest STM Level1-1", numbering: "1" });
+  let newLevel2: STMLevel2 = generateBlankStmLvl2({ name: "Jest STM Level2-1", numbering: "a" });
+  let newLevel3: STMLevel3 = generateBlankStmLvl3({ name: "Jest STM Level3-1", numbering: "1" });
+
   describe("POST requests", () => {
     test("No permissions", async () => {
-      const requestBody: STMUpsertRequest = {
-        missionId: testMissions[2].id,
-        stmObjects: [newLevel1],
-        stmType: "Level1",
-      };
       const res = await supertest(app)
         .post("/api/v1/stm")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send(requestBody);
+        .query({ missionId: testMissions[2].id, stmType: "l1" })
+        .send({ ...newLevel1, missionId: testMissions[0].id });
 
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
-      const requestBody: STMUpsertRequest = {
-        missionId: testMissions[1].id,
-        stmObjects: [newLevel1],
-        stmType: "Level1",
-      };
       const res = await supertest(app)
         .post("/api/v1/stm")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send(requestBody);
+        .query({ missionId: testMissions[1].id, stmType: "l1" })
+        .send({ ...newLevel1, missionId: testMissions[0].id });
 
       expect(res.statusCode).toBe(401);
     });
 
     describe("Level1", () => {
       test("Create new level1", async () => {
-        const requestBody: STMUpsertRequest = {
-          missionId: testMissions[0].id,
-          stmObjects: [newLevel1],
-          stmType: "Level1",
-        };
         const res = await supertest(app)
           .post("/api/v1/stm")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .send(requestBody);
+          .query({ stmType: "level1", missionId: testMissions[0].id })
+          .send([{ ...newLevel1, missionId: testMissions[0].id }]);
 
         expect(res.statusCode).toBe(200);
         const upsertedSTM = res.body.data[0];
@@ -332,15 +302,11 @@ describe("STM API Endpoint", () => {
 
       test("Update a level1", async () => {
         newLevel1.name = "Jest Test New Level1 Modified";
-        const requestBody: STMUpsertRequest = {
-          missionId: testMissions[0].id,
-          stmObjects: [newLevel1],
-          stmType: "Level1",
-        };
         const res = await supertest(app)
           .post("/api/v1/stm")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .send(requestBody);
+          .query({ stmType: "level1", missionId: testMissions[0].id })
+          .send([newLevel1]);
 
         expect(res.statusCode).toBe(200);
         expect(res.body.data[0]).not.toBeNull();
@@ -349,20 +315,12 @@ describe("STM API Endpoint", () => {
     });
 
     describe("Level2", () => {
-      test.only("Create new level2", async () => {
-        const requestBody: STMUpsertRequest = {
-          missionId: testMissions[0].id,
-          stmObjects: [{ ...newLevel2, level1Uuid: newLevel1.uuid }],
-          stmType: "Level2",
-        };
+      test("Create new level2", async () => {
         const res = await supertest(app)
           .post("/api/v1/stm")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .send(requestBody);
-
-        if (res.statusCode !== 200) {
-          console.log("Response Body:", res.body); // This will help understand the error better
-        }
+          .query({ stmType: "level2", missionId: testMissions[0].id })
+          .send([{ ...newLevel2, level1Uuid: newLevel1.uuid }]);
 
         expect(res.statusCode).toBe(200);
         const upsertedSTM = res.body.data[0];
@@ -379,15 +337,11 @@ describe("STM API Endpoint", () => {
 
       test("Update a level2", async () => {
         newLevel2.name = "Jest Test New Level2 Modified";
-        const requestBody: STMUpsertRequest = {
-          missionId: testMissions[0].id,
-          stmObjects: [newLevel2],
-          stmType: "Level2",
-        };
         const res = await supertest(app)
           .post("/api/v1/stm")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .send(requestBody);
+          .query({ stmType: "level2", missionId: testMissions[0].id })
+          .send([newLevel2]);
 
         expect(res.statusCode).toBe(200);
         expect(res.body.data[0]).not.toBeNull();
@@ -397,15 +351,11 @@ describe("STM API Endpoint", () => {
 
     describe("Level3", () => {
       test("Create new level3", async () => {
-        const requestBody: STMUpsertRequest = {
-          missionId: testMissions[0].id,
-          stmObjects: [{ ...newLevel3, level2Uuid: newLevel2.uuid }],
-          stmType: "Level3",
-        };
         const res = await supertest(app)
           .post("/api/v1/stm")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .send(requestBody);
+          .query({ stmType: "level3", missionId: testMissions[0].id })
+          .send([{ ...newLevel3, level2Uuid: newLevel2.uuid }]);
 
         expect(res.statusCode).toBe(200);
         const upsertedSTM = res.body.data[0];
@@ -422,16 +372,11 @@ describe("STM API Endpoint", () => {
 
       test("Update a level3", async () => {
         newLevel3.name = "Jest Test New Level3 Modified";
-        newLevel3.name = "Jest Test New Level3 Modified";
-        const requestBody: STMUpsertRequest = {
-          missionId: testMissions[0].id,
-          stmObjects: [newLevel3],
-          stmType: "Level3",
-        };
         const res = await supertest(app)
           .post("/api/v1/stm")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .send(requestBody);
+          .query({ stmType: "level3", missionId: testMissions[0].id })
+          .send([newLevel3]);
 
         expect(res.statusCode).toBe(200);
         expect(res.body.data[0]).not.toBeNull();
@@ -442,73 +387,51 @@ describe("STM API Endpoint", () => {
 
   describe("DELETE request", () => {
     test("No permissions", async () => {
-      const requestBody: STMDeleteRequest = {
-        missionId: testMissions[2].id,
-        stmType: "Level1",
-        uuids: [newLevel1.uuid],
-      };
       const res = await supertest(app)
         .delete("/api/v1/stm")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send(requestBody);
+        .query({ missionId: testMissions[2].id, stmType: "l1" });
 
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
-      const requestBody: STMDeleteRequest = {
-        missionId: testMissions[1].id,
-        stmType: "Level1",
-        uuids: [],
-      };
       const res = await supertest(app)
         .delete("/api/v1/stm")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send(requestBody);
+        .query({ missionId: testMissions[1].id, stmType: "l1" });
 
       expect(res.statusCode).toBe(401);
     });
 
     test("Delete a level3", async () => {
-      const requestBody: STMDeleteRequest = {
-        missionId: testMissions[0].id,
-        stmType: "Level3",
-        uuids: [newLevel3.uuid],
-      };
       const res = await supertest(app)
         .delete("/api/v1/stm")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send(requestBody);
+        .query({ stmType: "level3", missionId: testMissions[0].id })
+        .send([newLevel3.uuid]);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
     });
 
     test("Delete a level2", async () => {
-      const requestBody: STMDeleteRequest = {
-        missionId: testMissions[0].id,
-        stmType: "Level2",
-        uuids: [newLevel2.uuid],
-      };
       const res = await supertest(app)
         .delete("/api/v1/stm")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send(requestBody);
+        .query({ stmType: "level2", missionId: testMissions[0].id })
+        .send([newLevel2.uuid]);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
     });
 
     test("Delete a level1", async () => {
-      const requestBody: STMDeleteRequest = {
-        missionId: testMissions[0].id,
-        stmType: "Level1",
-        uuids: [newLevel1.uuid],
-      };
       const res = await supertest(app)
         .delete("/api/v1/stm")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send(requestBody);
+        .query({ stmType: "level1", missionId: testMissions[0].id })
+        .send([newLevel1.uuid]);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
