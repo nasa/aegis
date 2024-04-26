@@ -254,7 +254,7 @@ describe("Mission API Endpoint", () => {
       const res = await supertest(app)
         .post("/api/v1/mission")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([newMission]);
+        .send({ missions: [newMission] });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data[0].id).not.toBeNull();
@@ -272,7 +272,7 @@ describe("Mission API Endpoint", () => {
       const res = await supertest(app)
         .post("/api/v1/mission")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([newMission]);
+        .send({ missions: [newMission] });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data[0].version).toEqual(2);
@@ -283,7 +283,7 @@ describe("Mission API Endpoint", () => {
       const res = await supertest(app)
         .delete("/api/v1/mission")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([newMission.id]);
+        .send({ missionIds: [newMission.id] });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
