@@ -28,7 +28,7 @@ beforeAll(async () => {
 describe("User API Endpoint", () => {
   let aegisSessionCookie: string;
   let aegisSessionSigCookie: string;
-  let newUser: Partial<User> = generateBlankUser({
+  let newUser: User = generateBlankUser({
     username: "JestUserForUserTest",
     password: "password",
   });
@@ -117,7 +117,7 @@ describe("User API Endpoint", () => {
     describe("POST request", () => {
       test("Create new user", async () => {
         const requestBody: UserUpsertRequest = {
-          users: [newUser as User],
+          users: [newUser],
         };
         const res = await supertest(app)
           .post("/api/v1/users")
@@ -137,7 +137,7 @@ describe("User API Endpoint", () => {
       test("Update a user", async () => {
         newUser.username = "Jest new user Modified";
         const requestBody: UserUpsertRequest = {
-          users: [newUser as User],
+          users: [newUser],
         };
         const res = await supertest(app)
           .post("/api/v1/users")
