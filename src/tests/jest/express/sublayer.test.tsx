@@ -122,7 +122,7 @@ describe("Layer API Endpoint ", () => {
     test("No permissions", async () => {
       const requestBody: SublayerUpsertRequest = {
         missionId: testMissions[2].id,
-        sublayers: [{ ...generateBlankSublayer(), layerUuid: testLayer.uuid }],
+        sublayers: [{ ...newSublayer, layerUuid: testLayer.uuid }],
       };
       const res = await supertest(app)
         .post("/api/v1/sublayer")
