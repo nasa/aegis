@@ -177,7 +177,7 @@ describe("Log API Endpoint", () => {
       newLog.type = "stationUpsert";
       const requestBody: LogUpsertRequest = {
         missionId: testMissions[0].id,
-        logs: [{ ...newLog, missionId: testMissions[0].id, type: "stationUpsert" }],
+        logs: [newLog],
       };
       const res = await supertest(app)
         .post("/api/v1/log")
