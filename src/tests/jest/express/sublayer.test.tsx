@@ -148,9 +148,7 @@ describe("Layer API Endpoint ", () => {
     test("Create new sublayer", async () => {
       const requestBody: SublayerUpsertRequest = {
         missionId: testMissions[0].id,
-        sublayers: [
-          { ...generateBlankSublayer(), layerUuid: testLayer.uuid, missionId: testMissions[0].id },
-        ],
+        sublayers: [{ ...newSublayer, layerUuid: testLayer.uuid, missionId: testMissions[0].id }],
       };
       const res = await supertest(app)
         .post("/api/v1/sublayer")
