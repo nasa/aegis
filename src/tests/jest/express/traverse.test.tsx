@@ -154,16 +154,11 @@ describe("EVA API Endpoint", () => {
     });
 
     test("Create new Traverse", async () => {
-      const sampleTraverse = {
-        ...newTraverse,
-        missionId: testMissions[0].id,
-        ownerId: testUser.id,
-      };
       const requestBody: TraverseUpsertRequest = {
         missionId: testMissions[0].id,
         socketId: "someSocketId",
         log: false,
-        traverses: [sampleTraverse],
+        traverses: [{ ...newTraverse, missionId: testMissions[0].id }],
       };
       const res = await supertest(app)
         .post("/api/v1/traverse")
