@@ -24,7 +24,7 @@ WORKDIR /clientsrc
 
 # Prepare for build
 RUN pwd
-COPY package.json ./
+COPY package*.json ./
 
 RUN npm install
 # copy the rest of the files
