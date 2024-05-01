@@ -48,7 +48,7 @@ type LogDeleteRequest = {
 type MissionUpsertRequest = {
   socketId: string;
   log: boolean;
-  missions: Partial<Mission>[];
+  missions: Mission[];
 };
 
 type MissionDeleteRequest = {
