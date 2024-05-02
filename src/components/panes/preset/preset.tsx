@@ -1,6 +1,5 @@
 import styles from "./preset.module.css";
 import paneStyles from "../global-pane-styles.module.css";
-// import { faClone, faGlobe, faPlusCircle, faUser } from "@fortawesome/free-solid-svg-icons";
 import { faClone, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent, useState } from "react";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
@@ -8,7 +7,6 @@ import { setMapSublayerControls } from "store/map";
 import { setSelectedPresetUuid, setSelectedPresetRightNavItem } from "store/preset";
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import { Button } from "components/interface/form/globalFields";
-// import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreatePreset, thunkDuplicatePreset } from "store/thunk/thunkPreset";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
@@ -110,8 +108,6 @@ const PresetList: FunctionComponent<{
         } else if (currentPreset.uuid === presetHoverUuid) {
           isSelectedOrHoveredStyle = styles.presetItemHovered;
         }
-        // const iconSelectedStyle =
-        //   currentPreset.uuid === selectedPresetUuid ? styles.presetIconSelected : null;
 
         const presetFromDb = presetsFromDb.find((preset) => preset.uuid === currentPreset.uuid);
         return (
@@ -135,13 +131,6 @@ const PresetList: FunctionComponent<{
               </span>
               <ModifiedIndicator obj1={[currentPreset]} obj2={[presetFromDb]} />
             </div>
-            {/* <div className={`${styles.presetIcon} ${iconSelectedStyle}`}>
-              {currentPreset.missionPreset ? (
-                <FontAwesomeIcon icon={faGlobe} />
-              ) : (
-                <FontAwesomeIcon icon={faUser} />
-              )}
-            </div> */}
           </div>
         );
       })}
