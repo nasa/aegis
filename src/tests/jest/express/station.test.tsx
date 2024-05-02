@@ -125,31 +125,46 @@ describe("Station API Endpoint", () => {
   //upsert and delete tests must occur in order.
   describe("POST request", () => {
     test("No permissions", async () => {
+      const requestBody: StationUpsertRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[2].id,
+        stations: [{ ...newStation, missionId: testMissions[2].id }],
+      };
       const res = await supertest(app)
         .post("/api/v1/station")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id })
-        .send([{ ...newStation, missionId: testMissions[2].id }]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
+      const requestBody: StationUpsertRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[1].id,
+        stations: [{ ...newStation, missionId: testMissions[1].id }],
+      };
       const res = await supertest(app)
         .post("/api/v1/station")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[1].id })
-        .send([{ ...newStation, missionId: testMissions[1].id }]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("Create new station", async () => {
+      const requestBody: StationUpsertRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[0].id,
+        stations: [{ ...newStation, missionId: testMissions[0].id, ownerId: testUser.id }],
+      };
       const res = await supertest(app)
         .post("/api/v1/station")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id })
-        .send([{ ...newStation, missionId: testMissions[0].id, ownerId: testUser.id }]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data[0].uuid).not.toBeNull();
@@ -163,11 +178,16 @@ describe("Station API Endpoint", () => {
 
     test("Update a station", async () => {
       newStation.name = "Jest Test New Station Modified";
+      const requestBody: StationUpsertRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[0].id,
+        stations: [newStation],
+      };
       const res = await supertest(app)
         .post("/api/v1/station")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id })
-        .send([newStation]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data[0]).not.toBeNull();
@@ -177,29 +197,46 @@ describe("Station API Endpoint", () => {
 
   describe("DELETE request", () => {
     test("No permissions", async () => {
+      const requestBody: StationDeleteRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[2].id,
+        stationUuids: [newStation.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/station")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
+      const requestBody: StationDeleteRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[1].id,
+        stationUuids: [newStation.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/station")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[1].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("Delete a station", async () => {
+      const requestBody: StationDeleteRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[0].id,
+        stationUuids: [newStation.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/station")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id })
-        .send([newStation.uuid]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");

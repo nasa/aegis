@@ -57,8 +57,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms(queryObj.missionId, "edit", req.session.user);
+  const { missionId, sublayers } = req.body as SublayerUpsertRequest;
+  const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
@@ -66,8 +66,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
   try {
     //perform the upsert
-    const upsertObjects: Sublayer[] = req.body as Sublayer[];
-    const upsertResponse: Sublayer[] = await upsertSublayers(upsertObjects);
+    const upsertResponse: Sublayer[] = await upsertSublayers(sublayers);
 
     //check response
     if (upsertResponse.length === 0) {
@@ -91,16 +90,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms(queryObj.missionId, "edit", req.session.user);
+  const { missionId, sublayerUuids } = req.body as SublayerDeleteRequest;
+  const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   try {
-    const uuidsToDelete: string[] = req.body;
-    const deletedUUIDs = await deleteSublayers(uuidsToDelete);
+    const deletedUUIDs = await deleteSublayers(sublayerUuids);
 
     if (deletedUUIDs.length > 0) {
       res.status(200).json({

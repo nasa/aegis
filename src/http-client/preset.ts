@@ -9,16 +9,17 @@ export async function upsertPresets(
   presets: Preset[],
   log: boolean = false
 ): Promise<WrappedResponse<Preset[]>> {
-  const missionId =
+  const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-  const logStr = log ? "&log=true" : "";
-  const res = await fetch(`/api/v1/preset?socketId=${socketId}&missionId=${missionId}${logStr}`, {
+  const requestBody: PresetUpsertRequest = { missionId, socketId, log, presets };
+  const res = await fetch(`/api/v1/preset`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(presets),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<Preset[]> = await res.json();
   if (res.status !== 200) {
@@ -33,16 +34,17 @@ export async function deletePresets(
   presetUuids: string[],
   log: boolean = false
 ): Promise<WrappedResponse<Preset[]>> {
-  const missionId =
+  const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-  const logStr = log ? "&log=true" : "";
-  const res = await fetch(`/api/v1/preset?socketId=${socketId}&missionId=${missionId}${logStr}`, {
+  const requestBody: PresetDeleteRequest = { missionId, socketId, log, presetUuids };
+  const res = await fetch(`/api/v1/preset`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(presetUuids),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<Preset[]> = await res.json();
   if (res.status !== 200) {

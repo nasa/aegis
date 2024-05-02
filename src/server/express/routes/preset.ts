@@ -50,15 +50,14 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms(queryObj.missionId, "edit", req.session.user);
+  const { missionId, socketId, log, presets } = req.body as PresetUpsertRequest;
+  const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   try {
-    const presets = req.body as Preset[];
     //add owner id to the evas
     const presetsToUpsert = presets.map((p) => {
       if (!p.ownerId) {
@@ -80,12 +79,12 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     // emit the upserted preset to all clients via socket.io
     emitStoreUpsert(
       {
-        missionId: queryObj.missionId,
-        socketId: queryObj.socketId,
+        missionId,
+        socketId,
         type: "preset",
         data: upsertResponse,
       } as StoreUpsert<Preset>,
-      queryObj.logAction
+      log
     );
 
     res.status(200).json({
@@ -101,26 +100,25 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms(queryObj.missionId, "edit", req.session.user);
+  const { missionId, socketId, log, presetUuids } = req.body as PresetDeleteRequest;
+  const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   try {
-    const uuidsToDelete: string[] = req.body;
-    const deletedUuids = await deletePresets(uuidsToDelete);
+    const deletedUuids = await deletePresets(presetUuids);
     if (deletedUuids.length > 0) {
       // emit the deleted preset to all clients via socket.io
       emitStoreDelete(
         {
-          missionId: queryObj.missionId,
-          socketId: queryObj.socketId,
+          missionId,
+          socketId,
           type: "preset",
           uuids: deletedUuids,
         } as StoreDelete,
-        queryObj.logAction
+        log
       );
 
       res.status(200).json({

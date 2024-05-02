@@ -9,13 +9,14 @@ export async function getUsers(userId: number = null): Promise<WrappedResponse<U
   return response;
 }
 
-export async function upsertUsers(userObjs: User[]): Promise<WrappedResponse<User[]>> {
+export async function upsertUsers(users: User[]): Promise<WrappedResponse<User[]>> {
+  const requestBody: UserUpsertRequest = { users };
   const res = await fetch(`/api/v1/users`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(userObjs),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<User[]> = await res.json();
   if (res.status !== 200) {
@@ -27,12 +28,13 @@ export async function upsertUsers(userObjs: User[]): Promise<WrappedResponse<Use
 }
 
 export async function deleteUsers(userIds: number[]): Promise<WrappedResponse<null>> {
+  const requestBody: UserDeleteRequest = { userIds };
   const res = await fetch(`/api/v1/users`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(userIds),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<null> = await res.json();
   if (res.status !== 200) {

@@ -5,15 +5,17 @@ export async function getLogs(missionId: number = null): Promise<WrappedResponse
   return response;
 }
 
-export async function upsertLogs(logObjs: Log[]): Promise<WrappedResponse<Log[]>> {
-  const missionId =
+export async function upsertLogs(logs: Log[]): Promise<WrappedResponse<Log[]>> {
+  const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
-  const res = await fetch(`/api/v1/log?missionId=${missionId}`, {
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
+  const requestBody: LogUpsertRequest = { missionId, logs };
+  const res = await fetch(`/api/v1/log`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(logObjs),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<Log[]> = await res.json();
   if (res.status !== 200) {
@@ -25,12 +27,13 @@ export async function upsertLogs(logObjs: Log[]): Promise<WrappedResponse<Log[]>
 }
 
 export async function deleteAllLogs(missionIds: number[]): Promise<WrappedResponse<null>> {
-  const res = await fetch(`/api/v1/log?`, {
+  const requestBody: LogDeleteRequest = { missionIds };
+  const res = await fetch(`/api/v1/log`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(missionIds.map(String)),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<null> = await res.json();
   if (res.status !== 200) {

@@ -45,8 +45,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms(queryObj.missionId, "edit", req.session.user);
+  const { missionId, logs } = req.body as LogUpsertRequest;
+  const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
@@ -54,7 +54,6 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
   try {
     //perform the upsert
-    const logs: Log[] = req.body as Log[];
     const upsertResponse: Log[] = await upsertLogs(logs);
 
     //check response
@@ -80,8 +79,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
   //this permission check works differently due to multiple missionIds being passed in
-  const missionIdsToDelete: number[] = req.body.map((u: string) => parseInt(u));
-  for (const missionId of missionIdsToDelete) {
+  const { missionIds } = req.body as LogDeleteRequest;
+  for (const missionId of missionIds) {
     const canDelete = await hasPerms(missionId, "edit", req.session?.user);
     if (!canDelete) {
       res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -90,7 +89,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const logsDeletedSuccessfully = await deleteLogs(missionIdsToDelete);
+    const logsDeletedSuccessfully = await deleteLogs(missionIds);
     if (logsDeletedSuccessfully.length > 0) {
       res.status(200).json({
         status: "success",

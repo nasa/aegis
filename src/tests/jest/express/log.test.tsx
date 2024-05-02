@@ -126,31 +126,40 @@ describe("Log API Endpoint", () => {
   //upsert and delete tests must occur in order
   describe("POST request", () => {
     test("No permissions", async () => {
+      const requestBody: LogUpsertRequest = {
+        missionId: testMissions[2].id,
+        logs: [newLog],
+      };
       const res = await supertest(app)
         .post("/api/v1/log")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([{ ...newLog, missionId: testMissions[2].id }])
-        .query({ missionId: testMissions[2].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
+      const requestBody: LogUpsertRequest = {
+        missionId: testMissions[1].id,
+        logs: [newLog],
+      };
       const res = await supertest(app)
         .post("/api/v1/log")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([{ ...newLog, missionId: testMissions[1].id }])
-        .query({ missionId: testMissions[1].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("Create new Log", async () => {
+      const requestBody: LogUpsertRequest = {
+        missionId: testMissions[0].id,
+        logs: [{ ...newLog, missionId: testMissions[0].id }],
+      };
       const res = await supertest(app)
         .post("/api/v1/log")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([{ ...newLog, missionId: testMissions[0].id }])
-        .query({ missionId: testMissions[0].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
 
@@ -166,11 +175,14 @@ describe("Log API Endpoint", () => {
 
     test("Update a Log", async () => {
       newLog.type = "stationUpsert";
+      const requestBody: LogUpsertRequest = {
+        missionId: testMissions[0].id,
+        logs: [newLog],
+      };
       const res = await supertest(app)
         .post("/api/v1/log")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([newLog])
-        .query({ missionId: testMissions[0].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
 
@@ -182,26 +194,35 @@ describe("Log API Endpoint", () => {
 
   describe("DELETE request", () => {
     test("No permissions", async () => {
+      const requestBody: LogDeleteRequest = {
+        missionIds: [testMissions[2].id],
+      };
       const res = await supertest(app)
         .delete("/api/v1/log")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([testMissions[2].id]);
+        .send(requestBody);
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
+      const requestBody: LogDeleteRequest = {
+        missionIds: [testMissions[1].id],
+      };
       const res = await supertest(app)
         .delete("/api/v1/log")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([testMissions[1].id]);
+        .send(requestBody);
       expect(res.statusCode).toBe(401);
     });
 
     test("Delete Logs for a mission", async () => {
+      const requestBody: LogDeleteRequest = {
+        missionIds: [testMissions[0].id],
+      };
       const res = await supertest(app)
         .delete("/api/v1/log")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([testMissions[0].id]);
+        .send(requestBody);
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
 
@@ -212,10 +233,13 @@ describe("Log API Endpoint", () => {
     });
 
     test("Delete Logs for a mission with no logs", async () => {
+      const requestBody: LogDeleteRequest = {
+        missionIds: [testMissions[0].id],
+      };
       const res = await supertest(app)
         .delete("/api/v1/log")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([testMissions[0].id]);
+        .send(requestBody);
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("failure");
       expect(res.body.message).toBe("No logs found. Nothing deleted");

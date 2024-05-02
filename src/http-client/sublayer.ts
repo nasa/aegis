@@ -11,14 +11,16 @@ export async function getSublayers(
 }
 
 export async function upsertSublayers(sublayers: Sublayer[]): Promise<WrappedResponse<Sublayer[]>> {
-  const missionId =
+  const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
-  const res = await fetch(`/api/v1/sublayer?missionId=${missionId}`, {
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
+  const requestBody: SublayerUpsertRequest = { missionId, sublayers };
+  const res = await fetch(`/api/v1/sublayer`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(sublayers),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<Sublayer[]> = await res.json();
   if (res.status !== 200) {
@@ -30,14 +32,16 @@ export async function upsertSublayers(sublayers: Sublayer[]): Promise<WrappedRes
 }
 
 export async function deleteSublayers(sublayerUuids: string[]): Promise<WrappedResponse<null>> {
-  const missionId =
+  const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
-  const res = await fetch(`/api/v1/sublayer?missionId=${missionId}`, {
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
+  const requestBody: SublayerDeleteRequest = { missionId, sublayerUuids };
+  const res = await fetch(`/api/v1/sublayer`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(sublayerUuids),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<null> = await res.json();
   if (res.status !== 200) {

@@ -45,6 +45,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
+  const { users } = req.body as UserUpsertRequest;
   //only super admin can view/edit users
   if (!req.session.user?.isSuperAdmin) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -52,7 +53,6 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const users: User[] = req.body as User[];
     const upsertedUsers: User[] = await upsertUsers(users);
     if (upsertedUsers.length === 0) {
       res.status(500).json({ status: "error", message: "Error in query" });
@@ -72,6 +72,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
+  const { userIds } = req.body as UserDeleteRequest;
   //only super admin can view/edit users
   if (!req.session.user?.isSuperAdmin) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -79,8 +80,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const usersToDelete: number[] = req.body.map((u: string) => parseInt(u));
-    const deletedUuids = await deleteUsers(usersToDelete);
+    const deletedUuids = await deleteUsers(userIds);
 
     if (deletedUuids.length > 0) {
       res.status(200).json({
