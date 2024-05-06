@@ -3,7 +3,6 @@ import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faGlobe, faPlusCircle, faUser } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent, useState } from "react";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
-import { setMapSublayerControls } from "store/map";
 import { setSelectedPresetUuid, setSelectedPresetRightNavItem } from "store/preset";
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import { Button } from "components/interface/form/globalFields";
@@ -95,7 +94,6 @@ const PresetList: FunctionComponent<{
     }
 
     dispatch(setSelectedPresetUuid(currentPreset.uuid));
-    dispatch(setMapSublayerControls(currentPreset.mapSublayerControls));
     if (!selectedRightNavItem) dispatch(setSelectedPresetRightNavItem("info_panel"));
     dispatch(thunkSetRightPanelIsOpenIfAuto(true));
   };

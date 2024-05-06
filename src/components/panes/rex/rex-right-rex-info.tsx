@@ -13,7 +13,7 @@ import { Button, Dropdown, InLineEditInput } from "components/interface/form/glo
 import { validators } from "components/interface/form/formValidators";
 import { thunkRexPetStartStop } from "store/thunk/thunkRex";
 import _ from "lodash";
-import PetInterval from "components/interface/page/petInterval";
+import PetInterval from "components/page/petInterval";
 
 type EvaDropdownItem = {
   label: string;

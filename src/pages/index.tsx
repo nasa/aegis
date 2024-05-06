@@ -14,9 +14,10 @@ import { login, isLoggedIn, logout } from "http-client/login";
 import { getMissionHomepageItems } from "http-client/mission";
 import { thunkObliterateEntireStore } from "store/thunk/crossThunk";
 import _ from "lodash";
-import PetInterval from "components/interface/page/petInterval";
+import PetInterval from "components/page/petInterval";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEnvelope } from "@fortawesome/free-solid-svg-icons";
+import { faEnvelope, faPersonWalkingArrowRight, faTv } from "@fortawesome/free-solid-svg-icons";
+import { Tooltip } from "react-tooltip";
 
 const Login = ({ setUser }: { setUser: Dispatch<SetStateAction<User>> }) => {
   const [username, setUsername] = useState("");
@@ -118,7 +119,6 @@ const Logout = ({ setUser }: { setUser: Dispatch<SetStateAction<User>> }) => {
 };
 
 const MissionSelect = ({ user }: { user: User }) => {
-  const navigate = useNavigate();
   const [missionHomepageItems, setMissionHomepageItems] = useState<MissionHomepageItem[]>([]);
 
   useEffect(() => {
@@ -134,10 +134,6 @@ const MissionSelect = ({ user }: { user: User }) => {
     });
   }, [user]);
 
-  const handleMissionSelectClick = (missionId: number) => {
-    navigate(`/mission/${missionId}`);
-  };
-
   return (
     <>
       <div className={styles.title}>Select a Mission</div>
@@ -151,7 +147,6 @@ const MissionSelect = ({ user }: { user: User }) => {
                     <MissionHomepageItem
                       key={missionHomepageItem.id}
                       missionHomepageItem={missionHomepageItem}
-                      handleMissionSelectClick={handleMissionSelectClick}
                     />
                   );
                 })}
@@ -165,13 +160,12 @@ const MissionSelect = ({ user }: { user: User }) => {
 
 const MissionHomepageItem = ({
   missionHomepageItem,
-  handleMissionSelectClick,
 }: {
   missionHomepageItem: MissionHomepageItem;
-  handleMissionSelectClick: (missionId: number) => void;
 }) => {
   // used to update the PET value via the PetInterval component
   const [rexPetTime, setRexPetTime] = useState("");
+  const navigate = useNavigate();
 
   return (
     <>
@@ -182,21 +176,33 @@ const MissionHomepageItem = ({
       />
       <tr key={missionHomepageItem.id}>
         <td>{missionHomepageItem.name}</td>
-        {missionHomepageItem.runningRex ? (
-          <td>
-            EVA Executing
-            <br />
-            <span className={styles.petTime}>{rexPetTime}</span> PET
-          </td>
-        ) : (
-          <td></td>
-        )}
-        <td>
+        <td className={styles.rightFlexbox}>
+          {missionHomepageItem.runningRex && (
+            <>
+              <div className={styles.rexWrapper}>
+                <span className={styles.petTime}>{rexPetTime}</span>
+                <button
+                  className={`${styles.tableButton}`}
+                  data-tooltip-id="aegis-tooltip"
+                  data-tooltip-html="View Dashbord"
+                  onClick={() => {
+                    navigate(`/dashboard/${missionHomepageItem.id}`);
+                  }}
+                >
+                  <FontAwesomeIcon icon={faPersonWalkingArrowRight} size="1x" />{" "}
+                  <FontAwesomeIcon icon={faTv} size="lg" />
+                </button>
+              </div>
+            </>
+          )}
+
           <button
-            className={styles.tableButton}
+            className={`${styles.tableButton} ${styles.selectButton}`}
             onClick={() => {
-              handleMissionSelectClick(missionHomepageItem.id);
+              navigate(`/mission/${missionHomepageItem.id}`);
             }}
+            data-tooltip-id="aegis-tooltip"
+            data-tooltip-html="Go to Mission"
           >
             Select
           </button>
@@ -411,6 +417,13 @@ const Home: React.FunctionComponent = () => {
   return (
     <>
       <div className={styles.main}>
+        <Tooltip
+          id="aegis-tooltip"
+          className={styles.tooltip}
+          clickable={true}
+          delayShow={1000}
+          delayHide={500}
+        />
         <Left />
         <Inset />
       </div>

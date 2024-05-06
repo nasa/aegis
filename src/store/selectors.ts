@@ -21,12 +21,12 @@ export const selectMissionId = (state: RootState): number | false => {
 };
 
 /**
- * Gets all Stations for an EVA
+ * Gets all Stations for an EVA. If no EVA uuid is provided, use the selectedEvaUuid
  */
-export const selectedEvaStations =
-  () =>
+export const selectEvaStations =
+  (evaUuid?: string) =>
   (state: RootState): Station[] => {
-    const eva = state.eva.evas.find((e) => e.uuid === state.eva.selectedEvaUuid);
+    const eva = state.eva.evas.find((e) => e.uuid === (evaUuid || state.eva.selectedEvaUuid));
     if (eva?.sequence) {
       return eva.sequence
         .filter((seqItem) => seqItem.type === "station")
@@ -37,12 +37,12 @@ export const selectedEvaStations =
   };
 
 /**
- * Gets all Traverses for an EVA
+ * Gets all Traverses for an EVA. If no EVA uuid is provided, use the selectedEvaUuid
  */
-export const selectedEvaTraverses =
-  () =>
+export const selecteEvaTraverses =
+  (evaUuid?: string) =>
   (state: RootState): Traverse[] => {
-    const eva = state.eva.evas.find((e) => e.uuid === state.eva.selectedEvaUuid);
+    const eva = state.eva.evas.find((e) => e.uuid === (evaUuid || state.eva.selectedEvaUuid));
     if (eva?.sequence) {
       return eva.sequence
         .filter((seqItem) => seqItem.type === "traverse")
@@ -53,12 +53,12 @@ export const selectedEvaTraverses =
   };
 
 /**
- * Gets all Actions for an EVA
+ * Gets all Actions for an EVA. If no EVA uuid is provided, use the selectedEvaUuid
  */
-export const selectedEvaActions =
-  () =>
+export const selectEvaActions =
+  (evaUuid?: string) =>
   (state: RootState): Action[] => {
-    const eva = state.eva.evas.find((e) => e.uuid === state.eva.selectedEvaUuid);
+    const eva = state.eva.evas.find((e) => e.uuid === (evaUuid || state.eva.selectedEvaUuid));
     if (eva?.sequence) {
       const actions: Action[][] = eva.sequence
         .filter((seqItem) => seqItem.type === "station")

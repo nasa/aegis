@@ -297,7 +297,7 @@ const EvaRightEva: FunctionComponent = () => {
                   }
                 }}
                 toolTip="Delete EVA"
-                style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                style={{ width: "30px", fontSize: "0.9em", paddingLeft: "9px", marginRight: "2px" }}
               />
             )}
             {!evasEditing.includes(selectedEvaUuid) && editPerms && (
@@ -331,7 +331,8 @@ const EvaRightEva: FunctionComponent = () => {
                     backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
                     color: modified ? "white" : "var(--grey4)",
                     fontSize: "0.9em",
-                    paddingLeft: "10px",
+                    paddingLeft: "9px",
+                    marginRight: "2px",
                   }}
                 />
                 <Button
@@ -341,7 +342,7 @@ const EvaRightEva: FunctionComponent = () => {
                   }}
                   icon={faBan}
                   toolTip="Cancel Edit"
-                  style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                  style={{ width: "30px", fontSize: "0.9em", paddingLeft: "8px" }}
                 />
               </>
             )}

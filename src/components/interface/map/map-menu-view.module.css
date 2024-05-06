@@ -84,6 +84,7 @@
 .menuItemTitle {
   font-size: 0.9em;
   color: var(--grey5);
+  user-select: none;
 }
 .menuItemContent {
   padding: 0 0 0 35px;

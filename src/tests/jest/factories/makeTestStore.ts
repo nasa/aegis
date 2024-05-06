@@ -19,7 +19,6 @@ import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankActionTemplate, generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankPoi } from "store/storeUtils/poi";
 import { generateBlankPreset } from "store/storeUtils/preset";
-import { v4 as uuidv4 } from "uuid";
 import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankStation } from "store/storeUtils/station";
 import {
@@ -29,6 +28,7 @@ import {
 } from "store/storeUtils/stm";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { generateBlankUser } from "store/storeUtils/user";
+import { generateBlankSublayer } from "store/storeUtils/sublayer";
 
 export const createCustomTestStore = (partialPreloadedState: Partial<RootState>): StoreType => {
   const newState = { ...initialState, ...partialPreloadedState };
@@ -111,12 +111,14 @@ export const createFullTestStore = (): StoreType => {
   const rex1 = generateBlankRex({ name: "Jest Rex-1", evaUuid: eva1.uuid });
   rex1.posEntries = [generateBlankPosEntry({ posTypeUuids: [rex1.posTypes[0].uuid] })];
 
+  const sublayer = generateBlankSublayer({ name: "Jest Test Sublayer" });
   const preset1 = generateBlankPreset({
     name: "Jest Test Preset",
+    missionPresetDefault: true,
     mapSublayerControls: {
-      Basemaps: {
-        name: "Basemaps",
-        sublayerUuid: uuidv4(),
+      [sublayer.uuid]: {
+        name: sublayer.name,
+        sublayerUuid: sublayer.uuid,
         visible: true,
         style: null,
       },
@@ -136,6 +138,7 @@ export const createFullTestStore = (): StoreType => {
       ...missionInitialState,
       mission: mission,
       missionFromDb: mission,
+      sublayers: [sublayer],
     },
     user: {
       ...userInitialState,

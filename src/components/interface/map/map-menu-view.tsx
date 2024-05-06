@@ -2,20 +2,27 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faCaretRight, faCaretDown, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { Dispatch, FunctionComponent, SetStateAction, useState } from "react";
 import styles from "./map-menu-view.module.css";
+import { refEqual, useAppSelector } from "utils/useAppSelector";
 
 export const MapViewMenu: FunctionComponent<{
   mapDisplayPois: MapDisplayMarkers;
   setMapDisplayPois: Dispatch<SetStateAction<MapDisplayMarkers>>;
-  mapDisplayStations: MapDisplayMarkers;
-  setMapDisplayStations: Dispatch<SetStateAction<MapDisplayMarkers>>;
+  mapDisplayStations: MapDisplayStations;
+  setMapDisplayStations: Dispatch<SetStateAction<MapDisplayStations>>;
   mapDisplayActions: MapDisplayMarkers;
   setMapDisplayActions: Dispatch<SetStateAction<MapDisplayMarkers>>;
   showArrows: boolean;
   setShowArrows: Dispatch<SetStateAction<boolean>>;
-  mapDisplayPosMarkers: MapDisplayPositions;
-  setMapDisplayPosMarkers: Dispatch<SetStateAction<MapDisplayPositions>>;
+  mapDisplayPosMarkers: MapDisplayPos;
+  setMapDisplayPosMarkers: Dispatch<SetStateAction<MapDisplayPos>>;
   showGridLabels: boolean;
   setShowGridLabels: Dispatch<SetStateAction<boolean>>;
+  showScaleBar: boolean;
+  setShowScaleBar: Dispatch<SetStateAction<boolean>>;
+  showMouseLatLon: boolean;
+  setShowMouseLatLon: Dispatch<SetStateAction<boolean>>;
+  showSunEarth: boolean;
+  setShowSunEarth: Dispatch<SetStateAction<boolean>>;
 }> = ({
   mapDisplayPois,
   setMapDisplayPois,
@@ -29,9 +36,22 @@ export const MapViewMenu: FunctionComponent<{
   setMapDisplayPosMarkers,
   showGridLabels,
   setShowGridLabels,
+  showScaleBar,
+  setShowScaleBar,
+  showMouseLatLon,
+  setShowMouseLatLon,
+  showSunEarth,
+  setShowSunEarth,
 }) => {
   const [showMenu, setShowMenu] = useState(false);
-
+  const earthMoonName = useAppSelector(
+    (state) => (state.mission.mission.earthAsMoon ? "Moon" : "Earth"),
+    refEqual
+  );
+  const sunEarthEnabled: boolean = useAppSelector(
+    (state) => state.mission.mission.sunEnabled || state.mission.mission.earthEnabled,
+    refEqual
+  );
   return (
     <div className={styles.menuContainer}>
       <div
@@ -134,6 +154,20 @@ export const MapViewMenu: FunctionComponent<{
                 }}
               >
                 Labels
+              </div>
+              <div
+                className={`${styles.toggleSingle} ${styles.center} ${
+                  mapDisplayStations.showWalkbacks && styles.toggleSelected
+                }`}
+                onClick={() => {
+                  setMapDisplayStations({
+                    ...mapDisplayStations,
+                    showWalkbacks: !mapDisplayStations.showWalkbacks,
+                    show: !mapDisplayStations.show ? true : mapDisplayStations.show,
+                  });
+                }}
+              >
+                Walkbacks
               </div>
             </div>
             <div className={styles.menuItemTitleContainer}>
@@ -437,6 +471,32 @@ export const MapViewMenu: FunctionComponent<{
                 Labels
               </div>
             </div>
+            <MenuItem
+              title="Scale Bar"
+              selected={showScaleBar}
+              setSelected={() => {
+                setShowScaleBar(!showScaleBar);
+              }}
+              collapsible={false}
+            />
+            <MenuItem
+              title="Mouse Lat/Lon"
+              selected={showMouseLatLon}
+              setSelected={() => {
+                setShowMouseLatLon(!showMouseLatLon);
+              }}
+              collapsible={false}
+            />
+            {sunEarthEnabled && (
+              <MenuItem
+                title={`Sun/${earthMoonName} Directions`}
+                selected={showSunEarth}
+                setSelected={() => {
+                  setShowSunEarth(!showSunEarth);
+                }}
+                collapsible={false}
+              />
+            )}
           </div>
         </div>
       </div>

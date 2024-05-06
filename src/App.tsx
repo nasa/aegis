@@ -2,6 +2,7 @@ import React from "react";
 import { Route, Routes } from "react-router-dom";
 import Home from "pages/index";
 import Mission from "pages/mission";
+import Dashboard from "pages/dashboard";
 import AdminHome from "pages/admin/index";
 import AdminExport from "pages/admin/export";
 import AdminMission from "pages/admin/mission";
@@ -13,6 +14,7 @@ const App = (): React.ReactElement => {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/mission/:id" element={<Mission />} />
+      <Route path="/dashboard/:id" element={<Dashboard />} />
       <Route path="/admin" element={<AdminHome />} />
       <Route path="/admin/export" element={<AdminExport />} />
       <Route path="/admin/mission" element={<AdminMission />} />

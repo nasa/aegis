@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { FunctionComponent, useRef } from "react";
+import { CSSProperties, FunctionComponent, useRef } from "react";
 
 import styles from "./rex.module.css";
 import paneStyles from "../global-pane-styles.module.css";
@@ -254,10 +254,11 @@ const EvaRexItem: FunctionComponent<{ rexUuid: string }> = ({ rexUuid }) => {
 export const RexStatusMenu: FunctionComponent<{
   rexStatus: RexStatus;
   divClassName: string;
+  divStyle?: CSSProperties;
   entryType: "action" | "station" | "traverse";
   uuid: string;
   editPerms: boolean;
-}> = ({ rexStatus, divClassName, entryType, uuid, editPerms }): JSX.Element => {
+}> = ({ rexStatus, divClassName, divStyle = {}, entryType, uuid, editPerms }): JSX.Element => {
   const dispatch = useAppDispatch();
   const rexStatusDisplayProperties = getRexStatusDisplayProperties(rexStatus);
   const dialogRef = useRef(null);
@@ -308,7 +309,7 @@ export const RexStatusMenu: FunctionComponent<{
       </dialog>
       <div
         className={divClassName}
-        style={editPerms ? { cursor: "pointer" } : { cursor: "default" }}
+        style={{ ...divStyle, cursor: editPerms ? "pointer" : "default" }}
         onClick={(e) => {
           handleMenuOpen(e);
           dialogRef.current?.showModal();

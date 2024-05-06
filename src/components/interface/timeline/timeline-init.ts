@@ -208,7 +208,7 @@ export function initGraphItemsRef(
 function calcStationWalkback(
   paperDataRef: MutableRefObject<PaperData>,
   storeRef: MutableRefObject<EvaCalculated_PaperJS>,
-  sequenceItem: EvaSequenceItem_PaperJS,
+  sequenceItem: EVASequenceItemForTimeline,
   sequenceStartPixel: number,
   sequenceStartPixelRounded: number
 ): { distanceFromLander: GraphDataItem[]; elevation: GraphDataItem[] } {
@@ -283,7 +283,7 @@ function calcStationWalkback(
  */
 function calcDistFromLander(
   paperDataRef: MutableRefObject<PaperData>,
-  sequenceItem: EvaSequenceItem_PaperJS,
+  sequenceItem: EVASequenceItemForTimeline,
   sequenceStartPixel: number,
   sequenceStartPixelRounded: number
 ): GraphDataItem[] {

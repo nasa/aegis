@@ -85,7 +85,7 @@ interface MeasureDerivedValues {
  * Does not have any values based on pixels
  */
 interface EvaCalculated_PaperJS {
-  sequenceItems: EvaSequenceItem_PaperJS[];
+  sequenceItems: EVASequenceItemForTimeline[];
   selectedEvaSequenceItemUuid: string;
   maxDistFromLanderMeters: number; //used to calculate top of left y-axis graph
   evaLengthMins: number; //user input eva length
@@ -102,7 +102,7 @@ interface EvaCalculated_PaperJS {
  * Contains detailed information for a sequence item
  * Contains subdivided segments for drawing more accurate graph lines
  */
-interface EvaSequenceItem_PaperJS extends EvaSequenceItem {
+interface EVASequenceItemForTimeline extends EvaSequenceItem {
   name: string;
   secondsStart: number; //time when this sequence item starts
   totalDurationMins: number;
@@ -111,6 +111,7 @@ interface EvaSequenceItem_PaperJS extends EvaSequenceItem {
   stationDistFromLanderMeters?: number;
   stationWalkback?: Path_PaperJS;
   traverse?: Path_PaperJS;
+  icon?: string;
 }
 
 //Does not reflect the store values. Contains subdivided segments for drawing more accurate graph lines

@@ -98,6 +98,7 @@ const RightAction: FunctionComponent<{
                 <RexStatusMenu
                   rexStatus={actionRexStatusEntry}
                   divClassName={actionStyles.actionHeadingRexStatusWrapper}
+                  divStyle={{ marginTop: editMode ? "6px" : "1px" }}
                   entryType="action"
                   uuid={action.uuid}
                   editPerms={editPerms}
@@ -144,7 +145,8 @@ const RightAction: FunctionComponent<{
               )}
 
               <div
-                className={`${actionStyles.actionHeadingCaret} ${actionStyles.verticalCenter}`}
+                className={actionStyles.actionHeadingCaret}
+                style={{ marginTop: editMode ? "4px" : "0" }}
                 onClick={() => {
                   toggleActionExpanded(action.uuid);
                 }}
@@ -165,15 +167,13 @@ const RightAction: FunctionComponent<{
               </div>
 
               {!editMode ? (
-                <div className={actionStyles.verticalCenter}>
-                  <div
-                    className={actionStyles.actionHeadingType}
-                    onClick={() => {
-                      toggleActionExpanded(action.uuid);
-                    }}
-                  >
-                    {action.type}
-                  </div>
+                <div
+                  className={actionStyles.actionHeadingType}
+                  onClick={() => {
+                    toggleActionExpanded(action.uuid);
+                  }}
+                >
+                  {action.type}
                 </div>
               ) : (
                 <Dropdown
@@ -193,10 +193,11 @@ const RightAction: FunctionComponent<{
               )}
 
               <div className={actionStyles.actionHeadingTitle}>
-                <div className={actionStyles.verticalCenter}>
-                  <div className={actionStyles.actionHeadingTitleIcon}>
-                    {decodeEmoji(action.icon ? action.icon : "2800")}
-                  </div>
+                <div
+                  className={actionStyles.actionHeadingTitleIcon}
+                  style={{ marginTop: editMode ? "4px" : "0" }}
+                >
+                  {decodeEmoji(action.icon ? action.icon : "2800")}
                 </div>
                 <div className={actionStyles.verticalCenter}>
                   <InLineEditInput

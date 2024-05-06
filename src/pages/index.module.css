@@ -272,16 +272,46 @@
 .table .tableButton {
   cursor: pointer;
   padding: 5px;
-  width: 70px;
   border: 1px solid #ccc;
   border-radius: var(--radius);
+  height: 28px;
+  white-space: nowrap;
 }
 
 .guestButton {
   padding: 5px 10px;
 }
 
+.rightFlexbox {
+  display: flex;
+  flex-direction: row;
+  column-gap: 3px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.rexWrapper {
+  display: flex;
+  flex-direction: row;
+  column-gap: 5px;
+  align-items: center;
+}
+
 .petTime {
   font-weight: 500;
   color: var(--rex);
+}
+
+.selectButton {
+  width: 60px;
+}
+
+.main .tooltip {
+  z-index: 900;
+  background-color: white;
+  color: black;
+  max-width: 300px;
+  font-size: 0.8rem;
+  padding: 6px;
+  position: absolute;
 }
