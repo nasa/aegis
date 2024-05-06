@@ -68,7 +68,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       dispatch(upsertPresetByField(selectedPresetUuid, "missionPreset", true));
                     }}
                   >
-                    Active
+                    Primary
                   </div>
                   <div
                     className={`${presetStyles.toggleRight} ${presetStyles.center} ${
@@ -81,12 +81,12 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       );
                     }}
                   >
-                    Staging
+                    Secondary
                   </div>
                 </>
               ) : (
                 <span className={paneStyles.checkUneditable}>
-                  {selectedPreset.missionPreset ? <>Preset is active</> : <>Preset is in staging</>}
+                  {selectedPreset.missionPreset ? <>Preset is primary</> : <>Preset is secondary</>}
                 </span>
               )}
             </div>
