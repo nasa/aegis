@@ -119,7 +119,12 @@ const RexRightRex: FunctionComponent = () => {
                     }
                   }}
                   toolTip="Delete Rex Item"
-                  style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                  style={{
+                    width: "30px",
+                    fontSize: "0.9em",
+                    paddingLeft: "9px",
+                    marginRight: "2px",
+                  }}
                 />
               )}
               {!rexesEditing.includes(selectedRex.uuid) && editPerms && (
@@ -151,7 +156,8 @@ const RexRightRex: FunctionComponent = () => {
                       backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
                       color: modified ? "white" : "var(--grey4)",
                       fontSize: "0.9em",
-                      paddingLeft: "10px",
+                      paddingLeft: "9px",
+                      marginRight: "2px",
                     }}
                   />
                   <Button
@@ -160,7 +166,7 @@ const RexRightRex: FunctionComponent = () => {
                     }}
                     icon={faBan}
                     toolTip="Cancel Edit"
-                    style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                    style={{ width: "30px", fontSize: "0.9em", paddingLeft: "8px" }}
                   />
                 </>
               )}

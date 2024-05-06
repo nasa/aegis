@@ -1,6 +1,6 @@
 import { Fragment, FunctionComponent } from "react";
 import styles from "./stm-viewer-indicators.module.css";
-import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import _ from "lodash";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { stmViewSetHoveredTopItem } from "store/interface";
@@ -15,7 +15,7 @@ export const IndicatorGridRow: FunctionComponent<{
     return allSortedEvas
       .filter((eva) => state.interface.stmViewSelectedEvas.includes(eva.uuid))
       .map((eva) => eva.uuid);
-  }, deepEqual);
+  }, shallowEqual);
   const allStationsNotInASelectedEvas = useAppSelector((state) => {
     const stations = _.sortBy(state.station.stations, "name");
     const selectedEvaUuids = state.interface.stmViewSelectedEvas;
@@ -175,7 +175,7 @@ const IndicatorGridCell: FunctionComponent<{
       default:
         return null;
     }
-  }, deepEqual);
+  }, shallowEqual);
 
   return (
     <div

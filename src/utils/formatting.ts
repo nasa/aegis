@@ -103,7 +103,7 @@ export function hmmFromMinutes(minutesParam: number): string {
  * Formats any isoString timestamp into yyyy-mm-dd
  */
 export function shortdateFromDateString(dateString: string): string {
-  if (dateString === "") return "";
+  if (!dateString) return "";
 
   dateString = isoStringFromAnyDateString(dateString);
   const tempDate = new Date(dateString);
@@ -120,7 +120,7 @@ export function shortdateFromDateString(dateString: string): string {
  * Formats any isoString timestamp into yyyy-mm-dd hh:mm:ss
  */
 export function longdateFromDateString(dateString: string): string {
-  if (dateString === "") return "";
+  if (!dateString) return "";
 
   dateString = isoStringFromAnyDateString(dateString);
   const tempDate = new Date(dateString);

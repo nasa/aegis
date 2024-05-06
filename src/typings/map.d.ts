@@ -30,7 +30,7 @@ interface MapDirective {
 }
 
 /**
- * Station / POI map view state
+ * marker map view state
  */
 interface MapDisplayMarkers {
   show: boolean;
@@ -40,7 +40,7 @@ interface MapDisplayMarkers {
 /**
  * Pos map view state
  */
-interface MapDisplayPositions {
+interface MapDisplayPos {
   show: boolean;
   showAllLabels: boolean;
   showLatestLabels: boolean;
@@ -53,13 +53,56 @@ interface MapDisplayPositions {
 }
 
 /**
+ * station map view state
+ */
+interface MapDisplayStations extends MapDisplayMarkers {
+  showWalkbacks: boolean;
+}
+
+/**
  * Cookie for map view settings
  */
 type EyeballMenuCookieAEGISMapViewSettings = {
   mapDisplayPois: MapDisplayMarkers;
-  mapDisplayStations: MapDisplayMarkers;
+  mapDisplayStations: MapDisplayStations;
   mapDisplayActions: MapDisplayMarkers;
-  mapDisplayPositions: MapDisplayPositions;
+  mapDisplayPositions: MapDisplayPos;
   showArrows: boolean;
   showGridLabels: boolean;
+};
+
+/*
+ * Map Follow View Settings for dashboard
+ */
+type MapFollowOptions = {
+  [uuid: string]: {
+    //uuid should be either the pos type uuid or the word "station" or "traverse"
+    follow: boolean;
+    name: string;
+  };
+};
+
+type MissionSelectProperties = Pick<
+  Mission,
+  | "id"
+  | "landerLocation"
+  | "initialZoom"
+  | "planetRadius"
+  | "projBoundsMaxX"
+  | "projBoundsMaxY"
+  | "projBoundsMinX"
+  | "projBoundsMinY"
+  | "projEpsg"
+  | "projProj4String"
+  | "projResZoomLevel"
+  | "projResUnitsPerPixel"
+  | "projIsCustom"
+  | "projOriginX"
+  | "projOriginY"
+  | "landerRadii"
+>;
+
+type GridLabelItem = {
+  id: string;
+  latLng: L.LatLngExpression;
 };

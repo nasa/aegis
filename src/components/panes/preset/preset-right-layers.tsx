@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect } from "react";
+import { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import styles from "./preset-right-layers.module.css";
 import {
@@ -14,7 +14,6 @@ import { useAppDispatch } from "utils/useAppDispatch";
 
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { setMapSublayerControls } from "store/map";
 import {
   setPresetUIState,
   togglePresetUIStateExpanded,
@@ -65,10 +64,6 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
     }
     orderedLayerUuids = defaultOrder;
   }
-
-  useEffect(() => {
-    dispatch(setMapSublayerControls(presetMapLayerControls));
-  }, [dispatch, presetMapLayerControls]);
 
   //reorder header layers and then upsert to preset
   function reorderHeader(fromIndex: number, toIndex: number) {

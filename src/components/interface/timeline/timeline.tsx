@@ -12,7 +12,7 @@ import {
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 
 import styles from "./timeline.module.css";
-import { addPointsAtMeters, getDistanceBetweenTwoCoordinates } from "utils/geoMath";
+import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { clearMapItemHover } from "store/hover";
@@ -22,12 +22,13 @@ import * as TimelineDrawing from "./timeline-drawing";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { initGraphItemsRef, initPaperRefs } from "./timeline-init";
 import TimelineHoverValues from "./timeline-hover";
-import { selectedEvaActions, selectedEvaStations, selectedEvaTraverses } from "store/selectors";
+import { selectEvaActions, selectEvaStations, selecteEvaTraverses } from "store/selectors";
 import { secondsFromhhmmss } from "utils/formatting";
 import { setSelectedPosEntryUuid } from "store/rex";
-import PetInterval from "../page/petInterval";
+import PetInterval from "../../page/petInterval";
 import { getStmUuidRefs } from "utils/store";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
+import { processEvaDataFromStore } from "./common-timeline";
 
 /**
  * Renders the navigation timeline presented at the bottom of the window
@@ -51,14 +52,10 @@ const NavTimeline: FunctionComponent = () => {
     (state) => state.mission.mission?.traverseRate,
     refEqual
   );
-  const evaTraverseRate = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid)?.traverseRate,
-    refEqual
-  );
   const mission = useAppSelector((state) => state.mission.mission, deepEqual);
-  const evaActions = useAppSelector(selectedEvaActions(), deepEqual);
-  const evaStations = useAppSelector(selectedEvaStations(), deepEqual);
-  const evaTraverses = useAppSelector(selectedEvaTraverses(), deepEqual);
+  const evaActions = useAppSelector(selectEvaActions(), deepEqual);
+  const evaStations = useAppSelector(selectEvaStations(), deepEqual);
+  const evaTraverses = useAppSelector(selecteEvaTraverses(), deepEqual);
   const runningRex = useAppSelector((state) => state.rex.rexes.find((r) => r.isRunning), deepEqual);
   const runningRexFromDb = useAppSelector(
     (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
@@ -129,286 +126,26 @@ const NavTimeline: FunctionComponent = () => {
   // used to update the PET value via the PetInterval component
   const [rexPetTime, setRexPetTime] = useState("");
 
-  /**
-   * Populate storeRefs with all our store information so paper.js can read it.
-   * Perform additional calculations required for drawing, such as subdividing any paths
-   */
-  const processEvaDataFromStore = useCallback(() => {
-    storeRef.current = {
-      sequenceItems: [],
-      selectedEvaSequenceItemUuid: null,
-      maxDistFromLanderMeters: 0,
-      evaLengthMins: selectedEva?.maxDuration
-        ? +selectedEva?.maxDuration
-        : +mission?.defaultEvaDuration,
-      evaLengthCalculatedMins: 0,
-      maxElevationMeters: null,
-      minElevationMeters: null,
-      landerElevationMeters: null,
-      elevationResolutionMeters: null,
-      egressDurationMins: null,
-      ingressDurationMins: null,
-    };
-
-    if (!selectedEva?.sequence || !mission) return;
-    storeRef.current.elevationResolutionMeters = mission.demResolution;
-    storeRef.current.landerElevationMeters = mission.landerElevationMeters;
-
-    //add fake sequence items for egress and ingress
-    const egressSequenceItem: EvaSequenceItem = {
-      uuid: "egress",
-      type: "station",
-    };
-    const ingressSequenceItem: EvaSequenceItem = {
-      uuid: "ingress",
-      type: "station",
-    };
-
-    //add egress and ingress to the sequence
-    const sequenceWithLander = [egressSequenceItem, ...selectedEva.sequence, ingressSequenceItem];
-
-    //loop through sequence items
-    for (const sequenceItem of sequenceWithLander) {
-      const sequenceItemForPaperJS: EvaSequenceItem_PaperJS = {
-        ...sequenceItem,
-        name: null,
-        secondsStart: storeRef.current.evaLengthCalculatedMins * 60,
-        totalDurationMins: null,
-        traverseRateMSec: null,
-      };
-
-      //get station or traverse
-      if (sequenceItem.type === "station") {
-        // special case if the station is egress or ingress inserted into the sequence above
-        if (sequenceItem.uuid === "egress") {
-          sequenceItemForPaperJS.name = "Egress";
-          sequenceItemForPaperJS.totalDurationMins = selectedEva.egressDuration;
-          storeRef.current.egressDurationMins = selectedEva.egressDuration;
-          storeRef.current.evaLengthCalculatedMins += selectedEva.egressDuration; //add to sum for total length calculated
-          sequenceItemForPaperJS.stationElevation = mission.landerElevationMeters;
-          sequenceItemForPaperJS.stationDistFromLanderMeters = 0;
-          sequenceItemForPaperJS.stationWalkback = null;
-        } else if (sequenceItem.uuid === "ingress") {
-          sequenceItemForPaperJS.name = "Ingress";
-          sequenceItemForPaperJS.totalDurationMins = selectedEva.ingressDuration;
-          storeRef.current.ingressDurationMins = selectedEva.ingressDuration;
-          storeRef.current.evaLengthCalculatedMins += selectedEva.ingressDuration; //add to sum for total length calculated
-          sequenceItemForPaperJS.stationElevation = mission.landerElevationMeters;
-          sequenceItemForPaperJS.stationDistFromLanderMeters = 0;
-          sequenceItemForPaperJS.stationWalkback = null;
-        } else {
-          const station = evaStations.find((s) => s?.uuid === sequenceItem.uuid);
-          if (!station) continue; //skip if station doesn't exist (happens when station hasn't been selected yet when editing sequence)
-
-          sequenceItemForPaperJS.name = station.name;
-          sequenceItemForPaperJS.stationElevation = station.elevation ? station.elevation : null;
-
-          //get traverse rate for this sequence item in meters per second (eva rate falling back to mission rate)
-          const traverseRate = _.isNumber(evaTraverseRate) ? evaTraverseRate : missionTraverseRate;
-          sequenceItemForPaperJS.traverseRateMSec = traverseRate * (1000 / 3600); //convert to m/sec
-
-          // get calculatedFieldValues for this station
-          const calculatedFields = stationCalculatedFieldsInSelectedEva.find(
-            (calculated) => calculated?.uuid === station.uuid
-          );
-
-          //calculate duration from actions assigned to station
-          // note: this is the "dwell time" which is crew member time spent at the station that is the longest
-          const durationMinutes = calculatedFields?.totalDwellTime.durationUpper;
-
-          sequenceItemForPaperJS.totalDurationMins = durationMinutes;
-          storeRef.current.evaLengthCalculatedMins += durationMinutes; //add to sum for total length calculated
-
-          if (mission.landerLocation) {
-            //calculate distance to lander
-            const landerDistance = getDistanceBetweenTwoCoordinates(
-              station.location,
-              mission.landerLocation,
-              mission.planetRadius
-            );
-
-            if (landerDistance > storeRef.current.maxDistFromLanderMeters)
-              storeRef.current.maxDistFromLanderMeters = landerDistance;
-            sequenceItemForPaperJS.stationDistFromLanderMeters = landerDistance;
-
-            //calculate walkback path if this station has a walkback
-            if (station.walkbackPath) {
-              const walkback: Path_PaperJS = {
-                subdividedPath: null,
-                subdividedDistMeters: [],
-                subdividedDurationsMins: [],
-                subdividedDistFromLanderMeters: [],
-                segmentedElevationMeters: station.walkbackPathSegmentElevations,
-                segmentedDistancesMeters: station.walkbackPathSegmentDistances,
-              };
-
-              //find max/min of elevation
-              if (station.walkbackPathSegmentElevations) {
-                for (const elevationSegment of station.walkbackPathSegmentElevations) {
-                  for (const elevation of elevationSegment) {
-                    if (
-                      !storeRef.current.maxElevationMeters ||
-                      storeRef.current.maxElevationMeters < elevation
-                    ) {
-                      storeRef.current.maxElevationMeters = elevation;
-                    }
-                    if (
-                      !storeRef.current.minElevationMeters ||
-                      storeRef.current.minElevationMeters > elevation
-                    ) {
-                      storeRef.current.minElevationMeters = elevation;
-                    }
-                  }
-                }
-              }
-
-              // subdivide each segment by 150 meters for greater accuracy
-
-              const newWalkbackPath: AEGISPoint[] = addPointsAtMeters(
-                station.walkbackPath,
-                150,
-                mission.planetRadius
-              );
-              walkback.subdividedPath = newWalkbackPath;
-
-              //loop through new subdivided walkback path
-              for (let i = 0; i < newWalkbackPath.length; i++) {
-                //calculate distance from lander. Track max distance
-                const landerDistance = getDistanceBetweenTwoCoordinates(
-                  newWalkbackPath[i],
-                  mission.landerLocation,
-                  mission.planetRadius
-                );
-
-                if (landerDistance > storeRef.current.maxDistFromLanderMeters)
-                  storeRef.current.maxDistFromLanderMeters = landerDistance;
-                walkback.subdividedDistFromLanderMeters.push(landerDistance);
-
-                //calculate duration. distance is in m, rate is in km/hr, duration is in minutes
-                if (i !== newWalkbackPath.length - 1) {
-                  const distanceSegment = getDistanceBetweenTwoCoordinates(
-                    newWalkbackPath[i],
-                    newWalkbackPath[i + 1],
-                    mission.planetRadius
-                  );
-                  walkback.subdividedDistMeters.push(distanceSegment);
-                  const traverseRate = _.isNumber(evaTraverseRate)
-                    ? evaTraverseRate
-                    : missionTraverseRate;
-
-                  const duration = isNaN(traverseRate)
-                    ? 0
-                    : (distanceSegment / (+traverseRate * 1000)) * 60;
-                  walkback.subdividedDurationsMins.push(duration);
-                }
-              }
-
-              //set walkback data
-              sequenceItemForPaperJS.stationWalkback = walkback;
-            }
-          }
-        }
-      } else if (sequenceItem.type === "traverse") {
-        const traverse = evaTraverses.find((t) => t.uuid === sequenceItem.uuid);
-
-        if (!traverse || traverse?.path?.length < 2) continue; //skip traverses with less than 2 points
-        sequenceItemForPaperJS.name = traverse.name;
-        sequenceItemForPaperJS.traverse = {
-          subdividedPath: null,
-          subdividedDistMeters: [],
-          subdividedDistFromLanderMeters: [],
-          segmentedDistancesMeters: traverse.pathSegmentDistances,
-          segmentedElevationMeters: traverse.pathSegmentElevations,
-        };
-
-        //set the traverse rate for the sequence item in meters per second
-        //(traverse field value, falling back to eva rate, falling back to mission rate)
-        const traverseRate = traverse.traverseRate || evaTraverseRate || missionTraverseRate;
-        sequenceItemForPaperJS.traverseRateMSec = traverseRate * (1000 / 3600);
-
-        //find max/min of elevation
-        if (traverse.pathSegmentElevations) {
-          for (const elevationSegment of traverse.pathSegmentElevations) {
-            for (const elevation of elevationSegment) {
-              if (
-                !storeRef.current.maxElevationMeters ||
-                storeRef.current.maxElevationMeters < elevation
-              ) {
-                storeRef.current.maxElevationMeters = elevation;
-              }
-              if (
-                !storeRef.current.minElevationMeters ||
-                storeRef.current.minElevationMeters > elevation
-              ) {
-                storeRef.current.minElevationMeters = elevation;
-              }
-            }
-          }
-        }
-
-        //subdivide seach traverse segment by 150 meters for greater accuracy
-        const newTraverse: AEGISPoint[] = addPointsAtMeters(
-          traverse.path,
-          150,
-          mission.planetRadius
-        );
-        sequenceItemForPaperJS.traverse.subdividedPath = newTraverse;
-
-        sequenceItemForPaperJS.totalDurationMins = 0;
-        //loop through new subdivided traverse
-        for (let i = 0; i < newTraverse.length; i++) {
-          if (mission.landerLocation) {
-            //calculate distance from lander. Track max distance
-            const landerDistance = getDistanceBetweenTwoCoordinates(
-              newTraverse[i],
-              mission.landerLocation,
-              mission.planetRadius
-            );
-            if (landerDistance > storeRef.current.maxDistFromLanderMeters)
-              storeRef.current.maxDistFromLanderMeters = landerDistance;
-            sequenceItemForPaperJS.traverse.subdividedDistFromLanderMeters.push(landerDistance);
-          }
-
-          //calculate duration. distance is in m, rate is in km/hr, duration is in minutes
-          if (i !== newTraverse.length - 1) {
-            const distanceSegment = getDistanceBetweenTwoCoordinates(
-              newTraverse[i],
-              newTraverse[i + 1],
-              mission.planetRadius
-            );
-            sequenceItemForPaperJS.traverse.subdividedDistMeters.push(distanceSegment);
-            const duration = isNaN(traverseRate)
-              ? 0
-              : (distanceSegment / (+traverseRate * 1000)) * 60;
-            sequenceItemForPaperJS.totalDurationMins += duration;
-            storeRef.current.evaLengthCalculatedMins += duration; //add to sum for total length calculated
-          }
-        }
-      }
-      storeRef.current.sequenceItems.push(sequenceItemForPaperJS);
-    }
-
-    //loop through any crew positions (for rex) to check max graph ranges
-    if (!selectedRex?.posEntries) return;
-    for (const posEntry of selectedRex.posEntries) {
-      if (!posEntry.location) continue; //new crew pos don't have location yet
-      const newDistance = +getDistanceBetweenTwoCoordinates(
-        posEntry.location,
-        mission.landerLocation,
-        mission.planetRadius
-      ).toFixed(2);
-      if (newDistance > storeRef.current.maxDistFromLanderMeters)
-        storeRef.current.maxDistFromLanderMeters = newDistance;
-    }
+  const processEvaDataFromStoreCallback = useCallback(() => {
+    processEvaDataFromStore({
+      storeRef,
+      mission,
+      selectedEva,
+      evaStations,
+      evaTraverses,
+      missionTraverseRate,
+      stationCalculatedFieldsInSelectedEva,
+      selectedRex,
+    });
   }, [
-    selectedRex,
-    selectedEva,
-    evaTraverseRate,
+    storeRef,
     mission,
-    missionTraverseRate,
+    selectedEva,
     evaStations,
     evaTraverses,
+    missionTraverseRate,
     stationCalculatedFieldsInSelectedEva,
+    selectedRex,
   ]);
 
   const processPosEntriesFromStore = useCallback(() => {
@@ -526,7 +263,7 @@ const NavTimeline: FunctionComponent = () => {
     if (selectedRex?.posEntries) {
       processPosEntriesFromStore();
     }
-    processEvaDataFromStore(); //loads data into the storeRef
+    processEvaDataFromStoreCallback(); //loads data into the storeRef
 
     paper.view.onMouseMove = _.throttle(onMouseMove, 15, {
       leading: true,
@@ -586,7 +323,7 @@ const NavTimeline: FunctionComponent = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     selectedEva,
-    processEvaDataFromStore,
+    processEvaDataFromStoreCallback,
     storeRef,
     dispatch,
     setHoverValues,

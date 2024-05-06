@@ -5,6 +5,8 @@
 type AEGISMarker = L.Marker & {
   uuid?: string;
   mapItemType: MapMarkerType;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  _icon: any; // expose this private variable to manipulate interactive property
 };
 
 type MapMarkerType = "poi" | "station" | "lander" | "hover" | "action" | "posEntry";
@@ -12,6 +14,8 @@ type MapMarkerType = "poi" | "station" | "lander" | "hover" | "action" | "posEnt
 type AEGISPolyline = L.Polyline & {
   uuid?: string;
   mapItemType: MapPolylineType;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  _path: any; // expose this private variable to manipulate interactive property
 };
 
 type MapPolylineType = "traverse" | "walkback" | "hover" | "posPath" | "measurement";

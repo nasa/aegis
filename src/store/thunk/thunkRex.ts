@@ -140,6 +140,7 @@ export const thunkCancelRex = appCreateAsyncThunk<{ rexUuid: string }>(
     // if selected rex isn't in the db, delete it from the store
     if (!rexFromDb) {
       dispatch(deleteRexByUuid(rexUuid));
+      dispatch(setSelectedRexUuid(null)); // reset since the rex was deleted
     } else {
       // if selected rex is in the db, replace it with the one from the db (undoing any changes)
       dispatch(upsertRex(rexFromDb, true));

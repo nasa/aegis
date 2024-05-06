@@ -22,7 +22,7 @@ import {
 } from "store/thunk/thunkEva";
 import { getRexStatusDisplayProperties } from "../../../utils/rex";
 import _ from "lodash";
-import PetInterval from "components/interface/page/petInterval";
+import PetInterval from "components/page/petInterval";
 import { RexStatusMenu } from "../rex/rex";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import {

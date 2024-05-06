@@ -102,6 +102,7 @@
   text-overflow: ellipsis;
   text-transform: capitalize;
   cursor: pointer;
+  margin: 2px 0 0 0;
 }
 
 .actionHeadingTitle {

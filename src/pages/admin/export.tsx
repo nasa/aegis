@@ -1,4 +1,4 @@
-import { populateStore } from "pages/mission";
+import { populateStore } from "store/processing/populateStore";
 import _ from "lodash";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FunctionComponent, useEffect, useState } from "react";
@@ -55,7 +55,7 @@ const ExportPage: React.FunctionComponent = () => {
 
   useEffect(() => {
     const populateStoreAsync = async () => {
-      const wholeStoreState = await populateStore({ missionId: intMissionId });
+      const wholeStoreState = await populateStore({ missionId: intMissionId, runAudit: false });
       /**
        * dispatch a single action to populate the stores across all slices using the wholeStoreState
        */

@@ -21,12 +21,14 @@ export class Mission_db implements Mission_db_type {
   landerElevationMeters: number;
   @Property({ type: MikroTypes.double, nullable: true })
   sunAzimuth: number;
+  @Property({ type: MikroTypes.boolean, nullable: true, default: true })
+  sunEnabled: boolean;
   @Property({ type: MikroTypes.double, nullable: true })
   earthAzimuth: number;
-  @Property({ type: MikroTypes.boolean, default: false })
-  sunAzimuthVisible: boolean;
-  @Property({ type: MikroTypes.boolean, default: false })
-  earthAzimuthVisible: boolean;
+  @Property({ type: MikroTypes.boolean, nullable: true, default: true })
+  earthEnabled: boolean;
+  @Property({ type: MikroTypes.boolean, nullable: true, default: false })
+  earthAsMoon: boolean;
   @Property({ type: MikroTypes.double, nullable: true })
   defaultEvaDuration: number;
   @Property({ type: MikroTypes.double, nullable: true, default: 2 })

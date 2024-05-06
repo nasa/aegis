@@ -1,6 +1,5 @@
-import reducer, { initialState, setMapSublayerControls } from "store/map";
+import reducer, { initialState } from "store/map";
 import { describe, expect, it } from "@jest/globals";
-import { v4 as uuidv4 } from "uuid";
 
 describe("AEGIS Map Store Tests: ", () => {
   it("should return the initial state on first run", () => {
@@ -14,28 +13,6 @@ describe("AEGIS Map Store Tests: ", () => {
 
     // Assert
     expect(result).toEqual(nextState);
-  });
-
-  it("Set the State when loading Map sublayers", async () => {
-    //create dummy controls
-    const uuid1 = uuidv4();
-    const uuid2 = uuidv4();
-    const controls: MapSublayerControls = {};
-    controls[uuid1] = {
-      name: "sublayer1",
-      sublayerUuid: uuid1,
-      visible: false,
-      style: null,
-    };
-    controls[uuid2] = {
-      name: "sublayer2",
-      sublayerUuid: uuid2,
-      visible: false,
-      style: null,
-    };
-
-    const mapState = reducer(initialState, setMapSublayerControls(controls));
-    expect(mapState.mapSublayerControls).toMatchObject(controls);
   });
 
   describe("Map Store: updateMapDirective", () => {

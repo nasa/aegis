@@ -1,10 +1,21 @@
 import appCreateAsyncThunk from "./thunkUtil";
-import { setRightPanelIsOpen, stmViewSetExpandedItems } from "store/interface";
+import {
+  setBottomPanelIsOpen,
+  setRightPanelIsOpen,
+  stmViewSetExpandedItems,
+} from "store/interface";
 
 export const thunkSetRightPanelIsOpenIfAuto = appCreateAsyncThunk<boolean>(
   "setRightPanelIsOpenIfAuto",
   async (isOpen, { getState, dispatch }) => {
     if (getState().interface.autoRightPanelOpen) dispatch(setRightPanelIsOpen(isOpen));
+  }
+);
+
+export const thunkSetBottomPanelIsOpenIfAuto = appCreateAsyncThunk<boolean>(
+  "setBottomPanelIsOpenIfAuto",
+  async (isOpen, { getState, dispatch }) => {
+    if (getState().interface.autoBottomPanelOpen) dispatch(setBottomPanelIsOpen(isOpen));
   }
 );
 

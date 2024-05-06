@@ -1,7 +1,7 @@
 import { Fragment, FunctionComponent } from "react";
 import styles from "./stm-viewer-page.module.css";
 import STMListTable from "./stm-viewer-list-table";
-import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import _ from "lodash";
 import { abbreviateString, titleCase } from "utils/formatting";
 import { Button, MultiSelectDropdown } from "components/interface/form/globalFields";
@@ -144,7 +144,7 @@ const StationGroupTitles: FunctionComponent = () => {
     return allSortedEvas
       .filter((eva) => state.interface.stmViewSelectedEvas.includes(eva.uuid))
       .map((eva) => eva.uuid);
-  }, deepEqual);
+  }, shallowEqual);
   return (
     <div className={styles.stationGroupTitles}>
       {sortedEvaUuids.map((evaUuid, index) => (
@@ -220,7 +220,7 @@ const StationNameGroups: FunctionComponent = () => {
     return allSortedEvas
       .filter((eva) => state.interface.stmViewSelectedEvas.includes(eva.uuid))
       .map((eva) => eva.uuid);
-  }, deepEqual);
+  }, shallowEqual);
   const allStationsNotInASelectedEvas = useAppSelector((state) => {
     const stations = _.sortBy(state.station.stations, "name");
     const selectedEvaUuids = state.interface.stmViewSelectedEvas;
@@ -341,12 +341,14 @@ const EvaSelector: FunctionComponent = () => {
     >
       <MultiSelectDropdown
         items={evasWithStations.map((eva) => ({ label: eva.name, value: eva.uuid }))}
-        selectedItems={selectedEvas}
+        selectedItemsValues={selectedEvas}
         toggleItem={(uuid) => {
           dispatch(stmViewToggleEva(uuid));
         }}
         titleLabel="Select EVAs"
-        zIndex={10}
+        containerStyle={{ zIndex: 10 }}
+        containerClassName={styles.multiselectDropdownContainer}
+        headerClassName={styles.multiselectDropdownHeader}
       />
     </div>
   );
@@ -356,7 +358,7 @@ const ActionTypesSelector: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const selectedActionTypes = useAppSelector(
     (state) => state.interface.stmViewSelectedActionTypes,
-    deepEqual
+    shallowEqual
   );
 
   return (
@@ -369,12 +371,14 @@ const ActionTypesSelector: FunctionComponent = () => {
           })),
           "label"
         )}
-        selectedItems={selectedActionTypes}
+        selectedItemsValues={selectedActionTypes}
         toggleItem={(actionType) => {
-          dispatch(stmViewToggleSelectedActionType(actionType));
+          dispatch(stmViewToggleSelectedActionType(actionType as ActionType));
         }}
         titleLabel="Filter Action Types"
-        zIndex={9}
+        containerStyle={{ zIndex: 9 }}
+        containerClassName={styles.multiselectDropdownContainer}
+        headerClassName={styles.multiselectDropdownHeader}
       />
       {selectedActionTypes.length !== actionTypes.length && (
         <FontAwesomeIcon

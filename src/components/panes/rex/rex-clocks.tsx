@@ -2,7 +2,7 @@ import _ from "lodash";
 import { FunctionComponent, useState } from "react";
 
 import styles from "./rex.module.css";
-import PetInterval from "components/interface/page/petInterval";
+import PetInterval from "components/page/petInterval";
 
 const RexClocks: FunctionComponent<{ selectedRex: Rex }> = ({ selectedRex }) => {
   return (

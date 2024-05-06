@@ -8,7 +8,7 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx ./src",
     "tsc": "tsc --pretty",
     "test": "jest",
-    "test:all": "npm run lint && npm run tsc && npm run build && npm run test",
+    "test:all": "npm run lint && npm run tsc && npm run build && npm run test && npm run test:playwright",
     "test:coverage": "npm run test       -- --coverage --reporters=default --reporters=jest-junit",
     "test:coverage:single": "npm run test       --  --coverage --reporters=default --reporters=jest-junit --collectCoverageFrom=[]",
     "test:playwright": "playwright test",
@@ -98,6 +98,7 @@
     "socket.io-client": "^4.7.5",
     "string-strip-html": "^13.4.6",
     "unique-names-generator": "^4.7.1",
+    "use-window-size-v2": "^2.2.5",
     "uuid": "^9.0.1",
     "vite": "^5.2.2"
   },

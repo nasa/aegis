@@ -14,6 +14,7 @@ import {
   faMountain,
   faSun,
   faXmark,
+  faMoon,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
@@ -347,23 +348,26 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         icon={faSun}
                       />
                     </div>
-                    <div className={paneStyles.displayFieldLabel} style={{ marginLeft: "18px" }}>
+                    <div
+                      className={paneStyles.displayFieldLabel}
+                      style={{ margin: "6px 0 0 18px" }}
+                    >
                       <div style={{ display: "flex" }}>
                         {editMode ? (
                           <>
                             <div>
                               <Checkbox
-                                checked={mission.sunAzimuthVisible}
+                                checked={mission.sunEnabled}
                                 editable={editMode}
                                 onChange={(e) => {
                                   dispatch(
                                     upsertMission({
                                       ...mission,
-                                      sunAzimuthVisible: e.target.checked,
+                                      sunEnabled: e.target.checked,
                                     })
                                   );
                                 }}
-                                label="Visible:"
+                                label="Enable:"
                                 labelStyle={{ marginTop: 3, marginRight: 3 }}
                                 labelPlacement="left"
                                 uniqueId="sunCheckbox"
@@ -372,7 +376,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           </>
                         ) : (
                           <div style={{ marginTop: "3px" }}>
-                            {mission?.sunAzimuthVisible ? "Visible" : "Hidden"}
+                            {mission?.sunEnabled ? "Enabled" : "Disabled"}
                           </div>
                         )}
                       </div>
@@ -385,7 +389,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 style={{ marginLeft: "40px" }}
               >
                 <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-                  <SubpanelHeading icon={faEarthAmerica}>Earth Direction</SubpanelHeading>
+                  <SubpanelHeading icon={mission.earthAsMoon ? faMoon : faEarthAmerica}>
+                    {mission.earthAsMoon ? "Moon" : "Earth"} Direction
+                  </SubpanelHeading>
                 </div>
                 <div className={paneStyles.panelSectionRow}>
                   <div className={paneStyles.degreesInputContainer}>
@@ -397,11 +403,48 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         onChange={(value: number) => {
                           handleOnChangeEarthAzimuth(mission, value);
                         }}
-                        icon={faEarthAmerica}
+                        icon={mission.earthAsMoon ? faMoon : faEarthAmerica}
                         isDragging={(value: boolean) => {
                           setIsDragging(value);
                         }}
                       />
+                    </div>
+                    <div
+                      className={paneStyles.displayFieldLabel}
+                      style={{ margin: "6px 0 0 18px" }}
+                    >
+                      <div style={{ display: "flex" }}>
+                        {editMode && (
+                          <>
+                            <div
+                              className={`${paneStyles.toggleMenuItemRow} ${paneStyles.menuItemTitle}`}
+                            >
+                              <div
+                                className={`${paneStyles.toggleLeft} ${paneStyles.center} ${
+                                  !mission.earthAsMoon && paneStyles.toggleSelected
+                                }`}
+                                onClick={() => {
+                                  if (mission.earthAsMoon)
+                                    dispatch(upsertMission({ ...mission, earthAsMoon: false }));
+                                }}
+                              >
+                                Earth
+                              </div>
+                              <div
+                                className={`${paneStyles.toggleRight} ${paneStyles.center} ${
+                                  mission.earthAsMoon && paneStyles.toggleSelected
+                                }`}
+                                onClick={() => {
+                                  if (!mission.earthAsMoon)
+                                    dispatch(upsertMission({ ...mission, earthAsMoon: true }));
+                                }}
+                              >
+                                Moon
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <div className={paneStyles.displayFieldLabel} style={{ marginLeft: "18px" }}>
                       <div style={{ display: "flex" }}>
@@ -409,17 +452,17 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           <>
                             <div>
                               <Checkbox
-                                checked={mission.earthAzimuthVisible}
+                                checked={mission.earthEnabled}
                                 editable={editMode}
                                 onChange={(e) => {
                                   dispatch(
                                     upsertMission({
                                       ...mission,
-                                      earthAzimuthVisible: e.target.checked,
+                                      earthEnabled: e.target.checked,
                                     })
                                   );
                                 }}
-                                label="Visible:"
+                                label="Enable:"
                                 labelStyle={{ marginTop: 3, marginRight: 3 }}
                                 labelPlacement="left"
                                 uniqueId="earthCheckbox"
@@ -428,7 +471,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           </>
                         ) : (
                           <div style={{ marginTop: "3px" }}>
-                            {mission?.earthAzimuthVisible ? "Visible" : "Hidden"}
+                            {mission?.earthEnabled ? "Enabled" : "Disabled"}
                           </div>
                         )}
                       </div>

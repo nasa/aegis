@@ -13,9 +13,10 @@ interface Mission {
   initialZoom: number;
   traverseRate: number;
   sunAzimuth: number;
+  sunEnabled: boolean;
   earthAzimuth: number;
-  sunAzimuthVisible: boolean;
-  earthAzimuthVisible: boolean;
+  earthEnabled: boolean;
+  earthAsMoon: boolean;
   defaultEvaDuration: number;
   walkbackRate: number;
   equipmentItems: EquipmentItem[];

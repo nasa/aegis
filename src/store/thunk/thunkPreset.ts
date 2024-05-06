@@ -63,6 +63,9 @@ export const thunkPresetCancel = appCreateAsyncThunk<{
     dispatch(setSelectedPresetUuid(null));
     dispatch(thunkSetRightPanelIsOpenIfAuto(false));
     dispatch(deletePresetUIStates({ presetUuid }));
+    // reselect the default
+    const defaultPresetUuid = getState().preset.presets.find((p) => p.missionPresetDefault)?.uuid;
+    dispatch(setSelectedPresetUuid(defaultPresetUuid));
   } else {
     // if selected Preset is in the db, replace it with the one from the db (undoing any changes)
     dispatch(upsertPreset(presetFromDb, true));
@@ -122,23 +125,47 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
       });
     }
 
-    const blankMapSublayerControls = _.cloneDeep(getState().map.mapSublayerControls);
-    if (blankMapSublayerControls) {
-      // make all sublayers invisible
-      for (const [key] of Object.entries(blankMapSublayerControls)) {
-        blankMapSublayerControls[key].visible = false;
-      }
+    // build sublayer controls
+    const blankMapSublayerControls: MapSublayerControls = {};
+    for (const sublayer of getState().mission.sublayers) {
+      blankMapSublayerControls[sublayer.uuid] = {
+        name: sublayer.name,
+        sublayerUuid: sublayer.uuid,
+        visible: false,
+        style: {
+          opacity: sublayer.opacity || 1,
+          contrast: 1,
+          brightness: 1,
+          saturation: 1,
+          blendMode: "normal",
+          color: sublayer.color || "#FFFFFF",
+          weight: sublayer.weight || 1,
+          fillColor: sublayer.fillColor || "#FFFFFF",
+          fillOpacity: sublayer.fillOpacity || 0,
+        },
+      };
     }
 
-    const blankMapCircleControls = _.cloneDeep(getState().map.mapCircleControls);
-    if (blankMapCircleControls) {
-      // make all circles invisible
-      if (blankMapCircleControls) {
-        for (const [key] of Object.entries(blankMapCircleControls)) {
-          blankMapCircleControls[key].visible = false;
-        }
-      }
-    }
+    // build circle controls
+    const blankMapCircleControls: MapCircleControls = {};
+    getState().mission.mission.landerRadii.forEach((landerRadius) => {
+      blankMapCircleControls[landerRadius.uuid] = {
+        name: landerRadius.name,
+        landerRadiusUuid: landerRadius.uuid,
+        visible: false,
+        style: {
+          opacity: 1,
+          contrast: 1,
+          brightness: 1,
+          saturation: 1,
+          blendMode: "normal",
+          color: "red",
+          weight: 1,
+          fillColor: "none",
+          fillOpacity: 0,
+        },
+      };
+    });
 
     const blankPreset = generateBlankPreset({
       name: randomName,

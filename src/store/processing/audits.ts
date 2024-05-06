@@ -136,63 +136,6 @@ export const auditPresetsAgainstLayers = async (params: {
       // handle the error
     }
   }
-
-  // Set the default preset
-  const defaultPreset = wholeStoreState.preset.presets.filter(
-    (preset) => preset.missionPresetDefault === true
-  );
-  if (defaultPreset.length > 0) {
-    wholeStoreState.preset.selectedPresetUuid = defaultPreset[0].uuid;
-    wholeStoreState.map.mapSublayerControls = defaultPreset[0].mapSublayerControls;
-  }
-
-  if (presetsToSaveToDb.length > 0) {
-    // upsert the changed Presets to the DB
-    const upsertReponse = await httpClient_preset.upsertPresets(presetsToSaveToDb, false);
-    if (upsertReponse.status !== "success") {
-      // handle the error
-    }
-  }
-};
-
-export const generatePresetUIStates = async (params: {
-  wholeStoreState: WholeStoreState;
-}): Promise<void> => {
-  const { wholeStoreState } = params;
-  // Generate preset UI states
-  const presetUuids = wholeStoreState.preset.presets.map((p) => p.uuid);
-  presetUuids.forEach((presetUuid) => {
-    //build preset ui states for the layer and sublayers
-    const presetUIStates: PresetUIStates = {};
-    for (const layer of wholeStoreState.mission?.layers) {
-      if (!layer.uuid) continue;
-      presetUIStates[layer.uuid] = {
-        expanded: true,
-        tabSelected: null,
-        name: layer.name,
-        type: "layer",
-      };
-    }
-    for (const sublayer of wholeStoreState.mission?.sublayers) {
-      presetUIStates[sublayer.uuid] = {
-        expanded: true,
-        tabSelected: null,
-        name: sublayer.name,
-        type: "sublayer",
-      };
-    }
-
-    wholeStoreState.mission.mission?.landerRadii.forEach((landerRadius) => {
-      presetUIStates[landerRadius.uuid] = {
-        expanded: true,
-        tabSelected: null,
-        name: landerRadius.name,
-        type: "circle",
-      };
-    });
-
-    wholeStoreState.preset.presetsUIStates[presetUuid] = presetUIStates;
-  });
 };
 
 export const auditActions = async (params: { wholeStoreState: WholeStoreState }): Promise<void> => {

@@ -229,7 +229,7 @@ const StationEditorRight: FunctionComponent = () => {
                   }
                 }}
                 toolTip="Delete Station"
-                style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                style={{ width: "30px", fontSize: "0.9em", paddingLeft: "9px", marginRight: "2px" }}
               />
             ) : (
               <></>
@@ -279,7 +279,8 @@ const StationEditorRight: FunctionComponent = () => {
                         saveButtonState === "enabled" ? "var(--alert)" : "var(--alert-disabled)",
                       color: saveButtonState === "enabled" ? "white" : "var(--grey4)",
                       fontSize: "0.9em",
-                      paddingLeft: "10px",
+                      paddingLeft: "9px",
+                      marginRight: "2px",
                     }}
                   />
                   <Button
@@ -293,7 +294,7 @@ const StationEditorRight: FunctionComponent = () => {
                     }}
                     icon={faBan}
                     toolTip="Cancel Edit"
-                    style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                    style={{ width: "30px", fontSize: "0.9em", paddingLeft: "8px" }}
                   />
                 </>
               )

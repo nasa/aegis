@@ -373,7 +373,12 @@ export const ActionList: FunctionComponent<{
           pois?.find((poi) => poi.actionOrderUuids.includes(actionUuid))?.elevation;
         return (
           <li key={actionUuid} className={actionsStyles.actionlistitem}>
-            <div className={actionsStyles.actionlistitemOrdinal}>{index + 1}</div>
+            <div
+              className={actionsStyles.actionlistitemOrdinal}
+              style={{ marginTop: editMode ? "8px" : "2px" }}
+            >
+              {index + 1}
+            </div>
             <Action
               editMode={editMode}
               actionUuid={actionUuid}
