@@ -56,41 +56,37 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       <div className={paneStyles.panelContainer}>
         <div className={paneStyles.panelSection}>
           <div className={paneStyles.panelSectionTitle}>
-            <div className={presetStyles.checkboxRow}>
+            <div className={presetStyles.toggleMenuItemRow}>
               {editMode ? (
                 <>
-                  <Checkbox
-                    checked={selectedPreset.missionPreset}
-                    onChange={(evt) => {
-                      if (!editMode) return;
-                      if (evt.target.checked) {
-                        dispatch(upsertPresetByField(selectedPresetUuid, "missionPreset", true));
-                      } else {
-                        // if the preset is being unset as a mission preset, then we need to also make sure it is not the default preset
-
-                        dispatch(upsertPresetByField(selectedPresetUuid, "missionPreset", false));
-                        dispatch(
-                          upsertPresetByField(selectedPresetUuid, "missionPresetDefault", false)
-                        );
-                      }
+                  Preset Status
+                  <div
+                    className={`${presetStyles.toggleLeft} ${presetStyles.center} ${
+                      selectedPreset.missionPreset && presetStyles.toggleSelected
+                    }`}
+                    onClick={() => {
+                      dispatch(upsertPresetByField(selectedPresetUuid, "missionPreset", true));
                     }}
-                    toolTip="Set preset visibility"
-                    label="Preset is visible to everyone"
-                    labelStyle={{
-                      justifyContent: "space-around",
-                      display: "flex",
-                      flexDirection: "column",
+                  >
+                    Active
+                  </div>
+                  <div
+                    className={`${presetStyles.toggleRight} ${presetStyles.center} ${
+                      !selectedPreset.missionPreset && presetStyles.toggleSelected
+                    }`}
+                    onClick={() => {
+                      dispatch(upsertPresetByField(selectedPresetUuid, "missionPreset", false));
+                      dispatch(
+                        upsertPresetByField(selectedPresetUuid, "missionPresetDefault", false)
+                      );
                     }}
-                    uniqueId="presetVisbility"
-                  />
+                  >
+                    Staging
+                  </div>
                 </>
               ) : (
                 <span className={paneStyles.checkUneditable}>
-                  {selectedPreset.missionPreset ? (
-                    <>Preset is visible to everyone</>
-                  ) : (
-                    <>Preset is visible to only you</>
-                  )}
+                  {selectedPreset.missionPreset ? <>Preset is active</> : <>Preset is in staging</>}
                 </span>
               )}
             </div>
