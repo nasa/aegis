@@ -102,7 +102,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 </span>
               )}
             </div>
-            {selectedPreset.missionPreset && !selectedPreset.missionPresetDefault && (
+            {selectedPreset.missionPreset && editMode && (
               <div className={presetStyles.checkboxRow}>
                 {editMode ? (
                   <>
