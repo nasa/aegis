@@ -149,6 +149,7 @@
 
 .checkboxRow {
   display: flex;
+  margin-left: 13px;
 }
 
 .toggleMenuItemRow {
