@@ -56,49 +56,53 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       <div className={paneStyles.panelContainer}>
         <div className={paneStyles.panelSection}>
           <div className={paneStyles.panelSectionTitle}>
-            <div className={presetStyles.checkboxRow}>
+            <div className={presetStyles.toggleMenuItemRow}>
               {editMode ? (
                 <>
-                  <Checkbox
-                    checked={selectedPreset.missionPreset}
-                    onChange={(evt) => {
-                      if (!editMode) return;
-                      if (evt.target.checked) {
-                        dispatch(upsertPresetByField(selectedPresetUuid, "missionPreset", true));
-                      } else {
-                        // if the preset is being unset as a mission preset, then we need to also make sure it is not the default preset
-
-                        dispatch(upsertPresetByField(selectedPresetUuid, "missionPreset", false));
-                        dispatch(
-                          upsertPresetByField(selectedPresetUuid, "missionPresetDefault", false)
-                        );
-                      }
+                  List preset as
+                  <div
+                    className={`${presetStyles.toggleLeft} ${presetStyles.center} ${
+                      selectedPreset.missionPreset && presetStyles.toggleSelected
+                    }`}
+                    onClick={() => {
+                      dispatch(upsertPresetByField(selectedPresetUuid, "missionPreset", true));
                     }}
-                    toolTip="Set preset visibility"
-                    label="Preset is visible to everyone"
-                    labelStyle={{
-                      justifyContent: "space-around",
-                      display: "flex",
-                      flexDirection: "column",
+                    data-tooltip-id="aegis-tooltip"
+                    data-tooltip-html="Show in the top list of primary presets for this mission"
+                  >
+                    Primary
+                  </div>
+                  <div
+                    className={`${presetStyles.toggleRight} ${presetStyles.center} ${
+                      !selectedPreset.missionPreset && presetStyles.toggleSelected
+                    }`}
+                    onClick={() => {
+                      dispatch(upsertPresetByField(selectedPresetUuid, "missionPreset", false));
+                      dispatch(
+                        upsertPresetByField(selectedPresetUuid, "missionPresetDefault", false)
+                      );
                     }}
-                    uniqueId="presetVisbility"
-                  />
+                    data-tooltip-id="aegis-tooltip"
+                    data-tooltip-html="Show in the bottom list of secondary presets for this mission"
+                  >
+                    Secondary
+                  </div>
                 </>
               ) : (
                 <span className={paneStyles.checkUneditable}>
                   {selectedPreset.missionPreset ? (
-                    <>Preset is visible to everyone</>
+                    selectedPreset.missionPresetDefault ? (
+                      <>Preset is primary, mission default</>
+                    ) : (
+                      <>Preset is primary</>
+                    )
                   ) : (
-                    <>Preset is visible to only you</>
+                    <>Preset is secondary</>
                   )}
                 </span>
               )}
             </div>
-          </div>
-        </div>
-        {selectedPreset.missionPreset && (
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>
+            {selectedPreset.missionPreset && editMode && (
               <div className={presetStyles.checkboxRow}>
                 {editMode ? (
                   <>
@@ -109,7 +113,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         handleDefaultPresetChange(evt);
                       }}
                       toolTip="Set default preset"
-                      label="Preset is the mission's default"
+                      label="Set as default"
                       labelStyle={{
                         justifyContent: "space-around",
                         display: "flex",
@@ -118,19 +122,11 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       uniqueId="presetDefault"
                     />
                   </>
-                ) : (
-                  <span className={paneStyles.checkUneditable}>
-                    {selectedPreset.missionPresetDefault ? (
-                      <>Preset is the mission&apos;s default</>
-                    ) : (
-                      <>Preset is not the mission&apos;s default</>
-                    )}
-                  </span>
-                )}
+                ) : null}
               </div>
-            </div>
+            )}
           </div>
-        )}
+        </div>
         <div className={paneStyles.panelSection}>
           <div className={paneStyles.panelSectionTitle}>
             <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
