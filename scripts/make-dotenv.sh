@@ -9,11 +9,9 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 RELATIVE_DOTENV_SECRET=".env.secret"
 DOTENV_SECRET="${SCRIPT_DIR}/../${RELATIVE_DOTENV_SECRET}";
 
-SECRET_EXISTS=0
 # Get values from .env.secret (if exists)
 if [ -f "${DOTENV_SECRET}" ]; then
     source "${DOTENV_SECRET}"
-    SECRET_EXISTS=1
 else
     echo "No .env.secret found. Using dummy values for sensitive variables. Please consult a fellow developer for the correct values."
 fi
