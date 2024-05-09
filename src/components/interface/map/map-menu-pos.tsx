@@ -38,11 +38,21 @@ import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 
 export const MapPositionMenu: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const selectedRexIsRunning = useAppSelector((state) => {
-    const running = state.rex.rexesFromDb.find(
-      (r) => r.uuid === state.rex.selectedRexUuid
-    )?.isRunning;
-    return running === undefined ? false : running; //must return bool (undefined is not acceptable)
+  const isRexEditing = useAppSelector(
+    (state) => state.rex.rexesEditing.includes(state.rex.selectedRexUuid),
+    refEqual
+  );
+  const canAddEditPosLocation = useAppSelector((state) => {
+    // for adding new pos rex must be running and not in edit. for editing existing pos, rex just must not be in edit
+    const isRexEditing = state.rex.rexesEditing.includes(state.rex.selectedRexUuid);
+    if (state.rex.posEntryEditingUuid) {
+      return !isRexEditing;
+    } else {
+      const isRexRunning = state.rex.rexesFromDb.find(
+        (r) => r.uuid === state.rex.selectedRexUuid
+      )?.isRunning;
+      return !isRexEditing && isRexRunning;
+    }
   }, refEqual);
   const selectedRex = useAppSelector(
     (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid),
@@ -231,7 +241,7 @@ export const MapPositionMenu: FunctionComponent = () => {
                       label={posEntryEditingUuid ? "Edit Pos." : "New Pos."}
                       icon={faCrosshairs}
                       style={{ height: "1.75em", width: "90px", marginLeft: 0 }}
-                      enabled={selectedPosTypeUuids.length > 0 && selectedRexIsRunning}
+                      enabled={selectedPosTypeUuids.length > 0 && canAddEditPosLocation}
                     />
                   )}
                   {(thisMapAction === "createMarker" || thisMapAction === "editMarker") && (
@@ -249,7 +259,7 @@ export const MapPositionMenu: FunctionComponent = () => {
                   )}
                 </div>
                 {posEntriesInEdit?.location && (
-                  <>
+                  <div className={styles.saveCancelButtons}>
                     <div>
                       <Button
                         onClick={async () => {
@@ -286,7 +296,7 @@ export const MapPositionMenu: FunctionComponent = () => {
                         style={{ height: "1.75em" }}
                       />
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
             )}
@@ -337,7 +347,7 @@ export const MapPositionMenu: FunctionComponent = () => {
                         <PositionRow
                           key={posEntry.uuid}
                           posEntry={posEntry}
-                          showKabob={editPerms}
+                          showKabob={editPerms && !isRexEditing}
                           numbering={posEntries.length - index}
                           setSelectedPosTypes={setSelectedPosTypeUuids}
                         />
@@ -368,7 +378,7 @@ export const MapPositionMenu: FunctionComponent = () => {
                         <PositionRow
                           key={posEntry.uuid}
                           posEntry={posEntry}
-                          showKabob={editPerms}
+                          showKabob={editPerms && !isRexEditing}
                           numbering={posEntries.length - index}
                           setSelectedPosTypes={setSelectedPosTypeUuids}
                         />

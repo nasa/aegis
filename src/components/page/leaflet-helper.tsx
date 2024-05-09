@@ -167,7 +167,7 @@ export const scaleBarDiv = (
  * @returns
  */
 export const latLngDiv = (mousePosition: AEGISPoint): JSX.Element => {
-  const latLngStr = `${mousePosition.lat}, ${mousePosition.lng}`;
+  const latLngStr = `${mousePosition.lat.toFixed(6)}, ${mousePosition.lng.toFixed(6)}`;
   return (
     <>
       <div className={styles.positionValue}>{latLngStr}</div>

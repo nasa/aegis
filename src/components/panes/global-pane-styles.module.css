@@ -200,6 +200,7 @@
   justify-content: right;
   margin-right: 3px;
   margin-top: 7px;
+  column-gap: 3px;
 }
 
 .leftPanelContainer {
