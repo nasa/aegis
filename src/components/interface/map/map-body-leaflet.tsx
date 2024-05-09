@@ -456,7 +456,7 @@ const MapBody: FunctionComponent = () => {
     });
 
     map.current.on("mousemove", (e) => {
-      setMousePosition({ lat: +e.latlng.lat.toFixed(6), lng: +e.latlng.lng.toFixed(6) });
+      setMousePosition({ lat: e.latlng.lat, lng: e.latlng.lng });
     });
 
     map.current.on("zoomend", () => {
