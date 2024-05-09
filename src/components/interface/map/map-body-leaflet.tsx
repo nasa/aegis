@@ -1019,9 +1019,12 @@ const MapBody: FunctionComponent = () => {
     if (mapDisplayPositions.show) {
       //if there is a running rex, or no running rex but we're on the rex section and there's a rex selected
       if (selectedOrRunningRex?.isRunning || (sectionSelected === "rex" && selectedOrRunningRex)) {
-        posEntriesToShow = _.orderBy(selectedOrRunningRex.posEntries, ["createdAt"], "desc");
+        const posEntriesWithLocations = selectedOrRunningRex.posEntries.filter(
+          (posEntry) => posEntry.location
+        );
+        posEntriesToShow = _.orderBy(posEntriesWithLocations, ["createdAt"], "desc");
         posTypeLatestEntries = getLatestPosEntryByType({
-          allPosEntries: selectedOrRunningRex.posEntries,
+          allPosEntries: posEntriesWithLocations,
         });
       }
     }
