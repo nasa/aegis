@@ -771,11 +771,14 @@ const MapBody: FunctionComponent<{
 
     // determine which pos entries to show
     if (mapDisplayPos.show) {
-      posEntriesToShow = _.orderBy(runningRexFromDb.posEntries, ["createdAt"], "desc");
+      const posEntriesWithLocations = runningRexFromDb.posEntries.filter(
+        (posEntry) => posEntry.location
+      );
+      posEntriesToShow = _.orderBy(posEntriesWithLocations, ["createdAt"], "desc");
       // gather the latest 2 pos entries (need 2 in order to draw a polyline) for each type.
       // Most recent/latest entry is first in the array.
       posTypeLatestEntries = getLatestPosEntryByType({
-        allPosEntries: runningRexFromDb.posEntries,
+        allPosEntries: posEntriesWithLocations,
       });
     }
 
