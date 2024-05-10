@@ -177,29 +177,44 @@ describe("Action API Endpoint", () => {
   //upsert and delete tests must occur in order
   describe("POST request", () => {
     test("No permissions", async () => {
+      const requestBody: ActionUpsertRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[2].id,
+        log: false,
+        actions: [newAction],
+      };
       const res = await supertest(app)
         .post("/api/v1/action")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([{ ...newAction, missionId: testMissions[2].id }])
-        .query({ missionId: testMissions[2].id });
+        .send(requestBody);
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
+      const requestBody: ActionUpsertRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[1].id,
+        log: false,
+        actions: [newAction],
+      };
       const res = await supertest(app)
         .post("/api/v1/action")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([{ ...newAction, missionId: testMissions[1].id }])
-        .query({ missionId: testMissions[1].id });
+        .send(requestBody);
       expect(res.statusCode).toBe(401);
     });
 
     test("Create new action", async () => {
+      const requestBody: ActionUpsertRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[0].id,
+        log: false,
+        actions: [{ ...newAction, missionId: testMissions[0].id }],
+      };
       const res = await supertest(app)
         .post("/api/v1/action")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([{ ...newAction, missionId: testMissions[0].id }])
-        .query({ missionId: testMissions[0].id });
+        .send(requestBody);
       expect(res.statusCode).toBe(200);
 
       expect(res.body.data).not.toBeNull();
@@ -215,11 +230,16 @@ describe("Action API Endpoint", () => {
 
     test("Update a action", async () => {
       newAction.name = "Jest Test New Action Modified";
+      const requestBody: ActionUpsertRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[0].id,
+        log: false,
+        actions: [newAction],
+      };
       const res = await supertest(app)
         .post("/api/v1/action")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([newAction])
-        .query({ missionId: testMissions[0].id });
+        .send(requestBody);
       expect(res.statusCode).toBe(200);
 
       expect(res.body.data).not.toBeNull();
@@ -231,27 +251,44 @@ describe("Action API Endpoint", () => {
 
   describe("DELETE request", () => {
     test("No permissions", async () => {
+      const requestBody: ActionDeleteRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[2].id,
+        log: false,
+        actionUuids: [newAction.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/action")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id });
+        .send(requestBody);
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
+      const requestBody: ActionDeleteRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[1].id,
+        log: false,
+        actionUuids: [newAction.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/action")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[1].id });
+        .send(requestBody);
       expect(res.statusCode).toBe(401);
     });
 
     test("Delete a action", async () => {
+      const requestBody: ActionDeleteRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[0].id,
+        log: false,
+        actionUuids: [newAction.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/action")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([newAction.uuid])
-        .query({ missionId: testMissions[0].id });
+        .send(requestBody);
       expect(res.statusCode).toBe(200);
 
       const wrappedResponse = res.body;

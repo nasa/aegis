@@ -114,8 +114,13 @@
 }
 .setPosButton {
   padding-left: 5px;
+  padding-right: 2px;
 }
-
+.saveCancelButtons {
+  display: flex;
+  direction: row;
+  column-gap: 2px;
+}
 .posTableContainer {
   flex: 1 1 auto;
   overflow-y: auto;

@@ -222,18 +222,30 @@ export const IconDropdown: FunctionComponent<{
 
 export const MultiSelectDropdown: FunctionComponent<{
   items: { label: string; value: string }[];
-  selectedItems: string[];
-  //eslint-disable-next-line
-  toggleItem: (item: any) => void;
+  selectedItemsValues: string[];
+  toggleItem: (itemValue: string) => void;
   titleLabel: string;
-  zIndex?: number;
-}> = ({ items, selectedItems, toggleItem, titleLabel, zIndex }) => {
+  containerStyle?: React.CSSProperties;
+  containerClassName?: string;
+  headerClassName?: string;
+}> = ({
+  items,
+  selectedItemsValues,
+  toggleItem,
+  titleLabel,
+  containerStyle,
+  containerClassName,
+  headerClassName,
+}) => {
   const [menuOpen, setMenuOpen] = useState(false);
   return (
     <>
-      <div className={styles.multiselectDropdownContainer} style={{ zIndex: zIndex }}>
+      <div
+        className={`${styles.multiselectDropdownContainer} ${containerClassName}`}
+        style={containerStyle}
+      >
         <div
-          className={styles.multiselectDropdownHeader}
+          className={`${styles.multiselectDropdownHeader} ${headerClassName}`}
           onClick={() => {
             setMenuOpen(!menuOpen);
           }}
@@ -255,7 +267,7 @@ export const MultiSelectDropdown: FunctionComponent<{
             {items.map((item) => (
               <div key={item.value} className={styles.multiselectDropdownItem}>
                 <Checkbox
-                  checked={selectedItems.includes(item.value)}
+                  checked={selectedItemsValues.includes(item.value)}
                   onClick={(e) => {
                     e.stopPropagation();
                   }}

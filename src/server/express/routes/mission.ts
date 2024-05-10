@@ -77,11 +77,9 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-
-  const missionsToUpsert: Mission[] = req.body as Mission[];
+  const { socketId, log, missions } = req.body as MissionUpsertRequest;
   //must have edit permission the mission ids
-  for (const mission of missionsToUpsert) {
+  for (const mission of missions) {
     const canEditThisMission = await hasPerms(mission.id, "edit", req.session.user);
     if (!canEditThisMission) {
       res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -91,7 +89,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
   try {
     //perform the upsert
-    const upsertResponse: Mission[] = await upsertMissions(missionsToUpsert);
+    const upsertResponse: Mission[] = await upsertMissions(missions);
 
     //check response
     if (upsertResponse.length === 0) {
@@ -111,11 +109,11 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       emitStoreUpsert(
         {
           missionId: upsertedMission.id,
-          socketId: queryObj.socketId,
+          socketId,
           type: "mission",
           data: [upsertedMission],
         } as StoreUpsert<Mission>,
-        queryObj.logAction
+        log
       );
       res.status(200).json({
         status: "success",
@@ -131,12 +129,10 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-
-  const missionIdsToDelete: number[] = req.body.map((u: string) => parseInt(u));
+  const { missionIds, log } = req.body as MissionDeleteRequest;
   //must have edit permission the mission ids
   //  or if no mission id (create mission) must be an admin to the back end or user 1
-  for (const missionIdToDelete of missionIdsToDelete) {
+  for (const missionIdToDelete of missionIds) {
     if (!missionIdToDelete || _.isNaN(missionIdToDelete)) {
       res.status(500).json({ status: "error", message: "Invalid mission ID" });
       return;
@@ -150,9 +146,9 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const deletedMissionIds: number[] = await deleteMissions(missionIdsToDelete);
+    const deletedMissionIds: number[] = await deleteMissions(missionIds);
     if (deletedMissionIds.length > 0) {
-      if (queryObj.logAction) {
+      if (log) {
         // log this deletion to the log table for each mission
         //  since logs are recorded by mission
         for (const deletedMissionId of deletedMissionIds) {

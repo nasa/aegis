@@ -149,4 +149,41 @@
 
 .checkboxRow {
   display: flex;
+  margin-left: 13px;
+}
+
+.toggleMenuItemRow {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+}
+.toggleLeft {
+  font-size: 0.8rem;
+  background-color: var(--grey3);
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
+  margin: 2px 0px 0px 5px;
+  padding: 2px 4px 2px 4px;
+  min-width: 20px;
+  margin-right: 1px;
+  text-align: center;
+  user-select: none;
+  cursor: pointer;
+}
+.toggleRight {
+  font-size: 0.8rem;
+  background-color: var(--grey3);
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+  min-width: 20px;
+  margin: 2px 0px;
+  padding: 2px 4px 2px 4px;
+  text-align: center;
+  user-select: none;
+  cursor: pointer;
+}
+.toggleSelected {
+  background-color: var(--grey5);
+  color: var(--grey1);
+  font-weight: 600;
 }

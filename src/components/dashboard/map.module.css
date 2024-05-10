@@ -1,0 +1,203 @@
+.mapContainer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.map {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  outline: none;
+}
+
+.hide {
+  display: none;
+}
+
+.followWrapper {
+  position: absolute;
+  top: 50px;
+  left: 10px;
+  z-index: 110;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius);
+}
+
+.followMenu {
+  display: flex;
+  flex-direction: row;
+  border: 1px solid var(--grey3);
+  background-color: var(--grey2);
+  cursor: pointer;
+  column-gap: 6px;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+.followButtonWrapper {
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.followButton {
+  font-size: 0.8rem;
+  background-color: var(--grey3);
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
+  min-width: 20px;
+  padding: 3px 5px 3px 5px;
+  text-align: center;
+  user-select: none;
+  cursor: pointer;
+}
+
+.followSelected {
+  background-color: var(--grey5);
+  color: var(--grey1);
+  font-weight: 600;
+}
+
+.followDropdownWrapper {
+  padding-top: 3px;
+  padding-bottom: 3px;
+  width: 160px;
+}
+
+.followDropdown {
+  width: 160px;
+  padding: 3px 5px 3px 5px;
+}
+
+.followDropdownHeader {
+  font-size: 0.8rem;
+}
+
+.presetWrapper {
+  position: absolute;
+  top: 92px;
+  left: 10px;
+  z-index: 100;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius);
+}
+
+.presetMenu {
+  display: flex;
+  flex-direction: row;
+  border: 1px solid var(--grey3);
+  background-color: var(--grey2);
+  cursor: pointer;
+  column-gap: 6px;
+  padding-left: 5px;
+  padding-right: 2px;
+}
+
+.presetIcon {
+  padding-top: 3px;
+}
+
+.mapViewDisplay {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 120;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius);
+}
+
+.mapScaleDisplay {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  color: var(--grey0);
+  font-weight: 600;
+  text-align: center;
+  z-index: 100;
+  border-radius: var(--radius);
+  background-color: var(--grey5);
+}
+
+.mapPositionDisplay {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 100;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+
+  border-radius: var(--radius);
+  background-color: var(--grey2);
+}
+
+.scaleValue {
+  font-size: 1.6em;
+  border: 1px solid var(--grey0);
+  padding: 5px;
+}
+
+.positionValue {
+  font-size: 0.8em;
+  border: 1px solid var(--grey3);
+  padding: 5px;
+  width: 150;
+}
+
+.mapIcon {
+  color: rgba(0, 0, 0, 1);
+  font-size: 2.5em;
+  user-select: none;
+  filter: drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5)) drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5))
+    drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5)) drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5));
+}
+
+.mapIconWin10 {
+  color: rgba(0, 0, 0, 1);
+  font-size: 2.5em;
+  user-select: none;
+}
+
+.iconWrapper {
+  display: flex;
+  position: relative;
+  top: -100%;
+  left: -100%;
+}
+
+.posIcon {
+  position: absolute;
+  left: 2px;
+  font-size: 2.5em;
+  user-select: none;
+  filter: drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5)) drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5))
+    drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5)) drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5));
+}
+
+.posIconWin10 {
+  position: absolute;
+  left: 2px;
+  font-size: 2.5em;
+  user-select: none;
+}
+
+.posBar {
+  display: flex;
+  flex-direction: row;
+  position: absolute;
+  margin-top: 40px;
+  width: 40px;
+  height: 10px;
+  border: 2px solid black;
+  border-radius: 3px;
+}
+.posBarItem {
+  flex: 1 1 auto;
+}
+
+.tooltip {
+  text-align: center;
+  font-size: 1.8em;
+  font-weight: 600;
+}

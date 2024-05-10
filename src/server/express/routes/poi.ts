@@ -50,15 +50,14 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms(queryObj.missionId, "edit", req.session.user);
+  const { missionId, socketId, log, pois } = req.body as POIUpsertRequest;
+  const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   try {
-    const pois: POI[] = req.body as POI[];
     //add owner id to the evas
     const poisToUpsert = pois.map((p) => {
       if (!p.ownerId) {
@@ -81,12 +80,12 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     // emit the upserted item to all clients via socket.io
     emitStoreUpsert(
       {
-        missionId: queryObj.missionId,
-        socketId: queryObj.socketId,
+        missionId,
+        socketId,
         type: "poi",
         data: upsertResponse,
       } as StoreUpsert<POI>,
-      queryObj.logAction
+      log
     );
 
     res.status(200).json({
@@ -102,27 +101,26 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms(queryObj.missionId, "edit", req.session.user);
+  const { missionId, socketId, log, poiUuids } = req.body as POIDeleteRequest;
+  const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   try {
-    const uuidsToDelete: string[] = req.body;
-    const deletedUuids = await deletePois(uuidsToDelete);
+    const deletedUuids = await deletePois(poiUuids);
 
     if (deletedUuids.length > 0) {
       // emit the deleted item to all clients via socket.io
       emitStoreDelete(
         {
-          missionId: queryObj.missionId,
-          socketId: queryObj.socketId,
+          missionId,
+          socketId,
           type: "poi",
           uuids: deletedUuids,
         } as StoreDelete,
-        queryObj.logAction
+        log
       );
 
       res.status(200).json({

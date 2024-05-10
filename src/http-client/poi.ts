@@ -8,16 +8,17 @@ export async function upsertPOIs(
   pois: POI[],
   log: boolean = false
 ): Promise<WrappedResponse<POI[]>> {
-  const missionId =
+  const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-  const logStr = log ? "&log=true" : "";
-  const res = await fetch(`/api/v1/poi?socketId=${socketId}&missionId=${missionId}${logStr}`, {
+  const requestBody: POIUpsertRequest = { missionId, socketId, log, pois };
+  const res = await fetch(`/api/v1/poi`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(pois),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<POI[]> = await res.json();
   if (res.status !== 200) {
@@ -32,16 +33,17 @@ export async function deletePOIs(
   poiUuids: string[],
   log: boolean = false
 ): Promise<WrappedResponse<null>> {
-  const missionId =
+  const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-  const logStr = log ? "&log=true" : "";
-  const res = await fetch(`/api/v1/poi?socketId=${socketId}&missionId=${missionId}${logStr}`, {
+  const requestBody: POIDeleteRequest = { missionId, socketId, log, poiUuids };
+  const res = await fetch(`/api/v1/poi`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(poiUuids),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<null> = await res.json();
   if (res.status !== 200) {

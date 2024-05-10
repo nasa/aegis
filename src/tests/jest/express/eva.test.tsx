@@ -127,29 +127,44 @@ describe("EVA API Endpoint", () => {
   //upsert and delete tests must occur in order
   describe("POST request", () => {
     test("No permissions", async () => {
+      const requestBody: EvaUpsertRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[2].id,
+        log: false,
+        evas: [newEVA],
+      };
       const res = await supertest(app)
         .post("/api/v1/eva")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([{ ...newEVA, missionId: testMissions[2].id }])
-        .query({ missionId: testMissions[2].id });
+        .send(requestBody);
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
+      const requestBody: EvaUpsertRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[1].id,
+        log: false,
+        evas: [newEVA],
+      };
       const res = await supertest(app)
         .post("/api/v1/eva")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([{ ...newEVA, missionId: testMissions[1].id }])
-        .query({ missionId: testMissions[1].id });
+        .send(requestBody);
       expect(res.statusCode).toBe(401);
     });
 
     test("Create new EVA", async () => {
+      const requestBody: EvaUpsertRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[0].id,
+        log: false,
+        evas: [{ ...newEVA, ownerId: testUser.id, missionId: testMissions[0].id }],
+      };
       const res = await supertest(app)
         .post("/api/v1/eva")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([{ ...newEVA, missionId: testMissions[0].id, ownerId: testUser.id }])
-        .query({ missionId: testMissions[0].id });
+        .send(requestBody);
       expect(res.statusCode).toBe(200);
 
       expect(res.body.data).not.toBeNull();
@@ -165,11 +180,16 @@ describe("EVA API Endpoint", () => {
 
     test("Update a EVA", async () => {
       newEVA.name = "Jest Test New EVA Modified";
+      const requestBody: EvaUpsertRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[0].id,
+        log: false,
+        evas: [newEVA],
+      };
       const res = await supertest(app)
         .post("/api/v1/eva")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([newEVA])
-        .query({ missionId: testMissions[0].id });
+        .send(requestBody);
       expect(res.statusCode).toBe(200);
 
       expect(res.body.data).not.toBeNull();
@@ -181,27 +201,44 @@ describe("EVA API Endpoint", () => {
 
   describe("DELETE request", () => {
     test("No permissions", async () => {
+      const requestBody: EvaDeleteRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[2].id,
+        log: false,
+        evaUuids: [newEVA.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/eva")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id });
+        .send(requestBody);
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
+      const requestBody: EvaDeleteRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[1].id,
+        log: false,
+        evaUuids: [newEVA.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/eva")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[1].id });
+        .send(requestBody);
       expect(res.statusCode).toBe(401);
     });
 
     test("Delete a EVA", async () => {
+      const requestBody: EvaDeleteRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[0].id,
+        log: false,
+        evaUuids: [newEVA.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/eva")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([newEVA.uuid])
-        .query({ missionId: testMissions[0].id });
+        .send(requestBody);
       expect(res.statusCode).toBe(200);
 
       const wrappedResponse = res.body;

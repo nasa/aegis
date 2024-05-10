@@ -379,6 +379,7 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
     deepEqual
   );
   const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
+  const runningRex = useAppSelector((state) => state.rex.rexes.find((r) => r.isRunning), refEqual);
 
   const selectedEvaRightNavItem = useAppSelector(
     (state) => state.eva.selectedEvaRightNavItem,
@@ -474,8 +475,12 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
                       dispatch(thunkSetRightPanelIsOpenIfAuto(false));
                       break;
                     case "rex":
-                      dispatch(setSelectedEvaUuid(null));
                       dispatch(thunkSetRightPanelIsOpenIfAuto(selectedRexUuid !== null));
+                      if (runningRex) {
+                        dispatch(setSelectedEvaUuid(runningRex.evaUuid));
+                      } else {
+                        dispatch(setSelectedEvaUuid(null));
+                      }
                       if (!selectedEvaRightNavItem)
                         dispatch(setSelectedEvaRightNavItem("info_panel"));
                   }

@@ -124,31 +124,46 @@ describe("EVA API Endpoint", () => {
   //upsert and delete tests must occur in order
   describe("POST request", () => {
     test("No permissions", async () => {
+      const requestBody: TraverseUpsertRequest = {
+        missionId: testMissions[2].id,
+        socketId: "someSocketId",
+        log: false,
+        traverses: [newTraverse],
+      };
       const res = await supertest(app)
         .post("/api/v1/traverse")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send({ ...newTraverse, missionId: testMissions[2].id })
-        .query({ missionId: testMissions[2].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
+      const requestBody: TraverseUpsertRequest = {
+        missionId: testMissions[1].id,
+        socketId: "someSocketId",
+        log: false,
+        traverses: [newTraverse],
+      };
       const res = await supertest(app)
         .post("/api/v1/traverse")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send({ ...newTraverse, missionId: testMissions[1].id })
-        .query({ missionId: testMissions[1].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("Create new Traverse", async () => {
+      const requestBody: TraverseUpsertRequest = {
+        missionId: testMissions[0].id,
+        socketId: "someSocketId",
+        log: false,
+        traverses: [{ ...newTraverse, missionId: testMissions[0].id }],
+      };
       const res = await supertest(app)
         .post("/api/v1/traverse")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([{ ...newTraverse, missionId: testMissions[0].id, ownerId: testUser.id }])
-        .query({ missionId: testMissions[0].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data[0].uuid).not.toBeNull();
@@ -162,11 +177,16 @@ describe("EVA API Endpoint", () => {
 
     test("Update a Traverse", async () => {
       newTraverse.name = "Jest Test New Traverse Modified";
+      const requestBody: TraverseUpsertRequest = {
+        missionId: testMissions[0].id,
+        socketId: "someSocketId",
+        log: false,
+        traverses: [newTraverse],
+      };
       const res = await supertest(app)
         .post("/api/v1/traverse")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send([newTraverse])
-        .query({ missionId: testMissions[0].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data[0]).not.toBeNull();
@@ -176,20 +196,31 @@ describe("EVA API Endpoint", () => {
 
   describe("DELETE request", () => {
     test("No permissions", async () => {
+      const requestBody: TraverseDeleteRequest = {
+        missionId: testMissions[2].id,
+        socketId: "someSocketId",
+        log: false,
+        traverseUuids: [],
+      };
       const res = await supertest(app)
         .delete("/api/v1/traverse")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("Delete a Traverse", async () => {
+      const requestBody: TraverseDeleteRequest = {
+        missionId: testMissions[0].id,
+        socketId: "someSocketId",
+        log: false,
+        traverseUuids: [newTraverse.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/traverse")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id })
-        .send([newTraverse.uuid]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");

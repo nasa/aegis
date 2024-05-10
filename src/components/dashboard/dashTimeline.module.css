@@ -1,0 +1,110 @@
+.container {
+  background-color: var(--grey1);
+  height: 100%;
+  border-top-right-radius: var(--dashboardRadius);
+  border-bottom-right-radius: var(--dashboardRadius);
+  margin: 0 8px 1px 0;
+  width: 230px;
+}
+
+.timeLabels {
+  position: relative;
+  height: 0;
+  top: 8px;
+  left: 5px;
+  z-index: 10;
+}
+
+.timeLabel {
+  position: relative;
+  height: 0;
+  border-radius: 0px;
+  font-size: 1.5rem;
+  margin-left: 0px;
+  box-shadow: none;
+}
+
+.timeLabelText {
+  width: fit-content;
+}
+
+.stationTraverseIndicators {
+  position: relative;
+  height: 0;
+  top: 14px;
+  left: 80px;
+  z-index: 10;
+}
+
+.stationTraverseIndicator {
+  position: relative;
+  height: 0;
+}
+
+.stationIndicator {
+  width: 15px;
+  background-color: var(--grey5);
+  border-radius: var(--panelRadius);
+}
+
+.traverseIndicator {
+  position: relative;
+  left: 3px;
+  border-left: 9px dotted var(--grey4);
+}
+
+.stationNames {
+  position: relative;
+  height: 0;
+  top: 10px;
+  left: 95px;
+  z-index: 10;
+}
+
+.stationName {
+  position: relative;
+  height: 0;
+  border-radius: 0px;
+  font-size: 1.7rem;
+  margin-left: 0px;
+  box-shadow: none;
+}
+
+.stationNameText {
+  display: block;
+  white-space: nowrap;
+  width: 141px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.markerContainer {
+  position: relative;
+  height: 0;
+  top: 20px;
+  left: 0;
+  z-index: 15;
+}
+
+.marker {
+  position: relative;
+  height: 0;
+}
+
+.markerLine {
+  position: relative;
+  height: 0;
+  width: 100%;
+  border-top: 5px solid var(--rex);
+}
+
+.markerTime {
+  position: relative;
+  top: -18px;
+  width: 72px;
+  font-size: 1.5rem;
+  padding: 0 0 0 5px;
+  color: black;
+  background-color: var(--rex);
+  border-radius: var(--panelRadius);
+}

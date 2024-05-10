@@ -26,10 +26,6 @@ interface UserState {
 }
 
 interface MapState {
-  mapSublayerControls: MapSublayerControls;
-  mapCircleControls: MapCircleControls;
-  activeSelectedName: string;
-  mousePosition: AEGISPoint;
   mapDirective: MapDirective;
   measureInitialCoords: AEGISPoint[];
 }

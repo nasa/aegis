@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { actionTypes } from "utils/store";
+import { setAllSliceStores } from "./crossActions";
 
 export const initialState: InterfaceState = {
   sectionSelectedLabel: "preset",
@@ -14,12 +15,15 @@ export const initialState: InterfaceState = {
   timelineShowElevation: true,
   actionsExpanded: [],
   socketStatus: {
-    visitorCounts: {
-      editors: 0,
-      viewers: 0,
-    },
     connectionStatus: "disconnected",
     lastEditEvent: null,
+    lastStatusFromServer: {
+      timestamp: 0,
+      visitorCounts: {
+        editors: 0,
+        viewers: 0,
+      },
+    },
     AEGISVersion: null,
   },
   stmViewExpandedItems: [],
@@ -83,8 +87,12 @@ export const interfaceSlice = createSlice({
         }
       });
     },
-    setVisitorCounts: (state, action: { payload: VisitorCounts }) => {
-      state.socketStatus.visitorCounts = action.payload;
+    setLastStatusFromServer: (state, action: { payload: StatusFromServer }) => {
+      state.socketStatus.lastStatusFromServer = action.payload;
+      // due to a store race condition, sometimes the connectionStatus is not "connected". Update it
+      if (state.socketStatus.connectionStatus !== "connected") {
+        state.socketStatus.connectionStatus = "connected";
+      }
     },
     setSocketConnectionStatus: (state, action: { payload: ConnectionStatus }) => {
       state.socketStatus.connectionStatus = action.payload;
@@ -146,6 +154,12 @@ export const interfaceSlice = createSlice({
       state.stmViewShowCrosshairs = !state.stmViewShowCrosshairs;
     },
   },
+  extraReducers: (builder) => {
+    // reducer called across slices. This handles this slice's portion of the reducer's state
+    builder.addCase(setAllSliceStores, (state, action: { payload: WholeStoreState }) => {
+      state = Object.assign(state, action.payload.interface);
+    });
+  },
 });
 
 export const {
@@ -162,7 +176,7 @@ export const {
   setShowElevation,
   collapseActions,
   expandActions,
-  setVisitorCounts,
+  setLastStatusFromServer,
   setSocketConnectionStatus,
   setLastEditEvent,
   setAEGISVersion,

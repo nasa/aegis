@@ -8,9 +8,12 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 RELATIVE_DOTENV_SECRET=".env.secret"
 DOTENV_SECRET="${SCRIPT_DIR}/../${RELATIVE_DOTENV_SECRET}";
+
 # Get values from .env.secret (if exists)
 if [ -f "${DOTENV_SECRET}" ]; then
     source "${DOTENV_SECRET}"
+else
+    echo "No .env.secret found. Using dummy values for sensitive variables. Please consult a fellow developer for the correct values."
 fi
 
 # Generate passwords if there wern't any sourced from the .env.secret
@@ -20,18 +23,27 @@ fi
 if [ -z "${AEGIS_DB_PASS+set}" ]; then
     export AEGIS_DB_PASS=$(tr -c -d '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ' </dev/urandom | dd bs=32 count=1 2>/dev/null;echo)
 fi
+if [ -z "${SESSION_PASSWORD+set}" ]; then
+    export SESSION_PASSWORD=$(tr -c -d '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ' </dev/urandom | dd bs=32 count=1 2>/dev/null;echo)
+fi
+
+# Set dummy values for BOX_ variables if they weren't sourced
+export BOX_CLIENT_ID="${BOX_CLIENT_ID:-NEED_VALUE}"
+export BOX_CLIENT_SECRET="${BOX_CLIENT_SECRET:-NEED_VALUE}"
+export BOX_ENTERPRISE_ID="${BOX_ENTERPRISE_ID:-NEED_VALUE}"
+export BOX_USER_ID="${BOX_USER_ID:-NEED_VALUE}"
 
 # Write back to .env.secret with all our passwords
 echo "export AEGIS_DB_PASS=${AEGIS_DB_PASS@Q}
 export ADMIN_RECOVERY_KEY=${ADMIN_RECOVERY_KEY@Q}
-export SESSION_PASSWORD=${SESSION_PASSWORD}
+export SESSION_PASSWORD=${SESSION_PASSWORD@Q}
 export BOX_CLIENT_ID=${BOX_CLIENT_ID@Q}
 export BOX_CLIENT_SECRET=${BOX_CLIENT_SECRET@Q}
 export BOX_ENTERPRISE_ID=${BOX_ENTERPRISE_ID@Q}
 export BOX_USER_ID=${BOX_USER_ID@Q}
 " > "${DOTENV_SECRET}"
 
-echo "${RELATIVE_DOTENV_SECRET} saved"
+echo "${RELATIVE_DOTENV_SECRET} updated with dummy values."
 
 # Set all the other variables for the .env file
 if [ -z "${CI+set}" ]; then # if not in CI (aka local)

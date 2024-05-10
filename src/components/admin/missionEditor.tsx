@@ -46,9 +46,10 @@ const MissionEditor: FunctionComponent<{
       traverseRate: parseFloat(missionValues.traverseRate),
       walkbackRate: parseFloat(missionValues.walkbackRate),
       sunAzimuth: parseFloat(missionValues.sunAzimuth),
-      sunAzimuthVisible: missionValues.sunAzimuthEnabled,
+      sunEnabled: missionValues.sunEnabled,
       earthAzimuth: parseFloat(missionValues.earthAzimuth),
-      earthAzimuthVisible: missionValues.earthAzimuthEnabled,
+      earthEnabled: missionValues.earthEnabled,
+      earthAsMoon: missionValues.earthAsMoon,
       demFilePath: missionValues.demFilePath,
       demResolution: parseFloat(missionValues.demResolution),
 

@@ -11,7 +11,6 @@ import { thunkGetElevation } from "./thunkElevation";
 import { thunkFullUpdateWalkback, thunkSaveStation } from "./thunkStation";
 import { setPresetUIStates } from "store/preset";
 import { thunkSavePreset } from "./thunkPreset";
-import { setMapCircleControls } from "store/map";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { generateUniqueName } from "utils/names/unique-name";
@@ -129,7 +128,6 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
         })
       );
       newPreset.mapCircleControls = newMapCircleControls;
-      dispatch(setMapCircleControls(newMapCircleControls));
       dispatch(thunkSavePreset({ preset: newPreset }));
     });
 

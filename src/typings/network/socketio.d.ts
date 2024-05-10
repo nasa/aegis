@@ -30,9 +30,9 @@ interface SocketData {
 type ConnectionStatus = "connected" | "disconnected" | "connecting" | "reconnecting";
 
 interface SocketStatus {
-  visitorCounts: visitorCounts;
   connectionStatus: ConnectionStatus;
   lastEditEvent: EditEvent | null;
+  lastStatusFromServer: StatusFromServer;
   AEGISVersion: string;
 }
 

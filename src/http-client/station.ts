@@ -10,19 +10,20 @@ export async function getStations(missionId: number = null): Promise<WrappedResp
 }
 
 export async function upsertStations(
-  stationObjs: Station[],
+  stations: Station[],
   log: boolean = false
 ): Promise<WrappedResponse<Station[]>> {
-  const missionId =
+  const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-  const logStr = log ? "&log=true" : "";
-  const res = await fetch(`/api/v1/station?socketId=${socketId}&missionId=${missionId}${logStr}`, {
+  const requestBody: StationUpsertRequest = { missionId, socketId, log, stations };
+  const res = await fetch(`/api/v1/station`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(stationObjs),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<Station[]> = await res.json();
   if (res.status !== 200) {
@@ -34,19 +35,20 @@ export async function upsertStations(
 }
 
 export async function deleteStations(
-  stationUUIDs: string[],
+  stationUuids: string[],
   log: boolean = false
 ): Promise<WrappedResponse<null>> {
-  const missionId =
+  const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-  const logStr = log ? "&log=true" : "";
-  const res = await fetch(`/api/v1/station?socketId=${socketId}&missionId=${missionId}${logStr}`, {
+  const requestBody: StationDeleteRequest = { missionId, socketId, log, stationUuids };
+  const res = await fetch(`/api/v1/station`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(stationUUIDs),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<null> = await res.json();
   if (res.status !== 200) {

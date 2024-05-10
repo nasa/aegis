@@ -52,8 +52,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms(queryObj.missionId, "edit", req.session.user);
+  const { missionId, socketId, log, rexes } = req.body as RexUpsertRequest;
+  const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
@@ -61,7 +61,6 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
   try {
     //perform the upsert
-    const rexes: Rex[] = req.body as Rex[];
     const upsertResponse: Rex[] = await upsertRexes(rexes);
 
     //check response
@@ -77,12 +76,12 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     // emit the upserted item to all clients via socket.io
     emitStoreUpsert(
       {
-        missionId: queryObj.missionId,
-        socketId: queryObj.socketId,
+        missionId,
+        socketId,
         type: "rex",
         data: upsertResponse,
       } as StoreUpsert<Rex>,
-      queryObj.logAction
+      log
     );
 
     res.status(200).json({
@@ -98,25 +97,24 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms(queryObj.missionId, "edit", req.session.user);
+  const { missionId, socketId, log, uuids } = req.body as RexDeleteRequest;
+  const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   try {
-    const uuidsToDelete: string[] = req.body;
-    const deletedRexUuids: string[] = await deleteRexes(uuidsToDelete);
+    const deletedRexUuids: string[] = await deleteRexes(uuids);
     if (deletedRexUuids.length > 0) {
       emitStoreDelete(
         {
-          missionId: queryObj.missionId,
-          socketId: queryObj.socketId,
+          missionId,
+          socketId,
           type: "rex",
           uuids: deletedRexUuids,
         } as StoreDelete,
-        queryObj.logAction
+        log
       );
 
       res.status(200).json({

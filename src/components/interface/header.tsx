@@ -5,13 +5,20 @@ import { useNavigate } from "react-router-dom";
 import { faBars, faEye, faPen, faPersonWalkingArrowRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { FunctionComponent, useState } from "react";
-import PetInterval from "./page/petInterval";
+import PetInterval from "../page/petInterval";
 
 const Header: FunctionComponent = () => {
   const navigate = useNavigate();
   const missionName = useAppSelector((state) => state.mission.mission?.name, refEqual);
   const banner = useAppSelector((state) => state.mission.mission?.missionBanner, refEqual);
-  const socketStatus = useAppSelector((state) => state.interface?.socketStatus, shallowEqual);
+  const setSocketConnectionStatus = useAppSelector(
+    (state) => state.interface.socketStatus.connectionStatus,
+    refEqual
+  );
+  const visitorCounts = useAppSelector(
+    (state) => state.interface.socketStatus.lastStatusFromServer.visitorCounts,
+    shallowEqual
+  );
   const runningRex = useAppSelector(
     (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
     deepEqual
@@ -75,23 +82,23 @@ const Header: FunctionComponent = () => {
           className={styles.userCount}
           data-tooltip-id="aegis-tooltip"
           data-tooltip-html={
-            socketStatus?.connectionStatus === "connected"
+            setSocketConnectionStatus === "connected"
               ? `Users active in this Mission:<br>` +
-                `Editors: ${socketStatus?.visitorCounts.editors || 0}<br>` +
-                `Visitors: ${socketStatus?.visitorCounts.viewers || 0}<br>` +
+                `Editors: ${visitorCounts.editors || 0}<br>` +
+                `Visitors: ${visitorCounts.viewers || 0}<br>` +
                 `These numbers include you`
               : "Connection to server lost"
           }
           style={
-            socketStatus?.connectionStatus === "connected"
+            setSocketConnectionStatus === "connected"
               ? { color: "var(--grey5)" }
               : { color: "var(--grey3)" }
           }
         >
           <FontAwesomeIcon icon={faPen} />
-          <div className={styles.userCountText}>{socketStatus?.visitorCounts?.editors || 0}</div>
+          <div className={styles.userCountText}>{visitorCounts?.editors || 0}</div>
           <FontAwesomeIcon icon={faEye} style={{ marginLeft: "6px" }} />
-          <div className={styles.userCountText}>{socketStatus?.visitorCounts?.viewers || 0}</div>
+          <div className={styles.userCountText}>{visitorCounts?.viewers || 0}</div>
         </div>
         <div className={styles.verticalCenter}>
           <span className={styles.wordMark}>AEGIS</span>

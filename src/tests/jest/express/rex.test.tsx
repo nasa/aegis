@@ -113,31 +113,46 @@ describe("REX API Endpoint", () => {
   //upsert and delete tests must occur in order
   describe("POST request", () => {
     test("No permissions", async () => {
+      const requestBody: RexUpsertRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[2].id,
+        rexes: [{ ...newRex, missionId: testMissions[2].id }],
+      };
       const res = await supertest(app)
         .post("/api/v1/rex")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id })
-        .send([{ ...newRex, missionId: testMissions[2].id }]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
+      const requestBody: RexUpsertRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[1].id,
+        rexes: [{ ...newRex, missionId: testMissions[1].id }],
+      };
       const res = await supertest(app)
         .post("/api/v1/rex")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[1].id })
-        .send([{ ...newRex, missionId: testMissions[1].id }]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("Create new Rex", async () => {
+      const requestBody: RexUpsertRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[0].id,
+        rexes: [{ ...newRex, missionId: testMissions[0].id }],
+      };
       const res = await supertest(app)
         .post("/api/v1/rex")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id })
-        .send([{ ...newRex, missionId: testMissions[0].id }]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data[0].uuid).not.toBeNull();
@@ -151,11 +166,16 @@ describe("REX API Endpoint", () => {
 
     test("Update a Rex", async () => {
       newRex.name = "Jest Test New Rex Modified";
+      const requestBody: RexUpsertRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[0].id,
+        rexes: [newRex],
+      };
       const res = await supertest(app)
         .post("/api/v1/rex")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id })
-        .send([newRex]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data[0].name).toEqual("Jest Test New Rex Modified");
@@ -164,29 +184,46 @@ describe("REX API Endpoint", () => {
 
   describe("DELETE request", () => {
     test("No permissions", async () => {
+      const requestBody: RexDeleteRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[2].id,
+        uuids: [newRex.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/rex")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("No permissions - View only", async () => {
+      const requestBody: RexDeleteRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[1].id,
+        uuids: [newRex.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/rex")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[1].id });
+        .send(requestBody);
 
       expect(res.statusCode).toBe(401);
     });
 
     test("Delete a Rex", async () => {
+      const requestBody: RexDeleteRequest = {
+        socketId: "someSocketId",
+        log: false,
+        missionId: testMissions[0].id,
+        uuids: [newRex.uuid],
+      };
       const res = await supertest(app)
         .delete("/api/v1/rex")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id })
-        .send([newRex.uuid]);
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");

@@ -15,16 +15,17 @@ export async function upsertActions(
   actions: Action[],
   log: boolean = false
 ): Promise<WrappedResponse<Action[]>> {
-  const missionId =
+  const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-  const logStr = log ? "&log=true" : "";
-  const res = await fetch(`/api/v1/action?socketId=${socketId}&missionId=${missionId}${logStr}`, {
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
+  const requestBody: ActionUpsertRequest = { socketId, missionId, log, actions };
+  const res = await fetch(`/api/v1/action`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(actions),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<Action[]> = await res.json();
   if (res.status !== 200) {
@@ -39,16 +40,17 @@ export async function deleteActions(
   actionUuids: string[],
   log: boolean = false
 ): Promise<WrappedResponse<null>> {
-  const missionId =
+  const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-  const logStr = log ? "&log=true" : "";
-  const res = await fetch(`/api/v1/action?socketId=${socketId}&missionId=${missionId}${logStr}`, {
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
+  const requestBody: ActionDeleteRequest = { socketId, missionId, log, actionUuids };
+  const res = await fetch(`/api/v1/action`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(actionUuids),
+    body: JSON.stringify(requestBody),
   });
   const response: WrappedResponse<null> = await res.json();
   if (res.status !== 200) {

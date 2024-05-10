@@ -67,11 +67,6 @@ describe("Thunk Mission Tests", () => {
     expect(httpClient_preset.upsertPresets).toHaveBeenCalledTimes(
       store.getState().preset.presets.length
     );
-
-    // map circle controls should have the new radii
-    expect(store.getState().map.mapCircleControls[newLanderRadii.uuid].name).toEqual(
-      "Jest Test Lander Radii"
-    );
   });
 
   it("thunkMissionCancel", async () => {

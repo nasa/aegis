@@ -1,6 +1,6 @@
 import { FunctionComponent } from "react";
 import styles from "./stm-viewer-list-table.module.css";
-import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { RootState } from "store";
 import _ from "lodash";
 import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
@@ -13,7 +13,7 @@ import { titleCase } from "utils/formatting";
 const STMListTable: FunctionComponent = () => {
   const level1s = useAppSelector(
     (state: RootState) => _.sortBy(state.stm.level1s, "numbering"),
-    deepEqual
+    shallowEqual
   );
 
   return (
@@ -34,7 +34,7 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number }> = ({ le
       level2s.some((level2) => level2.uuid === level3.level2Uuid)
     );
     return level3s.length;
-  }, deepEqual);
+  }, refEqual);
   const stmViewExpandTopTiers = useAppSelector(
     (state: RootState) => state.interface.stmViewExpandTopTiers,
     refEqual
@@ -80,14 +80,14 @@ const STMLevel2s: FunctionComponent<{ level1Uuid: string }> = ({ level1Uuid }) =
         state.stm.level2s.filter((level2) => level2.level1Uuid === level1Uuid),
         "numbering"
       ),
-    deepEqual
+    shallowEqual
   );
   const allLevel3sForThisLevel2 = useAppSelector(
     (state: RootState) =>
       state.stm.level3s.filter((level3) =>
         level2s.some((level2) => level2.uuid === level3.level2Uuid)
       ),
-    deepEqual
+    shallowEqual
   );
   const stmViewExpandTopTiers = useAppSelector(
     (state: RootState) => state.interface.stmViewExpandTopTiers,
@@ -144,7 +144,7 @@ const STMLevel3s: FunctionComponent<{
         state.stm.level3s.filter((level3) => level3.level2Uuid === level2Uuid),
         "numbering"
       ),
-    deepEqual
+    shallowEqual
   );
 
   return (
@@ -163,17 +163,17 @@ const STMLevel3: FunctionComponent<{
   const level1Numbering = useAppSelector((state: RootState) => {
     const level2 = state.stm.level2s.find((level2) => level2.uuid === level3.level2Uuid);
     return state.stm.level1s.find((level1) => level1.uuid === level2?.level1Uuid)?.numbering || "";
-  }, deepEqual);
+  }, refEqual);
   const level2Numbering = useAppSelector(
     (state: RootState) =>
       state.stm.level2s.find((level2) => level2.uuid === level3.level2Uuid)?.numbering || "",
-    deepEqual
+    refEqual
   );
   const thisInvestigationExpanded = useAppSelector((state: RootState) => {
     return state.interface.stmViewExpandedItems.some(
       (item) => item.uuid === level3.uuid && item.type === "level3"
     );
-  }, deepEqual);
+  }, refEqual);
 
   const numberOfActionsThatHaveThisLevel3 = useAppSelector((state: RootState) => {
     return state.action.actions.filter(
@@ -183,7 +183,7 @@ const STMLevel3: FunctionComponent<{
         action.stationUuid &&
         state.interface.stmViewSelectedActionTypes.includes(action.type)
     ).length;
-  }, deepEqual);
+  }, refEqual);
   const stmViewHoveredLeftItem = useAppSelector(
     (state: RootState) =>
       state.interface.stmViewShowCrosshairs ? state.interface.stmViewHoveredLeftItem : null,
@@ -263,7 +263,7 @@ const Level3ActionTypes: FunctionComponent<{ level3Uuid: string }> = ({ level3Uu
       }
     }
     return _.sortBy(newUniqueActionTypes, (actionType) => actionType);
-  }, deepEqual);
+  }, shallowEqual);
   return (
     <div className={styles.level3ActionTypesContainer}>
       {level3ActionTypes.map((actionType, index) => (
@@ -298,7 +298,7 @@ const Level3ActionType: FunctionComponent<{
       state.interface.stmViewExpandedItems.some(
         (item) => item.uuid === level3Uuid && item.type === actionType
       ),
-    deepEqual
+    refEqual
   );
   const stmViewHoveredLeftItem = useAppSelector(
     (state: RootState) =>
@@ -365,7 +365,7 @@ const Level3Action: FunctionComponent<{
   );
   const actionTooltipTitle = useAppSelector((state: RootState) => {
     return `${action.name} (${state.station.stations.find((station) => station.uuid === action.stationUuid)?.name})`;
-  }, deepEqual);
+  }, refEqual);
   return (
     <>
       <div
