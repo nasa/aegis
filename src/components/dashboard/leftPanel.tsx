@@ -44,11 +44,12 @@ const LeftTopPanel = (): JSX.Element => {
     }
     return calculatedFields;
   }, deepEqual);
-  const evaMaxDuration = useAppSelector(
-    (state) =>
-      state.eva.evasFromDb.find((eva) => eva.uuid === runningRexFromDb?.evaUuid)?.maxDuration,
-    deepEqual
-  );
+  const evaMaxDuration = useAppSelector((state) => {
+    const evaDuration = state.eva.evasFromDb.find(
+      (eva) => eva.uuid === runningRexFromDb?.evaUuid
+    )?.maxDuration;
+    return evaDuration || state.mission.mission?.defaultEvaDuration;
+  }, deepEqual);
 
   // used to update the PET value via the PetInterval component
   const [rexPetTime, setRexPetTime] = useState("");
