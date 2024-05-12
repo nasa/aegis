@@ -764,14 +764,14 @@ const MapBody: FunctionComponent<{
    * General Pos Entry drawing function. Determines which pos entries to show and draws them on the map. Also determines latest pos entries for each pos type.
    */
   useEffect(() => {
-    if (!map.current) return;
+    if (!map.current || !runningRexFromDb) return;
 
     let posEntriesToShow: PosEntry[] = [];
     let posTypeLatestEntries: { [key: string]: PosEntry[] } = {};
 
     // determine which pos entries to show
     if (mapDisplayPos.show) {
-      const posEntriesWithLocations = runningRexFromDb.posEntries.filter(
+      const posEntriesWithLocations = runningRexFromDb.posEntries?.filter(
         (posEntry) => posEntry.location
       );
       posEntriesToShow = _.orderBy(posEntriesWithLocations, ["createdAt"], "desc");
