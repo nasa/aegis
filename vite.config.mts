@@ -36,7 +36,7 @@ export const config: UserConfig = {
     },
     watch: {
       // During development, ignore these folders for hot reloading
-      ignored: ["**/node_modules/**", "**/.local/**", "**/public/**, **/static/**"],
+      ignored: ["**/node_modules/**", "**/.local/**", "**/public/**", "**/static/**"],
     },
     host: "0.0.0.0", // all hosts
     port: 4000,
