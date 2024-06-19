@@ -34,7 +34,7 @@ type AEGISCircleMarker = L.CircleMarker & {
   mapItemType: "selected" | "hover";
 };
 
-type CircleWithUuid = L.Circle & {
+type AEGISGeoJSONCircle = L.GeoJSON & {
   uuid?: string;
-  mapItemType?: "radius";
+  mapItemType: "Lander Radius";
 };

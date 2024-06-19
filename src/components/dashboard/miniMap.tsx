@@ -26,6 +26,8 @@ import {
   getLatestPosEntryByType,
 } from "components/page/leaflet-helper";
 import "components/dashboard/map.module.css";
+import { point } from "@turf/helpers";
+import { circle } from "@turf/turf";
 
 const MiniMap: FunctionComponent<{
   mapShowPos: boolean;
@@ -386,14 +388,16 @@ const MiniMap: FunctionComponent<{
     )
       return;
 
-    // remove any existing radii
-    map.current.eachLayer((layer: CircleWithUuid) => {
-      if (layer.mapItemType === "radius") {
-        map.current.removeLayer(layer);
+    const landerRadii = mission.landerRadii;
+    const landerLocation = mission.landerLocation;
+
+    map.current.eachLayer((layer: AEGISGeoJSONCircle) => {
+      if (layer.mapItemType === "Lander Radius") {
+        layer.remove();
       }
     });
 
-    mission.landerRadii.forEach((landerRadius) => {
+    landerRadii.forEach((landerRadius) => {
       /*
        * Map does NOT think in terms of planets for coordinates,
        * and currently acts as if coordinates correspond to earth.
@@ -401,33 +405,43 @@ const MiniMap: FunctionComponent<{
        * to the radius of the earth, and not in relation to the planet
        * the mission is on for the projection.
        *
-       * If this is in a non-equatorial landing location of a non-earth celestial body,
-       * a further adjustment will be made to the distance calculated that instead
-       * takes the integral of the ratio between the two planets.
+       * Previously, non-equatorial map projections required an additional
+       * adjustment of Initial Radius Adjust * Earth Radius / (2 * Planet Radius).
+       * This is seemingly no longer needed, but keep this in mind in case.
        */
       const earthRadiusInMeters = 6378137;
-      let radiusAdjustment = earthRadiusInMeters / mission.planetRadius;
+      const radiusAdjustment = earthRadiusInMeters / mission.planetRadius;
 
-      if (
-        earthRadiusInMeters !== mission.planetRadius &&
-        Math.abs(mission.landerLocation.lat) > 10
-      ) {
-        radiusAdjustment = radiusAdjustment * (earthRadiusInMeters / (2 * mission.planetRadius));
-      }
-
-      const distance = landerRadius.radius * radiusAdjustment;
+      const drawDistance = (landerRadius.radius * radiusAdjustment) / 1000;
 
       if (selectedPreset.mapCircleControls[landerRadius.uuid]?.visible) {
-        const circle: CircleWithUuid = L.circle(mission.landerLocation, {
-          ...selectedPreset.mapCircleControls[landerRadius.uuid].style,
-          radius: distance,
-          interactive: false,
-        });
-        circle.mapItemType = "radius";
-        circle.addTo(map.current);
+        if (selectedPreset.mapCircleControls[landerRadius.uuid]?.visible) {
+          // Turf Coords are in (lng, lat) format
+          const geoJSONCircle: AEGISGeoJSONCircle = L.geoJSON(
+            circle(point([landerLocation.lng, landerLocation.lat]), drawDistance, {
+              steps: 256,
+            }),
+            {
+              style: {
+                ...selectedPreset.mapCircleControls[landerRadius.uuid]?.style,
+                interactive: false,
+              },
+            }
+          ) as AEGISGeoJSONCircle;
+
+          geoJSONCircle.mapItemType = "Lander Radius";
+
+          map.current.addLayer(geoJSONCircle);
+        }
       }
     });
-  }, [mission, map, selectedPreset?.mapCircleControls]);
+  }, [
+    mission?.landerLocation,
+    mission?.landerRadii,
+    mission?.planetRadius,
+    map,
+    selectedPreset?.mapCircleControls,
+  ]);
 
   /**
    * Draw lander
