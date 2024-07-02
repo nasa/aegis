@@ -352,6 +352,34 @@ deploy:dev1:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1 #CI/CD Variable
     URL: https://aegis-dev1.fit.nasa.gov
   when: manual
+  before_script:
+    - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
+
+    # Since this runner is shared between all EMSS repos, we need to check if any containers that
+    # are running are this app or something else. Ultimately this code needs to be in the EMSS
+    # deploy template, and needs to do the `grep -q "/opt/aegis"` part in an app-agnostic way (e.g.
+    # needs to grab the INSTALL_PATH from .fitdock.yml), but for now this is hard-coded for AEGIS.
+    # If-statement below does two checks:
+    # 1. If `sudo docker compose ls` lists more than 2 lines, this means there are more than two
+    #    docker-compose apps running (first line is just the header). Here's an example of AEGIS
+    #    and Labs running simultaneously:
+    #       ejmontal@jsfitdaegis01 / $ sudo docker compose ls
+    #       NAME                STATUS              CONFIG FILES
+    #       aegis               running(3)          /opt/aegis/docker-compose.yml
+    #       emss-labs           running(5)          /opt/emss-labs/docker-compose.yml
+    #    If this is the case, we definitely are in a weird condition and want to nuke all containers
+    #    and let this deploy job bring us back to a normal configuration.
+    # 2. If `sudo docker compose ls` does NOT included this app's install directory (/opt/aegis),
+    #    then some other app was the most recently deployed app. Nuke all containers and let this
+    #    deploy job make AEGIS the running app.
+    - COMPOSE_LS=$(sudo docker compose ls)
+    - >
+      if [ $(echo "$COMPOSE_LS" | wc -l) -gt 2 ] || ! echo "$COMPOSE_LS" | grep -q "/opt/aegis"; then
+        echo "Unknown docker-compose apps running, killing all containers."
+        sudo docker stop $(sudo docker ps -a -q)
+      else
+        echo "Same app deploying, not killing containers"
+      fi
 
 deploy:int:
   extends: .deploy-template
