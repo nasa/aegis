@@ -20,8 +20,8 @@ fi
 if [ -z "${ADMIN_RECOVERY_KEY+set}" ]; then
     export ADMIN_RECOVERY_KEY=$(tr -c -d '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ' </dev/urandom | dd bs=32 count=1 2>/dev/null;echo)
 fi
-if [ -z "${AEGIS_DB_PASS+set}" ]; then
-    export AEGIS_DB_PASS=$(tr -c -d '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ' </dev/urandom | dd bs=32 count=1 2>/dev/null;echo)
+if [ -z "${DB_PASS+set}" ]; then
+    export DB_PASS=$(tr -c -d '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ' </dev/urandom | dd bs=32 count=1 2>/dev/null;echo)
 fi
 if [ -z "${SESSION_PASSWORD+set}" ]; then
     export SESSION_PASSWORD=$(tr -c -d '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ' </dev/urandom | dd bs=32 count=1 2>/dev/null;echo)
@@ -34,7 +34,7 @@ export BOX_ENTERPRISE_ID="${BOX_ENTERPRISE_ID:-NEED_VALUE}"
 export BOX_USER_ID="${BOX_USER_ID:-NEED_VALUE}"
 
 # Write back to .env.secret with all our passwords
-echo "export AEGIS_DB_PASS=${AEGIS_DB_PASS@Q}
+echo "export DB_PASS=${DB_PASS@Q}
 export ADMIN_RECOVERY_KEY=${ADMIN_RECOVERY_KEY@Q}
 export SESSION_PASSWORD=${SESSION_PASSWORD@Q}
 export BOX_CLIENT_ID=${BOX_CLIENT_ID@Q}
