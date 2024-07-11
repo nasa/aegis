@@ -25,7 +25,7 @@ services:
     environment:
       # Override what is in .env (which may be "localhost" to support native local dev) such
       # that it is always "database" in a full Docker-Compose setup.
-      - AEGIS_DB_HOST=database
+      - DB_HOST=database
 
 
   gdal:

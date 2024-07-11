@@ -29,11 +29,11 @@ import {
 import path from "path";
 
 export default defineConfig({
-  dbName: process.env.AEGIS_DB_NAME,
-  host: process.env.AEGIS_DB_HOST,
+  dbName: process.env.DB_NAME,
+  host: process.env.DB_HOST,
   port: 5432, //default port
   driver: PostgreSqlDriver,
-  password: process.env.AEGIS_DB_PASS,
+  password: process.env.DB_PASS,
   migrations: {
     path: path.join(__dirname, "./src/server/database/migrations"), // path to the folder with migrations
     snapshot: false,

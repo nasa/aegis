@@ -10,9 +10,9 @@ import { Client } from "pg";
 export default class DB {
   private DBConfig = {
     user: "postgres",
-    host: process.env.AEGIS_DB_HOST,
-    database: process.env.AEGIS_DB_NAME,
-    password: process.env.AEGIS_DB_PASS,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASS,
     port: 5432,
   };
 

@@ -156,9 +156,9 @@ node-sbom:
   stage: stageless
   variables:
     # define variables used by Node app
-    AEGIS_DB_HOST: postgres-test-container
-    AEGIS_DB_PASS: test-only-password
-    AEGIS_DB_NAME: aegis
+    DB_HOST: postgres-test-container
+    DB_PASS: test-only-password
+    DB_NAME: aegis
 
     # plug those same variables into the Postgres container we're spinning up
     POSTGRES_PASSWORD: test-only-password
