@@ -34,8 +34,8 @@
     "incremental": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "declaration": false,
+    "declaration": false
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["node_modules", ".local", "public", "static"],
+  "exclude": ["node_modules", ".local", "public", "static"]
 }
