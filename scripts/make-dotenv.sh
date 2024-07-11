@@ -54,6 +54,11 @@ if [ -z "${CI+set}" ]; then # if not in CI (aka local)
     export DOCKER_DB_DATA_DIR=./.local/database
     export DOCKER_DB_INIT_DIR=./.local/db-init
 
+    # DB_HOST is "localhost" when doing native/local Node development. When running
+    #   node in docker in docker:preview, this will be overridden in the 
+    #   docker-compose-preview.yml to be "database"
+    export DB_HOST=localhost
+
     export GDAL_HOST=localhost
     export GDAL_PORT=4200
 
@@ -70,6 +75,8 @@ else
     export STATIC_DIR=/d1/static
     export DOCKER_DB_DATA_DIR=/d1/postgres
     export DOCKER_DB_INIT_DIR=/d1/db-init
+
+    export DB_HOST=database
 
     export GDAL_HOST=gdal
     export GDAL_PORT=80
