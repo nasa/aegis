@@ -4,7 +4,7 @@
     {
       "type": "node",
       "request": "attach",
-      "name": "Express Attach",
+      "name": "Node Attach",
       "skipFiles": ["<node_internals>/**"],
       "port": 8229
     },
