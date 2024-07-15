@@ -39,45 +39,32 @@ const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => 
               <SubpanelHeading icon={faList}>Lander Radius Circles</SubpanelHeading>
             </div>
             <div className={paneStyles.panelSectionBody}>
-              {mission?.projEpsg.includes("IAU2000") ? (
-                <div className={styles.propertyRow} style={{ backgroundColor: "var(--grey2)" }}>
-                  <div className={styles.propertyRowName}>
-                    <div className={styles.propertyRowName}>
-                      Currently not available for lunar south pole map projections due to a bug.
-                      <br /> <br />
-                      Please contact the AEGIS team on how to get custom vector layers made for this
-                      mission.
+              <ul className={styles.propertyList}>
+                <li className={styles.propertyListItem}>
+                  <div className={paneStyles.descriptionContainer}>
+                    <div
+                      className={styles.propertyRowHeader}
+                      style={{ backgroundColor: "var(--grey2)" }}
+                    >
+                      <div className={styles.propertyRowName}>Name</div>
+                      <div className={styles.propertyRowSingleuse}>{"Radius (m)"}</div>
+                      <div className={styles.propertyRowTrash}></div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <ul className={styles.propertyList}>
-                  <li className={styles.propertyListItem}>
-                    <div className={paneStyles.descriptionContainer}>
-                      <div
-                        className={styles.propertyRowHeader}
-                        style={{ backgroundColor: "var(--grey2)" }}
-                      >
-                        <div className={styles.propertyRowName}>Name</div>
-                        <div className={styles.propertyRowSingleuse}>{"Radius (m)"}</div>
-                        <div className={styles.propertyRowTrash}></div>
-                      </div>
-                    </div>
-                  </li>
+                </li>
 
-                  {mission?.landerRadii?.map((item, index) => (
-                    <li key={item.uuid} className={styles.propertyListItem}>
-                      <RadiusItem
-                        key={item.uuid}
-                        landerRadius={item}
-                        editMode={editMode}
-                        evenRow={index % 2 === 0}
-                        toFocus={newRadiusUuid === item.uuid}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              )}
+                {mission?.landerRadii?.map((item, index) => (
+                  <li key={item.uuid} className={styles.propertyListItem}>
+                    <RadiusItem
+                      key={item.uuid}
+                      landerRadius={item}
+                      editMode={editMode}
+                      evenRow={index % 2 === 0}
+                      toFocus={newRadiusUuid === item.uuid}
+                    />
+                  </li>
+                ))}
+              </ul>
 
               {editMode && (
                 <Button

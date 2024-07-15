@@ -208,7 +208,7 @@ export const processEvaDataFromStore = ({
         }
       }
     } else if (sequenceItem.type === "traverse") {
-      const traverse = evaTraverses.find((t) => t.uuid === sequenceItem.uuid);
+      const traverse = evaTraverses.find((t) => t?.uuid === sequenceItem?.uuid);
 
       if (!traverse || traverse?.path?.length < 2) continue; //skip traverses with less than 2 points
       EVASequenceItemForTimeline.name = traverse.name;

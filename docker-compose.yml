@@ -24,25 +24,26 @@ services:
         condition: service_healthy
     restart: unless-stopped
     env_file:
+      # Any .env variables needed at runtime must be specified here or listed out in the `environment` property
+      #
+      # First the .env file is used to SET environment variables on the container. The .env file is
+      # NOT actually moved over onto the container, just the variables are set.
       - ./.env
-    environment:
-      # Override what is in .env (which may be "localhost" to support native local dev) such
-      # that it is always "database" in a full Docker-Compose setup.
-      - AEGIS_DB_HOST=database
     volumes:
       - ${STATIC_DIR}:/${STATIC_DIR}
 
   database:
     container_name: aegis-database-1
     image: postgis/postgis:14-3.2-alpine
+    # image: postgres:14.12-alpine # pending EMSS/docker-images MR !36
     restart: unless-stopped
     environment:
       # Used for setting up a DB for the first time. These are not stored in the container
       # but rather in the db data itself
-      POSTGRES_PASSWORD: ${AEGIS_DB_PASS}
-      POSTGRES_DB: ${AEGIS_DB_NAME}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
     healthcheck:
-      test: "pg_isready -U postgres && psql --username=postgres --list && psql --username=postgres ${AEGIS_DB_NAME} -c 'SELECT * FROM Mission_db'"
+      test: "pg_isready -U postgres && psql --username=postgres --list && psql --username=postgres ${DB_NAME} -c 'SELECT id FROM Mission_db LIMIT 1'"
       interval: 30s # how often to check health
       timeout: 5s # fail if it takes longer than this
       retries: 6 # max consecutive failures

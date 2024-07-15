@@ -9,7 +9,7 @@ import {
   getCalculatedFieldsByStation,
 } from "store/processing/calculatedFields";
 import { decodeEmoji, hhmmssFromSeconds, secondsFromhhmmss } from "utils/formatting";
-import _ from "lodash";
+import _, { isUndefined } from "lodash";
 
 const LeftTopPanel = (): JSX.Element => {
   const runningRexFromDb = useAppSelector(
@@ -174,7 +174,7 @@ const LeftTopPanel = (): JSX.Element => {
               }
             });
           }
-          const age = latestEntrySecondsForType
+          const age = !isUndefined(latestEntrySecondsForType)
             ? hhmmssFromSeconds(latestEntrySecondsForType - secondsFromhhmmss(rexPetTime)).replace(
                 "-",
                 "+"
