@@ -18,11 +18,11 @@ directories:
     mode: "0775"
     owner: gitlab-runner
     group: gitlab-runner
-  - path: /d1/postgres
+  - path: /d1/aegis/postgres
     mode: "0775"
     owner: gitlab-runner
     group: gitlab-runner
-  - path: /d1/db-init
+  - path: /d1/aegis/db-init
     mode: "0775"
     owner: gitlab-runner
     group: gitlab-runner
