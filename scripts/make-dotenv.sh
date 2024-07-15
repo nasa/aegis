@@ -72,9 +72,9 @@ else
     export DOCKER_SSL_CERTS_DIR=/etc/pki/tls/certs
     export DOCKER_SSL_PRIVATE_DIR=/etc/pki/tls/private
 
-    export STATIC_DIR=/d1/static
-    export DOCKER_DB_DATA_DIR=/d1/postgres
-    export DOCKER_DB_INIT_DIR=/d1/db-init
+    export STATIC_DIR=/d1/aegis/static
+    export DOCKER_DB_DATA_DIR=/d1/aegis/postgres
+    export DOCKER_DB_INIT_DIR=/d1/aegis/db-init
 
     export DB_HOST=database
 
