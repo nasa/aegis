@@ -372,13 +372,19 @@ deploy:dev1:
     # 2. If `sudo docker compose ls` does NOT included this app's install directory (/opt/aegis),
     #    then some other app was the most recently deployed app. Nuke all containers and let this
     #    deploy job make AEGIS the running app.
-    - COMPOSE_LS=$(sudo docker compose ls)
+    # - COMPOSE_LS=$(sudo docker compose ls)
+    # - >
+    #   if [ $(echo "$COMPOSE_LS" | wc -l) -gt 2 ] || ! echo "$COMPOSE_LS" | grep -q "/opt/aegis"; then
+    #     echo "Unknown docker-compose apps running, killing all containers."
+    #     sudo docker stop $(sudo docker ps -a -q)
+    #   else
+    #     echo "Same app deploying, not killing containers"
+    #   fi
+
+    # Stop all containers. TODO unsure why the above code to selectively stop containers is needed.
     - >
-      if [ $(echo "$COMPOSE_LS" | wc -l) -gt 2 ] || ! echo "$COMPOSE_LS" | grep -q "/opt/aegis"; then
-        echo "Unknown docker-compose apps running, killing all containers."
+      if docker --version; then
         sudo docker stop $(sudo docker ps -a -q)
-      else
-        echo "Same app deploying, not killing containers"
       fi
 
 deploy:int:
