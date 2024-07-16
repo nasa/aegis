@@ -31,7 +31,9 @@ const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => 
 
   return (
     <div className={paneStyles.rightBody}>
-      <div className={paneStyles.rightBodyTitle}>Vector Definitions</div>
+      <div className={paneStyles.rightBodyTitle} aria-label="rightBodyTitle">
+        Vector Definitions
+      </div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
