@@ -105,11 +105,7 @@ test("create edit cancel delete radii", async ({ page }) => {
   for (let i = 0; i < startingNumRadii + 2; i++) {
     const name = await page.getByLabel("Lander radius name").nth(i).textContent();
     const range = Number(await page.getByLabel("Lander radius range").nth(i).textContent());
-    console.log(name);
-    console.log(await page.getByLabel("Lander radius range").nth(i).textContent());
-    console.log(range);
     if (name === "--TEST RADIUS ONE B--" && range === 250) {
-      console.log("yay!");
       test1Index = i;
     }
     if (name === "--TEST RADIUS TWO--" && range == 100) {
