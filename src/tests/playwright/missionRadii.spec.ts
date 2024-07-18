@@ -96,6 +96,7 @@ test("create edit cancel delete radii", async ({ page }) => {
     .nth(test1Index)
     .pressSequentially("--TEST RADIUS ONE B--");
   await page.getByLabel("Lander radius range").nth(test1Index).fill("");
+  await page.waitForTimeout(100);
   await page.getByLabel("Lander radius range").nth(test1Index).pressSequentially("250");
   await page.waitForTimeout(200);
   await page.getByLabel("saveButton", { exact: true }).click();
