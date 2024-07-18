@@ -90,6 +90,7 @@ test("create edit cancel delete radii", async ({ page }) => {
   await page.getByLabel("Edit", { exact: true }).click();
   await page.getByLabel("saveButton");
   await page.getByLabel("Lander radius name").nth(test1Index).fill("");
+  await page.waitForTimeout(100);
   await page
     .getByLabel("Lander radius name")
     .nth(test1Index)
@@ -179,4 +180,11 @@ test("create edit cancel delete radii", async ({ page }) => {
     "--TEST RADIUS TWO B--"
   );
   await expect(page.getByLabel("Lander radius range").nth(test2Index)).toContainText("1");
+
+  //delete and save
+  await page.getByLabel("Edit", { exact: true }).click();
+  await page.getByLabel("saveButton");
+  await page.getByLabel("deleteButton", { exact: true }).nth(test2Index).click();
+  await page.getByLabel("saveButton", { exact: true }).click();
+  await expect(page.getByLabel("radiiList-item", { exact: true })).toHaveCount(startingNumRadii);
 });
