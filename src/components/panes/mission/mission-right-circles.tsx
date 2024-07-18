@@ -56,7 +56,11 @@ const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => 
                 </li>
 
                 {mission?.landerRadii?.map((item, index) => (
-                  <li key={item.uuid} className={styles.propertyListItem}>
+                  <li
+                    key={item.uuid}
+                    className={styles.propertyListItem}
+                    aria-label="radiiList-item"
+                  >
                     <RadiusItem
                       key={item.uuid}
                       landerRadius={item}
@@ -76,6 +80,7 @@ const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => 
                   onClick={async () => {
                     setNewRadiusUuid((await dispatch(thunkCreateLanderRadius())).payload);
                   }}
+                  ariaLabel="addNewRadiusButton"
                 />
               )}
             </div>
@@ -163,6 +168,7 @@ const RadiusItem: FunctionComponent<{
             <FontAwesomeIcon
               icon={faTrashAlt}
               size="sm"
+              aria-label="deleteButton"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();

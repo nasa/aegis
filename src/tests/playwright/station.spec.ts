@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 
 test("create edit cancel delete station", async ({ page }) => {
   await page.goto("http://aegis-local.fit.nasa.gov:4000/mission/1");
+
   // go to station section
   await page.getByLabel("station Section", { exact: true }).click();
   await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText("Stations");
