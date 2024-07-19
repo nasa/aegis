@@ -114,10 +114,10 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
 
     //create ordering by name
     const defaultOrder: PresetLayerOrder[] = [];
-    for (const layer of sortBy(getState().mission.layers, ["name"])) {
+    for (const layer of sortBy(getState().mission.layers, [(layer) => layer.name.toLowerCase()])) {
       const sublayers: Sublayer[] = sortBy(
         getState().mission.sublayers.filter((s) => s.layerUuid === layer.uuid),
-        ["name"]
+        [(sublayer) => sublayer.name.toLowerCase()]
       );
       defaultOrder.push({
         layerUuid: layer.uuid,

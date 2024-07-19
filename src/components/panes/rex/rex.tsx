@@ -31,7 +31,7 @@ const EvaRexLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const rexes = useAppSelector((state) => state.rex.rexes, deepEqual);
   // sort the rexes by name
-  const rexesSorted = _.sortBy(rexes, ["name"]);
+  const rexesSorted = _.sortBy(rexes, [(rex) => rex.name.toLowerCase()]);
 
   const isRexRunningFromDb = useAppSelector(
     (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
@@ -49,7 +49,7 @@ const EvaRexLeft: FunctionComponent = () => {
             </div>
           ) : (
             <>
-              {_.sortBy(rexesSorted, ["name"]).map((rex) => (
+              {_.sortBy(rexesSorted, [(rex) => rex.name.toLowerCase()]).map((rex) => (
                 <div className={styles.panelContainer} key={rex.uuid}>
                   <EvaRexItem rexUuid={rex.uuid} key={rex.uuid} />
                 </div>

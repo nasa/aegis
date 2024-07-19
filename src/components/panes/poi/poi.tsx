@@ -24,7 +24,7 @@ const PoiEditorLeft: FunctionComponent = () => {
       <div className={paneStyles.leftPanelContainer}>
         <div className={poiStyles.container}>
           <div className={poiStyles.body} aria-label="poiList">
-            {_.sortBy(pois, "name").map((poi) => {
+            {_.sortBy(pois, [(poi) => poi.name.toLowerCase()]).map((poi) => {
               const poiFromDb = poisFromDb.find((poiFromDb) => poiFromDb.uuid === poi.uuid);
               return (
                 <PoiItem

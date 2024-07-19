@@ -52,10 +52,10 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
   } else {
     //if no ordering is defined, order by name
     const defaultOrder: PresetLayerOrder[] = [];
-    for (const layer of sortBy(missionLayers, ["name"])) {
+    for (const layer of sortBy(missionLayers, [(layer) => layer.name.toLowerCase()])) {
       const sublayers: Sublayer[] = sortBy(
         missionSublayers?.filter((s) => s.layerUuid === layer.uuid),
-        ["name"]
+        [(sublayer) => sublayer.name.toLowerCase()]
       );
       defaultOrder.push({
         layerUuid: layer.uuid,

@@ -39,10 +39,18 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
     const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
     //Alphabetize the items by name
-    const sortedEquipmentItems = sortBy(mission.equipmentItems, "name");
-    const sortedGeoUnits = sortBy(mission.geographicUnits, "name");
-    const sortedLanderRadii = sortBy(mission.landerRadii, "radius");
-    const sortedTemplates = sortBy(mission.actionTemplates, ["type", "templateName"]);
+    const sortedEquipmentItems = sortBy(mission.equipmentItems, [
+      (item) => item.name.toLowerCase(),
+    ]);
+    const sortedGeoUnits = sortBy(mission.geographicUnits, [(unit) => unit.name.toLowerCase()]);
+    const sortedLanderRadii = sortBy(mission.landerRadii, [
+      "radius",
+      (radius) => radius.name.toLowerCase(),
+    ]);
+    const sortedTemplates = sortBy(mission.actionTemplates, [
+      "type",
+      (template) => template.templateName.toLowerCase(),
+    ]);
 
     //save mission to db
     const upsertResponse = await httpClient_mission.upsertMissions(

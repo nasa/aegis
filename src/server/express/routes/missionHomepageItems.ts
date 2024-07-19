@@ -87,5 +87,5 @@ export async function getHomepageMissionItems(
     };
     missionHomepageItems.push(missionHomepageItem);
   }
-  return _.sortBy(missionHomepageItems, "name");
+  return _.sortBy(missionHomepageItems, [(item) => item.name.toLowerCase()]);
 }

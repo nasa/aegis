@@ -140,7 +140,7 @@ export default StmViewerPage;
 
 const StationGroupTitles: FunctionComponent = () => {
   const sortedEvaUuids = useAppSelector((state) => {
-    const allSortedEvas = _.sortBy(state.eva.evas, "name");
+    const allSortedEvas = _.sortBy(state.eva.evas, [(eva) => eva.name.toLowerCase()]);
     return allSortedEvas
       .filter((eva) => state.interface.stmViewSelectedEvas.includes(eva.uuid))
       .map((eva) => eva.uuid);
@@ -160,7 +160,7 @@ const StationGroupTitles: FunctionComponent = () => {
 
 const StationGroupTitle: FunctionComponent<{ evaUuid?: string }> = ({ evaUuid }) => {
   const allStations = useAppSelector(
-    (state) => _.sortBy(state.station.stations, "name"),
+    (state) => _.sortBy(state.station.stations, [(station) => station.name.toLowerCase()]),
     deepEqual
   );
   const eva = useAppSelector(
@@ -216,13 +216,13 @@ const StationGroupTitle: FunctionComponent<{ evaUuid?: string }> = ({ evaUuid })
 
 const StationNameGroups: FunctionComponent = () => {
   const sortedEvaUuids = useAppSelector((state) => {
-    const allSortedEvas = _.sortBy(state.eva.evas, "name");
+    const allSortedEvas = _.sortBy(state.eva.evas, [(eva) => eva.name.toLowerCase()]);
     return allSortedEvas
       .filter((eva) => state.interface.stmViewSelectedEvas.includes(eva.uuid))
       .map((eva) => eva.uuid);
   }, shallowEqual);
   const allStationsNotInASelectedEvas = useAppSelector((state) => {
-    const stations = _.sortBy(state.station.stations, "name");
+    const stations = _.sortBy(state.station.stations, [(station) => station.name.toLowerCase()]);
     const selectedEvaUuids = state.interface.stmViewSelectedEvas;
     for (const evaUuid of selectedEvaUuids) {
       const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
@@ -259,7 +259,7 @@ const StationNameGroups: FunctionComponent = () => {
 
 const StationNames: FunctionComponent<{ evaUuid?: string }> = ({ evaUuid }) => {
   const allStations = useAppSelector(
-    (state) => _.sortBy(state.station.stations, "name"),
+    (state) => _.sortBy(state.station.stations, [(station) => station.name.toLowerCase()]),
     deepEqual
   );
   const stations = useAppSelector((state) => {
@@ -323,7 +323,7 @@ const EvaSelector: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const selectedEvas = useAppSelector((state) => state.interface.stmViewSelectedEvas, deepEqual);
   const evasWithStations = useAppSelector((state) => {
-    const evas = _.sortBy(state.eva.evas, "name");
+    const evas = _.sortBy(state.eva.evas, [(eva) => eva.name.toLowerCase()]);
     // remove evas that have no stations in the sequence
     for (const eva of evas) {
       if (eva.sequence.filter((sequenceItem) => sequenceItem.type === "station").length === 0) {

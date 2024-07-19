@@ -31,7 +31,7 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   // maintain a list of selected POIs for the selected station, so we can display them
   const selectedPois = _.sortBy(
     pois.filter((poi) => selectedStation.poiUuids?.includes(poi.uuid)),
-    "name"
+    [(poi) => poi.name.toLowerCase()]
   );
 
   return (
@@ -85,7 +85,7 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 </>
               ) : (
                 <>
-                  {_.sortBy(pois, "name").map((poi) => {
+                  {_.sortBy(pois, [(poi) => poi.name.toLowerCase()]).map((poi) => {
                     const checked = selectedStation.poiUuids?.includes(poi.uuid);
                     return (
                       poi && (
