@@ -120,7 +120,10 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                         }}
                       >
                         <div className={actionActionStyles.verticalCenter}>
-                          <div className={actionActionStyles.actionsHeadingTitleIcon}>
+                          <div
+                            className={actionActionStyles.actionsHeadingTitleIcon}
+                            aria-label="Emoji Display"
+                          >
                             {decodeEmoji(actionTemplate.icon ? actionTemplate.icon : "2754")}
                           </div>
                         </div>

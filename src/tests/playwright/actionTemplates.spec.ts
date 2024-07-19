@@ -165,24 +165,46 @@ test("create edit cancel delete actionTemplates", async ({ page }) => {
 
   // Grab indicies and verify saved data is correct
 
-  // Tear down test data
-  let test1Index = -1;
-  let test2Index = -1;
-  let test3Index = -1;
+  let t1Ind = -1;
+  let t2Ind = -1;
+  let t3Ind = -1;
 
   for (let i = 0; i < startingNumTemplates + 3; i++) {
     const name = await page.getByLabel("Template Name").nth(i).textContent();
     const type = await page.getByLabel("Action Template Type").nth(i).textContent();
     if (name === t1.tName && type === t1.type) {
-      test1Index = i;
+      t1Ind = i;
     }
     if (name === t2.tName && type === t2.type) {
-      test2Index = i;
+      t2Ind = i;
     }
     if (name === t3.tName && type === t3.type) {
-      test3Index = i;
+      t3Ind = i;
     }
   }
 
-  await expect(test1Index !== -1 && test2Index !== -1 && test3Index !== -1).toEqual(true);
+  await expect(t1Ind !== -1 && t2Ind !== -1 && t3Ind !== -1).toEqual(true);
+
+  await page.getByLabel("Expand Button", { exact: true }).nth(t2Ind).click();
+  await expect(page.getByLabel("Template Name", { exact: true }).nth(t2Ind)).toContainText(
+    t1.tName
+  );
+  await page.getByLabel("Expand Button", { exact: true }).nth(t2Ind).click();
+  await expect(page.getByLabel("dropdown", { exact: true }).nth(t2Ind)).toContainText(t2.type);
+  await expect(page.getByLabel("Action Title", { exact: true }).nth(t2Ind)).toContainText(t2.aName);
+  await expect(page.getByLabel("Template Description", { exact: true }).nth(t2Ind)).toContainText(
+    t2.descr
+  );
+  await expect(
+    page.getByLabel("Minimum Time in minutes", { exact: true }).nth(t2Ind)
+  ).toContainText(t2.min);
+  await expect(
+    page.getByLabel("Maximum Time in minutes", { exact: true }).nth(t2Ind)
+  ).toContainText(t2.max);
+  await expect(page.getByLabel("Priority", { exact: true }).nth(t1Ind)).toContainText(t2.pri);
+  await expect(page.getByLabel("Expected Sample Mass", { exact: true }).nth(t2Ind)).toContainText(
+    t2.mass
+  );
+  await expect(page.getByLabel("Emoji Display", { exact: true }).nth(t2Ind)).toContainText("😎");
+  await page.getByLabel("Expand Button", { exact: true }).nth(t2Ind).click();
 });
