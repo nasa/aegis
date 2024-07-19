@@ -56,7 +56,9 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitleContainer}>
-        <div className={paneStyles.rightBodyTitle}>Action Templates</div>
+        <div className={paneStyles.rightBodyTitle} aria-label="rightBodyTitle">
+          Action Templates
+        </div>
         <ExpandCollapseActionsButtons
           actionUuids={mission?.actionTemplates?.map((action) => action.uuid)}
         />
@@ -67,7 +69,11 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
         >
           <ul className={actionStyles.actionlist}>
             {mission?.actionTemplates?.map((actionTemplate) => (
-              <li key={actionTemplate.uuid} className={actionStyles.actionlistitem}>
+              <li
+                key={actionTemplate.uuid}
+                className={actionStyles.actionlistitem}
+                aria-label="templateList-item"
+              >
                 <div
                   className={`${paneStyles.panelContainer} ${actionActionStyles.actionPanelContainer}  ${actionStyles.actionlistitemAction}`}
                   style={{ marginLeft: "6px" }}
@@ -122,7 +128,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                             <span style={{ textTransform: "capitalize" }}>
                               {actionTemplate.type}
                             </span>{" "}
-                            : {actionTemplate.templateName}
+                            : <span aria-label="Template Name">{actionTemplate.templateName}</span>
                           </div>
                         </div>
                       </div>
