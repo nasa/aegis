@@ -250,7 +250,8 @@ export const WysiwygTextArea: FunctionComponent<{
   editing: boolean;
   onChange: (value: string) => void;
   defaultValue?: string; //string to show if value is empty
-}> = ({ value, editing, onChange, defaultValue }) => {
+  ariaLabel?: string;
+}> = ({ value, editing, onChange, defaultValue, ariaLabel }) => {
   //start
   const [editor] = useState(() => withReact(createEditor()));
   const [editorChange, setEditorChange] = useState(false);
@@ -307,6 +308,7 @@ export const WysiwygTextArea: FunctionComponent<{
             onFocus={() => {
               Transforms.deselect(editor);
             }}
+            aria-label={ariaLabel}
           />
         </Slate>
       ) : (

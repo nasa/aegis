@@ -49,6 +49,7 @@ export const ActionTemplateMenu: FunctionComponent<{
               }
               dialogRef.current?.close();
             }}
+            aria-label="Delete"
           >
             <div className={actionStyles.menuItemIcon}>
               <FontAwesomeIcon icon={faTrashAlt} />
@@ -61,6 +62,7 @@ export const ActionTemplateMenu: FunctionComponent<{
       <FontAwesomeIcon
         icon={faEllipsisV}
         size="sm"
+        aria-label="Template Menu"
         onClick={(e) => {
           handleMenuOpen(e);
           dialogRef.current?.showModal();
