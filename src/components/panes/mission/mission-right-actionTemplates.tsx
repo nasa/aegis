@@ -150,6 +150,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                           <div
                             className={missionStyles.templateActionTitle}
                             style={{ textTransform: "capitalize", marginLeft: "2px" }}
+                            aria-label="Action Template Type"
                           >
                             {actionTemplate.type}:&nbsp;
                           </div>

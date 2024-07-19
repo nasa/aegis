@@ -75,6 +75,7 @@ test("create edit cancel delete actionTemplates", async ({ page }) => {
   await page.getByLabel("addNewTemplateButton", { exact: true }).click();
   await page.getByLabel("Template Name", { exact: true }).last().pressSequentially(t1.tName);
   await page.getByLabel("Expand Button", { exact: true }).last().click();
+  await page.waitForTimeout(100);
   await page.getByLabel("dropdown", { exact: true }).last().selectOption(t1.type);
   await page.getByLabel("Action Title", { exact: true }).last().pressSequentially(t1.aName);
   await page.getByLabel("Template Description", { exact: true }).last().pressSequentially(t1.descr);
@@ -96,6 +97,7 @@ test("create edit cancel delete actionTemplates", async ({ page }) => {
   await page.getByLabel("addNewTemplateButton", { exact: true }).click();
   await page.getByLabel("Template Name", { exact: true }).last().pressSequentially(t2.tName);
   await page.getByLabel("Expand Button", { exact: true }).last().click();
+  await page.waitForTimeout(100);
   await page.getByLabel("dropdown", { exact: true }).last().selectOption(t2.type);
   await page.getByLabel("Action Title", { exact: true }).last().pressSequentially(t2.aName);
   await page.getByLabel("Template Description", { exact: true }).last().pressSequentially(t2.descr);
@@ -119,6 +121,7 @@ test("create edit cancel delete actionTemplates", async ({ page }) => {
   await page.getByLabel("addNewTemplateButton", { exact: true }).click();
   await page.getByLabel("Template Name", { exact: true }).last().pressSequentially(t3.tName);
   await page.getByLabel("Expand Button", { exact: true }).last().click();
+  await page.waitForTimeout(100);
   await page.getByLabel("dropdown", { exact: true }).last().selectOption(t3.type);
   await page.getByLabel("Action Title", { exact: true }).last().pressSequentially(t3.aName);
   await page.getByLabel("Template Description", { exact: true }).last().pressSequentially(t3.descr);
@@ -185,24 +188,25 @@ test("create edit cancel delete actionTemplates", async ({ page }) => {
 
   await expect(t1Ind !== -1 && t2Ind !== -1 && t3Ind !== -1).toEqual(true);
 
-  await page.getByLabel("Expand Button", { exact: true }).nth(t2Ind).click();
   await expect(page.getByLabel("Template Name", { exact: true }).nth(t2Ind)).toContainText(
-    t1.tName
+    t2.tName
   );
   await page.getByLabel("Expand Button", { exact: true }).nth(t2Ind).click();
-  await expect(page.getByLabel("dropdown", { exact: true }).nth(t2Ind)).toContainText(t2.type);
-  await expect(page.getByLabel("Action Title", { exact: true }).nth(t2Ind)).toContainText(t2.aName);
-  await expect(page.getByLabel("Template Description", { exact: true }).nth(t2Ind)).toContainText(
+  await expect(page.getByLabel("Action Template Type", { exact: true }).nth(t2Ind)).toContainText(
+    t2.type
+  );
+  await expect(page.getByLabel("Action Title", { exact: true }).last()).toContainText(t2.aName);
+  await expect(page.getByLabel("Template Description", { exact: true }).last()).toContainText(
     t2.descr
   );
-  await expect(
-    page.getByLabel("Minimum Time in minutes", { exact: true }).nth(t2Ind)
-  ).toContainText(t2.min);
-  await expect(
-    page.getByLabel("Maximum Time in minutes", { exact: true }).nth(t2Ind)
-  ).toContainText(t2.max);
-  await expect(page.getByLabel("Priority", { exact: true }).nth(t1Ind)).toContainText(t2.pri);
-  await expect(page.getByLabel("Expected Sample Mass", { exact: true }).nth(t2Ind)).toContainText(
+  await expect(page.getByLabel("Minimum Time in minutes", { exact: true }).last()).toContainText(
+    t2.min
+  );
+  await expect(page.getByLabel("Maximum Time in minutes", { exact: true }).last()).toContainText(
+    t2.max
+  );
+  await expect(page.getByLabel("Priority", { exact: true }).last()).toContainText(t2.pri);
+  await expect(page.getByLabel("Expected Sample Mass", { exact: true }).last()).toContainText(
     t2.mass
   );
   await expect(page.getByLabel("Emoji Display", { exact: true }).nth(t2Ind)).toContainText("😎");

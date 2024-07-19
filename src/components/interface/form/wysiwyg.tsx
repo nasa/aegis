@@ -314,6 +314,7 @@ export const WysiwygTextArea: FunctionComponent<{
       ) : (
         value && (
           <div
+            aria-label={ariaLabel}
             className={styles.notesText}
             dangerouslySetInnerHTML={{
               __html: _.reduce(
