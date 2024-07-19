@@ -32,7 +32,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     (state) => state.eva.evas.map((eva) => ({ label: eva.name, value: eva.uuid })),
     deepEqual
   );
-  const evaDropdownItemsSorted = _.sortBy(evaDropdownItems, (item) => item.label);
+  const evaDropdownItemsSorted = _.sortBy(evaDropdownItems, (item) => item.label.toLowerCase());
 
   // used to update the PET value via the PetInterval component
   const [rexPetTime, setRexPetTime] = useState("");

@@ -40,7 +40,7 @@ const SequenceItemStation: FunctionComponent<{
   const dispatch = useAppDispatch();
 
   const stationsData = useAppSelector((state) => {
-    const stations = _.sortBy(state.station.stations, ["name"]);
+    const stations = _.sortBy(state.station.stations, [(station) => station.name.toLowerCase()]);
     return stations.map((s) => {
       return {
         name: s.name,
