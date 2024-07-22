@@ -50,7 +50,7 @@ const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => 
                     >
                       <div className={styles.propertyRowName}>Name</div>
                       <div className={styles.propertyRowSingleuse}>{"Radius (m)"}</div>
-                      <div className={styles.propertyRowTrash}></div>
+                      <div className={styles.propertyRowTrashContainer}></div>
                     </div>
                   </div>
                 </li>
@@ -163,18 +163,20 @@ const RadiusItem: FunctionComponent<{
           />
         </div>
 
-        <div className={styles.propertyRowTrash}>
+        <div
+          className={styles.propertyRowTrashContainer}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (editMode) {
+              dispatch(thunkDeleteLanderRadius({ landerRadiusUuid: landerRadius.uuid }));
+            }
+          }}
+        >
           {editMode && (
-            <FontAwesomeIcon
-              icon={faTrashAlt}
-              size="sm"
-              aria-label="deleteButton"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                dispatch(thunkDeleteLanderRadius({ landerRadiusUuid: landerRadius.uuid }));
-              }}
-            />
+            <div className={styles.propertyRowTrash}>
+              <FontAwesomeIcon icon={faTrashAlt} size="sm" aria-label="deleteButton" />
+            </div>
           )}
         </div>
       </div>

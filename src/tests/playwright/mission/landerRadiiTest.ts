@@ -1,6 +1,6 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page } from "@playwright/test";
 
-test("create edit cancel delete radii", async ({ page }) => {
+async function landerRadiiTest(page: Page): Promise<string> {
   await page.goto("http://aegis-local.fit.nasa.gov:4000/mission/1");
   //go to mission section
   await page.waitForTimeout(2000);
@@ -192,9 +192,15 @@ test("create edit cancel delete radii", async ({ page }) => {
   //delete and save
   await page.getByLabel("Edit", { exact: true }).click();
   await page.getByLabel("saveButton");
+  await expect(page.getByLabel("deleteButton", { exact: true }).nth(test2Index)).toBeAttached();
   await page.getByLabel("deleteButton", { exact: true }).nth(test2Index).click();
-  await page.waitForTimeout(200);
+  await page.waitForLoadState();
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.waitForLoadState();
+  await expect(page.getByLabel("saveButton", { exact: true })).toHaveCount(0);
   await expect(page.getByLabel("radiiList-item", { exact: true })).toHaveCount(startingNumRadii);
-});
+
+  return "success";
+}
+
+export default landerRadiiTest;
