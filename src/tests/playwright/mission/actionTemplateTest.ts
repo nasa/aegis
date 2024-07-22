@@ -423,8 +423,6 @@ async function testActionTemplates(page: Page): Promise<string> {
   for (let i = 0; i < startingNumTemplates + 2; i++) {
     const name = await page.getByLabel("Template Name").nth(i).textContent();
     const type = await page.getByLabel("Action Template Type").nth(i).textContent();
-    console.log(name);
-    console.log(type);
     if (name === t1Alt.tName && type === t1Alt.type) {
       t1Ind = i;
     }
