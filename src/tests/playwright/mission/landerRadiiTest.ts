@@ -194,9 +194,8 @@ async function landerRadiiTest(page: Page): Promise<string> {
   await page.getByLabel("saveButton");
   await expect(page.getByLabel("deleteButton", { exact: true }).nth(test2Index)).toBeAttached();
   await page.getByLabel("deleteButton", { exact: true }).nth(test2Index).click();
-  await page.waitForLoadState();
+  await expect(page.getByLabel("saveButton", { exact: true })).toBeAttached();
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForLoadState();
   await expect(page.getByLabel("saveButton", { exact: true })).toHaveCount(0);
   await expect(page.getByLabel("radiiList-item", { exact: true })).toHaveCount(startingNumRadii);
 
