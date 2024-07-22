@@ -1,7 +1,18 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page } from "@playwright/test";
 
+type TestingTemplate = {
+  tName: string;
+  type: string;
+  aName: string;
+  descr: string;
+  min: string;
+  max: string;
+  pri: string;
+  mass: string;
+  emoji: string;
+};
 // Const strings to make testing easier
-const t1 = {
+const t1: TestingTemplate = {
   tName: "--TEST ACTION TEMPLATE ONE--",
   type: "sample",
   aName: "Action 1",
@@ -13,7 +24,19 @@ const t1 = {
   emoji: "😎",
 };
 
-const t2 = {
+const t1Alt: TestingTemplate = {
+  tName: "--TEST ACTION TEMPLATE ONE--",
+  type: "sample",
+  aName: "Action A",
+  descr: "You can see this",
+  min: "54",
+  max: "60",
+  pri: "89",
+  mass: "369",
+  emoji: "💾",
+};
+
+const t2: TestingTemplate = {
   tName: "--TEST ACTION TEMPLATE TWO--",
   type: "photo",
   aName: "Action 2",
@@ -25,7 +48,19 @@ const t2 = {
   emoji: "😎",
 };
 
-const t3 = {
+const t2Alt: TestingTemplate = {
+  tName: "--TEST ACTION TEMPLATE TWO ALT--",
+  type: "observation",
+  aName: "Action B",
+  descr: "Lunar sample text",
+  min: "1",
+  max: "4",
+  pri: "25",
+  mass: "284",
+  emoji: "🌕",
+};
+
+const t3: TestingTemplate = {
   tName: "--TEST ACTION TEMPLATE THREE--",
   type: "other",
   aName: "Action 3",
@@ -37,7 +72,7 @@ const t3 = {
   emoji: "😎",
 };
 
-const td = {
+const td: TestingTemplate = {
   tName: "--DISPOSABLE ACTION TEMPLATE--",
   type: "sample",
   aName: "disposable",
@@ -48,6 +83,89 @@ const td = {
   mass: "1",
   emoji: "😎",
 };
+
+async function createAndPopulateTemplate(page: Page, t: TestingTemplate) {
+  await page.waitForTimeout(50);
+  await page.getByLabel("addNewTemplateButton", { exact: true }).click();
+  await page.getByLabel("Template Name", { exact: true }).last().pressSequentially(t.tName);
+  await page.waitForTimeout(50);
+  await page.getByLabel("Expand Button", { exact: true }).last().click();
+  await page.waitForTimeout(100);
+  await page.getByLabel("dropdown", { exact: true }).last().selectOption(t.type);
+  await page.getByLabel("Action Title", { exact: true }).last().pressSequentially(t.aName);
+  await page.getByLabel("Template Description", { exact: true }).last().pressSequentially(t.descr);
+  await page.getByLabel("Minimum Time in minutes", { exact: true }).last().pressSequentially(t.min);
+  await page.getByLabel("Maximum Time in minutes", { exact: true }).last().pressSequentially(t.max);
+  await page.getByLabel("Priority", { exact: true }).last().pressSequentially(t.pri);
+  await page.getByLabel("Expected Sample Mass", { exact: true }).last().pressSequentially(t.mass);
+  await page.getByLabel("Emoji Menu Toggle", { exact: true }).last().click();
+  await page.waitForTimeout(50);
+  await page.getByPlaceholder("Search", { exact: true }).last().pressSequentially(t.emoji);
+  await page.getByLabel(t.emoji, { exact: true }).last().click();
+  await page.getByLabel("Expand Button", { exact: true }).last().click();
+}
+
+async function editTemplate(page: Page, newT: TestingTemplate, tInd: number) {
+  await page.getByLabel("Template Name", { exact: true }).nth(tInd).fill("");
+  await page.getByLabel("Template Name", { exact: true }).nth(tInd).pressSequentially(newT.tName);
+  await page.waitForTimeout(50);
+  await page.getByLabel("Expand Button", { exact: true }).nth(tInd).click();
+  await page.waitForTimeout(100);
+  await page.getByLabel("dropdown", { exact: true }).last().selectOption(newT.type);
+  await page.getByLabel("Action Title", { exact: true }).last().fill("");
+  await page.getByLabel("Action Title", { exact: true }).last().pressSequentially(newT.aName);
+  await page.getByLabel("Template Description", { exact: true }).last().fill("");
+  await page
+    .getByLabel("Template Description", { exact: true })
+    .last()
+    .pressSequentially(newT.descr);
+  await page.getByLabel("Minimum Time in minutes", { exact: true }).last().fill("");
+  await page
+    .getByLabel("Minimum Time in minutes", { exact: true })
+    .last()
+    .pressSequentially(newT.min);
+  await page.getByLabel("Maximum Time in minutes", { exact: true }).last().fill("");
+  await page
+    .getByLabel("Maximum Time in minutes", { exact: true })
+    .last()
+    .pressSequentially(newT.max);
+  await page.getByLabel("Priority", { exact: true }).last().fill("");
+  await page.getByLabel("Priority", { exact: true }).last().pressSequentially(newT.pri);
+  await page.getByLabel("Expected Sample Mass", { exact: true }).last().fill("");
+  await page
+    .getByLabel("Expected Sample Mass", { exact: true })
+    .last()
+    .pressSequentially(newT.mass);
+  await page.getByLabel("Emoji Menu Toggle", { exact: true }).last().click();
+  await page.waitForTimeout(50);
+  await page.getByPlaceholder("Search", { exact: true }).last().pressSequentially(newT.emoji);
+  await page.getByLabel(newT.emoji, { exact: true }).last().click();
+  await page.getByLabel("Expand Button", { exact: true }).nth(tInd).click();
+}
+
+async function checkTemplateData(page: Page, t: TestingTemplate, tInd: number) {
+  await expect(page.getByLabel("Template Name", { exact: true }).nth(tInd)).toContainText(t.tName);
+  await page.getByLabel("Expand Button", { exact: true }).nth(tInd).click();
+  await expect(page.getByLabel("Action Template Type", { exact: true }).nth(tInd)).toContainText(
+    t.type
+  );
+  await expect(page.getByLabel("Action Title", { exact: true }).last()).toContainText(t.aName);
+  await expect(page.getByLabel("Template Description", { exact: true }).last()).toContainText(
+    t.descr
+  );
+  await expect(page.getByLabel("Minimum Time in minutes", { exact: true }).last()).toContainText(
+    t.min
+  );
+  await expect(page.getByLabel("Maximum Time in minutes", { exact: true }).last()).toContainText(
+    t.max
+  );
+  await expect(page.getByLabel("Priority", { exact: true }).last()).toContainText(t.pri);
+  await expect(page.getByLabel("Expected Sample Mass", { exact: true }).last()).toContainText(
+    t.mass
+  );
+  await expect(page.getByLabel("Emoji Display", { exact: true }).nth(tInd)).toContainText(t.emoji);
+  await page.getByLabel("Expand Button", { exact: true }).nth(tInd).click();
+}
 
 test("create edit cancel delete actionTemplates", async ({ page }) => {
   await page.goto("http://aegis-local.fit.nasa.gov:4000/mission/1");
@@ -71,73 +189,15 @@ test("create edit cancel delete actionTemplates", async ({ page }) => {
   const startingNumTemplates = await page.getByLabel("templateList-item", { exact: true }).count();
   await page.getByLabel("Edit", { exact: true }).click();
   await page.getByLabel("saveButton");
-  // template one
-  await page.getByLabel("addNewTemplateButton", { exact: true }).click();
-  await page.getByLabel("Template Name", { exact: true }).last().pressSequentially(t1.tName);
-  await page.getByLabel("Expand Button", { exact: true }).last().click();
-  await page.waitForTimeout(100);
-  await page.getByLabel("dropdown", { exact: true }).last().selectOption(t1.type);
-  await page.getByLabel("Action Title", { exact: true }).last().pressSequentially(t1.aName);
-  await page.getByLabel("Template Description", { exact: true }).last().pressSequentially(t1.descr);
-  await page
-    .getByLabel("Minimum Time in minutes", { exact: true })
-    .last()
-    .pressSequentially(t1.min);
-  await page
-    .getByLabel("Maximum Time in minutes", { exact: true })
-    .last()
-    .pressSequentially(t1.max);
-  await page.getByLabel("Priority", { exact: true }).last().pressSequentially(t1.pri);
-  await page.getByLabel("Expected Sample Mass", { exact: true }).last().pressSequentially(t1.mass);
-  await page.getByLabel("Emoji Menu Toggle", { exact: true }).last().click();
-  await page.getByLabel(t1.emoji, { exact: true }).last().click();
-  await page.getByLabel("Expand Button", { exact: true }).last().click();
 
-  // template two
-  await page.getByLabel("addNewTemplateButton", { exact: true }).click();
-  await page.getByLabel("Template Name", { exact: true }).last().pressSequentially(t2.tName);
-  await page.getByLabel("Expand Button", { exact: true }).last().click();
+  await createAndPopulateTemplate(page, t1);
   await page.waitForTimeout(100);
-  await page.getByLabel("dropdown", { exact: true }).last().selectOption(t2.type);
-  await page.getByLabel("Action Title", { exact: true }).last().pressSequentially(t2.aName);
-  await page.getByLabel("Template Description", { exact: true }).last().pressSequentially(t2.descr);
-  await page
-    .getByLabel("Minimum Time in minutes", { exact: true })
-    .last()
-    .pressSequentially(t2.min);
-  await page
-    .getByLabel("Maximum Time in minutes", { exact: true })
-    .last()
-    .pressSequentially(t2.max);
-  await page.getByLabel("Priority", { exact: true }).last().pressSequentially(t2.pri);
-  await page.getByLabel("Expected Sample Mass", { exact: true }).last().pressSequentially(t2.mass);
-  await page.getByLabel("Emoji Menu Toggle", { exact: true }).last().click();
-  await page.getByLabel(t2.emoji, { exact: true }).last().click();
-  await page.getByLabel("Expand Button", { exact: true }).last().click();
-  // template three
-  await page.getByLabel("addNewTemplateButton", { exact: true }).click();
-  await page.getByLabel("Template Name", { exact: true }).last().pressSequentially(td.tName);
-  // template four
-  await page.getByLabel("addNewTemplateButton", { exact: true }).click();
-  await page.getByLabel("Template Name", { exact: true }).last().pressSequentially(t3.tName);
-  await page.getByLabel("Expand Button", { exact: true }).last().click();
+  await createAndPopulateTemplate(page, t2);
   await page.waitForTimeout(100);
-  await page.getByLabel("dropdown", { exact: true }).last().selectOption(t3.type);
-  await page.getByLabel("Action Title", { exact: true }).last().pressSequentially(t3.aName);
-  await page.getByLabel("Template Description", { exact: true }).last().pressSequentially(t3.descr);
-  await page
-    .getByLabel("Minimum Time in minutes", { exact: true })
-    .last()
-    .pressSequentially(t3.min);
-  await page
-    .getByLabel("Maximum Time in minutes", { exact: true })
-    .last()
-    .pressSequentially(t3.max);
-  await page.getByLabel("Priority", { exact: true }).last().pressSequentially(t3.pri);
-  await page.getByLabel("Expected Sample Mass", { exact: true }).last().pressSequentially(t3.mass);
-  await page.getByLabel("Emoji Menu Toggle", { exact: true }).last().click();
-  await page.getByLabel(t3.emoji, { exact: true }).last().click();
-  await page.getByLabel("Expand Button", { exact: true }).last().click();
+  await createAndPopulateTemplate(page, td);
+  await page.waitForTimeout(100);
+  await createAndPopulateTemplate(page, t3);
+  await page.waitForTimeout(100);
 
   await expect(page.getByLabel("templateList-item", { exact: true })).toHaveCount(
     startingNumTemplates + 4
@@ -188,27 +248,40 @@ test("create edit cancel delete actionTemplates", async ({ page }) => {
 
   await expect(t1Ind !== -1 && t2Ind !== -1 && t3Ind !== -1).toEqual(true);
 
-  await expect(page.getByLabel("Template Name", { exact: true }).nth(t2Ind)).toContainText(
-    t2.tName
-  );
-  await page.getByLabel("Expand Button", { exact: true }).nth(t2Ind).click();
-  await expect(page.getByLabel("Action Template Type", { exact: true }).nth(t2Ind)).toContainText(
-    t2.type
-  );
-  await expect(page.getByLabel("Action Title", { exact: true }).last()).toContainText(t2.aName);
-  await expect(page.getByLabel("Template Description", { exact: true }).last()).toContainText(
-    t2.descr
-  );
-  await expect(page.getByLabel("Minimum Time in minutes", { exact: true }).last()).toContainText(
-    t2.min
-  );
-  await expect(page.getByLabel("Maximum Time in minutes", { exact: true }).last()).toContainText(
-    t2.max
-  );
-  await expect(page.getByLabel("Priority", { exact: true }).last()).toContainText(t2.pri);
-  await expect(page.getByLabel("Expected Sample Mass", { exact: true }).last()).toContainText(
-    t2.mass
-  );
-  await expect(page.getByLabel("Emoji Display", { exact: true }).nth(t2Ind)).toContainText("😎");
-  await page.getByLabel("Expand Button", { exact: true }).nth(t2Ind).click();
+  await checkTemplateData(page, t1, t1Ind);
+  await checkTemplateData(page, t2, t2Ind);
+  await checkTemplateData(page, t3, t3Ind);
+
+  // Edit t1 and t2, then save
+  await page.getByLabel("Edit", { exact: true }).click();
+  await page.getByLabel("saveButton");
+  await editTemplate(page, t1Alt, t1Ind);
+  await editTemplate(page, t2Alt, t2Ind);
+  await page.waitForTimeout(200);
+  await page.getByLabel("saveButton", { exact: true }).click();
+  await page.waitForTimeout(200);
+
+  t1Ind = -1;
+  t2Ind = -1;
+  t3Ind = -1;
+
+  for (let i = 0; i < startingNumTemplates + 3; i++) {
+    const name = await page.getByLabel("Template Name").nth(i).textContent();
+    const type = await page.getByLabel("Action Template Type").nth(i).textContent();
+    if (name === t1Alt.tName && type === t1Alt.type) {
+      t1Ind = i;
+    }
+    if (name === t2Alt.tName && type === t2Alt.type) {
+      t2Ind = i;
+    }
+    if (name === t3.tName && type === t3.type) {
+      t3Ind = i;
+    }
+  }
+
+  await expect(t1Ind !== -1 && t2Ind !== -1 && t3Ind !== -1).toEqual(true);
+
+  await checkTemplateData(page, t1Alt, t1Ind);
+  await checkTemplateData(page, t2Alt, t2Ind);
+  await checkTemplateData(page, t3, t3Ind);
 });
