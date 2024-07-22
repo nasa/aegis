@@ -127,7 +127,7 @@ async function createAndPopulateTemplate(page: Page, t: TestingTemplate) {
   await page.waitForLoadState();
   await page.getByPlaceholder("Search", { exact: true }).waitFor();
   await page.getByPlaceholder("Search", { exact: true }).pressSequentially(t.emoji);
-  await page.getByLabel(t.emoji, { exact: true }).click();
+  await page.getByLabel(t.emoji, { exact: true }).last().click();
   await page.getByLabel("Expand Button", { exact: true }).last().waitFor();
   await page.getByLabel("Expand Button", { exact: true }).last().click();
 }
