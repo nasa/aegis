@@ -34,6 +34,7 @@ export const ActionTemplateMenu: FunctionComponent<{
               dispatch(thunkDuplicateActionTemplate({ actionTemplateUuid: actionTemplate.uuid }));
               dialogRef.current?.close();
             }}
+            aria-label="Duplicate"
           >
             <div className={actionStyles.menuItemIcon}>
               <FontAwesomeIcon icon={faClone} />

@@ -25,7 +25,7 @@ const t1: TestingTemplate = {
 };
 
 const t1Alt: TestingTemplate = {
-  tName: "--TEST ACTION TEMPLATE ONE--",
+  tName: "--TEST ACTION TEMPLATE ONE ALT--",
   type: "sample",
   aName: "Action A",
   descr: "You can see this",
@@ -72,6 +72,30 @@ const t3: TestingTemplate = {
   emoji: "😎",
 };
 
+const t3Alt: TestingTemplate = {
+  tName: "--TEST ACTION TEMPLATE THREE ALT--",
+  type: "other",
+  aName: "Action C",
+  descr: "Can't be in duplicate!",
+  min: "8",
+  max: "9",
+  pri: "20",
+  mass: "301",
+  emoji: "🌎",
+};
+
+const t3Dup: TestingTemplate = {
+  tName: "--TEST ACTION TEMPLATE THREE-- (copy 1)",
+  type: "other",
+  aName: "Action 3",
+  descr: "You shouldn't see this :) (pt 3)",
+  min: "3",
+  max: "6",
+  pri: "30",
+  mass: "300",
+  emoji: "😎",
+};
+
 const td: TestingTemplate = {
   tName: "--DISPOSABLE ACTION TEMPLATE--",
   type: "sample",
@@ -92,12 +116,12 @@ async function createAndPopulateTemplate(page: Page, t: TestingTemplate) {
   await page.getByLabel("Expand Button", { exact: true }).last().click();
   await page.waitForTimeout(100);
   await page.getByLabel("dropdown", { exact: true }).last().selectOption(t.type);
-  await page.getByLabel("Action Title", { exact: true }).last().pressSequentially(t.aName);
-  await page.getByLabel("Template Description", { exact: true }).last().pressSequentially(t.descr);
-  await page.getByLabel("Minimum Time in minutes", { exact: true }).last().pressSequentially(t.min);
-  await page.getByLabel("Maximum Time in minutes", { exact: true }).last().pressSequentially(t.max);
-  await page.getByLabel("Priority", { exact: true }).last().pressSequentially(t.pri);
-  await page.getByLabel("Expected Sample Mass", { exact: true }).last().pressSequentially(t.mass);
+  await page.getByLabel("Action Title", { exact: true }).last().fill(t.aName);
+  await page.getByLabel("Template Description", { exact: true }).last().fill(t.descr);
+  await page.getByLabel("Minimum Time in minutes", { exact: true }).last().fill(t.min);
+  await page.getByLabel("Maximum Time in minutes", { exact: true }).last().fill(t.max);
+  await page.getByLabel("Priority", { exact: true }).last().fill(t.pri);
+  await page.getByLabel("Expected Sample Mass", { exact: true }).last().fill(t.mass);
   await page.getByLabel("Emoji Menu Toggle", { exact: true }).last().click();
   await page.waitForTimeout(50);
   await page.getByPlaceholder("Search", { exact: true }).last().pressSequentially(t.emoji);
@@ -112,30 +136,12 @@ async function editTemplate(page: Page, newT: TestingTemplate, tInd: number) {
   await page.getByLabel("Expand Button", { exact: true }).nth(tInd).click();
   await page.waitForTimeout(100);
   await page.getByLabel("dropdown", { exact: true }).last().selectOption(newT.type);
-  await page.getByLabel("Action Title", { exact: true }).last().fill("");
-  await page.getByLabel("Action Title", { exact: true }).last().pressSequentially(newT.aName);
-  await page.getByLabel("Template Description", { exact: true }).last().fill("");
-  await page
-    .getByLabel("Template Description", { exact: true })
-    .last()
-    .pressSequentially(newT.descr);
-  await page.getByLabel("Minimum Time in minutes", { exact: true }).last().fill("");
-  await page
-    .getByLabel("Minimum Time in minutes", { exact: true })
-    .last()
-    .pressSequentially(newT.min);
-  await page.getByLabel("Maximum Time in minutes", { exact: true }).last().fill("");
-  await page
-    .getByLabel("Maximum Time in minutes", { exact: true })
-    .last()
-    .pressSequentially(newT.max);
-  await page.getByLabel("Priority", { exact: true }).last().fill("");
-  await page.getByLabel("Priority", { exact: true }).last().pressSequentially(newT.pri);
-  await page.getByLabel("Expected Sample Mass", { exact: true }).last().fill("");
-  await page
-    .getByLabel("Expected Sample Mass", { exact: true })
-    .last()
-    .pressSequentially(newT.mass);
+  await page.getByLabel("Action Title", { exact: true }).last().fill(newT.aName);
+  await page.getByLabel("Template Description", { exact: true }).last().fill(newT.descr);
+  await page.getByLabel("Minimum Time in minutes", { exact: true }).last().fill(newT.min);
+  await page.getByLabel("Maximum Time in minutes", { exact: true }).last().fill(newT.max);
+  await page.getByLabel("Priority", { exact: true }).last().fill(newT.pri);
+  await page.getByLabel("Expected Sample Mass", { exact: true }).last().fill(newT.mass);
   await page.getByLabel("Emoji Menu Toggle", { exact: true }).last().click();
   await page.waitForTimeout(50);
   await page.getByPlaceholder("Search", { exact: true }).last().pressSequentially(newT.emoji);
@@ -227,7 +233,6 @@ test("create edit cancel delete actionTemplates", async ({ page }) => {
   );
 
   // Grab indicies and verify saved data is correct
-
   let t1Ind = -1;
   let t2Ind = -1;
   let t3Ind = -1;
@@ -284,4 +289,186 @@ test("create edit cancel delete actionTemplates", async ({ page }) => {
   await checkTemplateData(page, t1Alt, t1Ind);
   await checkTemplateData(page, t2Alt, t2Ind);
   await checkTemplateData(page, t3, t3Ind);
+
+  await expect(page.getByLabel("templateList-item", { exact: true })).toHaveCount(
+    startingNumTemplates + 3
+  );
+
+  // Duplicate t3, then delete t2
+  await page.getByLabel("Edit", { exact: true }).click();
+  await page.getByLabel("saveButton");
+  await page.getByLabel("Template Menu", { exact: true }).nth(t3Ind).click();
+  await page.getByLabel("Duplicate", { exact: true }).nth(t3Ind).click();
+
+  await page.getByLabel("Template Menu", { exact: true }).nth(t2Ind).click();
+  const dialogPromiseTwo = new Promise<void>((resolve) => {
+    page.once("dialog", async (dialog) => {
+      await dialog.accept();
+      resolve();
+    });
+  });
+  await page.getByLabel("Delete", { exact: true }).nth(t2Ind).click();
+  await dialogPromiseTwo;
+
+  await page.waitForTimeout(200);
+  await page.getByLabel("saveButton", { exact: true }).click();
+  await page.waitForTimeout(200);
+
+  t1Ind = -1;
+  t3Ind = -1;
+  let t3DupInd = -1;
+
+  for (let i = 0; i < startingNumTemplates + 3; i++) {
+    const name = await page.getByLabel("Template Name").nth(i).textContent();
+    const type = await page.getByLabel("Action Template Type").nth(i).textContent();
+    if (name === t1Alt.tName && type === t1Alt.type) {
+      t1Ind = i;
+    }
+    if (name === t3.tName && type === t3.type) {
+      t3Ind = i;
+    }
+    if (name === t3Dup.tName && type === t3Dup.type) {
+      t3DupInd = i;
+    }
+  }
+
+  await expect(t1Ind !== -1 && t3Ind !== -1 && t3DupInd !== -1).toEqual(true);
+
+  await checkTemplateData(page, t1Alt, t1Ind);
+  await checkTemplateData(page, t3, t3Ind);
+  await checkTemplateData(page, t3Dup, t3DupInd);
+
+  await expect(page.getByLabel("templateList-item", { exact: true })).toHaveCount(
+    startingNumTemplates + 3
+  );
+
+  // Edit original t3, verify the two are not linked (like ID being the same)
+  await page.getByLabel("Edit", { exact: true }).click();
+  await page.getByLabel("saveButton");
+  await editTemplate(page, t3Alt, t3Ind);
+  await page.waitForTimeout(200);
+  await page.getByLabel("saveButton", { exact: true }).click();
+  await page.waitForTimeout(200);
+
+  t1Ind = -1;
+  t3Ind = -1;
+  t3DupInd = -1;
+
+  for (let i = 0; i < startingNumTemplates + 3; i++) {
+    const name = await page.getByLabel("Template Name").nth(i).textContent();
+    const type = await page.getByLabel("Action Template Type").nth(i).textContent();
+    if (name === t1Alt.tName && type === t1Alt.type) {
+      t1Ind = i;
+    }
+    if (name === t3Alt.tName && type === t3Alt.type) {
+      t3Ind = i;
+    }
+    if (name === t3Dup.tName && type === t3Dup.type) {
+      t3DupInd = i;
+    }
+  }
+
+  await expect(t1Ind !== -1 && t3Ind !== -1 && t3DupInd !== -1).toEqual(true);
+  await checkTemplateData(page, t1Alt, t1Ind);
+  await checkTemplateData(page, t3Alt, t3Ind);
+  await checkTemplateData(page, t3Dup, t3DupInd);
+
+  // Delete original t3 and cancel
+  await page.getByLabel("Edit", { exact: true }).click();
+  await page.getByLabel("saveButton");
+  await page.getByLabel("Template Menu", { exact: true }).nth(t3Ind).click();
+  await page.getByLabel("Delete", { exact: true }).nth(t3Ind).click();
+  await dialogPromise;
+  await page.getByLabel("cancelButton", { exact: true }).click();
+
+  await checkTemplateData(page, t3Alt, t3Ind);
+  await expect(page.getByLabel("templateList-item", { exact: true })).toHaveCount(
+    startingNumTemplates + 3
+  );
+
+  // Delete original t3 and save, checking for any linkage between duplicate and original
+  await page.getByLabel("Edit", { exact: true }).click();
+  await page.getByLabel("saveButton");
+  await page.getByLabel("Template Menu", { exact: true }).nth(t3Ind).click();
+  const dialogPromiseThree = new Promise<void>((resolve) => {
+    page.once("dialog", async (dialog) => {
+      await dialog.accept();
+      resolve();
+    });
+  });
+  await page.getByLabel("Delete", { exact: true }).nth(t3Ind).click();
+  await dialogPromiseThree;
+  await page.waitForTimeout(200);
+  await page.getByLabel("saveButton", { exact: true }).click();
+  await page.waitForTimeout(200);
+
+  t1Ind = -1;
+  t3DupInd = -1;
+  for (let i = 0; i < startingNumTemplates + 2; i++) {
+    const name = await page.getByLabel("Template Name").nth(i).textContent();
+    const type = await page.getByLabel("Action Template Type").nth(i).textContent();
+    console.log(name);
+    console.log(type);
+    if (name === t1Alt.tName && type === t1Alt.type) {
+      t1Ind = i;
+    }
+    if (name === t3Dup.tName && type === t3Dup.type) {
+      t3DupInd = i;
+    }
+  }
+
+  await expect(t1Ind !== -1 && t3DupInd !== -1).toEqual(true);
+
+  await checkTemplateData(page, t3Dup, t3DupInd);
+
+  await expect(page.getByLabel("templateList-item", { exact: true })).toHaveCount(
+    startingNumTemplates + 2
+  );
+
+  // Test expand all and collapse all in viewing and edit mode
+  await page.getByLabel("Expand All Button", { exact: true }).click();
+  await expect(page.getByLabel("Template Description", { exact: true })).toHaveCount(
+    startingNumTemplates + 2
+  );
+  await page.getByLabel("Collapse All Button", { exact: true }).click();
+  await expect(page.getByLabel("Template Description", { exact: true })).toHaveCount(0);
+
+  await page.getByLabel("Edit", { exact: true }).click();
+  await page.getByLabel("saveButton");
+  await page.getByLabel("Expand All Button", { exact: true }).click();
+  await expect(page.getByLabel("Template Description", { exact: true })).toHaveCount(
+    startingNumTemplates + 2
+  );
+  await page.getByLabel("Collapse All Button", { exact: true }).click();
+  await expect(page.getByLabel("Template Description", { exact: true })).toHaveCount(0);
+
+  await page.getByLabel("cancelButton", { exact: true }).click();
+
+  // Tear down rest of action templates
+  await page.getByLabel("Edit", { exact: true }).click();
+  await page.getByLabel("saveButton");
+  await page.getByLabel("Template Menu", { exact: true }).nth(t1Ind).click();
+  const dialogPromiseFour = new Promise<void>((resolve) => {
+    page.once("dialog", async (dialog) => {
+      await dialog.accept();
+      resolve();
+    });
+  });
+  await page.getByLabel("Delete", { exact: true }).nth(t1Ind).click();
+  await dialogPromiseFour;
+  await page.getByLabel("Template Menu", { exact: true }).nth(t3DupInd).click();
+  const dialogPromiseFive = new Promise<void>((resolve) => {
+    page.once("dialog", async (dialog) => {
+      await dialog.accept();
+      resolve();
+    });
+  });
+  await page.getByLabel("Delete", { exact: true }).nth(t3DupInd).click();
+  await dialogPromiseFive;
+  await page.waitForTimeout(200);
+  await page.getByLabel("saveButton", { exact: true }).click();
+  await page.waitForTimeout(200);
+  await expect(page.getByLabel("templateList-item", { exact: true })).toHaveCount(
+    startingNumTemplates
+  );
 });
