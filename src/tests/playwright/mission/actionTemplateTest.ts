@@ -210,7 +210,7 @@ async function testActionTemplates(page: Page): Promise<string> {
   // add four new Action Templates, fill them with data, delete the disposable one, and save
   const startingNumTemplates = await page.getByLabel("templateList-item", { exact: true }).count();
   await page.getByLabel("Edit", { exact: true }).click();
-  await page.getByLabel("saveButton");
+  await expect(page.getByLabel("saveButton")).toBeAttached();
 
   await createAndPopulateTemplate(page, t1);
   await page.waitForTimeout(100);
@@ -348,7 +348,7 @@ async function testActionTemplates(page: Page): Promise<string> {
     }
   }
 
-  await expect(t1Ind !== -1 && t3Ind !== -1 && t3DupInd !== -1).toEqual(true);
+  expect(t1Ind !== -1 && t3Ind !== -1 && t3DupInd !== -1).toEqual(true);
 
   await checkTemplateData(page, t1Alt, t1Ind);
   await checkTemplateData(page, t3, t3Ind);
@@ -477,11 +477,9 @@ async function testActionTemplates(page: Page): Promise<string> {
       resolve();
     });
   });
-  await page.getByLabel("Delete", { exact: true }).nth(t3DupInd).click();
+  await page.getByLabel("Delete", { exact: true }).nth(t3DupInd).click({ delay: 5 });
   await dialogPromiseFive;
-  await page.waitForTimeout(200);
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(200);
   await expect(page.getByLabel("templateList-item", { exact: true })).toHaveCount(
     startingNumTemplates
   );
