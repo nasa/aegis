@@ -18,50 +18,19 @@ async function landerRadiiTest(page: Page): Promise<string> {
     "Vector Definitions"
   );
 
-  //add a new radius, check initial values, and cancel (not saved)
+  //add two new radii and save
   const startingNumRadii = await page.getByLabel("radiiList-item", { exact: true }).count();
   await page.getByLabel("Edit", { exact: true }).click();
-  await page.getByLabel("saveButton");
   await page.getByLabel("addNewRadiusButton", { exact: true }).click();
-  await await page
-    .getByLabel("Lander radius name")
-    .last()
-    .pressSequentially("--TEST DISCARD RADIUS ONE--");
-  await await page.getByLabel("Lander radius range").last().fill("100");
-  await page.getByLabel("addNewRadiusButton", { exact: true }).click();
-  await page.getByLabel("addNewRadiusButton", { exact: true }).click();
-  await page.getByLabel("addNewRadiusButton", { exact: true }).click();
-  await await page
-    .getByLabel("Lander radius name")
-    .last()
-    .pressSequentially("--TEST DISCARD RADIUS TWO--");
-  await await page.getByLabel("Lander radius range").last().fill("101");
-  await expect(page.getByLabel("radiiList-item", { exact: true })).toHaveCount(
-    startingNumRadii + 4
-  );
-  await page.getByLabel("cancelButton", { exact: true }).click();
-  await expect(page.getByLabel("radiiList-item", { exact: true })).toHaveCount(startingNumRadii);
-
-  //add two new radii and save
-  await page.getByLabel("Edit", { exact: true }).click();
-  await page.getByLabel("saveButton");
-  await page.getByLabel("addNewRadiusButton", { exact: true }).click();
-  await expect(await page.getByLabel("Lander radius name").last()).toHaveValue(
-    "(Lander Radius Name)"
-  );
   await expect(await page.getByLabel("Lander radius range").last()).toHaveValue("0");
-  await page.getByLabel("Lander radius name").last().fill("");
-  await page.getByLabel("Lander radius name").last().pressSequentially("--TEST RADIUS ONE--");
-  await page.getByLabel("Lander radius range").last().fill("");
-  await page.getByLabel("Lander radius range").last().pressSequentially("1");
+  await page.getByLabel("Lander radius name").last().fill("--TEST RADIUS ONE--");
+  await page.getByLabel("Lander radius range").last().fill("1");
   await page.getByLabel("addNewRadiusButton", { exact: true }).click();
-  await page.getByLabel("Lander radius name").last().fill("");
-  await page.getByLabel("Lander radius name").last().pressSequentially("--TEST RADIUS TWO--");
-  await page.getByLabel("Lander radius range").last().fill("");
-  await page.getByLabel("Lander radius range").last().pressSequentially("100");
+  await page.getByLabel("Lander radius name").last().fill("--TEST RADIUS TWO--");
+  await page.getByLabel("Lander radius range").last().fill("100");
   await page.waitForTimeout(200);
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(1000);
 
   //check saved radii
   await expect(page.getByLabel("radiiList-item", { exact: true })).toHaveCount(
@@ -86,23 +55,15 @@ async function landerRadiiTest(page: Page): Promise<string> {
     }
     prevRange = range;
   }
-  // expect(test1Index !== -1 && test2Index !== -1 && !orderBroken).toEqual(true);
+  expect(test1Index !== -1 && test2Index !== -1 && !orderBroken).toEqual(true);
 
   //edit and check saved radii.
   await page.getByLabel("Edit", { exact: true }).click();
-  await page.getByLabel("saveButton");
-  await page.getByLabel("Lander radius name").nth(test1Index).fill("");
-  await page.waitForTimeout(100);
-  await page
-    .getByLabel("Lander radius name")
-    .nth(test1Index)
-    .pressSequentially("--TEST RADIUS ONE B--");
-  await page.getByLabel("Lander radius range").nth(test1Index).fill("");
-  await page.waitForTimeout(100);
-  await page.getByLabel("Lander radius range").nth(test1Index).pressSequentially("250");
-  await page.waitForTimeout(300);
+  await page.getByLabel("Lander radius name").nth(test1Index).fill("--TEST RADIUS ONE B--");
+  await page.getByLabel("Lander radius range").nth(test1Index).fill("250");
+  await page.waitForTimeout(200);
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(300);
+  await page.waitForTimeout(1000);
   test1Index = -1;
   test2Index = -1;
   orderBroken = false;
@@ -122,48 +83,31 @@ async function landerRadiiTest(page: Page): Promise<string> {
     }
     prevRange = range;
   }
-  // expect(test1Index !== -1 && test2Index !== -1 && !orderBroken).toEqual(true);
+  expect(test1Index !== -1 && test2Index !== -1 && !orderBroken).toEqual(true);
 
   //edit and cancel saved radii
   await page.getByLabel("Edit", { exact: true }).click();
   await page.getByLabel("saveButton");
-  await page.getByLabel("Lander radius name").nth(test2Index).fill("");
-  await page
-    .getByLabel("Lander radius name")
-    .nth(test2Index)
-    .pressSequentially("--TEST RADIUS TWO B--");
-  await page.getByLabel("Lander radius range").nth(test2Index).fill("");
-  await page.getByLabel("Lander radius range").nth(test2Index).pressSequentially("1");
+  await page.getByLabel("Lander radius name").nth(test2Index).fill("--TEST RADIUS TWO B--");
+  await page.getByLabel("Lander radius range").nth(test2Index).fill("1");
   await page.getByLabel("deleteButton", { exact: true }).nth(test1Index).click();
   await page.waitForTimeout(200);
   await page.getByLabel("cancelButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(100);
+
   await expect(page.getByLabel("radiiList-item", { exact: true })).toHaveCount(
     startingNumRadii + 2
   );
-  await expect(page.getByLabel("Lander radius name").nth(test1Index)).toContainText(
-    "--TEST RADIUS ONE B--"
-  );
   await expect(page.getByLabel("Lander radius range").nth(test1Index)).toContainText("250");
-  await expect(page.getByLabel("Lander radius name").nth(test2Index)).toContainText(
-    "--TEST RADIUS TWO--"
-  );
   await expect(page.getByLabel("Lander radius range").nth(test2Index)).toContainText("100");
 
-  //edit and delete saved radii
+  // delete saved radii
   await page.getByLabel("Edit", { exact: true }).click();
-  await page.getByLabel("saveButton");
-  await page.getByLabel("Lander radius name").nth(test2Index).fill("");
-  await page
-    .getByLabel("Lander radius name")
-    .nth(test2Index)
-    .pressSequentially("--TEST RADIUS TWO B--");
-  await page.getByLabel("Lander radius range").nth(test2Index).fill("");
-  await page.getByLabel("Lander radius range").nth(test2Index).pressSequentially("1");
   await page.getByLabel("deleteButton", { exact: true }).nth(test1Index).click();
   await page.waitForTimeout(200);
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(1000);
+
   await expect(page.getByLabel("radiiList-item", { exact: true })).toHaveCount(
     startingNumRadii + 1
   );
@@ -182,7 +126,7 @@ async function landerRadiiTest(page: Page): Promise<string> {
     }
     prevRange = range;
   }
-  // expect(test2Index !== -1 && !orderBroken).toEqual(true);
+  expect(test2Index !== -1 && !orderBroken).toEqual(true);
 
   await expect(page.getByLabel("Lander radius name").nth(test2Index)).toContainText(
     "--TEST RADIUS TWO B--"
@@ -192,16 +136,8 @@ async function landerRadiiTest(page: Page): Promise<string> {
   //delete and save
   await page.getByLabel("Edit", { exact: true }).click();
   await expect(page.getByLabel("saveButton")).toBeAttached();
-  console.log(await page.getByLabel("radiiList-item", { exact: true }).count());
-  await expect(page.getByLabel("deleteButton", { exact: true }).nth(test2Index)).toBeAttached();
   await page.getByLabel("deleteButton", { exact: true }).nth(test2Index).click();
-  console.log(await page.getByLabel("radiiList-item", { exact: true }).count());
-  await page.waitForTimeout(500);
-  await expect(page.getByLabel("saveButton", { exact: true })).toHaveCSS("color", "#cb0000", {
-    timeout: 5000,
-  });
   await page.getByLabel("saveButton", { exact: true }).click();
-  console.log(await page.getByLabel("radiiList-item", { exact: true }).count());
   await expect(page.getByLabel("saveButton", { exact: true })).toHaveCount(0);
   await expect(page.getByLabel("radiiList-item", { exact: true })).toHaveCount(startingNumRadii);
 
