@@ -1,6 +1,6 @@
 import { test } from "@playwright/test";
 import actionTemplateTest from "./mission/actionTemplateTest";
-import landerRadiiTest from "./mission/landerRadiiTest";
+import { landerRadiiTest } from "./mission/landerRadiiTest";
 
 test("create edit cancel delete radii", async ({ page }) => {
   await landerRadiiTest(page);
