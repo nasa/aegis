@@ -170,6 +170,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 onChange={(value) => {
                   dispatch(upsertMissionByField("description", value));
                 }}
+                ariaLabel="missionDescription"
               />
             </div>
           </div>
@@ -390,7 +391,11 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 className={paneStyles.panelSectionInner2ColumnRight}
                 style={{ marginLeft: "40px" }}
               >
-                <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+                <div
+                  className={paneStyles.panelSectionTitle}
+                  style={{ marginBottom: "8px" }}
+                  aria-label={mission.earthAsMoon ? "moonHeading" : "earthHeading"}
+                >
                   <SubpanelHeading icon={mission.earthAsMoon ? faMoon : faEarthAmerica}>
                     {mission.earthAsMoon ? "Moon" : "Earth"} Direction
                   </SubpanelHeading>
@@ -429,6 +434,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                   if (mission.earthAsMoon)
                                     dispatch(upsertMission({ ...mission, earthAsMoon: false }));
                                 }}
+                                aria-label="earthDirectionButton"
                               >
                                 Earth
                               </div>
@@ -440,6 +446,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                   if (!mission.earthAsMoon)
                                     dispatch(upsertMission({ ...mission, earthAsMoon: true }));
                                 }}
+                                aria-label="moonDirectionButton"
                               >
                                 Moon
                               </div>

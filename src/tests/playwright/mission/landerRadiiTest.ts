@@ -32,7 +32,7 @@ export async function landerRadiiTest(page: Page): Promise<string> {
   await page.getByLabel("Lander radius range").last().fill("100");
   await page.waitForTimeout(200);
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.getByLabel("Edit", { exact: true }).waitFor();
 
   //check saved radii
   await expect(page.getByLabel("radiiList-item", { exact: true })).toHaveCount(
@@ -67,7 +67,7 @@ export async function landerRadiiTest(page: Page): Promise<string> {
   await page.getByLabel("Lander radius range").nth(test1Index).fill("250");
   await page.waitForTimeout(200);
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.getByLabel("Edit", { exact: true }).waitFor();
   test1Index = -1;
   test2Index = -1;
   orderBroken = false;
@@ -99,7 +99,7 @@ export async function landerRadiiTest(page: Page): Promise<string> {
   await page.getByLabel("deleteButton", { exact: true }).nth(test1Index).click();
   await page.waitForTimeout(200);
   await page.getByLabel("cancelButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.getByLabel("Edit", { exact: true }).waitFor();
 
   await expect(page.getByLabel("radiiList-item", { exact: true })).toHaveCount(
     startingNumRadii + 2
@@ -114,7 +114,7 @@ export async function landerRadiiTest(page: Page): Promise<string> {
   await page.getByLabel("deleteButton", { exact: true }).nth(test1Index).click();
   await page.waitForTimeout(200);
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.getByLabel("Edit", { exact: true }).waitFor();
 
   await expect(page.getByLabel("radiiList-item", { exact: true })).toHaveCount(
     startingNumRadii + 1
@@ -148,7 +148,7 @@ export async function landerRadiiTest(page: Page): Promise<string> {
   await page.getByLabel("deleteButton", { exact: true }).nth(test2Index).click();
   await page.waitForTimeout(200);
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.getByLabel("Edit", { exact: true }).waitFor();
   await expect(page.getByLabel("saveButton", { exact: true })).toHaveCount(0);
   await expect(page.getByLabel("radiiList-item", { exact: true })).toHaveCount(startingNumRadii);
 

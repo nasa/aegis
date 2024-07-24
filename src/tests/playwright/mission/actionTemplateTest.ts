@@ -108,6 +108,7 @@ async function testActionTemplates(page: Page): Promise<string> {
   // add two new Action Templates and save
   const startingNumTemplates = await page.getByLabel("templateList-item", { exact: true }).count();
   await page.getByLabel("Edit", { exact: true }).click();
+  await page.mouse.move(0, -100);
   await page.waitForTimeout(1000);
   await expect(page.getByLabel("saveButton")).toBeAttached();
 
@@ -120,7 +121,7 @@ async function testActionTemplates(page: Page): Promise<string> {
 
   await page.waitForTimeout(200);
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.getByLabel("Edit", { exact: true }).waitFor();
   await expect(page.getByLabel("templateList-item", { exact: true })).toHaveCount(
     startingNumTemplates + 2
   );
@@ -153,7 +154,7 @@ async function testActionTemplates(page: Page): Promise<string> {
   await editTemplate(page, t2Alt, t2Ind);
   await page.waitForTimeout(200);
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.getByLabel("Edit", { exact: true }).waitFor();
 
   t1Ind = -1;
   t2Ind = -1;
@@ -183,7 +184,7 @@ async function testActionTemplates(page: Page): Promise<string> {
   await page.getByLabel("Duplicate", { exact: true }).nth(t1Ind).click();
   await page.waitForTimeout(200);
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.getByLabel("Edit", { exact: true }).waitFor();
 
   t1Ind = -1;
   t2Ind = -1;
@@ -226,7 +227,7 @@ async function testActionTemplates(page: Page): Promise<string> {
   await dialogPromiseToCancel;
   await page.waitForTimeout(200);
   await page.getByLabel("cancelButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.getByLabel("Edit", { exact: true }).waitFor();
 
   t1Ind = -1;
   t2Ind = -1;
@@ -268,7 +269,7 @@ async function testActionTemplates(page: Page): Promise<string> {
   await dialogPromiseToSave;
   await page.waitForTimeout(200);
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.getByLabel("Edit", { exact: true }).waitFor();
 
   t2Ind = -1;
   t1DupInd = -1;
@@ -332,7 +333,7 @@ async function testActionTemplates(page: Page): Promise<string> {
   await dialogPromiseTeardownTwo;
   await page.waitForTimeout(200);
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.getByLabel("Edit", { exact: true }).waitFor();
   await expect(page.getByLabel("templateList-item", { exact: true })).toHaveCount(
     startingNumTemplates
   );
