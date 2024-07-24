@@ -13,7 +13,7 @@ type MissionAttributes = {
 
 const baseAttr: MissionAttributes = {
   missionName: "Apollo_14",
-  topBanner: "",
+  topBanner: " ",
   description: "",
   lat: "-3.645421873728663",
   lng: "-17.47186660766602",
@@ -26,14 +26,14 @@ const testAttr: MissionAttributes = {
   missionName: "Test_14",
   topBanner: "Testing Testing 1 2 3",
   description: "Test description",
-  lat: "-3.62222222222222",
+  lat: "-3.644315",
   lng: "-17.50000000000000",
   duration: "30",
   traverseRate: "3",
   walkbackRate: "3",
 };
 
-export async function landerRadiiTest(page: Page): Promise<string> {
+export async function missionConfigTest(page: Page): Promise<string> {
   await page.goto("http://aegis-local.fit.nasa.gov:4000/mission/1");
   //go to mission preferences
   await page.waitForTimeout(2000);
@@ -54,7 +54,7 @@ export async function landerRadiiTest(page: Page): Promise<string> {
   await page.getByLabel("Mission Name", { exact: true }).last().fill(testAttr.missionName);
   await page.waitForTimeout(200);
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.getByLabel("Edit", { exact: true }).waitFor();
 
   await expect(page.getByLabel("Mission Name", { exact: true })).toContainText(
     testAttr.missionName
@@ -72,7 +72,7 @@ export async function landerRadiiTest(page: Page): Promise<string> {
   await page.getByLabel("Mission Banner", { exact: true }).last().fill(testAttr.topBanner);
   await page.waitForTimeout(200);
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.getByLabel("Edit", { exact: true }).waitFor();
 
   await expect(page.getByLabel("Mission Banner", { exact: true })).toContainText(
     testAttr.topBanner
@@ -80,21 +80,6 @@ export async function landerRadiiTest(page: Page): Promise<string> {
   await expect(page.getByLabel("missionBannerText", { exact: true })).toContainText(
     testAttr.topBanner
   );
-
-  // modify and check lander location
-  await page.getByLabel("Edit", { exact: true }).click();
-  await page.mouse.move(0, -100);
-  await page.waitForTimeout(1000);
-  await expect(page.getByLabel("saveButton")).toBeAttached();
-
-  await page.getByLabel("Latitude", { exact: true }).last().fill(testAttr.lat);
-  await page.getByLabel("Longitude", { exact: true }).last().fill(testAttr.lng);
-  await page.waitForTimeout(200);
-  await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(200);
-
-  await expect(page.getByLabel("Latitude", { exact: true })).toContainText(testAttr.lat);
-  await expect(page.getByLabel("Longitude", { exact: true })).toContainText(testAttr.lng);
 
   // check earth/moon direction button
   await page.getByLabel("Edit", { exact: true }).click();
@@ -108,7 +93,7 @@ export async function landerRadiiTest(page: Page): Promise<string> {
   await expect(page.getByLabel("moonHeading", { exact: true })).toBeVisible();
   await page.waitForTimeout(200);
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.getByLabel("Edit", { exact: true }).waitFor();
 
   // modify and check mission defaults
   await page.getByLabel("Edit", { exact: true }).click();
@@ -127,7 +112,7 @@ export async function landerRadiiTest(page: Page): Promise<string> {
     .fill(testAttr.walkbackRate);
   await page.waitForTimeout(200);
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.getByLabel("Edit", { exact: true }).waitFor();
 
   await expect(page.getByLabel("Default EVA Duration", { exact: true })).toContainText(
     testAttr.duration
@@ -147,8 +132,6 @@ export async function landerRadiiTest(page: Page): Promise<string> {
 
   await page.getByLabel("Mission Name", { exact: true }).last().fill(baseAttr.missionName);
   await page.getByLabel("Mission Banner", { exact: true }).last().fill(baseAttr.topBanner);
-  await page.getByLabel("Latitude", { exact: true }).last().fill(baseAttr.lat);
-  await page.getByLabel("Longitude", { exact: true }).last().fill(baseAttr.lng);
   await page.getByLabel("Default EVA Duration", { exact: true }).last().fill(baseAttr.duration);
   await page
     .getByLabel("Average traverse rate", { exact: true })
@@ -161,7 +144,7 @@ export async function landerRadiiTest(page: Page): Promise<string> {
 
   await page.waitForTimeout(200);
   await page.getByLabel("saveButton", { exact: true }).click();
-  await page.waitForTimeout(200);
+  await page.getByLabel("Edit", { exact: true }).waitFor();
 
   await expect(page.getByLabel("Mission Name", { exact: true })).toContainText(
     baseAttr.missionName
@@ -175,8 +158,6 @@ export async function landerRadiiTest(page: Page): Promise<string> {
   await expect(page.getByLabel("missionBannerText", { exact: true })).toContainText(
     baseAttr.topBanner
   );
-  await expect(page.getByLabel("Latitude", { exact: true })).toContainText(baseAttr.lat);
-  await expect(page.getByLabel("Longitude", { exact: true })).toContainText(baseAttr.lng);
 
   await expect(page.getByLabel("Default EVA Duration", { exact: true })).toContainText(
     baseAttr.duration

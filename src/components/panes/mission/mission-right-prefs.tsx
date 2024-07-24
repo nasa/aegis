@@ -253,7 +253,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             editing={editMode}
                             fieldProps={{
                               name: "lat",
-                              ariaLabel: "Latitude",
+                              ariaLabel: "LatitudePref",
                               style: { width: "150px" },
                               validators: [validators.mustBeNumber, validators.required],
                             }}
@@ -290,7 +290,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             editing={editMode}
                             fieldProps={{
                               name: "Lng",
-                              ariaLabel: "Longitude",
+                              ariaLabel: "LongitudePref",
                               style: { width: "150px" },
                               validators: [validators.mustBeNumber, validators.required],
                             }}
