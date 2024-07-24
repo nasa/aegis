@@ -55,7 +55,11 @@ const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                 </li>
 
                 {mission?.equipmentItems?.map((item, index) => (
-                  <li key={item.uuid} className={styles.propertyListItem}>
+                  <li
+                    key={item.uuid}
+                    className={styles.propertyListItem}
+                    aria-label={"equipmentList-item"}
+                  >
                     <EquipmentItem
                       key={item.uuid}
                       item={item}
