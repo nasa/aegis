@@ -42,7 +42,7 @@ export async function missionEquipmentTest(page: Page): Promise<string> {
     "Mission Preferences"
   );
 
-  //go to radii list
+  //go to equipment list
   await page.getByLabel("equipment_panel", { exact: true }).click();
   await expect(page.getByLabel("rightBodyTitle", { exact: true })).toContainText(
     "Mission Equipment"

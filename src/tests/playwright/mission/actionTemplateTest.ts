@@ -87,7 +87,7 @@ async function checkTemplateData(page: Page, t: TestingTemplate, tInd: number) {
   await expect(page.getByLabel("Template Name", { exact: true }).nth(tInd)).toContainText(t.tName);
 }
 
-async function testActionTemplates(page: Page): Promise<string> {
+export async function actionTemplatesTest(page: Page): Promise<string> {
   await page.goto("http://aegis-local.fit.nasa.gov:4000/mission/1");
   // go to mission section
   await page.waitForTimeout(2000);
@@ -340,5 +340,3 @@ async function testActionTemplates(page: Page): Promise<string> {
 
   return "success";
 }
-
-export default testActionTemplates;
