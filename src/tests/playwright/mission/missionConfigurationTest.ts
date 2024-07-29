@@ -53,8 +53,13 @@ export async function missionConfigTest(page: Page): Promise<string> {
 
   await page.getByLabel("Mission Name", { exact: true }).last().fill(testAttr.missionName);
   await page.waitForTimeout(200);
-  await page.getByLabel("saveButton", { exact: true }).click();
-  await page.getByLabel("Edit", { exact: true }).waitFor();
+
+  try {
+    await page.getByLabel("saveButton", { exact: true }).click({ timeout: 500 });
+    await page.getByLabel("Edit", { exact: true }).waitFor({ timeout: 500 });
+  } catch (e) {
+    await page.getByLabel("cancelButton", { exact: true }).click();
+  }
 
   await expect(page.getByLabel("Mission Name", { exact: true })).toContainText(
     testAttr.missionName

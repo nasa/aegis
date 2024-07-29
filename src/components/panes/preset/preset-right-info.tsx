@@ -69,6 +69,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     }}
                     data-tooltip-id="aegis-tooltip"
                     data-tooltip-html="Show in the top list of primary presets for this mission"
+                    aria-label="listAsPrimary"
                   >
                     Primary
                   </div>
@@ -84,6 +85,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     }}
                     data-tooltip-id="aegis-tooltip"
                     data-tooltip-html="Show in the bottom list of secondary presets for this mission"
+                    aria-label="listAsSecondary"
                   >
                     Secondary
                   </div>
@@ -140,6 +142,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               onChange={(value) => {
                 dispatch(upsertPresetByField(selectedPresetUuid, "description", value));
               }}
+              ariaLabel="description"
             />
           </div>
         </div>

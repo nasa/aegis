@@ -50,7 +50,7 @@ const EvaRexLeft: FunctionComponent = () => {
           ) : (
             <>
               {_.sortBy(rexesSorted, [(rex) => rex.name.toLowerCase()]).map((rex) => (
-                <div className={styles.panelContainer} key={rex.uuid}>
+                <div className={styles.panelContainer} key={rex.uuid} aria-label="rex-item">
                   <EvaRexItem rexUuid={rex.uuid} key={rex.uuid} />
                 </div>
               ))}
@@ -147,7 +147,10 @@ const EvaRexItem: FunctionComponent<{ rexUuid: string }> = ({ rexUuid }) => {
   }
   return (
     <>
-      <div className={styles.rexContainer}>
+      <div
+        className={styles.rexContainer}
+        aria-label={rex.uuid === selectedRexUuid ? "selectedRex" : ""}
+      >
         <div className={styles.nameitem} key={rex.uuid}>
           {!rexFromDb?.isRunning && (
             <div
@@ -193,7 +196,9 @@ const EvaRexItem: FunctionComponent<{ rexUuid: string }> = ({ rexUuid }) => {
               dispatch(setSelectedStationUuid(null));
             }}
           >
-            <div className={styles.nameText}>{rex.name}</div>
+            <div className={styles.nameText} aria-label="leftRexName">
+              {rex.name}
+            </div>
             <ModifiedIndicator obj1={[rex]} obj2={[rexFromDb]} />
 
             <div className={styles.nameItemRightSpacer} />
