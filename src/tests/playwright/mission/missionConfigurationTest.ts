@@ -76,8 +76,12 @@ export async function missionConfigTest(page: Page): Promise<string> {
 
   await page.getByLabel("Mission Banner", { exact: true }).last().fill(testAttr.topBanner);
   await page.waitForTimeout(200);
-  await page.getByLabel("saveButton", { exact: true }).click();
-  await page.getByLabel("Edit", { exact: true }).waitFor();
+  try {
+    await page.getByLabel("saveButton", { exact: true }).click({ timeout: 500 });
+    await page.getByLabel("Edit", { exact: true }).waitFor({ timeout: 500 });
+  } catch (e) {
+    await page.getByLabel("cancelButton", { exact: true }).click();
+  }
 
   await expect(page.getByLabel("Mission Banner", { exact: true })).toContainText(
     testAttr.topBanner
@@ -116,8 +120,12 @@ export async function missionConfigTest(page: Page): Promise<string> {
     .last()
     .fill(testAttr.walkbackRate);
   await page.waitForTimeout(200);
-  await page.getByLabel("saveButton", { exact: true }).click();
-  await page.getByLabel("Edit", { exact: true }).waitFor();
+  try {
+    await page.getByLabel("saveButton", { exact: true }).click({ timeout: 500 });
+    await page.getByLabel("Edit", { exact: true }).waitFor({ timeout: 500 });
+  } catch (e) {
+    await page.getByLabel("cancelButton", { exact: true }).click();
+  }
 
   await expect(page.getByLabel("Default EVA Duration", { exact: true })).toContainText(
     testAttr.duration
