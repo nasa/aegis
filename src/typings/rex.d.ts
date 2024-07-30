@@ -3,6 +3,7 @@ type RexStatus = "pending" | "in-progress" | "complete" | "skipped";
 type Rex = {
   missionId: number;
   uuid: string;
+  ownerId: number;
   name: string;
   description: string;
   petStartStopTimestamp: string; // the timestamp the play/pause button was clicked
@@ -19,7 +20,8 @@ type Rex = {
   updatedAt?: string;
 };
 
-type Rex_db_type = Omit<Rex, "missionId" | "createdAt" | "updatedAt"> & {
+type Rex_db_type = Omit<Rex, "ownerId" | "missionId" | "createdAt" | "updatedAt"> & {
+  owner: User_db_type;
   mission: Mission_db_type;
   createdAt?: Date;
   updatedAt?: Date;
