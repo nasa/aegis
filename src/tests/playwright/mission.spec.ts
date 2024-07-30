@@ -10,10 +10,6 @@ test("edit mission preferences", async ({ page }) => {
   await missionConfigTest(page);
 });
 
-test("create edit cancel delete preset", async ({ page }) => {
-  await presetTest(page);
-});
-
 test("create edit cancel delete radii", async ({ page }) => {
   await landerRadiiTest(page);
 });
@@ -28,4 +24,8 @@ test("create edit cancel delete equipment", async ({ page }) => {
 
 test("create edit cancel delete geo unit", async ({ page }) => {
   await geoUnitsTest(page);
+});
+
+test("create edit cancel delete preset", async ({ page }) => {
+  await presetTest(page);
 });
