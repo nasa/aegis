@@ -52,14 +52,10 @@ export async function missionConfigTest(page: Page): Promise<string> {
   await expect(page.getByLabel("saveButton")).toBeAttached();
 
   await page.getByLabel("Mission Name", { exact: true }).last().fill(testAttr.missionName);
-  await page.waitForTimeout(200);
 
-  try {
-    await page.getByLabel("saveButton", { exact: true }).click({ timeout: 500 });
-    await page.getByLabel("Edit", { exact: true }).waitFor({ timeout: 500 });
-  } catch (e) {
-    await page.getByLabel("cancelButton", { exact: true }).click();
-  }
+  await page.waitForTimeout(200);
+  await page.getByLabel("saveButton", { exact: true }).click();
+  await page.getByLabel("Edit", { exact: true }).waitFor();
 
   await expect(page.getByLabel("Mission Name", { exact: true })).toContainText(
     testAttr.missionName
@@ -76,12 +72,8 @@ export async function missionConfigTest(page: Page): Promise<string> {
 
   await page.getByLabel("Mission Banner", { exact: true }).last().fill(testAttr.topBanner);
   await page.waitForTimeout(200);
-  try {
-    await page.getByLabel("saveButton", { exact: true }).click({ timeout: 500 });
-    await page.getByLabel("Edit", { exact: true }).waitFor({ timeout: 500 });
-  } catch (e) {
-    await page.getByLabel("cancelButton", { exact: true }).click();
-  }
+  await page.getByLabel("saveButton", { exact: true }).click();
+  await page.getByLabel("Edit", { exact: true }).last().waitFor();
 
   await expect(page.getByLabel("Mission Banner", { exact: true })).toContainText(
     testAttr.topBanner
@@ -101,13 +93,14 @@ export async function missionConfigTest(page: Page): Promise<string> {
   await page.getByLabel("moonDirectionButton", { exact: true }).click();
   await expect(page.getByLabel("moonHeading", { exact: true })).toBeVisible();
   await page.waitForTimeout(200);
-  await page.getByLabel("saveButton", { exact: true }).click();
-  await page.getByLabel("Edit", { exact: true }).waitFor();
+  await page.getByLabel("cancelButton", { exact: true }).click();
+  await page.getByLabel("Edit", { exact: true }).last().waitFor();
 
   // modify and check mission defaults
   await page.getByLabel("Edit", { exact: true }).click();
   await page.mouse.move(0, -100);
   await page.waitForTimeout(1000);
+
   await expect(page.getByLabel("saveButton")).toBeAttached();
 
   await page.getByLabel("Default EVA Duration", { exact: true }).last().fill(testAttr.duration);
@@ -120,12 +113,8 @@ export async function missionConfigTest(page: Page): Promise<string> {
     .last()
     .fill(testAttr.walkbackRate);
   await page.waitForTimeout(200);
-  try {
-    await page.getByLabel("saveButton", { exact: true }).click({ timeout: 500 });
-    await page.getByLabel("Edit", { exact: true }).waitFor({ timeout: 500 });
-  } catch (e) {
-    await page.getByLabel("cancelButton", { exact: true }).click();
-  }
+  await page.getByLabel("saveButton", { exact: true }).click();
+  await page.getByLabel("Edit", { exact: true }).last().waitFor();
 
   await expect(page.getByLabel("Default EVA Duration", { exact: true })).toContainText(
     testAttr.duration

@@ -1,6 +1,6 @@
-import { test, expect } from "@playwright/test";
+import { expect, Page } from "@playwright/test";
 
-test.skip("create cancel edit duplicate delete preset", async ({ page }) => {
+export async function presetTest(page: Page): Promise<string> {
   await page.goto("http://aegis-local.fit.nasa.gov:4000/mission/1");
   //go to preset section
   await page.waitForTimeout(2000);
@@ -103,4 +103,6 @@ test.skip("create cancel edit duplicate delete preset", async ({ page }) => {
   await expect(page.getByLabel("mapPreset-secondary", { exact: true })).toHaveCount(
     poiCounts[1] + 1
   );
-});
+
+  return "success";
+}
