@@ -60,8 +60,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    const rexesToUpsert = rexes.map((r) => {
+      if (!r.ownerId) {
+        return { ...r, ownerId: req.session.user.id };
+      } else {
+        return r;
+      }
+    });
     //perform the upsert
-    const upsertResponse: Rex[] = await upsertRexes(rexes);
+    const upsertResponse: Rex[] = await upsertRexes(rexesToUpsert);
 
     //check response
     if (upsertResponse.length === 0) {

@@ -64,6 +64,7 @@ export async function getHomepageMissionItems(
       ? {
           missionId: rexDb.mission.id,
           uuid: rexDb.uuid,
+          ownerId: rexDb.owner.id,
           name: rexDb.name,
           description: rexDb.description,
           petStartStopTimestamp: rexDb.petStartStopTimestamp,

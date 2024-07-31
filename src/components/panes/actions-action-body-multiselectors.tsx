@@ -321,6 +321,7 @@ export const ExpandCollapseActionsButtons: FunctionComponent<{ actionUuids: stri
           dispatch(expandActions(actionUuids));
         }}
         toolTip="Expand all actions"
+        ariaLabel="Expand All Button"
         style={{ width: "30px", fontSize: "0.8em", paddingLeft: "8px" }}
       />
       <Button
@@ -329,6 +330,7 @@ export const ExpandCollapseActionsButtons: FunctionComponent<{ actionUuids: stri
           dispatch(collapseActions(actionUuids));
         }}
         toolTip="Collapse all actions"
+        ariaLabel="Collapse All Button"
         style={{ width: "30px", fontSize: "0.8em", paddingLeft: "8px" }}
       />
     </div>

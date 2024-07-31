@@ -134,6 +134,7 @@ const MissionPrefsRight: FunctionComponent = () => {
                 icon={faFloppyDisk}
                 toolTip={`Save Mission${modified ? "" : " (nothing to save)"}`}
                 enabled={modified}
+                ariaLabel="saveButton"
                 style={{
                   width: "30px",
                   backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
@@ -148,6 +149,7 @@ const MissionPrefsRight: FunctionComponent = () => {
                 }}
                 icon={faBan}
                 toolTip="Cancel Edit"
+                ariaLabel="cancelButton"
                 style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
               />
             </>

@@ -88,8 +88,11 @@
 }
 
 .propertyRowTrash {
-  flex: 0 0 20px;
   cursor: pointer;
+}
+
+.propertyRowTrashContainer {
+  flex: 0 0 20px;
 
   display: flex;
   flex-direction: column;

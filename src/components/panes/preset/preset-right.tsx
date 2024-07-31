@@ -114,6 +114,7 @@ const PresetEditorRight: FunctionComponent = () => {
                 }}
                 toolTip="Delete Preset"
                 style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                ariaLabel="deleteButton"
               />
             )}
             {!presetsEditing.includes(selectedPresetUuid) && editPerms && (
@@ -126,6 +127,7 @@ const PresetEditorRight: FunctionComponent = () => {
                 toolTip="Edit Preset"
                 style={{ width: "60px", fontSize: "0.9em" }}
                 labelStyle={{ marginTop: "2px" }}
+                ariaLabel="Edit"
               />
             )}
 
@@ -147,6 +149,7 @@ const PresetEditorRight: FunctionComponent = () => {
                     fontSize: "0.9em",
                     paddingLeft: "10px",
                   }}
+                  ariaLabel="saveButton"
                 />
                 <Button
                   onClick={() => {
@@ -155,6 +158,7 @@ const PresetEditorRight: FunctionComponent = () => {
                   icon={faBan}
                   toolTip="Cancel Edit"
                   style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                  ariaLabel="cancelButton"
                 />
               </>
             )}

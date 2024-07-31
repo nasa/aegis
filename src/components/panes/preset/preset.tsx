@@ -34,14 +34,22 @@ const PresetEditorLeft: FunctionComponent = () => {
       <div className={paneStyles.panelContainer}>
         <div className={paneStyles.panelSection}>
           {missionPresets ? (
-            <PresetList presets={missionPresets} selectedPresetUuid={selectedPresetUuid} />
+            <PresetList
+              presets={missionPresets}
+              selectedPresetUuid={selectedPresetUuid}
+              isPrimary={true}
+            />
           ) : (
             <div>No Mission Presets</div>
           )}
         </div>
         <div className={paneStyles.panelSection}>
           {userPresets ? (
-            <PresetList presets={userPresets} selectedPresetUuid={selectedPresetUuid} />
+            <PresetList
+              presets={userPresets}
+              selectedPresetUuid={selectedPresetUuid}
+              isPrimary={false}
+            />
           ) : (
             <div>No User Presets</div>
           )}
@@ -77,7 +85,8 @@ const PresetEditorLeft: FunctionComponent = () => {
 const PresetList: FunctionComponent<{
   presets: Preset[];
   selectedPresetUuid: string;
-}> = ({ presets, selectedPresetUuid }) => {
+  isPrimary: boolean;
+}> = ({ presets, selectedPresetUuid, isPrimary }) => {
   const dispatch = useAppDispatch();
   const presetsFromDb = useAppSelector((state) => state.preset.presetsFromDb, deepEqual);
   const selectedRightNavItem = useAppSelector(
@@ -101,8 +110,10 @@ const PresetList: FunctionComponent<{
     <div className={styles.layerGroup}>
       {presets.map((currentPreset, index) => {
         let isSelectedOrHoveredStyle = null;
+        let isSelectedLabel = "";
         if (currentPreset.uuid === selectedPresetUuid) {
           isSelectedOrHoveredStyle = styles.presetItemSelected;
+          isSelectedLabel = "selectedPreset";
         } else if (currentPreset.uuid === presetHoverUuid) {
           isSelectedOrHoveredStyle = styles.presetItemHovered;
         }
@@ -118,13 +129,15 @@ const PresetList: FunctionComponent<{
             onMouseLeave={() => {
               setPresetHoverUuid(null);
             }}
+            aria-label={`mapPreset-${isPrimary ? "primary" : "secondary"}`}
           >
             <div
               className={styles.presetTitle}
               onClick={() => handleSelectPresetClick(currentPreset)}
+              aria-label={isSelectedLabel}
             >
-              {currentPreset.name}
-              <span className={styles.defaultText}>
+              <span aria-label="leftPresetName">{currentPreset.name}</span>
+              <span className={styles.defaultText} aria-label="leftPresetIsDefault">
                 {currentPreset.missionPresetDefault ? "(Default)" : ""}
               </span>
               <ModifiedIndicator obj1={[currentPreset]} obj2={[presetFromDb]} />

@@ -120,6 +120,7 @@ const RexRightRex: FunctionComponent = () => {
                   }}
                   toolTip="Delete Rex Item"
                   style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                  ariaLabel="deleteButton"
                 />
               )}
               {!rexesEditing.includes(selectedRex.uuid) && editPerms && (
@@ -153,6 +154,7 @@ const RexRightRex: FunctionComponent = () => {
                       fontSize: "0.9em",
                       paddingLeft: "10px",
                     }}
+                    ariaLabel="saveButton"
                   />
                   <Button
                     onClick={() => {
@@ -161,6 +163,7 @@ const RexRightRex: FunctionComponent = () => {
                     icon={faBan}
                     toolTip="Cancel Edit"
                     style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                    ariaLabel="cancelButton"
                   />
                 </>
               )}
