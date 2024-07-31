@@ -89,7 +89,7 @@ export function convertRexesTypeDbToStore(dbRexs: Rex_db[]): Rex[] {
   for (const dbRex of dbRexs) {
     const convertedRex: Rex = {
       uuid: dbRex.uuid,
-      ownerId: dbRex?.owner?.id !== undefined ? dbRex.owner.id : 1,
+      ownerId: dbRex.owner?.id !== undefined ? dbRex.owner.id : null,
       missionId: dbRex.mission.id,
       name: dbRex.name,
       description: dbRex.description,

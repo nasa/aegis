@@ -26,6 +26,7 @@ test("create edit cancel delete geo unit", async ({ page }) => {
   await geoUnitsTest(page);
 });
 
+// Preset test included here, as running preset test parallel to mission tests breaks the tests
 test("create edit cancel delete preset", async ({ page }) => {
   await presetTest(page);
 });
