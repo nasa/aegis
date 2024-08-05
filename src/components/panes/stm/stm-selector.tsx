@@ -15,6 +15,7 @@ const STMSelector: FunctionComponent<{
   actionUuid: string;
 }> = ({ editMode, stmPriorities, actionUuid }) => {
   const dispatch = useAppDispatch();
+  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
   const allSTMLevel1: STMLevel1[] = useAppSelector((state) => state.stm.level1s, deepEqual);
   const allSTMLevel2: STMLevel2[] = useAppSelector((state) => state.stm.level2s, deepEqual);
   const allSTMLevel3: STMLevel3[] = useAppSelector((state) => state.stm.level3s, deepEqual);
@@ -55,7 +56,10 @@ const STMSelector: FunctionComponent<{
           value: level1.uuid,
           label: (
             <>
-              <span className={stmStyles.stmHeading}>Goal {level1.numbering}</span> -{" "}
+              <span className={stmStyles.stmHeading}>
+                {mission?.stmLevel1Name} {level1.numbering}
+              </span>{" "}
+              -{" "}
               <span data-tooltip-id="aegis-tooltip" data-tooltip-html={level1.name}>
                 {level1.name}
               </span>
@@ -76,7 +80,7 @@ const STMSelector: FunctionComponent<{
             label: (
               <>
                 <span className={stmStyles.stmHeading}>
-                  Objective {level1.numbering}
+                  {mission?.stmLevel2Name} {mission?.stmLevel1Enabled && level1.numbering}
                   {level2.numbering}
                 </span>{" "}
                 -{" "}
@@ -123,13 +127,13 @@ const STMSelector: FunctionComponent<{
         {
           value: "root",
           label: <span className={stmStyles.stmHeading}>All STM Items</span>,
-          children: stmTree,
+          children: mission?.stmLevel1Enabled ? stmTree : stmTree[0].children, // hide level 1 if not enabled
           className: `${stmStyles.stmText}`,
         } as Node,
       ]);
       setExpanded(newExpandedList);
     }
-  }, [allSTMLevel3, allSTMLevel2, allSTMLevel1, stmPriorities, changeSTMPriority]);
+  }, [allSTMLevel3, allSTMLevel2, allSTMLevel1, stmPriorities, changeSTMPriority, mission]);
 
   return (
     <>
@@ -148,7 +152,7 @@ const STMSelector: FunctionComponent<{
         />
       ) : (
         <div>
-          <STM_Coverage stmUuidRefs={[stmUuidRefs]} mini={true} horizontal={true} />
+          <STM_Coverage stmUuidRefs={[stmUuidRefs]} horizontal={true} />
         </div>
       )}
     </>
@@ -170,6 +174,7 @@ const STMLabelLevel3: FunctionComponent<{
     },
     [changeSTMPriority, level3.uuid]
   );
+  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
 
   const priorityClass = (buttonPriority: number) => {
     switch (buttonPriority) {
@@ -221,7 +226,7 @@ const STMLabelLevel3: FunctionComponent<{
         </span>
       </span>
       <span className={stmStyles.stmHeading}>
-        Investigation {level1.numbering}
+        {mission?.stmLevel3Name} {mission?.stmLevel1Enabled && level1.numbering}
         {level2.numbering}
         {level3.numbering} -{" "}
       </span>

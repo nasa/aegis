@@ -23,7 +23,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
     <>
       <div className={styles.evasLeftContainer}>
         <div className={styles.evasLeftBody} aria-label="evaList">
-          {_.sortBy(evas, ["name"]).map((eva) => (
+          {_.sortBy(evas, [(eva) => eva.name.toLowerCase()]).map((eva) => (
             <div className={styles.evaPanelContainer} key={eva.uuid} aria-label="evaList-item">
               <EvaItem eva={eva} key={eva.uuid} />
             </div>

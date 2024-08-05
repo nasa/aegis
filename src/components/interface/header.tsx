@@ -50,7 +50,9 @@ const Header: FunctionComponent = () => {
           </div>
         </div>
         <div className={styles.item}>
-          <div className={styles.missionName}>{missionName}</div>
+          <div className={styles.missionName} aria-label="missionNameHeader">
+            {missionName}
+          </div>
         </div>
         {runningRex && (
           <div className={styles.item}>
@@ -72,7 +74,9 @@ const Header: FunctionComponent = () => {
       {banner && (
         <div className={styles.center}>
           <div className={styles.item}>
-            <div className={styles.missionBannerText}>{banner}</div>
+            <div className={styles.missionBannerText} aria-label="missionBannerText">
+              {banner}
+            </div>
           </div>
         </div>
       )}

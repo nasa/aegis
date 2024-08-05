@@ -9,7 +9,7 @@ const Index: React.FunctionComponent = () => {
   const [admin, setAdmin] = useState(false);
   const [user, setUser] = useState<User>(null);
   const navigateMission = async () => {
-    await navigate("/admin/mission");
+    await navigate("/admin/missions");
   };
 
   const navigateUser = async () => {

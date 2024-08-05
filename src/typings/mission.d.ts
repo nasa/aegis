@@ -39,6 +39,10 @@ interface Mission {
   updatedAt?: string;
   landerRadii: LanderRadius[];
   actionTemplates: ActionTemplate[];
+  stmLevel1Enabled?: boolean;
+  stmLevel1Name?: string;
+  stmLevel2Name?: string;
+  stmLevel3Name?: string;
 }
 
 // No alteration needed to convert this store type to the database type

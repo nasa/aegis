@@ -248,7 +248,6 @@ export const ActionsTopSection: FunctionComponent<{
         <div className={actionsStyles.stmCoverage}>
           <STM_Coverage
             stmUuidRefs={stmUuidRefs}
-            mini={true}
             horizontal={true}
             onLevel3Hover={highlightActions}
             stmUuidRefsCompleted={completedStmUuidRefs}

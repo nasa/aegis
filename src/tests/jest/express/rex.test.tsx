@@ -147,7 +147,7 @@ describe("REX API Endpoint", () => {
         socketId: "someSocketId",
         log: false,
         missionId: testMissions[0].id,
-        rexes: [{ ...newRex, missionId: testMissions[0].id }],
+        rexes: [{ ...newRex, missionId: testMissions[0].id, ownerId: testUser.id }],
       };
       const res = await supertest(app)
         .post("/api/v1/rex")

@@ -520,6 +520,7 @@ export const RightTabs: FunctionComponent<{
                 ? paneStyles.rightIconContainerSelectedPreset
                 : paneStyles.rightIconContainer
             }
+            aria-label={panelType}
             onClick={() => dispatch(dispatchFunction(panelType))}
           >
             <div

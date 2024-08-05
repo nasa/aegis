@@ -20,6 +20,7 @@ interface PanelType {
   selectedColor: string;
   unselectedColor?: string;
   icon: IconProp;
+  ariaLabel?: string;
   panelGroup?: string[];
 }
 

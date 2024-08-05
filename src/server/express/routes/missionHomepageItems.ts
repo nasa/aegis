@@ -64,6 +64,7 @@ export async function getHomepageMissionItems(
       ? {
           missionId: rexDb.mission.id,
           uuid: rexDb.uuid,
+          ownerId: rexDb.owner.id,
           name: rexDb.name,
           description: rexDb.description,
           petStartStopTimestamp: rexDb.petStartStopTimestamp,
@@ -87,5 +88,5 @@ export async function getHomepageMissionItems(
     };
     missionHomepageItems.push(missionHomepageItem);
   }
-  return _.sortBy(missionHomepageItems, "name");
+  return _.sortBy(missionHomepageItems, [(item) => item.name.toLowerCase()]);
 }

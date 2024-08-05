@@ -100,6 +100,8 @@ dependency-check:
   stage: stageless
   tags: ["docker", "linux"] # can't use openshift (yet?)
   needs: ["install_dependencies"] # dependency-check takes a while, don't wait for "test" job
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "int" || $CI_COMMIT_BRANCH == "prod"'
 
 npm-audit:
   stage: stageless
@@ -539,69 +541,3 @@ z:logs:prod:
   tags: ["emss-aegis-prod"]
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD #CI/CD Variable
-
-.move-db-shim-template:
-  when: manual
-  stage: stageless
-  timeout: 10 minutes
-  variables:
-    GIT_STRATEGY: none
-  script:
-    # init sudo ability
-    - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
-
-    - APP_NAME="aegis"
-
-    - |
-      if [ -e "/d1/$APP_NAME/postgres/PG_VERSION" ]; then
-        echo "Postgres is installed in /d1/$APP_NAME/postgres, shim has already run. No action required."
-        exit 0
-      else
-        echo 'Running shim...';
-      fi
-
-    # stop all containers
-    - sudo docker stop $(sudo docker ps -a -q) || true
-
-    # remove all containers
-    - sudo docker rm $(sudo docker ps -a -q) || true
-
-    # Move directories to new locations
-    - sudo mkdir -p "/d1/$APP_NAME"
-    - sudo mv /d1/db-init "/d1/$APP_NAME/db-init"
-    - sudo mv /d1/postgres "/d1/$APP_NAME/postgres"
-    - sudo mv /d1/static "/d1/$APP_NAME/static"
-
-    # Ensure good permissions
-    - sudo chown -R gitlab-runner:gitlab-runner "/d1/$APP_NAME"
-    - sudo chmod -R 0775 "/d1/$APP_NAME"
-
-z:move-db-shim:aegis-dev:
-  extends: .move-db-shim-template
-  tags: ["emss-aegis-dev1"]
-  environment:
-    name: aegis-dev
-    url: $URL
-  variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1 #CI/CD Variable
-    URL: https://aegis-dev.fit.nasa.gov
-
-z:move-db-shim:aegis-int:
-  extends: .move-db-shim-template
-  tags: ["emss-aegis-int"]
-  environment:
-    name: integration
-    url: $URL
-  variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
-    URL: https://aegis-int.fit.nasa.gov
-
-z:move-db-shim:aegis-prod:
-  extends: .move-db-shim-template
-  tags: ["emss-aegis-prod"]
-  environment:
-    name: production
-    url: $URL
-  variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD #CI/CD Variable
-    URL: https://aegis.fit.nasa.gov

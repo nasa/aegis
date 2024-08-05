@@ -28,11 +28,11 @@ const LayerEdit: FunctionComponent<{ layer: Layer; refreshLayerList: Function }>
 
   return (
     layer && (
-      <>
+      <div className={styles.sectionDiv}>
         {layer.name ? (
-          <h3>Edit Header Layer &quot;{layer.name}&quot;</h3>
+          <div className={styles.sectionDivHeading}>Edit Header Layer &quot;{layer.name}&quot;</div>
         ) : (
-          <h3>Edit Header Layer</h3>
+          <div className={styles.sectionDivHeading}>Edit Header Layer</div>
         )}
 
         <div id="readOnlyDiv" className={styles.divIndent}>
@@ -67,7 +67,7 @@ const LayerEdit: FunctionComponent<{ layer: Layer; refreshLayerList: Function }>
         >
           Save Header Layer
         </button>
-      </>
+      </div>
     )
   );
 };

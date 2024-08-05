@@ -11,13 +11,13 @@ export const IndicatorGridRow: FunctionComponent<{
   actionUuid?: string;
 }> = ({ level3Uuid, actionType, actionUuid }) => {
   const sortedEvaUuids = useAppSelector((state) => {
-    const allSortedEvas = _.sortBy(state.eva.evas, "name");
+    const allSortedEvas = _.sortBy(state.eva.evas, [(eva) => eva.name.toLowerCase()]);
     return allSortedEvas
       .filter((eva) => state.interface.stmViewSelectedEvas.includes(eva.uuid))
       .map((eva) => eva.uuid);
   }, shallowEqual);
   const allStationsNotInASelectedEvas = useAppSelector((state) => {
-    const stations = _.sortBy(state.station.stations, "name");
+    const stations = _.sortBy(state.station.stations, [(station) => station.name.toLowerCase()]);
     const selectedEvaUuids = state.interface.stmViewSelectedEvas;
     for (const evaUuid of selectedEvaUuids) {
       const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
@@ -70,7 +70,7 @@ const IndicatorGridStationGroup: FunctionComponent<{
   actionUuid?: string;
 }> = ({ level3Uuid, evaUuid, actionType, actionUuid }) => {
   const allStations = useAppSelector(
-    (state) => _.sortBy(state.station.stations, "name"),
+    (state) => _.sortBy(state.station.stations, [(station) => station.name.toLowerCase()]),
     deepEqual
   );
   const eva = useAppSelector(

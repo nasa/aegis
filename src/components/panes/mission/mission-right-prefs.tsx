@@ -109,7 +109,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
 
   return (
     <div className={paneStyles.rightBody}>
-      <div className={paneStyles.rightBodyTitle}>Mission Preferences</div>
+      <div className={paneStyles.rightBodyTitle} aria-label="rightBodyTitle">
+        Mission Preferences
+      </div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
@@ -168,6 +170,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 onChange={(value) => {
                   dispatch(upsertMissionByField("description", value));
                 }}
+                ariaLabel="missionDescription"
               />
             </div>
           </div>
@@ -250,7 +253,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             editing={editMode}
                             fieldProps={{
                               name: "lat",
-                              ariaLabel: "Latitude",
+                              ariaLabel: "LatitudePref",
                               style: { width: "150px" },
                               validators: [validators.mustBeNumber, validators.required],
                             }}
@@ -287,7 +290,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             editing={editMode}
                             fieldProps={{
                               name: "Lng",
-                              ariaLabel: "Longitude",
+                              ariaLabel: "LongitudePref",
                               style: { width: "150px" },
                               validators: [validators.mustBeNumber, validators.required],
                             }}
@@ -388,7 +391,11 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 className={paneStyles.panelSectionInner2ColumnRight}
                 style={{ marginLeft: "40px" }}
               >
-                <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+                <div
+                  className={paneStyles.panelSectionTitle}
+                  style={{ marginBottom: "8px" }}
+                  aria-label={mission.earthAsMoon ? "moonHeading" : "earthHeading"}
+                >
                   <SubpanelHeading icon={mission.earthAsMoon ? faMoon : faEarthAmerica}>
                     {mission.earthAsMoon ? "Moon" : "Earth"} Direction
                   </SubpanelHeading>
@@ -427,6 +434,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                   if (mission.earthAsMoon)
                                     dispatch(upsertMission({ ...mission, earthAsMoon: false }));
                                 }}
+                                aria-label="earthDirectionButton"
                               >
                                 Earth
                               </div>
@@ -438,6 +446,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                   if (!mission.earthAsMoon)
                                     dispatch(upsertMission({ ...mission, earthAsMoon: true }));
                                 }}
+                                aria-label="moonDirectionButton"
                               >
                                 Moon
                               </div>

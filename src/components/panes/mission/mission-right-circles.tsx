@@ -31,7 +31,9 @@ const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => 
 
   return (
     <div className={paneStyles.rightBody}>
-      <div className={paneStyles.rightBodyTitle}>Vector Definitions</div>
+      <div className={paneStyles.rightBodyTitle} aria-label="rightBodyTitle">
+        Vector Definitions
+      </div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
@@ -48,13 +50,17 @@ const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => 
                     >
                       <div className={styles.propertyRowName}>Name</div>
                       <div className={styles.propertyRowSingleuse}>{"Radius (m)"}</div>
-                      <div className={styles.propertyRowTrash}></div>
+                      <div className={styles.propertyRowTrashContainer}></div>
                     </div>
                   </div>
                 </li>
 
                 {mission?.landerRadii?.map((item, index) => (
-                  <li key={item.uuid} className={styles.propertyListItem}>
+                  <li
+                    key={item.uuid}
+                    className={styles.propertyListItem}
+                    aria-label="radiiList-item"
+                  >
                     <RadiusItem
                       key={item.uuid}
                       landerRadius={item}
@@ -74,6 +80,7 @@ const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => 
                   onClick={async () => {
                     setNewRadiusUuid((await dispatch(thunkCreateLanderRadius())).payload);
                   }}
+                  ariaLabel="addNewRadiusButton"
                 />
               )}
             </div>
@@ -156,17 +163,20 @@ const RadiusItem: FunctionComponent<{
           />
         </div>
 
-        <div className={styles.propertyRowTrash}>
+        <div
+          className={styles.propertyRowTrashContainer}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (editMode) {
+              dispatch(thunkDeleteLanderRadius({ landerRadiusUuid: landerRadius.uuid }));
+            }
+          }}
+        >
           {editMode && (
-            <FontAwesomeIcon
-              icon={faTrashAlt}
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                dispatch(thunkDeleteLanderRadius({ landerRadiusUuid: landerRadius.uuid }));
-              }}
-            />
+            <div className={styles.propertyRowTrash}>
+              <FontAwesomeIcon icon={faTrashAlt} size="sm" aria-label="deleteButton" />
+            </div>
           )}
         </div>
       </div>

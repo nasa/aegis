@@ -34,6 +34,7 @@ export const ActionTemplateMenu: FunctionComponent<{
               dispatch(thunkDuplicateActionTemplate({ actionTemplateUuid: actionTemplate.uuid }));
               dialogRef.current?.close();
             }}
+            aria-label="Duplicate"
           >
             <div className={actionStyles.menuItemIcon}>
               <FontAwesomeIcon icon={faClone} />
@@ -49,6 +50,7 @@ export const ActionTemplateMenu: FunctionComponent<{
               }
               dialogRef.current?.close();
             }}
+            aria-label="Delete"
           >
             <div className={actionStyles.menuItemIcon}>
               <FontAwesomeIcon icon={faTrashAlt} />
@@ -61,6 +63,7 @@ export const ActionTemplateMenu: FunctionComponent<{
       <FontAwesomeIcon
         icon={faEllipsisV}
         size="sm"
+        aria-label="Template Menu"
         onClick={(e) => {
           handleMenuOpen(e);
           dialogRef.current?.showModal();

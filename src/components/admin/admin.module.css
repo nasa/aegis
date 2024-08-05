@@ -172,6 +172,12 @@
   margin: 5px;
 }
 
+.sectionDivHeading {
+  font-size: 1.1rem;
+  font-weight: bold;
+  padding: 5px 5px 5px 0;
+}
+
 .editMissionDiv {
   padding: 5px;
   width: 100%;
@@ -922,4 +928,10 @@
 .breadcrumb {
   font-size: 0.9em;
   cursor: default;
+}
+
+.missionBodyContainer {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
 }

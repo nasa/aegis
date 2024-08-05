@@ -31,7 +31,9 @@ const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
 
   return (
     <div className={paneStyles.rightBody}>
-      <div className={paneStyles.rightBodyTitle}>Mission Equipment</div>
+      <div className={paneStyles.rightBodyTitle} aria-label="rightBodyTitle">
+        Mission Equipment
+      </div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
@@ -55,7 +57,11 @@ const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                 </li>
 
                 {mission?.equipmentItems?.map((item, index) => (
-                  <li key={item.uuid} className={styles.propertyListItem}>
+                  <li
+                    key={item.uuid}
+                    className={styles.propertyListItem}
+                    aria-label={"equipmentList-item"}
+                  >
                     <EquipmentItem
                       key={item.uuid}
                       item={item}
@@ -75,6 +81,7 @@ const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                   onClick={async () => {
                     setNewEquipmentUuid((await dispatch(thunkCreateEquipment())).payload);
                   }}
+                  ariaLabel="addNewEquipmentButton"
                 />
               )}
             </div>
@@ -173,7 +180,7 @@ const EquipmentItem: FunctionComponent<{
                 toolTip={`Single-use item`}
               />
             ) : (
-              <div>{item.singleUse ? "Yes" : ""}</div>
+              <div aria-label="checkboxText">{item.singleUse ? "Yes" : ""}</div>
             )}
           </div>
         </div>
@@ -187,6 +194,7 @@ const EquipmentItem: FunctionComponent<{
                 e.stopPropagation();
                 dispatch(thunkDeleteEquipment({ equipmentItemUuid: item.uuid }));
               }}
+              aria-label="deleteButton"
             />
           )}
         </div>

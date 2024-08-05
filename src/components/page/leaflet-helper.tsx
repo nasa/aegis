@@ -742,10 +742,10 @@ export const getLayersToAddInOrder = ({
     }
   } else {
     //preset does not have ordering, sort by name
-    for (const layer of _.sortBy(missionLayers, ["name"])) {
+    for (const layer of _.sortBy(missionLayers, [(layer) => layer.name.toLowerCase()])) {
       for (const sublayer of _.sortBy(
         missionSublayers.filter((s) => s.layerUuid === layer.uuid),
-        ["name"]
+        [(sublayer) => sublayer.name.toLowerCase()]
       )) {
         if (selectedPreset.mapSublayerControls[sublayer.uuid].visible) {
           layersToAdd.push(sublayer);

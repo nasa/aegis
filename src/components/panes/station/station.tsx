@@ -27,7 +27,7 @@ const StationEditorLeft: FunctionComponent = () => {
       <div className={paneStyles.leftPanelContainer}>
         <div className={styles.container}>
           <div className={styles.body} aria-label="stationList">
-            {_.sortBy(stations, "name").map((station) => {
+            {_.sortBy(stations, [(station) => station.name.toLowerCase()]).map((station) => {
               const stationFromDb = stationsFromDb.find(
                 (stationFromDb) => stationFromDb.uuid === station.uuid
               );

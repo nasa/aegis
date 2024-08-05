@@ -30,7 +30,9 @@ const GeographiUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
 
   return (
     <div className={paneStyles.rightBody}>
-      <div className={paneStyles.rightBodyTitle}>Mission Geography</div>
+      <div className={paneStyles.rightBodyTitle} aria-label="rightBodyTitle">
+        Mission Geography
+      </div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
@@ -52,7 +54,11 @@ const GeographiUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
                 </li>
 
                 {mission?.geographicUnits?.map((item, index) => (
-                  <li key={item.uuid} className={styles.propertyListItem}>
+                  <li
+                    key={item.uuid}
+                    className={styles.propertyListItem}
+                    aria-label="geoUnitList-item"
+                  >
                     <GeographicUnit
                       key={item.uuid}
                       item={item}
@@ -72,6 +78,7 @@ const GeographiUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
                   onClick={async () => {
                     setNewGeoUuid((await dispatch(thunkCreateGeoUnit())).payload);
                   }}
+                  ariaLabel="addGeoUnitButton"
                 />
               )}
             </div>
@@ -127,6 +134,7 @@ const GeographicUnit: FunctionComponent<{
                 e.stopPropagation();
                 dispatch(thunkDeleteGeoUnit({ geographicUnitUuid: item.uuid }));
               }}
+              aria-label="deleteButton"
             />
           )}
         </div>

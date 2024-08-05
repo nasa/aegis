@@ -8,6 +8,7 @@ export default class RexFactory extends Factory<Rex_db> {
   definition(): EntityData<Rex_db> {
     const rex: Rex_db = {
       uuid: uuidv4(),
+      owner: null,
       mission: null,
       name: "Jest Rex-1",
       description: null,

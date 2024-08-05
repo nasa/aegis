@@ -56,7 +56,9 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitleContainer}>
-        <div className={paneStyles.rightBodyTitle}>Action Templates</div>
+        <div className={paneStyles.rightBodyTitle} aria-label="rightBodyTitle">
+          Action Templates
+        </div>
         <ExpandCollapseActionsButtons
           actionUuids={mission?.actionTemplates?.map((action) => action.uuid)}
         />
@@ -67,7 +69,11 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
         >
           <ul className={actionStyles.actionlist}>
             {mission?.actionTemplates?.map((actionTemplate) => (
-              <li key={actionTemplate.uuid} className={actionStyles.actionlistitem}>
+              <li
+                key={actionTemplate.uuid}
+                className={actionStyles.actionlistitem}
+                aria-label="templateList-item"
+              >
                 <div
                   className={`${paneStyles.panelContainer} ${actionActionStyles.actionPanelContainer}  ${actionStyles.actionlistitemAction}`}
                   style={{ marginLeft: "6px" }}
@@ -82,6 +88,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                           dispatch(expandActions([actionTemplate.uuid]));
                         }
                       }}
+                      aria-label="Expand Button"
                       style={{ marginTop: "2px" }}
                     >
                       {actionsExpanded.includes(actionTemplate.uuid) ? (
@@ -113,16 +120,22 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                         }}
                       >
                         <div className={actionActionStyles.verticalCenter}>
-                          <div className={actionActionStyles.actionsHeadingTitleIcon}>
+                          <div
+                            className={actionActionStyles.actionsHeadingTitleIcon}
+                            aria-label="Emoji Display"
+                          >
                             {decodeEmoji(actionTemplate.icon ? actionTemplate.icon : "2754")}
                           </div>
                         </div>
                         <div className={actionActionStyles.verticalCenter}>
                           <div style={{ marginLeft: "5px" }}>
-                            <span style={{ textTransform: "capitalize" }}>
+                            <span
+                              style={{ textTransform: "capitalize" }}
+                              aria-label="Action Template Type"
+                            >
                               {actionTemplate.type}
                             </span>{" "}
-                            : {actionTemplate.templateName}
+                            : <span aria-label="Template Name">{actionTemplate.templateName}</span>
                           </div>
                         </div>
                       </div>
@@ -137,6 +150,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                           <div
                             className={missionStyles.templateActionTitle}
                             style={{ textTransform: "capitalize", marginLeft: "2px" }}
+                            aria-label="Action Template Type"
                           >
                             {actionTemplate.type}:&nbsp;
                           </div>
@@ -202,11 +216,21 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                           }}
                                           toolTip="Action Type"
                                         >
-                                          <option value="measurement">Measurement</option>
-                                          <option value="observation">Observation</option>
-                                          <option value="sample">Sample</option>
-                                          <option value="photo">Photo</option>
-                                          <option value="other">Other</option>
+                                          <option value="measurement" aria-label="measurement">
+                                            Measurement
+                                          </option>
+                                          <option value="observation" aria-label="observation">
+                                            Observation
+                                          </option>
+                                          <option value="sample" aria-label="sample">
+                                            Sample
+                                          </option>
+                                          <option value="photo" aria-label="photo">
+                                            Photo
+                                          </option>
+                                          <option value="other" aria-label="other">
+                                            Other
+                                          </option>
                                         </Dropdown>
                                       </div>
                                     )}
@@ -271,6 +295,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                   })
                                 );
                               }}
+                              ariaLabel="Template Description"
                             />
                           </div>
                         </div>
@@ -553,12 +578,14 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                                     label={!showEmojiPicker ? "Pick Icon" : "Close"}
                                     style={{ width: "75px" }}
+                                    ariaLabel="Emoji Menu Toggle"
                                   />
                                 </div>
                                 <div className={actionActionStyles.iconPickerContainer}>
                                   {showEmojiPicker && (
                                     <div className={actionActionStyles.iconPicker}>
                                       <Picker
+                                        ariaLabel="Emoji Picker"
                                         data={emojiPickerData}
                                         emojiButtonSize={30}
                                         emojiSize={20}
@@ -607,6 +634,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
               icon={faPlusCircle}
               label="Add Template"
               style={{ width: "120px" }}
+              ariaLabel="addNewTemplateButton"
               onClick={async () => {
                 setNewTemplateUuid((await dispatch(thunkCreateActionTemplate())).payload);
               }}

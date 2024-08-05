@@ -33,6 +33,7 @@ export const ModifiedIndicator: FunctionComponent<{
         data-tooltip-id="aegis-tooltip"
         data-tooltip-html="Unsaved changes"
         className={styles.modifiedSpan}
+        aria-label="Unsaved changes"
       >
         <svg height={svgStyle.height} width={svgStyle.width}>
           <circle cx={svgStyle.cx} cy={svgStyle.cy} r={svgStyle.r} fill={svgStyle.fill} />
