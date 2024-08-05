@@ -362,6 +362,7 @@ export const drawPolylineOnMap = ({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }) as any; //TODO: figure out the weird HighlightablePolyline typescript implementation
   polyline.uuid = uuid;
+  console.log(mapItemType);
   polyline.mapItemType = mapItemType;
 
   // polyline handlers

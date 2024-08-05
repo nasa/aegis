@@ -141,7 +141,7 @@ const MapBody: FunctionComponent = () => {
   const measurements = useAppSelector((state) => state.measure.measurements, deepEqual);
   const selectedMeasurementUuid = useAppSelector(
     (state) => state.measure.selectedMeasurementUuid,
-    refEqual
+    deepEqual
   );
 
   const mapHoverItemUuid = useAppSelector((state) => state.hover.mapItemUuid, refEqual);
@@ -810,7 +810,7 @@ const MapBody: FunctionComponent = () => {
     // draw all measurements
     const measurementsToShow = [measurements.find((m) => m.uuid === selectedMeasurementUuid)];
     measurementsToShow.forEach((measurement) => {
-      if (measurement.path.length > 1) {
+      if (measurement.path.length >= 1) {
         drawPolylineOnMap({
           map,
           name: "",

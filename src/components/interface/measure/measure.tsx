@@ -279,7 +279,7 @@ function initMeasurePaperRefs(
 
   // calculate derived values
   // make elevations relative to the start elevation
-  const startElevation = pathSegmentElevations.length > 0 ? pathSegmentElevations[0][0] : 0;
+  const startElevation = pathSegmentElevations?.length > 0 ? pathSegmentElevations[0][0] : 0;
   measureDerivedValuesRef.current.relativeElevationsMeters = pathSegmentElevations.map((segment) =>
     segment.map((elevation) => elevation - startElevation)
   );
