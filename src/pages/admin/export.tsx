@@ -1,6 +1,6 @@
 import { populateStore } from "store/processing/populateStore";
 import _ from "lodash";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { FunctionComponent, useEffect, useState } from "react";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import styles from "components/admin/admin.module.css";
@@ -12,17 +12,21 @@ import * as httpClient_log from "http-client/log";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkMakeExportString } from "store/thunk/thunkMission";
 import { setAllSliceStores } from "store/crossActions";
+import Header from "components/interface/header";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 
-const useQuery = () => {
-  return new URLSearchParams(useLocation().search);
+type RouteParams = {
+  id: string;
 };
 
 const ExportPage: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const query = useQuery();
-  const missionId = query.get("missionId");
-  const intMissionId = missionId ? parseInt(missionId as string) : null;
+
+  const params = useParams<RouteParams>();
+  const slug = params.id;
+  const intMissionId = parseInt(slug);
 
   const missionStore = useAppSelector((state) => state.mission, deepEqual);
   const [selectedOutput, setSelectedOutput] = useState("");
@@ -70,120 +74,135 @@ const ExportPage: React.FunctionComponent = () => {
   return (
     <>
       <div className={styles.pageStyle}>
-        <h1>Export</h1>
-        <div style={{ marginBottom: "5px" }}>Mission: {missionStore.mission?.name}</div>
-        <div style={{ userSelect: "none" }}>
-          <div>Select parts of mission data to export:</div>
-          <Checkbox
-            label="All EVAs (including stations with associated actions and traverses)"
-            checked={selectEvas}
-            onChange={() => setSelectEvas(!selectEvas)}
-            uniqueId="export-all-evas"
-          />
-
-          <Checkbox
-            label="All POIs (including associated actions)"
-            checked={selectPois}
-            onChange={() => setSelectPois(!selectPois)}
-            uniqueId="export-pois"
-          />
-          <Checkbox
-            label="All Stations (including associated actions)"
-            checked={selectStations}
-            onChange={() => setSelectStations(!selectStations)}
-            uniqueId="export-stations"
-          />
-          <Checkbox
-            label="All Actions (including associated STMs)"
-            checked={selectActions}
-            onChange={() => setSelectActions(!selectActions)}
-            uniqueId="export-actions"
-          />
-          <Checkbox
-            label="All Traverses"
-            checked={selectTraverses}
-            onChange={() => setSelectTraverses(!selectTraverses)}
-            uniqueId="export-traverses"
-          />
-          <Checkbox
-            label="Mission Details"
-            checked={selectMission}
-            onChange={() => setSelectMission(!selectMission)}
-            uniqueId="export-mission"
-          />
-          <Checkbox
-            label="All Real-time Execution Items (REXes)"
-            checked={selectRexes}
-            onChange={() => setSelectRexes(!selectRexes)}
-            uniqueId="export-rexes"
-          />
-          <button
-            onClick={() => {
-              const makeExportStringAsync = async () => {
-                const output = await dispatch(
-                  thunkMakeExportString({
-                    selectEvas,
-                    selectMission,
-                    selectPois,
-                    selectStations,
-                    selectActions,
-                    selectTraverses,
-                    selectRexes,
-                  })
-                );
-                setSelectedOutput(output.payload as string);
-              };
-              makeExportStringAsync();
-            }}
-          >
-            Export as JSON to Text Field
-          </button>
-          <button
-            onClick={() => {
-              const makeExportStringAsync = async () => {
-                const output = await dispatch(
-                  thunkMakeExportString({
-                    selectEvas,
-                    selectMission,
-                    selectPois,
-                    selectStations,
-                    selectActions,
-                    selectTraverses,
-                    selectRexes,
-                  })
-                );
-                setSelectedOutput(output.payload as string);
-
-                const element = document.createElement("a");
-                const file = new Blob([output.payload as string], { type: "text/json" });
-                element.href = URL.createObjectURL(file);
-                let filename = `${missionStore.mission?.name}_`;
-                if (selectEvas) filename += "evas_";
-                if (selectMission) filename += "mission_";
-                if (selectPois) filename += "pois_";
-                if (selectStations) filename += "stations_";
-                if (selectActions) filename += "actions_";
-                if (selectTraverses) filename += "traverses_";
-                if (selectRexes) filename += "rexes_";
-                filename += "export.json";
-                element.download = filename;
-                document.body.appendChild(element); // Required for this to work in FireFox
-                element.click();
-              };
-              makeExportStringAsync();
-            }}
-          >
-            Export as JSON File
-          </button>
+        <div className={styles.header}>
+          <Header />
         </div>
-        <div style={{ fontSize: "0.8em" }}>
-          <textarea
-            style={{ width: "100%", height: "200px" }}
-            value={selectedOutput}
-            readOnly={true}
-          />
+        <div className={styles.bodyContent}>
+          <div className={styles.missionBack}>
+            <FontAwesomeIcon
+              icon={faArrowAltCircleLeft}
+              size="xl"
+              onClick={() => {
+                navigate("/admin/missions");
+              }}
+            />
+          </div>
+          <h1>Export</h1>
+          <div style={{ marginBottom: "5px" }}>Mission: {missionStore.mission?.name}</div>
+          <div style={{ userSelect: "none" }}>
+            <div>Select parts of mission data to export:</div>
+            <Checkbox
+              label="All EVAs (including stations with associated actions and traverses)"
+              checked={selectEvas}
+              onChange={() => setSelectEvas(!selectEvas)}
+              uniqueId="export-all-evas"
+            />
+
+            <Checkbox
+              label="All POIs (including associated actions)"
+              checked={selectPois}
+              onChange={() => setSelectPois(!selectPois)}
+              uniqueId="export-pois"
+            />
+            <Checkbox
+              label="All Stations (including associated actions)"
+              checked={selectStations}
+              onChange={() => setSelectStations(!selectStations)}
+              uniqueId="export-stations"
+            />
+            <Checkbox
+              label="All Actions (including associated STMs)"
+              checked={selectActions}
+              onChange={() => setSelectActions(!selectActions)}
+              uniqueId="export-actions"
+            />
+            <Checkbox
+              label="All Traverses"
+              checked={selectTraverses}
+              onChange={() => setSelectTraverses(!selectTraverses)}
+              uniqueId="export-traverses"
+            />
+            <Checkbox
+              label="Mission Details"
+              checked={selectMission}
+              onChange={() => setSelectMission(!selectMission)}
+              uniqueId="export-mission"
+            />
+            <Checkbox
+              label="All Real-time Execution Items (REXes)"
+              checked={selectRexes}
+              onChange={() => setSelectRexes(!selectRexes)}
+              uniqueId="export-rexes"
+            />
+            <button
+              onClick={() => {
+                const makeExportStringAsync = async () => {
+                  const output = await dispatch(
+                    thunkMakeExportString({
+                      selectEvas,
+                      selectMission,
+                      selectPois,
+                      selectStations,
+                      selectActions,
+                      selectTraverses,
+                      selectRexes,
+                    })
+                  );
+                  setSelectedOutput(output.payload as string);
+                };
+                makeExportStringAsync();
+              }}
+            >
+              Export as JSON to Text Field
+            </button>
+            <button
+              onClick={() => {
+                const makeExportStringAsync = async () => {
+                  const output = await dispatch(
+                    thunkMakeExportString({
+                      selectEvas,
+                      selectMission,
+                      selectPois,
+                      selectStations,
+                      selectActions,
+                      selectTraverses,
+                      selectRexes,
+                    })
+                  );
+                  setSelectedOutput(output.payload as string);
+
+                  const element = document.createElement("a");
+                  const file = new Blob([output.payload as string], { type: "text/json" });
+                  element.href = URL.createObjectURL(file);
+                  let filename = `${missionStore.mission?.name}_`;
+                  if (selectEvas) filename += "evas_";
+                  if (selectMission) filename += "mission_";
+                  if (selectPois) filename += "pois_";
+                  if (selectStations) filename += "stations_";
+                  if (selectActions) filename += "actions_";
+                  if (selectTraverses) filename += "traverses_";
+                  if (selectRexes) filename += "rexes_";
+                  filename += "export.json";
+                  element.download = filename;
+                  document.body.appendChild(element); // Required for this to work in FireFox
+                  element.click();
+                };
+                makeExportStringAsync();
+              }}
+            >
+              Export as JSON File
+            </button>
+          </div>
+          <div style={{ fontSize: "0.8em" }}>
+            <textarea
+              style={{ width: "100%", height: "200px" }}
+              value={selectedOutput}
+              readOnly={true}
+            />
+          </div>
+
+          <ExporLogs missionId={intMissionId} missionName={missionStore.mission?.name} />
         </div>
-        <ExporLogs missionId={intMissionId} missionName={missionStore.mission?.name} />
       </div>
     </>
   );

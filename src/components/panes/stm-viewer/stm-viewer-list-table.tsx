@@ -39,6 +39,10 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number }> = ({ le
     (state: RootState) => state.interface.stmViewExpandTopTiers,
     refEqual
   );
+  const stmLevel1Enabled = useAppSelector(
+    (state: RootState) => state.mission.mission.stmLevel1Enabled,
+    deepEqual
+  );
 
   const numLines = numLevel3s;
   const maxHeightEm = 1.2 * numLines;
@@ -55,16 +59,18 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number }> = ({ le
           data-tooltip-html={`${level1.name}`}
           data-tooltip-place="top-start"
         >
-          {level1.numbering}.
+          {stmLevel1Enabled ? `${level1.numbering}.` : ""}
         </div>
+
         {stmViewExpandTopTiers && (
           <div
             className={`${styles.truncateXLine} ${styles.gridCellLevel1Name}`}
             style={{ WebkitLineClamp: numLines, maxHeight: `${maxHeightEm}em` }}
           >
-            {level1.name}
+            {stmLevel1Enabled ? `${level1.name}` : ""}
           </div>
         )}
+
         <div>
           <STMLevel2s level1Uuid={level1.uuid} />
         </div>

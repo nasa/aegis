@@ -12,10 +12,9 @@ import { upsertMissions } from "http-client/mission";
 import { roundDateToSecond } from "utils/formatting";
 
 const MissionEditor: FunctionComponent<{
-  refreshMissionList: () => {};
   mission: Mission;
   setMission: Dispatch<SetStateAction<Mission>>;
-}> = ({ refreshMissionList, mission, setMission }) => {
+}> = ({ mission, setMission }) => {
   const formApiRef = useRef(null);
 
   //save the mission and call and upsert
@@ -73,7 +72,6 @@ const MissionEditor: FunctionComponent<{
 
     const res = await upsertMissions([missionToSave]);
     if (res.status === "success") {
-      refreshMissionList();
       setMission(res.data[0]);
     }
     alert(`${res.status} - ${res.message}`);
@@ -134,190 +132,204 @@ const MissionEditor: FunctionComponent<{
                   </button>
                   <br />
                   <br />
-                  <div className={adminStyles.sectionDiv}>
-                    Manage files in the /Data folder for this mission
-                    <br />
-                    <br />
-                    {mission.id ? (
-                      <>
-                        <FileManager
-                          missionId={mission.id}
-                          path={`missionFiles/${mission.id}/Data`}
-                        />
-                      </>
-                    ) : (
-                      <div>A new mission must be saved first before you can upload files</div>
-                    )}
-                  </div>
-                  <br />
-                  <br />
-                  <div id="missionDiv">
-                    <div className={adminStyles.editDiv}>
-                      <FFInput
-                        name="name"
-                        label={{ label: "Mission Name (Parent)" }}
-                        initialValue={mission?.name}
-                      />
-                    </div>
-                  </div>
-                  <div id="bannerDiv">
-                    <div className={adminStyles.editDiv}>
-                      <FFInput
-                        name="missionBanner"
-                        label={{ label: "Mission Banner", title: "Mission Banner" }}
-                        initialValue={mission?.missionBanner}
-                      />
-                    </div>
-                  </div>
-                  <div id="descriptionDiv">
-                    <div className={adminStyles.editDiv}>
-                      <FFTextArea
-                        name="description"
-                        label={{ label: "Mission Description", title: "Mission Description" }}
-                        initialValue={mission?.description}
-                      />
-                    </div>
-                  </div>
-                  <div id="planetRadiusDiv">
-                    <div className={adminStyles.editDiv}>
-                      <FFInput
-                        name="planetRadius"
-                        label={{ label: "Planet Radius (m)" }}
-                        validators={[validators.mustBeNumber]}
-                      />
-                    </div>
-                  </div>
-                  <div id="landerLatDiv">
-                    <div className={adminStyles.editDiv}>
-                      <FFInput
-                        name="landerLocation.lat"
-                        label={{ label: "Lander Location Latitude" }}
-                        validators={[validators.mustBeNumber]}
-                      />
-                    </div>
-                  </div>
-                  <div id="landerLongDiv">
-                    <div className={adminStyles.editDiv}>
-                      <FFInput
-                        name="landerLocation.lng"
-                        label={{ label: "Lander Location Longitude" }}
-                        validators={[validators.mustBeNumber]}
-                      />
-                    </div>
-                  </div>
-                  <div id="landerEleDiv">
-                    <div className={adminStyles.editDiv}>
-                      <FFInput
-                        name="landerElevationMeters"
-                        label={{ label: "Lander Location Elevation" }}
-                        validators={[validators.mustBeNumber]}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const point: AEGISPoint = {
-                            lat: parseFloat(values.landerLocation.lat),
-                            lng: parseFloat(values.landerLocation.lng),
-                          };
-                          calcLanderElevation(point);
-                        }}
-                      >
-                        Calculate
-                      </button>
-                    </div>
-                  </div>
-                  <div id="initialZoomDiv">
-                    <div className={adminStyles.editDiv}>
-                      <FFInput
-                        name="initialZoom"
-                        label={{ label: "Initial Zoom Level" }}
-                        validators={[validators.mustBeNumber]}
-                      />
-                    </div>
-                  </div>
-                  <div id="durationDiv">
-                    <div className={adminStyles.editDiv}>
-                      <FFInput
-                        name="defaultEvaDuration"
-                        label={{ label: "Default EVA Duration (mins)" }}
-                        validators={[validators.mustBeNumber, validators.mustBeInteger]}
-                      />
-                    </div>
-                  </div>
-                  <div id="traverseDiv">
-                    <div className={adminStyles.editDiv}>
-                      <FFInput
-                        name="traverseRate"
-                        label={{ label: "Default Traverse Rate (km/h)" }}
-                        validators={[validators.mustBeNumber, validators.mustBeInteger]}
-                      />
-                    </div>
-                  </div>
-                  <div id="walkbackDiv">
-                    <div className={adminStyles.editDiv}>
-                      <FFInput
-                        name="walkbackRate"
-                        label={{ label: "Default Walkback Rate (km/h)" }}
-                        validators={[validators.mustBeNumber, validators.mustBeInteger]}
-                      />
-                    </div>
-                  </div>
-                  <div id="sunAzimuthDiv">
-                    <div className={adminStyles.editDiv}>
-                      <FFInput
-                        name="sunAzimuth"
-                        label={{ label: "Sun Azimuth (degrees)" }}
-                        validators={[validators.mustBeNumber, validators.mustBeInteger]}
-                      />
-                    </div>
-                  </div>
-                  <div id="sunAzimuthEnabledDiv">
-                    <div className={adminStyles.editDiv}>
-                      <FFCheckbox
-                        name="sunAzimuthEnabled"
-                        label={{ label: "Sun Azimuth Enabled" }}
-                      />
-                    </div>
-                  </div>
-                  <div id="earthAzimuthDiv">
-                    <div className={adminStyles.editDiv}>
-                      <FFInput
-                        name="earthAzimuth"
-                        label={{ label: "Earth Azimuth (degrees)" }}
-                        validators={[validators.mustBeNumber, validators.mustBeInteger]}
-                      />
-                    </div>
-                  </div>
-                  <div id="earthAzimuthEnabledDiv">
-                    <div className={adminStyles.editDiv}>
-                      <FFCheckbox
-                        name="earthAzimuthEnabled"
-                        label={{ label: "Earth Azimuth Enabled" }}
-                      />
-                    </div>
-                  </div>
-                  <h4>Digital Elevation Model (DEM)</h4>
-                  <div className={adminStyles.sectionDiv}>
-                    <div id="demFilePathDiv">
-                      <div className={adminStyles.editDiv}>
-                        <FFInput
-                          name="demFilePath"
-                          label={{ label: "DEM File Path" }}
-                          validators={[]}
-                        />
+                  <div className={adminStyles.missionBodyContainer}>
+                    <div>
+                      <div className={adminStyles.sectionDiv}>
+                        <div className={adminStyles.sectionDivHeading}>Mission Information</div>
+                        <div id="missionDiv">
+                          <div className={adminStyles.editDiv}>
+                            <FFInput
+                              name="name"
+                              label={{ label: "Mission Name (Parent)" }}
+                              initialValue={mission?.name}
+                            />
+                          </div>
+                        </div>
+                        <div id="bannerDiv">
+                          <div className={adminStyles.editDiv}>
+                            <FFInput
+                              name="missionBanner"
+                              label={{ label: "Mission Banner", title: "Mission Banner" }}
+                              initialValue={mission?.missionBanner}
+                            />
+                          </div>
+                        </div>
+                        <div id="descriptionDiv">
+                          <div className={adminStyles.editDiv}>
+                            <FFTextArea
+                              name="description"
+                              label={{ label: "Mission Description", title: "Mission Description" }}
+                              initialValue={mission?.description}
+                            />
+                          </div>
+                        </div>
+                        <div id="planetRadiusDiv">
+                          <div className={adminStyles.editDiv}>
+                            <FFInput
+                              name="planetRadius"
+                              label={{ label: "Planet Radius (m)" }}
+                              validators={[validators.mustBeNumber]}
+                            />
+                          </div>
+                        </div>
+                        <div id="landerLatDiv">
+                          <div className={adminStyles.editDiv}>
+                            <FFInput
+                              name="landerLocation.lat"
+                              label={{ label: "Lander Location Latitude *" }}
+                              validators={[validators.mustBeNumber]}
+                            />
+                          </div>
+                        </div>
+                        <div id="landerLongDiv">
+                          <div className={adminStyles.editDiv}>
+                            <FFInput
+                              name="landerLocation.lng"
+                              label={{ label: "Lander Location Longitude *" }}
+                              validators={[validators.mustBeNumber]}
+                            />
+                          </div>
+                        </div>
+                        <div id="landerEleDiv">
+                          <div className={adminStyles.editDiv}>
+                            <FFInput
+                              name="landerElevationMeters"
+                              label={{ label: "Lander Location Elevation" }}
+                              validators={[validators.mustBeNumber]}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const point: AEGISPoint = {
+                                  lat: parseFloat(values.landerLocation.lat),
+                                  lng: parseFloat(values.landerLocation.lng),
+                                };
+                                calcLanderElevation(point);
+                              }}
+                            >
+                              Calculate
+                            </button>
+                          </div>
+                        </div>
+                        <div id="initialZoomDiv">
+                          <div className={adminStyles.editDiv}>
+                            <FFInput
+                              name="initialZoom"
+                              label={{ label: "Initial Zoom Level" }}
+                              validators={[validators.mustBeNumber]}
+                            />
+                          </div>
+                        </div>
+                        <div id="durationDiv">
+                          <div className={adminStyles.editDiv}>
+                            <FFInput
+                              name="defaultEvaDuration"
+                              label={{ label: "Default EVA Duration (mins)" }}
+                              validators={[validators.mustBeNumber, validators.mustBeInteger]}
+                            />
+                          </div>
+                        </div>
+                        <div id="traverseDiv">
+                          <div className={adminStyles.editDiv}>
+                            <FFInput
+                              name="traverseRate"
+                              label={{ label: "Default Traverse Rate (km/h)" }}
+                              validators={[validators.mustBeNumber, validators.mustBeInteger]}
+                            />
+                          </div>
+                        </div>
+                        <div id="walkbackDiv">
+                          <div className={adminStyles.editDiv}>
+                            <FFInput
+                              name="walkbackRate"
+                              label={{ label: "Default Walkback Rate (km/h)" }}
+                              validators={[validators.mustBeNumber, validators.mustBeInteger]}
+                            />
+                          </div>
+                        </div>
+                        <div id="sunAzimuthDiv">
+                          <div className={adminStyles.editDiv}>
+                            <FFInput
+                              name="sunAzimuth"
+                              label={{ label: "Sun Azimuth (degrees)" }}
+                              validators={[validators.mustBeNumber, validators.mustBeInteger]}
+                            />
+                          </div>
+                        </div>
+                        <div id="sunAzimuthEnabledDiv">
+                          <div className={adminStyles.editDiv}>
+                            <FFCheckbox
+                              name="sunAzimuthEnabled"
+                              label={{ label: "Sun Azimuth Enabled" }}
+                            />
+                          </div>
+                        </div>
+                        <div id="earthAzimuthDiv">
+                          <div className={adminStyles.editDiv}>
+                            <FFInput
+                              name="earthAzimuth"
+                              label={{ label: "Earth Azimuth (degrees)" }}
+                              validators={[validators.mustBeNumber, validators.mustBeInteger]}
+                            />
+                          </div>
+                        </div>
+                        <div id="earthAzimuthEnabledDiv">
+                          <div className={adminStyles.editDiv}>
+                            <FFCheckbox
+                              name="earthAzimuthEnabled"
+                              label={{ label: "Earth Azimuth Enabled" }}
+                            />
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div id="demResolutionDiv">
-                      <div className={adminStyles.editDiv}>
-                        <FFInput
-                          name="demResolution"
-                          label={{ label: "DEM Resolution (m per pixel)" }}
-                          validators={[validators.mustBeNumber, validators.mustBeInteger]}
-                        />
+                      <div className={adminStyles.sectionDiv}>
+                        <div className={adminStyles.sectionDivHeading}>
+                          Digital Elevation Model (DEM)
+                        </div>
+
+                        <div id="demFilePathDiv">
+                          <div className={adminStyles.editDiv}>
+                            <FFInput
+                              name="demFilePath"
+                              label={{ label: "DEM File Path" }}
+                              validators={[]}
+                            />
+                          </div>
+                        </div>
+                        <div id="demResolutionDiv">
+                          <div className={adminStyles.editDiv}>
+                            <FFInput
+                              name="demResolution"
+                              label={{ label: "DEM Resolution (m per pixel)" }}
+                              validators={[validators.mustBeNumber, validators.mustBeInteger]}
+                            />
+                          </div>
+                        </div>
                       </div>
+                      <Projection />
+                    </div>
+                    <div>
+                      <div className={adminStyles.sectionDiv}>
+                        <div className={adminStyles.sectionDivHeading}>
+                          Manage files in the /Data folder for this mission
+                        </div>
+                        {mission.id ? (
+                          <FileManager
+                            missionId={mission.id}
+                            path={`missionFiles/${mission.id}/Data`}
+                          />
+                        ) : (
+                          <div>A new mission must be saved first before you can upload files</div>
+                        )}
+                      </div>
+                      <br />
+                      <br />
                     </div>
                   </div>
-                  <Projection />
+
+                  <button type="submit" onClick={() => handleFormErrors(errors)}>
+                    Save Mission
+                  </button>
                 </div>
               </div>
             </form>

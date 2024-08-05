@@ -364,7 +364,6 @@ const NavTimeline: FunctionComponent = () => {
       <div className={styles.timelineRight}>
         <STM_Coverage
           stmUuidRefs={coveredSTMs}
-          mini={true}
           horizontal={false}
           stmUuidRefsCompleted={completedSTMs}
           stmUuidRefsInProgress={inProgressSTMs}

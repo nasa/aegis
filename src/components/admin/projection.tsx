@@ -8,8 +8,8 @@ const { mustBeNumber } = validators;
 const Projection: FunctionComponent = () => {
   return (
     <>
-      <h4>Map Projection Details</h4>
       <div className={styles.sectionDiv}>
+        <div className={styles.sectionDivHeading}>Map Projection Details</div>
         <div id="customDiv">
           <div className={styles.editDiv}>
             <FFCheckbox name={"projIsCustom"} label={{ label: "Using Custom Projection" }} />

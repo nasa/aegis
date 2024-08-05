@@ -37,6 +37,7 @@ const StmViewerPage: FunctionComponent = () => {
     (state) => state.interface.stmViewShowCrosshairs,
     refEqual
   );
+  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
   const dispatch = useAppDispatch();
   return (
     <div className={styles.body}>
@@ -105,15 +106,22 @@ const StmViewerPage: FunctionComponent = () => {
             </div>
             {stmViewExpandTopTiers ? (
               <div className={styles.listTableTitlesExpanded}>
-                <div className={styles.listTableTitle}>Goal</div>
-                <div className={styles.listTableTitle}>Objective</div>
-                <div className={styles.listTableTitle}>Investigation/Actions</div>
+                <div className={styles.listTableTitle}>
+                  {mission.stmLevel1Enabled ? `${mission.stmLevel1Name}s` : ""}
+                </div>
+
+                <div className={styles.listTableTitle}>{mission.stmLevel2Name}s</div>
+                <div className={styles.listTableTitle}>{mission.stmLevel3Name}s/Actions</div>
               </div>
             ) : (
               <div className={styles.listTableTitlesCollapsed}>
-                <div className={styles.listTableTitle}>G.</div>
-                <div className={styles.listTableTitle}>O.</div>
-                <div className={styles.listTableTitle}>Investigation/Actions</div>
+                <div className={styles.listTableTitle}>
+                  {mission.stmLevel1Enabled ? `${mission.stmLevel1Name.substring(0, 1)}.` : ""}
+                </div>
+                <div className={styles.listTableTitle}>
+                  {mission.stmLevel2Name.substring(0, 1)}.
+                </div>
+                <div className={styles.listTableTitle}>{mission.stmLevel3Name}s/Actions</div>
               </div>
             )}
           </div>

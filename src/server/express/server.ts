@@ -33,7 +33,6 @@ globalValues.socketio = new SocketServer<
 
 setupSocketIO();
 
-// hard-coded port to 3000 for simplicity until more flexibility needed
-server.listen(3000, () => {
+server.listen(4001, () => {
   console.log(`http server (re)started`);
 });

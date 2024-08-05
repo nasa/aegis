@@ -28,3 +28,14 @@
   gap: 1rem;
   margin-top: 20px;
 }
+
+.levelNames {
+  display: flex;
+  flex-direction: column;
+}
+
+.levelNameInput {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+}
