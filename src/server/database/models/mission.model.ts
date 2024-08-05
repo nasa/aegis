@@ -71,6 +71,14 @@ export class Mission_db implements Mission_db_type {
   landerRadii: LanderRadius[];
   @Property({ type: MikroTypes.json, nullable: true })
   actionTemplates: ActionTemplate[];
+  @Property({ type: MikroTypes.boolean, default: true })
+  stmLevel1Enabled: boolean;
+  @Property({ type: MikroTypes.text, nullable: true, default: "Goal" })
+  stmLevel1Name: string;
+  @Property({ type: MikroTypes.text, nullable: true, default: "Objective" })
+  stmLevel2Name: string;
+  @Property({ type: MikroTypes.text, nullable: true, default: "Investigation" })
+  stmLevel3Name: string;
 
   @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;

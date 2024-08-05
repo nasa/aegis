@@ -44,6 +44,10 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     projResUnitsPerPixel: 0,
     landerRadii: [],
     actionTemplates: null,
+    stmLevel1Enabled: true,
+    stmLevel1Name: "Goal",
+    stmLevel2Name: "Objective",
+    stmLevel3Name: "Investigation",
     updatedAt: roundDateToSecond(new Date()).toISOString(),
     createdAt: roundDateToSecond(new Date()).toISOString(),
   };

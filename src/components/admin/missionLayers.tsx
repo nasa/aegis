@@ -1,7 +1,7 @@
 import { Dispatch, FunctionComponent, useCallback, useEffect, useState } from "react";
 import adminStyles from "./admin.module.css";
 import LayerEdit from "components/admin/layerEdit";
-import SublayerEdit from "components/admin/sublayerEdit";
+import SublayerEdit from "components/admin/layerSublayerEdit";
 import { deleteLayers, getLayers } from "http-client/layer";
 import FileManager from "components/admin/fileManager";
 import { deleteSublayers, getSublayers } from "http-client/sublayer";
@@ -18,6 +18,7 @@ const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission
   const mission = props.mission;
 
   const reloadLayers = useCallback(() => {
+    if (!mission?.id) return;
     const getLayersAsync = async () => {
       //load layers
       const resLayers = await getLayers(mission.id);
@@ -33,7 +34,7 @@ const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission
       }
     };
     getLayersAsync();
-  }, [mission.id]);
+  }, [mission]);
 
   //adds a new blank sublayer object to the parent layer and sets it for edit
   function addNewSublayer() {
@@ -73,15 +74,15 @@ const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission
 
   return (
     <div>
-      <h2>Mission: {mission.name}</h2>
+      <h2>Layers for Mission: {mission?.name}</h2>
       <div className={adminStyles.layerContainer}>
         <div>
-          <div id="layerList_div">
-            <h3>Layers and Sublayers</h3>
+          <div id="layerList_div" className={adminStyles.sectionDiv}>
+            <div className={adminStyles.sectionDivHeading}>Layers and Sublayers</div>
             <LayerList
               layers={allLayers}
               sublayers={allSublayers}
-              missionId={mission.id}
+              missionId={mission?.id}
               refreshLayerList={reloadLayers}
               setEditComponent={setEditComponent}
               fileList={fileList}
@@ -129,26 +130,24 @@ const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission
             )}
           </div>
         </div>
-        <div className={adminStyles.sectionDiv}>
-          Manage files in the /Layers folder for this mission
-          <br />
-          <br />
-          {mission.id ? (
-            <>
-              <FileManager
-                missionId={mission.id}
-                path={`missionFiles/${mission.id}/Layers`}
-                setFileList={setFileList}
-                isUsed={checkLayerUsesFolder}
-              />
-            </>
-          ) : (
-            <div>A new mission must be saved first before you can upload files</div>
-          )}
+        <div id="editLayer_div">
+          <>{editComponent}</>
         </div>
       </div>
-      <div id="editLayer_div">
-        <>{editComponent}</>
+      <div className={adminStyles.sectionDiv} style={{ width: "fit-content" }}>
+        <div className={adminStyles.sectionDivHeading}>
+          Manage files in the /Layers folder for this mission
+        </div>
+        {mission?.id ? (
+          <FileManager
+            missionId={mission.id}
+            path={`missionFiles/${mission.id}/Layers`}
+            setFileList={setFileList}
+            isUsed={checkLayerUsesFolder}
+          />
+        ) : (
+          <div>A new mission must be saved first before you can upload files</div>
+        )}
       </div>
     </div>
   );

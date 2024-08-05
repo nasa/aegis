@@ -21,7 +21,7 @@
     "vite:build": "vite build --emptyOutDir",
     "vite:dev": "vite",
     "vite:dev:debug": "vite dev --debug",
-    "vite:dev:wait": "wait-on http://localhost:3000/api/v1/health && vite",
+    "vite:dev:wait": "wait-on http://localhost:4001/api/v1/health && vite",
     "api:build": "node esbuild.mjs",
     "api:build:watch": "npm run api:build -- --watch",
     "api:dev": "concurrently -n build,serve \"rimraf ./.local/express/dist && npm run api:build:watch\" \"wait-on ./.local/express/dist/api.js && nodemon  --enable-source-maps --inspect=8229 --legacy-watch --watch ./.local/express/dist ./.local/express/dist/api.js ./src/server\"",

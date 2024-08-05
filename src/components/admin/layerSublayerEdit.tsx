@@ -97,8 +97,12 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
   }
 
   return (
-    <>
-      {sublayer.name ? <h3>Edit Sublayer &quot;{sublayer.name}&quot;</h3> : <h3>Edit Sublayer</h3>}
+    <div className={styles.sectionDiv}>
+      {sublayer.name ? (
+        <div className={styles.sectionDivHeading}>Edit Sublayer &quot;{sublayer.name}&quot;</div>
+      ) : (
+        <div>Edit Sublayer</div>
+      )}
       <div id="readOnlyDiv" className={styles.divIndent}>
         UUID: {sublayer.uuid}
         <br />
@@ -442,7 +446,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
       >
         Save Sublayer
       </button>
-    </>
+    </div>
   );
 };
 

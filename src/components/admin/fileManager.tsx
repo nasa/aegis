@@ -146,7 +146,7 @@ const FileManager: FunctionComponent<{
         </div>
       </div>
       <br />
-      <h4>Directory Listing</h4>
+      <div className={adminStyles.sectionDivHeading}>Directory Listing</div>
       <div>
         {dirListing.length > 0 ? (
           <table className={adminStyles.fileTable}>

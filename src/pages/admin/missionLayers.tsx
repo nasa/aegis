@@ -5,14 +5,14 @@ import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
-import MissionEditor from "components/admin/missionEditor";
+import MissionLayers from "components/admin/missionLayers";
 import { generateBlankMission } from "store/storeUtils/mission";
 
 type RouteParams = {
   id: string;
 };
 
-const Mission: React.FunctionComponent = () => {
+const MissionLayersPage: React.FunctionComponent = () => {
   const navigate = useNavigate();
   const [mission, setMission] = useState<Mission>(null);
 
@@ -56,12 +56,10 @@ const Mission: React.FunctionComponent = () => {
             }}
           />
         </div>
-        <MissionEditor mission={mission} setMission={setMission} />
-        {/* 
-            <MissionSTM mission={mission} setMission={setMission} /> */}
+        <MissionLayers mission={mission} />
       </div>
     </div>
   );
 };
 
-export default Mission;
+export default MissionLayersPage;
