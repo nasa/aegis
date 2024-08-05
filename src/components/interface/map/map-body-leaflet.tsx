@@ -141,7 +141,7 @@ const MapBody: FunctionComponent = () => {
   const measurements = useAppSelector((state) => state.measure.measurements, deepEqual);
   const selectedMeasurementUuid = useAppSelector(
     (state) => state.measure.selectedMeasurementUuid,
-    deepEqual
+    refEqual
   );
 
   const mapHoverItemUuid = useAppSelector((state) => state.hover.mapItemUuid, refEqual);
@@ -798,7 +798,7 @@ const MapBody: FunctionComponent = () => {
    * Determine measures to show and draw them on map when measures or selections change
    */
   useEffect(() => {
-    if (!map.current || mapDirective || !measurements || selectedMeasurementUuid === null) return;
+    if (!map.current || mapDirective || !measurements) return;
 
     // delete all measurements from the map
     map.current.eachLayer((layer: AEGISMapDrawingLayer) => {
@@ -808,9 +808,12 @@ const MapBody: FunctionComponent = () => {
     });
 
     // draw all measurements
+    if (selectedMeasurementUuid === null) {
+      return;
+    }
     const measurementsToShow = [measurements.find((m) => m.uuid === selectedMeasurementUuid)];
-    measurementsToShow.forEach((measurement) => {
-      if (measurement.path.length >= 1) {
+    measurementsToShow?.forEach((measurement) => {
+      if (measurement?.path.length > 1) {
         drawPolylineOnMap({
           map,
           name: "",
