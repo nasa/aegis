@@ -812,7 +812,7 @@ const MapBody: FunctionComponent = () => {
       return;
     }
     const measurementsToShow = [measurements.find((m) => m.uuid === selectedMeasurementUuid)];
-    measurementsToShow?.forEach((measurement) => {
+    measurementsToShow.forEach((measurement) => {
       if (measurement?.path.length > 1) {
         drawPolylineOnMap({
           map,
