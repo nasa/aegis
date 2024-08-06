@@ -284,6 +284,23 @@
   border-bottom: 1px solid #fff;
 }
 
+.reorderIconGrip {
+  margin-left: 10px;
+  margin-right: 5px;
+  margin-top: 10px;
+  transform: scaleX(0.8);
+}
+
+.propertyRowGrip {
+  flex: 0 0 15px;
+  vertical-align: middle;
+  cursor: grab;
+}
+
+.propertyRowGrip:hover:active {
+  cursor: grabbing;
+}
+
 .propertyRowAbbr {
   flex: 0 0 45px;
   border-radius: var(--radius);
@@ -298,14 +315,14 @@
 }
 
 .propertyRowIcon {
-  flex: 0 0 30px;
+  flex: 0 0 40px;
   font-size: 0.9em;
   padding: 3px 2px 3px 5px;
   cursor: default;
 }
 
 .propertyRowPathColor {
-  flex: 0 0 80px;
+  flex: 0 0 90px;
   font-size: 0.9em;
   padding: 3px 2px 3px 5px;
 }

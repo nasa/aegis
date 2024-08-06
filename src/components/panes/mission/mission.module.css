@@ -125,6 +125,10 @@
   cursor: pointer;
 }
 
+.reorderIcon:hover:active {
+  cursor: grabbing;
+}
+
 .templateTitle {
   font-size: 0.8em;
   font-weight: 400;

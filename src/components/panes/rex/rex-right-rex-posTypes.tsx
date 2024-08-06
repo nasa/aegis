@@ -3,7 +3,12 @@ import paneStyles from "../global-pane-styles.module.css";
 import styles from "./rex.module.css";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import { SubpanelHeading } from "components/interface/_global-elements";
-import { faList, faPlusCircle, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
+import {
+  faList,
+  faPlusCircle,
+  faTrashAlt,
+  faGripVertical,
+} from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
   InLineEditInput,
@@ -46,6 +51,7 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                       className={styles.propertyRowHeader}
                       style={{ backgroundColor: "var(--grey2)" }}
                     >
+                      <div className={styles.propertyRowGrip}></div>
                       <div className={styles.propertyRowAbbr}>Abbr</div>
                       <div className={styles.propertyRowName}>Name</div>
                       <div className={styles.propertyRowIcon}>Icon</div>
@@ -103,6 +109,17 @@ const PosType: FunctionComponent<{
   return (
     <div className={paneStyles.descriptionContainer}>
       <div className={styles.propertyRow} style={{ backgroundColor }}>
+        <div className={styles.propertyRowGrip}>
+          <FontAwesomeIcon
+            icon={faGripVertical}
+            size="sm"
+            className={styles.reorderIconGrip}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          />
+        </div>
         <div className={styles.propertyRowAbbr}>
           <InLineEditInput
             editing={editMode}

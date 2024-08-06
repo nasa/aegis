@@ -13,6 +13,7 @@ type Rex = {
   isRunning: boolean;
   posEntries: PosEntry[];
   posTypes: PosType[];
+  posTypeOrder: string[];
   stationEntries: StationEntries;
   traverseEntries: TraverseEntries;
   actionEntries: ActionEntries;

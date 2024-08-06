@@ -114,14 +114,22 @@
 .reorderIcon {
   margin-left: 3px;
   transform: scaleX(0.8);
-  cursor: pointer;
+  cursor: grab;
+}
+
+.reorderIcon:hover:active {
+  cursor: grabbing;
 }
 
 .reorderIconSublayer {
   margin-left: 3px;
   margin-right: 5px;
   transform: scaleX(0.8);
-  cursor: pointer;
+  cursor: grab;
+}
+
+.reorderIconSublayer:hover:active {
+  cursor: grabbing;
 }
 
 .sublayerGroup {

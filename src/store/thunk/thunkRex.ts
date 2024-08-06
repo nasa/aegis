@@ -444,7 +444,9 @@ export const thunkCreatePosType = appCreateAsyncThunk<void>(
 
     const selectedRex = getState().rex.rexes.find((r) => r.uuid === getState().rex.selectedRexUuid);
     const newRexPosTypes: PosType[] = _.cloneDeep(selectedRex.posTypes) || [];
+    const newRexPosTypeOrder: string[] = _.cloneDeep(selectedRex.posTypeOrder) || [];
     newRexPosTypes.push(blankPosType);
+    newRexPosTypeOrder.push(blankPosType.uuid);
 
     dispatch(upsertRexByField(selectedRex.uuid, "posTypes", newRexPosTypes));
   }
