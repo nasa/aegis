@@ -2,6 +2,7 @@ import { FunctionComponent, useRef } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import styles from "./rex.module.css";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
+import { cloneDeep } from "lodash";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import {
   faList,
@@ -26,6 +27,8 @@ import {
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
 import { decodeEmoji } from "utils/formatting";
+import { upsertRexByField } from "store/rex";
+import ReactDragListView from "react-drag-listview";
 
 const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -33,6 +36,14 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     (state) => state.rex.rexes.find((rex) => rex.uuid === state.rex.selectedRexUuid),
     deepEqual
   );
+
+  //reorder header layers and then upsert to preset
+  function reorderType(fromIndex: number, toIndex: number) {
+    const newPositionTypeList = cloneDeep(selectedRex.posTypes);
+    const headerLayerBeingMoved = newPositionTypeList.splice(fromIndex, 1)[0]; //remove header layer
+    newPositionTypeList.splice(toIndex, 0, headerLayerBeingMoved); //reinsert in new position
+    dispatch(upsertRexByField(selectedRex.uuid, "posTypes", newPositionTypeList));
+  }
 
   return (
     <div className={paneStyles.rightBody}>
@@ -60,18 +71,24 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     </div>
                   </div>
                 </li>
-
-                {selectedRex.posTypes?.map((item, index) => (
-                  <li key={item.uuid} className={styles.propertyListItem}>
-                    <PosType
-                      key={item.uuid}
-                      rexUuid={selectedRex.uuid}
-                      item={item}
-                      editMode={editMode}
-                      evenRow={index % 2 === 0}
-                    />
-                  </li>
-                ))}
+                <ReactDragListView
+                  onDragEnd={reorderType}
+                  nodeSelector={`li.${styles.propertyListItem}`}
+                  handleSelector={`a.rexTypeReorder`}
+                >
+                  {selectedRex.posTypes?.map((item, index) => {
+                    return (
+                      <li key={item.uuid} className={styles.propertyListItem}>
+                        <PosType
+                          rexUuid={selectedRex.uuid}
+                          item={item}
+                          editMode={editMode}
+                          evenRow={index % 2 === 0}
+                        />
+                      </li>
+                    );
+                  })}
+                </ReactDragListView>
               </ul>
 
               {editMode && (
@@ -110,15 +127,11 @@ const PosType: FunctionComponent<{
     <div className={paneStyles.descriptionContainer}>
       <div className={styles.propertyRow} style={{ backgroundColor }}>
         <div className={styles.propertyRowGrip}>
-          <FontAwesomeIcon
-            icon={faGripVertical}
-            size="sm"
-            className={styles.reorderIconGrip}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-          />
+          {editMode && (
+            <a className="rexTypeReorder">
+              <FontAwesomeIcon icon={faGripVertical} size="sm" className={styles.reorderIconGrip} />
+            </a>
+          )}
         </div>
         <div className={styles.propertyRowAbbr}>
           <InLineEditInput

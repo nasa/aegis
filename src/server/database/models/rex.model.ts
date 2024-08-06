@@ -32,8 +32,6 @@ export class Rex_db implements Rex_db_type {
   @Property({ type: MikroTypes.json, nullable: true })
   posTypes: PosType[];
   @Property({ type: MikroTypes.json, nullable: true })
-  posTypeOrder: string[];
-  @Property({ type: MikroTypes.json, nullable: true })
   stationEntries: StationEntries;
   @Property({ type: MikroTypes.json, nullable: true })
   traverseEntries: TraverseEntries;
