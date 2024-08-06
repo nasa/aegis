@@ -32,7 +32,7 @@ export const setupSocketIO = (): void => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     socket.on("visitorJoin", (visitorJoin: any) => {
       // join the room for this mission
-      socket.join(visitorJoin?.missionId.toString());
+      socket.join(visitorJoin.missionId.toString());
 
       const visitorData: VisitorData = {
         socketId: socket.id,
@@ -49,7 +49,7 @@ export const setupSocketIO = (): void => {
       const statusFromServer = getStatusFromServer(visitorJoin.missionId);
 
       // emit visitor count to all clients in this room including this client
-      io.to(visitorJoin?.missionId.toString()).emit("statusFromServer", statusFromServer);
+      io.to(visitorJoin.missionId.toString()).emit("statusFromServer", statusFromServer);
 
       // console.log(
       //   `${new Date().toISOString()} Socket ${socket.id} visitorJoin. Editors: ${
