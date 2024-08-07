@@ -10,6 +10,7 @@ import {
   faTrashAlt,
   faGripVertical,
 } from "@fortawesome/free-solid-svg-icons";
+import ReactDragListView from "react-drag-listview";
 import {
   Button,
   InLineEditInput,
@@ -28,7 +29,6 @@ import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
 import { decodeEmoji } from "utils/formatting";
 import { upsertRexByField } from "store/rex";
-import ReactDragListView from "react-drag-listview";
 
 const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
