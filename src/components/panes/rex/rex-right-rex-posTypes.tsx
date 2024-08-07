@@ -62,11 +62,11 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                       className={styles.propertyRowHeader}
                       style={{ backgroundColor: "var(--grey2)" }}
                     >
-                      <div className={styles.propertyRowGrip}></div>
-                      <div className={styles.propertyRowAbbr}>Abbr</div>
-                      <div className={styles.propertyRowName}>Name</div>
-                      <div className={styles.propertyRowIcon}>Icon</div>
-                      <div className={styles.propertyRowPathColor}>Path Color</div>
+                      <div className={styles.propertyHeaderGrip}></div>
+                      <div className={styles.propertyHeaderAbbr}>Abbr</div>
+                      <div className={styles.propertyHeaderName}>Name</div>
+                      <div className={styles.propertyHeaderIcon}>Icon</div>
+                      <div className={styles.propertyHeaderPathColor}>Path Color</div>
                       <div className={styles.propertyRowTrash}></div>
                     </div>
                   </div>

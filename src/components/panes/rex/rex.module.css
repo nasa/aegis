@@ -287,7 +287,7 @@
 .reorderIconGrip {
   padding-left: 5px;
   padding-right: 5px;
-  margin-top: 10px;
+  padding-top: 10px;
   transform: scaleX(0.8);
 }
 
@@ -295,6 +295,11 @@
   flex: 0 0 15px;
   vertical-align: middle;
   cursor: grab;
+}
+
+.propertyHeaderGrip {
+  flex: 0 0 15px;
+  vertical-align: middle;
 }
 
 .propertyRowGrip:hover:active {
@@ -308,10 +313,23 @@
   padding: 3px 2px 3px 5px;
 }
 
+.propertyHeaderAbbr {
+  flex: 0 0 45px;
+  border-radius: var(--radius);
+  font-size: 0.9em;
+  padding: 3px 2px 3px 10px;
+}
+
 .propertyRowName {
   width: 100%;
   font-size: 0.9em;
   padding: 3px 2px 3px 5px;
+}
+
+.propertyHeaderName {
+  width: 100%;
+  font-size: 0.9em;
+  padding: 3px 2px 3px 10px;
 }
 
 .propertyRowIcon {
@@ -321,7 +339,20 @@
   cursor: default;
 }
 
+.propertyHeaderIcon {
+  flex: 0 0 40px;
+  font-size: 0.9em;
+  padding: 3px 20px 3px 5px;
+  cursor: default;
+}
+
 .propertyRowPathColor {
+  flex: 0 0 90px;
+  font-size: 0.9em;
+  padding: 3px 2px 3px 5px;
+}
+
+.propertyHeaderPathColor {
   flex: 0 0 90px;
   font-size: 0.9em;
   padding: 3px 2px 3px 5px;
