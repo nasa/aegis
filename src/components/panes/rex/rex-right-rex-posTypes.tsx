@@ -56,7 +56,7 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
             </div>
             <div className={paneStyles.panelSectionBody}>
               <ul className={styles.propertyList}>
-                <li className={styles.propertyListItem}>
+                <li className={styles.propertyListHeaderitem}>
                   <div className={paneStyles.descriptionContainer}>
                     <div
                       className={styles.propertyRowHeader}
