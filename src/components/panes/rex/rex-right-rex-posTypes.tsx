@@ -56,7 +56,7 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
             </div>
             <div className={paneStyles.panelSectionBody}>
               <ul className={styles.propertyList}>
-                <li className={styles.propertyListHeaderitem}>
+                <li className={styles.propertyListHeaderItem}>
                   <div className={paneStyles.descriptionContainer}>
                     <div
                       className={styles.propertyRowHeader}
@@ -76,15 +76,10 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                   nodeSelector={`li.${styles.propertyListItem}`}
                   handleSelector={`a.rexTypeReorder`}
                 >
-                  {selectedRex.posTypes?.map((item, index) => {
+                  {selectedRex.posTypes?.map((item) => {
                     return (
                       <li key={item.uuid} className={styles.propertyListItem}>
-                        <PosType
-                          rexUuid={selectedRex.uuid}
-                          item={item}
-                          editMode={editMode}
-                          evenRow={index % 2 === 0}
-                        />
+                        <PosType rexUuid={selectedRex.uuid} item={item} editMode={editMode} />
                       </li>
                     );
                   })}
@@ -115,17 +110,12 @@ const PosType: FunctionComponent<{
   rexUuid: string;
   item: PosType;
   editMode: boolean;
-  evenRow: boolean;
-}> = ({ rexUuid, item, editMode, evenRow }) => {
+}> = ({ rexUuid, item, editMode }) => {
   const dispatch = useAppDispatch();
 
-  let backgroundColor: string = "var(--grey2)";
-  if (!editMode) {
-    backgroundColor = evenRow ? "var(--grey2)" : "var(--grey1)";
-  }
   return (
     <div className={paneStyles.descriptionContainer}>
-      <div className={styles.propertyRow} style={{ backgroundColor }}>
+      <div className={styles.propertyRow}>
         <div className={styles.propertyRowGrip}>
           {editMode && (
             <a className="rexTypeReorder">
