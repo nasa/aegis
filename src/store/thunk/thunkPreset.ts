@@ -148,7 +148,7 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
 
     // build circle controls
     const blankMapCircleControls: MapCircleControls = {};
-    getState().mission.mission.landerRadii.forEach((landerRadius) => {
+    getState().mission.mission.landerRadii?.forEach((landerRadius) => {
       blankMapCircleControls[landerRadius.uuid] = {
         name: landerRadius.name,
         landerRadiusUuid: landerRadius.uuid,
