@@ -93,7 +93,7 @@ export const auditPresetsAgainstLayers = async (params: {
       preset.mapCircleControls = {};
     }
 
-    wholeStoreState.mission.mission.landerRadii.forEach((landerRadius) => {
+    wholeStoreState.mission.mission.landerRadii?.forEach((landerRadius) => {
       if (preset.mapCircleControls[landerRadius.uuid]) {
         mapCircleControls[landerRadius.uuid] = preset.mapCircleControls[landerRadius.uuid];
       } else {

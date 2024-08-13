@@ -17,6 +17,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
   const [legend, setLegend] = useState<string>(
     props.sublayer.legend ? JSON.stringify(props.sublayer.legend) : ""
   );
+  const [description, setDescription] = useState<string>(props.sublayer.description);
 
   useEffect(() => {
     setSublayer(props.sublayer);
@@ -48,6 +49,21 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
         return { ...state, legend: legendJson };
       });
       setLegend(JSON.stringify(legendJson));
+    }
+  }
+
+  async function loadDescriptionFromFile(folderName: string) {
+    //read in the legend
+    const res = await fetch(
+      `/static/missionFiles/${props.missionId.toString()}/Layers/${folderName}/description.json`
+    );
+    if (res.status === 200) {
+      const descriptionJson: { layerDescription: string } = await res.json();
+      //set values
+      setSublayer((state) => {
+        return { ...state, description: descriptionJson.layerDescription };
+      });
+      setDescription(descriptionJson.layerDescription);
     }
   }
 
@@ -137,7 +153,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
             onChange={(e) => {
               setSublayer({ ...sublayer, description: e.target.value });
             }}
-            value={sublayer.description || ""}
+            value={description || ""}
           />
         </div>
       </div>
@@ -152,8 +168,11 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
               if (e.target.value === "") {
                 setSublayer({ ...sublayer, legend: null });
               } else {
-                if (validators.mustBeValidJSON(e.target.value) === undefined) {
+                const validator = validators.mustBeValidJSON(e.target.value);
+                if (validator === undefined) {
                   setSublayer({ ...sublayer, legend: JSON.parse(e.target.value) });
+                } else {
+                  console.error(validator);
                 }
               }
             }}
@@ -206,6 +225,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
                 //attempt to pre-load all other fields
                 loadTileMapResourceFromFile(e.target.value);
                 loadLegendFromFile(e.target.value);
+                loadDescriptionFromFile(e.target.value);
               }}
               value={sublayer.url ? sublayer.url.substring(0, sublayer.url.indexOf("/")) : ""}
             >
