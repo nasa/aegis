@@ -47,17 +47,17 @@ include:
 
   # Code quality checks
   - project: "emss/gitlab-templates"
-    ref: main
+    ref: latest
     file: "/jobs/code-quality.gitlab-ci.yml"
 
   # Fitdock deploy template
   - project: "emss/gitlab-templates"
-    ref: main
+    ref: latest
     file: "/jobs/fitdock-deploy.gitlab-ci.yml"
 
   # Kaniko build template
   - project: "emss/gitlab-templates"
-    ref: main
+    ref: latest
     file: "/jobs/kaniko-build.gitlab-ci.yml"
 
 # Overrride some properties on FIT jobs. Unfortunately using a template for these
@@ -352,7 +352,7 @@ deploy:dev1:
     url: $URL
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1 #CI/CD Variable
-    URL: https://aegis-dev1.fit.nasa.gov
+    URL: https://aegis-dev.fit.nasa.gov
   when: manual
   before_script:
     - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
@@ -492,11 +492,11 @@ z:db-import:dev1:
   tags: ["emss-aegis-dev1"]
   needs: ["z:db-export:prod"]
   environment:
-    name: development1
+    name: development
     url: $URL
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1 #CI/CD Variable
-    URL: https://aegis-dev1.fit.nasa.gov
+    URL: https://aegis-dev.fit.nasa.gov
 
 z:db-import:int:
   extends: .db-import-template

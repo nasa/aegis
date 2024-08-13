@@ -52,7 +52,7 @@ const mustBeValidJSON = (value: Stringy): string | undefined => {
   try {
     JSON.parse(value as string);
   } catch (e) {
-    return "Must be valid JSON";
+    return `Must be valid JSON. ${e}`;
   }
   return undefined;
 };
