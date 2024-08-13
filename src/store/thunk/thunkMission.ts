@@ -83,7 +83,7 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
       const newPresetUIState: PresetUIStates = { ...oldPresetUIStates };
       const newMapCircleControls: MapCircleControls = {};
 
-      sortedLanderRadii.forEach((landerRadius) => {
+      sortedLanderRadii?.forEach((landerRadius) => {
         //update ui states
         if (oldPresetUIStates[landerRadius.uuid]) {
           newPresetUIState[landerRadius.uuid] = oldPresetUIStates[landerRadius.uuid];

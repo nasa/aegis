@@ -108,7 +108,7 @@ export const generatePresetUIStates = async (params: {
       };
     }
 
-    wholeStoreState.mission.mission?.landerRadii.forEach((landerRadius) => {
+    wholeStoreState.mission.mission?.landerRadii?.forEach((landerRadius) => {
       presetUIStates[landerRadius.uuid] = {
         expanded: true,
         tabSelected: null,
