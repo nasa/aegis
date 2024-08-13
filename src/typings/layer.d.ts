@@ -47,12 +47,10 @@ type Sublayer_db_type = Omit<Sublayer, "missionId" | "layerUuid" | "createdAt" |
 
 interface Legend {
   legend: LegendItem[];
-  unitsName: string;
   unitsAbbr: string;
+  version: string;
 }
 interface LegendItem {
   color: string;
-  strokecolor: string;
-  shape: string;
-  value: string;
+  description: string;
 }

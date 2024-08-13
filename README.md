@@ -6,7 +6,7 @@ Wiki: https://wiki.jsc.nasa.gov/fod/index.php/Artemis_EVA_GIS
 
 - Production: https://aegis.fit.nasa.gov/
 - Integration: https://aegis-int.fit.nasa.gov/
-- Development: https://aegis-dev1.fit.nasa.gov/
+- Development: https://aegis-dev.fit.nasa.gov/
 
 ## Getting Started
 
@@ -33,6 +33,7 @@ For all install methods, do the following:
       127.0.0.1 emss-labs-local.fit.nasa.gov
       ```
 7. Perform steps for either "Fully docker-compose" or "Just database via docker-compose" below.
+8. Register for the `@emss` npm registry: Create an auth token in gitlab and run `npm config set //eegitlab.fit.nasa.gov/api/v4/projects/685/packages/npm/:_authToken <YOUR AUTH TOKEN>`
 
 ### Development with service containers
 
@@ -66,11 +67,11 @@ Setup local environment using the instructions above before performing the follo
 - The `https://aegis-local.fit.nasa.gov/admin` interface allows AEGIS admins to download asset zips from the AEGIS Box source folder to the AEGIS GIS products location.
 - Use the interface itself to download assets as needed to match the missions in the system (from the prod dump of `aegis.sql`)
 - Example for Apollo 14 mission:
-   1. Head to `Missions`.
-   3. Under `Apollo 14` select `Edit Layers`.
-   4. Under `Manage files in the /Layers folder for this mission` section, there is a `Download from Box` section.
-   5. Select `Apollo_14` > `Layers` and download the required files.
-   6. The downloads will show under `Directory Listing` and will be visible in the `aegis_static` folder created during the initial setup.
+  1.  Head to `Missions`.
+  2.  Under `Apollo 14` select `Edit Layers`.
+  3.  Under `Manage files in the /Layers folder for this mission` section, there is a `Download from Box` section.
+  4.  Select `Apollo_14` > `Layers` and download the required files.
+  5.  The downloads will show under `Directory Listing` and will be visible in the `aegis_static` folder created during the initial setup.
 
 ### Option 2: Manual install assets for Apollo 14 mission
 

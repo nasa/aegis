@@ -14,14 +14,14 @@ const Info_subpanel: FunctionComponent<{
             Legend {sublayer.legend.unitsAbbr ? `(${sublayer.legend.unitsAbbr})` : ""}
           </div>
           <div className={styles.legend}>
-            {sublayer.legend.legend.map((legendItem) => {
+            {sublayer.legend.legend.map((legendItem, index) => {
               return (
-                <div className={styles.legendItem} key={legendItem.color}>
+                <div className={styles.legendItem} key={`${index}-${legendItem.description}`}>
                   <div
                     className={styles.legendColor}
                     style={{ backgroundColor: `${legendItem.color}` }}
                   ></div>
-                  <div>{legendItem.value}</div>
+                  <div>{legendItem.description}</div>
                 </div>
               );
             })}
