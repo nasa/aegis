@@ -43,7 +43,7 @@ const Slider: FunctionComponent<{
 
 const Settings_subpanel: FunctionComponent<{
   selectedPreset: Preset;
-  type: "vector" | "tile" | "circle";
+  type: SublayerType;
   uuid: string;
 }> = ({ selectedPreset, type, uuid }) => {
   const dispatch = useAppDispatch();
@@ -77,6 +77,17 @@ const Settings_subpanel: FunctionComponent<{
       fillOpacity: true,
     };
   } else if (type === "circle") {
+    showSliders = {
+      opacity: true,
+      contrast: false,
+      brightness: false,
+      saturation: false,
+      blendMode: false,
+      colorPicker: true,
+      weight: true,
+      fillOpacity: false,
+    };
+  } else if (type === "vector-tile") {
     showSliders = {
       opacity: true,
       contrast: false,

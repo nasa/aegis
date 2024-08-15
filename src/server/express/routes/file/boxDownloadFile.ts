@@ -64,6 +64,11 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     } else {
       // if the file is not a zip file, move it to the correct location
 
+      // make sure the path exists
+      if (!fs.existsSync(downloadFilePath + "/" + queryObj.path)) {
+        fs.mkdirSync(downloadFilePath + "/" + queryObj.path, { recursive: true });
+      }
+
       // Non-issue: this is not using user-supplied values for FS function
       // nosemgrep: eslint.detect-non-literal-fs-filename
       fs.renameSync(

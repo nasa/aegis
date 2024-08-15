@@ -2,7 +2,7 @@ import L from "leaflet";
 import "leaflet-polylinedecorator";
 import * as geojson from "geojson";
 import DraggableLines from "leaflet-draggable-lines";
-
+import VectorTileLayer from "leaflet-vector-tile-layer";
 import { Dispatch, MutableRefObject, SetStateAction } from "react";
 import ReactDOMServer from "react-dom/server";
 import {
@@ -920,6 +920,36 @@ export const drawLayersOnMap = ({
           }
         };
         fetchGeojsonAsync();
+      } else {
+        // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
+        const layer = getLayerByName(map, sublayer.name);
+        layer.bringToFront();
+      }
+    } else if (sublayer.type === "vector-tile") {
+      // if layer isn't already on the map, add it
+      if (!isLayerOnMapByName(map, sublayer.name)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const vectorTileLayer = VectorTileLayer(
+          `${layerBaseURL}/${missionId}/Layers/${sublayer.url}`,
+          {
+            id: sublayer.name,
+            uuid: sublayer.uuid,
+            type: "vector-tile",
+            style: {
+              fill: false,
+              stroke: true,
+              //manually define defaults
+              color: mapSublayerControls[sublayer.uuid].style?.color,
+              opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
+              weight: mapSublayerControls[sublayer.uuid].style?.weight,
+            },
+            minDetailZoom: sublayer.minNativeZoom,
+            maxDetailZoom: sublayer.maxNativeZoom,
+          }
+        );
+
+        map.current.addLayer(vectorTileLayer);
+        vectorTileLayer.bringToFront();
       } else {
         // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
         const layer = getLayerByName(map, sublayer.name);

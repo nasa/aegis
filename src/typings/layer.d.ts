@@ -13,6 +13,8 @@ type Layer_db_type = Omit<Layer, "missionId" | "createdAt" | "updatedAt"> & {
   updatedAt?: Date;
 };
 
+type SublayerType = "vector" | "tile" | "circle" | "vector-tile";
+
 //add a custom description field to MMGIS sublayers
 interface Sublayer {
   uuid: string;
@@ -21,7 +23,7 @@ interface Sublayer {
   name: string;
   description: string;
   legend: Legend;
-  type: "vector" | "tile" | "circle";
+  type: SublayerType;
   url: string;
   filePath: string; // for vector layers
   boundingBox: number[];

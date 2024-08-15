@@ -420,6 +420,13 @@ const MapBody: FunctionComponent = () => {
               weight: sublayerControl.style?.weight,
               fillOpacity: sublayerControl.style?.fillOpacity,
             });
+          } else if (layer.options.type === "vector-tile") {
+            const vectorTileLayer = layer;
+            vectorTileLayer.setStyle({
+              color: sublayerControl.style?.color,
+              opacity: sublayerControl.style?.opacity,
+              weight: sublayerControl.style?.weight,
+            });
           }
         }
       }
