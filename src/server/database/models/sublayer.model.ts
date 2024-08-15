@@ -20,7 +20,7 @@ export class Sublayer_db implements Sublayer_db_type {
   @Property({ type: MikroTypes.text, nullable: true })
   url: string;
   @Property({ type: MikroTypes.text, nullable: true })
-  type: "vector" | "tile" | "circle";
+  type: SublayerType;
   @Property({ type: MikroTypes.text, nullable: true })
   filePath: string;
   @Property({ type: MikroTypes.json, nullable: true })

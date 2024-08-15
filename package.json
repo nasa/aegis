@@ -1,6 +1,6 @@
 {
   "name": "aegis-zero",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "private": true,
   "scripts": {
     "dev": "concurrently -n vite,api \"npm run vite:dev:wait\" \"npm run api:dev\"",
@@ -70,6 +70,7 @@
     "leaflet-draggable-lines": "^3.2.0",
     "leaflet-highlightable-layers": "^3.0.1",
     "leaflet-polylinedecorator": "^1.6.0",
+    "leaflet-vector-tile-layer": "^0.16.1",
     "leaflet.tilelayer.colorfilter": "^1.2.5",
     "leo-profanity": "^1.7.0",
     "lodash": "^4.17.21",

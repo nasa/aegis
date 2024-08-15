@@ -185,27 +185,34 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
       </div>
       <div id="typeDiv">
         <div className={styles.editDiv}>
-          <label htmlFor="layerType">Layer Type</label>
+          <label htmlFor="layerType">
+            <b>Layer Type</b>
+          </label>
         </div>
         <div className={styles.editDiv}>
           <select
             id="layerType"
             onChange={(e) => {
-              setSublayer({ ...sublayer, type: e.target.value as "vector" | "tile" });
+              setSublayer({
+                ...sublayer,
+                type: e.target.value as "vector" | "tile" | "vector-tile",
+              });
             }}
             value={sublayer.type || "tile"}
           >
             <option value="tile">Tile</option>
             <option value="vector">Vector</option>
+            <option value="vector-tile">Vector Tile</option>
           </select>
         </div>
       </div>
       {(!sublayer.type || sublayer.type === "tile") && (
-        <div id="urlDiv">
-          <div className={styles.editDiv}>
-            <label htmlFor="url">URL</label>
+        <>
+          <div id="urlDiv">
+            <div className={styles.editDiv}>
+              <label htmlFor="url">URL</label>
+            </div>
           </div>
-
           <div className={styles.editDiv}>
             <label htmlFor="folderNames">Folder </label>
             <select
@@ -229,7 +236,6 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
               }}
               value={sublayer.url ? sublayer.url.substring(0, sublayer.url.indexOf("/")) : ""}
             >
-              <option value="" />
               {props.fileList?.map((file) => {
                 return (
                   <option value={file.name} key={file.name}>
@@ -255,208 +261,341 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
               value={sublayer.url ? sublayer.url.substring(sublayer.url.indexOf("/") + 1) : ""}
             />
           </div>
-        </div>
+          <div id="boundingDiv">
+            <div className={styles.editDiv}>
+              <label htmlFor="boundingbox">*Bounding Box (minx, miny, maxx, maxy)</label>
+            </div>
+            <div className={styles.editDiv}>
+              <input
+                id="boundingbox"
+                type="text"
+                onBlur={(e) => {
+                  setSublayer({
+                    ...sublayer,
+                    boundingBox: e.target.value.split(",").map((val) => parseFloat(val)),
+                  });
+                }}
+                onChange={(e) => {
+                  setBoundingBox(e.target.value);
+                }}
+                value={boundingBox || ""}
+              />
+            </div>
+          </div>
+          <div id="tileFormatDiv">
+            <div className={styles.editDiv}>
+              <label htmlFor="tileformat">Tile Format</label>
+            </div>
+            <div className={styles.editDiv}>
+              <select
+                id="tileformat"
+                onChange={(e) => {
+                  setSublayer({ ...sublayer, tileFormat: e.target.value });
+                }}
+                value={sublayer.tileFormat || "TMS"}
+              >
+                <option value="tms">TMS</option>
+                <option value="wtms">WTMS</option>
+                <option value="wms">WMS</option>
+              </select>
+            </div>
+          </div>
+          <div id="minNativeDiv">
+            <div className={styles.editDiv}>
+              <label htmlFor="minNative">*Minimum Native Zoom</label>
+            </div>
+            <div className={styles.editDiv}>
+              <input
+                id="minNative"
+                type="text"
+                onChange={(e) => {
+                  setSublayer({ ...sublayer, minNativeZoom: +e.target.value });
+                }}
+                value={sublayer.minNativeZoom || ""}
+              />
+            </div>
+          </div>
+          <div id="maxNativeDiv">
+            <div className={styles.editDiv}>
+              <label htmlFor="maxNative">*Maximum Native Zoom</label>
+            </div>
+            <div className={styles.editDiv}>
+              <input
+                id="maxNative"
+                type="text"
+                onChange={(e) => {
+                  setSublayer({ ...sublayer, maxNativeZoom: +e.target.value });
+                }}
+                value={sublayer.maxNativeZoom || ""}
+              />
+            </div>
+          </div>
+          <div id="maxZoomDiv">
+            <div className={styles.editDiv}>
+              <label htmlFor="maxZoom">Maximum Zoom</label>
+            </div>
+            <div className={styles.editDiv}>
+              <input
+                id="maxZoom"
+                type="text"
+                onChange={(e) => {
+                  setSublayer({ ...sublayer, maxZoom: +e.target.value });
+                }}
+                value={sublayer.maxZoom || ""}
+              />
+            </div>
+          </div>
+          * = values pulled from tilemapresource.xml
+          <br />
+        </>
       )}
       {sublayer.type === "vector" && (
-        <div id="fileDiv">
-          <div className={styles.editDiv}>
-            <label htmlFor="filePath">File Path (for vectors layers)</label>
+        <>
+          <div id="fileDiv">
+            <div className={styles.editDiv}>
+              <label htmlFor="filePath">File Path (for vectors layers)</label>
+            </div>
+            <div className={styles.editDiv}>
+              <input
+                id="filePath"
+                type="text"
+                onChange={(e) => {
+                  setSublayer({ ...sublayer, filePath: e.target.value });
+                }}
+                value={sublayer.filePath || ""}
+              />
+              Make sure this file is uploaded to mission/data
+            </div>
           </div>
-          <div className={styles.editDiv}>
-            <input
-              id="filePath"
-              type="text"
-              onChange={(e) => {
-                setSublayer({ ...sublayer, filePath: e.target.value });
-              }}
-              value={sublayer.filePath || ""}
-            />
-            Make sure this file is uploaded to mission/data
+          <div id="styleGenericDiv">
+            <div id="strokeColorDiv">
+              <div className={styles.editDiv}>
+                <label htmlFor="strokecolor">Stroke Color</label>
+              </div>
+              <div className={styles.editDiv}>
+                <input
+                  id="strokecolor"
+                  type="text"
+                  onChange={(e) => {
+                    setSublayer({
+                      ...sublayer,
+                      color: e.target.value,
+                    });
+                  }}
+                  value={sublayer.color || ""}
+                />
+              </div>
+            </div>
+
+            <div id="opacityDiv">
+              <div className={styles.editDiv}>
+                <label htmlFor="opacity">Opacity</label>
+              </div>
+              <div className={styles.editDiv}>
+                <input
+                  id="opacity"
+                  type="text"
+                  onChange={(e) => {
+                    setSublayer({
+                      ...sublayer,
+                      opacity: +e.target.value,
+                    });
+                  }}
+                  value={sublayer.opacity || ""}
+                />
+              </div>
+            </div>
+
+            <div id="fillColorDiv">
+              <div className={styles.editDiv}>
+                <label htmlFor="fillColor">Fill Color</label>
+              </div>
+              <div className={styles.editDiv}>
+                <input
+                  id="fillColor"
+                  type="text"
+                  onChange={(e) => {
+                    setSublayer({
+                      ...sublayer,
+                      fillColor: e.target.value,
+                    });
+                  }}
+                  value={sublayer.fillColor || ""}
+                />
+              </div>
+            </div>
+
+            <div id="fillOpacityDiv">
+              <div className={styles.editDiv}>
+                <label htmlFor="fillOpacity">Fill Opacity</label>
+              </div>
+              <div className={styles.editDiv}>
+                <input
+                  id="fillOpacity"
+                  type="text"
+                  onChange={(e) => {
+                    setSublayer({
+                      ...sublayer,
+                      fillOpacity: +e.target.value,
+                    });
+                  }}
+                  value={sublayer.fillOpacity || ""}
+                />
+              </div>
+            </div>
+            <div id="strokeWeightDiv">
+              <div className={styles.editDiv}>
+                <label htmlFor="strokeweight">Stroke Weight</label>
+              </div>
+              <div className={styles.editDiv}>
+                <input
+                  id="strokeweight"
+                  type="text"
+                  onChange={(e) => {
+                    setSublayer({
+                      ...sublayer,
+                      weight: +e.target.value,
+                    });
+                  }}
+                  value={sublayer.weight || ""}
+                />
+              </div>
+            </div>
           </div>
-        </div>
+        </>
       )}
-      <div id="boundingDiv">
-        <div className={styles.editDiv}>
-          <label htmlFor="boundingbox">*Bounding Box (minx, miny, maxx, maxy)</label>
-        </div>
-        <div className={styles.editDiv}>
-          <input
-            id="boundingbox"
-            type="text"
-            onBlur={(e) => {
-              setSublayer({
-                ...sublayer,
-                boundingBox: e.target.value.split(",").map((val) => parseFloat(val)),
-              });
-            }}
-            onChange={(e) => {
-              setBoundingBox(e.target.value);
-            }}
-            value={boundingBox || ""}
-          />
-        </div>
-      </div>
-      <div id="tileFormatDiv">
-        <div className={styles.editDiv}>
-          <label htmlFor="tileformat">Tile Format</label>
-        </div>
-        <div className={styles.editDiv}>
-          <select
-            id="tileformat"
-            onChange={(e) => {
-              setSublayer({ ...sublayer, tileFormat: e.target.value });
-            }}
-            value={sublayer.tileFormat || "TMS"}
-          >
-            <option value="tms">TMS</option>
-            <option value="wtms">WTMS</option>
-            <option value="wms">WMS</option>
-          </select>
-        </div>
-      </div>
-      <div id="minNativeDiv">
-        <div className={styles.editDiv}>
-          <label htmlFor="minNative">*Minimum Native Zoom</label>
-        </div>
-        <div className={styles.editDiv}>
-          <input
-            id="minNative"
-            type="text"
-            onChange={(e) => {
-              setSublayer({ ...sublayer, minNativeZoom: +e.target.value });
-            }}
-            value={sublayer.minNativeZoom || ""}
-          />
-        </div>
-      </div>
-      <div id="maxNativeDiv">
-        <div className={styles.editDiv}>
-          <label htmlFor="maxNative">*Maximum Native Zoom</label>
-        </div>
-        <div className={styles.editDiv}>
-          <input
-            id="maxNative"
-            type="text"
-            onChange={(e) => {
-              setSublayer({ ...sublayer, maxNativeZoom: +e.target.value });
-            }}
-            value={sublayer.maxNativeZoom || ""}
-          />
-        </div>
-      </div>
-      <div id="maxZoomDiv">
-        <div className={styles.editDiv}>
-          <label htmlFor="maxZoom">Maximum Zoom</label>
-        </div>
-        <div className={styles.editDiv}>
-          <input
-            id="maxZoom"
-            type="text"
-            onChange={(e) => {
-              setSublayer({ ...sublayer, maxZoom: +e.target.value });
-            }}
-            value={sublayer.maxZoom || ""}
-          />
-        </div>
-      </div>
-      <div id="styleGenreicDiv">
-        <div id="strokeColorDiv">
+      {(!sublayer.type || sublayer.type === "vector-tile") && (
+        <>
           <div className={styles.editDiv}>
-            <label htmlFor="strokecolor">Stroke Color</label>
-          </div>
-          <div className={styles.editDiv}>
-            <input
-              id="strokecolor"
-              type="text"
+            <label htmlFor="folderNames">Folder </label>
+            <select
+              id="folderNames"
+              title="folder names"
               onChange={(e) => {
-                setSublayer({
-                  ...sublayer,
-                  color: e.target.value,
+                //get existing tilepattern
+                const tilePattern = sublayer.url
+                  ? sublayer.url.substring(sublayer.url.indexOf("/") + 1)
+                  : "";
+                //prepend the folder name to the URL.
+                //use callback method to set state or else it will conflict with the setState in loadXML
+                setSublayer((state) => {
+                  return { ...state, url: `${e.target.value}/${tilePattern}` };
                 });
-              }}
-              value={sublayer.color || ""}
-            />
-          </div>
-        </div>
 
-        <div id="opacityDiv">
-          <div className={styles.editDiv}>
-            <label htmlFor="opacity">Opacity</label>
+                //attempt to pre-load all other fields
+                loadTileMapResourceFromFile(e.target.value);
+                loadLegendFromFile(e.target.value);
+              }}
+              value={sublayer.url ? sublayer.url.substring(0, sublayer.url.indexOf("/")) : ""}
+            >
+              {props.fileList?.map((file) => {
+                return (
+                  <option value={file.name} key={file.name}>
+                    {file.name}
+                  </option>
+                );
+              })}
+            </select>
           </div>
           <div className={styles.editDiv}>
+            <label htmlFor="aegisUrl">Tile Pattern {`(eg. {z}/{x}/{y}.pbf)`}</label>
             <input
-              id="opacity"
+              id="aegisUrl"
               type="text"
               onChange={(e) => {
-                setSublayer({
-                  ...sublayer,
-                  opacity: +e.target.value,
-                });
+                //get existing foldername
+                const folderName = sublayer.url
+                  ? sublayer.url.substring(0, sublayer.url.indexOf("/"))
+                  : "";
+                //append new tile pattern to the URL
+                setSublayer({ ...sublayer, url: `${folderName}/${e.target.value}` });
               }}
-              value={sublayer.opacity || ""}
+              value={sublayer.url ? sublayer.url.substring(sublayer.url.indexOf("/") + 1) : ""}
             />
           </div>
-        </div>
-
-        <div id="fillColorDiv">
-          <div className={styles.editDiv}>
-            <label htmlFor="fillColor">Fill Color</label>
+          <div id="minNativeDiv">
+            <div className={styles.editDiv}>
+              <label htmlFor="minNative">*Minimum Native Zoom</label>
+            </div>
+            <div className={styles.editDiv}>
+              <input
+                id="minNative"
+                type="text"
+                onChange={(e) => {
+                  setSublayer({ ...sublayer, minNativeZoom: +e.target.value });
+                }}
+                value={sublayer.minNativeZoom || ""}
+              />
+            </div>
           </div>
-          <div className={styles.editDiv}>
-            <input
-              id="fillColor"
-              type="text"
-              onChange={(e) => {
-                setSublayer({
-                  ...sublayer,
-                  fillColor: e.target.value,
-                });
-              }}
-              value={sublayer.fillColor || ""}
-            />
+          <div id="maxNativeDiv">
+            <div className={styles.editDiv}>
+              <label htmlFor="maxNative">*Maximum Native Zoom</label>
+            </div>
+            <div className={styles.editDiv}>
+              <input
+                id="maxNative"
+                type="text"
+                onChange={(e) => {
+                  setSublayer({ ...sublayer, maxNativeZoom: +e.target.value });
+                }}
+                value={sublayer.maxNativeZoom || ""}
+              />
+            </div>
           </div>
-        </div>
-
-        <div id="fillOpacityDiv">
-          <div className={styles.editDiv}>
-            <label htmlFor="fillOpacity">Fill Opacity</label>
+          <div id="maxZoomDiv">
+            <div className={styles.editDiv}>
+              <label htmlFor="maxZoom">Maximum Zoom</label>
+            </div>
+            <div className={styles.editDiv}>
+              <input
+                id="maxZoom"
+                type="text"
+                onChange={(e) => {
+                  setSublayer({ ...sublayer, maxZoom: +e.target.value });
+                }}
+                value={sublayer.maxZoom || ""}
+              />
+            </div>
           </div>
-          <div className={styles.editDiv}>
-            <input
-              id="fillOpacity"
-              type="text"
-              onChange={(e) => {
-                setSublayer({
-                  ...sublayer,
-                  fillOpacity: +e.target.value,
-                });
-              }}
-              value={sublayer.fillOpacity || ""}
-            />
+          <div id="strokeWeightDiv">
+            <div className={styles.editDiv}>
+              <label htmlFor="strokeweight">Stroke Weight</label>
+            </div>
+            <div className={styles.editDiv}>
+              <input
+                id="strokeweight"
+                type="text"
+                onChange={(e) => {
+                  setSublayer({
+                    ...sublayer,
+                    weight: +e.target.value,
+                  });
+                }}
+                value={sublayer.weight || ""}
+              />
+            </div>
           </div>
-        </div>
-
-        <div id="strokeWeightDiv">
-          <div className={styles.editDiv}>
-            <label htmlFor="strokeweight">Stroke Weight</label>
+          <div id="strokeColorDiv">
+            <div className={styles.editDiv}>
+              <label htmlFor="strokecolor">Stroke Color</label>
+            </div>
+            <div className={styles.editDiv}>
+              <input
+                id="strokecolor"
+                type="text"
+                onChange={(e) => {
+                  setSublayer({
+                    ...sublayer,
+                    color: e.target.value,
+                  });
+                }}
+                value={sublayer.color || ""}
+              />
+            </div>
           </div>
-          <div className={styles.editDiv}>
-            <input
-              id="strokeweight"
-              type="text"
-              onChange={(e) => {
-                setSublayer({
-                  ...sublayer,
-                  weight: +e.target.value,
-                });
-              }}
-              value={sublayer.weight || ""}
-            />
-          </div>
-        </div>
-      </div>
-      <br />
-      * = values pulled from tilemapresource.xml
+        </>
+      )}
       <br />
       <button
         type="button"

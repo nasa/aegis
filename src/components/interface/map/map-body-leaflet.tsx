@@ -420,6 +420,13 @@ const MapBody: FunctionComponent = () => {
               weight: sublayerControl.style?.weight,
               fillOpacity: sublayerControl.style?.fillOpacity,
             });
+          } else if (layer.options.type === "vector-tile") {
+            const vectorTileLayer = layer;
+            vectorTileLayer.setStyle({
+              color: sublayerControl.style?.color,
+              opacity: sublayerControl.style?.opacity,
+              weight: sublayerControl.style?.weight,
+            });
           }
         }
       }
@@ -798,7 +805,7 @@ const MapBody: FunctionComponent = () => {
    * Determine measures to show and draw them on map when measures or selections change
    */
   useEffect(() => {
-    if (!map.current || mapDirective || !measurements || selectedMeasurementUuid === null) return;
+    if (!map.current || mapDirective || !measurements) return;
 
     // delete all measurements from the map
     map.current.eachLayer((layer: AEGISMapDrawingLayer) => {
@@ -808,9 +815,12 @@ const MapBody: FunctionComponent = () => {
     });
 
     // draw all measurements
+    if (selectedMeasurementUuid === null) {
+      return;
+    }
     const measurementsToShow = [measurements.find((m) => m.uuid === selectedMeasurementUuid)];
     measurementsToShow.forEach((measurement) => {
-      if (measurement.path.length > 1) {
+      if (measurement?.path.length > 1) {
         drawPolylineOnMap({
           map,
           name: "",

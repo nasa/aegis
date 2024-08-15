@@ -2,7 +2,7 @@ import L from "leaflet";
 import "leaflet-polylinedecorator";
 import * as geojson from "geojson";
 import DraggableLines from "leaflet-draggable-lines";
-
+import VectorTileLayer from "leaflet-vector-tile-layer";
 import { Dispatch, MutableRefObject, SetStateAction } from "react";
 import ReactDOMServer from "react-dom/server";
 import {
@@ -861,30 +861,46 @@ export const drawLayersOnMap = ({
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             feature: geojson.Feature<geojson.GeometryObject, any>
           ) => {
-            // if this grid has a MGRS_UTM property, that means it was made via MGRS process (for earth things like JETT 5).
-            // This means the 2nd coordinate is the bottom left
-            // If not, that means it's a bespoke grid made by the ARES GIS team, this means the 4th coordinate is the bottom left
+            if (feature.properties["MGRS_UTM"]) {
+              // if this grid has a MGRS_UTM property, that means it was made via MGRS process (for earth things like JETT 5).
 
-            const bottomLeftCoordinate = feature.properties["MGRS_UTM"] ? 1 : 3;
+              // Look for the MGRS_Corner value to tell us where the bottom left coordinate is.
+              // If it doens't exist, then just use the 2nd coordinate
+              const bottomLeftCoordinate = feature.properties["MGRS_Corner"]
+                ? feature.properties["MGRS_Corner"]
+                : 1;
 
-            if (feature.properties["CELL_ID"]) {
-              const multiPolygon = feature.geometry as geojson.MultiPolygon;
-              const latLng = new L.LatLng(
-                multiPolygon.coordinates[0][0][bottomLeftCoordinate][1],
-                multiPolygon.coordinates[0][0][bottomLeftCoordinate][0]
-              );
+              if (feature.properties["CELL_ID"]) {
+                const multiPolygon = feature.geometry as geojson.MultiPolygon;
+                const latLng = new L.LatLng(
+                  multiPolygon.coordinates[0][0][bottomLeftCoordinate][1],
+                  multiPolygon.coordinates[0][0][bottomLeftCoordinate][0]
+                );
 
+                const cellid = feature.properties["CELL_ID"];
+                newGridLabels.push({
+                  id: cellid,
+                  latLng: { lat: latLng.lat, lng: latLng.lng },
+                });
+              }
+            } else {
+              // No MGRS_UTM property, that means it's a bespoke grid made by the ARES GIS team, this means the 4th coordinate is the bottom left
               // x y is flipped if it's bespoke made by the ARES GIS team
-              const cellid = feature.properties["MGRS_UTM"]
-                ? feature.properties["CELL_ID"]
-                : `${feature.properties["CELL_ID"].split(" ")[1]} ${
-                    feature.properties["CELL_ID"].split(" ")[0]
-                  } `;
-
-              newGridLabels.push({
-                id: cellid,
-                latLng: { lat: latLng.lat, lng: latLng.lng },
-              });
+              const bottomLeftCoordinate = 3;
+              const cellid = `${feature.properties["CELL_ID"].split(" ")[1]} ${
+                feature.properties["CELL_ID"].split(" ")[0]
+              } `;
+              if (feature.properties["CELL_ID"]) {
+                const multiPolygon = feature.geometry as geojson.MultiPolygon;
+                const latLng = new L.LatLng(
+                  multiPolygon.coordinates[0][0][bottomLeftCoordinate][1],
+                  multiPolygon.coordinates[0][0][bottomLeftCoordinate][0]
+                );
+                newGridLabels.push({
+                  id: cellid,
+                  latLng: { lat: latLng.lat, lng: latLng.lng },
+                });
+              }
             }
           };
 
@@ -920,6 +936,36 @@ export const drawLayersOnMap = ({
           }
         };
         fetchGeojsonAsync();
+      } else {
+        // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
+        const layer = getLayerByName(map, sublayer.name);
+        layer.bringToFront();
+      }
+    } else if (sublayer.type === "vector-tile") {
+      // if layer isn't already on the map, add it
+      if (!isLayerOnMapByName(map, sublayer.name)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const vectorTileLayer = VectorTileLayer(
+          `${layerBaseURL}/${missionId}/Layers/${sublayer.url}`,
+          {
+            id: sublayer.name,
+            uuid: sublayer.uuid,
+            type: "vector-tile",
+            style: {
+              fill: false,
+              stroke: true,
+              //manually define defaults
+              color: mapSublayerControls[sublayer.uuid].style?.color,
+              opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
+              weight: mapSublayerControls[sublayer.uuid].style?.weight,
+            },
+            minDetailZoom: sublayer.minNativeZoom,
+            maxDetailZoom: sublayer.maxNativeZoom,
+          }
+        );
+
+        map.current.addLayer(vectorTileLayer);
+        vectorTileLayer.bringToFront();
       } else {
         // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
         const layer = getLayerByName(map, sublayer.name);
