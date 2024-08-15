@@ -402,7 +402,6 @@ deploy:int:
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
     URL: https://aegis-int.fit.nasa.gov
-  when: manual
   only:
     - int
 
