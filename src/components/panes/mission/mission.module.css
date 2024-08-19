@@ -107,9 +107,7 @@
 }
 
 .propertyListItem {
-  border-color: var(--grey1);
-  border-width: 4px 8px 4px 8px;
-  border-style: solid;
+  text-align: left;
 }
 
 .radiiListitem {

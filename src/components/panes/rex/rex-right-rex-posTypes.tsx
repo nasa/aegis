@@ -76,10 +76,15 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                   nodeSelector={`li.${styles.propertyListItem}`}
                   handleSelector={`a.rexTypeReorder`}
                 >
-                  {selectedRex.posTypes?.map((item) => {
+                  {selectedRex.posTypes?.map((item, index) => {
                     return (
                       <li key={item.uuid} className={styles.propertyListItem}>
-                        <PosType rexUuid={selectedRex.uuid} item={item} editMode={editMode} />
+                        <PosType
+                          rexUuid={selectedRex.uuid}
+                          item={item}
+                          editMode={editMode}
+                          evenRow={index % 2 === 0}
+                        />
                       </li>
                     );
                   })}
@@ -110,12 +115,18 @@ const PosType: FunctionComponent<{
   rexUuid: string;
   item: PosType;
   editMode: boolean;
-}> = ({ rexUuid, item, editMode }) => {
+  evenRow: boolean;
+}> = ({ rexUuid, item, editMode, evenRow }) => {
   const dispatch = useAppDispatch();
+
+  let backgroundColor: string = "var(--grey2)";
+  if (!editMode) {
+    backgroundColor = evenRow ? "var(--grey2)" : "var(--grey1)";
+  }
 
   return (
     <div className={paneStyles.descriptionContainer}>
-      <div className={styles.propertyRow}>
+      <div className={styles.propertyRow} style={{ backgroundColor }}>
         <div className={styles.propertyRowGrip}>
           {editMode && (
             <a className="rexTypeReorder">
@@ -202,6 +213,7 @@ const PosType: FunctionComponent<{
                 })
               );
             }}
+            hasDarkBorder={evenRow}
           />
         </div>
         <div className={styles.propertyRowTrash}>
