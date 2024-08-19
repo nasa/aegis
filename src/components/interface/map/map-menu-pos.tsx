@@ -223,7 +223,7 @@ export const MapPositionMenu: FunctionComponent = () => {
                         selectedPosTypeUuids.includes(posType.uuid) && styles.toggleSelected
                       }`}
                       onClick={() => {
-                        togglePosType(posType.uuid, index);
+                        togglePosType(posType.uuid);
                       }}
                     >
                       {posType.abbr}
