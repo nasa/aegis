@@ -837,6 +837,10 @@ const MapBody: FunctionComponent<{
         });
       }
 
+      const sortedPosTypeUuids = runningRexFromDb.posTypes
+        .filter((posType) => posEntry.posTypeUuids.includes(posType.uuid))
+        .map((posType) => posType.uuid);
+
       drawPosMarkerOnMap({
         map,
         posEntry: posEntry,
@@ -856,6 +860,7 @@ const MapBody: FunctionComponent<{
         overrideEVIcon: true,
         miniMap: false,
         barOffset: 8,
+        sortedPosTypeUuids: sortedPosTypeUuids,
       });
     }
 

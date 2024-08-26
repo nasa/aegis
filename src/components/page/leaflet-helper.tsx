@@ -548,6 +548,7 @@ export const drawPosMarkerOnMap = async ({
   overrideEVIcon = false,
   miniMap = false,
   barOffset = 5,
+  sortedPosTypeUuids,
 }: {
   map: MutableRefObject<L.Map>;
   posEntry: PosEntry;
@@ -571,8 +572,11 @@ export const drawPosMarkerOnMap = async ({
   overrideEVIcon?: boolean; // whether or not to show the custom SVG icon for astronauts. Pos type name must start with "EV"
   miniMap?: boolean; // mini map flag to determine styling
   barOffset?: number;
+  sortedPosTypeUuids?: string[];
 }): Promise<void> => {
-  const { uuid, location, posTypeUuids: posTypeUuids } = posEntry;
+  const uuid = posEntry.uuid;
+  const location = posEntry.location;
+  const posTypeUuids = sortedPosTypeUuids || posEntry.posTypeUuids;
   if (!selectedOrRunningRex || isNaN(posEntry?.location?.lat) || isNaN(posEntry?.location?.lng))
     return;
   const mapItemType: MapItemType = "posEntry";

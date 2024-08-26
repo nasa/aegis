@@ -1046,6 +1046,7 @@ const MapBody: FunctionComponent = () => {
 
       // determine if this is one of the latest entries. If so, determine which latest pos types exist in this entry
       const customPosTypesUuids: string[] = [];
+
       let isRecent = false;
       posEntry.posTypeUuids.forEach((posTypeUuid) => {
         if (posTypeLatestEntries[posTypeUuid][0]?.uuid === posEntry.uuid) {
@@ -1082,6 +1083,10 @@ const MapBody: FunctionComponent = () => {
           }
         });
       }
+
+      const sortedPosTypeUuids = selectedOrRunningRex.posTypes
+        .filter((posType) => posEntry.posTypeUuids.includes(posType.uuid))
+        .map((posType) => posType.uuid);
 
       drawPosMarkerOnMap({
         map,
@@ -1120,6 +1125,7 @@ const MapBody: FunctionComponent = () => {
         iconWrapperClassName: styles.iconWrapper,
         barClassName: styles.posBar,
         overrideEVIcon: false,
+        sortedPosTypeUuids: sortedPosTypeUuids,
       });
     }
 

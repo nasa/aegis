@@ -506,6 +506,9 @@ const MiniMap: FunctionComponent<{
       });
 
       if (drawThisEntry) {
+        const sortedPosTypeUuids = runningRexFromDb.posTypes
+          .filter((posType) => posEntry.posTypeUuids.includes(posType.uuid))
+          .map((posType) => posType.uuid);
         drawPosMarkerOnMap({
           map,
           posEntry: posEntry,
@@ -528,6 +531,7 @@ const MiniMap: FunctionComponent<{
           overrideEVIcon: true,
           miniMap: true,
           barOffset: 6,
+          sortedPosTypeUuids: sortedPosTypeUuids,
         });
       }
     }
