@@ -1084,10 +1084,6 @@ const MapBody: FunctionComponent = () => {
         });
       }
 
-      const sortedPosTypeUuids = selectedOrRunningRex.posTypes
-        .filter((posType) => posEntry.posTypeUuids.includes(posType.uuid))
-        .map((posType) => posType.uuid);
-
       drawPosMarkerOnMap({
         map,
         posEntry: posEntry,
@@ -1125,7 +1121,6 @@ const MapBody: FunctionComponent = () => {
         iconWrapperClassName: styles.iconWrapper,
         barClassName: styles.posBar,
         overrideEVIcon: false,
-        sortedPosTypeUuids: sortedPosTypeUuids,
       });
     }
 

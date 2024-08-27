@@ -37,7 +37,7 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     deepEqual
   );
 
-  //reorder header layers and then upsert to preset
+  //reorder pos types and upsert to rex
   function reorderType(fromIndex: number, toIndex: number) {
     const newPositionTypeList = cloneDeep(selectedRex.posTypes);
     const headerLayerBeingMoved = newPositionTypeList.splice(fromIndex, 1)[0]; //remove header layer
