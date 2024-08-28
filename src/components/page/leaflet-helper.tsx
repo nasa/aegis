@@ -572,10 +572,15 @@ export const drawPosMarkerOnMap = async ({
   miniMap?: boolean; // mini map flag to determine styling
   barOffset?: number;
 }): Promise<void> => {
-  const { uuid, location, posTypeUuids: posTypeUuids } = posEntry;
+  const uuid = posEntry.uuid;
+  const location = posEntry.location;
   if (!selectedOrRunningRex || isNaN(posEntry?.location?.lat) || isNaN(posEntry?.location?.lng))
     return;
   const mapItemType: MapItemType = "posEntry";
+
+  const posTypeUuids = selectedOrRunningRex.posTypes
+    .filter((posType) => posEntry.posTypeUuids.includes(posType.uuid))
+    .map((posType) => posType.uuid);
 
   const makeIconFromPosTypeUuid = (posTypeUuid: string, count: number): JSX.Element => {
     const entryPosType = selectedOrRunningRex.posTypes?.find(

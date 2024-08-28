@@ -535,7 +535,15 @@ export const PathColorPickerMenu: FunctionComponent<{
   updateColor: (color: string) => void;
   styleContainer?: CSSProperties;
   direction?: "left" | "right";
-}> = ({ currentColor, editMode, updateColor, styleContainer, direction = "left" }) => {
+  hasDarkBorder?: boolean;
+}> = ({
+  currentColor,
+  editMode,
+  updateColor,
+  styleContainer,
+  direction = "left",
+  hasDarkBorder,
+}) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -569,7 +577,7 @@ export const PathColorPickerMenu: FunctionComponent<{
 
       <div
         style={styleContainer}
-        className={`${styles.propertyPathColor} ${editMode ? styles.propertyEditMode : ""}`}
+        className={`${styles.propertyPathColor} ${hasDarkBorder ? styles.propertyPathColorDark : styles.propertyPathColorLight} ${editMode ? styles.propertyEditMode : ""}`}
         onClick={(e) => {
           if (!editMode) return;
           handleMenuOpen(e);

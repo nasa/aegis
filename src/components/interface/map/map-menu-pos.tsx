@@ -63,6 +63,11 @@ export const MapPositionMenu: FunctionComponent = () => {
     return orderBy(posEntries, ["createdAt"], "desc");
   }, deepEqual);
 
+  const posTypes = useAppSelector((state) => {
+    const posTypes = state.rex.rexes.find((r) => r.uuid === selectedRex?.uuid)?.posTypes;
+    return posTypes;
+  }, deepEqual);
+
   const posEntryEditingUuid = useAppSelector((state) => state.rex.posEntryEditingUuid, refEqual);
   const posEntriesInEdit = posEntries.find((c) => c.uuid === posEntryEditingUuid);
   const editingPosEntry = useAppSelector(
@@ -112,7 +117,11 @@ export const MapPositionMenu: FunctionComponent = () => {
       if (selectedPosTypeUuids.includes(posTypeUuid)) {
         newSelectedPosTypeUuids = selectedPosTypeUuids.filter((i) => i !== posTypeUuid);
       } else {
-        newSelectedPosTypeUuids = [...selectedPosTypeUuids, posTypeUuid];
+        for (let i = 0; i < posTypes.length; i++) {
+          if (selectedPosTypeUuids.includes(posTypes[i].uuid) || posTypes[i].uuid === posTypeUuid) {
+            newSelectedPosTypeUuids.push(posTypes[i].uuid);
+          }
+        }
       }
       setSelectedPosTypeUuids(newSelectedPosTypeUuids);
       if (!editingPosEntry) return;
@@ -124,14 +133,7 @@ export const MapPositionMenu: FunctionComponent = () => {
         })
       );
     },
-    [
-      selectedRex,
-      selectedPosTypeUuids,
-      setSelectedPosTypeUuids,
-      editingPosEntry,
-      dispatch,
-      posEntryEditingUuid,
-    ]
+    [selectedPosTypeUuids, editingPosEntry, dispatch, selectedRex, posEntryEditingUuid, posTypes]
   );
 
   // track the last pos entry for each pos type to determine which items to show in the top list

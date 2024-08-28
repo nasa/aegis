@@ -19,7 +19,11 @@
   display: flex;
   margin-left: 5px;
   transform: scaleX(0.8);
-  cursor: pointer;
+  cursor: grab;
+}
+
+.reorderIcon:hover:active {
+  cursor: grabbing;
 }
 
 .iconFaded {
