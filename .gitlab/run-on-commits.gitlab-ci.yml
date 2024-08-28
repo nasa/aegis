@@ -425,6 +425,7 @@ deploy:prod:
   artifacts:
     paths:
       - aegis.sql
+    expire_in: 1 day
 
 z:db-export:prod:
   extends: .db-export-template
