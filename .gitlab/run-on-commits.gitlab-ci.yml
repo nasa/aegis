@@ -8,9 +8,6 @@ stages:
   - test
 
 default:
-  artifacts:
-    # Aggressively expire artifacts. The latest for any branch never expires
-    expire_in: 1 day
   timeout: 10 minutes
 
 variables:
@@ -157,6 +154,7 @@ node-sbom:
     paths:
       - "./bom.json"
       - "./new-bom.md"
+    expire_in: 1 day
 
 # Template for `test` and `test-node-next` jobs, adding database service, etc.
 .test_template:
@@ -196,6 +194,7 @@ test:
         - junit.xml
     paths:
       - ./coverage/*
+    expire_in: 1 day
 
 # test against next version of node that AEGIS may use, but allow to fail
 test-node-next:
@@ -247,6 +246,7 @@ make-dotenv:
       dotenv: pipelineVariables.env
     paths:
       - .env
+    expire_in: 1 day
 
 #
 # Build container images
@@ -339,6 +339,7 @@ deploy:artifactize-committed-files:
     paths:
       - .fitdock.yml
       - docker-compose.yml
+    expire_in: 1 day
 
 .deploy-template:
   extends: .emss-fitdock-deploy # use job template from gitlab-templates repo
