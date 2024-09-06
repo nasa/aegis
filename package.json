@@ -48,7 +48,7 @@
     "@mikro-orm/migrations": "6.2.9",
     "@mikro-orm/postgresql": "6.2.9",
     "@mikro-orm/seeder": "6.2.9",
-    "@reduxjs/toolkit": "^2.2.6",
+    "@reduxjs/toolkit": "^2.2.7",
     "@turf/helpers": "^7.0.0",
     "@turf/turf": "^7.0.0",
     "axios": "^1.7.2",
