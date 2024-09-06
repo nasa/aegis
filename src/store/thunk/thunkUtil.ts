@@ -1,11 +1,17 @@
 import type { AppDispatch, RootState } from "store";
-import { createAsyncThunk } from "@reduxjs/toolkit";
-import type { AsyncThunk, BaseThunkAPI } from "@reduxjs/toolkit/dist/createAsyncThunk";
+import { createAsyncThunk, AsyncThunkPayloadCreator, AsyncThunk } from "@reduxjs/toolkit";
 
-type ThunkFunc<InputArg, ReturnType = void, RejectValue = unknown> = (
-  input: InputArg,
-  thunkApi: BaseThunkAPI<RootState, void, AppDispatch, RejectValue>
-) => Promise<ReturnType>;
+type AppThunkConfig<RejectValue> = {
+  state: RootState;
+  dispatch: AppDispatch;
+  rejectValue: RejectValue;
+  // These are all things we could add to the type, but they're not needed anywhere at present
+  // extra?: unknown;
+  // serializedErrorType?: unknown;
+  // pendingMeta?: unknown;
+  // fulfilledMeta?: unknown;
+  // rejectedMeta?: unknown;
+};
 
 /**
  * This function is just a wrapper on createAsyncThunk that sets up the types for our app
@@ -17,23 +23,10 @@ type ThunkFunc<InputArg, ReturnType = void, RejectValue = unknown> = (
  */
 const appCreateAsyncThunk = <ArgType, ReturnType = void, RejectValue = unknown>(
   actionType: string,
-  thunkFunc: ThunkFunc<ArgType, ReturnType, RejectValue>
-): AsyncThunk<
-  ReturnType,
-  ArgType,
-  {
-    state: RootState;
-    dispatch: AppDispatch;
-    rejectValue: RejectValue;
-    // These are all things we could add to the type, but they're not needed anywhere at present
-    // extra?: unknown;
-    // serializedErrorType?: unknown;
-    // pendingMeta?: unknown;
-    // fulfilledMeta?: unknown;
-    // rejectedMeta?: unknown;
-  }
-> => {
-  return createAsyncThunk<ReturnType, ArgType, { rejectValue: RejectValue }>(
+  // thunkFunc: ThunkFunc<ArgType, ReturnType, RejectValue>
+  thunkFunc: AsyncThunkPayloadCreator<ReturnType, ArgType, AppThunkConfig<RejectValue>>
+): AsyncThunk<ReturnType, ArgType, AppThunkConfig<RejectValue>> => {
+  return createAsyncThunk<ReturnType, ArgType, AppThunkConfig<RejectValue>>(
     "thunk/" + actionType,
     thunkFunc
   );
