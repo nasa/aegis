@@ -159,6 +159,9 @@ node-sbom:
 # Template for `test` and `test-node-next` jobs, adding database service, etc.
 .test_template:
   stage: stageless
+  needs:
+    - install_dependencies
+    - make-dotenv
   variables:
     # define variables used by Node app
     DB_HOST: postgres-test-container
@@ -173,12 +176,14 @@ node-sbom:
     - name: $CI_REGISTRY/emss/docker-images/postgres:postgis-14-alpine
       alias: postgres-test-container
   tags: ["docker", "linux"]
+  before_script:
+    # Remove lines from .env file. See "Variable Precedence" section above
+    - sed -i '/DB_PASS/d' .env
+    - sed -i '/DB_HOST/d' .env
+    - sed -i '/DB_NAME/d' .env
 
 test:
   extends: .test_template
-  needs:
-    - install_dependencies
-    - make-dotenv
   script:
     - npm run migrate:up
     - npm run lint
@@ -200,7 +205,6 @@ test:
 test-node-next:
   extends: .test_template
   image: "$FUTURE_NODE_VERSION_IMAGE"
-  needs: ["install_dependencies"]
   allow_failure: true
   script:
     - npm run migrate:up
@@ -229,10 +233,10 @@ make-dotenv:
           IMAGE_VERSION="dev-${CI_COMMIT_SHORT_SHA}"
       fi
 
-    # Save image version into a an artifact to be read later in other jobs
-    - echo "IMAGE_VERSION=${IMAGE_VERSION}" >> pipelineVariables.env
     # Export the variable so it can be read inside the make-dotenv.sh script
     - export IMAGE_VERSION
+    # Save image version into an artifact to be read later in other job scripts
+    - echo "IMAGE_VERSION=${IMAGE_VERSION}" >> pipelineVariables.env
 
     # make-dotenv.sh should detect the script directory to read .env.template and write .env
     # relatively, but Alpine Linux uses standard POSIX sh, not Bash, which cannot do this [1]. So
@@ -241,6 +245,7 @@ make-dotenv:
     # Ref: [1] https://stackoverflow.com/a/49794678/2782380
     - cd ./scripts
     - bash ./make-dotenv.sh
+
   artifacts:
     reports:
       dotenv: pipelineVariables.env
