@@ -28,7 +28,7 @@ import {
 } from "store/thunk/thunkRex";
 import { setPosEntryEditingUuid, setSelectedPosEntryUuid } from "store/rex";
 import { hhmmssFromSeconds } from "utils/formatting";
-import { thunkClearAllMapSelections, thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
+import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { setHoverUuidsForPosEntry } from "store/hover";
 import { PosKabobMenu } from "./map-menu-pos-menu";
 import { orderBy } from "lodash";
@@ -157,7 +157,6 @@ export const MapPositionMenu: FunctionComponent = () => {
 
   //create a new position entry
   const handleCreate = async () => {
-    await dispatch(thunkClearAllMapSelections());
     const newUuid = (await dispatch(thunkCreatePosEntry({ posTypeUuids: selectedPosTypeUuids })))
       .payload;
     if (newUuid) {
