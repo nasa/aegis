@@ -502,11 +502,34 @@ z:db-import:int:
     GIT_STRATEGY: none
   script:
     - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
+
+    # OS info and partition usage
+    - cat /etc/os-release
+    - df -h
+
+    # Setup artifact directories
+    - LOG_ARTIFACTS=$(pwd)/log_artifacts
+    - mkdir -p "${LOG_ARTIFACTS}"
+
     - cd /opt/aegis
-    - sudo docker compose logs nginx
-    - sudo docker compose logs database
-    - sudo docker compose logs gdal
-    - sudo docker compose logs apiv1
+
+    # print last 100 lines to job output
+    - sudo docker compose logs nginx --tail 100
+    - sudo docker compose logs database --tail 100
+    - sudo docker compose logs gdal --tail 100
+    - sudo docker compose logs apiv1 --tail 100
+
+    # Put the full logs into artifacts. Full logs may hit the job log length
+    # limit, and generally make the job log unreadably long
+    - sudo docker compose logs nginx > "${LOG_ARTIFACTS}/nginx"
+    - sudo docker compose logs database > "${LOG_ARTIFACTS}/database"
+    - sudo docker compose logs gdal > "${LOG_ARTIFACTS}/gdal"
+    - sudo docker compose logs apiv1 > "${LOG_ARTIFACTS}/apiv1"
+  artifacts:
+    when: always
+    paths:
+      - ./log_artifacts
+    expire_in: 1 day
 
 z:logs:dev1:
   extends: .container-logs-template
