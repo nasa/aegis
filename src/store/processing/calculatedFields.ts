@@ -95,7 +95,7 @@ export const getCalculatedFieldsByStation = (params: {
   const station = wholeStoreState.station.stations.find(
     (storeStation) => storeStation.uuid === stationUuid
   );
-  const missionTraverseRate = wholeStoreState.mission.mission?.traverseRate;
+  const missionWalkbackRate = wholeStoreState.mission.mission?.walkbackRate;
 
   //get station actions
   const stationActions = wholeStoreState.action.actions.filter(
@@ -196,7 +196,7 @@ export const getCalculatedFieldsByStation = (params: {
   // get walback duration minutes
   const walkbackDurationMinutes = calcPathDurationMins(
     station.walkbackPathSegmentDistances,
-    missionTraverseRate
+    station.walkbackTraverseRate ? station.walkbackTraverseRate : missionWalkbackRate
   );
 
   // get walkback distance meters

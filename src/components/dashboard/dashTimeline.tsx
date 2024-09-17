@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
-import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { processEvaDataFromStore } from "../interface/timeline/common-timeline";
 import { selectEvaStations, selecteEvaTraverses } from "store/selectors";
 import styles from "./dashTimeline.module.css";
@@ -29,10 +29,6 @@ const DashTimeline: FunctionComponent = () => {
   const runningEvaFromDb = useAppSelector(
     (state) => state.eva.evasFromDb.find((eva) => eva.uuid === runningRexFromDb.evaUuid),
     deepEqual
-  );
-  const missionTraverseRate = useAppSelector(
-    (state) => state.mission.missionFromDb?.traverseRate,
-    refEqual
   );
   const missionFromDb = useAppSelector((state) => state.mission.missionFromDb, deepEqual);
   const evaStations = useAppSelector(selectEvaStations(runningEvaFromDb?.uuid), deepEqual);
@@ -97,7 +93,7 @@ const DashTimeline: FunctionComponent = () => {
     height,
     evaStations,
     evaTraverses,
-    missionTraverseRate,
+    missionFromDb,
   ]);
 
   // update the storeRef object with the calculated data when anything changes
@@ -108,7 +104,8 @@ const DashTimeline: FunctionComponent = () => {
       selectedEva: runningEvaFromDb,
       evaStations,
       evaTraverses,
-      missionTraverseRate,
+      missionTraverseRate: missionFromDb?.traverseRate,
+      missionWalkbackRate: missionFromDb?.walkbackRate,
       stationCalculatedFieldsInSelectedEva: stationCalculatedFieldsInRunningEva,
       selectedRex: runningRexFromDb,
     });
@@ -118,7 +115,6 @@ const DashTimeline: FunctionComponent = () => {
     runningEvaFromDb,
     evaStations,
     evaTraverses,
-    missionTraverseRate,
     stationCalculatedFieldsInRunningEva,
     runningRexFromDb,
     pixelsPerSecondY,

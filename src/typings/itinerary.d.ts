@@ -8,7 +8,7 @@ interface Eva {
   sequence: EvaSequenceItem[];
   description: string;
   maxDuration: number; // minutes
-  traverseRate: number; // km/hour
+  traverseRate: number; // km/h
   egressDuration: number; // minutes
   ingressDuration: number; // minutes
   egressLocationUuid: string; // station uuid or "lander"
@@ -42,7 +42,7 @@ interface Traverse {
   predictedDurationLower: number; //minutes
   predictedDurationUpper: number; //minutes
   description: string;
-  traverseRate?: number; // km/hour
+  traverseRate?: number; // km/h
   color?: string;
 
   createdAt?: string;
@@ -77,6 +77,7 @@ interface Station {
   walkbackPath: AEGISPoint[];
   walkbackPathSegmentDistances: number[]; //meters
   walkbackPathSegmentElevations: number[][]; //meters
+  walkbackTraverseRate: number; // km/h
   icon: string;
 
   /**

@@ -48,10 +48,6 @@ const NavTimeline: FunctionComponent = () => {
     refEqual
   );
   const selectedPosEntryUuid = useAppSelector((state) => state.rex.selectedPosEntryUuid, refEqual);
-  const missionTraverseRate = useAppSelector(
-    (state) => state.mission.mission?.traverseRate,
-    refEqual
-  );
   const mission = useAppSelector((state) => state.mission.mission, deepEqual);
   const evaActions = useAppSelector(selectEvaActions(), deepEqual);
   const evaStations = useAppSelector(selectEvaStations(), deepEqual);
@@ -133,7 +129,8 @@ const NavTimeline: FunctionComponent = () => {
       selectedEva,
       evaStations,
       evaTraverses,
-      missionTraverseRate,
+      missionTraverseRate: mission?.traverseRate,
+      missionWalkbackRate: mission?.walkbackRate,
       stationCalculatedFieldsInSelectedEva,
       selectedRex,
     });
@@ -143,7 +140,6 @@ const NavTimeline: FunctionComponent = () => {
     selectedEva,
     evaStations,
     evaTraverses,
-    missionTraverseRate,
     stationCalculatedFieldsInSelectedEva,
     selectedRex,
   ]);
