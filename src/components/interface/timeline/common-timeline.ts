@@ -14,6 +14,7 @@ export const processEvaDataFromStore = ({
   evaStations,
   evaTraverses,
   missionTraverseRate,
+  missionWalkbackRate,
   stationCalculatedFieldsInSelectedEva,
   selectedRex,
 }: {
@@ -23,6 +24,7 @@ export const processEvaDataFromStore = ({
   evaStations: Station[];
   evaTraverses: Traverse[];
   missionTraverseRate: number;
+  missionWalkbackRate: number;
   stationCalculatedFieldsInSelectedEva: StationCalculatedFields[];
   selectedRex: Rex;
 }): void => {
@@ -181,7 +183,7 @@ export const processEvaDataFromStore = ({
                 storeRef.current.maxDistFromLanderMeters = landerDistance;
               walkback.subdividedDistFromLanderMeters.push(landerDistance);
 
-              //calculate duration. distance is in m, rate is in km/hr, duration is in minutes
+              //calculate duration. distance is in m, rate is in km/h, duration is in minutes
               if (i !== newWalkbackPath.length - 1) {
                 const distanceSegment = getDistanceBetweenTwoCoordinates(
                   newWalkbackPath[i],
@@ -189,13 +191,13 @@ export const processEvaDataFromStore = ({
                   mission.planetRadius
                 );
                 walkback.subdividedDistMeters.push(distanceSegment);
-                const traverseRate = _.isNumber(selectedEva.traverseRate)
-                  ? selectedEva.traverseRate
-                  : missionTraverseRate;
+                const walkbackTraverseRate = _.isNumber(station.walkbackTraverseRate)
+                  ? station.walkbackTraverseRate
+                  : missionWalkbackRate;
 
-                const duration = isNaN(traverseRate)
+                const duration = isNaN(walkbackTraverseRate)
                   ? 0
-                  : (distanceSegment / (+traverseRate * 1000)) * 60;
+                  : (distanceSegment / (+walkbackTraverseRate * 1000)) * 60;
                 walkback.subdividedDurationsMins.push(duration);
               }
             }
@@ -264,7 +266,7 @@ export const processEvaDataFromStore = ({
           EVASequenceItemForTimeline.traverse.subdividedDistFromLanderMeters.push(landerDistance);
         }
 
-        //calculate duration. distance is in m, rate is in km/hr, duration is in minutes
+        //calculate duration. distance is in m, rate is in km/h, duration is in minutes
         if (i !== newTraverse.length - 1) {
           const distanceSegment = getDistanceBetweenTwoCoordinates(
             newTraverse[i],

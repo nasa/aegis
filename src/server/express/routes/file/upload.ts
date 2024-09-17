@@ -39,7 +39,7 @@ const upload = multer({
       cb(null, file.originalname);
       filename = file.originalname;
       req.on("aborted", () => {
-        console.log("Client aborted upload");
+        console.log(`${new Date()} - Client aborted upload`);
         deleteFile(filename);
       });
     },

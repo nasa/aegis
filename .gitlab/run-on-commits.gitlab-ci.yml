@@ -8,9 +8,6 @@ stages:
   - test
 
 default:
-  artifacts:
-    # Aggressively expire artifacts. The latest for any branch never expires
-    expire_in: 1 day
   timeout: 10 minutes
 
 variables:
@@ -47,18 +44,28 @@ include:
 
   # Code quality checks
   - project: "emss/gitlab-templates"
-    ref: latest
+    ref: 1.2.2
     file: "/jobs/code-quality.gitlab-ci.yml"
 
   # Fitdock deploy template
   - project: "emss/gitlab-templates"
-    ref: latest
+    ref: 1.2.2
     file: "/jobs/fitdock-deploy.gitlab-ci.yml"
+
+  # EMSS shared dev server helpers (carbon, iron, oxygen, etc)
+  - project: "emss/gitlab-templates"
+    ref: 1.2.2
+    file: "/jobs/emss-shared-dev.gitlab-ci.yml"
 
   # Kaniko build template
   - project: "emss/gitlab-templates"
-    ref: latest
+    ref: 1.2.2
     file: "/jobs/kaniko-build.gitlab-ci.yml"
+
+  # Retag job template
+  - project: "emss/gitlab-templates"
+    ref: 1.2.2
+    file: "/jobs/container-retag.gitlab-ci.yml"
 
 # Overrride some properties on FIT jobs. Unfortunately using a template for these
 # make GitLab angry, so a lot of repetition
@@ -152,10 +159,14 @@ node-sbom:
     paths:
       - "./bom.json"
       - "./new-bom.md"
+    expire_in: 1 day
 
 # Template for `test` and `test-node-next` jobs, adding database service, etc.
 .test_template:
   stage: stageless
+  needs:
+    - install_dependencies
+    - make-dotenv
   variables:
     # define variables used by Node app
     DB_HOST: postgres-test-container
@@ -170,12 +181,14 @@ node-sbom:
     - name: $CI_REGISTRY/emss/docker-images/postgres:postgis-14-alpine
       alias: postgres-test-container
   tags: ["docker", "linux"]
+  before_script:
+    # Remove lines from .env file. See "Variable Precedence" section above
+    - sed -i '/DB_PASS/d' .env
+    - sed -i '/DB_HOST/d' .env
+    - sed -i '/DB_NAME/d' .env
 
 test:
   extends: .test_template
-  needs:
-    - install_dependencies
-    - make-dotenv
   script:
     - npm run migrate:up
     - npm run lint
@@ -191,12 +204,12 @@ test:
         - junit.xml
     paths:
       - ./coverage/*
+    expire_in: 1 day
 
 # test against next version of node that AEGIS may use, but allow to fail
 test-node-next:
   extends: .test_template
   image: "$FUTURE_NODE_VERSION_IMAGE"
-  needs: ["install_dependencies"]
   allow_failure: true
   script:
     - npm run migrate:up
@@ -225,10 +238,10 @@ make-dotenv:
           IMAGE_VERSION="dev-${CI_COMMIT_SHORT_SHA}"
       fi
 
-    # Save image version into a an artifact to be read later in other jobs
-    - echo "IMAGE_VERSION=${IMAGE_VERSION}" >> pipelineVariables.env
     # Export the variable so it can be read inside the make-dotenv.sh script
     - export IMAGE_VERSION
+    # Save image version into an artifact to be read later in other job scripts
+    - echo "IMAGE_VERSION=${IMAGE_VERSION}" >> pipelineVariables.env
 
     # make-dotenv.sh should detect the script directory to read .env.template and write .env
     # relatively, but Alpine Linux uses standard POSIX sh, not Bash, which cannot do this [1]. So
@@ -237,11 +250,13 @@ make-dotenv:
     # Ref: [1] https://stackoverflow.com/a/49794678/2782380
     - cd ./scripts
     - bash ./make-dotenv.sh
+
   artifacts:
     reports:
       dotenv: pipelineVariables.env
     paths:
       - .env
+    expire_in: 1 day
 
 #
 # Build container images
@@ -288,11 +303,7 @@ docker:build:apiv1:
 # Retag docker images after necessary jobs pass (e.g. unit testing passes)
 #
 docker:retag:
-  stage: stageless
-  image: "$CI_REGISTRY/emss/docker-images:skopeo"
-  variables:
-    GIT_STRATEGY: none # Don't checkout the repo, just get artifacts
-  tags: ["docker", "linux"]
+  extends: .emss-container-retag
   needs:
     - make-dotenv
     - job: test
@@ -303,25 +314,11 @@ docker:retag:
       artifacts: false
     - job: docker:build:apiv1
       artifacts: false
-  script:
-    # Login to registry
-    - echo $CI_JOB_TOKEN | skopeo login -u gitlab-ci-token --password-stdin $CI_REGISTRY
-
-    # IMAGE_VERSION is from make-dotenv job
-    - SERVICE=nginx
-    - TEMP_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:preview-${IMAGE_VERSION}"
-    - FINAL_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:${IMAGE_VERSION}"
-    - skopeo copy "docker://${TEMP_IMAGE}" "docker://${FINAL_IMAGE}"
-
-    - SERVICE=gdal
-    - TEMP_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:preview-${IMAGE_VERSION}"
-    - FINAL_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:${IMAGE_VERSION}"
-    - skopeo copy docker://$TEMP_IMAGE docker://$FINAL_IMAGE
-
-    - SERVICE=apiv1
-    - TEMP_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:preview-${IMAGE_VERSION}"
-    - FINAL_IMAGE="${CI_REGISTRY_IMAGE}/${SERVICE}:${IMAGE_VERSION}"
-    - skopeo copy docker://$TEMP_IMAGE docker://$FINAL_IMAGE
+  variables:
+    RETAG_SERVICE_IMAGES: |
+      nginx
+      gdal
+      apiv1
 
 deploy:artifactize-committed-files:
   image: "$CI_REGISTRY/emss/docker-images:envsubst-bash-in-envsubst"
@@ -334,6 +331,7 @@ deploy:artifactize-committed-files:
     paths:
       - .fitdock.yml
       - docker-compose.yml
+    expire_in: 1 day
 
 .deploy-template:
   extends: .emss-fitdock-deploy # use job template from gitlab-templates repo
@@ -354,40 +352,16 @@ deploy:dev1:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1 #CI/CD Variable
     URL: https://aegis-dev.fit.nasa.gov
   when: manual
-  before_script:
-    - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
 
-    # Since this runner is shared between all EMSS repos, we need to check if any containers that
-    # are running are this app or something else. Ultimately this code needs to be in the EMSS
-    # deploy template, and needs to do the `grep -q "/opt/aegis"` part in an app-agnostic way (e.g.
-    # needs to grab the INSTALL_PATH from .fitdock.yml), but for now this is hard-coded for AEGIS.
-    # If-statement below does two checks:
-    # 1. If `sudo docker compose ls` lists more than 2 lines, this means there are more than two
-    #    docker-compose apps running (first line is just the header). Here's an example of AEGIS
-    #    and Labs running simultaneously:
-    #       ejmontal@jsfitdaegis01 / $ sudo docker compose ls
-    #       NAME                STATUS              CONFIG FILES
-    #       aegis               running(3)          /opt/aegis/docker-compose.yml
-    #       emss-labs           running(5)          /opt/emss-labs/docker-compose.yml
-    #    If this is the case, we definitely are in a weird condition and want to nuke all containers
-    #    and let this deploy job bring us back to a normal configuration.
-    # 2. If `sudo docker compose ls` does NOT included this app's install directory (/opt/aegis),
-    #    then some other app was the most recently deployed app. Nuke all containers and let this
-    #    deploy job make AEGIS the running app.
-    # - COMPOSE_LS=$(sudo docker compose ls)
-    # - >
-    #   if [ $(echo "$COMPOSE_LS" | wc -l) -gt 2 ] || ! echo "$COMPOSE_LS" | grep -q "/opt/aegis"; then
-    #     echo "Unknown docker-compose apps running, killing all containers."
-    #     sudo docker stop $(sudo docker ps -a -q)
-    #   else
-    #     echo "Same app deploying, not killing containers"
-    #   fi
-
-    # Stop all containers. TODO unsure why the above code to selectively stop containers is needed.
-    - >
-      if docker --version; then
-        sudo docker stop $(sudo docker ps -a -q)
-      fi
+deploy:carbon:
+  extends:
+    - .deploy-template
+    - .carbon-deploy
+  needs:
+    - make-dotenv
+    - docker:retag
+    - deploy:artifactize-committed-files
+  when: manual
 
 deploy:int:
   extends: .deploy-template
@@ -443,10 +417,10 @@ deploy:prod:
   artifacts:
     paths:
       - aegis.sql
+    expire_in: 1 day
 
 z:db-export:prod:
   extends: .db-export-template
-  when: always
   tags: ["emss-aegis-prod"]
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD #CI/CD Variable
@@ -462,6 +436,11 @@ z:db-export:dev1:
   tags: ["emss-aegis-dev1"]
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1 #CI/CD Variable
+
+z:db-export:carbon:
+  extends:
+    - .db-export-template
+    - .carbon-access
 
 .db-import-template:
   when: manual
@@ -497,6 +476,12 @@ z:db-import:dev1:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1 #CI/CD Variable
     URL: https://aegis-dev.fit.nasa.gov
 
+z:db-import:carbon:
+  extends:
+    - .db-import-template
+    - .carbon-deploy
+  needs: ["z:db-export:prod"]
+
 z:db-import:int:
   extends: .db-import-template
   tags: ["emss-aegis-int"]
@@ -517,17 +502,45 @@ z:db-import:int:
     GIT_STRATEGY: none
   script:
     - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
+
+    # OS info and partition usage
+    - cat /etc/os-release
+    - df -h
+
+    # Setup artifact directories
+    - LOG_ARTIFACTS=$(pwd)/log_artifacts
+    - mkdir -p "${LOG_ARTIFACTS}"
+
     - cd /opt/aegis
-    - sudo docker compose logs nginx
-    - sudo docker compose logs database
-    - sudo docker compose logs gdal
-    - sudo docker compose logs apiv1
+
+    # print last 100 lines to job output
+    - sudo docker compose logs nginx --tail 100
+    - sudo docker compose logs database --tail 100
+    - sudo docker compose logs gdal --tail 100
+    - sudo docker compose logs apiv1 --tail 100
+
+    # Put the full logs into artifacts. Full logs may hit the job log length
+    # limit, and generally make the job log unreadably long
+    - sudo docker compose logs nginx > "${LOG_ARTIFACTS}/nginx"
+    - sudo docker compose logs database > "${LOG_ARTIFACTS}/database"
+    - sudo docker compose logs gdal > "${LOG_ARTIFACTS}/gdal"
+    - sudo docker compose logs apiv1 > "${LOG_ARTIFACTS}/apiv1"
+  artifacts:
+    when: always
+    paths:
+      - ./log_artifacts
+    expire_in: 1 day
 
 z:logs:dev1:
   extends: .container-logs-template
   tags: ["emss-aegis-dev1"]
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1 #CI/CD Variable
+
+z:logs:carbon:
+  extends:
+    - .container-logs-template
+    - .carbon-access
 
 z:logs:int:
   extends: .container-logs-template

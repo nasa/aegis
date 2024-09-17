@@ -28,7 +28,7 @@ import {
 } from "store/thunk/thunkRex";
 import { setPosEntryEditingUuid, setSelectedPosEntryUuid } from "store/rex";
 import { hhmmssFromSeconds } from "utils/formatting";
-import { thunkClearAllMapSelections, thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
+import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { setHoverUuidsForPosEntry } from "store/hover";
 import { PosKabobMenu } from "./map-menu-pos-menu";
 import { orderBy } from "lodash";
@@ -61,6 +61,11 @@ export const MapPositionMenu: FunctionComponent = () => {
   const posEntries = useAppSelector((state) => {
     const posEntries = state.rex.rexes.find((r) => r.uuid === selectedRex?.uuid)?.posEntries;
     return orderBy(posEntries, ["createdAt"], "desc");
+  }, deepEqual);
+
+  const posTypes = useAppSelector((state) => {
+    const posTypes = state.rex.rexes.find((r) => r.uuid === selectedRex?.uuid)?.posTypes;
+    return posTypes;
   }, deepEqual);
 
   const posEntryEditingUuid = useAppSelector((state) => state.rex.posEntryEditingUuid, refEqual);
@@ -112,7 +117,11 @@ export const MapPositionMenu: FunctionComponent = () => {
       if (selectedPosTypeUuids.includes(posTypeUuid)) {
         newSelectedPosTypeUuids = selectedPosTypeUuids.filter((i) => i !== posTypeUuid);
       } else {
-        newSelectedPosTypeUuids = [...selectedPosTypeUuids, posTypeUuid];
+        for (let i = 0; i < posTypes.length; i++) {
+          if (selectedPosTypeUuids.includes(posTypes[i].uuid) || posTypes[i].uuid === posTypeUuid) {
+            newSelectedPosTypeUuids.push(posTypes[i].uuid);
+          }
+        }
       }
       setSelectedPosTypeUuids(newSelectedPosTypeUuids);
       if (!editingPosEntry) return;
@@ -124,14 +133,7 @@ export const MapPositionMenu: FunctionComponent = () => {
         })
       );
     },
-    [
-      selectedRex,
-      selectedPosTypeUuids,
-      setSelectedPosTypeUuids,
-      editingPosEntry,
-      dispatch,
-      posEntryEditingUuid,
-    ]
+    [selectedPosTypeUuids, editingPosEntry, dispatch, selectedRex, posEntryEditingUuid, posTypes]
   );
 
   // track the last pos entry for each pos type to determine which items to show in the top list
@@ -155,7 +157,6 @@ export const MapPositionMenu: FunctionComponent = () => {
 
   //create a new position entry
   const handleCreate = async () => {
-    await dispatch(thunkClearAllMapSelections());
     const newUuid = (await dispatch(thunkCreatePosEntry({ posTypeUuids: selectedPosTypeUuids })))
       .payload;
     if (newUuid) {

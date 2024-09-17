@@ -23,7 +23,7 @@ import {
   thunkUpdateStationLatLngField,
   thunkUpdateStationLocation,
 } from "store/thunk/thunkStation";
-import { displayFormattedTotalTimeObj } from "utils/component-helpers";
+import { displayFormattedTotalTimeObj, makeTraverseRateString } from "utils/component-helpers";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { round } from "lodash";
 import { validators, regExValidators } from "components/interface/form/formValidators";
@@ -99,6 +99,11 @@ const Info_Panel: FunctionComponent<{
   const missionEquipItems = useAppSelector(
     (state) => state.mission.mission.equipmentItems,
     shallowEqual
+  );
+
+  const missionWalkbackRate = useAppSelector(
+    (state) => state.mission.mission.walkbackRate,
+    refEqual
   );
 
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
@@ -554,7 +559,7 @@ const Info_Panel: FunctionComponent<{
 
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle}>
-              <SubpanelHeading icon={faRoute}>Walkback Path</SubpanelHeading>
+              <SubpanelHeading icon={faRoute}>Walkback</SubpanelHeading>
             </div>
             {editMode ? (
               <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
@@ -625,6 +630,7 @@ const Info_Panel: FunctionComponent<{
             ) : (
               <div className={paneStyles.sectionButtonRowEmpty} />
             )}
+
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
@@ -688,6 +694,60 @@ const Info_Panel: FunctionComponent<{
                           formatNumberWithCommas(
                             calculatedFields?.walkbackAscentDescent.totalMetersDescended
                           )
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className={paneStyles.panelSectionRow} style={{ marginTop: "6px" }}>
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.inputFieldLabel}>
+                        Walkback Traverse Rate (km/h):
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.inputFieldValue}>
+                        <InLineEditInput
+                          value={selectedStation.walkbackTraverseRate?.toString()}
+                          editing={editMode}
+                          fieldProps={{
+                            name: "walkbackTraverseRate",
+                            ariaLabel: "Average Walkback Traverse Rate",
+                            style: { width: "55px" },
+                            validators: [validators.mustBeNumber, validators.maxLength(4)],
+                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                              e.target.value = e.target.value.replace(
+                                regExValidators.regExNumber,
+                                ""
+                              );
+                            },
+                          }}
+                          onSubmit={(val: string) => {
+                            dispatch(
+                              upsertStationByField(
+                                selectedStation.uuid,
+                                "walkbackTraverseRate",
+                                toDecimal(val)
+                              )
+                            );
+                          }}
+                          key={`${selectedStation.uuid}-walkbackTraverseRate`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div style={{ color: "var(--grey5)" }} className={paneStyles.inputFieldLabel}>
+                        {makeTraverseRateString(
+                          selectedStation.walkbackTraverseRate,
+                          null,
+                          missionWalkbackRate
                         )}
                       </div>
                     </div>

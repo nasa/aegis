@@ -334,6 +334,16 @@
   border: 1px solid var(--grey2);
 }
 
+.propertyPathColorLight {
+  border-radius: var(--radius);
+  border: 1px solid var(--grey2);
+}
+
+.propertyPathColorDark {
+  border-radius: var(--radius);
+  border: 1px solid var(--grey1);
+}
+
 .pathColorSample {
   display: flex;
   width: 50px;

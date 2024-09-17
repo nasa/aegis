@@ -33,7 +33,7 @@ export async function unzip(
     }
 
     //unzip the file. contents will overwrite if they already exist in location
-    console.log(`Unzipping with overwrite: ${destRoot}/${filename}`);
+    console.log(`${new Date()} Unzipping with overwrite: ${destRoot}/${filename}`);
     const zip = new StreamZip.async({ file: `${destRoot}/${filename}` });
     const numFiles = await zip.extract(null, unzipDirectory);
     await zip.close();
@@ -41,7 +41,7 @@ export async function unzip(
     //delete the original file
     await deleteFile(filename);
 
-    console.log("File unzip success. Extracted " + numFiles + " files. Deleted .zip");
+    console.log(`${new Date()} File unzip success. Extracted ${numFiles} files. Deleted .zip`);
     return true;
   } catch (e) {
     //cleanup
@@ -52,7 +52,7 @@ export async function unzip(
     }
     await deleteFile(filename);
 
-    console.warn(`Error in unzip. ${e}`);
+    console.warn(`${new Date()} Error in unzip. ${e}`);
     return false;
   }
 }
@@ -66,13 +66,13 @@ export async function deleteFile(path: string): Promise<boolean> {
   try {
     if (fs.existsSync(`${destRoot}/${path}`)) {
       await rm(`${destRoot}/${path}`, { recursive: true }); //delete file or folder
-      console.log(`File/directory deleted ${destRoot}/${path}`);
+      console.log(`${new Date()} File/directory deleted ${destRoot}/${path}`);
       return true;
     } else {
       throw new Error(`File/directory does not exist ${destRoot}/${path}`);
     }
   } catch (e) {
-    console.warn(`Error in deleteFile: ${e}`);
+    console.warn(`${new Date()} Error in deleteFile: ${e}`);
     return false;
   }
 }
@@ -100,7 +100,7 @@ export async function listFiles(path: string): Promise<GISfile[]> {
       throw new Error(`Path does not exist: ${destRoot}/${path}`);
     }
   } catch (e) {
-    console.warn(`Error in listfiles: ${e}`);
+    console.warn(`${new Date()} Error in listfiles: ${e}`);
     return null;
   }
 }
@@ -133,10 +133,10 @@ async function countFiles(directory: string): Promise<number> {
 export async function renameFile(path: string, oldName: string, newName: string): Promise<boolean> {
   try {
     await rename(`${destRoot}/${path}/${oldName}`, `${destRoot}/${path}/${newName}`);
-    console.log(`Path renamed in ${destRoot}/${path} from ${oldName} to ${newName}`);
+    console.log(`${new Date()} Path renamed in ${destRoot}/${path} from ${oldName} to ${newName}`);
     return true;
   } catch (e) {
-    console.warn(`Error in renameFile: ${e}`);
+    console.warn(`${new Date()} Error in renameFile: ${e}`);
     return false;
   }
 }

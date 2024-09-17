@@ -8,7 +8,7 @@ export type Stringy = string | string[] | number;
  *    they must be passed through the {@link composeValidators} function
  */
 
-const required = (value: Stringy): string | undefined => (value ? undefined || null : "Required");
+const required = (value: Stringy): string | undefined => (value ? undefined : "Required");
 
 const mustBeNumber = (value: Stringy): string | undefined => {
   if (!value) return undefined;
