@@ -2,7 +2,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faCaretRight, faCaretDown, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { Dispatch, FunctionComponent, SetStateAction, useState } from "react";
 import styles from "./map-menu-view.module.css";
-import { refEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 
 export const MapViewMenu: FunctionComponent<{
   mapDisplayPois: MapDisplayMarkers;
@@ -44,14 +44,14 @@ export const MapViewMenu: FunctionComponent<{
   setShowSunEarth,
 }) => {
   const [showMenu, setShowMenu] = useState(false);
-  const earthMoonName = useAppSelector(
-    (state) => (state.mission.mission.earthAsMoon ? "Moon" : "Earth"),
-    refEqual
+  const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
+  const selectedPreset = useAppSelector(
+    (state) => state.preset.presets.find((p) => p.uuid === selectedPresetUuid),
+    deepEqual
   );
-  const sunEarthEnabled: boolean = useAppSelector(
-    (state) => state.mission.mission.sunEnabled || state.mission.mission.earthEnabled,
-    refEqual
-  );
+  const earthMoonName = selectedPreset?.earthAsMoon ? "Moon" : "Earth";
+  const sunEarthEnabled: boolean = selectedPreset?.sunEnabled || selectedPreset?.earthEnabled;
+
   return (
     <div className={styles.menuContainer}>
       <div
