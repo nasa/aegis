@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback, useRef, useState } from "react";
+import { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 
@@ -6,24 +6,16 @@ import { useAppSelector, shallowEqual, deepEqual } from "utils/useAppSelector";
 import _, { round } from "lodash";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
 import {
-  faEarthAmerica,
   faFileInvoice,
   faInfoCircle,
   faLocationDot,
   faMessage,
   faMountain,
-  faSun,
   faXmark,
-  faMoon,
 } from "@fortawesome/free-solid-svg-icons";
-import {
-  Button,
-  Checkbox,
-  DegreesInputSlider,
-  InLineEditInput,
-} from "components/interface/form/globalFields";
+import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { regExValidators, validators } from "components/interface/form/formValidators";
-import { upsertMission, upsertMissionByField } from "store/mission";
+import { upsertMissionByField } from "store/mission";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { toDecimal } from "utils/formatting";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
@@ -36,8 +28,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     return state.map.mapDirective?.uuid === "lander" ? state.map.mapDirective : null;
   }, shallowEqual);
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
-
-  const [isDragging, setIsDragging] = useState(false);
 
   const dispatchMissionMapAction = (mapAction: MapAction) => {
     dispatch(
@@ -69,43 +59,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const handleCancelEdit = () => {
     dispatchMissionMapAction("cancelEditMarker");
   };
-
-  const sunThrottledFunc = useRef(
-    _.throttle((mission: Mission, value: number) => {
-      dispatch(
-        upsertMission({
-          ...mission,
-          sunAzimuth: value,
-        })
-      );
-    }, 50)
-  );
-
-  const handleOnChangeSunAzimuth = useCallback(
-    (mission: Mission, value: number) => {
-      //hook into isDragging to prevent this from triggering when values are reset via "Cancel" button
-      if (isDragging) sunThrottledFunc.current(mission, value);
-    },
-    [sunThrottledFunc, isDragging]
-  );
-
-  const earthThrottledFunc = useRef(
-    _.throttle((mission: Mission, value: number) => {
-      dispatch(
-        upsertMission({
-          ...mission,
-          earthAzimuth: value,
-        })
-      );
-    }, 50)
-  );
-
-  const handleOnChangeEarthAzimuth = useCallback(
-    (mission: Mission, value: number) => {
-      if (isDragging) earthThrottledFunc.current(mission, value);
-    },
-    [earthThrottledFunc, isDragging]
-  );
 
   return (
     <div className={paneStyles.rightBody}>
@@ -321,167 +274,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           <>Not set</>
                         ) : (
                           mission.landerElevationMeters.toFixed(0)
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionInner2Column}>
-              <div className={paneStyles.panelSectionInner2ColumnLeft}>
-                <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-                  <SubpanelHeading icon={faSun}>Sun Direction</SubpanelHeading>
-                </div>
-                <div className={paneStyles.panelSectionRow}>
-                  <div className={paneStyles.degreesInputContainer}>
-                    <div className={paneStyles.descriptionContainer}>
-                      <DegreesInputSlider
-                        value={mission.sunAzimuth}
-                        editable={editMode}
-                        label="Azimuth"
-                        onChange={(value: number) => {
-                          handleOnChangeSunAzimuth(mission, value);
-                        }}
-                        isDragging={(value: boolean) => {
-                          setIsDragging(value);
-                        }}
-                        icon={faSun}
-                      />
-                    </div>
-                    <div
-                      className={paneStyles.displayFieldLabel}
-                      style={{ margin: "6px 0 0 18px" }}
-                    >
-                      <div style={{ display: "flex" }}>
-                        {editMode ? (
-                          <>
-                            <div>
-                              <Checkbox
-                                checked={mission.sunEnabled}
-                                editable={editMode}
-                                onChange={(e) => {
-                                  dispatch(
-                                    upsertMission({
-                                      ...mission,
-                                      sunEnabled: e.target.checked,
-                                    })
-                                  );
-                                }}
-                                label="Enable:"
-                                labelStyle={{ marginTop: 3, marginRight: 3 }}
-                                labelPlacement="left"
-                                uniqueId="sunCheckbox"
-                              />
-                            </div>
-                          </>
-                        ) : (
-                          <div style={{ marginTop: "3px" }}>
-                            {mission?.sunEnabled ? "Enabled" : "Disabled"}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div
-                className={paneStyles.panelSectionInner2ColumnRight}
-                style={{ marginLeft: "40px" }}
-              >
-                <div
-                  className={paneStyles.panelSectionTitle}
-                  style={{ marginBottom: "8px" }}
-                  aria-label={mission.earthAsMoon ? "moonHeading" : "earthHeading"}
-                >
-                  <SubpanelHeading icon={mission.earthAsMoon ? faMoon : faEarthAmerica}>
-                    {mission.earthAsMoon ? "Moon" : "Earth"} Direction
-                  </SubpanelHeading>
-                </div>
-                <div className={paneStyles.panelSectionRow}>
-                  <div className={paneStyles.degreesInputContainer}>
-                    <div className={paneStyles.descriptionContainer}>
-                      <DegreesInputSlider
-                        value={mission.earthAzimuth}
-                        editable={editMode}
-                        label="Azimuth"
-                        onChange={(value: number) => {
-                          handleOnChangeEarthAzimuth(mission, value);
-                        }}
-                        icon={mission.earthAsMoon ? faMoon : faEarthAmerica}
-                        isDragging={(value: boolean) => {
-                          setIsDragging(value);
-                        }}
-                      />
-                    </div>
-                    <div
-                      className={paneStyles.displayFieldLabel}
-                      style={{ margin: "6px 0 0 18px" }}
-                    >
-                      <div style={{ display: "flex" }}>
-                        {editMode && (
-                          <>
-                            <div
-                              className={`${paneStyles.toggleMenuItemRow} ${paneStyles.menuItemTitle}`}
-                            >
-                              <div
-                                className={`${paneStyles.toggleLeft} ${paneStyles.center} ${
-                                  !mission.earthAsMoon && paneStyles.toggleSelected
-                                }`}
-                                onClick={() => {
-                                  if (mission.earthAsMoon)
-                                    dispatch(upsertMission({ ...mission, earthAsMoon: false }));
-                                }}
-                                aria-label="earthDirectionButton"
-                              >
-                                Earth
-                              </div>
-                              <div
-                                className={`${paneStyles.toggleRight} ${paneStyles.center} ${
-                                  mission.earthAsMoon && paneStyles.toggleSelected
-                                }`}
-                                onClick={() => {
-                                  if (!mission.earthAsMoon)
-                                    dispatch(upsertMission({ ...mission, earthAsMoon: true }));
-                                }}
-                                aria-label="moonDirectionButton"
-                              >
-                                Moon
-                              </div>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <div className={paneStyles.displayFieldLabel} style={{ marginLeft: "18px" }}>
-                      <div style={{ display: "flex" }}>
-                        {editMode ? (
-                          <>
-                            <div>
-                              <Checkbox
-                                checked={mission.earthEnabled}
-                                editable={editMode}
-                                onChange={(e) => {
-                                  dispatch(
-                                    upsertMission({
-                                      ...mission,
-                                      earthEnabled: e.target.checked,
-                                    })
-                                  );
-                                }}
-                                label="Enable:"
-                                labelStyle={{ marginTop: 3, marginRight: 3 }}
-                                labelPlacement="left"
-                                uniqueId="earthCheckbox"
-                              />
-                            </div>
-                          </>
-                        ) : (
-                          <div style={{ marginTop: "3px" }}>
-                            {mission?.earthEnabled ? "Enabled" : "Disabled"}
-                          </div>
                         )}
                       </div>
                     </div>
