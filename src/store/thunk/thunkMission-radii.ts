@@ -41,7 +41,7 @@ export const thunkCreateLanderRadius = appCreateAsyncThunk<void, string>(
     const landerRadii = getState().mission.mission.landerRadii || [];
     const landerRadius = blankLanderRadius;
     const newLanderRadii = [...landerRadii, landerRadius];
-    dispatch(upsertMission({ ...getState().mission.mission, landerRadii: newLanderRadii }));
+    dispatch(upsertMissionByField("landerRadii", newLanderRadii));
 
     return landerRadiusUuid;
   }

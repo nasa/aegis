@@ -72,7 +72,7 @@
 
 .actionHeading {
   display: flex;
-  gap: 4px;
+  gap: 3px;
   min-height: 20px;
   margin-left: 1px;
   margin-right: 1px;
@@ -159,11 +159,6 @@
   justify-content: center;
 }
 
-.actionHeadingCrew {
-  display: flex;
-  flex-direction: row;
-}
-
 .actionQuickButton {
   display: inline-flex;
   margin: 0 4px 0 4px;
@@ -171,7 +166,12 @@
   cursor: pointer;
 }
 
-.actionHeadingCrewLeft {
+.actionDualButtons {
+  display: flex;
+  flex-direction: row;
+}
+
+.actionDualButtonsLeft {
   font-size: 0.8rem;
   background-color: var(--grey3);
   border-top-left-radius: var(--radius);
@@ -179,19 +179,19 @@
   padding: 2px 4px 2px 4px;
   margin-right: 1px;
 }
-.actionHeadingCrewRight {
+.actionDualButtonsRight {
   font-size: 0.8rem;
   background-color: var(--grey3);
   border-top-right-radius: var(--radius);
   border-bottom-right-radius: var(--radius);
   padding: 2px 4px 2px 4px;
 }
-.actionHeadingCrewSelected {
+.actionDualButtonsSelected {
   background-color: var(--grey5);
   color: var(--grey1);
   font-weight: 600;
 }
-.actionHeadingCrewDisabled {
+.actionDualButtonsDisabled {
   width: 31px;
 }
 
@@ -278,4 +278,17 @@
 
 .menuItemText {
   flex: 1 1 auto;
+}
+
+.actionV2Header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  font-size: 0.9em;
+  margin: 2px 0 0 4px;
+  width: 295px;
+}
+
+.actionDefType {
+  white-space: nowrap;
 }

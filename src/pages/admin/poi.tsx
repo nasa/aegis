@@ -8,8 +8,9 @@ import { getMissions } from "http-client/mission";
 import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { decodeEmoji, roundDateToSecond } from "utils/formatting";
-import { GeoJsonFeature, GeoJsonFile } from "typings/geojson";
+import { GeoJsonFile } from "typings/geojson";
 import { validators } from "components/interface/form/formValidators";
+import { Feature } from "geojson";
 
 const PoiPage: React.FunctionComponent = () => {
   const navigate = useNavigate();
@@ -97,8 +98,8 @@ const PoiPage: React.FunctionComponent = () => {
             name: poi.properties.name,
             description: poi.properties.description ? poi.properties.description : "",
             location: {
-              lat: poi.properties.y ? poi.properties.y : poi.geometry.coordinates[1],
-              lng: poi.properties.x ? poi.properties.x : poi.geometry.coordinates[0],
+              lat: poi.properties.y,
+              lng: poi.properties.x,
             },
             icon: emoji,
             updatedAt: roundDateToSecond(new Date()).toISOString(),
@@ -151,7 +152,7 @@ const PoiPage: React.FunctionComponent = () => {
       if (!poi.location) {
         continue; // not worth exporting
       }
-      const feature: GeoJsonFeature = {
+      const feature: Feature = {
         type: "Feature",
         geometry: {
           type: "Point",

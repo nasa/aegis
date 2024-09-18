@@ -1,11 +1,15 @@
 import * as httpClient_preset from "http-client/preset";
 import * as httpClient_action from "http-client/action";
+import * as httpClient_mission from "http-client/mission";
 import _ from "lodash";
+import { v4 as uuidv4 } from "uuid";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 
-export const auditPresetsAgainstLayers = async (params: {
+export const auditPresetsAgainstLayers = async ({
+  wholeStoreState,
+}: {
   wholeStoreState: WholeStoreState;
 }): Promise<void> => {
-  const { wholeStoreState } = params;
   //fix and validate against modifications to layers/sublayers made in admin since this preset was last saved
   const newPresets = _.cloneDeep(wholeStoreState.preset.presets);
 
@@ -138,8 +142,11 @@ export const auditPresetsAgainstLayers = async (params: {
   }
 };
 
-export const auditActions = async (params: { wholeStoreState: WholeStoreState }): Promise<void> => {
-  const { wholeStoreState } = params;
+export const auditActions = async ({
+  wholeStoreState,
+}: {
+  wholeStoreState: WholeStoreState;
+}): Promise<void> => {
   // new stores to hold the updated values to be persisted at the end of all the audits
   const newActions = _.cloneDeep(wholeStoreState.action.actions);
 
@@ -211,6 +218,105 @@ export const auditActions = async (params: { wholeStoreState: WholeStoreState })
   }
   if (actionsToSaveToDb.length > 0) {
     const upsertResponse = await httpClient_action.upsertActions(actionsToSaveToDb);
+    if (upsertResponse.status !== "success") {
+      // handle the error
+    }
+  }
+};
+
+export const auditActionDefinitions = async ({
+  wholeStoreState,
+}: {
+  wholeStoreState: WholeStoreState;
+}): Promise<void> => {
+  // If action system v2 is enabled and the action definitions are blank, create a default set
+
+  if (
+    wholeStoreState.mission.mission.actionSystemVersion === 2 &&
+    !wholeStoreState.mission.mission.actionDefinitions
+  ) {
+    const newActionDefinitions = {
+      verbs: [
+        { uuid: uuidv4(), name: "Characterize", abbr: "charize" },
+        { uuid: uuidv4(), name: "Describe", abbr: "describe" }, // same as "characterize"?
+        { uuid: uuidv4(), name: "Deploy", abbr: "deploy" },
+        { uuid: uuidv4(), name: "Measure", abbr: "measure" },
+        { uuid: uuidv4(), name: "Observe", abbr: "observe" },
+        { uuid: uuidv4(), name: "Photograph", abbr: "photo" },
+        { uuid: uuidv4(), name: "Photograph: 360 Panorama", abbr: "p-pano" },
+        { uuid: uuidv4(), name: "Photograph: Mosaic", abbr: "p-msc" },
+        { uuid: uuidv4(), name: "Photograph: Nested Image", abbr: "p-nested" },
+        { uuid: uuidv4(), name: "Photograph: Photometric Survey", abbr: "p-survey" },
+        { uuid: uuidv4(), name: "Photograph: Stereo Mosaic", abbr: "p-stermosc" },
+        { uuid: uuidv4(), name: "Photograph: Stereo Pair", abbr: "p-stereo" },
+        { uuid: uuidv4(), name: "Place", abbr: "place" },
+        { uuid: uuidv4(), name: "Sample: Chip", abbr: "s-chip" },
+        { uuid: uuidv4(), name: "Sample: Double Drive Tube", abbr: "s-ddtube" },
+        { uuid: uuidv4(), name: "Sample: Drive Tube", abbr: "s-dtube" },
+        { uuid: uuidv4(), name: "Sample: Float", abbr: "s-float" },
+        { uuid: uuidv4(), name: "Sample: Rake", abbr: "s-rake" },
+        { uuid: uuidv4(), name: "Sample: Scoop", abbr: "s-scoop" },
+        { uuid: uuidv4(), name: "Sample: Sealed Scoop", abbr: "s-sscoop" },
+        { uuid: uuidv4(), name: "Sample: Skim", abbr: "s-skim" },
+        { uuid: uuidv4(), name: "Sample: Trench", abbr: "s-trench" },
+        { uuid: uuidv4(), name: "Sample: Sealed Skim", abbr: "s-sskim" },
+        { uuid: uuidv4(), name: "Sample: Sealed Drive Tube", abbr: "s-sdtube" },
+        { uuid: uuidv4(), name: "Sample: Sealed Double Drive Tube", abbr: "s-sddtube" },
+        { uuid: uuidv4(), name: "Sample: Contact Sample", abbr: "s-contact" },
+      ],
+
+      nouns: [
+        { uuid: uuidv4(), name: "Boulder", abbr: "boulder" },
+        { uuid: uuidv4(), name: "Boulder Fillet", abbr: "boulderfillet" },
+        { uuid: uuidv4(), name: "Contact", abbr: "contact" },
+        { uuid: uuidv4(), name: "Crater Floor", abbr: "craterflr" },
+        { uuid: uuidv4(), name: "Crater Rim", abbr: "craterrim" },
+        { uuid: uuidv4(), name: "Geotechnical Properties", abbr: "geoprops" },
+        { uuid: uuidv4(), name: "Impact Melt", abbr: "impactmelt" },
+        { uuid: uuidv4(), name: "Regolith (any)", abbr: "regolith" },
+        { uuid: uuidv4(), name: "Regolith (Disturbed)", abbr: "regdist" },
+        { uuid: uuidv4(), name: "Regolith (Undisturbed)", abbr: "regundist" },
+        { uuid: uuidv4(), name: "Station", abbr: "station" },
+        { uuid: uuidv4(), name: "Trench (any)", abbr: "trench" },
+        { uuid: uuidv4(), name: "Trench Floor", abbr: "trenchflr" },
+        { uuid: uuidv4(), name: "Trench Wall", abbr: "trenchwall" },
+      ],
+
+      adjectives: [
+        { uuid: uuidv4(), name: "Distal to Lander", abbr: "distalnder" },
+        { uuid: uuidv4(), name: "Proximal to Lander", abbr: "proxlander" },
+        { uuid: uuidv4(), name: "PSR", abbr: "psr" },
+        { uuid: uuidv4(), name: "Shadow", abbr: "shadow" },
+        { uuid: uuidv4(), name: "Terrain Type: cb", abbr: "cb" },
+        { uuid: uuidv4(), name: "Terrain Type: ce", abbr: "ce" },
+        { uuid: uuidv4(), name: "Terrain Type: icwf", abbr: "icwf" },
+        { uuid: uuidv4(), name: "Terrain Type: icwd", abbr: "icwd" },
+        { uuid: uuidv4(), name: "Terrain Type: uh1", abbr: "uh1" },
+        { uuid: uuidv4(), name: "Terrain Type: uh2", abbr: "uh2" },
+        { uuid: uuidv4(), name: "Geo Unit: A", abbr: "A" },
+        { uuid: uuidv4(), name: "Geo Unit: B", abbr: "B" },
+        { uuid: uuidv4(), name: "Geo Unit: C", abbr: "C" },
+      ],
+    };
+
+    const newMission = {
+      ...wholeStoreState.mission.mission,
+      actionDefinitions: newActionDefinitions,
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    };
+
+    // update the store with the new action definitions
+    wholeStoreState = {
+      ...wholeStoreState,
+      mission: {
+        ...wholeStoreState.mission,
+        mission: newMission,
+      },
+    };
+
+    // upsert the changes to the mission table in the db
+    //save mission to db
+    const upsertResponse = await httpClient_mission.upsertMissions([newMission]);
     if (upsertResponse.status !== "success") {
       // handle the error
     }

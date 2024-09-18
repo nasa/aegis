@@ -53,6 +53,11 @@ const Actions: FunctionComponent<{
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
+  const actionSystemVersion = useAppSelector(
+    (state) => state.mission.mission.actionSystemVersion,
+    refEqual
+  );
+
   const [isActionHiglighted, setIsActionHighlighted] = useState<ActionHighlight[]>([]);
   const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>("");
   const [newActionUuid, setNewActionUuid] = useState(undefined);
@@ -102,20 +107,20 @@ const Actions: FunctionComponent<{
         highlightActions={highlightActions}
         actionsCalculatedFields={actionsCalculatedFields}
       />
-      {actionOrderUuids?.length > 0 && (
+
+      <div className={actionsStyles.actionListContainer}>
         <ActionsListHeadings
           editMode={editMode}
           parentType={parentType}
           editPerms={editPerms}
           isRexRunning={isRexRunning}
         />
-      )}
-      <div className={actionsStyles.actionListContainer}>
         <div className={actionsStyles.dragableActionList}>
           <ReactDragListView onDragEnd={reorder} nodeSelector="li" handleSelector="a">
             <ActionList
               editMode={editMode}
               isRexRunning={isRexRunning}
+              parentType={parentType}
               actionOrderUuids={actionOrderUuids}
               highlightActions={highlightActions}
               isActionHiglighted={isActionHiglighted}
@@ -160,23 +165,25 @@ const Actions: FunctionComponent<{
                 );
               }}
             />
-            <Dropdown
-              selected={selectedTemplateUuid}
-              onChange={(val) => {
-                setSelectedTemplateUuid(val);
-              }}
-              selectStyle={{ height: "2em", fontSize: "0.8em" }}
-              containerStyle={{ maxWidth: "200px" }}
-            >
-              {actionTemplates?.map((template) => {
-                return (
-                  <option key={template.uuid} value={template.uuid}>
-                    {_.capitalize(template.type)}: {template.templateName}
-                  </option>
-                );
-              })}
-              <option value="">{`<Template>`}</option>
-            </Dropdown>
+            {actionSystemVersion === 1 && (
+              <Dropdown
+                selected={selectedTemplateUuid}
+                onChange={(val) => {
+                  setSelectedTemplateUuid(val);
+                }}
+                selectStyle={{ height: "2em", fontSize: "0.8em" }}
+                containerStyle={{ maxWidth: "200px" }}
+              >
+                {actionTemplates?.map((template) => {
+                  return (
+                    <option key={template.uuid} value={template.uuid}>
+                      {_.capitalize(template.type)}: {template.templateName}
+                    </option>
+                  );
+                })}
+                <option value="">{`<Template>`}</option>
+              </Dropdown>
+            )}
           </div>
         )}
       </div>
@@ -308,41 +315,43 @@ export const ActionsListHeadings: FunctionComponent<{
   editPerms: boolean;
   isRexRunning: boolean;
 }> = ({ editMode, parentType, editPerms, isRexRunning }) => {
+  const actionSystemVersion = useAppSelector(
+    (state) => state.mission.mission.actionSystemVersion,
+    refEqual
+  );
   return (
-    <>
-      {!editMode && (
-        <div className={actionsStyles.actionListHeader}>
-          {isRexRunning && editPerms ? (
-            <div className={actionsStyles.actionListHeaderRex} />
-          ) : (
-            <></>
-          )}
-          <div className={actionsStyles.actionListHeaderType}>
-            <div className={actionsStyles.actionListHeaderLabel}>Type</div>
-          </div>
-          <div className={actionsStyles.actionListHeaderTitle}>
-            <div className={actionsStyles.actionListHeaderLabel}>Title</div>
-          </div>
-          <div className={actionsStyles.actionListHeaderPriority}>
-            <div className={actionsStyles.actionListHeaderLabel}>Pri</div>
-          </div>
-          <div className={actionsStyles.actionListHeaderTime}>
-            <div className={actionsStyles.actionListHeaderLabel}>Max</div>
-          </div>
-          {parentType !== "poi" && (
-            <div className={actionsStyles.actionListHeaderCrew}>
-              <div className={actionsStyles.actionListHeaderLabel}>Crew</div>
-            </div>
-          )}
+    <div
+      className={actionsStyles.actionListHeader}
+      style={{
+        marginLeft: actionSystemVersion === 2 ? "50px" : "",
+        marginRight: editMode ? "20px" : "",
+      }}
+    >
+      {isRexRunning && editPerms ? <div className={actionsStyles.actionListHeaderRex} /> : <></>}
+      {actionSystemVersion === 1 && (
+        <div className={actionsStyles.actionListHeaderType}>
+          <div className={actionsStyles.actionListHeaderLabel}>Type</div>
         </div>
       )}
-    </>
+      <div className={actionsStyles.actionListHeaderTitle}>
+        <div className={actionsStyles.actionListHeaderLabel}>Action</div>
+      </div>
+      <div className={actionsStyles.actionListHeaderTime}>
+        <div className={actionsStyles.actionListHeaderLabel}>Max</div>
+      </div>
+      {parentType !== "poi" && (
+        <div className={actionsStyles.actionListHeaderCrew}>
+          <div className={actionsStyles.actionListHeaderLabel}>Crew</div>
+        </div>
+      )}
+    </div>
   );
 };
 
 export const ActionList: FunctionComponent<{
   editMode: boolean;
   actionOrderUuids: string[];
+  parentType: "poi" | "station" | "eva";
   highlightActions: (level3Uuid: string) => void;
   isActionHiglighted: ActionHighlight[];
   stations: Station[];
@@ -352,6 +361,7 @@ export const ActionList: FunctionComponent<{
 }> = ({
   editMode,
   actionOrderUuids,
+  parentType,
   isActionHiglighted,
   stations,
   pois,
@@ -374,7 +384,7 @@ export const ActionList: FunctionComponent<{
           <li key={actionUuid} className={actionsStyles.actionlistitem}>
             <div
               className={actionsStyles.actionlistitemOrdinal}
-              style={{ marginTop: editMode ? "8px" : "2px" }}
+              style={{ marginTop: editMode ? "8px" : "4px" }}
             >
               {index + 1}
             </div>
@@ -382,7 +392,7 @@ export const ActionList: FunctionComponent<{
               editMode={editMode}
               actionUuid={actionUuid}
               highlight={highlight}
-              parentType="eva"
+              parentType={parentType}
               parentLocation={parentLocation}
               parentElevation={parentElevation}
               isRexRunning={isRexRunning}

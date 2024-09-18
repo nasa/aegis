@@ -200,6 +200,12 @@ type Action = {
    * Science explanation of details of the action. e.g. "Photograph contact point between two units."
    */
   description: string;
+
+  // Action system v2 types
+  stmAction: boolean;
+  actionDefinition: ActionDefinition;
+  //
+
   /**
    * The duration of the action, in minutes.
    */
@@ -271,6 +277,30 @@ type ActionType =
   | "rake"
   | "float"
   | "chip";
+
+// Action V2 types
+
+type ActionDefinitionItem = {
+  uuid: string;
+  name: string;
+  abbr: string;
+};
+
+// used in the Misison structure
+type ActionDefinitions = {
+  verbs: ActionDefinitionItem[];
+  nouns: ActionDefinitionItem[];
+  adjectives: ActionDefinitionItem[];
+};
+
+// used in the Action structure
+type ActionDefinition = {
+  verbUuid: string;
+  nounUuid: string;
+  adjectiveUuid: string;
+};
+
+//
 
 // used for display of time ranges
 type TotalTimeObj = {

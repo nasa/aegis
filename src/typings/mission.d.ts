@@ -7,6 +7,8 @@ interface Mission {
   description: string;
   missionBanner: string;
   version: number;
+  actionSystemVersion: number;
+  actionDefinitions: ActionDefinitions;
   landerLocation: AEGISPoint;
   landerElevationMeters: number;
   planetRadius: number;
@@ -21,7 +23,7 @@ interface Mission {
   walkbackRate: number;
   equipmentItems: EquipmentItem[];
   geographicUnits: GeographicUnit[];
-  _metadata?: Metadata; // Meant for JsonExport file export only
+  _metadata?: string; // Meant for JsonExport file export only
   demFilePath: string;
   demResolution: number;
   projIsCustom: boolean;
@@ -50,6 +52,8 @@ type Mission_db_type = Omit<Mission, "createdAt" | "updatedAt"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };
+
+type ActionDefinitionType = "verbs" | "nouns" | "adjectives";
 
 type ActionTemplate = Partial<Action> & { templateName: string; uuid: string; type: string };
 
@@ -112,6 +116,7 @@ type EquipmentItemUsage = {
 interface GeographicUnit {
   uuid: string;
   name: string;
+  abbr?: string;
 }
 /*
  * Vector circles around lander
@@ -133,7 +138,7 @@ type OneMissionToRuleThemAll = {
   actions: Action[];
   evas: Eva[];
   layers: Layer[];
-  pois: Poi[];
+  pois: POI[];
   presets: Preset[];
   rexes: Rex[];
   stations: Station[];

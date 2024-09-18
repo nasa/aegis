@@ -11,6 +11,9 @@
     "preserveConstEnums": true,
     "esModuleInterop": true,
     "baseUrl": "./src",
+    "paths": {
+      "@fseehawer/react-circular-slider": ["typings/react-circular-slider.d.ts"] // This is an override for the react-circular-slider package because it throws a tsc error.
+    },
     "forceConsistentCasingInFileNames": true,
     "strict": false,
     "noImplicitAny": true,
@@ -18,7 +21,7 @@
     "noUnusedParameters": false,
     "types": ["node", "jest", "@testing-library/jest-dom"],
 
-    "skipLibCheck": true /* Skip type checking all .d.ts files. */,
+    "skipLibCheck": false /* Skip type checking all .d.ts files. */,
 
     "lib": ["dom", "dom.iterable", "es2022"],
     "allowJs": true,

@@ -195,32 +195,34 @@ const EvaRightEva: FunctionComponent = () => {
   const panelTypes: PanelTypes = {
     info_panel: {
       title: "EVA Information",
-      panel: <Info_Panel editMode={evasEditing.includes(selectedEvaUuid)} />,
+      panel: Info_Panel,
       selectedColor: "white",
       icon: faCircleInfo,
     },
     actions_panel: {
       title: "EVA Actions",
-      panel: <Actions_Panel editMode={false} />,
+      panel: Actions_Panel,
+      panelProps: {
+        editMode: false,
+      },
       selectedColor: "white",
       icon: faPersonDigging,
     },
     report_panel: {
       title: "Reports",
-      panel: (
-        <Report_Panel
-          reportItems={calculatedFields?.reportItems}
-          evaReportItems={evaReportSequenceItems}
-          reportTitle={"EVA Report"}
-        />
-      ),
+      panel: Report_Panel,
+      panelProps: {
+        reportItems: calculatedFields?.reportItems,
+        evaReportItems: evaReportSequenceItems,
+        reportTitle: "EVA Report",
+      },
       selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "var(--eva)",
       unselectedColor: reportsTabIconColor,
       icon: reportsTabIcon,
     },
     export_panel: {
       title: "Export AEGIS Data",
-      panel: <Export_Panel />,
+      panel: Export_Panel,
       selectedColor: "white",
       icon: faFileExport,
     },
@@ -231,10 +233,8 @@ const EvaRightEva: FunctionComponent = () => {
     setReportsTabIconColor(getAlertColor(calculatedFields?.reportItems, evaReportSequenceItems));
   }, [calculatedFields, evaReportSequenceItems]);
 
-  let activeComponent: FunctionComponent = null;
-  if (!_.isNil(panelTypes[selectedRightNavItem])) {
-    activeComponent = panelTypes[selectedRightNavItem].panel;
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ActiveComponent: FunctionComponent<any> = panelTypes[selectedRightNavItem]?.panel;
 
   // set reports tab icon
   useEffect(() => {
@@ -347,7 +347,7 @@ const EvaRightEva: FunctionComponent = () => {
             )}
           </div>
         </div>
-        {activeComponent}
+        <ActiveComponent {...panelTypes[selectedRightNavItem]?.panelProps} />
       </>
     )
   );

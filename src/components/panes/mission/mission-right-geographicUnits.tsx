@@ -48,7 +48,8 @@ const GeographiUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
                       style={{ backgroundColor: "var(--grey2)" }}
                     >
                       <div className={styles.propertyRowName}>Name</div>
-                      <div className={styles.propertyRowTrash}></div>
+                      <div className={styles.propertyRowAbbr}>Abbr</div>
+                      <div className={styles.propertyRowTrashContainer}></div>
                     </div>
                   </div>
                 </li>
@@ -123,20 +124,39 @@ const GeographicUnit: FunctionComponent<{
             toFocus={toFocus}
           />
         </div>
+        <div className={styles.propertyRowAbbr}>
+          <InLineEditInput
+            editing={editMode}
+            fieldProps={{
+              name: "geographicUnitItemAbbr",
+              ariaLabel: "Geographic unit abbreviation",
+              style: { width: "50px" },
+              validators: [validators.maxLength(5), validators.required],
+            }}
+            value={item.abbr}
+            onSubmit={(val: string) => {
+              dispatch(thunkUpdateGeoUnit({ uuid: item.uuid, fieldName: "abbr", value: val }));
+            }}
+            key={`${item.uuid}-abbr`}
+            toFocus={toFocus}
+          />
+        </div>
 
-        <div className={styles.propertyRowTrash}>
-          {editMode && (
-            <FontAwesomeIcon
-              icon={faTrashAlt}
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                dispatch(thunkDeleteGeoUnit({ geographicUnitUuid: item.uuid }));
-              }}
-              aria-label="deleteButton"
-            />
-          )}
+        <div className={styles.propertyRowTrashContainer}>
+          <div className={styles.propertyRowTrash}>
+            {editMode && (
+              <FontAwesomeIcon
+                icon={faTrashAlt}
+                size="sm"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  dispatch(thunkDeleteGeoUnit({ geographicUnitUuid: item.uuid }));
+                }}
+                aria-label="deleteButton"
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>

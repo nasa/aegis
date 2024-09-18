@@ -22,6 +22,8 @@ export const generateBlankAction = (partialAction?: Partial<Action>): Action => 
     stmPriorities: null,
     type: "other",
     description: "",
+    stmAction: false,
+    actionDefinition: null,
     icon: "26cf-fe0f", //default pickaxe icon
     location: null,
     elevation: null,
@@ -60,6 +62,8 @@ export function convertActionsTypeDbToStore(dbActions: Action_db[]): Action[] {
       stmPriorities: dbaction.stmPriorities,
       type: dbaction.type,
       description: dbaction.description,
+      stmAction: false,
+      actionDefinition: null,
       icon: dbaction.icon,
       location: dbaction.location,
       elevation: dbaction.elevation,

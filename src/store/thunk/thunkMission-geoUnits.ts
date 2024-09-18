@@ -96,7 +96,7 @@ export const thunkCreateGeoUnit = appCreateAsyncThunk<void, string>(
 
     const geographicUnits = getState().mission.mission.geographicUnits || [];
     const newGeographicUnits = [...geographicUnits, blankItem];
-    dispatch(upsertMission({ ...getState().mission.mission, geographicUnits: newGeographicUnits }));
+    dispatch(upsertMissionByField("geographicUnits", newGeographicUnits));
 
     return newGeoUuid;
   }

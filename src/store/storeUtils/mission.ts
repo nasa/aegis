@@ -14,6 +14,8 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     version: 0,
     name: "",
     description: "",
+    actionSystemVersion: 1,
+    actionDefinitions: null,
     missionBanner: "",
     landerLocation: null,
     landerElevationMeters: 0,

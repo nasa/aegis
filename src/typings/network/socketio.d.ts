@@ -2,7 +2,7 @@
 interface ServerToClientEvents {
   noArg: () => void;
   storeUpsert: (
-    payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission>
+    payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission | Rex>
   ) => void;
   storeDelete: (payload: StoreDelete) => void;
   statusFromServer: (payload: StatusFromServer) => void;
@@ -11,7 +11,7 @@ interface ServerToClientEvents {
 
 interface ClientToServerEvents {
   storeUpsert: (
-    payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission>
+    payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission | Rex>
   ) => void;
   storeDelete: (payload: StoreDelete) => void;
   visitorJoin: (visitorJoin: VisitorJoin) => void;

@@ -2,6 +2,7 @@
 // https://docs.slatejs.org/concepts/12-typescript
 import { BaseEditor } from "slate";
 import { ReactEditor } from "slate-react";
+import type { Property } from "csstype";
 
 export type CustomText = { text: string; bold?: boolean; italic?: boolean; underline?: boolean };
 

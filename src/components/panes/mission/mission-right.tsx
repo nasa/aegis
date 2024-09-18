@@ -25,11 +25,17 @@ import { isModified } from "utils/component-helpers";
 import ActionTemplates_Panel from "./mission-right-actionTemplates";
 import { RightTabs } from "components/interface/side-controls";
 import Export_Panel from "./mission-right-export";
+import ActionDefinitions_Panel from "./mission-right-actionDefinitions";
 
 const MissionPrefsRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector(
     (state) => state.mission.selectedRightNavItem,
+    refEqual
+  );
+
+  const actionSystemVersion = useAppSelector(
+    (state) => state.mission.mission.actionSystemVersion,
     refEqual
   );
 
@@ -54,49 +60,83 @@ const MissionPrefsRight: FunctionComponent = () => {
     [{ updatedAt: missionFromDbUpdatedAt, uuid: null }]
   );
 
-  const panelTypes: PanelTypes = {
-    prefs_panel: {
-      title: "Mission Preferences",
-      panel: Prefs_panel,
-      selectedColor: "white",
-      icon: faSliders,
-    },
-    circle_panel: {
-      title: "Map Vector Definitions",
-      panel: Layers_panel,
-      selectedColor: "white",
-      icon: faBullseye,
-    },
-    actionTemplate_panel: {
-      title: "Action Templates",
-      panel: ActionTemplates_Panel,
-      selectedColor: "white",
-      icon: faPersonDigging,
-    },
-    equipment_panel: {
-      title: "Mission Equipment",
-      panel: Equipment_Panel,
-      selectedColor: "white",
-      icon: faToolbox,
-    },
-    geographicUnit_panel: {
-      title: "Mission Geography",
-      panel: GeographiUnits_Panel,
-      selectedColor: "white",
-      icon: faAtlas,
-    },
-    export_panel: {
-      title: "Export AEGIS Data",
-      panel: Export_Panel,
-      selectedColor: "white",
-      icon: faFileExport,
-    },
-  };
-
-  let ActiveComponent = null;
-  if (selectedRightNavItem !== null) {
-    ActiveComponent = panelTypes[selectedRightNavItem].panel;
+  let panelTypes: PanelTypes;
+  if (actionSystemVersion === 1) {
+    panelTypes = {
+      prefs_panel: {
+        title: "Mission Preferences",
+        panel: Prefs_panel,
+        selectedColor: "white",
+        icon: faSliders,
+      },
+      circle_panel: {
+        title: "Map Vector Definitions",
+        panel: Layers_panel,
+        selectedColor: "white",
+        icon: faBullseye,
+      },
+      actionTemplate_panel: {
+        title: "Action Templates",
+        panel: ActionTemplates_Panel,
+        selectedColor: "white",
+        icon: faPersonDigging,
+      },
+      geographicUnit_panel: {
+        title: "Mission Geography",
+        panel: GeographiUnits_Panel,
+        selectedColor: "white",
+        icon: faAtlas,
+      },
+      equipment_panel: {
+        title: "Mission Equipment",
+        panel: Equipment_Panel,
+        selectedColor: "white",
+        icon: faToolbox,
+      },
+      export_panel: {
+        title: "Export AEGIS Data",
+        panel: Export_Panel,
+        selectedColor: "white",
+        icon: faFileExport,
+      },
+    };
+  } else {
+    panelTypes = {
+      prefs_panel: {
+        title: "Mission Preferences",
+        panel: Prefs_panel,
+        selectedColor: "white",
+        icon: faSliders,
+      },
+      circle_panel: {
+        title: "Map Vector Definitions",
+        panel: Layers_panel,
+        selectedColor: "white",
+        icon: faBullseye,
+      },
+      actionDefinitions_panel: {
+        title: "Action Definitions",
+        panel: ActionDefinitions_Panel,
+        selectedColor: "white",
+        icon: faPersonDigging,
+      },
+      equipment_panel: {
+        title: "Mission Equipment",
+        panel: Equipment_Panel,
+        selectedColor: "white",
+        icon: faToolbox,
+      },
+      export_panel: {
+        title: "Export AEGIS Data",
+        panel: Export_Panel,
+        selectedColor: "white",
+        icon: faFileExport,
+      },
+    };
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ActiveComponent: FunctionComponent<any> = panelTypes[selectedRightNavItem]?.panel;
 
   return (
     <>
