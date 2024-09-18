@@ -58,6 +58,11 @@ type Preset = {
   mapSublayerControls: MapSublayerControls; //flattened list of layers/sublayers
   mapCircleControls: MapCircleControls;
   layerOrder: PresetLayerOrder[];
+  sunAzimuth?: number;
+  sunEnabled?: boolean;
+  earthAzimuth?: number;
+  earthEnabled?: boolean;
+  earthAsMoon?: boolean;
   createdAt?: string;
   updatedAt?: string;
 };

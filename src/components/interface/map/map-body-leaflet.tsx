@@ -1751,7 +1751,7 @@ const MapBody: FunctionComponent = () => {
       <div className={styles.mapPositionDisplay}>
         {showMouseLatLon && mousePosition && latLngDiv(mousePosition)}
       </div>
-      {showSunEarth && <SunEarth type="editor" />}
+      {showSunEarth && <SunEarth type="editor" mapSelectedPreset={selectedPreset} />}
     </div>
   );
 };
