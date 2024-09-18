@@ -28,6 +28,8 @@ const MissionEditor: FunctionComponent<{
       id: mission.id,
       version: mission.version,
       name: missionValues.name,
+      actionSystemVersion: missionValues.actionSystemVersion,
+      actionDefinitions: mission.actionDefinitions,
       equipmentItems: mission.equipmentItems,
       geographicUnits: mission.geographicUnits,
       actionTemplates: mission.actionTemplates,
@@ -163,6 +165,19 @@ const MissionEditor: FunctionComponent<{
                             />
                           </div>
                         </div>
+                        <div id="actionSystemVersionDiv">
+                          <div className={adminStyles.editDiv}>
+                            <FFInput
+                              name="actionSystemVersion"
+                              label={{
+                                label: "Action System Version (1 or 2)",
+                                title: "Action System Version",
+                              }}
+                              initialValue={mission?.actionSystemVersion.toString()}
+                            />
+                          </div>
+                        </div>
+                        <br />
                         <div id="planetRadiusDiv">
                           <div className={adminStyles.editDiv}>
                             <FFInput

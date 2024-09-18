@@ -1,6 +1,6 @@
 {
   "name": "aegis-zero",
-  "version": "1.0.7",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "dev": "concurrently -n vite,api \"npm run vite:dev:wait\" \"npm run api:dev\"",
@@ -109,6 +109,7 @@
     "@jest/globals": "^29.7.0",
     "@playwright/test": "^1.47.0",
     "@testing-library/jest-dom": "^6.5.0",
+    "@types/aria-query": "^5.0.4",
     "@types/bcryptjs": "^2.4.6",
     "@types/color": "^3.0.6",
     "@types/cookie-session": "^2.0.49",

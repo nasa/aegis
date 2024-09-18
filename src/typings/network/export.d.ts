@@ -70,7 +70,7 @@ type ExportedData = {
   pois: ExportPOI[];
   stations: ExportStation[];
   actions: ExportAction[];
-  traverses: ExportTraverses[];
+  traverses: ExportTraverse[];
   evas: ExportEva[];
   rexes: ExportRex[];
 };

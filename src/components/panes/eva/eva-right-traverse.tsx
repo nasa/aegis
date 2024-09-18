@@ -88,15 +88,20 @@ const EvaRightTraverse: FunctionComponent = () => {
   const panelTypes: PanelTypes = {
     info_panel: {
       title: "Traverse Information",
-      panel: <Info_Panel editMode={traversesEditing.includes(selectedEvaSequenceItemUuid)} />,
+      panel: Info_Panel,
+      panelProps: {
+        editMode: traversesEditing.includes(selectedEvaSequenceItemUuid),
+      },
       selectedColor: "white",
       icon: faCircleInfo,
     },
     report_panel: {
       title: "Reports",
-      panel: (
-        <Report_Panel reportItems={calculatedFields.reportItems} reportTitle={"Traverse Report"} />
-      ),
+      panel: Report_Panel,
+      panelProps: {
+        reportItems: calculatedFields.reportItems,
+        reportTitle: "Traverse Report",
+      },
       selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "white",
       unselectedColor: reportsTabIconColor,
       icon: calculatedFields.reportItems.length > 0 ? faTriangleExclamation : faCheck,
@@ -154,10 +159,8 @@ const EvaRightTraverse: FunctionComponent = () => {
     dispatch(setTraverseEditMode({ uuid: selectedEvaSequenceItemUuid, editMode: true }));
   };
 
-  let activeComponent: FunctionComponent = null;
-  if (!_.isNil(panelTypes[selectedRightNavItem])) {
-    activeComponent = panelTypes[selectedRightNavItem].panel;
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ActiveComponent: FunctionComponent<any> = panelTypes[selectedRightNavItem]?.panel;
 
   return (
     selectedTraverse && (
@@ -230,7 +233,7 @@ const EvaRightTraverse: FunctionComponent = () => {
           </div>
         </div>
 
-        {activeComponent}
+        <ActiveComponent {...panelTypes[selectedRightNavItem]?.panelProps} />
       </>
     )
   );

@@ -2,6 +2,7 @@ import {
   deleteActionsByUuid,
   deleteActionsFromDbByUuid,
   upsertAction,
+  upsertActionByField,
   upsertActions,
   upsertActionsFromDb,
 } from "store/action";
@@ -43,6 +44,7 @@ export const thunkCreateAction = appCreateAsyncThunk<
       missionId: getState().mission.mission?.id,
       uuid: actionUuid,
       name: randomName,
+      stmAction: getState().mission.mission?.actionSystemVersion === 2,
     });
 
     if (actionTemplate) {
@@ -287,3 +289,23 @@ export const thunkDeleteActionFromDbAndStore = appCreateAsyncThunk<{
     dispatch(deleteActionsFromDbByUuid(uuids));
   }
 });
+
+export const thunkUpsertActionDefinitionSelection = appCreateAsyncThunk<{
+  actionUuid: string;
+  type: ActionDefinitionType;
+  typeUuid: string;
+}>(
+  "upsertActionDefinitionSelection",
+  async ({ actionUuid, type, typeUuid }, { dispatch, getState }) => {
+    const action = getState().action.actions.find((a) => a.uuid === actionUuid);
+    let newActionDefinition = null;
+    if (type === "verbs") {
+      newActionDefinition = { ...action.actionDefinition, verbUuid: typeUuid };
+    } else if (type === "nouns") {
+      newActionDefinition = { ...action.actionDefinition, nounUuid: typeUuid };
+    } else if (type === "adjectives") {
+      newActionDefinition = { ...action.actionDefinition, adjectiveUuid: typeUuid };
+    }
+    dispatch(upsertActionByField(actionUuid, "actionDefinition", newActionDefinition));
+  }
+);

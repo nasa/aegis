@@ -64,6 +64,20 @@
   cursor: pointer;
 }
 
+.propertyRowLongAbbr {
+  flex: 0 0 105px;
+  font-size: 0.9em;
+  padding: 3px 2px 3px 5px;
+  cursor: pointer;
+}
+
+.propertyRowAbbr {
+  flex: 0 0 55px;
+  font-size: 0.9em;
+  padding: 3px 2px 3px 5px;
+  cursor: pointer;
+}
+
 .propertyRowQuantity {
   flex: 0 0 30px;
   font-size: 0.9em;
@@ -93,10 +107,10 @@
 
 .propertyRowTrashContainer {
   flex: 0 0 20px;
-
   display: flex;
   flex-direction: column;
   justify-content: space-around;
+  margin-left: 5px;
 }
 
 .propertyList {

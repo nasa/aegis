@@ -1,7 +1,7 @@
 import { initialState as wholeStoreInitialState } from "store/index";
 import { getAll } from "http-client/all";
 import _ from "lodash";
-import { auditActions, auditPresetsAgainstLayers } from "./audits";
+import { auditActionDefinitions, auditActions, auditPresetsAgainstLayers } from "./audits";
 
 export const populateStore = async (params: {
   missionId: number;
@@ -38,7 +38,10 @@ export const populateStore = async (params: {
   wholeStoreState.traverse.traversesFromDb = allDataRes.data.traverses;
 
   // Run audits on the data returned, modifying the data as needed. Each audit function will save needed changes to the DB
-  if (runAudit) await auditPresetsAgainstLayers({ wholeStoreState });
+  if (runAudit) {
+    await auditPresetsAgainstLayers({ wholeStoreState });
+    await auditActionDefinitions({ wholeStoreState });
+  }
 
   // Set the default preset
   const defaultPreset = wholeStoreState.preset.presets.filter(

@@ -20,7 +20,6 @@ import {
   faRoute,
 } from "@fortawesome/free-solid-svg-icons";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
-import { FunctionComponent } from "react";
 
 export const paneTypes: PaneTypes = {
   mission: {
@@ -67,7 +66,7 @@ export const paneTypes: PaneTypes = {
   },
   stmViewer: {
     title: "STM Viewer",
-    leftPane: (): FunctionComponent => null,
+    leftPane: () => null,
     rightPane: StmViewerPage,
     color: "var(--stmViewer)",
     icon: faFlask,

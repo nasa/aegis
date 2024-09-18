@@ -102,7 +102,7 @@ export const thunkCreateEquipment = appCreateAsyncThunk<void, string>(
 
     const equipmentItems = getState().mission.mission.equipmentItems || [];
     const newEquipmentItems = [...equipmentItems, blankEquipmentItem];
-    dispatch(upsertMission({ ...getState().mission.mission, equipmentItems: newEquipmentItems }));
+    dispatch(upsertMissionByField("equipmentItems", newEquipmentItems));
 
     return equipmentUuid;
   }

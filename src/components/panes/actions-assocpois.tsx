@@ -126,15 +126,6 @@ const Assoc_POI: FunctionComponent<{
           <div className={assocPoisStyles.actionListHeaderTitle}>
             <div className={assocPoisStyles.actionListHeaderLabel}>Title</div>
           </div>
-          <div className={assocPoisStyles.actionListHeaderPriority}>
-            <div
-              className={assocPoisStyles.actionListHeaderLabel}
-              data-tooltip-id="aegis-tooltip"
-              data-tooltip-html={"Priority"}
-            >
-              Pri
-            </div>
-          </div>
           <div
             className={assocPoisStyles.actionListHeaderTime}
             data-tooltip-id="aegis-tooltip"
@@ -169,14 +160,6 @@ const Assoc_POI: FunctionComponent<{
                     {poiAction.name}
                   </div>
                   <div className={actionStyles.actionHeadingRight}>
-                    <div
-                      className={actionStyles.actionHeadingRightItem}
-                      style={{ width: "15px", textAlign: "right" }}
-                      data-tooltip-id="aegis-tooltip"
-                      data-tooltip-html={"Priority"}
-                    >
-                      {poiAction.priority}
-                    </div>
                     <div
                       className={actionStyles.actionHeadingRightItem}
                       data-tooltip-id="aegis-tooltip"

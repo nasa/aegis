@@ -6,12 +6,12 @@ global.TextDecoder = TextDecoder;
 import reducer, { initialState, deleteActionsFromDbByUuid } from "store/action";
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import { v4 as uuidv4 } from "uuid";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
 import { createCustomTestStore } from "../factories/makeTestStore";
 import { Mission_db, User_db } from "server/database/models/_allModels";
 import { initialState as actionInitialState } from "store/action";
+import { generateBlankAction } from "store/storeUtils/action";
 
 let testMission: Mission_db;
 let testAdmin: User_db;
@@ -51,20 +51,7 @@ describe("Action Store Tests", () => {
       // Arrange
       const nextAction = {
         type: "action/upsertAction",
-        payload: {
-          uuid: "test",
-          name: "test",
-          description: "test",
-          priority: 5,
-          durationLower: 5,
-          equipmentItemsUsage: [],
-          mass: 1,
-          type: "measurement",
-          status: "Candidate",
-          missionId: 5000,
-          createdAt: "test",
-          updatedAt: "test",
-        } as Action,
+        payload: generateBlankAction(),
       };
 
       // Act
@@ -78,50 +65,8 @@ describe("Action Store Tests", () => {
 
       // Action Array to dispatch
       const actions: Action[] = [
-        {
-          uuid: "test",
-          name: "test",
-          description: "test",
-          location: null,
-          elevation: 1,
-          icon: null,
-          priority: 5,
-          durationLower: 5,
-          equipmentItemsUsage: [],
-          geographicUnitsUsage: [],
-          mass: 1,
-          stmUuidRefs: [],
-          stmPriorities: {},
-          type: "measurement",
-          status: "Candidate",
-          enabled: true,
-          missionId: 5000,
-          crewAssigned: [],
-          createdAt: "test",
-          updatedAt: "test",
-        },
-        {
-          uuid: "test2",
-          name: "test2",
-          description: "test2",
-          location: null,
-          elevation: 1,
-          icon: null,
-          priority: 5,
-          durationLower: 5,
-          equipmentItemsUsage: [],
-          geographicUnitsUsage: [],
-          mass: 1,
-          stmUuidRefs: [],
-          stmPriorities: {},
-          type: "measurement",
-          status: "Candidate",
-          enabled: true,
-          missionId: 2002,
-          crewAssigned: [],
-          createdAt: "test2",
-          updatedAt: "test2",
-        },
+        generateBlankAction({ uuid: "test" }),
+        generateBlankAction({ uuid: "test2" }),
       ];
 
       // Act
@@ -137,50 +82,8 @@ describe("Action Store Tests", () => {
     it("Should Upsert an action from DB", () => {
       // Action Array to dispatch
       const actions: Action[] = [
-        {
-          uuid: "test",
-          name: "test",
-          description: "test",
-          location: null,
-          elevation: 1,
-          icon: null,
-          priority: 5,
-          durationLower: 5,
-          equipmentItemsUsage: [],
-          geographicUnitsUsage: [],
-          mass: 1,
-          stmUuidRefs: [],
-          stmPriorities: {},
-          type: "measurement",
-          status: "Candidate",
-          enabled: true,
-          missionId: 5000,
-          crewAssigned: [],
-          createdAt: "test",
-          updatedAt: "test",
-        },
-        {
-          uuid: "test2",
-          name: "test2",
-          description: "test2",
-          location: null,
-          elevation: 1,
-          icon: null,
-          priority: 5,
-          durationLower: 5,
-          equipmentItemsUsage: [],
-          geographicUnitsUsage: [],
-          mass: 1,
-          stmUuidRefs: [],
-          stmPriorities: {},
-          type: "measurement",
-          status: "Candidate",
-          enabled: true,
-          missionId: 2002,
-          crewAssigned: [],
-          createdAt: "test2",
-          updatedAt: "test2",
-        },
+        generateBlankAction({ uuid: "test" }),
+        generateBlankAction({ uuid: "test2" }),
       ];
 
       // Act
@@ -196,21 +99,9 @@ describe("Action Store Tests", () => {
       // Arrange
       const nextAction = {
         type: "action/upsertAction",
-        payload: {
+        payload: generateBlankAction({
           uuid: "test",
-          name: "test",
-          description: "test",
-          priority: 5,
-          durationLower: 5,
-          equipmentItemsUsage: [],
-          mass: 1,
-          type: "measurement",
-          status: "Candidate",
-          enabled: true,
-          missionId: 5000,
-          createdAt: "test",
-          updatedAt: "test",
-        } as Action,
+        }),
       };
 
       // Act
@@ -227,50 +118,12 @@ describe("Action Store Tests", () => {
     it("Should delete multiple actions", () => {
       // Action Array to dispatch
       const actions: Action[] = [
-        {
+        generateBlankAction({
           uuid: "test",
-          name: "test",
-          description: "test",
-          location: null,
-          elevation: 1,
-          icon: null,
-          priority: 5,
-          durationLower: 5,
-          equipmentItemsUsage: [],
-          geographicUnitsUsage: [],
-          mass: 1,
-          stmUuidRefs: [],
-          stmPriorities: {},
-          type: "measurement",
-          status: "Candidate",
-          enabled: true,
-          missionId: 5000,
-          crewAssigned: [],
-          createdAt: "test",
-          updatedAt: "test",
-        },
-        {
+        }),
+        generateBlankAction({
           uuid: "test2",
-          name: "test2",
-          description: "test2",
-          location: null,
-          elevation: 1,
-          icon: null,
-          priority: 5,
-          durationLower: 5,
-          equipmentItemsUsage: [],
-          geographicUnitsUsage: [],
-          mass: 1,
-          stmUuidRefs: [],
-          stmPriorities: {},
-          type: "measurement",
-          status: "Candidate",
-          enabled: true,
-          missionId: 2002,
-          crewAssigned: [],
-          createdAt: "test2",
-          updatedAt: "test2",
-        },
+        }),
       ];
 
       // Act
@@ -293,93 +146,27 @@ describe("Action Store Tests", () => {
 
 describe("Action Store Tests with mock store", () => {
   test("Delete actions", () => {
-    const uuids = [uuidv4(), uuidv4(), uuidv4(), uuidv4()];
-
     const store = createCustomTestStore({
       action: {
         ...actionInitialState,
         actions: [],
         actionsFromDb: [
-          {
-            uuid: uuids[0],
+          generateBlankAction({
+            uuid: "test",
             name: "Jest Action-0",
-            missionId: 1,
-            priority: 1,
-            type: "measurement",
-            description: "",
-            location: null,
-            elevation: 1,
-            icon: null,
-            durationLower: 5,
-            equipmentItemsUsage: [],
-            geographicUnitsUsage: [],
-            crewAssigned: [],
-            mass: 1,
-            stmUuidRefs: [],
-            stmPriorities: {},
-            status: "Approved",
-            enabled: true,
-          },
-          {
-            uuid: uuids[1],
+          }),
+          generateBlankAction({
+            uuid: "test2",
             name: "Jest Action-1",
-            missionId: 1,
-            priority: 1,
-            type: "measurement",
-            description: "",
-            location: null,
-            elevation: 1,
-            icon: null,
-            durationLower: 5,
-            equipmentItemsUsage: [],
-            geographicUnitsUsage: [],
-            crewAssigned: [],
-            mass: 1,
-            stmUuidRefs: [],
-            stmPriorities: {},
-            status: "Approved",
-            enabled: true,
-          },
-          {
-            uuid: uuids[2],
+          }),
+          generateBlankAction({
+            uuid: "test3",
             name: "Jest Action-2",
-            missionId: 1,
-            priority: 1,
-            type: "measurement",
-            description: "",
-            location: null,
-            elevation: 1,
-            icon: null,
-            durationLower: 5,
-            equipmentItemsUsage: [],
-            geographicUnitsUsage: [],
-            crewAssigned: [],
-            mass: 1,
-            stmUuidRefs: [],
-            stmPriorities: {},
-            status: "Approved",
-            enabled: true,
-          },
-          {
-            uuid: uuids[3],
+          }),
+          generateBlankAction({
+            uuid: "test4",
             name: "Jest Action-3",
-            missionId: 1,
-            priority: 1,
-            type: "measurement",
-            description: "",
-            location: null,
-            elevation: 1,
-            icon: null,
-            durationLower: 5,
-            equipmentItemsUsage: [],
-            geographicUnitsUsage: [],
-            crewAssigned: [],
-            mass: 1,
-            stmUuidRefs: [],
-            stmPriorities: {},
-            status: "Approved",
-            enabled: true,
-          },
+          }),
         ],
       },
     });
@@ -388,7 +175,7 @@ describe("Action Store Tests with mock store", () => {
     expect(store.getState().action.actionsFromDb.length).toEqual(4);
 
     // force it to think that the array is Action[] since uuid is all deleteActions really needs
-    store.dispatch(deleteActionsFromDbByUuid([uuids[0], uuids[2]]));
+    store.dispatch(deleteActionsFromDbByUuid(["test", "test3"]));
 
     // ensure the actions were deleted from the store
     expect(store.getState().action.actionsFromDb.length).toEqual(2);

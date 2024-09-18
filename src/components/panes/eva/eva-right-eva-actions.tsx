@@ -79,6 +79,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
           editPerms={editPerms}
           isRexRunning={isSelectedEvaInARunningRex}
         />
+
         <div className={actionsStyles.actionListContainer}>
           {selectedEva.sequence.map((sequenceItem) => {
             if (sequenceItem.type !== "station") return null;
@@ -91,6 +92,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                 <ActionList
                   editMode={editMode}
                   actionOrderUuids={actionOrderUuids}
+                  parentType="eva"
                   highlightActions={highlightActions}
                   isActionHiglighted={isActionHiglighted}
                   stations={stations}

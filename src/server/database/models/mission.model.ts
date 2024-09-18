@@ -13,6 +13,8 @@ export class Mission_db implements Mission_db_type {
   missionBanner: string;
   @Property({ type: MikroTypes.integer })
   version!: number;
+  @Property({ type: MikroTypes.integer, default: 1 })
+  actionSystemVersion!: number;
   @Property({ type: MikroTypes.json, nullable: true })
   landerLocation: AEGISPoint;
   @Property({ type: MikroTypes.double, nullable: true })
@@ -79,6 +81,8 @@ export class Mission_db implements Mission_db_type {
   stmLevel2Name: string;
   @Property({ type: MikroTypes.text, nullable: true, default: "Investigation" })
   stmLevel3Name: string;
+  @Property({ type: MikroTypes.json, nullable: true })
+  actionDefinitions: ActionDefinitions;
 
   @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;

@@ -1,6 +1,5 @@
 import paneStyles from "components/panes/global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
-import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
@@ -111,42 +110,45 @@ const StationEditorRight: FunctionComponent = () => {
   const panelTypes: PanelTypes = {
     info_panel: {
       title: "Station Information",
-      panel: (
-        <Info_Panel
-          editMode={stationsEditing.includes(selectedStationUuid)}
-          actionCount={calculatedFields?.actionCount}
-        />
-      ),
+      panel: Info_Panel,
+      panelProps: {
+        editMode: stationsEditing.includes(selectedStationUuid),
+        actionCount: calculatedFields?.actionCount,
+      },
       selectedColor: "white",
       icon: faCircleInfo,
     },
     poi_panel: {
       title: "Station POIs",
-      panel: <Poi_Panel editMode={stationsEditing.includes(selectedStationUuid)} />,
+      panel: Poi_Panel,
+      panelProps: { editMode: stationsEditing.includes(selectedStationUuid) },
       selectedColor: "white",
       icon: faCircleDot,
     },
     actions_panel: {
       title: "Station Actions",
-      panel: <Actions_Panel editMode={stationsEditing.includes(selectedStationUuid)} />,
+      panel: Actions_Panel,
+      panelProps: {
+        editMode: stationsEditing.includes(selectedStationUuid),
+      },
       selectedColor: "white",
       icon: faPersonDigging,
     },
     report_panel: {
       title: "Station Report",
-      panel: (
-        <Report_Panel reportItems={calculatedFields?.reportItems} reportTitle={"Station Report"} />
-      ),
+      panel: Report_Panel,
+      panelProps: {
+        reportItems: calculatedFields?.reportItems,
+        reportTitle: "Station Report",
+      },
       selectedColor: reportsTabIconColor === "var(--alert)" ? "var(--error)" : "white",
       unselectedColor: reportsTabIconColor,
       icon: calculatedFields?.reportItems.length > 0 ? faTriangleExclamation : faCheck,
     },
   };
 
-  let activeComponent: FunctionComponent = null;
-  if (!_.isNil(panelTypes[selectedRightNavItem])) {
-    activeComponent = panelTypes[selectedRightNavItem].panel;
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ActiveComponent: FunctionComponent<any> = panelTypes[selectedRightNavItem]?.panel;
 
   return (
     selectedStation && (
@@ -302,7 +304,7 @@ const StationEditorRight: FunctionComponent = () => {
             )}
           </div>
         </div>
-        {activeComponent}
+        <ActiveComponent {...panelTypes[selectedRightNavItem]?.panelProps} />
       </>
     )
   );

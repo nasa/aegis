@@ -291,3 +291,16 @@ export function abbreviateString(str: string, maxLength: number): string {
   if (str.length <= maxLength) return str;
   return str.substring(0, maxLength - 3) + "...";
 }
+
+export const getActionDefinitionTypeString = (type: ActionDefinitionType): string => {
+  switch (type) {
+    case "verbs":
+      return "Verbs";
+    case "nouns":
+      return "Nouns";
+    case "adjectives":
+      return "Adjectives";
+    default:
+      return "";
+  }
+};

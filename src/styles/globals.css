@@ -42,7 +42,8 @@ body {
   --alert-disabled: #650000;
 
   --info: #2b6092;
-  --warning: #ddce00;
+  /* --warning: #ddce00;  */
+  --warning: #ffef61;
   --error: #ff4040;
   --errorText: #cb0000;
 
@@ -51,6 +52,10 @@ body {
   --radius: 3px;
   --panelRadius: 6px;
   --dashboardRadius: 20px;
+
+  --verb: #ffef61;
+  --noun: #6ee5ff;
+  --adjective: #76ff8c;
 }
 
 /* ===== Scrollbar CSS ===== */

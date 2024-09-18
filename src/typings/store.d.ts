@@ -4,7 +4,6 @@ interface HoverState {
   mapItemUuid: string;
   mapItemType: MapItemType;
   posEntryItemUuid: string;
-  mapItemUuid: string;
   sequenceItemPercentElapsed: number; //when hovering over the timeline, represents % duration elapsed for that sequence item at that point in time
   measurementUuid: string;
   measurementPercentDistance: number;

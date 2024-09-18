@@ -9,7 +9,7 @@ interface MapCircleControl {
   name: string;
   landerRadiusUuid: string;
   visible: boolean;
-  style: MapLayerStyle;
+  style: MapSublayerStyle;
 }
 
 interface MapSublayerStyle {

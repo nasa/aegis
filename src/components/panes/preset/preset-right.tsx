@@ -67,10 +67,8 @@ const PresetEditorRight: FunctionComponent = () => {
     },
   };
 
-  let ActiveComponent = null;
-  if (selectedRightNavItem !== null) {
-    ActiveComponent = panelTypes[selectedRightNavItem].panel;
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ActiveComponent: FunctionComponent<any> = panelTypes[selectedRightNavItem]?.panel;
 
   return (
     selectedPreset && (
