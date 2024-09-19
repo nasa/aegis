@@ -25,6 +25,16 @@ export class Preset_db implements Preset_db_type {
   mapCircleControls!: MapCircleControls;
   @Property({ type: MikroTypes.json, nullable: true })
   layerOrder: PresetLayerOrder[];
+  @Property({ type: MikroTypes.double, nullable: true })
+  sunAzimuth: number;
+  @Property({ type: MikroTypes.boolean, nullable: true, default: true })
+  sunEnabled: boolean;
+  @Property({ type: MikroTypes.double, nullable: true })
+  earthAzimuth: number;
+  @Property({ type: MikroTypes.boolean, nullable: true, default: true })
+  earthEnabled: boolean;
+  @Property({ type: MikroTypes.boolean, nullable: true, default: false })
+  earthAsMoon: boolean;
 
   @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;

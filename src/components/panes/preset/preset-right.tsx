@@ -8,11 +8,13 @@ import {
   faFloppyDisk,
   faLayerGroup,
   faTrashAlt,
+  faSun,
 } from "@fortawesome/free-solid-svg-icons";
 
 import Info_panel from "./preset-right-info";
 import Layers_Panel from "./preset-right-layers";
 import Circles_Panel from "./preset-right-circles";
+import Azimuth_Panel from "./preset-right-azimuth";
 import paneStyles from "../global-pane-styles.module.css";
 import {
   setPresetEditMode,
@@ -64,6 +66,12 @@ const PresetEditorRight: FunctionComponent = () => {
       panel: Circles_Panel,
       selectedColor: "white",
       icon: faBullseye,
+    },
+    azimuth_panel: {
+      title: "",
+      panel: Azimuth_Panel,
+      selectedColor: "white",
+      icon: faSun,
     },
   };
 

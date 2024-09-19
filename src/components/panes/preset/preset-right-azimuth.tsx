@@ -1,0 +1,218 @@
+import _ from "lodash";
+import paneStyles from "../global-pane-styles.module.css";
+import { FunctionComponent, useCallback, useRef, useState } from "react";
+import { faEarthAmerica, faSun, faMoon } from "@fortawesome/free-solid-svg-icons";
+import { upsertPreset } from "store/preset";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
+import { Checkbox, DegreesInputSlider } from "components/interface/form/globalFields";
+import { SubpanelHeading } from "components/interface/_global-elements";
+
+const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
+  const dispatch = useAppDispatch();
+  const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
+  const selectedPreset = useAppSelector(
+    (state) => state.preset.presets.find((preset) => preset.uuid === selectedPresetUuid),
+    deepEqual
+  );
+
+  const [isDragging, setIsDragging] = useState(false);
+
+  const sunThrottledFunc = useRef(
+    _.throttle((preset: Preset, value: number) => {
+      dispatch(
+        upsertPreset({
+          ...preset,
+          sunAzimuth: value,
+        })
+      );
+    }, 50)
+  );
+
+  const handleOnChangeSunAzimuth = useCallback(
+    (preset: Preset, value: number) => {
+      //hook into isDragging to prevent this from triggering when values are reset via "Cancel" button
+      if (isDragging) sunThrottledFunc.current(preset, value);
+    },
+    [sunThrottledFunc, isDragging]
+  );
+
+  const earthThrottledFunc = useRef(
+    _.throttle((preset: Preset, value: number) => {
+      dispatch(
+        upsertPreset({
+          ...preset,
+          earthAzimuth: value,
+        })
+      );
+    }, 50)
+  );
+
+  const handleOnChangeEarthAzimuth = useCallback(
+    (preset: Preset, value: number) => {
+      if (isDragging) earthThrottledFunc.current(preset, value);
+    },
+    [earthThrottledFunc, isDragging]
+  );
+
+  return (
+    <div className={paneStyles.rightBody}>
+      <div className={paneStyles.rightBodyTitle} aria-label="rightBodyTitle">
+        Azimuth Configuration
+      </div>
+      <div className={paneStyles.panelSection}>
+        <div className={paneStyles.panelSectionInner2Column}>
+          <div className={paneStyles.panelSectionInner2ColumnLeft}>
+            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+              <SubpanelHeading icon={faSun}>Sun Direction</SubpanelHeading>
+            </div>
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.degreesInputContainer}>
+                <div className={paneStyles.descriptionContainer}>
+                  <DegreesInputSlider
+                    value={selectedPreset.sunAzimuth}
+                    editable={editMode}
+                    label="Azimuth"
+                    onChange={(value: number) => {
+                      handleOnChangeSunAzimuth(selectedPreset, value);
+                    }}
+                    isDragging={(value: boolean) => {
+                      setIsDragging(value);
+                    }}
+                    icon={faSun}
+                  />
+                </div>
+                <div className={paneStyles.displayFieldLabel} style={{ margin: "6px 0 0 18px" }}>
+                  <div style={{ display: "flex" }}>
+                    {editMode ? (
+                      <>
+                        <div>
+                          <Checkbox
+                            checked={selectedPreset.sunEnabled}
+                            editable={editMode}
+                            onChange={(e) => {
+                              dispatch(
+                                upsertPreset({
+                                  ...selectedPreset,
+                                  sunEnabled: e.target.checked,
+                                })
+                              );
+                            }}
+                            label="Enable:"
+                            labelStyle={{ marginTop: 3, marginRight: 3 }}
+                            labelPlacement="left"
+                            uniqueId="sunCheckbox"
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ marginTop: "3px" }}>
+                        {selectedPreset?.sunEnabled ? "Enabled" : "Disabled"}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className={paneStyles.panelSectionInner2ColumnRight} style={{ marginLeft: "40px" }}>
+            <div
+              className={paneStyles.panelSectionTitle}
+              style={{ marginBottom: "8px" }}
+              aria-label={selectedPreset.earthAsMoon ? "moonHeading" : "earthHeading"}
+            >
+              <SubpanelHeading icon={selectedPreset.earthAsMoon ? faMoon : faEarthAmerica}>
+                {selectedPreset.earthAsMoon ? "Moon" : "Earth"} Direction
+              </SubpanelHeading>
+            </div>
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.degreesInputContainer}>
+                <div className={paneStyles.descriptionContainer}>
+                  <DegreesInputSlider
+                    value={selectedPreset.earthAzimuth}
+                    editable={editMode}
+                    label="Azimuth"
+                    onChange={(value: number) => {
+                      handleOnChangeEarthAzimuth(selectedPreset, value);
+                    }}
+                    icon={selectedPreset.earthAsMoon ? faMoon : faEarthAmerica}
+                    isDragging={(value: boolean) => {
+                      setIsDragging(value);
+                    }}
+                  />
+                </div>
+                <div className={paneStyles.displayFieldLabel} style={{ margin: "6px 0 0 18px" }}>
+                  <div style={{ display: "flex" }}>
+                    {editMode && (
+                      <>
+                        <div
+                          className={`${paneStyles.toggleMenuItemRow} ${paneStyles.menuItemTitle}`}
+                        >
+                          <div
+                            className={`${paneStyles.toggleLeft} ${paneStyles.center} ${
+                              !selectedPreset.earthAsMoon && paneStyles.toggleSelected
+                            }`}
+                            onClick={() => {
+                              if (selectedPreset.earthAsMoon)
+                                dispatch(upsertPreset({ ...selectedPreset, earthAsMoon: false }));
+                            }}
+                            aria-label="earthDirectionButton"
+                          >
+                            Earth
+                          </div>
+                          <div
+                            className={`${paneStyles.toggleRight} ${paneStyles.center} ${
+                              selectedPreset.earthAsMoon && paneStyles.toggleSelected
+                            }`}
+                            onClick={() => {
+                              if (!selectedPreset.earthAsMoon)
+                                dispatch(upsertPreset({ ...selectedPreset, earthAsMoon: true }));
+                            }}
+                            aria-label="moonDirectionButton"
+                          >
+                            Moon
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className={paneStyles.displayFieldLabel} style={{ marginLeft: "18px" }}>
+                  <div style={{ display: "flex" }}>
+                    {editMode ? (
+                      <>
+                        <div>
+                          <Checkbox
+                            checked={selectedPreset.earthEnabled}
+                            editable={editMode}
+                            onChange={(e) => {
+                              dispatch(
+                                upsertPreset({
+                                  ...selectedPreset,
+                                  earthEnabled: e.target.checked,
+                                })
+                              );
+                            }}
+                            label="Enable:"
+                            labelStyle={{ marginTop: 3, marginRight: 3 }}
+                            labelPlacement="left"
+                            uniqueId="earthCheckbox"
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ marginTop: "3px" }}>
+                        {selectedPreset?.earthEnabled ? "Enabled" : "Disabled"}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+export default Azimuth_Panel;

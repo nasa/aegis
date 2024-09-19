@@ -1139,7 +1139,7 @@ const MapBody: FunctionComponent<{
         </div>
       </div>
       <div className={styles.mapScaleDisplay}>{showScaleBar && drawScaleBar()}</div>
-      {showSunEarth && <SunEarth type="dashboard" />}
+      {showSunEarth && <SunEarth type="dashboard" mapSelectedPreset={selectedPreset} />}
     </div>
   );
 };

@@ -14,11 +14,6 @@ interface Mission {
   planetRadius: number;
   initialZoom: number;
   traverseRate: number;
-  sunAzimuth: number;
-  sunEnabled: boolean;
-  earthAzimuth: number;
-  earthEnabled: boolean;
-  earthAsMoon: boolean;
   defaultEvaDuration: number;
   walkbackRate: number;
   equipmentItems: EquipmentItem[];
