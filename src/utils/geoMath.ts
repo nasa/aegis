@@ -26,6 +26,104 @@ export function getDistanceBetweenTwoCoordinates(
 }
 
 /**
+ * Performs binary search to find the closest grid coordinate to a specific point
+ * @param {MissionGridPoint[][]} grid - the grid to find coordinates in
+ * @param {AEGISPoint} point - the point to look for
+ * @param {number} radius - The radius of the planet in question (usually meters)
+ * @param {number} isTopOrLeft- Defines the direction of adjustement after calculation
+ */
+export function findClosestPointInGrid(
+  grid: MissionGridPoint[][],
+  point: AEGISPoint,
+  radius: number
+): GridIndex {
+  if (!grid || !point) return null;
+
+  // Initialization
+  let startX = 0,
+    startY = 0,
+    endX = grid.length - 1,
+    endY = grid[0].length - 1;
+  let startDist = getDistanceBetweenTwoCoordinates(grid[startX][startY].coordinates, point, radius);
+  let endDist = getDistanceBetweenTwoCoordinates(grid[endX][startY].coordinates, point, radius);
+
+  // Search for correct x index- distance changes linearly so correct x leads to correct xy
+  while (startX < endX - 1) {
+    const midX = Math.floor((startX + endX) / 2);
+    const midDist = getDistanceBetweenTwoCoordinates(grid[midX][startY].coordinates, point, radius);
+    if (startDist < endDist) {
+      endX = midX;
+      endDist = midDist;
+    } else {
+      startX = midX;
+      startDist = midDist;
+    }
+  }
+  if (startDist > endDist) {
+    startX = endX;
+    startDist = endDist;
+  }
+
+  // Search for correct y index
+  startDist = getDistanceBetweenTwoCoordinates(grid[startX][startY].coordinates, point, radius);
+  endDist = getDistanceBetweenTwoCoordinates(grid[startX][endY].coordinates, point, radius);
+  while (startY < endY - 1) {
+    const midY = Math.floor((startY + endY) / 2);
+    const midDist = getDistanceBetweenTwoCoordinates(grid[startX][midY].coordinates, point, radius);
+    if (startDist < endDist) {
+      endY = midY;
+      endDist = midDist;
+    } else {
+      startY = midY;
+      startDist = midDist;
+    }
+  }
+  if (startDist > endDist) {
+    startY = endY;
+    startDist = endDist;
+  }
+
+  return { row: startX, col: startY };
+}
+
+/**
+ * Adjust grid indicies to be one shown cell out
+ * @param {GridIndex} index - the index to adjust
+ * @param {number} numRows - the number of rows in the grid
+ * @param {number} numCols - the number of columns in the grid
+ * @param {number} lineMod - the number of lines per which one line is shown
+ * @param {boolean} isTopLeft - Defines the direction of adjustement after calculation
+ */
+export function adjustGridIndex(
+  index: GridIndex,
+  numRows: number,
+  numCols: number,
+  lineMod: number,
+  isTopLeft: boolean
+): GridIndex {
+  let startX = index.col;
+  let startY = index.row;
+  if (isTopLeft) {
+    if (startX > 0) {
+      startX = Math.floor((startX - 1) / lineMod) * lineMod;
+    }
+    if (startY > 0) {
+      startY = Math.floor((startY - 1) / lineMod) * lineMod;
+    }
+  } else {
+    startX = Math.ceil((startX + 1) / lineMod) * lineMod;
+    if (startX >= numCols) {
+      startX -= lineMod;
+    }
+    startY = Math.ceil((startY + 1) / lineMod) * lineMod;
+    if (startY >= numRows) {
+      startY -= lineMod;
+    }
+  }
+  return { row: startY, col: startX };
+}
+
+/**
  * Convert degrees to radians
  * @param {number} deg - degrees
  * @returns {number} radians

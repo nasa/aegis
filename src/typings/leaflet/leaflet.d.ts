@@ -37,3 +37,13 @@ type AEGISGeoJSONCircle = L.GeoJSON & {
   uuid?: string;
   mapItemType: "Lander Radius";
 };
+
+type AEGISGeoJSONGrid = L.GeoJSON & {
+  uuid?: string;
+  mapItemType: "Grid System";
+};
+
+type AEGISGeoJSONGridPoint = L.Tooltip & {
+  uuid?: string;
+  mapItemType: "Grid Point";
+};

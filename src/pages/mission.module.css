@@ -13,6 +13,7 @@
   height: 40px;
   background-color: var(--grey1);
   border-bottom: 2px solid black;
+  width: 100%;
 }
 
 .body {

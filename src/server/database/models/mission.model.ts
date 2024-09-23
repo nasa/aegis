@@ -29,6 +29,8 @@ export class Mission_db implements Mission_db_type {
   equipmentItems: EquipmentItem[];
   @Property({ type: MikroTypes.json, nullable: true })
   geographicUnits: GeographicUnit[];
+  @Property({ type: MikroTypes.string, nullable: true })
+  activeGridUuid: string;
   @Property({ type: MikroTypes.double, nullable: true })
   planetRadius: number;
   @Property({ type: MikroTypes.double, nullable: true })

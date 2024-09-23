@@ -18,6 +18,7 @@ interface Mission {
   walkbackRate: number;
   equipmentItems: EquipmentItem[];
   geographicUnits: GeographicUnit[];
+  activeGridUuid: string;
   _metadata?: string; // Meant for JsonExport file export only
   demFilePath: string;
   demResolution: number;
@@ -142,4 +143,33 @@ type OneMissionToRuleThemAll = {
   level3s: STMLevel3[];
   sublayers: Sublayer[];
   traverses: Traverse[];
+};
+
+type MissionGrid = {
+  gridInformation: MissionGridInformation;
+  coordinates: MissionGridPoint[][];
+};
+
+type MissionGridInformation = {
+  uuid: string;
+  missionId: number;
+  numRows: number;
+  numCols: number;
+  spacing: number;
+  name: string;
+  isActiveGrid: boolean;
+};
+
+type Grid_db_type = Omit<MissionGridInformation, "missionId">;
+
+type MissionGridPoint = {
+  id: number;
+  index: GridIndex;
+  coordinates: AEGISPoint;
+  name?: string;
+};
+
+type GridIndex = {
+  row: number;
+  col: number;
 };
