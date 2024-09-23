@@ -18,8 +18,12 @@
 
 .item {
   margin: auto;
+  min-width: 0px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  float: left;
   flex-grow: 1;
-  min-width: 0;
 }
 
 .item:first-of-type {

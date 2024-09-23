@@ -17,6 +17,8 @@ export const MapViewMenu: FunctionComponent<{
   setMapDisplayPosMarkers: Dispatch<SetStateAction<MapDisplayPos>>;
   showGridLabels: boolean;
   setShowGridLabels: Dispatch<SetStateAction<boolean>>;
+  showGridLines: boolean;
+  setShowGridLines: Dispatch<SetStateAction<boolean>>;
   showScaleBar: boolean;
   setShowScaleBar: Dispatch<SetStateAction<boolean>>;
   showMouseLatLon: boolean;
@@ -36,6 +38,8 @@ export const MapViewMenu: FunctionComponent<{
   setMapDisplayPosMarkers,
   showGridLabels,
   setShowGridLabels,
+  showGridLines,
+  setShowGridLines,
   showScaleBar,
   setShowScaleBar,
   showMouseLatLon,
@@ -469,6 +473,16 @@ export const MapViewMenu: FunctionComponent<{
                 }}
               >
                 Labels
+              </div>
+              <div
+                className={`${styles.toggleSingle} ${styles.center} ${
+                  showGridLines && styles.toggleSelected
+                }`}
+                onClick={() => {
+                  setShowGridLines(!showGridLines);
+                }}
+              >
+                Lines
               </div>
             </div>
             <MenuItem

@@ -69,6 +69,7 @@ type EyeballMenuCookieAEGISMapViewSettings = {
   mapDisplayPositions: MapDisplayPos;
   showArrows: boolean;
   showGridLabels: boolean;
+  showGridLines: boolean;
 };
 
 /*
@@ -88,6 +89,7 @@ type MissionSelectProperties = Pick<
   | "landerLocation"
   | "initialZoom"
   | "planetRadius"
+  | "activeGridUuid"
   | "projBoundsMaxX"
   | "projBoundsMaxY"
   | "projBoundsMinX"

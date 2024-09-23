@@ -937,3 +937,8 @@
   flex-direction: row;
   width: 100%;
 }
+
+.gridInputContainer {
+  text-align: center;
+  width: 100%;
+}

@@ -57,6 +57,7 @@ const MiniMap: FunctionComponent<{
         "landerLocation",
         "initialZoom",
         "planetRadius",
+        "activeGridUuid",
         "projBoundsMaxX",
         "projBoundsMaxY",
         "projBoundsMinX",

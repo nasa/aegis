@@ -164,6 +164,15 @@ const MissionList = (props: { missions: Mission[]; user: User; loadMissionsFromD
                   <button
                     type="button"
                     onClick={() => {
+                      navigate(`/admin/mission_grid/${mission.id}`);
+                    }}
+                  >
+                    Edit Grid
+                  </button>
+                  &nbsp;
+                  <button
+                    type="button"
+                    onClick={() => {
                       navigate(`/admin/export/${mission.id}`);
                     }}
                   >

@@ -46,6 +46,7 @@ const MissionEditor: FunctionComponent<{
       defaultEvaDuration: parseFloat(missionValues.defaultEvaDuration),
       traverseRate: parseFloat(missionValues.traverseRate),
       walkbackRate: parseFloat(missionValues.walkbackRate),
+      activeGridUuid: mission.activeGridUuid,
       demFilePath: missionValues.demFilePath,
       demResolution: parseFloat(missionValues.demResolution),
 
