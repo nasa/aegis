@@ -263,7 +263,7 @@
 .form {
   max-width: 300px;
   height: 400px;
-  overflow-y: scroll;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   flex: 1;
