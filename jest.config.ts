@@ -22,11 +22,13 @@ const config = {
   },
   collectCoverageFrom: [
     "<rootDir>/**/*.{js,jsx,ts,tsx}",
+    "!**/node_modules/**",
     "!**/*.d.ts",
     "!<rootDir>/tests/**",
     "!<rootDir>/server/database/**",
     "!**/coverage/**",
   ],
+  testMatch: ["**/?(*.)+(spec|test).[jt]s?(x)"],
   // coverageThreshold: {
   //   global: {
   //     lines: 90,

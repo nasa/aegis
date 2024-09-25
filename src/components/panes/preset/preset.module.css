@@ -33,7 +33,7 @@
   padding-bottom: 4px;
   border-radius: var(--radius);
   font-size: 0.9em;
-  height: 24px;
+  height: max-content;
   cursor: pointer;
   user-select: none;
 }
