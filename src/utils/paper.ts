@@ -23,16 +23,28 @@ export function getHoverValue(
       break;
     }
   }
-  if (!pointAfter) {
-    //we're past the end of the graph data. Use last point as pointAfter
-    pointAfter = _.last(graphArray);
+
+  if (!pointBefore) {
+    pointBefore = graphArray[0];
+    pointAfter = graphArray[0];
   }
 
-  //extrapolate percentage between the nearest points for estimated value
+  if (!pointAfter) {
+    pointAfter = _.last(graphArray);
+    if (pointBefore === pointAfter) {
+      // No slope when pointBefore and pointAfter are the same
+      return {
+        y: pointAfter.yPixel,
+        val: pointAfter.val,
+        slope: 0, // no slope as it's a single point
+      };
+    }
+  }
+
   let newVal: number;
   let newYPixel: number;
+
   if (pointBefore.val === pointAfter.val) {
-    //we're at a station. Don't extrapolate values or y pixel
     newVal = pointBefore.val;
     newYPixel = pointBefore.yPixel;
   } else {
