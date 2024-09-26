@@ -7,7 +7,7 @@ export const config: DotenvConfig<typeof environments> = {
   /**
    * Directories on the host
    */
-  // Location holding files uploaded by users (e.g. images)
+  // Location holding files uploaded by users (e.g. images and static dir)
   DOCKER_HOST_SSL_CERTS_DIR: {
     local: { type: "make-directory-if-missing", value: "./.local/certs" },
     default: "/etc/pki/tls/certs",
@@ -17,64 +17,29 @@ export const config: DotenvConfig<typeof environments> = {
     default: "/etc/pki/tls/private",
   },
   DOCKER_HOST_DATA_DIR: {
-    local: { type: "make-directory-if-missing", value: "./.local/database" },
+    local: "./.local/database",
     default: "/d1/aegis/postgres",
   },
   // Directory in which 'init' directory will be created.
   DOCKER_HOST_INIT_DIR: {
-    local: { type: "make-directory-if-missing", value: "./.local/db-init" },
+    local: "./.local/db-init",
     default: "/d1/aegis/db-init",
+  },
+  STATIC_DIR: {
+    local: "../aegis_static",
+    default: "/d1/aegis/static",
   },
 
   /**
-   * Naive API server env vars
-   *
-   * Values for the following variables are used in Node.JS-native processes only, when running
-   * `npm run api:dev` and similar commands. They are not used in Docker-Compose, since the values
-   * are set directly in docker-compose.yml.
+   * Database
    */
-  // Location of the `events` directory. If unset then `./.api-server` relative to Maestro install
-  // directory will be used. This creates an `events` directory inside the specified
-  // `SERVER_ENV_EVENTS_PATH`, which is probably suboptimal.
-  SERVER_ENV_EVENTS_PATH: { default: "./.local" },
-  // Location of the imageStore. If unset then `./.api-server/images` relative to Maestro install
-  // directory will be used.
-  SERVER_ENV_IMAGE_STORE_PATH: { default: "./.local/uploads" },
-  // Location to upload files (images) temporarily before moving them into Image Store. If unset
-  // then `./.api-server/imagetmp` will be used. Should not be web-accessible.
-  SERVER_ENV_UPLOAD_TMP_PATH: { default: "./.local/imagetmp" },
-
-  /**
-   * Docker compose ports and paths
-   */
-  // See docs for SERVER_ENV_EVENTS_PATH below. This sets SERVER_ENV_EVENTS_PATH in docker-compose.
-  DOCKER_API_V1_PATH: { default: "/api/v1" },
-  // See docs for SERVER_ENV_API_V1_PORT below. This sets SERVER_ENV_API_V1_PORT in docker-compose.
-  DOCKER_API_V1_PORT: { default: 8000 },
-  // The port maestro is served on within the host machine when using Docker Compose
-  DOCKER_HOST_PORT: { default: 443 },
-  // Port the Node.JS API service runs on. Must be greater than 1024.
-  SERVER_ENV_API_V1_PORT: { default: 8001 },
-
-  /**
-   * Native frontend env vars
-   *
-   * Values for the following variables are used in Node.JS-native processes only, when running
-   * `npm run web:dev` and similar commands. They are not used in Docker-Compose, since the values
-   * are set directly in docker-compose.yml.
-   */
-  // Port to be appended to CLIENT_ENV_API_V1_SERVER
-  // @example 9000 --> https://example.com:9000/path/to/api
-  // @example false --> https://example.com/path/to/api
-  CLIENT_ENV_API_V1_PORT: { default: 8001 },
-  // Path to be appended to CLIENT_ENV_API_V1_SERVER. If not false, should HAVE leading slash and
-  // should NOT HAVE trailing slash.
-  // @example /api/v1 --> https://example.com:9000/api/v1
-  // @example false --> https://example.com:9000
-  CLIENT_ENV_API_V1_PATH: { default: false },
-  // protocol + hostname of the API server, e.g. https://example.com (no trailing slash). If false,
-  // use the client's window.location.protocol and .hostname
-  CLIENT_ENV_API_V1_SERVER: { default: false },
+  // DB_HOST is "localhost" when doing native/local Node development. When running
+  // node in docker in docker:preview, this will be overridden in the
+  // docker-compose-preview.yml to be "database"
+  DB_NAME: { default: "aegis" },
+  DB_HOST: { local: "localhost", default: "database" },
+  GDAL_HOST: { local: "localhost", default: "gdal" },
+  GDAL_PORT: { local: "4200", default: "80" },
 
   /**
    * Container image info
@@ -84,8 +49,68 @@ export const config: DotenvConfig<typeof environments> = {
     default: process.env.CI_REGISTRY_IMAGE || "missing-env-var-BASE_IMAGE_NAME",
   },
   IMAGE_VERSION: { default: process.env.IMAGE_VERSION || "dev" },
-  REGISTRY_IMAGE: {
-    default: "eegitlabregistry.fit.nasa.gov/emss/maestro",
+  DOCKER_IMAGE_NGINX: {
+    local: "NOT_USED_LOCALLY",
+    default: `eegitlabregistry.fit.nasa.gov/emss/aegis/nginx:${process.env.IMAGE_VERSION}`,
+  },
+  DOCKER_IMAGE_APIV1: {
+    local: "NOT_USED_LOCALLY",
+    default: `eegitlabregistry.fit.nasa.gov/emss/aegis/apiv1:${process.env.IMAGE_VERSION}`,
+  },
+  DOCKER_IMAGE_GDAL: {
+    local: "NOT_USED_LOCALLY",
+    default: `eegitlabregistry.fit.nasa.gov/emss/aegis/gdal:${process.env.IMAGE_VERSION}`,
+  },
+
+  /**
+   * Box information
+   * These is the Box API folder for the aegis.
+   */
+  BOX_INITIAL_FOLDER_ID: { default: "198245097840" },
+
+  /**
+   * !!!! SENSITIVE DATA !!!!
+   *
+   * The following env vars are sensitive! Do not send them to anyone who doesn't need them
+   * If sending them to someone who does need them, send via encrypted email.
+   *
+   * If you need values, request from CODA developers or copy from GitLab CI/CD variables. These values
+   * will be stored in .env.secret so make-dotenv.sh can reuse them.
+   */
+  DB_PASS: {
+    default: {
+      type: "required-from-secret",
+    },
+  },
+  ADMIN_RECOVERY_KEY: {
+    default: {
+      type: "required-from-secret",
+    },
+  },
+  SESSION_PASSWORD: {
+    default: {
+      type: "required-from-secret",
+    },
+  },
+  BOX_CLIENT_ID: {
+    default: {
+      type: "required-from-secret",
+    },
+  },
+  BOX_CLIENT_SECRET: {
+    default: {
+      type: "required-from-secret",
+    },
+  },
+  BOX_ENTERPRISE_ID: {
+    default: {
+      type: "required-from-secret",
+    },
+  },
+  BOX_USER_ID: {
+    default: {
+      type: "required-from-secret",
+    },
   },
 
   /**
@@ -101,14 +126,6 @@ export const config: DotenvConfig<typeof environments> = {
   TEST_WORKERS: { default: 0 },
   // How many times to retrie Playwright tests after they fail
   TEST_RETRY: { default: 0 },
-
-  /**
-   * Logging
-   */
-  ENABLE_LOGGING: { local: "false", default: "true" },
-  LOGSTASH_URL: {
-    default: "https://maestro-alpha.fit.nasa.gov/logstash/",
-  },
 
   /**
    * Versioning
