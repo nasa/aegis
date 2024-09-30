@@ -249,7 +249,7 @@ make-dotenv:
     - npm i -g "tsx@${TSX_VERSION}"
   script:
     # Copy contents of DOTENV_SECRET from CI/CD variables to a new .env.secret file
-    - echo "${DOTENV_SECRET_TS}" > ./.env.secret.ts
+    - echo "${DOTENV_SECRET_TS}" > ./env.secret.ts
 
     # Determine which docker image type (dev, int, or prod) to deploy based on branch
     # Append the commit sha in order to ensure the correct build is being deployed in the case
@@ -263,7 +263,7 @@ make-dotenv:
           IMAGE_VERSION="dev-${CI_COMMIT_SHORT_SHA}"
       fi
 
-    # Export the variable so it can be read inside the make-dotenv.sh script
+    # Export the variable so it can be read inside the make-dotenv package
     - export IMAGE_VERSION
     # Save image version into an artifact to be read later in other job scripts
     - echo "IMAGE_VERSION=${IMAGE_VERSION}" >> pipelineVariables.env
