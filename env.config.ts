@@ -9,11 +9,11 @@ export const config: DotenvConfig<typeof environments> = {
    */
   // Location holding files uploaded by users (e.g. images and static dir)
   DOCKER_SSL_CERTS_DIR: {
-    local: { type: "make-directory-if-missing", value: "./.local/certs" },
+    local: "./.local/certs",
     default: "/etc/pki/tls/certs",
   },
   DOCKER_SSL_PRIVATE_DIR: {
-    local: { type: "make-directory-if-missing", value: "./.local/private" },
+    local: "./.local/private",
     default: "/etc/pki/tls/private",
   },
   DOCKER_DB_DATA_DIR: {
@@ -112,20 +112,6 @@ export const config: DotenvConfig<typeof environments> = {
       type: "required-from-secret",
     },
   },
-
-  /**
-   * Dev-only
-   */
-  // Used by native and docker-compose DEV servers. Cannot conflict with docker ports. For native this
-  // is the port you reach the app on. For Docker, the nginx container proxies traffic to the frontend
-  // Vite dev server on this port.
-  VITE_SERVER_PORT: { default: 9000 },
-  // In dev, allow additional hosts to hit the Maestro API that normally wouldn't be allowed via CORS
-  DEV_ALLOWED_HOSTS: { default: "" },
-  // How many Playwright test works to use (how many tests to run in parallel)
-  TEST_WORKERS: { default: 0 },
-  // How many times to retrie Playwright tests after they fail
-  TEST_RETRY: { default: 0 },
 
   /**
    * Versioning
