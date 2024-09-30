@@ -33,6 +33,7 @@ yarn-error.log*
 .env
 .env.nondockerdev
 .env.secret
+env.secret.ts
 
 # vercel
 .vercel

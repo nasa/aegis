@@ -8,20 +8,20 @@ export const config: DotenvConfig<typeof environments> = {
    * Directories on the host
    */
   // Location holding files uploaded by users (e.g. images and static dir)
-  DOCKER_HOST_SSL_CERTS_DIR: {
+  DOCKER_SSL_CERTS_DIR: {
     local: { type: "make-directory-if-missing", value: "./.local/certs" },
     default: "/etc/pki/tls/certs",
   },
-  DOCKER_HOST_SSL_PRIVATE_DIR: {
+  DOCKER_SSL_PRIVATE_DIR: {
     local: { type: "make-directory-if-missing", value: "./.local/private" },
     default: "/etc/pki/tls/private",
   },
-  DOCKER_HOST_DATA_DIR: {
+  DOCKER_DB_DATA_DIR: {
     local: "./.local/database",
     default: "/d1/aegis/postgres",
   },
   // Directory in which 'init' directory will be created.
-  DOCKER_HOST_INIT_DIR: {
+  DOCKER_DB_INIT_DIR: {
     local: "./.local/db-init",
     default: "/d1/aegis/db-init",
   },
