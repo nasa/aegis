@@ -6,8 +6,10 @@ export const environments = ["local", "fit"] as const;
 export const config: DotenvConfig<typeof environments> = {
   /**
    * Directories on the host
+   * Location holding files uploaded by users (e.g. images and static dir) and the
+   * Locations of SSL cert/key. For local dev, run `bash scripts/make-dev-ssl-cert.sh` to create a self-
+   * signed cert.
    */
-  // Location holding files uploaded by users (e.g. images and static dir)
   DOCKER_SSL_CERTS_DIR: {
     local: "./.local/certs",
     default: "/etc/pki/tls/certs",
@@ -20,7 +22,6 @@ export const config: DotenvConfig<typeof environments> = {
     local: "./.local/database",
     default: "/d1/aegis/postgres",
   },
-  // Directory in which 'init' directory will be created.
   DOCKER_DB_INIT_DIR: {
     local: "./.local/db-init",
     default: "/d1/aegis/db-init",
@@ -32,10 +33,13 @@ export const config: DotenvConfig<typeof environments> = {
 
   /**
    * Database
+   * DB_HOST is "localhost" when doing native/local Node development. When running
+   * node in docker in docker:preview, this will be overridden in the
+   * docker-compose-preview.yml to be "database"
+   * Do not need to specify a db port. AEGIS is special and gets to always use the default port
+   * The docker images to be used in docker compose when running in the pipeline. These
+   * values are not used locally.
    */
-  // DB_HOST is "localhost" when doing native/local Node development. When running
-  // node in docker in docker:preview, this will be overridden in the
-  // docker-compose-preview.yml to be "database"
   DB_NAME: { default: "aegis" },
   DB_HOST: { local: "localhost", default: "database" },
   GDAL_HOST: { local: "localhost", default: "gdal" },
@@ -75,7 +79,17 @@ export const config: DotenvConfig<typeof environments> = {
    * If sending them to someone who does need them, send via encrypted email.
    *
    * If you need values, request from CODA developers or copy from GitLab CI/CD variables. These values
-   * will be stored in .env.secret so make-dotenv.sh can reuse them.
+   * will be stored in env.secret.ts so make-dotenv can reuse them.
+   *
+   * The ADMIN_RECOVERY_KEY is the key passed in as a URL param to an API endpoint to hard reset the super
+   * admin user password to the default
+   *
+   * The SESSION_PASSWORD is used to encrypt the session cookie
+   *
+   * The BOX-prefixed values are used for integration with box.com for admin zip downloads. They come from
+   * the box.com developer console of any account that has access to the AEGIS Zips folder and can create
+   * new apps (currently using bf@benfeist.com's box account).
+   *
    */
   DB_PASS: {
     default: {
