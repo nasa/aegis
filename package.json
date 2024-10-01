@@ -33,11 +33,13 @@
     "docker:preview:rebuild:nocache": "bash ./appcompose preview build --no-cache",
     "version:patch": "npm version patch && git push",
     "version:minor": "npm version minor && git push",
-    "version:major": "npm version major && git push"
+    "version:major": "npm version major && git push",
+    "make-dotenv": "make-dotenv"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
+    "@emss/make-dotenv": "^0.3.2",
     "@fortawesome/fontawesome-svg-core": "^6.6.0",
     "@fortawesome/free-regular-svg-icons": "^6.6.0",
     "@fortawesome/free-solid-svg-icons": "^6.6.0",

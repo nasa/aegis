@@ -1,0 +1,139 @@
+import { DotenvConfig } from "@emss/make-dotenv/src/types";
+import packageJSON from "./package.json";
+
+export const environments = ["local", "fit"] as const;
+
+export const config: DotenvConfig<typeof environments> = {
+  /**
+   * Directories on the host
+   * Location holding files uploaded by users (e.g. images and static dir) and the
+   * Locations of SSL cert/key. For local dev, run `bash scripts/make-dev-ssl-cert.sh` to create a self-
+   * signed cert.
+   */
+  DOCKER_SSL_CERTS_DIR: {
+    local: "./.local/certs",
+    default: "/etc/pki/tls/certs",
+  },
+  DOCKER_SSL_PRIVATE_DIR: {
+    local: "./.local/private",
+    default: "/etc/pki/tls/private",
+  },
+  DOCKER_DB_DATA_DIR: {
+    local: "./.local/database",
+    default: "/d1/aegis/postgres",
+  },
+  DOCKER_DB_INIT_DIR: {
+    local: "./.local/db-init",
+    default: "/d1/aegis/db-init",
+  },
+  STATIC_DIR: {
+    local: "../aegis_static",
+    default: "/d1/aegis/static",
+  },
+
+  /**
+   * Database
+   * DB_HOST is "localhost" when doing native/local Node development. When running
+   * node in docker in docker:preview, this will be overridden in the
+   * docker-compose-preview.yml to be "database"
+   * Do not need to specify a db port. AEGIS is special and gets to always use the default port
+   * The docker images to be used in docker compose when running in the pipeline. These
+   * values are not used locally.
+   */
+  DB_NAME: { default: "aegis" },
+  DB_HOST: { local: "localhost", default: "database" },
+  GDAL_HOST: { local: "localhost", default: "gdal" },
+  GDAL_PORT: { local: "4200", default: "80" },
+
+  /**
+   * Container image info
+   */
+  BASE_IMAGE_NAME: {
+    local: "emss-labs-local",
+    default: process.env.CI_REGISTRY_IMAGE || "missing-env-var-BASE_IMAGE_NAME",
+  },
+  IMAGE_VERSION: { default: process.env.IMAGE_VERSION || "dev" },
+  DOCKER_IMAGE_NGINX: {
+    local: "NOT_USED_LOCALLY",
+    default: `eegitlabregistry.fit.nasa.gov/emss/aegis/nginx:${process.env.IMAGE_VERSION}`,
+  },
+  DOCKER_IMAGE_APIV1: {
+    local: "NOT_USED_LOCALLY",
+    default: `eegitlabregistry.fit.nasa.gov/emss/aegis/apiv1:${process.env.IMAGE_VERSION}`,
+  },
+  DOCKER_IMAGE_GDAL: {
+    local: "NOT_USED_LOCALLY",
+    default: `eegitlabregistry.fit.nasa.gov/emss/aegis/gdal:${process.env.IMAGE_VERSION}`,
+  },
+
+  /**
+   * Box information
+   * These is the Box API folder for the aegis.
+   */
+  BOX_INITIAL_FOLDER_ID: { default: "198245097840" },
+
+  /**
+   * !!!! SENSITIVE DATA !!!!
+   *
+   * The following env vars are sensitive! Do not send them to anyone who doesn't need them
+   * If sending them to someone who does need them, send via encrypted email.
+   *
+   * If you need values, request from CODA developers or copy from GitLab CI/CD variables. These values
+   * will be stored in env.secret.ts so make-dotenv can reuse them.
+   *
+   * The ADMIN_RECOVERY_KEY is the key passed in as a URL param to an API endpoint to hard reset the super
+   * admin user password to the default
+   *
+   * The SESSION_PASSWORD is used to encrypt the session cookie
+   *
+   * The BOX-prefixed values are used for integration with box.com for admin zip downloads. They come from
+   * the box.com developer console of any account that has access to the AEGIS Zips folder and can create
+   * new apps (currently using bf@benfeist.com's box account).
+   *
+   */
+  DB_PASS: {
+    default: {
+      type: "required-from-secret",
+    },
+  },
+  ADMIN_RECOVERY_KEY: {
+    default: {
+      type: "required-from-secret",
+    },
+  },
+  SESSION_PASSWORD: {
+    default: {
+      type: "required-from-secret",
+    },
+  },
+  BOX_CLIENT_ID: {
+    default: {
+      type: "required-from-secret",
+    },
+  },
+  BOX_CLIENT_SECRET: {
+    default: {
+      type: "required-from-secret",
+    },
+  },
+  BOX_ENTERPRISE_ID: {
+    default: {
+      type: "required-from-secret",
+    },
+  },
+  BOX_USER_ID: {
+    default: {
+      type: "required-from-secret",
+    },
+  },
+
+  /**
+   * Versioning
+   */
+  APP_VERSION: {
+    default: packageJSON.version,
+  },
+  GIT_COMMIT: {
+    default: process.env.CI_COMMIT_SHA || "DEV",
+  },
+};
