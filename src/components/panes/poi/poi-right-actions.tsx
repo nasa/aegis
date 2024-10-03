@@ -33,6 +33,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
       totalEv2Time: poiCalculatedFields.totalEv2Time,
       totalUnassignedTime: poiCalculatedFields.totalUnassignedTime,
       totalDwellTime: poiCalculatedFields.totalDwellTime,
+      totalMass: poiCalculatedFields.totalMass,
     };
     return newActionsCalculatedFields;
   }, deepEqual);

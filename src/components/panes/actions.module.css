@@ -107,3 +107,7 @@
   border-bottom: 1px solid var(--grey3);
   margin: auto 6px auto 6px;
 }
+
+.rexColor {
+  color: var(--rex);
+}

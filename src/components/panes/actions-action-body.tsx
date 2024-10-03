@@ -33,6 +33,8 @@ import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
+import _ from "lodash";
+import { thunkAddRexActionMass } from "store/thunk/thunkRex";
 
 const RightActionBody: FunctionComponent<{
   editMode: boolean;
@@ -40,7 +42,8 @@ const RightActionBody: FunctionComponent<{
   parentType: "station" | "poi" | "eva";
   parentLocation: AEGISPoint;
   parentElevation: number;
-}> = ({ editMode, action, parentType, parentLocation, parentElevation }) => {
+  isRexRunning: boolean;
+}> = ({ editMode, action, parentType, parentLocation, parentElevation, isRexRunning }) => {
   const dispatch = useAppDispatch();
   const parentAction = useAppSelector(
     (state) =>
@@ -67,6 +70,17 @@ const RightActionBody: FunctionComponent<{
     (state) => state.mission.mission.actionSystemVersion,
     refEqual
   );
+
+  const actionRexMass = useAppSelector((state) => {
+    if (!isRexRunning) return;
+    //find all action entry that match this action uuid for the running rex. return the status of the last one.
+    const runningRexFromDb = state.rex.rexesFromDb.find((rex) => rex.isRunning);
+    if (!runningRexFromDb?.actionEntries || !runningRexFromDb.actionEntries[action.uuid]) {
+      return null;
+    } else {
+      return _.last(runningRexFromDb.actionEntries[action.uuid]).mass;
+    }
+  }, deepEqual);
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
@@ -298,14 +312,14 @@ const RightActionBody: FunctionComponent<{
       )}
       <div className={paneStyles.panelSection}>
         <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-          <SubpanelHeading icon={faWeightHanging}>Mass</SubpanelHeading>
+          <SubpanelHeading icon={faWeightHanging}>Sample Mass</SubpanelHeading>
         </div>
         <div className={paneStyles.panelSectionRow}>
           <div className={paneStyles.panelSection2Column}>
-            <div className={paneStyles.panelColumnTable}>
+            <div className={paneStyles.panelColumnTable} style={{ alignContent: "center" }}>
               <div className={paneStyles.panelColumnTableRow}>
                 <div className={paneStyles.panelColumnTableCellLeft}>
-                  <div className={paneStyles.inputFieldLabel}>Expected Sample Mass (g):</div>
+                  <div className={paneStyles.inputFieldLabel}>Planned Mass (g):</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldValue}>
@@ -314,7 +328,7 @@ const RightActionBody: FunctionComponent<{
                       editing={editMode}
                       fieldProps={{
                         name: "mass",
-                        ariaLabel: "Expected Sample Mass",
+                        ariaLabel: "Planned Sample Mass",
                         style: { width: "45px" },
                         validators: [
                           validators.mustBeNumber,
@@ -334,6 +348,45 @@ const RightActionBody: FunctionComponent<{
                 </div>
               </div>
             </div>
+            {isRexRunning && (
+              <div className={paneStyles.panelColumnTable} style={{ marginTop: -0.5 }}>
+                <div className={paneStyles.panelColumnTableRow}>
+                  <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.inputFieldLabel}>Executed Mass (g):</div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={paneStyles.inputFieldValue}>
+                      <InLineEditInput
+                        value={actionRexMass?.toString()}
+                        editing={isRexRunning}
+                        fieldProps={{
+                          name: "mass",
+                          ariaLabel: "Executed Sample Mass",
+                          style: { width: "45px" },
+                          validators: [
+                            validators.mustBeNumber,
+                            validators.maxLength(4),
+                            validators.mustBeInteger,
+                          ],
+                          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                            e.target.value = e.target.value.replace(
+                              regExValidators.regExNumber,
+                              ""
+                            );
+                          },
+                        }}
+                        onSubmit={(value: string) => {
+                          dispatch(
+                            thunkAddRexActionMass({ uuid: action.uuid, mass: toDecimal(value) })
+                          );
+                        }}
+                        key={`${action.uuid}-mass`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

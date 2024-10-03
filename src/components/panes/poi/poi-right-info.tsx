@@ -135,6 +135,14 @@ const Info_Panel: FunctionComponent<{
                       </div>
                     </div>
                   </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Total Mass (g):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>{poiCalcFields?.totalMass}</div>
+                    </div>
+                  </div>
                 </div>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>

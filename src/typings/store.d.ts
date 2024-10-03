@@ -171,6 +171,7 @@ type ActionsCalculatedFields = {
   totalUnassignedTime: TotalTimeObj;
   totalDwellTime: TotalTimeObj;
   actionCount: number;
+  totalMass: number;
 };
 
 type LocationCalculatedFields = CalculatedFields & ActionsCalculatedFields;

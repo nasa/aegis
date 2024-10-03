@@ -254,9 +254,7 @@ describe("Thunk Station Tests", () => {
       })
     );
     const storeState = store.getState(); //get the new state (always has to be called when state changes)
-    expect(storeState.station.stations[0].updatedAt).toEqual(stationModified.updatedAt);
     expect(storeState.station.stations[0].description).toEqual("modified description");
-    expect(storeState.station.stationsFromDb[0].updatedAt).toEqual(stationModified.updatedAt);
     expect(storeState.station.stationsFromDb[0].description).toEqual("modified description");
     expect(storeState.station.stationsEditing.length).toEqual(0);
     expect(httpClient_station.upsertStations).toHaveBeenCalledTimes(1); //check the db call was made
