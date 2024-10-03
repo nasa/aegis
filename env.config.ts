@@ -73,12 +73,73 @@ export const config: DotenvConfig<typeof environments> = {
   BOX_INITIAL_FOLDER_ID: { default: "198245097840" },
 
   /**
+   * Launchpad
+   * Only our prod URLs are added to launchpad prod. All environments (dev/int/prod) are added to launchpad sandbox.
+   * Ultimately we want to use sandbox launchpad for everything except prod (including local dev)
+   * Currently we don't have a solution to make a prod version of a .env so right now use sandbox for everything
+   */
+  OAUTH2_PROXY_COOKIE_SECRET: {
+    local: {
+      type: "generate-to-secret-if-missing",
+      length: 32,
+      characters: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-=",
+    },
+    default: { type: "required-from-secret" },
+  },
+  OAUTH2_PROXY_OIDC_ISSUER_URL: {
+    // prod: "https://authfs.launchpad.nasa.gov/adfs", confirm correct
+    default: "https://authfs.launchpad-sbx.nasa.gov/adfs",
+  },
+  OAUTH2_PROXY_LOGIN_URL: {
+    // prod: "https://authfs.launchpad.nasa.gov/adfs/oauth2/authorize/", confirm correct
+    default: "https://authfs.launchpad-sbx.nasa.gov/adfs/oauth2/authorize/",
+  },
+  OAUTH2_PROXY_REDEEM_URL: {
+    // prod: "https://authfs.launchpad.nasa.gov/adfs/oauth2/token/", confirm correct
+    default: "https://authfs.launchpad-sbx.nasa.gov/adfs/oauth2/token/",
+  },
+  OAUTH2_PROXY_OIDC_JWKS_URL: {
+    // prod: "https://authfs.launchpad.nasa.gov/adfs/discovery/keys", confirm correct
+    default: "https://authfs.launchpad-sbx.nasa.gov/adfs/discovery/keys",
+  },
+  OAUTH2_PROXY_WHITELIST_DOMAIN: {
+    // prod: "authfs.launchpad.nasa.gov", confirm correct
+    default: "authfs.launchpad-sbx.nasa.gov",
+  },
+  OAUTH2_PROXY_CLIENT_ID: {
+    // prod: { type: "alternate-varname-from-secret-file", value: "LAUNCHPAD_PRODUCTION_CLIENT_ID" },
+    default: { type: "alternate-varname-from-secret-file", value: "LAUNCHPAD_SANDBOX_CLIENT_ID" },
+  },
+  OAUTH2_PROXY_CLIENT_SECRET: {
+    // prod: {
+    //   type: "alternate-varname-from-secret-file",
+    //   value: "LAUNCHPAD_PRODUCTION_CLIENT_SECRET",
+    // },
+    default: {
+      type: "alternate-varname-from-secret-file",
+      value: "LAUNCHPAD_SANDBOX_CLIENT_SECRET",
+    },
+  },
+
+  // Ultimately need to alter this based on what server we're on (prod/int/dev). Currently this override
+  // happens in the pipeline depoy script. `INSERT_SUBDOMAIN` that gets replaced
+  // with the appropriate subdomain during deploy.
+  OAUTH2_PROXY_REDIRECT_URL: {
+    // prod: "https://aegis.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
+    // int: "https://aegis-int.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
+    // dev: "https://aegis-dev.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
+    local: "https://aegis-local.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
+    default: "https://INSERT_SUBDOMAIN.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
+  },
+  REDIS_CACHE_DIR: { local: "./.local/redis", default: "/d1/aegis/redis" },
+
+  /**
    * !!!! SENSITIVE DATA !!!!
    *
    * The following env vars are sensitive! Do not send them to anyone who doesn't need them
    * If sending them to someone who does need them, send via encrypted email.
    *
-   * If you need values, request from CODA developers or copy from GitLab CI/CD variables. These values
+   * If you need values, request from AEGIS developers or copy from GitLab CI/CD variables. These values
    * will be stored in env.secret.ts so make-dotenv can reuse them.
    *
    * The ADMIN_RECOVERY_KEY is the key passed in as a URL param to an API endpoint to hard reset the super
@@ -126,6 +187,15 @@ export const config: DotenvConfig<typeof environments> = {
       type: "required-from-secret",
     },
   },
+
+  /**
+   * Logging
+   */
+  LOGSTASH_URL: {
+    default: "https://emss-logging.fit.nasa.gov/logstash/",
+  },
+  ENABLE_LOGGING: { local: "false", default: "true" },
+  LOGSTASH_APP_ID: { default: "aegis" },
 
   /**
    * Versioning
