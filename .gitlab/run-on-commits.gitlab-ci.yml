@@ -371,6 +371,9 @@ deploy:dev1:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1 #CI/CD Variable
     URL: https://aegis-dev.fit.nasa.gov
   when: manual
+  before_script:
+    # This is currently our hack to change out a necessary var for Launchpad Auth
+    - sed -i "s/INSERT_SUBDOMAIN/aegis-dev/g" .env
 
 deploy:carbon:
   extends:
@@ -381,6 +384,9 @@ deploy:carbon:
     - docker:retag
     - deploy:artifactize-committed-files
   when: manual
+  before_script:
+    # This is currently our hack to change out a necessary var for Launchpad Auth
+    - sed -i "s/INSERT_SUBDOMAIN/carbon-emss-dev/g" .env
 
 deploy:int:
   extends: .deploy-template
@@ -397,6 +403,9 @@ deploy:int:
     URL: https://aegis-int.fit.nasa.gov
   only:
     - int
+  before_script:
+    # This is currently our hack to change out a necessary var for Launchpad Auth
+    - sed -i "s/INSERT_SUBDOMAIN/aegis-int/g" .env
 
 deploy:prod:
   extends: .deploy-template
@@ -414,6 +423,9 @@ deploy:prod:
   when: manual
   only:
     - prod
+  before_script:
+    # This is currently our hack to change out a necessary var for Launchpad Auth
+    - sed -i "s/INSERT_SUBDOMAIN/aegis/g" .env
 
 .db-export-template:
   needs: []

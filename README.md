@@ -33,7 +33,6 @@ For all install methods, do the following:
       127.0.0.1 emss-labs-local.fit.nasa.gov
       ```
 7. Perform steps for either "Fully docker-compose" or "Just database via docker-compose" below.
-8. Register for the `@emss` npm registry: Create an auth token in gitlab and run `npm config set //eegitlab.fit.nasa.gov/api/v4/projects/685/packages/npm/:_authToken <YOUR AUTH TOKEN>`
 
 ### Development with service containers
 
