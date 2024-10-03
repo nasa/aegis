@@ -35,6 +35,7 @@ const Actions_Panel: FunctionComponent<{
       totalEv2Time: calculatedFields.totalEv2Time,
       totalUnassignedTime: calculatedFields.totalUnassignedTime,
       totalDwellTime: calculatedFields.totalDwellTime,
+      totalMass: calculatedFields.totalMass,
     };
     return newActionsCalculatedFields;
   }, deepEqual);

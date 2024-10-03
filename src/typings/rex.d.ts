@@ -72,5 +72,6 @@ interface ActionEntries {
 interface ActionEntry {
   uuid: string;
   rexStatus: RexStatus;
+  mass: number;
   createdAt: string;
 }

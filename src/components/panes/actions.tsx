@@ -106,6 +106,7 @@ const Actions: FunctionComponent<{
         parentType={parentType}
         highlightActions={highlightActions}
         actionsCalculatedFields={actionsCalculatedFields}
+        isRexRunning={isRexRunning}
       />
 
       <div className={actionsStyles.actionListContainer}>
@@ -198,7 +199,14 @@ export const ActionsTopSection: FunctionComponent<{
   parentType: "poi" | "station" | "eva";
   highlightActions: (level3Uuid: string) => void;
   actionsCalculatedFields: ActionsCalculatedFields;
-}> = ({ actionOrderUuids, parentType, highlightActions, actionsCalculatedFields }) => {
+  isRexRunning: boolean;
+}> = ({
+  actionOrderUuids,
+  parentType,
+  highlightActions,
+  actionsCalculatedFields,
+  isRexRunning,
+}) => {
   // make an array of uuids by action, of the STMs that are referenced by the action in the action STMPriorities object
   const stmUuidRefs = useAppSelector(
     (state) =>
@@ -212,8 +220,8 @@ export const ActionsTopSection: FunctionComponent<{
   );
 
   const completedStmUuidRefs = useAppSelector((state) => {
+    if (!isRexRunning) return null;
     const runningRex = state.rex.rexes.find((r) => r.isRunning);
-    if (!runningRex) return null;
     const stmUuidRefs: string[][] = [];
     for (const actionUuid in runningRex.actionEntries) {
       // check if this action is part of the current list (actionOrderUuids). this is to cover
@@ -231,8 +239,8 @@ export const ActionsTopSection: FunctionComponent<{
   }, deepEqual);
 
   const inProgressStmUuidRefs = useAppSelector((state) => {
+    if (!isRexRunning) return null;
     const runningRex = state.rex.rexes.find((r) => r.isRunning);
-    if (!runningRex) return null;
     const stmUuidRefs: string[][] = [];
     for (const actionUuid in runningRex.actionEntries) {
       // check if this action is part of the current list (actionOrderUuids). this is to cover
@@ -248,6 +256,39 @@ export const ActionsTopSection: FunctionComponent<{
     }
     return stmUuidRefs;
   }, deepEqual);
+
+  // there's a difference between null and 0. Only calculate rex mass if it's 0. Null means it hasn't been executed yet.
+
+  const rexMass = useAppSelector((state) => {
+    if (!isRexRunning) return null;
+    const runningRex = state.rex.rexes.find((r) => r.isRunning);
+    let mass = null;
+    // loop through all actions
+    for (const actionUuid of actionOrderUuids) {
+      const action = state.action.actions.find((a) => a.uuid === actionUuid);
+      if (!action || !action.enabled || !action.mass) continue;
+      if (!runningRex.actionEntries || !runningRex.actionEntries[actionUuid]) continue;
+      if (_.isNull(_.last(runningRex.actionEntries[actionUuid]).mass)) continue; // this action has a non-null mass actual entry
+      if (!_.isNull(mass)) {
+        mass += _.last(runningRex.actionEntries[actionUuid]).mass;
+      } else {
+        mass = _.last(runningRex.actionEntries[actionUuid]).mass;
+      }
+    }
+    return mass;
+  }, refEqual);
+
+  const rexMassDelta = useAppSelector((state) => {
+    if (!isRexRunning || _.isNull(rexMass)) return null;
+    let massPlanned = 0;
+    // loop through all actions
+    for (const actionUuid of actionOrderUuids) {
+      const action = state.action.actions.find((a) => a.uuid === actionUuid);
+      if (!action || !action.enabled || !action.mass) continue;
+      massPlanned += action.mass;
+    }
+    return rexMass - massPlanned;
+  }, refEqual);
 
   return (
     <div className={paneStyles.panelContainer}>
@@ -294,7 +335,41 @@ export const ActionsTopSection: FunctionComponent<{
                   </div>
                 </div>
               </div>
+              <div className={paneStyles.panelColumnTableRow}>
+                <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.displayFieldLabel}>Total Planned Mass (g):</div>
+                </div>
+                <div className={paneStyles.panelColumnTableCell}>
+                  <div className={paneStyles.displayFieldValue}>
+                    {actionsCalculatedFields?.totalMass}
+                  </div>
+                </div>
+              </div>
+              {isRexRunning && (
+                <>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Total Executed Mass (g):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={`${paneStyles.displayFieldValue}`}>{rexMass}</div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Executed Delta Mass (g):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={`${paneStyles.displayFieldValue}`}>
+                        {`${rexMassDelta > 0 ? "+" : ""}`}
+                        {rexMassDelta}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
+
             <div className={paneStyles.panelColumnTable}>
               {parentType !== "poi" && (
                 <>

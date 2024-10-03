@@ -33,6 +33,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
       totalEv2Time: evaCalculatedFields.totalEv2Time,
       totalUnassignedTime: evaCalculatedFields.totalUnassignedTime,
       totalDwellTime: evaCalculatedFields.totalDwellTime,
+      totalMass: evaCalculatedFields.totalMass,
     };
     return newActionsCalculatedFields;
   }, deepEqual);
@@ -72,6 +73,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
           parentType="eva"
           highlightActions={highlightActions}
           actionsCalculatedFields={actionsCalculatedFields}
+          isRexRunning={isSelectedEvaInARunningRex}
         />
         <ActionsListHeadings
           editMode={editMode}

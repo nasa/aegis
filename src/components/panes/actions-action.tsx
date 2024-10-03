@@ -46,6 +46,9 @@ const RightAction: FunctionComponent<{
   );
   const actionsExpanded = useAppSelector((state) => state.interface.actionsExpanded, shallowEqual);
   const actionRexStatusEntry = useAppSelector((state) => {
+    // this prop is testing if the action's station is in the running rex. This test will catch when
+    // the station/action used to be in a rex but is no longer
+    if (!isRexRunning) return;
     //find all action entry that match this action uuid for the running rex. return the status of the last one.
     const runningRexFromDb = state.rex.rexesFromDb.find((rex) => rex.isRunning);
     if (!runningRexFromDb?.actionEntries || !runningRexFromDb.actionEntries[actionUuid]) {
@@ -308,6 +311,7 @@ const RightAction: FunctionComponent<{
                 parentType={parentType}
                 parentLocation={parentLocation}
                 parentElevation={parentElevation}
+                isRexRunning={isRexRunning}
               />
             )}
           </div>
