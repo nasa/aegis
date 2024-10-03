@@ -548,14 +548,48 @@ export const thunkAddRexStatusEntry = appCreateAsyncThunk<{
     const newEntry: ActionEntry = {
       uuid: uuidv4(),
       rexStatus,
+      mass: null,
       createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     const newEntries = _.cloneDeep(runningRexFromDb.actionEntries) || {};
-    (newEntries[uuid] ||= []).push(newEntry); //logical or assignment. will either return newEntries[uuid] or assign it to []
+    if (newEntries[uuid]) {
+      newEntry.mass = _.last(newEntries[uuid]).mass;
+      newEntries[uuid].push(newEntry);
+    } else {
+      newEntries[uuid] = [newEntry];
+    }
     runningRexFromDb.actionEntries = newEntries;
     dispatch(upsertRexByField(runningRexFromDb.uuid, "actionEntries", newEntries, true));
     dispatch(upsertRexFromDb(runningRexFromDb));
   }
+
+  // update the rex in the database
+  httpClient_Rex.upsertRexes([runningRexFromDb]);
+});
+
+export const thunkAddRexActionMass = appCreateAsyncThunk<{
+  uuid: string;
+  mass: number;
+}>("addRexStatusEntry", async ({ uuid, mass }, { dispatch, getState }) => {
+  const runningRexFromDb = _.cloneDeep(getState().rex.rexesFromDb.find((rex) => rex.isRunning));
+  if (!runningRexFromDb) return;
+
+  const newEntry: ActionEntry = {
+    uuid: uuidv4(),
+    rexStatus: null,
+    mass,
+    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
+  };
+  const newEntries = _.cloneDeep(runningRexFromDb.actionEntries) || {};
+  if (newEntries[uuid]) {
+    newEntry.rexStatus = _.last(newEntries[uuid]).rexStatus;
+    newEntries[uuid].push(newEntry);
+  } else {
+    newEntries[uuid] = [newEntry];
+  }
+  runningRexFromDb.actionEntries = newEntries;
+  dispatch(upsertRexByField(runningRexFromDb.uuid, "actionEntries", newEntries, true));
+  dispatch(upsertRexFromDb(runningRexFromDb));
 
   // update the rex in the database
   httpClient_Rex.upsertRexes([runningRexFromDb]);

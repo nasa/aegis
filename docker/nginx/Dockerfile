@@ -47,8 +47,12 @@ RUN rm -rf /usr/share/nginx/html/*
 # Copy built files to nginx root
 COPY --from=builder /clientsrc/.local/vite/dist /usr/share/nginx/html
 
-# Nginx config files
+# Nginx config files and auth setup
 COPY /docker/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY /docker/nginx/setup-auth.conf /etc/nginx/setup-auth.conf
+COPY /docker/nginx/route-require-auth.conf /etc/nginx/route-require-auth.conf
+COPY /docker/nginx/loggedout.html /usr/share/nginx/html/
+COPY /docker/nginx/loggedin.html /usr/share/nginx/html/
 
 # This image is intended to be run with docker-compose. See docker-compose*.yml files for necessary
 # environment variables

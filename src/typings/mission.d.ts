@@ -7,21 +7,19 @@ interface Mission {
   description: string;
   missionBanner: string;
   version: number;
+  actionSystemVersion: number;
+  actionDefinitions: ActionDefinitions;
   landerLocation: AEGISPoint;
   landerElevationMeters: number;
   planetRadius: number;
   initialZoom: number;
   traverseRate: number;
-  sunAzimuth: number;
-  sunEnabled: boolean;
-  earthAzimuth: number;
-  earthEnabled: boolean;
-  earthAsMoon: boolean;
   defaultEvaDuration: number;
   walkbackRate: number;
   equipmentItems: EquipmentItem[];
   geographicUnits: GeographicUnit[];
-  _metadata?: Metadata; // Meant for JsonExport file export only
+  activeGridUuid: string;
+  _metadata?: string; // Meant for JsonExport file export only
   demFilePath: string;
   demResolution: number;
   projIsCustom: boolean;
@@ -50,6 +48,8 @@ type Mission_db_type = Omit<Mission, "createdAt" | "updatedAt"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };
+
+type ActionDefinitionType = "verbs" | "nouns" | "adjectives";
 
 type ActionTemplate = Partial<Action> & { templateName: string; uuid: string; type: string };
 
@@ -112,6 +112,7 @@ type EquipmentItemUsage = {
 interface GeographicUnit {
   uuid: string;
   name: string;
+  abbr?: string;
 }
 /*
  * Vector circles around lander
@@ -133,7 +134,7 @@ type OneMissionToRuleThemAll = {
   actions: Action[];
   evas: Eva[];
   layers: Layer[];
-  pois: Poi[];
+  pois: POI[];
   presets: Preset[];
   rexes: Rex[];
   stations: Station[];
@@ -142,4 +143,33 @@ type OneMissionToRuleThemAll = {
   level3s: STMLevel3[];
   sublayers: Sublayer[];
   traverses: Traverse[];
+};
+
+type MissionGrid = {
+  gridInformation: MissionGridInformation;
+  coordinates: MissionGridPoint[][];
+};
+
+type MissionGridInformation = {
+  uuid: string;
+  missionId: number;
+  numRows: number;
+  numCols: number;
+  spacing: number;
+  name: string;
+  isActiveGrid: boolean;
+};
+
+type Grid_db_type = Omit<MissionGridInformation, "missionId">;
+
+type MissionGridPoint = {
+  id: number;
+  index: GridIndex;
+  coordinates: AEGISPoint;
+  name?: string;
+};
+
+type GridIndex = {
+  row: number;
+  col: number;
 };

@@ -16,6 +16,7 @@ import presetRoutes from "./routes/preset";
 import rexRoutes from "./routes/rex";
 import socketLastEditEventRoutes from "./routes/socketLastEditEvents";
 import stationRoutes from "./routes/station";
+import gridRoutes from "./routes/grid";
 import stmRoutes from "./routes/stm";
 import sublayerRoutes from "./routes/sublayer";
 import traverseRoutes from "./routes/traverse";
@@ -27,12 +28,14 @@ import fileListRoute from "./routes/file/list";
 import fileRenameRoute from "./routes/file/rename";
 import fileDeleteRoute from "./routes/file/delete";
 import path from "path";
+import { getUser } from "packages/getUser";
+import { logUserTraffic } from "@emss/oauth2-proxy-backend";
 
 const app: Application = express();
 
-app.use(express.json({ limit: "20mb" }));
+app.use(express.json({ limit: "40mb" }));
 app.use(cors());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ limit: "40mb", extended: true }));
 app.use(
   cookieSession({
     name: "aegis-session",
@@ -40,6 +43,20 @@ app.use(
     maxAge: 24 * 60 * 60 * 1000 * 365, // 1 year
   })
 );
+
+// get user info from launchpad
+app.get("/api/v1/user/current", (req, res) => {
+  res.setHeader("content-type", "application/json");
+  const user = getUser(req);
+  if (user instanceof Error) {
+    const msg = "Unable to decode JWT";
+    console.error(msg, user);
+    res.status(500).send({ msg });
+    return;
+  }
+  logUserTraffic(user); // log to emss-logs
+  res.send({ user });
+});
 
 // Serve a successful response. For use with wait-on
 app.get("/api/v1/health", (req, res) => {
@@ -57,6 +74,7 @@ app.use("/api/v1/action", actionRoutes);
 app.use("/api/v1/all", allRoutes);
 app.use("/api/v1/elevation", elevation);
 app.use("/api/v1/eva", evaRoutes);
+app.use("/api/v1/grid", gridRoutes);
 app.use("/api/v1/layer", layerRoutes);
 app.use("/api/v1/log", logRoutes);
 app.use("/api/v1/mission", missionRoutes);

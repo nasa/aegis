@@ -33,6 +33,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
       totalEv2Time: evaCalculatedFields.totalEv2Time,
       totalUnassignedTime: evaCalculatedFields.totalUnassignedTime,
       totalDwellTime: evaCalculatedFields.totalDwellTime,
+      totalMass: evaCalculatedFields.totalMass,
     };
     return newActionsCalculatedFields;
   }, deepEqual);
@@ -72,6 +73,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
           parentType="eva"
           highlightActions={highlightActions}
           actionsCalculatedFields={actionsCalculatedFields}
+          isRexRunning={isSelectedEvaInARunningRex}
         />
         <ActionsListHeadings
           editMode={editMode}
@@ -79,6 +81,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
           editPerms={editPerms}
           isRexRunning={isSelectedEvaInARunningRex}
         />
+
         <div className={actionsStyles.actionListContainer}>
           {selectedEva.sequence.map((sequenceItem) => {
             if (sequenceItem.type !== "station") return null;
@@ -91,6 +94,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                 <ActionList
                   editMode={editMode}
                   actionOrderUuids={actionOrderUuids}
+                  parentType="eva"
                   highlightActions={highlightActions}
                   isActionHiglighted={isActionHiglighted}
                   stations={stations}

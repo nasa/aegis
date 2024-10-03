@@ -13,22 +13,14 @@ export class Mission_db implements Mission_db_type {
   missionBanner: string;
   @Property({ type: MikroTypes.integer })
   version!: number;
+  @Property({ type: MikroTypes.integer, default: 1 })
+  actionSystemVersion!: number;
   @Property({ type: MikroTypes.json, nullable: true })
   landerLocation: AEGISPoint;
   @Property({ type: MikroTypes.double, nullable: true })
   traverseRate: number;
   @Property({ type: MikroTypes.double, nullable: true })
   landerElevationMeters: number;
-  @Property({ type: MikroTypes.double, nullable: true })
-  sunAzimuth: number;
-  @Property({ type: MikroTypes.boolean, nullable: true, default: true })
-  sunEnabled: boolean;
-  @Property({ type: MikroTypes.double, nullable: true })
-  earthAzimuth: number;
-  @Property({ type: MikroTypes.boolean, nullable: true, default: true })
-  earthEnabled: boolean;
-  @Property({ type: MikroTypes.boolean, nullable: true, default: false })
-  earthAsMoon: boolean;
   @Property({ type: MikroTypes.double, nullable: true })
   defaultEvaDuration: number;
   @Property({ type: MikroTypes.double, nullable: true, default: 2 })
@@ -37,6 +29,8 @@ export class Mission_db implements Mission_db_type {
   equipmentItems: EquipmentItem[];
   @Property({ type: MikroTypes.json, nullable: true })
   geographicUnits: GeographicUnit[];
+  @Property({ type: MikroTypes.string, nullable: true })
+  activeGridUuid: string;
   @Property({ type: MikroTypes.double, nullable: true })
   planetRadius: number;
   @Property({ type: MikroTypes.double, nullable: true })
@@ -79,6 +73,8 @@ export class Mission_db implements Mission_db_type {
   stmLevel2Name: string;
   @Property({ type: MikroTypes.text, nullable: true, default: "Investigation" })
   stmLevel3Name: string;
+  @Property({ type: MikroTypes.json, nullable: true })
+  actionDefinitions: ActionDefinitions;
 
   @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;

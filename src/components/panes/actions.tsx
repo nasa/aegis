@@ -53,6 +53,11 @@ const Actions: FunctionComponent<{
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
+  const actionSystemVersion = useAppSelector(
+    (state) => state.mission.mission.actionSystemVersion,
+    refEqual
+  );
+
   const [isActionHiglighted, setIsActionHighlighted] = useState<ActionHighlight[]>([]);
   const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>("");
   const [newActionUuid, setNewActionUuid] = useState(undefined);
@@ -101,21 +106,22 @@ const Actions: FunctionComponent<{
         parentType={parentType}
         highlightActions={highlightActions}
         actionsCalculatedFields={actionsCalculatedFields}
+        isRexRunning={isRexRunning}
       />
-      {actionOrderUuids?.length > 0 && (
+
+      <div className={actionsStyles.actionListContainer}>
         <ActionsListHeadings
           editMode={editMode}
           parentType={parentType}
           editPerms={editPerms}
           isRexRunning={isRexRunning}
         />
-      )}
-      <div className={actionsStyles.actionListContainer}>
         <div className={actionsStyles.dragableActionList}>
           <ReactDragListView onDragEnd={reorder} nodeSelector="li" handleSelector="a">
             <ActionList
               editMode={editMode}
               isRexRunning={isRexRunning}
+              parentType={parentType}
               actionOrderUuids={actionOrderUuids}
               highlightActions={highlightActions}
               isActionHiglighted={isActionHiglighted}
@@ -160,23 +166,25 @@ const Actions: FunctionComponent<{
                 );
               }}
             />
-            <Dropdown
-              selected={selectedTemplateUuid}
-              onChange={(val) => {
-                setSelectedTemplateUuid(val);
-              }}
-              selectStyle={{ height: "2em", fontSize: "0.8em" }}
-              containerStyle={{ maxWidth: "200px" }}
-            >
-              {actionTemplates?.map((template) => {
-                return (
-                  <option key={template.uuid} value={template.uuid}>
-                    {_.capitalize(template.type)}: {template.templateName}
-                  </option>
-                );
-              })}
-              <option value="">{`<Template>`}</option>
-            </Dropdown>
+            {actionSystemVersion === 1 && (
+              <Dropdown
+                selected={selectedTemplateUuid}
+                onChange={(val) => {
+                  setSelectedTemplateUuid(val);
+                }}
+                selectStyle={{ height: "2em", fontSize: "0.8em" }}
+                containerStyle={{ maxWidth: "200px" }}
+              >
+                {actionTemplates?.map((template) => {
+                  return (
+                    <option key={template.uuid} value={template.uuid}>
+                      {_.capitalize(template.type)}: {template.templateName}
+                    </option>
+                  );
+                })}
+                <option value="">{`<Template>`}</option>
+              </Dropdown>
+            )}
           </div>
         )}
       </div>
@@ -191,7 +199,14 @@ export const ActionsTopSection: FunctionComponent<{
   parentType: "poi" | "station" | "eva";
   highlightActions: (level3Uuid: string) => void;
   actionsCalculatedFields: ActionsCalculatedFields;
-}> = ({ actionOrderUuids, parentType, highlightActions, actionsCalculatedFields }) => {
+  isRexRunning: boolean;
+}> = ({
+  actionOrderUuids,
+  parentType,
+  highlightActions,
+  actionsCalculatedFields,
+  isRexRunning,
+}) => {
   // make an array of uuids by action, of the STMs that are referenced by the action in the action STMPriorities object
   const stmUuidRefs = useAppSelector(
     (state) =>
@@ -205,8 +220,8 @@ export const ActionsTopSection: FunctionComponent<{
   );
 
   const completedStmUuidRefs = useAppSelector((state) => {
+    if (!isRexRunning) return null;
     const runningRex = state.rex.rexes.find((r) => r.isRunning);
-    if (!runningRex) return null;
     const stmUuidRefs: string[][] = [];
     for (const actionUuid in runningRex.actionEntries) {
       // check if this action is part of the current list (actionOrderUuids). this is to cover
@@ -224,8 +239,8 @@ export const ActionsTopSection: FunctionComponent<{
   }, deepEqual);
 
   const inProgressStmUuidRefs = useAppSelector((state) => {
+    if (!isRexRunning) return null;
     const runningRex = state.rex.rexes.find((r) => r.isRunning);
-    if (!runningRex) return null;
     const stmUuidRefs: string[][] = [];
     for (const actionUuid in runningRex.actionEntries) {
       // check if this action is part of the current list (actionOrderUuids). this is to cover
@@ -241,6 +256,39 @@ export const ActionsTopSection: FunctionComponent<{
     }
     return stmUuidRefs;
   }, deepEqual);
+
+  // there's a difference between null and 0. Only calculate rex mass if it's 0. Null means it hasn't been executed yet.
+
+  const rexMass = useAppSelector((state) => {
+    if (!isRexRunning) return null;
+    const runningRex = state.rex.rexes.find((r) => r.isRunning);
+    let mass = null;
+    // loop through all actions
+    for (const actionUuid of actionOrderUuids) {
+      const action = state.action.actions.find((a) => a.uuid === actionUuid);
+      if (!action || !action.enabled || !action.mass) continue;
+      if (!runningRex.actionEntries || !runningRex.actionEntries[actionUuid]) continue;
+      if (_.isNull(_.last(runningRex.actionEntries[actionUuid]).mass)) continue; // this action has a non-null mass actual entry
+      if (!_.isNull(mass)) {
+        mass += _.last(runningRex.actionEntries[actionUuid]).mass;
+      } else {
+        mass = _.last(runningRex.actionEntries[actionUuid]).mass;
+      }
+    }
+    return mass;
+  }, refEqual);
+
+  const rexMassDelta = useAppSelector((state) => {
+    if (!isRexRunning || _.isNull(rexMass)) return null;
+    let massPlanned = 0;
+    // loop through all actions
+    for (const actionUuid of actionOrderUuids) {
+      const action = state.action.actions.find((a) => a.uuid === actionUuid);
+      if (!action || !action.enabled || !action.mass) continue;
+      massPlanned += action.mass;
+    }
+    return rexMass - massPlanned;
+  }, refEqual);
 
   return (
     <div className={paneStyles.panelContainer}>
@@ -287,7 +335,41 @@ export const ActionsTopSection: FunctionComponent<{
                   </div>
                 </div>
               </div>
+              <div className={paneStyles.panelColumnTableRow}>
+                <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.displayFieldLabel}>Total Planned Mass (g):</div>
+                </div>
+                <div className={paneStyles.panelColumnTableCell}>
+                  <div className={paneStyles.displayFieldValue}>
+                    {actionsCalculatedFields?.totalMass}
+                  </div>
+                </div>
+              </div>
+              {isRexRunning && (
+                <>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Total Executed Mass (g):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={`${paneStyles.displayFieldValue}`}>{rexMass}</div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Executed Delta Mass (g):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={`${paneStyles.displayFieldValue}`}>
+                        {`${rexMassDelta > 0 ? "+" : ""}`}
+                        {rexMassDelta}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
+
             <div className={paneStyles.panelColumnTable}>
               {parentType !== "poi" && (
                 <>
@@ -308,41 +390,43 @@ export const ActionsListHeadings: FunctionComponent<{
   editPerms: boolean;
   isRexRunning: boolean;
 }> = ({ editMode, parentType, editPerms, isRexRunning }) => {
+  const actionSystemVersion = useAppSelector(
+    (state) => state.mission.mission.actionSystemVersion,
+    refEqual
+  );
   return (
-    <>
-      {!editMode && (
-        <div className={actionsStyles.actionListHeader}>
-          {isRexRunning && editPerms ? (
-            <div className={actionsStyles.actionListHeaderRex} />
-          ) : (
-            <></>
-          )}
-          <div className={actionsStyles.actionListHeaderType}>
-            <div className={actionsStyles.actionListHeaderLabel}>Type</div>
-          </div>
-          <div className={actionsStyles.actionListHeaderTitle}>
-            <div className={actionsStyles.actionListHeaderLabel}>Title</div>
-          </div>
-          <div className={actionsStyles.actionListHeaderPriority}>
-            <div className={actionsStyles.actionListHeaderLabel}>Pri</div>
-          </div>
-          <div className={actionsStyles.actionListHeaderTime}>
-            <div className={actionsStyles.actionListHeaderLabel}>Max</div>
-          </div>
-          {parentType !== "poi" && (
-            <div className={actionsStyles.actionListHeaderCrew}>
-              <div className={actionsStyles.actionListHeaderLabel}>Crew</div>
-            </div>
-          )}
+    <div
+      className={actionsStyles.actionListHeader}
+      style={{
+        marginLeft: actionSystemVersion === 2 ? "50px" : "",
+        marginRight: editMode ? "20px" : "",
+      }}
+    >
+      {isRexRunning && editPerms ? <div className={actionsStyles.actionListHeaderRex} /> : <></>}
+      {actionSystemVersion === 1 && (
+        <div className={actionsStyles.actionListHeaderType}>
+          <div className={actionsStyles.actionListHeaderLabel}>Type</div>
         </div>
       )}
-    </>
+      <div className={actionsStyles.actionListHeaderTitle}>
+        <div className={actionsStyles.actionListHeaderLabel}>Action</div>
+      </div>
+      <div className={actionsStyles.actionListHeaderTime}>
+        <div className={actionsStyles.actionListHeaderLabel}>Max</div>
+      </div>
+      {parentType !== "poi" && (
+        <div className={actionsStyles.actionListHeaderCrew}>
+          <div className={actionsStyles.actionListHeaderLabel}>Crew</div>
+        </div>
+      )}
+    </div>
   );
 };
 
 export const ActionList: FunctionComponent<{
   editMode: boolean;
   actionOrderUuids: string[];
+  parentType: "poi" | "station" | "eva";
   highlightActions: (level3Uuid: string) => void;
   isActionHiglighted: ActionHighlight[];
   stations: Station[];
@@ -352,6 +436,7 @@ export const ActionList: FunctionComponent<{
 }> = ({
   editMode,
   actionOrderUuids,
+  parentType,
   isActionHiglighted,
   stations,
   pois,
@@ -374,7 +459,7 @@ export const ActionList: FunctionComponent<{
           <li key={actionUuid} className={actionsStyles.actionlistitem}>
             <div
               className={actionsStyles.actionlistitemOrdinal}
-              style={{ marginTop: editMode ? "8px" : "2px" }}
+              style={{ marginTop: editMode ? "8px" : "4px" }}
             >
               {index + 1}
             </div>
@@ -382,7 +467,7 @@ export const ActionList: FunctionComponent<{
               editMode={editMode}
               actionUuid={actionUuid}
               highlight={highlight}
-              parentType="eva"
+              parentType={parentType}
               parentLocation={parentLocation}
               parentElevation={parentElevation}
               isRexRunning={isRexRunning}

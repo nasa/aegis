@@ -5,6 +5,7 @@ import {
   faListOl,
   faLocationDot,
   faMessage,
+  faPersonDigging,
   faTableList,
   faToolbox,
   faWeightHanging,
@@ -32,14 +33,17 @@ import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
+import _ from "lodash";
+import { thunkAddRexActionMass } from "store/thunk/thunkRex";
 
-export const RightActionBody: FunctionComponent<{
+const RightActionBody: FunctionComponent<{
   editMode: boolean;
   action: Action;
   parentType: "station" | "poi" | "eva";
   parentLocation: AEGISPoint;
   parentElevation: number;
-}> = ({ editMode, action, parentType, parentLocation, parentElevation }) => {
+  isRexRunning: boolean;
+}> = ({ editMode, action, parentType, parentLocation, parentElevation, isRexRunning }) => {
   const dispatch = useAppDispatch();
   const parentAction = useAppSelector(
     (state) =>
@@ -61,6 +65,22 @@ export const RightActionBody: FunctionComponent<{
     (state) => state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === action.uuid),
     refEqual
   );
+
+  const actionSystemVersion = useAppSelector(
+    (state) => state.mission.mission.actionSystemVersion,
+    refEqual
+  );
+
+  const actionRexMass = useAppSelector((state) => {
+    if (!isRexRunning) return;
+    //find all action entry that match this action uuid for the running rex. return the status of the last one.
+    const runningRexFromDb = state.rex.rexesFromDb.find((rex) => rex.isRunning);
+    if (!runningRexFromDb?.actionEntries || !runningRexFromDb.actionEntries[action.uuid]) {
+      return null;
+    } else {
+      return _.last(runningRexFromDb.actionEntries[action.uuid]).mass;
+    }
+  }, deepEqual);
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
@@ -109,6 +129,50 @@ export const RightActionBody: FunctionComponent<{
       className={actionStyles.actionIndent}
       style={{ backgroundColor: action.enabled ? "" : "var(--grey1)" }}
     >
+      {actionSystemVersion === 2 && (
+        <div className={paneStyles.panelSection}>
+          <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+            <SubpanelHeading icon={faPersonDigging}>Action Type</SubpanelHeading>
+          </div>
+          <div className={paneStyles.descriptionContainer}>
+            {editMode ? (
+              <div
+                className={actionStyles.actionDualButtons}
+                style={{ cursor: editMode ? "pointer" : "default" }}
+              >
+                {action.enabled ? (
+                  <>
+                    <div
+                      className={`${actionStyles.actionDualButtonsLeft} ${action.stmAction ? actionStyles.actionDualButtonsSelected : undefined}`}
+                      onClick={() => {
+                        if (editMode) dispatch(upsertActionByField(action.uuid, "stmAction", true));
+                      }}
+                    >
+                      STM
+                    </div>
+
+                    <div
+                      className={`${actionStyles.actionDualButtonsRight} ${!action.stmAction ? actionStyles.actionDualButtonsSelected : undefined}`}
+                      onClick={() => {
+                        if (editMode)
+                          dispatch(upsertActionByField(action.uuid, "stmAction", false));
+                      }}
+                    >
+                      Non-STM
+                    </div>
+                  </>
+                ) : (
+                  <div className={actionStyles.actionDualButtonsDisabled}></div>
+                )}
+              </div>
+            ) : (
+              <div className={paneStyles.displayFieldValue}>
+                {action.stmAction ? "STM" : "Non-STM"}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <div className={paneStyles.panelSection}>
         <div className={paneStyles.panelSectionTitle}>
           <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
@@ -204,53 +268,58 @@ export const RightActionBody: FunctionComponent<{
         </div>
       </div>
 
-      <div className={paneStyles.panelSection}>
-        <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-          <SubpanelHeading icon={faListOl}>Task Priority</SubpanelHeading>
-        </div>
-        <div className={paneStyles.panelSectionRow}>
-          <div className={paneStyles.panelSection2Column}>
-            <div className={paneStyles.panelColumnTable}>
-              <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
-                  <div className={paneStyles.inputFieldLabel}>Priority (1-99):</div>
-                </div>
-                <div className={paneStyles.panelColumnTableCell}>
-                  <div className={paneStyles.inputFieldValue}>
-                    <InLineEditInput
-                      value={action.priority?.toString()}
-                      editing={editMode}
-                      fieldProps={{
-                        name: "priority",
-                        ariaLabel: "Priority",
-                        style: { width: "45px" },
-                        validators: [validators.maxLength(2), validators.mustBeInteger],
-                        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                          e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
-                        },
-                      }}
-                      onSubmit={(value: string) => {
-                        dispatch(upsertActionByField(action.uuid, "priority", toDecimal(value)));
-                      }}
-                      key={`${action.uuid}-priority`}
-                    />
+      {actionSystemVersion === 1 && (
+        <div className={paneStyles.panelSection}>
+          <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+            <SubpanelHeading icon={faListOl}>Task Priority</SubpanelHeading>
+          </div>
+          <div className={paneStyles.panelSectionRow}>
+            <div className={paneStyles.panelSection2Column}>
+              <div className={paneStyles.panelColumnTable}>
+                <div className={paneStyles.panelColumnTableRow}>
+                  <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.inputFieldLabel}>Priority (1-99):</div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={paneStyles.inputFieldValue}>
+                      <InLineEditInput
+                        value={action.priority?.toString()}
+                        editing={editMode}
+                        fieldProps={{
+                          name: "priority",
+                          ariaLabel: "Priority",
+                          style: { width: "45px" },
+                          validators: [validators.maxLength(2), validators.mustBeInteger],
+                          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                            e.target.value = e.target.value.replace(
+                              regExValidators.regExNumber,
+                              ""
+                            );
+                          },
+                        }}
+                        onSubmit={(value: string) => {
+                          dispatch(upsertActionByField(action.uuid, "priority", toDecimal(value)));
+                        }}
+                        key={`${action.uuid}-priority`}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
       <div className={paneStyles.panelSection}>
         <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-          <SubpanelHeading icon={faWeightHanging}>Mass</SubpanelHeading>
+          <SubpanelHeading icon={faWeightHanging}>Sample Mass</SubpanelHeading>
         </div>
         <div className={paneStyles.panelSectionRow}>
           <div className={paneStyles.panelSection2Column}>
-            <div className={paneStyles.panelColumnTable}>
+            <div className={paneStyles.panelColumnTable} style={{ alignContent: "center" }}>
               <div className={paneStyles.panelColumnTableRow}>
                 <div className={paneStyles.panelColumnTableCellLeft}>
-                  <div className={paneStyles.inputFieldLabel}>Expected Sample Mass (g):</div>
+                  <div className={paneStyles.inputFieldLabel}>Planned Mass (g):</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldValue}>
@@ -259,7 +328,7 @@ export const RightActionBody: FunctionComponent<{
                       editing={editMode}
                       fieldProps={{
                         name: "mass",
-                        ariaLabel: "Expected Sample Mass",
+                        ariaLabel: "Planned Sample Mass",
                         style: { width: "45px" },
                         validators: [
                           validators.mustBeNumber,
@@ -279,9 +348,49 @@ export const RightActionBody: FunctionComponent<{
                 </div>
               </div>
             </div>
+            {isRexRunning && (
+              <div className={paneStyles.panelColumnTable} style={{ marginTop: -0.5 }}>
+                <div className={paneStyles.panelColumnTableRow}>
+                  <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.inputFieldLabel}>Executed Mass (g):</div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={paneStyles.inputFieldValue}>
+                      <InLineEditInput
+                        value={actionRexMass?.toString()}
+                        editing={isRexRunning}
+                        fieldProps={{
+                          name: "mass",
+                          ariaLabel: "Executed Sample Mass",
+                          style: { width: "45px" },
+                          validators: [
+                            validators.mustBeNumber,
+                            validators.maxLength(4),
+                            validators.mustBeInteger,
+                          ],
+                          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                            e.target.value = e.target.value.replace(
+                              regExValidators.regExNumber,
+                              ""
+                            );
+                          },
+                        }}
+                        onSubmit={(value: string) => {
+                          dispatch(
+                            thunkAddRexActionMass({ uuid: action.uuid, mass: toDecimal(value) })
+                          );
+                        }}
+                        key={`${action.uuid}-mass`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
       <div className={paneStyles.panelSection}>
         <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
           <SubpanelHeading icon={faToolbox}>Equipment Required</SubpanelHeading>
@@ -297,33 +406,41 @@ export const RightActionBody: FunctionComponent<{
           />
         </div>
       </div>
-      <div className={paneStyles.panelSection}>
-        <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-          <SubpanelHeading icon={faAtlas}>Associated Geographic Units</SubpanelHeading>
-        </div>
-        <div className={paneStyles.panelSectionRow}>
-          <GeographicUnitSelector
-            geographicUnitsUsage={action.geographicUnitsUsage}
-            editMode={editMode}
-            onChange={(e) => {
-              dispatch(upsertActionByField(action.uuid, "geographicUnitsUsage", e));
-            }}
-            uniqueId={action.uuid}
-          />
-        </div>
-      </div>
-      <div className={paneStyles.panelSection}>
-        <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-          <SubpanelHeading icon={faTableList}>STM Coverage</SubpanelHeading>
-        </div>
-        <div className={actionStyles.selectorContainer}>
-          <STMSelector
-            editMode={editMode}
-            stmPriorities={action.stmPriorities}
-            actionUuid={action.uuid}
-          />
-        </div>
-      </div>
+      {actionSystemVersion === 1 && (
+        <>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+              <SubpanelHeading icon={faAtlas}>Associated Geographic Units</SubpanelHeading>
+            </div>
+            <div className={paneStyles.panelSectionRow}>
+              <GeographicUnitSelector
+                geographicUnitsUsage={action.geographicUnitsUsage}
+                editMode={editMode}
+                onChange={(e) => {
+                  dispatch(upsertActionByField(action.uuid, "geographicUnitsUsage", e));
+                }}
+                uniqueId={action.uuid}
+              />
+            </div>
+          </div>
+        </>
+      )}
+      {!action.stmAction && (
+        <>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+              <SubpanelHeading icon={faTableList}>STM Coverage</SubpanelHeading>
+            </div>
+            <div className={actionStyles.selectorContainer}>
+              <STMSelector
+                editMode={editMode}
+                stmPriorities={action.stmPriorities}
+                actionUuid={action.uuid}
+              />
+            </div>
+          </div>
+        </>
+      )}
 
       <div className={paneStyles.panelSection}>
         <div className={paneStyles.panelSectionTitle}>
@@ -574,3 +691,5 @@ export const RightActionBody: FunctionComponent<{
     </div>
   );
 };
+
+export default RightActionBody;

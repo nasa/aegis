@@ -1,6 +1,6 @@
 {
   "name": "aegis-zero",
-  "version": "1.0.7",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "dev": "concurrently -n vite,api \"npm run vite:dev:wait\" \"npm run api:dev\"",
@@ -33,11 +33,15 @@
     "docker:preview:rebuild:nocache": "bash ./appcompose preview build --no-cache",
     "version:patch": "npm version patch && git push",
     "version:minor": "npm version minor && git push",
-    "version:major": "npm version major && git push"
+    "version:major": "npm version major && git push",
+    "make-dotenv": "make-dotenv"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
+    "@emss/make-dotenv": "^0.3.2",
+    "@emss/oauth2-proxy-backend": "^0.2.2",
+    "@emss/oauth2-proxy-frontend": "^0.2.3",
     "@fortawesome/fontawesome-svg-core": "^6.6.0",
     "@fortawesome/free-regular-svg-icons": "^6.6.0",
     "@fortawesome/free-solid-svg-icons": "^6.6.0",
@@ -50,6 +54,7 @@
     "@mikro-orm/seeder": "6.3.9",
     "@reduxjs/toolkit": "^2.2.7",
     "@turf/helpers": "^7.1.0",
+    "@turf/square-grid": "^7.0.0",
     "@turf/turf": "^7.1.0",
     "axios": "^1.7.7",
     "bcryptjs": "^2.4.3",
@@ -109,6 +114,7 @@
     "@jest/globals": "^29.7.0",
     "@playwright/test": "^1.47.0",
     "@testing-library/jest-dom": "^6.5.0",
+    "@types/aria-query": "^5.0.4",
     "@types/bcryptjs": "^2.4.6",
     "@types/color": "^3.0.6",
     "@types/cookie-session": "^2.0.49",
@@ -132,6 +138,7 @@
     "@types/react-test-renderer": "^18.3.0",
     "@types/supertest": "^6.0.2",
     "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.5.12",
     "@typescript-eslint/eslint-plugin": "^8.5.0",
     "@typescript-eslint/parser": "^8.5.0",
     "@vitejs/plugin-react-swc": "^3.7.0",

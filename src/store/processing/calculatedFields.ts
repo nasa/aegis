@@ -24,6 +24,7 @@ export const getCalculatedFieldsByPoi = (params: {
   let totalDwellTimeLower = 0;
   let totalDwellTimeUpper = 0;
   let actionCount = 0;
+  let totalMass = 0;
   poiActions.forEach((action) => {
     totalDurationLower += action.durationLower;
     totalDurationUpper += action.durationUpper;
@@ -45,6 +46,7 @@ export const getCalculatedFieldsByPoi = (params: {
     totalDwellTimeUpper =
       totalEv1DurationUpper > totalEv2DurationUpper ? totalEv1DurationUpper : totalEv2DurationUpper;
     actionCount++;
+    totalMass += action.mass;
   });
 
   //generate report messages
@@ -82,6 +84,7 @@ export const getCalculatedFieldsByPoi = (params: {
       durationUpper: totalDwellTimeUpper,
     },
     actionCount,
+    totalMass,
   };
 
   return newCalculatedFields;
@@ -114,6 +117,7 @@ export const getCalculatedFieldsByStation = (params: {
   let totalDwellTimeLower = 0;
   let totalDwellTimeUpper = 0;
 
+  let totalMass = 0;
   let actionCount = 0;
   let totalEquipmentItems: EquipmentItemUsage[] = [];
   stationActions.forEach((action) => {
@@ -139,6 +143,7 @@ export const getCalculatedFieldsByStation = (params: {
 
     totalEquipmentItems = mergeEquipmentItems(action.equipmentItemsUsage, totalEquipmentItems);
     actionCount++;
+    totalMass += action.mass;
   });
 
   //generate station report messages
@@ -236,6 +241,7 @@ export const getCalculatedFieldsByStation = (params: {
     walkbackDistanceMeters,
     walkbackAscentDescent,
     equipmentItems: totalEquipmentItems,
+    totalMass,
   };
   return newCalculatedFields;
 };
@@ -364,6 +370,7 @@ export const getCalculatedFieldsByEva = (params: {
     },
     equipmentItems: [],
     sequenceItemsCalculatedData: [],
+    totalMass: 0,
   };
 
   let runningEvaSeconds = eva.egressDuration * 60; // start with egress duration
@@ -404,6 +411,7 @@ export const getCalculatedFieldsByEva = (params: {
       evaCalculatedFields.totalDwellTime.durationUpper +=
         thisStationCalculatedFields.totalDwellTime.durationUpper;
       evaCalculatedFields.actionCount += thisStationCalculatedFields.actionCount;
+      evaCalculatedFields.totalMass += thisStationCalculatedFields.totalMass;
       evaCalculatedFields.equipmentItems = mergeEquipmentItems(
         thisStationCalculatedFields.equipmentItems,
         evaCalculatedFields.equipmentItems

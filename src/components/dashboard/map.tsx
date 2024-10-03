@@ -74,6 +74,7 @@ const MapBody: FunctionComponent<{
         "landerLocation",
         "initialZoom",
         "planetRadius",
+        "activeGridUuid",
         "projBoundsMaxX",
         "projBoundsMaxY",
         "projBoundsMinX",
@@ -168,6 +169,7 @@ const MapBody: FunctionComponent<{
   });
   const [showArrows, setShowArrows] = useState(true);
   const [showGridLabels, setShowGridLabels] = useState(true);
+  const [showGridLines, setShowGridLines] = useState(true);
   const [showScaleBar, setShowScaleBar] = useState(true);
   const [showSunEarth, setShowSunEarth] = useState(true);
 
@@ -1046,6 +1048,8 @@ const MapBody: FunctionComponent<{
             setMapDisplayPosMarkers={setMapDisplayPos}
             showGridLabels={showGridLabels}
             setShowGridLabels={setShowGridLabels}
+            showGridLines={showGridLines}
+            setShowGridLines={setShowGridLines}
             showScaleBar={showScaleBar}
             setShowScaleBar={setShowScaleBar}
             showMouseLatLon={false}
@@ -1139,7 +1143,7 @@ const MapBody: FunctionComponent<{
         </div>
       </div>
       <div className={styles.mapScaleDisplay}>{showScaleBar && drawScaleBar()}</div>
-      {showSunEarth && <SunEarth type="dashboard" />}
+      {showSunEarth && <SunEarth type="dashboard" mapSelectedPreset={selectedPreset} />}
     </div>
   );
 };

@@ -1,21 +1,23 @@
 import { FunctionComponent, useEffect, useRef } from "react";
-import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import styles from "./map-sunearth.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEarthAmerica, faMoon, faSun } from "@fortawesome/free-solid-svg-icons";
 
-export const SunEarth: FunctionComponent<{ type: "editor" | "dashboard" }> = ({ type }) => {
-  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
+export const SunEarth: FunctionComponent<{
+  type: "editor" | "dashboard";
+  mapSelectedPreset: Preset;
+}> = ({ type, mapSelectedPreset }) => {
+  const selectedPreset = mapSelectedPreset;
 
   let height = 180;
   if (
-    (mission.earthEnabled && !mission.sunEnabled) ||
-    (!mission.earthEnabled && mission.sunEnabled)
+    (selectedPreset.earthEnabled && !selectedPreset.sunEnabled) ||
+    (!selectedPreset.earthEnabled && selectedPreset.sunEnabled)
   ) {
     height = 90;
   }
 
-  if (mission.sunEnabled || mission.earthEnabled) {
+  if (selectedPreset.sunEnabled || selectedPreset.earthEnabled) {
     return (
       <div
         className={
@@ -23,19 +25,19 @@ export const SunEarth: FunctionComponent<{ type: "editor" | "dashboard" }> = ({ 
         }
         style={{ height: `${height}px` }}
       >
-        {mission.sunEnabled && (
+        {selectedPreset.sunEnabled && (
           <AzimuthIndicator
             sunEarth="sun"
-            earthAsMoon={mission?.earthAsMoon}
-            azimuth={mission?.sunAzimuth || 0}
+            earthAsMoon={selectedPreset?.earthAsMoon}
+            azimuth={selectedPreset?.sunAzimuth || 0}
             dashboard={type === "dashboard"}
           />
         )}
-        {mission.earthEnabled && (
+        {selectedPreset.earthEnabled && (
           <AzimuthIndicator
             sunEarth="earth"
-            earthAsMoon={mission?.earthAsMoon}
-            azimuth={mission?.earthAzimuth || 0}
+            earthAsMoon={selectedPreset?.earthAsMoon}
+            azimuth={selectedPreset?.earthAzimuth || 0}
             dashboard={type === "dashboard"}
           />
         )}

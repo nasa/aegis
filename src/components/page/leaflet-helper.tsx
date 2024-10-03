@@ -409,7 +409,7 @@ export const drawPolylineOnMap = ({
     if (showArrows) {
       const arrows = L.polylineDecorator(polyline, {
         patterns: arrowPattern,
-      }) as AEGISDecorator;
+      }) as unknown as AEGISDecorator;
       arrows.uuid = uuid + "Arrows";
       arrows.mapItemType = mapItemType;
       map.current.addLayer(arrows);
@@ -433,7 +433,7 @@ export const drawPolylineOnMap = ({
     // arrows for all other polyline types (walkbacks)
     const arrows = L.polylineDecorator(polyline, {
       patterns: arrowPattern,
-    }) as AEGISDecorator;
+    }) as unknown as AEGISDecorator;
     arrows.uuid = uuid + "Arrows";
     arrows.mapItemType = mapItemType;
     map.current.addLayer(arrows);
@@ -516,7 +516,7 @@ export const drawPosPathOnMap = ({
         }),
       },
     ],
-  }) as AEGISDecorator;
+  }) as unknown as AEGISDecorator;
   arrows.uuid = uuid + "Arrows";
   arrows.mapItemType = "posPath";
   posEntryFeatureGroup.current.addLayer(arrows);

@@ -30,6 +30,13 @@ export class Action_db implements Action_db_type {
   stmPriorities: StmPriorities;
   @Property({ type: MikroTypes.string })
   type!: ActionType;
+  // Action v2 fields
+  @Property({ type: MikroTypes.boolean, default: false })
+  stmAction: boolean;
+  @Property({ type: MikroTypes.json, nullable: true })
+  actionDefinition: ActionDefinition;
+  //
+
   @Property({ type: MikroTypes.text })
   description!: string;
   @Property({ type: MikroTypes.string, nullable: true })

@@ -22,7 +22,12 @@ import { updateMapDirective } from "store/map";
 import { setSectionSelected } from "store/interface";
 import { setSelectedStationUuid } from "store/station";
 import { setSelectedPosEntryUuid } from "store/rex";
-import { convertLeafletLatLngToAegisPoint, getMidpoint } from "utils/geoMath";
+import {
+  adjustGridIndex,
+  convertLeafletLatLngToAegisPoint,
+  findClosestPointInGrid,
+  getMidpoint,
+} from "utils/geoMath";
 import { decodeEmoji, secondsFromhhmmss, hhmmssFromSeconds, titleCase } from "utils/formatting";
 import { clearMapItemHover, setHoverUuidsForSequence, setHoverUuidsForPosEntry } from "store/hover";
 
@@ -37,7 +42,7 @@ import { useCookies } from "react-cookie";
 import ReactDOMServer from "react-dom/server";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import { SunEarth } from "./map-sunearth";
-import { point } from "@turf/helpers";
+import { featureCollection, lineString, point } from "@turf/helpers";
 import { circle } from "@turf/turf";
 import {
   makeTileLayerColorFilter,
@@ -58,6 +63,8 @@ import {
   saveUpdatedItemPosition,
 } from "components/page/leaflet-helper";
 import { thunkMarkerOnClick, thunkPolylineOnClick } from "store/thunk/thunkMap";
+import { Feature } from "geojson";
+import { getGrids } from "http-client/grid";
 
 const MapBody: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -80,6 +87,7 @@ const MapBody: FunctionComponent = () => {
         "landerLocation",
         "initialZoom",
         "planetRadius",
+        "activeGridUuid",
         "projBoundsMaxX",
         "projBoundsMaxY",
         "projBoundsMinX",
@@ -183,6 +191,7 @@ const MapBody: FunctionComponent = () => {
   });
   const [showArrows, setShowArrows] = useState(true);
   const [showGridLabels, setShowGridLabels] = useState(true);
+  const [showGridLines, setShowGridLines] = useState(false);
   const [showScaleBar, setShowScaleBar] = useState(true);
   const [showMouseLatLon, setShowMouseLatLon] = useState(true);
   const [showSunEarth, setShowSunEarth] = useState(false);
@@ -195,6 +204,8 @@ const MapBody: FunctionComponent = () => {
   const [gridLabels, setGridLabels] = useState<GridLabelItem[]>([]);
   const [mapBounds, setMapBounds] = useState<string>(null); // Used to trigger re-draw of grid labels. Value doens't matter
   const [rexPetTime, setRexPetTime] = useState(""); // used to update the PET value via the PetInterval component
+  const [chosenGrid, setChosenGrid] = useState(undefined);
+  const [gridBounds, setGridBounds] = useState(undefined);
 
   /**
    * Set the eyeball menu toggles from the cookie
@@ -211,6 +222,7 @@ const MapBody: FunctionComponent = () => {
     }
     setShowArrows(eyeballMenuSettings.showArrows);
     setShowGridLabels(eyeballMenuSettings.showGridLabels);
+    setShowGridLines(eyeballMenuSettings.showGridLines);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -228,6 +240,7 @@ const MapBody: FunctionComponent = () => {
         mapDisplayPositions,
         showArrows,
         showGridLabels,
+        showGridLines,
       }),
       { path: "/" }
     );
@@ -239,6 +252,7 @@ const MapBody: FunctionComponent = () => {
     mapDisplayPositions,
     showArrows,
     showGridLabels,
+    showGridLines,
   ]);
 
   /**
@@ -917,6 +931,168 @@ const MapBody: FunctionComponent = () => {
     mission?.planetRadius,
     map,
     selectedPreset?.mapCircleControls,
+  ]);
+
+  /**
+   * Get grid from the database
+   */
+  useEffect(() => {
+    async function fetchGrids() {
+      if (!mission.activeGridUuid) return;
+      const grid: MissionGrid = (await getGrids(mission.id, mission.activeGridUuid, true)).data[0];
+      setChosenGrid(grid);
+    }
+
+    fetchGrids();
+  }, [mission.activeGridUuid, mission.id]);
+
+  /**
+   * Set grid settings
+   */
+  useEffect(() => {
+    if (!map || !mapBounds || !chosenGrid) return;
+
+    if (showGridLines) {
+      const size: L.Point = map.current.getSize();
+      const gridStart: AEGISPoint = convertLeafletLatLngToAegisPoint(
+        map.current.containerPointToLatLng([0, 0])
+      );
+      const gridEnd: AEGISPoint = convertLeafletLatLngToAegisPoint(
+        map.current.containerPointToLatLng([size.x, size.y])
+      );
+
+      setGridBounds([
+        findClosestPointInGrid(chosenGrid.coordinates, gridStart, mission.planetRadius),
+        findClosestPointInGrid(chosenGrid.coordinates, gridEnd, mission.planetRadius),
+      ]);
+    } else {
+      setGridBounds(null);
+    }
+  }, [map, mapBounds, chosenGrid, mapZoom, mission.id, mission.planetRadius, showGridLines]);
+
+  /**
+   * Draw grid
+   */
+  useEffect(() => {
+    if (!map || !mission?.planetRadius || !mapBounds || !chosenGrid) return;
+
+    map.current.eachLayer((layer: AEGISGeoJSONGrid | AEGISGeoJSONGridPoint) => {
+      if (layer?.mapItemType === "Grid System" || layer?.mapItemType === "Grid Point") {
+        layer.remove();
+      }
+    });
+
+    if (!gridBounds) return;
+
+    const gridCoordinates: MissionGridPoint[][] = chosenGrid.coordinates;
+
+    const basePointsShown =
+      (gridBounds[1].row - gridBounds[0].row) * (gridBounds[1].col - gridBounds[0].col);
+    let lineZoomLevel = 50;
+    if (basePointsShown < 400) {
+      lineZoomLevel = 1;
+    } else if (basePointsShown < 800) {
+      lineZoomLevel = 2;
+    } else if (basePointsShown < 2000) {
+      lineZoomLevel = 5;
+    } else if (basePointsShown < 4000) {
+      lineZoomLevel = 10;
+    }
+
+    const startIndex: GridIndex = adjustGridIndex(
+      gridBounds[0],
+      chosenGrid.coordinates.length,
+      chosenGrid.coordinates[0].length,
+      lineZoomLevel,
+      true
+    );
+    const endIndex: GridIndex = adjustGridIndex(
+      gridBounds[1],
+      chosenGrid.coordinates.length,
+      chosenGrid.coordinates[0].length,
+      lineZoomLevel,
+      false
+    );
+
+    const lines: Feature[] = [];
+    for (let i = startIndex.row; i <= endIndex.row; i += lineZoomLevel) {
+      lines.push(
+        lineString([
+          [
+            gridCoordinates[i][startIndex.col].coordinates.lng,
+            gridCoordinates[i][startIndex.col].coordinates.lat,
+          ],
+          [
+            gridCoordinates[i][endIndex.col].coordinates.lng,
+            gridCoordinates[i][endIndex.col].coordinates.lat,
+          ],
+        ])
+      );
+    }
+
+    for (let i = startIndex.col; i <= endIndex.col; i += lineZoomLevel) {
+      lines.push(
+        lineString([
+          [
+            gridCoordinates[startIndex.row][i].coordinates.lng,
+            gridCoordinates[startIndex.row][i].coordinates.lat,
+          ],
+          [
+            gridCoordinates[endIndex.row][i].coordinates.lng,
+            gridCoordinates[endIndex.row][i].coordinates.lat,
+          ],
+        ])
+      );
+    }
+
+    const geoJSONGrid: AEGISGeoJSONGrid = L.geoJSON(featureCollection(lines), {
+      style: {
+        interactive: false,
+        color: "white",
+        fillColor: "none",
+        weight: 1,
+        opacity: 1,
+      },
+    }) as AEGISGeoJSONGrid;
+    geoJSONGrid.mapItemType = "Grid System";
+    map.current.addLayer(geoJSONGrid);
+
+    if (showGridLabels) {
+      for (let i = startIndex.row; i <= endIndex.row; i += lineZoomLevel) {
+        for (let j = startIndex.col; j < endIndex.col; j += lineZoomLevel) {
+          if (i !== startIndex.row && j !== endIndex.col) {
+            const point: MissionGridPoint = gridCoordinates[i][j];
+            if (point.name === null) {
+              continue;
+            }
+            const latLng: L.LatLng = { ...point.coordinates } as L.LatLng;
+            const marker: AEGISGeoJSONGridPoint = L.tooltip({
+              sticky: false,
+              direction: "right",
+              offset: new L.Point(0, -8),
+              permanent: true,
+              className: "leaflet-tooltip-gridLabels",
+              interactive: false,
+              opacity: 0.8,
+            })
+              .setLatLng(latLng)
+              .setContent(point.name) as AEGISGeoJSONGridPoint;
+            marker.mapItemType = "Grid Point";
+            marker.addTo(map.current);
+          }
+        }
+      }
+    }
+  }, [
+    mission?.planetRadius,
+    map,
+    mapZoom,
+    mapBounds,
+    chosenGrid,
+    mission.id,
+    mission.activeGridUuid,
+    gridBounds,
+    showGridLabels,
   ]);
 
   /**
@@ -1738,6 +1914,8 @@ const MapBody: FunctionComponent = () => {
           setMapDisplayPosMarkers={setMapDisplayPositions}
           showGridLabels={showGridLabels}
           setShowGridLabels={setShowGridLabels}
+          showGridLines={showGridLines}
+          setShowGridLines={setShowGridLines}
           showScaleBar={showScaleBar}
           setShowScaleBar={setShowScaleBar}
           showMouseLatLon={showMouseLatLon}
@@ -1751,7 +1929,7 @@ const MapBody: FunctionComponent = () => {
       <div className={styles.mapPositionDisplay}>
         {showMouseLatLon && mousePosition && latLngDiv(mousePosition)}
       </div>
-      {showSunEarth && <SunEarth type="editor" />}
+      {showSunEarth && <SunEarth type="editor" mapSelectedPreset={selectedPreset} />}
     </div>
   );
 };

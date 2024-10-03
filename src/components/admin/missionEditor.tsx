@@ -3,7 +3,7 @@ import { Dispatch, FunctionComponent, SetStateAction, useEffect, useRef } from "
 import FileManager from "./fileManager";
 import { Form } from "react-final-form";
 import { AnyObject } from "final-form";
-import { FFCheckbox, FFInput, FFTextArea } from "components/interface/form/globalFields";
+import { FFInput, FFTextArea } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
 import Projection from "components/admin/projection";
 import adminStyles from "components/admin/admin.module.css";
@@ -28,6 +28,8 @@ const MissionEditor: FunctionComponent<{
       id: mission.id,
       version: mission.version,
       name: missionValues.name,
+      actionSystemVersion: missionValues.actionSystemVersion,
+      actionDefinitions: mission.actionDefinitions,
       equipmentItems: mission.equipmentItems,
       geographicUnits: mission.geographicUnits,
       actionTemplates: mission.actionTemplates,
@@ -44,11 +46,7 @@ const MissionEditor: FunctionComponent<{
       defaultEvaDuration: parseFloat(missionValues.defaultEvaDuration),
       traverseRate: parseFloat(missionValues.traverseRate),
       walkbackRate: parseFloat(missionValues.walkbackRate),
-      sunAzimuth: parseFloat(missionValues.sunAzimuth),
-      sunEnabled: missionValues.sunEnabled,
-      earthAzimuth: parseFloat(missionValues.earthAzimuth),
-      earthEnabled: missionValues.earthEnabled,
-      earthAsMoon: missionValues.earthAsMoon,
+      activeGridUuid: mission.activeGridUuid,
       demFilePath: missionValues.demFilePath,
       demResolution: parseFloat(missionValues.demResolution),
 
@@ -163,6 +161,19 @@ const MissionEditor: FunctionComponent<{
                             />
                           </div>
                         </div>
+                        <div id="actionSystemVersionDiv">
+                          <div className={adminStyles.editDiv}>
+                            <FFInput
+                              name="actionSystemVersion"
+                              label={{
+                                label: "Action System Version (1 or 2)",
+                                title: "Action System Version",
+                              }}
+                              initialValue={mission?.actionSystemVersion.toString()}
+                            />
+                          </div>
+                        </div>
+                        <br />
                         <div id="planetRadiusDiv">
                           <div className={adminStyles.editDiv}>
                             <FFInput
@@ -244,40 +255,6 @@ const MissionEditor: FunctionComponent<{
                               name="walkbackRate"
                               label={{ label: "Default Walkback Rate (km/h)" }}
                               validators={[validators.mustBeNumber, validators.mustBeInteger]}
-                            />
-                          </div>
-                        </div>
-                        <div id="sunAzimuthDiv">
-                          <div className={adminStyles.editDiv}>
-                            <FFInput
-                              name="sunAzimuth"
-                              label={{ label: "Sun Azimuth (degrees)" }}
-                              validators={[validators.mustBeNumber, validators.mustBeInteger]}
-                            />
-                          </div>
-                        </div>
-                        <div id="sunAzimuthEnabledDiv">
-                          <div className={adminStyles.editDiv}>
-                            <FFCheckbox
-                              name="sunAzimuthEnabled"
-                              label={{ label: "Sun Azimuth Enabled" }}
-                            />
-                          </div>
-                        </div>
-                        <div id="earthAzimuthDiv">
-                          <div className={adminStyles.editDiv}>
-                            <FFInput
-                              name="earthAzimuth"
-                              label={{ label: "Earth Azimuth (degrees)" }}
-                              validators={[validators.mustBeNumber, validators.mustBeInteger]}
-                            />
-                          </div>
-                        </div>
-                        <div id="earthAzimuthEnabledDiv">
-                          <div className={adminStyles.editDiv}>
-                            <FFCheckbox
-                              name="earthAzimuthEnabled"
-                              label={{ label: "Earth Azimuth Enabled" }}
                             />
                           </div>
                         </div>

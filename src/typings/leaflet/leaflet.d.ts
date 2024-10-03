@@ -1,7 +1,6 @@
 /**
  * Leaflet marker with a uuid property
  */
-
 type AEGISMarker = L.Marker & {
   uuid?: string;
   mapItemType: MapMarkerType;
@@ -20,7 +19,7 @@ type AEGISPolyline = L.Polyline & {
 
 type MapPolylineType = "traverse" | "walkback" | "hover" | "posPath" | "measurement";
 
-type AEGISDecorator = L.polylineDecorator & {
+type AEGISDecorator = L.Layer & {
   uuid?: string;
   mapItemType: MapPolylineType;
 };
@@ -37,4 +36,14 @@ type AEGISCircleMarker = L.CircleMarker & {
 type AEGISGeoJSONCircle = L.GeoJSON & {
   uuid?: string;
   mapItemType: "Lander Radius";
+};
+
+type AEGISGeoJSONGrid = L.GeoJSON & {
+  uuid?: string;
+  mapItemType: "Grid System";
+};
+
+type AEGISGeoJSONGridPoint = L.Tooltip & {
+  uuid?: string;
+  mapItemType: "Grid Point";
 };

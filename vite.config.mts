@@ -18,6 +18,7 @@ export const config: UserConfig = {
       tests: path.resolve(__dirname, "./src/tests"),
       typings: path.resolve(__dirname, "./src/typings"),
       utils: path.resolve(__dirname, "./src/utils"),
+      packages: path.resolve(__dirname, "./src/packages"),
     },
   },
   //server configurations for running vite as a server (only happens in local dev). On docker/production, nginx serves the front end

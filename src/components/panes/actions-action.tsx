@@ -12,11 +12,12 @@ import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppS
 import { validators } from "components/interface/form/formValidators";
 import _ from "lodash";
 import { collapseActions, expandActions } from "store/interface";
-import { RightActionBody } from "./actions-action-body";
+import RightActionBody from "./actions-action-body";
 import { ActionMenu } from "./actions-action-menu";
 import { getRexStatusDisplayProperties } from "../../utils/rex";
 import { RexStatusMenu } from "./rex/rex";
 import { actionTypes } from "utils/store";
+import { thunkUpsertActionDefinitionSelection } from "store/thunk/thunkAction";
 
 const RightAction: FunctionComponent<{
   editMode: boolean;
@@ -45,6 +46,9 @@ const RightAction: FunctionComponent<{
   );
   const actionsExpanded = useAppSelector((state) => state.interface.actionsExpanded, shallowEqual);
   const actionRexStatusEntry = useAppSelector((state) => {
+    // this prop is testing if the action's station is in the running rex. This test will catch when
+    // the station/action used to be in a rex but is no longer
+    if (!isRexRunning) return;
     //find all action entry that match this action uuid for the running rex. return the status of the last one.
     const runningRexFromDb = state.rex.rexesFromDb.find((rex) => rex.isRunning);
     if (!runningRexFromDb?.actionEntries || !runningRexFromDb.actionEntries[actionUuid]) {
@@ -55,6 +59,11 @@ const RightAction: FunctionComponent<{
   }, refEqual);
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+
+  const actionSystemVersion = useAppSelector(
+    (state) => state.mission.mission.actionSystemVersion,
+    refEqual
+  );
 
   const toggleCrewAssigned = (crewMember: Crew) => {
     const currentCrew = action.crewAssigned || [];
@@ -81,11 +90,11 @@ const RightAction: FunctionComponent<{
   };
 
   const crewLeftStyle = action?.crewAssigned?.includes("EV1")
-    ? actionStyles.actionHeadingCrewSelected
+    ? actionStyles.actionDualButtonsSelected
     : undefined;
 
   const crewRightStyle = action?.crewAssigned?.includes("EV2")
-    ? actionStyles.actionHeadingCrewSelected
+    ? actionStyles.actionDualButtonsSelected
     : undefined;
 
   return (
@@ -146,7 +155,7 @@ const RightAction: FunctionComponent<{
 
               <div
                 className={actionStyles.actionHeadingCaret}
-                style={{ marginTop: editMode ? "4px" : "0" }}
+                style={{ marginTop: editMode ? "4px" : "2px" }}
                 onClick={() => {
                   toggleActionExpanded(action.uuid);
                 }}
@@ -166,69 +175,91 @@ const RightAction: FunctionComponent<{
                 )}
               </div>
 
-              {!editMode ? (
-                <div
-                  className={actionStyles.actionHeadingType}
-                  onClick={() => {
-                    toggleActionExpanded(action.uuid);
-                  }}
-                >
-                  {action.type}
+              {actionSystemVersion === 1 && (
+                <>
+                  {!editMode ? (
+                    <div
+                      className={actionStyles.actionHeadingType}
+                      onClick={() => {
+                        toggleActionExpanded(action.uuid);
+                      }}
+                    >
+                      {action.type}
+                    </div>
+                  ) : (
+                    <Dropdown
+                      selected={action.type}
+                      onChange={(val) => {
+                        dispatch(upsertAction({ ...action, type: val as ActionType }));
+                      }}
+                      toolTip="Action Type"
+                      arrowStyle={{ color: "var(--grey5)" }}
+                    >
+                      {actionTypes.map((type) => (
+                        <option key={type} value={type}>
+                          {titleCase(type)}
+                        </option>
+                      ))}
+                    </Dropdown>
+                  )}
+                </>
+              )}
+              <div
+                className={actionStyles.actionHeadingTitleIcon}
+                style={{ marginTop: editMode ? "4px" : "2px" }}
+              >
+                {decodeEmoji(action.icon ? action.icon : "2800")}
+              </div>
+              {actionSystemVersion === 1 || !action.stmAction ? (
+                <div className={actionStyles.actionHeadingTitle}>
+                  <div className={actionStyles.verticalCenter}>
+                    <InLineEditInput
+                      value={action.name}
+                      editing={editMode}
+                      fieldProps={{
+                        name: "Name",
+                        style: { width: "100%" },
+                        validators: [validators.required, validators.maxLength(255)],
+                      }}
+                      onSubmit={(value: string) => {
+                        dispatch(upsertActionByField(action.uuid, "name", value));
+                      }}
+                      key={`${action.uuid}-name`}
+                      toFocus={toFocus}
+                    />
+                  </div>
                 </div>
               ) : (
-                <Dropdown
-                  selected={action.type}
-                  onChange={(val) => {
-                    dispatch(upsertAction({ ...action, type: val as ActionType }));
-                  }}
-                  toolTip="Action Type"
-                  arrowStyle={{ color: "var(--grey5)" }}
-                >
-                  {actionTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {titleCase(type)}
-                    </option>
-                  ))}
-                </Dropdown>
+                <>
+                  <div className={actionStyles.actionV2Header}>
+                    <ActionDefType
+                      actionUuid={action.uuid}
+                      type={"verbs"}
+                      selectedUuid={action.actionDefinition?.verbUuid}
+                      editMode={editMode}
+                    />{" "}
+                    of
+                    <ActionDefType
+                      actionUuid={action.uuid}
+                      type={"nouns"}
+                      selectedUuid={action.actionDefinition?.nounUuid}
+                      editMode={editMode}
+                    />{" "}
+                    in
+                    <ActionDefType
+                      actionUuid={action.uuid}
+                      type={"adjectives"}
+                      selectedUuid={action.actionDefinition?.adjectiveUuid}
+                      editMode={editMode}
+                    />
+                  </div>
+                </>
               )}
-
-              <div className={actionStyles.actionHeadingTitle}>
-                <div
-                  className={actionStyles.actionHeadingTitleIcon}
-                  style={{ marginTop: editMode ? "4px" : "0" }}
-                >
-                  {decodeEmoji(action.icon ? action.icon : "2800")}
-                </div>
-                <div className={actionStyles.verticalCenter}>
-                  <InLineEditInput
-                    value={action.name}
-                    editing={editMode}
-                    fieldProps={{
-                      name: "Name",
-                      style: { width: "100%" },
-                      validators: [validators.required, validators.maxLength(255)],
-                    }}
-                    onSubmit={(value: string) => {
-                      dispatch(upsertActionByField(action.uuid, "name", value));
-                    }}
-                    key={`${action.uuid}-name`}
-                    toFocus={toFocus}
-                  />
-                </div>
-              </div>
 
               <div
                 className={actionStyles.actionHeadingRight}
                 style={editMode ? { marginTop: "5px" } : undefined}
               >
-                <div
-                  className={actionStyles.actionHeadingRightItem}
-                  style={{ width: "15px", textAlign: "right" }}
-                  data-tooltip-id="aegis-tooltip"
-                  data-tooltip-html={"Priority"}
-                >
-                  {action.priority}
-                </div>
                 <div
                   className={actionStyles.actionHeadingRightItem}
                   data-tooltip-id="aegis-tooltip"
@@ -240,13 +271,13 @@ const RightAction: FunctionComponent<{
                 {parentType !== "poi" && (
                   <div className={actionStyles.actionHeadingRightItem}>
                     <div
-                      className={actionStyles.actionHeadingCrew}
+                      className={actionStyles.actionDualButtons}
                       style={{ cursor: editMode ? "pointer" : "default" }}
                     >
                       {action.enabled ? (
                         <>
                           <div
-                            className={`${actionStyles.actionHeadingCrewLeft} ${crewLeftStyle}`}
+                            className={`${actionStyles.actionDualButtonsLeft} ${crewLeftStyle}`}
                             onClick={() => {
                               if (editMode) toggleCrewAssigned("EV1");
                             }}
@@ -255,7 +286,7 @@ const RightAction: FunctionComponent<{
                           </div>
 
                           <div
-                            className={`${actionStyles.actionHeadingCrewRight} ${crewRightStyle}`}
+                            className={`${actionStyles.actionDualButtonsRight} ${crewRightStyle}`}
                             onClick={() => {
                               if (editMode) toggleCrewAssigned("EV2");
                             }}
@@ -264,7 +295,7 @@ const RightAction: FunctionComponent<{
                           </div>
                         </>
                       ) : (
-                        <div className={actionStyles.actionHeadingCrewDisabled}></div>
+                        <div className={actionStyles.actionDualButtonsDisabled}></div>
                       )}
                     </div>
                   </div>
@@ -280,6 +311,7 @@ const RightAction: FunctionComponent<{
                 parentType={parentType}
                 parentLocation={parentLocation}
                 parentElevation={parentElevation}
+                isRexRunning={isRexRunning}
               />
             )}
           </div>
@@ -290,3 +322,69 @@ const RightAction: FunctionComponent<{
 };
 
 export default RightAction;
+
+const ActionDefType: FunctionComponent<{
+  actionUuid: string;
+  type: ActionDefinitionType;
+  selectedUuid: string;
+  editMode: boolean;
+}> = ({ actionUuid, type, selectedUuid, editMode }) => {
+  const actionDefinitions = useAppSelector(
+    (state) => state.mission.mission.actionDefinitions[type],
+    deepEqual
+  );
+
+  const selectedActionDef = actionDefinitions.find((actionDef) => actionDef.uuid === selectedUuid);
+
+  return (
+    <>
+      {!editMode ? (
+        <span
+          className={actionStyles.actionDefType}
+          style={{ color: `var(--${type.slice(0, -1)})` }}
+        >
+          {selectedActionDef?.name ? selectedActionDef?.name : _.capitalize(type.slice(0, -1))}
+        </span>
+      ) : (
+        <ActionDefDropdown
+          actionDefinitions={actionDefinitions}
+          actionUuid={actionUuid}
+          type={type}
+          selectedUuid={selectedUuid}
+        />
+      )}
+    </>
+  );
+};
+
+const ActionDefDropdown: FunctionComponent<{
+  actionUuid: string;
+  actionDefinitions: ActionDefinitionItem[];
+  type: ActionDefinitionType;
+  selectedUuid: string;
+}> = ({ actionUuid, actionDefinitions, type, selectedUuid }) => {
+  const dispatch = useAppDispatch();
+
+  return (
+    <Dropdown
+      selected={selectedUuid}
+      onChange={(val) => {
+        dispatch(thunkUpsertActionDefinitionSelection({ actionUuid, type, typeUuid: val }));
+      }}
+      toolTip={`${type}`}
+      arrowStyle={{ color: "var(--grey5)" }}
+      containerStyle={{ width: "70px" }}
+    >
+      <option value="">{_.capitalize(type)}</option>
+      {actionDefinitions.map((actionDef) => (
+        <option
+          key={actionDef.uuid}
+          value={actionDef.uuid}
+          selected={actionDef.uuid === selectedUuid}
+        >
+          {actionDef.name}
+        </option>
+      ))}
+    </Dropdown>
+  );
+};

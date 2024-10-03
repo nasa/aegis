@@ -1,5 +1,7 @@
 .left {
   display: flex;
+  min-width: 40px;
+  align-items: center;
 }
 
 .homeIcon:hover {
@@ -8,13 +10,20 @@
 }
 
 .helpMenu {
-  width: 40px;
+  min-width: 40px;
   border-radius: var(--radius);
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .item {
   margin: auto;
+  min-width: 0px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  float: left;
+  flex-grow: 1;
 }
 
 .item:first-of-type {
@@ -25,6 +34,15 @@
   color: white;
   font-weight: 700;
   font-size: 1.1em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  display: block;
+  min-width: 0px;
+  flex-grow: 1;
+  flex-shrink: 1;
+  margin-left: 10px;
+  padding-left: 10px;
 }
 
 .rexContainer {
@@ -35,6 +53,9 @@
   border-radius: var(--radius);
   padding: 3px 8px 3px 8px;
   margin-left: 10px;
+  margin-right: 10px;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .rexIcon {
@@ -56,10 +77,17 @@
 
 .center {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
 }
 
 .missionBannerText {
   font-size: 1em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  display: block;
 }
 
 .right {
@@ -67,6 +95,8 @@
   justify-content: flex-end;
   margin-left: 3px;
   align-items: center;
+  flex-shrink: 0;
+  overflow: visible;
 }
 
 .right > *:not(:last-of-type) {

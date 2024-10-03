@@ -7,6 +7,7 @@
   background-color: var(--grey1);
   border-bottom: 2px solid black;
   color: white;
+  width: 100%;
 }
 
 .body {
@@ -262,7 +263,7 @@
 .form {
   max-width: 300px;
   height: 400px;
-  overflow-y: scroll;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -902,6 +903,7 @@
 .pageStyle {
   background-color: white;
   overflow-y: auto;
+  height: 100vh;
 }
 
 .pageStyle .tooltip {
@@ -933,5 +935,10 @@
 .missionBodyContainer {
   display: flex;
   flex-direction: row;
+  width: 100%;
+}
+
+.gridInputContainer {
+  text-align: center;
   width: 100%;
 }

@@ -26,6 +26,17 @@ type EvaDeleteRequest = {
   evaUuids: string[];
 };
 
+type GridUpsertRequest = {
+  grids: MissionGrid[];
+  missionId: number;
+  upsertFullGrid: boolean;
+};
+
+type GridDeleteRequest = {
+  gridUuid: string;
+  missionId: number;
+};
+
 type LayerUpsertRequest = {
   missionId: number;
   layers: Layer[];

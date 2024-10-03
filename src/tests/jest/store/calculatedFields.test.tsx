@@ -314,6 +314,7 @@ describe("Calculated fields", () => {
         durationUpper: 0,
       },
       actionCount: 0,
+      totalMass: 0,
       totalTraverseTime: 10,
       totalTraverseDistanceMeters: 500,
       totalTraverseAscentDescent: {

@@ -488,32 +488,6 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     </div>
                     <div className={paneStyles.panelColumnTableRow}>
                       <div className={paneStyles.panelColumnTableCellLeft}>
-                        <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
-                      </div>
-                      <div className={paneStyles.panelColumnTableCell}>
-                        <div className={paneStyles.displayFieldValue}>
-                          {evaCalculatedFields.actionCount}
-                        </div>
-                      </div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
-                        <div className={paneStyles.displayFieldLabel}>
-                          Total Action Time (mins):
-                        </div>
-                      </div>
-                      <div className={paneStyles.panelColumnTableCell}>
-                        <div className={paneStyles.displayFieldValue}>
-                          {evaCalculatedFields.totalActionTime?.durationLower === 0 ? (
-                            <>0</>
-                          ) : (
-                            displayFormattedTotalTimeObj(evaCalculatedFields.totalActionTime)
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
                         <div className={paneStyles.displayFieldLabel}>Traverse Time (mins):</div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
@@ -571,6 +545,43 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                   </div>
                   <div className={paneStyles.panelColumnTable}>
                     <CalculatedDwell actionsCalculatedFields={evaCalculatedFields} />
+                    <div className={paneStyles.panelColumnTableRow}>&nbsp;</div>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCellLeft}>
+                        <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {evaCalculatedFields.actionCount}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCellLeft}>
+                        <div className={paneStyles.displayFieldLabel}>
+                          Total Action Time (mins):
+                        </div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {evaCalculatedFields.totalActionTime?.durationLower === 0 ? (
+                            <>0</>
+                          ) : (
+                            displayFormattedTotalTimeObj(evaCalculatedFields.totalActionTime)
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCellLeft}>
+                        <div className={paneStyles.displayFieldLabel}>Total Mass (g):</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {evaCalculatedFields.totalMass}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

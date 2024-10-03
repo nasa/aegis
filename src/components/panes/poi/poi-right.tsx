@@ -72,36 +72,38 @@ const PoiEditorRight: FunctionComponent = () => {
   const panelTypes: PanelTypes = {
     info_panel: {
       title: "POI Information",
-      panel: (
-        <Info_Panel
-          editMode={poisEditing.includes(selectedPoiUuid)}
-          actionCount={calculatedFields?.actionCount}
-        />
-      ),
+      panel: Info_Panel,
+      panelProps: {
+        editMode: poisEditing.includes(selectedPoiUuid),
+        actionCount: calculatedFields?.actionCount,
+      },
       selectedColor: "white",
       icon: faCircleInfo,
     },
     actions_panel: {
       title: "POI Actions",
-      panel: <Actions_Panel editMode={poisEditing.includes(selectedPoiUuid)} />,
+      panel: Actions_Panel,
+      panelProps: {
+        editMode: poisEditing.includes(selectedPoiUuid),
+      },
       selectedColor: "white",
       icon: faPersonDigging,
     },
     report_panel: {
       title: "Station Report",
-      panel: (
-        <Report_Panel reportItems={calculatedFields?.reportItems} reportTitle={"Station Report"} />
-      ),
+      panel: Report_Panel,
+      panelProps: {
+        reportItems: calculatedFields?.reportItems,
+        reportTitle: "Station Report",
+      },
       selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "white",
       unselectedColor: reportsTabIconColor,
       icon: calculatedFields?.reportItems.length > 0 ? faTriangleExclamation : faCheck,
     },
   };
 
-  let activeComponent = null;
-  if (!_.isNil(panelTypes[selectedRightNavItem])) {
-    activeComponent = panelTypes[selectedRightNavItem].panel;
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ActiveComponent: FunctionComponent<any> = panelTypes[selectedRightNavItem]?.panel;
 
   return (
     selectedPoi && (
@@ -244,7 +246,7 @@ const PoiEditorRight: FunctionComponent = () => {
             )}
           </div>
         </div>
-        {activeComponent}
+        <ActiveComponent {...panelTypes[selectedRightNavItem]?.panelProps} />
       </>
     )
   );
