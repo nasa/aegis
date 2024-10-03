@@ -1,0 +1,23 @@
+.azimuthBody {
+  margin: 5px;
+}
+
+.azimuthGroup {
+  margin: 6px 5px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.azimuth {
+  display: flex;
+  gap: 8px;
+}
+
+.azimuthContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.panelSection {
+  margin: 10px;
+}

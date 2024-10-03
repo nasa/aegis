@@ -68,7 +68,7 @@ const PresetEditorRight: FunctionComponent = () => {
       icon: faBullseye,
     },
     azimuth_panel: {
-      title: "",
+      title: "Celestial Body Direction",
       panel: Azimuth_Panel,
       selectedColor: "white",
       icon: faSun,
