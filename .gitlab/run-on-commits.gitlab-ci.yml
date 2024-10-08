@@ -44,27 +44,27 @@ include:
 
   # Code quality checks
   - project: "emss/gitlab-templates"
-    ref: 1.2.2
+    ref: 1.2.3
     file: "/jobs/code-quality.gitlab-ci.yml"
 
   # Fitdock deploy template
   - project: "emss/gitlab-templates"
-    ref: 1.2.2
+    ref: 1.2.3
     file: "/jobs/fitdock-deploy.gitlab-ci.yml"
 
   # EMSS shared dev server helpers (carbon, iron, oxygen, etc)
   - project: "emss/gitlab-templates"
-    ref: 1.2.2
+    ref: 1.2.3
     file: "/jobs/emss-shared-dev.gitlab-ci.yml"
 
   # Kaniko build template
   - project: "emss/gitlab-templates"
-    ref: 1.2.2
+    ref: 1.2.3
     file: "/jobs/kaniko-build.gitlab-ci.yml"
 
   # Retag job template
   - project: "emss/gitlab-templates"
-    ref: 1.2.2
+    ref: 1.2.3
     file: "/jobs/container-retag.gitlab-ci.yml"
 
 # Overrride some properties on FIT jobs. Unfortunately using a template for these
