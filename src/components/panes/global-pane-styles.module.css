@@ -214,6 +214,8 @@
   background-color: var(--grey2);
   margin: 8px;
   border-radius: var(--panelRadius);
+  overflow-y: scroll;
+  height: 100%;
 }
 
 .panelSection {
