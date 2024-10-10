@@ -146,6 +146,7 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
         <div className={evaStyles.evaFooterContainer}>
           <div className={paneStyles.iconButtons}>
             <Button
+              enabled={traversesInEva.every((eva) => eva.name != "")}
               onClick={() => {
                 dispatch(thunkAddStationToEva({ evaUuid: eva.uuid }));
               }}
