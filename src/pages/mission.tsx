@@ -16,7 +16,7 @@ import { BottomControlPanel } from "components/interface/side-controls";
 import SocketClient from "components/page/socketClient";
 import MapBody from "components/interface/map/map-body-leaflet"; // Adjust import as needed
 import { setAllSliceStores } from "store/crossActions";
-import { paneTypes } from "components/interface/_paneTypes";
+import { getPaneTypes } from "components/interface/_paneTypes";
 import { populateStore } from "store/processing/populateStore";
 
 type RouteParams = {
@@ -37,6 +37,8 @@ const Main = (): JSX.Element => {
   const params = useParams<RouteParams>();
   const slug = params.id;
   const intMissionId = parseInt(slug);
+
+  const paneTypes = getPaneTypes(missionStore.mission?.actionSystemVersion);
 
   const paneType: PaneType = paneTypes[interfaceStateLabel as keyof PaneTypes];
 
@@ -85,47 +87,53 @@ const Main = (): JSX.Element => {
   return (
     <>
       {hasPermissions && (
-        <div className={styles.page}>
-          <Tooltip
-            id="aegis-tooltip"
-            className={styles.tooltip}
-            clickable={true}
-            delayShow={1000}
-            delayHide={500}
-          />
-          <div className={styles.header}>
-            <Header />
-          </div>
-          {paneType?.fullScreen ? (
-            <div className={styles.body}>
-              <div className={styles.leftControl}>
-                <NavGutter selectedNavItem={interfaceStateLabel} />
+        <>
+          {missionStore.mission && missionStore.layers ? (
+            <div className={styles.page}>
+              <Tooltip
+                id="aegis-tooltip"
+                className={styles.tooltip}
+                clickable={true}
+                delayShow={1000}
+                delayHide={500}
+              />
+              <div className={styles.header}>
+                <Header />
               </div>
-
-              <div className={styles.bodyRight}>
-                <paneType.rightPane />
-              </div>
-            </div>
-          ) : (
-            <div className={styles.body}>
-              <div className={styles.bodyLeft}>
-                <div className={styles.leftUpper}>
+              {paneType?.fullScreen ? (
+                <div className={styles.body}>
                   <div className={styles.leftControl}>
                     <NavGutter selectedNavItem={interfaceStateLabel} />
-                    <LeftControlPanel />
                   </div>
-                  <div className={styles.mapBody}>
-                    {missionStore.mission && missionStore.layers && <MapBody />}
+
+                  <div className={styles.bodyRight}>
+                    <paneType.rightPane />
                   </div>
                 </div>
-                <BottomControlPanel />
-              </div>
-              <RightControlPanel />
-            </div>
-          )}
+              ) : (
+                <div className={styles.body}>
+                  <div className={styles.bodyLeft}>
+                    <div className={styles.leftUpper}>
+                      <div className={styles.leftControl}>
+                        <NavGutter selectedNavItem={interfaceStateLabel} />
+                        <LeftControlPanel />
+                      </div>
+                      <div className={styles.mapBody}>
+                        {missionStore.mission && missionStore.layers && <MapBody />}
+                      </div>
+                    </div>
+                    <BottomControlPanel />
+                  </div>
+                  <RightControlPanel />
+                </div>
+              )}
 
-          <SocketClient missionId={intMissionId} />
-        </div>
+              <SocketClient missionId={intMissionId} />
+            </div>
+          ) : (
+            <div>Loading...</div>
+          )}
+        </>
       )}
     </>
   );

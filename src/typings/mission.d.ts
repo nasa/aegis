@@ -141,6 +141,7 @@ type OneMissionToRuleThemAll = {
   level1s: STMLevel1[];
   level2s: STMLevel2[];
   level3s: STMLevel3[];
+  stmRules: STMRule[];
   sublayers: Sublayer[];
   traverses: Traverse[];
 };

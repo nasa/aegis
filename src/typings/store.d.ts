@@ -68,7 +68,15 @@ interface STMViewExpandedItem {
   type: ActionType | "level3" | "action";
 }
 
-type InterfaceSection = "mission" | "preset" | "poi" | "station" | "evas" | "rex" | "stmViewer";
+type InterfaceSection =
+  | "mission"
+  | "preset"
+  | "poi"
+  | "station"
+  | "evas"
+  | "rex"
+  | "stmViewer"
+  | "stmRules";
 type BottomInterfaceSection = "timeline" | "measure";
 interface InterfaceState {
   sectionSelectedLabel: InterfaceSection;
@@ -90,12 +98,16 @@ interface InterfaceState {
   stmViewShowCrosshairs: boolean;
   stmViewHoveredTopItem: string;
   stmViewHoveredLeftItem: string;
+  stmRulesSelectedRexes: string[];
 }
 
 interface STMState {
   level1s: STMLevel1[];
   level2s: STMLevel2[];
   level3s: STMLevel3[];
+  rules: STMRule[];
+  rulesFromDb: STMRule[];
+  ruleEditingUuid: string;
 }
 
 interface StationState {

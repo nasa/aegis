@@ -13,7 +13,7 @@ interface PaneType {
 }
 
 type PaneTypes = {
-  [key in InterfaceSection]: PaneType;
+  [key in InterfaceSection]?: PaneType;
 };
 
 interface PanelType {

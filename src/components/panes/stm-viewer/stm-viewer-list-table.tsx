@@ -48,33 +48,39 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number }> = ({ le
   const maxHeightEm = 1.2 * numLines;
   return (
     <div className={styles.table}>
-      <div
-        className={
-          stmViewExpandTopTiers ? styles.gridCellLevel1Expanded : styles.gridCellLevel1Collapsed
-        }
-      >
+      {stmLevel1Enabled ? (
         <div
-          className={styles.gridCellLevel1Ordinal}
-          data-tooltip-id="aegis-tooltip"
-          data-tooltip-html={`${level1.name}`}
-          data-tooltip-place="top-start"
+          className={
+            stmViewExpandTopTiers ? styles.gridCellLevel1Expanded : styles.gridCellLevel1Collapsed
+          }
         >
-          {stmLevel1Enabled ? `${level1.numbering}.` : ""}
-        </div>
-
-        {stmViewExpandTopTiers && (
           <div
-            className={`${styles.truncateXLine} ${styles.gridCellLevel1Name}`}
-            style={{ WebkitLineClamp: numLines, maxHeight: `${maxHeightEm}em` }}
+            className={styles.gridCellLevel1Ordinal}
+            data-tooltip-id="aegis-tooltip"
+            data-tooltip-html={`${level1.name}`}
+            data-tooltip-place="top-start"
           >
-            {stmLevel1Enabled ? `${level1.name}` : ""}
+            {`${level1.numbering}.`}
           </div>
-        )}
 
-        <div>
+          {stmViewExpandTopTiers && (
+            <div
+              className={`${styles.truncateXLine} ${styles.gridCellLevel1Name}`}
+              style={{ WebkitLineClamp: numLines, maxHeight: `${maxHeightEm}em` }}
+            >
+              {level1.name}
+            </div>
+          )}
+
+          <div>
+            <STMLevel2s level1Uuid={level1.uuid} />
+          </div>
+        </div>
+      ) : (
+        <div className={styles.gridCellLevel1Disabled}>
           <STMLevel2s level1Uuid={level1.uuid} />
         </div>
-      </div>
+      )}
     </div>
   );
 };
@@ -141,7 +147,7 @@ const STMLevel2s: FunctionComponent<{ level1Uuid: string }> = ({ level1Uuid }) =
   );
 };
 
-const STMLevel3s: FunctionComponent<{
+export const STMLevel3s: FunctionComponent<{
   level2Uuid: string;
 }> = ({ level2Uuid }) => {
   const level3s = useAppSelector(

@@ -91,7 +91,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
           socketId,
           type: "eva",
           data: upsertResponse,
-        } as StoreUpsert<Eva>,
+        } as StoreUpsert,
         log
       );
       res.status(200).json({

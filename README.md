@@ -30,6 +30,7 @@ For all install methods, do the following:
       127.0.0.1 aegis-local.fit.nasa.gov
       127.0.0.1 coda-local.fit.nasa.gov
       127.0.0.1 maestro-local.fit.nasa.gov
+      127.0.0.1 talkybot-local.fit.nasa.gov
       127.0.0.1 emss-labs-local.fit.nasa.gov
       ```
 7. Perform steps for either "Fully docker-compose" or "Just database via docker-compose" below.

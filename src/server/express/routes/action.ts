@@ -82,7 +82,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         socketId,
         type: "action",
         data: actions,
-      } as StoreUpsert<Action>,
+      } as StoreUpsert,
       log
     );
     res.status(200).json({

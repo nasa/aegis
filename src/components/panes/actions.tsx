@@ -3,7 +3,7 @@ import paneStyles from "./global-pane-styles.module.css";
 import actionsStyles from "./actions.module.css";
 import { Button, Dropdown } from "components/interface/form/globalFields";
 import Action from "./actions-action";
-import _, { clone } from "lodash";
+import _ from "lodash";
 import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import ReactDragListView from "react-drag-listview";
 import { STM_Coverage } from "./stm/stm-coverage";
@@ -23,7 +23,7 @@ const Actions: FunctionComponent<{
   actionParentUuid: Pick<Action, "poiUuid" | "stationUuid">;
   parentType: "poi" | "station" | "eva";
   actionsCalculatedFields: ActionsCalculatedFields;
-  isRexRunning: boolean;
+  rexUuid: string;
 }> = ({
   editMode,
   actionOrderUuids,
@@ -31,7 +31,7 @@ const Actions: FunctionComponent<{
   actionParentUuid,
   parentType,
   actionsCalculatedFields,
-  isRexRunning,
+  rexUuid,
 }) => {
   const dispatch = useAppDispatch();
 
@@ -52,6 +52,8 @@ const Actions: FunctionComponent<{
   );
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+
+  const actionIsInRunningRex = !_.isNull(rexUuid);
 
   const actionSystemVersion = useAppSelector(
     (state) => state.mission.mission.actionSystemVersion,
@@ -80,7 +82,7 @@ const Actions: FunctionComponent<{
   const reorder = useCallback(
     (fromIndex: number, toIndex: number) => {
       if (!actionOrderUuids) return;
-      const actionOrder: string[] = clone(actionOrderUuids);
+      const actionOrder: string[] = _.clone(actionOrderUuids);
       const actionBeingMoved = actionOrder.splice(fromIndex, 1)[0]; //remove action uuid
       actionOrder.splice(toIndex, 0, actionBeingMoved); //reinsert in new position
 
@@ -106,7 +108,7 @@ const Actions: FunctionComponent<{
         parentType={parentType}
         highlightActions={highlightActions}
         actionsCalculatedFields={actionsCalculatedFields}
-        isRexRunning={isRexRunning}
+        actionIsInRunningRex={actionIsInRunningRex}
       />
 
       <div className={actionsStyles.actionListContainer}>
@@ -114,13 +116,13 @@ const Actions: FunctionComponent<{
           editMode={editMode}
           parentType={parentType}
           editPerms={editPerms}
-          isRexRunning={isRexRunning}
+          actionIsInRunningRex={actionIsInRunningRex}
         />
         <div className={actionsStyles.dragableActionList}>
           <ReactDragListView onDragEnd={reorder} nodeSelector="li" handleSelector="a">
             <ActionList
               editMode={editMode}
-              isRexRunning={isRexRunning}
+              rexUuid={rexUuid}
               parentType={parentType}
               actionOrderUuids={actionOrderUuids}
               highlightActions={highlightActions}
@@ -199,13 +201,13 @@ export const ActionsTopSection: FunctionComponent<{
   parentType: "poi" | "station" | "eva";
   highlightActions: (level3Uuid: string) => void;
   actionsCalculatedFields: ActionsCalculatedFields;
-  isRexRunning: boolean;
+  actionIsInRunningRex: boolean;
 }> = ({
   actionOrderUuids,
   parentType,
   highlightActions,
   actionsCalculatedFields,
-  isRexRunning,
+  actionIsInRunningRex,
 }) => {
   // make an array of uuids by action, of the STMs that are referenced by the action in the action STMPriorities object
   const stmUuidRefs = useAppSelector(
@@ -218,9 +220,13 @@ export const ActionsTopSection: FunctionComponent<{
         }),
     deepEqual
   );
+  const actionSystemVersion = useAppSelector(
+    (state) => state.mission.mission.actionSystemVersion,
+    refEqual
+  );
 
   const completedStmUuidRefs = useAppSelector((state) => {
-    if (!isRexRunning) return null;
+    if (!actionIsInRunningRex) return null;
     const runningRex = state.rex.rexes.find((r) => r.isRunning);
     const stmUuidRefs: string[][] = [];
     for (const actionUuid in runningRex.actionEntries) {
@@ -239,7 +245,7 @@ export const ActionsTopSection: FunctionComponent<{
   }, deepEqual);
 
   const inProgressStmUuidRefs = useAppSelector((state) => {
-    if (!isRexRunning) return null;
+    if (!actionIsInRunningRex) return null;
     const runningRex = state.rex.rexes.find((r) => r.isRunning);
     const stmUuidRefs: string[][] = [];
     for (const actionUuid in runningRex.actionEntries) {
@@ -260,7 +266,7 @@ export const ActionsTopSection: FunctionComponent<{
   // there's a difference between null and 0. Only calculate rex mass if it's 0. Null means it hasn't been executed yet.
 
   const rexMass = useAppSelector((state) => {
-    if (!isRexRunning) return null;
+    if (!actionIsInRunningRex) return null;
     const runningRex = state.rex.rexes.find((r) => r.isRunning);
     let mass = null;
     // loop through all actions
@@ -279,7 +285,7 @@ export const ActionsTopSection: FunctionComponent<{
   }, refEqual);
 
   const rexMassDelta = useAppSelector((state) => {
-    if (!isRexRunning || _.isNull(rexMass)) return null;
+    if (!actionIsInRunningRex || _.isNull(rexMass)) return null;
     let massPlanned = 0;
     // loop through all actions
     for (const actionUuid of actionOrderUuids) {
@@ -293,15 +299,17 @@ export const ActionsTopSection: FunctionComponent<{
   return (
     <div className={paneStyles.panelContainer}>
       <div className={paneStyles.panelSection}>
-        <div className={actionsStyles.stmCoverage}>
-          <STM_Coverage
-            stmUuidRefs={stmUuidRefs}
-            horizontal={true}
-            onLevel3Hover={highlightActions}
-            stmUuidRefsCompleted={completedStmUuidRefs}
-            stmUuidRefsInProgress={inProgressStmUuidRefs}
-          />
-        </div>
+        {actionSystemVersion === 1 && (
+          <div className={actionsStyles.stmCoverage}>
+            <STM_Coverage
+              stmUuidRefs={stmUuidRefs}
+              horizontal={true}
+              onLevel3Hover={highlightActions}
+              stmUuidRefsCompleted={completedStmUuidRefs}
+              stmUuidRefsInProgress={inProgressStmUuidRefs}
+            />
+          </div>
+        )}
         <div className={paneStyles.panelSectionRow} style={{ marginTop: "8px" }}>
           <div className={paneStyles.panelSection2Column}>
             <div className={paneStyles.panelColumnTable}>
@@ -345,7 +353,7 @@ export const ActionsTopSection: FunctionComponent<{
                   </div>
                 </div>
               </div>
-              {isRexRunning && (
+              {actionIsInRunningRex && (
                 <>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
@@ -388,8 +396,8 @@ export const ActionsListHeadings: FunctionComponent<{
   editMode: boolean;
   parentType: "poi" | "station" | "eva";
   editPerms: boolean;
-  isRexRunning: boolean;
-}> = ({ editMode, parentType, editPerms, isRexRunning }) => {
+  actionIsInRunningRex: boolean;
+}> = ({ editMode, parentType, editPerms, actionIsInRunningRex }) => {
   const actionSystemVersion = useAppSelector(
     (state) => state.mission.mission.actionSystemVersion,
     refEqual
@@ -402,7 +410,11 @@ export const ActionsListHeadings: FunctionComponent<{
         marginRight: editMode ? "20px" : "",
       }}
     >
-      {isRexRunning && editPerms ? <div className={actionsStyles.actionListHeaderRex} /> : <></>}
+      {actionIsInRunningRex && editPerms ? (
+        <div className={actionsStyles.actionListHeaderRex} />
+      ) : (
+        <></>
+      )}
       {actionSystemVersion === 1 && (
         <div className={actionsStyles.actionListHeaderType}>
           <div className={actionsStyles.actionListHeaderLabel}>Type</div>
@@ -431,7 +443,7 @@ export const ActionList: FunctionComponent<{
   isActionHiglighted: ActionHighlight[];
   stations: Station[];
   pois: POI[];
-  isRexRunning: boolean;
+  rexUuid: string;
   newActionUuid?: string;
 }> = ({
   editMode,
@@ -440,7 +452,7 @@ export const ActionList: FunctionComponent<{
   isActionHiglighted,
   stations,
   pois,
-  isRexRunning,
+  rexUuid,
   newActionUuid,
 }) => {
   return (
@@ -470,7 +482,7 @@ export const ActionList: FunctionComponent<{
               parentType={parentType}
               parentLocation={parentLocation}
               parentElevation={parentElevation}
-              isRexRunning={isRexRunning}
+              rexUuid={rexUuid}
               toFocus={newActionUuid === actionUuid}
             />
           </li>

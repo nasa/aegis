@@ -1,0 +1,112 @@
+.stmTables {
+  display: grid;
+  grid-auto-rows: min-content;
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-size: 0.9em;
+}
+
+.table {
+  user-select: none;
+}
+
+.gridCellLevel1Expanded {
+  display: grid;
+  grid-template-columns: 20px 135px auto;
+  border-left: 1px solid var(--grey0);
+  border-bottom: 4px solid var(--grey0);
+}
+.gridCellLevel1Collapsed {
+  display: grid;
+  grid-template-columns: 20px auto;
+  border-left: 1px solid var(--grey0);
+  border-bottom: 4px solid var(--grey0);
+}
+
+.gridCellLevel1Ordinal {
+  padding: 3px 3px 0 3px;
+}
+.gridCellLevel1Name {
+  padding: 3px 3px 0 3px;
+}
+
+.gridCellLevel2expanded {
+  display: grid;
+  grid-template-columns: 20px 155px auto;
+  border-bottom: 1px solid var(--grey0);
+}
+.gridCellLevel2Collapsed {
+  display: grid;
+  grid-template-columns: 20px auto;
+  border-bottom: 1px solid var(--grey0);
+}
+.gridCellLevel2:last-child {
+  border-bottom: none;
+}
+.gridCellLevel2Ordinal {
+  padding: 3px 3px 0 4px;
+  border-left: 1px solid var(--grey0);
+}
+.gridCellLevel2Name {
+  padding: 3px 3px 0 3px;
+}
+
+.gridCellLevel3Container {
+  position: relative;
+  display: grid;
+  grid-template-columns: 285px auto;
+  border-bottom: 1px solid var(--grey0);
+  border-right: 1px solid var(--grey0);
+  border-left: 1px solid var(--grey0);
+}
+.gridCellLevel3Container:last-child {
+  border-bottom: none;
+}
+.gridCellLevel3Heading {
+  display: grid;
+  grid-template-columns: 25px auto;
+  gap: 5px;
+  border-right: 1px solid var(--grey0);
+  cursor: pointer;
+}
+.gridCellLevel3Ordinal {
+  font-family: "Roboto Mono";
+  font-size: 0.9em;
+  justify-self: right;
+  padding-top: 2px;
+}
+.gridCellLevel3Name {
+  padding: 3px 3px 1em 0;
+}
+.stmRuleCreateButton {
+  position: absolute;
+  left: 265px;
+  bottom: 5px;
+  display: none;
+}
+.gridCellLevel3Heading:hover .stmRuleCreateButton {
+  display: inline;
+}
+
+.truncateXLine {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.15em;
+  min-height: 1.3em; /* 1.2em line height * 1 line */
+  /*
+  the -webkit-line clamp and max-height are set with a style directive on the div
+  */
+}
+
+.truncate1Line {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2em;
+  max-height: 1.3em; /* 1.2em line height * 1 line */
+}

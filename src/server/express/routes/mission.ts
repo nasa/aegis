@@ -112,7 +112,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
           socketId,
           type: "mission",
           data: [upsertedMission],
-        } as StoreUpsert<Mission>,
+        } as StoreUpsert,
         log
       );
       res.status(200).json({

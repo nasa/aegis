@@ -16,7 +16,11 @@ import { initialState as interfaceInitialState } from "store/interface";
 import { initialState as measureInitialState } from "store/measure";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
-import { generateBlankActionTemplate, generateBlankMission } from "store/storeUtils/mission";
+import {
+  generateBlankActionTemplate,
+  generateBlankMission,
+  generateDefaultActionDefinitions,
+} from "store/storeUtils/mission";
 import { generateBlankPoi } from "store/storeUtils/poi";
 import { generateBlankPreset } from "store/storeUtils/preset";
 import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
@@ -54,6 +58,7 @@ export const createFullTestStore = (): StoreType => {
     name: "Jest Test Mission",
     landerLocation: { lat: 3, lng: 3 },
     actionTemplates: [generateBlankActionTemplate({ templateName: "Jest Action Template" })],
+    actionDefinitions: generateDefaultActionDefinitions(),
   });
   const actions: Action[] = [];
 

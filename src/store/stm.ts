@@ -1,27 +1,87 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { cloneDeep } from "lodash";
 import { setAllSliceStores } from "store/crossActions";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { upsertToArrayByUuid } from "utils/store";
 
 export const initialState: STMState = {
   level1s: [],
   level2s: [],
   level3s: [],
+  rules: [],
+  rulesFromDb: [],
+  ruleEditingUuid: null,
 };
 
 export const stmSlice = createSlice({
   name: "stm",
   initialState,
   reducers: {
-    /* only called for populating store  */
-    setLevel1s: (state, action: { payload: STMLevel1[] }) => {
-      state.level1s = action.payload;
+    upsertSTMRules: {
+      prepare: (rules: STMRule[], preserveModifiedDate: boolean = false) => {
+        if (preserveModifiedDate) {
+          return { payload: rules };
+        } else {
+          return {
+            payload: rules.map((rule) => ({
+              ...rule,
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+            })),
+          };
+        }
+      },
+      reducer: (state, action: { payload: STMRule[] }) => {
+        action.payload.forEach((rule) => upsertToArrayByUuid(state.rules, rule));
+      },
     },
-    /* only called for populating store  */
-    setLevel2s: (state, action: { payload: STMLevel2[] }) => {
-      state.level2s = action.payload;
+    upsertSTMRulesFromDb: (state, action: { payload: STMRule[] }) => {
+      action.payload.forEach((rule) => upsertToArrayByUuid(state.rulesFromDb, rule));
     },
-    /* only called for populating store  */
-    setLevel3s: (state, action: { payload: STMLevel3[] }) => {
-      state.level3s = action.payload;
+    upsertSTMRuleByField: {
+      prepare: (
+        ruleUuid: string,
+        fieldName: keyof STMRule,
+        value: STMRule[keyof STMRule],
+        preserveModifiedDate: boolean = false
+      ) => {
+        return {
+          payload: {
+            ruleUuid,
+            fieldName,
+            value,
+            updatedAt: preserveModifiedDate
+              ? null
+              : roundDateToSecond(getAccurateNow()).toISOString(),
+          },
+        };
+      },
+      reducer: (
+        state,
+        action: {
+          payload: {
+            ruleUuid: string;
+            fieldName: keyof STMRule;
+            value: STMRule[keyof STMRule];
+            updatedAt: string;
+          };
+        }
+      ) => {
+        const rule = state.rules.find((s) => s.uuid === action.payload.ruleUuid);
+        const newRule: STMRule = cloneDeep(rule);
+        newRule.updatedAt = action.payload.updatedAt || rule.updatedAt;
+        const key = action.payload.fieldName;
+        (newRule as Record<typeof key, Action[keyof Action]>)[key] = action.payload.value;
+        upsertToArrayByUuid(state.rules, newRule);
+      },
+    },
+    deleteSTMRules: (state, action: { payload: string[] }) => {
+      state.rules = state.rules.filter((rule) => !action.payload.includes(rule.uuid));
+    },
+    deleteSTMRulesFromDb: (state, action: { payload: string[] }) => {
+      state.rules = state.rulesFromDb.filter((rule) => !action.payload.includes(rule.uuid));
+    },
+    setRuleEditingUuid: (state, action: { payload: string }) => {
+      state.ruleEditingUuid = action.payload;
     },
     obliterateState: (state) => {
       //eslint-disable-next-line
@@ -36,4 +96,12 @@ export const stmSlice = createSlice({
   },
 });
 
-export const { setLevel1s, setLevel2s, setLevel3s, obliterateState } = stmSlice.actions;
+export const {
+  upsertSTMRules,
+  upsertSTMRulesFromDb,
+  upsertSTMRuleByField,
+  deleteSTMRules,
+  deleteSTMRulesFromDb,
+  setRuleEditingUuid,
+  obliterateState,
+} = stmSlice.actions;

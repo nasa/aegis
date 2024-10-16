@@ -34,6 +34,8 @@ export const populateStore = async (params: {
   wholeStoreState.stm.level1s = allDataRes.data.level1s;
   wholeStoreState.stm.level2s = allDataRes.data.level2s;
   wholeStoreState.stm.level3s = allDataRes.data.level3s;
+  wholeStoreState.stm.rules = allDataRes.data.stmRules;
+  wholeStoreState.stm.rulesFromDb = allDataRes.data.stmRules;
   wholeStoreState.traverse.traverses = allDataRes.data.traverses;
   wholeStoreState.traverse.traversesFromDb = allDataRes.data.traverses;
 

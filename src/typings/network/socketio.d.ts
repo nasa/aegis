@@ -1,18 +1,14 @@
 /** Socket.io Server instantiation types */
 interface ServerToClientEvents {
   noArg: () => void;
-  storeUpsert: (
-    payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission | Rex>
-  ) => void;
+  storeUpsert: (payload: StoreUpsert) => void;
   storeDelete: (payload: StoreDelete) => void;
   statusFromServer: (payload: StatusFromServer) => void;
   version: (version: string) => void;
 }
 
 interface ClientToServerEvents {
-  storeUpsert: (
-    payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission | Rex>
-  ) => void;
+  storeUpsert: (payload: StoreUpsert) => void;
   storeDelete: (payload: StoreDelete) => void;
   visitorJoin: (visitorJoin: VisitorJoin) => void;
 }
@@ -51,13 +47,33 @@ interface EditEvents {
   [missionId: number]: EditEvent;
 }
 
-type StoreType = "preset" | "poi" | "station" | "eva" | "action" | "traverse" | "mission" | "rex";
+type StoreType =
+  | "preset"
+  | "poi"
+  | "station"
+  | "eva"
+  | "action"
+  | "traverse"
+  | "mission"
+  | "rex"
+  | "stmRule";
 
-interface StoreUpsert<T> {
+type StoreUpsertDataTypes =
+  | POI
+  | Preset
+  | Station
+  | Eva
+  | Action
+  | Traverse
+  | Mission
+  | Rex
+  | STMRule;
+
+interface StoreUpsert {
   socketId: string;
   missionId: number;
   type: StoreType;
-  data: T[];
+  data: StoreUpsertDataTypes[];
   lastEditEvent: EditEvent;
 }
 

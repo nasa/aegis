@@ -94,7 +94,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         socketId,
         type: "station",
         data: upsertResponse,
-      } as StoreUpsert<Station>,
+      } as StoreUpsert,
       log
     );
 

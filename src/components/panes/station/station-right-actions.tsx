@@ -51,6 +51,11 @@ const Actions_Panel: FunctionComponent<{
     return true;
   }, refEqual);
 
+  const runningRexUuid = useAppSelector(
+    (state) => state.rex.rexes.find((rex) => rex.isRunning)?.uuid,
+    refEqual
+  );
+
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitleContainer}>
@@ -74,7 +79,7 @@ const Actions_Panel: FunctionComponent<{
           actionParentUuid={{ stationUuid: selectedStation.uuid }}
           parentType="station"
           actionsCalculatedFields={actionsCalculatedFields}
-          isRexRunning={stationInRunningRex}
+          rexUuid={stationInRunningRex ? runningRexUuid : null}
         />
       </div>
     </div>
