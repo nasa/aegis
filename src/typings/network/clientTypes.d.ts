@@ -135,6 +135,17 @@ type STMDeleteRequest = {
   uuids: string[];
 };
 
+type STMRuleUpsertRequest = {
+  missionId: number;
+  socketId: string;
+  stmRules: STMRule[];
+};
+type STMRuleDeleteRequest = {
+  missionId: number;
+  socketId: string;
+  stmRuleUuids: string[];
+};
+
 type SublayerUpsertRequest = {
   missionId: number;
   sublayers: Sublayer[];

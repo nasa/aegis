@@ -42,8 +42,9 @@ const RightActionBody: FunctionComponent<{
   parentType: "station" | "poi" | "eva";
   parentLocation: AEGISPoint;
   parentElevation: number;
-  isRexRunning: boolean;
-}> = ({ editMode, action, parentType, parentLocation, parentElevation, isRexRunning }) => {
+  rexUuid: string;
+  allowRexEdit: boolean;
+}> = ({ editMode, action, parentType, parentLocation, parentElevation, rexUuid, allowRexEdit }) => {
   const dispatch = useAppDispatch();
   const parentAction = useAppSelector(
     (state) =>
@@ -72,13 +73,13 @@ const RightActionBody: FunctionComponent<{
   );
 
   const actionRexMass = useAppSelector((state) => {
-    if (!isRexRunning) return;
+    if (!rexUuid) return;
     //find all action entry that match this action uuid for the running rex. return the status of the last one.
-    const runningRexFromDb = state.rex.rexesFromDb.find((rex) => rex.isRunning);
-    if (!runningRexFromDb?.actionEntries || !runningRexFromDb.actionEntries[action.uuid]) {
+    const rex = state.rex.rexesFromDb.find((rex) => rex.uuid === rexUuid);
+    if (!rex?.actionEntries || !rex.actionEntries[action.uuid]) {
       return null;
     } else {
-      return _.last(runningRexFromDb.actionEntries[action.uuid]).mass;
+      return _.last(rex.actionEntries[action.uuid]).mass;
     }
   }, deepEqual);
 
@@ -140,30 +141,23 @@ const RightActionBody: FunctionComponent<{
                 className={actionStyles.actionDualButtons}
                 style={{ cursor: editMode ? "pointer" : "default" }}
               >
-                {action.enabled ? (
-                  <>
-                    <div
-                      className={`${actionStyles.actionDualButtonsLeft} ${action.stmAction ? actionStyles.actionDualButtonsSelected : undefined}`}
-                      onClick={() => {
-                        if (editMode) dispatch(upsertActionByField(action.uuid, "stmAction", true));
-                      }}
-                    >
-                      STM
-                    </div>
+                <div
+                  className={`${actionStyles.actionDualButtonsLeft} ${action.stmAction ? actionStyles.actionDualButtonsSelected : undefined}`}
+                  onClick={() => {
+                    if (editMode) dispatch(upsertActionByField(action.uuid, "stmAction", true));
+                  }}
+                >
+                  STM
+                </div>
 
-                    <div
-                      className={`${actionStyles.actionDualButtonsRight} ${!action.stmAction ? actionStyles.actionDualButtonsSelected : undefined}`}
-                      onClick={() => {
-                        if (editMode)
-                          dispatch(upsertActionByField(action.uuid, "stmAction", false));
-                      }}
-                    >
-                      Non-STM
-                    </div>
-                  </>
-                ) : (
-                  <div className={actionStyles.actionDualButtonsDisabled}></div>
-                )}
+                <div
+                  className={`${actionStyles.actionDualButtonsRight} ${!action.stmAction ? actionStyles.actionDualButtonsSelected : undefined}`}
+                  onClick={() => {
+                    if (editMode) dispatch(upsertActionByField(action.uuid, "stmAction", false));
+                  }}
+                >
+                  Non-STM
+                </div>
               </div>
             ) : (
               <div className={paneStyles.displayFieldValue}>
@@ -348,7 +342,7 @@ const RightActionBody: FunctionComponent<{
                 </div>
               </div>
             </div>
-            {isRexRunning && (
+            {rexUuid && (
               <div className={paneStyles.panelColumnTable} style={{ marginTop: -0.5 }}>
                 <div className={paneStyles.panelColumnTableRow}>
                   <div className={paneStyles.panelColumnTableCellLeft}>
@@ -358,7 +352,7 @@ const RightActionBody: FunctionComponent<{
                     <div className={paneStyles.inputFieldValue}>
                       <InLineEditInput
                         value={actionRexMass?.toString()}
-                        editing={isRexRunning}
+                        editing={!_.isNull(rexUuid) && allowRexEdit}
                         fieldProps={{
                           name: "mass",
                           ariaLabel: "Executed Sample Mass",

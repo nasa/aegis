@@ -236,10 +236,7 @@ const Left: FunctionComponent = () => {
             className={styles.verticalCenter}
             style={{ cursor: "pointer" }}
             onClick={() => {
-              window.open(
-                "https://wiki.jsc.nasa.gov/exploration/index.php/Artemis_EVA_Geographic_Information_System",
-                "_blank"
-              );
+              window.open("https://wiki.jsc.nasa.gov/fod/index.php/Artemis_EVA_GIS", "_blank");
             }}
           >
             <span className={styles.wordMark}>AEGIS</span>
@@ -250,7 +247,7 @@ const Left: FunctionComponent = () => {
               className={styles.logoEmssWrapper}
               onClick={() => {
                 window.open(
-                  "https://wiki.jsc.nasa.gov/exploration/index.php/EVA_Mission_System_Software",
+                  "https://wiki.jsc.nasa.gov/fod/index.php/EVA_Mission_Systems_Software",
                   "_blank"
                 );
               }}

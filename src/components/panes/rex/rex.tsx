@@ -316,6 +316,7 @@ export const RexStatusMenu: FunctionComponent<{
         className={divClassName}
         style={{ ...divStyle, cursor: editPerms ? "pointer" : "default" }}
         onClick={(e) => {
+          if (!editPerms) return;
           handleMenuOpen(e);
           dialogRef.current?.showModal();
           e.stopPropagation();

@@ -1,6 +1,6 @@
 import { roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
-import { STM_Level1_db } from "server/database/models/_allModels";
+import { STM_Level1_db, STM_Rule_db } from "server/database/models/_allModels";
 import { STM_Level2_db } from "server/database/models/_allModels";
 import { STM_Level3_db } from "server/database/models/_allModels";
 import { EntityData } from "@mikro-orm/core";
@@ -180,4 +180,78 @@ export function convertStms3TypeStoreToDb(storeStms: STMLevel3[]): EntityData<ST
     dbStms.push(convertedRecord);
   }
   return dbStms;
+}
+
+/**
+ * Generate a blank STM rule
+ */
+export const generateBlankStmRule = ({ stmUuid }: { stmUuid: string }): STMRule => {
+  return {
+    uuid: uuidv4(),
+    missionId: null,
+    stmUuid,
+    count: 1,
+    verbUuids: [],
+    nounUuids: [],
+    adjectiveUuids: [],
+    verbAny: false,
+    nounAny: false,
+    adjectiveAny: false,
+    createdAt: roundDateToSecond(new Date()).toISOString(),
+    updatedAt: roundDateToSecond(new Date()).toISOString(),
+  };
+};
+
+/**
+ * Converts db stmRule fks to their uuid/id arrays
+ * @param dbStmRules an array of stms in mikro db format
+ * @returns an a converted array of stms or a single stm
+ */
+export function convertStmRulesTypeDbToStore(dbStmRules: STM_Rule_db[]): STMRule[] {
+  const stmRules: STMRule[] = [];
+  for (const dbStm of dbStmRules) {
+    const convertedStm: STMRule = {
+      uuid: dbStm.uuid,
+      missionId: dbStm.mission.id,
+      stmUuid: dbStm.stmUuid,
+      count: dbStm.count,
+      verbUuids: dbStm.verbUuids,
+      nounUuids: dbStm.nounUuids,
+      adjectiveUuids: dbStm.adjectiveUuids,
+      verbAny: dbStm.verbAny,
+      nounAny: dbStm.nounAny,
+      adjectiveAny: dbStm.adjectiveAny,
+      createdAt: dbStm.createdAt.toISOString(),
+      updatedAt: dbStm.updatedAt.toISOString(),
+    };
+    stmRules.push(convertedStm);
+  }
+  return stmRules;
+}
+
+/**
+ * Converts stmRules that come from the store into the db type
+ * @param storeStmRules
+ * @returns
+ */
+export function convertStmRulesTypeStoreToDb(storeStmRules: STMRule[]): EntityData<STM_Rule_db>[] {
+  const dbStmRules: EntityData<STM_Rule_db>[] = [];
+  for (const storeStm of storeStmRules) {
+    const convertedRecord: EntityData<STM_Rule_db> = {
+      uuid: storeStm.uuid,
+      mission: storeStm.missionId,
+      stmUuid: storeStm.stmUuid,
+      count: storeStm.count,
+      verbUuids: storeStm.verbUuids,
+      nounUuids: storeStm.nounUuids,
+      adjectiveUuids: storeStm.adjectiveUuids,
+      verbAny: storeStm.verbAny,
+      nounAny: storeStm.nounAny,
+      adjectiveAny: storeStm.adjectiveAny,
+      createdAt: new Date(storeStm.createdAt),
+      updatedAt: new Date(storeStm.updatedAt),
+    };
+    dbStmRules.push(convertedRecord);
+  }
+  return dbStmRules;
 }

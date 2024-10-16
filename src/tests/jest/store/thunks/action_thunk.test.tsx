@@ -1,5 +1,6 @@
 import { createCustomTestStore } from "../../factories/makeTestStore";
 import { roundDateToSecond } from "utils/formatting";
+import { initialState as missionInitialState } from "store/mission";
 import { initialState as actionInitialState } from "store/action";
 import { initialState as stationInitialState } from "store/station";
 import { initialState as poiInitialState } from "store/poi";
@@ -21,6 +22,11 @@ import * as httpClient_action from "http-client/action";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankPoi } from "store/storeUtils/poi";
 import { generateBlankStation } from "store/storeUtils/station";
+import {
+  generateBlankActionTemplate,
+  generateBlankMission,
+  generateDefaultActionDefinitions,
+} from "store/storeUtils/mission";
 
 const mockThunkGetElevation = jest.fn();
 jest.mock("store/thunk/thunkElevation", () => ({
@@ -38,7 +44,18 @@ afterAll(() => {
 describe("Thunk Action Tests", () => {
   test("thunkCreateAction()", async () => {
     //populate the action state in the store
+    const mission = generateBlankMission({
+      name: "Jest Test Mission",
+      landerLocation: { lat: 3, lng: 3 },
+      actionTemplates: [generateBlankActionTemplate({ templateName: "Jest Action Template" })],
+      actionDefinitions: generateDefaultActionDefinitions(),
+    });
     const store = createCustomTestStore({
+      mission: {
+        ...missionInitialState,
+        mission: mission,
+        missionFromDb: mission,
+      },
       action: actionInitialState,
     });
 

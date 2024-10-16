@@ -86,3 +86,58 @@ export async function deleteSTMs(
   }
   return response;
 }
+
+/****** STMRules ******/
+
+export async function getSTMRules(): Promise<WrappedResponse<STMRule[]>> {
+  const missionIdStr =
+    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
+  const res = await fetch(`/api/v1/stmRules?missionId=${missionId}`);
+  const response: WrappedResponse<STMRule[]> = await res.json();
+  return response;
+}
+
+export async function upsertStmRules(stmRules: STMRule[]): Promise<WrappedResponse<STMRule[]>> {
+  const missionIdStr =
+    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
+  const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
+  const requestBody: STMRuleUpsertRequest = { missionId, socketId, stmRules };
+  const res = await fetch(`/api/v1/stmRules`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+  const response: WrappedResponse<STMRule[]> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error saving STMRules to database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
+  return response;
+}
+
+export async function deleteStmRules(stmRuleUuids: string[]): Promise<WrappedResponse<string[]>> {
+  const missionIdStr =
+    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
+  const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
+  const requestBody: STMRuleDeleteRequest = { missionId, socketId, stmRuleUuids };
+  const res = await fetch(`/api/v1/stmRules`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+  const response: WrappedResponse<string[]> = await res.json();
+  if (res.status !== 200) {
+    alert(
+      `Error deleting STMRules from database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+    );
+  }
+  return response;
+}

@@ -37,7 +37,7 @@ describe("Thunk Socket Tests", () => {
   describe("thunkSocketsHandleUpsert", () => {
     it("preset", async () => {
       const data = generateBlankPreset({ name: "Jest Test Preset" });
-      const storeUpsert: StoreUpsert<Preset> = {
+      const storeUpsert: StoreUpsert = {
         socketId: null,
         missionId: null,
         type: "preset",
@@ -74,7 +74,7 @@ describe("Thunk Socket Tests", () => {
 
     it("poi", async () => {
       const data = generateBlankPoi({ name: "Jest Poi-1" });
-      const storeUpsert: StoreUpsert<POI> = {
+      const storeUpsert: StoreUpsert = {
         socketId: null,
         missionId: null,
         type: "poi",
@@ -111,7 +111,7 @@ describe("Thunk Socket Tests", () => {
 
     it("station", async () => {
       const data = generateBlankStation({ name: "Jest Station-1" });
-      const storeUpsert: StoreUpsert<Station> = {
+      const storeUpsert: StoreUpsert = {
         socketId: null,
         missionId: null,
         type: "station",
@@ -154,7 +154,7 @@ describe("Thunk Socket Tests", () => {
 
     it("eva", async () => {
       const data = generateBlankEVA({ name: "Jest Eva-1" });
-      const storeUpsert: StoreUpsert<Eva> = {
+      const storeUpsert: StoreUpsert = {
         socketId: null,
         missionId: null,
         type: "eva",
@@ -191,7 +191,7 @@ describe("Thunk Socket Tests", () => {
 
     it("action", async () => {
       const data = generateBlankAction({ name: "Jest Action-1" });
-      const storeUpsert: StoreUpsert<Action> = {
+      const storeUpsert: StoreUpsert = {
         socketId: null,
         missionId: null,
         type: "action",
@@ -218,7 +218,7 @@ describe("Thunk Socket Tests", () => {
 
     it("traverse", async () => {
       const data = generateBlankTraverse({ name: "Jest Traverse-1" });
-      const storeUpsert: StoreUpsert<Traverse> = {
+      const storeUpsert: StoreUpsert = {
         socketId: null,
         missionId: null,
         type: "traverse",
@@ -261,7 +261,7 @@ describe("Thunk Socket Tests", () => {
 
     it("mission", async () => {
       const data = generateBlankMission({ name: "Jest Mission-1" });
-      const storeUpsert: StoreUpsert<Mission> = {
+      const storeUpsert: StoreUpsert = {
         socketId: null,
         missionId: null,
         type: "mission",
@@ -292,7 +292,7 @@ describe("Thunk Socket Tests", () => {
 
     it("rex", async () => {
       const data = generateBlankRex({ name: "Jest Rex-1" });
-      const storeUpsert: StoreUpsert<Rex> = {
+      const storeUpsert: StoreUpsert = {
         socketId: null,
         missionId: null,
         type: "rex",

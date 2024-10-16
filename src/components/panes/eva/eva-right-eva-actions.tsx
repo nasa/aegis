@@ -19,6 +19,10 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     (state) => state.rex.rexes.find((rex) => rex.isRunning)?.evaUuid === selectedEvaUuid,
     refEqual
   );
+  const runningRexUuid = useAppSelector(
+    (state) => state.rex.rexes.find((rex) => rex.isRunning)?.uuid,
+    refEqual
+  );
   const stations = useAppSelector((state) => state.station.stations, deepEqual);
 
   const actionsCalculatedFields = useAppSelector((state) => {
@@ -73,13 +77,13 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
           parentType="eva"
           highlightActions={highlightActions}
           actionsCalculatedFields={actionsCalculatedFields}
-          isRexRunning={isSelectedEvaInARunningRex}
+          actionIsInRunningRex={isSelectedEvaInARunningRex}
         />
         <ActionsListHeadings
           editMode={editMode}
           parentType="eva"
           editPerms={editPerms}
-          isRexRunning={isSelectedEvaInARunningRex}
+          actionIsInRunningRex={isSelectedEvaInARunningRex}
         />
 
         <div className={actionsStyles.actionListContainer}>
@@ -99,7 +103,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                   isActionHiglighted={isActionHiglighted}
                   stations={stations}
                   pois={null}
-                  isRexRunning={isSelectedEvaInARunningRex}
+                  rexUuid={isSelectedEvaInARunningRex ? runningRexUuid : null}
                 />
               </div>
             );

@@ -81,6 +81,10 @@ const NavTimeline: FunctionComponent = () => {
   );
   const showElevation = useAppSelector((state) => state.interface.timelineShowElevation, refEqual);
   const rightPanelIsOpen = useAppSelector((state) => state.interface.rightPanelIsOpen, refEqual);
+  const actionSystemVersion = useAppSelector(
+    (state) => state.mission.mission.actionSystemVersion,
+    refEqual
+  );
 
   const canvas: MutableRefObject<HTMLCanvasElement> = useRef(null);
   const paperDataRef: MutableRefObject<PaperData> = useRef(null);
@@ -357,14 +361,16 @@ const NavTimeline: FunctionComponent = () => {
           <canvas ref={canvas} data-paper-resize />
         </div>
       </div>
-      <div className={styles.timelineRight}>
-        <STM_Coverage
-          stmUuidRefs={coveredSTMs}
-          horizontal={false}
-          stmUuidRefsCompleted={completedSTMs}
-          stmUuidRefsInProgress={inProgressSTMs}
-        />
-      </div>
+      {actionSystemVersion === 1 && (
+        <div className={styles.timelineRight}>
+          <STM_Coverage
+            stmUuidRefs={coveredSTMs}
+            horizontal={false}
+            stmUuidRefsCompleted={completedSTMs}
+            stmUuidRefsInProgress={inProgressSTMs}
+          />
+        </div>
+      )}
     </div>
   );
 };

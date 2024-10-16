@@ -16,10 +16,15 @@ import {
 } from "store/thunk/thunkActionDefinitions";
 
 const ActionDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
-  const actionDefinitions = useAppSelector(
-    (state) => state.mission.mission.actionDefinitions,
-    deepEqual
-  );
+  const actionDefinitions = useAppSelector((state) => {
+    const actionDefinitions = state.mission.mission.actionDefinitions;
+    const sortedVerbs = _.sortBy(actionDefinitions.verbs, [(verb) => verb.name.toLowerCase()]);
+    const sortedNouns = _.sortBy(actionDefinitions.nouns, [(noun) => noun.name.toLowerCase()]);
+    const sortedAdjectives = _.sortBy(actionDefinitions.adjectives, [
+      (adjective) => adjective.name.toLowerCase(),
+    ]);
+    return { verbs: sortedVerbs, nouns: sortedNouns, adjectives: sortedAdjectives };
+  }, deepEqual);
   const [newActionDefUuid, setNewActionDefUuid] = useState(undefined);
 
   // Unmarks newest list item as "new" after a short timeout (for autofocusing)

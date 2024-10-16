@@ -105,23 +105,36 @@ const StmViewerPage: FunctionComponent = () => {
               </div>
             </div>
             {stmViewExpandTopTiers ? (
-              <div className={styles.listTableTitlesExpanded}>
-                <div className={styles.listTableTitle}>
-                  {mission.stmLevel1Enabled ? `${mission.stmLevel1Name}s` : ""}
-                </div>
-
+              <div
+                className={
+                  mission.stmLevel1Enabled
+                    ? styles.listTableTitlesExpanded
+                    : styles.listTableTier1DisabledTitlesExpanded
+                }
+              >
+                {mission.stmLevel1Enabled && (
+                  <div className={styles.listTableTitle}>{`${mission.stmLevel1Name}s`}</div>
+                )}
                 <div className={styles.listTableTitle}>{mission.stmLevel2Name}s</div>
-                <div className={styles.listTableTitle}>{mission.stmLevel3Name}s/Actions</div>
+                <div className={styles.listTableTitle}>{mission.stmLevel3Name}s</div>
               </div>
             ) : (
-              <div className={styles.listTableTitlesCollapsed}>
-                <div className={styles.listTableTitle}>
-                  {mission.stmLevel1Enabled ? `${mission.stmLevel1Name.substring(0, 1)}.` : ""}
-                </div>
+              <div
+                className={
+                  mission.stmLevel1Enabled
+                    ? styles.listTableTitlesCollapsed
+                    : styles.listTableTier1DisabledTitlesCollapsed
+                }
+              >
+                {mission.stmLevel1Enabled && (
+                  <div className={styles.listTableTitle}>
+                    {mission.stmLevel1Name.substring(0, 1)}.
+                  </div>
+                )}
                 <div className={styles.listTableTitle}>
                   {mission.stmLevel2Name.substring(0, 1)}.
                 </div>
-                <div className={styles.listTableTitle}>{mission.stmLevel3Name}s/Actions</div>
+                <div className={styles.listTableTitle}>{mission.stmLevel3Name}s</div>
               </div>
             )}
           </div>

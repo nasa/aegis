@@ -16,6 +16,7 @@ import { STM_Level3_db } from "./stm_level3.model";
 import { Sublayer_db } from "./sublayer.model";
 import { Traverse_db } from "./traverse.model";
 import { Grid_db } from "./grid.model";
+import { STM_Rule_db } from "./stm_rules.model";
 
 export {
   User_db,
@@ -32,6 +33,7 @@ export {
   STM_Level1_db,
   STM_Level2_db,
   STM_Level3_db,
+  STM_Rule_db,
   Sublayer_db,
   Traverse_db,
 };

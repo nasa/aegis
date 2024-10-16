@@ -11,7 +11,7 @@ export const thunkCreateActionDefItem = appCreateAsyncThunk<
   const blankItem: ActionDefinitionItem = {
     uuid: uuidv4(),
     name: `(${_.capitalize(type.slice(0, -1))} Name)`,
-    abbr: "",
+    abbr: "abbr",
   };
 
   const actionDefinitions = getState().mission.mission.actionDefinitions;

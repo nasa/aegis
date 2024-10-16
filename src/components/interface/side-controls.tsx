@@ -14,7 +14,7 @@ import {
   setAutoBottomPanelOpen,
 } from "store/interface";
 
-import { paneTypes } from "components/interface/_paneTypes";
+import { getPaneTypes } from "components/interface/_paneTypes";
 import { setSelectedEvaUuid, setSelectedEvaRightNavItem } from "store/eva";
 import NavTimeline from "components/interface/timeline/timeline";
 import { isModified } from "utils/component-helpers";
@@ -38,6 +38,12 @@ export const LeftControlPanel: FunctionComponent = () => {
     (state) => state.interface.sectionSelectedLabel,
     refEqual
   );
+  const actionSystemVersion = useAppSelector(
+    (state) => state.mission.mission.actionSystemVersion,
+    refEqual
+  );
+
+  const paneTypes = getPaneTypes(actionSystemVersion);
 
   let ActiveComponent = null;
   let title = null;
@@ -148,6 +154,12 @@ export const RightControlPanel: FunctionComponent = () => {
     refEqual
   );
   const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelIsOpen, refEqual);
+  const actionSystemVersion = useAppSelector(
+    (state) => state.mission.mission.actionSystemVersion,
+    refEqual
+  );
+
+  const paneTypes = getPaneTypes(actionSystemVersion);
 
   let ActiveComponent = null;
   const paneType: PaneType = paneTypes[interfaceStateLabel as keyof PaneTypes];
@@ -385,6 +397,12 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
     (state) => state.eva.selectedEvaRightNavItem,
     refEqual
   );
+  const actionSystemVersion = useAppSelector(
+    (state) => state.mission.mission.actionSystemVersion,
+    refEqual
+  );
+
+  const paneTypes = getPaneTypes(actionSystemVersion);
 
   const selectedPaneType: PaneType = paneTypes[selectedNavItem as keyof PaneTypes];
 

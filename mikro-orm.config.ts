@@ -26,6 +26,7 @@ import {
   Sublayer_db,
   Traverse_db,
   Grid_db,
+  STM_Rule_db,
 } from "./src/server/database/models/_allModels";
 import path from "path";
 
@@ -59,6 +60,7 @@ export default defineConfig({
     Sublayer_db,
     Traverse_db,
     Grid_db,
+    STM_Rule_db,
   ],
   entities: [
     User_db,
@@ -77,6 +79,7 @@ export default defineConfig({
     Sublayer_db,
     Traverse_db,
     Grid_db,
+    STM_Rule_db,
   ],
   debug: process.env.DEBUG === "true" || process.env.DEBUG?.includes("db"),
   allowGlobalContext: true,

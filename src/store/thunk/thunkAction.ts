@@ -41,10 +41,10 @@ export const thunkCreateAction = appCreateAsyncThunk<
 
     let blankAction = generateBlankAction({
       ...actionParentUuid,
-      missionId: getState().mission.mission?.id,
+      missionId: getState().mission.mission.id,
       uuid: actionUuid,
       name: randomName,
-      stmAction: getState().mission.mission?.actionSystemVersion === 2,
+      stmAction: getState().mission.mission.actionSystemVersion === 2,
     });
 
     if (actionTemplate) {
