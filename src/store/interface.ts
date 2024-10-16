@@ -33,6 +33,7 @@ export const initialState: InterfaceState = {
   stmViewShowCrosshairs: true,
   stmViewHoveredTopItem: null,
   stmViewHoveredLeftItem: null,
+  stmRulesSelectedRexes: [],
 };
 
 export const interfaceSlice = createSlice({
@@ -153,6 +154,14 @@ export const interfaceSlice = createSlice({
     stmViewToggleCrosshairs: (state) => {
       state.stmViewShowCrosshairs = !state.stmViewShowCrosshairs;
     },
+    stmRulesToggleRex: (state, action: { payload: string }) => {
+      const index = state.stmRulesSelectedRexes.indexOf(action.payload);
+      if (index > -1) {
+        state.stmRulesSelectedRexes.splice(index, 1);
+      } else {
+        state.stmRulesSelectedRexes.push(action.payload);
+      }
+    },
   },
   extraReducers: (builder) => {
     // reducer called across slices. This handles this slice's portion of the reducer's state
@@ -190,4 +199,5 @@ export const {
   stmViewToggleCrosshairs,
   stmViewSetHoveredTopItem,
   stmViewSetHoveredLeftItem,
+  stmRulesToggleRex,
 } = interfaceSlice.actions;

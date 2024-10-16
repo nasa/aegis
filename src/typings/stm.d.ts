@@ -55,3 +55,24 @@ type STMLevel3_db_type = Omit<STMLevel3, "level2Uuid" | "createdAt" | "updatedAt
   createdAt?: Date;
   updatedAt?: Date;
 };
+
+type STMRule = {
+  uuid: string;
+  missionId: number;
+  stmUuid: string;
+  count: number;
+  verbUuids: string[];
+  nounUuids: string[];
+  adjectiveUuids: string[];
+  verbAny: boolean;
+  nounAny: boolean;
+  adjectiveAny: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type STMRule_db_type = Omit<STMRule, "missionId" | "createdAt" | "updatedAt"> & {
+  mission: Mission_db_type;
+  createdAt?: Date;
+  updatedAt?: Date;
+};

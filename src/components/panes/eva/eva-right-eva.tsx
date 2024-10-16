@@ -196,6 +196,9 @@ const EvaRightEva: FunctionComponent = () => {
     info_panel: {
       title: "EVA Information",
       panel: Info_Panel,
+      panelProps: {
+        editMode: evasEditing.includes(selectedEvaUuid),
+      },
       selectedColor: "white",
       icon: faCircleInfo,
     },

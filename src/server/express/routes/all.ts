@@ -14,6 +14,7 @@ import { getRexes } from "./rex";
 import { getStations } from "./station";
 import { getLevel1s, getLevel2s, getLevel3s } from "./stm";
 import { getTraverses } from "./traverse";
+import { getStmRules } from "./stmRules";
 
 const router = express.Router();
 
@@ -71,6 +72,7 @@ export async function getAll(missionId: number): Promise<OneMissionToRuleThemAll
     level1s: [],
     level2s: [],
     level3s: [],
+    stmRules: [],
     traverses: [],
   };
 
@@ -86,6 +88,7 @@ export async function getAll(missionId: number): Promise<OneMissionToRuleThemAll
   everything.level1s = await getLevel1s(missionId);
   everything.level2s = await getLevel2s(missionId);
   everything.level3s = await getLevel3s(missionId);
+  everything.stmRules = await getStmRules(missionId);
   everything.traverses = await getTraverses(missionId);
 
   return everything;

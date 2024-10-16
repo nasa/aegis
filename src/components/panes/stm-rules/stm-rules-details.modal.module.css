@@ -1,0 +1,188 @@
+.modalDialog {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: none;
+  background-color: var(--grey1);
+  color: var(--grey5);
+  width: 75vw;
+  height: 75vh;
+  border-radius: var(--panelRadius);
+}
+.modalDialog::backdrop {
+  background-color: rgb(0, 0, 0, 0.75);
+}
+
+.detailsTable {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+.detailsLeft {
+  flex: 0 0 155px;
+  display: flex;
+  flex-direction: column;
+}
+.detailsRight {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+.detailsHeader {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  margin: 3px 5px;
+  font-size: 0.8rem;
+  font-weight: 300;
+  height: 25px;
+}
+.detailsHeaderRuleContainer {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
+.detailsHeaderRuleTitle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.detailsHeaderRuleButtons {
+  flex: 0 0 200px;
+  display: flex;
+  justify-content: right;
+}
+.detailsContent {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.stmName {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  margin: 3px 5px;
+  padding: 3px 5px;
+  background-color: var(--grey2);
+  font-size: 0.9rem;
+  font-weight: 400;
+  border-radius: var(--panelRadius);
+}
+.stmRuleContainer {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  background-color: var(--grey2);
+  padding: 5px 5px 5px 5px;
+  margin: 3px 5px;
+  border-radius: var(--radius);
+}
+
+.evaSelector {
+  margin: 2px 5px;
+}
+
+.multiselectDropdownContainer {
+  position: absolute;
+  width: 145px;
+  background-color: var(--grey3);
+  cursor: pointer;
+  user-select: none;
+  padding: 5px;
+}
+
+.multiselectDropdownHeader {
+  height: 18px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 5px 0 4px;
+  font-size: 0.9em;
+}
+
+.stmRuleEvasContainer {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+.stmRuleEvasTitle {
+  flex: 0 0 auto;
+  font-size: 0.8rem;
+  border-top: 1px solid var(--grey2);
+  border-bottom: 1px solid var(--grey2);
+  padding: 5px 0 5px 6px;
+  margin: 5px 0 3px 0;
+}
+
+.stmRuleEvasEvasContainer {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 0 15px;
+}
+
+.rexEvaContainer {
+  display: flex;
+  flex-direction: column;
+}
+.rexEvaHeader {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  font-size: 0.8rem;
+}
+.rexEvaHeaderIcon {
+  flex: 0;
+}
+.rexEvaHeaderName {
+  flex: 0 0 auto;
+  padding: 0 0 0 5px;
+}
+.rexEvaHeaderDivider {
+  margin: 0 5px 0 5px;
+}
+.evaStations {
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 10px 15px;
+}
+.evaStation {
+  display: flex;
+  flex-direction: column;
+  margin: 2px 0 0 0;
+}
+.stationHeaderRow {
+  display: flex;
+  flex-direction: row;
+}
+.stationName {
+  font-size: 0.8rem;
+  padding: 3px 0 0 2px;
+}
+.stationLineRow {
+  display: flex;
+  flex-direction: row;
+}
+.stationLineContainer {
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 0 5.5px;
+}
+.stationLine {
+  flex: 1;
+  width: 1px;
+  height: 100%;
+  background-color: var(--grey5);
+}
+.actionsContainer {
+  display: flex;
+  flex-direction: column;
+  width: 550px;
+  margin: 0 0 0 15px;
+  font-size: 1rem;
+}

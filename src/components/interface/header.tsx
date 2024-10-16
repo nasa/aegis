@@ -115,7 +115,7 @@ const Header: FunctionComponent = () => {
             className={styles.logoEmssWrapper}
             onClick={() => {
               window.open(
-                "https://wiki.jsc.nasa.gov/exploration/index.php/EVA_Mission_System_Software",
+                "https://wiki.jsc.nasa.gov/fod/index.php/EVA_Mission_Systems_Software",
                 "_blank"
               );
             }}

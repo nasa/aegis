@@ -26,8 +26,9 @@ const RightAction: FunctionComponent<{
   parentType: "station" | "poi" | "eva";
   parentLocation: AEGISPoint | null;
   parentElevation: number | null;
-  isRexRunning: boolean;
+  rexUuid: string | null;
   toFocus: boolean;
+  allowEdit?: boolean;
 }> = ({
   editMode,
   actionUuid,
@@ -35,8 +36,9 @@ const RightAction: FunctionComponent<{
   parentType,
   parentLocation,
   parentElevation,
-  isRexRunning,
+  rexUuid,
   toFocus,
+  allowEdit = true,
 }) => {
   const dispatch = useAppDispatch();
 
@@ -45,20 +47,27 @@ const RightAction: FunctionComponent<{
     deepEqual
   );
   const actionsExpanded = useAppSelector((state) => state.interface.actionsExpanded, shallowEqual);
+  const isRexRunning = useAppSelector(
+    (state) => state.rex.rexes.find((rex) => rex.uuid === rexUuid)?.isRunning,
+    refEqual
+  );
   const actionRexStatusEntry = useAppSelector((state) => {
-    // this prop is testing if the action's station is in the running rex. This test will catch when
-    // the station/action used to be in a rex but is no longer
-    if (!isRexRunning) return;
+    if (!rexUuid) return;
     //find all action entry that match this action uuid for the running rex. return the status of the last one.
-    const runningRexFromDb = state.rex.rexesFromDb.find((rex) => rex.isRunning);
-    if (!runningRexFromDb?.actionEntries || !runningRexFromDb.actionEntries[actionUuid]) {
+    const rex = state.rex.rexesFromDb.find((rex) => rex.uuid === rexUuid);
+    if (!rex?.actionEntries || !rex.actionEntries[actionUuid]) {
       return null;
     } else {
-      return _.last(runningRexFromDb.actionEntries[actionUuid]).rexStatus;
+      return _.last(rex.actionEntries[actionUuid]).rexStatus;
     }
   }, refEqual);
 
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const editPermsStore = useAppSelector(
+    (state) => state.user.missionPerms.permissions.edit,
+    refEqual
+  );
+
+  const editPerms = allowEdit && editPermsStore && isRexRunning;
 
   const actionSystemVersion = useAppSelector(
     (state) => state.mission.mission.actionSystemVersion,
@@ -101,7 +110,7 @@ const RightAction: FunctionComponent<{
     <>
       {action && (
         <>
-          {isRexRunning && (
+          {rexUuid && (
             <>
               {action.enabled ? (
                 <RexStatusMenu
@@ -237,15 +246,15 @@ const RightAction: FunctionComponent<{
                       type={"verbs"}
                       selectedUuid={action.actionDefinition?.verbUuid}
                       editMode={editMode}
-                    />{" "}
-                    of
+                    />
+                    <div className={actionStyles.actionDefType}>of</div>
                     <ActionDefType
                       actionUuid={action.uuid}
                       type={"nouns"}
                       selectedUuid={action.actionDefinition?.nounUuid}
                       editMode={editMode}
-                    />{" "}
-                    in
+                    />
+                    <div className={actionStyles.actionDefType}>in</div>
                     <ActionDefType
                       actionUuid={action.uuid}
                       type={"adjectives"}
@@ -311,7 +320,8 @@ const RightAction: FunctionComponent<{
                 parentType={parentType}
                 parentLocation={parentLocation}
                 parentElevation={parentElevation}
-                isRexRunning={isRexRunning}
+                rexUuid={rexUuid}
+                allowRexEdit={editPerms}
               />
             )}
           </div>

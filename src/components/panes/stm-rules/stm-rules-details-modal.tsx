@@ -1,0 +1,468 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FunctionComponent, useEffect, useRef } from "react";
+import { useAppDispatch } from "utils/useAppDispatch";
+import styles from "./stm-rules-details.modal.module.css";
+import ruleStyles from "./stm-rules-rules.module.css";
+import paneStyles from "../global-pane-styles.module.css";
+import actionsStyles from "../actions.module.css";
+import {
+  faBan,
+  faEdit,
+  faFloppyDisk,
+  faPersonWalkingArrowRight,
+  faRoute,
+  faSquareMinus,
+  faSquarePlus,
+  faTrashAlt,
+  faXmark,
+} from "@fortawesome/free-solid-svg-icons";
+import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { RootState } from "store";
+import { STMRuleSet } from "./stm-rules-rules";
+import { setRuleEditingUuid, upsertSTMRuleByField } from "store/stm";
+import { Button, MultiSelectDropdown } from "components/interface/form/globalFields";
+
+import {
+  thunkCancelStmRuleByUuid,
+  thunkDeleteStmRuleByUuid,
+  thunkSaveStmRule,
+} from "store/thunk/thunkStmRules";
+import { stmRulesToggleRex } from "store/interface";
+import _ from "lodash";
+import { getSatisfiedActionsByRule } from "utils/stmRuleEngine";
+import Action from "components/panes/actions-action";
+import { decodeEmoji } from "utils/formatting";
+
+const STMRuleDetailsModal: FunctionComponent<{
+  isModalOpen: boolean;
+  setIsModalOpen: Function;
+  rule: STMRule;
+}> = ({ isModalOpen, setIsModalOpen, rule }) => {
+  const dispatch = useAppDispatch();
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    if (isModalOpen) {
+      dialogRef.current?.showModal();
+    } else {
+      dialogRef.current?.close();
+    }
+  }, [isModalOpen]);
+  return (
+    <dialog
+      ref={dialogRef}
+      className={styles.modalDialog}
+      onClick={(e) => {
+        dispatch(thunkCancelStmRuleByUuid({ stmRuleUuid: rule.uuid }));
+        setIsModalOpen(false);
+        e.stopPropagation();
+      }}
+    >
+      <STMRuleDetails rule={rule} setIsModalOpen={setIsModalOpen} />
+    </dialog>
+  );
+};
+
+export default STMRuleDetailsModal;
+
+const STMRuleDetails: FunctionComponent<{
+  rule: STMRule;
+  setIsModalOpen: Function;
+}> = ({ rule, setIsModalOpen }) => {
+  const level3Name = useAppSelector(
+    (state: RootState) => state.mission.mission.stmLevel3Name,
+    refEqual
+  );
+  const level3STMItem = useAppSelector(
+    (state) => state.stm.level3s.find((item) => item.uuid === rule.stmUuid),
+    shallowEqual
+  );
+  const level2Numbering = useAppSelector(
+    (state: RootState) =>
+      state.stm.level2s.find((level2) => level2.uuid === level3STMItem.level2Uuid)?.numbering || "",
+    refEqual
+  );
+  const level1Numbering = useAppSelector((state: RootState) => {
+    const level2 = state.stm.level2s.find((level2) => level2.uuid === level3STMItem.level2Uuid);
+    return state.stm.level1s.find((level1) => level1.uuid === level2?.level1Uuid)?.numbering || "";
+  }, refEqual);
+  const stmLevel1Enabled = useAppSelector(
+    (state: RootState) => state.mission.mission.stmLevel1Enabled,
+    refEqual
+  );
+
+  return (
+    <div
+      className={styles.detailsTable}
+      onClick={(e) => {
+        e.stopPropagation();
+      }}
+    >
+      <div className={styles.detailsLeft}>
+        <div className={styles.detailsHeader}>{level3Name}</div>
+        <div className={styles.detailsContent}>
+          <div className={styles.stmName}>
+            <div className={styles.stmNameOrdinal}>
+              {`${stmLevel1Enabled ? level1Numbering : ""}${level2Numbering.toLocaleUpperCase()}${level3STMItem.numbering}`}
+            </div>
+            <div className={styles.stmNameNameText}>{level3STMItem?.name}</div>
+          </div>
+          <RexSelector startOpen={true} />
+        </div>
+      </div>
+      <div className={styles.detailsRight}>
+        <div className={styles.detailsHeader}>
+          <div className={styles.detailsHeaderRuleContainer}>
+            <div className={styles.detailsHeaderRuleTitle}>Rule</div>
+            <div className={styles.detailsHeaderRuleButtons}>
+              <STMRuleDetailsButtons rule={rule} setIsModalOpen={setIsModalOpen} />
+            </div>
+          </div>
+        </div>
+        <div className={styles.detailsContent}>
+          <STMRuleTitle rule={rule} />
+          <STMRuleRexes rule={rule} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const STMRuleTitle: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
+  const dispatch = useAppDispatch();
+  const isEditing = useAppSelector(
+    (state) => state.stm.ruleEditingUuid === rule.uuid,
+    shallowEqual
+  );
+
+  return (
+    <div className={styles.stmRuleContainer}>
+      {isEditing ? (
+        <div className={ruleStyles.stmRuleCountContainer}>
+          <FontAwesomeIcon
+            icon={faSquareMinus}
+            className={ruleStyles.stmRuleIcon}
+            onClick={() => {
+              if (rule.count <= 1) return;
+              dispatch(upsertSTMRuleByField(rule.uuid, "count", rule.count - 1));
+            }}
+          />
+          <div className={ruleStyles.stmRuleCount}>{rule.count}</div>
+          <FontAwesomeIcon
+            icon={faSquarePlus}
+            className={ruleStyles.stmRuleIcon}
+            onClick={() => {
+              dispatch(upsertSTMRuleByField(rule.uuid, "count", rule.count + 1));
+            }}
+          />
+        </div>
+      ) : (
+        <div className={ruleStyles.stmRuleCount}>{rule.count}</div>
+      )}
+
+      <div className={ruleStyles.stmRuleSetContainer}>
+        <STMRuleSet isEditing={isEditing} stmRule={rule} type="verbs" />
+      </div>
+      <div className={ruleStyles.stmRuleSetConjunction}>of</div>
+      <div className={ruleStyles.stmRuleSetContainer}>
+        <STMRuleSet isEditing={isEditing} stmRule={rule} type="nouns" />
+      </div>
+      <div className={ruleStyles.stmRuleSetConjunction}>in</div>
+      <div className={ruleStyles.stmRuleSetContainer}>
+        <STMRuleSet isEditing={isEditing} stmRule={rule} type="adjectives" />
+      </div>
+    </div>
+  );
+};
+
+const STMRuleRexes: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
+  const selectedRexUuids = useAppSelector(
+    (state) => state.interface.stmRulesSelectedRexes,
+    shallowEqual
+  );
+  const selectedEvaUuids = useAppSelector((state) => {
+    const selectedEvaUuids = [];
+    for (const rexUuid of state.interface.stmRulesSelectedRexes) {
+      const rex = state.rex.rexes.find((rex) => rex.uuid === rexUuid);
+      if (rex) {
+        selectedEvaUuids.push(rex.evaUuid);
+      }
+    }
+    return selectedEvaUuids;
+  }, shallowEqual);
+
+  // get all stations that are not in the selected evas
+  const otherStations = useAppSelector((state) => {
+    const selectedStationUuids = selectedEvaUuids.flatMap((evaUuid) => {
+      const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
+      return eva?.sequence
+        .filter((sequenceItem) => sequenceItem.type === "station")
+        .map((item) => item.uuid);
+    });
+    const stationUuidsNotInSelectedEvas = state.station.stations
+      .filter((station) => !selectedStationUuids.includes(station.uuid))
+      .map((station) => station.uuid);
+    // remove stations that have no actions (these are probably flag stations)
+    const filteredStationUuids = stationUuidsNotInSelectedEvas.filter((stationUuid) =>
+      state.action.actions.some((action) => action.stationUuid === stationUuid)
+    );
+    return state.station.stations.filter((station) => filteredStationUuids.includes(station.uuid));
+  }, deepEqual);
+
+  return (
+    <div className={styles.stmRuleEvasContainer}>
+      <div className={styles.stmRuleEvasTitle}>
+        Actions that satisfy this rule in the selected Executions
+      </div>
+      <div className={styles.stmRuleEvasEvasContainer}>
+        {selectedRexUuids.map((rexUuid) => (
+          <STMRuleRex key={rexUuid} rexUuid={rexUuid} rule={rule} />
+        ))}
+      </div>
+      <div className={styles.stmRuleEvasTitle}>
+        Actions that satisfy this rule in stations outside the selected Executions
+      </div>
+      <div className={styles.stmRuleEvasEvasContainer}>
+        {otherStations.map((station) => (
+          <STMRuleStation
+            key={station.uuid}
+            rexUuid={null}
+            stationUuid={station.uuid}
+            rule={rule}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const STMRuleRex: FunctionComponent<{ rexUuid: string; rule: STMRule }> = ({ rexUuid, rule }) => {
+  const rex = useAppSelector(
+    (state) => state.rex.rexes.find((rex) => rex.uuid === rexUuid),
+    shallowEqual
+  );
+  const eva = useAppSelector((state) => {
+    return state.eva.evas.find((eva) => eva.uuid === rex?.evaUuid);
+  }, shallowEqual);
+
+  return (
+    <div className={styles.rexEvaContainer}>
+      <div className={styles.rexEvaHeader}>
+        <FontAwesomeIcon
+          icon={faPersonWalkingArrowRight}
+          className={styles.rexEvaHeaderIcon}
+          style={{ color: "var(--rex)" }}
+        />
+        <div className={styles.rexEvaHeaderName} style={{ color: "var(--rex)" }}>
+          {rex?.name}
+        </div>
+        <div className={styles.rexEvaHeaderDivider}>-</div>
+        <FontAwesomeIcon
+          icon={faRoute}
+          className={styles.rexEvaHeaderIcon}
+          style={{ color: "var(--eva)" }}
+        />
+        <div className={styles.rexEvaHeaderName} style={{ color: "var(--eva)" }}>
+          {eva?.name}
+        </div>
+      </div>
+      <STMRuleRexStations rexUuid={rexUuid} rule={rule} />
+    </div>
+  );
+};
+
+const STMRuleRexStations: FunctionComponent<{
+  rexUuid: string;
+  rule: STMRule;
+}> = ({ rexUuid, rule }) => {
+  const eva = useAppSelector((state) => {
+    const rex = state.rex.rexes.find((rex) => rex.uuid === rexUuid);
+    return state.eva.evas.find((eva) => eva.uuid === rex?.evaUuid);
+  }, refEqual);
+  const evaStations = useAppSelector((state) => {
+    const stationUuids = eva?.sequence
+      .filter((sequenceItem) => sequenceItem.type === "station")
+      .map((item) => item.uuid);
+    // remove stations that have no actions (these are probably flag stations)
+    const filteredStationUuids = stationUuids?.filter((stationUuid) =>
+      state.action.actions.some((action) => action.stationUuid === stationUuid)
+    );
+    return state.station.stations.filter((station) => filteredStationUuids?.includes(station.uuid));
+  }, deepEqual);
+
+  return (
+    <div className={styles.evaStations}>
+      {evaStations.map((station) => (
+        <STMRuleStation
+          key={station.uuid}
+          rexUuid={rexUuid}
+          stationUuid={station.uuid}
+          rule={rule}
+        />
+      ))}
+    </div>
+  );
+};
+
+const STMRuleStation: FunctionComponent<{
+  rexUuid: string;
+  stationUuid: string;
+  rule: STMRule;
+}> = ({ rexUuid, stationUuid, rule }) => {
+  const station = useAppSelector(
+    (state) => state.station.stations.find((station) => station.uuid === stationUuid),
+    refEqual
+  );
+  const satisfiedActions = useAppSelector((state) => {
+    const actions: Action[] = station.actionOrderUuids.map((actionUuid) => {
+      return state.action.actions.find((action) => action.uuid === actionUuid);
+    });
+
+    const resultActions = getSatisfiedActionsByRule({
+      rule,
+      actionsToConsider: actions,
+    });
+
+    return resultActions;
+  }, deepEqual);
+
+  return (
+    <div key={stationUuid} className={styles.evaStation}>
+      <div className={styles.stationHeaderRow}>
+        <div>{decodeEmoji(station.icon ? station.icon : "2754")}</div>
+        <div className={styles.stationName}>{station.name}</div>
+      </div>
+      <div className={styles.stationLineRow}>
+        <div className={styles.stationLineContainer}>
+          <div className={styles.stationLine} />
+        </div>
+        <div className={styles.actionsContainer}>
+          {satisfiedActions.map((action) => (
+            <li key={action.uuid} className={actionsStyles.actionlistitem}>
+              <Action
+                editMode={false}
+                actionUuid={action.uuid}
+                highlight={false}
+                parentType={"station"}
+                parentLocation={station?.location}
+                parentElevation={station?.elevation}
+                rexUuid={rexUuid}
+                toFocus={false}
+                allowEdit={false}
+              />
+            </li>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const STMRuleDetailsButtons: FunctionComponent<{
+  rule: STMRule;
+  setIsModalOpen: Function;
+}> = ({ rule, setIsModalOpen }) => {
+  const dispatch = useAppDispatch();
+  const isEditing = useAppSelector(
+    (state) => state.stm.ruleEditingUuid === rule.uuid,
+    shallowEqual
+  );
+  const modified = true; //not implemented
+  return (
+    <div className={paneStyles.saveCancelContainer} style={{ marginTop: "2px", marginRight: "0" }}>
+      {!isEditing ? (
+        <Button
+          ariaLabel="editRule"
+          icon={faEdit}
+          onClick={() => {
+            dispatch(setRuleEditingUuid(rule.uuid));
+          }}
+          label="Edit"
+          toolTip="Edit Rule"
+          style={{ width: "60px", fontSize: "0.9em" }}
+          labelStyle={{ marginTop: "2px" }}
+        />
+      ) : (
+        <>
+          <Button
+            ariaLabel="deleteRule"
+            icon={faTrashAlt}
+            onClick={() => {
+              if (window.confirm("Are you sure you want to delete this rule?")) {
+                dispatch(
+                  thunkDeleteStmRuleByUuid({
+                    stmRuleUuid: rule.uuid,
+                  })
+                );
+              }
+            }}
+            toolTip="Delete Rule"
+            style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+          />
+          <Button
+            ariaLabel="saveEva"
+            onClick={() => {
+              dispatch(thunkSaveStmRule({ stmRule: rule }));
+            }}
+            icon={faFloppyDisk}
+            toolTip={`Save Rule${modified ? "" : " (nothing to save)"}`}
+            enabled={modified}
+            style={{
+              width: "30px",
+              backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
+              color: modified ? "white" : "var(--grey4)",
+              fontSize: "0.9em",
+              paddingLeft: "10px",
+            }}
+          />
+          <Button
+            ariaLabel="cancelEva"
+            onClick={() => {
+              dispatch(thunkCancelStmRuleByUuid({ stmRuleUuid: rule.uuid }));
+            }}
+            icon={faBan}
+            toolTip="Cancel Edit"
+            style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+          />
+        </>
+      )}
+      <Button
+        ariaLabel="closeModal"
+        icon={faXmark}
+        onClick={() => {
+          dispatch(thunkCancelStmRuleByUuid({ stmRuleUuid: rule.uuid }));
+          setIsModalOpen(false);
+        }}
+        toolTip="Close Rule"
+        style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+      />
+    </div>
+  );
+};
+
+export const RexSelector: FunctionComponent<{ startOpen?: boolean }> = ({ startOpen = false }) => {
+  const dispatch = useAppDispatch();
+  const selectedRexes = useAppSelector((state) => state.interface.stmRulesSelectedRexes, deepEqual);
+  const rexes = useAppSelector(
+    (state) => _.cloneDeep(state.rex.rexes).sort((a, b) => a.name.localeCompare(b.name)),
+    deepEqual
+  );
+
+  return (
+    <div className={styles.evaSelector}>
+      <MultiSelectDropdown
+        items={rexes.map((rex) => ({ label: rex.name, value: rex.uuid }))}
+        selectedItemsValues={selectedRexes}
+        toggleItem={(uuid) => {
+          dispatch(stmRulesToggleRex(uuid));
+        }}
+        titleLabel="Executions"
+        containerStyle={{ zIndex: 10 }}
+        containerClassName={styles.multiselectDropdownContainer}
+        headerClassName={styles.multiselectDropdownHeader}
+        startOpen={startOpen}
+        closeOnBlur={false}
+      />
+    </div>
+  );
+};

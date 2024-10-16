@@ -191,7 +191,7 @@ export const config: DotenvConfig<typeof environments> = {
   /**
    * Logging
    */
-  LOGSTASH_URL: {
+  LOG_SERVER_HTTP_ENDPOINT: {
     default: "https://emss-logging.fit.nasa.gov/logstash/",
   },
   ENABLE_LOGGING: { local: "false", default: "true" },

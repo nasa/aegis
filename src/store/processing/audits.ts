@@ -2,8 +2,8 @@ import * as httpClient_preset from "http-client/preset";
 import * as httpClient_action from "http-client/action";
 import * as httpClient_mission from "http-client/mission";
 import _ from "lodash";
-import { v4 as uuidv4 } from "uuid";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { generateDefaultActionDefinitions } from "store/storeUtils/mission";
 
 export const auditPresetsAgainstLayers = async ({
   wholeStoreState,
@@ -235,73 +235,9 @@ export const auditActionDefinitions = async ({
     wholeStoreState.mission.mission.actionSystemVersion === 2 &&
     !wholeStoreState.mission.mission.actionDefinitions
   ) {
-    const newActionDefinitions = {
-      verbs: [
-        { uuid: uuidv4(), name: "Characterize", abbr: "charize" },
-        { uuid: uuidv4(), name: "Describe", abbr: "describe" }, // same as "characterize"?
-        { uuid: uuidv4(), name: "Deploy", abbr: "deploy" },
-        { uuid: uuidv4(), name: "Measure", abbr: "measure" },
-        { uuid: uuidv4(), name: "Observe", abbr: "observe" },
-        { uuid: uuidv4(), name: "Photograph", abbr: "photo" },
-        { uuid: uuidv4(), name: "Photograph: 360 Panorama", abbr: "p-pano" },
-        { uuid: uuidv4(), name: "Photograph: Mosaic", abbr: "p-msc" },
-        { uuid: uuidv4(), name: "Photograph: Nested Image", abbr: "p-nested" },
-        { uuid: uuidv4(), name: "Photograph: Photometric Survey", abbr: "p-survey" },
-        { uuid: uuidv4(), name: "Photograph: Stereo Mosaic", abbr: "p-stermosc" },
-        { uuid: uuidv4(), name: "Photograph: Stereo Pair", abbr: "p-stereo" },
-        { uuid: uuidv4(), name: "Place", abbr: "place" },
-        { uuid: uuidv4(), name: "Sample: Chip", abbr: "s-chip" },
-        { uuid: uuidv4(), name: "Sample: Double Drive Tube", abbr: "s-ddtube" },
-        { uuid: uuidv4(), name: "Sample: Drive Tube", abbr: "s-dtube" },
-        { uuid: uuidv4(), name: "Sample: Float", abbr: "s-float" },
-        { uuid: uuidv4(), name: "Sample: Rake", abbr: "s-rake" },
-        { uuid: uuidv4(), name: "Sample: Scoop", abbr: "s-scoop" },
-        { uuid: uuidv4(), name: "Sample: Sealed Scoop", abbr: "s-sscoop" },
-        { uuid: uuidv4(), name: "Sample: Skim", abbr: "s-skim" },
-        { uuid: uuidv4(), name: "Sample: Trench", abbr: "s-trench" },
-        { uuid: uuidv4(), name: "Sample: Sealed Skim", abbr: "s-sskim" },
-        { uuid: uuidv4(), name: "Sample: Sealed Drive Tube", abbr: "s-sdtube" },
-        { uuid: uuidv4(), name: "Sample: Sealed Double Drive Tube", abbr: "s-sddtube" },
-        { uuid: uuidv4(), name: "Sample: Contact Sample", abbr: "s-contact" },
-      ],
-
-      nouns: [
-        { uuid: uuidv4(), name: "Boulder", abbr: "boulder" },
-        { uuid: uuidv4(), name: "Boulder Fillet", abbr: "boulderfillet" },
-        { uuid: uuidv4(), name: "Contact", abbr: "contact" },
-        { uuid: uuidv4(), name: "Crater Floor", abbr: "craterflr" },
-        { uuid: uuidv4(), name: "Crater Rim", abbr: "craterrim" },
-        { uuid: uuidv4(), name: "Geotechnical Properties", abbr: "geoprops" },
-        { uuid: uuidv4(), name: "Impact Melt", abbr: "impactmelt" },
-        { uuid: uuidv4(), name: "Regolith (any)", abbr: "regolith" },
-        { uuid: uuidv4(), name: "Regolith (Disturbed)", abbr: "regdist" },
-        { uuid: uuidv4(), name: "Regolith (Undisturbed)", abbr: "regundist" },
-        { uuid: uuidv4(), name: "Station", abbr: "station" },
-        { uuid: uuidv4(), name: "Trench (any)", abbr: "trench" },
-        { uuid: uuidv4(), name: "Trench Floor", abbr: "trenchflr" },
-        { uuid: uuidv4(), name: "Trench Wall", abbr: "trenchwall" },
-      ],
-
-      adjectives: [
-        { uuid: uuidv4(), name: "Distal to Lander", abbr: "distalnder" },
-        { uuid: uuidv4(), name: "Proximal to Lander", abbr: "proxlander" },
-        { uuid: uuidv4(), name: "PSR", abbr: "psr" },
-        { uuid: uuidv4(), name: "Shadow", abbr: "shadow" },
-        { uuid: uuidv4(), name: "Terrain Type: cb", abbr: "cb" },
-        { uuid: uuidv4(), name: "Terrain Type: ce", abbr: "ce" },
-        { uuid: uuidv4(), name: "Terrain Type: icwf", abbr: "icwf" },
-        { uuid: uuidv4(), name: "Terrain Type: icwd", abbr: "icwd" },
-        { uuid: uuidv4(), name: "Terrain Type: uh1", abbr: "uh1" },
-        { uuid: uuidv4(), name: "Terrain Type: uh2", abbr: "uh2" },
-        { uuid: uuidv4(), name: "Geo Unit: A", abbr: "A" },
-        { uuid: uuidv4(), name: "Geo Unit: B", abbr: "B" },
-        { uuid: uuidv4(), name: "Geo Unit: C", abbr: "C" },
-      ],
-    };
-
     const newMission = {
       ...wholeStoreState.mission.mission,
-      actionDefinitions: newActionDefinitions,
+      actionDefinitions: generateDefaultActionDefinitions(),
       updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
 

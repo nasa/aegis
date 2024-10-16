@@ -147,7 +147,7 @@
 
 .actionHeadingRight {
   display: flex;
-  margin: 4px 4px 0 auto;
+  margin: 0 4px 0 auto;
   user-select: none;
 }
 
@@ -284,11 +284,13 @@
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
-  font-size: 0.9em;
-  margin: 2px 0 0 4px;
-  width: 295px;
+  font-size: 0.8em;
+  margin: 0 0 0 4px;
 }
 
 .actionDefType {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   white-space: nowrap;
 }

@@ -301,6 +301,13 @@ const MapBody: FunctionComponent = () => {
     if (crs.current) {
       map.current.options.crs = crs.current;
     }
+
+    // pan the map to the center of the lander location now that the crs is set
+    map.current.setView(
+      [mission.landerLocation.lat, mission.landerLocation.lng],
+      map.current.getZoom()
+    );
+
     if (!draggableLines.current) {
       draggableLines.current = new DraggableLines(map.current, { allowExtendingLine: false });
     }

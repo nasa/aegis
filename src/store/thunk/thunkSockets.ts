@@ -57,13 +57,20 @@ import {
   setSelectedRexUuid,
 } from "store/rex";
 import { updateMapDirective } from "store/map";
+import {
+  deleteSTMRules,
+  deleteSTMRulesFromDb,
+  setRuleEditingUuid,
+  upsertSTMRules,
+  upsertSTMRulesFromDb,
+} from "store/stm";
 
 /**
  * Handles the storeUpsert socket event
  */
 export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
   {
-    storeUpsert: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission | Rex>;
+    storeUpsert: StoreUpsert;
   },
   string[],
   false
@@ -203,6 +210,16 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     }
     dispatch(upsertRexes(changedRexs, true));
     dispatch(upsertRexesFromDb(changedRexs));
+  } else if (storeUpsert.type === "stmRule") {
+    const changedStmRules = storeUpsert.data as STMRule[];
+    for (const changedStmRule of changedStmRules) {
+      if (getState().stm.ruleEditingUuid === changedStmRule.uuid) {
+        upsertMessages.push("The STM rules you are editing was changed by another user.");
+        dispatch(setRuleEditingUuid(null));
+      }
+    }
+    dispatch(upsertSTMRules(changedStmRules, true));
+    dispatch(upsertSTMRulesFromDb(changedStmRules));
   }
   return upsertMessages;
 });
@@ -303,6 +320,15 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
     }
     dispatch(deleteRexesByUuid(storeDelete.uuids));
     dispatch(deleteRexesFromDbByUuid(storeDelete.uuids));
+  } else if (storeDelete.type === "stmRule") {
+    for (const deletedUuid of storeDelete.uuids) {
+      if (getState().stm.ruleEditingUuid === deletedUuid) {
+        deletedMessages.push("The STM rules you are editing was deleted by another user.");
+        dispatch(setRuleEditingUuid(null));
+      }
+    }
+    dispatch(deleteSTMRules(storeDelete.uuids));
+    dispatch(deleteSTMRulesFromDb(storeDelete.uuids));
   }
   return deletedMessages;
 });

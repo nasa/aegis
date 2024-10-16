@@ -1,6 +1,6 @@
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChevronDown, faChevronUp } from "@fortawesome/free-solid-svg-icons";
+import { faCheckSquare, faChevronDown, faChevronUp } from "@fortawesome/free-solid-svg-icons";
 import {
   FunctionComponent,
   useState,
@@ -24,6 +24,7 @@ import formStyles from "./globalFields.module.css";
 import CircularSlider from "@fseehawer/react-circular-slider";
 import _ from "lodash";
 import { CompactPicker } from "react-color";
+import { faSquare } from "@fortawesome/free-regular-svg-icons";
 
 export const Button: FunctionComponent<{
   onClick: () => void;
@@ -228,6 +229,8 @@ export const MultiSelectDropdown: FunctionComponent<{
   containerStyle?: React.CSSProperties;
   containerClassName?: string;
   headerClassName?: string;
+  startOpen?: boolean;
+  closeOnBlur?: boolean;
 }> = ({
   items,
   selectedItemsValues,
@@ -236,13 +239,19 @@ export const MultiSelectDropdown: FunctionComponent<{
   containerStyle,
   containerClassName,
   headerClassName,
+  startOpen = false,
+  closeOnBlur = true,
 }) => {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(startOpen);
   return (
     <>
       <div
+        tabIndex={0}
         className={`${styles.multiselectDropdownContainer} ${containerClassName}`}
         style={containerStyle}
+        onBlur={() => {
+          if (closeOnBlur) setMenuOpen(false);
+        }}
       >
         <div
           className={`${styles.multiselectDropdownHeader} ${headerClassName}`}
@@ -258,35 +267,24 @@ export const MultiSelectDropdown: FunctionComponent<{
           />
         </div>
         {menuOpen && (
-          <div
-            className={styles.multiselectDropdownItems}
-            onClick={() => {
-              setMenuOpen(false);
-            }}
-          >
+          <div className={styles.multiselectDropdownItems}>
             {items.map((item) => (
-              <div key={item.value} className={styles.multiselectDropdownItem}>
-                <Checkbox
-                  checked={selectedItemsValues.includes(item.value)}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                  onChange={() => {
-                    // toggle the selectedItem
-                    toggleItem(item.value);
-                  }}
-                  labelStyle={{ marginRight: "5px" }}
-                />
-                <div
-                  className={styles.multiselectDropdownItemTitle}
-                  onClick={(e) => {
-                    // toggle the selectedItem
-                    toggleItem(item.value);
-                    e.stopPropagation();
-                  }}
-                >
-                  {item.label}
-                </div>
+              <div
+                key={item.value}
+                className={styles.multiselectDropdownItem}
+                onClick={(e) => {
+                  // toggle the selectedItem
+                  toggleItem(item.value);
+                  e.stopPropagation();
+                }}
+              >
+                {selectedItemsValues.includes(item.value) ? (
+                  <FontAwesomeIcon icon={faCheckSquare} style={{ marginRight: "5px" }} />
+                ) : (
+                  <FontAwesomeIcon icon={faSquare} style={{ marginRight: "5px" }} />
+                )}
+
+                <div className={styles.multiselectDropdownItemTitle}>{item.label}</div>
               </div>
             ))}
           </div>

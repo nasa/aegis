@@ -17,15 +17,6 @@ export const setupSocketIO = (): void => {
   // Listen for connection events
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   io.on("connection", (socket: any) => {
-    // (async () => {
-    //   const sockets = await io.fetchSockets();
-    //   console.log(
-    //     `${new Date().toISOString()} Socket ${socket.id} connected. Count across missions: ${
-    //       sockets.length
-    //     }`
-    //   );
-    // })();
-
     // emit AEGIS app version to client that just connected
     socket.emit("version", packagejson.version || "unknown version");
 
@@ -50,12 +41,6 @@ export const setupSocketIO = (): void => {
 
       // emit visitor count to all clients in this room including this client
       io.to(visitorJoin.missionId.toString()).emit("statusFromServer", statusFromServer);
-
-      // console.log(
-      //   `${new Date().toISOString()} Socket ${socket.id} visitorJoin. Editors: ${
-      //     statusFromServer.visitorCounts.editors
-      //   } Viewers: ${statusFromServer.visitorCounts.viewers}.`
-      // );
     });
 
     socket.on("disconnect", () => {
@@ -72,8 +57,6 @@ export const setupSocketIO = (): void => {
       socket
         .to(visitorBeingRemoved.missionId.toString())
         .emit("statusFromServer", statusFromServer);
-
-      // console.log(`${new Date().toISOString()} Socket ${socket.id} disconnected.`);
     });
 
     // sent visitor counts to all clients in every room every 10 seconds
@@ -112,15 +95,10 @@ export const getStatusFromServer = (missionId: number): StatusFromServer => {
   };
 };
 
-export const emitStoreUpsert = (
-  payload: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission | Rex>,
-  logAction: boolean = false
-): void => {
+export const emitStoreUpsert = (payload: StoreUpsert, logAction: boolean = false): void => {
   const io = globalValues.socketio;
   if (io) {
-    payload = addLastEditEvent(payload) as StoreUpsert<
-      POI | Preset | Station | Eva | Action | Traverse | Mission | Rex
-    >;
+    payload = addLastEditEvent(payload) as StoreUpsert;
     io.to(payload.missionId.toString()).emit("storeUpsert", payload);
 
     // Check if logging is required
@@ -149,11 +127,7 @@ export const emitStoreDelete = (payload: StoreDelete, logAction: boolean = false
   }
 };
 
-const addLastEditEvent = (
-  payload:
-    | StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission | Rex>
-    | StoreDelete
-) => {
+const addLastEditEvent = (payload: StoreUpsert | StoreDelete) => {
   // store the last edit event for this mission
   globalValues.serverSocketStatus.lastEditEvents[payload.missionId] = {
     socketId: payload.socketId,
@@ -169,7 +143,7 @@ const addLastEditEvent = (
 export const createLogPayload = (
   missionId: number,
   type: LogType,
-  data: StoreUpsert<POI | Preset | Station | Eva | Action | Traverse | Mission | Rex> | StoreDelete
+  data: StoreUpsert | StoreDelete
 ): Log => ({
   uuid: uuidv4(),
   missionId: missionId,

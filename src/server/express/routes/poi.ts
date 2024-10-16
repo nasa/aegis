@@ -84,7 +84,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         socketId,
         type: "poi",
         data: upsertResponse,
-      } as StoreUpsert<POI>,
+      } as StoreUpsert,
       log
     );
 
