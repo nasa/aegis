@@ -949,7 +949,6 @@ export const drawLayersOnMap = ({
     } else if (sublayer.type === "vector-tile") {
       // if layer isn't already on the map, add it
       if (!isLayerOnMapByName(map, sublayer.name)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const vectorTileLayer = VectorTileLayer(
           `${layerBaseURL}/${missionId}/Layers/${sublayer.url}`,
           {
