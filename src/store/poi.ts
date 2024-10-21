@@ -3,7 +3,7 @@ import { cloneDeep } from "lodash";
 import { setAllSliceStores } from "store/crossActions";
 
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
-import { upsertToArrayByUuid } from "utils/store";
+import { upsertToArrayByUuid } from "store/storeUtils/store";
 
 export const initialState: PoiState = {
   pois: [],

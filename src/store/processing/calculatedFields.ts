@@ -1,5 +1,5 @@
 import { calcPathDurationMins, calculateAscentAndDescent } from "utils/geoMath";
-import { mergeEquipmentItems } from "utils/store";
+import { mergeEquipmentItems } from "store/storeUtils/store";
 
 export const getCalculatedFieldsByPoi = (params: {
   poiUuid: string;
