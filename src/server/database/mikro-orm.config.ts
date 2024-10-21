@@ -27,7 +27,7 @@ import {
   Traverse_db,
   Grid_db,
   STM_Rule_db,
-} from "./src/server/database/models/_allModels";
+} from "./models/_allModels";
 import path from "path";
 
 export default defineConfig({
@@ -37,11 +37,11 @@ export default defineConfig({
   driver: PostgreSqlDriver,
   password: process.env.DB_PASS,
   migrations: {
-    path: path.join(__dirname, "./src/server/database/migrations"), // path to the folder with migrations
+    path: path.join(__dirname, "./migrations"), // path to the folder with migrations
     snapshot: false,
   },
   seeder: {
-    path: path.join(__dirname, "./src/server/database/seeds"), // path to the folder with seed files
+    path: path.join(__dirname, ".//seeds"), // path to the folder with seed files
   },
   entitiesTs: [
     User_db,

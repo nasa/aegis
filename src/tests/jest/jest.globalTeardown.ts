@@ -1,5 +1,5 @@
 import { MikroORM } from "@mikro-orm/core";
-import config from "../../../mikro-orm.config";
+import config from "../../server/database/mikro-orm.config";
 
 const globalTeardown = async (): Promise<void> => {
   // clear the database to remove any leftover test data from previous runs

@@ -26,7 +26,7 @@ import {
 } from "store/interface";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setSelectedStationUuid } from "store/station";
-import { actionTypes } from "utils/store";
+import { actionTypes } from "store/storeUtils/store";
 
 const StmViewerPage: FunctionComponent = () => {
   const stmViewExpandTopTiers = useAppSelector(

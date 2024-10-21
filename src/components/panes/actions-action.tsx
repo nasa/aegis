@@ -16,7 +16,7 @@ import RightActionBody from "./actions-action-body";
 import { ActionMenu } from "./actions-action-menu";
 import { getRexStatusDisplayProperties } from "../../utils/rex";
 import { RexStatusMenu } from "./rex/rex";
-import { actionTypes } from "utils/store";
+import { actionTypes } from "store/storeUtils/store";
 import { thunkUpsertActionDefinitionSelection } from "store/thunk/thunkAction";
 
 const RightAction: FunctionComponent<{

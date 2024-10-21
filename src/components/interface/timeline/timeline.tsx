@@ -26,7 +26,7 @@ import { selectEvaActions, selectEvaStations, selecteEvaTraverses } from "store/
 import { secondsFromhhmmss } from "utils/formatting";
 import { setSelectedPosEntryUuid } from "store/rex";
 import PetInterval from "../../page/petInterval";
-import { getStmUuidRefs } from "utils/store";
+import { getStmUuidRefs } from "store/storeUtils/store";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
 import { processEvaDataFromStore } from "./common-timeline";
 

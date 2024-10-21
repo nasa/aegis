@@ -13,7 +13,7 @@ import { thunkCreateAction, thunkGetHighlightedActions } from "store/thunk/thunk
 import CalculatedDwell from "./calculated-dwell";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { Assoc_POIs } from "./actions-assocpois";
-import { getStmUuidRefs } from "utils/store";
+import { getStmUuidRefs } from "store/storeUtils/store";
 
 const Actions: FunctionComponent<{
   editMode: boolean;

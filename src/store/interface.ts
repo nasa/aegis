@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { actionTypes } from "utils/store";
+import { actionTypes } from "store/storeUtils/store";
 import { setAllSliceStores } from "./crossActions";
 
 export const initialState: InterfaceState = {
