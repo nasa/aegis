@@ -55,11 +55,6 @@ const Actions: FunctionComponent<{
 
   const actionIsInRunningRex = !_.isNull(rexUuid);
 
-  const actionSystemVersion = useAppSelector(
-    (state) => state.mission.mission.actionSystemVersion,
-    refEqual
-  );
-
   const [isActionHiglighted, setIsActionHighlighted] = useState<ActionHighlight[]>([]);
   const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>("");
   const [newActionUuid, setNewActionUuid] = useState(undefined);
@@ -168,25 +163,23 @@ const Actions: FunctionComponent<{
                 );
               }}
             />
-            {actionSystemVersion === 1 && (
-              <Dropdown
-                selected={selectedTemplateUuid}
-                onChange={(val) => {
-                  setSelectedTemplateUuid(val);
-                }}
-                selectStyle={{ height: "2em", fontSize: "0.8em" }}
-                containerStyle={{ maxWidth: "200px" }}
-              >
-                {actionTemplates?.map((template) => {
-                  return (
-                    <option key={template.uuid} value={template.uuid}>
-                      {_.capitalize(template.type)}: {template.templateName}
-                    </option>
-                  );
-                })}
-                <option value="">{`<Template>`}</option>
-              </Dropdown>
-            )}
+            <Dropdown
+              selected={selectedTemplateUuid}
+              onChange={(val) => {
+                setSelectedTemplateUuid(val);
+              }}
+              selectStyle={{ height: "2em", fontSize: "0.8em" }}
+              containerStyle={{ maxWidth: "200px" }}
+            >
+              {actionTemplates?.map((template) => {
+                return (
+                  <option key={template.uuid} value={template.uuid}>
+                    {template.templateName}
+                  </option>
+                );
+              })}
+              <option value="">{`<Template>`}</option>
+            </Dropdown>
           </div>
         )}
       </div>

@@ -3,6 +3,11 @@ import { v4 as uuidv4 } from "uuid";
 import _ from "lodash";
 import { upsertMissionByField } from "store/mission";
 
+type ActionDefPrintableListItem = {
+  parentType: "Action in Station" | "Rule in STM Item" | "Action Template";
+  parentName: string;
+};
+
 export const thunkCreateActionDefItem = appCreateAsyncThunk<
   { type: ActionDefinitionType },
   string,
@@ -49,23 +54,67 @@ export const thunkDeleteActionDefItem = appCreateAsyncThunk<
   void,
   null
 >("deleteActionDefinitionItem", async ({ type, uuid }, { dispatch, getState }) => {
-  // check if the action definition is used in any action
-  const actions = getState().action.actions;
-  let deleteable = true;
-  for (const action of actions) {
-    if (
+  const actionsUsingActionDef = getState().action.actions.filter(
+    (action) =>
       action.stmAction &&
       (action.actionDefinition.verbUuid === uuid ||
         action.actionDefinition.nounUuid === uuid ||
         action.actionDefinition.adjectiveUuid === uuid)
-    ) {
-      deleteable = false;
-      break;
-    }
+  );
+  const rulesUsingActionDef = getState().stm.rules.filter(
+    (rule) =>
+      rule.verbUuids.includes(uuid) ||
+      rule.nounUuids.includes(uuid) ||
+      rule.adjectiveUuids.includes(uuid)
+  );
+  const templatesUsingActionDef = getState().mission.mission.actionTemplates.filter(
+    (template) =>
+      template.actionDefinition?.verbUuid === uuid ||
+      template.actionDefinition?.nounUuid === uuid ||
+      template.actionDefinition?.adjectiveUuid === uuid
+  );
+  const printableList: ActionDefPrintableListItem[] = [];
+  if (actionsUsingActionDef?.length > 0) {
+    const actionsList: ActionDefPrintableListItem[] = actionsUsingActionDef.map((action) => {
+      const parentName = getState().station.stations.find(
+        (station) => station.uuid === action.stationUuid
+      )?.name;
+      return {
+        parentType: "Action in Station",
+        parentName,
+      };
+    });
+    printableList.push(...actionsList);
+  }
+  if (rulesUsingActionDef?.length > 0) {
+    const rulesList: ActionDefPrintableListItem[] = rulesUsingActionDef.map((rule) => {
+      const level3 = getState().stm.level3s.find((level) => level.uuid === rule.stmUuid);
+      const level2 = getState().stm.level2s.find((level) => level.uuid === level3?.level2Uuid);
+      const level1 = getState().stm.level1s.find((level) => level.uuid === level2?.level1Uuid);
+      const level3Numbering = `${level1?.numbering}${level2?.numbering}${level3?.numbering}`;
+      return {
+        parentType: "Rule in STM Item",
+        parentName: level3Numbering,
+      };
+    });
+    printableList.push(...rulesList);
+  }
+  if (templatesUsingActionDef?.length > 0) {
+    const templatesList: ActionDefPrintableListItem[] = templatesUsingActionDef.map((template) => {
+      return {
+        parentType: "Action Template",
+        parentName: template.name,
+      };
+    });
+    printableList.push(...templatesList);
   }
 
-  if (!deleteable) {
-    alert("This action definition is used in an action and cannot be deleted.");
+  if (printableList.length > 0) {
+    let alertMessage = `This action definition is being used by one or more actions in a Station, STM rule, or Action template. Please remove it from the following before deleting.\n\n`;
+    printableList.forEach((item) => {
+      alertMessage += `${item.parentType}: ${item.parentName}\n`;
+    });
+    alert(alertMessage);
     return;
   }
 
