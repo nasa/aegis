@@ -13,7 +13,7 @@ import { thunkCreateAction, thunkGetHighlightedActions } from "store/thunk/thunk
 import CalculatedDwell from "./calculated-dwell";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { Assoc_POIs } from "./actions-assocpois";
-import { getStmUuidRefs } from "utils/store";
+import { getStmUuidRefs } from "store/storeUtils/store";
 
 const Actions: FunctionComponent<{
   editMode: boolean;
@@ -54,11 +54,6 @@ const Actions: FunctionComponent<{
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   const actionIsInRunningRex = !_.isNull(rexUuid);
-
-  const actionSystemVersion = useAppSelector(
-    (state) => state.mission.mission.actionSystemVersion,
-    refEqual
-  );
 
   const [isActionHiglighted, setIsActionHighlighted] = useState<ActionHighlight[]>([]);
   const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>("");
@@ -168,25 +163,23 @@ const Actions: FunctionComponent<{
                 );
               }}
             />
-            {actionSystemVersion === 1 && (
-              <Dropdown
-                selected={selectedTemplateUuid}
-                onChange={(val) => {
-                  setSelectedTemplateUuid(val);
-                }}
-                selectStyle={{ height: "2em", fontSize: "0.8em" }}
-                containerStyle={{ maxWidth: "200px" }}
-              >
-                {actionTemplates?.map((template) => {
-                  return (
-                    <option key={template.uuid} value={template.uuid}>
-                      {_.capitalize(template.type)}: {template.templateName}
-                    </option>
-                  );
-                })}
-                <option value="">{`<Template>`}</option>
-              </Dropdown>
-            )}
+            <Dropdown
+              selected={selectedTemplateUuid}
+              onChange={(val) => {
+                setSelectedTemplateUuid(val);
+              }}
+              selectStyle={{ height: "2em", fontSize: "0.8em" }}
+              containerStyle={{ maxWidth: "200px" }}
+            >
+              {actionTemplates?.map((template) => {
+                return (
+                  <option key={template.uuid} value={template.uuid}>
+                    {template.templateName}
+                  </option>
+                );
+              })}
+              <option value="">{`<Template>`}</option>
+            </Dropdown>
           </div>
         )}
       </div>

@@ -5,7 +5,7 @@ import {
   MikroORM,
   RequestContext,
 } from "@mikro-orm/core";
-import config from "../../mikro-orm.config";
+import config from "../server/database/mikro-orm.config";
 import { globalValues } from "../server/express/global";
 
 export const getORM = async (): Promise<MikroORM<IDatabaseDriver<Connection>>> => {

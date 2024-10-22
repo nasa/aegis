@@ -419,7 +419,7 @@ const RightActionBody: FunctionComponent<{
           </div>
         </>
       )}
-      {!action.stmAction && (
+      {actionSystemVersion === 1 && (
         <>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>

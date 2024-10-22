@@ -22,7 +22,13 @@ const Export_Panel: FunctionComponent = () => {
       const traverse = state.traverse.traverses.find((traverse) => traverse.uuid === traverseUuid);
       if (traverse) {
         for (const pathItem of traverse.path) {
-          fullTraverseCoordinates.push([pathItem.lng, pathItem.lat]);
+          // push the coordinate if it's not the same as the last one
+          if (
+            fullTraverseCoordinates.length === 0 ||
+            fullTraverseCoordinates[fullTraverseCoordinates.length - 1][0] !== pathItem.lng ||
+            fullTraverseCoordinates[fullTraverseCoordinates.length - 1][1] !== pathItem.lat
+          )
+            fullTraverseCoordinates.push([pathItem.lng, pathItem.lat]);
         }
       }
     }

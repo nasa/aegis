@@ -8,8 +8,9 @@ import {
   faToolbox,
   faSliders,
   faBullseye,
-  faPersonDigging,
   faFileExport,
+  faUserGraduate,
+  faPersonDigging,
 } from "@fortawesome/free-solid-svg-icons";
 
 import Prefs_panel from "./mission-right-prefs";
@@ -115,8 +116,14 @@ const MissionPrefsRight: FunctionComponent = () => {
         icon: faBullseye,
       },
       actionDefinitions_panel: {
-        title: "Action Definitions",
+        title: "STM Action Definitions",
         panel: ActionDefinitions_Panel,
+        selectedColor: "white",
+        icon: faUserGraduate,
+      },
+      actionTemplate_panel: {
+        title: "Action Templates",
+        panel: ActionTemplates_Panel,
         selectedColor: "white",
         icon: faPersonDigging,
       },

@@ -305,12 +305,6 @@ const MapBody: FunctionComponent<{
       map.current.options.crs = crs.current;
     }
 
-    // pan the map to the center of the lander location now that the crs is set
-    map.current.setView(
-      [mission.landerLocation.lat, mission.landerLocation.lng],
-      map.current.getZoom()
-    );
-
     if (!stationFeatureGroup.current) {
       stationFeatureGroup.current = L.featureGroup().addTo(map.current);
     }
