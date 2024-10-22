@@ -39,7 +39,7 @@ const ActionDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle} aria-label="rightBodyTitle">
-        Action Definitions
+        STM Action Definitions
       </div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
