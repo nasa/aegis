@@ -1,9 +1,9 @@
 import { test, expect } from "@playwright/test";
 
 test("create cancel edit delete rex", async ({ page }) => {
-  await page.goto("http://aegis-local.fit.nasa.gov:4000/mission/1");
+  await page.goto("http://localhost:4000/mission/1");
   //go to rex section
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(4000);
   await page.getByLabel("rex Section", { exact: true }).click();
   await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText(
     "Real-time Execution"

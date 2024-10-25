@@ -11,11 +11,12 @@
     "test:all": "npm run lint && npm run tsc && npm run build && npm run test && npm run test:playwright",
     "test:coverage": "jest --coverage --reporters=default --reporters=jest-junit  --maxWorkers 50%",
     "test:playwright": "playwright test",
+    "test:playwright:ci": "playwright test --shard=$SHARD_INDEX/$NUM_SHARDS",
     "postinstall": "rimraf node_modules/paper/dist/docs",
     "seed": "npx mikro-orm seeder:run",
     "migrate:up": "npx mikro-orm migration:up",
     "migrate:down": "npx mikro-orm migration:down",
-    "migrate:create": "npx mikro-orm migration:create",
+    "migrate:create": "npx mikro-orm migration:create && npx prettier --write ./src/server/database/migrations/Migration20*.ts --ignore-path .prettierignore",
     "migrate:fresh": "npx mikro-orm migration:fresh --seed",
     "vite:build": "vite build --emptyOutDir",
     "vite:dev": "vite",
@@ -34,7 +35,7 @@
     "version:patch": "npm version patch && git push",
     "version:minor": "npm version minor && git push",
     "version:major": "npm version major && git push",
-    "make-dotenv": "make-dotenv"
+    "make-dotenv": "make-dotenv && npx prettier --write ./env.secret.ts --ignore-path .prettierignore"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",

@@ -1,7 +1,7 @@
 import { expect, Page } from "@playwright/test";
 
 export async function landerRadiiTest(page: Page): Promise<string> {
-  await page.goto("http://aegis-local.fit.nasa.gov:4000/mission/1");
+  await page.goto("http://localhost:4000/mission/1");
   //go to mission section
   await page.waitForTimeout(2000);
   await page.getByLabel("mission Section", { exact: true }).click();
