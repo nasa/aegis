@@ -36,7 +36,7 @@ import { revertTraversePath } from "store/traverse";
 import { thunkUpdateActionLocation } from "store/thunk/thunkAction";
 import { thunkUpdateLanderLocation } from "store/thunk/thunkMission";
 import { thunkUpdatePoiLocation } from "store/thunk/thunkPoi";
-import { thunkUpdatePosEntryLocation } from "store/thunk/thunkRex";
+import { thunkUpdatePosEntryLocation } from "store/thunk/thunkRexPosEntry";
 
 // make color filter settings for tile sublayer. This is the format of leaflet.tilelayer.colorfilter package
 export const makeTileLayerColorFilter = (

@@ -26,21 +26,47 @@ const Main = (): JSX.Element => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  // props that are passed between the big map and mini map
-  const [hasPermissions, setHasPermissions] = useState(false);
-  const [mapShowPos, setMapShowPos] = useState(true);
-  const [mapShowScaleBar, setMapShowScaleBar] = useState(true);
-  const [bigMapBounds, setBigMapBounds] = useState<L.LatLngBoundsLiteral>(null);
-  const [mapSelectedPreset, setMapSelectedPreset] = useState<Preset>(null);
-  const [mapShowArrows, setMapShowArrows] = useState(false);
-
-  const params = useParams<RouteParams>();
-  const slug = params.id;
-  const intMissionId = parseInt(slug);
   const runningRexFromDb = useAppSelector(
     (state) => state.rex.rexesFromDb.find((r) => r.isRunning),
     deepEqual
   );
+  const defaultPreset = useAppSelector((state) => {
+    const defaultPresetUuid = state.preset.presetsFromDb.find((p) => p.missionPresetDefault)?.uuid;
+    return state.preset.presetsFromDb.find((p) => p.uuid === defaultPresetUuid);
+  }, deepEqual);
+
+  // set default view to task and crew regardless of what is in the cookie
+  const taskSourceUuid = runningRexFromDb?.posSources?.find((source) => source.abbr === "T")?.uuid;
+  const crewSourceUuid = runningRexFromDb?.posSources?.find((source) => source.abbr === "C")?.uuid;
+
+  // props that are passed between the big map and mini map
+  const [hasPermissions, setHasPermissions] = useState(false);
+  const [bigMapBounds, setBigMapBounds] = useState<L.LatLngBoundsLiteral>(null);
+
+  const [mapDisplayPos, setMapDisplayPos] = useState<MapDisplayPos>({
+    show: true,
+    showAllLabels: false,
+    showLatestLabels: false,
+    showPaths: true,
+    showOldPaths: true,
+    fadeOldPaths: true,
+    showMarkers: true,
+    showOldMarkers: false,
+    fadeOldMarkers: false,
+    sources: [taskSourceUuid, crewSourceUuid],
+  });
+  const [showScaleBar, setShowScaleBar] = useState(true);
+  const [selectedPreset, setSelectedPreset] = useState<Preset>(defaultPreset);
+  const [showArrows, setShowArrows] = useState(false);
+
+  const params = useParams<RouteParams>();
+  const slug = params.id;
+  const intMissionId = parseInt(slug);
+
+  useEffect(() => {
+    // set selected preset to default preset for initial load
+    setSelectedPreset(defaultPreset);
+  }, [defaultPreset]);
 
   useEffect(() => {
     const populateStoreAsync = async () => {
@@ -101,21 +127,25 @@ const Main = (): JSX.Element => {
               <LeftTopPanel />
               <div className={styles.miniMapContainer}>
                 <MiniMap
-                  mapShowPos={mapShowPos}
-                  mapShowScaleBar={mapShowScaleBar}
                   bigMapBounds={bigMapBounds}
-                  mapSelectedPreset={mapSelectedPreset}
-                  mapShowArrows={mapShowArrows}
+                  mapDisplayPos={mapDisplayPos}
+                  showScaleBar={showScaleBar}
+                  selectedPreset={selectedPreset}
+                  showArrows={showArrows}
                 />
               </div>
             </div>
             <div className={`${styles.middlePanel} ${styles.mapBody}`}>
               <MapBody
-                setMapShowPos={setMapShowPos}
-                setMapShowScaleBar={setMapShowScaleBar}
                 setBigMapBounds={setBigMapBounds}
-                setMapSelectedPreset={setMapSelectedPreset}
-                setMapShowArrows={setMapShowArrows}
+                mapDisplayPos={mapDisplayPos}
+                setMapDisplayPos={setMapDisplayPos}
+                showScaleBar={showScaleBar}
+                setShowScaleBar={setShowScaleBar}
+                selectedPreset={selectedPreset}
+                setSelectedPreset={setSelectedPreset}
+                showArrows={showArrows}
+                setShowArrows={setShowArrows}
               />
             </div>
             <div className={styles.rightPanel}>

@@ -1,9 +1,11 @@
 import * as httpClient_preset from "http-client/preset";
 import * as httpClient_action from "http-client/action";
 import * as httpClient_mission from "http-client/mission";
+import * as httpClient_rex from "http-client/rex";
 import _ from "lodash";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { generateDefaultActionDefinitions } from "store/storeUtils/mission";
+import { v4 as uuidv4 } from "uuid";
 
 export const auditPresetsAgainstLayers = async ({
   wholeStoreState,
@@ -256,5 +258,41 @@ export const auditActionDefinitions = async ({
     if (upsertResponse.status !== "success") {
       // handle the error
     }
+  }
+};
+
+export const auditPosSources = async ({
+  wholeStoreState,
+}: {
+  wholeStoreState: WholeStoreState;
+}): Promise<void> => {
+  // loop through all rexes and audit the posSources
+  const newRexes = _.cloneDeep(wholeStoreState.rex.rexes);
+
+  const defaultPosSource = {
+    uuid: uuidv4(),
+    abbr: "T",
+    name: "Task",
+  };
+  for (const rex of newRexes) {
+    // if the posSources is empty, fill it with a default with just "Task" in it
+    if (!rex.posSources || rex.posSources.length === 0) {
+      rex.posSources = [defaultPosSource];
+
+      // loop through every rex posEntry and add the default posSource if it doesn't exist
+      for (const posEntry of rex.posEntries) {
+        if (!posEntry.posSourceUuid) {
+          posEntry.posSourceUuid = defaultPosSource.uuid;
+        }
+      }
+    }
+  }
+
+  // update the store and db with the new values
+  wholeStoreState.rex.rexes = newRexes;
+
+  const upsertResponse = await httpClient_rex.upsertRexes(newRexes);
+  if (upsertResponse.status !== "success") {
+    // handle the error
   }
 };

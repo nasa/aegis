@@ -280,6 +280,13 @@
   color: white;
 }
 
+.panelTextIndented {
+  font-size: 0.8em;
+  font-weight: 400;
+  color: var(--grey5);
+  padding-left: 18px;
+}
+
 .buttonPlaceholder {
   height: 27px;
 }

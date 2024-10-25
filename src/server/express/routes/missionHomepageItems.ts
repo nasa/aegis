@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import _ from "lodash";
 import { Mission_db, Rex_db } from "server/database/models/_allModels";
+import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { getEM } from "utils/mikro";
 
 const router = express.Router();
@@ -59,28 +60,8 @@ export async function getHomepageMissionItems(
 
   for (const mission of missions) {
     const rexDb = rexes.find((rex) => rex.mission.id === mission.id && rex.isRunning);
+    const rex: Rex = rexDb ? convertRexesTypeDbToStore([rexDb])[0] : null;
 
-    const rex: Rex = rexDb
-      ? {
-          missionId: rexDb.mission.id,
-          uuid: rexDb.uuid,
-          ownerId: rexDb.owner.id,
-          name: rexDb.name,
-          description: rexDb.description,
-          petStartStopTimestamp: rexDb.petStartStopTimestamp,
-          petValueAtStartStop: rexDb.petValueAtStartStop,
-          petRunning: rexDb.petRunning,
-          evaUuid: rexDb.evaUuid,
-          isRunning: rexDb.isRunning,
-          posEntries: rexDb.posEntries,
-          posTypes: rexDb.posTypes,
-          stationEntries: rexDb.stationEntries,
-          traverseEntries: rexDb.traverseEntries,
-          actionEntries: rexDb.actionEntries,
-          createdAt: rexDb.createdAt.toISOString(),
-          updatedAt: rexDb.updatedAt.toISOString(),
-        }
-      : null;
     const missionHomepageItem: MissionHomepageItem = {
       id: mission.id,
       name: mission.name,

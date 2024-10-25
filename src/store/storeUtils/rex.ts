@@ -34,6 +34,24 @@ export const generateBlankRex = (partialRex?: Partial<Rex>): Rex => {
     pathColor: "#AAAAAA",
   };
 
+  const posSourceCrew: PosSource = {
+    uuid: uuidv4(),
+    name: "Crew",
+    abbr: "C",
+  };
+
+  const posSourceTask: PosSource = {
+    uuid: uuidv4(),
+    name: "Task",
+    abbr: "T",
+  };
+
+  const posSourceScience: PosSource = {
+    uuid: uuidv4(),
+    name: "SER",
+    abbr: "S",
+  };
+
   const defaultNewRex: Rex = {
     uuid: uuidv4(),
     ownerId: null,
@@ -47,6 +65,7 @@ export const generateBlankRex = (partialRex?: Partial<Rex>): Rex => {
     isRunning: false,
     posEntries: null,
     posTypes: [posTypeEv1, posTypeEv2, posTypeCart],
+    posSources: [posSourceCrew, posSourceTask, posSourceScience],
     stationEntries: null,
     traverseEntries: null,
     actionEntries: null,
@@ -74,6 +93,7 @@ export const generateBlankPosEntry = (partialPosEntry?: Partial<PosEntry>): PosE
     elevation: null,
     seconds: 0,
     posTypeUuids: [],
+    posSourceUuid: null,
     createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     updatedAt: null,
   };
@@ -100,6 +120,7 @@ export function convertRexesTypeDbToStore(dbRexs: Rex_db[]): Rex[] {
       isRunning: dbRex.isRunning,
       posEntries: dbRex.posEntries,
       posTypes: dbRex.posTypes,
+      posSources: dbRex.posSources,
       stationEntries: dbRex.stationEntries,
       traverseEntries: dbRex.traverseEntries,
       actionEntries: dbRex.actionEntries,
@@ -132,6 +153,7 @@ export function convertRexesTypeStoreToDb(storeRexs: Rex[]): EntityData<Rex_db>[
       isRunning: storeRex.isRunning,
       posEntries: storeRex.posEntries,
       posTypes: storeRex.posTypes,
+      posSources: storeRex.posSources,
       stationEntries: storeRex.stationEntries,
       traverseEntries: storeRex.traverseEntries,
       actionEntries: storeRex.actionEntries,
