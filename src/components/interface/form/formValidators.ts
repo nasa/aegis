@@ -12,7 +12,8 @@ const required = (value: Stringy): string | undefined => (value ? undefined : "R
 
 const mustBeNumber = (value: Stringy): string | undefined => {
   if (!value) return undefined;
-  return isNaN(Number(value)) ? "Must be a number" : undefined;
+  const regex = /^-?(\d+)(\.\d+)?$/;
+  return !regex.test(String(value)) ? "Not a valid number/float" : undefined;
 };
 
 const minValue =
