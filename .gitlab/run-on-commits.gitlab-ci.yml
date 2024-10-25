@@ -229,7 +229,7 @@ playwright_test:
     NUM_SHARDS: 4
   extends: .test_template
   stage: stageless
-  image: mcr.microsoft.com/playwright:v1.47.2-focal
+  image: mcr.microsoft.com/playwright:v1.48.0-focal
   needs:
     - install_dependencies
     - make-dotenv
