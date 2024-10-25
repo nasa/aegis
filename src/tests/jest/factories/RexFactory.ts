@@ -19,6 +19,7 @@ export default class RexFactory extends Factory<Rex_db> {
       isRunning: false,
       posEntries: null,
       posTypes: null,
+      posSources: null,
       stationEntries: null,
       traverseEntries: null,
       actionEntries: null,

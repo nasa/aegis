@@ -13,6 +13,7 @@ type Rex = {
   isRunning: boolean;
   posEntries: PosEntry[];
   posTypes: PosType[];
+  posSources: PosSource[];
   stationEntries: StationEntries;
   traverseEntries: TraverseEntries;
   actionEntries: ActionEntries;
@@ -27,12 +28,19 @@ type Rex_db_type = Omit<Rex, "ownerId" | "missionId" | "createdAt" | "updatedAt"
   updatedAt?: Date;
 };
 
+interface PosSource {
+  uuid: string;
+  name: string;
+  abbr: string;
+}
+
 interface PosEntry {
   uuid: string;
   location: AEGISPoint;
   elevation: number;
   seconds: number;
   posTypeUuids: string[];
+  posSourceUuid: string;
   createdAt: string;
   updatedAt: string;
 }

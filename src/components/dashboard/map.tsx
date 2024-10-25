@@ -42,17 +42,25 @@ import { point } from "@turf/helpers";
 import { circle } from "@turf/turf";
 
 const MapBody: FunctionComponent<{
-  setMapShowPos: Dispatch<SetStateAction<boolean>>;
-  setMapShowScaleBar: Dispatch<SetStateAction<boolean>>;
+  setShowScaleBar: Dispatch<SetStateAction<boolean>>;
   setBigMapBounds: Dispatch<SetStateAction<L.LatLngBoundsLiteral>>;
-  setMapSelectedPreset: Dispatch<SetStateAction<Preset>>;
-  setMapShowArrows: Dispatch<SetStateAction<boolean>>;
-}> = (props: {
-  setMapShowPos: Dispatch<SetStateAction<boolean>>;
-  setMapShowScaleBar: Dispatch<SetStateAction<boolean>>;
-  setBigMapBounds: Dispatch<SetStateAction<L.LatLngBoundsLiteral>>;
-  setMapSelectedPreset: Dispatch<SetStateAction<Preset>>;
-  setMapShowArrows: Dispatch<SetStateAction<boolean>>;
+  mapDisplayPos: MapDisplayPos;
+  setMapDisplayPos: Dispatch<SetStateAction<MapDisplayPos>>;
+  showScaleBar: boolean;
+  selectedPreset: Preset;
+  setSelectedPreset: Dispatch<SetStateAction<Preset>>;
+  showArrows: boolean;
+  setShowArrows: Dispatch<SetStateAction<boolean>>;
+}> = ({
+  setShowScaleBar,
+  setBigMapBounds,
+  mapDisplayPos,
+  setMapDisplayPos,
+  showScaleBar,
+  selectedPreset,
+  setSelectedPreset,
+  showArrows,
+  setShowArrows,
 }) => {
   const mapRef = useRef(null);
   const map = useRef<L.Map>(null);
@@ -94,10 +102,6 @@ const MapBody: FunctionComponent<{
   const missionSublayers = useAppSelector((state) => state.mission.sublayers, deepEqual);
 
   const presetsFromDb = useAppSelector((state) => state.preset.presetsFromDb, deepEqual);
-  const defaultPreset = useAppSelector((state) => {
-    const defaultPresetUuid = state.preset.presetsFromDb.find((p) => p.missionPresetDefault).uuid;
-    return state.preset.presetsFromDb.find((p) => p.uuid === defaultPresetUuid);
-  }, deepEqual);
 
   const stationsFromDb = useAppSelector((state) => state.station.stationsFromDb, deepEqual);
   const traversesFromDb = useAppSelector((state) => state.traverse.traversesFromDb, deepEqual);
@@ -136,7 +140,6 @@ const MapBody: FunctionComponent<{
     deepEqual
   );
 
-  const [selectedPreset, setSelectedPreset] = useState<Preset>(defaultPreset);
   const [posEntriesShowing, setPosEntriesShowing] = useState<PosEntry[]>([]);
   const [latestPosEntriesByType, setLatestPosEntriesByType] = useState<{
     [posTypeUuid: string]: PosEntry[];
@@ -156,21 +159,8 @@ const MapBody: FunctionComponent<{
     show: true,
     showLabels: false,
   });
-  const [mapDisplayPos, setMapDisplayPos] = useState<MapDisplayPos>({
-    show: true,
-    showAllLabels: false,
-    showLatestLabels: false,
-    showPaths: true,
-    showOldPaths: true,
-    fadeOldPaths: true,
-    showMarkers: true,
-    showOldMarkers: false,
-    fadeOldMarkers: false,
-  });
-  const [showArrows, setShowArrows] = useState(true);
   const [showGridLabels, setShowGridLabels] = useState(true);
   const [showGridLines, setShowGridLines] = useState(true);
-  const [showScaleBar, setShowScaleBar] = useState(true);
   const [showSunEarth, setShowSunEarth] = useState(true);
 
   /*** end Eyeball menu toggles */
@@ -210,26 +200,13 @@ const MapBody: FunctionComponent<{
     checkWindowsVersion();
   }, []);
 
-  // pass these values back up to parent component
-  useEffect(() => {
-    props.setMapShowPos(mapDisplayPos.show);
-  }, [mapDisplayPos, props]);
-  useEffect(() => {
-    props.setMapShowScaleBar(showScaleBar);
-  }, [showScaleBar, props]);
-  useEffect(() => {
-    props.setMapSelectedPreset(selectedPreset);
-  }, [selectedPreset, props]);
-  useEffect(() => {
-    props.setMapShowArrows(showArrows);
-  }, [showArrows, props]);
   // put this in a useCallback so props isn't a dependency on map instantiation
   const updateBigMapBounds = useCallback(
     (mapBounds: L.LatLngBoundsLiteral) => {
       setMapBounds(mapBounds); // Used to trigger re-draw of grid labels
-      props.setBigMapBounds(mapBounds);
+      setBigMapBounds(mapBounds);
     },
-    [props]
+    [setBigMapBounds]
   );
 
   /**
@@ -433,7 +410,7 @@ const MapBody: FunctionComponent<{
     if (!selectedPreset) return;
     const updatedSelectedPreset = presetsFromDb.find((p) => p.uuid === selectedPreset.uuid);
     setSelectedPreset(updatedSelectedPreset);
-  }, [selectedPreset, presetsFromDb]);
+  }, [selectedPreset, presetsFromDb, setSelectedPreset]);
 
   /**
    * Map layers display management
@@ -785,11 +762,20 @@ const MapBody: FunctionComponent<{
       const posEntriesWithLocations = runningRexFromDb.posEntries?.filter(
         (posEntry) => posEntry.location
       );
-      posEntriesToShow = _.orderBy(posEntriesWithLocations, ["createdAt"], "desc");
+      // filter out the pos entries that are not from a selected source. Empty source array means "all".
+      let filteredPosEntries: PosEntry[] = [];
+      if (mapDisplayPos.sources.length > 0) {
+        filteredPosEntries = posEntriesWithLocations.filter((posEntry) =>
+          mapDisplayPos.sources.includes(posEntry.posSourceUuid)
+        );
+      } else {
+        filteredPosEntries = posEntriesWithLocations;
+      }
+      posEntriesToShow = _.orderBy(filteredPosEntries, ["createdAt"], "desc");
       // gather the latest 2 pos entries (need 2 in order to draw a polyline) for each type.
       // Most recent/latest entry is first in the array.
       posTypeLatestEntries = getLatestPosEntryByType({
-        allPosEntries: posEntriesWithLocations,
+        allPosEntries: filteredPosEntries,
       });
     }
 
@@ -993,7 +979,10 @@ const MapBody: FunctionComponent<{
 
         // set the marker tooltip
         const timeToShow = hhmmssFromSeconds(rexPetSeconds - latestPosEntry.seconds);
-        const newLabel = `${timeToShow} / ${markerPosTypeAbbrs}`;
+        const sourceAbbr = runningRexFromDb?.posSources?.find(
+          (posSource) => posSource.uuid === latestPosEntry.posSourceUuid
+        )?.abbr;
+        const newLabel = `${timeToShow} / ${markerPosTypeAbbrs} (${sourceAbbr})`;
         posMarker.setTooltipContent(newLabel);
       }
     } else {
@@ -1001,13 +990,16 @@ const MapBody: FunctionComponent<{
       for (let i = 0; i < posEntriesShowing.length; i++) {
         //build label
         const timeToShow = hhmmssFromSeconds(rexPetSeconds - posEntriesShowing[i].seconds);
+        const sourceAbbr = runningRexFromDb?.posSources?.find(
+          (posSource) => posSource.uuid === posEntriesShowing[i].posSourceUuid
+        )?.abbr;
         const markerPosTypeAbbrs = posEntriesShowing[i].posTypeUuids.map((posTypeUuid) => {
           const posType = runningRexFromDb?.posTypes?.find(
             (posType) => posType.uuid === posTypeUuid
           );
           return posType?.abbr;
         });
-        const newLabel = `${timeToShow} / ${markerPosTypeAbbrs}`;
+        const newLabel = `${timeToShow} / ${markerPosTypeAbbrs} (${sourceAbbr})`;
 
         const posMarker = getMapItemByUuid(map, posEntriesShowing[i].uuid) as AEGISMarker;
         if (posMarker) {
@@ -1045,8 +1037,8 @@ const MapBody: FunctionComponent<{
             setMapDisplayActions={setMapDisplayActions}
             showArrows={showArrows}
             setShowArrows={setShowArrows}
-            mapDisplayPosMarkers={mapDisplayPos}
-            setMapDisplayPosMarkers={setMapDisplayPos}
+            mapDisplayPos={mapDisplayPos}
+            setMapDisplayPos={setMapDisplayPos}
             showGridLabels={showGridLabels}
             setShowGridLabels={setShowGridLabels}
             showGridLines={showGridLines}
@@ -1122,7 +1114,7 @@ const MapBody: FunctionComponent<{
               <FontAwesomeIcon icon={faGlobe} size="sm" />
             </div>
             <Dropdown
-              selected={selectedPreset.uuid}
+              selected={selectedPreset?.uuid}
               onChange={(val) => {
                 setSelectedPreset(
                   presetsFromDb.find((preset) => {
@@ -1144,7 +1136,7 @@ const MapBody: FunctionComponent<{
         </div>
       </div>
       <div className={styles.mapScaleDisplay}>{showScaleBar && drawScaleBar()}</div>
-      {showSunEarth && <SunEarth type="dashboard" mapSelectedPreset={selectedPreset} />}
+      {showSunEarth && <SunEarth type="dashboard" selectedPreset={selectedPreset} />}
     </div>
   );
 };

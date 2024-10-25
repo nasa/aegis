@@ -30,18 +30,12 @@ import { point } from "@turf/helpers";
 import { circle } from "@turf/turf";
 
 const MiniMap: FunctionComponent<{
-  mapShowPos: boolean;
-  mapShowScaleBar: boolean;
   bigMapBounds: L.LatLngBoundsLiteral;
-  mapSelectedPreset: Preset;
-  mapShowArrows: boolean;
-}> = (props: {
-  mapShowPos: boolean;
-  mapShowScaleBar: boolean;
-  bigMapBounds: L.LatLngBoundsLiteral;
-  mapSelectedPreset: Preset;
-  mapShowArrows: boolean;
-}) => {
+  mapDisplayPos: MapDisplayPos;
+  showScaleBar: boolean;
+  selectedPreset: Preset;
+  showArrows: boolean;
+}> = ({ bigMapBounds, mapDisplayPos, showScaleBar, selectedPreset, showArrows }) => {
   const mapRef = useRef(null);
   const map = useRef<L.Map>(null);
   const crs = useRef<L.Proj.CRS>(null);
@@ -76,10 +70,6 @@ const MiniMap: FunctionComponent<{
   const missionLayers = useAppSelector((state) => state.mission.layers, deepEqual);
   const missionSublayers = useAppSelector((state) => state.mission.sublayers, deepEqual);
 
-  const selectedPreset = useAppSelector(
-    (state) => state.preset.presetsFromDb.find((p) => p.uuid === props.mapSelectedPreset?.uuid),
-    deepEqual
-  );
   const runningRexFromDb = useAppSelector(
     (state) => state.rex.rexesFromDb.find((r) => r.isRunning),
     deepEqual
@@ -194,10 +184,10 @@ const MiniMap: FunctionComponent<{
     }
 
     // draw the box for the big map bounds
-    if (props.bigMapBounds) {
+    if (bigMapBounds) {
       bigMapBoxFeatureGroup.current.clearLayers();
       bigMapBoxFeatureGroup.current.addLayer(
-        L.rectangle(props.bigMapBounds, {
+        L.rectangle(bigMapBounds, {
           color: "#ffffff",
           weight: 2,
           fillOpacity: 0,
@@ -205,7 +195,7 @@ const MiniMap: FunctionComponent<{
         })
       );
     }
-  }, [mapRef, map, mission, props.bigMapBounds]);
+  }, [mapRef, map, mission, bigMapBounds]);
 
   /**
    * Resize the map when the container dimensions change (via flexbox or window resize)
@@ -272,9 +262,9 @@ const MiniMap: FunctionComponent<{
       const lastPosEntry = latestPosEntriesByType[posTypeUuid][0];
       objectCoordinates.push(lastPosEntry.location);
     }
-    if (props.bigMapBounds) {
-      objectCoordinates.push({ lat: props.bigMapBounds[0][0], lng: props.bigMapBounds[0][1] });
-      objectCoordinates.push({ lat: props.bigMapBounds[1][0], lng: props.bigMapBounds[1][1] });
+    if (bigMapBounds) {
+      objectCoordinates.push({ lat: bigMapBounds[0][0], lng: bigMapBounds[0][1] });
+      objectCoordinates.push({ lat: bigMapBounds[1][0], lng: bigMapBounds[1][1] });
     }
 
     // get max and min coordinate bounds of all objects
@@ -301,10 +291,10 @@ const MiniMap: FunctionComponent<{
     // set the map view to the bounds of all objects
     if (maxLat && minLat && maxLng && minLng) {
       const bounds = L.latLngBounds(L.latLng(minLat, minLng), L.latLng(maxLat, maxLng));
-      const maxZoom = mission.planetRadius === 6378137 ? 19 : 17; // if on earth, 20 is max zoom, otherwise 18 (moon)
+      const maxZoom = mission.planetRadius === 6378137 ? 19 : 17; // if on earth, 19 is max zoom, otherwise 18 (moon)
       map.current.fitBounds(bounds, { maxZoom });
     }
-  }, [map, mission, latestPosEntriesByType, stationsToShow, traversesToShow, props.bigMapBounds]);
+  }, [map, mission, latestPosEntriesByType, stationsToShow, traversesToShow, bigMapBounds]);
 
   /**
    * Determine stations to show and draw them on map when stations or selections change
@@ -363,7 +353,7 @@ const MiniMap: FunctionComponent<{
         path: traverse.path,
         color: baseColor,
         mapItemType: "traverse",
-        showArrows: props.mapShowArrows,
+        showArrows,
         polylineOptions: {
           weight: 5,
           interactive: false,
@@ -374,7 +364,7 @@ const MiniMap: FunctionComponent<{
         },
       });
     });
-  }, [runningEvaFromDb, traversesToShow, props]);
+  }, [runningEvaFromDb, traversesToShow, showArrows]);
 
   /**
    * Draw lander radii
@@ -478,12 +468,20 @@ const MiniMap: FunctionComponent<{
     let posTypeLatestEntries: { [key: string]: PosEntry[] } = {};
 
     // determine which pos entries to show
-    if (props.mapShowPos) {
-      posEntriesToShow = _.orderBy(runningRexFromDb.posEntries, ["createdAt"], "desc");
+    if (mapDisplayPos.show) {
+      let filteredPosEntries: PosEntry[] = [];
+      if (mapDisplayPos.sources.length > 0) {
+        filteredPosEntries = runningRexFromDb?.posEntries.filter((posEntry) =>
+          mapDisplayPos.sources.includes(posEntry.posSourceUuid)
+        );
+      } else {
+        filteredPosEntries = runningRexFromDb?.posEntries;
+      }
+      posEntriesToShow = _.orderBy(filteredPosEntries, ["createdAt"], "desc");
       // gather the latest 2 pos entries (need 2 in order to draw a polyline) for each type.
       // Most recent/latest entry is first in the array.
       posTypeLatestEntries = getLatestPosEntryByType({
-        allPosEntries: runningRexFromDb.posEntries,
+        allPosEntries: filteredPosEntries,
       });
     }
 
@@ -492,7 +490,7 @@ const MiniMap: FunctionComponent<{
 
     // draw or update all pos markers
     for (const posEntry of posEntriesToShow) {
-      if (!props.mapShowPos) break; //exit for, no markers need to be drawn
+      if (!mapDisplayPos.show) break; //exit for, no markers need to be drawn
       if (!posEntry.location) continue; // go to next pos entry
 
       // determine if this is one of the latest entries.
@@ -534,12 +532,12 @@ const MiniMap: FunctionComponent<{
     }
     //set in local state to be used in other use effects. Do this last so markers exist
     setLatestPosEntriesByType(posTypeLatestEntries);
-  }, [map, runningRexFromDb, isWin10, props.mapShowPos]);
+  }, [map, runningRexFromDb, isWin10, mapDisplayPos]);
 
   return (
     <div className={styles.mapContainer} ref={mapContainerRef}>
       <div className={styles.map} ref={mapRef} />
-      <div className={styles.mapScaleDisplay}>{props.mapShowScaleBar && drawScaleBar()}</div>
+      <div className={styles.mapScaleDisplay}>{showScaleBar && drawScaleBar()}</div>
     </div>
   );
 };

@@ -50,6 +50,7 @@ interface MapDisplayPos {
   showMarkers: boolean;
   showOldMarkers: boolean;
   fadeOldMarkers: boolean;
+  sources: string[];
 }
 
 /**
@@ -66,7 +67,7 @@ type EyeballMenuCookieAEGISMapViewSettings = {
   mapDisplayPois: MapDisplayMarkers;
   mapDisplayStations: MapDisplayStations;
   mapDisplayActions: MapDisplayMarkers;
-  mapDisplayPositions: MapDisplayPos;
+  mapDisplayPos: MapDisplayPos;
   showArrows: boolean;
   showGridLabels: boolean;
   showGridLines: boolean;

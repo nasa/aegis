@@ -178,7 +178,8 @@ const MapBody: FunctionComponent = () => {
     show: true,
     showLabels: false,
   });
-  const [mapDisplayPositions, setMapDisplayPositions] = useState<MapDisplayPos>({
+
+  const [mapDisplayPos, setMapDisplayPos] = useState<MapDisplayPos>({
     show: true,
     showAllLabels: false,
     showLatestLabels: true,
@@ -188,6 +189,7 @@ const MapBody: FunctionComponent = () => {
     showMarkers: true,
     showOldMarkers: false,
     fadeOldMarkers: false,
+    sources: [],
   });
   const [showArrows, setShowArrows] = useState(true);
   const [showGridLabels, setShowGridLabels] = useState(true);
@@ -217,8 +219,18 @@ const MapBody: FunctionComponent = () => {
     setMapDisplayPois(eyeballMenuSettings.mapDisplayPois);
     setMapDisplayStations(eyeballMenuSettings.mapDisplayStations);
     setMapDisplayActions(eyeballMenuSettings.mapDisplayActions);
-    if (eyeballMenuSettings.mapDisplayPositions) {
-      setMapDisplayPositions(eyeballMenuSettings.mapDisplayPositions);
+    if (eyeballMenuSettings.mapDisplayPos) {
+      // set default view to task and crew regardless of what is in the cookie
+      const taskSourceUuid = selectedOrRunningRex?.posSources?.find(
+        (source) => source.abbr === "T"
+      )?.uuid;
+      const crewSourceUuid = selectedOrRunningRex?.posSources?.find(
+        (source) => source.abbr === "C"
+      )?.uuid;
+      setMapDisplayPos({
+        ...eyeballMenuSettings.mapDisplayPos,
+        sources: [taskSourceUuid, crewSourceUuid],
+      });
     }
     setShowArrows(eyeballMenuSettings.showArrows);
     setShowGridLabels(eyeballMenuSettings.showGridLabels);
@@ -237,7 +249,7 @@ const MapBody: FunctionComponent = () => {
         mapDisplayPois,
         mapDisplayStations,
         mapDisplayActions,
-        mapDisplayPositions,
+        mapDisplayPos,
         showArrows,
         showGridLabels,
         showGridLines,
@@ -249,7 +261,7 @@ const MapBody: FunctionComponent = () => {
     mapDisplayPois,
     mapDisplayStations,
     mapDisplayActions,
-    mapDisplayPositions,
+    mapDisplayPos,
     showArrows,
     showGridLabels,
     showGridLines,
@@ -1214,15 +1226,24 @@ const MapBody: FunctionComponent = () => {
     let posTypeLatestEntries: { [key: string]: PosEntry[] } = {};
 
     // determine which pos entries to show
-    if (mapDisplayPositions.show) {
+    if (mapDisplayPos.show) {
       //if there is a running rex, or no running rex but we're on the rex section and there's a rex selected
       if (selectedOrRunningRex?.isRunning || (sectionSelected === "rex" && selectedOrRunningRex)) {
         const posEntriesWithLocations = selectedOrRunningRex?.posEntries?.filter(
           (posEntry) => posEntry.location
         );
-        posEntriesToShow = _.orderBy(posEntriesWithLocations, ["createdAt"], "desc");
+        // filter out the pos entries that are not from a selected source. Empty source array means "all".
+        let filteredPosEntries: PosEntry[] = [];
+        if (mapDisplayPos.sources.length > 0) {
+          filteredPosEntries = posEntriesWithLocations?.filter((posEntry) =>
+            mapDisplayPos.sources.includes(posEntry.posSourceUuid)
+          );
+        } else {
+          filteredPosEntries = posEntriesWithLocations;
+        }
+        posEntriesToShow = _.orderBy(filteredPosEntries, ["createdAt"], "desc");
         posTypeLatestEntries = getLatestPosEntryByType({
-          allPosEntries: posEntriesWithLocations,
+          allPosEntries: filteredPosEntries,
         });
       }
     }
@@ -1234,7 +1255,7 @@ const MapBody: FunctionComponent = () => {
 
     // draw or update all pos markers
     for (const posEntry of posEntriesToShow) {
-      if (!mapDisplayPositions.showMarkers) break; //exit for, no markers need to be drawn
+      if (!mapDisplayPos.showMarkers) break; //exit for, no markers need to be drawn
       if (!posEntry.location) continue; // go to next pos entry
 
       // determine if this is one of the latest entries. If so, determine which latest pos types exist in this entry
@@ -1249,12 +1270,12 @@ const MapBody: FunctionComponent = () => {
       });
 
       // determine if this position entry should be drawn
-      if (!mapDisplayPositions.showOldMarkers) {
+      if (!mapDisplayPos.showOldMarkers) {
         if (!isRecent) continue; //this is an old pos entry, go to next entry
       }
       // all pos entries are being drawn. determine if this entry should be faded
       let opacity: number = 1;
-      if (mapDisplayPositions.fadeOldMarkers) {
+      if (mapDisplayPos.fadeOldMarkers) {
         let lastEntry = false;
         // check if this is the latest (most recent) entry for a pos type
         for (const posTypeUuid in posTypeLatestEntries) {
@@ -1267,8 +1288,8 @@ const MapBody: FunctionComponent = () => {
       }
 
       // determine if label should be shown
-      let keepTooltipOpen = mapDisplayPositions.showAllLabels;
-      if (mapDisplayPositions.showLatestLabels) {
+      let keepTooltipOpen = mapDisplayPos.showAllLabels;
+      if (mapDisplayPos.showLatestLabels) {
         // check each pos type for this pos entry
         posEntry.posTypeUuids.forEach((posTypeUuid) => {
           if (posTypeLatestEntries[posTypeUuid][0]?.uuid === posEntry.uuid) {
@@ -1283,8 +1304,8 @@ const MapBody: FunctionComponent = () => {
         posEntryFeatureGroup,
         selectedOrRunningRex,
         isWin10,
-        showOldMarkers: mapDisplayPositions.showOldMarkers,
-        showLatestLabels: mapDisplayPositions.showLatestLabels,
+        showOldMarkers: mapDisplayPos.showOldMarkers,
+        showLatestLabels: mapDisplayPos.showLatestLabels,
         rexPetTime,
         onClick: () => {
           dispatch(setSelectedPosEntryUuid(posEntry.uuid));
@@ -1318,9 +1339,9 @@ const MapBody: FunctionComponent = () => {
     }
 
     // draw or update path
-    if (mapDisplayPositions.showPaths) {
+    if (mapDisplayPos.showPaths) {
       //hide old paths
-      if (!mapDisplayPositions.showOldPaths) {
+      if (!mapDisplayPos.showOldPaths) {
         for (const posType of selectedOrRunningRex.posTypes) {
           if (!posTypeLatestEntries[posType.uuid] || posTypeLatestEntries[posType.uuid].length <= 1)
             continue;
@@ -1350,7 +1371,7 @@ const MapBody: FunctionComponent = () => {
 
           if (posEntriesForType.length > 1) {
             // determine if should fade old paths
-            if (mapDisplayPositions.fadeOldPaths) {
+            if (mapDisplayPos.fadeOldPaths) {
               // fade old paths
               drawPosPathOnMap({
                 posEntryFeatureGroup,
@@ -1406,15 +1427,7 @@ const MapBody: FunctionComponent = () => {
     //set in local state to be used in other use effects. Do this last so markers exist
     setLatestPosEntriesByType(posTypeLatestEntries);
     setPosEntriesShowing(posEntriesToShow);
-  }, [
-    map,
-    dispatch,
-    mapDisplayPositions,
-    selectedOrRunningRex,
-    sectionSelected,
-    isWin10,
-    rexPetTime,
-  ]);
+  }, [map, dispatch, mapDisplayPos, selectedOrRunningRex, sectionSelected, isWin10, rexPetTime]);
 
   /**
    * Update position entry tooltips when rex is ticking
@@ -1424,7 +1437,7 @@ const MapBody: FunctionComponent = () => {
     const rexPetSeconds = secondsFromhhmmss(rexPetTime);
 
     // turn on latest label only
-    if (mapDisplayPositions.showLatestLabels) {
+    if (mapDisplayPos.showLatestLabels) {
       // get a unique array of the latest pos entries. Multiple types may share the same entry
       const uniqueLatestPosEntries = _.uniqBy(
         Object.values(latestPosEntriesByType).map((posEntries) => {
@@ -1455,7 +1468,10 @@ const MapBody: FunctionComponent = () => {
 
         // set the marker tooltip
         const timeToShow = hhmmssFromSeconds(rexPetSeconds - latestPosEntry.seconds);
-        const newLabel = `${timeToShow} / ${markerPosTypeAbbrs}`;
+        const sourceAbbr = selectedOrRunningRex?.posSources?.find(
+          (posSource) => posSource.uuid === latestPosEntry.posSourceUuid
+        )?.abbr;
+        const newLabel = `${timeToShow} / ${markerPosTypeAbbrs} (${sourceAbbr})`;
         posMarker.setTooltipContent(newLabel);
       }
     } else {
@@ -1463,13 +1479,16 @@ const MapBody: FunctionComponent = () => {
       for (let i = 0; i < posEntriesShowing.length; i++) {
         //build label
         const timeToShow = hhmmssFromSeconds(rexPetSeconds - posEntriesShowing[i].seconds);
+        const sourceAbbr = selectedOrRunningRex?.posSources?.find(
+          (posSource) => posSource.uuid === posEntriesShowing[i].posSourceUuid
+        )?.abbr;
         const markerPosTypeAbbrs = posEntriesShowing[i].posTypeUuids.map((posTypeUuid) => {
           const posType = selectedOrRunningRex?.posTypes?.find(
             (posType) => posType.uuid === posTypeUuid
           );
           return posType?.abbr;
         });
-        const newLabel = `${timeToShow} / ${markerPosTypeAbbrs}`;
+        const newLabel = `${timeToShow} / ${markerPosTypeAbbrs} (${sourceAbbr})`;
 
         const posMarker = getMapItemByUuid(map, posEntriesShowing[i].uuid) as AEGISMarker;
         if (posMarker) {
@@ -1482,8 +1501,8 @@ const MapBody: FunctionComponent = () => {
     rexPetTime,
     posEntriesShowing,
     latestPosEntriesByType,
-    mapDisplayPositions.showLatestLabels,
-    selectedOrRunningRex?.posTypes,
+    mapDisplayPos.showLatestLabels,
+    selectedOrRunningRex,
   ]);
 
   /**
@@ -1917,8 +1936,8 @@ const MapBody: FunctionComponent = () => {
           setMapDisplayActions={setMapDisplayActions}
           showArrows={showArrows}
           setShowArrows={setShowArrows}
-          mapDisplayPosMarkers={mapDisplayPositions}
-          setMapDisplayPosMarkers={setMapDisplayPositions}
+          mapDisplayPos={mapDisplayPos}
+          setMapDisplayPos={setMapDisplayPos}
           showGridLabels={showGridLabels}
           setShowGridLabels={setShowGridLabels}
           showGridLines={showGridLines}
@@ -1936,7 +1955,7 @@ const MapBody: FunctionComponent = () => {
       <div className={styles.mapPositionDisplay}>
         {showMouseLatLon && mousePosition && latLngDiv(mousePosition)}
       </div>
-      {showSunEarth && <SunEarth type="editor" mapSelectedPreset={selectedPreset} />}
+      {showSunEarth && <SunEarth type="editor" selectedPreset={selectedPreset} />}
     </div>
   );
 };

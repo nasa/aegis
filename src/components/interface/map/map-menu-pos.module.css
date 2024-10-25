@@ -13,6 +13,7 @@
   background-color: var(--grey2);
   pointer-events: all;
   max-height: 90%;
+  min-width: 370px;
 }
 
 .menuOpen {
@@ -20,6 +21,7 @@
 }
 .menuClosed {
   padding: 3px 6px 3px 6px;
+  min-width: 30px;
 }
 .menuIcon {
   flex: 0 0 18px;
@@ -77,6 +79,13 @@
   display: flex;
   flex-direction: row;
 }
+.sourceText {
+  display: flex;
+  align-items: center;
+  color: var(--grey4);
+  font-size: 0.8rem;
+  margin-right: 5px;
+}
 .toggleLeft {
   font-size: 0.8rem;
   background-color: var(--grey3);
@@ -127,6 +136,7 @@
 }
 .posTable {
   border-collapse: collapse;
+  width: 100%;
 }
 .posTable td {
   padding: 2px 3px 2px 3px;

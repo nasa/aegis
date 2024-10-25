@@ -24,7 +24,12 @@ import {
   thunkCreatePosType,
   thunkDeletePosType,
   thunkUpdatePosTypeField,
-} from "store/thunk/thunkRex";
+} from "store/thunk/thunkRexPosEntry";
+import {
+  thunkCreatePosSource,
+  thunkDeletePosSource,
+  thunkUpdatePosSourceField,
+} from "store/thunk/thunkRexPosSource";
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
 import { decodeEmoji } from "utils/formatting";
@@ -47,14 +52,17 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
 
   return (
     <div className={paneStyles.rightBody}>
-      <div className={paneStyles.rightBodyTitle}>Position Marker Types</div>
+      <div className={paneStyles.rightBodyTitle}>Position Types and Sources</div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-              <SubpanelHeading icon={faList}>Position Markers to Track</SubpanelHeading>
+              <SubpanelHeading icon={faList}>Position Types</SubpanelHeading>
             </div>
             <div className={paneStyles.panelSectionBody}>
+              <div className={paneStyles.panelTextIndented}>
+                Items to track the position of such as crew members, equipment, or cart.
+              </div>
               <ul className={styles.propertyList}>
                 <li className={styles.propertyListHeaderItem}>
                   <div className={paneStyles.descriptionContainer}>
@@ -98,6 +106,55 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                   style={{ width: "155px", marginLeft: "18px", marginTop: "8px" }}
                   onClick={() => {
                     dispatch(thunkCreatePosType());
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+        <div className={paneStyles.panelContainer}>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+              <SubpanelHeading icon={faList}>Position Sources</SubpanelHeading>
+            </div>
+            <div className={paneStyles.panelTextIndented}>
+              List of sources making position estimates such as Crew, Task, SER.
+            </div>
+            <div className={paneStyles.panelSectionBody}>
+              <ul className={styles.propertyList}>
+                <li className={styles.propertyListHeaderItem}>
+                  <div className={paneStyles.descriptionContainer}>
+                    <div
+                      className={styles.propertyRowHeader}
+                      style={{ backgroundColor: "var(--grey2)" }}
+                    >
+                      <div className={styles.propertyHeaderAbbr}>Abbr</div>
+                      <div className={styles.propertyHeaderName}>Name</div>
+                      <div className={styles.propertyRowTrash}></div>
+                    </div>
+                  </div>
+                </li>
+                {selectedRex.posSources?.map((item, index) => {
+                  return (
+                    <li key={item.uuid} className={styles.propertyListItem}>
+                      <PosSource
+                        rexUuid={selectedRex.uuid}
+                        item={item}
+                        editMode={editMode}
+                        evenRow={index % 2 === 0}
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {editMode && (
+                <Button
+                  icon={faPlusCircle}
+                  label="Add Position Source"
+                  style={{ width: "155px", marginLeft: "18px", marginTop: "8px" }}
+                  onClick={() => {
+                    dispatch(thunkCreatePosSource());
                   }}
                 />
               )}
@@ -292,5 +349,86 @@ const PosIconMenu: FunctionComponent<{
         {item.icon && decodeEmoji(item.icon)}
       </div>
     </>
+  );
+};
+
+const PosSource: FunctionComponent<{
+  rexUuid: string;
+  item: PosSource;
+  editMode: boolean;
+  evenRow: boolean;
+}> = ({ rexUuid, item, editMode, evenRow }) => {
+  const dispatch = useAppDispatch();
+
+  let backgroundColor: string = "var(--grey2)";
+  if (!editMode) {
+    backgroundColor = evenRow ? "var(--grey2)" : "var(--grey1)";
+  }
+
+  return (
+    <div className={paneStyles.descriptionContainer}>
+      <div className={styles.propertyRow} style={{ backgroundColor }}>
+        <div className={styles.propertyRowAbbr}>
+          <InLineEditInput
+            editing={editMode}
+            fieldProps={{
+              name: "posSourceAbbr",
+              ariaLabel: "Position Source Abbr.",
+              style: { width: "100%" },
+              validators: [validators.maxLength(1), validators.required],
+            }}
+            value={item.abbr}
+            onSubmit={(val: string) => {
+              dispatch(
+                thunkUpdatePosSourceField({
+                  rexUuid,
+                  uuid: item.uuid,
+                  fieldName: "abbr",
+                  value: val,
+                })
+              );
+            }}
+            key={`${item.uuid}-name`}
+          />
+        </div>
+        <div className={styles.propertyRowName}>
+          <InLineEditInput
+            editing={editMode}
+            fieldProps={{
+              name: "posSourceName",
+              ariaLabel: "Position Source Name",
+              style: { width: "100%" },
+              validators: [validators.maxLength(255), validators.required],
+            }}
+            value={item.name}
+            onSubmit={(val: string) => {
+              dispatch(
+                thunkUpdatePosSourceField({
+                  rexUuid,
+                  uuid: item.uuid,
+                  fieldName: "name",
+                  value: val,
+                })
+              );
+            }}
+            key={`${item.uuid}-name`}
+          />
+        </div>
+
+        <div className={styles.propertyRowTrash}>
+          {editMode && (
+            <FontAwesomeIcon
+              icon={faTrashAlt}
+              size="sm"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dispatch(thunkDeletePosSource({ rexUuid, posSourceUuid: item.uuid }));
+              }}
+            />
+          )}
+        </div>
+      </div>
+    </div>
   );
 };

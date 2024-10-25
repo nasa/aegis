@@ -5,22 +5,24 @@ import { initialState as interfaceInitialState } from "store/interface";
 import { initialState as mapInitialState } from "store/map";
 import {
   thunkAddRexStatusEntry,
-  thunkCancelPosEntry,
-  thunkCancelPosEntryLocation,
   thunkCancelRex,
-  thunkCreatePosEntry,
   thunkCreateRex,
-  thunkDeletePosEntryByUuid,
-  thunkDeletePosType,
   thunkDeleteRex,
   thunkDuplicateRex,
-  thunkPersistRexPosEntries,
   thunkRexPetStartStop,
   thunkSaveRex,
+} from "store/thunk/thunkRex";
+import {
+  thunkCancelPosEntry,
+  thunkCancelPosEntryLocation,
+  thunkCreatePosEntry,
+  thunkDeletePosEntryByUuid,
+  thunkDeletePosType,
+  thunkPersistRexPosEntries,
   thunkUpdatePosEntryLocation,
   thunkUpdatePosTypeField,
   thunkUpdatePosTypesOnPosEntry,
-} from "store/thunk/thunkRex";
+} from "store/thunk/thunkRexPosEntry";
 import { v4 as uuidv4 } from "uuid";
 
 // mock all calls to the db so no transactions are actually made
