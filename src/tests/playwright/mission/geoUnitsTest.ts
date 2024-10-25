@@ -17,7 +17,7 @@ const geo2: GeoUnit = {
 };
 
 export async function geoUnitsTest(page: Page): Promise<string> {
-  await page.goto("http://aegis-local.fit.nasa.gov:4000/mission/1");
+  await page.goto("http://localhost:4000/mission/1");
   //go to mission preferences
   await page.waitForTimeout(2000);
   await page.getByLabel("mission Section", { exact: true }).click();
@@ -29,6 +29,7 @@ export async function geoUnitsTest(page: Page): Promise<string> {
   );
 
   //go to units list
+
   await page.getByLabel("geographicUnit_panel", { exact: true }).click();
   await expect(page.getByLabel("rightBodyTitle", { exact: true })).toContainText(
     "Mission Geography"

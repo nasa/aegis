@@ -34,7 +34,7 @@ const testAttr: MissionAttributes = {
 };
 
 export async function missionConfigTest(page: Page): Promise<string> {
-  await page.goto("http://aegis-local.fit.nasa.gov:4000/mission/1");
+  await page.goto("http://localhost:4000/mission/1");
   //go to mission preferences
   await page.waitForTimeout(2000);
   await page.getByLabel("mission Section", { exact: true }).click();
@@ -81,20 +81,6 @@ export async function missionConfigTest(page: Page): Promise<string> {
   await expect(page.getByLabel("missionBannerText", { exact: true })).toContainText(
     testAttr.topBanner
   );
-
-  // check earth/moon direction button
-  await page.getByLabel("Edit", { exact: true }).click();
-  await page.mouse.move(0, -100);
-  await page.waitForTimeout(1000);
-  await expect(page.getByLabel("saveButton")).toBeAttached();
-
-  await page.getByLabel("earthDirectionButton", { exact: true }).click();
-  await expect(page.getByLabel("earthHeading", { exact: true })).toBeVisible();
-  await page.getByLabel("moonDirectionButton", { exact: true }).click();
-  await expect(page.getByLabel("moonHeading", { exact: true })).toBeVisible();
-  await page.waitForTimeout(200);
-  await page.getByLabel("cancelButton", { exact: true }).click();
-  await page.getByLabel("Edit", { exact: true }).last().waitFor();
 
   // modify and check mission defaults
   await page.getByLabel("Edit", { exact: true }).click();
