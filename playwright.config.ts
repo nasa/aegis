@@ -27,7 +27,7 @@ export default defineConfig({
     baseURL: "http://aegis-local.fit.nasa.gov:4000/",
 
     headless: true, // Ensure headless mode is enabled
-    viewport: { width: 2560, height: 1440 }, // Set screen resolution
+    viewport: { width: 1960, height: 1080 }, // Set screen resolution
 
     // Collect trace when retrying the failed test.
     trace: "on-first-retry",
