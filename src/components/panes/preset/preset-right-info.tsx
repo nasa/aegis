@@ -54,7 +54,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle}>Preset Information</div>
       <div className={paneStyles.panelContainer}>
-        <div className={paneStyles.panelSection}>
+        <div className={paneStyles.panelSection} aria-label="presetInfoPanel">
           <div className={paneStyles.panelSectionTitle}>
             <div className={presetStyles.toggleMenuItemRow}>
               {editMode ? (
