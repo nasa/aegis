@@ -46,7 +46,7 @@ export async function presetTest(page: Page): Promise<string> {
   await page
     .getByLabel("presetInfoPanel", { exact: true })
     .getByLabel("checkbox", { exact: true })
-    .setChecked(false);
+    .setChecked(true);
   await expect(newPresetQuery.getByLabel("Unsaved changes", { exact: true })).toBeVisible();
 
   await page.waitForTimeout(500);
