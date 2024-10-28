@@ -266,6 +266,8 @@ export const auditPosSources = async ({
 }: {
   wholeStoreState: WholeStoreState;
 }): Promise<void> => {
+  if (wholeStoreState.rex.rexes.length === 0) return;
+
   // loop through all rexes and audit the posSources
   const newRexes = _.cloneDeep(wholeStoreState.rex.rexes);
 
@@ -279,8 +281,11 @@ export const auditPosSources = async ({
     if (!rex.posSources || rex.posSources.length === 0) {
       rex.posSources = [defaultPosSource];
 
+      // if the rex has no position entries, skip to the next rex
+      if (!rex.posEntries) continue;
+
       // loop through every rex posEntry and add the default posSource if it doesn't exist
-      for (const posEntry of rex.posEntries) {
+      for (const posEntry of rex?.posEntries) {
         if (!posEntry.posSourceUuid) {
           posEntry.posSourceUuid = defaultPosSource.uuid;
         }
