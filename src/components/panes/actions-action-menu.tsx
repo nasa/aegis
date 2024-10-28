@@ -1,10 +1,18 @@
-import { faEllipsisV, faEye, faEyeSlash, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
+import {
+  faEllipsisV,
+  faEye,
+  faEyeSlash,
+  faGears,
+  faTrashAlt,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { FunctionComponent, useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import actionStyles from "./actions-action.module.css";
 import { upsertAction } from "store/action";
 import { thunkDeleteActionFromStore } from "store/thunk/thunkAction";
+import { thunkCreateTemplateFromAction } from "store/thunk/thunkMission";
+import { setMissionSectionEditing } from "store/mission";
 
 export const ActionMenu: FunctionComponent<{
   action: Action;
@@ -57,6 +65,26 @@ export const ActionMenu: FunctionComponent<{
               <FontAwesomeIcon icon={faTrashAlt} size="sm" />
             </div>
             <div className={actionStyles.menuItemText}>Delete Action</div>
+          </div>
+          <div
+            className={actionStyles.menuItem}
+            onClick={async (e) => {
+              e.stopPropagation();
+              dispatch(setMissionSectionEditing({ section: "prefs", editMode: true }));
+              const newTemplateUuid = await dispatch(
+                thunkCreateTemplateFromAction({ actionUuid: action.uuid })
+              );
+              window.alert(
+                `Action Template created from action. To save this action template to the database, please save go to the mission configuration tab and save the mission.\nTemplate UUID: ${newTemplateUuid.payload}`
+              );
+
+              dialogRef.current?.close();
+            }}
+          >
+            <div className={actionStyles.menuItemIcon}>
+              <FontAwesomeIcon icon={faGears} size="sm" />
+            </div>
+            <div className={actionStyles.menuItemText}>Use as Template</div>
           </div>
         </div>
       </dialog>
