@@ -167,6 +167,7 @@ node-sbom:
   needs:
     - install_dependencies
     - make-dotenv
+    - z:db-export:prod
   variables:
     # define variables used by Node app
     DB_HOST: postgres-test-container
@@ -216,6 +217,37 @@ test-node-next:
     - npm run lint
     - npm run tsc
     - npm t
+
+playwright_test:
+  parallel:
+    matrix:
+      - SHARD_INDEX: 1
+      - SHARD_INDEX: 2
+      - SHARD_INDEX: 3
+      - SHARD_INDEX: 4
+  variables:
+    NUM_SHARDS: 4
+  extends: .test_template
+  stage: stageless
+  image: mcr.microsoft.com/playwright:v1.48.0-focal
+  needs:
+    - install_dependencies
+    - make-dotenv
+    - z:db-export:prod
+  script:
+    - echo "Running shard $SHARD_INDEX of $NUM_SHARDS"
+    - mkdir -p playwright-report
+    - apt-get update && apt-get install -y postgresql-client # Fast install, fine not in the image
+    - PGPASSWORD=$DB_PASS psql -h $DB_HOST -U postgres -d $DB_NAME < aegis.sql
+    - npx playwright install-deps # Install Playwright dependencies
+    - npm run migrate:up
+    - npm run test:playwright:ci # Run Playwright tests
+  timeout: 10 minutes
+  artifacts:
+    when: always
+    paths:
+      - playwright-report/ # Store Playwright test reports
+    expire_in: 1 day
 
 make-dotenv:
   image: "$CURRENT_NODE_VERSION_IMAGE"
@@ -504,6 +536,7 @@ deploy:prod:
 
 z:db-export:prod:
   extends: .db-export-template
+  when: always
   tags: ["emss-aegis-prod"]
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD #CI/CD Variable

@@ -1,11 +1,4 @@
-import {
-  Dispatch,
-  FunctionComponent,
-  SetStateAction,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { Dispatch, FunctionComponent, SetStateAction, useEffect, useState } from "react";
 import styles from "./map-menu-pos.module.css";
 import {
   faBan,
@@ -25,8 +18,13 @@ import {
   thunkCreatePosEntry,
   thunkPersistRexPosEntries,
   thunkUpdatePosTypesOnPosEntry,
-} from "store/thunk/thunkRex";
-import { setPosEntryEditingUuid, setSelectedPosEntryUuid } from "store/rex";
+} from "store/thunk/thunkRexPosEntry";
+import { thunkUpdatePosSourceOnPosEntry } from "store/thunk/thunkRexPosSource";
+import {
+  setPosEntryEditingUuid,
+  setSelectedPosEntryUuid,
+  setSelectedPosSourceUuid,
+} from "store/rex";
 import { hhmmssFromSeconds } from "utils/formatting";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { setHoverUuidsForPosEntry } from "store/hover";
@@ -58,6 +56,10 @@ export const MapPositionMenu: FunctionComponent = () => {
     (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid),
     deepEqual
   );
+  const posSourcesFromDb = useAppSelector(
+    (state) => state.rex.rexesFromDb.find((r) => r.uuid === state.rex.selectedRexUuid)?.posSources,
+    deepEqual
+  );
   const posEntries = useAppSelector((state) => {
     const posEntries = state.rex.rexes.find((r) => r.uuid === selectedRex?.uuid)?.posEntries;
     return orderBy(posEntries, ["createdAt"], "desc");
@@ -84,6 +86,7 @@ export const MapPositionMenu: FunctionComponent = () => {
         ?.posEntries?.find((c) => c.uuid === state.rex.posEntryEditingUuid),
     deepEqual
   );
+
   const selectedRexUuid = useAppSelector(
     (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid).uuid,
     refEqual
@@ -91,6 +94,10 @@ export const MapPositionMenu: FunctionComponent = () => {
   const selectedRexPosTypes = useAppSelector(
     (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid).posTypes,
     deepEqual
+  );
+  const selectedPosSourceUuid = useAppSelector(
+    (state) => state.rex.selectedPosSourceUuid,
+    refEqual
   );
 
   const thisMapDirective = useAppSelector((state) => {
@@ -109,32 +116,56 @@ export const MapPositionMenu: FunctionComponent = () => {
     setSelectedPosTypeUuids([]);
   }, [selectedRexUuid, selectedRexPosTypes]);
 
+  //set a default source when the rex selection changes.
+  useEffect(() => {
+    const taskUuid = selectedRex?.posSources.find((s) => s.name === "Task")?.uuid || null;
+    if (taskUuid) {
+      dispatch(setSelectedPosSourceUuid(taskUuid));
+      return;
+    }
+    // no task, so pick the first source in the list
+    if (selectedRex?.posSources[0]) {
+      dispatch(setSelectedPosSourceUuid(selectedRex.posSources[0].uuid));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRexUuid]);
+
   const modified = !_.isEqual([editingPosEntry], [editingPosEntryFromDb]);
 
-  const togglePosType = useCallback(
-    async (posTypeUuid: string) => {
-      let newSelectedPosTypeUuids: string[] = [];
-      if (selectedPosTypeUuids.includes(posTypeUuid)) {
-        newSelectedPosTypeUuids = selectedPosTypeUuids.filter((i) => i !== posTypeUuid);
-      } else {
-        for (let i = 0; i < posTypes.length; i++) {
-          if (selectedPosTypeUuids.includes(posTypes[i].uuid) || posTypes[i].uuid === posTypeUuid) {
-            newSelectedPosTypeUuids.push(posTypes[i].uuid);
-          }
+  const togglePosType = async (posTypeUuid: string) => {
+    let newSelectedPosTypeUuids: string[] = [];
+    if (selectedPosTypeUuids.includes(posTypeUuid)) {
+      newSelectedPosTypeUuids = selectedPosTypeUuids.filter((i) => i !== posTypeUuid);
+    } else {
+      for (let i = 0; i < posTypes.length; i++) {
+        if (selectedPosTypeUuids.includes(posTypes[i].uuid) || posTypes[i].uuid === posTypeUuid) {
+          newSelectedPosTypeUuids.push(posTypes[i].uuid);
         }
       }
-      setSelectedPosTypeUuids(newSelectedPosTypeUuids);
-      if (!editingPosEntry) return;
-      await dispatch(
-        thunkUpdatePosTypesOnPosEntry({
-          rex: selectedRex,
-          posEntryUuid: posEntryEditingUuid,
-          posTypeUuids: newSelectedPosTypeUuids,
-        })
-      );
-    },
-    [selectedPosTypeUuids, editingPosEntry, dispatch, selectedRex, posEntryEditingUuid, posTypes]
-  );
+    }
+    setSelectedPosTypeUuids(newSelectedPosTypeUuids);
+    if (!editingPosEntry) return;
+    await dispatch(
+      thunkUpdatePosTypesOnPosEntry({
+        rex: selectedRex,
+        posEntryUuid: posEntryEditingUuid,
+        posTypeUuids: newSelectedPosTypeUuids,
+      })
+    );
+  };
+
+  const togglePosSource = async (posSourceUuid: string) => {
+    dispatch(setSelectedPosSourceUuid(posSourceUuid));
+
+    if (!editingPosEntry) return;
+    await dispatch(
+      thunkUpdatePosSourceOnPosEntry({
+        rex: selectedRex,
+        posEntryUuid: posEntryEditingUuid,
+        posSourceUuid,
+      })
+    );
+  };
 
   // track the last pos entry for each pos type to determine which items to show in the top list
   const posTypeLastEntryUuids: { [key: string]: string } = {};
@@ -204,102 +235,136 @@ export const MapPositionMenu: FunctionComponent = () => {
         <div className={`${!showMenu && styles.hideMenu} ${styles.menuContainer}`}>
           <div
             className={`${editPerms ? styles.buttonContainer : styles.viewOnlyButtonContainer}`}
-            style={{ cursor: "pointer" }}
+            style={{ cursor: "pointer", marginBottom: "10px" }}
           >
             {editPerms && (
-              <div className={styles.toggleContainer}>
-                {selectedRex?.posTypes?.map((posType, index) => {
-                  let toggleStyle = styles.toggleMiddle;
-                  if (index === 0) {
-                    toggleStyle = styles.toggleLeft;
-                  } else if (index === selectedRex?.posTypes.length - 1) {
-                    toggleStyle = styles.toggleRight;
-                  }
-                  return (
-                    <div
-                      key={posType.uuid}
-                      className={`${toggleStyle} ${styles.center} ${
-                        selectedPosTypeUuids.includes(posType.uuid) && styles.toggleSelected
-                      }`}
-                      onClick={() => {
-                        togglePosType(posType.uuid);
-                      }}
-                    >
-                      {posType.abbr}
-                    </div>
-                  );
-                })}
-                <div className={styles.setPosButton}>
-                  {thisMapAction === null && (
-                    <Button
-                      onClick={async () => {
-                        if (posEntryEditingUuid) {
-                          await handlePositionEdit(posEntryEditingUuid);
-                        } else {
-                          await handleCreate();
-                        }
-                      }}
-                      label={posEntryEditingUuid ? "Edit Pos." : "New Pos."}
-                      icon={faCrosshairs}
-                      style={{ height: "1.75em", width: "90px", marginLeft: 0 }}
-                      enabled={selectedPosTypeUuids.length > 0 && canAddEditPosLocation}
-                    />
-                  )}
-                  {(thisMapAction === "createMarker" || thisMapAction === "editMarker") && (
-                    <Button
-                      onClick={() => {
-                        dispatch(thunkCancelPosEntryLocation({ posEntryEditingUuid }));
-                        if (thisMapAction === "createMarker") {
-                          dispatch(setPosEntryEditingUuid(null));
-                        }
-                      }}
-                      icon={faBan}
-                      label="Cancel Pos."
-                      style={{ height: "1.75em", width: "100px", marginLeft: 0 }}
-                    />
-                  )}
-                </div>
-                {posEntriesInEdit?.location && (
-                  <div className={styles.saveCancelButtons}>
-                    <div>
+              <>
+                <div className={styles.toggleContainer}>
+                  {selectedRex?.posTypes?.map((posType, index) => {
+                    let toggleStyle = styles.toggleMiddle;
+                    if (index === 0) {
+                      toggleStyle = styles.toggleLeft;
+                    } else if (index === selectedRex?.posTypes.length - 1) {
+                      toggleStyle = styles.toggleRight;
+                    }
+                    return (
+                      <div
+                        key={posType.uuid}
+                        className={`${toggleStyle} ${styles.center} ${
+                          selectedPosTypeUuids.includes(posType.uuid) && styles.toggleSelected
+                        }`}
+                        onClick={() => {
+                          togglePosType(posType.uuid);
+                        }}
+                        data-tooltip-id="aegis-tooltip"
+                        data-tooltip-html={posType.name}
+                      >
+                        {posType.abbr}
+                      </div>
+                    );
+                  })}
+                  <div className={styles.setPosButton}>
+                    {thisMapAction === null && (
                       <Button
                         onClick={async () => {
-                          await dispatch(
-                            thunkUpdatePosTypesOnPosEntry({
-                              rex: selectedRex,
-                              posEntryUuid: posEntryEditingUuid,
-                              posTypeUuids: selectedPosTypeUuids,
-                            })
-                          );
-                          await dispatch(thunkPersistRexPosEntries({ rexUuid: selectedRex?.uuid }));
+                          if (posEntryEditingUuid) {
+                            await handlePositionEdit(posEntryEditingUuid);
+                          } else {
+                            await handleCreate();
+                          }
                         }}
-                        icon={faFloppyDisk}
-                        toolTip={`Save Position Markers ${modified ? "" : " (nothing to save)"}`}
-                        enabled={modified && selectedPosTypeUuids.length > 0}
-                        style={{
-                          height: "1.75em",
-                          backgroundColor:
-                            modified && selectedPosTypeUuids.length > 0
-                              ? "var(--alert)"
-                              : "var(--alert-disabled)",
-                          color:
-                            modified && selectedPosTypeUuids.length > 0 ? "white" : "var(--grey4)",
-                        }}
+                        label={posEntryEditingUuid ? "Edit Pos." : "New Pos."}
+                        icon={faCrosshairs}
+                        style={{ height: "1.75em", width: "90px", marginLeft: 0 }}
+                        enabled={selectedPosTypeUuids.length > 0 && canAddEditPosLocation}
                       />
-                    </div>
-                    <div>
+                    )}
+                    {(thisMapAction === "createMarker" || thisMapAction === "editMarker") && (
                       <Button
                         onClick={() => {
-                          dispatch(thunkCancelPosEntry({ posEntryUuid: posEntryEditingUuid }));
+                          dispatch(thunkCancelPosEntryLocation({ posEntryEditingUuid }));
+                          if (thisMapAction === "createMarker") {
+                            dispatch(setPosEntryEditingUuid(null));
+                          }
                         }}
                         icon={faBan}
-                        toolTip="Cancel Edit"
-                        style={{ height: "1.75em" }}
+                        label="Cancel Pos."
+                        style={{ height: "1.75em", width: "100px", marginLeft: 0 }}
                       />
-                    </div>
+                    )}
                   </div>
-                )}
-              </div>
+                  {posEntriesInEdit?.location && (
+                    <div className={styles.saveCancelButtons}>
+                      <div>
+                        <Button
+                          onClick={async () => {
+                            await dispatch(
+                              thunkUpdatePosTypesOnPosEntry({
+                                rex: selectedRex,
+                                posEntryUuid: posEntryEditingUuid,
+                                posTypeUuids: selectedPosTypeUuids,
+                              })
+                            );
+                            await dispatch(
+                              thunkPersistRexPosEntries({ rexUuid: selectedRex?.uuid })
+                            );
+                          }}
+                          icon={faFloppyDisk}
+                          toolTip={`Save Position Markers ${modified ? "" : " (nothing to save)"}`}
+                          enabled={modified && selectedPosTypeUuids.length > 0}
+                          style={{
+                            height: "1.75em",
+                            backgroundColor:
+                              modified && selectedPosTypeUuids.length > 0
+                                ? "var(--alert)"
+                                : "var(--alert-disabled)",
+                            color:
+                              modified && selectedPosTypeUuids.length > 0
+                                ? "white"
+                                : "var(--grey4)",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Button
+                          onClick={() => {
+                            dispatch(thunkCancelPosEntry({ posEntryUuid: posEntryEditingUuid }));
+                          }}
+                          icon={faBan}
+                          toolTip="Cancel Edit"
+                          style={{ height: "1.75em" }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className={styles.toggleContainer}>
+                  <div className={styles.sourceText}>Source:</div>
+                  {posSourcesFromDb?.map((posSource, index) => {
+                    let toggleStyle = styles.toggleMiddle;
+                    if (index === 0) {
+                      toggleStyle = styles.toggleLeft;
+                    } else if (index === posSourcesFromDb.length - 1) {
+                      toggleStyle = styles.toggleRight;
+                    }
+                    return (
+                      <div
+                        key={posSource.uuid}
+                        className={`${toggleStyle} ${styles.center} ${
+                          selectedPosSourceUuid === posSource.uuid && styles.toggleSelected
+                        }`}
+                        onClick={() => {
+                          togglePosSource(posSource.uuid);
+                        }}
+                        data-tooltip-id="aegis-tooltip"
+                        data-tooltip-html={posSource.name}
+                      >
+                        {posSource.abbr}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             )}
             <div
               className={styles.menuIconOpen}
@@ -336,6 +401,7 @@ export const MapPositionMenu: FunctionComponent = () => {
                     <br />
                     (mins)
                   </td>
+                  <td>Src</td>
                 </tr>
               </thead>
               <tbody>
@@ -434,6 +500,7 @@ export const PositionRow: FunctionComponent<{
     (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid),
     deepEqual
   );
+  const sourceAbbr = selectedRex?.posSources?.find((s) => s.uuid === posEntry.posSourceUuid)?.abbr;
 
   const posNameList = posEntry.posTypeUuids?.map((uuid) => {
     const posType = selectedRex?.posTypes?.find((p) => p.uuid === uuid);
@@ -502,6 +569,7 @@ export const PositionRow: FunctionComponent<{
           <td className={`${styles.crewColumn}`}>{posNameList?.join(", ")}</td>
           <td>{dist || "Not Set"}</td>
           <td>{duration || "Not Set"}</td>
+          <td>{sourceAbbr}</td>
           <td
             onClick={(e) => {
               e.stopPropagation();

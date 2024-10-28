@@ -1,7 +1,7 @@
 import { expect, Page } from "@playwright/test";
 
 export async function presetTest(page: Page): Promise<string> {
-  await page.goto("http://aegis-local.fit.nasa.gov:4000/mission/1");
+  await page.goto("http://localhost:4000/mission/1");
   //go to preset section
   await page.waitForTimeout(2000);
   await page.getByLabel("preset Section", { exact: true }).click();
@@ -43,7 +43,7 @@ export async function presetTest(page: Page): Promise<string> {
   await page.waitForTimeout(1000);
 
   await page.getByLabel("listAsPrimary", { exact: true }).click();
-  await page.getByLabel("checkbox", { exact: true }).setChecked(false);
+  await page.getByLabel("checkbox", { exact: true }).setChecked(true);
   await expect(newPresetQuery.getByLabel("Unsaved changes", { exact: true })).toBeVisible();
 
   await page.waitForTimeout(500);

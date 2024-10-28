@@ -2,7 +2,7 @@ import { faEllipsisV, faTrashAlt, faEdit } from "@fortawesome/free-solid-svg-ico
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Dispatch, FunctionComponent, SetStateAction, useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkCancelPosEntry, thunkDeletePosEntryByUuid } from "store/thunk/thunkRex";
+import { thunkCancelPosEntry, thunkDeletePosEntryByUuid } from "store/thunk/thunkRexPosEntry";
 import styles from "./map-menu-pos.module.css";
 import { useAppSelector, refEqual } from "utils/useAppSelector";
 import {

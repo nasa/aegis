@@ -15,6 +15,7 @@ export const initialState: RexState = {
   rexesPosEntriesEditing: [],
   selectedPosEntryUuid: null,
   posEntryEditingUuid: null,
+  selectedPosSourceUuid: null,
 };
 
 export const rexSlice = createSlice({
@@ -213,6 +214,9 @@ export const rexSlice = createSlice({
       //eslint-disable-next-line
       state = Object.assign(state, initialState);
     },
+    setSelectedPosSourceUuid: (state, action: { payload: string }) => {
+      state.selectedPosSourceUuid = action.payload;
+    },
   },
   extraReducers: (builder) => {
     // reducer called across slices. This handles this slice's portion of the reducer's state
@@ -246,4 +250,5 @@ export const {
   upsertPosEntry,
   deletePosEntryByUuid,
   obliterateState,
+  setSelectedPosSourceUuid,
 } = rexSlice.actions;

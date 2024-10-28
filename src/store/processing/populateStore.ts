@@ -1,7 +1,12 @@
 import { initialState as wholeStoreInitialState } from "store/index";
 import { getAll } from "http-client/all";
 import _ from "lodash";
-import { auditActionDefinitions, auditActions, auditPresetsAgainstLayers } from "./audits";
+import {
+  auditActionDefinitions,
+  auditActions,
+  auditPosSources,
+  auditPresetsAgainstLayers,
+} from "./audits";
 
 export const populateStore = async (params: {
   missionId: number;
@@ -43,6 +48,7 @@ export const populateStore = async (params: {
   if (runAudit) {
     await auditPresetsAgainstLayers({ wholeStoreState });
     await auditActionDefinitions({ wholeStoreState });
+    await auditPosSources({ wholeStoreState });
   }
 
   // Set the default preset

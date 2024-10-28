@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test("create edit cancel delete eva", async ({ page }) => {
-  await page.goto("http://aegis-local.fit.nasa.gov:4000/mission/1");
+  await page.goto("http://localhost:4000/mission/1");
   await page.waitForTimeout(2000);
 
   // go to eva section

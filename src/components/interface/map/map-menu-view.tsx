@@ -1,6 +1,6 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faCaretRight, faCaretDown, faXmark } from "@fortawesome/free-solid-svg-icons";
-import { Dispatch, FunctionComponent, SetStateAction, useState } from "react";
+import { Dispatch, FunctionComponent, SetStateAction, useEffect, useState } from "react";
 import styles from "./map-menu-view.module.css";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 
@@ -13,8 +13,8 @@ export const MapViewMenu: FunctionComponent<{
   setMapDisplayActions: Dispatch<SetStateAction<MapDisplayMarkers>>;
   showArrows: boolean;
   setShowArrows: Dispatch<SetStateAction<boolean>>;
-  mapDisplayPosMarkers: MapDisplayPos;
-  setMapDisplayPosMarkers: Dispatch<SetStateAction<MapDisplayPos>>;
+  mapDisplayPos: MapDisplayPos;
+  setMapDisplayPos: Dispatch<SetStateAction<MapDisplayPos>>;
   showGridLabels: boolean;
   setShowGridLabels: Dispatch<SetStateAction<boolean>>;
   showGridLines: boolean;
@@ -34,8 +34,8 @@ export const MapViewMenu: FunctionComponent<{
   setMapDisplayActions,
   showArrows,
   setShowArrows,
-  mapDisplayPosMarkers,
-  setMapDisplayPosMarkers,
+  mapDisplayPos,
+  setMapDisplayPos,
   showGridLabels,
   setShowGridLabels,
   showGridLines,
@@ -53,8 +53,36 @@ export const MapViewMenu: FunctionComponent<{
     (state) => state.preset.presets.find((p) => p.uuid === selectedPresetUuid),
     deepEqual
   );
+  const selectedRexPosSourcesFromDb = useAppSelector(
+    (state) => state.rex.rexesFromDb.find((r) => r.uuid === state.rex.selectedRexUuid)?.posSources,
+    deepEqual
+  );
   const earthMoonName = selectedPreset?.earthAsMoon ? "Moon" : "Earth";
   const sunEarthEnabled: boolean = selectedPreset?.sunEnabled || selectedPreset?.earthEnabled;
+
+  //if the selected pos source list contains a uuid that isn't in selected rex's pos sources list this means that the selected rex has changed.
+  //If this is true, set default pos sources to task and crew
+  useEffect(() => {
+    if (selectedRexPosSourcesFromDb) {
+      const taskPosSourceUuid =
+        selectedRexPosSourcesFromDb.find((s) => s.abbr === "T")?.uuid || null;
+      const crewPosSourceUuid =
+        selectedRexPosSourcesFromDb.find((s) => s.abbr === "C")?.uuid || null;
+      if (taskPosSourceUuid || crewPosSourceUuid) {
+        setMapDisplayPos({
+          ...mapDisplayPos,
+          sources: [taskPosSourceUuid, crewPosSourceUuid],
+        });
+        return;
+      }
+      // set to "all" by default if no task or crew pos sources
+      setMapDisplayPos({
+        ...mapDisplayPos,
+        sources: [],
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRexPosSourcesFromDb, setMapDisplayPos]);
 
   return (
     <div className={styles.menuContainer}>
@@ -215,31 +243,78 @@ export const MapViewMenu: FunctionComponent<{
             </div>
             <MenuItem
               title="Positions"
-              selected={mapDisplayPosMarkers.show}
+              selected={mapDisplayPos.show}
               setSelected={() => {
-                setMapDisplayPosMarkers({
-                  ...mapDisplayPosMarkers,
-                  show: !mapDisplayPosMarkers.show,
+                setMapDisplayPos({
+                  ...mapDisplayPos,
+                  show: !mapDisplayPos.show,
                 });
               }}
               collapsible={true}
             >
               <div className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle}`}>
+                Sources
+                <div
+                  className={`${styles.toggleLeft} ${styles.center} ${
+                    mapDisplayPos.sources?.length === 0 && styles.toggleSelected
+                  }`}
+                  onClick={() => {
+                    setMapDisplayPos({
+                      ...mapDisplayPos,
+                      sources: [],
+                    });
+                  }}
+                >
+                  All
+                </div>
+                {selectedRexPosSourcesFromDb?.map((posSource, index) => {
+                  let toggleStyle = styles.toggleMiddle;
+                  if (index === selectedRexPosSourcesFromDb.length - 1) {
+                    toggleStyle = styles.toggleRight;
+                  }
+                  return (
+                    <div
+                      key={posSource.uuid}
+                      className={`${toggleStyle} ${styles.center} ${
+                        mapDisplayPos.sources.includes(posSource.uuid) && styles.toggleSelected
+                      }`}
+                      onClick={() => {
+                        if (mapDisplayPos.sources.includes(posSource.uuid)) {
+                          setMapDisplayPos({
+                            ...mapDisplayPos,
+                            sources: mapDisplayPos.sources.filter((s) => s !== posSource.uuid),
+                          });
+                        } else {
+                          setMapDisplayPos({
+                            ...mapDisplayPos,
+                            sources: [...mapDisplayPos.sources, posSource.uuid],
+                          });
+                        }
+                      }}
+                      data-tooltip-id="aegis-tooltip"
+                      data-tooltip-html={posSource.name}
+                    >
+                      {posSource.abbr}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle}`}>
                 Markers
                 <div
                   className={`${styles.toggleLeft} ${styles.center} ${
-                    mapDisplayPosMarkers.showOldMarkers &&
-                    !mapDisplayPosMarkers.fadeOldMarkers &&
-                    mapDisplayPosMarkers.showMarkers &&
+                    mapDisplayPos.showOldMarkers &&
+                    !mapDisplayPos.fadeOldMarkers &&
+                    mapDisplayPos.showMarkers &&
                     styles.toggleSelected
                   }`}
                   onClick={() => {
-                    setMapDisplayPosMarkers({
-                      ...mapDisplayPosMarkers,
+                    setMapDisplayPos({
+                      ...mapDisplayPos,
                       showOldMarkers: true,
                       fadeOldMarkers: false,
                       showMarkers: true,
-                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                      show: !mapDisplayPos.show ? true : mapDisplayPos.show,
                     });
                   }}
                 >
@@ -247,18 +322,18 @@ export const MapViewMenu: FunctionComponent<{
                 </div>
                 <div
                   className={`${styles.toggleMiddle} ${styles.center} ${
-                    !mapDisplayPosMarkers.showOldMarkers &&
-                    !mapDisplayPosMarkers.fadeOldMarkers &&
-                    mapDisplayPosMarkers.showMarkers &&
+                    !mapDisplayPos.showOldMarkers &&
+                    !mapDisplayPos.fadeOldMarkers &&
+                    mapDisplayPos.showMarkers &&
                     styles.toggleSelected
                   }`}
                   onClick={() => {
-                    setMapDisplayPosMarkers({
-                      ...mapDisplayPosMarkers,
+                    setMapDisplayPos({
+                      ...mapDisplayPos,
                       showOldMarkers: false,
                       fadeOldMarkers: false,
                       showMarkers: true,
-                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                      show: !mapDisplayPos.show ? true : mapDisplayPos.show,
                     });
                   }}
                 >
@@ -266,18 +341,18 @@ export const MapViewMenu: FunctionComponent<{
                 </div>
                 <div
                   className={`${styles.toggleMiddle} ${styles.center} ${
-                    mapDisplayPosMarkers.showOldMarkers &&
-                    mapDisplayPosMarkers.fadeOldMarkers &&
-                    mapDisplayPosMarkers.showMarkers &&
+                    mapDisplayPos.showOldMarkers &&
+                    mapDisplayPos.fadeOldMarkers &&
+                    mapDisplayPos.showMarkers &&
                     styles.toggleSelected
                   }`}
                   onClick={() => {
-                    setMapDisplayPosMarkers({
-                      ...mapDisplayPosMarkers,
+                    setMapDisplayPos({
+                      ...mapDisplayPos,
                       showOldMarkers: true,
                       fadeOldMarkers: true,
                       showMarkers: true,
-                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                      show: !mapDisplayPos.show ? true : mapDisplayPos.show,
                     });
                   }}
                 >
@@ -285,18 +360,18 @@ export const MapViewMenu: FunctionComponent<{
                 </div>
                 <div
                   className={`${styles.toggleRight} ${styles.center} ${
-                    !mapDisplayPosMarkers.showOldMarkers &&
-                    !mapDisplayPosMarkers.fadeOldMarkers &&
-                    !mapDisplayPosMarkers.showMarkers &&
+                    !mapDisplayPos.showOldMarkers &&
+                    !mapDisplayPos.fadeOldMarkers &&
+                    !mapDisplayPos.showMarkers &&
                     styles.toggleSelected
                   }`}
                   onClick={() => {
-                    setMapDisplayPosMarkers({
-                      ...mapDisplayPosMarkers,
+                    setMapDisplayPos({
+                      ...mapDisplayPos,
                       showOldMarkers: false,
                       fadeOldMarkers: false,
                       showMarkers: false,
-                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                      show: !mapDisplayPos.show ? true : mapDisplayPos.show,
                     });
                   }}
                 >
@@ -309,16 +384,16 @@ export const MapViewMenu: FunctionComponent<{
                 Labels
                 <div
                   className={`${styles.toggleLeft} ${styles.center} ${
-                    mapDisplayPosMarkers.showAllLabels &&
-                    !mapDisplayPosMarkers.showLatestLabels &&
+                    mapDisplayPos.showAllLabels &&
+                    !mapDisplayPos.showLatestLabels &&
                     styles.toggleSelected
                   }`}
                   onClick={() => {
-                    setMapDisplayPosMarkers({
-                      ...mapDisplayPosMarkers,
+                    setMapDisplayPos({
+                      ...mapDisplayPos,
                       showAllLabels: true,
                       showLatestLabels: false,
-                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                      show: !mapDisplayPos.show ? true : mapDisplayPos.show,
                     });
                   }}
                 >
@@ -326,16 +401,16 @@ export const MapViewMenu: FunctionComponent<{
                 </div>
                 <div
                   className={`${styles.toggleMiddle} ${styles.center} ${
-                    !mapDisplayPosMarkers.showAllLabels &&
-                    mapDisplayPosMarkers.showLatestLabels &&
+                    !mapDisplayPos.showAllLabels &&
+                    mapDisplayPos.showLatestLabels &&
                     styles.toggleSelected
                   }`}
                   onClick={() => {
-                    setMapDisplayPosMarkers({
-                      ...mapDisplayPosMarkers,
+                    setMapDisplayPos({
+                      ...mapDisplayPos,
                       showAllLabels: false,
                       showLatestLabels: true,
-                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                      show: !mapDisplayPos.show ? true : mapDisplayPos.show,
                     });
                   }}
                 >
@@ -343,16 +418,16 @@ export const MapViewMenu: FunctionComponent<{
                 </div>
                 <div
                   className={`${styles.toggleRight} ${styles.center} ${
-                    !mapDisplayPosMarkers.showAllLabels &&
-                    !mapDisplayPosMarkers.showLatestLabels &&
+                    !mapDisplayPos.showAllLabels &&
+                    !mapDisplayPos.showLatestLabels &&
                     styles.toggleSelected
                   }`}
                   onClick={() => {
-                    setMapDisplayPosMarkers({
-                      ...mapDisplayPosMarkers,
+                    setMapDisplayPos({
+                      ...mapDisplayPos,
                       showAllLabels: false,
                       showLatestLabels: false,
-                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                      show: !mapDisplayPos.show ? true : mapDisplayPos.show,
                     });
                   }}
                 >
@@ -363,18 +438,18 @@ export const MapViewMenu: FunctionComponent<{
                 Paths
                 <div
                   className={`${styles.toggleLeft} ${styles.center} ${
-                    mapDisplayPosMarkers.showOldPaths &&
-                    !mapDisplayPosMarkers.fadeOldPaths &&
-                    mapDisplayPosMarkers.showPaths &&
+                    mapDisplayPos.showOldPaths &&
+                    !mapDisplayPos.fadeOldPaths &&
+                    mapDisplayPos.showPaths &&
                     styles.toggleSelected
                   }`}
                   onClick={() => {
-                    setMapDisplayPosMarkers({
-                      ...mapDisplayPosMarkers,
+                    setMapDisplayPos({
+                      ...mapDisplayPos,
                       showOldPaths: true,
                       fadeOldPaths: false,
                       showPaths: true,
-                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                      show: !mapDisplayPos.show ? true : mapDisplayPos.show,
                     });
                   }}
                 >
@@ -382,18 +457,18 @@ export const MapViewMenu: FunctionComponent<{
                 </div>
                 <div
                   className={`${styles.toggleMiddle} ${styles.center} ${
-                    !mapDisplayPosMarkers.showOldPaths &&
-                    !mapDisplayPosMarkers.fadeOldPaths &&
-                    mapDisplayPosMarkers.showPaths &&
+                    !mapDisplayPos.showOldPaths &&
+                    !mapDisplayPos.fadeOldPaths &&
+                    mapDisplayPos.showPaths &&
                     styles.toggleSelected
                   }`}
                   onClick={() => {
-                    setMapDisplayPosMarkers({
-                      ...mapDisplayPosMarkers,
+                    setMapDisplayPos({
+                      ...mapDisplayPos,
                       showOldPaths: false,
                       fadeOldPaths: false,
                       showPaths: true,
-                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                      show: !mapDisplayPos.show ? true : mapDisplayPos.show,
                     });
                   }}
                 >
@@ -401,18 +476,18 @@ export const MapViewMenu: FunctionComponent<{
                 </div>
                 <div
                   className={`${styles.toggleMiddle} ${styles.center} ${
-                    mapDisplayPosMarkers.showOldPaths &&
-                    mapDisplayPosMarkers.fadeOldPaths &&
-                    mapDisplayPosMarkers.showPaths &&
+                    mapDisplayPos.showOldPaths &&
+                    mapDisplayPos.fadeOldPaths &&
+                    mapDisplayPos.showPaths &&
                     styles.toggleSelected
                   }`}
                   onClick={() => {
-                    setMapDisplayPosMarkers({
-                      ...mapDisplayPosMarkers,
+                    setMapDisplayPos({
+                      ...mapDisplayPos,
                       showOldPaths: true,
                       fadeOldPaths: true,
                       showPaths: true,
-                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                      show: !mapDisplayPos.show ? true : mapDisplayPos.show,
                     });
                   }}
                 >
@@ -420,18 +495,18 @@ export const MapViewMenu: FunctionComponent<{
                 </div>
                 <div
                   className={`${styles.toggleRight} ${styles.center} ${
-                    !mapDisplayPosMarkers.showOldPaths &&
-                    !mapDisplayPosMarkers.fadeOldPaths &&
-                    !mapDisplayPosMarkers.showPaths &&
+                    !mapDisplayPos.showOldPaths &&
+                    !mapDisplayPos.fadeOldPaths &&
+                    !mapDisplayPos.showPaths &&
                     styles.toggleSelected
                   }`}
                   onClick={() => {
-                    setMapDisplayPosMarkers({
-                      ...mapDisplayPosMarkers,
+                    setMapDisplayPos({
+                      ...mapDisplayPos,
                       showOldPaths: false,
                       fadeOldPaths: false,
                       showPaths: false,
-                      show: !mapDisplayPosMarkers.show ? true : mapDisplayPosMarkers.show,
+                      show: !mapDisplayPos.show ? true : mapDisplayPos.show,
                     });
                   }}
                 >

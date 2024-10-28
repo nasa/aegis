@@ -26,9 +26,13 @@ export default defineConfig({
     // Base URL to use in actions like `await page.goto('/')`.
     baseURL: "http://aegis-local.fit.nasa.gov:4000/",
 
+    headless: true, // Ensure headless mode is enabled
+    viewport: { width: 1960, height: 1080 }, // Set screen resolution
+
     // Collect trace when retrying the failed test.
     trace: "on-first-retry",
   },
+
   // Configure projects for major browsers.
   projects: [
     { name: "auth", testMatch: /.*\.auth\.ts/ },
@@ -44,8 +48,9 @@ export default defineConfig({
   // Run your local dev server before starting the tests.
   webServer: {
     command: "npm run dev",
-    url: "http://aegis-local.fit.nasa.gov:4000/",
+    url: "http://localhost:4000",
     reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
   },
 
   globalSetup: require.resolve("./src/tests/playwright/playwright.globalSetup.ts"),

@@ -5,9 +5,9 @@ import { faEarthAmerica, faMoon, faSun } from "@fortawesome/free-solid-svg-icons
 
 export const SunEarth: FunctionComponent<{
   type: "editor" | "dashboard";
-  mapSelectedPreset: Preset;
-}> = ({ type, mapSelectedPreset }) => {
-  const selectedPreset = mapSelectedPreset;
+  selectedPreset: Preset;
+}> = ({ type, selectedPreset }) => {
+  if (!selectedPreset) return null;
 
   let height = 180;
   if (
