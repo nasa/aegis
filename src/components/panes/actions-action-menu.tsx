@@ -12,7 +12,7 @@ import actionStyles from "./actions-action.module.css";
 import { upsertAction } from "store/action";
 import { thunkDeleteActionFromStore } from "store/thunk/thunkAction";
 import { thunkCreateTemplateFromAction } from "store/thunk/thunkMission";
-import { setMissionSectionEditing } from "store/mission";
+import { shallowEqual, useAppSelector } from "utils/useAppSelector";
 
 export const ActionMenu: FunctionComponent<{
   action: Action;
@@ -20,6 +20,11 @@ export const ActionMenu: FunctionComponent<{
   const dispatch = useAppDispatch();
   const dialogRef = useRef(null);
   const menuRef = useRef(null);
+
+  const missionSectionsEditing = useAppSelector(
+    (state) => state.mission.missionSectionsEditing,
+    shallowEqual
+  );
 
   const handleMenuOpen = (e: React.MouseEvent) => {
     const x = e.clientX - 130; // width of the menu
@@ -70,13 +75,18 @@ export const ActionMenu: FunctionComponent<{
             className={actionStyles.menuItem}
             onClick={async (e) => {
               e.stopPropagation();
-              dispatch(setMissionSectionEditing({ section: "prefs", editMode: true }));
-              const newTemplateUuid = await dispatch(
-                thunkCreateTemplateFromAction({ actionUuid: action.uuid })
-              );
-              window.alert(
-                `Action Template created from action. To save this action template to the database, please save go to the mission configuration tab and save the mission.\nTemplate UUID: ${newTemplateUuid.payload}`
-              );
+              if (!missionSectionsEditing.includes("prefs")) {
+                const newTemplateUuid = await dispatch(
+                  thunkCreateTemplateFromAction({ actionUuid: action.uuid })
+                );
+                window.alert(
+                  `Action Template created from action. To save this action template to the database, please save go to the mission configuration tab and save the mission.\nTemplate UUID: ${newTemplateUuid.payload}`
+                );
+              } else {
+                window.alert(
+                  `Cannot create action template - Please ensure mission confiuartion is not in edit mode.`
+                );
+              }
 
               dialogRef.current?.close();
             }}

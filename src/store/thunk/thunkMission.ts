@@ -225,18 +225,29 @@ export const thunkCreateTemplateFromAction = appCreateAsyncThunk<{ actionUuid: s
 
     const actionTemplates = cloneDeep(getState().mission.mission.actionTemplates) || [];
 
-    const newActionTemplate: ActionTemplate = generateBlankActionTemplate({
-      ...action,
+    const newActionTemplate: ActionTemplate = {
       uuid: uuidv4(),
+      missionId: action.missionId,
       templateName: `Template of ${action.name}`,
+      type: action.type,
+      name: action.name,
+      actionDefinition: action.actionDefinition,
+      description: action.description,
+      durationLower: action.durationLower,
+      durationUpper: action.durationUpper,
+      mass: action.mass,
+      icon: action.icon,
+      equipmentItemsUsage: action.equipmentItemsUsage,
+      geographicUnitsUsage: action.geographicUnitsUsage,
       createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
       updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    });
+    };
 
     //upsert action template
     actionTemplates.push(newActionTemplate);
 
     dispatch(upsertMissionByField("actionTemplates", actionTemplates));
+    dispatch(thunkMissionSave());
     return newActionTemplate.uuid;
   }
 );
