@@ -88,7 +88,7 @@ export const ActionMenu: FunctionComponent<{
                   window.alert(`Action Template successfully created from action.`);
                 } else {
                   window.alert(
-                    `Cannot create action template - Please ensure mission configuartion is not in edit mode.`
+                    `Cannot create action template - Please ensure mission configuration is not in edit mode.`
                   );
                 }
 
