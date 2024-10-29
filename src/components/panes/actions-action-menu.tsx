@@ -12,7 +12,7 @@ import actionStyles from "./actions-action.module.css";
 import { upsertAction } from "store/action";
 import { thunkDeleteActionFromStore } from "store/thunk/thunkAction";
 import { thunkCreateTemplateFromAction } from "store/thunk/thunkMission";
-import { shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 
 export const ActionMenu: FunctionComponent<{
   action: Action;
@@ -24,6 +24,13 @@ export const ActionMenu: FunctionComponent<{
   const missionSectionsEditing = useAppSelector(
     (state) => state.mission.missionSectionsEditing,
     shallowEqual
+  );
+
+  const missionEditPerms = useAppSelector(
+    (state) =>
+      (state.user.missionPerms.permissions.edit && state.user.user.isAdmin) ||
+      state.user.user.isSuperAdmin,
+    refEqual
   );
 
   const handleMenuOpen = (e: React.MouseEvent) => {
@@ -71,31 +78,33 @@ export const ActionMenu: FunctionComponent<{
             </div>
             <div className={actionStyles.menuItemText}>Delete Action</div>
           </div>
-          <div
-            className={actionStyles.menuItem}
-            onClick={async (e) => {
-              e.stopPropagation();
-              if (!missionSectionsEditing.includes("prefs")) {
-                const newTemplateUuid = await dispatch(
-                  thunkCreateTemplateFromAction({ actionUuid: action.uuid })
-                );
-                window.alert(
-                  `Action Template created from action. To save this action template to the database, please save go to the mission configuration tab and save the mission.\nTemplate UUID: ${newTemplateUuid.payload}`
-                );
-              } else {
-                window.alert(
-                  `Cannot create action template - Please ensure mission confiuartion is not in edit mode.`
-                );
-              }
+          {missionEditPerms && (
+            <div
+              className={actionStyles.menuItem}
+              onClick={async (e) => {
+                e.stopPropagation();
+                if (!missionSectionsEditing.includes("prefs")) {
+                  const newTemplateUuid = await dispatch(
+                    thunkCreateTemplateFromAction({ actionUuid: action.uuid })
+                  );
+                  window.alert(
+                    `Action Template successfully created from action. \nTemplate UUID: ${newTemplateUuid.payload}`
+                  );
+                } else {
+                  window.alert(
+                    `Cannot create action template - Please ensure mission configuartion is not in edit mode.`
+                  );
+                }
 
-              dialogRef.current?.close();
-            }}
-          >
-            <div className={actionStyles.menuItemIcon}>
-              <FontAwesomeIcon icon={faGears} size="sm" />
+                dialogRef.current?.close();
+              }}
+            >
+              <div className={actionStyles.menuItemIcon}>
+                <FontAwesomeIcon icon={faGears} size="sm" />
+              </div>
+              <div className={actionStyles.menuItemText}>Use as Template</div>
             </div>
-            <div className={actionStyles.menuItemText}>Use as Template</div>
-          </div>
+          )}
         </div>
       </dialog>
 
