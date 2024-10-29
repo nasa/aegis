@@ -87,9 +87,7 @@ export const ActionMenu: FunctionComponent<{
                   const newTemplateUuid = await dispatch(
                     thunkCreateTemplateFromAction({ actionUuid: action.uuid })
                   );
-                  window.alert(
-                    `Action Template successfully created from action. \nTemplate UUID: ${newTemplateUuid.payload}`
-                  );
+                  window.alert(`Action Template successfully created from action.`);
                 } else {
                   window.alert(
                     `Cannot create action template - Please ensure mission configuartion is not in edit mode.`
