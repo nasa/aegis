@@ -84,9 +84,7 @@ export const ActionMenu: FunctionComponent<{
               onClick={async (e) => {
                 e.stopPropagation();
                 if (!missionSectionsEditing.includes("prefs")) {
-                  const newTemplateUuid = await dispatch(
-                    thunkCreateTemplateFromAction({ actionUuid: action.uuid })
-                  );
+                  await dispatch(thunkCreateTemplateFromAction({ actionUuid: action.uuid }));
                   window.alert(`Action Template successfully created from action.`);
                 } else {
                   window.alert(
