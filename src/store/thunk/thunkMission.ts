@@ -239,6 +239,7 @@ export const thunkCreateTemplateFromAction = appCreateAsyncThunk<{ actionUuid: s
       icon: action.icon,
       equipmentItemsUsage: action.equipmentItemsUsage,
       geographicUnitsUsage: action.geographicUnitsUsage,
+      stmAction: action.stmAction,
       createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
       updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
