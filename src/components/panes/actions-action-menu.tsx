@@ -1,4 +1,5 @@
 import {
+  faClone,
   faEllipsisV,
   faEye,
   faEyeSlash,
@@ -10,7 +11,7 @@ import { FunctionComponent, useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import actionStyles from "./actions-action.module.css";
 import { upsertAction } from "store/action";
-import { thunkDeleteActionFromStore } from "store/thunk/thunkAction";
+import { thunkDeleteActionFromStore, thunkDuplicateActions } from "store/thunk/thunkAction";
 import { thunkCreateTemplateFromAction } from "store/thunk/thunkMission";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 
@@ -101,6 +102,25 @@ export const ActionMenu: FunctionComponent<{
               <div className={actionStyles.menuItemText}>Use as Template</div>
             </div>
           )}
+          <div
+            className={actionStyles.menuItem}
+            onClick={(e) => {
+              e.stopPropagation();
+              dispatch(
+                thunkDuplicateActions({
+                  actions: [action],
+                  stationUuid: action.stationUuid,
+                  poiUuid: action.poiUuid,
+                })
+              );
+              dialogRef.current?.close();
+            }}
+          >
+            <div className={actionStyles.menuItemIcon}>
+              <FontAwesomeIcon icon={faClone} size="sm" />
+            </div>
+            <div className={actionStyles.menuItemText}>Duplicate Action</div>
+          </div>
         </div>
       </dialog>
 
