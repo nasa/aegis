@@ -13,6 +13,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     id: null,
     version: 0,
     name: "",
+    isArchived: false,
     description: "",
     actionSystemVersion: 1,
     actionDefinitions: null,

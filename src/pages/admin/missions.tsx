@@ -122,88 +122,102 @@ const MissionList = (props: { missions: Mission[]; user: User; loadMissionsFromD
     }
   }
 
-  if (props.missions?.length > 0) {
+  const listedMissions = (missionType: Mission[]) => {
+    return missionType.map((mission: Mission) => {
+      if (
+        props.user.isSuperAdmin ||
+        permissionList.some((p) => p.missionId === mission.id && p.permissions.edit === true)
+      ) {
+        return (
+          <li key={mission.id}>
+            {" "}
+            <>
+              {mission.name} (v{mission.version})<br />
+              <button
+                type="button"
+                onClick={() => {
+                  navigate(`/admin/mission/${mission.id}`);
+                }}
+              >
+                Edit Mission
+              </button>
+              &nbsp;
+              <button
+                type="button"
+                onClick={() => {
+                  navigate(`/admin/mission_layers/${mission.id}`);
+                }}
+              >
+                Edit Layers
+              </button>
+              &nbsp;
+              <button
+                type="button"
+                onClick={() => {
+                  navigate(`/admin/mission_stm/${mission.id}`);
+                }}
+              >
+                Edit STM
+              </button>
+              &nbsp;
+              <button
+                type="button"
+                onClick={() => {
+                  navigate(`/admin/mission_grid/${mission.id}`);
+                }}
+              >
+                Edit Grid
+              </button>
+              &nbsp;
+              <button
+                type="button"
+                onClick={() => {
+                  navigate(`/admin/export/${mission.id}`);
+                }}
+              >
+                Export
+              </button>
+              &nbsp;
+              <button
+                className={styles.deleteButton}
+                type="button"
+                onClick={() => {
+                  delMission(mission.id);
+                }}
+              >
+                Delete Mission
+              </button>
+            </>
+          </li>
+        );
+      } else {
+        return (
+          <li key={mission.id}>
+            <>
+              <span className={styles.noPermission}>
+                {mission.name} (v{mission.version}) [No Edit Permissions]
+              </span>
+            </>
+          </li>
+        );
+      }
+    });
+  };
+
+  const visibleMissions = props.missions?.filter(
+    (mission: Mission) => mission.isArchived == undefined || mission.isArchived == false
+  );
+  const archivedMissions = props.missions?.filter(
+    (missions: Mission) => missions.isArchived == true
+  );
+
+  if (props.missions.length > 0) {
     return (
-      <ul>
-        {props.missions.map((mission: Mission) => {
-          if (
-            props.user.isSuperAdmin ||
-            permissionList.some((p) => p.missionId === mission.id && p.permissions.edit === true)
-          ) {
-            return (
-              <li key={mission.id}>
-                <>
-                  {mission.name} (v{mission.version})<br />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigate(`/admin/mission/${mission.id}`);
-                    }}
-                  >
-                    Edit Mission
-                  </button>
-                  &nbsp;
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigate(`/admin/mission_layers/${mission.id}`);
-                    }}
-                  >
-                    Edit Layers
-                  </button>
-                  &nbsp;
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigate(`/admin/mission_stm/${mission.id}`);
-                    }}
-                  >
-                    Edit STM
-                  </button>
-                  &nbsp;
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigate(`/admin/mission_grid/${mission.id}`);
-                    }}
-                  >
-                    Edit Grid
-                  </button>
-                  &nbsp;
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigate(`/admin/export/${mission.id}`);
-                    }}
-                  >
-                    Export
-                  </button>
-                  &nbsp;
-                  <button
-                    className={styles.deleteButton}
-                    type="button"
-                    onClick={() => {
-                      delMission(mission.id);
-                    }}
-                  >
-                    Delete Mission
-                  </button>
-                </>
-              </li>
-            );
-          } else {
-            return (
-              <li key={mission.id}>
-                <>
-                  <span className={styles.noPermission}>
-                    {mission.name} (v{mission.version}) [No Edit Permissions]
-                  </span>
-                </>
-              </li>
-            );
-          }
-        })}
-      </ul>
+      <div>
+        <ul>{listedMissions(visibleMissions)}</ul>
+        <h2>Archived Missions:</h2>
+        <ul>{listedMissions(archivedMissions)}</ul>
+      </div>
     );
   } else {
     return <div>No missions found</div>;
