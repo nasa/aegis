@@ -132,6 +132,11 @@ export const config: DotenvConfig<typeof environments> = {
     default: "https://INSERT_SUBDOMAIN.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
   },
   REDIS_CACHE_DIR: { local: "./.local/redis", default: "/d1/aegis/redis" },
+  // Mock up the user when running in non-docker local dev or else JWT errors will occur
+  MOCK_USER: {
+    local: "true",
+    default: "false",
+  },
 
   /**
    * !!!! SENSITIVE DATA !!!!
