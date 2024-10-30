@@ -75,6 +75,8 @@ export class Mission_db implements Mission_db_type {
   stmLevel3Name: string;
   @Property({ type: MikroTypes.json, nullable: true })
   actionDefinitions: ActionDefinitions;
+  @Property({ type: MikroTypes.boolean, default: false })
+  isArchived: boolean;
 
   @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;

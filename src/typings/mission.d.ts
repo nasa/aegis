@@ -7,6 +7,7 @@ interface Mission {
   description: string;
   missionBanner: string;
   version: number;
+  isArchived: boolean;
   actionSystemVersion: number;
   actionDefinitions: ActionDefinitions;
   landerLocation: AEGISPoint;
