@@ -26,7 +26,7 @@ const getMockUser = (): EmssUser => {
 };
 
 export const getUser = (req: Request): EmssUser | Error => {
-  if (process.env.MOCK_USER) {
+  if (process.env.MOCK_USER === "true") {
     return getMockUser();
   }
   return getUserFromJWT(req);
