@@ -44,27 +44,27 @@ include:
 
   # Code quality checks
   - project: "emss/gitlab-templates"
-    ref: 1.2.3
+    ref: 2.2.0
     file: "/jobs/code-quality.gitlab-ci.yml"
 
   # Fitdock deploy template
   - project: "emss/gitlab-templates"
-    ref: 1.2.3
+    ref: 2.2.0
     file: "/jobs/fitdock-deploy.gitlab-ci.yml"
 
   # EMSS shared dev server helpers (carbon, iron, oxygen, etc)
   - project: "emss/gitlab-templates"
-    ref: 1.2.3
+    ref: 2.2.0
     file: "/jobs/emss-shared-dev.gitlab-ci.yml"
 
   # Kaniko build template
   - project: "emss/gitlab-templates"
-    ref: 1.2.3
+    ref: 2.2.0
     file: "/jobs/kaniko-build.gitlab-ci.yml"
 
   # Retag job template
   - project: "emss/gitlab-templates"
-    ref: 1.2.3
+    ref: 2.2.0
     file: "/jobs/container-retag.gitlab-ci.yml"
 
 # Overrride some properties on FIT jobs. Unfortunately using a template for these
@@ -166,7 +166,7 @@ node-sbom:
   stage: stageless
   needs:
     - install_dependencies
-    - make-dotenv
+    - make-test-dotenv
     - z:db-export:prod
   variables:
     # define variables used by Node app
@@ -232,7 +232,7 @@ playwright_test:
   image: mcr.microsoft.com/playwright:v1.48.0-focal
   needs:
     - install_dependencies
-    - make-dotenv
+    - make-test-dotenv
     - z:db-export:prod
   script:
     - echo "Running shard $SHARD_INDEX of $NUM_SHARDS"
@@ -249,7 +249,7 @@ playwright_test:
       - playwright-report/ # Store Playwright test reports
     expire_in: 1 day
 
-make-dotenv:
+.make-dotenv-template:
   image: "$CURRENT_NODE_VERSION_IMAGE"
   stage: stageless
   needs: []
@@ -300,7 +300,7 @@ make-dotenv:
     # Save image version into an artifact to be read later in other job scripts
     - echo "IMAGE_VERSION=${IMAGE_VERSION}" >> pipelineVariables.env
 
-    - make-dotenv fit
+    - make-dotenv "${MAKEDOTENV_ENV}"
 
   artifacts:
     reports:
@@ -308,6 +308,16 @@ make-dotenv:
     paths:
       - .env
     expire_in: 1 day
+
+make-dotenv:
+  extends: .make-dotenv-template
+  variables:
+    MAKEDOTENV_ENV: "fit"
+
+make-test-dotenv:
+  extends: .make-dotenv-template
+  variables:
+    MAKEDOTENV_ENV: "test"
 
 #
 # Build container images
@@ -406,6 +416,7 @@ deploy:dev1:
   before_script:
     # This is currently our hack to change out a necessary var for Launchpad Auth
     - sed -i "s/INSERT_SUBDOMAIN/aegis-dev/g" .env
+    - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/aegis-dev/g" .env
 
 deploy:carbon:
   extends:
@@ -419,6 +430,7 @@ deploy:carbon:
   before_script:
     # This is currently our hack to change out a necessary var for Launchpad Auth
     - sed -i "s/INSERT_SUBDOMAIN/carbon-emss-dev/g" .env
+    - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/carbon/g" .env
 
 deploy:gold:
   extends:
@@ -432,6 +444,7 @@ deploy:gold:
   before_script:
     # This is currently our hack to change out a necessary var for Launchpad Auth
     - sed -i "s/INSERT_SUBDOMAIN/gold-emss-dev/g" .env
+    - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/gold/g" .env
 
 deploy:iron:
   extends:
@@ -445,6 +458,7 @@ deploy:iron:
   before_script:
     # This is currently our hack to change out a necessary var for Launchpad Auth
     - sed -i "s/INSERT_SUBDOMAIN/iron-emss-dev/g" .env
+    - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/iron/g" .env
 
 deploy:neon:
   extends:
@@ -458,6 +472,7 @@ deploy:neon:
   before_script:
     # This is currently our hack to change out a necessary var for Launchpad Auth
     - sed -i "s/INSERT_SUBDOMAIN/neon-emss-dev/g" .env
+    - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/neon/g" .env
 
 deploy:oxygen:
   extends:
@@ -471,6 +486,7 @@ deploy:oxygen:
   before_script:
     # This is currently our hack to change out a necessary var for Launchpad Auth
     - sed -i "s/INSERT_SUBDOMAIN/oxygen-emss-dev/g" .env
+    - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/oxygen/g" .env
 
 deploy:int:
   extends: .deploy-template
@@ -485,11 +501,16 @@ deploy:int:
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
     URL: https://aegis-int.fit.nasa.gov
+
+    # Turn off forwarding logs from VM's Rsyslog to EMSS logging server
+    # Cannot enable in int/prod environments until FIT firewall altered
+    RSYSLOG_DISABLE_FORWARDING: "true"
   only:
     - int
   before_script:
     # This is currently our hack to change out a necessary var for Launchpad Auth
     - sed -i "s/INSERT_SUBDOMAIN/aegis-int/g" .env
+    - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/int/g" .env
 
 deploy:prod:
   extends: .deploy-template
@@ -504,12 +525,17 @@ deploy:prod:
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD #CI/CD Variable
     URL: https://aegis.fit.nasa.gov
+
+    # Turn off forwarding logs from VM's Rsyslog to EMSS logging server
+    # Cannot enable in int/prod environments until FIT firewall altered
+    RSYSLOG_DISABLE_FORWARDING: "true"
   when: manual
   only:
     - prod
   before_script:
     # This is currently our hack to change out a necessary var for Launchpad Auth
     - sed -i "s/INSERT_SUBDOMAIN/aegis/g" .env
+    - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/prod/g" .env
 
 .db-export-template:
   needs: []
@@ -678,6 +704,7 @@ z:db-import:int:
     - sudo docker compose logs database --tail 100
     - sudo docker compose logs gdal --tail 100
     - sudo docker compose logs apiv1 --tail 100
+    - sudo journalctl --unit=rsyslog -n 200 --no-pager
 
     # Put the full logs into artifacts. Full logs may hit the job log length
     # limit, and generally make the job log unreadably long
@@ -685,6 +712,8 @@ z:db-import:int:
     - sudo docker compose logs database > "${LOG_ARTIFACTS}/database"
     - sudo docker compose logs gdal > "${LOG_ARTIFACTS}/gdal"
     - sudo docker compose logs apiv1 > "${LOG_ARTIFACTS}/apiv1"
+    - sudo journalctl --unit=rsyslog --no-pager > "${LOG_ARTIFACTS}/host-rsyslog"
+
   artifacts:
     when: always
     paths:

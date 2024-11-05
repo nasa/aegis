@@ -8,6 +8,7 @@ import _ from "lodash";
 import { setupSocketIO } from "./sockets";
 import { globalValues } from "./global";
 import { getORM } from "utils/mikro";
+import serverLogger from "utils/serverLogger";
 
 // start the database connection
 getORM();
@@ -34,5 +35,5 @@ globalValues.socketio = new SocketServer<
 setupSocketIO();
 
 server.listen(4001, () => {
-  console.log(`http server (re)started`);
+  serverLogger.info({ logId: "api-restart" });
 });
