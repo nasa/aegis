@@ -56,7 +56,7 @@ const MissionSTMPage: React.FunctionComponent = () => {
             }}
           />
         </div>
-        <MissionSTM mission={mission} setMission={setMission} />
+        {mission && <MissionSTM mission={mission} setMission={setMission} />}
       </div>
     </div>
   );

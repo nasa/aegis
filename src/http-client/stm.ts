@@ -89,11 +89,14 @@ export async function deleteSTMs(
 
 /****** STMRules ******/
 
-export async function getSTMRules(): Promise<WrappedResponse<STMRule[]>> {
-  const missionIdStr =
-    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
-  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
-  const res = await fetch(`/api/v1/stmRules?missionId=${missionId}`);
+export async function getSTMRules(missionId?: number): Promise<WrappedResponse<STMRule[]>> {
+  let missionIdNum = missionId;
+  if (!missionIdNum) {
+    const missionIdStr =
+      typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+    missionIdNum = missionIdStr ? parseInt(missionIdStr) : undefined;
+  }
+  const res = await fetch(`/api/v1/stmRules?missionId=${missionIdNum}`);
   const response: WrappedResponse<STMRule[]> = await res.json();
   return response;
 }

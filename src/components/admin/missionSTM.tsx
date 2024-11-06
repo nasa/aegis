@@ -1,15 +1,20 @@
 import { Dispatch, FunctionComponent, SetStateAction, useEffect, useState } from "react";
 import adminStyles from "./admin.module.css";
-import { getSTMLevel1s, getStmLevel2s, getSTMLevel3s, deleteSTMs } from "http-client/stm";
+import {
+  getSTMLevel1s,
+  getStmLevel2s,
+  getSTMLevel3s,
+  deleteSTMs,
+  getSTMRules,
+  upsertSTMs,
+} from "http-client/stm";
 import STMEdit from "components/admin/stmEdit";
+import stmStyles from "./stmEdit.module.css";
 
 const MissionSTM: FunctionComponent<{
   mission: Mission;
   setMission: Dispatch<SetStateAction<Mission>>;
 }> = ({ mission, setMission }) => {
-  const [missionIdSlug, setMissionIdSlug] = useState<number>(null);
-  const [message, setMessage] = useState("");
-
   //responses from the DB
   const [allLevel1s, setAllLevel1s] = useState<STMLevel1[]>([]);
   const [allLevel2s, setAllLevel2s] = useState<STMLevel2[]>([]);
@@ -36,45 +41,45 @@ const MissionSTM: FunctionComponent<{
       }
     }
   }
-
+  // put loadSTMfromDB in a useEffect to handle the side effect of updating state
   useEffect(() => {
-    if (!mission) return;
-
-    setMissionIdSlug(mission.id);
-  }, [mission]);
-
-  //realod db when mission id changes
-  useEffect(() => {
-    loadSTMfromDB(missionIdSlug);
-  }, [missionIdSlug]);
+    loadSTMfromDB(mission.id);
+  }, [mission.id]);
 
   //delete a level 1, 2, or 3
   async function delSTM(uuid: string, stmType: "Level1" | "Level2" | "Level3") {
     if (confirm("Are you sure you want to delete " + stmType)) {
-      //check if there are children for this STM item
-      let showAlert = false;
+      // check if there are children for this STM item
+      let alertMsg = "";
       if (stmType === "Level1") {
         if (allLevel2s.findIndex((level2) => level2.level1Uuid === uuid) >= 0) {
-          showAlert = true;
+          alertMsg = "\nSTM has a level 2 child";
         }
       } else if (stmType === "Level2") {
         if (allLevel3s.findIndex((level3) => level3.level2Uuid === uuid) >= 0) {
-          showAlert = true;
+          alertMsg = "\nSTM has a level 3 child";
         }
       }
-      if (showAlert) {
-        alert(
-          `Cannot delete ${stmType} because it has children. Delete all the children first, then delete this ${stmType}.`
-        );
+
+      // check if any rules assigned to it
+      if (mission.actionSystemVersion === 2) {
+        const res = await getSTMRules(mission.id);
+        if (res.data) {
+          const rules = res.data;
+          if (rules.findIndex((rule) => rule.stmUuid === uuid) >= 0) {
+            alertMsg = "\nSTM has a rule assigned";
+          }
+        }
+      }
+      if (alertMsg.length > 0) {
+        alert(`Cannot delete ${stmType}. ${alertMsg}`);
         return;
       }
       try {
-        setMessage(`Deleting ${stmType}: ${uuid}`);
-        await deleteSTMs(missionIdSlug, stmType, [uuid]);
-        await loadSTMfromDB(missionIdSlug);
-        setMessage(`Delete Complete`);
+        await deleteSTMs(mission.id, stmType, [uuid]);
+        await loadSTMfromDB(mission.id);
       } catch {
-        setMessage(`Unknown error deleting ${stmType}: ${uuid}`);
+        alert(`Unknown error deleting ${stmType}: ${uuid}`);
       }
     }
   }
@@ -84,20 +89,19 @@ const MissionSTM: FunctionComponent<{
       {mission && (
         <div>
           <h2>STM for Mission: {mission.name}</h2>
-          Status: {message}
           <div className={adminStyles.sectionDiv}>
             <div className={adminStyles.sectionDivHeading}>Science Tracability Matrix</div>
             <Level1List
               level1s={allLevel1s}
               level2s={allLevel2s}
               level3s={allLevel3s}
-              delSTM={delSTM}
               mission={mission}
+              delSTM={delSTM}
             />
           </div>
           <div id="editSTM_div">
             <STMEdit
-              missionId={missionIdSlug}
+              missionId={mission.id}
               allLevel1s={allLevel1s}
               allLevel2s={allLevel2s}
               allLevel3s={allLevel3s}
@@ -121,34 +125,35 @@ const Level1List: FunctionComponent<{
   level1s: STMLevel1[];
   level2s: STMLevel2[];
   level3s: STMLevel3[];
-  delSTM: (uuid: string, stmType: string) => void;
   mission: Mission;
-}> = ({ level1s, level2s, level3s, delSTM, mission }) => {
+  delSTM: (uuid: string, stmType: string) => void;
+}> = ({ level1s, level2s, level3s, mission, delSTM }) => {
   if (level1s.length > 0) {
     return (
       <ul>
         {level1s.map((objv: STMLevel1) => {
           return (
             <li key={objv.uuid}>
-              <span style={{ textDecoration: mission.stmLevel1Enabled ? "none" : "line-through" }}>
-                {mission.stmLevel1Name} {objv.numbering}: {objv.name}
-              </span>
-              <button
-                className={adminStyles.deleteButton}
-                type="button"
-                onClick={() => {
+              <STMUpdateFields
+                stm={objv}
+                stmLevelName={mission.stmLevel1Name}
+                disabled={!mission.stmLevel1Enabled}
+                deleteFunction={() => {
                   delSTM(objv.uuid, "Level1");
                 }}
-              >
-                Delete Level 1
-              </button>
+                saveFunction={async (stm) => {
+                  const res = await upsertSTMs(mission.id, [stm] as STMLevel1[], "Level1");
+                  if (res.status !== "success") {
+                    alert(`${res.status} saving STM: ${res.message}`);
+                  }
+                }}
+              />
               <Level2List
-                parentNumbering={objv.numbering}
                 parentuuid={objv.uuid}
                 level2s={level2s}
                 level3s={level3s}
-                delSTM={delSTM}
                 mission={mission}
+                delSTM={delSTM}
               />
             </li>
           );
@@ -163,39 +168,37 @@ const Level1List: FunctionComponent<{
 //Level2 list component
 const Level2List: FunctionComponent<{
   parentuuid: string;
-  parentNumbering: string;
   level2s: STMLevel2[];
   level3s: STMLevel3[];
-  delSTM: (uuid: string, stmType: string) => void;
   mission: Mission;
-}> = ({ parentuuid, parentNumbering, level2s, level3s, delSTM, mission }) => {
+  delSTM: (uuid: string, stmType: string) => void;
+}> = ({ parentuuid, level2s, level3s, mission, delSTM }) => {
   if (level2s) {
     return (
       <ul>
         {level2s
           .filter((level2) => level2.level1Uuid === parentuuid)
           .map((level2: STMLevel2) => {
-            const level2Numbering = mission.stmLevel1Enabled
-              ? `${parentNumbering}${level2.numbering}`
-              : `${level2.numbering}`;
             return (
               <li key={level2.uuid}>
-                {mission.stmLevel2Name} {level2Numbering}: {level2.name}
-                <button
-                  className={adminStyles.deleteButton}
-                  type="button"
-                  onClick={() => {
+                <STMUpdateFields
+                  stm={level2}
+                  stmLevelName={mission.stmLevel2Name}
+                  deleteFunction={() => {
                     delSTM(level2.uuid, "Level2");
                   }}
-                >
-                  Delete Level 2
-                </button>
+                  saveFunction={async (stm) => {
+                    const res = await upsertSTMs(mission.id, [stm] as STMLevel2[], "Level2");
+                    if (res.status !== "success") {
+                      alert(`${res.status} saving STM: ${res.message}`);
+                    }
+                  }}
+                />
                 <Level3List
-                  parentNumbering={level2Numbering}
                   parentuuid={level2.uuid}
                   level3s={level3s}
-                  delSTM={delSTM}
                   mission={mission}
+                  delSTM={delSTM}
                 />
               </li>
             );
@@ -208,11 +211,10 @@ const Level2List: FunctionComponent<{
 //Level3 list component.
 const Level3List: FunctionComponent<{
   parentuuid: string;
-  parentNumbering: string;
   level3s: STMLevel3[];
-  delSTM: (uuid: string, stmType: string) => void;
   mission: Mission;
-}> = ({ parentuuid, parentNumbering, level3s, delSTM, mission }) => {
+  delSTM: (uuid: string, stmType: string) => void;
+}> = ({ parentuuid, level3s, mission, delSTM }) => {
   if (level3s) {
     return (
       <ul>
@@ -221,16 +223,19 @@ const Level3List: FunctionComponent<{
           .map((level3: STMLevel3) => {
             return (
               <li key={level3.uuid}>
-                {mission.stmLevel3Name} {`${parentNumbering}-${level3.numbering}`}: {level3.name}
-                <button
-                  className={adminStyles.deleteButton}
-                  type="button"
-                  onClick={() => {
+                <STMUpdateFields
+                  stm={level3}
+                  stmLevelName={mission.stmLevel3Name}
+                  deleteFunction={() => {
                     delSTM(level3.uuid, "Level3");
                   }}
-                >
-                  Delete Level 3
-                </button>
+                  saveFunction={async (stm) => {
+                    const res = await upsertSTMs(mission.id, [stm] as STMLevel3[], "Level3");
+                    if (res.status !== "success") {
+                      alert(`${res.status} saving STM: ${res.message}`);
+                    }
+                  }}
+                />
               </li>
             );
           })}
@@ -239,4 +244,82 @@ const Level3List: FunctionComponent<{
   }
 };
 
+const STMUpdateFields: FunctionComponent<{
+  stm: STMLevel1 | STMLevel2 | STMLevel3;
+  stmLevelName: string;
+  disabled?: boolean;
+  deleteFunction: () => void;
+  saveFunction: (stm: STMLevel1 | STMLevel2 | STMLevel3) => void;
+}> = ({ stm, stmLevelName, disabled = false, deleteFunction, saveFunction }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [numbering, setNumbering] = useState(stm.numbering);
+  const [name, setName] = useState(stm.name);
+
+  return (
+    <>
+      {isEditing ? (
+        <>
+          <label htmlFor="editLevel1Numbering">Number/Letter</label>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          <input
+            id="editLevel1Numbering"
+            type="text"
+            onChange={(e) => {
+              setNumbering(e.target.value);
+            }}
+            value={numbering}
+            className={stmStyles.numberingField}
+          />
+          &nbsp;
+          <label htmlFor="editLevel1Name">Name</label>&nbsp;
+          <input
+            id="editLevel1Name"
+            type="text"
+            onChange={(e) => {
+              setName(e.target.value);
+            }}
+            value={name}
+            className={stmStyles.nameField}
+          />
+          &nbsp;
+          <button
+            type="button"
+            onClick={() => {
+              setIsEditing(false);
+              saveFunction({ ...stm, numbering, name });
+            }}
+          >
+            Save
+          </button>
+        </>
+      ) : (
+        <>
+          <span style={{ textDecoration: disabled ? "line-through" : "none" }}>
+            {stmLevelName} {numbering}: {name}
+          </span>
+          &nbsp;
+          <button
+            type="button"
+            onClick={() => {
+              setIsEditing(true);
+            }}
+            disabled={disabled}
+          >
+            Edit
+          </button>
+        </>
+      )}
+      &nbsp;
+      <button
+        className={adminStyles.deleteButton}
+        type="button"
+        onClick={() => {
+          deleteFunction();
+        }}
+      >
+        Delete
+      </button>
+    </>
+  );
+};
 export default MissionSTM;
