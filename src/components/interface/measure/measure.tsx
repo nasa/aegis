@@ -18,7 +18,6 @@ import { PathColorPickerMenu, Button } from "../form/globalFields";
 import { upsertMeasurementField } from "store/measure";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
-import FontFaceObserver from "fontfaceobserver";
 import _ from "lodash";
 import { clearMapItemHover } from "store/hover";
 import { thunkClearAllMapSelections } from "store/thunk/crossThunk";
@@ -80,10 +79,6 @@ const Measure: FunctionComponent = () => {
       paper.view.update();
       return;
     }
-
-    // wait for the font to load before drawing the canvas
-    const font = new FontFaceObserver("Inter");
-    await font.load();
 
     //init paper refs
     initMeasurePaperRefs(
