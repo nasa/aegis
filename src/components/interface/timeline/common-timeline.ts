@@ -6,7 +6,6 @@ import { addPointsAtMeters, getDistanceBetweenTwoCoordinates } from "utils/geoMa
  * Populate storeRefs with all our store information so paper.js can read it.
  * Perform additional calculations required for drawing, such as subdividing any paths
  */
-
 export const processEvaDataFromStore = ({
   storeRef,
   mission,

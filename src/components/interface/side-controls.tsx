@@ -29,6 +29,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import Measure from "./measure/measure";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
+import FontFaceObserver from "fontfaceobserver";
 
 /* This control sits at the left side of the screen and loads the selected component based on the NavGutter icon selected */
 export const LeftControlPanel: FunctionComponent = () => {
@@ -102,6 +103,11 @@ export const BottomControlPanel: FunctionComponent = () => {
     (state) => state.interface.autoBottomPanelOpen,
     refEqual
   );
+
+  (async () => {
+    const font = new FontFaceObserver("Inter");
+    await font.load();
+  })();
 
   useEffect(() => {
     if (!autoBottomPanelOpen) return;
