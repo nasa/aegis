@@ -12,8 +12,6 @@ import {
 } from "@mikro-orm/core";
 import { getEM } from "utils/mikro";
 import { emitStoreUpsert } from "../sockets";
-import { upsertLogs } from "./log";
-import { v4 as uuidv4 } from "uuid";
 import {
   convertMissionsTypeDbToStore,
   convertMissionsTypeStoreToDb,
@@ -77,7 +75,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const { socketId, log, missions } = req.body as MissionUpsertRequest;
+  const { socketId, missions } = req.body as MissionUpsertRequest;
   //must have edit permission the mission ids
   for (const mission of missions) {
     const canEditThisMission = await hasPerms(mission.id, "edit", req.session.user);
@@ -106,15 +104,12 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     //  messages that match the missionId field.
     for (const upsertedMission of upsertResponse) {
       // emit the upserted item to all clients via socket.io
-      emitStoreUpsert(
-        {
-          missionId: upsertedMission.id,
-          socketId,
-          type: "mission",
-          data: [upsertedMission],
-        } as StoreUpsert,
-        log
-      );
+      emitStoreUpsert({
+        missionId: upsertedMission.id,
+        socketId,
+        type: "mission",
+        data: [upsertedMission],
+      } as StoreUpsert);
       res.status(200).json({
         status: "success",
         message: `Mission upserted with IDs ${upsertResponse.map((m) => m.id)}`,
@@ -129,7 +124,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
-  const { missionIds, log } = req.body as MissionDeleteRequest;
+  const { missionIds } = req.body as MissionDeleteRequest;
   //must have edit permission the mission ids
   //  or if no mission id (create mission) must be an admin to the back end or user 1
   for (const missionIdToDelete of missionIds) {
@@ -148,21 +143,6 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   try {
     const deletedMissionIds: number[] = await deleteMissions(missionIds);
     if (deletedMissionIds.length > 0) {
-      if (log) {
-        // log this deletion to the log table for each mission
-        //  since logs are recorded by mission
-        for (const deletedMissionId of deletedMissionIds) {
-          const log: Log = {
-            uuid: uuidv4(),
-            missionId: deletedMissionId,
-            type: "missionDelete",
-            payloadJson: JSON.stringify({ deletedMissionId }),
-            createdAt: new Date().toISOString(),
-          };
-          upsertLogs([log]);
-        }
-      }
-
       res.status(200).json({
         status: "success",
         message: "Mission Deleted",
