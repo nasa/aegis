@@ -47,15 +47,6 @@ type LayerDeleteRequest = {
   layerUuids: string[];
 };
 
-type LogUpsertRequest = {
-  missionId: number;
-  logs: Log[];
-};
-
-type LogDeleteRequest = {
-  missionIds: number[];
-};
-
 type MissionUpsertRequest = {
   socketId: string;
   log: boolean;

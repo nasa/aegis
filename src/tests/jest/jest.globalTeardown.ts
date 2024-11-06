@@ -9,7 +9,6 @@ const globalTeardown = async (): Promise<void> => {
   // run a custom query using a sql string to delete all previous test data from the database
   const sql = `delete from "layer_db" where mission_id in (select id from "mission_db" where name like '%Jest%' );
   delete from "sublayer_db" where mission_id in (select id from "mission_db" where name like '%Jest%' );
-  delete from "log_db" where mission_id in (select id from "mission_db" where name like '%Jest%' );
   delete from "preset_db" where mission_id in (select id from "mission_db" where name like '%Jest%' );
   delete from "action_db" where mission_id in (select id from "mission_db" where name like '%Jest%' );
   delete from "poi_db" where mission_id in (select id from "mission_db" where name like '%Jest%' );

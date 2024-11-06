@@ -17,14 +17,13 @@ import { convertActionsTypeDbToStore, convertActionsTypeStoreToDb } from "store/
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { uuid, stationUuid, poiUuid, socketId, missionId, log } = query;
+  const { uuid, stationUuid, poiUuid, socketId, missionId } = query;
   const queryObj = {
     missionId: missionId ? parseInt(missionId as string) : undefined,
     actionUuid: uuid ? (uuid as string) : undefined,
     stationUuid: stationUuid ? (stationUuid as string) : undefined,
     poiUuid: poiUuid ? (poiUuid as string) : undefined,
     socketId: socketId ? (socketId as string) : undefined,
-    logAction: log === "true",
   };
   return queryObj;
 };
@@ -66,7 +65,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const { socketId, missionId, log, actions } = req.body as ActionUpsertRequest;
+  const { socketId, missionId, actions } = req.body as ActionUpsertRequest;
   const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -76,15 +75,12 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     await upsertActions(actions);
 
     // emit the upserted item to all clients via socket.io
-    emitStoreUpsert(
-      {
-        missionId,
-        socketId,
-        type: "action",
-        data: actions,
-      } as StoreUpsert,
-      log
-    );
+    emitStoreUpsert({
+      missionId,
+      socketId,
+      type: "action",
+      data: actions,
+    } as StoreUpsert);
     res.status(200).json({
       status: "success",
       message: `Action(s) upserted with Uuids ${actions.map((a) => a.uuid)}`,
@@ -100,7 +96,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
-  const { socketId, missionId, log, actionUuids } = req.body as ActionDeleteRequest;
+  const { socketId, missionId, actionUuids } = req.body as ActionDeleteRequest;
   const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -111,15 +107,12 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     const deletedUuids = await deleteActions(actionUuids);
     if (deletedUuids.length > 0) {
       // emit the deleted item to all clients via socket.io
-      emitStoreDelete(
-        {
-          missionId,
-          socketId,
-          type: "action",
-          uuids: deletedUuids,
-        } as StoreDelete,
-        log
-      );
+      emitStoreDelete({
+        missionId,
+        socketId,
+        type: "action",
+        uuids: deletedUuids,
+      } as StoreDelete);
       res.status(200).json({
         status: "success",
         message: "Action Deleted",

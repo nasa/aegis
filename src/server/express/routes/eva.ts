@@ -57,7 +57,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const { socketId, missionId, log, evas } = req.body as EvaUpsertRequest;
+  const { socketId, missionId, evas } = req.body as EvaUpsertRequest;
   const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -85,15 +85,12 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       return;
     } else {
       // emit the upserted item to all clients via socket.io
-      emitStoreUpsert(
-        {
-          missionId,
-          socketId,
-          type: "eva",
-          data: upsertResponse,
-        } as StoreUpsert,
-        log
-      );
+      emitStoreUpsert({
+        missionId,
+        socketId,
+        type: "eva",
+        data: upsertResponse,
+      } as StoreUpsert);
       res.status(200).json({
         status: "success",
         message: `EVAs upserted with Uuids ${upsertResponse.map((e) => e.uuid)}`,
@@ -108,7 +105,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
-  const { socketId, missionId, log, evaUuids } = req.body as EvaDeleteRequest;
+  const { socketId, missionId, evaUuids } = req.body as EvaDeleteRequest;
   const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -119,15 +116,12 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     const deletedUuids = await deleteEVAs(evaUuids);
     if (deletedUuids.length > 0) {
       // emit the deleted item to all clients via socket.io
-      emitStoreDelete(
-        {
-          missionId,
-          socketId,
-          type: "eva",
-          uuids: deletedUuids,
-        } as StoreDelete,
-        log
-      );
+      emitStoreDelete({
+        missionId,
+        socketId,
+        type: "eva",
+        uuids: deletedUuids,
+      } as StoreDelete);
       res.status(200).json({
         status: "success",
         message: "EVA Deleted",

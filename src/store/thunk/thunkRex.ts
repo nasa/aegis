@@ -17,7 +17,6 @@ import { makeExportRexes } from "utils/export";
 import * as jsonKeysSort from "json-keys-sort";
 import * as httpClient_Rex from "http-client/rex";
 import { thunkSaveNewRex } from "./crossThunk";
-import { thunkLogRexFull } from "./thunkLog";
 import { generateBlankRex } from "store/storeUtils/rex";
 import { thunkCancelPosEntry } from "./thunkRexPosEntry";
 
@@ -90,11 +89,6 @@ export const thunkSaveRex = appCreateAsyncThunk<{ rexUuid: string }>(
     } else {
       throw new Error("Error upserting Rexes: " + upsertResponse.message);
     }
-
-    // log an export of a full copy of this rex and associated eva to the log db table for posterity
-    dispatch(
-      thunkLogRexFull({ rexUuid, directive: rexToSave.isRunning ? "fullRexStart" : "fullRexStop" })
-    );
 
     // clear running state and stop the clocks of all other rexes in the db
     getState().rex.rexesFromDb.forEach(async (rex) => {

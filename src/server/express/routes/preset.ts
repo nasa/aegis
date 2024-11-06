@@ -50,7 +50,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const { missionId, socketId, log, presets } = req.body as PresetUpsertRequest;
+  const { missionId, socketId, presets } = req.body as PresetUpsertRequest;
   const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -77,15 +77,12 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       return;
     }
     // emit the upserted preset to all clients via socket.io
-    emitStoreUpsert(
-      {
-        missionId,
-        socketId,
-        type: "preset",
-        data: upsertResponse,
-      } as StoreUpsert,
-      log
-    );
+    emitStoreUpsert({
+      missionId,
+      socketId,
+      type: "preset",
+      data: upsertResponse,
+    } as StoreUpsert);
 
     res.status(200).json({
       status: "success",
@@ -100,7 +97,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
-  const { missionId, socketId, log, presetUuids } = req.body as PresetDeleteRequest;
+  const { missionId, socketId, presetUuids } = req.body as PresetDeleteRequest;
   const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -111,15 +108,12 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     const deletedUuids = await deletePresets(presetUuids);
     if (deletedUuids.length > 0) {
       // emit the deleted preset to all clients via socket.io
-      emitStoreDelete(
-        {
-          missionId,
-          socketId,
-          type: "preset",
-          uuids: deletedUuids,
-        } as StoreDelete,
-        log
-      );
+      emitStoreDelete({
+        missionId,
+        socketId,
+        type: "preset",
+        uuids: deletedUuids,
+      } as StoreDelete);
 
       res.status(200).json({
         status: "success",
