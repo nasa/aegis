@@ -174,9 +174,7 @@ const NavTimeline: FunctionComponent = () => {
   const drawTimeline = useCallback(async () => {
     //clear project and initilize paper refs and data for drawing
     paper.project.clear();
-    if (selectedRex?.posEntries) {
-      processPosEntriesFromStore();
-    }
+
     processEvaDataFromStoreCallback(); //loads data into the storeRef
     initPaperRefs(paperDataRef, paperGroupsRef, storeRef);
     initGraphItemsRef(paperDataRef, storeRef, graphSequenceItems, flattenedGraphData);
@@ -209,7 +207,8 @@ const NavTimeline: FunctionComponent = () => {
     }
 
     // only draw crew pos if the eva we've selected matches the rex's eva
-    if (selectedRex && selectedEva.uuid === selectedRex.evaUuid) {
+    if (selectedRex && selectedEva?.uuid === selectedRex.evaUuid) {
+      processPosEntriesFromStore();
       TimelineDrawing.drawPositionMarkers(
         paperDataRef,
         paperGroupsRef,
