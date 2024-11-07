@@ -208,7 +208,8 @@ const NavTimeline: FunctionComponent = () => {
       );
     }
 
-    if (selectedRex) {
+    // only draw crew pos if the eva we've selected matches the rex's eva
+    if (selectedRex && selectedEva.uuid === selectedRex.evaUuid) {
       TimelineDrawing.drawPositionMarkers(
         paperDataRef,
         paperGroupsRef,
@@ -226,6 +227,7 @@ const NavTimeline: FunctionComponent = () => {
     showElevation,
     graphSequenceItems,
     selectedPosEntryUuid,
+    rightPanelIsOpen,
     processEvaDataFromStoreCallback, //this will trigger if the storeRef changes
     processPosEntriesFromStore, //this will trigger if the posRef changes
   ]);
@@ -253,7 +255,6 @@ const NavTimeline: FunctionComponent = () => {
     // since drawTimeline is a depedency listed here
     drawTimeline,
     selectedEvaSequenceItemUuid,
-    rightPanelIsOpen,
   ]);
 
   /**
@@ -338,7 +339,7 @@ const NavTimeline: FunctionComponent = () => {
     return () => paper.project.remove();
     // do not include initHoverValues in the dependencies array
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [rightPanelIsOpen]);
 
   // populated the flattenedGraphData ref walkback data based on the selected station
   useEffect(() => {
