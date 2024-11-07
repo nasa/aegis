@@ -141,8 +141,9 @@ const EvaRexItem: FunctionComponent<{ rexUuid: string }> = ({ rexUuid }) => {
     }
   }
 
+  //set eva selected style
   let evaLabelSelectedStyle = styles.selectedEvaLabelContainerEmphasized;
-  if (selectedEvaUuid && !selectedEvaSequenceItemUuid) {
+  if (selectedEvaUuid === rex.evaUuid && !selectedEvaSequenceItemUuid) {
     evaLabelSelectedStyle = styles.selectedEvaLabelContainerSelected;
   }
   return (
@@ -216,6 +217,7 @@ const EvaRexItem: FunctionComponent<{ rexUuid: string }> = ({ rexUuid }) => {
                 onClick={() => {
                   dispatch(setSelectedEvaUuid(evaUuid));
                   dispatch(setSelectedEvaSequenceItemUuid(null));
+                  dispatch(setSelectedRexUuid(rex.uuid)); // if we click the eva, we want to select the rex
                 }}
               >
                 <div className={styles.selectedEvaLabel}>{selectedRexEvaName}</div>
