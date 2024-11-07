@@ -99,6 +99,7 @@ export const thunkSaveNewRex = appCreateAsyncThunk<{
 
   // Set additional state related to the new rex
   dispatch(rexSlice.actions.setStateForNewRex({ rexUuid: rex.uuid }));
+  dispatch(evaSlice.actions.setSelectedEvaUuid(null));
 
   // Open the right panel
   dispatch(thunkSetRightPanelIsOpenIfAuto(true));

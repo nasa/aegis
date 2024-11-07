@@ -66,15 +66,12 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     const upsertResponse: STMRule[] = await upsertStmRules(missionId, socketId, stmRules);
 
     // emit the upserted item to all clients via socket.io
-    emitStoreUpsert(
-      {
-        missionId,
-        socketId,
-        type: "stmRule",
-        data: upsertResponse,
-      } as StoreUpsert,
-      false
-    );
+    emitStoreUpsert({
+      missionId,
+      socketId,
+      type: "stmRule",
+      data: upsertResponse,
+    } as StoreUpsert);
 
     res.status(200).json({
       status: "success",
@@ -104,15 +101,12 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     const deletedUuids: string[] = await deleteStmRules(stmRuleUuids);
 
     // emit the deleted item to all clients via socket.io
-    emitStoreDelete(
-      {
-        missionId,
-        socketId,
-        type: "stmRule",
-        uuids: deletedUuids,
-      } as StoreDelete,
-      false
-    );
+    emitStoreDelete({
+      missionId,
+      socketId,
+      type: "stmRule",
+      uuids: deletedUuids,
+    } as StoreDelete);
 
     res.status(200).json({
       status: "success",

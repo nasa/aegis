@@ -218,6 +218,41 @@ export const thunkCreateActionTemplate = appCreateAsyncThunk<void, string>(
   }
 );
 
+export const thunkCreateTemplateFromAction = appCreateAsyncThunk<{ actionUuid: string }, string>(
+  "createTemplateFromAction",
+  async ({ actionUuid }, { dispatch, getState }) => {
+    const action = getState().action.actions.find((a) => a.uuid === actionUuid);
+
+    const actionTemplates = cloneDeep(getState().mission.mission.actionTemplates) || [];
+
+    const newActionTemplate: ActionTemplate = {
+      uuid: uuidv4(),
+      missionId: action.missionId,
+      templateName: `Template of ${action.name}`,
+      type: action.type,
+      name: action.name,
+      actionDefinition: action.actionDefinition,
+      description: action.description,
+      durationLower: action.durationLower,
+      durationUpper: action.durationUpper,
+      mass: action.mass,
+      icon: action.icon,
+      equipmentItemsUsage: action.equipmentItemsUsage,
+      geographicUnitsUsage: action.geographicUnitsUsage,
+      stmAction: action.stmAction,
+      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    };
+
+    //upsert action template
+    actionTemplates.push(newActionTemplate);
+
+    dispatch(upsertMissionByField("actionTemplates", actionTemplates));
+    dispatch(thunkMissionSave());
+    return newActionTemplate.uuid;
+  }
+);
+
 export const thunkUpdateActionTemplate = appCreateAsyncThunk<{
   uuid: string;
   fieldName: keyof ActionTemplate;

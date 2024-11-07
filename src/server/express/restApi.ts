@@ -8,7 +8,6 @@ import allRoutes from "./routes/all";
 import elevation from "./routes/elevation";
 import evaRoutes from "./routes/eva";
 import layerRoutes from "./routes/layer";
-import logRoutes from "./routes/log";
 import missionRoutes from "./routes/mission";
 import missionHomepageItemsRoutes from "./routes/missionHomepageItems";
 import poiRoutes from "./routes/poi";
@@ -28,9 +27,11 @@ import fileUploadRoute from "./routes/file/upload";
 import fileListRoute from "./routes/file/list";
 import fileRenameRoute from "./routes/file/rename";
 import fileDeleteRoute from "./routes/file/delete";
+import logFromClient from "./routes/logFromClient";
 import path from "path";
 import { getUser } from "packages/getUser";
-import { logUserTraffic } from "@emss/oauth2-proxy-backend";
+import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
+import serverLogger from "utils/serverLogger";
 
 const app: Application = express();
 
@@ -47,16 +48,12 @@ app.use(
 
 // get user info from launchpad
 app.get("/api/v1/user/current", (req, res) => {
-  res.setHeader("content-type", "application/json");
   const user = getUser(req);
   if (user instanceof Error) {
-    const msg = "Unable to decode JWT";
-    console.error(msg, user);
-    res.status(500).send({ msg });
-    return;
+    return handleUnableToDecodeJWT(user, res);
   }
-  logUserTraffic(user); // log to emss-logs
-  res.send({ user });
+  res.json({ user });
+  serverLogger.logUserLogin(user);
 });
 
 // Serve a successful response. For use with wait-on
@@ -77,7 +74,6 @@ app.use("/api/v1/elevation", elevation);
 app.use("/api/v1/eva", evaRoutes);
 app.use("/api/v1/grid", gridRoutes);
 app.use("/api/v1/layer", layerRoutes);
-app.use("/api/v1/log", logRoutes);
 app.use("/api/v1/mission", missionRoutes);
 app.use("/api/v1/missionHomepageItems", missionHomepageItemsRoutes);
 app.use("/api/v1/poi", poiRoutes);
@@ -96,5 +92,6 @@ app.use("/api/v1/file/upload", fileUploadRoute);
 app.use("/api/v1/file/list", fileListRoute);
 app.use("/api/v1/file/rename", fileRenameRoute);
 app.use("/api/v1/file/delete", fileDeleteRoute);
+app.use("/api/v1/log/from-client", logFromClient);
 
 export default app;

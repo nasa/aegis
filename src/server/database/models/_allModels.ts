@@ -4,7 +4,6 @@ import { User_db } from "./user.model";
 import { Mission_db } from "./mission.model";
 import { Station_db } from "./station.model";
 import { Poi_db } from "./poi.model";
-import { Log_db } from "./log.model";
 import { Action_db } from "./action.model";
 import { Eva_db } from "./eva.model";
 import { Layer_db } from "./layer.model";
@@ -23,7 +22,6 @@ export {
   Mission_db,
   Station_db,
   Poi_db,
-  Log_db,
   Action_db,
   Eva_db,
   Layer_db,

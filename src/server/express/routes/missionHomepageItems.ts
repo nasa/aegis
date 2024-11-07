@@ -52,7 +52,7 @@ export async function getHomepageMissionItems(
     missions = await em.find(Mission_db, {});
     rexes = await em.find(Rex_db, {});
   } else {
-    missions = await em.find(Mission_db, { id: missionIdList });
+    missions = await em.find(Mission_db, { id: missionIdList, isArchived: false });
     rexes = await em.find(Rex_db, { mission: missionIdList });
   }
 

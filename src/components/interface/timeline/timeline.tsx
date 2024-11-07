@@ -14,7 +14,6 @@ import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import styles from "./timeline.module.css";
 import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
 import { useAppDispatch } from "utils/useAppDispatch";
-
 import { clearMapItemHover } from "store/hover";
 import _ from "lodash";
 import { STM_Coverage } from "components/panes/stm/stm-coverage";
@@ -126,6 +125,10 @@ const NavTimeline: FunctionComponent = () => {
   // used to update the PET value via the PetInterval component
   const [rexPetTime, setRexPetTime] = useState("");
 
+  /**
+   * Populate storeRefs with all our store information so paper.js can read it.
+   * Perform additional calculations required for drawing, such as subdividing any paths
+   */
   const processEvaDataFromStoreCallback = useCallback(() => {
     processEvaDataFromStore({
       storeRef,
@@ -148,6 +151,9 @@ const NavTimeline: FunctionComponent = () => {
     selectedRex,
   ]);
 
+  /**
+   * Populate posRef
+   */
   const processPosEntriesFromStore = useCallback(() => {
     if (!mission || !selectedRex) return;
     const posForPaper: PosEntry_PaperJS[] = [];
@@ -162,33 +168,20 @@ const NavTimeline: FunctionComponent = () => {
     posRef.current = posForPaper;
   }, [mission, selectedRex]);
 
-  //handles on mouse move over the paper canvas
-  const onMouseMove = (event: paper.MouseEvent) => {
-    TimelineDrawing.drawMouseHover(
-      dispatch,
-      paperDataRef,
-      paperGroupsRef,
-      storeRef,
-      flattenedGraphData,
-      event.point,
-      setHoverValues,
-      mission?.landerElevationMeters
-    );
-  };
-
   /**
    * Main function to draw the timeline. All the paper drawing happens here
    */
-  const drawTimeline = useCallback(() => {
-    //clear project and initilize paper refs
+  const drawTimeline = useCallback(async () => {
+    //clear project and initilize paper refs and data for drawing
     paper.project.clear();
 
+    processEvaDataFromStoreCallback(); //loads data into the storeRef
     initPaperRefs(paperDataRef, paperGroupsRef, storeRef);
     initGraphItemsRef(paperDataRef, storeRef, graphSequenceItems, flattenedGraphData);
 
-    //draw just the graph axis if no EVA is selected
+    //draw the graph axis (even if no EVA is selected)
     TimelineDrawing.drawGraphAxis(paperDataRef, storeRef);
-    //TODO: check if we need this after rex seconds is moving (also exhaustive deps below)
+    //draw pet line when rex is executing but time is not moving. When pet time moves, a separate use effect will handle this.
     TimelineDrawing.drawPetLine(paperDataRef, paperGroupsRef, secondsFromhhmmss(rexPetTime));
 
     //draw all the things
@@ -213,7 +206,9 @@ const NavTimeline: FunctionComponent = () => {
       );
     }
 
-    if (selectedRex) {
+    // only draw crew pos if the eva we've selected matches the rex's eva
+    if (selectedRex && selectedEva?.uuid === selectedRex.evaUuid) {
+      processPosEntriesFromStore();
       TimelineDrawing.drawPositionMarkers(
         paperDataRef,
         paperGroupsRef,
@@ -221,6 +216,7 @@ const NavTimeline: FunctionComponent = () => {
         selectedPosEntryUuid
       );
     }
+    // do not include rexPetTime in the dependencies array
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     selectedEva,
@@ -230,17 +226,16 @@ const NavTimeline: FunctionComponent = () => {
     showElevation,
     graphSequenceItems,
     selectedPosEntryUuid,
+    rightPanelIsOpen,
+    processEvaDataFromStoreCallback, //this will trigger if the storeRef changes
+    processPosEntriesFromStore, //this will trigger if the posRef changes
   ]);
 
-  //handle pet rex seconds moving during rex
-  useEffect(() => {
-    if (!rexPetTime) return;
-    TimelineDrawing.drawPetLine(paperDataRef, paperGroupsRef, secondsFromhhmmss(rexPetTime));
-  }, [rexPetTime]);
-
-  //handle pet blink
+  //handle pet rex seconds moving during rex and blink
   useEffect(() => {
     if (!rexPetTime || !paperGroupsRef?.current?.petLine?.firstChild) return;
+    TimelineDrawing.drawPetLine(paperDataRef, paperGroupsRef, secondsFromhhmmss(rexPetTime));
+
     const oldPetLine = paperGroupsRef.current.petLine.firstChild as paper.Path.Line;
     if (secondsFromhhmmss(rexPetTime) % 2 === 0) {
       oldPetLine.strokeWidth = 2;
@@ -249,27 +244,53 @@ const NavTimeline: FunctionComponent = () => {
     }
   }, [rexPetTime, paperGroupsRef?.current?.petLine]);
 
-  //use effect to handle color highlighting when selected sequence item changes
+  //redraw entire timeline
   useEffect(() => {
-    storeRef.current.selectedEvaSequenceItemUuid = selectedEvaSequenceItemUuid;
-    drawTimeline(); //redraw entire timeline
-  }, [drawTimeline, storeRef, selectedEvaSequenceItemUuid]);
+    if (storeRef?.current)
+      storeRef.current.selectedEvaSequenceItemUuid = selectedEvaSequenceItemUuid;
+    drawTimeline();
+  }, [
+    // draw timeline also has a lot of dependencies that will also trigger a redraw
+    // since drawTimeline is a depedency listed here
+    drawTimeline,
+    selectedEvaSequenceItemUuid,
+  ]);
 
-  // Initialize the timeline on first render
-  useLayoutEffect(() => {
-    if (isNil(paper.project) && typeof window !== "undefined") {
-      paper.setup(canvas.current);
-    }
-    if (selectedRex?.posEntries) {
-      processPosEntriesFromStore();
-    }
-    processEvaDataFromStoreCallback(); //loads data into the storeRef
-
+  /**
+   * Event listeners for the paper canvas with state dependencies
+   */
+  useEffect(() => {
+    const onMouseMove = (event: paper.MouseEvent) => {
+      //handles on mouse move over the paper canvas
+      TimelineDrawing.drawMouseHover(
+        dispatch,
+        paperDataRef,
+        paperGroupsRef,
+        storeRef,
+        flattenedGraphData,
+        event.point,
+        setHoverValues,
+        mission?.landerElevationMeters
+      );
+    };
     paper.view.onMouseMove = _.throttle(onMouseMove, 15, {
       leading: true,
       trailing: false,
     });
+  }, [dispatch, mission?.landerElevationMeters]);
+  useEffect(() => {
+    paper.view.onResize = function () {
+      drawTimeline();
+    };
+  }, [drawTimeline]);
 
+  // Initialize the timeline canvas and project on first render
+  useLayoutEffect(() => {
+    if (isNil(paper.project) && typeof window !== "undefined") {
+      paper.setup(canvas.current);
+    }
+
+    // the event listeners that don't require any dependencies can be defined here
     paper.view.onMouseLeave = () => {
       paperGroupsRef.current.hoverLine.visible = false;
       dispatch(clearMapItemHover());
@@ -277,11 +298,8 @@ const NavTimeline: FunctionComponent = () => {
       //clear hover values
       setHoverValues(initHoverValues);
     };
-    paper.view.onResize = function () {
-      drawTimeline();
-    };
     paper.view.onClick = function (event: paper.MouseEvent) {
-      //first check crew pos
+      //handle click on crew pos
       let selectedPosEntryUuid: string = null;
       for (const posDrawing of paperGroupsRef.current.positionMarkers.children) {
         if (posDrawing.contains(new paper.Point(event.point.x, event.point.y))) {
@@ -294,6 +312,8 @@ const NavTimeline: FunctionComponent = () => {
         dispatch(thunkSelectEVASequenceItem({ sequenceItemUuid: null }));
         return;
       }
+
+      // handle click on sequence item
       //determine what sequence item the x coordinate is in
       let sequenceUuid: string = null;
       for (const bkgBlock of paperGroupsRef.current.graphBkg.children) {
@@ -308,34 +328,21 @@ const NavTimeline: FunctionComponent = () => {
         }
       }
       //set selected uuid if we have one
-
       if (sequenceUuid && sequenceUuid !== "egress" && sequenceUuid !== "ingress") {
         dispatch(setSelectedPosEntryUuid(null));
-
         dispatch(thunkSelectEVASequenceItem({ sequenceItemUuid: sequenceUuid }));
         return;
       }
     };
 
-    drawTimeline();
-
     return () => paper.project.remove();
+    // do not include initHoverValues in the dependencies array
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    selectedEva,
-    processEvaDataFromStoreCallback,
-    storeRef,
-    dispatch,
-    setHoverValues,
-    selectedEvaSequenceItemUuid,
-    showDistanceFromLander,
-    showElevation,
-    rightPanelIsOpen,
-  ]);
+  }, [rightPanelIsOpen]);
 
   // populated the flattenedGraphData ref walkback data based on the selected station
   useEffect(() => {
-    if (!flattenedGraphData) return;
+    if (!flattenedGraphData?.current) return;
     if (selectedEvaSequenceItemUuid) {
       if (!graphSequenceItems || !graphSequenceItems.current[selectedEvaSequenceItemUuid]) return;
       flattenedGraphData.current.walkbackDistanceFromLanderXY =

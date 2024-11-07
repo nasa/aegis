@@ -50,7 +50,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const { missionId, socketId, log, pois } = req.body as POIUpsertRequest;
+  const { missionId, socketId, pois } = req.body as POIUpsertRequest;
   const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -78,15 +78,12 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     }
 
     // emit the upserted item to all clients via socket.io
-    emitStoreUpsert(
-      {
-        missionId,
-        socketId,
-        type: "poi",
-        data: upsertResponse,
-      } as StoreUpsert,
-      log
-    );
+    emitStoreUpsert({
+      missionId,
+      socketId,
+      type: "poi",
+      data: upsertResponse,
+    } as StoreUpsert);
 
     res.status(200).json({
       status: "success",
@@ -101,7 +98,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
-  const { missionId, socketId, log, poiUuids } = req.body as POIDeleteRequest;
+  const { missionId, socketId, poiUuids } = req.body as POIDeleteRequest;
   const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -113,15 +110,12 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
 
     if (deletedUuids.length > 0) {
       // emit the deleted item to all clients via socket.io
-      emitStoreDelete(
-        {
-          missionId,
-          socketId,
-          type: "poi",
-          uuids: deletedUuids,
-        } as StoreDelete,
-        log
-      );
+      emitStoreDelete({
+        missionId,
+        socketId,
+        type: "poi",
+        uuids: deletedUuids,
+      } as StoreDelete);
 
       res.status(200).json({
         status: "success",

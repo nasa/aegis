@@ -20,5 +20,9 @@
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter"
   },
+  "[yaml]": {
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true
+  },
   "cssModules.camelCase": true
 }

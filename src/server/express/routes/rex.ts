@@ -52,7 +52,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const { missionId, socketId, log, rexes } = req.body as RexUpsertRequest;
+  const { missionId, socketId, rexes } = req.body as RexUpsertRequest;
   const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -81,15 +81,12 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     }
 
     // emit the upserted item to all clients via socket.io
-    emitStoreUpsert(
-      {
-        missionId,
-        socketId,
-        type: "rex",
-        data: upsertResponse,
-      } as StoreUpsert,
-      log
-    );
+    emitStoreUpsert({
+      missionId,
+      socketId,
+      type: "rex",
+      data: upsertResponse,
+    } as StoreUpsert);
 
     res.status(200).json({
       status: "success",
@@ -104,7 +101,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
-  const { missionId, socketId, log, uuids } = req.body as RexDeleteRequest;
+  const { missionId, socketId, uuids } = req.body as RexDeleteRequest;
   const editPermission = await hasPerms(missionId, "edit", req.session.user);
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -114,15 +111,12 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   try {
     const deletedRexUuids: string[] = await deleteRexes(uuids);
     if (deletedRexUuids.length > 0) {
-      emitStoreDelete(
-        {
-          missionId,
-          socketId,
-          type: "rex",
-          uuids: deletedRexUuids,
-        } as StoreDelete,
-        log
-      );
+      emitStoreDelete({
+        missionId,
+        socketId,
+        type: "rex",
+        uuids: deletedRexUuids,
+      } as StoreDelete);
 
       res.status(200).json({
         status: "success",

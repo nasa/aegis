@@ -37,11 +37,6 @@ jest.mock("string-strip-html", () => ({
   stripHtml: () => jest.fn(),
 }));
 
-const mockThunkLogRexFull = jest.fn();
-jest.mock("store/thunk/thunkLog", () => ({
-  thunkLogRexFull: () => mockThunkLogRexFull,
-}));
-
 const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {
   return true;
 });
@@ -97,7 +92,6 @@ describe("Thunk Rex Tests", () => {
     });
     await store.dispatch(thunkSaveRex({ rexUuid: rexModified.uuid }));
     const storeState = store.getState();
-    expect(mockThunkLogRexFull).toHaveBeenCalledTimes(1);
     expect(httpClient_rex.upsertRexes).toHaveBeenCalledTimes(2);
     expect(storeState.rex.rexesFromDb.find((r) => r.uuid === rex.uuid).name).toEqual(
       "Jest Rex-1 Modified"

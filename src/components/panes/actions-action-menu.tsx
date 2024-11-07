@@ -1,10 +1,19 @@
-import { faEllipsisV, faEye, faEyeSlash, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
+import {
+  faClone,
+  faEllipsisV,
+  faEye,
+  faEyeSlash,
+  faGears,
+  faTrashAlt,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { FunctionComponent, useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import actionStyles from "./actions-action.module.css";
 import { upsertAction } from "store/action";
-import { thunkDeleteActionFromStore } from "store/thunk/thunkAction";
+import { thunkDeleteActionFromStore, thunkDuplicateActions } from "store/thunk/thunkAction";
+import { thunkCreateTemplateFromAction } from "store/thunk/thunkMission";
+import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 
 export const ActionMenu: FunctionComponent<{
   action: Action;
@@ -12,6 +21,18 @@ export const ActionMenu: FunctionComponent<{
   const dispatch = useAppDispatch();
   const dialogRef = useRef(null);
   const menuRef = useRef(null);
+
+  const missionSectionsEditing = useAppSelector(
+    (state) => state.mission.missionSectionsEditing,
+    shallowEqual
+  );
+
+  const missionEditPerms = useAppSelector(
+    (state) =>
+      (state.user.missionPerms.permissions.edit && state.user.user.isAdmin) ||
+      state.user.user.isSuperAdmin,
+    refEqual
+  );
 
   const handleMenuOpen = (e: React.MouseEvent) => {
     const x = e.clientX - 130; // width of the menu
@@ -57,6 +78,48 @@ export const ActionMenu: FunctionComponent<{
               <FontAwesomeIcon icon={faTrashAlt} size="sm" />
             </div>
             <div className={actionStyles.menuItemText}>Delete Action</div>
+          </div>
+          {missionEditPerms && (
+            <div
+              className={actionStyles.menuItem}
+              onClick={async (e) => {
+                e.stopPropagation();
+                if (!missionSectionsEditing.includes("prefs")) {
+                  await dispatch(thunkCreateTemplateFromAction({ actionUuid: action.uuid }));
+                  window.alert(`Action Template successfully created from action.`);
+                } else {
+                  window.alert(
+                    `Cannot create action template - Please ensure mission configuration is not in edit mode.`
+                  );
+                }
+
+                dialogRef.current?.close();
+              }}
+            >
+              <div className={actionStyles.menuItemIcon}>
+                <FontAwesomeIcon icon={faGears} size="sm" />
+              </div>
+              <div className={actionStyles.menuItemText}>Use as Template</div>
+            </div>
+          )}
+          <div
+            className={actionStyles.menuItem}
+            onClick={(e) => {
+              e.stopPropagation();
+              dispatch(
+                thunkDuplicateActions({
+                  actions: [action],
+                  stationUuid: action.stationUuid,
+                  poiUuid: action.poiUuid,
+                })
+              );
+              dialogRef.current?.close();
+            }}
+          >
+            <div className={actionStyles.menuItemIcon}>
+              <FontAwesomeIcon icon={faClone} size="sm" />
+            </div>
+            <div className={actionStyles.menuItemText}>Duplicate Action</div>
           </div>
         </div>
       </dialog>

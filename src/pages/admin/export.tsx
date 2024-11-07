@@ -1,14 +1,12 @@
 import { populateStore } from "store/processing/populateStore";
 import _ from "lodash";
 import { useNavigate, useParams } from "react-router-dom";
-import { FunctionComponent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import styles from "components/admin/admin.module.css";
 import { Checkbox } from "components/interface/form/globalFields";
 import { isLoggedIn } from "http-client/login";
 import { getMissions } from "http-client/mission";
-
-import * as httpClient_log from "http-client/log";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkMakeExportString } from "store/thunk/thunkMission";
 import { setAllSliceStores } from "store/crossActions";
@@ -200,8 +198,6 @@ const ExportPage: React.FunctionComponent = () => {
               readOnly={true}
             />
           </div>
-
-          <ExporLogs missionId={intMissionId} missionName={missionStore.mission?.name} />
         </div>
       </div>
     </>
@@ -209,84 +205,3 @@ const ExportPage: React.FunctionComponent = () => {
 };
 
 export default ExportPage;
-
-const ExporLogs: FunctionComponent<{ missionId: number; missionName: string }> = ({
-  missionId,
-  missionName,
-}) => {
-  const [exportOutput, setExportOutput] = useState("");
-
-  const getLogs = async (): Promise<Log[]> => {
-    const response = await httpClient_log.getLogs(missionId);
-    if (response.status === "success") {
-      // convert payloadJson to object
-      const logsConverted = response.data.map((log) => {
-        return {
-          ...log,
-          payloadJson: log.payloadJson,
-        };
-      });
-      return logsConverted;
-    }
-  };
-
-  return (
-    <div>
-      <h1>Export Real-time Execution Logs</h1>
-      <div style={{ marginBottom: "5px" }}></div>
-      <div style={{ userSelect: "none" }}>
-        <button
-          onClick={() => {
-            const setExportOutputAsync = async () => {
-              const logs = await getLogs();
-              setExportOutput(JSON.stringify(logs, null, 2));
-            };
-            setExportOutputAsync();
-          }}
-        >
-          Export Logs as JSON to Text Field
-        </button>
-        <button
-          onClick={() => {
-            const makeElementAsync = async () => {
-              const logs = await getLogs();
-              const element = document.createElement("a");
-              const file = new Blob([JSON.stringify(logs, null, 2)], { type: "text/json" });
-              element.href = URL.createObjectURL(file);
-              const filename = `${missionName}_rex_logs_export.json`;
-              element.download = filename;
-              document.body.appendChild(element); // Required for this to work in FireFox
-              element.click();
-            };
-            makeElementAsync();
-          }}
-        >
-          Export Logs as JSON to File
-        </button>
-        <button
-          onClick={() => {
-            const confirmAsync = async () => {
-              if (
-                confirm(
-                  "Are you sure you want to delete all Real-time execution logs for this mission?"
-                )
-              ) {
-                const response = await httpClient_log.deleteAllLogs([missionId]);
-                if (response.status === "success") {
-                  alert("Logs deleted");
-                  setExportOutput("");
-                }
-              }
-            };
-            confirmAsync();
-          }}
-        >
-          Delete Logs for this Mission
-        </button>
-      </div>
-      <div style={{ fontSize: "0.8em" }}>
-        <textarea style={{ width: "100%", height: "200px" }} value={exportOutput} readOnly={true} />
-      </div>
-    </div>
-  );
-};
