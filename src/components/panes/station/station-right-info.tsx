@@ -36,7 +36,12 @@ const Info_Panel: FunctionComponent<{
   actionCount: number;
 }> = ({ editMode, actionCount }) => {
   const dispatch = useAppDispatch();
-
+  const [projBoundsMinX, projBoundsMaxX] = useAppSelector((state) => {
+    return [state.mission.mission.projBoundsMinX, state.mission.mission.projBoundsMaxX];
+  }, deepEqual);
+  const [projBoundsMinY, projBoundsMaxY] = useAppSelector((state) => {
+    return [state.mission.mission.projBoundsMinY, state.mission.mission.projBoundsMaxY];
+  }, deepEqual);
   const selectedStation = useAppSelector(
     (state) =>
       state.station.stations.find((station) => station.uuid === state.station.selectedStationUuid),
@@ -492,7 +497,11 @@ const Info_Panel: FunctionComponent<{
                               name: "Lat",
                               ariaLabel: "Latitude",
                               style: { width: "100px" },
-                              validators: [validators.mustBeNumber, validators.required],
+                              validators: [
+                                validators.mustBeNumber,
+                                validators.required,
+                                validators.withinBoundary(projBoundsMinY, projBoundsMaxY),
+                              ],
                             }}
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
@@ -526,7 +535,11 @@ const Info_Panel: FunctionComponent<{
                               name: "Lng",
                               ariaLabel: "Longitude",
                               style: { width: "100px" },
-                              validators: [validators.mustBeNumber, validators.required],
+                              validators: [
+                                validators.mustBeNumber,
+                                validators.required,
+                                validators.withinBoundary(projBoundsMinX, projBoundsMaxX),
+                              ],
                             }}
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {

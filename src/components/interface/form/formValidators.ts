@@ -86,6 +86,17 @@ const mustBeHHMMSS = (value: Stringy): string | undefined => {
   }
 };
 
+const withinBoundary =
+  (minBoundary: number, maxBoundary: number) =>
+  (value: Stringy): string | undefined => {
+    if (!value) return undefined;
+    if (minBoundary && maxBoundary) {
+      return minBoundary <= Number(value) && Number(value) <= maxBoundary
+        ? undefined
+        : "Needs to be within boundary";
+    }
+  };
+
 export const validators = {
   required,
   mustBeNumber,
@@ -97,6 +108,7 @@ export const validators = {
   mustBeInteger,
   mustBeNumberGTZero,
   mustBeHHMMSS,
+  withinBoundary,
 };
 
 // UseFieldConfig<any>.validate?: FieldValidator<any>
