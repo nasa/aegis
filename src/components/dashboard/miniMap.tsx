@@ -184,7 +184,7 @@ const MiniMap: FunctionComponent<{
     }
 
     // draw the box for the big map bounds
-    if (bigMapBounds) {
+    if (bigMapBounds && !mission.projIsCustom) {
       bigMapBoxFeatureGroup.current.clearLayers();
       bigMapBoxFeatureGroup.current.addLayer(
         L.rectangle(bigMapBounds, {
@@ -471,7 +471,7 @@ const MiniMap: FunctionComponent<{
     if (mapDisplayPos.show) {
       let filteredPosEntries: PosEntry[] = [];
       if (mapDisplayPos.sources.length > 0) {
-        filteredPosEntries = runningRexFromDb?.posEntries.filter((posEntry) =>
+        filteredPosEntries = runningRexFromDb?.posEntries?.filter((posEntry) =>
           mapDisplayPos.sources.includes(posEntry.posSourceUuid)
         );
       } else {
