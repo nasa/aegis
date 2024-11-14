@@ -110,16 +110,17 @@ export function adjustGridIndex(
     if (startY > 0) {
       startY = Math.floor((startY - 1) / lineMod) * lineMod;
     }
+    if (startY < lineMod) {
+      startY = lineMod - 1;
+    }
   } else {
     startX = Math.ceil((startX + 1) / lineMod) * lineMod;
     if (startX >= numCols) {
       startX -= lineMod;
     }
-    startY = Math.ceil((startY + 1) / lineMod) * lineMod;
-    if (startY >= numRows) {
-      startY -= lineMod;
-    }
+    startY = Math.ceil((startY + 1) / lineMod) * lineMod - 1;
   }
+
   return { row: startY, col: startX };
 }
 
