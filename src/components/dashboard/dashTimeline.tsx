@@ -365,16 +365,16 @@ const EVAMaxTimeline: FunctionComponent<{
           style={{
             borderTop:
               maxDuration < evaLengthCalculatedMins
-                ? "5px solid var(--error)"
+                ? "5px solid var(--warning)"
                 : "5px solid var(--grey5)",
           }}
         />
         <div
           className={styles.markerTime}
           style={{
-            color: maxDuration < evaLengthCalculatedMins ? "white" : "black",
+            color: maxDuration > evaLengthCalculatedMins ? "white" : "black",
             backgroundColor:
-              maxDuration < evaLengthCalculatedMins ? "var(--error)" : "var(--grey5)",
+              maxDuration < evaLengthCalculatedMins ? "var(--warning)" : "var(--grey5)",
           }}
         >
           {hhmmFromMinutes(maxDuration)}

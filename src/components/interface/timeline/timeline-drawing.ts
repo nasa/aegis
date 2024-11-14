@@ -127,7 +127,7 @@ export function drawGraphAxis(
     //draw the ending line
     let endingColor = paperDataRef.current.styles.white;
     if (Math.round(storeRef.current.evaLengthCalculatedMins) > storeRef.current.evaLengthMins) {
-      endingColor = paperDataRef.current.styles.red;
+      endingColor = paperDataRef.current.styles.yellow;
     }
     drawTimeMarker(
       paperDataRef,
