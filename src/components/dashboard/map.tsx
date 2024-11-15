@@ -1291,13 +1291,15 @@ const MapBody: FunctionComponent<{
               }}
               containerStyle={{ padding: "2px 0px 2px 0px" }}
             >
-              {presetsFromDb.map((preset) => {
-                return (
-                  <option key={preset.uuid} value={preset.uuid}>
-                    {preset.name}
-                  </option>
-                );
-              })}
+              {[...presetsFromDb]
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((preset) => {
+                  return (
+                    <option key={preset.uuid} value={preset.uuid}>
+                      {preset.name}
+                    </option>
+                  );
+                })}
             </Dropdown>
           </div>
         </div>
