@@ -372,7 +372,7 @@ const EVAMaxTimeline: FunctionComponent<{
         <div
           className={styles.markerTime}
           style={{
-            color: maxDuration > evaLengthCalculatedMins ? "white" : "black",
+            color: "black",
             backgroundColor:
               maxDuration < evaLengthCalculatedMins ? "var(--warning)" : "var(--grey5)",
           }}
