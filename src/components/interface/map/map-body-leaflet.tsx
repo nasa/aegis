@@ -1008,12 +1008,8 @@ const MapBody: FunctionComponent = () => {
     const basePointsShown =
       (gridBounds[1].row - gridBounds[0].row) * (gridBounds[1].col - gridBounds[0].col);
     let lineZoomLevel = 50;
-    if (basePointsShown < 400) {
+    if (basePointsShown < 500) {
       lineZoomLevel = 1;
-    } else if (basePointsShown < 800) {
-      lineZoomLevel = 2;
-    } else if (basePointsShown < 2000) {
-      lineZoomLevel = 5;
     } else if (basePointsShown < 4000) {
       lineZoomLevel = 10;
     }
@@ -1034,7 +1030,7 @@ const MapBody: FunctionComponent = () => {
     );
 
     const lines: Feature[] = [];
-    for (let i = startIndex.row; i <= endIndex.row; i += lineZoomLevel) {
+    for (let i = endIndex.row; i >= startIndex.row; i -= lineZoomLevel) {
       lines.push(
         lineString([
           [
@@ -1077,7 +1073,7 @@ const MapBody: FunctionComponent = () => {
     map.current.addLayer(geoJSONGrid);
 
     if (showGridLabels) {
-      for (let i = startIndex.row; i <= endIndex.row; i += lineZoomLevel) {
+      for (let i = endIndex.row; i >= startIndex.row; i -= lineZoomLevel) {
         for (let j = startIndex.col; j < endIndex.col; j += lineZoomLevel) {
           if (i !== startIndex.row && j !== endIndex.col) {
             const point: MissionGridPoint = gridCoordinates[i][j];

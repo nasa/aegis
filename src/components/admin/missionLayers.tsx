@@ -59,6 +59,7 @@ const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission
 
   const checkLayerUsesFolder = useCallback(
     (folderName: string) => {
+      if (!allSublayers) return false;
       for (const sublayer of allSublayers) {
         if (sublayer.url?.startsWith(folderName + "/")) {
           return true;

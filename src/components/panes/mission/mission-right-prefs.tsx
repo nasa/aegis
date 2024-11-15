@@ -24,6 +24,12 @@ import { thunkVerifyNoStationsBeingEdited } from "store/thunk/thunkStation";
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
   const mission = useAppSelector((state) => state.mission.mission, deepEqual);
+  const [projBoundsMinX, projBoundsMaxX] = useAppSelector((state) => {
+    return [state.mission.mission.projBoundsMinX, state.mission.mission.projBoundsMaxX];
+  }, deepEqual);
+  const [projBoundsMinY, projBoundsMaxY] = useAppSelector((state) => {
+    return [state.mission.mission.projBoundsMinY, state.mission.mission.projBoundsMaxY];
+  }, deepEqual);
   const thisMapDirective = useAppSelector((state) => {
     return state.map.mapDirective?.uuid === "lander" ? state.map.mapDirective : null;
   }, shallowEqual);
@@ -208,7 +214,11 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                               name: "lat",
                               ariaLabel: "LatitudePref",
                               style: { width: "150px" },
-                              validators: [validators.mustBeNumber, validators.required],
+                              validators: [
+                                validators.mustBeNumber,
+                                validators.required,
+                                validators.withinBoundary(projBoundsMinY, projBoundsMaxY),
+                              ],
                             }}
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
@@ -245,7 +255,11 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                               name: "Lng",
                               ariaLabel: "LongitudePref",
                               style: { width: "150px" },
-                              validators: [validators.mustBeNumber, validators.required],
+                              validators: [
+                                validators.mustBeNumber,
+                                validators.required,
+                                validators.withinBoundary(projBoundsMinX, projBoundsMaxX),
+                              ],
                             }}
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                             onSubmit={(val: string) => {
