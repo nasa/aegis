@@ -4,7 +4,7 @@ import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useParams } from "react-router-dom";
 
 import styles from "./mission.module.css";
-import { setMissionPerms, setUserStore } from "store/user";
+import { setUserStore } from "store/user";
 import { Tooltip } from "react-tooltip";
 import { isLoggedIn } from "http-client/login";
 import { useNavigate } from "react-router-dom";
@@ -32,7 +32,7 @@ const Main = (): JSX.Element => {
     refEqual
   );
 
-  const [hasPermissions, setHasPermissions] = useState(false);
+  const [permissions, setPermissions] = useState<Permission>(null);
 
   const params = useParams<RouteParams>();
   const slug = params.id;
@@ -43,8 +43,16 @@ const Main = (): JSX.Element => {
   const paneType: PaneType = paneTypes[interfaceStateLabel as keyof PaneTypes];
 
   useEffect(() => {
+    // wait for permissions to be set before populating store
+    if (!permissions) return;
     const populateStoreAsync = async () => {
-      const wholeStoreState = await populateStore({ missionId: intMissionId, runAudit: true });
+      let wholeStoreState: WholeStoreState;
+      if (permissions.permissions?.edit) {
+        wholeStoreState = await populateStore({ missionId: intMissionId, runAudit: true });
+      } else {
+        // user does not have edit permissions, so do not run audit (which causes DB changes)
+        wholeStoreState = await populateStore({ missionId: intMissionId, runAudit: false });
+      }
       /**
        * dispatch a single action to populate the stores across all slices using the wholeStoreState
        */
@@ -52,7 +60,7 @@ const Main = (): JSX.Element => {
     };
     populateStoreAsync();
     //eslint-disable-next-line
-  }, []);
+  }, [permissions]);
 
   useEffect(() => {
     window.sessionStorage.setItem("missionId", intMissionId.toString());
@@ -64,19 +72,20 @@ const Main = (): JSX.Element => {
     const isLoggedInAsync = async () => {
       const response = await isLoggedIn();
       if (response.status === "success") {
-        dispatch(setUserStore({ isLoggedIn: true, user: response.data.user, missionPerms: null }));
+        let missionPerms: Permission = null;
         if (response.data.user.isSuperAdmin) {
-          dispatch(
-            setMissionPerms({ missionId: intMissionId, permissions: { view: true, edit: true } })
-          );
+          missionPerms = { missionId: intMissionId, permissions: { view: true, edit: true } };
         } else {
-          const perms = response.data.user.permissionList?.find(
+          missionPerms = response.data.user.permissionList?.find(
             (permission) => permission.missionId === intMissionId
           );
-          if (!perms || (!perms.permissions.view && !perms.permissions.edit)) navigate("/");
-          dispatch(setMissionPerms(perms));
+          if (!missionPerms || (!missionPerms.permissions.view && !missionPerms.permissions.edit))
+            navigate("/");
         }
-        setHasPermissions(true);
+        dispatch(
+          setUserStore({ isLoggedIn: true, user: response.data.user, missionPerms: missionPerms })
+        );
+        setPermissions(missionPerms);
       } else {
         navigate("/");
       }
@@ -86,7 +95,7 @@ const Main = (): JSX.Element => {
 
   return (
     <>
-      {hasPermissions && (
+      {permissions && (
         <>
           {missionStore.mission && missionStore.layers ? (
             <div className={styles.page}>

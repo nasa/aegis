@@ -270,6 +270,7 @@ export const auditPosSources = async ({
 
   // loop through all rexes and audit the posSources
   const newRexes = _.cloneDeep(wholeStoreState.rex.rexes);
+  let isModified: boolean = false;
 
   const defaultPosSource = {
     uuid: uuidv4(),
@@ -279,6 +280,7 @@ export const auditPosSources = async ({
   for (const rex of newRexes) {
     // if the posSources is empty, fill it with a default with just "Task" in it
     if (!rex.posSources || rex.posSources.length === 0) {
+      isModified = true;
       rex.posSources = [defaultPosSource];
 
       // if the rex has no position entries, skip to the next rex
@@ -296,8 +298,10 @@ export const auditPosSources = async ({
   // update the store and db with the new values
   wholeStoreState.rex.rexes = newRexes;
 
-  const upsertResponse = await httpClient_rex.upsertRexes(newRexes);
-  if (upsertResponse.status !== "success") {
-    // handle the error
+  if (isModified) {
+    const upsertResponse = await httpClient_rex.upsertRexes(newRexes);
+    if (upsertResponse.status !== "success") {
+      // handle the error
+    }
   }
 };
