@@ -53,7 +53,7 @@ const Main = (): JSX.Element => {
     showMarkers: true,
     showOldMarkers: false,
     fadeOldMarkers: false,
-    sources: [taskSourceUuid, crewSourceUuid],
+    sourceUuids: [taskSourceUuid, crewSourceUuid],
   });
   const [showScaleBar, setShowScaleBar] = useState(true);
   const [selectedPreset, setSelectedPreset] = useState<Preset>(defaultPreset);
@@ -124,7 +124,7 @@ const Main = (): JSX.Element => {
         {hasPermissions && runningRexFromDb ? (
           <div className={styles.mainContent}>
             <div className={styles.leftPanel}>
-              <LeftTopPanel />
+              <LeftTopPanel mapDisplayPos={mapDisplayPos} />
               <div className={styles.miniMapContainer}>
                 <MiniMap
                   bigMapBounds={bigMapBounds}

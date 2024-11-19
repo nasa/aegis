@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { FunctionComponent, useState } from "react";
 
 import styles from "./leftPanel.module.css";
 import PetInterval from "components/page/petInterval";
@@ -11,7 +11,7 @@ import {
 import { decodeEmoji, hhmmssFromSeconds, secondsFromhhmmss } from "utils/formatting";
 import _, { isUndefined } from "lodash";
 
-const LeftTopPanel = (): JSX.Element => {
+const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ mapDisplayPos }) => {
   const runningRexFromDb = useAppSelector(
     (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
     deepEqual
@@ -166,7 +166,11 @@ const LeftTopPanel = (): JSX.Element => {
           let latestCreationDate: string;
           if (Array.isArray(runningRexFromDb.posEntries)) {
             runningRexFromDb.posEntries.forEach((entry) => {
-              if (entry.posTypeUuids.includes(posType.uuid)) {
+              // whether or not to show the entry based on what is selected in the eyeball menu
+              const showEntry =
+                mapDisplayPos.sourceUuids.includes(entry.posSourceUuid) ||
+                mapDisplayPos.sourceUuids.length === 0; // "all" is selected
+              if (entry.posTypeUuids.includes(posType.uuid) && showEntry) {
                 if (!latestCreationDate || entry.createdAt > latestCreationDate) {
                   latestCreationDate = entry.createdAt;
                   latestEntrySecondsForType = entry.seconds;
