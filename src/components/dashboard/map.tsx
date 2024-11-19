@@ -931,9 +931,9 @@ const MapBody: FunctionComponent<{
       );
       // filter out the pos entries that are not from a selected source. Empty source array means "all".
       let filteredPosEntries: PosEntry[] = [];
-      if (mapDisplayPos.sources.length > 0) {
+      if (mapDisplayPos.sourceUuids.length > 0) {
         filteredPosEntries = posEntriesWithLocations?.filter((posEntry) =>
-          mapDisplayPos.sources.includes(posEntry.posSourceUuid)
+          mapDisplayPos.sourceUuids.includes(posEntry.posSourceUuid)
         );
       } else {
         filteredPosEntries = posEntriesWithLocations;

@@ -189,7 +189,7 @@ const MapBody: FunctionComponent = () => {
     showMarkers: true,
     showOldMarkers: false,
     fadeOldMarkers: false,
-    sources: [],
+    sourceUuids: [],
   });
   const [showArrows, setShowArrows] = useState(true);
   const [showGridLabels, setShowGridLabels] = useState(true);
@@ -229,7 +229,7 @@ const MapBody: FunctionComponent = () => {
       )?.uuid;
       setMapDisplayPos({
         ...eyeballMenuSettings.mapDisplayPos,
-        sources: [taskSourceUuid, crewSourceUuid],
+        sourceUuids: [taskSourceUuid, crewSourceUuid],
       });
     }
     setShowArrows(eyeballMenuSettings.showArrows);
@@ -1230,9 +1230,9 @@ const MapBody: FunctionComponent = () => {
         );
         // filter out the pos entries that are not from a selected source. Empty source array means "all".
         let filteredPosEntries: PosEntry[] = [];
-        if (mapDisplayPos.sources.length > 0) {
+        if (mapDisplayPos.sourceUuids.length > 0) {
           filteredPosEntries = posEntriesWithLocations?.filter((posEntry) =>
-            mapDisplayPos.sources.includes(posEntry.posSourceUuid)
+            mapDisplayPos.sourceUuids.includes(posEntry.posSourceUuid)
           );
         } else {
           filteredPosEntries = posEntriesWithLocations;
