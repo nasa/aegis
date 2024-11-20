@@ -71,14 +71,14 @@ export const MapViewMenu: FunctionComponent<{
       if (taskPosSourceUuid || crewPosSourceUuid) {
         setMapDisplayPos({
           ...mapDisplayPos,
-          sources: [taskPosSourceUuid, crewPosSourceUuid],
+          sourceUuids: [taskPosSourceUuid, crewPosSourceUuid],
         });
         return;
       }
       // set to "all" by default if no task or crew pos sources
       setMapDisplayPos({
         ...mapDisplayPos,
-        sources: [],
+        sourceUuids: [],
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -256,12 +256,12 @@ export const MapViewMenu: FunctionComponent<{
                 Sources
                 <div
                   className={`${styles.toggleLeft} ${styles.center} ${
-                    mapDisplayPos.sources?.length === 0 && styles.toggleSelected
+                    mapDisplayPos.sourceUuids?.length === 0 && styles.toggleSelected
                   }`}
                   onClick={() => {
                     setMapDisplayPos({
                       ...mapDisplayPos,
-                      sources: [],
+                      sourceUuids: [],
                     });
                   }}
                 >
@@ -276,18 +276,20 @@ export const MapViewMenu: FunctionComponent<{
                     <div
                       key={posSource.uuid}
                       className={`${toggleStyle} ${styles.center} ${
-                        mapDisplayPos.sources.includes(posSource.uuid) && styles.toggleSelected
+                        mapDisplayPos.sourceUuids.includes(posSource.uuid) && styles.toggleSelected
                       }`}
                       onClick={() => {
-                        if (mapDisplayPos.sources.includes(posSource.uuid)) {
+                        if (mapDisplayPos.sourceUuids.includes(posSource.uuid)) {
                           setMapDisplayPos({
                             ...mapDisplayPos,
-                            sources: mapDisplayPos.sources.filter((s) => s !== posSource.uuid),
+                            sourceUuids: mapDisplayPos.sourceUuids.filter(
+                              (s) => s !== posSource.uuid
+                            ),
                           });
                         } else {
                           setMapDisplayPos({
                             ...mapDisplayPos,
-                            sources: [...mapDisplayPos.sources, posSource.uuid],
+                            sourceUuids: [...mapDisplayPos.sourceUuids, posSource.uuid],
                           });
                         }
                       }}

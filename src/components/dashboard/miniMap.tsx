@@ -470,9 +470,9 @@ const MiniMap: FunctionComponent<{
     // determine which pos entries to show
     if (mapDisplayPos.show) {
       let filteredPosEntries: PosEntry[] = [];
-      if (mapDisplayPos.sources.length > 0) {
+      if (mapDisplayPos.sourceUuids.length > 0) {
         filteredPosEntries = runningRexFromDb?.posEntries?.filter((posEntry) =>
-          mapDisplayPos.sources.includes(posEntry.posSourceUuid)
+          mapDisplayPos.sourceUuids.includes(posEntry.posSourceUuid)
         );
       } else {
         filteredPosEntries = runningRexFromDb?.posEntries;

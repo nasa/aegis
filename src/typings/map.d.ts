@@ -50,7 +50,7 @@ interface MapDisplayPos {
   showMarkers: boolean;
   showOldMarkers: boolean;
   fadeOldMarkers: boolean;
-  sources: string[];
+  sourceUuids: string[];
 }
 
 /**
