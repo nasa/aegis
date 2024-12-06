@@ -477,6 +477,14 @@ const RightActionBody: FunctionComponent<{
                   label={parentType === "station" ? "Set to Station" : "Set to POI"}
                   style={{ width: "95px" }}
                 />
+                <Button
+                  onClick={() => {
+                    dispatch(upsertActionByField(action.uuid, "location", null));
+                    dispatch(upsertActionByField(action.uuid, "elevation", null));
+                  }}
+                  label="Clear Location"
+                  style={{ width: "99px" }}
+                />
               </>
             )}
             {editMode && mapAction === "createMarker" && (
