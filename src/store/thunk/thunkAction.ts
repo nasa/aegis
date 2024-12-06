@@ -203,7 +203,7 @@ export const thunkUpdateActionLocation = appCreateAsyncThunk<{
   );
 
   const action = getState().action.actions.find((s) => s.uuid === actionUuid);
-  if (!elevation || elevation.payload === false) {
+  if (!elevation || elevation.payload === false || elevation.payload === undefined) {
     //gracefully reject?
     dispatch(upsertAction({ ...action, location, elevation: null }));
   } else {
