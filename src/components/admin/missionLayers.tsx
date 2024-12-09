@@ -7,6 +7,13 @@ import FileManager from "components/admin/fileManager";
 import { deleteSublayers, getSublayers } from "http-client/sublayer";
 import { generateBlankLayer } from "store/storeUtils/layer";
 import { generateBlankSublayer } from "store/storeUtils/sublayer";
+import {
+  faLayerGroup,
+  faBezierCurve,
+  faVectorSquare,
+  faCircle,
+} from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission: Mission }) => {
   const [allLayers, setAllLayers] = useState<Layer[]>(null);
@@ -237,6 +244,11 @@ const LayerList = (props: {
                   <ul key={sublayer.uuid}>
                     <li>
                       {sublayer.name}
+                      &nbsp;
+                      {sublayer.type === "tile" && <FontAwesomeIcon icon={faLayerGroup} />}
+                      {sublayer.type === "vector-tile" && <FontAwesomeIcon icon={faVectorSquare} />}
+                      {sublayer.type === "vector" && <FontAwesomeIcon icon={faBezierCurve} />}
+                      {sublayer.type === "circle" && <FontAwesomeIcon icon={faCircle} />}
                       <button
                         type="button"
                         onClick={() => {
@@ -253,7 +265,7 @@ const LayerList = (props: {
                           delSubLayer(sublayer);
                         }}
                       >
-                        Delete SubLayer
+                        Delete Sublayer
                       </button>
                       &nbsp;{sublayer.uuid ? "" : "Missing UUID"}
                     </li>
