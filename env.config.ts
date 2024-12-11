@@ -127,7 +127,6 @@ export const config: DotenvConfig<typeof environments> = {
   OAUTH2_PROXY_REDIRECT_URL: {
     // prod: "https://aegis.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
     // int: "https://aegis-int.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
-    // dev: "https://aegis-dev.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
     local: "https://aegis-local.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
     default: "https://INSERT_SUBDOMAIN.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
   },
