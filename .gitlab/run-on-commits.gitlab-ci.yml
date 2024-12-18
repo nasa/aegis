@@ -482,10 +482,6 @@ deploy:int:
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
     URL: https://aegis-int.fit.nasa.gov
-
-    # Turn off forwarding logs from VM's Rsyslog to EMSS logging server
-    # Cannot enable in int/prod environments until FIT firewall altered
-    RSYSLOG_DISABLE_FORWARDING: "true"
   only:
     - int
   before_script:
@@ -506,10 +502,6 @@ deploy:prod:
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD #CI/CD Variable
     URL: https://aegis.fit.nasa.gov
-
-    # Turn off forwarding logs from VM's Rsyslog to EMSS logging server
-    # Cannot enable in int/prod environments until FIT firewall altered
-    RSYSLOG_DISABLE_FORWARDING: "true"
   when: manual
   only:
     - prod
