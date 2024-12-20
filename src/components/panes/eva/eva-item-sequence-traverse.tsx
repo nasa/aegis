@@ -8,7 +8,7 @@ import { setHoverUuidsForSequence } from "store/hover";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { getRexStatusDisplayProperties } from "../../../utils/rex";
-import _ from "lodash";
+import last from "lodash/last";
 import PetInterval from "components/page/petInterval";
 import { RexStatusMenu } from "../rex/rex";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
@@ -45,7 +45,7 @@ const SequenceItemTraverse: FunctionComponent<{
   const traverseRexStatus = useAppSelector((state) => {
     const rex = state.rex.rexesFromDb.find((rex) => rex.isRunning);
     if (!rex || !rex.traverseEntries) return null;
-    return _.last(rex.traverseEntries[traverseUuid])?.rexStatus;
+    return last(rex.traverseEntries[traverseUuid])?.rexStatus;
   }, shallowEqual);
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,

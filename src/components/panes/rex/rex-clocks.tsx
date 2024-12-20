@@ -1,4 +1,3 @@
-import _ from "lodash";
 import { FunctionComponent, useState } from "react";
 
 import styles from "./rex.module.css";

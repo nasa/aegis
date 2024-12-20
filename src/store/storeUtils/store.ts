@@ -1,4 +1,4 @@
-import _ from "lodash";
+import isEmpty from "lodash/isEmpty";
 
 /**
  * Upsert (update or insert) an element into any array of objects that contain a uuid field.
@@ -57,7 +57,7 @@ export function mergeEquipmentItems(
 
 export const getStmUuidRefs = (stmPriorities: StmPriorities): string[] => {
   const stmUuidRefs: string[] = [];
-  if (_.isEmpty(stmPriorities)) return stmUuidRefs;
+  if (isEmpty(stmPriorities)) return stmUuidRefs;
   for (const [key, __] of Object.entries(stmPriorities)) {
     stmUuidRefs.push(key);
   }

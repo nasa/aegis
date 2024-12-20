@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 
 import { hasPerms } from "utils/permissions";
 import { Mission_db } from "server/database/models/_allModels";
@@ -128,7 +128,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   //must have edit permission the mission ids
   //  or if no mission id (create mission) must be an admin to the back end or user 1
   for (const missionIdToDelete of missionIds) {
-    if (!missionIdToDelete || _.isNaN(missionIdToDelete)) {
+    if (!missionIdToDelete || isNaN(missionIdToDelete)) {
       res.status(500).json({ status: "error", message: "Invalid mission ID" });
       return;
     }
@@ -193,7 +193,7 @@ export async function getMission(missionIdList: number | number[] = null): Promi
 export async function upsertMissions(missions: Mission[]): Promise<Mission[]> {
   const em = getEM();
 
-  const missionsCopy: Mission[] = _.cloneDeep(missions);
+  const missionsCopy: Mission[] = cloneDeep(missions);
   const missionsUpsertedToDb: Mission[] = [];
 
   for (const missionCopy of missionsCopy) {

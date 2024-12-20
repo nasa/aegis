@@ -1,4 +1,3 @@
-import isNil from "lodash/isNil";
 import paper from "paper";
 import {
   FunctionComponent,
@@ -15,7 +14,9 @@ import styles from "./timeline.module.css";
 import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { clearMapItemHover } from "store/hover";
-import _ from "lodash";
+import throttle from "lodash/throttle";
+import isNil from "lodash/isNil";
+import last from "lodash/last";
 import { STM_Coverage } from "components/panes/stm/stm-coverage";
 import * as TimelineDrawing from "./timeline-drawing";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
@@ -112,7 +113,7 @@ const NavTimeline: FunctionComponent = () => {
     if (action.enabled) {
       coveredSTMs.push(getStmUuidRefs(action.stmPriorities));
       if (runningRex?.actionEntries) {
-        const rexStatus = _.last(runningRex.actionEntries[action.uuid])?.rexStatus;
+        const rexStatus = last(runningRex.actionEntries[action.uuid])?.rexStatus;
         if (rexStatus === "complete") {
           completedSTMs.push(getStmUuidRefs(action.stmPriorities));
         } else if (rexStatus === "in-progress") {
@@ -273,7 +274,7 @@ const NavTimeline: FunctionComponent = () => {
         mission?.landerElevationMeters
       );
     };
-    paper.view.onMouseMove = _.throttle(onMouseMove, 15, {
+    paper.view.onMouseMove = throttle(onMouseMove, 15, {
       leading: true,
       trailing: false,
     });

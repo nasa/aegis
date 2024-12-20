@@ -23,7 +23,7 @@ import {
 import * as httpClient_Eva from "http-client/eva";
 import * as httpClient_Traverse from "http-client/traverse";
 import * as httpClient_Rex from "http-client/rex";
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import { thunkFullUpdateTraverse, thunkUpdateTraversesAroundStation } from "./thunkTraverse";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
@@ -317,7 +317,7 @@ export const thunkDuplicateEva = appCreateAsyncThunk<{
 }>("evaDuplicate", async ({ eva, includeStations }, { dispatch, getState }) => {
   if (!eva) return;
   //make a copy of the eva
-  const newEva: Eva = _.cloneDeep(eva);
+  const newEva: Eva = cloneDeep(eva);
   newEva.uuid = uuidv4();
   newEva.updatedAt = null;
   newEva.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
@@ -365,7 +365,7 @@ export const thunkDuplicateEva = appCreateAsyncThunk<{
     newEva.sequence[sequenceIndex].uuid = newTraverseUuid;
 
     //make a copy
-    const newTraverse: Traverse = _.cloneDeep(traverse);
+    const newTraverse: Traverse = cloneDeep(traverse);
     newTraverse.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
     newTraverse.updatedAt = null;
     newTraverse.uuid = newTraverseUuid;
@@ -416,7 +416,7 @@ export const thunkAddStationToEva = appCreateAsyncThunk<{ evaUuid: string }>(
   "evaAddStation",
   async ({ evaUuid }, { dispatch, getState }) => {
     const eva = getState().eva.evas.find((eva) => eva.uuid === evaUuid);
-    const newEvaSequence = _.cloneDeep(eva.sequence);
+    const newEvaSequence = cloneDeep(eva.sequence);
 
     const newStationSequenceItem: EvaSequenceItem = {
       type: "station",
@@ -469,7 +469,7 @@ export const thunkDeleteStationFromEva = appCreateAsyncThunk<{
   sequenceIndex: number;
   evaUuid: string;
 }>("evaDeleteStation", async ({ evaSequence, sequenceIndex, evaUuid }, { dispatch }) => {
-  const newEvaSequence = _.cloneDeep(evaSequence);
+  const newEvaSequence = cloneDeep(evaSequence);
   let traverseUuidToUpdate: string = null;
   // if this is the first station in the EVA, delete the traverse before it otherwise delete the traverse after it
   if (sequenceIndex === 1) {
@@ -510,7 +510,7 @@ export const thunkChangeStationInEva = appCreateAsyncThunk<{
 }>(
   "evaChangeStation",
   async ({ evaSequence, sequenceIndex, newStationUuid, evaUuid }, { dispatch }) => {
-    const newEvaSequence = _.cloneDeep(evaSequence);
+    const newEvaSequence = cloneDeep(evaSequence);
     newEvaSequence[sequenceIndex] = {
       type: "station",
       uuid: newStationUuid,
@@ -527,7 +527,7 @@ export const thunkReorderStationInEva = appCreateAsyncThunk<{
   stationIndex: number;
   evaUuid: string;
 }>("evaMoveStationUp", async ({ direction, evaSequence, stationIndex, evaUuid }, { dispatch }) => {
-  const newEvaSequence = _.cloneDeep(evaSequence);
+  const newEvaSequence = cloneDeep(evaSequence);
   const traverseUuidsToUpdate: string[] = [];
   let stationIndexToSwap: number;
 

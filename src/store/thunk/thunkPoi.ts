@@ -9,7 +9,7 @@ import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { thunkCancelMarkerMapDirective } from "./thunkMap";
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import {
   thunkDeleteActionFromDbAndStore,
   thunkDuplicateActions,
@@ -25,7 +25,7 @@ export const thunkUpdatePoiLatLngField = appCreateAsyncThunk<{
   type: "lat" | "lng";
   value: number;
 }>("updatePoiLatLngField", async ({ poiUuid, type, value }, { getState, dispatch }) => {
-  const poiLocation: AEGISPoint = _.cloneDeep(
+  const poiLocation: AEGISPoint = cloneDeep(
     getState().poi.pois.find((p) => p.uuid === poiUuid)?.location
   );
   if (type === "lat") {
@@ -194,7 +194,7 @@ export const thunkDuplicatePoi = appCreateAsyncThunk<{ poi: POI }>(
   async ({ poi }, { dispatch, getState }) => {
     if (!poi) return;
     //duplicate poi
-    const newPoi: POI = _.cloneDeep(poi);
+    const newPoi: POI = cloneDeep(poi);
     newPoi.uuid = uuidv4();
     newPoi.updatedAt = null;
     newPoi.createdAt = roundDateToSecond(getAccurateNow()).toISOString();

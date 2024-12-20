@@ -11,7 +11,7 @@ import {
 } from "store/thunk/thunkMission";
 import { createFullTestStore } from "tests/jest/factories/makeTestStore";
 import { v4 as uuidv4 } from "uuid";
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 
 // mock all calls to the db so no transactions are actually made
 // CAUTION, the import line must be below the jest.mock
@@ -50,7 +50,7 @@ afterAll(() => {
 
 describe("Thunk Mission Tests", () => {
   it("thunkMissionSave", async () => {
-    const missionCopy = _.cloneDeep(store.getState().mission.mission);
+    const missionCopy = cloneDeep(store.getState().mission.mission);
     const newLanderRadii = { uuid: uuidv4(), name: "Jest Test Lander Radii", radius: 10 };
     const newName = "Jest Mission Test Save";
     store.dispatch(upsertMission({ ...missionCopy, name: newName, landerRadii: [newLanderRadii] }));

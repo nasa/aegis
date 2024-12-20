@@ -1,4 +1,6 @@
-import _ from "lodash";
+import meanBy from "lodash/meanBy";
+import isEqual from "lodash/isEqual";
+
 /**
  * This uses the 'haversine' formula to calculate the great-circle distance between two points
  * that is, the shortest distance over the planet's surface (not including terrain)
@@ -227,7 +229,7 @@ export function addPointsAtMeters(
   radius: number
 ): AEGISPoint[] {
   if (path.length < 2) return path;
-  if (_.isEqual(path[0], path[1])) return path;
+  if (isEqual(path[0], path[1])) return path;
 
   const newPath: AEGISPoint[] = [];
   //loop through path segments
@@ -303,8 +305,8 @@ export function getSlope(x1: number, y1: number, x2: number, y2: number): number
  * Get the midpoint of an array of AEGISPoints by averaging the lat and lng
  */
 export function getMidpoint(points: AEGISPoint[]): AEGISPoint {
-  const lat = _.meanBy(points, "lat");
-  const lng = _.meanBy(points, "lng");
+  const lat = meanBy(points, "lat");
+  const lng = meanBy(points, "lng");
   return { lat, lng };
 }
 

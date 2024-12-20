@@ -21,7 +21,9 @@ import styles from "./leaflet-helper.module.css";
 import { HighlightableLayerOptions, HighlightablePolyline } from "leaflet-highlightable-layers";
 import Color from "color";
 import { antPath } from "leaflet-ant-path";
-import _ from "lodash";
+import orderBy from "lodash/orderBy";
+import throttle from "lodash/throttle";
+import sortBy from "lodash/sortBy";
 import { AppDispatch } from "store";
 import { setMeasureInitialCoords, updateMapDirective } from "store/map";
 import { revertWalkbackPath } from "store/station";
@@ -747,8 +749,8 @@ export const getLayersToAddInOrder = ({
     }
   } else {
     //preset does not have ordering, sort by name
-    for (const layer of _.sortBy(missionLayers, [(layer) => layer.name.toLowerCase()])) {
-      for (const sublayer of _.sortBy(
+    for (const layer of sortBy(missionLayers, [(layer) => layer.name.toLowerCase()])) {
+      for (const sublayer of sortBy(
         missionSublayers.filter((s) => s.layerUuid === layer.uuid),
         [(sublayer) => sublayer.name.toLowerCase()]
       )) {
@@ -1079,7 +1081,7 @@ export const getLatestPosEntryByType = ({
   const posTypeLatestEntries: { [key: string]: PosEntry[] } = {};
 
   // gather the latest 2 pos entries  for each type. Most recent/latest entry is first in the array.
-  const posEntriesToShowSortedByTime = _.orderBy(allPosEntries, ["createdAt"], ["desc"]);
+  const posEntriesToShowSortedByTime = orderBy(allPosEntries, ["createdAt"], ["desc"]);
   posEntriesToShowSortedByTime.forEach((posEntry) => {
     posEntry.posTypeUuids.forEach((posTypeUuid) => {
       // for each pos type in this pos entry, if we haven't seen 2 entries for it yet, add this entry to the list
@@ -1231,7 +1233,7 @@ export const handleMapDirective = ({
 
         draggableLines.current.on(
           "drag",
-          _.throttle((e) => {
+          throttle((e) => {
             dispatchPath(e, true);
           }, 100)
         );

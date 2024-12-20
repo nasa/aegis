@@ -1,14 +1,14 @@
 import { stripHtml } from "string-strip-html";
 import { convertNodeToHTML, convertStringToNodes } from "components/interface/form/wysiwyg";
-import _ from "lodash";
 import { decodeEmoji } from "./formatting";
+import reduce from "lodash/reduce";
 
 const decodeWsywig = (string: string): string => {
   if (!string) return string;
 
   // convert wysiwyg to html and strip the html tags
   let newString = stripHtml(
-    _.reduce(
+    reduce(
       convertStringToNodes(string),
       (htmlString, decendant) => htmlString + convertNodeToHTML(decendant),
       ""

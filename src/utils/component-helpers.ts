@@ -1,4 +1,4 @@
-import _ from "lodash";
+import sortBy from "lodash/sortBy";
 
 export const getAlertColor = (
   reportItems: ReportItem[],
@@ -61,8 +61,8 @@ export const isModified = <T extends MustContain>(obj1: T[], obj2: T[]): boolean
   //check length
   if (obj1.length === obj2.length) {
     //sort before comparing indexes
-    const sortedObjs1 = _.sortBy(obj1, ["uuid"]);
-    const sortedObjs2 = _.sortBy(obj2, ["uuid"]);
+    const sortedObjs1 = sortBy(obj1, ["uuid"]);
+    const sortedObjs2 = sortBy(obj2, ["uuid"]);
     for (let i = 0; i < sortedObjs1.length; i++) {
       //check updatedAt strings
       isDiff = sortedObjs1[i]?.updatedAt !== sortedObjs2[i]?.updatedAt;

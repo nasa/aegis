@@ -2,17 +2,18 @@ import { FunctionComponent } from "react";
 import styles from "./stm-viewer-list-table.module.css";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { RootState } from "store";
-import _ from "lodash";
 import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IndicatorGridRow } from "./stm-viewer-indicators";
 import { stmViewCollapseItem, stmViewExpandItem, stmViewSetHoveredLeftItem } from "store/interface";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { titleCase } from "utils/formatting";
+import uniq from "lodash/uniq";
+import sortBy from "lodash/sortBy";
 
 const STMListTable: FunctionComponent = () => {
   const level1s = useAppSelector(
-    (state: RootState) => _.sortBy(state.stm.level1s, "numbering"),
+    (state: RootState) => sortBy(state.stm.level1s, "numbering"),
     shallowEqual
   );
 
@@ -88,7 +89,7 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number }> = ({ le
 const STMLevel2s: FunctionComponent<{ level1Uuid: string }> = ({ level1Uuid }) => {
   const level2s = useAppSelector(
     (state: RootState) =>
-      _.sortBy(
+      sortBy(
         state.stm.level2s.filter((level2) => level2.level1Uuid === level1Uuid),
         "numbering"
       ),
@@ -152,7 +153,7 @@ export const STMLevel3s: FunctionComponent<{
 }> = ({ level2Uuid }) => {
   const level3s = useAppSelector(
     (state: RootState) =>
-      _.sortBy(
+      sortBy(
         state.stm.level3s.filter((level3) => level3.level2Uuid === level2Uuid),
         "numbering"
       ),
@@ -263,7 +264,7 @@ const Level3ActionTypes: FunctionComponent<{ level3Uuid: string }> = ({ level3Uu
         actionsWithThisLevel3.push(action);
       }
     }
-    const uniqueActionTypes: ActionType[] = _.uniq(
+    const uniqueActionTypes: ActionType[] = uniq(
       actionsWithThisLevel3.map((action) => action.type)
     );
     // filter out actionTypes that are not contained in stmViewSelectedActionTypes
@@ -274,7 +275,7 @@ const Level3ActionTypes: FunctionComponent<{ level3Uuid: string }> = ({ level3Uu
         newUniqueActionTypes.push(uniqueActionTypes[i]);
       }
     }
-    return _.sortBy(newUniqueActionTypes, (actionType) => actionType);
+    return sortBy(newUniqueActionTypes, (actionType) => actionType);
   }, shallowEqual);
   return (
     <div className={styles.level3ActionTypesContainer}>

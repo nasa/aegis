@@ -8,19 +8,20 @@ import { Button, InLineEditInput } from "components/interface/form/globalFields"
 import { validators } from "components/interface/form/formValidators";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppDispatch } from "utils/useAppDispatch";
-import _ from "lodash";
 import {
   thunkCreateActionDefItem,
   thunkDeleteActionDefItem,
   thunkUpdateActionDefItem,
 } from "store/thunk/thunkActionDefinitions";
+import sortBy from "lodash/sortBy";
+import capitalize from "lodash/capitalize";
 
 const ActionDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const actionDefinitions = useAppSelector((state) => {
     const actionDefinitions = state.mission.mission.actionDefinitions;
-    const sortedVerbs = _.sortBy(actionDefinitions.verbs, [(verb) => verb.name.toLowerCase()]);
-    const sortedNouns = _.sortBy(actionDefinitions.nouns, [(noun) => noun.name.toLowerCase()]);
-    const sortedAdjectives = _.sortBy(actionDefinitions.adjectives, [
+    const sortedVerbs = sortBy(actionDefinitions.verbs, [(verb) => verb.name.toLowerCase()]);
+    const sortedNouns = sortBy(actionDefinitions.nouns, [(noun) => noun.name.toLowerCase()]);
+    const sortedAdjectives = sortBy(actionDefinitions.adjectives, [
       (adjective) => adjective.name.toLowerCase(),
     ]);
     return { verbs: sortedVerbs, nouns: sortedNouns, adjectives: sortedAdjectives };
@@ -94,7 +95,7 @@ const ActionDefinitions: FunctionComponent<{
   return (
     <div className={paneStyles.panelSection}>
       <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-        <SubpanelHeading icon={faList}>{_.capitalize(type)}</SubpanelHeading>
+        <SubpanelHeading icon={faList}>{capitalize(type)}</SubpanelHeading>
       </div>
       <div className={paneStyles.panelSectionBody}>
         <ul className={styles.propertyList}>
@@ -129,7 +130,7 @@ const ActionDefinitions: FunctionComponent<{
         {editMode && (
           <Button
             icon={faPlusCircle}
-            label={`Add Action ${_.capitalize(type.slice(0, -1))}`}
+            label={`Add Action ${capitalize(type.slice(0, -1))}`}
             style={{ width: buttonWidth, marginLeft: "18px", marginTop: "8px" }}
             onClick={async () => {
               setNewActionDefUuid((await dispatch(thunkCreateActionDefItem({ type }))).payload);
@@ -164,7 +165,7 @@ const ActionDefinitionItem: FunctionComponent<{
             editing={editMode}
             fieldProps={{
               name: "actionDefinitionName",
-              ariaLabel: `${_.capitalize(type)} name`,
+              ariaLabel: `${capitalize(type)} name`,
               style: { width: "100%" },
               validators: [validators.maxLength(255), validators.required],
             }}
@@ -187,7 +188,7 @@ const ActionDefinitionItem: FunctionComponent<{
             editing={editMode}
             fieldProps={{
               name: "actionDefinitionNameAbbr",
-              ariaLabel: `${_.capitalize(type)} abbreviation`,
+              ariaLabel: `${capitalize(type)} abbreviation`,
               style: { width: "90px" },
               validators: [validators.maxLength(10), validators.required],
             }}

@@ -29,9 +29,9 @@ import { hhmmssFromSeconds } from "utils/formatting";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { setHoverUuidsForPosEntry } from "store/hover";
 import { PosKabobMenu } from "./map-menu-pos-menu";
-import { orderBy } from "lodash";
+import orderBy from "lodash/orderBy";
+import isEqual from "lodash/isEqual";
 import { calcPathDurationMins, getDistanceBetweenTwoCoordinates } from "utils/geoMath";
-import _ from "lodash";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 
 export const MapPositionMenu: FunctionComponent = () => {
@@ -130,7 +130,7 @@ export const MapPositionMenu: FunctionComponent = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRexUuid]);
 
-  const modified = !_.isEqual([editingPosEntry], [editingPosEntryFromDb]);
+  const modified = !isEqual([editingPosEntry], [editingPosEntryFromDb]);
 
   const togglePosType = async (posTypeUuid: string) => {
     let newSelectedPosTypeUuids: string[] = [];

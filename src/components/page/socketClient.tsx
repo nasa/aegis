@@ -10,7 +10,7 @@ import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
 import { useAppDispatch } from "utils/useAppDispatch";
-import _ from "lodash";
+import isEqual from "lodash/isEqual";
 import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/thunkSockets";
 import { clientFetchWithTimeout } from "utils/fetch-with-timeout";
 
@@ -149,7 +149,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
             interfaceStoreRef.current.socketStatus.lastEditEvent &&
             lastEditResponse &&
             lastEditResponse.data &&
-            _.isEqual(lastEditResponse, interfaceStoreRef.current.socketStatus.lastEditEvent) ===
+            isEqual(lastEditResponse, interfaceStoreRef.current.socketStatus.lastEditEvent) ===
               false
           ) {
             alert(
@@ -176,9 +176,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
 
     // Incoming client counts
     socket.current.on("statusFromServer", (statusFromServer: StatusFromServer) => {
-      if (
-        !_.isEqual(statusFromServer, interfaceStoreRef.current.socketStatus.lastStatusFromServer)
-      ) {
+      if (!isEqual(statusFromServer, interfaceStoreRef.current.socketStatus.lastStatusFromServer)) {
         dispatch(setLastStatusFromServer(statusFromServer));
       }
       // calculate the time offset between the client's clock and the server's clock

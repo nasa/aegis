@@ -9,7 +9,7 @@ import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppS
 import { setSelectedPOIRightNavItem, upsertPoiByField } from "store/poi";
 import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
-import { round } from "lodash";
+import round from "lodash/round";
 import { validators } from "components/interface/form/formValidators";
 import { thunkUpdatePoiLatLngField } from "store/thunk/thunkPoi";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";

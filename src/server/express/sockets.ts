@@ -1,6 +1,8 @@
+import uniq from "lodash/uniq";
+import remove from "lodash/remove";
+import find from "lodash/find";
 import packagejson from "../../../package.json";
 
-import _ from "lodash";
 import { globalValues } from "./global";
 
 export const setupSocketIO = (): void => {
@@ -30,7 +32,7 @@ export const setupSocketIO = (): void => {
       };
 
       // remove this socket from tracking list if it exists
-      _.remove(visitorsData, (item) => {
+      remove(visitorsData, (item) => {
         return item.socketId === visitorData.socketId;
       });
       visitorsData.push(visitorData);
@@ -42,12 +44,12 @@ export const setupSocketIO = (): void => {
     });
 
     socket.on("disconnect", () => {
-      const visitorBeingRemoved = _.find(visitorsData, {
+      const visitorBeingRemoved = find(visitorsData, {
         socketId: socket.id,
       });
 
       // remove this socket from the visitor tracking
-      _.remove(visitorsData, (item) => {
+      remove(visitorsData, (item) => {
         return item.socketId === visitorBeingRemoved.socketId;
       });
       const statusFromServer = getStatusFromServer(visitorBeingRemoved.missionId);
@@ -61,7 +63,7 @@ export const setupSocketIO = (): void => {
     if (!socketInterval) {
       socketInterval = setInterval(() => {
         // get unique missionIds from visitorTracking. These are used as room names
-        const missionIds = _.uniq(visitorsData.map((item) => item.missionId));
+        const missionIds = uniq(visitorsData.map((item) => item.missionId));
         for (const missionId of missionIds) {
           const statusFromServer = getStatusFromServer(missionId);
           io.to(missionId.toString()).emit("statusFromServer", statusFromServer);

@@ -24,7 +24,7 @@ jest.mock("http-client/stm", () => ({
 
 import * as httpClient_stm from "http-client/stm";
 import { generateBlankStmRule } from "store/storeUtils/stm";
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 
 beforeEach(() => {
   jest.clearAllMocks(); // clear call count
@@ -83,7 +83,7 @@ describe("Thunk StmRules Tests", () => {
   test("thunkCancelStmRule()", async () => {
     const existingRule = generateBlankStmRule({ stmUuid: "test" });
     existingRule.count = 2;
-    const existingRuleFromDb = _.cloneDeep(existingRule);
+    const existingRuleFromDb = cloneDeep(existingRule);
     existingRuleFromDb.count = 1;
     const store = createCustomTestStore({
       stm: { ...stmInitialState, rules: [existingRule], rulesFromDb: [existingRuleFromDb] },

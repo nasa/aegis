@@ -13,7 +13,6 @@ import styles from "pages/index.module.css";
 import { login, isLoggedIn, logout } from "http-client/login";
 import { getMissionHomepageItems } from "http-client/mission";
 import { thunkObliterateEntireStore } from "store/thunk/crossThunk";
-import _ from "lodash";
 import PetInterval from "components/page/petInterval";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faPersonWalkingArrowRight, faTv } from "@fortawesome/free-solid-svg-icons";

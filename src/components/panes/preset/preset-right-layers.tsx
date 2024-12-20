@@ -23,7 +23,8 @@ import {
 import Settings_subpanel from "./preset-right-layers-settings";
 import Info_subpanel from "./preset-right-layers-info";
 import ReactDragListView from "react-drag-listview";
-import { cloneDeep, sortBy } from "lodash";
+import sortBy from "lodash/sortBy";
+import cloneDeep from "lodash/cloneDeep";
 
 const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();

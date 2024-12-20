@@ -1,7 +1,7 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import { v4 as uuidv4 } from "uuid";
-import _ from "lodash";
 import { upsertMissionByField } from "store/mission";
+import capitalize from "lodash/capitalize";
 
 type ActionDefPrintableListItem = {
   parentType: "Action in Station" | "Rule in STM Item" | "Action Template";
@@ -15,7 +15,7 @@ export const thunkCreateActionDefItem = appCreateAsyncThunk<
 >("createActionDefinitionItem", async ({ type }, { dispatch, getState }) => {
   const blankItem: ActionDefinitionItem = {
     uuid: uuidv4(),
-    name: `(${_.capitalize(type.slice(0, -1))} Name)`,
+    name: `(${capitalize(type.slice(0, -1))} Name)`,
     abbr: "abbr",
   };
 

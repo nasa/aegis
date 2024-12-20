@@ -5,7 +5,8 @@ import {
   getCalculatedFieldsByStation,
   getCalculatedFieldsByEva,
 } from "store/processing/calculatedFields";
-import _ from "lodash";
+import isEqual from "lodash/isEqual";
+import cloneDeep from "lodash/cloneDeep";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankMission } from "store/storeUtils/mission";
@@ -15,7 +16,7 @@ import { generateBlankTraverse } from "store/storeUtils/traverse";
 
 describe("Calculated fields", () => {
   it("getCalculatedFieldsByPoi()", async () => {
-    const wholeStoreState: WholeStoreState = _.cloneDeep(wholeStoreInitialState);
+    const wholeStoreState: WholeStoreState = cloneDeep(wholeStoreInitialState);
     //populate the poi state in the store
     const poi: POI = generateBlankPoi({ name: "Jest Poi-1" });
     const poiNoActions: POI = generateBlankPoi({ name: "Jest Poi-1" });
@@ -82,7 +83,7 @@ describe("Calculated fields", () => {
   });
 
   test("getCalculatedFieldsByStation()", async () => {
-    const wholeStoreState: WholeStoreState = _.cloneDeep(wholeStoreInitialState);
+    const wholeStoreState: WholeStoreState = cloneDeep(wholeStoreInitialState);
 
     //populate the station state in the store
     const station: Station = generateBlankStation({ name: "Jest Station-1" });
@@ -131,7 +132,7 @@ describe("Calculated fields", () => {
     expect(stationNoActionsCalcField.reportItems.length).toEqual(3);
     expect(
       stationNoActionsCalcField.reportItems.find((r) =>
-        _.isEqual(r, {
+        isEqual(r, {
           message: "Station has no actions",
           type: "warning",
         })
@@ -139,7 +140,7 @@ describe("Calculated fields", () => {
     ).toBeTruthy();
     expect(
       stationNoActionsCalcField.reportItems.find((r) =>
-        _.isEqual(r, {
+        isEqual(r, {
           message: "Station location not yet set",
           type: "warning",
         })
@@ -147,7 +148,7 @@ describe("Calculated fields", () => {
     ).toBeTruthy();
     expect(
       stationNoActionsCalcField.reportItems.find((r) =>
-        _.isEqual(r, {
+        isEqual(r, {
           message: "Station has no associated POIs",
           type: "info",
         })
@@ -181,7 +182,7 @@ describe("Calculated fields", () => {
   });
 
   test("getCalculatedFieldsByTraverse", async () => {
-    const wholeStoreState: WholeStoreState = _.cloneDeep(wholeStoreInitialState);
+    const wholeStoreState: WholeStoreState = cloneDeep(wholeStoreInitialState);
 
     const mission = generateBlankMission({ name: "Jest Mission-1", traverseRate: 3 });
     const traverse1 = generateBlankTraverse({
@@ -259,7 +260,7 @@ describe("Calculated fields", () => {
   });
 
   test("getCalculatedFieldsByEva", async () => {
-    const wholeStoreState: WholeStoreState = _.cloneDeep(wholeStoreInitialState);
+    const wholeStoreState: WholeStoreState = cloneDeep(wholeStoreInitialState);
 
     const mission = generateBlankMission({ name: "Jest Mission-1", traverseRate: 3 });
     const traverse = generateBlankTraverse({

@@ -6,7 +6,6 @@ import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import { upsertStationByField } from "store/station";
 import poiStyles from "../poi/poi.module.css";
 import stationStyles from "./station.module.css";
-import _ from "lodash";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { Checkbox } from "components/interface/form/globalFields";
 import { setMapItemHoverType, setMapItemHoverUuid } from "store/hover";
@@ -15,6 +14,7 @@ import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { faMessage } from "@fortawesome/free-solid-svg-icons";
 import { setSectionSelected } from "store/interface";
 import { setSelectedPoiUuid } from "store/poi";
+import sortBy from "lodash/sortBy";
 
 const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -29,7 +29,7 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const pois = useAppSelector((state) => state.poi.poisFromDb, deepEqual);
 
   // maintain a list of selected POIs for the selected station, so we can display them
-  const selectedPois = _.sortBy(
+  const selectedPois = sortBy(
     pois.filter((poi) => selectedStation.poiUuids?.includes(poi.uuid)),
     [(poi) => poi.name.toLowerCase()]
   );
@@ -85,7 +85,7 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 </>
               ) : (
                 <>
-                  {_.sortBy(pois, [(poi) => poi.name.toLowerCase()]).map((poi) => {
+                  {sortBy(pois, [(poi) => poi.name.toLowerCase()]).map((poi) => {
                     const checked = selectedStation.poiUuids?.includes(poi.uuid);
                     return (
                       poi && (

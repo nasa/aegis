@@ -17,7 +17,11 @@ import {
   FunctionComponent,
   useLayoutEffect,
 } from "react";
-import _ from "lodash";
+import isEqual from "lodash/isEqual";
+import pick from "lodash/pick";
+import reverse from "lodash/reverse";
+import uniqBy from "lodash/uniqBy";
+import orderBy from "lodash/orderBy";
 import { updateMapDirective } from "store/map";
 import { setSectionSelected } from "store/interface";
 import { setSelectedStationUuid } from "store/station";
@@ -82,7 +86,7 @@ const MapBody: FunctionComponent = () => {
 
   const mission: MissionSelectProperties = useAppSelector(
     (state) =>
-      _.pick(state.mission.mission, [
+      pick(state.mission.mission, [
         "id",
         "landerLocation",
         "initialZoom",
@@ -410,7 +414,7 @@ const MapBody: FunctionComponent = () => {
     });
 
     // no new layers are newly visible/hidden or reordered. do nothing
-    if (_.isEqual(layersToAddInOrder, layersOnMap)) {
+    if (isEqual(layersToAddInOrder, layersOnMap)) {
       return;
     } else {
       setLayersOnMap(layersToAddInOrder);
@@ -1237,7 +1241,7 @@ const MapBody: FunctionComponent = () => {
         } else {
           filteredPosEntries = posEntriesWithLocations;
         }
-        posEntriesToShow = _.orderBy(filteredPosEntries, ["createdAt"], "desc");
+        posEntriesToShow = orderBy(filteredPosEntries, ["createdAt"], "desc");
         posTypeLatestEntries = getLatestPosEntryByType({
           allPosEntries: filteredPosEntries,
         });
@@ -1344,7 +1348,7 @@ const MapBody: FunctionComponent = () => {
           //loop over posTypes and get their latest entries
           drawPosPathOnMap({
             posEntryFeatureGroup,
-            coords: _.reverse(
+            coords: reverse(
               posTypeLatestEntries[posType.uuid].map((posEntry) => {
                 return posEntry.location;
               })
@@ -1371,7 +1375,7 @@ const MapBody: FunctionComponent = () => {
               // fade old paths
               drawPosPathOnMap({
                 posEntryFeatureGroup,
-                coords: _.reverse(
+                coords: reverse(
                   posEntriesForType.slice(1).map((posEntry) => {
                     return posEntry.location;
                   })
@@ -1386,7 +1390,7 @@ const MapBody: FunctionComponent = () => {
               // latest path is a separate polyline thats not faded
               drawPosPathOnMap({
                 posEntryFeatureGroup,
-                coords: _.reverse(
+                coords: reverse(
                   posEntriesForType.slice(0, 2).map((posEntry) => {
                     return posEntry.location;
                   })
@@ -1402,7 +1406,7 @@ const MapBody: FunctionComponent = () => {
               // no fade
               drawPosPathOnMap({
                 posEntryFeatureGroup,
-                coords: _.reverse(
+                coords: reverse(
                   posEntriesForType.map((posEntry) => {
                     return posEntry.location;
                   })
@@ -1435,13 +1439,13 @@ const MapBody: FunctionComponent = () => {
     // turn on latest label only
     if (mapDisplayPos.showLatestLabels) {
       // get a unique array of the latest pos entries. Multiple types may share the same entry
-      const uniqueLatestPosEntries = _.uniqBy(
+      const uniqueLatestPosEntries = uniqBy(
         Object.values(latestPosEntriesByType).map((posEntries) => {
           return posEntries[0];
         }),
         "uuid"
       );
-      for (const latestPosEntry of _.orderBy(uniqueLatestPosEntries, ["createdAt", "asc"])) {
+      for (const latestPosEntry of orderBy(uniqueLatestPosEntries, ["createdAt", "asc"])) {
         const posMarker = getMapItemByUuid(map, latestPosEntry.uuid) as AEGISMarker;
         if (!posMarker) continue;
 

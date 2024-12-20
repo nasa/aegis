@@ -22,9 +22,9 @@ import { FFTextProps, FFCheckboxProps, FFSelectProps, FFTextAreaProps } from "ty
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import formStyles from "./globalFields.module.css";
 import CircularSlider from "@fseehawer/react-circular-slider";
-import _ from "lodash";
 import { CompactPicker } from "react-color";
 import { faSquare } from "@fortawesome/free-regular-svg-icons";
+import debounce from "lodash/debounce";
 
 export const Button: FunctionComponent<{
   onClick: () => void;
@@ -312,7 +312,7 @@ export const InLineEditInput: FunctionComponent<{
   toFocus?: boolean;
 }> = ({ value, editing, styleValue, styleContainer, onSubmit, fieldProps, toFocus }) => {
   const debouncedSubmitRef = useRef(
-    _.debounce((formValue) => {
+    debounce((formValue) => {
       if (onSubmit) onSubmit(formValue);
     }, 50)
   );

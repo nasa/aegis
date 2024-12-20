@@ -1,5 +1,4 @@
 import express, { Request, Response } from "express";
-import _ from "lodash";
 import { hasPerms } from "utils/permissions";
 import { Query } from "express-serve-static-core";
 
@@ -34,7 +33,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
-  if (!queryObj.missionId || _.isNaN(queryObj.missionId)) {
+  if (!queryObj.missionId || isNaN(queryObj.missionId)) {
     res.status(500).json({ status: "error", message: "Invalid mission ID" });
     return;
   }

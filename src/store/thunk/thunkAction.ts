@@ -9,7 +9,7 @@ import {
 import appCreateAsyncThunk from "./thunkUtil";
 import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
@@ -57,7 +57,7 @@ export const thunkCreateAction = appCreateAsyncThunk<
     dispatch(upsertAction(blankAction));
 
     //upsert action order to the parent. new action goes on the end.
-    const actionOrder = _.cloneDeep(actionOrderUuids);
+    const actionOrder = cloneDeep(actionOrderUuids);
     actionOrder.push(blankAction.uuid);
     setActionOrderUuids(actionOrder);
 
@@ -89,7 +89,7 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
       (storeAction: Action) => storeAction.poiUuid === poiUuid
     );
 
-    const newActions: Action[] = _.cloneDeep(actions);
+    const newActions: Action[] = cloneDeep(actions);
     //set values for the duplicated action
     for (let i = 0; i < newActions.length; i++) {
       const newAction = newActions[i];
@@ -126,14 +126,14 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
     // append new action to the end of the station's action order
     if (stationUuid) {
       const station = getState().station.stations.find((s) => s.uuid === stationUuid);
-      let actionOrderUuids = _.cloneDeep(station.actionOrderUuids);
+      let actionOrderUuids = cloneDeep(station.actionOrderUuids);
       if (!actionOrderUuids) actionOrderUuids = [];
       actionOrderUuids = actionOrderUuids.concat(newActions.map((a) => a.uuid));
       dispatch(upsertStation({ ...station, actionOrderUuids }, true));
     } else if (poiUuid) {
       // append new action to the end of the poi's action order
       const poi = getState().poi.pois.find((p) => p.uuid === poiUuid);
-      let actionOrderUuids = _.cloneDeep(poi.actionOrderUuids);
+      let actionOrderUuids = cloneDeep(poi.actionOrderUuids);
       if (!actionOrderUuids) actionOrderUuids = [];
       actionOrderUuids = actionOrderUuids.concat(newActions.map((a) => a.uuid));
       dispatch(upsertPoi({ ...poi, actionOrderUuids }, true));
@@ -241,7 +241,7 @@ export const thunkDeleteActionFromStore = appCreateAsyncThunk<{
 }>("deleteActionFromStore", async ({ uuid }, { dispatch, getState }) => {
   // look for the action in stations and remove it from the station's action order
   getState().station.stations.forEach((station) => {
-    const actionOrderUuids = _.cloneDeep(station.actionOrderUuids);
+    const actionOrderUuids = cloneDeep(station.actionOrderUuids);
     if (actionOrderUuids) {
       const actionIndex = actionOrderUuids.findIndex((actionUuid) => actionUuid === uuid);
       if (actionIndex >= 0) {
@@ -254,7 +254,7 @@ export const thunkDeleteActionFromStore = appCreateAsyncThunk<{
 
   // look for the action in pois and remove it from the poi's action order
   getState().poi.pois.forEach((poi) => {
-    const actionOrderUuids = _.cloneDeep(poi.actionOrderUuids);
+    const actionOrderUuids = cloneDeep(poi.actionOrderUuids);
     if (actionOrderUuids) {
       const actionIndex = actionOrderUuids.findIndex((actionUuid) => actionUuid === uuid);
       if (actionIndex >= 0) {

@@ -1,7 +1,8 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 
-import _, { parseInt } from "lodash";
+import parseInt from "lodash/parseInt";
+import cloneDeep from "lodash/cloneDeep";
 
 import { hasPerms } from "utils/permissions";
 
@@ -40,7 +41,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
-  if (!queryObj.missionId || _.isNaN(queryObj.missionId)) {
+  if (!queryObj.missionId || isNaN(queryObj.missionId)) {
     res.status(500).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
@@ -70,7 +71,7 @@ router.get("/closestPoint", async (req: Request, res: Response): Promise<void> =
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
-  if (!queryObj.missionId || _.isNaN(queryObj.missionId)) {
+  if (!queryObj.missionId || isNaN(queryObj.missionId)) {
     res.status(500).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
@@ -299,7 +300,7 @@ export async function upsertGridsInformation(
 ): Promise<MissionGridInformation[]> {
   const em = getEM();
 
-  const gridsToUpsert = _.cloneDeep(grids); //create a copy to manipulate
+  const gridsToUpsert = cloneDeep(grids); //create a copy to manipulate
   const gridsUpsertedToDb = [];
 
   for (const gridToUpsert of gridsToUpsert) {

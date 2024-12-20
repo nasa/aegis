@@ -61,7 +61,12 @@ export function makeUniqueStringCopy(
 ): string {
   return copyStringFromObj(
     { [propName]: duplicateItemName } as Record<string, string>,
-    duplicateItems.map((s) => ({ [propName]: s }) as Record<string, string>),
+    duplicateItems.map(
+      (s) =>
+        ({
+          [propName]: s,
+        }) as Record<string, string>
+    ),
     propName as keyof Record<string, string>
   );
 }

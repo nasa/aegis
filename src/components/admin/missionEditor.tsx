@@ -7,7 +7,8 @@ import { FFCheckbox, FFInput, FFTextArea } from "components/interface/form/globa
 import { validators } from "components/interface/form/formValidators";
 import Projection from "components/admin/projection";
 import adminStyles from "components/admin/admin.module.css";
-import { pick, isEmpty } from "lodash";
+import isEmpty from "lodash/isEmpty";
+import pick from "lodash/pick";
 import { upsertMissions } from "http-client/mission";
 import { roundDateToSecond } from "utils/formatting";
 

@@ -6,14 +6,14 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { setSelectedMeasurementUuid } from "store/measure";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 
-import _ from "lodash";
 import { thunkAddNewMeasurement, thunkRemoveMeasurement } from "store/thunk/thunkMeasurement";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
+import sortBy from "lodash/sortBy";
 
 const MeasureTabs: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const measurements = useAppSelector((state) => state.measure.measurements, shallowEqual);
-  const sortedMeasurements = _.sortBy(measurements, "createdAt");
+  const sortedMeasurements = sortBy(measurements, "createdAt");
 
   return (
     <div className={styles.measureTabsContainer}>
