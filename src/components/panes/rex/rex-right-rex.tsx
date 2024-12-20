@@ -35,6 +35,7 @@ const RexRightRex: FunctionComponent = () => {
       uuid: r.uuid,
       updatedAt: r.updatedAt,
       name: r.name,
+      isRunning: r.isRunning,
     };
   }, deepEqual);
   const selectedRexFromDb = useAppSelector((state) => {
@@ -43,6 +44,7 @@ const RexRightRex: FunctionComponent = () => {
       uuid: r?.uuid,
       updatedAt: r?.updatedAt,
       name: r?.name,
+      isRunning: r?.isRunning,
     };
   }, deepEqual);
   const rexesEditing = useAppSelector((state) => state.rex.rexesEditing, deepEqual);
@@ -111,9 +113,17 @@ const RexRightRex: FunctionComponent = () => {
               {rexesEditing.includes(selectedRex.uuid) && (
                 <Button
                   icon={faTrashAlt}
+                  // Make sure that the selectedRex store wise & database isn't running.
+                  // It will crash if they're running in at any point
                   onClick={() => {
-                    if (window.confirm("Are you sure you want to delete this Rex?")) {
+                    if (
+                      window.confirm("Are you sure you want to delete this rex") &&
+                      !selectedRex.isRunning &&
+                      !selectedRexFromDb.isRunning
+                    ) {
                       dispatch(thunkDeleteRex({ rexUuid: selectedRex.uuid }));
+                    } else {
+                      window.alert("This rex is currently running and cannot be deleted");
                     }
                   }}
                   toolTip="Delete Rex Item"
