@@ -1,6 +1,6 @@
 import express, { Request, Response } from "express";
 
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import { hasPerms } from "utils/permissions";
 import { Query } from "express-serve-static-core";
 import {
@@ -37,7 +37,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
   //check for required mission id is valid
-  if (!queryObj.missionId || _.isNaN(queryObj.missionId)) {
+  if (!queryObj.missionId || isNaN(queryObj.missionId)) {
     res.status(500).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
@@ -179,7 +179,7 @@ export async function getActions(filter: ActionFilterOptions): Promise<Action[]>
 export async function upsertActions(actions: Action[]): Promise<void> {
   const em = getEM();
 
-  const actionsToUpsert = _.cloneDeep(actions); //create a copy to manipulate
+  const actionsToUpsert = cloneDeep(actions); //create a copy to manipulate
   //convert fks
   for (const actionToUpsert of actionsToUpsert) {
     const convertedRecord: EntityData<Action_db> = convertActionsTypeStoreToDb([actionToUpsert])[0];

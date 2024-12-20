@@ -10,7 +10,7 @@ import {
   QueryOrder,
 } from "@mikro-orm/core";
 import { Layer_db } from "server/database/models/_allModels";
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import { convertLayersTypeDbToStore, convertLayersTypeStoreToDb } from "store/storeUtils/layer";
 
 const router = express.Router();
@@ -32,7 +32,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
-  if (!queryObj.missionId || _.isNaN(queryObj.missionId)) {
+  if (!queryObj.missionId || isNaN(queryObj.missionId)) {
     res.status(500).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
@@ -167,7 +167,7 @@ export async function getLayers(missionId: number, layerUUID?: string): Promise<
 export async function upsertLayers(layers: Layer[]): Promise<Layer[]> {
   const em = getEM();
 
-  const layersToUpsert: Layer[] = _.cloneDeep(layers);
+  const layersToUpsert: Layer[] = cloneDeep(layers);
   const layersUpsertedToDb = [];
 
   for (const layerToUpsert of layersToUpsert) {

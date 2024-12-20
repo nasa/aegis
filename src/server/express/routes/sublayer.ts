@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 
 import { hasPerms } from "utils/permissions";
 
@@ -37,7 +37,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
-  if (!queryObj.missionId || _.isNaN(queryObj.missionId)) {
+  if (!queryObj.missionId || isNaN(queryObj.missionId)) {
     res.status(500).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
@@ -166,7 +166,7 @@ export async function getSublayers(missionId: number, sublayerUUID?: string): Pr
  */
 export async function upsertSublayers(sublayers: Sublayer[]): Promise<Sublayer[]> {
   const em = getEM();
-  const sublayersToUpsert: Sublayer[] = _.cloneDeep(sublayers);
+  const sublayersToUpsert: Sublayer[] = cloneDeep(sublayers);
   const sublayersUpsertedToDb = [];
 
   for (const sublayerToUpsert of sublayersToUpsert) {

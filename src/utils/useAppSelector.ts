@@ -39,7 +39,7 @@ const isPrimitive = (arg: unknown): boolean => {
 };
 
 // @ts-ignore unused declaration
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line
 const devRefEqual: EqualityFn = (a, b) => {
   if (
     a !== null &&
@@ -60,7 +60,7 @@ const devRefEqual: EqualityFn = (a, b) => {
 };
 
 // @ts-ignore unused declaration
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line
 const devShallowEqual: EqualityFn = (a, b) => {
   if (
     a !== null &&
@@ -81,7 +81,7 @@ const devShallowEqual: EqualityFn = (a, b) => {
 };
 
 // @ts-ignore unused declaration
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line
 const devDeepEqual: EqualityFn = (a, b) => {
   if (
     a !== null &&
@@ -112,7 +112,7 @@ const devDeepEqual: EqualityFn = (a, b) => {
  * not it drives a re-render.
  */
 // @ts-ignore unused declaration
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line
 const selectorEqualityNotify = (equalityFn: EqualityFn): EqualityFn => {
   const wrapper: EqualityFn = (prev, next) => {
     const prevAndNextEqual = equalityFn(prev, next);

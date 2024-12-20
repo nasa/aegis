@@ -3,10 +3,11 @@ import styles from "./stm-rules-rules.module.css";
 import { deepEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { Checkbox, MultiSelectDropdown } from "components/interface/form/globalFields";
-import * as _ from "lodash";
 import { setRuleEditingUuid, upsertSTMRuleByField } from "store/stm";
 import STMRuleDetailsModal from "./stm-rules-details-modal";
 import RulesEngineSummary from "./stm-rule-count";
+import cloneDeep from "lodash/cloneDeep";
+import capitalize from "lodash/capitalize";
 
 const STMRules: FunctionComponent<{ stmUuid: string }> = ({ stmUuid }) => {
   const rules = useAppSelector(
@@ -98,7 +99,7 @@ export const STMRuleSet: FunctionComponent<{
     actionDefinitionItems.push(actionDefinitionItem);
   }
 
-  const ruleSetTypeClass = styles[`stmRuleSet${_.capitalize(type.slice(0, -1))}`];
+  const ruleSetTypeClass = styles[`stmRuleSet${capitalize(type.slice(0, -1))}`];
 
   return (
     <>
@@ -117,7 +118,7 @@ export const STMRuleSet: FunctionComponent<{
                     | "verbUuids"
                     | "nounUuids"
                     | "adjectiveUuids";
-                  const uuidArray = _.cloneDeep(stmRule[uuidKeyString]);
+                  const uuidArray = cloneDeep(stmRule[uuidKeyString]);
                   const index = uuidArray.indexOf(uuid);
                   if (index > -1) {
                     uuidArray.splice(index, 1);
@@ -126,7 +127,7 @@ export const STMRuleSet: FunctionComponent<{
                   }
                   dispatch(upsertSTMRuleByField(stmRule.uuid, uuidKeyString, uuidArray));
                 }}
-                titleLabel={`${_.capitalize(type)}...`}
+                titleLabel={`${capitalize(type)}...`}
                 containerStyle={{ zIndex: 10, width: "170px" }}
                 containerClassName={styles.stmRuleSetMultiselectContainer}
                 headerClassName={styles.multiselectDropdownHeader}
@@ -169,13 +170,13 @@ export const STMRuleSet: FunctionComponent<{
                   ))}
                 </>
               ) : (
-                <div className={styles.stmRuleSetItemName}>{`...Select ${_.capitalize(type)}`}</div>
+                <div className={styles.stmRuleSetItemName}>{`...Select ${capitalize(type)}`}</div>
               )}
             </>
           ) : (
             <div
               className={styles.stmRuleSetItemName}
-            >{`<Any ${_.capitalize(type.slice(0, -1))}>`}</div>
+            >{`<Any ${capitalize(type.slice(0, -1))}>`}</div>
           )}
         </div>
       )}

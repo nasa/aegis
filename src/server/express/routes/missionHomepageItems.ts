@@ -1,5 +1,5 @@
 import express, { Request, Response } from "express";
-import _ from "lodash";
+import sortBy from "lodash/sortBy";
 import { Mission_db, Rex_db } from "server/database/models/_allModels";
 import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { getEM } from "utils/mikro";
@@ -69,5 +69,5 @@ export async function getHomepageMissionItems(
     };
     missionHomepageItems.push(missionHomepageItem);
   }
-  return _.sortBy(missionHomepageItems, [(item) => item.name.toLowerCase()]);
+  return sortBy(missionHomepageItems, [(item) => item.name.toLowerCase()]);
 }

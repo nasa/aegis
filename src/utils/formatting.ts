@@ -1,4 +1,5 @@
-import _ from "lodash";
+import isNil from "lodash/isNil";
+import isEmpty from "lodash/isEmpty";
 
 /**
  * Return a zero padded string of a number
@@ -144,7 +145,7 @@ export function longdateFromDateString(dateString: string): string {
  */
 export function isoStringFromAnyDateString(dateString: string): string {
   const tempDate = new Date(dateString); // works with ISO and UTC date strings
-  if (_.isNaN(tempDate.valueOf())) {
+  if (isNaN(tempDate.valueOf())) {
     throw new Error("The date string couldn't be converted into a Date");
   }
   return tempDate.toISOString(); // guaranteed to have an ISO string. safe to string parse it
@@ -174,7 +175,7 @@ export function roundDateToSecond(date: Date): Date {
  * Convert any string to a valid decimal number by stripping out all non-numeric characters
  */
 export function toDecimal(str: string): number {
-  if (_.isEmpty(str)) return null;
+  if (isEmpty(str)) return null;
   const removedChars = str.replace(/[^0-9.-]/g, "");
   // make sure string contains only one decimal point
   const decimalCount = (removedChars.match(/\./g) || []).length;
@@ -193,7 +194,7 @@ export function toDecimal(str: string): number {
     result = parseFloat(removedChars);
   }
 
-  return _.isNaN(result) ? null : result;
+  return isNaN(result) ? null : result;
 }
 
 /**
@@ -217,7 +218,7 @@ export const decodeEmoji = (str: string): string => {
  * Format a number to a string with commas and 2 decimal places
  */
 export function formatNumberWithCommas(num: number): string {
-  if (_.isNil(num)) return "";
+  if (isNil(num)) return "";
   return num.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 

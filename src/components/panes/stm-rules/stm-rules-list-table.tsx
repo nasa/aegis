@@ -2,16 +2,16 @@ import { FunctionComponent } from "react";
 import styles from "./stm-rules-list-table.module.css";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { RootState } from "store";
-import _ from "lodash";
 import STMRules from "./stm-rules-rules";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { faSquarePlus } from "@fortawesome/free-solid-svg-icons";
 import { thunkCreateStmRule } from "store/thunk/thunkStmRules";
+import sortBy from "lodash/sortBy";
 
 const STMRulesTable: FunctionComponent = () => {
   const level1s = useAppSelector(
-    (state: RootState) => _.sortBy(state.stm.level1s, "numbering"),
+    (state: RootState) => sortBy(state.stm.level1s, "numbering"),
     shallowEqual
   );
 
@@ -87,7 +87,7 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number }> = ({ le
 const STMLevel2s: FunctionComponent<{ level1Uuid: string }> = ({ level1Uuid }) => {
   const level2s = useAppSelector(
     (state: RootState) =>
-      _.sortBy(
+      sortBy(
         state.stm.level2s.filter((level2) => level2.level1Uuid === level1Uuid),
         "numbering"
       ),
@@ -134,7 +134,7 @@ export const STMLevel3s: FunctionComponent<{
 }> = ({ level2Uuid }) => {
   const level3s = useAppSelector(
     (state: RootState) =>
-      _.sortBy(
+      sortBy(
         state.stm.level3s.filter((level3) => level3.level2Uuid === level2Uuid),
         "numbering"
       ),

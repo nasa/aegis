@@ -9,7 +9,8 @@ import {
 } from "store/station";
 import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/geoMath";
 import { thunkGetElevation } from "./thunkElevation";
-import _ from "lodash";
+import isEqual from "lodash/isEqual";
+import cloneDeep from "lodash/cloneDeep";
 import { thunkFullUpdateTraverse, thunkUpdateTraversesAroundStation } from "./thunkTraverse";
 import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
@@ -34,7 +35,7 @@ export const thunkUpdateStationLatLngField = appCreateAsyncThunk<{
   type: "lat" | "lng";
   value: number;
 }>("updateStationLatLngField", async ({ stationUuid, type, value }, { getState, dispatch }) => {
-  const stationLocation: AEGISPoint = _.cloneDeep(
+  const stationLocation: AEGISPoint = cloneDeep(
     getState().station.stations.find((s) => s.uuid === stationUuid)?.location
   );
   if (type === "lat") {
@@ -127,17 +128,17 @@ export const thunkFullUpdateWalkback = appCreateAsyncThunk<
       getState().mission.mission.landerLocation,
     ];
   } else {
-    newPath = _.cloneDeep(path);
+    newPath = cloneDeep(path);
   }
 
   const station = getState().station.stations.find((s) => s.uuid === stationUuid);
   const landerLocation = getState().mission.mission.landerLocation;
   //set starting station
-  if (station && !_.isEqual(newPath.at(0), station.location)) {
+  if (station && !isEqual(newPath.at(0), station.location)) {
     newPath[0] = station.location;
   }
   //set ending lander
-  if (landerLocation && !_.isEqual(newPath.at(-1), landerLocation)) {
+  if (landerLocation && !isEqual(newPath.at(-1), landerLocation)) {
     newPath[newPath.length - 1] = landerLocation;
   }
 
@@ -437,7 +438,7 @@ export const thunkDuplicateStation = appCreateAsyncThunk<{ stationUuid: String }
     if (!stationUuid) return;
     const station = getState().station.stations.find((s) => s.uuid === stationUuid);
     //duplicate station
-    const newStation: Station = _.cloneDeep(station);
+    const newStation: Station = cloneDeep(station);
     newStation.uuid = uuidv4();
     newStation.updatedAt = null;
     newStation.createdAt = roundDateToSecond(getAccurateNow()).toISOString();

@@ -11,9 +11,10 @@ import {
   faUnderline,
 } from "@fortawesome/free-solid-svg-icons";
 import styles from "./wysiwyg.module.css";
-import _ from "lodash";
 import isHotkey from "is-hotkey";
 import { TextboxButton } from "./globalFields";
+import reduce from "lodash/reduce";
+import debounce from "lodash/debounce";
 
 const HOTKEYS = {
   "mod+b": "bold",
@@ -69,7 +70,7 @@ const Leaf = ({ attributes, children, leaf }: RenderLeafProps) => {
  */
 export function convertNodeToHTML(node: Descendant): string {
   if (Text.isText(node)) {
-    let string = _.escape(node.text);
+    let string = escape(node.text);
     if (node.bold) {
       string = `<strong>${string}</strong>`;
     }
@@ -257,7 +258,7 @@ export const WysiwygTextArea: FunctionComponent<{
   const [editorChange, setEditorChange] = useState(false);
 
   const debouncedSubmitRef = useRef(
-    _.debounce((value) => {
+    debounce((value) => {
       if (onChange) onChange(value);
     }, 50)
   );
@@ -317,7 +318,7 @@ export const WysiwygTextArea: FunctionComponent<{
             aria-label={ariaLabel}
             className={styles.notesText}
             dangerouslySetInnerHTML={{
-              __html: _.reduce(
+              __html: reduce(
                 convertStringToNodes(value),
                 (htmlString, decendant) => htmlString + convertNodeToHTML(decendant),
                 ""

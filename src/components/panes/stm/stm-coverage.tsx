@@ -1,7 +1,8 @@
 import { FunctionComponent } from "react";
 import stmStyles from "./stm-coverage.module.css";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
-import _ from "lodash";
+import uniqBy from "lodash/uniqBy";
+import uniq from "lodash/uniq";
 import ReactDOMServer from "react-dom/server";
 
 export const STM_Coverage: FunctionComponent<{
@@ -33,7 +34,7 @@ export const STM_Coverage: FunctionComponent<{
     }
   }
   //filter unique and sort
-  const level3s = _.uniqBy(stms3s, "uuid");
+  const level3s = uniqBy(stms3s, "uuid");
 
   //get all in progress stm level3s uuids
 
@@ -49,7 +50,7 @@ export const STM_Coverage: FunctionComponent<{
     }
   }
   //filter unique and sort
-  const inProgressLevel3Uuids = _.uniq(stmsInPrg);
+  const inProgressLevel3Uuids = uniq(stmsInPrg);
 
   //get all completed stm level3s uuids
   let stmsCmplt: string[] = [];
@@ -64,7 +65,7 @@ export const STM_Coverage: FunctionComponent<{
     }
   }
   //filter unique and sort
-  const completedLevel3Uuids = _.uniq(stmsCmplt);
+  const completedLevel3Uuids = uniq(stmsCmplt);
 
   //build hover tooltip jsx
   function buildSTMTooltip(stmUuid: string, stmType: string, full: boolean) {

@@ -21,7 +21,8 @@ import {
   thunkReorderStationInEva,
 } from "store/thunk/thunkEva";
 import { getRexStatusDisplayProperties } from "../../../utils/rex";
-import _ from "lodash";
+import sortBy from "lodash/sortBy";
+import last from "lodash/last";
 import PetInterval from "components/page/petInterval";
 import { RexStatusMenu } from "../rex/rex";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
@@ -40,7 +41,7 @@ const SequenceItemStation: FunctionComponent<{
   const dispatch = useAppDispatch();
 
   const stationsData = useAppSelector((state) => {
-    const stations = _.sortBy(state.station.stations, [(station) => station.name.toLowerCase()]);
+    const stations = sortBy(state.station.stations, [(station) => station.name.toLowerCase()]);
     return stations.map((s) => {
       return {
         name: s.name,
@@ -69,7 +70,7 @@ const SequenceItemStation: FunctionComponent<{
   const stationRexStatus = useAppSelector((state) => {
     const rex = state.rex.rexesFromDb.find((rex) => rex.isRunning);
     if (!rex || !rex.stationEntries) return null;
-    return _.last(rex.stationEntries[stationUuid])?.rexStatus;
+    return last(rex.stationEntries[stationUuid])?.rexStatus;
   }, shallowEqual);
 
   const selectedEvaSequenceItemUuid = useAppSelector(

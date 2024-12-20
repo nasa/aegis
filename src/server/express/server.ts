@@ -4,7 +4,6 @@ import { createServer, Server as NetServer } from "http";
 import { Server as SocketServer } from "socket.io";
 import app from "./restApi";
 
-import _ from "lodash";
 import { setupSocketIO } from "./sockets";
 import { globalValues } from "./global";
 import { getORM } from "utils/mikro";

@@ -14,10 +14,10 @@ import {
 } from "store/preset";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import * as httpClient_preset from "http-client/preset";
-import { sortBy, cloneDeep } from "lodash";
+import cloneDeep from "lodash/cloneDeep";
+import sortBy from "lodash/sortBy";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { thunkSaveNewPreset } from "./crossThunk";
-import _ from "lodash";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankPreset } from "store/storeUtils/preset";
 

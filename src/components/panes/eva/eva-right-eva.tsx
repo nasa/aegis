@@ -1,5 +1,4 @@
 import paneStyles from "../global-pane-styles.module.css";
-import _ from "lodash";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import {
@@ -36,6 +35,7 @@ import {
   getCalculatedFieldsByStation,
   getCalculatedFieldsByTraverse,
 } from "store/processing/calculatedFields";
+import isNull from "lodash/isNull";
 
 const EvaRightEva: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -219,7 +219,7 @@ const EvaRightEva: FunctionComponent = () => {
         evaReportItems: evaReportSequenceItems,
         reportTitle: "EVA Report",
       },
-      selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "var(--eva)",
+      selectedColor: !isNull(reportsTabIconColor) ? reportsTabIconColor : "var(--eva)",
       unselectedColor: reportsTabIconColor,
       icon: reportsTabIcon,
     },

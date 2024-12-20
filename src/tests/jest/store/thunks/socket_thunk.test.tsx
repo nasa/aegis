@@ -1,7 +1,7 @@
 import { StoreType } from "store";
 import { createFullTestStore } from "tests/jest/factories/makeTestStore";
 import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/thunkSockets";
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import { setPresetEditMode, upsertPreset } from "store/preset";
 import { setPoiEditMode, upsertPoi } from "store/poi";
 import { setStationEditMode, upsertStation } from "store/station";
@@ -41,7 +41,7 @@ describe("Thunk Socket Tests", () => {
         socketId: null,
         missionId: null,
         type: "preset",
-        data: [_.cloneDeep(data)],
+        data: [cloneDeep(data)],
         lastEditEvent: null,
       };
 
@@ -55,7 +55,7 @@ describe("Thunk Socket Tests", () => {
 
       //test updating existing the data
       data.name = "Jest Test Modified Name";
-      storeUpsert.data = [_.cloneDeep(data)];
+      storeUpsert.data = [cloneDeep(data)];
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
       expect(store.getState().preset.presets.some((x) => x.name === data.name)).toBeTruthy();
       expect(store.getState().preset.presetsFromDb.some((x) => x.name === data.name)).toBeTruthy();
@@ -63,7 +63,7 @@ describe("Thunk Socket Tests", () => {
 
       //test data in edit mode
       data.name = "Jest Test In Edit Mode";
-      storeUpsert.data = [_.cloneDeep(data)];
+      storeUpsert.data = [cloneDeep(data)];
       store.dispatch(setPresetEditMode({ presetUuid: data.uuid, editMode: true }));
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
       expect(store.getState().preset.presets.some((x) => x.name === data.name)).toBeTruthy();
@@ -78,7 +78,7 @@ describe("Thunk Socket Tests", () => {
         socketId: null,
         missionId: null,
         type: "poi",
-        data: [_.cloneDeep(data)],
+        data: [cloneDeep(data)],
         lastEditEvent: null,
       };
 
@@ -92,7 +92,7 @@ describe("Thunk Socket Tests", () => {
 
       //test updating existing the data
       data.name = "Jest Test Modified Name";
-      storeUpsert.data = [_.cloneDeep(data)];
+      storeUpsert.data = [cloneDeep(data)];
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
       expect(store.getState().poi.pois.some((x) => x.name === data.name)).toBeTruthy();
       expect(store.getState().poi.poisFromDb.some((x) => x.name === data.name)).toBeTruthy();
@@ -100,7 +100,7 @@ describe("Thunk Socket Tests", () => {
 
       //test data in edit mode
       data.name = "Jest Test In Edit Mode";
-      storeUpsert.data = [_.cloneDeep(data)];
+      storeUpsert.data = [cloneDeep(data)];
       store.dispatch(setPoiEditMode({ poiUuid: data.uuid, editMode: true }));
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
       expect(store.getState().poi.pois.some((x) => x.name === data.name)).toBeTruthy();
@@ -115,7 +115,7 @@ describe("Thunk Socket Tests", () => {
         socketId: null,
         missionId: null,
         type: "station",
-        data: [_.cloneDeep(data)],
+        data: [cloneDeep(data)],
         lastEditEvent: null,
       };
 
@@ -131,7 +131,7 @@ describe("Thunk Socket Tests", () => {
 
       //test updating existing the data
       data.name = "Jest Test Modified Name";
-      storeUpsert.data = [_.cloneDeep(data)];
+      storeUpsert.data = [cloneDeep(data)];
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
       expect(store.getState().station.stations.some((x) => x.name === data.name)).toBeTruthy();
       expect(
@@ -141,7 +141,7 @@ describe("Thunk Socket Tests", () => {
 
       //test data in edit mode
       data.name = "Jest Test In Edit Mode";
-      storeUpsert.data = [_.cloneDeep(data)];
+      storeUpsert.data = [cloneDeep(data)];
       store.dispatch(setStationEditMode({ stationUuid: data.uuid, editMode: true }));
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
       expect(store.getState().station.stations.some((x) => x.name === data.name)).toBeTruthy();
@@ -158,7 +158,7 @@ describe("Thunk Socket Tests", () => {
         socketId: null,
         missionId: null,
         type: "eva",
-        data: [_.cloneDeep(data)],
+        data: [cloneDeep(data)],
         lastEditEvent: null,
       };
 
@@ -172,7 +172,7 @@ describe("Thunk Socket Tests", () => {
 
       //test updating existing the data
       data.name = "Jest Test Modified Name";
-      storeUpsert.data = [_.cloneDeep(data)];
+      storeUpsert.data = [cloneDeep(data)];
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
       expect(store.getState().eva.evas.some((x) => x.name === data.name)).toBeTruthy();
       expect(store.getState().eva.evasFromDb.some((x) => x.name === data.name)).toBeTruthy();
@@ -180,7 +180,7 @@ describe("Thunk Socket Tests", () => {
 
       //test data in edit mode
       data.name = "Jest Test In Edit Mode";
-      storeUpsert.data = [_.cloneDeep(data)];
+      storeUpsert.data = [cloneDeep(data)];
       store.dispatch(setEvaEditMode({ evaUuid: data.uuid, editMode: true }));
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
       expect(store.getState().eva.evas.some((x) => x.name === data.name)).toBeTruthy();
@@ -195,7 +195,7 @@ describe("Thunk Socket Tests", () => {
         socketId: null,
         missionId: null,
         type: "action",
-        data: [_.cloneDeep(data)],
+        data: [cloneDeep(data)],
         lastEditEvent: null,
       };
 
@@ -209,7 +209,7 @@ describe("Thunk Socket Tests", () => {
 
       //test updating existing the data
       data.name = "Jest Test Modified Name";
-      storeUpsert.data = [_.cloneDeep(data)];
+      storeUpsert.data = [cloneDeep(data)];
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
       expect(store.getState().action.actions.some((x) => x.name === data.name)).toBeTruthy();
       expect(store.getState().action.actionsFromDb.some((x) => x.name === data.name)).toBeTruthy();
@@ -222,7 +222,7 @@ describe("Thunk Socket Tests", () => {
         socketId: null,
         missionId: null,
         type: "traverse",
-        data: [_.cloneDeep(data)],
+        data: [cloneDeep(data)],
         lastEditEvent: null,
       };
 
@@ -238,7 +238,7 @@ describe("Thunk Socket Tests", () => {
 
       //test updating existing the data
       data.name = "Jest Test Modified Name";
-      storeUpsert.data = [_.cloneDeep(data)];
+      storeUpsert.data = [cloneDeep(data)];
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
       expect(store.getState().traverse.traverses.some((x) => x.name === data.name)).toBeTruthy();
       expect(
@@ -248,7 +248,7 @@ describe("Thunk Socket Tests", () => {
 
       //test data in edit mode
       data.name = "Jest Test In Edit Mode";
-      storeUpsert.data = [_.cloneDeep(data)];
+      storeUpsert.data = [cloneDeep(data)];
       store.dispatch(setTraverseEditMode({ uuid: data.uuid, editMode: true }));
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
       expect(store.getState().traverse.traverses.some((x) => x.name === data.name)).toBeTruthy();
@@ -265,7 +265,7 @@ describe("Thunk Socket Tests", () => {
         socketId: null,
         missionId: null,
         type: "mission",
-        data: [_.cloneDeep(data)],
+        data: [cloneDeep(data)],
         lastEditEvent: null,
       };
 
@@ -273,7 +273,7 @@ describe("Thunk Socket Tests", () => {
 
       //test updating existing the data
       data.name = "Jest Test Modified Name";
-      storeUpsert.data = [_.cloneDeep(data)];
+      storeUpsert.data = [cloneDeep(data)];
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
       expect(store.getState().mission.mission.name).toEqual(data.name);
       expect(store.getState().mission.missionFromDb.name).toEqual(data.name);
@@ -281,7 +281,7 @@ describe("Thunk Socket Tests", () => {
 
       //test data in edit mode
       data.name = "Jest Test In Edit Mode";
-      storeUpsert.data = [_.cloneDeep(data)];
+      storeUpsert.data = [cloneDeep(data)];
       store.dispatch(setMissionSectionEditing({ section: "prefs", editMode: true }));
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
       expect(store.getState().mission.mission.name).toEqual(data.name);
@@ -296,7 +296,7 @@ describe("Thunk Socket Tests", () => {
         socketId: null,
         missionId: null,
         type: "rex",
-        data: [_.cloneDeep(data)],
+        data: [cloneDeep(data)],
         lastEditEvent: null,
       };
 
@@ -310,7 +310,7 @@ describe("Thunk Socket Tests", () => {
 
       //test updating existing the data
       data.name = "Jest Test Modified Name";
-      storeUpsert.data = [_.cloneDeep(data)];
+      storeUpsert.data = [cloneDeep(data)];
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
       expect(store.getState().rex.rexes.some((x) => x.name === data.name)).toBeTruthy();
       expect(store.getState().rex.rexesFromDb.some((x) => x.name === data.name)).toBeTruthy();
@@ -318,7 +318,7 @@ describe("Thunk Socket Tests", () => {
 
       //test data in edit mode
       data.name = "Jest Test In Edit Mode";
-      storeUpsert.data = [_.cloneDeep(data)];
+      storeUpsert.data = [cloneDeep(data)];
       store.dispatch(setRexEditMode({ rexUuid: data.uuid, editMode: true }));
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
       expect(store.getState().rex.rexes.some((x) => x.name === data.name)).toBeTruthy();

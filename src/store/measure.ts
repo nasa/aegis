@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { cloneDeep } from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import { upsertToArrayByUuid } from "store/storeUtils/store";
 
 export const initialState: MeasureState = {

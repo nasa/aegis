@@ -2,7 +2,6 @@ import { FunctionComponent } from "react";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import evaStyles from "./eva.module.css";
 
-import _ from "lodash";
 import SequenceItemTraverse from "./eva-item-sequence-traverse";
 import SequenceItemStation from "./eva-item-sequence-station";
 

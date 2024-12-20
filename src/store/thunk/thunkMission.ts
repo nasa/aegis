@@ -1,6 +1,7 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import * as httpClient_mission from "http-client/mission";
-import { cloneDeep, sortBy } from "lodash";
+import sortBy from "lodash/sortBy";
+import cloneDeep from "lodash/cloneDeep";
 import {
   upsertMission,
   setMissionFromDb,

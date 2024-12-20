@@ -5,9 +5,9 @@ import { FunctionComponent } from "react";
 import { Button } from "components/interface/form/globalFields";
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import PoiItem from "./poi-item";
-import _ from "lodash";
 import { thunkCreatePoi, thunkDuplicatePoi } from "store/thunk/thunkPoi";
 import { useAppDispatch } from "utils/useAppDispatch";
+import sortBy from "lodash/sortBy";
 
 const PoiEditorLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -24,7 +24,7 @@ const PoiEditorLeft: FunctionComponent = () => {
       <div className={paneStyles.leftPanelContainer}>
         <div className={poiStyles.container}>
           <div className={poiStyles.body} aria-label="poiList">
-            {_.sortBy(pois, [(poi) => poi.name.toLowerCase()]).map((poi) => {
+            {sortBy(pois, [(poi) => poi.name.toLowerCase()]).map((poi) => {
               const poiFromDb = poisFromDb.find((poiFromDb) => poiFromDb.uuid === poi.uuid);
               return (
                 <PoiItem

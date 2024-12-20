@@ -6,6 +6,7 @@
     "dev": "concurrently -n vite,api \"npm run vite:dev:wait\" \"npm run api:dev\"",
     "build": "npm run vite:build && npm run api:build",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "tsc": "tsc --pretty",
     "test": "jest --maxWorkers 50%",
     "test:all": "npm run lint && npm run tsc && npm run build && npm run test && npm run test:playwright",

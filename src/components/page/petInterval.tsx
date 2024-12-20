@@ -1,6 +1,5 @@
 import { FunctionComponent, useEffect, useRef } from "react";
 
-import _ from "lodash";
 import { calculatePetValue } from "utils/formatting";
 
 /**

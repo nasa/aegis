@@ -7,7 +7,6 @@ import {
   faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
 import { Button } from "components/interface/form/globalFields";
-import _ from "lodash";
 import { FunctionComponent } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 
@@ -28,6 +27,7 @@ import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { RightTabs } from "components/interface/side-controls";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
+import isNull from "lodash/isNull";
 
 const EvaRightTraverse: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -102,7 +102,7 @@ const EvaRightTraverse: FunctionComponent = () => {
         reportItems: calculatedFields.reportItems,
         reportTitle: "Traverse Report",
       },
-      selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "white",
+      selectedColor: !isNull(reportsTabIconColor) ? reportsTabIconColor : "white",
       unselectedColor: reportsTabIconColor,
       icon: calculatedFields.reportItems.length > 0 ? faTriangleExclamation : faCheck,
     },

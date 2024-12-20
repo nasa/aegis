@@ -3,7 +3,9 @@ import paneStyles from "./global-pane-styles.module.css";
 import actionsStyles from "./actions.module.css";
 import { Button, Dropdown } from "components/interface/form/globalFields";
 import Action from "./actions-action";
-import _ from "lodash";
+import last from "lodash/last";
+import isNull from "lodash/isNull";
+import clone from "lodash/clone";
 import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import ReactDragListView from "react-drag-listview";
 import { STM_Coverage } from "./stm/stm-coverage";
@@ -53,7 +55,7 @@ const Actions: FunctionComponent<{
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
-  const actionIsInRunningRex = !_.isNull(rexUuid);
+  const actionIsInRunningRex = !isNull(rexUuid);
 
   const [isActionHiglighted, setIsActionHighlighted] = useState<ActionHighlight[]>([]);
   const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>("");
@@ -77,7 +79,7 @@ const Actions: FunctionComponent<{
   const reorder = useCallback(
     (fromIndex: number, toIndex: number) => {
       if (!actionOrderUuids) return;
-      const actionOrder: string[] = _.clone(actionOrderUuids);
+      const actionOrder: string[] = clone(actionOrderUuids);
       const actionBeingMoved = actionOrder.splice(fromIndex, 1)[0]; //remove action uuid
       actionOrder.splice(toIndex, 0, actionBeingMoved); //reinsert in new position
 
@@ -226,7 +228,7 @@ export const ActionsTopSection: FunctionComponent<{
       // check if this action is part of the current list (actionOrderUuids). this is to cover
       //    the case in which actions were statused, and then deleted.
       if (
-        _.last(runningRex.actionEntries[actionUuid])?.rexStatus === "complete" &&
+        last(runningRex.actionEntries[actionUuid])?.rexStatus === "complete" &&
         actionOrderUuids.includes(actionUuid)
       ) {
         const action = state.action.actions.find((a) => a.uuid === actionUuid);
@@ -245,7 +247,7 @@ export const ActionsTopSection: FunctionComponent<{
       // check if this action is part of the current list (actionOrderUuids). this is to cover
       //    the case in which actions were statused, and then deleted.
       if (
-        _.last(runningRex.actionEntries[actionUuid])?.rexStatus === "in-progress" &&
+        last(runningRex.actionEntries[actionUuid])?.rexStatus === "in-progress" &&
         actionOrderUuids.includes(actionUuid)
       ) {
         const action = state.action.actions.find((a) => a.uuid === actionUuid);
@@ -267,18 +269,18 @@ export const ActionsTopSection: FunctionComponent<{
       const action = state.action.actions.find((a) => a.uuid === actionUuid);
       if (!action || !action.enabled || !action.mass) continue;
       if (!runningRex.actionEntries || !runningRex.actionEntries[actionUuid]) continue;
-      if (_.isNull(_.last(runningRex.actionEntries[actionUuid]).mass)) continue; // this action has a non-null mass actual entry
-      if (!_.isNull(mass)) {
-        mass += _.last(runningRex.actionEntries[actionUuid]).mass;
+      if (isNull(last(runningRex.actionEntries[actionUuid]).mass)) continue; // this action has a non-null mass actual entry
+      if (!isNull(mass)) {
+        mass += last(runningRex.actionEntries[actionUuid]).mass;
       } else {
-        mass = _.last(runningRex.actionEntries[actionUuid]).mass;
+        mass = last(runningRex.actionEntries[actionUuid]).mass;
       }
     }
     return mass;
   }, refEqual);
 
   const rexMassDelta = useAppSelector((state) => {
-    if (!actionIsInRunningRex || _.isNull(rexMass)) return null;
+    if (!actionIsInRunningRex || isNull(rexMass)) return null;
     let massPlanned = 0;
     // loop through all actions
     for (const actionUuid of actionOrderUuids) {

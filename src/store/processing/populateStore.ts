@@ -1,6 +1,6 @@
 import { initialState as wholeStoreInitialState } from "store/index";
 import { getAll } from "http-client/all";
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import {
   auditActionDefinitions,
   auditActions,
@@ -19,7 +19,7 @@ export const populateStore = async (params: {
     return;
   } //gracefully handle an error if no data is returned?
 
-  const wholeStoreState: WholeStoreState = _.cloneDeep(wholeStoreInitialState);
+  const wholeStoreState: WholeStoreState = cloneDeep(wholeStoreInitialState);
   wholeStoreState.action.actions = allDataRes.data.actions;
   wholeStoreState.action.actionsFromDb = allDataRes.data.actions;
   wholeStoreState.eva.evas = allDataRes.data.evas;

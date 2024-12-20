@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 
 import { hasPerms } from "utils/permissions";
 
@@ -31,7 +31,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
-  if (!queryObj.missionId || _.isNaN(queryObj.missionId)) {
+  if (!queryObj.missionId || isNaN(queryObj.missionId)) {
     res.status(500).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
@@ -145,7 +145,7 @@ export async function getPresets(missionId: number): Promise<Preset[]> {
 export async function upsertPresets(presets: Preset[]): Promise<Preset[]> {
   const em = getEM();
 
-  const presetsToUpsert = _.cloneDeep(presets); //create a copy to manipulate
+  const presetsToUpsert = cloneDeep(presets); //create a copy to manipulate
   const presetsUpsertedToDb = [];
 
   for (const presetToUpsert of presetsToUpsert) {

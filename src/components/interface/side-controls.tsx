@@ -1,4 +1,6 @@
-import _ from "lodash";
+import uniq from "lodash/uniq";
+import isNil from "lodash/isNil";
+import flatten from "lodash/flatten";
 import styles from "./side-controls.module.css";
 import { FunctionComponent, useEffect } from "react";
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
@@ -49,7 +51,7 @@ export const LeftControlPanel: FunctionComponent = () => {
   let ActiveComponent = null;
   let title = null;
   const paneType: PaneType = paneTypes[interfaceStateLabel as keyof PaneTypes];
-  if (!_.isNil(paneType)) {
+  if (!isNil(paneType)) {
     ActiveComponent = paneType.leftPane;
     title = paneType.title;
   }
@@ -169,7 +171,7 @@ export const RightControlPanel: FunctionComponent = () => {
 
   let ActiveComponent = null;
   const paneType: PaneType = paneTypes[interfaceStateLabel as keyof PaneTypes];
-  if (!_.isNil(paneType)) {
+  if (!isNil(paneType)) {
     ActiveComponent = paneType.rightPane;
   }
 
@@ -438,8 +440,8 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
             case "evas":
               const evasModified = isModified(evas, evasFromDb);
               const traversesModified = isModified(traverses, traversesFromDb);
-              const evaStationUuids = _.uniq(
-                _.flatten(
+              const evaStationUuids = uniq(
+                flatten(
                   evas.map((eva) => {
                     const stationSeqItems = eva.sequence.filter(
                       (seqItem) => seqItem.type === "station"

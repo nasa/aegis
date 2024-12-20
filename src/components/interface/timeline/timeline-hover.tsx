@@ -4,7 +4,6 @@ import { useAppSelector, refEqual } from "utils/useAppSelector";
 import styles from "./timeline.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 
-import _ from "lodash";
 import { Button } from "components/interface/form/globalFields";
 import { faChartArea, faChartLine } from "@fortawesome/free-solid-svg-icons";
 import { setShowDistanceFromLander, setShowElevation } from "store/interface";

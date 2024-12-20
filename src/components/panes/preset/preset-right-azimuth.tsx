@@ -1,4 +1,4 @@
-import _ from "lodash";
+import throttle from "lodash/throttle";
 import paneStyles from "../global-pane-styles.module.css";
 import { FunctionComponent, useCallback, useRef, useState } from "react";
 import { faEarthAmerica, faSun, faMoon } from "@fortawesome/free-solid-svg-icons";
@@ -20,7 +20,7 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   const [isDragging, setIsDragging] = useState(false);
 
   const sunThrottledFunc = useRef(
-    _.throttle((preset: Preset, value: number) => {
+    throttle((preset: Preset, value: number) => {
       dispatch(
         upsertPreset({
           ...preset,
@@ -39,7 +39,7 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   );
 
   const earthThrottledFunc = useRef(
-    _.throttle((preset: Preset, value: number) => {
+    throttle((preset: Preset, value: number) => {
       dispatch(
         upsertPreset({
           ...preset,

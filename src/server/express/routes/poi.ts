@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 
 import { hasPerms } from "utils/permissions";
 
@@ -31,7 +31,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
-  if (!queryObj.missionId || _.isNaN(queryObj.missionId)) {
+  if (!queryObj.missionId || isNaN(queryObj.missionId)) {
     res.status(500).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
@@ -155,7 +155,7 @@ export async function getPois(missionId: number): Promise<POI[]> {
 export async function upsertPois(pois: POI[]): Promise<POI[]> {
   const em = getEM();
 
-  const poisToUpsert = _.cloneDeep(pois); //create a copy to manipulate
+  const poisToUpsert = cloneDeep(pois); //create a copy to manipulate
   const poisUpsertedToDb = [];
 
   //build poi to upsert
