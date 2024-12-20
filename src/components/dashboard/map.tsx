@@ -34,10 +34,8 @@ import {
 } from "components/page/leaflet-helper";
 import { MapViewMenu } from "components/interface/map/map-menu-view";
 import "components/dashboard/map.module.css";
-import { faGlobe } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SunEarth } from "components/interface/map/map-sunearth";
-import { Dropdown, MultiSelectDropdown } from "components/interface/form/globalFields";
+import { MultiSelectDropdown } from "components/interface/form/globalFields";
 import { featureCollection, lineString, point } from "@turf/helpers";
 import { circle } from "@turf/turf";
 import {
@@ -47,6 +45,7 @@ import {
 } from "utils/geoMath";
 import { Feature } from "geojson";
 import { getGrids } from "http-client/grid";
+import PresetMenu from "../interface/map/map-preset-menu";
 
 const MapBody: FunctionComponent<{
   setShowScaleBar: Dispatch<SetStateAction<boolean>>;
@@ -1271,37 +1270,12 @@ const MapBody: FunctionComponent<{
             </div>
           </div>
         </div>
-        <div className={styles.presetWrapper}>
-          <div
-            className={styles.presetMenu}
-            data-tooltip-id="aegis-tooltip"
-            data-tooltip-html="Select Map Preset"
-          >
-            <div className={styles.presetIcon}>
-              <FontAwesomeIcon icon={faGlobe} size="sm" />
-            </div>
-            <Dropdown
-              selected={selectedPreset?.uuid}
-              onChange={(val) => {
-                setSelectedPreset(
-                  presetsFromDb.find((preset) => {
-                    return preset.uuid === val;
-                  })
-                );
-              }}
-              containerStyle={{ padding: "2px 0px 2px 0px" }}
-            >
-              {[...presetsFromDb]
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map((preset) => {
-                  return (
-                    <option key={preset.uuid} value={preset.uuid}>
-                      {preset.name}
-                    </option>
-                  );
-                })}
-            </Dropdown>
-          </div>
+        <div className={styles.presetDisplay}>
+          <PresetMenu
+            selectedPreset={selectedPreset}
+            setSelectedPreset={setSelectedPreset}
+            presetsFromDb={presetsFromDb}
+          />
         </div>
       </div>
       <div className={styles.mapScaleDisplay}>{showScaleBar && drawScaleBar()}</div>
