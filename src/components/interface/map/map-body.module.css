@@ -20,6 +20,15 @@
   border-radius: var(--radius);
 }
 
+.presetDisplay {
+  position: absolute;
+  top: 10px;
+  left: 85px;
+  z-index: 100;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius);
+}
+
 .mapScaleDisplay {
   position: absolute;
   bottom: 10px;

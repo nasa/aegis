@@ -54,7 +54,9 @@ export type RootState = ReturnType<typeof sliceReducers>;
 export const store: StoreType = configureStore({
   reducer: sliceReducers,
   preloadedState: initialState,
-  devTools: true,
+  devTools: {
+    name: `AEGIS Tab-${Math.random()}`, // Include git branch name
+  },
 });
 export type StoreType = ReturnType<typeof configureStore<RootState>>;
 export type AppDispatch = typeof store.dispatch;

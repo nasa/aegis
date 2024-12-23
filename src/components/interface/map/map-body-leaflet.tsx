@@ -69,6 +69,8 @@ import {
 import { thunkMarkerOnClick, thunkPolylineOnClick } from "store/thunk/thunkMap";
 import { Feature } from "geojson";
 import { getGrids } from "http-client/grid";
+import { setSelectedPresetUuid } from "store/preset";
+import PresetMenu from "./map-preset-menu";
 
 const MapBody: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -116,6 +118,7 @@ const MapBody: FunctionComponent = () => {
     (state) => state.preset.presets.find((p) => p.uuid === selectedPresetUuid),
     deepEqual
   );
+  const presetsFromDb = useAppSelector((state) => state.preset.presets, deepEqual);
 
   const pois = useAppSelector((state) => state.poi.pois, deepEqual);
   const stations = useAppSelector((state) => state.station.stations, deepEqual);
@@ -1951,6 +1954,15 @@ const MapBody: FunctionComponent = () => {
         />
       </div>
       {selectedOrRunningRex && <MapPositionMenu />}
+      <div className={styles.presetDisplay}>
+        <PresetMenu
+          selectedPreset={selectedPreset}
+          setSelectedPreset={(preset: Preset) => {
+            dispatch(setSelectedPresetUuid(preset.uuid));
+          }}
+          presetsFromDb={presetsFromDb}
+        />
+      </div>
       <div className={styles.mapScaleDisplay}>{showScaleBar && drawScaleBar()}</div>
       <div className={styles.mapPositionDisplay}>
         {showMouseLatLon && mousePosition && latLngDiv(mousePosition)}
