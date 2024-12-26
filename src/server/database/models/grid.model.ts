@@ -14,7 +14,7 @@ export class Grid_db implements Grid_db_type {
   numRows!: number;
   @Property({ type: MikroTypes.integer, nullable: true })
   numCols!: number;
-  @Property({ type: MikroTypes.text, nullable: true })
+  @Property({ type: MikroTypes.integer, nullable: true })
   spacing!: number;
   @Property({ type: MikroTypes.text, nullable: true })
   name!: string;

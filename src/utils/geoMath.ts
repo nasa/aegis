@@ -32,7 +32,6 @@ export function getDistanceBetweenTwoCoordinates(
  * @param {MissionGridPoint[][]} grid - the grid to find coordinates in
  * @param {AEGISPoint} point - the point to look for
  * @param {number} radius - The radius of the planet in question (usually meters)
- * @param {number} isTopOrLeft- Defines the direction of adjustement after calculation
  */
 export function findClosestPointInGrid(
   grid: MissionGridPoint[][],
