@@ -178,6 +178,19 @@ export const latLngDiv = (mousePosition: AEGISPoint): JSX.Element => {
 };
 
 /**
+ * Draw the mouse coordinate
+ * @param mousePosition
+ * @returns
+ */
+export const mouseCoordDiv = (mouseCoord: string): JSX.Element => {
+  return (
+    <>
+      <div className={styles.gridCoordValue}>{mouseCoord}</div>
+    </>
+  );
+};
+
+/**
  * calculate the initial coords for where new measure tool lines will be initially drawn
  */
 export const calcMeasureToolInitialCoords = (map: MutableRefObject<L.Map>): AEGISPoint[] => {

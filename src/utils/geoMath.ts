@@ -88,6 +88,69 @@ export function findClosestPointInGrid(
 }
 
 /**
+ * Performs binary search to find the closest grid coordinate to a specific point
+ * @param {MissionGridPoint[][]} grid - the grid to find coordinates in
+ * @param {AEGISPoint} point - the point to find coordinates for
+ * @param {number} radius - The radius of the planet in question (usually meters)
+ */
+export function findPositionGridCoordinates(
+  grid: MissionGridPoint[][],
+  point: AEGISPoint,
+  radius: number
+): string {
+  if (!grid || !point) return null;
+
+  const closestPoint: GridIndex = findClosestPointInGrid(grid, point, radius);
+
+  const upperCoord = closestPoint.row > 0 ? grid[closestPoint.row - 1][closestPoint.col] : null;
+  const lowerCoord =
+    closestPoint.row < grid.length - 1 ? grid[closestPoint.row + 1][closestPoint.col] : null;
+  const leftCoord = closestPoint.col > 0 ? grid[closestPoint.row][closestPoint.col - 1] : null;
+  const rightCoord =
+    closestPoint.col < grid[0].length - 1 ? grid[closestPoint.row][closestPoint.col + 1] : null;
+
+  let lowerIsCloser = false;
+  let leftIsCloser = false;
+
+  // Find where in grid you are
+  if (upperCoord && lowerCoord) {
+    const upperDist = getDistanceBetweenTwoCoordinates(upperCoord.coordinates, point, radius);
+    const lowerDist = getDistanceBetweenTwoCoordinates(lowerCoord.coordinates, point, radius);
+    if (lowerDist < upperDist) {
+      lowerIsCloser = true;
+    }
+  } else if (lowerCoord) {
+    lowerIsCloser = true;
+  }
+
+  if (leftCoord && rightCoord) {
+    const leftDist = getDistanceBetweenTwoCoordinates(leftCoord.coordinates, point, radius);
+    const rightDist = getDistanceBetweenTwoCoordinates(rightCoord.coordinates, point, radius);
+    if (leftDist < rightDist) {
+      leftIsCloser = true;
+    }
+  } else if (leftCoord) {
+    leftIsCloser = true;
+  }
+
+  //TODO: Add logic for edge cases and if there's demand for it. The logic for this would be ugly
+  if (!upperCoord || !lowerCoord || !leftCoord || !rightCoord) {
+    return "N/A";
+  }
+
+  // Find lower left corner of grid cell, then make sure you are in the right cell
+  if (lowerIsCloser && leftIsCloser) {
+    return grid[closestPoint.row + 1][closestPoint.col - 1].name;
+  } else if (lowerIsCloser) {
+    return grid[closestPoint.row + 1][closestPoint.col].name;
+  } else if (leftIsCloser) {
+    return grid[closestPoint.row][closestPoint.col - 1].name;
+  } else {
+    return grid[closestPoint.row][closestPoint.col].name;
+  }
+}
+
+/**
  * Adjust grid indicies to be one shown cell out
  * @param {GridIndex} index - the index to adjust
  * @param {number} numRows - the number of rows in the grid

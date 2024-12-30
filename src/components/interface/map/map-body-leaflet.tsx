@@ -30,6 +30,7 @@ import {
   adjustGridIndex,
   convertLeafletLatLngToAegisPoint,
   findClosestPointInGrid,
+  findPositionGridCoordinates,
   getMidpoint,
 } from "utils/geoMath";
 import { decodeEmoji, secondsFromhhmmss, hhmmssFromSeconds, titleCase } from "utils/formatting";
@@ -65,6 +66,7 @@ import {
   setMeasureStartingCoords,
   handleMapDirective,
   saveUpdatedItemPosition,
+  mouseCoordDiv,
 } from "components/page/leaflet-helper";
 import { thunkMarkerOnClick, thunkPolylineOnClick } from "store/thunk/thunkMap";
 import { Feature } from "geojson";
@@ -209,6 +211,7 @@ const MapBody: FunctionComponent = () => {
   /*** end Eyeball menu toggles */
 
   const [mousePosition, setMousePosition] = useState<AEGISPoint>(null);
+  const [mouseCoords, setMouseCoords] = useState<string>("N/A");
   const [mapZoom, setMapZoom] = useState<number>(0); // Used to trigger re-draw of scale. Value doens't matter
   const [gridLabels, setGridLabels] = useState<GridLabelItem[]>([]);
   const [mapBounds, setMapBounds] = useState<string>(null); // Used to trigger re-draw of grid labels. Value doens't matter
@@ -506,6 +509,12 @@ const MapBody: FunctionComponent = () => {
 
     map.current.on("mousemove", (e) => {
       setMousePosition({ lat: e.latlng.lat, lng: e.latlng.lng });
+      const positionCoords = findPositionGridCoordinates(
+        chosenGrid?.coordinates,
+        e.latlng,
+        mission.planetRadius
+      );
+      setMouseCoords(positionCoords);
     });
 
     map.current.on("zoomend", () => {
@@ -524,7 +533,7 @@ const MapBody: FunctionComponent = () => {
         map.current.off("click");
       }
     };
-  }, [map, mapDirective, dispatch, gridLabels, showGridLabels, mission]);
+  }, [map, mapDirective, dispatch, gridLabels, showGridLabels, mission, chosenGrid]);
 
   /**
    * Listen for mapDirective for stations, pois, actions, traverses, and measurements, and trigger map draw/edit modes appropriately
@@ -1966,6 +1975,7 @@ const MapBody: FunctionComponent = () => {
       <div className={styles.mapScaleDisplay}>{showScaleBar && drawScaleBar()}</div>
       <div className={styles.mapPositionDisplay}>
         {showMouseLatLon && mousePosition && latLngDiv(mousePosition)}
+        {showGridLines && mousePosition && mouseCoordDiv(mouseCoords)}
       </div>
       {showSunEarth && <SunEarth type="editor" selectedPreset={selectedPreset} />}
     </div>
