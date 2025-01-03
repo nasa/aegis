@@ -559,7 +559,7 @@ export const MapViewMenu: FunctionComponent<{
                   setShowGridLines(!showGridLines);
                 }}
               >
-                Lines
+                New Grid
               </div>
             </div>
             <MenuItem

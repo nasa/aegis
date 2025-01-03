@@ -168,8 +168,8 @@ export const scaleBarDiv = (
  * @param mousePosition
  * @returns
  */
-export const latLngDiv = (mousePosition: AEGISPoint): JSX.Element => {
-  const latLngStr = `${mousePosition.lat.toFixed(6)}, ${mousePosition.lng.toFixed(6)}`;
+export const latLngDiv = (mouseLatLng: AEGISPoint): JSX.Element => {
+  const latLngStr = `${mouseLatLng.lat.toFixed(6)}, ${mouseLatLng.lng.toFixed(6)}`;
   return (
     <>
       <div className={styles.positionValue}>{latLngStr}</div>
@@ -179,10 +179,10 @@ export const latLngDiv = (mousePosition: AEGISPoint): JSX.Element => {
 
 /**
  * Draw the mouse coordinate
- * @param mousePosition
+ * @param mouseCoord
  * @returns
  */
-export const mouseCoordDiv = (mouseCoord: string): JSX.Element => {
+export const mouseGridCoordDiv = (mouseCoord: string): JSX.Element => {
   return (
     <>
       <div className={styles.gridCoordValue}>{mouseCoord}</div>

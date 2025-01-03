@@ -88,12 +88,12 @@ export function findClosestPointInGrid(
 }
 
 /**
- * Performs binary search to find the closest grid coordinate to a specific point
+ * Finds the cooresponding grid cell name for a given point
  * @param {MissionGridPoint[][]} grid - the grid to find coordinates in
  * @param {AEGISPoint} point - the point to find coordinates for
  * @param {number} radius - The radius of the planet in question (usually meters)
  */
-export function findPositionGridCoordinates(
+export function findGridCoordinatesFromPoint(
   grid: MissionGridPoint[][],
   point: AEGISPoint,
   radius: number
