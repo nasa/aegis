@@ -22,8 +22,11 @@ const parseQuery = (query: Query) => {
 // Middleware to check user session
 router.use(async (req: Request, res: Response, next): Promise<void> => {
   const queryObj = parseQuery(req.query);
-
-  const editPermission = await hasPerms(queryObj.missionId, "edit", req.session.user);
+  const editPermission = await hasPerms({
+    missionId: queryObj.missionId,
+    permission: "edit",
+    user: req.session.user,
+  });
   if (!editPermission || (!req.session.user.isAdmin && !req.session.user.isSuperAdmin)) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;

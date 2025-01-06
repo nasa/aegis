@@ -48,7 +48,7 @@ beforeAll(async () => {
   testEvas = await new EvaFactory(em)
     .each((eva) => {
       eva.mission = testMissions[0];
-      eva.owner = testUser;
+      eva.ownerId = testUser.id;
     })
     .create(2);
 
@@ -130,7 +130,6 @@ describe("EVA API Endpoint", () => {
       const requestBody: EvaUpsertRequest = {
         socketId: "someSocketId",
         missionId: testMissions[2].id,
-        log: false,
         evas: [newEVA],
       };
       const res = await supertest(app)
@@ -144,7 +143,6 @@ describe("EVA API Endpoint", () => {
       const requestBody: EvaUpsertRequest = {
         socketId: "someSocketId",
         missionId: testMissions[1].id,
-        log: false,
         evas: [newEVA],
       };
       const res = await supertest(app)
@@ -158,7 +156,6 @@ describe("EVA API Endpoint", () => {
       const requestBody: EvaUpsertRequest = {
         socketId: "someSocketId",
         missionId: testMissions[0].id,
-        log: false,
         evas: [{ ...newEVA, ownerId: testUser.id, missionId: testMissions[0].id }],
       };
       const res = await supertest(app)
@@ -183,7 +180,6 @@ describe("EVA API Endpoint", () => {
       const requestBody: EvaUpsertRequest = {
         socketId: "someSocketId",
         missionId: testMissions[0].id,
-        log: false,
         evas: [newEVA],
       };
       const res = await supertest(app)
@@ -204,7 +200,6 @@ describe("EVA API Endpoint", () => {
       const requestBody: EvaDeleteRequest = {
         socketId: "someSocketId",
         missionId: testMissions[2].id,
-        log: false,
         evaUuids: [newEVA.uuid],
       };
       const res = await supertest(app)
@@ -218,7 +213,6 @@ describe("EVA API Endpoint", () => {
       const requestBody: EvaDeleteRequest = {
         socketId: "someSocketId",
         missionId: testMissions[1].id,
-        log: false,
         evaUuids: [newEVA.uuid],
       };
       const res = await supertest(app)
@@ -232,7 +226,6 @@ describe("EVA API Endpoint", () => {
       const requestBody: EvaDeleteRequest = {
         socketId: "someSocketId",
         missionId: testMissions[0].id,
-        log: false,
         evaUuids: [newEVA.uuid],
       };
       const res = await supertest(app)
@@ -244,6 +237,45 @@ describe("EVA API Endpoint", () => {
       const wrappedResponse = res.body;
       expect(wrappedResponse.status).toBe("success");
     });
+  });
+});
+
+describe("Auth with emss-token header", () => {
+  const emssToken = process.env.EMSS_TOKEN || "";
+  const newEva = generateBlankEVA({ name: "Jest Test New Eva" });
+
+  test("GET request succeeds with emss-token", async () => {
+    const res = await supertest(app)
+      .get("/api/v1/eva")
+      .set("emss-token", emssToken)
+      .query({ missionId: testMissions[0].id });
+    expect(res.statusCode).toBe(200);
+  });
+
+  test("POST request succeeds with emss-token", async () => {
+    const requestBody: EvaUpsertRequest = {
+      socketId: "someSocketId",
+      missionId: testMissions[0].id,
+      evas: [{ ...newEva, missionId: testMissions[0].id }],
+    };
+    const res = await supertest(app)
+      .post("/api/v1/eva")
+      .set("emss-token", emssToken)
+      .send(requestBody);
+    expect(res.statusCode).toBe(200);
+  });
+
+  test("DELETE request succeeds with emss-token", async () => {
+    const requestBody: EvaDeleteRequest = {
+      socketId: "someSocketId",
+      missionId: testMissions[0].id,
+      evaUuids: [newEva.uuid],
+    };
+    const res = await supertest(app)
+      .delete("/api/v1/eva")
+      .set("emss-token", emssToken)
+      .send(requestBody);
+    expect(res.statusCode).toBe(200);
   });
 });
 

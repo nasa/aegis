@@ -72,8 +72,7 @@ type PresetLayerOrder = {
   sublayerUuids: string[];
 };
 
-type Preset_db_type = Omit<Preset, "ownerId" | "missionId" | "createdAt" | "updatedAt"> & {
-  owner: User_db_type;
+type Preset_db_type = Omit<Preset, "missionId" | "createdAt" | "updatedAt"> & {
   mission: Mission_db_type;
   createdAt?: Date;
   updatedAt?: Date;

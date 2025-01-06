@@ -42,7 +42,7 @@ export function convertPresetsTypeDbToStore(dbPresets: Preset_db[]): Preset[] {
     const convertedPreset: Preset = {
       uuid: dbPreset.uuid,
       missionId: dbPreset.mission.id,
-      ownerId: dbPreset.owner.id,
+      ownerId: dbPreset.ownerId,
       name: dbPreset.name,
       description: dbPreset.description,
       missionPreset: dbPreset.missionPreset,
@@ -73,7 +73,7 @@ export function convertPresetsTypeStoreToDb(storePresets: Preset[]): EntityData<
   for (const storePreset of storePresets) {
     const convertedRecord: EntityData<Preset_db> = {
       uuid: storePreset.uuid,
-      owner: storePreset.ownerId,
+      ownerId: storePreset.ownerId,
       mission: storePreset.missionId,
       name: storePreset.name,
       description: storePreset.description,

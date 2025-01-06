@@ -66,7 +66,6 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
     { dispatch, getState }
   ) => {
     const traverse = getState().traverse.traverses.find((t) => t.uuid === traverseUuid);
-    const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
     const eva = getState().eva.evas.find((eva) => {
       return eva.sequence.find((sequenceItem) => {
@@ -192,7 +191,7 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
       updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     if (saveToDb) {
-      httpClient_Traverse.upsertTraverses([newTraverse], isRexRunning);
+      httpClient_Traverse.upsertTraverses([newTraverse]);
       dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: false }));
       dispatch(upsertTraversesFromDb([newTraverse]));
     }

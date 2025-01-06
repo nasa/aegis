@@ -239,6 +239,52 @@ describe("Layer API Endpoint ", () => {
       expect(wrappedResponse.status).toBe("success");
     });
   });
+
+  describe("API actions with emss-token", () => {
+    test("GET request with emss-token succeeds", async () => {
+      const res = await supertest(app)
+        .get("/api/v1/layer")
+        .set("emss-token", process.env.EMSS_TOKEN)
+        .query({ missionId: testMissions[0].id });
+
+      expect(res.statusCode).toBe(200);
+      // ...additional assertions...
+    });
+
+    test("POST request with emss-token succeeds", async () => {
+      const newLayerData = {
+        ...newLayer,
+        missionId: testMissions[0].id,
+      };
+      const requestBody: LayerUpsertRequest = {
+        missionId: testMissions[0].id,
+        layers: [newLayerData],
+      };
+      const res = await supertest(app)
+        .post("/api/v1/layer")
+        .set("emss-token", process.env.EMSS_TOKEN)
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(200);
+      // ...additional assertions...
+    });
+
+    test("DELETE request with emss-token succeeds", async () => {
+      const requestBody: LayerDeleteRequest = {
+        missionId: testMissions[0].id,
+        layerUuids: [newLayer.uuid],
+      };
+      newLayer.missionId = testMissions[0].id;
+
+      const res = await supertest(app)
+        .delete("/api/v1/layer")
+        .set("emss-token", process.env.EMSS_TOKEN)
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(200);
+      // ...additional assertions...
+    });
+  });
 });
 
 afterAll(async () => {

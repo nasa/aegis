@@ -21,8 +21,7 @@ type Rex = {
   updatedAt?: string;
 };
 
-type Rex_db_type = Omit<Rex, "ownerId" | "missionId" | "createdAt" | "updatedAt"> & {
-  owner: User_db_type;
+type Rex_db_type = Omit<Rex, "missionId" | "createdAt" | "updatedAt"> & {
   mission: Mission_db_type;
   createdAt?: Date;
   updatedAt?: Date;

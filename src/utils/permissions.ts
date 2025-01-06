@@ -5,11 +5,20 @@
  * @param user
  * @returns
  */
-export const hasPerms = async (
-  missionId: number,
-  permission: keyof Permission["permissions"],
-  user: User
-): Promise<boolean> => {
+export const hasPerms = async ({
+  missionId,
+  permission,
+  user,
+  emssToken,
+}: {
+  missionId: number;
+  permission: keyof Permission["permissions"];
+  user: User;
+  emssToken?: string;
+}): Promise<boolean> => {
+  // check the EMSS token. If it's valid, then the user has permissions
+  if (emssToken && emssToken === process.env.EMSS_TOKEN) return true;
+
   // if no user session then no permissions for anything
   if (!user) return false;
 

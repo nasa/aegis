@@ -27,7 +27,14 @@ const parseQuery = (query: Query) => {
 // get
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const viewPermission = await hasPerms(queryObj.missionId, "view", req.session.user);
+  const emssToken = req.headers["emss-token"] as string;
+
+  const viewPermission = await hasPerms({
+    missionId: queryObj.missionId,
+    permission: "view",
+    user: req.session.user,
+    emssToken,
+  });
   if (!viewPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
@@ -53,7 +60,14 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, layers } = req.body as LayerUpsertRequest;
-  const editPermission = await hasPerms(missionId, "edit", req.session.user);
+  const emssToken = req.headers["emss-token"] as string;
+
+  const editPermission = await hasPerms({
+    missionId,
+    permission: "edit",
+    user: req.session.user,
+    emssToken,
+  });
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
@@ -85,7 +99,14 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, layerUuids } = req.body as LayerDeleteRequest;
-  const editPermission = await hasPerms(missionId, "edit", req.session.user);
+  const emssToken = req.headers["emss-token"] as string;
+
+  const editPermission = await hasPerms({
+    missionId,
+    permission: "edit",
+    user: req.session.user,
+    emssToken,
+  });
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;

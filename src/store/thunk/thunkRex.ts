@@ -79,7 +79,7 @@ export const thunkSaveRex = appCreateAsyncThunk<{ rexUuid: string }>(
       }
     }
 
-    const upsertResponse = await httpClient_Rex.upsertRexes([rexToSave], rexToSave.isRunning);
+    const upsertResponse = await httpClient_Rex.upsertRexes([rexToSave]);
     if (upsertResponse.status === "success") {
       // upsert the changed rex to the store
       dispatch(upsertRex(upsertResponse.data[0], true));
@@ -106,7 +106,7 @@ export const thunkSaveRex = appCreateAsyncThunk<{ rexUuid: string }>(
       rexCopy.petStartStopTimestamp = roundDateToSecond(getAccurateNow()).toISOString();
       rexCopy.updatedAt = roundDateToSecond(getAccurateNow()).toISOString();
 
-      const upsertReponse = await httpClient_Rex.upsertRexes([rexCopy], rex.isRunning);
+      const upsertReponse = await httpClient_Rex.upsertRexes([rexCopy]);
       if (upsertReponse.status === "success") {
         // update the rex in the store from the DB
         dispatch(upsertRexFromDb(upsertReponse.data[0]));
@@ -139,7 +139,6 @@ export const thunkDeleteRex = appCreateAsyncThunk<{ rexUuid: string }>(
   "rexDelete",
   async ({ rexUuid }, { dispatch, getState }) => {
     if (!rexUuid) return;
-    const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
     // take the rex out of edit mode
     dispatch(setRexEditMode({ rexUuid, editMode: false }));
@@ -152,7 +151,7 @@ export const thunkDeleteRex = appCreateAsyncThunk<{ rexUuid: string }>(
     const rexFromDb = getState().rex.rexesFromDb.find((rexDb) => rexDb.uuid === rexUuid);
     if (rexFromDb) {
       // delete the rex from the db and dbstore
-      const deleteResponse = await httpClient_Rex.deleteRexes([rexUuid], isRexRunning);
+      const deleteResponse = await httpClient_Rex.deleteRexes([rexUuid]);
       if (deleteResponse.status === "success") {
         // remove the corresponding eva from the store
         dispatch(deleteRexFromDbByUuid(rexUuid));

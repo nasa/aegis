@@ -164,7 +164,7 @@ export const scaleBarDiv = (
 };
 
 /**
- * Draw the lat log mouse position
+ * Draw the lat lng mouse position
  * @param mousePosition
  * @returns
  */

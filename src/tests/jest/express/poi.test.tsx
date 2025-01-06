@@ -49,7 +49,6 @@ beforeAll(async () => {
   testPois = await new PoiFactory(em)
     .each((poi) => {
       poi.mission = testMissions[0];
-      poi.owner = testUser;
     })
     .create(2);
 
@@ -116,7 +115,6 @@ describe("Poi API Endpoint", () => {
     test("No permissions", async () => {
       const requestBody: POIUpsertRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[2].id,
         pois: [newPoi],
       };
@@ -131,7 +129,6 @@ describe("Poi API Endpoint", () => {
     test("No permissions - View only", async () => {
       const requestBody: POIUpsertRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[1].id,
         pois: [newPoi],
       };
@@ -146,7 +143,6 @@ describe("Poi API Endpoint", () => {
     test("Create new Poi", async () => {
       const requestBody: POIUpsertRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[0].id,
         pois: [{ ...newPoi, missionId: testMissions[0].id, ownerId: testUser.id }],
       };
@@ -170,7 +166,6 @@ describe("Poi API Endpoint", () => {
       newPoi.name = "Jest New Poi Modified";
       const requestBody: POIUpsertRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[0].id,
         pois: [{ ...newPoi }],
       };
@@ -189,7 +184,6 @@ describe("Poi API Endpoint", () => {
     test("No permissions", async () => {
       const requestBody: POIDeleteRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[2].id,
         poiUuids: [newPoi.uuid],
       };
@@ -204,7 +198,6 @@ describe("Poi API Endpoint", () => {
     test("No permissions - View only", async () => {
       const requestBody: POIDeleteRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[1].id,
         poiUuids: [newPoi.uuid],
       };
@@ -219,7 +212,6 @@ describe("Poi API Endpoint", () => {
     test("Delete a Poi", async () => {
       const requestBody: POIDeleteRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[0].id,
         poiUuids: [newPoi.uuid],
       };
@@ -231,6 +223,48 @@ describe("Poi API Endpoint", () => {
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
     });
+  });
+});
+
+describe("Auth with emss-token header", () => {
+  const emssToken = process.env.EMSS_TOKEN || "";
+  const newPoi = generateBlankPoi({ name: "Jest Test New Poi" });
+
+  test("GET request succeeds with emss-token", async () => {
+    const res = await supertest(app)
+      .get("/api/v1/poi")
+      .set("emss-token", emssToken)
+      .query({ missionId: testMissions[0].id });
+    expect(res.statusCode).toBe(200);
+    // ...additional assertions...
+  });
+
+  test("POST request succeeds with emss-token", async () => {
+    const requestBody: POIUpsertRequest = {
+      socketId: "someSocketId",
+      missionId: testMissions[0].id,
+      pois: [{ ...newPoi, missionId: testMissions[0].id }],
+    };
+    const res = await supertest(app)
+      .post("/api/v1/poi")
+      .set("emss-token", emssToken)
+      .send(requestBody);
+    expect(res.statusCode).toBe(200);
+    // ...additional assertions...
+  });
+
+  test("DELETE request succeeds with emss-token", async () => {
+    const requestBody: POIDeleteRequest = {
+      socketId: "someSocketId",
+      missionId: testMissions[0].id,
+      poiUuids: [newPoi.uuid],
+    };
+    const res = await supertest(app)
+      .delete("/api/v1/poi")
+      .set("emss-token", emssToken)
+      .send(requestBody);
+    expect(res.statusCode).toBe(200);
+    // ...additional assertions...
   });
 });
 

@@ -150,8 +150,7 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
 export const thunkSaveActions = appCreateAsyncThunk<{
   actions: Action[];
   actionsFromDb: Action[];
-}>("actionSave", async ({ actions, actionsFromDb }, { dispatch, getState }) => {
-  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
+}>("actionSave", async ({ actions, actionsFromDb }, { dispatch }) => {
   //upsert any changed or new Actions to db
   const changedActions: Action[] = [];
   for (const action of actions) {
@@ -164,10 +163,7 @@ export const thunkSaveActions = appCreateAsyncThunk<{
   }
   if (changedActions.length > 0) {
     //action changed. upsert to db
-    const actionUpsertResponse = await httpClient_action.upsertActions(
-      changedActions,
-      isRexRunning
-    );
+    const actionUpsertResponse = await httpClient_action.upsertActions(changedActions);
     if (actionUpsertResponse.status === "success") {
       //upsert to both stores
       dispatch(upsertActions(actionUpsertResponse.data, true));
@@ -185,7 +181,7 @@ export const thunkSaveActions = appCreateAsyncThunk<{
   if (deletedActions.length > 0) {
     // take array of deleted actions and delete them in the db
     const deletedActionUuids = deletedActions.map((a) => a.uuid);
-    await httpClient_action.deleteActions(deletedActionUuids, isRexRunning);
+    await httpClient_action.deleteActions(deletedActionUuids);
     dispatch(deleteActionsFromDbByUuid(deletedActionUuids));
   }
 });
@@ -274,13 +270,11 @@ export const thunkDeleteActionFromStore = appCreateAsyncThunk<{
  */
 export const thunkDeleteActionFromDbAndStore = appCreateAsyncThunk<{
   uuids: string[];
-}>("deleteActionFromDbAndStore", async ({ uuids }, { dispatch, getState }) => {
+}>("deleteActionFromDbAndStore", async ({ uuids }, { dispatch }) => {
   if (uuids.length > 0) {
     //delete from db
-    const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteActions(
-      uuids,
-      getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning
-    );
+    const actionDeleteResponse: WrappedResponse<number> =
+      await httpClient_action.deleteActions(uuids);
     if (actionDeleteResponse.status !== "success") {
       throw new Error("Error deleting actions " + actionDeleteResponse.message);
     }

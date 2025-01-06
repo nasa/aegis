@@ -139,7 +139,7 @@ export const auditPresetsAgainstLayers = async ({
   }
   if (presetsToSaveToDb.length > 0) {
     // upsert the changed Presets to the DB
-    const upsertReponse = await httpClient_preset.upsertPresets(presetsToSaveToDb, false);
+    const upsertReponse = await httpClient_preset.upsertPresets(presetsToSaveToDb);
     if (upsertReponse.status !== "success") {
       // handle the error
     }

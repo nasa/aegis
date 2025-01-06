@@ -127,7 +127,6 @@ describe("EVA API Endpoint", () => {
       const requestBody: TraverseUpsertRequest = {
         missionId: testMissions[2].id,
         socketId: "someSocketId",
-        log: false,
         traverses: [newTraverse],
       };
       const res = await supertest(app)
@@ -142,7 +141,6 @@ describe("EVA API Endpoint", () => {
       const requestBody: TraverseUpsertRequest = {
         missionId: testMissions[1].id,
         socketId: "someSocketId",
-        log: false,
         traverses: [newTraverse],
       };
       const res = await supertest(app)
@@ -157,7 +155,6 @@ describe("EVA API Endpoint", () => {
       const requestBody: TraverseUpsertRequest = {
         missionId: testMissions[0].id,
         socketId: "someSocketId",
-        log: false,
         traverses: [{ ...newTraverse, missionId: testMissions[0].id }],
       };
       const res = await supertest(app)
@@ -180,7 +177,6 @@ describe("EVA API Endpoint", () => {
       const requestBody: TraverseUpsertRequest = {
         missionId: testMissions[0].id,
         socketId: "someSocketId",
-        log: false,
         traverses: [newTraverse],
       };
       const res = await supertest(app)
@@ -199,7 +195,6 @@ describe("EVA API Endpoint", () => {
       const requestBody: TraverseDeleteRequest = {
         missionId: testMissions[2].id,
         socketId: "someSocketId",
-        log: false,
         traverseUuids: [],
       };
       const res = await supertest(app)
@@ -214,7 +209,6 @@ describe("EVA API Endpoint", () => {
       const requestBody: TraverseDeleteRequest = {
         missionId: testMissions[0].id,
         socketId: "someSocketId",
-        log: false,
         traverseUuids: [newTraverse.uuid],
       };
       const res = await supertest(app)
@@ -224,6 +218,45 @@ describe("EVA API Endpoint", () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
+    });
+  });
+
+  describe("Auth with emss-token header", () => {
+    const emssToken = process.env.EMSS_TOKEN || "";
+    const newTraverse = generateBlankTraverse({ name: "Jest Traverse-1" });
+
+    test("GET request succeeds with emss-token", async () => {
+      const res = await supertest(app)
+        .get("/api/v1/traverse")
+        .set("emss-token", emssToken)
+        .query({ missionId: testMissions[0].id });
+      expect(res.statusCode).toBe(200);
+    });
+
+    test("POST request succeeds with emss-token", async () => {
+      const requestBody: TraverseUpsertRequest = {
+        missionId: testMissions[0].id,
+        socketId: "someSocketId",
+        traverses: [{ ...newTraverse, missionId: testMissions[0].id }],
+      };
+      const res = await supertest(app)
+        .post("/api/v1/traverse")
+        .set("emss-token", emssToken)
+        .send(requestBody);
+      expect(res.statusCode).toBe(200);
+    });
+
+    test("DELETE request succeeds with emss-token", async () => {
+      const requestBody: TraverseDeleteRequest = {
+        missionId: testMissions[0].id,
+        socketId: "someSocketId",
+        traverseUuids: [newTraverse.uuid],
+      };
+      const res = await supertest(app)
+        .delete("/api/v1/traverse")
+        .set("emss-token", emssToken)
+        .send(requestBody);
+      expect(res.statusCode).toBe(200);
     });
   });
 });

@@ -58,11 +58,9 @@ beforeAll(async () => {
 
   testStation = await new StationFactory(em).createOne({
     mission: testMissions[0],
-    owner: testUser,
   });
   testPoi = await new PoiFactory(em).createOne({
     mission: testMissions[0],
-    owner: testUser,
   });
   testActions.push(
     await new ActionFactory(em).createOne({
@@ -180,7 +178,6 @@ describe("Action API Endpoint", () => {
       const requestBody: ActionUpsertRequest = {
         socketId: "someSocketId",
         missionId: testMissions[2].id,
-        log: false,
         actions: [newAction],
       };
       const res = await supertest(app)
@@ -194,7 +191,6 @@ describe("Action API Endpoint", () => {
       const requestBody: ActionUpsertRequest = {
         socketId: "someSocketId",
         missionId: testMissions[1].id,
-        log: false,
         actions: [newAction],
       };
       const res = await supertest(app)
@@ -208,7 +204,6 @@ describe("Action API Endpoint", () => {
       const requestBody: ActionUpsertRequest = {
         socketId: "someSocketId",
         missionId: testMissions[0].id,
-        log: false,
         actions: [{ ...newAction, missionId: testMissions[0].id }],
       };
       const res = await supertest(app)
@@ -233,7 +228,6 @@ describe("Action API Endpoint", () => {
       const requestBody: ActionUpsertRequest = {
         socketId: "someSocketId",
         missionId: testMissions[0].id,
-        log: false,
         actions: [newAction],
       };
       const res = await supertest(app)
@@ -254,7 +248,6 @@ describe("Action API Endpoint", () => {
       const requestBody: ActionDeleteRequest = {
         socketId: "someSocketId",
         missionId: testMissions[2].id,
-        log: false,
         actionUuids: [newAction.uuid],
       };
       const res = await supertest(app)
@@ -268,7 +261,6 @@ describe("Action API Endpoint", () => {
       const requestBody: ActionDeleteRequest = {
         socketId: "someSocketId",
         missionId: testMissions[1].id,
-        log: false,
         actionUuids: [newAction.uuid],
       };
       const res = await supertest(app)
@@ -282,7 +274,6 @@ describe("Action API Endpoint", () => {
       const requestBody: ActionDeleteRequest = {
         socketId: "someSocketId",
         missionId: testMissions[0].id,
-        log: false,
         actionUuids: [newAction.uuid],
       };
       const res = await supertest(app)
@@ -293,6 +284,45 @@ describe("Action API Endpoint", () => {
 
       const wrappedResponse = res.body;
       expect(wrappedResponse.status).toBe("success");
+    });
+  });
+
+  describe("Auth with emss-token header", () => {
+    const emssToken = process.env.EMSS_TOKEN || "";
+    newAction = generateBlankAction({ name: "Jest Test New Action" });
+
+    test("GET request succeeds with emss-token", async () => {
+      const res = await supertest(app)
+        .get("/api/v1/action")
+        .set("emss-token", emssToken)
+        .query({ missionId: testMissions[0].id });
+      expect(res.statusCode).toBe(200);
+    });
+
+    test("POST request succeeds with emss-token", async () => {
+      const requestBody: ActionUpsertRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[0].id,
+        actions: [newAction],
+      };
+      const res = await supertest(app)
+        .post("/api/v1/action")
+        .set("emss-token", emssToken)
+        .send(requestBody);
+      expect(res.statusCode).toBe(200);
+    });
+
+    test("DELETE request succeeds with emss-token", async () => {
+      const requestBody: ActionDeleteRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[0].id,
+        actionUuids: [newAction.uuid],
+      };
+      const res = await supertest(app)
+        .delete("/api/v1/action")
+        .set("emss-token", emssToken)
+        .send(requestBody);
+      expect(res.statusCode).toBe(200);
     });
   });
 });

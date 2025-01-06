@@ -8,9 +8,11 @@ const router = express.Router();
 
 // get
 router.get("/", async (req: Request, res: Response): Promise<void> => {
+  const emssToken = req.headers["emss-token"] as string;
   const viewPermission =
     req.session?.user?.isSuperAdmin ||
-    req.session?.user?.permissionList?.find((p) => p.permissions.view)?.permissions.view;
+    req.session?.user?.permissionList?.find((p) => p.permissions.view)?.permissions.view ||
+    (emssToken && emssToken === process.env.EMSS_TOKEN);
   if (!viewPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
