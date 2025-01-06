@@ -32,7 +32,6 @@ export function getDistanceBetweenTwoCoordinates(
  * @param {MissionGridPoint[][]} grid - the grid to find coordinates in
  * @param {AEGISPoint} point - the point to look for
  * @param {number} radius - The radius of the planet in question (usually meters)
- * @param {number} isTopOrLeft- Defines the direction of adjustement after calculation
  */
 export function findClosestPointInGrid(
   grid: MissionGridPoint[][],
@@ -86,6 +85,70 @@ export function findClosestPointInGrid(
   }
 
   return { row: startX, col: startY };
+}
+
+/**
+ * Finds the cooresponding grid cell name for a given point
+ * @param {MissionGridPoint[][]} grid - the grid to find coordinates in
+ * @param {AEGISPoint} point - the point to find coordinates for
+ * @param {number} radius - The radius of the planet in question (usually meters)
+ */
+export function findGridCoordinatesFromPoint(
+  grid: MissionGridPoint[][],
+  point: AEGISPoint,
+  radius: number
+): string {
+  if (!grid || !point) return null;
+
+  const closestPoint: GridIndex = findClosestPointInGrid(grid, point, radius);
+
+  const upperCoord = closestPoint.row > 0 ? grid[closestPoint.row - 1][closestPoint.col] : null;
+  const lowerCoord =
+    closestPoint.row < grid.length - 1 ? grid[closestPoint.row + 1][closestPoint.col] : null;
+  const leftCoord = closestPoint.col > 0 ? grid[closestPoint.row][closestPoint.col - 1] : null;
+  const rightCoord =
+    closestPoint.col < grid[0].length - 1 ? grid[closestPoint.row][closestPoint.col + 1] : null;
+
+  let lowerIsCloser = false;
+  let leftIsCloser = false;
+
+  // Find where in grid you are
+  if (upperCoord && lowerCoord) {
+    const upperDist = getDistanceBetweenTwoCoordinates(upperCoord.coordinates, point, radius);
+    const lowerDist = getDistanceBetweenTwoCoordinates(lowerCoord.coordinates, point, radius);
+    if (lowerDist < upperDist) {
+      lowerIsCloser = true;
+    }
+  } else if (lowerCoord) {
+    lowerIsCloser = true;
+  }
+
+  if (leftCoord && rightCoord) {
+    const leftDist = getDistanceBetweenTwoCoordinates(leftCoord.coordinates, point, radius);
+    const rightDist = getDistanceBetweenTwoCoordinates(rightCoord.coordinates, point, radius);
+    if (leftDist < rightDist) {
+      leftIsCloser = true;
+    }
+  } else if (leftCoord) {
+    leftIsCloser = true;
+  }
+
+  // If the closest coordiante to the point is on the edge of the grid, return N/A
+  // This isn't an ideal solution, but attempts to solve these edge cases were unsuccessful (and painful)
+  if (!upperCoord || !lowerCoord || !leftCoord || !rightCoord) {
+    return "N/A";
+  }
+
+  // Find lower left corner of grid cell, then make sure you are in the right cell
+  if (lowerIsCloser && leftIsCloser) {
+    return grid[closestPoint.row + 1][closestPoint.col - 1].name;
+  } else if (lowerIsCloser) {
+    return grid[closestPoint.row + 1][closestPoint.col].name;
+  } else if (leftIsCloser) {
+    return grid[closestPoint.row][closestPoint.col - 1].name;
+  } else {
+    return grid[closestPoint.row][closestPoint.col].name;
+  }
 }
 
 /**

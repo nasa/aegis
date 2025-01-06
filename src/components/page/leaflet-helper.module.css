@@ -139,6 +139,14 @@
   width: 150;
 }
 
+.gridCoordValue {
+  font-size: 0.8em;
+  border: 1px solid var(--grey3);
+  padding: 5px;
+  width: 150;
+  text-align: center;
+}
+
 .mapIcon {
   color: rgba(0, 0, 0, 1);
   user-select: none;

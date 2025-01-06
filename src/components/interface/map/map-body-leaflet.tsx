@@ -30,6 +30,7 @@ import {
   adjustGridIndex,
   convertLeafletLatLngToAegisPoint,
   findClosestPointInGrid,
+  findGridCoordinatesFromPoint,
   getMidpoint,
 } from "utils/geoMath";
 import { decodeEmoji, secondsFromhhmmss, hhmmssFromSeconds, titleCase } from "utils/formatting";
@@ -65,6 +66,7 @@ import {
   setMeasureStartingCoords,
   handleMapDirective,
   saveUpdatedItemPosition,
+  mouseGridCoordDiv,
 } from "components/page/leaflet-helper";
 import { thunkMarkerOnClick, thunkPolylineOnClick } from "store/thunk/thunkMap";
 import { Feature } from "geojson";
@@ -208,7 +210,8 @@ const MapBody: FunctionComponent = () => {
   const [eyeballMenuCookie, setEyeballMenuCookie] = useCookies(["AEGIS_Map_View_Settings"]);
   /*** end Eyeball menu toggles */
 
-  const [mousePosition, setMousePosition] = useState<AEGISPoint>(null);
+  const [mouseLatLng, setMouseLatLng] = useState<AEGISPoint>(null);
+  const [mouseGridCoord, setMouseGridCoord] = useState<string>("N/A");
   const [mapZoom, setMapZoom] = useState<number>(0); // Used to trigger re-draw of scale. Value doens't matter
   const [gridLabels, setGridLabels] = useState<GridLabelItem[]>([]);
   const [mapBounds, setMapBounds] = useState<string>(null); // Used to trigger re-draw of grid labels. Value doens't matter
@@ -505,7 +508,13 @@ const MapBody: FunctionComponent = () => {
     });
 
     map.current.on("mousemove", (e) => {
-      setMousePosition({ lat: e.latlng.lat, lng: e.latlng.lng });
+      setMouseLatLng({ lat: e.latlng.lat, lng: e.latlng.lng });
+      const positionCoords = findGridCoordinatesFromPoint(
+        chosenGrid?.coordinates,
+        e.latlng,
+        mission.planetRadius
+      );
+      setMouseGridCoord(positionCoords);
     });
 
     map.current.on("zoomend", () => {
@@ -524,7 +533,7 @@ const MapBody: FunctionComponent = () => {
         map.current.off("click");
       }
     };
-  }, [map, mapDirective, dispatch, gridLabels, showGridLabels, mission]);
+  }, [map, mapDirective, dispatch, gridLabels, showGridLabels, mission, chosenGrid]);
 
   /**
    * Listen for mapDirective for stations, pois, actions, traverses, and measurements, and trigger map draw/edit modes appropriately
@@ -1965,7 +1974,8 @@ const MapBody: FunctionComponent = () => {
       </div>
       <div className={styles.mapScaleDisplay}>{showScaleBar && drawScaleBar()}</div>
       <div className={styles.mapPositionDisplay}>
-        {showMouseLatLon && mousePosition && latLngDiv(mousePosition)}
+        {showMouseLatLon && mouseLatLng && latLngDiv(mouseLatLng)}
+        {showGridLines && mouseGridCoord && mouseGridCoordDiv(mouseGridCoord)}
       </div>
       {showSunEarth && <SunEarth type="editor" selectedPreset={selectedPreset} />}
     </div>
