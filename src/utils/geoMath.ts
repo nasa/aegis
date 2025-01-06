@@ -133,7 +133,8 @@ export function findGridCoordinatesFromPoint(
     leftIsCloser = true;
   }
 
-  //TODO: Add logic for edge cases and if there's demand for it. The logic for this would be ugly
+  // If the closest coordiante to the point is on the edge of the grid, return N/A
+  // This isn't an ideal solution, but attempts to solve these edge cases were unsuccessful (and painful)
   if (!upperCoord || !lowerCoord || !leftCoord || !rightCoord) {
     return "N/A";
   }
