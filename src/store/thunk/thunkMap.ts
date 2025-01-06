@@ -36,43 +36,6 @@ export const thunkCancelMarkerMapDirective = appCreateAsyncThunk<{ uuid: string 
   }
 );
 
-// TODO: this approach might work once map directive is a queue
-// export const thunkCancelAnyActiveMapAction = appCreateAsyncThunk<void, void, false>(
-//   "cancelAnyActiveMapAction",
-//   async (__, { dispatch, getState }) => {
-//     const mapDirective = getState().map.mapDirective;
-
-//     if (mapDirective && mapDirective.mapAction !== null) {
-//       // cancel the active map action
-//       if (mapDirective.mapAction === "createMarker") {
-//         dispatch(
-//           updateMapDirective({
-//             ...mapDirective,
-//             mapAction: "cancelCreateMarker",
-//           })
-//         );
-//       } else if (mapDirective.mapAction === "editMarker") {
-//         dispatch(
-//           updateMapDirective({
-//             ...mapDirective,
-//             mapAction: "cancelEditMarker",
-//           })
-//         );
-//       } else if (mapDirective.mapAction === "editPolyline") {
-//         dispatch(
-//           updateMapDirective({
-//             ...mapDirective,
-//             mapAction:
-//               mapDirective.mapItemType === "measurement"
-//                 ? "saveEditPolyline"
-//                 : "cancelEditPolyline",
-//           })
-//         );
-//       }
-//     }
-//   }
-// );
-
 export const thunkUpdateMapDirective = appCreateAsyncThunk<MapDirective, void, false>(
   "updateMapDirective",
   async (mapDirective, { dispatch }) => {

@@ -65,21 +65,17 @@ export const thunkUpdatePosEntryLocation = appCreateAsyncThunk<{
     const selectedRex = getState().rex.rexes.find((r) => r.uuid === getState().rex.selectedRexUuid);
     const newRexPosEntries: PosEntry[] = cloneDeep(selectedRex.posEntries);
     const oldPosEntries = selectedRex.posEntries.find((c) => c.uuid === posEntryUuid);
-    const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
     upsertToArrayByUuid(newRexPosEntries, { ...oldPosEntries, location });
 
     //automatically save to the db.
-    const rexUpsertResponse = await httpClient_Rex.upsertRexes(
-      [
-        {
-          ...selectedRex,
-          posEntries: newRexPosEntries,
-          updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-        },
-      ],
-      isRexRunning
-    );
+    const rexUpsertResponse = await httpClient_Rex.upsertRexes([
+      {
+        ...selectedRex,
+        posEntries: newRexPosEntries,
+        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      },
+    ]);
 
     if (rexUpsertResponse.status === "success") {
       // upsert the changed rex (with new updated date) to the store
@@ -201,17 +197,12 @@ export const thunkPersistRexPosEntries = appCreateAsyncThunk<{
   const selectedRex = getState().rex.rexes.find((r) => r.uuid === rexUuid);
 
   //automatically save to the db.
-  //check rex is running for logging
-  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
-  const rexUpsertResponse = await httpClient_Rex.upsertRexes(
-    [
-      {
-        ...selectedRex,
-        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-      },
-    ],
-    isRexRunning
-  );
+  const rexUpsertResponse = await httpClient_Rex.upsertRexes([
+    {
+      ...selectedRex,
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    },
+  ]);
 
   if (rexUpsertResponse.status === "success") {
     // upsert the changed rex (with new updated date) to the store
@@ -234,19 +225,15 @@ export const thunkDeletePosEntryByUuid = appCreateAsyncThunk<{
   const newRexPosEntries: PosEntry[] = cloneDeep(selectedRex.posEntries).filter(
     (c) => c.uuid !== posEntryUuid
   );
-  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
   //automatically save to the db.
-  const rexUpsertResponse = await httpClient_Rex.upsertRexes(
-    [
-      {
-        ...selectedRex,
-        posEntries: newRexPosEntries,
-        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-      },
-    ],
-    isRexRunning
-  );
+  const rexUpsertResponse = await httpClient_Rex.upsertRexes([
+    {
+      ...selectedRex,
+      posEntries: newRexPosEntries,
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    },
+  ]);
 
   if (rexUpsertResponse.status === "success") {
     // upsert the changed rex (with new updated date) to the store

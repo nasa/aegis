@@ -11,15 +11,12 @@ export async function getActions(filter: ActionFilterOptions): Promise<WrappedRe
   return response;
 }
 
-export async function upsertActions(
-  actions: Action[],
-  log: boolean = false
-): Promise<WrappedResponse<Action[]>> {
+export async function upsertActions(actions: Action[]): Promise<WrappedResponse<Action[]>> {
   const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
-  const requestBody: ActionUpsertRequest = { socketId, missionId, log, actions };
+  const requestBody: ActionUpsertRequest = { socketId, missionId, actions };
   const res = await fetch(`/api/v1/action`, {
     method: "POST",
     headers: {
@@ -36,15 +33,12 @@ export async function upsertActions(
   return response;
 }
 
-export async function deleteActions(
-  actionUuids: string[],
-  log: boolean = false
-): Promise<WrappedResponse<null>> {
+export async function deleteActions(actionUuids: string[]): Promise<WrappedResponse<null>> {
   const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
-  const requestBody: ActionDeleteRequest = { socketId, missionId, log, actionUuids };
+  const requestBody: ActionDeleteRequest = { socketId, missionId, actionUuids };
   const res = await fetch(`/api/v1/action`, {
     method: "DELETE",
     headers: {

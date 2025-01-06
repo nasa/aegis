@@ -9,15 +9,12 @@ export async function getStations(missionId: number = null): Promise<WrappedResp
   return response;
 }
 
-export async function upsertStations(
-  stations: Station[],
-  log: boolean = false
-): Promise<WrappedResponse<Station[]>> {
+export async function upsertStations(stations: Station[]): Promise<WrappedResponse<Station[]>> {
   const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-  const requestBody: StationUpsertRequest = { missionId, socketId, log, stations };
+  const requestBody: StationUpsertRequest = { missionId, socketId, stations };
   const res = await fetch(`/api/v1/station`, {
     method: "POST",
     headers: {
@@ -34,15 +31,12 @@ export async function upsertStations(
   return response;
 }
 
-export async function deleteStations(
-  stationUuids: string[],
-  log: boolean = false
-): Promise<WrappedResponse<null>> {
+export async function deleteStations(stationUuids: string[]): Promise<WrappedResponse<null>> {
   const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-  const requestBody: StationDeleteRequest = { missionId, socketId, log, stationUuids };
+  const requestBody: StationDeleteRequest = { missionId, socketId, stationUuids };
   const res = await fetch(`/api/v1/station`, {
     method: "DELETE",
     headers: {

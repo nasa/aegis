@@ -231,21 +231,17 @@ export const thunkSaveStation = appCreateAsyncThunk<{
   const stationActionsFromDb = getState().action.actionsFromDb.filter(
     (action) => action.stationUuid === station.uuid
   );
-  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
   // full update traverses (including name) around this station in any eva using this station
   dispatch(thunkUpdateTraversesAroundStation({ stationUuid: station.uuid, saveToDb: true }));
 
   // upsert the changed Station to the DB via internal API call
-  const stationUpsertResponse = await httpClient_station.upsertStations(
-    [
-      {
-        ...station,
-        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-      },
-    ],
-    isRexRunning
-  );
+  const stationUpsertResponse = await httpClient_station.upsertStations([
+    {
+      ...station,
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    },
+  ]);
 
   if (stationUpsertResponse.status === "success") {
     // upsert the changed Station (with new updated date) to the store
@@ -355,7 +351,6 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
   const stationActions = getState().action.actions.filter(
     (action) => action.stationUuid === station.uuid
   );
-  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
   const evasUsingThisStation: Eva[] = [];
   getState().eva.evas.forEach((eva) => {
@@ -387,10 +382,9 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
     }
 
     // delete the Station from the DB via internal API call
-    const deleteResponse: WrappedResponse<number> = await httpClient_station.deleteStations(
-      [station.uuid],
-      isRexRunning
-    );
+    const deleteResponse: WrappedResponse<number> = await httpClient_station.deleteStations([
+      station.uuid,
+    ]);
     if (deleteResponse.status === "success") {
       // remove the corresponding Station from the store
       dispatch(deleteStationByUuid(station.uuid));

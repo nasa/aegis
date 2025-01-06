@@ -40,7 +40,7 @@ export function convertPoisTypeDbToStore(dbPois: Poi_db[]): POI[] {
     const convertedPoi: POI = {
       uuid: dbPoi.uuid,
       missionId: dbPoi.mission.id,
-      ownerId: dbPoi.owner.id,
+      ownerId: dbPoi.ownerId,
       actionOrderUuids: dbPoi.actionOrderUuids,
       name: dbPoi.name,
       description: dbPoi.description,
@@ -69,7 +69,7 @@ export function convertPoisTypeStoreToDb(storePois: POI[]): EntityData<Poi_db>[]
   for (const storePoi of storePois) {
     const convertedRecord: EntityData<Poi_db> = {
       uuid: storePoi.uuid,
-      owner: storePoi.ownerId,
+      ownerId: storePoi.ownerId,
       mission: storePoi.missionId,
       actionOrderUuids: storePoi.actionOrderUuids,
       name: storePoi.name,

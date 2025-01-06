@@ -49,7 +49,6 @@ beforeAll(async () => {
   testPresets = await new PresetFactory(em)
     .each((preset) => {
       preset.mission = testMissions[0];
-      preset.owner = testUser;
     })
     .create(2);
 
@@ -116,7 +115,6 @@ describe("Preset API Endpoint", () => {
     test("No permissions", async () => {
       const requestBody: PresetUpsertRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[2].id,
         presets: [newPreset],
       };
@@ -131,7 +129,6 @@ describe("Preset API Endpoint", () => {
     test("No permissions - View only", async () => {
       const requestBody: PresetUpsertRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[1].id,
         presets: [newPreset],
       };
@@ -146,7 +143,6 @@ describe("Preset API Endpoint", () => {
     test("Create new preset", async () => {
       const requestBody: PresetUpsertRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[0].id,
         presets: [{ ...newPreset, missionId: testMissions[0].id, ownerId: testUser.id }],
       };
@@ -169,7 +165,6 @@ describe("Preset API Endpoint", () => {
       newPreset.name = "Preset Jest Test Modified";
       const requestBody: PresetUpsertRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[0].id,
         presets: [newPreset],
       };
@@ -188,7 +183,6 @@ describe("Preset API Endpoint", () => {
     test("No permissions", async () => {
       const requestBody: PresetDeleteRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[2].id,
         presetUuids: [newPreset.uuid],
       };
@@ -203,7 +197,6 @@ describe("Preset API Endpoint", () => {
     test("No permissions - View only", async () => {
       const requestBody: PresetDeleteRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[1].id,
         presetUuids: [newPreset.uuid],
       };
@@ -218,7 +211,6 @@ describe("Preset API Endpoint", () => {
     test("Delete a preset", async () => {
       const requestBody: PresetDeleteRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[0].id,
         presetUuids: [newPreset.uuid],
       };
@@ -230,6 +222,45 @@ describe("Preset API Endpoint", () => {
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
     });
+  });
+});
+
+describe("Auth with emss-token header", () => {
+  const emssToken = process.env.EMSS_TOKEN || "";
+  const newPreset = generateBlankPreset({ name: "Jest Test New Preset" });
+
+  test("GET request succeeds with emss-token", async () => {
+    const res = await supertest(app)
+      .get("/api/v1/preset")
+      .set("emss-token", emssToken)
+      .query({ missionId: testMissions[0].id });
+    expect(res.statusCode).toBe(200);
+  });
+
+  test("POST request succeeds with emss-token", async () => {
+    const requestBody: PresetUpsertRequest = {
+      socketId: "someSocketId",
+      missionId: testMissions[0].id,
+      presets: [{ ...newPreset, missionId: testMissions[0].id }],
+    };
+    const res = await supertest(app)
+      .post("/api/v1/preset")
+      .set("emss-token", emssToken)
+      .send(requestBody);
+    expect(res.statusCode).toBe(200);
+  });
+
+  test("DELETE request succeeds with emss-token", async () => {
+    const requestBody: PresetDeleteRequest = {
+      socketId: "someSocketId",
+      missionId: testMissions[0].id,
+      presetUuids: [newPreset.uuid],
+    };
+    const res = await supertest(app)
+      .delete("/api/v1/preset")
+      .set("emss-token", emssToken)
+      .send(requestBody);
+    expect(res.statusCode).toBe(200);
   });
 });
 

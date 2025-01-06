@@ -115,7 +115,6 @@ describe("REX API Endpoint", () => {
     test("No permissions", async () => {
       const requestBody: RexUpsertRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[2].id,
         rexes: [{ ...newRex, missionId: testMissions[2].id }],
       };
@@ -130,7 +129,6 @@ describe("REX API Endpoint", () => {
     test("No permissions - View only", async () => {
       const requestBody: RexUpsertRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[1].id,
         rexes: [{ ...newRex, missionId: testMissions[1].id }],
       };
@@ -145,7 +143,6 @@ describe("REX API Endpoint", () => {
     test("Create new Rex", async () => {
       const requestBody: RexUpsertRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[0].id,
         rexes: [{ ...newRex, missionId: testMissions[0].id, ownerId: testUser.id }],
       };
@@ -168,7 +165,6 @@ describe("REX API Endpoint", () => {
       newRex.name = "Jest Test New Rex Modified";
       const requestBody: RexUpsertRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[0].id,
         rexes: [newRex],
       };
@@ -186,7 +182,6 @@ describe("REX API Endpoint", () => {
     test("No permissions", async () => {
       const requestBody: RexDeleteRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[2].id,
         uuids: [newRex.uuid],
       };
@@ -201,7 +196,6 @@ describe("REX API Endpoint", () => {
     test("No permissions - View only", async () => {
       const requestBody: RexDeleteRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[1].id,
         uuids: [newRex.uuid],
       };
@@ -216,7 +210,6 @@ describe("REX API Endpoint", () => {
     test("Delete a Rex", async () => {
       const requestBody: RexDeleteRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[0].id,
         uuids: [newRex.uuid],
       };
@@ -228,6 +221,49 @@ describe("REX API Endpoint", () => {
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
     });
+  });
+});
+
+describe("Auth with emss-token header", () => {
+  const emssToken = process.env.EMSS_TOKEN || "";
+  let newRex: Rex = generateBlankRex({ name: "Jest Rex-1" });
+
+  test("GET request succeeds with emss-token", async () => {
+    const res = await supertest(app)
+      .get("/api/v1/rex")
+      .set("emss-token", emssToken)
+      .query({ missionId: testMissions[0].id });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.status).toBe("success");
+  });
+
+  test("POST request succeeds with emss-token", async () => {
+    const requestBody: RexUpsertRequest = {
+      socketId: "someSocketId",
+      missionId: testMissions[0].id,
+      rexes: [{ ...newRex, missionId: testMissions[0].id }],
+    };
+    const res = await supertest(app)
+      .post("/api/v1/rex")
+      .set("emss-token", emssToken)
+      .send(requestBody);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data[0].uuid).not.toBeNull();
+    newRex = res.body.data[0];
+  });
+
+  test("DELETE request succeeds with emss-token", async () => {
+    const requestBody: RexDeleteRequest = {
+      socketId: "someSocketId",
+      missionId: testMissions[0].id,
+      uuids: [newRex.uuid],
+    };
+    const res = await supertest(app)
+      .delete("/api/v1/rex")
+      .set("emss-token", emssToken)
+      .send(requestBody);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.status).toBe("success");
   });
 });
 

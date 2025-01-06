@@ -44,7 +44,7 @@ export function convertStationsTypeDbToStore(dbStations: Station_db[]): Station[
   for (const dbStation of dbStations) {
     const convertedStation: Station = {
       uuid: dbStation.uuid,
-      ownerId: dbStation.owner.id,
+      ownerId: dbStation.ownerId,
       missionId: dbStation.mission.id,
       actionOrderUuids: dbStation.actionOrderUuids,
       name: dbStation.name,
@@ -86,7 +86,7 @@ export function convertStationsTypeStoreToDb(storeStations: Station[]): EntityDa
     //poi references are not converted here, they are converted in the upsert function
     const convertedRecord: EntityData<Station_db> = {
       uuid: storeStation.uuid,
-      owner: storeStation.ownerId,
+      ownerId: storeStation.ownerId,
       mission: storeStation.missionId,
       actionOrderUuids: storeStation.actionOrderUuids,
       name: storeStation.name,

@@ -61,10 +61,6 @@ const EvaRightTraverse: FunctionComponent = () => {
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = mapDirective?.uuid === selectedEvaSequenceItemUuid ? mapDirective : null;
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
-  const isRexRunning = useAppSelector(
-    (state) => state.rex.rexes.find((rex) => rex.isRunning)?.isRunning,
-    refEqual
-  );
 
   const calculatedFields = useAppSelector(
     (state) =>
@@ -112,15 +108,12 @@ const EvaRightTraverse: FunctionComponent = () => {
     dispatch(setTraverseEditMode({ uuid: selectedEvaSequenceItemUuid, editMode: false }));
 
     // save to db
-    const persistResponse = await httpClient_Traverse.upsertTraverses(
-      [
-        {
-          ...selectedTraverse,
-          updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-        },
-      ],
-      isRexRunning
-    );
+    const persistResponse = await httpClient_Traverse.upsertTraverses([
+      {
+        ...selectedTraverse,
+        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      },
+    ]);
     if (persistResponse) {
       dispatch(upsertTraverses([persistResponse.data[0]], true));
       dispatch(upsertTraversesFromDb([persistResponse.data[0]]));

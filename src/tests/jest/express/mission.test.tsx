@@ -144,7 +144,6 @@ describe("Mission API Endpoint", () => {
     test("No permissions", async () => {
       const requestBody: MissionUpsertRequest = {
         socketId: "someSocketId",
-        log: false,
         missions: convertMissionsTypeDbToStore([testMissions[2]]),
       };
       const res = await supertest(app)
@@ -158,7 +157,6 @@ describe("Mission API Endpoint", () => {
     test("No permissions - View only", async () => {
       const requestBody: MissionUpsertRequest = {
         socketId: "someSocketId",
-        log: false,
         missions: convertMissionsTypeDbToStore([testMissions[1]]),
       };
       const res = await supertest(app)
@@ -172,7 +170,6 @@ describe("Mission API Endpoint", () => {
     test("Create new mission - No permissions", async () => {
       const requestBody: MissionUpsertRequest = {
         socketId: "someSocketId",
-        log: false,
         missions: [newMission],
       };
       const res = await supertest(app)
@@ -187,7 +184,6 @@ describe("Mission API Endpoint", () => {
       testMissions[0].name = "Jest Mission-1 Modified";
       const requestBody: MissionUpsertRequest = {
         socketId: "someSocketId",
-        log: true,
         missions: convertMissionsTypeDbToStore([testMissions[0]]),
       };
       const res = await supertest(app)
@@ -208,7 +204,6 @@ describe("Mission API Endpoint", () => {
     test("No permissions", async () => {
       const requestBody: MissionDeleteRequest = {
         missionIds: [testMissions[2].id],
-        log: false,
       };
       const res = await supertest(app)
         .delete("/api/v1/mission")
@@ -221,7 +216,6 @@ describe("Mission API Endpoint", () => {
     test("No permissions - View only", async () => {
       const requestBody: MissionDeleteRequest = {
         missionIds: [testMissions[1].id],
-        log: false,
       };
       const res = await supertest(app)
         .delete("/api/v1/mission")
@@ -234,7 +228,6 @@ describe("Mission API Endpoint", () => {
     test("Delete a mission", async () => {
       const requestBody: MissionDeleteRequest = {
         missionIds: [testMissions[0].id],
-        log: false,
       };
       const res = await supertest(app)
         .delete("/api/v1/mission")
@@ -295,6 +288,54 @@ describe("Mission API Endpoint", () => {
         .delete("/api/v1/mission")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
         .send({ missionIds: [newMission.id] });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.status).toBe("success");
+    });
+  });
+
+  describe("Auth with emss-token header", () => {
+    test("GET request returns success with valid 'emss-token' header", async () => {
+      const res = await supertest(app)
+        .get("/api/v1/mission")
+        .set("emss-token", process.env.EMSS_TOKEN)
+        .query({ missionId: testMissions[1].id });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.status).toBe("success");
+      expect(res.body.data.length).toEqual(1);
+    });
+
+    test("POST request returns success with valid 'emss-token' header", async () => {
+      testMissions[1].name = "Jest Mission-1 Modified via token";
+      const requestBody: MissionUpsertRequest = {
+        socketId: "someSocketId",
+        missions: convertMissionsTypeDbToStore([testMissions[1]]),
+      };
+      const res = await supertest(app)
+        .post("/api/v1/mission")
+        // .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie]) // Removed session cookies
+        .set("emss-token", process.env.EMSS_TOKEN)
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.status).toBe("success");
+      expect(res.body.data).not.toBeNull();
+      const upsertedMission = res.body.data[0];
+      expect(upsertedMission).not.toBeNull();
+      expect(upsertedMission.version).toEqual(1);
+      expect(upsertedMission.name).toEqual("Jest Mission-1 Modified via token");
+    });
+
+    test("DELETE request returns success with valid 'emss-token' header", async () => {
+      const requestBody: MissionDeleteRequest = {
+        missionIds: [testMissions[1].id],
+      };
+      const res = await supertest(app)
+        .delete("/api/v1/mission")
+        // .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie]) // Removed session cookies
+        .set("emss-token", process.env.EMSS_TOKEN)
+        .send(requestBody);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");

@@ -64,18 +64,14 @@ export const thunkSavePoi = appCreateAsyncThunk<{
   const poiActionsFromDb = getState().action.actionsFromDb.filter(
     (action) => action.poiUuid === poi.uuid
   );
-  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
   //save poi to db
-  const poiUpsertResponse = await httpClient_poi.upsertPOIs(
-    [
-      {
-        ...poi,
-        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-      },
-    ],
-    isRexRunning
-  );
+  const poiUpsertResponse = await httpClient_poi.upsertPOIs([
+    {
+      ...poi,
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    },
+  ]);
 
   if (poiUpsertResponse.status === "success") {
     // upsert the changed POI to the store
@@ -133,7 +129,6 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
   const selectedMissionId = getState().mission.mission?.id;
   const poiActions = getState().action.actions.filter((action) => action.poiUuid === poi.uuid);
   const poiFromDb = getState().poi.poisFromDb.find((poiFromDb) => poiFromDb.uuid === poi.uuid);
-  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
   // if the selected poi is in poisFromDb then delete it from the db
   if (poiFromDb) {
@@ -144,7 +139,7 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
     }
 
     // delete the POI from the DB via internal API call
-    const deleteResponse = await httpClient_poi.deletePOIs([poi.uuid], isRexRunning);
+    const deleteResponse = await httpClient_poi.deletePOIs([poi.uuid]);
     if (deleteResponse.status === "success") {
       // remove the corresponding POI from the store
       dispatch(deletePoiByUuid(poi.uuid));

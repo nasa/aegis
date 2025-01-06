@@ -1,14 +1,12 @@
 import { Collection, Entity, ManyToMany, ManyToOne, PrimaryKey, Property } from "@mikro-orm/core";
 import { types as MikroTypes } from "@mikro-orm/core";
-import { Mission_db, Station_db, User_db } from "./_allModels";
+import { Mission_db, Station_db } from "./_allModels";
 
 @Entity()
 export class Poi_db implements Poi_db_type {
   @PrimaryKey({ type: MikroTypes.string, unique: true })
   uuid!: string;
 
-  @ManyToOne(() => User_db, { unique: false, primary: false })
-  owner!: User_db;
   @ManyToOne(() => Mission_db, { unique: false, primary: false })
   mission!: Mission_db;
   @ManyToMany(() => Station_db, (station) => station.poi) //a poi can belong to many stations
@@ -34,6 +32,8 @@ export class Poi_db implements Poi_db_type {
   status!: POIStatus;
   @Property({ type: MikroTypes.json, nullable: true })
   actionOrderUuids: string[];
+  @Property({ type: MikroTypes.integer, nullable: true })
+  ownerId: number;
 
   @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;

@@ -17,7 +17,11 @@ const parseQuery = (query: Query) => {
 // get
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const viewPermission = await hasPerms(queryObj.missionId, "view", req.session.user);
+  const viewPermission = await hasPerms({
+    missionId: queryObj.missionId,
+    permission: "view",
+    user: req.session.user,
+  });
   if (!viewPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
