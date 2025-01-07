@@ -1,4 +1,3 @@
-import _ from "lodash";
 import { CSSProperties, FunctionComponent, useRef } from "react";
 
 import styles from "./rex.module.css";
@@ -26,12 +25,13 @@ import { thunkAddStationToEva } from "store/thunk/thunkEva";
 import { EvaEgressIngressListing } from "../eva/eva-item";
 import { getRexStatusDisplayProperties } from "utils/rex";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
+import sortBy from "lodash/sortBy";
 
 const EvaRexLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const rexes = useAppSelector((state) => state.rex.rexes, deepEqual);
   // sort the rexes by name
-  const rexesSorted = _.sortBy(rexes, [(rex) => rex.name.toLowerCase()]);
+  const rexesSorted = sortBy(rexes, [(rex) => rex.name.toLowerCase()]);
 
   const isRexRunningFromDb = useAppSelector(
     (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
@@ -49,7 +49,7 @@ const EvaRexLeft: FunctionComponent = () => {
             </div>
           ) : (
             <>
-              {_.sortBy(rexesSorted, [(rex) => rex.name.toLowerCase()]).map((rex) => (
+              {sortBy(rexesSorted, [(rex) => rex.name.toLowerCase()]).map((rex) => (
                 <div className={styles.panelContainer} key={rex.uuid} aria-label="rex-item">
                   <EvaRexItem rexUuid={rex.uuid} key={rex.uuid} />
                 </div>
@@ -77,7 +77,7 @@ const EvaRexLeft: FunctionComponent = () => {
                 }}
                 label="Duplicate"
                 icon={faClone}
-                enabled={!_.isNull(selectedRexUuid)}
+                enabled={!isNull(selectedRexUuid)}
                 style={{ width: "95px" }}
               /> */}
             </div>

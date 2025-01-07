@@ -399,25 +399,6 @@ deploy:artifactize-committed-files:
   stage: stageless
   timeout: 10 minutes
 
-deploy:dev1:
-  extends: .deploy-template
-  tags: ["emss-aegis-dev1"]
-  needs:
-    - make-dotenv
-    - docker:retag
-    - deploy:artifactize-committed-files
-  environment:
-    name: development1
-    url: $URL
-  variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1 #CI/CD Variable
-    URL: https://aegis-dev.fit.nasa.gov
-  when: manual
-  before_script:
-    # This is currently our hack to change out a necessary var for Launchpad Auth
-    - sed -i "s/INSERT_SUBDOMAIN/aegis-dev/g" .env
-    - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/aegis-dev/g" .env
-
 deploy:carbon:
   extends:
     - .deploy-template
@@ -501,10 +482,6 @@ deploy:int:
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
     URL: https://aegis-int.fit.nasa.gov
-
-    # Turn off forwarding logs from VM's Rsyslog to EMSS logging server
-    # Cannot enable in int/prod environments until FIT firewall altered
-    RSYSLOG_DISABLE_FORWARDING: "true"
   only:
     - int
   before_script:
@@ -525,10 +502,6 @@ deploy:prod:
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD #CI/CD Variable
     URL: https://aegis.fit.nasa.gov
-
-    # Turn off forwarding logs from VM's Rsyslog to EMSS logging server
-    # Cannot enable in int/prod environments until FIT firewall altered
-    RSYSLOG_DISABLE_FORWARDING: "true"
   when: manual
   only:
     - prod
@@ -572,12 +545,6 @@ z:db-export:int:
   tags: ["emss-aegis-int"]
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
-
-z:db-export:dev1:
-  extends: .db-export-template
-  tags: ["emss-aegis-dev1"]
-  variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1 #CI/CD Variable
 
 z:db-export:carbon:
   extends:
@@ -656,17 +623,6 @@ z:db-import:oxygen:
     - .db-import-template
     - .oxygen-deploy
   needs: ["z:db-export:prod"]
-
-z:db-import:dev1:
-  extends: .db-import-template
-  tags: ["emss-aegis-dev1"]
-  needs: ["z:db-export:prod"]
-  environment:
-    name: development
-    url: $URL
-  variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_DEV1 #CI/CD Variable
-    URL: https://aegis-dev.fit.nasa.gov
 
 z:db-import:int:
   extends: .db-import-template

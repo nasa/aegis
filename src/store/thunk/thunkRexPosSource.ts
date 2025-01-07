@@ -2,7 +2,7 @@ import appCreateAsyncThunk from "./thunkUtil";
 import { v4 as uuidv4 } from "uuid";
 import { upsertToArrayByUuid } from "store/storeUtils/store";
 import { upsertRexByField } from "store/rex";
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 
 export const thunkCreatePosSource = appCreateAsyncThunk<void>(
   "createPosSource",
@@ -18,7 +18,7 @@ export const thunkCreatePosSource = appCreateAsyncThunk<void>(
       name: "(Blank)",
     };
 
-    const newRexPosSources: PosSource[] = _.cloneDeep(selectedRex.posSources) || [];
+    const newRexPosSources: PosSource[] = cloneDeep(selectedRex.posSources) || [];
     newRexPosSources.push(blankPosSource);
     dispatch(upsertRexByField(selectedRex.uuid, "posSources", newRexPosSources));
   }
@@ -31,7 +31,7 @@ export const thunkUpdatePosSourceField = appCreateAsyncThunk<{
   value: PosSource[keyof PosSource];
 }>("updatePosSourceField", async ({ rexUuid, uuid, fieldName, value }, { dispatch, getState }) => {
   const rex = getState().rex.rexes.find((rex) => rex.uuid === rexUuid);
-  const newPosEntrySources = _.cloneDeep(rex.posSources);
+  const newPosEntrySources = cloneDeep(rex.posSources);
   const itemIndex = newPosEntrySources?.findIndex((item) => item.uuid === uuid);
   if (itemIndex >= 0) {
     (newPosEntrySources[itemIndex] as Record<typeof fieldName, PosSource[keyof PosSource]>)[
@@ -64,7 +64,7 @@ export const thunkDeletePosSource = appCreateAsyncThunk<{ rexUuid: string; posSo
     }
 
     //this item is not being used. All good to delete it
-    const newRexPosSources = _.cloneDeep(rex.posSources).filter(
+    const newRexPosSources = cloneDeep(rex.posSources).filter(
       (item) => item.uuid !== posSourceUuid
     );
     dispatch(upsertRexByField(rexUuid, "posSources", newRexPosSources));
@@ -77,7 +77,7 @@ export const thunkUpdatePosSourceOnPosEntry = appCreateAsyncThunk<{
   posSourceUuid: string;
 }>("updatePosSourceOnPosEntry", async ({ rex, posEntryUuid, posSourceUuid }, { dispatch }) => {
   const oldPosEntry = rex.posEntries.find((c) => c.uuid === posEntryUuid);
-  let newRexPosEntries: PosEntry[] = _.cloneDeep(rex.posEntries);
+  let newRexPosEntries: PosEntry[] = cloneDeep(rex.posEntries);
   const newRexPosEntry: PosEntry = {
     ...oldPosEntry,
     posSourceUuid,

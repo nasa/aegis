@@ -6,7 +6,15 @@ Wiki: https://wiki.jsc.nasa.gov/fod/index.php/Artemis_EVA_GIS
 
 - Production: https://aegis.fit.nasa.gov/
 - Integration: https://aegis-int.fit.nasa.gov/
-- Development: https://aegis-dev.fit.nasa.gov/
+- Development: Any EMSS dev server (see below)
+
+EMSS dev servers all have element names, and are:
+
+- https://carbon-emss-dev.fit.nasa.gov
+- https://gold-emss-dev.fit.nasa.gov
+- https://iron-emss-dev.fit.nasa.gov
+- https://neon-emss-dev.fit.nasa.gov
+- https://oxygen-emss-dev.fit.nasa.gov
 
 ## Getting Started
 

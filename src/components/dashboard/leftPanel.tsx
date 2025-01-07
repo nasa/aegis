@@ -9,7 +9,8 @@ import {
   getCalculatedFieldsByStation,
 } from "store/processing/calculatedFields";
 import { decodeEmoji, hhmmssFromSeconds, secondsFromhhmmss } from "utils/formatting";
-import _, { isUndefined } from "lodash";
+import last from "lodash/last";
+import isUndefined from "lodash/isUndefined";
 
 const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ mapDisplayPos }) => {
   const runningRexFromDb = useAppSelector(
@@ -70,11 +71,11 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
   for (const sequenceItem of runningEvaSequence) {
     let seqItemRexStatus: RexStatus;
     if (sequenceItem.type === "station") {
-      seqItemRexStatus = _.last(
+      seqItemRexStatus = last(
         runningRexFromDb?.stationEntries && runningRexFromDb?.stationEntries[sequenceItem.uuid]
       )?.rexStatus;
     } else if (sequenceItem.type === "traverse") {
-      seqItemRexStatus = _.last(
+      seqItemRexStatus = last(
         runningRexFromDb?.traverseEntries && runningRexFromDb?.traverseEntries[sequenceItem.uuid]
       )?.rexStatus;
     }

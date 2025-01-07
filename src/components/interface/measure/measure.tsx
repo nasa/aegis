@@ -10,7 +10,6 @@ import {
 import styles from "./measure.module.css";
 import MeasureHoverValues from "./measure-hover";
 import MeasureTabs from "./measure-tabs";
-import { isNil } from "lodash";
 import paper from "paper";
 import * as MeasureDrawing from "./measure-drawing";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
@@ -18,7 +17,8 @@ import { PathColorPickerMenu, Button } from "../form/globalFields";
 import { upsertMeasurementField } from "store/measure";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
-import _ from "lodash";
+import throttle from "lodash/throttle";
+import isNil from "lodash/isNil";
 import { clearMapItemHover } from "store/hover";
 import { thunkClearAllMapSelections } from "store/thunk/crossThunk";
 
@@ -126,7 +126,7 @@ const Measure: FunctionComponent = () => {
       drawMeasurement();
     };
 
-    paper.view.onMouseMove = _.throttle(onMouseMove, 15, {
+    paper.view.onMouseMove = throttle(onMouseMove, 15, {
       leading: true,
       trailing: false,
     });

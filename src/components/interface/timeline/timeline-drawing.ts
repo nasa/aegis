@@ -2,8 +2,8 @@ import { MutableRefObject } from "react";
 import { clearMapItemHover, setLeftPanelHoverUuid, setSequenceHover } from "store/hover";
 import { padZeros } from "utils/formatting";
 import paper from "paper";
-import { orderBy } from "lodash";
-import _ from "lodash";
+import last from "lodash/last";
+import orderBy from "lodash/orderBy";
 import { Dispatch } from "@reduxjs/toolkit";
 import { getHoverValue } from "utils/paper";
 
@@ -856,7 +856,7 @@ export const drawMouseHover = (
     if (flattenedGraphData.current.walkbackDistanceFromLanderXY?.length > 0) {
       //check we're in x range for this walkback elevation
       const firstPoint = flattenedGraphData.current.walkbackDistanceFromLanderXY[0];
-      const lastPoint = _.last(flattenedGraphData.current.walkbackDistanceFromLanderXY);
+      const lastPoint = last(flattenedGraphData.current.walkbackDistanceFromLanderXY);
       if (hoverPoint.x < firstPoint.xPixel || hoverPoint.x > lastPoint.xPixel) {
         newHoverValues.walkbackDistanceFromLanderMeters = null;
       } else {
@@ -882,7 +882,7 @@ export const drawMouseHover = (
     if (flattenedGraphData.current.walkbackElevationXY?.length > 0) {
       //check we're in x range for this walkback elevation
       const firstPoint = flattenedGraphData.current.walkbackElevationXY[0];
-      const lastPoint = _.last(flattenedGraphData.current.walkbackElevationXY);
+      const lastPoint = last(flattenedGraphData.current.walkbackElevationXY);
       if (hoverPoint.x < firstPoint.xPixel || hoverPoint.x > lastPoint.xPixel) {
         newHoverValues.walkbackElevationMeters = null;
       } else {

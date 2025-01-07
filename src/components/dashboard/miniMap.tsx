@@ -14,7 +14,8 @@ import {
   useLayoutEffect,
   useCallback,
 } from "react";
-import _ from "lodash";
+import orderBy from "lodash/orderBy";
+import pick from "lodash/pick";
 import { isWindows10 } from "utils/browser";
 import {
   scaleBarDiv,
@@ -46,7 +47,7 @@ const MiniMap: FunctionComponent<{
 
   const mission: MissionSelectProperties = useAppSelector(
     (state) =>
-      _.pick(state.mission.missionFromDb, [
+      pick(state.mission.missionFromDb, [
         "id",
         "landerLocation",
         "initialZoom",
@@ -477,7 +478,7 @@ const MiniMap: FunctionComponent<{
       } else {
         filteredPosEntries = runningRexFromDb?.posEntries;
       }
-      posEntriesToShow = _.orderBy(filteredPosEntries, ["createdAt"], "desc");
+      posEntriesToShow = orderBy(filteredPosEntries, ["createdAt"], "desc");
       // gather the latest 2 pos entries (need 2 in order to draw a polyline) for each type.
       // Most recent/latest entry is first in the array.
       posTypeLatestEntries = getLatestPosEntryByType({

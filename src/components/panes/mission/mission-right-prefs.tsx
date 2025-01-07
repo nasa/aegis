@@ -3,7 +3,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { useAppSelector, shallowEqual, deepEqual } from "utils/useAppSelector";
-import _, { round } from "lodash";
+import round from "lodash/round";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
 import {
   faFileInvoice,

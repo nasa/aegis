@@ -15,12 +15,9 @@ export async function getMissionHomepageItems(): Promise<WrappedResponse<Mission
   return response;
 }
 
-export async function upsertMissions(
-  missions: Mission[],
-  log: boolean = false
-): Promise<WrappedResponse<Mission[]>> {
+export async function upsertMissions(missions: Mission[]): Promise<WrappedResponse<Mission[]>> {
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-  const requestBody: MissionUpsertRequest = { socketId, log, missions };
+  const requestBody: MissionUpsertRequest = { socketId, missions };
   const res = await fetch(`/api/v1/mission`, {
     method: "POST",
     headers: {
@@ -37,11 +34,8 @@ export async function upsertMissions(
   return response;
 }
 
-export async function deleteMissions(
-  missionIds: number[],
-  log: boolean = false
-): Promise<WrappedResponse<null>> {
-  const requestBody: MissionDeleteRequest = { missionIds, log };
+export async function deleteMissions(missionIds: number[]): Promise<WrappedResponse<null>> {
+  const requestBody: MissionDeleteRequest = { missionIds };
   const res = await fetch(`/api/v1/mission`, {
     method: "DELETE",
     headers: {

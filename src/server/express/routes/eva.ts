@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 
 import { getEM } from "utils/mikro";
 import {
@@ -18,12 +18,11 @@ import { convertEVAsTypeDbToStore, convertEVAsTypeStoreToDb } from "store/storeU
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { uuid, socketId, missionId, log } = query;
+  const { uuid, socketId, missionId } = query;
   const queryObj = {
     missionId: missionId ? parseInt(missionId as string) : undefined,
     evaUuid: uuid ? (uuid as string) : undefined,
     socketId: socketId ? (socketId as string) : undefined,
-    logAction: log === "true",
   };
   return queryObj;
 };
@@ -31,12 +30,19 @@ const parseQuery = (query: Query) => {
 // get
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const viewPermission = await hasPerms(queryObj.missionId, "view", req.session?.user);
+  const emssToken = req.headers["emss-token"] as string;
+
+  const viewPermission = await hasPerms({
+    missionId: queryObj.missionId,
+    permission: "view",
+    user: req.session?.user,
+    emssToken,
+  });
   if (!viewPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
-  if (!queryObj.missionId || _.isNaN(queryObj.missionId)) {
+  if (!queryObj.missionId || isNaN(queryObj.missionId)) {
     res.status(500).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
@@ -58,7 +64,13 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { socketId, missionId, evas } = req.body as EvaUpsertRequest;
-  const editPermission = await hasPerms(missionId, "edit", req.session.user);
+  const emssToken = req.headers["emss-token"] as string;
+  const editPermission = await hasPerms({
+    missionId,
+    permission: "edit",
+    user: req.session.user,
+    emssToken,
+  });
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
@@ -68,7 +80,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     //add owner id to the evas
     const evasToUpsert = evas.map((e) => {
       if (!e.ownerId) {
-        return { ...e, ownerId: req.session.user.id };
+        return { ...e, ownerId: req.session?.user?.id || -1 }; // default to -1 if no user (emss-token call)
       } else {
         return e;
       }
@@ -106,7 +118,14 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { socketId, missionId, evaUuids } = req.body as EvaDeleteRequest;
-  const editPermission = await hasPerms(missionId, "edit", req.session.user);
+  const emssToken = req.headers["emss-token"] as string;
+
+  const editPermission = await hasPerms({
+    missionId,
+    permission: "edit",
+    user: req.session.user,
+    emssToken,
+  });
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
@@ -181,7 +200,7 @@ export async function getEVAs(missionId: number, evaUuid?: string): Promise<Eva[
 export async function upsertEVAs(evas: Eva[]): Promise<Eva[]> {
   const em = getEM();
 
-  const evasToUpsert = _.cloneDeep(evas); //create a copy to manipulate
+  const evasToUpsert = cloneDeep(evas); //create a copy to manipulate
   const evasUpsertedToDb = [];
 
   for (const evaToUpsert of evasToUpsert) {

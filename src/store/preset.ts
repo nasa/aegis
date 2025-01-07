@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { upsertToArrayByUuid } from "./storeUtils/store";
-import _, { cloneDeep } from "lodash";
+import isNil from "lodash/isNil";
+import cloneDeep from "lodash/cloneDeep";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { setAllSliceStores } from "store/crossActions";
 
@@ -182,7 +183,7 @@ export const presetSlice = createSlice({
       state,
       action: { payload: { presetUuid: string; uuid: string } }
     ) => {
-      if (!_.isNil(state.presetsUIStates[action.payload.presetUuid][action.payload.uuid])) {
+      if (!isNil(state.presetsUIStates[action.payload.presetUuid][action.payload.uuid])) {
         state.presetsUIStates[action.payload.presetUuid][action.payload.uuid].expanded =
           !state.presetsUIStates[action.payload.presetUuid][action.payload.uuid].expanded;
       }

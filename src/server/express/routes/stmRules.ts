@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 
 import { hasPerms } from "utils/permissions";
 
@@ -25,12 +25,16 @@ const parseQuery = (query: Query) => {
 // get
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const viewPermission = await hasPerms(queryObj.missionId, "view", req.session.user);
+  const viewPermission = await hasPerms({
+    missionId: queryObj.missionId,
+    permission: "view",
+    user: req.session.user,
+  });
   if (!viewPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
-  if (!queryObj.missionId || _.isNaN(queryObj.missionId)) {
+  if (!queryObj.missionId || isNaN(queryObj.missionId)) {
     res.status(500).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
@@ -52,12 +56,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, stmRules } = req.body as STMRuleUpsertRequest;
-  const editPermission = await hasPerms(missionId, "edit", req.session.user);
+  const editPermission = await hasPerms({
+    missionId,
+    permission: "edit",
+    user: req.session.user,
+  });
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
-  if (!missionId || _.isNaN(missionId)) {
+  if (!missionId || isNaN(missionId)) {
     res.status(500).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
@@ -87,12 +95,16 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, stmRuleUuids } = req.body as STMRuleDeleteRequest;
-  const editPermission = await hasPerms(missionId, "edit", req.session.user);
+  const editPermission = await hasPerms({
+    missionId,
+    permission: "edit",
+    user: req.session.user,
+  });
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
-  if (!missionId || _.isNaN(missionId)) {
+  if (!missionId || isNaN(missionId)) {
     res.status(500).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
@@ -154,7 +166,7 @@ export async function upsertStmRules(
 ): Promise<STMRule[]> {
   const em = getEM();
 
-  const stmRulesToUpsert = _.cloneDeep(stmRules); //create a copy to manipulate
+  const stmRulesToUpsert = cloneDeep(stmRules); //create a copy to manipulate
   const stmRulesUpsertedToDb = [];
 
   //build stm rule to upsert

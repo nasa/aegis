@@ -2,7 +2,9 @@ import * as httpClient_preset from "http-client/preset";
 import * as httpClient_action from "http-client/action";
 import * as httpClient_mission from "http-client/mission";
 import * as httpClient_rex from "http-client/rex";
-import _ from "lodash";
+import isEqual from "lodash/isEqual";
+import cloneDeep from "lodash/cloneDeep";
+import clone from "lodash/clone";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { generateDefaultActionDefinitions } from "store/storeUtils/mission";
 import { v4 as uuidv4 } from "uuid";
@@ -13,7 +15,7 @@ export const auditPresetsAgainstLayers = async ({
   wholeStoreState: WholeStoreState;
 }): Promise<void> => {
   //fix and validate against modifications to layers/sublayers made in admin since this preset was last saved
-  const newPresets = _.cloneDeep(wholeStoreState.preset.presets);
+  const newPresets = cloneDeep(wholeStoreState.preset.presets);
 
   for (const preset of newPresets) {
     //sync up anything added/deleted missing from preset layer order
@@ -128,7 +130,7 @@ export const auditPresetsAgainstLayers = async ({
   // save changed presets to the DB
   const presetsToSaveToDb: Preset[] = [];
   for (const [index, preset] of newPresets.entries()) {
-    if (!_.isEqual(preset, wholeStoreState.preset.presets[index])) {
+    if (!isEqual(preset, wholeStoreState.preset.presets[index])) {
       presetsToSaveToDb.push(preset);
       // update the db copy of the preset in the store as well
       wholeStoreState.preset.presets[index] = preset;
@@ -137,7 +139,7 @@ export const auditPresetsAgainstLayers = async ({
   }
   if (presetsToSaveToDb.length > 0) {
     // upsert the changed Presets to the DB
-    const upsertReponse = await httpClient_preset.upsertPresets(presetsToSaveToDb, false);
+    const upsertReponse = await httpClient_preset.upsertPresets(presetsToSaveToDb);
     if (upsertReponse.status !== "success") {
       // handle the error
     }
@@ -150,7 +152,7 @@ export const auditActions = async ({
   wholeStoreState: WholeStoreState;
 }): Promise<void> => {
   // new stores to hold the updated values to be persisted at the end of all the audits
-  const newActions = _.cloneDeep(wholeStoreState.action.actions);
+  const newActions = cloneDeep(wholeStoreState.action.actions);
 
   /**
    * Action STM UUID Refs Audit
@@ -160,7 +162,7 @@ export const auditActions = async ({
   const stmLevel3Uuids = wholeStoreState.stm.level3s.map((i) => i.uuid);
   for (const action of newActions) {
     if (!action.stmUuidRefs) continue;
-    let newUuidRefs = _.clone(action.stmUuidRefs); //make a copy to splice from
+    let newUuidRefs = clone(action.stmUuidRefs); //make a copy to splice from
     let isChanged = false;
     for (const stmUuid of action.stmUuidRefs) {
       if (stmLevel3Uuids.indexOf(stmUuid) < 0) {
@@ -173,7 +175,7 @@ export const auditActions = async ({
 
     // also check the action.stmPriorities and remove any that don't have a matching stmUuid
     if (action.stmPriorities) {
-      const newPriorities: StmPriorities = _.clone(action.stmPriorities); //make a copy to splice from
+      const newPriorities: StmPriorities = clone(action.stmPriorities); //make a copy to splice from
       isChanged = false;
       for (const stmUuid of Object.keys(action.stmPriorities)) {
         if (stmLevel3Uuids.indexOf(stmUuid) < 0) {
@@ -195,7 +197,7 @@ export const auditActions = async ({
     if (!action.stmUuidRefs) continue;
     // if action.stmPriorities is null, create it
     let newPriorities: StmPriorities = {};
-    if (action.stmPriorities) newPriorities = _.clone(action.stmPriorities); //make a copy to splice from
+    if (action.stmPriorities) newPriorities = clone(action.stmPriorities); //make a copy to splice from
     let isChanged = false;
     for (const stmUuid of action.stmUuidRefs) {
       if (!newPriorities[stmUuid]) {
@@ -211,7 +213,7 @@ export const auditActions = async ({
   // Actions
   const actionsToSaveToDb: Action[] = [];
   for (const [index, action] of newActions.entries()) {
-    if (!_.isEqual(action, wholeStoreState.action.actions[index])) {
+    if (!isEqual(action, wholeStoreState.action.actions[index])) {
       actionsToSaveToDb.push(action);
       // update the db copy of the action in the store as well
       wholeStoreState.action.actions[index] = action;
@@ -269,7 +271,7 @@ export const auditPosSources = async ({
   if (wholeStoreState.rex.rexes.length === 0) return;
 
   // loop through all rexes and audit the posSources
-  const newRexes = _.cloneDeep(wholeStoreState.rex.rexes);
+  const newRexes = cloneDeep(wholeStoreState.rex.rexes);
   let isModified: boolean = false;
 
   const defaultPosSource = {

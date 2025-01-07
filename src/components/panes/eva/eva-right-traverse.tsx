@@ -7,7 +7,6 @@ import {
   faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
 import { Button } from "components/interface/form/globalFields";
-import _ from "lodash";
 import { FunctionComponent } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 
@@ -28,6 +27,7 @@ import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { RightTabs } from "components/interface/side-controls";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
+import isNull from "lodash/isNull";
 
 const EvaRightTraverse: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -61,10 +61,6 @@ const EvaRightTraverse: FunctionComponent = () => {
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = mapDirective?.uuid === selectedEvaSequenceItemUuid ? mapDirective : null;
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
-  const isRexRunning = useAppSelector(
-    (state) => state.rex.rexes.find((rex) => rex.isRunning)?.isRunning,
-    refEqual
-  );
 
   const calculatedFields = useAppSelector(
     (state) =>
@@ -102,7 +98,7 @@ const EvaRightTraverse: FunctionComponent = () => {
         reportItems: calculatedFields.reportItems,
         reportTitle: "Traverse Report",
       },
-      selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "white",
+      selectedColor: !isNull(reportsTabIconColor) ? reportsTabIconColor : "white",
       unselectedColor: reportsTabIconColor,
       icon: calculatedFields.reportItems.length > 0 ? faTriangleExclamation : faCheck,
     },
@@ -112,15 +108,12 @@ const EvaRightTraverse: FunctionComponent = () => {
     dispatch(setTraverseEditMode({ uuid: selectedEvaSequenceItemUuid, editMode: false }));
 
     // save to db
-    const persistResponse = await httpClient_Traverse.upsertTraverses(
-      [
-        {
-          ...selectedTraverse,
-          updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-        },
-      ],
-      isRexRunning
-    );
+    const persistResponse = await httpClient_Traverse.upsertTraverses([
+      {
+        ...selectedTraverse,
+        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      },
+    ]);
     if (persistResponse) {
       dispatch(upsertTraverses([persistResponse.data[0]], true));
       dispatch(upsertTraversesFromDb([persistResponse.data[0]]));

@@ -114,6 +114,11 @@ export default [
         {
           paths: [
             {
+              name: "lodash",
+              message:
+                "Please import only the functions you need from lodash, e.g., import sortBy from 'lodash/sortBy'.",
+            },
+            {
               name: "react-redux",
               importNames: ["useSelector", "shallowEqual"],
               message:
@@ -182,6 +187,7 @@ export default [
       "no-import-assign": "error",
       "no-unreachable": "error",
       "react/jsx-no-target-blank": "off",
+      "linebreak-style": ["error", "unix"], // enforce unix (lf) linebreaks
     },
   },
 ];

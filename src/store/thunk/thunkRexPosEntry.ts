@@ -16,7 +16,7 @@ import {
   setRexesPosEntryEditMode,
   upsertRexByField,
 } from "store/rex";
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import * as httpClient_Rex from "http-client/rex";
 import { updateMapDirective } from "store/map";
 
@@ -63,23 +63,19 @@ export const thunkUpdatePosEntryLocation = appCreateAsyncThunk<{
   "updatePosEntryLoc",
   async ({ location, posEntryUuid: posEntryUuid }, { dispatch, getState }) => {
     const selectedRex = getState().rex.rexes.find((r) => r.uuid === getState().rex.selectedRexUuid);
-    const newRexPosEntries: PosEntry[] = _.cloneDeep(selectedRex.posEntries);
+    const newRexPosEntries: PosEntry[] = cloneDeep(selectedRex.posEntries);
     const oldPosEntries = selectedRex.posEntries.find((c) => c.uuid === posEntryUuid);
-    const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
     upsertToArrayByUuid(newRexPosEntries, { ...oldPosEntries, location });
 
     //automatically save to the db.
-    const rexUpsertResponse = await httpClient_Rex.upsertRexes(
-      [
-        {
-          ...selectedRex,
-          posEntries: newRexPosEntries,
-          updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-        },
-      ],
-      isRexRunning
-    );
+    const rexUpsertResponse = await httpClient_Rex.upsertRexes([
+      {
+        ...selectedRex,
+        posEntries: newRexPosEntries,
+        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      },
+    ]);
 
     if (rexUpsertResponse.status === "success") {
       // upsert the changed rex (with new updated date) to the store
@@ -105,7 +101,7 @@ export const thunkUpdatePosTypesOnPosEntry = appCreateAsyncThunk<{
   posTypeUuids: string[];
 }>("updatePosEntryTypes", async ({ rex, posEntryUuid, posTypeUuids }, { dispatch }) => {
   const oldPosEntry = rex.posEntries.find((c) => c.uuid === posEntryUuid);
-  let newRexPosEntries: PosEntry[] = _.cloneDeep(rex.posEntries);
+  let newRexPosEntries: PosEntry[] = cloneDeep(rex.posEntries);
   const newRexPosEntry: PosEntry = {
     ...oldPosEntry,
     posTypeUuids,
@@ -168,7 +164,7 @@ export const thunkCancelPosEntry = appCreateAsyncThunk<{
     (r) => r.uuid === getState().rex.selectedRexUuid
   ).posEntries;
   const posEntriesFromDb = allPosEntriesFromDb?.find((c) => c.uuid === posEntryUuid);
-  let newAllPosEntries = _.cloneDeep(allPosEntries);
+  let newAllPosEntries = cloneDeep(allPosEntries);
 
   //cancel out map action if they were in the middle of one for this
   if (getState().map.mapDirective?.uuid === posEntryUuid) {
@@ -201,17 +197,12 @@ export const thunkPersistRexPosEntries = appCreateAsyncThunk<{
   const selectedRex = getState().rex.rexes.find((r) => r.uuid === rexUuid);
 
   //automatically save to the db.
-  //check rex is running for logging
-  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
-  const rexUpsertResponse = await httpClient_Rex.upsertRexes(
-    [
-      {
-        ...selectedRex,
-        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-      },
-    ],
-    isRexRunning
-  );
+  const rexUpsertResponse = await httpClient_Rex.upsertRexes([
+    {
+      ...selectedRex,
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    },
+  ]);
 
   if (rexUpsertResponse.status === "success") {
     // upsert the changed rex (with new updated date) to the store
@@ -231,22 +222,18 @@ export const thunkDeletePosEntryByUuid = appCreateAsyncThunk<{
   posEntryUuid: string;
 }>("deletePosEntry", async ({ posEntryUuid }, { dispatch, getState }) => {
   const selectedRex = getState().rex.rexes.find((r) => r.uuid === getState().rex.selectedRexUuid);
-  const newRexPosEntries: PosEntry[] = _.cloneDeep(selectedRex.posEntries).filter(
+  const newRexPosEntries: PosEntry[] = cloneDeep(selectedRex.posEntries).filter(
     (c) => c.uuid !== posEntryUuid
   );
-  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
   //automatically save to the db.
-  const rexUpsertResponse = await httpClient_Rex.upsertRexes(
-    [
-      {
-        ...selectedRex,
-        posEntries: newRexPosEntries,
-        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-      },
-    ],
-    isRexRunning
-  );
+  const rexUpsertResponse = await httpClient_Rex.upsertRexes([
+    {
+      ...selectedRex,
+      posEntries: newRexPosEntries,
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    },
+  ]);
 
   if (rexUpsertResponse.status === "success") {
     // upsert the changed rex (with new updated date) to the store
@@ -269,7 +256,7 @@ export const thunkCreatePosType = appCreateAsyncThunk<void>(
     };
 
     const selectedRex = getState().rex.rexes.find((r) => r.uuid === getState().rex.selectedRexUuid);
-    const newRexPosTypes: PosType[] = _.cloneDeep(selectedRex.posTypes) || [];
+    const newRexPosTypes: PosType[] = cloneDeep(selectedRex.posTypes) || [];
     newRexPosTypes.push(blankPosType);
 
     dispatch(upsertRexByField(selectedRex.uuid, "posTypes", newRexPosTypes));
@@ -283,7 +270,7 @@ export const thunkUpdatePosTypeField = appCreateAsyncThunk<{
   value: PosType[keyof PosType];
 }>("updatePosTypeField", async ({ rexUuid, uuid, fieldName, value }, { dispatch, getState }) => {
   const rex = getState().rex.rexes.find((rex) => rex.uuid === rexUuid);
-  const newPosEntryTypes = _.cloneDeep(rex.posTypes);
+  const newPosEntryTypes = cloneDeep(rex.posTypes);
   const itemIndex = newPosEntryTypes?.findIndex((item) => item.uuid === uuid);
   if (itemIndex >= 0) {
     (newPosEntryTypes[itemIndex] as Record<typeof fieldName, PosType[keyof PosType]>)[fieldName] =
@@ -309,7 +296,7 @@ export const thunkDeletePosType = appCreateAsyncThunk<{ rexUuid: string; posType
     }
 
     //this item is not being used. All good to delete it
-    const newRexPosTypes = _.cloneDeep(rex.posTypes).filter((item) => item.uuid !== posTypeUuid);
+    const newRexPosTypes = cloneDeep(rex.posTypes).filter((item) => item.uuid !== posTypeUuid);
     dispatch(upsertRexByField(rexUuid, "posTypes", newRexPosTypes));
   }
 );

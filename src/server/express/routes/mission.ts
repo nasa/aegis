@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 
 import { hasPerms } from "utils/permissions";
 import { Mission_db } from "server/database/models/_allModels";
@@ -20,11 +20,10 @@ import {
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { missionId, socketId, log } = query;
+  const { missionId, socketId } = query;
   const queryObj = {
     missionId: missionId ? parseInt(missionId as string) : undefined,
     socketId: socketId ? (socketId as string) : undefined,
-    logAction: log === "true",
   };
   return queryObj;
 };
@@ -32,9 +31,16 @@ const parseQuery = (query: Query) => {
 // get
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
+  const emssToken = req.headers["emss-token"] as string;
+
   let viewPermission;
   if (queryObj.missionId) {
-    viewPermission = await hasPerms(queryObj.missionId, "view", req.session.user);
+    viewPermission = await hasPerms({
+      missionId: queryObj.missionId,
+      permission: "view",
+      user: req.session.user,
+      emssToken,
+    });
   } else {
     //no mission was specified. check if they are allowed to view at least one mission
     viewPermission =
@@ -76,9 +82,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { socketId, missions } = req.body as MissionUpsertRequest;
+  const emssToken = req.headers["emss-token"] as string;
+
   //must have edit permission the mission ids
   for (const mission of missions) {
-    const canEditThisMission = await hasPerms(mission.id, "edit", req.session.user);
+    const canEditThisMission = await hasPerms({
+      missionId: mission.id,
+      permission: "edit",
+      user: req.session.user,
+      emssToken,
+    });
     if (!canEditThisMission) {
       res.status(401).json({ status: "failure", message: "Unauthorized" });
       return;
@@ -125,15 +138,22 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionIds } = req.body as MissionDeleteRequest;
+  const emssToken = req.headers["emss-token"] as string;
+
   //must have edit permission the mission ids
   //  or if no mission id (create mission) must be an admin to the back end or user 1
   for (const missionIdToDelete of missionIds) {
-    if (!missionIdToDelete || _.isNaN(missionIdToDelete)) {
+    if (!missionIdToDelete || isNaN(missionIdToDelete)) {
       res.status(500).json({ status: "error", message: "Invalid mission ID" });
       return;
     }
 
-    const canEditThisMission = await hasPerms(missionIdToDelete, "edit", req.session.user);
+    const canEditThisMission = await hasPerms({
+      missionId: missionIdToDelete,
+      permission: "edit",
+      user: req.session.user,
+      emssToken,
+    });
     if (!canEditThisMission) {
       res.status(401).json({ status: "failure", message: "Unauthorized" });
       return;
@@ -193,7 +213,7 @@ export async function getMission(missionIdList: number | number[] = null): Promi
 export async function upsertMissions(missions: Mission[]): Promise<Mission[]> {
   const em = getEM();
 
-  const missionsCopy: Mission[] = _.cloneDeep(missions);
+  const missionsCopy: Mission[] = cloneDeep(missions);
   const missionsUpsertedToDb: Mission[] = [];
 
   for (const missionCopy of missionsCopy) {

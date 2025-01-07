@@ -26,7 +26,6 @@ services:
       # that it is always "database" in a full Docker-Compose setup.
       - DB_HOST=database
 
-
   gdal:
     image: aegis-preview-gdal:latest
     build:

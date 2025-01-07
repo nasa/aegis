@@ -1,4 +1,5 @@
-import _ from "lodash";
+import isEqual from "lodash/isEqual";
+import cloneDeep from "lodash/cloneDeep";
 import { setTraverseEditMode, upsertTraverses, upsertTraversesFromDb } from "store/traverse";
 import { getTotalDistance } from "utils/geoMath";
 import appCreateAsyncThunk from "./thunkUtil";
@@ -65,7 +66,6 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
     { dispatch, getState }
   ) => {
     const traverse = getState().traverse.traverses.find((t) => t.uuid === traverseUuid);
-    const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
     const eva = getState().eva.evas.find((eva) => {
       return eva.sequence.find((sequenceItem) => {
@@ -76,11 +76,11 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
     //make a copy
     let newPath: AEGISPoint[];
     if (path && path.length > 0) {
-      newPath = _.cloneDeep(path);
+      newPath = cloneDeep(path);
     } else {
       //use traverse path
       if (traverse.path && traverse.path.length > 0) {
-        newPath = _.cloneDeep(traverse.path);
+        newPath = cloneDeep(traverse.path);
       } else {
         newPath = [
           getState().mission.mission.landerLocation,
@@ -146,11 +146,11 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
     });
 
     //set starting location
-    if (locationBefore && !_.isEqual(newPath.at(0), locationBefore)) {
+    if (locationBefore && !isEqual(newPath.at(0), locationBefore)) {
       newPath[0] = locationBefore;
     }
     //set ending location
-    if (locationAfter && !_.isEqual(newPath.at(-1), locationAfter)) {
+    if (locationAfter && !isEqual(newPath.at(-1), locationAfter)) {
       newPath[newPath.length - 1] = locationAfter;
     }
 
@@ -191,7 +191,7 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
       updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     if (saveToDb) {
-      httpClient_Traverse.upsertTraverses([newTraverse], isRexRunning);
+      httpClient_Traverse.upsertTraverses([newTraverse]);
       dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: false }));
       dispatch(upsertTraversesFromDb([newTraverse]));
     }

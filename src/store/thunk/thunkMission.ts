@@ -1,6 +1,7 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import * as httpClient_mission from "http-client/mission";
-import { cloneDeep, sortBy } from "lodash";
+import sortBy from "lodash/sortBy";
+import cloneDeep from "lodash/cloneDeep";
 import {
   upsertMission,
   setMissionFromDb,
@@ -36,7 +37,6 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
   "missionSave",
   async (_, { dispatch, getState }) => {
     const mission = getState().mission.mission;
-    const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
     //Alphabetize the items by name
     const sortedEquipmentItems = sortBy(mission.equipmentItems, [
@@ -53,19 +53,16 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
     ]);
 
     //save mission to db
-    const upsertResponse = await httpClient_mission.upsertMissions(
-      [
-        {
-          ...mission,
-          equipmentItems: sortedEquipmentItems,
-          geographicUnits: sortedGeoUnits,
-          landerRadii: sortedLanderRadii,
-          actionTemplates: sortedTemplates,
-          updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-        },
-      ],
-      isRexRunning
-    );
+    const upsertResponse = await httpClient_mission.upsertMissions([
+      {
+        ...mission,
+        equipmentItems: sortedEquipmentItems,
+        geographicUnits: sortedGeoUnits,
+        landerRadii: sortedLanderRadii,
+        actionTemplates: sortedTemplates,
+        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      },
+    ]);
 
     if (upsertResponse.status === "success") {
       // update the db copy in the store

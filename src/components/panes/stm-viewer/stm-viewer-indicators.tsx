@@ -1,9 +1,9 @@
 import { Fragment, FunctionComponent } from "react";
 import styles from "./stm-viewer-indicators.module.css";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
-import _ from "lodash";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { stmViewSetHoveredTopItem } from "store/interface";
+import sortBy from "lodash/sortBy";
 
 export const IndicatorGridRow: FunctionComponent<{
   level3Uuid: string;
@@ -11,13 +11,13 @@ export const IndicatorGridRow: FunctionComponent<{
   actionUuid?: string;
 }> = ({ level3Uuid, actionType, actionUuid }) => {
   const sortedEvaUuids = useAppSelector((state) => {
-    const allSortedEvas = _.sortBy(state.eva.evas, [(eva) => eva.name.toLowerCase()]);
+    const allSortedEvas = sortBy(state.eva.evas, [(eva) => eva.name.toLowerCase()]);
     return allSortedEvas
       .filter((eva) => state.interface.stmViewSelectedEvas.includes(eva.uuid))
       .map((eva) => eva.uuid);
   }, shallowEqual);
   const allStationsNotInASelectedEvas = useAppSelector((state) => {
-    const stations = _.sortBy(state.station.stations, [(station) => station.name.toLowerCase()]);
+    const stations = sortBy(state.station.stations, [(station) => station.name.toLowerCase()]);
     const selectedEvaUuids = state.interface.stmViewSelectedEvas;
     for (const evaUuid of selectedEvaUuids) {
       const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
@@ -70,7 +70,7 @@ const IndicatorGridStationGroup: FunctionComponent<{
   actionUuid?: string;
 }> = ({ level3Uuid, evaUuid, actionType, actionUuid }) => {
   const allStations = useAppSelector(
-    (state) => _.sortBy(state.station.stations, [(station) => station.name.toLowerCase()]),
+    (state) => sortBy(state.station.stations, [(station) => station.name.toLowerCase()]),
     deepEqual
   );
   const eva = useAppSelector(

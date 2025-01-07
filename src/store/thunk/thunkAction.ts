@@ -9,7 +9,7 @@ import {
 import appCreateAsyncThunk from "./thunkUtil";
 import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
@@ -57,7 +57,7 @@ export const thunkCreateAction = appCreateAsyncThunk<
     dispatch(upsertAction(blankAction));
 
     //upsert action order to the parent. new action goes on the end.
-    const actionOrder = _.cloneDeep(actionOrderUuids);
+    const actionOrder = cloneDeep(actionOrderUuids);
     actionOrder.push(blankAction.uuid);
     setActionOrderUuids(actionOrder);
 
@@ -89,7 +89,7 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
       (storeAction: Action) => storeAction.poiUuid === poiUuid
     );
 
-    const newActions: Action[] = _.cloneDeep(actions);
+    const newActions: Action[] = cloneDeep(actions);
     //set values for the duplicated action
     for (let i = 0; i < newActions.length; i++) {
       const newAction = newActions[i];
@@ -126,14 +126,14 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
     // append new action to the end of the station's action order
     if (stationUuid) {
       const station = getState().station.stations.find((s) => s.uuid === stationUuid);
-      let actionOrderUuids = _.cloneDeep(station.actionOrderUuids);
+      let actionOrderUuids = cloneDeep(station.actionOrderUuids);
       if (!actionOrderUuids) actionOrderUuids = [];
       actionOrderUuids = actionOrderUuids.concat(newActions.map((a) => a.uuid));
       dispatch(upsertStation({ ...station, actionOrderUuids }, true));
     } else if (poiUuid) {
       // append new action to the end of the poi's action order
       const poi = getState().poi.pois.find((p) => p.uuid === poiUuid);
-      let actionOrderUuids = _.cloneDeep(poi.actionOrderUuids);
+      let actionOrderUuids = cloneDeep(poi.actionOrderUuids);
       if (!actionOrderUuids) actionOrderUuids = [];
       actionOrderUuids = actionOrderUuids.concat(newActions.map((a) => a.uuid));
       dispatch(upsertPoi({ ...poi, actionOrderUuids }, true));
@@ -150,8 +150,7 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
 export const thunkSaveActions = appCreateAsyncThunk<{
   actions: Action[];
   actionsFromDb: Action[];
-}>("actionSave", async ({ actions, actionsFromDb }, { dispatch, getState }) => {
-  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
+}>("actionSave", async ({ actions, actionsFromDb }, { dispatch }) => {
   //upsert any changed or new Actions to db
   const changedActions: Action[] = [];
   for (const action of actions) {
@@ -164,10 +163,7 @@ export const thunkSaveActions = appCreateAsyncThunk<{
   }
   if (changedActions.length > 0) {
     //action changed. upsert to db
-    const actionUpsertResponse = await httpClient_action.upsertActions(
-      changedActions,
-      isRexRunning
-    );
+    const actionUpsertResponse = await httpClient_action.upsertActions(changedActions);
     if (actionUpsertResponse.status === "success") {
       //upsert to both stores
       dispatch(upsertActions(actionUpsertResponse.data, true));
@@ -185,7 +181,7 @@ export const thunkSaveActions = appCreateAsyncThunk<{
   if (deletedActions.length > 0) {
     // take array of deleted actions and delete them in the db
     const deletedActionUuids = deletedActions.map((a) => a.uuid);
-    await httpClient_action.deleteActions(deletedActionUuids, isRexRunning);
+    await httpClient_action.deleteActions(deletedActionUuids);
     dispatch(deleteActionsFromDbByUuid(deletedActionUuids));
   }
 });
@@ -203,7 +199,7 @@ export const thunkUpdateActionLocation = appCreateAsyncThunk<{
   );
 
   const action = getState().action.actions.find((s) => s.uuid === actionUuid);
-  if (!elevation || elevation.payload === false) {
+  if (!elevation || elevation.payload === false || elevation.payload === undefined) {
     //gracefully reject?
     dispatch(upsertAction({ ...action, location, elevation: null }));
   } else {
@@ -241,7 +237,7 @@ export const thunkDeleteActionFromStore = appCreateAsyncThunk<{
 }>("deleteActionFromStore", async ({ uuid }, { dispatch, getState }) => {
   // look for the action in stations and remove it from the station's action order
   getState().station.stations.forEach((station) => {
-    const actionOrderUuids = _.cloneDeep(station.actionOrderUuids);
+    const actionOrderUuids = cloneDeep(station.actionOrderUuids);
     if (actionOrderUuids) {
       const actionIndex = actionOrderUuids.findIndex((actionUuid) => actionUuid === uuid);
       if (actionIndex >= 0) {
@@ -254,7 +250,7 @@ export const thunkDeleteActionFromStore = appCreateAsyncThunk<{
 
   // look for the action in pois and remove it from the poi's action order
   getState().poi.pois.forEach((poi) => {
-    const actionOrderUuids = _.cloneDeep(poi.actionOrderUuids);
+    const actionOrderUuids = cloneDeep(poi.actionOrderUuids);
     if (actionOrderUuids) {
       const actionIndex = actionOrderUuids.findIndex((actionUuid) => actionUuid === uuid);
       if (actionIndex >= 0) {
@@ -274,13 +270,11 @@ export const thunkDeleteActionFromStore = appCreateAsyncThunk<{
  */
 export const thunkDeleteActionFromDbAndStore = appCreateAsyncThunk<{
   uuids: string[];
-}>("deleteActionFromDbAndStore", async ({ uuids }, { dispatch, getState }) => {
+}>("deleteActionFromDbAndStore", async ({ uuids }, { dispatch }) => {
   if (uuids.length > 0) {
     //delete from db
-    const actionDeleteResponse: WrappedResponse<number> = await httpClient_action.deleteActions(
-      uuids,
-      getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning
-    );
+    const actionDeleteResponse: WrappedResponse<number> =
+      await httpClient_action.deleteActions(uuids);
     if (actionDeleteResponse.status !== "success") {
       throw new Error("Error deleting actions " + actionDeleteResponse.message);
     }

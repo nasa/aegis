@@ -9,7 +9,7 @@ import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { thunkCancelMarkerMapDirective } from "./thunkMap";
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import {
   thunkDeleteActionFromDbAndStore,
   thunkDuplicateActions,
@@ -25,7 +25,7 @@ export const thunkUpdatePoiLatLngField = appCreateAsyncThunk<{
   type: "lat" | "lng";
   value: number;
 }>("updatePoiLatLngField", async ({ poiUuid, type, value }, { getState, dispatch }) => {
-  const poiLocation: AEGISPoint = _.cloneDeep(
+  const poiLocation: AEGISPoint = cloneDeep(
     getState().poi.pois.find((p) => p.uuid === poiUuid)?.location
   );
   if (type === "lat") {
@@ -64,18 +64,14 @@ export const thunkSavePoi = appCreateAsyncThunk<{
   const poiActionsFromDb = getState().action.actionsFromDb.filter(
     (action) => action.poiUuid === poi.uuid
   );
-  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
   //save poi to db
-  const poiUpsertResponse = await httpClient_poi.upsertPOIs(
-    [
-      {
-        ...poi,
-        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-      },
-    ],
-    isRexRunning
-  );
+  const poiUpsertResponse = await httpClient_poi.upsertPOIs([
+    {
+      ...poi,
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    },
+  ]);
 
   if (poiUpsertResponse.status === "success") {
     // upsert the changed POI to the store
@@ -133,7 +129,6 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
   const selectedMissionId = getState().mission.mission?.id;
   const poiActions = getState().action.actions.filter((action) => action.poiUuid === poi.uuid);
   const poiFromDb = getState().poi.poisFromDb.find((poiFromDb) => poiFromDb.uuid === poi.uuid);
-  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
   // if the selected poi is in poisFromDb then delete it from the db
   if (poiFromDb) {
@@ -144,7 +139,7 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
     }
 
     // delete the POI from the DB via internal API call
-    const deleteResponse = await httpClient_poi.deletePOIs([poi.uuid], isRexRunning);
+    const deleteResponse = await httpClient_poi.deletePOIs([poi.uuid]);
     if (deleteResponse.status === "success") {
       // remove the corresponding POI from the store
       dispatch(deletePoiByUuid(poi.uuid));
@@ -194,7 +189,7 @@ export const thunkDuplicatePoi = appCreateAsyncThunk<{ poi: POI }>(
   async ({ poi }, { dispatch, getState }) => {
     if (!poi) return;
     //duplicate poi
-    const newPoi: POI = _.cloneDeep(poi);
+    const newPoi: POI = cloneDeep(poi);
     newPoi.uuid = uuidv4();
     newPoi.updatedAt = null;
     newPoi.createdAt = roundDateToSecond(getAccurateNow()).toISOString();

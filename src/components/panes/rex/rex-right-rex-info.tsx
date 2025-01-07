@@ -12,8 +12,9 @@ import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import { Button, Dropdown, InLineEditInput } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
 import { thunkRexPetStartStop } from "store/thunk/thunkRex";
-import _ from "lodash";
 import PetInterval from "components/page/petInterval";
+import sortBy from "lodash/sortBy";
+import map from "lodash/map";
 
 type EvaDropdownItem = {
   label: string;
@@ -32,7 +33,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     (state) => state.eva.evas.map((eva) => ({ label: eva.name, value: eva.uuid })),
     deepEqual
   );
-  const evaDropdownItemsSorted = _.sortBy(evaDropdownItems, (item) => item.label.toLowerCase());
+  const evaDropdownItemsSorted = sortBy(evaDropdownItems, (item) => item.label.toLowerCase());
 
   // used to update the PET value via the PetInterval component
   const [rexPetTime, setRexPetTime] = useState("");
@@ -64,7 +65,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         }}
                       >
                         <option value="">Select EVA</option>
-                        {_.map(evaDropdownItemsSorted, (item) => (
+                        {map(evaDropdownItemsSorted, (item) => (
                           <option key={item.value} value={item.value}>
                             {item.label}
                           </option>

@@ -1,6 +1,5 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import _ from "lodash";
 import { faPlusCircle, faTrashAlt, faList } from "@fortawesome/free-solid-svg-icons";
 import { regExValidators, validators } from "components/interface/form/formValidators";
 import styles from "./mission.module.css";

@@ -1,7 +1,6 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 
-import _ from "lodash";
 import { hasPerms } from "utils/permissions";
 import BoxSDK from "box-node-sdk";
 
@@ -20,7 +19,11 @@ const parseQuery = (query: Query) => {
 // get boxDownloadFile
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms(queryObj.missionId, "edit", req.session.user);
+  const editPermission = await hasPerms({
+    missionId: queryObj.missionId,
+    permission: "edit",
+    user: req.session.user,
+  });
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;

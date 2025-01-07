@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 
 import { hasPerms } from "utils/permissions";
 
@@ -14,11 +14,10 @@ import { convertPoisTypeDbToStore, convertPoisTypeStoreToDb } from "store/storeU
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { missionId, socketId, log } = query;
+  const { missionId, socketId } = query;
   const queryObj = {
     missionId: missionId ? parseInt(missionId as string) : undefined,
     socketId: socketId ? (socketId as string) : undefined,
-    logAction: log === "true",
   };
   return queryObj;
 };
@@ -26,12 +25,19 @@ const parseQuery = (query: Query) => {
 // get
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const viewPermission = await hasPerms(queryObj.missionId, "view", req.session.user);
+  const emssToken = req.headers["emss-token"] as string;
+
+  const viewPermission = await hasPerms({
+    missionId: queryObj.missionId,
+    permission: "view",
+    user: req.session.user,
+    emssToken,
+  });
   if (!viewPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
-  if (!queryObj.missionId || _.isNaN(queryObj.missionId)) {
+  if (!queryObj.missionId || isNaN(queryObj.missionId)) {
     res.status(500).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
@@ -51,7 +57,14 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, pois } = req.body as POIUpsertRequest;
-  const editPermission = await hasPerms(missionId, "edit", req.session.user);
+  const emssToken = req.headers["emss-token"] as string;
+
+  const editPermission = await hasPerms({
+    missionId,
+    permission: "edit",
+    user: req.session.user,
+    emssToken,
+  });
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
@@ -61,7 +74,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     //add owner id to the evas
     const poisToUpsert = pois.map((p) => {
       if (!p.ownerId) {
-        return { ...p, ownerId: req.session.user.id };
+        return { ...p, ownerId: req.session?.user?.id || -1 };
       } else {
         return p;
       }
@@ -99,7 +112,14 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, poiUuids } = req.body as POIDeleteRequest;
-  const editPermission = await hasPerms(missionId, "edit", req.session.user);
+  const emssToken = req.headers["emss-token"] as string;
+
+  const editPermission = await hasPerms({
+    missionId,
+    permission: "edit",
+    user: req.session.user,
+    emssToken,
+  });
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
@@ -155,7 +175,7 @@ export async function getPois(missionId: number): Promise<POI[]> {
 export async function upsertPois(pois: POI[]): Promise<POI[]> {
   const em = getEM();
 
-  const poisToUpsert = _.cloneDeep(pois); //create a copy to manipulate
+  const poisToUpsert = cloneDeep(pois); //create a copy to manipulate
   const poisUpsertedToDb = [];
 
   //build poi to upsert

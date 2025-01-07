@@ -1,13 +1,11 @@
 import { Entity, ManyToOne, PrimaryKey, Property, types as MikroTypes } from "@mikro-orm/core";
-import { Mission_db, User_db } from "./_allModels";
+import { Mission_db } from "./_allModels";
 
 @Entity()
 export class Preset_db implements Preset_db_type {
   @PrimaryKey({ type: MikroTypes.uuid, unique: true })
   uuid!: string;
 
-  @ManyToOne(() => User_db, { unique: false, primary: false })
-  owner!: User_db;
   @ManyToOne(() => Mission_db, { unique: false, primary: false })
   mission!: Mission_db;
 
@@ -35,6 +33,8 @@ export class Preset_db implements Preset_db_type {
   earthEnabled: boolean;
   @Property({ type: MikroTypes.boolean, nullable: true, default: false })
   earthAsMoon: boolean;
+  @Property({ type: MikroTypes.integer, nullable: true })
+  ownerId: number;
 
   @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;

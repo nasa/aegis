@@ -1,4 +1,4 @@
-import { cloneDeep } from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import appCreateAsyncThunk from "./thunkUtil";
 import { upsertMission, upsertMissionByField } from "store/mission";
 import { v4 as uuidv4 } from "uuid";

@@ -1,4 +1,3 @@
-import _ from "lodash";
 import { FunctionComponent } from "react";
 
 import styles from "./eva.module.css";
@@ -9,6 +8,7 @@ import { Button } from "components/interface/form/globalFields";
 import { faClone, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreateEva, thunkDuplicateEva } from "store/thunk/thunkEva";
+import sortBy from "lodash/sortBy";
 
 const EvaPlannerLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -23,7 +23,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
     <>
       <div className={styles.evasLeftContainer}>
         <div className={styles.evasLeftBody} aria-label="evaList">
-          {_.sortBy(evas, [(eva) => eva.name.toLowerCase()]).map((eva) => (
+          {sortBy(evas, [(eva) => eva.name.toLowerCase()]).map((eva) => (
             <div className={styles.evaPanelContainer} key={eva.uuid} aria-label="evaList-item">
               <EvaItem eva={eva} key={eva.uuid} />
             </div>

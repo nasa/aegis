@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { cloneDeep } from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "store/storeUtils/store";
 import { setAllSliceStores } from "store/crossActions";

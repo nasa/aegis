@@ -1,6 +1,5 @@
 interface Eva {
   uuid: string;
-  ownerId: number;
   missionId: number;
 
   name: string;
@@ -14,13 +13,13 @@ interface Eva {
   egressLocationUuid: string; // station uuid or "lander"
   ingressLocationUuid: string; // station uuid or "lander"
   traverseColor: string;
+  ownerId: number;
 
   createdAt?: string;
   updatedAt?: string;
 }
 
-type Eva_db_type = Omit<Eva, "ownerId" | "missionId" | "createdAt" | "updatedAt"> & {
-  owner: User_db_type;
+type Eva_db_type = Omit<Eva, "missionId" | "createdAt" | "updatedAt"> & {
   mission: Mission_db_type;
   createdAt?: Date;
   updatedAt?: Date;
@@ -90,8 +89,7 @@ interface Station {
   updatedAt?: string;
 }
 
-type Station_db_type = Omit<Station, "ownerId" | "missionId" | "createdAt" | "updatedAt"> & {
-  owner: User_db_type;
+type Station_db_type = Omit<Station, "missionId" | "createdAt" | "updatedAt"> & {
   mission: Mission_db_type;
   createdAt?: Date;
   updatedAt?: Date;
@@ -156,8 +154,7 @@ interface POI {
   updatedAt?: string;
 }
 
-type Poi_db_type = Omit<POI, "ownerId" | "missionId" | "createdAt" | "updatedAt"> & {
-  owner: User_db_type;
+type Poi_db_type = Omit<POI, "missionId" | "createdAt" | "updatedAt"> & {
   mission: Mission_db_type;
   createdAt?: Date;
   updatedAt?: Date;

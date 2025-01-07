@@ -26,14 +26,15 @@ import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppS
 import ReactDOMServer from "react-dom/server";
 import STMSelector from "./stm/stm-selector";
 import { validators, regExValidators } from "components/interface/form/formValidators";
-import { round } from "lodash";
+import round from "lodash/round";
+import isNull from "lodash/isNull";
 import { EquipmentSelector, GeographicUnitSelector } from "./actions-action-body-multiselectors";
 import { thunkUpdateActionLocation } from "store/thunk/thunkAction";
 import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
-import _ from "lodash";
+import last from "lodash/last";
 import { thunkAddRexActionMass } from "store/thunk/thunkRex";
 
 const RightActionBody: FunctionComponent<{
@@ -79,7 +80,7 @@ const RightActionBody: FunctionComponent<{
     if (!rex?.actionEntries || !rex.actionEntries[action.uuid]) {
       return null;
     } else {
-      return _.last(rex.actionEntries[action.uuid]).mass;
+      return last(rex.actionEntries[action.uuid]).mass;
     }
   }, deepEqual);
 
@@ -352,7 +353,7 @@ const RightActionBody: FunctionComponent<{
                     <div className={paneStyles.inputFieldValue}>
                       <InLineEditInput
                         value={actionRexMass?.toString()}
-                        editing={!_.isNull(rexUuid) && allowRexEdit}
+                        editing={!isNull(rexUuid) && allowRexEdit}
                         fieldProps={{
                           name: "mass",
                           ariaLabel: "Executed Sample Mass",
@@ -476,6 +477,14 @@ const RightActionBody: FunctionComponent<{
                   }}
                   label={parentType === "station" ? "Set to Station" : "Set to POI"}
                   style={{ width: "95px" }}
+                />
+                <Button
+                  onClick={() => {
+                    dispatch(upsertActionByField(action.uuid, "location", null));
+                    dispatch(upsertActionByField(action.uuid, "elevation", null));
+                  }}
+                  label="Clear Location"
+                  style={{ width: "99px" }}
                 />
               </>
             )}

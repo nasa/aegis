@@ -13,7 +13,7 @@ import { selectEvaStations, selecteEvaTraverses } from "store/selectors";
 import styles from "./dashTimeline.module.css";
 import { decodeEmoji, hhmmFromMinutes, secondsFromhhmmss } from "utils/formatting";
 import PetInterval from "components/page/petInterval";
-import _ from "lodash";
+import last from "lodash/last";
 import useWindowSize from "use-window-size-v2";
 
 type TimeLabel = {
@@ -223,14 +223,12 @@ const Indicator: FunctionComponent<{
   let inProgress = false;
   if (sequenceItem.type === "station") {
     // find the last stationEntry in the rex for this station
-    const stationEntry = _.last(rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : []);
+    const stationEntry = last(rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : []);
     completed = stationEntry?.rexStatus === "complete";
     inProgress = stationEntry?.rexStatus === "in-progress";
   } else if (sequenceItem.type === "traverse") {
     // find the last traverseEntry in the rex for this traverse
-    const traverseEntry = _.last(
-      rex?.traverseEntries ? rex?.traverseEntries[sequenceItem.uuid] : []
-    );
+    const traverseEntry = last(rex?.traverseEntries ? rex?.traverseEntries[sequenceItem.uuid] : []);
     completed = traverseEntry?.rexStatus === "complete";
     inProgress = traverseEntry?.rexStatus === "in-progress";
   }
@@ -271,7 +269,7 @@ const StationName: FunctionComponent<{
 
   let completed = false;
   // find the last stationEntry in the rex for this station
-  const stationEntry = _.last(rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : []);
+  const stationEntry = last(rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : []);
   completed = stationEntry?.rexStatus === "complete";
 
   useLayoutEffect(() => {

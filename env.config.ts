@@ -121,13 +121,22 @@ export const config: DotenvConfig<typeof environments> = {
     },
   },
 
+  /**
+   * EMSS Token
+   * This is the token used to authenticate with the AEGIS API from EMSS app to app
+   */
+  EMSS_TOKEN: {
+    default: {
+      type: "required-from-secret",
+    },
+  },
+
   // Ultimately need to alter this based on what server we're on (prod/int/dev). Currently this override
   // happens in the pipeline depoy script. `INSERT_SUBDOMAIN` that gets replaced
   // with the appropriate subdomain during deploy.
   OAUTH2_PROXY_REDIRECT_URL: {
     // prod: "https://aegis.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
     // int: "https://aegis-int.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
-    // dev: "https://aegis-dev.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
     local: "https://aegis-local.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
     default: "https://INSERT_SUBDOMAIN.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
   },

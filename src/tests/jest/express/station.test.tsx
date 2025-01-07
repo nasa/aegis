@@ -49,7 +49,6 @@ beforeAll(async () => {
   testStations = await new StationFactory(em)
     .each((station) => {
       station.mission = testMissions[0];
-      station.owner = testUser;
     })
     .create(2);
 
@@ -127,7 +126,6 @@ describe("Station API Endpoint", () => {
     test("No permissions", async () => {
       const requestBody: StationUpsertRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[2].id,
         stations: [{ ...newStation, missionId: testMissions[2].id }],
       };
@@ -142,7 +140,6 @@ describe("Station API Endpoint", () => {
     test("No permissions - View only", async () => {
       const requestBody: StationUpsertRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[1].id,
         stations: [{ ...newStation, missionId: testMissions[1].id }],
       };
@@ -157,7 +154,6 @@ describe("Station API Endpoint", () => {
     test("Create new station", async () => {
       const requestBody: StationUpsertRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[0].id,
         stations: [{ ...newStation, missionId: testMissions[0].id, ownerId: testUser.id }],
       };
@@ -180,7 +176,6 @@ describe("Station API Endpoint", () => {
       newStation.name = "Jest Test New Station Modified";
       const requestBody: StationUpsertRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[0].id,
         stations: [newStation],
       };
@@ -199,7 +194,6 @@ describe("Station API Endpoint", () => {
     test("No permissions", async () => {
       const requestBody: StationDeleteRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[2].id,
         stationUuids: [newStation.uuid],
       };
@@ -214,7 +208,6 @@ describe("Station API Endpoint", () => {
     test("No permissions - View only", async () => {
       const requestBody: StationDeleteRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[1].id,
         stationUuids: [newStation.uuid],
       };
@@ -229,7 +222,6 @@ describe("Station API Endpoint", () => {
     test("Delete a station", async () => {
       const requestBody: StationDeleteRequest = {
         socketId: "someSocketId",
-        log: false,
         missionId: testMissions[0].id,
         stationUuids: [newStation.uuid],
       };
@@ -241,6 +233,49 @@ describe("Station API Endpoint", () => {
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
     });
+  });
+});
+
+describe("Auth with emss-token header", () => {
+  const emssToken = process.env.EMSS_TOKEN || "";
+  let newStation: Station = generateBlankStation({ name: "Jest Station-1" });
+
+  test("GET request succeeds with emss-token", async () => {
+    const res = await supertest(app)
+      .get("/api/v1/station")
+      .set("emss-token", emssToken)
+      .query({ missionId: testMissions[0].id });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.status).toBe("success");
+  });
+
+  test("POST request succeeds with emss-token", async () => {
+    const requestBody: StationUpsertRequest = {
+      socketId: "someSocketId",
+      missionId: testMissions[0].id,
+      stations: [{ ...newStation, missionId: testMissions[0].id }],
+    };
+    const res = await supertest(app)
+      .post("/api/v1/station")
+      .set("emss-token", emssToken)
+      .send(requestBody);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data[0].uuid).not.toBeNull();
+    newStation = res.body.data[0];
+  });
+
+  test("DELETE request succeeds with emss-token", async () => {
+    const requestBody: StationDeleteRequest = {
+      socketId: "someSocketId",
+      missionId: testMissions[0].id,
+      stationUuids: [newStation.uuid],
+    };
+    const res = await supertest(app)
+      .delete("/api/v1/station")
+      .set("emss-token", emssToken)
+      .send(requestBody);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.status).toBe("success");
   });
 });
 

@@ -25,7 +25,7 @@ import {
 } from "store/thunk/thunkStation";
 import { displayFormattedTotalTimeObj, makeTraverseRateString } from "utils/component-helpers";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
-import { round } from "lodash";
+import round from "lodash/round";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import CalculatedDwell from "../calculated-dwell";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";

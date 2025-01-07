@@ -16,7 +16,11 @@ import {
   SetStateAction,
   useCallback,
 } from "react";
-import _ from "lodash";
+import last from "lodash/last";
+import pick from "lodash/pick";
+import reverse from "lodash/reverse";
+import uniqBy from "lodash/uniqBy";
+import orderBy from "lodash/orderBy";
 import { secondsFromhhmmss, hhmmssFromSeconds, titleCase } from "utils/formatting";
 import PetInterval from "../page/petInterval";
 import { isWindows10 } from "utils/browser";
@@ -34,10 +38,8 @@ import {
 } from "components/page/leaflet-helper";
 import { MapViewMenu } from "components/interface/map/map-menu-view";
 import "components/dashboard/map.module.css";
-import { faGlobe } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SunEarth } from "components/interface/map/map-sunearth";
-import { Dropdown, MultiSelectDropdown } from "components/interface/form/globalFields";
+import { MultiSelectDropdown } from "components/interface/form/globalFields";
 import { featureCollection, lineString, point } from "@turf/helpers";
 import { circle } from "@turf/turf";
 import {
@@ -47,6 +49,7 @@ import {
 } from "utils/geoMath";
 import { Feature } from "geojson";
 import { getGrids } from "http-client/grid";
+import PresetMenu from "../interface/map/map-menu-preset";
 
 const MapBody: FunctionComponent<{
   setShowScaleBar: Dispatch<SetStateAction<boolean>>;
@@ -84,7 +87,7 @@ const MapBody: FunctionComponent<{
    */
   const mission: MissionSelectProperties = useAppSelector(
     (state) =>
-      _.pick(state.mission.missionFromDb, [
+      pick(state.mission.missionFromDb, [
         "id",
         "landerLocation",
         "initialZoom",
@@ -120,7 +123,7 @@ const MapBody: FunctionComponent<{
   const stationsInProgress: Station[] = useAppSelector((state) => {
     const stationsInProgress: Station[] = [];
     for (const stationUuid in runningRexFromDb.stationEntries) {
-      const lastStatus: StationEntry = _.last(runningRexFromDb.stationEntries[stationUuid]);
+      const lastStatus: StationEntry = last(runningRexFromDb.stationEntries[stationUuid]);
       if (lastStatus.rexStatus === "in-progress") {
         stationsInProgress.push(
           state.station.stationsFromDb.find((station) => station.uuid === stationUuid)
@@ -132,7 +135,7 @@ const MapBody: FunctionComponent<{
   const traversesInProgress: Traverse[] = useAppSelector((state) => {
     const traversesInProgress: Traverse[] = [];
     for (const traverseUuid in runningRexFromDb.traverseEntries) {
-      const lastStatus: TraverseEntry = _.last(runningRexFromDb.traverseEntries[traverseUuid]);
+      const lastStatus: TraverseEntry = last(runningRexFromDb.traverseEntries[traverseUuid]);
       if (lastStatus.rexStatus === "in-progress") {
         traversesInProgress.push(
           state.traverse.traversesFromDb.find((traverse) => traverse.uuid === traverseUuid)
@@ -938,7 +941,7 @@ const MapBody: FunctionComponent<{
       } else {
         filteredPosEntries = posEntriesWithLocations;
       }
-      posEntriesToShow = _.orderBy(filteredPosEntries, ["createdAt"], "desc");
+      posEntriesToShow = orderBy(filteredPosEntries, ["createdAt"], "desc");
       // gather the latest 2 pos entries (need 2 in order to draw a polyline) for each type.
       // Most recent/latest entry is first in the array.
       posTypeLatestEntries = getLatestPosEntryByType({
@@ -1025,7 +1028,7 @@ const MapBody: FunctionComponent<{
           //loop over posTypes and get their latest entries
           drawPosPathOnMap({
             posEntryFeatureGroup,
-            coords: _.reverse(
+            coords: reverse(
               posTypeLatestEntries[posType.uuid].map((posEntry) => {
                 return posEntry.location;
               })
@@ -1052,7 +1055,7 @@ const MapBody: FunctionComponent<{
               // fade old paths
               drawPosPathOnMap({
                 posEntryFeatureGroup,
-                coords: _.reverse(
+                coords: reverse(
                   posEntriesForType.slice(1).map((posEntry) => {
                     return posEntry.location;
                   })
@@ -1067,7 +1070,7 @@ const MapBody: FunctionComponent<{
               // latest path is a separate polyline thats not faded
               drawPosPathOnMap({
                 posEntryFeatureGroup,
-                coords: _.reverse(
+                coords: reverse(
                   posEntriesForType.slice(0, 2).map((posEntry) => {
                     return posEntry.location;
                   })
@@ -1083,7 +1086,7 @@ const MapBody: FunctionComponent<{
               // no fade
               drawPosPathOnMap({
                 posEntryFeatureGroup,
-                coords: _.reverse(
+                coords: reverse(
                   posEntriesForType.map((posEntry) => {
                     return posEntry.location;
                   })
@@ -1117,13 +1120,13 @@ const MapBody: FunctionComponent<{
     // turn on latest label only
     if (mapDisplayPos.showLatestLabels) {
       // get a unique array of the latest pos entries. Multiple types may share the same entry
-      const uniqueLatestPosEntries = _.uniqBy(
+      const uniqueLatestPosEntries = uniqBy(
         Object.values(latestPosEntriesByType).map((posEntries) => {
           return posEntries[0];
         }),
         "uuid"
       );
-      for (const latestPosEntry of _.orderBy(uniqueLatestPosEntries, ["createdAt", "asc"])) {
+      for (const latestPosEntry of orderBy(uniqueLatestPosEntries, ["createdAt", "asc"])) {
         const posMarker = getMapItemByUuid(map, latestPosEntry.uuid) as AEGISMarker;
         if (!posMarker) continue;
 
@@ -1271,37 +1274,12 @@ const MapBody: FunctionComponent<{
             </div>
           </div>
         </div>
-        <div className={styles.presetWrapper}>
-          <div
-            className={styles.presetMenu}
-            data-tooltip-id="aegis-tooltip"
-            data-tooltip-html="Select Map Preset"
-          >
-            <div className={styles.presetIcon}>
-              <FontAwesomeIcon icon={faGlobe} size="sm" />
-            </div>
-            <Dropdown
-              selected={selectedPreset?.uuid}
-              onChange={(val) => {
-                setSelectedPreset(
-                  presetsFromDb.find((preset) => {
-                    return preset.uuid === val;
-                  })
-                );
-              }}
-              containerStyle={{ padding: "2px 0px 2px 0px" }}
-            >
-              {[...presetsFromDb]
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map((preset) => {
-                  return (
-                    <option key={preset.uuid} value={preset.uuid}>
-                      {preset.name}
-                    </option>
-                  );
-                })}
-            </Dropdown>
-          </div>
+        <div className={styles.presetDisplay}>
+          <PresetMenu
+            selectedPreset={selectedPreset}
+            setSelectedPreset={setSelectedPreset}
+            presetsFromDb={presetsFromDb}
+          />
         </div>
       </div>
       <div className={styles.mapScaleDisplay}>{showScaleBar && drawScaleBar()}</div>

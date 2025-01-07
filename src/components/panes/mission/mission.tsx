@@ -1,7 +1,6 @@
 import missionStyles from "./mission.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { FunctionComponent } from "react";
-import _ from "lodash";
 import { setSelectedMissionRightNavItem } from "store/mission";
 import { useAppDispatch } from "utils/useAppDispatch";
 

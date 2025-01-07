@@ -40,7 +40,6 @@ export function convertEVAsTypeDbToStore(dbEVAs: Eva_db[]): Eva[] {
   for (const dbeva of dbEVAs) {
     const convertedEVA: Eva = {
       uuid: dbeva.uuid,
-      ownerId: dbeva.owner.id,
       missionId: dbeva.mission.id,
       name: dbeva.name,
       status: dbeva.status,
@@ -52,6 +51,7 @@ export function convertEVAsTypeDbToStore(dbEVAs: Eva_db[]): Eva[] {
       ingressDuration: dbeva.ingressDuration,
       egressLocationUuid: dbeva.egressLocationUuid,
       ingressLocationUuid: dbeva.ingressLocationUuid,
+      ownerId: dbeva.ownerId,
       traverseColor: dbeva.traverseColor,
       createdAt: dbeva.createdAt.toISOString(),
       updatedAt: dbeva.updatedAt.toISOString(),
@@ -71,7 +71,6 @@ export function convertEVAsTypeStoreToDb(storeEVAs: Eva[]): EntityData<Eva_db>[]
   for (const storeEva of storeEVAs) {
     const convertedRecord: EntityData<Eva_db> = {
       uuid: storeEva.uuid,
-      owner: storeEva.ownerId,
       mission: storeEva.missionId,
       name: storeEva.name,
       status: storeEva.status,
@@ -84,6 +83,7 @@ export function convertEVAsTypeStoreToDb(storeEVAs: Eva[]): EntityData<Eva_db>[]
       egressLocationUuid: storeEva.egressLocationUuid,
       ingressLocationUuid: storeEva.ingressLocationUuid,
       traverseColor: storeEva.traverseColor,
+      ownerId: storeEva.ownerId,
       updatedAt: new Date(storeEva.updatedAt),
       createdAt: new Date(storeEva.createdAt),
     };

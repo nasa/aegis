@@ -34,7 +34,7 @@ import { decodeEmoji, toDecimal } from "utils/formatting";
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
 import { ActionTemplateMenu } from "../mission-actionTemplates-menu";
-import _ from "lodash";
+import capitalize from "lodash/capitalize";
 
 const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -628,7 +628,7 @@ const ActionDefType: FunctionComponent<{
           className={actionStyles.actionDefType}
           style={{ color: `var(--${type.slice(0, -1)})` }}
         >
-          {selectedActionDef?.name ? selectedActionDef?.name : _.capitalize(type.slice(0, -1))}
+          {selectedActionDef?.name ? selectedActionDef?.name : capitalize(type.slice(0, -1))}
         </span>
       ) : (
         <ActionDefDropdown
@@ -670,7 +670,7 @@ const ActionDefDropdown: FunctionComponent<{
       arrowStyle={{ color: "var(--grey5)" }}
       containerStyle={{ width: "70px" }}
     >
-      <option value="">{_.capitalize(type)}</option>
+      <option value="">{capitalize(type)}</option>
       {actionDefinitions.map((actionDef) => (
         <option
           key={actionDef.uuid}

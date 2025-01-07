@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 
 import { hasPerms } from "utils/permissions";
 
@@ -14,12 +14,11 @@ import { convertRexesTypeDbToStore, convertRexesTypeStoreToDb } from "store/stor
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { missionId, socketId, uuid, log } = query;
+  const { missionId, socketId, uuid } = query;
   const queryObj = {
     missionId: missionId ? parseInt(missionId as string) : undefined,
     socketId: socketId ? (socketId as string) : undefined,
     uuid: uuid ? uuid.toString() : null,
-    logAction: log === "true",
   };
   return queryObj;
 };
@@ -27,12 +26,19 @@ const parseQuery = (query: Query) => {
 // get
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const viewPermission = await hasPerms(queryObj.missionId, "view", req.session.user);
+  const emssToken = req.headers["emss-token"] as string;
+
+  const viewPermission = await hasPerms({
+    missionId: queryObj.missionId,
+    permission: "view",
+    user: req.session.user,
+    emssToken,
+  });
   if (!viewPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
-  if (!queryObj.missionId || _.isNaN(queryObj.missionId)) {
+  if (!queryObj.missionId || isNaN(queryObj.missionId)) {
     res.status(500).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
@@ -53,7 +59,14 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, rexes } = req.body as RexUpsertRequest;
-  const editPermission = await hasPerms(missionId, "edit", req.session.user);
+  const emssToken = req.headers["emss-token"] as string;
+
+  const editPermission = await hasPerms({
+    missionId,
+    permission: "edit",
+    user: req.session.user,
+    emssToken,
+  });
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
@@ -62,7 +75,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
     const rexesToUpsert = rexes.map((r) => {
       if (!r.ownerId) {
-        return { ...r, ownerId: req.session.user.id };
+        return { ...r, ownerId: req.session?.user?.id || -1 };
       } else {
         return r;
       }
@@ -102,7 +115,14 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, uuids } = req.body as RexDeleteRequest;
-  const editPermission = await hasPerms(missionId, "edit", req.session.user);
+  const emssToken = req.headers["emss-token"] as string;
+
+  const editPermission = await hasPerms({
+    missionId,
+    permission: "edit",
+    user: req.session.user,
+    emssToken,
+  });
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
@@ -162,7 +182,7 @@ export async function getRexes(missionId: number): Promise<Rex[]> {
 export async function upsertRexes(rexes: Rex[]): Promise<Rex[]> {
   const em = getEM();
 
-  const rexesToUpsert: Rex[] = _.cloneDeep(rexes);
+  const rexesToUpsert: Rex[] = cloneDeep(rexes);
   const rexesUpsertedToDb = [];
 
   for (const rexToUpsert of rexesToUpsert) {

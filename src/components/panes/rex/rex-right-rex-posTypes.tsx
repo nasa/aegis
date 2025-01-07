@@ -2,7 +2,7 @@ import { FunctionComponent, useRef } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import styles from "./rex.module.css";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
-import { cloneDeep } from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import {
   faList,

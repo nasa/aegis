@@ -1,4 +1,4 @@
-import _ from "lodash";
+import isNumber from "lodash/isNumber";
 import { MutableRefObject } from "react";
 import { addPointsAtMeters, getDistanceBetweenTwoCoordinates } from "utils/geoMath";
 
@@ -100,7 +100,7 @@ export const processEvaDataFromStore = ({
         EVASequenceItemForTimeline.stationElevation = station.elevation ? station.elevation : null;
 
         //get traverse rate for this sequence item in meters per second (eva rate falling back to mission rate)
-        const traverseRate = _.isNumber(selectedEva.traverseRate)
+        const traverseRate = isNumber(selectedEva.traverseRate)
           ? selectedEva.traverseRate
           : missionTraverseRate;
         EVASequenceItemForTimeline.traverseRateMSec = traverseRate * (1000 / 3600); //convert to m/sec
@@ -190,7 +190,7 @@ export const processEvaDataFromStore = ({
                   mission.planetRadius
                 );
                 walkback.subdividedDistMeters.push(distanceSegment);
-                const walkbackTraverseRate = _.isNumber(station.walkbackTraverseRate)
+                const walkbackTraverseRate = isNumber(station.walkbackTraverseRate)
                   ? station.walkbackTraverseRate
                   : missionWalkbackRate;
 

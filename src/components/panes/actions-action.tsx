@@ -10,7 +10,8 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { decodeEmoji, hmmFromMinutes, titleCase } from "utils/formatting";
 import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
 import { validators } from "components/interface/form/formValidators";
-import _ from "lodash";
+import last from "lodash/last";
+import capitalize from "lodash/capitalize";
 import { collapseActions, expandActions } from "store/interface";
 import RightActionBody from "./actions-action-body";
 import { ActionMenu } from "./actions-action-menu";
@@ -58,7 +59,7 @@ const RightAction: FunctionComponent<{
     if (!rex?.actionEntries || !rex.actionEntries[actionUuid]) {
       return null;
     } else {
-      return _.last(rex.actionEntries[actionUuid]).rexStatus;
+      return last(rex.actionEntries[actionUuid]).rexStatus;
     }
   }, refEqual);
 
@@ -353,7 +354,7 @@ const ActionDefType: FunctionComponent<{
           className={actionStyles.actionDefType}
           style={{ color: `var(--${type.slice(0, -1)})` }}
         >
-          {selectedActionDef?.name ? selectedActionDef?.name : _.capitalize(type.slice(0, -1))}
+          {selectedActionDef?.name ? selectedActionDef?.name : capitalize(type.slice(0, -1))}
         </span>
       ) : (
         <ActionDefDropdown
@@ -385,7 +386,7 @@ const ActionDefDropdown: FunctionComponent<{
       arrowStyle={{ color: "var(--grey5)" }}
       containerStyle={{ width: "70px" }}
     >
-      <option value="">{_.capitalize(type)}</option>
+      <option value="">{capitalize(type)}</option>
       {actionDefinitions.map((actionDef) => (
         <option
           key={actionDef.uuid}

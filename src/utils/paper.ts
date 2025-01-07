@@ -1,4 +1,4 @@
-import _ from "lodash";
+import last from "lodash/last";
 import { getSlope } from "./geoMath";
 
 /**
@@ -30,7 +30,7 @@ export function getHoverValue(
   }
 
   if (!pointAfter) {
-    pointAfter = _.last(graphArray);
+    pointAfter = last(graphArray);
     if (pointBefore === pointAfter) {
       // No slope when pointBefore and pointAfter are the same
       return {

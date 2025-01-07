@@ -17,7 +17,11 @@ import {
   FunctionComponent,
   useLayoutEffect,
 } from "react";
-import _ from "lodash";
+import isEqual from "lodash/isEqual";
+import pick from "lodash/pick";
+import reverse from "lodash/reverse";
+import uniqBy from "lodash/uniqBy";
+import orderBy from "lodash/orderBy";
 import { updateMapDirective } from "store/map";
 import { setSectionSelected } from "store/interface";
 import { setSelectedStationUuid } from "store/station";
@@ -26,6 +30,7 @@ import {
   adjustGridIndex,
   convertLeafletLatLngToAegisPoint,
   findClosestPointInGrid,
+  findGridCoordinatesFromPoint,
   getMidpoint,
 } from "utils/geoMath";
 import { decodeEmoji, secondsFromhhmmss, hhmmssFromSeconds, titleCase } from "utils/formatting";
@@ -36,6 +41,7 @@ import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { thunkGetStationOrTraverse } from "store/thunk/thunkEva";
 import { MapViewMenu } from "./map-menu-view";
 import { MapPositionMenu } from "./map-menu-pos";
+import MapPresetMenu from "./map-menu-preset";
 import PetInterval from "../../page/petInterval";
 import { isWindows10 } from "utils/browser";
 import { useCookies } from "react-cookie";
@@ -61,10 +67,12 @@ import {
   setMeasureStartingCoords,
   handleMapDirective,
   saveUpdatedItemPosition,
+  mouseGridCoordDiv,
 } from "components/page/leaflet-helper";
 import { thunkMarkerOnClick, thunkPolylineOnClick } from "store/thunk/thunkMap";
 import { Feature } from "geojson";
 import { getGrids } from "http-client/grid";
+import { setSelectedPresetUuid } from "store/preset";
 
 const MapBody: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -82,7 +90,7 @@ const MapBody: FunctionComponent = () => {
 
   const mission: MissionSelectProperties = useAppSelector(
     (state) =>
-      _.pick(state.mission.mission, [
+      pick(state.mission.mission, [
         "id",
         "landerLocation",
         "initialZoom",
@@ -112,6 +120,7 @@ const MapBody: FunctionComponent = () => {
     (state) => state.preset.presets.find((p) => p.uuid === selectedPresetUuid),
     deepEqual
   );
+  const presetsFromDb = useAppSelector((state) => state.preset.presets, deepEqual);
 
   const pois = useAppSelector((state) => state.poi.pois, deepEqual);
   const stations = useAppSelector((state) => state.station.stations, deepEqual);
@@ -201,7 +210,8 @@ const MapBody: FunctionComponent = () => {
   const [eyeballMenuCookie, setEyeballMenuCookie] = useCookies(["AEGIS_Map_View_Settings"]);
   /*** end Eyeball menu toggles */
 
-  const [mousePosition, setMousePosition] = useState<AEGISPoint>(null);
+  const [mouseLatLng, setMouseLatLng] = useState<AEGISPoint>(null);
+  const [mouseGridCoord, setMouseGridCoord] = useState<string>("N/A");
   const [mapZoom, setMapZoom] = useState<number>(0); // Used to trigger re-draw of scale. Value doens't matter
   const [gridLabels, setGridLabels] = useState<GridLabelItem[]>([]);
   const [mapBounds, setMapBounds] = useState<string>(null); // Used to trigger re-draw of grid labels. Value doens't matter
@@ -410,7 +420,7 @@ const MapBody: FunctionComponent = () => {
     });
 
     // no new layers are newly visible/hidden or reordered. do nothing
-    if (_.isEqual(layersToAddInOrder, layersOnMap)) {
+    if (isEqual(layersToAddInOrder, layersOnMap)) {
       return;
     } else {
       setLayersOnMap(layersToAddInOrder);
@@ -498,7 +508,13 @@ const MapBody: FunctionComponent = () => {
     });
 
     map.current.on("mousemove", (e) => {
-      setMousePosition({ lat: e.latlng.lat, lng: e.latlng.lng });
+      setMouseLatLng({ lat: e.latlng.lat, lng: e.latlng.lng });
+      const positionCoords = findGridCoordinatesFromPoint(
+        chosenGrid?.coordinates,
+        e.latlng,
+        mission.planetRadius
+      );
+      setMouseGridCoord(positionCoords);
     });
 
     map.current.on("zoomend", () => {
@@ -517,7 +533,7 @@ const MapBody: FunctionComponent = () => {
         map.current.off("click");
       }
     };
-  }, [map, mapDirective, dispatch, gridLabels, showGridLabels, mission]);
+  }, [map, mapDirective, dispatch, gridLabels, showGridLabels, mission, chosenGrid]);
 
   /**
    * Listen for mapDirective for stations, pois, actions, traverses, and measurements, and trigger map draw/edit modes appropriately
@@ -1237,7 +1253,7 @@ const MapBody: FunctionComponent = () => {
         } else {
           filteredPosEntries = posEntriesWithLocations;
         }
-        posEntriesToShow = _.orderBy(filteredPosEntries, ["createdAt"], "desc");
+        posEntriesToShow = orderBy(filteredPosEntries, ["createdAt"], "desc");
         posTypeLatestEntries = getLatestPosEntryByType({
           allPosEntries: filteredPosEntries,
         });
@@ -1344,7 +1360,7 @@ const MapBody: FunctionComponent = () => {
           //loop over posTypes and get their latest entries
           drawPosPathOnMap({
             posEntryFeatureGroup,
-            coords: _.reverse(
+            coords: reverse(
               posTypeLatestEntries[posType.uuid].map((posEntry) => {
                 return posEntry.location;
               })
@@ -1371,7 +1387,7 @@ const MapBody: FunctionComponent = () => {
               // fade old paths
               drawPosPathOnMap({
                 posEntryFeatureGroup,
-                coords: _.reverse(
+                coords: reverse(
                   posEntriesForType.slice(1).map((posEntry) => {
                     return posEntry.location;
                   })
@@ -1386,7 +1402,7 @@ const MapBody: FunctionComponent = () => {
               // latest path is a separate polyline thats not faded
               drawPosPathOnMap({
                 posEntryFeatureGroup,
-                coords: _.reverse(
+                coords: reverse(
                   posEntriesForType.slice(0, 2).map((posEntry) => {
                     return posEntry.location;
                   })
@@ -1402,7 +1418,7 @@ const MapBody: FunctionComponent = () => {
               // no fade
               drawPosPathOnMap({
                 posEntryFeatureGroup,
-                coords: _.reverse(
+                coords: reverse(
                   posEntriesForType.map((posEntry) => {
                     return posEntry.location;
                   })
@@ -1435,13 +1451,13 @@ const MapBody: FunctionComponent = () => {
     // turn on latest label only
     if (mapDisplayPos.showLatestLabels) {
       // get a unique array of the latest pos entries. Multiple types may share the same entry
-      const uniqueLatestPosEntries = _.uniqBy(
+      const uniqueLatestPosEntries = uniqBy(
         Object.values(latestPosEntriesByType).map((posEntries) => {
           return posEntries[0];
         }),
         "uuid"
       );
-      for (const latestPosEntry of _.orderBy(uniqueLatestPosEntries, ["createdAt", "asc"])) {
+      for (const latestPosEntry of orderBy(uniqueLatestPosEntries, ["createdAt", "asc"])) {
         const posMarker = getMapItemByUuid(map, latestPosEntry.uuid) as AEGISMarker;
         if (!posMarker) continue;
 
@@ -1947,9 +1963,19 @@ const MapBody: FunctionComponent = () => {
         />
       </div>
       {selectedOrRunningRex && <MapPositionMenu />}
+      <div className={styles.mapPresetDisplay}>
+        <MapPresetMenu
+          selectedPreset={selectedPreset}
+          setSelectedPreset={(preset: Preset) => {
+            dispatch(setSelectedPresetUuid(preset.uuid));
+          }}
+          presetsFromDb={presetsFromDb}
+        />
+      </div>
       <div className={styles.mapScaleDisplay}>{showScaleBar && drawScaleBar()}</div>
       <div className={styles.mapPositionDisplay}>
-        {showMouseLatLon && mousePosition && latLngDiv(mousePosition)}
+        {showMouseLatLon && mouseLatLng && latLngDiv(mouseLatLng)}
+        {showGridLines && mouseGridCoord && mouseGridCoordDiv(mouseGridCoord)}
       </div>
       {showSunEarth && <SunEarth type="editor" selectedPreset={selectedPreset} />}
     </div>

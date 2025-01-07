@@ -1,4 +1,3 @@
-import _ from "lodash";
 import { FunctionComponent } from "react";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
@@ -23,6 +22,7 @@ import { getAlertColor, isModified } from "utils/component-helpers";
 import { validators } from "components/interface/form/formValidators";
 import { RightTabs } from "components/interface/side-controls";
 import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
+import isNull from "lodash/isNull";
 
 const PoiEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -96,7 +96,7 @@ const PoiEditorRight: FunctionComponent = () => {
         reportItems: calculatedFields?.reportItems,
         reportTitle: "Station Report",
       },
-      selectedColor: !_.isNull(reportsTabIconColor) ? reportsTabIconColor : "white",
+      selectedColor: !isNull(reportsTabIconColor) ? reportsTabIconColor : "white",
       unselectedColor: reportsTabIconColor,
       icon: calculatedFields?.reportItems.length > 0 ? faTriangleExclamation : faCheck,
     },

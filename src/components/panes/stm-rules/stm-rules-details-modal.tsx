@@ -28,7 +28,7 @@ import {
   thunkSaveStmRule,
 } from "store/thunk/thunkStmRules";
 import { stmRulesToggleRex } from "store/interface";
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import { getSatisfiedActionsByRule } from "utils/stmRuleEngine";
 import Action from "components/panes/actions-action";
 import { decodeEmoji } from "utils/formatting";
@@ -444,7 +444,7 @@ export const RexSelector: FunctionComponent<{ startOpen?: boolean }> = ({ startO
   const dispatch = useAppDispatch();
   const selectedRexes = useAppSelector((state) => state.interface.stmRulesSelectedRexes, deepEqual);
   const rexes = useAppSelector(
-    (state) => _.cloneDeep(state.rex.rexes).sort((a, b) => a.name.localeCompare(b.name)),
+    (state) => cloneDeep(state.rex.rexes).sort((a, b) => a.name.localeCompare(b.name)),
     deepEqual
   );
 

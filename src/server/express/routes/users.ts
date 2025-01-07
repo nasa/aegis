@@ -1,6 +1,6 @@
 import express, { Request, Response } from "express";
 
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 
 import { Query } from "express-serve-static-core";
 import { getEM } from "utils/mikro";
@@ -122,7 +122,7 @@ export async function getUsers(userId: number = null): Promise<User[]> {
  */
 export async function upsertUsers(users: User[]): Promise<User[]> {
   const em = getEM();
-  const usersToUpsert: User[] = _.cloneDeep(users);
+  const usersToUpsert: User[] = cloneDeep(users);
   const usersUpsertedToDb = [];
 
   for (const userToUpsert of usersToUpsert) {

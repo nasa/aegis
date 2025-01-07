@@ -4,12 +4,12 @@ import { useAppDispatch } from "utils/useAppDispatch";
 
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import poiStyles from "./poi.module.css";
-import _ from "lodash";
 import { setSelectedPoiUuid, setSelectedPOIRightNavItem } from "store/poi";
 import { clearEvaSelections } from "store/eva";
 import { decodeEmoji } from "utils/formatting";
 import { setHoverUuidsForSequence } from "store/hover";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
+import sortBy from "lodash/sortBy";
 
 const PoiItem: FunctionComponent<{
   selectedPoiUuid: string;
@@ -20,14 +20,14 @@ const PoiItem: FunctionComponent<{
   const selectedRightNavItem = useAppSelector((state) => state.poi.selectedRightNavItem, refEqual);
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
   const poiActions = useAppSelector((state) => {
-    const filteredactions = _.sortBy(
+    const filteredactions = sortBy(
       state.action.actions.filter((storeAction: Action) => storeAction.poiUuid === poi.uuid),
       ["createdAt"]
     );
     return filteredactions;
   }, deepEqual);
   const poiActionsFromDb = useAppSelector((state) => {
-    const filteredactions = _.sortBy(
+    const filteredactions = sortBy(
       state.action.actionsFromDb.filter((storeAction: Action) => storeAction.poiUuid === poi.uuid),
       ["createdAt"]
     );

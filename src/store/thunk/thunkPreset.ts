@@ -14,29 +14,25 @@ import {
 } from "store/preset";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import * as httpClient_preset from "http-client/preset";
-import { sortBy, cloneDeep } from "lodash";
+import cloneDeep from "lodash/cloneDeep";
+import sortBy from "lodash/sortBy";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { thunkSaveNewPreset } from "./crossThunk";
-import _ from "lodash";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankPreset } from "store/storeUtils/preset";
 
 export const thunkSavePreset = appCreateAsyncThunk<{
   preset: Preset;
-}>("presetSave", async ({ preset }, { dispatch, getState }) => {
+}>("presetSave", async ({ preset }, { dispatch }) => {
   if (!preset) return;
-  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
   // upsert the changed Preset to the DB
-  const upsertReponse = await httpClient_preset.upsertPresets(
-    [
-      {
-        ...preset,
-        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-      },
-    ],
-    isRexRunning
-  );
+  const upsertReponse = await httpClient_preset.upsertPresets([
+    {
+      ...preset,
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    },
+  ]);
 
   if (upsertReponse.status === "success") {
     // upsert the changed preset to the store
@@ -81,12 +77,11 @@ export const thunkDeletePreset = appCreateAsyncThunk<{
   const presetFromDb = getState().preset.presetsFromDb.find(
     (presetDb) => presetDb.uuid === presetUuid
   );
-  const isRexRunning: boolean = getState().rex.rexes.find((rex) => rex.isRunning)?.isRunning;
 
   // if the selected preset is in presetsFromDb then delete it from the db
   if (presetFromDb) {
     // delete the preset from the DB via internal API call
-    const deleteResponse = await httpClient_preset.deletePresets([presetUuid], isRexRunning);
+    const deleteResponse = await httpClient_preset.deletePresets([presetUuid]);
     if (deleteResponse.status === "success") {
       // remove the corresponding preset from the store
       dispatch(deletePresetByUuid(presetUuid));

@@ -9,7 +9,6 @@ import {
 } from "store/stm";
 import * as httpClient_stm from "http-client/stm";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
-import * as _ from "lodash";
 
 export const thunkCreateStmRule = appCreateAsyncThunk<{ stmUuid: string }>(
   "stmRuleCreate",

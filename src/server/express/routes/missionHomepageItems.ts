@@ -1,5 +1,5 @@
 import express, { Request, Response } from "express";
-import _ from "lodash";
+import sortBy from "lodash/sortBy";
 import { Mission_db, Rex_db } from "server/database/models/_allModels";
 import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { getEM } from "utils/mikro";
@@ -8,9 +8,11 @@ const router = express.Router();
 
 // get
 router.get("/", async (req: Request, res: Response): Promise<void> => {
+  const emssToken = req.headers["emss-token"] as string;
   const viewPermission =
     req.session?.user?.isSuperAdmin ||
-    req.session?.user?.permissionList?.find((p) => p.permissions.view)?.permissions.view;
+    req.session?.user?.permissionList?.find((p) => p.permissions.view)?.permissions.view ||
+    (emssToken && emssToken === process.env.EMSS_TOKEN);
   if (!viewPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
@@ -69,5 +71,5 @@ export async function getHomepageMissionItems(
     };
     missionHomepageItems.push(missionHomepageItem);
   }
-  return _.sortBy(missionHomepageItems, [(item) => item.name.toLowerCase()]);
+  return sortBy(missionHomepageItems, [(item) => item.name.toLowerCase()]);
 }
