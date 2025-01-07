@@ -15,6 +15,7 @@ import isHotkey from "is-hotkey";
 import { TextboxButton } from "./globalFields";
 import reduce from "lodash/reduce";
 import debounce from "lodash/debounce";
+import escape from "lodash/escape";
 
 const HOTKEYS = {
   "mod+b": "bold",
