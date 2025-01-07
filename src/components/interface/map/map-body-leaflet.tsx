@@ -41,6 +41,7 @@ import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { thunkGetStationOrTraverse } from "store/thunk/thunkEva";
 import { MapViewMenu } from "./map-menu-view";
 import { MapPositionMenu } from "./map-menu-pos";
+import MapPresetMenu from "./map-menu-preset";
 import PetInterval from "../../page/petInterval";
 import { isWindows10 } from "utils/browser";
 import { useCookies } from "react-cookie";
@@ -72,7 +73,6 @@ import { thunkMarkerOnClick, thunkPolylineOnClick } from "store/thunk/thunkMap";
 import { Feature } from "geojson";
 import { getGrids } from "http-client/grid";
 import { setSelectedPresetUuid } from "store/preset";
-import PresetMenu from "./map-preset-menu";
 
 const MapBody: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -1963,8 +1963,8 @@ const MapBody: FunctionComponent = () => {
         />
       </div>
       {selectedOrRunningRex && <MapPositionMenu />}
-      <div className={styles.presetDisplay}>
-        <PresetMenu
+      <div className={styles.mapPresetDisplay}>
+        <MapPresetMenu
           selectedPreset={selectedPreset}
           setSelectedPreset={(preset: Preset) => {
             dispatch(setSelectedPresetUuid(preset.uuid));

@@ -1,10 +1,10 @@
 import React, { Dispatch, SetStateAction } from "react";
-import styles from "./map-preset-menu.module.css";
+import styles from "./map-menu-preset.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGlobe } from "@fortawesome/free-solid-svg-icons";
 import { Dropdown } from "components/interface/form/globalFields";
 
-const PresetWrapper: React.FC<{
+const MapPresetMenu: React.FC<{
   selectedPreset: Preset;
   setSelectedPreset: Dispatch<SetStateAction<Preset>>;
   presetsFromDb: Preset[];
@@ -43,4 +43,4 @@ const PresetWrapper: React.FC<{
   );
 };
 
-export default PresetWrapper;
+export default MapPresetMenu;

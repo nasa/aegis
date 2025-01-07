@@ -49,7 +49,7 @@ import {
 } from "utils/geoMath";
 import { Feature } from "geojson";
 import { getGrids } from "http-client/grid";
-import PresetMenu from "../interface/map/map-preset-menu";
+import PresetMenu from "../interface/map/map-menu-preset";
 
 const MapBody: FunctionComponent<{
   setShowScaleBar: Dispatch<SetStateAction<boolean>>;
