@@ -52,7 +52,7 @@ Perform "All install methods" instructions above before performing the following
 1. Run Docker only starting the service containers (gdal and database): `npm run docker:services`
 2. Import a dump of the database from one of the environments using the instructions outlined in "Import a database dump from one of the AEGIS environments" below.
 3. Run `npm run dev` to start the frontend.
-4. Open [http://aegis-local.fit.nasa.gov:4000](http://aegis-local.fit.nasa.gov:4000) with your browser (note lack of https).
+4. Open [http://localhost:4000](http://localhost:4000) with your browser (note lack of https).
 
 ### Preview: Fully docker-compose
 
