@@ -371,7 +371,16 @@ const Left: FunctionComponent = () => {
                   </div>
                   <div className={styles.teamTitle}>Interaction and Visual Design</div>
                 </li>
-
+                <li>
+                  <div className={styles.creditHeading}>
+                    <a className={styles.teamName} href={"mailto:jacob.r.keller@nasa.gov"}>
+                      {" "}
+                      <FontAwesomeIcon className={styles.emailIcon} icon={faEnvelope} size={"xs"} />
+                      Jacob Keller
+                    </a>
+                  </div>
+                  <div className={styles.teamTitle}>Mission Support</div>
+                </li>
                 <li>
                   <div className={styles.creditHeading}>
                     <a className={styles.teamName} href={"mailto:edwin.j.montalvo@nasa.gov"}>
