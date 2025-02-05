@@ -9,9 +9,8 @@ import stationStyles from "./station.module.css";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { Checkbox } from "components/interface/form/globalFields";
 import { setMapItemHoverType, setMapItemHoverUuid } from "store/hover";
-import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
-import { faMessage } from "@fortawesome/free-solid-svg-icons";
+import { faCircle, faMessage } from "@fortawesome/free-solid-svg-icons";
 import { setSectionSelected } from "store/interface";
 import { setSelectedPoiUuid } from "store/poi";
 import sortBy from "lodash/sortBy";
@@ -41,7 +40,7 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
         <div className={paneStyles.panelContainer} style={{ height: "-webkit-fill-available" }}>
           <div className={paneStyles.panelSection} style={{ height: "100%" }}>
             <div className={paneStyles.panelSectionTitle}>
-              <SubpanelHeading icon={faCircleDot}>POIs Linked to this Station</SubpanelHeading>
+              <SubpanelHeading icon={faCircle}>POIs Linked to this Station</SubpanelHeading>
             </div>
             <div className={stationStyles.associatedPoisContainer}>
               {!editMode ? (

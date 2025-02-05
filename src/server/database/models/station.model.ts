@@ -52,6 +52,8 @@ export class Station_db implements Station_db_type {
   icon: string;
   @Property({ type: MikroTypes.integer, nullable: true })
   ownerId: number;
+  @Property({ type: MikroTypes.json, nullable: false, default: "{}" })
+  mapCircleControls!: MapCircleControls;
 
   @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;

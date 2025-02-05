@@ -201,6 +201,20 @@ export const MapViewMenu: FunctionComponent<{
               >
                 Walkbacks
               </div>
+              <div
+                className={`${styles.toggleSingle} ${styles.center} ${
+                  mapDisplayStations.showCircles && styles.toggleSelected
+                }`}
+                onClick={() => {
+                  setMapDisplayStations({
+                    ...mapDisplayStations,
+                    showCircles: !mapDisplayStations.showCircles,
+                    show: !mapDisplayStations.show ? true : mapDisplayStations.show,
+                  });
+                }}
+              >
+                Circles
+              </div>
             </div>
             <div className={styles.menuItemTitleContainer}>
               <div

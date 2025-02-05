@@ -10,7 +10,7 @@ import {
 } from "store/mission";
 import { thunkGetElevation } from "./thunkElevation";
 import { thunkFullUpdateWalkback, thunkSaveStation } from "./thunkStation";
-import { setPresetUIStates } from "store/preset";
+import { setPresetCircleUIStates } from "store/preset";
 import { thunkSavePreset } from "./thunkPreset";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
@@ -32,6 +32,7 @@ import {
   getCalculatedFieldsByTraverse,
 } from "store/processing/calculatedFields";
 import { generateBlankActionTemplate } from "store/storeUtils/mission";
+import { setStationCircleUIStates } from "store/station";
 
 export const thunkMissionSave = appCreateAsyncThunk<void>(
   "missionSave",
@@ -43,7 +44,7 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
       (item) => item.name.toLowerCase(),
     ]);
     const sortedGeoUnits = sortBy(mission.geographicUnits, [(unit) => unit.name.toLowerCase()]);
-    const sortedLanderRadii = sortBy(mission.landerRadii, [
+    const sortedCircleDefinitions = sortBy(mission.circleDefinitions, [
       "radius",
       (radius) => radius.name.toLowerCase(),
     ]);
@@ -58,7 +59,7 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
         ...mission,
         equipmentItems: sortedEquipmentItems,
         geographicUnits: sortedGeoUnits,
-        landerRadii: sortedLanderRadii,
+        circleDefinitions: sortedCircleDefinitions,
         actionTemplates: sortedTemplates,
         updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
       },
@@ -76,40 +77,44 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
     //sync up presets circle layers
     getState().preset.presets.forEach((preset) => {
       const newPreset: Preset = { ...preset };
-      const oldPresetUIStates: PresetUIStates = getState().preset.presetsUIStates[preset.uuid];
-      const newPresetUIState: PresetUIStates = { ...oldPresetUIStates };
+      const oldPresetCircleUIStates: CircleUIStates =
+        getState().preset.presetCirclesUIStates[preset.uuid];
+
+      const newPresetCircleUIStates: CircleUIStates = { ...oldPresetCircleUIStates };
       const newMapCircleControls: MapCircleControls = {};
 
-      sortedLanderRadii?.forEach((landerRadius) => {
+      sortedCircleDefinitions?.forEach((circleDefinition) => {
         //update ui states
-        if (oldPresetUIStates[landerRadius.uuid]) {
-          newPresetUIState[landerRadius.uuid] = oldPresetUIStates[landerRadius.uuid];
+        if (oldPresetCircleUIStates[circleDefinition.uuid]) {
+          newPresetCircleUIStates[circleDefinition.uuid] =
+            oldPresetCircleUIStates[circleDefinition.uuid];
         } else {
-          newPresetUIState[landerRadius.uuid] = {
-            expanded: true,
-            tabSelected: null,
-            name: landerRadius.name,
-            type: "circle",
+          newPresetCircleUIStates[circleDefinition.uuid] = {
+            name: circleDefinition.name,
+            slidersSelected: false,
           };
         }
-        //remove any radii that were deleted
-        for (const uuid of Object.keys(newPresetUIState)) {
+        //remove any UI states circle definitions that were deleted
+        for (const uuid of Object.keys(newPresetCircleUIStates)) {
           const isSublayer = getState().mission.sublayers?.some(
             (sublayer) => sublayer.uuid === uuid
           );
           const isHeaderLayer = getState().mission.layers?.some((layer) => layer.uuid === uuid);
-          const isCircle = sortedLanderRadii.some((landerRadius) => landerRadius.uuid === uuid);
+          const isCircle = sortedCircleDefinitions.some(
+            (circleDefinition) => circleDefinition.uuid === uuid
+          );
 
-          if (!isSublayer && !isHeaderLayer && !isCircle) delete newPresetUIState[uuid];
+          if (!isSublayer && !isHeaderLayer && !isCircle) delete newPresetCircleUIStates[uuid];
         }
 
-        //update map circle controls
-        if (preset.mapCircleControls[landerRadius.uuid]) {
-          newMapCircleControls[landerRadius.uuid] = preset.mapCircleControls[landerRadius.uuid];
+        //update preset map circle controls
+        if (preset.mapCircleControls[circleDefinition.uuid]) {
+          newMapCircleControls[circleDefinition.uuid] =
+            preset.mapCircleControls[circleDefinition.uuid];
         } else {
-          newMapCircleControls[landerRadius.uuid] = {
-            name: landerRadius.name,
-            landerRadiusUuid: landerRadius.uuid,
+          newMapCircleControls[circleDefinition.uuid] = {
+            name: circleDefinition.name,
+            uuid: circleDefinition.uuid,
             visible: false,
             style: {
               opacity: 1,
@@ -117,7 +122,7 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
               brightness: 1,
               saturation: 1,
               blendMode: "normal",
-              color: "red",
+              color: "#D33115",
               weight: 1,
               fillColor: "none",
               fillOpacity: 0,
@@ -127,13 +132,74 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
       });
 
       dispatch(
-        setPresetUIStates({
+        setPresetCircleUIStates({
           presetUuid: preset.uuid,
-          presetUIStates: newPresetUIState,
+          circleUIStates: newPresetCircleUIStates,
         })
       );
       newPreset.mapCircleControls = newMapCircleControls;
       dispatch(thunkSavePreset({ preset: newPreset }));
+    });
+
+    //sync up stations circle controls
+    getState().station.stations.forEach((station) => {
+      const newStation: Station = { ...station };
+      const oldStationCircleUIStates = getState().station.stationCirclesUIStates[station.uuid];
+
+      const newStationCircleUIStates: CircleUIStates = { ...oldStationCircleUIStates };
+      const newMapCircleControls: MapCircleControls = {};
+
+      sortedCircleDefinitions?.forEach((circleDefinition) => {
+        //update ui states
+        if (oldStationCircleUIStates[circleDefinition.uuid]) {
+          newStationCircleUIStates[circleDefinition.uuid] =
+            oldStationCircleUIStates[circleDefinition.uuid];
+        } else {
+          newStationCircleUIStates[circleDefinition.uuid] = {
+            name: circleDefinition.name,
+            slidersSelected: false,
+          };
+        }
+        //remove any UI states circle definitions that were deleted
+        for (const uuid of Object.keys(newStationCircleUIStates)) {
+          const isCircle = sortedCircleDefinitions.some(
+            (circleDefinition) => circleDefinition.uuid === uuid
+          );
+          if (!isCircle) delete newStationCircleUIStates[uuid];
+        }
+
+        //update station map circle controls
+        if (station.mapCircleControls[circleDefinition.uuid]) {
+          newMapCircleControls[circleDefinition.uuid] =
+            station.mapCircleControls[circleDefinition.uuid];
+        } else {
+          newMapCircleControls[circleDefinition.uuid] = {
+            name: circleDefinition.name,
+            uuid: circleDefinition.uuid,
+            visible: false,
+            style: {
+              opacity: 1,
+              contrast: 1,
+              brightness: 1,
+              saturation: 1,
+              blendMode: "normal",
+              color: "#D33115",
+              weight: 1,
+              fillColor: "none",
+              fillOpacity: 0,
+            },
+          };
+        }
+      });
+
+      dispatch(
+        setStationCircleUIStates({
+          stationUuid: station.uuid,
+          circleUIStates: newStationCircleUIStates,
+        })
+      );
+      newStation.mapCircleControls = newMapCircleControls;
+      dispatch(thunkSaveStation({ station: newStation }));
     });
 
     dispatch(setMissionSectionEditing({ section: "prefs", editMode: false }));

@@ -39,6 +39,7 @@ import { thunkUpdateActionLocation } from "store/thunk/thunkAction";
 import { thunkUpdateLanderLocation } from "store/thunk/thunkMission";
 import { thunkUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { thunkUpdatePosEntryLocation } from "store/thunk/thunkRexPosEntry";
+import { EARTH_RADIUS } from "utils/consts";
 
 // make color filter settings for tile sublayer. This is the format of leaflet.tilelayer.colorfilter package
 export const makeTileLayerColorFilter = (
@@ -1013,8 +1014,8 @@ export const drawGridLabels = ({
   const mapZoom = map.current.getZoom();
   let modulo = 1;
   //zoom levels are different for earth and moon because you have to zoom in more to see the same amount of detail on the Earth
-  if (planetRadius >= 6370000) {
-    //if earth (6378137)
+  if (planetRadius === EARTH_RADIUS) {
+    //if earth (EARTH_RADIUS)
     if (mapZoom < 15) {
       modulo = 10;
     } else if (mapZoom < 16) {

@@ -7,12 +7,7 @@ import FileManager from "components/admin/fileManager";
 import { deleteSublayers, getSublayers } from "http-client/sublayer";
 import { generateBlankLayer } from "store/storeUtils/layer";
 import { generateBlankSublayer } from "store/storeUtils/sublayer";
-import {
-  faLayerGroup,
-  faBezierCurve,
-  faVectorSquare,
-  faCircle,
-} from "@fortawesome/free-solid-svg-icons";
+import { faLayerGroup, faBezierCurve, faVectorSquare } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission: Mission }) => {
@@ -248,7 +243,6 @@ const LayerList = (props: {
                       {sublayer.type === "tile" && <FontAwesomeIcon icon={faLayerGroup} />}
                       {sublayer.type === "vector-tile" && <FontAwesomeIcon icon={faVectorSquare} />}
                       {sublayer.type === "vector" && <FontAwesomeIcon icon={faBezierCurve} />}
-                      {sublayer.type === "circle" && <FontAwesomeIcon icon={faCircle} />}
                       <button
                         type="button"
                         onClick={() => {

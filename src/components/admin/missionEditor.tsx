@@ -42,7 +42,7 @@ const MissionEditor: FunctionComponent<{
         lat: parseFloat(missionValues.landerLocation.lat),
         lng: parseFloat(missionValues.landerLocation.lng),
       } as AEGISPoint,
-      landerRadii: mission.landerRadii,
+      circleDefinitions: mission.circleDefinitions,
       landerElevationMeters: parseFloat(missionValues.landerElevationMeters),
       initialZoom: parseFloat(missionValues.initialZoom),
       defaultEvaDuration: parseFloat(missionValues.defaultEvaDuration),

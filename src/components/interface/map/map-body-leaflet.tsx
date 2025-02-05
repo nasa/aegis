@@ -73,6 +73,7 @@ import { thunkMarkerOnClick, thunkPolylineOnClick } from "store/thunk/thunkMap";
 import { Feature } from "geojson";
 import { getGrids } from "http-client/grid";
 import { setSelectedPresetUuid } from "store/preset";
+import { EARTH_RADIUS } from "utils/consts";
 
 const MapBody: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -81,6 +82,7 @@ const MapBody: FunctionComponent = () => {
   const crs = useRef<L.Proj.CRS>(null);
   const draggableLines: MutableRefObject<DraggableLines> = useRef(null);
   const stationFeatureGroup = useRef<L.FeatureGroup>(null);
+  const stationCirclesFeatureGroup = useRef<L.FeatureGroup>(null);
   const poiFeatureGroup = useRef<L.FeatureGroup>(null);
   const actionFeatureGroup = useRef<L.FeatureGroup>(null);
   const gridLabelFeatureGroup = useRef<L.FeatureGroup>(null);
@@ -107,7 +109,7 @@ const MapBody: FunctionComponent = () => {
         "projIsCustom",
         "projOriginX",
         "projOriginY",
-        "landerRadii",
+        "circleDefinitions",
       ]),
     deepEqual
   );
@@ -182,6 +184,7 @@ const MapBody: FunctionComponent = () => {
     show: true,
     showLabels: false,
     showWalkbacks: true,
+    showCircles: true,
   });
   const [mapDisplayActions, setMapDisplayActions] = useState<MapDisplayMarkers>({
     show: true,
@@ -335,6 +338,9 @@ const MapBody: FunctionComponent = () => {
     }
     if (!stationFeatureGroup.current) {
       stationFeatureGroup.current = L.featureGroup().addTo(map.current);
+    }
+    if (!stationCirclesFeatureGroup.current) {
+      stationCirclesFeatureGroup.current = L.featureGroup().addTo(map.current);
     }
     if (!poiFeatureGroup.current) {
       poiFeatureGroup.current = L.featureGroup().addTo(map.current);
@@ -597,8 +603,13 @@ const MapBody: FunctionComponent = () => {
       }
     }
 
-    // remove all stations from the map
+    // First remove all existing layers
     stationFeatureGroup.current.clearLayers();
+
+    // Remove each circle layer individually because leaflet doesn't clear these geojson layers with .clearLayers()
+    stationCirclesFeatureGroup.current.eachLayer((layer) => {
+      layer.remove();
+    });
 
     // draw all stations
     stationsToShow.forEach((station) => {
@@ -641,11 +652,56 @@ const MapBody: FunctionComponent = () => {
           iconWin10ClassName: styles.mapIconWin10,
           iconWrapperClassName: styles.iconWrapper,
         });
+
+        if (mapDisplayStations.showCircles) {
+          const circleDefinitions = mission.circleDefinitions;
+
+          // draw circle around station for each mapCircleControl.
+          circleDefinitions.forEach((circleDefinition) => {
+            /*
+             * Map does NOT think in terms of planets for coordinates,
+             * and currently acts as if coordinates correspond to earth.
+             * Therefore, it is necessary to calculate distance in relation
+             * to the radius of the earth, and not in relation to the planet
+             * the mission is on for the projection.
+             *
+             * Previously, non-equatorial map projections required an additional
+             * adjustment of Initial Radius Adjust * Earth Radius / (2 * Planet Radius).
+             * This is seemingly no longer needed, but keep this in mind in case.
+             */
+            const earthRadiusInMeters = EARTH_RADIUS;
+            const radiusAdjustment = earthRadiusInMeters / mission.planetRadius;
+
+            const drawDistance = (circleDefinition.radius * radiusAdjustment) / 1000;
+
+            if (station.mapCircleControls[circleDefinition.uuid]?.visible) {
+              // Turf Coords are in (lng, lat) format
+              const geoJSONCircle: AEGISGeoJSONCircle = L.geoJSON(
+                circle(point([station.location.lng, station.location.lat]), drawDistance, {
+                  steps: 256,
+                }),
+                {
+                  style: {
+                    ...station.mapCircleControls[circleDefinition.uuid]?.style,
+                    interactive: false,
+                  },
+                }
+              ) as AEGISGeoJSONCircle;
+
+              geoJSONCircle.mapItemType = "stationCircle";
+              geoJSONCircle.uuid = `${station.uuid}-${circleDefinition.uuid}`; // Add unique identifier
+
+              stationCirclesFeatureGroup.current.addLayer(geoJSONCircle);
+            }
+          });
+        }
+
+        stationFeatureGroup.current.setZIndex(999);
+        stationCirclesFeatureGroup.current.setZIndex(998); // Set z-index below stations
       }
     });
-
-    stationFeatureGroup.current.setZIndex(999);
   }, [
+    mission,
     stations,
     selectedStation,
     selectedEva,
@@ -901,28 +957,28 @@ const MapBody: FunctionComponent = () => {
   }, [map, mapDirective, dispatch, measurements, selectedMeasurementUuid]);
 
   /**
-   * Draw lander radii
+   * Draw lander radius circles
    */
   useEffect(() => {
     if (
       !map ||
       !mission?.landerLocation ||
-      !mission?.landerRadii ||
+      !mission?.circleDefinitions ||
       !selectedPreset?.mapCircleControls ||
       !mission?.planetRadius
     )
       return;
 
-    const landerRadii = mission.landerRadii;
+    const circleDefinitions = mission.circleDefinitions;
     const landerLocation = mission.landerLocation;
 
     map.current.eachLayer((layer: AEGISGeoJSONCircle) => {
-      if (layer.mapItemType === "Lander Radius") {
+      if (layer.mapItemType === "landerCircle") {
         layer.remove();
       }
     });
 
-    landerRadii.forEach((landerRadius) => {
+    circleDefinitions.forEach((circleDefinition) => {
       /*
        * Map does NOT think in terms of planets for coordinates,
        * and currently acts as if coordinates correspond to earth.
@@ -934,35 +990,33 @@ const MapBody: FunctionComponent = () => {
        * adjustment of Initial Radius Adjust * Earth Radius / (2 * Planet Radius).
        * This is seemingly no longer needed, but keep this in mind in case.
        */
-      const earthRadiusInMeters = 6378137;
+      const earthRadiusInMeters = EARTH_RADIUS;
       const radiusAdjustment = earthRadiusInMeters / mission.planetRadius;
 
-      const drawDistance = (landerRadius.radius * radiusAdjustment) / 1000;
+      const drawDistance = (circleDefinition.radius * radiusAdjustment) / 1000;
 
-      if (selectedPreset.mapCircleControls[landerRadius.uuid]?.visible) {
-        if (selectedPreset.mapCircleControls[landerRadius.uuid]?.visible) {
-          // Turf Coords are in (lng, lat) format
-          const geoJSONCircle: AEGISGeoJSONCircle = L.geoJSON(
-            circle(point([landerLocation.lng, landerLocation.lat]), drawDistance, {
-              steps: 256,
-            }),
-            {
-              style: {
-                ...selectedPreset.mapCircleControls[landerRadius.uuid]?.style,
-                interactive: false,
-              },
-            }
-          ) as AEGISGeoJSONCircle;
+      if (selectedPreset.mapCircleControls[circleDefinition.uuid]?.visible) {
+        // Turf Coords are in (lng, lat) format
+        const geoJSONCircle: AEGISGeoJSONCircle = L.geoJSON(
+          circle(point([landerLocation.lng, landerLocation.lat]), drawDistance, {
+            steps: 256,
+          }),
+          {
+            style: {
+              ...selectedPreset.mapCircleControls[circleDefinition.uuid]?.style,
+              interactive: false,
+            },
+          }
+        ) as AEGISGeoJSONCircle;
 
-          geoJSONCircle.mapItemType = "Lander Radius";
+        geoJSONCircle.mapItemType = "landerCircle";
 
-          map.current.addLayer(geoJSONCircle);
-        }
+        map.current.addLayer(geoJSONCircle);
       }
     });
   }, [
     mission?.landerLocation,
-    mission?.landerRadii,
+    mission?.circleDefinitions,
     mission?.planetRadius,
     map,
     selectedPreset?.mapCircleControls,

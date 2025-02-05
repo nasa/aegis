@@ -28,6 +28,7 @@ export const generateBlankStation = (partialStation?: Partial<Station>): Station
     walkbackPathSegmentDistances: null,
     walkbackPathSegmentElevations: null,
     walkbackTraverseRate: null,
+    mapCircleControls: {},
     createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     updatedAt: null,
   };
@@ -60,6 +61,7 @@ export function convertStationsTypeDbToStore(dbStations: Station_db[]): Station[
       durationLower: dbStation.durationLower,
       durationUpper: dbStation.durationUpper,
       icon: dbStation.icon,
+      mapCircleControls: dbStation.mapCircleControls,
       createdAt: dbStation.createdAt.toISOString(),
       updatedAt: dbStation.updatedAt.toISOString(),
     };
@@ -102,6 +104,7 @@ export function convertStationsTypeStoreToDb(storeStations: Station[]): EntityDa
       durationLower: storeStation.durationLower,
       durationUpper: storeStation.durationUpper,
       icon: storeStation.icon,
+      mapCircleControls: storeStation.mapCircleControls,
       updatedAt: new Date(storeStation.updatedAt),
       createdAt: new Date(storeStation.createdAt),
     };

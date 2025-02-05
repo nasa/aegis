@@ -5,12 +5,15 @@ import {
   upsertPreset,
   setPresetEditMode,
   setSelectedPresetUuid,
-  setPresetUIStates,
+  setPresetLayerUIStates,
+  setPresetCircleUIStates,
   deletePresetByUuid,
-  resetAllPresetUIStates,
+  resetAllPresetLayersUIStates,
+  resetAllPresetCirclesUIStates,
   upsertPresetFromDb,
   deletePresetFromDbByUuid,
-  deletePresetUIStates,
+  deletePresetLayersUIStates,
+  deletePresetCirclesUIStates,
 } from "store/preset";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import * as httpClient_preset from "http-client/preset";
@@ -43,7 +46,8 @@ export const thunkSavePreset = appCreateAsyncThunk<{
     throw new Error("Error upserting Presets: " + upsertReponse.message);
   }
   dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: false }));
-  dispatch(resetAllPresetUIStates({ presetUuid: preset.uuid }));
+  dispatch(resetAllPresetLayersUIStates({ presetUuid: preset.uuid }));
+  dispatch(resetAllPresetCirclesUIStates({ presetUuid: preset.uuid }));
 });
 
 export const thunkPresetCancel = appCreateAsyncThunk<{
@@ -58,14 +62,16 @@ export const thunkPresetCancel = appCreateAsyncThunk<{
     dispatch(deletePresetByUuid(presetUuid));
     dispatch(setSelectedPresetUuid(null));
     dispatch(thunkSetRightPanelIsOpenIfAuto(false));
-    dispatch(deletePresetUIStates({ presetUuid }));
+    dispatch(deletePresetLayersUIStates({ presetUuid }));
+    dispatch(deletePresetCirclesUIStates({ presetUuid }));
     // reselect the default
     const defaultPresetUuid = getState().preset.presets.find((p) => p.missionPresetDefault)?.uuid;
     dispatch(setSelectedPresetUuid(defaultPresetUuid));
   } else {
     // if selected Preset is in the db, replace it with the one from the db (undoing any changes)
     dispatch(upsertPreset(presetFromDb, true));
-    dispatch(resetAllPresetUIStates({ presetUuid: presetUuid }));
+    dispatch(resetAllPresetLayersUIStates({ presetUuid }));
+    dispatch(resetAllPresetCirclesUIStates({ presetUuid }));
   }
   dispatch(setPresetEditMode({ presetUuid: presetUuid, editMode: false }));
 });
@@ -143,10 +149,10 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
 
     // build circle controls
     const blankMapCircleControls: MapCircleControls = {};
-    getState().mission.mission.landerRadii?.forEach((landerRadius) => {
+    getState().mission.mission.circleDefinitions?.forEach((landerRadius) => {
       blankMapCircleControls[landerRadius.uuid] = {
         name: landerRadius.name,
-        landerRadiusUuid: landerRadius.uuid,
+        uuid: landerRadius.uuid,
         visible: false,
         style: {
           opacity: 1,
@@ -171,11 +177,12 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
     });
     dispatch(thunkSaveNewPreset({ preset: blankPreset }));
 
-    // create preset ui states entry
-    const presetUIStates: PresetUIStates = {};
+    // create preset layers ui states entry
+    const presetLayerUIStates: LayerUIStates = {};
+
     if (getState().mission.layers) {
       for (const layer of getState().mission.layers) {
-        presetUIStates[layer.uuid] = {
+        presetLayerUIStates[layer.uuid] = {
           expanded: true,
           tabSelected: null,
           name: layer.name,
@@ -185,7 +192,7 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
     }
     if (getState().mission.sublayers) {
       for (const sublayer of getState().mission.sublayers) {
-        presetUIStates[sublayer.uuid] = {
+        presetLayerUIStates[sublayer.uuid] = {
           expanded: true,
           tabSelected: null,
           name: sublayer.name,
@@ -193,21 +200,29 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
         };
       }
     }
-    if (getState().mission.mission.landerRadii) {
-      for (const landerRadius of getState().mission.mission.landerRadii) {
-        presetUIStates[landerRadius.uuid] = {
-          expanded: true,
-          tabSelected: null,
-          name: landerRadius.name,
-          type: "circle",
+    dispatch(
+      setPresetLayerUIStates({
+        presetUuid: blankPreset.uuid,
+        layerUIStates: presetLayerUIStates,
+      })
+    );
+
+    // create preset circles ui states entry
+    const presetCircleUIStates: CircleUIStates = {};
+
+    if (getState().mission.mission.circleDefinitions) {
+      for (const circleDefinition of getState().mission.mission.circleDefinitions) {
+        presetCircleUIStates[circleDefinition.uuid] = {
+          name: circleDefinition.name,
+          slidersSelected: false,
         };
       }
     }
 
     dispatch(
-      setPresetUIStates({
+      setPresetCircleUIStates({
         presetUuid: blankPreset.uuid,
-        presetUIStates: presetUIStates,
+        circleUIStates: presetCircleUIStates,
       })
     );
   }
@@ -229,8 +244,26 @@ export const thunkDuplicatePreset = appCreateAsyncThunk<{ preset: Preset }>(
     newPreset.missionPresetDefault = false; //never make a duplicate the default preset
     dispatch(thunkSaveNewPreset({ preset: newPreset }));
 
-    //dupcate preset ui state
-    const newUIState: PresetUIStates = cloneDeep(getState().preset.presetsUIStates[preset.uuid]);
-    dispatch(setPresetUIStates({ presetUuid: newPreset.uuid, presetUIStates: newUIState }));
+    //duplicate preset layers ui state
+    const newPresetLayerUIStates: LayerUIStates = cloneDeep(
+      getState().preset.presetLayersUIStates[preset.uuid]
+    );
+    dispatch(
+      setPresetLayerUIStates({
+        presetUuid: newPreset.uuid,
+        layerUIStates: newPresetLayerUIStates,
+      })
+    );
+
+    //duplicate preset circles ui state
+    const newPresetCircleUIState: CircleUIStates = cloneDeep(
+      getState().preset.presetCirclesUIStates[preset.uuid]
+    );
+    dispatch(
+      setPresetCircleUIStates({
+        presetUuid: newPreset.uuid,
+        circleUIStates: newPresetCircleUIState,
+      })
+    );
   }
 );

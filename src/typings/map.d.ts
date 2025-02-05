@@ -21,7 +21,7 @@ type MapAction =
   | "refreshLocation"
   | "delete";
 
-type MapItemType = `${MapMarkerType | MapPolylineType}`;
+type MapItemType = `${MapMarkerType | MapPolylineType | MapCircleType}`;
 
 interface MapDirective {
   uuid: string;
@@ -58,6 +58,7 @@ interface MapDisplayPos {
  */
 interface MapDisplayStations extends MapDisplayMarkers {
   showWalkbacks: boolean;
+  showCircles: boolean;
 }
 
 /**
@@ -102,7 +103,7 @@ type MissionSelectProperties = Pick<
   | "projIsCustom"
   | "projOriginX"
   | "projOriginY"
-  | "landerRadii"
+  | "circleDefinitions"
 >;
 
 type GridLabelItem = {

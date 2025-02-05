@@ -78,6 +78,7 @@ interface Station {
   walkbackPathSegmentElevations: number[][]; //meters
   walkbackTraverseRate: number; // km/h
   icon: string;
+  mapCircleControls: MapCircleControls;
 
   /**
    * The estimated duration of the action, in minutes.

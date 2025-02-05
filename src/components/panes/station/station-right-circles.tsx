@@ -1,25 +1,30 @@
 import { FunctionComponent } from "react";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
-import {
-  setPresetCircleStyle,
-  setPresetCircleUIState,
-  togglePresetCircleVisible,
-} from "store/preset";
+
 import Circles from "../../interface/circles";
 import { useAppDispatch } from "utils/useAppDispatch";
 import paneStyles from "../global-pane-styles.module.css";
 import styles from "../../interface/circles.module.css";
+import {
+  setStationCircleStyle,
+  setStationCircleUIState,
+  toggleStationCircleVisible,
+} from "store/station";
 
-const Preset_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
+const Station_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
+  const selectedStationUuid = useAppSelector(
+    (state) => state.station.selectedStationUuid,
+    refEqual
+  );
   const mapCircleControls = useAppSelector(
     (state) =>
-      state.preset.presets.find((preset) => preset.uuid === selectedPresetUuid)?.mapCircleControls,
+      state.station.stations.find((station) => station.uuid === selectedStationUuid)
+        ?.mapCircleControls,
     deepEqual
   );
-  const presetCircleUIStates = useAppSelector(
-    (state) => state.preset.presetCirclesUIStates[selectedPresetUuid],
+  const circleUIStates = useAppSelector(
+    (state) => state.station.stationCirclesUIStates[selectedStationUuid],
     shallowEqual
   );
 
@@ -36,21 +41,21 @@ const Preset_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
     slidersSelected: boolean;
   }) => {
     dispatch(
-      setPresetCircleUIState({
-        presetUuid: selectedPresetUuid,
+      setStationCircleUIState({
+        stationUuid: selectedStationUuid,
         circleDefUuid,
         circleUIState: {
-          ...presetCircleUIStates[circleDefUuid],
+          ...circleUIStates[circleDefUuid],
           slidersSelected,
         },
       })
     );
   };
 
-  const togglePresetCircleVisibleHandler = ({ circleUuid }: { circleUuid: string }) => {
+  const toggleStationCircleVisibleHandler = ({ circleUuid }: { circleUuid: string }) => {
     dispatch(
-      togglePresetCircleVisible({
-        presetUuid: selectedPresetUuid,
+      toggleStationCircleVisible({
+        stationUuid: selectedStationUuid,
         circleUuid,
       })
     );
@@ -64,8 +69,8 @@ const Preset_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
     layerStyle: MapSublayerStyle;
   }) => {
     dispatch(
-      setPresetCircleStyle({
-        presetUuid: selectedPresetUuid,
+      setStationCircleStyle({
+        stationUuid: selectedStationUuid,
         circleDefUuid: uuid,
         style: layerStyle,
       })
@@ -80,12 +85,12 @@ const Preset_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
           <div className={paneStyles.panelContainer}>
             <div className={styles.circlesContainer}>
               <div className={styles.circlesBody}>
-                {circleDefinitions && presetCircleUIStates && (
+                {circleDefinitions && circleUIStates && (
                   <Circles
                     editMode={editMode}
                     mapCircleControls={mapCircleControls}
-                    toggleVisibleFunction={togglePresetCircleVisibleHandler}
-                    circleUIStates={presetCircleUIStates}
+                    toggleVisibleFunction={toggleStationCircleVisibleHandler}
+                    circleUIStates={circleUIStates}
                     circleUIStateSetterFunction={circleUIStateSetterFunction}
                     styleSetter={styleSetterHandler}
                   />
@@ -99,4 +104,4 @@ const Preset_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
   );
 };
 
-export default Preset_Circles_Panel;
+export default Station_Circles_Panel;

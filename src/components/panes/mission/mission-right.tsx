@@ -71,7 +71,7 @@ const MissionPrefsRight: FunctionComponent = () => {
         icon: faSliders,
       },
       circle_panel: {
-        title: "Map Vector Definitions",
+        title: "Proximity Circle Definitions",
         panel: Layers_panel,
         selectedColor: "white",
         icon: faBullseye,
@@ -110,7 +110,7 @@ const MissionPrefsRight: FunctionComponent = () => {
         icon: faSliders,
       },
       circle_panel: {
-        title: "Map Vector Definitions",
+        title: "Proximity Circle Definitions",
         panel: Layers_panel,
         selectedColor: "white",
         icon: faBullseye,

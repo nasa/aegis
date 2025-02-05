@@ -9,6 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import js from "@eslint/js";
 import { FlatCompat } from "@eslint/eslintrc";
+import cssModules from "eslint-plugin-css-modules";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,6 +31,7 @@ export default [
       "react-hooks": fixupPluginRules(reactHooks),
       "@typescript-eslint": typescriptEslint,
       prettier,
+      "css-modules": cssModules,
     },
 
     languageOptions: {
@@ -188,6 +190,9 @@ export default [
       "no-unreachable": "error",
       "react/jsx-no-target-blank": "off",
       "linebreak-style": ["error", "unix"], // enforce unix (lf) linebreaks
+
+      // CSS module rules: report undefined CSS class names.
+      // "css-modules/no-undef-class": "error",
     },
   },
 ];

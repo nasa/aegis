@@ -7,7 +7,7 @@ interface MapSublayerControl {
 
 interface MapCircleControl {
   name: string;
-  landerRadiusUuid: string;
+  uuid: string;
   visible: boolean;
   style: MapSublayerStyle;
 }
@@ -24,6 +24,8 @@ interface MapSublayerStyle {
   fillOpacity: number;
 }
 
+type MapSublayerStyleKeys = keyof MapSublayerStyle;
+
 interface MapSublayerControls {
   [key: string]: MapSublayerControl; //uuid of sublayers
 }
@@ -32,19 +34,32 @@ interface MapCircleControls {
   [key: string]: MapCircleControl; //uuid
 }
 
-interface PresetsUIStates {
-  [key: string]: PresetUIStates; //uuid of preset
+interface LayersUIStates {
+  [key: string]: LayerUIStates; //uuid of Layer, or station
 }
 
-interface PresetUIStates {
-  [key: string]: PresetUIState; //flat uuid of layers and sublayers headers
+interface LayerUIStates {
+  [key: string]: LayerUIState; //flat uuid of layers and sublayers headers
 }
 
-interface PresetUIState {
+interface LayerUIState {
   expanded: boolean;
   tabSelected: "info" | "sliders";
   name: string;
   type: "layer" | "sublayer" | "circle";
+}
+
+interface CirclesUIStates {
+  [key: string]: CircleUIStates; //uuid of Preset or Station
+}
+
+interface CircleUIStates {
+  [key: string]: CircleUIState; //flat uuid of layers and sublayers headers
+}
+
+interface CircleUIState {
+  name: string;
+  slidersSelected: boolean;
 }
 
 type Preset = {

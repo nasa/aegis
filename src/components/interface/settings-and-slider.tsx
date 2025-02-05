@@ -1,57 +1,22 @@
 import { FunctionComponent } from "react";
-import styles from "./preset-right-layers-settings.module.css";
+import styles from "./settings-and-slider.module.css";
 import { Dropdown } from "components/interface/form/globalFields";
-import { useAppDispatch } from "utils/useAppDispatch";
 
-import { setPresetCircleStyle, setPresetSublayerStyle } from "store/preset";
 import { getPercentOrDefault } from "utils/formatting";
-import { CompactPicker } from "react-color";
-
-const Slider: FunctionComponent<{
-  display: string;
-  name: string;
-  value: number;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  min?: number;
-  max?: number;
-  unit?: string;
-}> = ({ display, name, value, onChange, min = 0, max = 100, unit = `%` }) => {
-  return (
-    <div className={styles.listItem}>
-      <div className={styles.listItemText}>{display}</div>
-      <div className={styles.listItemSlider}>
-        <div className={styles.listItemPercentage}>
-          {value}
-          {unit}
-        </div>
-        <input
-          type="range"
-          min={min}
-          max={max}
-          name={name}
-          data-tooltip-id="aegis-tooltip"
-          data-tooltip-html={name}
-          aria-label={name}
-          defaultValue={value}
-          className={styles.slider}
-          onChange={onChange}
-        />
-      </div>
-    </div>
-  );
-};
+import CompactColor from "@uiw/react-color-compact";
 
 const Settings_subpanel: FunctionComponent<{
-  selectedPreset: Preset;
-  type: SublayerType;
+  type: "vector" | "circle" | "vector-tile" | "tile";
   uuid: string;
-}> = ({ selectedPreset, type, uuid }) => {
-  const dispatch = useAppDispatch();
+  styleSetter: ({ uuid, layerStyle }: { uuid: string; layerStyle: MapSublayerStyle }) => void;
+  mapCircleControls?: MapCircleControls;
+  mapSublayerControls?: MapSublayerControls;
+}> = ({ type, uuid, styleSetter, mapCircleControls, mapSublayerControls }) => {
+  mapCircleControls = mapCircleControls || {};
+  mapSublayerControls = mapSublayerControls || {};
 
-  const presetLayerStyle =
-    type === "circle"
-      ? selectedPreset.mapCircleControls[uuid].style
-      : selectedPreset.mapSublayerControls[uuid].style;
+  const layerStyle =
+    type === "circle" ? mapCircleControls[uuid]?.style : mapSublayerControls[uuid]?.style;
 
   //default setting options to show
   let showSliders = {
@@ -100,35 +65,11 @@ const Settings_subpanel: FunctionComponent<{
     };
   }
 
-  const setStyle = (
-    value: number | string,
-    property:
-      | "opacity"
-      | "contrast"
-      | "brightness"
-      | "saturation"
-      | "blendMode"
-      | "color"
-      | "weight"
-      | "fillOpacity"
-  ) => {
-    if (type === "circle") {
-      dispatch(
-        setPresetCircleStyle({
-          presetUuid: selectedPreset.uuid,
-          radiusUuid: uuid,
-          style: { ...presetLayerStyle, [property]: value },
-        })
-      );
-    } else {
-      dispatch(
-        setPresetSublayerStyle({
-          presetUuid: selectedPreset.uuid,
-          layerUuid: uuid,
-          style: { ...presetLayerStyle, [property]: value },
-        })
-      );
-    }
+  const setStyle = (value: number | string, property: MapSublayerStyleKeys) => {
+    styleSetter({
+      uuid,
+      layerStyle: { ...layerStyle, [property]: value },
+    });
   };
 
   return (
@@ -138,7 +79,7 @@ const Settings_subpanel: FunctionComponent<{
         <Slider
           display={type === "vector" ? "Stroke Opacity" : "Opacity"}
           name="opacity"
-          value={getPercentOrDefault(presetLayerStyle?.opacity)}
+          value={getPercentOrDefault(layerStyle?.opacity)}
           onChange={(e) => setStyle(Number(e.target.value) / 100, "opacity")}
         />
       )}
@@ -146,7 +87,7 @@ const Settings_subpanel: FunctionComponent<{
         <Slider
           display="Contrast"
           name="contrast"
-          value={getPercentOrDefault(presetLayerStyle?.contrast)}
+          value={getPercentOrDefault(layerStyle?.contrast)}
           onChange={(e) => setStyle(Number(e.target.value) / 100, "contrast")}
         />
       )}
@@ -154,7 +95,7 @@ const Settings_subpanel: FunctionComponent<{
         <Slider
           display="Brightness"
           name="brightness"
-          value={getPercentOrDefault(presetLayerStyle?.brightness)}
+          value={getPercentOrDefault(layerStyle?.brightness)}
           onChange={(e) => setStyle(Number(e.target.value) / 100, "brightness")}
         />
       )}
@@ -162,7 +103,7 @@ const Settings_subpanel: FunctionComponent<{
         <Slider
           display="Saturation"
           name="saturation"
-          value={getPercentOrDefault(presetLayerStyle?.saturation)}
+          value={getPercentOrDefault(layerStyle?.saturation)}
           onChange={(e) => setStyle(Number(e.target.value) / 100, "saturation")}
         />
       )}
@@ -171,7 +112,7 @@ const Settings_subpanel: FunctionComponent<{
           <div className={styles.listItemText}>Blend</div>
           <div className={styles.listItemControl}>
             <Dropdown
-              selected={presetLayerStyle?.blendMode ? presetLayerStyle?.blendMode : "normal"}
+              selected={layerStyle?.blendMode ? layerStyle?.blendMode : "normal"}
               arrowStyle={{ top: "1px" }}
               onChange={(value) => {
                 setStyle(value, "blendMode");
@@ -200,9 +141,11 @@ const Settings_subpanel: FunctionComponent<{
         <div className={styles.listItem}>
           <div className={styles.listItemText}>Stroke Color</div>
           <div className={styles.listItemControl}>
-            <CompactPicker
-              color={presetLayerStyle?.color}
-              onChangeComplete={(color) => setStyle(color.hex, "color")}
+            <CompactColor
+              color={layerStyle?.color}
+              onChange={(color) => {
+                setStyle(color.hex, "color");
+              }}
             />
           </div>
         </div>
@@ -211,7 +154,7 @@ const Settings_subpanel: FunctionComponent<{
         <Slider
           display="Stroke Weight"
           name="weight"
-          value={presetLayerStyle?.weight}
+          value={layerStyle?.weight}
           onChange={(e) => setStyle(Number(e.target.value), "weight")}
           min={1}
           max={5}
@@ -222,7 +165,7 @@ const Settings_subpanel: FunctionComponent<{
         <Slider
           display="Fill Opacity"
           name="fillOpacity"
-          value={getPercentOrDefault(presetLayerStyle?.fillOpacity)}
+          value={getPercentOrDefault(layerStyle?.fillOpacity)}
           onChange={(e) => setStyle(Number(e.target.value) / 100, "fillOpacity")}
         />
       )}
@@ -231,3 +174,37 @@ const Settings_subpanel: FunctionComponent<{
 };
 
 export default Settings_subpanel;
+
+const Slider: FunctionComponent<{
+  display: string;
+  name: string;
+  value: number;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  min?: number;
+  max?: number;
+  unit?: string;
+}> = ({ display, name, value, onChange, min = 0, max = 100, unit = `%` }) => {
+  return (
+    <div className={styles.listItem}>
+      <div className={styles.listItemText}>{display}</div>
+      <div className={styles.listItemSlider}>
+        <div className={styles.listItemPercentage}>
+          {value}
+          {unit}
+        </div>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          name={name}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-html={name}
+          aria-label={name}
+          defaultValue={value}
+          className={styles.slider}
+          onChange={onChange}
+        />
+      </div>
+    </div>
+  );
+};
