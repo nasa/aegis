@@ -13,7 +13,7 @@
       "request": "attach",
       "name": "Chrome Attach",
       "port": 9222,
-      "urlFilter": "http://aegis-local.fit.nasa.gov:4000/*",
+      "urlFilter": "http://localhost:4000/*",
       "webRoot": "${workspaceFolder}/src"
     },
     {

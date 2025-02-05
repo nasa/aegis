@@ -6,6 +6,8 @@ import {
   setStationsFromDb,
   deleteStationByUuid,
   upsertStationFromDb,
+  setStationCircleUIStates,
+  resetAllStationCirclesUIStates,
 } from "store/station";
 import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/geoMath";
 import { thunkGetElevation } from "./thunkElevation";
@@ -279,6 +281,7 @@ export const thunkSaveStation = appCreateAsyncThunk<{
 
   dispatch(thunkCancelMarkerMapDirective({ uuid: station.uuid }));
   dispatch(setStationEditMode({ stationUuid: station.uuid, editMode: false }));
+  dispatch(resetAllStationCirclesUIStates({ stationUuid: station.uuid }));
 });
 
 export const thunkStationCancel = appCreateAsyncThunk<{
@@ -336,6 +339,7 @@ export const thunkStationCancel = appCreateAsyncThunk<{
   }
   dispatch(thunkCancelMarkerMapDirective({ uuid: station.uuid }));
   dispatch(setStationEditMode({ stationUuid: station.uuid, editMode: false }));
+  dispatch(resetAllStationCirclesUIStates({ stationUuid: station.uuid }));
 
   //update any traverses of EVAs that use this station as an egress or ingress point
   await dispatch(thunkUpdateEVAsUsingStationForEgressIngress({ stationUuid: station.uuid }));
@@ -418,11 +422,52 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
       existingNames: getState().station.stations.map((item) => item.name),
     });
 
+    // build circle controls
+    const blankMapCircleControls: MapCircleControls = {};
+    getState().mission.mission?.circleDefinitions?.forEach((landerRadius) => {
+      blankMapCircleControls[landerRadius.uuid] = {
+        name: landerRadius.name,
+        uuid: landerRadius.uuid,
+        visible: false,
+        style: {
+          opacity: 1,
+          contrast: 1,
+          brightness: 1,
+          saturation: 1,
+          blendMode: "normal",
+          color: "red",
+          weight: 1,
+          fillColor: "none",
+          fillOpacity: 0,
+        },
+      };
+    });
+
     const blankStation = generateBlankStation({
       missionId: getState().mission.mission?.id,
       name: randomName,
+      mapCircleControls: blankMapCircleControls,
     });
     dispatch(thunkSaveNewStation({ station: blankStation }));
+
+    // create preset circles ui states entry
+    const circleUIStates: CircleUIStates = {};
+
+    if (getState().mission.mission.circleDefinitions) {
+      for (const circleDefinition of getState().mission.mission.circleDefinitions) {
+        circleUIStates[circleDefinition.uuid] = {
+          name: circleDefinition.name,
+          slidersSelected: false,
+        };
+      }
+    }
+
+    dispatch(
+      setStationCircleUIStates({
+        stationUuid: blankStation.uuid,
+        circleUIStates: circleUIStates,
+      })
+    );
   }
 );
 
@@ -456,6 +501,17 @@ export const thunkDuplicateStation = appCreateAsyncThunk<{ stationUuid: String }
         actions: stationActions,
         stationUuid: newStation.uuid,
         promotingFromPoi: false,
+      })
+    );
+
+    //duplicate station circles ui state
+    const newStationCircleUIStates: CircleUIStates = cloneDeep(
+      getState().station.stationCirclesUIStates[station.uuid]
+    );
+    dispatch(
+      setStationCircleUIStates({
+        stationUuid: newStation.uuid,
+        circleUIStates: newStationCircleUIStates,
       })
     );
 

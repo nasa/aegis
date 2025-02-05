@@ -29,6 +29,7 @@ import {
 import "components/dashboard/map.module.css";
 import { point } from "@turf/helpers";
 import { circle } from "@turf/turf";
+import { EARTH_RADIUS } from "utils/consts";
 
 const MiniMap: FunctionComponent<{
   bigMapBounds: L.LatLngBoundsLiteral;
@@ -64,7 +65,7 @@ const MiniMap: FunctionComponent<{
         "projIsCustom",
         "projOriginX",
         "projOriginY",
-        "landerRadii",
+        "circleDefinitions",
       ]),
     deepEqual
   );
@@ -292,7 +293,7 @@ const MiniMap: FunctionComponent<{
     // set the map view to the bounds of all objects
     if (maxLat && minLat && maxLng && minLng) {
       const bounds = L.latLngBounds(L.latLng(minLat, minLng), L.latLng(maxLat, maxLng));
-      const maxZoom = mission.planetRadius === 6378137 ? 19 : 17; // if on earth, 19 is max zoom, otherwise 18 (moon)
+      const maxZoom = mission.planetRadius === EARTH_RADIUS ? 19 : 17; // if on earth, 19 is max zoom, otherwise 18 (moon)
       map.current.fitBounds(bounds, { maxZoom });
     }
   }, [map, mission, latestPosEntriesByType, stationsToShow, traversesToShow, bigMapBounds]);
@@ -368,28 +369,28 @@ const MiniMap: FunctionComponent<{
   }, [runningEvaFromDb, traversesToShow, showArrows]);
 
   /**
-   * Draw lander radii
+   * Draw lander circles
    */
   useEffect(() => {
     if (
       !map ||
       !mission?.landerLocation ||
-      !mission?.landerRadii ||
+      !mission?.circleDefinitions ||
       !selectedPreset?.mapCircleControls ||
       !mission?.planetRadius
     )
       return;
 
-    const landerRadii = mission.landerRadii;
+    const circleDefinitions = mission.circleDefinitions;
     const landerLocation = mission.landerLocation;
 
     map.current.eachLayer((layer: AEGISGeoJSONCircle) => {
-      if (layer.mapItemType === "Lander Radius") {
+      if (layer.mapItemType === "landerCircle") {
         layer.remove();
       }
     });
 
-    landerRadii.forEach((landerRadius) => {
+    circleDefinitions.forEach((circleDefinition) => {
       /*
        * Map does NOT think in terms of planets for coordinates,
        * and currently acts as if coordinates correspond to earth.
@@ -401,13 +402,13 @@ const MiniMap: FunctionComponent<{
        * adjustment of Initial Radius Adjust * Earth Radius / (2 * Planet Radius).
        * This is seemingly no longer needed, but keep this in mind in case.
        */
-      const earthRadiusInMeters = 6378137;
+      const earthRadiusInMeters = EARTH_RADIUS;
       const radiusAdjustment = earthRadiusInMeters / mission.planetRadius;
 
-      const drawDistance = (landerRadius.radius * radiusAdjustment) / 1000;
+      const drawDistance = (circleDefinition.radius * radiusAdjustment) / 1000;
 
-      if (selectedPreset.mapCircleControls[landerRadius.uuid]?.visible) {
-        if (selectedPreset.mapCircleControls[landerRadius.uuid]?.visible) {
+      if (selectedPreset.mapCircleControls[circleDefinition.uuid]?.visible) {
+        if (selectedPreset.mapCircleControls[circleDefinition.uuid]?.visible) {
           // Turf Coords are in (lng, lat) format
           const geoJSONCircle: AEGISGeoJSONCircle = L.geoJSON(
             circle(point([landerLocation.lng, landerLocation.lat]), drawDistance, {
@@ -415,13 +416,13 @@ const MiniMap: FunctionComponent<{
             }),
             {
               style: {
-                ...selectedPreset.mapCircleControls[landerRadius.uuid]?.style,
+                ...selectedPreset.mapCircleControls[circleDefinition.uuid]?.style,
                 interactive: false,
               },
             }
           ) as AEGISGeoJSONCircle;
 
-          geoJSONCircle.mapItemType = "Lander Radius";
+          geoJSONCircle.mapItemType = "landerCircle";
 
           map.current.addLayer(geoJSONCircle);
         }
@@ -429,7 +430,7 @@ const MiniMap: FunctionComponent<{
     });
   }, [
     mission?.landerLocation,
-    mission?.landerRadii,
+    mission?.circleDefinitions,
     mission?.planetRadius,
     map,
     selectedPreset?.mapCircleControls,

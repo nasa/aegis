@@ -2,7 +2,6 @@ import paneStyles from "components/panes/global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
-import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 import {
   faCircleInfo,
   faPersonDigging,
@@ -12,6 +11,8 @@ import {
   faEdit,
   faTriangleExclamation,
   faCheck,
+  faCircle,
+  faBullseye,
 } from "@fortawesome/free-solid-svg-icons";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import {
@@ -33,6 +34,7 @@ import { thunkDeleteStation, thunkSaveStation, thunkStationCancel } from "store/
 import { validators } from "components/interface/form/formValidators";
 import { RightTabs } from "components/interface/side-controls";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
+import Station_Circles_Panel from "./station-right-circles";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -123,7 +125,7 @@ const StationEditorRight: FunctionComponent = () => {
       panel: Poi_Panel,
       panelProps: { editMode: stationsEditing.includes(selectedStationUuid) },
       selectedColor: "white",
-      icon: faCircleDot,
+      icon: faCircle,
     },
     actions_panel: {
       title: "Station Actions",
@@ -134,6 +136,16 @@ const StationEditorRight: FunctionComponent = () => {
       selectedColor: "white",
       icon: faPersonDigging,
     },
+    circle_panel: {
+      title: "Proximity Circles Display",
+      panel: Station_Circles_Panel,
+      panelProps: {
+        editMode: stationsEditing.includes(selectedStationUuid),
+      },
+      selectedColor: "white",
+      icon: faBullseye,
+    },
+
     report_panel: {
       title: "Station Report",
       panel: Report_Panel,

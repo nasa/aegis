@@ -59,7 +59,8 @@ interface PresetState {
   presetsFromDb: Preset[];
   selectedPresetUuid: string;
   selectedRightNavItem: string;
-  presetsUIStates: PresetsUIStates;
+  presetLayersUIStates: LayersUIStates;
+  presetCirclesUIStates: CirclesUIStates;
   presetsEditing: string[];
 }
 
@@ -116,6 +117,7 @@ interface StationState {
   selectedStationUuid: string;
   selectedRightNavItem: string;
   stationsEditing: string[];
+  stationCirclesUIStates: CirclesUIStates;
 }
 
 interface ActionState {

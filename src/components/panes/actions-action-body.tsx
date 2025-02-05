@@ -1,5 +1,6 @@
 import {
   faAtlas,
+  faCircle,
   faClock,
   faIcons,
   faListOl,
@@ -11,7 +12,6 @@ import {
   faWeightHanging,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
-import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
@@ -682,7 +682,7 @@ const RightActionBody: FunctionComponent<{
           <div style={{ flex: "0 0 20px" }}>
             <FontAwesomeIcon
               id={`${action.uuid}-${action.parentActionUuid}`}
-              icon={faCircleDot}
+              icon={faCircle}
               size="sm"
               className={actionStyles.iconFaded}
               data-tooltip-id="aegis-tooltip"

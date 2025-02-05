@@ -51,19 +51,25 @@ afterAll(() => {
 describe("Thunk Mission Tests", () => {
   it("thunkMissionSave", async () => {
     const missionCopy = cloneDeep(store.getState().mission.mission);
-    const newLanderRadii = { uuid: uuidv4(), name: "Jest Test Lander Radii", radius: 10 };
+    const newCircleDefinition = {
+      uuid: uuidv4(),
+      name: "Jest Test Circle Definition",
+      radius: 10,
+    };
     const newName = "Jest Mission Test Save";
-    store.dispatch(upsertMission({ ...missionCopy, name: newName, landerRadii: [newLanderRadii] }));
+    store.dispatch(
+      upsertMission({ ...missionCopy, name: newName, circleDefinitions: [newCircleDefinition] })
+    );
     const oldPreset = store.getState().preset.presets[0];
 
     await store.dispatch(thunkMissionSave());
     expect(httpClient_mission.upsertMissions).toHaveBeenCalledTimes(1);
     expect(store.getState().mission.missionFromDb.name).toEqual(newName);
 
-    // all presets should update with a new layer for this landerRadii
+    // all presets should update with a new layer for this circleDefinitions
     expect(
-      store.getState().preset.presetsUIStates[oldPreset.uuid][newLanderRadii.uuid].name
-    ).toEqual("Jest Test Lander Radii");
+      store.getState().preset.presetCirclesUIStates[oldPreset.uuid][newCircleDefinition.uuid].name
+    ).toEqual("Jest Test Circle Definition");
     expect(httpClient_preset.upsertPresets).toHaveBeenCalledTimes(
       store.getState().preset.presets.length
     );

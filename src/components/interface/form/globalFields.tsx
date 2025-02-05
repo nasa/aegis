@@ -22,7 +22,7 @@ import { FFTextProps, FFCheckboxProps, FFSelectProps, FFTextAreaProps } from "ty
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import formStyles from "./globalFields.module.css";
 import CircularSlider from "@fseehawer/react-circular-slider";
-import { CompactPicker } from "react-color";
+import CompactColor from "@uiw/react-color-compact";
 import { faSquare } from "@fortawesome/free-regular-svg-icons";
 import debounce from "lodash/debounce";
 
@@ -564,7 +564,7 @@ export const PathColorPickerMenu: FunctionComponent<{
         }}
       >
         <div className={styles.pickerMenu} ref={menuRef}>
-          <CompactPicker
+          <CompactColor
             color={currentColor}
             onChange={(color) => {
               updateColor(color.hex);

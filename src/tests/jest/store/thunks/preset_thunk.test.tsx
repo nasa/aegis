@@ -111,12 +111,14 @@ describe("Thunk Preset Tests", () => {
 
   it("thunkCreatePreset", async () => {
     const numPresets = store.getState().preset.presets.length;
-    const numPresetUIStates = Object.keys(store.getState().preset.presetsUIStates).length;
+    const numPresetLayersUIStates = Object.keys(
+      store.getState().preset.presetLayersUIStates
+    ).length;
     await store.dispatch(thunkCreatePreset());
 
     expect(store.getState().preset.presets.length).toEqual(numPresets + 1);
-    expect(Object.keys(store.getState().preset.presetsUIStates).length).toEqual(
-      numPresetUIStates + 1
+    expect(Object.keys(store.getState().preset.presetLayersUIStates).length).toEqual(
+      numPresetLayersUIStates + 1
     );
   });
 

@@ -19,6 +19,8 @@ type AEGISPolyline = L.Polyline & {
 
 type MapPolylineType = "traverse" | "walkback" | "hover" | "posPath" | "measurement";
 
+type MapCircleType = "stationCircle" | "landerCircle";
+
 type AEGISDecorator = L.Layer & {
   uuid?: string;
   mapItemType: MapPolylineType;
@@ -35,7 +37,7 @@ type AEGISCircleMarker = L.CircleMarker & {
 
 type AEGISGeoJSONCircle = L.GeoJSON & {
   uuid?: string;
-  mapItemType: "Lander Radius";
+  mapItemType: MapCircleType;
 };
 
 type AEGISGeoJSONGrid = L.GeoJSON & {

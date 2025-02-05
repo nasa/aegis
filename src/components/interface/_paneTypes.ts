@@ -13,6 +13,7 @@ import RexRight from "components/panes/rex/rex-right";
 import StmViewerPage from "components/panes/stm-viewer/stm-viewer-page";
 import StmRulesPage from "components/panes/stm-rules/stm-rules-page";
 import {
+  faCircle,
   faFlask,
   faGlobe,
   faLocationDot,
@@ -20,7 +21,6 @@ import {
   faRocket,
   faRoute,
 } from "@fortawesome/free-solid-svg-icons";
-import { faCircleDot } from "@fortawesome/free-regular-svg-icons";
 import { ReactNode } from "react";
 
 export const getPaneTypes = (actionSystemVersion = 1): PaneTypes => {
@@ -44,7 +44,7 @@ export const getPaneTypes = (actionSystemVersion = 1): PaneTypes => {
       leftPane: PoiEditor,
       rightPane: PoiEditorRight,
       color: "var(--poi)",
-      icon: faCircleDot,
+      icon: faCircle,
     },
     station: {
       title: "Stations",

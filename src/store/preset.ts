@@ -10,7 +10,8 @@ export const initialState: PresetState = {
   presetsFromDb: [],
   selectedPresetUuid: null,
   selectedRightNavItem: "info_panel",
-  presetsUIStates: {},
+  presetLayersUIStates: {},
+  presetCirclesUIStates: {},
   presetsEditing: [],
 };
 
@@ -140,19 +141,7 @@ export const presetSlice = createSlice({
         state.presets[presetIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
       }
     },
-    togglePresetCircleVisible: (
-      state,
-      action: { payload: { presetUuid: string; radiusUuid: string } }
-    ) => {
-      const presetIndex = state.presets.findIndex(
-        (preset) => preset.uuid === action.payload.presetUuid
-      );
-      if (presetIndex >= 0) {
-        state.presets[presetIndex].mapCircleControls[action.payload.radiusUuid].visible =
-          !state.presets[presetIndex].mapCircleControls[action.payload.radiusUuid].visible;
-        state.presets[presetIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
-      }
-    },
+
     setPresetSublayerStyle: (
       state,
       action: { payload: { presetUuid: string; layerUuid: string; style: MapSublayerStyle } }
@@ -166,61 +155,120 @@ export const presetSlice = createSlice({
         state.presets[presetIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
       }
     },
+
+    /**
+     * Preset Circle stuff
+     */
     setPresetCircleStyle: (
       state,
-      action: { payload: { presetUuid: string; radiusUuid: string; style: MapSublayerStyle } }
+      action: { payload: { presetUuid: string; circleDefUuid: string; style: MapSublayerStyle } }
     ) => {
       const presetIndex = state.presets.findIndex(
         (preset) => preset.uuid === action.payload.presetUuid
       );
       if (presetIndex >= 0) {
-        state.presets[presetIndex].mapCircleControls[action.payload.radiusUuid].style =
+        state.presets[presetIndex].mapCircleControls[action.payload.circleDefUuid].style =
           action.payload.style;
         state.presets[presetIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
       }
     },
-    togglePresetUIStateExpanded: (
+    togglePresetCircleVisible: (
+      state,
+      action: { payload: { presetUuid: string; circleUuid: string } }
+    ) => {
+      const presetIndex = state.presets.findIndex(
+        (preset) => preset.uuid === action.payload.presetUuid
+      );
+      if (presetIndex >= 0) {
+        state.presets[presetIndex].mapCircleControls[action.payload.circleUuid].visible =
+          !state.presets[presetIndex].mapCircleControls[action.payload.circleUuid].visible;
+        state.presets[presetIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
+      }
+    },
+
+    setPresetCircleUIStates: (
+      state,
+      action: {
+        payload: {
+          presetUuid: string;
+          circleUIStates: CircleUIStates;
+        };
+      }
+    ) => {
+      state.presetCirclesUIStates[action.payload.presetUuid] = action.payload.circleUIStates;
+    },
+    setPresetCircleUIState: (
+      state,
+      action: {
+        payload: {
+          presetUuid: string;
+          circleDefUuid: string;
+          circleUIState: CircleUIState;
+        };
+      }
+    ) => {
+      state.presetCirclesUIStates[action.payload.presetUuid][action.payload.circleDefUuid] =
+        action.payload.circleUIState;
+    },
+    deletePresetCirclesUIStates: (state, action: { payload: { presetUuid: string } }) => {
+      delete state.presetCirclesUIStates[action.payload.presetUuid];
+    },
+    resetAllPresetCirclesUIStates: (state, action: { payload: { presetUuid: string } }) => {
+      // set all tabSelected values to null
+      Object.keys(state.presetCirclesUIStates[action.payload.presetUuid]).forEach((uuid) => {
+        state.presetCirclesUIStates[action.payload.presetUuid][uuid].slidersSelected = false;
+      });
+    },
+
+    /**
+     * Preset Layer UI States
+     */
+    togglePresetLayerUIStateExpanded: (
       state,
       action: { payload: { presetUuid: string; uuid: string } }
     ) => {
-      if (!isNil(state.presetsUIStates[action.payload.presetUuid][action.payload.uuid])) {
-        state.presetsUIStates[action.payload.presetUuid][action.payload.uuid].expanded =
-          !state.presetsUIStates[action.payload.presetUuid][action.payload.uuid].expanded;
+      if (!isNil(state.presetLayersUIStates[action.payload.presetUuid][action.payload.uuid])) {
+        state.presetLayersUIStates[action.payload.presetUuid][action.payload.uuid].expanded =
+          !state.presetLayersUIStates[action.payload.presetUuid][action.payload.uuid].expanded;
       }
     },
-    setPresetUIStates: (
+    setPresetLayerUIStates: (
       state,
       action: {
         payload: {
           presetUuid: string;
-          presetUIStates: PresetUIStates;
+          layerUIStates: LayerUIStates;
         };
       }
     ) => {
-      state.presetsUIStates[action.payload.presetUuid] = action.payload.presetUIStates;
+      state.presetLayersUIStates[action.payload.presetUuid] = action.payload.layerUIStates;
     },
-    setPresetUIState: (
+    setPresetLayerUIState: (
       state,
       action: {
         payload: {
           presetUuid: string;
-          uuid: string;
-          presetUIState: PresetUIState;
+          layerUuid: string;
+          layerUIState: LayerUIState;
         };
       }
     ) => {
-      state.presetsUIStates[action.payload.presetUuid][action.payload.uuid] =
-        action.payload.presetUIState;
+      state.presetLayersUIStates[action.payload.presetUuid][action.payload.layerUuid] =
+        action.payload.layerUIState;
     },
-    deletePresetUIStates: (state, action: { payload: { presetUuid: string } }) => {
-      delete state.presetsUIStates[action.payload.presetUuid];
+    deletePresetLayersUIStates: (state, action: { payload: { presetUuid: string } }) => {
+      delete state.presetLayersUIStates[action.payload.presetUuid];
     },
-    resetAllPresetUIStates: (state, action: { payload: { presetUuid: string } }) => {
+    resetAllPresetLayersUIStates: (state, action: { payload: { presetUuid: string } }) => {
       // set all tabSelected values to null
-      Object.keys(state.presetsUIStates[action.payload.presetUuid]).forEach((uuid) => {
-        state.presetsUIStates[action.payload.presetUuid][uuid].tabSelected = null;
+      Object.keys(state.presetLayersUIStates[action.payload.presetUuid]).forEach((uuid) => {
+        state.presetLayersUIStates[action.payload.presetUuid][uuid].tabSelected = null;
       });
     },
+
+    /**
+     * Preset Editing
+     */
     setPresetEditMode: (state, action: { payload: { presetUuid: string; editMode: boolean } }) => {
       if (action.payload.editMode) {
         state.presetsEditing.push(action.payload.presetUuid);
@@ -268,11 +316,15 @@ export const {
   togglePresetCircleVisible,
   setPresetSublayerStyle,
   setPresetCircleStyle,
-  togglePresetUIStateExpanded,
-  setPresetUIStates,
-  setPresetUIState,
-  deletePresetUIStates,
+  setPresetCircleUIStates,
+  setPresetCircleUIState,
+  deletePresetCirclesUIStates,
+  resetAllPresetCirclesUIStates,
+  togglePresetLayerUIStateExpanded,
+  setPresetLayerUIStates,
+  setPresetLayerUIState,
+  deletePresetLayersUIStates,
   setPresetEditMode,
-  resetAllPresetUIStates,
+  resetAllPresetLayersUIStates,
   obliterateState,
 } = presetSlice.actions;

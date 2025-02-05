@@ -129,7 +129,8 @@ export const createFullTestStore = (): StoreType => {
       },
     },
   });
-  const presetsUIStates = { [preset1.uuid]: {} };
+  const presetLayersUIStates = { [preset1.uuid]: {} };
+  const presetCirclesUIStates = { [preset1.uuid]: {} };
 
   const stmLevel1_1 = generateBlankStmLvl1({ name: "Jest STM Level1-1", numbering: "1" });
   const stmLevel2_1 = generateBlankStmLvl2({ name: "Jest STM Level2-1", numbering: "1" });
@@ -168,7 +169,8 @@ export const createFullTestStore = (): StoreType => {
       ...presetInitialState,
       presets: [preset1],
       presetsFromDb: [preset1],
-      presetsUIStates,
+      presetLayersUIStates: presetLayersUIStates,
+      presetCirclesUIStates: presetCirclesUIStates,
     },
     station: { ...stationInitialState, stations: stations, stationsFromDb: stations },
     action: {
