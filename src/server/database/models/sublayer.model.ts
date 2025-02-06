@@ -18,11 +18,11 @@ export class Sublayer_db implements Sublayer_db_type {
   @Property({ type: MikroTypes.json, nullable: true })
   legend: Legend;
   @Property({ type: MikroTypes.text, nullable: true })
-  url: string;
-  @Property({ type: MikroTypes.text, nullable: true })
   type: SublayerType;
   @Property({ type: MikroTypes.text, nullable: true })
-  filePath: string;
+  path: string;
+  @Property({ type: MikroTypes.text, nullable: true })
+  tilePattern: string;
   @Property({ type: MikroTypes.json, nullable: true })
   boundingBox: number[];
   @Property({ type: MikroTypes.text, nullable: true })

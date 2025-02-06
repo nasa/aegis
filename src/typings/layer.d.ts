@@ -20,12 +20,12 @@ interface Sublayer {
   uuid: string;
   missionId: number;
   layerUuid: string;
+  type: SublayerType;
   name: string;
   description: string;
   legend: Legend;
-  type: SublayerType;
-  url: string;
-  filePath: string; // for vector layers
+  path: string;
+  tilePattern: string;
   boundingBox: number[];
   tileFormat: string;
   minNativeZoom: number;

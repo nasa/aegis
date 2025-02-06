@@ -1,6 +1,7 @@
 import StreamZip from "node-stream-zip";
 import * as fs from "fs";
-import { readdir, mkdir, rm, rename } from "node:fs/promises";
+import { readdir, mkdir, rm, rename, stat } from "node:fs/promises";
+import path from "node:path";
 
 const destRoot = process.env.STATIC_DIR;
 /**
@@ -85,14 +86,23 @@ export async function deleteFile(path: string): Promise<boolean> {
 export async function listFiles(path: string): Promise<GISfile[]> {
   try {
     if (fs.existsSync(`${destRoot}/${path}`)) {
-      const files = await readdir(`${destRoot}/${path}`, { withFileTypes: true });
+      const filesAndFolders = await readdir(`${destRoot}/${path}`, { withFileTypes: true });
       return await Promise.all(
-        files.map(async (file) => {
+        filesAndFolders.map(async (fileOrFolder) => {
           let fileCount = 1;
-          if (file.isDirectory()) {
-            fileCount = await countFiles(`${path}/${file.name}`);
+          let size = null;
+          if (fileOrFolder.isDirectory()) {
+            fileCount = await countFiles(`${destRoot}/${path}/${fileOrFolder.name}`);
+            size = await getDirectorySize(`${destRoot}/${path}/${fileOrFolder.name}`);
+          } else {
+            size = (await stat(`${destRoot}/${path}/${fileOrFolder.name}`)).size;
           }
-          const f: GISfile = { name: file.name, isDir: file.isDirectory(), fileCount: fileCount };
+          const f: GISfile = {
+            name: fileOrFolder.name,
+            isDir: fileOrFolder.isDirectory(),
+            fileCount: fileCount,
+            size,
+          };
           return f;
         })
       );
@@ -106,13 +116,37 @@ export async function listFiles(path: string): Promise<GISfile[]> {
 }
 
 /**
+ * Recursively calculates the total size (in bytes) of all files within a directory.
+ *
+ * @param directory - Absolute or relative path to the directory.
+ * @returns The total size of all files in the directory.
+ */
+export async function getDirectorySize(directory: string): Promise<number> {
+  let totalSize = 0;
+  const dirEntries = await readdir(directory, { withFileTypes: true });
+
+  for (const entry of dirEntries) {
+    const entryPath = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      totalSize += await getDirectorySize(entryPath);
+    } else {
+      const fileStat = await stat(entryPath);
+      totalSize += fileStat.size;
+    }
+  }
+
+  return totalSize;
+}
+
+/**
  * Recursive file count for a directory
  * @param directory
  * @returns number of files
  */
 async function countFiles(directory: string): Promise<number> {
   let numFiles = 0;
-  const files = await readdir(`${destRoot}/${directory}`, { withFileTypes: true });
+  const files = await readdir(directory, { withFileTypes: true });
   for (const file of files) {
     if (file.isDirectory()) {
       numFiles += await countFiles(`${directory}/${file.name}`);

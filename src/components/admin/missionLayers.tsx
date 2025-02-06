@@ -63,7 +63,7 @@ const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission
     (folderName: string) => {
       if (!allSublayers) return false;
       for (const sublayer of allSublayers) {
-        if (sublayer.url?.startsWith(folderName + "/")) {
+        if (sublayer.path === folderName) {
           return true;
         }
       }
@@ -238,11 +238,12 @@ const LayerList = (props: {
                 return (
                   <ul key={sublayer.uuid}>
                     <li>
-                      {sublayer.name}
-                      &nbsp;
                       {sublayer.type === "tile" && <FontAwesomeIcon icon={faLayerGroup} />}
                       {sublayer.type === "vector-tile" && <FontAwesomeIcon icon={faVectorSquare} />}
                       {sublayer.type === "vector" && <FontAwesomeIcon icon={faBezierCurve} />}
+                      &nbsp;
+                      {sublayer.name}
+                      &nbsp;
                       <button
                         type="button"
                         onClick={() => {

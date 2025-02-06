@@ -166,7 +166,7 @@ export const auditStationCircles = async ({
 
     //set map circle controls
     const mapCircleControls: MapCircleControls = {};
-    wholeStoreState.mission.mission.circleDefinitions?.forEach((circleDef) => {
+    wholeStoreState.mission?.mission?.circleDefinitions?.forEach((circleDef) => {
       if (newStation.mapCircleControls[circleDef.uuid]) {
         // Change "red" to a hex value the picker can show.
         if (newStation.mapCircleControls[circleDef.uuid].style.color === "red") {
@@ -199,6 +199,12 @@ export const auditStationCircles = async ({
   // update the store and db with the new values
   wholeStoreState.station.stations = newStations;
 
+  // if new values were found, save them to the db
+  const dataChanged = !isEqual(newStations, wholeStoreState.station.stationsFromDb);
+
+  if (!dataChanged) {
+    return;
+  }
   const upsertResponse = await httpClient_station.upsertStations(newStations);
   if (upsertResponse.status !== "success") {
     // handle the error
