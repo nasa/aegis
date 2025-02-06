@@ -66,6 +66,7 @@ type GISfile = {
   name: string;
   isDir: boolean;
   fileCount: number;
+  size: number;
 };
 
 /**

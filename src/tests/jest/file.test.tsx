@@ -50,6 +50,7 @@ describe("File Functions", () => {
           fileCount: 1,
           isDir: false,
           name: "testRenamed.txt",
+          size: 12,
         },
       ]);
     });
@@ -65,11 +66,13 @@ describe("File Functions", () => {
           fileCount: 0,
           isDir: true,
           name: "testDir",
+          size: 0,
         },
         {
           fileCount: 1,
           isDir: false,
           name: "testRenamed.txt",
+          size: 12,
         },
       ]);
     });
