@@ -2,6 +2,7 @@ import * as httpClient_preset from "http-client/preset";
 import * as httpClient_action from "http-client/action";
 import * as httpClient_mission from "http-client/mission";
 import * as httpClient_rex from "http-client/rex";
+import * as httpClient_station from "http-client/station";
 import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
 import clone from "lodash/clone";
@@ -96,18 +97,22 @@ export const auditPresetsAgainstLayers = async ({
     }
 
     //set map circle controls
-    const mapCircleControls: MapCircleControls = {};
     if (!preset.mapCircleControls) {
       preset.mapCircleControls = {};
     }
 
-    wholeStoreState.mission.mission.landerRadii?.forEach((landerRadius) => {
-      if (preset.mapCircleControls[landerRadius.uuid]) {
-        mapCircleControls[landerRadius.uuid] = preset.mapCircleControls[landerRadius.uuid];
+    const mapCircleControls: MapCircleControls = {};
+    wholeStoreState.mission.mission.circleDefinitions?.forEach((circleDef) => {
+      if (preset.mapCircleControls[circleDef.uuid]) {
+        // Change "red" to a hex value the picker can show.
+        if (preset.mapCircleControls[circleDef.uuid].style.color === "red") {
+          preset.mapCircleControls[circleDef.uuid].style.color = "#D33115";
+        }
+        mapCircleControls[circleDef.uuid] = preset.mapCircleControls[circleDef.uuid];
       } else {
-        mapCircleControls[landerRadius.uuid] = {
-          name: landerRadius.name,
-          landerRadiusUuid: landerRadius.uuid,
+        mapCircleControls[circleDef.uuid] = {
+          name: circleDef.name,
+          uuid: circleDef.uuid,
           visible: false,
           style: {
             opacity: 1,
@@ -115,7 +120,7 @@ export const auditPresetsAgainstLayers = async ({
             brightness: 1,
             saturation: 1,
             blendMode: "normal",
-            color: "red",
+            color: "#D33115",
             weight: 1,
             fillColor: "none",
             fillOpacity: 0,
@@ -143,6 +148,66 @@ export const auditPresetsAgainstLayers = async ({
     if (upsertReponse.status !== "success") {
       // handle the error
     }
+  }
+};
+
+export const auditStationCircles = async ({
+  wholeStoreState,
+}: {
+  wholeStoreState: WholeStoreState;
+}): Promise<void> => {
+  // new stores to hold the updated values to be persisted at the end of all the audits
+  const newStations = cloneDeep(wholeStoreState.station.stations);
+
+  for (const newStation of newStations) {
+    if (!newStation.mapCircleControls) {
+      newStation.mapCircleControls = {};
+    }
+
+    //set map circle controls
+    const mapCircleControls: MapCircleControls = {};
+    wholeStoreState.mission?.mission?.circleDefinitions?.forEach((circleDef) => {
+      if (newStation.mapCircleControls[circleDef.uuid]) {
+        // Change "red" to a hex value the picker can show.
+        if (newStation.mapCircleControls[circleDef.uuid].style.color === "red") {
+          newStation.mapCircleControls[circleDef.uuid].style.color = "#D33115";
+        }
+        mapCircleControls[circleDef.uuid] = newStation.mapCircleControls[circleDef.uuid];
+      } else {
+        mapCircleControls[circleDef.uuid] = {
+          name: circleDef.name,
+          uuid: circleDef.uuid,
+          visible: false,
+          style: {
+            opacity: 1,
+            contrast: 1,
+            brightness: 1,
+            saturation: 1,
+            blendMode: "normal",
+            color: "#D33115",
+            weight: 1,
+            fillColor: "none",
+            fillOpacity: 0,
+          },
+        };
+      }
+    });
+
+    newStation.mapCircleControls = mapCircleControls;
+  }
+
+  // update the store and db with the new values
+  wholeStoreState.station.stations = newStations;
+
+  // if new values were found, save them to the db
+  const dataChanged = !isEqual(newStations, wholeStoreState.station.stationsFromDb);
+
+  if (!dataChanged) {
+    return;
+  }
+  const upsertResponse = await httpClient_station.upsertStations(newStations);
+  if (upsertResponse.status !== "success") {
+    // handle the error
   }
 };
 

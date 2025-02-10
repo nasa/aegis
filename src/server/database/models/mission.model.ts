@@ -62,7 +62,7 @@ export class Mission_db implements Mission_db_type {
   @Property({ type: MikroTypes.double, nullable: true })
   projResUnitsPerPixel: number;
   @Property({ type: MikroTypes.json, nullable: true })
-  landerRadii: LanderRadius[];
+  circleDefinitions: CircleDefinition[];
   @Property({ type: MikroTypes.json, nullable: true })
   actionTemplates: ActionTemplate[];
   @Property({ type: MikroTypes.boolean, default: true })

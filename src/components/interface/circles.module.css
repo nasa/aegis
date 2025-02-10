@@ -1,0 +1,97 @@
+.circlesContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.circlesBody {
+  margin: 5px;
+}
+
+.circleGroup {
+  margin: 6px 5px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.circleHeader {
+  margin: 0 0 5px 0;
+}
+
+.circleSubtext {
+  font-size: 0.9em;
+  color: var(--grey4);
+  margin: 0 0 5px 10px;
+}
+
+.circleSubtextLink {
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.sublayerItemContainer {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius);
+}
+
+.sublayer {
+  display: flex;
+  flex-direction: row;
+  background-color: var(--grey1);
+  padding-left: 6px;
+  margin-top: 2px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  font-size: 0.9em;
+  height: 24px;
+  cursor: pointer;
+}
+
+.sublayerTitle {
+  font-size: 0.95em;
+  flex: 1 1 auto;
+  height: max-content;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sublayerDisabled {
+  background-color: var(--grey2);
+  color: var(--grey3) !important;
+}
+
+.sublayerCircleDefinitionsToolIcons {
+  display: flex;
+  flex-direction: row;
+  width: 60px;
+  flex: 0 0 50px;
+  padding-left: 0px;
+}
+
+.sublayerToolIcon {
+  color: white;
+  width: 20px;
+  margin-left: 1px;
+  margin-right: 1px;
+  cursor: pointer;
+  height: 100%;
+}
+
+.visibility {
+  width: 15px;
+  margin-right: 4px;
+  flex: 0 0 15px;
+}
+
+.visible {
+  color: white;
+}
+
+.inVisible {
+  color: var(--grey3);
+}
+
+.circlesGroup {
+  padding-left: 12px;
+}

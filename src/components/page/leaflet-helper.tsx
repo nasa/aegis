@@ -39,6 +39,7 @@ import { thunkUpdateActionLocation } from "store/thunk/thunkAction";
 import { thunkUpdateLanderLocation } from "store/thunk/thunkMission";
 import { thunkUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { thunkUpdatePosEntryLocation } from "store/thunk/thunkRexPosEntry";
+import { EARTH_RADIUS } from "utils/consts";
 
 // make color filter settings for tile sublayer. This is the format of leaflet.tilelayer.colorfilter package
 export const makeTileLayerColorFilter = (
@@ -794,8 +795,6 @@ export const drawLayersOnMap = ({
   missionId: number;
   setGridLabels: Dispatch<SetStateAction<GridLabelItem[]>>;
 }): void => {
-  const layerBaseURL = "/static/missionFiles";
-
   // remove map layers that are not visible in layerControls
   map.current.eachLayer((layer) => {
     const uuid = (layer as L.TileLayer).options.uuid || (layer as L.FeatureGroup).uuid;
@@ -812,39 +811,42 @@ export const drawLayersOnMap = ({
   });
 
   // check map layers in order
+  const layerBaseURL = "/static/missionFiles";
   layersToAddInOrder.map((sublayer, index) => {
+    const isExternal = sublayer.path?.startsWith("http");
     if (sublayer.type === "tile") {
       // if layer isn't already on the map, add it
       const filter = makeTileLayerColorFilter(mapSublayerControls, sublayer.uuid);
       if (!isLayerOnMapByName(map, sublayer.name)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const tileLayer = (L.tileLayer as any).colorFilter(
-          `${layerBaseURL}/${missionId}/Layers/${sublayer.url}`,
-          {
-            //manually add id and type fields for tracking later on
-            id: sublayer.name,
-            uuid: sublayer.uuid,
-            type: "tile",
+        const tilePath = isExternal
+          ? `${sublayer.path}/${sublayer.tilePattern}`
+          : `${layerBaseURL}/${missionId}/Layers/${sublayer.path}/${sublayer.tilePattern}`;
 
-            tileSize: 256,
-            bounds: [
-              [sublayer.boundingBox[1], sublayer.boundingBox[0]],
-              [sublayer.boundingBox[3], sublayer.boundingBox[2]],
-            ],
-            tms: sublayer.tileFormat === "tms",
-            minZoom: sublayer.minNativeZoom || 1,
-            minNativeZoom: sublayer.minNativeZoom,
-            maxZoom: sublayer.maxZoom,
-            maxNativeZoom: sublayer.maxNativeZoom,
-            opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
-            zIndex: index,
-            filter,
-            // custom class name that we use to control mix-blend-mode
-            className: `leaflet-layer leaflet-blend-${
-              mapSublayerControls[sublayer.uuid].style?.blendMode
-            }`,
-          }
-        );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const tileLayer = (L.tileLayer as any).colorFilter(tilePath, {
+          //manually add id and type fields for tracking later on
+          id: sublayer.name,
+          uuid: sublayer.uuid,
+          type: "tile",
+
+          tileSize: 256,
+          bounds: [
+            [sublayer.boundingBox[1], sublayer.boundingBox[0]],
+            [sublayer.boundingBox[3], sublayer.boundingBox[2]],
+          ],
+          tms: sublayer.tileFormat === "tms",
+          minZoom: sublayer.minNativeZoom || 1,
+          minNativeZoom: sublayer.minNativeZoom,
+          maxZoom: sublayer.maxZoom,
+          maxNativeZoom: sublayer.maxNativeZoom,
+          opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
+          zIndex: index,
+          filter,
+          // custom class name that we use to control mix-blend-mode
+          className: `leaflet-layer leaflet-blend-${
+            mapSublayerControls[sublayer.uuid].style?.blendMode
+          }`,
+        });
 
         map.current.addLayer(tileLayer);
         tileLayer.bringToFront();
@@ -861,8 +863,11 @@ export const drawLayersOnMap = ({
       // if layer isn't already on the map, add it
       if (!isLayerOnMapByName(map, sublayer.name)) {
         // fetch geojson object from url
+        const geoJsonPath = isExternal
+          ? `${sublayer.path}`
+          : `${layerBaseURL}/${missionId}/Data/${sublayer.path}`;
         const fetchGeojsonAsync = async () => {
-          const res = await fetch(`${layerBaseURL}/${missionId}/Data/${sublayer.filePath}`, {
+          const res = await fetch(geoJsonPath, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -964,24 +969,24 @@ export const drawLayersOnMap = ({
     } else if (sublayer.type === "vector-tile") {
       // if layer isn't already on the map, add it
       if (!isLayerOnMapByName(map, sublayer.name)) {
-        const vectorTileLayer = VectorTileLayer(
-          `${layerBaseURL}/${missionId}/Layers/${sublayer.url}`,
-          {
-            id: sublayer.name,
-            uuid: sublayer.uuid,
-            type: "vector-tile",
-            style: {
-              fill: false,
-              stroke: true,
-              //manually define defaults
-              color: mapSublayerControls[sublayer.uuid].style?.color,
-              opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
-              weight: mapSublayerControls[sublayer.uuid].style?.weight,
-            },
-            minDetailZoom: sublayer.minNativeZoom,
-            maxDetailZoom: sublayer.maxNativeZoom,
-          }
-        );
+        const vectorTilePath = isExternal
+          ? `${sublayer.path}/${sublayer.tilePattern}`
+          : `${layerBaseURL}/${missionId}/Layers/${sublayer.path}/${sublayer.tilePattern}`;
+        const vectorTileLayer = VectorTileLayer(vectorTilePath, {
+          id: sublayer.name,
+          uuid: sublayer.uuid,
+          type: "vector-tile",
+          style: {
+            fill: false,
+            stroke: true,
+            //manually define defaults
+            color: mapSublayerControls[sublayer.uuid].style?.color,
+            opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
+            weight: mapSublayerControls[sublayer.uuid].style?.weight,
+          },
+          minDetailZoom: sublayer.minNativeZoom,
+          maxDetailZoom: sublayer.maxNativeZoom,
+        });
 
         map.current.addLayer(vectorTileLayer);
         vectorTileLayer.bringToFront();
@@ -1013,8 +1018,8 @@ export const drawGridLabels = ({
   const mapZoom = map.current.getZoom();
   let modulo = 1;
   //zoom levels are different for earth and moon because you have to zoom in more to see the same amount of detail on the Earth
-  if (planetRadius >= 6370000) {
-    //if earth (6378137)
+  if (planetRadius === EARTH_RADIUS) {
+    //if earth (EARTH_RADIUS)
     if (mapZoom < 15) {
       modulo = 10;
     } else if (mapZoom < 16) {

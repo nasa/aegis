@@ -12,6 +12,7 @@ import UploadFile from "./uploadFile";
 import adminStyles from "components/admin/admin.module.css";
 import DownloadFromBox from "./downloadFromBox";
 import { useNavigate } from "react-router-dom";
+import prettyBytes from "pretty-bytes";
 
 const FileManager: FunctionComponent<{
   missionId: number;
@@ -38,6 +39,7 @@ const FileManager: FunctionComponent<{
     name: string;
     showRename: boolean; //toggle to show/hide rename input field
     newName: string; //used in rename function
+    size: number;
   };
 
   //call api to get the directory listing
@@ -54,6 +56,7 @@ const FileManager: FunctionComponent<{
           name: file.name,
           showRename: false,
           newName: file.name,
+          size: file.size,
         };
       });
       setDirListing(fileStates);
@@ -154,6 +157,7 @@ const FileManager: FunctionComponent<{
               <tr>
                 <th>Type</th>
                 <th>File Count</th>
+                <th>Size</th>
                 <th>Name</th>
                 <th />
               </tr>
@@ -164,6 +168,7 @@ const FileManager: FunctionComponent<{
                   <tr key={file.key}>
                     <td>{file.type}</td>
                     <td>{file.count}</td>
+                    <td>{prettyBytes(file.size)}</td>
                     <td>{file.name}</td>
                     <td>
                       {file.showRename ? (

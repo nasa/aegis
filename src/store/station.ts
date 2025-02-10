@@ -10,6 +10,7 @@ export const initialState: StationState = {
   selectedStationUuid: null,
   selectedRightNavItem: "info_panel",
   stationsEditing: [],
+  stationCirclesUIStates: {},
 };
 
 export const stationSlice = createSlice({
@@ -152,6 +153,69 @@ export const stationSlice = createSlice({
       }
     },
 
+    /**
+     * Station Circle UI States
+     */
+    toggleStationCircleVisible: (
+      state,
+      action: { payload: { stationUuid: string; circleUuid: string } }
+    ) => {
+      const stationIndex = state.stations.findIndex(
+        (station) => station.uuid === action.payload.stationUuid
+      );
+      if (stationIndex >= 0) {
+        state.stations[stationIndex].mapCircleControls[action.payload.circleUuid].visible =
+          !state.stations[stationIndex].mapCircleControls[action.payload.circleUuid].visible;
+        state.stations[stationIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
+      }
+    },
+    setStationCircleStyle: (
+      state,
+      action: { payload: { stationUuid: string; circleDefUuid: string; style: MapSublayerStyle } }
+    ) => {
+      const stationIndex = state.stations.findIndex(
+        (station) => station.uuid === action.payload.stationUuid
+      );
+      if (stationIndex >= 0) {
+        state.stations[stationIndex].mapCircleControls[action.payload.circleDefUuid].style =
+          action.payload.style;
+        state.stations[stationIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
+      }
+    },
+    setStationCircleUIStates: (
+      state,
+      action: {
+        payload: {
+          stationUuid: string;
+          circleUIStates: CircleUIStates;
+        };
+      }
+    ) => {
+      state.stationCirclesUIStates[action.payload.stationUuid] = action.payload.circleUIStates;
+    },
+    setStationCircleUIState: (
+      state,
+      action: {
+        payload: {
+          stationUuid: string;
+          circleDefUuid: string;
+          circleUIState: CircleUIState;
+        };
+      }
+    ) => {
+      state.stationCirclesUIStates[action.payload.stationUuid][action.payload.circleDefUuid] =
+        action.payload.circleUIState;
+    },
+    deleteStationCirclesUIStates: (state, action: { payload: { stationUuid: string } }) => {
+      delete state.stationCirclesUIStates[action.payload.stationUuid];
+    },
+    resetAllStationCirclesUIStates: (state, action: { payload: { stationUuid: string } }) => {
+      // set all tabSelected values to null
+      Object.keys(state.stationCirclesUIStates[action.payload.stationUuid]).forEach((uuid) => {
+        state.stationCirclesUIStates[action.payload.stationUuid][uuid].slidersSelected = false;
+      });
+    },
+
     obliterateState: (state) => {
       //eslint-disable-next-line
       state = Object.assign(state, initialState);
@@ -182,5 +246,11 @@ export const {
   setStateForNewStation,
   setStationEditMode,
   revertWalkbackPath,
+  toggleStationCircleVisible,
+  setStationCircleStyle,
+  setStationCircleUIStates,
+  setStationCircleUIState,
+  deleteStationCirclesUIStates,
+  resetAllStationCirclesUIStates,
   obliterateState,
 } = stationSlice.actions;

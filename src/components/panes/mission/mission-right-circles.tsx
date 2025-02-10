@@ -1,43 +1,45 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import { faPlusCircle, faTrashAlt, faList } from "@fortawesome/free-solid-svg-icons";
+import { faPlusCircle, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
 import { regExValidators, validators } from "components/interface/form/formValidators";
 import styles from "./mission.module.css";
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { SubpanelHeading } from "components/interface/_global-elements";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
-  thunkCreateLanderRadius,
-  thunkDeleteLanderRadius,
-  thunkUpdateLanderRadius,
-} from "store/thunk/thunkMission-radii";
+  thunkCreateCircleDefinition,
+  thunkDeleteCircleDefinition,
+  thunkUpdateCircleDefinition,
+} from "store/thunk/thunkMission-circleDefs";
 
-const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
+const CircleDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
   const mission = useAppSelector((state) => state.mission.mission, deepEqual);
-  const [newRadiusUuid, setNewRadiusUuid] = useState(undefined);
+  const [newCircleDefUuid, setNewCircleDefUuid] = useState(undefined);
 
   // Unmarks newest list item as "new" after a short timeout (for autofocusing)
   useEffect(() => {
-    if (newRadiusUuid !== undefined) {
+    if (newCircleDefUuid !== undefined) {
       setTimeout(() => {
-        setNewRadiusUuid(undefined);
+        setNewCircleDefUuid(undefined);
       }, 300);
     }
-  }, [newRadiusUuid]);
+  }, [newCircleDefUuid]);
 
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle} aria-label="rightBodyTitle">
-        Vector Definitions
+        Proximity Circle Definitions
       </div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-              <SubpanelHeading icon={faList}>Lander Radius Circles</SubpanelHeading>
+            <div className={paneStyles.panelSectionSubtext}>
+              <div>
+                The circles defined here are displayed and styled in each Preset for the Lander, and
+                each Station.
+              </div>
             </div>
             <div className={paneStyles.panelSectionBody}>
               <ul className={styles.propertyList}>
@@ -54,18 +56,18 @@ const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => 
                   </div>
                 </li>
 
-                {mission?.landerRadii?.map((item, index) => (
+                {mission?.circleDefinitions?.map((item, index) => (
                   <li
                     key={item.uuid}
                     className={styles.propertyListItem}
-                    aria-label="radiiList-item"
+                    aria-label="circle-definition-item"
                   >
                     <RadiusItem
                       key={item.uuid}
-                      landerRadius={item}
+                      circleDef={item}
                       editMode={editMode}
                       evenRow={index % 2 === 0}
-                      toFocus={newRadiusUuid === item.uuid}
+                      toFocus={newCircleDefUuid === item.uuid}
                     />
                   </li>
                 ))}
@@ -74,10 +76,10 @@ const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => 
               {editMode && (
                 <Button
                   icon={faPlusCircle}
-                  label="Add New Radii"
-                  style={{ width: "120px", marginLeft: "18px", marginTop: "8px" }}
+                  label="Add New Circle Definition"
+                  style={{ width: "185px", marginLeft: "18px", marginTop: "8px" }}
                   onClick={async () => {
-                    setNewRadiusUuid((await dispatch(thunkCreateLanderRadius())).payload);
+                    setNewCircleDefUuid((await dispatch(thunkCreateCircleDefinition())).payload);
                   }}
                   ariaLabel="addNewRadiusButton"
                 />
@@ -90,14 +92,14 @@ const Radii_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => 
   );
 };
 
-export default Radii_Panel;
+export default CircleDefinitions_Panel;
 
 const RadiusItem: FunctionComponent<{
-  landerRadius: LanderRadius;
+  circleDef: CircleDefinition;
   editMode: boolean;
   evenRow: boolean;
   toFocus: boolean;
-}> = ({ landerRadius, editMode, evenRow, toFocus }) => {
+}> = ({ circleDef, editMode, evenRow, toFocus }) => {
   const dispatch = useAppDispatch();
 
   let backgroundColor: string = "var(--grey2)";
@@ -112,22 +114,22 @@ const RadiusItem: FunctionComponent<{
           <InLineEditInput
             editing={editMode}
             fieldProps={{
-              name: "landerRadiusName",
-              ariaLabel: "Lander radius name",
+              name: "circleDefName",
+              ariaLabel: "Circle Definition Name",
               style: { width: "100%" },
               validators: [validators.maxLength(255), validators.required],
             }}
-            value={landerRadius.name}
+            value={circleDef.name}
             onSubmit={(val: string) => {
               dispatch(
-                thunkUpdateLanderRadius({
-                  uuid: landerRadius.uuid,
+                thunkUpdateCircleDefinition({
+                  uuid: circleDef.uuid,
                   fieldName: "name",
                   value: val,
                 })
               );
             }}
-            key={`${landerRadius.uuid}-name`}
+            key={`${circleDef.uuid}-name`}
             toFocus={toFocus}
           />
         </div>
@@ -135,8 +137,8 @@ const RadiusItem: FunctionComponent<{
           <InLineEditInput
             editing={editMode}
             fieldProps={{
-              name: "landerRadiusRange",
-              ariaLabel: "Lander radius range",
+              name: "circleDefRange",
+              ariaLabel: "Circle Definition Range",
               style: { width: "60px" },
               validators: [
                 validators.maxLength(7),
@@ -148,17 +150,17 @@ const RadiusItem: FunctionComponent<{
                 e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
               },
             }}
-            value={landerRadius.radius?.toString()}
+            value={circleDef.radius?.toString()}
             onSubmit={(val: string) => {
               dispatch(
-                thunkUpdateLanderRadius({
-                  uuid: landerRadius.uuid,
+                thunkUpdateCircleDefinition({
+                  uuid: circleDef.uuid,
                   fieldName: "radius",
                   value: Number(val),
                 })
               );
             }}
-            key={`${landerRadius.uuid}-radius`}
+            key={`${circleDef.uuid}-radius`}
           />
         </div>
 
@@ -168,7 +170,7 @@ const RadiusItem: FunctionComponent<{
             e.preventDefault();
             e.stopPropagation();
             if (editMode) {
-              dispatch(thunkDeleteLanderRadius({ landerRadiusUuid: landerRadius.uuid }));
+              dispatch(thunkDeleteCircleDefinition({ circleDefUuid: circleDef.uuid }));
             }
           }}
         >

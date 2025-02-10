@@ -13,7 +13,7 @@ import {
 
 import Info_panel from "./preset-right-info";
 import Layers_Panel from "./preset-right-layers";
-import Circles_Panel from "./preset-right-circles";
+import Preset_Circles_Panel from "./preset-right-circles";
 import Azimuth_Panel from "./preset-right-azimuth";
 import paneStyles from "../global-pane-styles.module.css";
 import {
@@ -62,8 +62,8 @@ const PresetEditorRight: FunctionComponent = () => {
       icon: faLayerGroup,
     },
     circle_panel: {
-      title: "Vector Layer Configuration",
-      panel: Circles_Panel,
+      title: "Proximity Circles Display",
+      panel: Preset_Circles_Panel,
       selectedColor: "white",
       icon: faBullseye,
     },

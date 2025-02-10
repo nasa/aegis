@@ -6,6 +6,7 @@ import {
   auditActions,
   auditPosSources,
   auditPresetsAgainstLayers,
+  auditStationCircles,
 } from "./audits";
 
 export const populateStore = async (params: {
@@ -47,6 +48,7 @@ export const populateStore = async (params: {
   // Run audits on the data returned, modifying the data as needed. Each audit function will save needed changes to the DB
   if (runAudit) {
     await auditPresetsAgainstLayers({ wholeStoreState });
+    await auditStationCircles({ wholeStoreState });
     await auditActionDefinitions({ wholeStoreState });
     await auditPosSources({ wholeStoreState });
   }
@@ -59,8 +61,14 @@ export const populateStore = async (params: {
     wholeStoreState.preset.selectedPresetUuid = defaultPreset[0].uuid;
   }
 
-  // Generate preset UI states for the store (not in the DB)
-  generatePresetUIStates({ wholeStoreState });
+  // Generate preset layers UI states for the store (not in the DB)
+  generatePresetsLayersUIStates({ wholeStoreState });
+
+  // Generate preset circles UI states for the store (not in the DB)
+  generatePresetsCirclesUIStates({ wholeStoreState });
+
+  // Generate station circles UI states for the store (not in the DB)
+  generateStationsCirclesUIStates({ wholeStoreState });
 
   //If a rex is running, then switch the interface to show the rex pane and EVA actions right panel
   setRunningRexView({ wholeStoreState });
@@ -92,7 +100,7 @@ export const setRunningRexView = (params: { wholeStoreState: WholeStoreState }):
   }
 };
 
-export const generatePresetUIStates = async (params: {
+const generatePresetsLayersUIStates = async (params: {
   wholeStoreState: WholeStoreState;
 }): Promise<void> => {
   const { wholeStoreState } = params;
@@ -100,10 +108,10 @@ export const generatePresetUIStates = async (params: {
   const presetUuids = wholeStoreState.preset.presets.map((p) => p.uuid);
   presetUuids.forEach((presetUuid) => {
     //build preset ui states for the layer and sublayers
-    const presetUIStates: PresetUIStates = {};
+    const presetLayerUIStates: LayerUIStates = {};
     for (const layer of wholeStoreState.mission?.layers) {
       if (!layer.uuid) continue;
-      presetUIStates[layer.uuid] = {
+      presetLayerUIStates[layer.uuid] = {
         expanded: true,
         tabSelected: null,
         name: layer.name,
@@ -111,7 +119,7 @@ export const generatePresetUIStates = async (params: {
       };
     }
     for (const sublayer of wholeStoreState.mission?.sublayers) {
-      presetUIStates[sublayer.uuid] = {
+      presetLayerUIStates[sublayer.uuid] = {
         expanded: true,
         tabSelected: null,
         name: sublayer.name,
@@ -119,15 +127,48 @@ export const generatePresetUIStates = async (params: {
       };
     }
 
-    wholeStoreState.mission.mission?.landerRadii?.forEach((landerRadius) => {
-      presetUIStates[landerRadius.uuid] = {
-        expanded: true,
-        tabSelected: null,
-        name: landerRadius.name,
-        type: "circle",
+    wholeStoreState.preset.presetLayersUIStates[presetUuid] = presetLayerUIStates;
+  });
+};
+
+const generatePresetsCirclesUIStates = async (params: {
+  wholeStoreState: WholeStoreState;
+}): Promise<void> => {
+  const { wholeStoreState } = params;
+  // Generate preset UI states
+  const presetUuids = wholeStoreState.preset.presets.map((p) => p.uuid);
+  presetUuids.forEach((presetUuid) => {
+    //build preset ui states for the layer and sublayers
+    const presetCircleUIStates: CircleUIStates = {};
+
+    wholeStoreState.mission.mission?.circleDefinitions?.forEach((circleDef) => {
+      presetCircleUIStates[circleDef.uuid] = {
+        name: circleDef.name,
+        slidersSelected: false,
       };
     });
 
-    wholeStoreState.preset.presetsUIStates[presetUuid] = presetUIStates;
+    wholeStoreState.preset.presetCirclesUIStates[presetUuid] = presetCircleUIStates;
+  });
+};
+
+const generateStationsCirclesUIStates = async (params: {
+  wholeStoreState: WholeStoreState;
+}): Promise<void> => {
+  const { wholeStoreState } = params;
+  // Generate station UI states
+  const stationUuids = wholeStoreState.station.stations.map((s) => s.uuid);
+  stationUuids.forEach((stationUuid) => {
+    //build station ui states for the circles
+    const stationCircleUIStates: CircleUIStates = {};
+
+    wholeStoreState.mission.mission?.circleDefinitions?.forEach((circleDef) => {
+      stationCircleUIStates[circleDef.uuid] = {
+        name: circleDef.name,
+        slidersSelected: false,
+      };
+    });
+
+    wholeStoreState.station.stationCirclesUIStates[stationUuid] = stationCircleUIStates;
   });
 };

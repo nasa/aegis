@@ -7,12 +7,7 @@ import FileManager from "components/admin/fileManager";
 import { deleteSublayers, getSublayers } from "http-client/sublayer";
 import { generateBlankLayer } from "store/storeUtils/layer";
 import { generateBlankSublayer } from "store/storeUtils/sublayer";
-import {
-  faLayerGroup,
-  faBezierCurve,
-  faVectorSquare,
-  faCircle,
-} from "@fortawesome/free-solid-svg-icons";
+import { faLayerGroup, faBezierCurve, faVectorSquare } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission: Mission }) => {
@@ -68,7 +63,7 @@ const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission
     (folderName: string) => {
       if (!allSublayers) return false;
       for (const sublayer of allSublayers) {
-        if (sublayer.url?.startsWith(folderName + "/")) {
+        if (sublayer.path === folderName) {
           return true;
         }
       }
@@ -243,12 +238,12 @@ const LayerList = (props: {
                 return (
                   <ul key={sublayer.uuid}>
                     <li>
-                      {sublayer.name}
-                      &nbsp;
                       {sublayer.type === "tile" && <FontAwesomeIcon icon={faLayerGroup} />}
                       {sublayer.type === "vector-tile" && <FontAwesomeIcon icon={faVectorSquare} />}
                       {sublayer.type === "vector" && <FontAwesomeIcon icon={faBezierCurve} />}
-                      {sublayer.type === "circle" && <FontAwesomeIcon icon={faCircle} />}
+                      &nbsp;
+                      {sublayer.name}
+                      &nbsp;
                       <button
                         type="button"
                         onClick={() => {

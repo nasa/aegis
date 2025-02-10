@@ -36,7 +36,7 @@ interface Mission {
   projResUnitsPerPixel: number;
   createdAt?: string;
   updatedAt?: string;
-  landerRadii: LanderRadius[];
+  circleDefinitions: CircleDefinition[];
   actionTemplates: ActionTemplate[];
   stmLevel1Enabled?: boolean;
   stmLevel1Name?: string;
@@ -66,6 +66,7 @@ type GISfile = {
   name: string;
   isDir: boolean;
   fileCount: number;
+  size: number;
 };
 
 /**
@@ -116,9 +117,9 @@ interface GeographicUnit {
   abbr?: string;
 }
 /*
- * Vector circles around lander
+ * Vector circles around lander or stations
  */
-type LanderRadius = {
+type CircleDefinition = {
   uuid: string;
   name: string;
   radius: number;

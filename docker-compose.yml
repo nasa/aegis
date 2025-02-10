@@ -28,7 +28,7 @@ services:
   nginx:
     container_name: "${LOG_DATA_APP_ID}--nginx"
     image: ${DOCKER_IMAGE_NGINX}
-    restart: unless-stopped
+    restart: always
     depends_on:
       - apiv1
     <<: *send_container_logs_to_syslog
@@ -49,7 +49,7 @@ services:
       database:
         condition: service_healthy
     <<: *send_container_logs_to_syslog
-    restart: unless-stopped
+    restart: always
     env_file:
       # Any .env variables needed at runtime must be specified here or listed out in the `environment` property
       #
@@ -63,7 +63,7 @@ services:
     container_name: "${LOG_DATA_APP_ID}--database"
     image: postgis/postgis:14-3.2-alpine
     # image: postgres:14.12-alpine # pending EMSS/docker-images MR !36
-    restart: unless-stopped
+    restart: always
     <<: *send_container_logs_to_syslog
     environment:
       # Used for setting up a DB for the first time. These are not stored in the container
@@ -84,7 +84,7 @@ services:
   gdal:
     container_name: "${LOG_DATA_APP_ID}--gdal"
     image: ${DOCKER_IMAGE_GDAL}
-    restart: unless-stopped
+    restart: always
     <<: *send_container_logs_to_syslog
     volumes:
       - ${STATIC_DIR}:/static
@@ -92,6 +92,7 @@ services:
   oauth2-proxy:
     container_name: "${LOG_DATA_APP_ID}--oauth2"
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.5.1
+    restart: always
     command:
       - --http-address
       - 0.0.0.0:4180
@@ -132,5 +133,6 @@ services:
   redis:
     container_name: "${LOG_DATA_APP_ID}--redis"
     image: redis:7.2.4-alpine3.19
+    restart: always
     volumes:
       - ${REDIS_CACHE_DIR}:/data

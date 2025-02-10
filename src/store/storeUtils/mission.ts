@@ -41,7 +41,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     projOriginY: 0,
     projResZoomLevel: 0,
     projResUnitsPerPixel: 0,
-    landerRadii: [],
+    circleDefinitions: [],
     actionTemplates: null,
     stmLevel1Enabled: true,
     stmLevel1Name: "Goal",

@@ -250,6 +250,14 @@
   user-select: none;
 }
 
+.panelSectionSubtext {
+  font-size: 0.9em;
+  font-weight: 400;
+  color: var(--grey4);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .panelSection2Column {
   display: flex;
   flex-direction: row;

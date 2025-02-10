@@ -1,7 +1,7 @@
 import { test } from "@playwright/test";
 import { actionTemplatesTest } from "./mission/actionTemplateTest";
 import { missionConfigTest } from "./mission/missionConfigurationTest";
-import { landerRadiiTest } from "./mission/landerRadiiTest";
+import { circleDefinitionsTest } from "./mission/circleDefinitionsTest";
 import { missionEquipmentTest } from "./mission/missionEquipmentTest";
 import { geoUnitsTest } from "./mission/geoUnitsTest";
 import { presetTest } from "./mission/presetTest";
@@ -10,8 +10,8 @@ test("edit mission preferences", async ({ page }) => {
   await missionConfigTest(page);
 });
 
-test("create edit cancel delete radii", async ({ page }) => {
-  await landerRadiiTest(page);
+test("create edit cancel delete circle definitions", async ({ page }) => {
+  await circleDefinitionsTest(page);
 });
 
 test("create edit duplicate cancel delete actionTemplates", async ({ page }) => {

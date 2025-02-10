@@ -15,12 +15,13 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  setPresetUIState,
-  togglePresetUIStateExpanded,
+  setPresetLayerUIState,
+  togglePresetLayerUIStateExpanded,
   togglePresetSublayerVisible,
   upsertPresetByField,
+  setPresetSublayerStyle,
 } from "store/preset";
-import Settings_subpanel from "./preset-right-layers-settings";
+import Settings_subpanel from "../../interface/settings-and-slider";
 import Info_subpanel from "./preset-right-layers-info";
 import ReactDragListView from "react-drag-listview";
 import sortBy from "lodash/sortBy";
@@ -35,8 +36,8 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
     (state) => state.preset.presets.find((preset) => preset.uuid === selectedPresetUuid),
     deepEqual
   );
-  const presetUIStates = useAppSelector(
-    (state) => state.preset.presetsUIStates[selectedPresetUuid],
+  const presetsLayersUIStates = useAppSelector(
+    (state) => state.preset.presetLayersUIStates[selectedPresetUuid],
     shallowEqual
   );
 
@@ -91,7 +92,7 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
           <div className={paneStyles.panelContainer}>
             <div className={styles.layersContainer}>
               <div className={styles.layersBody}>
-                {missionLayers && presetUIStates && orderedLayerUuids && (
+                {missionLayers && presetsLayersUIStates && orderedLayerUuids && (
                   <ReactDragListView
                     onDragEnd={reorderHeader}
                     nodeSelector={`div.${styles.layerGroup}`}
@@ -134,14 +135,14 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
                               className={`${sublayerVisible ? null : styles.expandoCaretDisabled}`}
                               onClick={() =>
                                 dispatch(
-                                  togglePresetUIStateExpanded({
+                                  togglePresetLayerUIStateExpanded({
                                     presetUuid: selectedPreset.uuid,
                                     uuid: headerLayer.uuid,
                                   })
                                 )
                               }
                             >
-                              {presetUIStates[headerLayer.uuid]?.expanded ? (
+                              {presetsLayersUIStates[headerLayer.uuid]?.expanded ? (
                                 <FontAwesomeIcon icon={faCaretDown} size="sm" />
                               ) : (
                                 <FontAwesomeIcon icon={faCaretRight} size="sm" />
@@ -159,7 +160,7 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
                             handleSelector="a.sublayerReorder"
                           >
                             <div className={styles.sublayerGroup}>
-                              {presetUIStates[headerLayer.uuid]?.expanded &&
+                              {presetsLayersUIStates[headerLayer.uuid]?.expanded &&
                                 sublayers &&
                                 presetLayerOrder.sublayerUuids.map((sublayerUuid: string) => {
                                   const sublayer = sublayers.find((s) => s.uuid === sublayerUuid);
@@ -168,7 +169,7 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
                                       key={`sub_${sublayer.uuid}`}
                                       sublayer={sublayer}
                                       selectedPreset={selectedPreset}
-                                      presetUIStates={presetUIStates}
+                                      layerUIStates={presetsLayersUIStates}
                                       editMode={editMode}
                                     />
                                   );
@@ -194,11 +195,27 @@ export default Layers_Panel;
 const Sublayer: FunctionComponent<{
   sublayer: Sublayer;
   selectedPreset: Preset;
-  presetUIStates: PresetUIStates;
+  layerUIStates: LayerUIStates;
   editMode: boolean;
-}> = ({ sublayer, selectedPreset, presetUIStates, editMode }) => {
+}> = ({ sublayer, selectedPreset, layerUIStates, editMode }) => {
   const dispatch = useAppDispatch();
   const presetSublayerControls = selectedPreset?.mapSublayerControls;
+
+  const styleSetterHandler = ({
+    uuid,
+    layerStyle,
+  }: {
+    uuid: string;
+    layerStyle: MapSublayerStyle;
+  }) => {
+    dispatch(
+      setPresetSublayerStyle({
+        presetUuid: selectedPreset.uuid,
+        layerUuid: uuid,
+        style: layerStyle,
+      })
+    );
+  };
 
   return (
     <div className={styles.sublayerItemContainer}>
@@ -256,13 +273,13 @@ const Sublayer: FunctionComponent<{
             }`}
             onClick={() => {
               const tabSelected =
-                presetUIStates[sublayer.uuid].tabSelected === "info" ? null : "info";
+                layerUIStates[sublayer.uuid].tabSelected === "info" ? null : "info";
               dispatch(
-                setPresetUIState({
+                setPresetLayerUIState({
                   presetUuid: selectedPreset.uuid,
-                  uuid: sublayer.uuid,
-                  presetUIState: {
-                    ...presetUIStates[sublayer.uuid],
+                  layerUuid: sublayer.uuid,
+                  layerUIState: {
+                    ...layerUIStates[sublayer.uuid],
                     tabSelected,
                   },
                 })
@@ -277,13 +294,13 @@ const Sublayer: FunctionComponent<{
               onClick={() => {
                 if (!editMode) return;
                 const tabSelected =
-                  presetUIStates[sublayer.uuid].tabSelected === "sliders" ? null : "sliders";
+                  layerUIStates[sublayer.uuid].tabSelected === "sliders" ? null : "sliders";
                 dispatch(
-                  setPresetUIState({
+                  setPresetLayerUIState({
                     presetUuid: selectedPreset.uuid,
-                    uuid: sublayer.uuid,
-                    presetUIState: {
-                      ...presetUIStates[sublayer.uuid],
+                    layerUuid: sublayer.uuid,
+                    layerUIState: {
+                      ...layerUIStates[sublayer.uuid],
                       tabSelected,
                     },
                   })
@@ -296,7 +313,7 @@ const Sublayer: FunctionComponent<{
         </div>
       </div>
 
-      {presetUIStates[sublayer.uuid].tabSelected === "info" && (
+      {layerUIStates[sublayer.uuid].tabSelected === "info" && (
         <div
           className={`${styles.sublayerExpando} ${
             selectedPreset.mapSublayerControls[sublayer.uuid]?.visible || editMode
@@ -307,12 +324,13 @@ const Sublayer: FunctionComponent<{
           <Info_subpanel sublayer={sublayer} />
         </div>
       )}
-      {presetUIStates[sublayer.uuid].tabSelected === "sliders" && (
+      {layerUIStates[sublayer.uuid].tabSelected === "sliders" && (
         <div className={styles.sublayerExpando}>
           <Settings_subpanel
-            selectedPreset={selectedPreset}
+            styleSetter={styleSetterHandler}
             type={sublayer.type}
             uuid={sublayer.uuid}
+            mapSublayerControls={selectedPreset.mapSublayerControls}
           />
         </div>
       )}

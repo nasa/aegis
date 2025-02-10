@@ -1,6 +1,7 @@
 .slidersContainer {
   background-color: var(--grey1);
-  margin: 0 0 8px 0;
+  margin: 0 0 3px 0;
+  padding: 2px 0 5px 0;
 }
 
 .sliderTitle {
@@ -29,6 +30,7 @@
   margin-top: 2px;
   width: 100%;
 }
+
 .listItemSlider {
   display: flex;
   margin-left: 5px;
