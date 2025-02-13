@@ -40,7 +40,7 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
-        storageState: "./.local/playwright/auth.json",
+        storageState: "../../../.local/playwright/auth.json",
       },
       dependencies: ["auth"], // make sure to run the auth project first.
     },
@@ -48,7 +48,7 @@ export default defineConfig({
       name: "firefox",
       use: {
         ...devices["Desktop Firefox"],
-        storageState: "./.local/playwright/auth.json",
+        storageState: "../../../.local/playwright/auth.json",
       },
       dependencies: ["auth"], // make sure to run the auth project first.
     },
@@ -56,7 +56,7 @@ export default defineConfig({
       name: "webkit",
       use: {
         ...devices["Desktop Safari"],
-        storageState: "./.local/playwright/auth.json",
+        storageState: "../../../.local/playwright/auth.json",
       },
       dependencies: ["auth"], // make sure to run the auth project first.
     },
@@ -69,6 +69,6 @@ export default defineConfig({
     timeout: 120 * 1000,
   },
 
-  globalSetup: require.resolve("./src/tests/playwright/playwright.globalSetup.ts"),
-  globalTeardown: require.resolve("./src/tests/playwright/playwright.globalTeardown.ts"),
+  globalSetup: require.resolve("./playwright.globalSetup.ts"),
+  globalTeardown: require.resolve("./playwright.globalTeardown.ts"),
 });
