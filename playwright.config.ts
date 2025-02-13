@@ -44,6 +44,22 @@ export default defineConfig({
       },
       dependencies: ["auth"], // make sure to run the auth project first.
     },
+    {
+      name: "firefox",
+      use: {
+        ...devices["Desktop Firefox"],
+        storageState: "./.local/playwright/auth.json",
+      },
+      dependencies: ["auth"], // make sure to run the auth project first.
+    },
+    {
+      name: "webkit",
+      use: {
+        ...devices["Desktop Safari"],
+        storageState: "./.local/playwright/auth.json",
+      },
+      dependencies: ["auth"], // make sure to run the auth project first.
+    },
   ],
   // Run your local dev server before starting the tests.
   webServer: {
