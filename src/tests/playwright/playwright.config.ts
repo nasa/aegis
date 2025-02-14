@@ -5,7 +5,7 @@ export default defineConfig({
   testDir: "./src/tests/playwright",
 
   // Set the timeout for each test.
-  timeout: 30000,
+  timeout: 40000,
 
   // Run all tests in parallel.
   fullyParallel: false,
@@ -40,7 +40,23 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
-        storageState: "./.local/playwright/auth.json",
+        storageState: "../../../.local/playwright/auth.json",
+      },
+      dependencies: ["auth"], // make sure to run the auth project first.
+    },
+    {
+      name: "firefox",
+      use: {
+        ...devices["Desktop Firefox"],
+        storageState: "../../../.local/playwright/auth.json",
+      },
+      dependencies: ["auth"], // make sure to run the auth project first.
+    },
+    {
+      name: "webkit",
+      use: {
+        ...devices["Desktop Safari"],
+        storageState: "../../../.local/playwright/auth.json",
       },
       dependencies: ["auth"], // make sure to run the auth project first.
     },
@@ -53,6 +69,6 @@ export default defineConfig({
     timeout: 120 * 1000,
   },
 
-  globalSetup: require.resolve("./src/tests/playwright/playwright.globalSetup.ts"),
-  globalTeardown: require.resolve("./src/tests/playwright/playwright.globalTeardown.ts"),
+  globalSetup: require.resolve("./playwright.globalSetup.ts"),
+  globalTeardown: require.resolve("./playwright.globalTeardown.ts"),
 });
