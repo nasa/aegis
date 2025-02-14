@@ -45,7 +45,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     //no mission was specified. check if they are allowed to view at least one mission
     viewPermission =
       req.session?.user?.isSuperAdmin ||
-      req.session?.user?.permissionList?.find((p) => p.permissions.view)?.permissions.view;
+      req.session?.user?.permissionList?.find((p) => p.permissions.view)?.permissions.view ||
+      (emssToken && emssToken === process.env.EMSS_TOKEN);
   }
   if (!viewPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -57,8 +58,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     if (queryObj.missionId) {
       records = await getMission(queryObj.missionId);
     } else {
-      //super admin can see all missions
-      if (req.session.user.isSuperAdmin) {
+      //super admin and emss token can see all missions
+      if (req.session?.user?.isSuperAdmin || (emssToken && emssToken === process.env.EMSS_TOKEN)) {
         records = await getMission();
       } else {
         //return all missions that they have permission for
