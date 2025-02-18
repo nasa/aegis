@@ -14,6 +14,7 @@ interface Eva {
   ingressLocationUuid: string; // station uuid or "lander"
   traverseColor: string;
   ownerId: number;
+  datetime: string;
 
   createdAt?: string;
   updatedAt?: string;

@@ -29,6 +29,8 @@ import {
 import "components/dashboard/map.module.css";
 import { point } from "@turf/helpers";
 import { circle } from "@turf/turf";
+import { addTimeToDateTime } from "utils/timeLayers";
+import PetInterval from "components/page/petInterval";
 import { EARTH_RADIUS } from "utils/consts";
 
 const MiniMap: FunctionComponent<{
@@ -107,6 +109,9 @@ const MiniMap: FunctionComponent<{
 
   const [isWin10, setIsWin10] = useState<boolean>(false);
   const [mapZoom, setMapZoom] = useState<number>(0); // Used to trigger re-draw of scale. Value doens't matter
+  const [mapDateTime, setMapDateTime] = useState<string>(undefined);
+  const [rexPetTime, setRexPetTime] = useState<string>("");
+  const [selectedRexDateTime, setSelectedRexDateTime] = useState<string>(null);
 
   useEffect(() => {
     const checkWindowsVersion = async () => {
@@ -236,6 +241,8 @@ const MiniMap: FunctionComponent<{
       selectedPreset,
       missionSublayers,
       missionLayers,
+      mapDateTime,
+      setTimeLayerInfo: null,
     });
 
     drawLayersOnMap({
@@ -243,9 +250,10 @@ const MiniMap: FunctionComponent<{
       mapSublayerControls: selectedPreset.mapSublayerControls,
       layersToAddInOrder,
       missionId: mission.id,
+      mapTime: null,
       setGridLabels: null,
     });
-  }, [mission, map, missionLayers, missionSublayers, selectedPreset]);
+  }, [mission, map, missionLayers, missionSublayers, selectedPreset, mapDateTime]);
 
   /**
    * Pan/zoom map view to fit all objects in view when objects or positions change
@@ -331,6 +339,32 @@ const MiniMap: FunctionComponent<{
 
     stationFeatureGroup.current.setZIndex(999);
   }, [stationsToShow, isWin10]);
+
+  /**
+   * Determine current map time and update the map time state
+   */
+  useEffect(() => {
+    if (selectedRexDateTime) {
+      setMapDateTime(selectedRexDateTime);
+    } else {
+      setMapDateTime(null);
+    }
+  }, [selectedRexDateTime]);
+
+  /** Determine time assosiated with currently running rex time */
+  useEffect(() => {
+    if (runningEvaFromDb?.datetime) {
+      if (runningRexFromDb.petRunning && rexPetTime.endsWith("0")) {
+        setSelectedRexDateTime(addTimeToDateTime(runningEvaFromDb.datetime, rexPetTime));
+      } else if (runningRexFromDb) {
+        setSelectedRexDateTime(runningEvaFromDb.datetime);
+      } else {
+        setSelectedRexDateTime(null);
+      }
+    } else {
+      setSelectedRexDateTime(null);
+    }
+  }, [rexPetTime, runningEvaFromDb.datetime, runningRexFromDb]);
 
   /**
    * Determine traverses to show and draw them on map when traverses or selections change
@@ -538,6 +572,11 @@ const MiniMap: FunctionComponent<{
 
   return (
     <div className={styles.mapContainer} ref={mapContainerRef}>
+      <PetInterval
+        runningRex={runningRexFromDb}
+        rexPetTime={rexPetTime}
+        setRexPetTime={setRexPetTime}
+      />
       <div className={styles.map} ref={mapRef} />
       <div className={styles.mapScaleDisplay}>{showScaleBar && drawScaleBar()}</div>
     </div>

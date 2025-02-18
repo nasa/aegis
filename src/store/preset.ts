@@ -13,6 +13,7 @@ export const initialState: PresetState = {
   presetLayersUIStates: {},
   presetCirclesUIStates: {},
   presetsEditing: [],
+  presetPreviewTime: null,
 };
 
 export const presetSlice = createSlice({
@@ -172,6 +173,9 @@ export const presetSlice = createSlice({
         state.presets[presetIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
       }
     },
+    setPresetPreviewTime: (state, action: { payload: { presetPreviewTime: string } }) => {
+      state.presetPreviewTime = action.payload.presetPreviewTime;
+    },
     togglePresetCircleVisible: (
       state,
       action: { payload: { presetUuid: string; circleUuid: string } }
@@ -316,6 +320,7 @@ export const {
   togglePresetCircleVisible,
   setPresetSublayerStyle,
   setPresetCircleStyle,
+  setPresetPreviewTime,
   setPresetCircleUIStates,
   setPresetCircleUIState,
   deletePresetCirclesUIStates,

@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import styles from "./preset-right-layers.module.css";
 import {
@@ -19,6 +19,7 @@ import {
   togglePresetLayerUIStateExpanded,
   togglePresetSublayerVisible,
   upsertPresetByField,
+  setPresetPreviewTime,
   setPresetSublayerStyle,
 } from "store/preset";
 import Settings_subpanel from "../../interface/settings-and-slider";
@@ -26,6 +27,8 @@ import Info_subpanel from "./preset-right-layers-info";
 import ReactDragListView from "react-drag-listview";
 import sortBy from "lodash/sortBy";
 import cloneDeep from "lodash/cloneDeep";
+import { Checkbox } from "components/interface/form/globalFields";
+import { getDateAndTimeFromISOString } from "utils/formatting";
 
 const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -47,6 +50,10 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
         ?.mapSublayerControls,
     deepEqual
   );
+
+  const [timePreviewEnabled, setTimePreviewEnabled] = useState(false);
+  const [timeSeries, setTimeSeries] = useState<string[]>(null);
+  const [timeSeriesIndex, setTimeSeriesIndex] = useState<number>(null);
 
   let orderedLayerUuids: PresetLayerOrder[]; //contains all actions in order
   if (selectedPreset.layerOrder) {
@@ -84,11 +91,65 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
     dispatch(upsertPresetByField(selectedPreset.uuid, "layerOrder", newOrder));
   }
 
+  //Check for time-based layers and set time bounds
+  useEffect(() => {
+    const visibleTimeSublayers = missionSublayers.filter(
+      (sublayer) =>
+        sublayer.isTimeBased &&
+        sublayer.timeLayerManifest &&
+        presetMapLayerControls[sublayer.uuid]?.visible
+    );
+    if (visibleTimeSublayers.length > 0) {
+      const timeLayer = visibleTimeSublayers[0];
+      setTimeSeries(timeLayer.timeLayerManifest.map((manifest) => manifest.datetime));
+      setTimeSeriesIndex(0);
+    }
+  }, [missionSublayers, presetMapLayerControls]);
+
+  useEffect(() => {
+    if (!timeSeries || !timePreviewEnabled) {
+      dispatch(setPresetPreviewTime({ presetPreviewTime: null }));
+    } else {
+      dispatch(setPresetPreviewTime({ presetPreviewTime: timeSeries[timeSeriesIndex] }));
+    }
+  }, [dispatch, timePreviewEnabled, timeSeries, timeSeriesIndex]);
+
   return (
     selectedPreset && (
       <div className={paneStyles.rightBody}>
         <div className={paneStyles.rightBodyTitle}>Preset Layer Configuration</div>
         <div className={paneStyles.rightBodyBody}>
+          {timeSeries && (
+            <div className={paneStyles.panelContainer}>
+              <div className={styles.timeSliderContainer}>
+                <div className={styles.timeSliderHeader}>
+                  Time Preview
+                  <div className={styles.timeSliderCheckbox}>
+                    <Checkbox
+                      label=""
+                      checked={timePreviewEnabled}
+                      onChange={(e) => setTimePreviewEnabled(e.target.checked)}
+                    />
+                  </div>
+                </div>
+
+                {timePreviewEnabled && (
+                  <div>
+                    <TimeSlider
+                      name="Preview Date and Time"
+                      value={timeSeriesIndex}
+                      displayedValue={`${getDateAndTimeFromISOString(
+                        timeSeries[timeSeriesIndex]
+                      ).join(" ")} UTC`}
+                      onChange={(e) => setTimeSeriesIndex(Number(e.target.value))}
+                      min={0}
+                      max={timeSeries.length - 1}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           <div className={paneStyles.panelContainer}>
             <div className={styles.layersContainer}>
               <div className={styles.layersBody}>
@@ -114,8 +175,9 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
                       } else {
                         //check if any of the sublayers are visible
                         sublayers?.forEach((sublayer) => {
-                          if (presetMapLayerControls[sublayer.uuid]?.visible)
+                          if (presetMapLayerControls[sublayer.uuid]?.visible) {
                             sublayerVisible = true;
+                          }
                         });
                       }
 
@@ -163,7 +225,9 @@ const Layers_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =>
                               {presetsLayersUIStates[headerLayer.uuid]?.expanded &&
                                 sublayers &&
                                 presetLayerOrder.sublayerUuids.map((sublayerUuid: string) => {
-                                  const sublayer = sublayers.find((s) => s.uuid === sublayerUuid);
+                                  const sublayer: Sublayer = sublayers.find(
+                                    (s) => s.uuid === sublayerUuid
+                                  );
                                   return (
                                     <Sublayer
                                       key={`sub_${sublayer.uuid}`}
@@ -263,6 +327,7 @@ const Sublayer: FunctionComponent<{
         )}
         <div className={styles.sublayerTitle}>
           {sublayer.name} {sublayer.type && `(${sublayer.type})`}
+          {sublayer.isTimeBased && " [timed]"}
         </div>
         <div className={styles.sublayerToolIcons}>
           <div
@@ -334,6 +399,35 @@ const Sublayer: FunctionComponent<{
           />
         </div>
       )}
+    </div>
+  );
+};
+
+const TimeSlider: FunctionComponent<{
+  name: string;
+  value: number;
+  displayedValue: number | string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  min?: number;
+  max?: number;
+}> = ({ name, value, displayedValue, onChange, min = 0, max = 99 }) => {
+  return (
+    <div className={styles.listItem}>
+      <div className={styles.listItemSlider}>
+        <div className={styles.listItemValue}>{displayedValue}</div>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          name={name}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-html={name}
+          aria-label={name}
+          defaultValue={value}
+          className={styles.slider}
+          onChange={onChange}
+        />
+      </div>
     </div>
   );
 };

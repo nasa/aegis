@@ -9,11 +9,13 @@ declare module "leaflet" {
   //add uuid to tile layers options
   interface TileLayerOptions {
     uuid: string;
+    timeInfo?: TimeLayerInfo;
   }
 
   //add name and uuid to feature group
   interface FeatureGroup {
     name: string;
     uuid: string;
+    timeInfo?: TimeLayerInfo;
   }
 }

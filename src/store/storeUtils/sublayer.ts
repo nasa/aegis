@@ -28,6 +28,8 @@ export const generateBlankSublayer = (partialSublayer?: Partial<Sublayer>): Subl
     fillColor: "",
     fillOpacity: 0,
     weight: 0,
+    isTimeBased: false,
+    timeLayerManifest: null,
     createdAt: roundDateToSecond(new Date()).toISOString(),
     updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
@@ -62,6 +64,8 @@ export function convertSublayersTypeDbToStore(dbSublayers: Sublayer_db[]): Subla
       fillColor: dbSublayer.fillColor,
       fillOpacity: dbSublayer.fillOpacity,
       weight: dbSublayer.weight,
+      isTimeBased: dbSublayer.isTimeBased,
+      timeLayerManifest: dbSublayer.timeLayerManifest,
       createdAt: dbSublayer.createdAt.toISOString(),
       updatedAt: dbSublayer.updatedAt.toISOString(),
     };
@@ -100,6 +104,8 @@ export function convertSublayersTypeStoreToDb(
       fillColor: storeSublayer.fillColor,
       fillOpacity: storeSublayer.fillOpacity,
       weight: storeSublayer.weight,
+      isTimeBased: storeSublayer.isTimeBased,
+      timeLayerManifest: storeSublayer.timeLayerManifest,
       createdAt: new Date(storeSublayer.createdAt),
       updatedAt: new Date(storeSublayer.updatedAt),
     };

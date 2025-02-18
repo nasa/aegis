@@ -1,5 +1,6 @@
 import { FunctionComponent } from "react";
 import styles from "./preset-right-layers-info.module.css";
+import { getDateAndTimeFromISOString } from "utils/formatting";
 
 const Info_subpanel: FunctionComponent<{
   sublayer: Sublayer;
@@ -27,6 +28,16 @@ const Info_subpanel: FunctionComponent<{
             })}
           </div>
         </>
+      )}
+      {sublayer.isTimeBased && (
+        <div>
+          <div className={styles.title}>Layer Time Bounds (UTC)</div>
+          <div className={styles.description}>
+            {getDateAndTimeFromISOString(sublayer.timeLayerManifest[0]?.lowerBound).join(" ")}
+            {" - "}
+            {getDateAndTimeFromISOString(sublayer.timeLayerManifest?.at(-1)?.upperBound).join(" ")}
+          </div>
+        </div>
       )}
     </div>
   );

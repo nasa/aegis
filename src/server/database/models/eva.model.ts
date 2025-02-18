@@ -34,6 +34,8 @@ export class Eva_db implements Eva_db_type {
   traverseColor: string;
   @Property({ type: MikroTypes.integer, nullable: true })
   ownerId: number;
+  @Property({ type: MikroTypes.string, nullable: true })
+  datetime: string;
 
   @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;

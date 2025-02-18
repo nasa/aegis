@@ -4,7 +4,7 @@ import {
   InLineEditInput,
   PathColorPickerMenu,
 } from "components/interface/form/globalFields";
-import { FunctionComponent } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { upsertEvaByField } from "store/eva";
@@ -12,7 +12,13 @@ import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppS
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
 import { displayFormattedTotalTimeObj, makeTraverseRateString } from "utils/component-helpers";
-import { formatNumberWithCommas, toDecimal } from "utils/formatting";
+import {
+  formatNumberWithCommas,
+  getDateAndTimeFromISOString,
+  getISOStringFromDateAndTime,
+  isISOString as isISOString,
+  toDecimal,
+} from "utils/formatting";
 import {
   faCalculator,
   faMessage,
@@ -27,6 +33,7 @@ import CalculatedDwell from "../calculated-dwell";
 import { thunkFullUpdateTraverse } from "store/thunk/thunkTraverse";
 import { decodeEmoji } from "utils/formatting";
 import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
+import { faClock } from "@fortawesome/free-regular-svg-icons";
 
 const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -86,8 +93,53 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     return station ? station.name : "Lander";
   }, refEqual);
 
-  //split, sort, and pull names for each equipment item
+  const [evaDate, setEvaDate] = useState(
+    selectedEva.datetime?.length > 0 ? selectedEva.datetime?.split(/[T.Z]/)[0] : ""
+  );
+  const [evaTime, setEvaTime] = useState(
+    selectedEva.datetime?.length > 0 ? selectedEva.datetime?.split(/[T.Z]/)[1] : ""
+  );
+  const [currentEvaUuid, setCurrentEvaUuid] = useState("");
 
+  useEffect(() => {
+    if (currentEvaUuid !== selectedEva.uuid || !editMode) {
+      let parsedEvaDate = "";
+      let parsedEvaTime = "";
+      if (selectedEva.datetime && isISOString(selectedEva.datetime)) {
+        const [date, time] = getDateAndTimeFromISOString(selectedEva.datetime);
+        parsedEvaDate = date;
+        parsedEvaTime = time;
+      }
+      setEvaDate(parsedEvaDate);
+      setEvaTime(parsedEvaTime);
+      setCurrentEvaUuid(selectedEva.uuid);
+    } else {
+      const newDatetime =
+        evaDate?.length > 0 && evaTime?.length > 0 ? `${evaDate}T${evaTime}Z` : "";
+      if (newDatetime !== selectedEva.datetime) {
+        dispatch(upsertEvaByField(selectedEva.uuid, "datetime", newDatetime));
+      }
+    }
+  }, [
+    currentEvaUuid,
+    dispatch,
+    editMode,
+    evaDate,
+    evaTime,
+    selectedEva.datetime,
+    selectedEva.uuid,
+  ]);
+
+  function handleDatetimeSubmit() {
+    let newDatetime = "";
+    if (isISOString(`${evaDate}T${evaTime}Z`)) {
+      newDatetime = getISOStringFromDateAndTime(evaDate, evaTime);
+    }
+    console.log(newDatetime);
+    dispatch(upsertEvaByField(selectedEva.uuid, "datetime", newDatetime));
+  }
+
+  //split, sort, and pull names for each equipment item
   //get names
   const consumablesDisplay: EquipmentItemDisplay[] = [];
   evaCalculatedFields?.equipmentItems?.forEach((equipItem) => {
@@ -356,6 +408,65 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                           key={`${selectedEva.uuid}-ingressDuration`}
                         />
                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "3px" }}>
+              <SubpanelHeading icon={faClock}>EVA Start Time</SubpanelHeading>
+            </div>
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable} onSubmit={handleDatetimeSubmit}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCell}></div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.inputFieldValue}>
+                        <InLineEditInput
+                          value={evaDate}
+                          editing={editMode}
+                          fieldProps={{
+                            name: "evaDate",
+                            ariaLabel: "evaDate",
+                            validators: [validators.mustBeYYYYMMDD],
+                            style: { width: "100px", marginRight: "5px" },
+                          }}
+                          styleValue={{ width: "100px" }}
+                          onSubmit={(val: string) => {
+                            setEvaDate(val);
+                          }}
+                          key={`${selectedEva.uuid}-date`}
+                        />
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.inputFieldLabel}>YYYY-MM-DD</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.inputFieldValue}>
+                        <InLineEditInput
+                          value={evaTime}
+                          editing={editMode}
+                          fieldProps={{
+                            name: "evaTime",
+                            ariaLabel: "evaTime",
+                            validators: [validators.mustBeHHMMSS],
+                            style: { width: "100px", marginLeft: "5px", marginRight: "5px" },
+                          }}
+                          styleValue={{ width: "100px", marginLeft: "5px", marginRight: "5px" }}
+                          onSubmit={(val: string) => {
+                            setEvaTime(val);
+                          }}
+                          key={`${selectedEva.uuid}-time`}
+                        />
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.inputFieldLabel}>HH:MM:SS (UTC)</div>
                     </div>
                   </div>
                 </div>

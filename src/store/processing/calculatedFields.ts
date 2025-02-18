@@ -313,6 +313,55 @@ export const getCalculatedFieldsByTraverse = (params: {
   return newCalculatedFields;
 };
 
+export const getCalculatedTimeOfSequenceItem = (params: {
+  evaUuid: string;
+  sequenceItemUuid: string;
+  wholeStoreState: WholeStoreState;
+}): string => {
+  const { evaUuid, sequenceItemUuid, wholeStoreState } = params;
+  const eva = wholeStoreState.eva.evas.find((storeEva) => storeEva.uuid === evaUuid);
+
+  if (!eva || !sequenceItemUuid || !eva.datetime) return;
+
+  // get eva start time
+  const evaStartTimeNumeric = new Date(eva.datetime).getTime();
+  // go through eva sequence and calculate things
+  const evaSequence = eva.sequence;
+
+  let runningEvaSeconds = eva.egressDuration * 60; // start with egress duration
+  let halfTime = 0;
+  for (const seqItem of evaSequence) {
+    let thisTraverseCalculatedTime: number;
+    let thisStationCalculatedTime: number;
+    if (seqItem.type === "station") {
+      thisStationCalculatedTime = getCalculatedFieldsByStation({
+        stationUuid: seqItem.uuid,
+        wholeStoreState,
+      }).totalDwellTime.durationUpper;
+    } else if (seqItem.type === "traverse") {
+      thisTraverseCalculatedTime = getCalculatedFieldsByTraverse({
+        traverseUuid: seqItem.uuid,
+        wholeStoreState,
+      }).durationMinutes;
+    }
+
+    if (thisStationCalculatedTime) {
+      runningEvaSeconds += thisStationCalculatedTime * 60;
+      halfTime = (thisStationCalculatedTime * 60) / 2;
+    } else if (thisTraverseCalculatedTime) {
+      runningEvaSeconds += thisTraverseCalculatedTime * 60;
+      halfTime = (thisTraverseCalculatedTime * 60) / 2;
+    }
+
+    if (seqItem.uuid === sequenceItemUuid) {
+      break;
+    }
+  }
+
+  const finalTimeInSeconds = (runningEvaSeconds - halfTime) * 1000 + evaStartTimeNumeric;
+  return new Date(finalTimeInSeconds).toISOString();
+};
+
 export const getCalculatedFieldsByEva = (params: {
   evaUuid: string;
   wholeStoreState: WholeStoreState;
@@ -320,6 +369,7 @@ export const getCalculatedFieldsByEva = (params: {
   const { evaUuid, wholeStoreState } = params;
   const eva = wholeStoreState.eva.evas.find((storeEva) => storeEva.uuid === evaUuid);
 
+  if (!eva) return;
   // go through eva sequence and calculate things
   const evaSequence = eva.sequence;
 

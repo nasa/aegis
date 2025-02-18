@@ -78,11 +78,23 @@ const mustBeNumberGTZero = (value: Stringy): string | undefined => {
 
 const mustBeHHMMSS = (value: Stringy): string | undefined => {
   if (!value) return undefined;
-  const regex = /^(\-|\+)([0-9]{2}):([0-9]{2}):([0-9]{2})$/;
+  if (value === "") return undefined;
+  const regex = /^(\-|\+)?([0-9]{2}):([0-9]{2}):([0-9]{2})$/;
   if (regex.test(value as string)) {
     return undefined;
   } else {
     return "Must be in HH:MM:SS format";
+  }
+};
+
+const mustBeYYYYMMDD = (value: Stringy): string | undefined => {
+  if (!value) return undefined;
+  if (value === "") return undefined;
+  const regex = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/;
+  if (regex.test(value as string)) {
+    return undefined;
+  } else {
+    return "Must be in YYYY-MM-DD format";
   }
 };
 
@@ -108,6 +120,7 @@ export const validators = {
   mustBeInteger,
   mustBeNumberGTZero,
   mustBeHHMMSS,
+  mustBeYYYYMMDD,
   withinBoundary,
 };
 

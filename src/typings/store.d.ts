@@ -62,6 +62,7 @@ interface PresetState {
   presetLayersUIStates: LayersUIStates;
   presetCirclesUIStates: CirclesUIStates;
   presetsEditing: string[];
+  presetPreviewTime: string;
 }
 
 interface STMViewExpandedItem {

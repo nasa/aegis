@@ -305,3 +305,25 @@ export const getActionDefinitionTypeString = (type: ActionDefinitionType): strin
       return "";
   }
 };
+
+export const getISOStringFromDateAndTime = (date: string, time: string): string => {
+  if (time.split(":")[0].length === 1) {
+    time = `0${time}`;
+  }
+  return `${date}T${time}Z`;
+};
+
+export const getDateAndTimeFromISOString = (datetime: string): [string, string] => {
+  if (!datetime || datetime === "") return ["", ""];
+  const [date, time] = datetime.split("T");
+  return [date, time.slice(0, -1)];
+};
+
+export const isISOString = (isoString: string): boolean => {
+  if (!/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z/.test(isoString)) {
+    return false;
+  }
+  const testDate = new Date(isoString);
+  const normalizedISOString = isoString.includes(".") ? isoString : isoString.replace("Z", ".000Z");
+  return !isNaN(testDate.getTime()) && testDate.toISOString() === normalizedISOString;
+};
