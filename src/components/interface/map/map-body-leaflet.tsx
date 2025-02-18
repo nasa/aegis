@@ -33,7 +33,13 @@ import {
   findGridCoordinatesFromPoint,
   getMidpoint,
 } from "utils/geoMath";
-import { decodeEmoji, secondsFromhhmmss, hhmmssFromSeconds, titleCase } from "utils/formatting";
+import {
+  decodeEmoji,
+  secondsFromhhmmss,
+  hhmmssFromSeconds,
+  titleCase,
+  isISOString,
+} from "utils/formatting";
 import { clearMapItemHover, setHoverUuidsForSequence, setHoverUuidsForPosEntry } from "store/hover";
 
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -68,11 +74,14 @@ import {
   handleMapDirective,
   saveUpdatedItemPosition,
   mouseGridCoordDiv,
+  layerTimeDiv,
 } from "components/page/leaflet-helper";
 import { thunkMarkerOnClick, thunkPolylineOnClick } from "store/thunk/thunkMap";
 import { Feature } from "geojson";
 import { getGrids } from "http-client/grid";
 import { setSelectedPresetUuid } from "store/preset";
+import { getCalculatedTimeOfSequenceItem } from "store/processing/calculatedFields";
+import { addTimeToDateTime } from "utils/timeLayers";
 import { EARTH_RADIUS } from "utils/consts";
 
 const MapBody: FunctionComponent = () => {
@@ -140,6 +149,7 @@ const MapBody: FunctionComponent = () => {
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
     deepEqual
   );
+  const presetPreviewTime = useAppSelector((state) => state.preset.presetPreviewTime, refEqual);
   const selectedOrRunningRex = useAppSelector((state) => {
     //if a rex is running, show that one. If not, just show whatever rex is selected
     const runningRexFromDb = state.rex.rexesFromDb.find((r) => r.isRunning);
@@ -148,6 +158,10 @@ const MapBody: FunctionComponent = () => {
     } else {
       return state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid);
     }
+  }, deepEqual);
+  const runningRexEvaDatetime = useAppSelector((state) => {
+    const runningRexEva = state.eva.evas.find((eva) => eva.uuid === selectedOrRunningRex?.evaUuid);
+    return runningRexEva ? runningRexEva.datetime : null;
   }, deepEqual);
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
@@ -161,6 +175,15 @@ const MapBody: FunctionComponent = () => {
   const selectedMeasurementUuid = useAppSelector(
     (state) => state.measure.selectedMeasurementUuid,
     refEqual
+  );
+  const sequenceTime = useAppSelector(
+    (state) =>
+      getCalculatedTimeOfSequenceItem({
+        evaUuid: state.eva.selectedEvaUuid,
+        sequenceItemUuid: state.eva.selectedEvaSequenceItemUuid,
+        wholeStoreState: state,
+      }),
+    deepEqual
   );
 
   const mapHoverItemUuid = useAppSelector((state) => state.hover.mapItemUuid, refEqual);
@@ -204,8 +227,8 @@ const MapBody: FunctionComponent = () => {
     sourceUuids: [],
   });
   const [showArrows, setShowArrows] = useState(true);
-  const [showGridLabels, setShowGridLabels] = useState(true);
-  const [showGridLines, setShowGridLines] = useState(false);
+  const [showGridLabels, setShowGridLabels] = useState<boolean>(true);
+  const [showGridLines, setShowGridLines] = useState<boolean>(false);
   const [showScaleBar, setShowScaleBar] = useState(true);
   const [showMouseLatLon, setShowMouseLatLon] = useState(true);
   const [showSunEarth, setShowSunEarth] = useState(false);
@@ -219,8 +242,11 @@ const MapBody: FunctionComponent = () => {
   const [gridLabels, setGridLabels] = useState<GridLabelItem[]>([]);
   const [mapBounds, setMapBounds] = useState<string>(null); // Used to trigger re-draw of grid labels. Value doens't matter
   const [rexPetTime, setRexPetTime] = useState(""); // used to update the PET value via the PetInterval component
-  const [chosenGrid, setChosenGrid] = useState(undefined);
-  const [gridBounds, setGridBounds] = useState(undefined);
+  const [chosenGrid, setChosenGrid] = useState<MissionGrid>(undefined);
+  const [gridBounds, setGridBounds] = useState<GridIndex[]>(undefined);
+  const [mapDateTime, setMapDateTime] = useState<string>(undefined);
+  const [timeLayerInfo, setTimeLayerInfo] = useState<TimeLayerInfo>(undefined);
+  const [selectedRexDateTime, setSelectedRexDateTime] = useState<string>(null);
 
   /**
    * Set the eyeball menu toggles from the cookie
@@ -423,6 +449,8 @@ const MapBody: FunctionComponent = () => {
       selectedPreset,
       missionSublayers,
       missionLayers,
+      mapDateTime,
+      setTimeLayerInfo,
     });
 
     // no new layers are newly visible/hidden or reordered. do nothing
@@ -437,9 +465,10 @@ const MapBody: FunctionComponent = () => {
       mapSublayerControls: selectedPreset.mapSublayerControls,
       layersToAddInOrder,
       missionId: mission.id,
+      mapTime: mapDateTime,
       setGridLabels,
     });
-  }, [mission?.id, map, layersOnMap, missionLayers, missionSublayers, selectedPreset]);
+  }, [mission.id, map, layersOnMap, missionLayers, missionSublayers, selectedPreset, mapDateTime]);
 
   /**
    * Update map with display adjustments for sublayers as sliders are moved
@@ -711,6 +740,62 @@ const MapBody: FunctionComponent = () => {
     dispatch,
     isWin10,
   ]);
+
+  /**
+   * Determine current map time and update the map time state
+   */
+  useEffect(() => {
+    if (presetPreviewTime && sectionSelected === "preset") {
+      setMapDateTime(presetPreviewTime);
+    } else if (selectedRexDateTime) {
+      setMapDateTime(selectedRexDateTime);
+    } else if (sequenceTime) {
+      setMapDateTime(sequenceTime);
+    } else if (selectedEva?.datetime && isISOString(selectedEva?.datetime)) {
+      const datetime = selectedEva.datetime;
+      setMapDateTime(datetime);
+    } else if (missionSublayers) {
+      setMapDateTime(
+        missionSublayers.find((sublayer) => sublayer.isTimeBased)?.timeLayerManifest[0].datetime
+      );
+    } else {
+      setMapDateTime(null);
+    }
+  }, [
+    selectedEva,
+    presetPreviewTime,
+    sectionSelected,
+    missionSublayers,
+    sequenceTime,
+    selectedRexDateTime,
+  ]);
+
+  /** Determine time assosiated with currently running rex time */
+  useEffect(() => {
+    if (selectedOrRunningRex && runningRexEvaDatetime) {
+      // If PET is running, update time every 10 seconds
+      if (selectedOrRunningRex.petRunning) {
+        if (!rexPetTime) return;
+        if (rexPetTime.endsWith("0"))
+          setSelectedRexDateTime(addTimeToDateTime(runningRexEvaDatetime, rexPetTime));
+
+        // If the REX is running but not the PET, just show the current time
+      } else if (!selectedOrRunningRex.petRunning && selectedOrRunningRex.isRunning) {
+        if (!rexPetTime) return;
+        setSelectedRexDateTime(addTimeToDateTime(runningRexEvaDatetime, rexPetTime));
+
+        // If the REX is not running but you are viewing it, show the REX start time
+      } else if (!selectedOrRunningRex.isRunning && sectionSelected === "rex") {
+        setSelectedRexDateTime(runningRexEvaDatetime);
+
+        // Otherwise, don't display a REX time
+      } else {
+        setSelectedRexDateTime(null);
+      }
+    } else {
+      setSelectedRexDateTime(null);
+    }
+  }, [rexPetTime, runningRexEvaDatetime, sectionSelected, selectedOrRunningRex]);
 
   /**
    * Determine actions to show and draw them on map when actions or selections change
@@ -2030,6 +2115,7 @@ const MapBody: FunctionComponent = () => {
       <div className={styles.mapPositionDisplay}>
         {showMouseLatLon && mouseLatLng && latLngDiv(mouseLatLng)}
         {showGridLines && mouseGridCoord && mouseGridCoordDiv(mouseGridCoord)}
+        {timeLayerInfo && layerTimeDiv(timeLayerInfo)}
       </div>
       {showSunEarth && <SunEarth type="editor" selectedPreset={selectedPreset} />}
     </div>

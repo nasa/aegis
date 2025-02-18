@@ -19,6 +19,7 @@ import map from "lodash/map";
 type EvaDropdownItem = {
   label: string;
   value: string;
+  datetime: string;
 };
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
@@ -30,13 +31,20 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   );
 
   const evaDropdownItems: EvaDropdownItem[] = useAppSelector(
-    (state) => state.eva.evas.map((eva) => ({ label: eva.name, value: eva.uuid })),
+    (state) =>
+      state.eva.evas.map((eva) => ({
+        label: eva.name,
+        value: eva.uuid,
+        datetime: eva.datetime,
+      })),
     deepEqual
   );
+
   const evaDropdownItemsSorted = sortBy(evaDropdownItems, (item) => item.label.toLowerCase());
 
   // used to update the PET value via the PetInterval component
   const [rexPetTime, setRexPetTime] = useState("");
+  const [rexSelectedEva, setRexSelectedEva] = useState<EvaDropdownItem>(null);
 
   return (
     <div className={paneStyles.rightBody}>
@@ -61,6 +69,11 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         selected={selectedRex.evaUuid || ""}
                         selectStyle={{ height: "20px" }}
                         onChange={(value) => {
+                          if (selectedRex?.evaUuid) {
+                            setRexSelectedEva(
+                              evaDropdownItems.find((item) => item.value === selectedRex.evaUuid)
+                            );
+                          }
                           dispatch(upsertRexByField(selectedRex.uuid, "evaUuid", value));
                         }}
                       >
@@ -72,12 +85,26 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         ))}
                       </Dropdown>
                     ) : (
-                      <div className={styles.selectedEvaLabelRight}>
-                        {evaDropdownItems.find((item) => item.value === selectedRex.evaUuid)?.label}
-                      </div>
+                      <div className={styles.selectedEvaLabelRight}>{rexSelectedEva?.label}</div>
                     )}
                   </div>
                 </div>
+                {rexSelectedEva && rexSelectedEva.datetime && (
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.inputFieldLabel} style={{ paddingTop: 8 }}>
+                        EVA Start Time:
+                      </div>
+                    </div>
+                    <div className={styles.evaDropdownContainer}>
+                      <div className={styles.evaExecutionStatus}>
+                        <div className={styles.selectedEvaLabelRight}>
+                          {rexSelectedEva.datetime}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className={paneStyles.panelColumnTableRow}>
                   <div className={paneStyles.panelColumnTableCellLeft}>
                     <div className={paneStyles.inputFieldLabel}>Execution Status:</div>

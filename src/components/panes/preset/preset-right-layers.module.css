@@ -139,3 +139,65 @@
 .sublayerGroup {
   padding-left: 12px;
 }
+
+.listItemSlider {
+  display: flex;
+  margin-left: 5px;
+  margin-top: 2px;
+  width: 100%;
+}
+
+.listItemValue {
+  flex: 0 0 180px;
+  color: var(--grey4);
+  font-size: 0.9em;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.slider {
+  flex: 1 1 auto;
+  appearance: none;
+  margin-top: 5px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 5px;
+  background-color: var(--grey3);
+}
+
+.slider::-webkit-slider-runnable-track {
+  appearance: none;
+  box-shadow: none;
+  border: none;
+  background: transparent;
+}
+
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  height: 15px;
+  width: 15px;
+  border-radius: 50%;
+  background: white;
+  cursor: ew-resize;
+}
+
+.timeSliderContainer {
+  display: flex;
+  flex-direction: column;
+  padding: 13px 15px 13px 15px;
+}
+
+.timeSliderHeader {
+  padding: 0px 0px 0px 3px;
+  display: flex;
+  flex-direction: row;
+  user-select: none;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.timeSliderCheckbox {
+  padding-left: 5px;
+  margin-right: auto;
+}

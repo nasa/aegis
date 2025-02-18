@@ -86,7 +86,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     if (upsertResponse.length === 0) {
       res.status(500).json({
         status: "error",
-        message: "Upsert response did not return a value",
+        message:
+          "Upsert response did not return a value. Could you be trying to insert a second time-based sublayer?",
         data: null,
       });
     } else {

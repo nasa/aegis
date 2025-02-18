@@ -7,6 +7,7 @@ import { Dispatch, MutableRefObject, SetStateAction } from "react";
 import ReactDOMServer from "react-dom/server";
 import {
   decodeEmoji,
+  getDateAndTimeFromISOString,
   getPercentOrDefault,
   hhmmssFromSeconds,
   secondsFromhhmmss,
@@ -40,6 +41,7 @@ import { thunkUpdateLanderLocation } from "store/thunk/thunkMission";
 import { thunkUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { thunkUpdatePosEntryLocation } from "store/thunk/thunkRexPosEntry";
 import { EARTH_RADIUS } from "utils/consts";
+import { checkTimeInBounds, matchTimeToManifest } from "utils/timeLayers";
 
 // make color filter settings for tile sublayer. This is the format of leaflet.tilelayer.colorfilter package
 export const makeTileLayerColorFilter = (
@@ -175,6 +177,20 @@ export const latLngDiv = (mouseLatLng: AEGISPoint): JSX.Element => {
     <>
       <div className={styles.positionValue}>{latLngStr}</div>
     </>
+  );
+};
+
+/**
+ * Draw time for a layer
+ * @param layerTimeUsed
+ * @returns
+ */
+export const layerTimeDiv = (layerTimeUsed: TimeLayerInfo): JSX.Element => {
+  return (
+    <div className={styles.positionValue}>
+      {getDateAndTimeFromISOString(layerTimeUsed.datetime).join(" ")}
+      {" UTC"}
+    </div>
   );
 };
 
@@ -733,19 +749,54 @@ export const drawPosMarkerOnMap = async ({
 };
 
 /**
+ * Check sublayer's time status
+ */
+export const addSublayerToLayersToAdd = ({
+  sublayer,
+  layersToAdd,
+  mapDateTime,
+}: {
+  sublayer: Sublayer;
+  layersToAdd: SublayerToDraw[];
+  mapDateTime: string;
+}): TimeLayerInfo => {
+  let sublayerTimeInfo: TimeLayerInfo = null;
+  let sublayerTimePath = sublayer.path;
+  if (sublayer.isTimeBased) {
+    sublayerTimeInfo = matchTimeToManifest(mapDateTime, sublayer.timeLayerManifest);
+    sublayerTimePath = `${sublayer.path}/${sublayerTimeInfo.dirName}`;
+    if (!checkTimeInBounds(mapDateTime, sublayerTimeInfo.lowerBound, sublayerTimeInfo.upperBound)) {
+      sublayerTimeInfo = null;
+      sublayerTimePath = null;
+    }
+  }
+  layersToAdd.push({
+    ...sublayer,
+    chosenTimeLayer: sublayerTimeInfo,
+    path: sublayerTimePath,
+  }); //add sublayer
+  return sublayerTimeInfo;
+};
+
+/**
  * Get all the layers we need to draw on the map
  */
 export const getLayersToAddInOrder = ({
   selectedPreset,
   missionSublayers,
   missionLayers,
+  mapDateTime,
+  setTimeLayerInfo,
 }: {
   selectedPreset: Preset;
   missionSublayers: Sublayer[];
   missionLayers: Layer[];
-}): Sublayer[] => {
+  mapDateTime: string;
+  setTimeLayerInfo: Dispatch<SetStateAction<TimeLayerInfo>>;
+}): SublayerToDraw[] => {
   // go through all layers in mission config,  add make a list of the ones that are visible
-  const layersToAdd: Sublayer[] = [];
+  const layersToAdd: SublayerToDraw[] = [];
+  let timeLayerInfoToSave = undefined;
 
   //build layer list
   //loop through layers in the preset in order
@@ -757,7 +808,10 @@ export const getLayersToAddInOrder = ({
         if (selectedPreset.mapSublayerControls[sublayerUuid]?.visible) {
           //this layer is visible - get the sublayer object from misson
           const sublayer = missionSublayers.find((sublayer) => sublayer.uuid === sublayerUuid);
-          layersToAdd.push(sublayer); //add sublayer
+          const sublayerTimeInfo = addSublayerToLayersToAdd({ sublayer, layersToAdd, mapDateTime }); //add sublayer
+          if (sublayerTimeInfo) {
+            timeLayerInfoToSave = sublayerTimeInfo;
+          }
         }
       }
     }
@@ -769,12 +823,18 @@ export const getLayersToAddInOrder = ({
         [(sublayer) => sublayer.name.toLowerCase()]
       )) {
         if (selectedPreset.mapSublayerControls[sublayer.uuid].visible) {
-          layersToAdd.push(sublayer);
+          const sublayerTimeInfo = addSublayerToLayersToAdd({ sublayer, layersToAdd, mapDateTime }); //add sublayer
+          if (sublayerTimeInfo) {
+            timeLayerInfoToSave = sublayerTimeInfo;
+          }
         }
       }
     }
   }
 
+  if (setTimeLayerInfo) {
+    setTimeLayerInfo(timeLayerInfoToSave);
+  }
   // reverse the array to add the ones at the bottom of the tree first
   return layersToAdd.reverse();
 };
@@ -787,216 +847,239 @@ export const drawLayersOnMap = ({
   mapSublayerControls,
   layersToAddInOrder,
   missionId,
+  mapTime,
   setGridLabels,
 }: {
   map: MutableRefObject<L.Map>;
   mapSublayerControls: MapSublayerControls;
-  layersToAddInOrder: Sublayer[];
+  layersToAddInOrder: SublayerToDraw[];
   missionId: number;
+  mapTime: string;
   setGridLabels: Dispatch<SetStateAction<GridLabelItem[]>>;
 }): void => {
+  // Loop through layersToAddInOrder
   // remove map layers that are not visible in layerControls
-  map.current.eachLayer((layer) => {
-    const uuid = (layer as L.TileLayer).options.uuid || (layer as L.FeatureGroup).uuid;
+  map.current.eachLayer((leafletLayer) => {
+    const uuid =
+      (leafletLayer as L.TileLayer).options.uuid || (leafletLayer as L.FeatureGroup).uuid;
+    const layerTimeInfo =
+      (leafletLayer as L.TileLayer).options.timeInfo || (leafletLayer as L.FeatureGroup)?.timeInfo;
     const sublayerControls = mapSublayerControls[uuid];
     if (sublayerControls && !sublayerControls.visible) {
-      map.current.removeLayer(layer);
+      map.current.removeLayer(leafletLayer);
 
       // remove grid labels if grid layer is removed
       //TODO: this is a hacky way to check if it's a grid layer
       if (sublayerControls.name.includes("Grid") && setGridLabels) {
         setGridLabels([]);
       }
+      // Remove time-based layers when a time is not set or when the map time lies outside of layer time bounds
+    } else if (
+      layerTimeInfo &&
+      (!mapTime || !checkTimeInBounds(mapTime, layerTimeInfo.lowerBound, layerTimeInfo.upperBound))
+    ) {
+      map.current.removeLayer(leafletLayer);
     }
   });
 
   // check map layers in order
+  // if layer is time based and does not have a map time set, do not draw it
   const layerBaseURL = "/static/missionFiles";
-  layersToAddInOrder.map((sublayer, index) => {
-    const isExternal = sublayer.path?.startsWith("http");
-    if (sublayer.type === "tile") {
-      // if layer isn't already on the map, add it
-      const filter = makeTileLayerColorFilter(mapSublayerControls, sublayer.uuid);
-      if (!isLayerOnMapByName(map, sublayer.name)) {
-        const tilePath = isExternal
-          ? `${sublayer.path}/${sublayer.tilePattern}`
-          : `${layerBaseURL}/${missionId}/Layers/${sublayer.path}/${sublayer.tilePattern}`;
+  layersToAddInOrder
+    .filter((sublayer) => !sublayer.isTimeBased || sublayer.chosenTimeLayer)
+    .map((sublayer, index) => {
+      // If a sublayer is time-based, find what time should draw
+      const sublayerTimeInfo: TimeLayerInfo = sublayer.isTimeBased
+        ? sublayer.chosenTimeLayer
+        : null;
+      const isExternal = sublayer.path?.startsWith("http");
+      if (sublayer.type === "tile") {
+        // if layer isn't already on the map, add it
+        const filter = makeTileLayerColorFilter(mapSublayerControls, sublayer.uuid);
+        if (!isLayerOnMapByName(map, sublayer.name)) {
+          const tilePath = isExternal
+            ? `${sublayer.path}/${sublayer.tilePattern}`
+            : `${layerBaseURL}/${missionId}/Layers/${sublayer.path}/${sublayer.tilePattern}`;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const tileLayer = (L.tileLayer as any).colorFilter(tilePath, {
-          //manually add id and type fields for tracking later on
-          id: sublayer.name,
-          uuid: sublayer.uuid,
-          type: "tile",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const tileLayer = (L.tileLayer as any).colorFilter(tilePath, {
+            //manually add id and type fields for tracking later on
+            id: sublayer.name,
+            uuid: sublayer.uuid,
+            type: "tile",
 
-          tileSize: 256,
-          bounds: [
-            [sublayer.boundingBox[1], sublayer.boundingBox[0]],
-            [sublayer.boundingBox[3], sublayer.boundingBox[2]],
-          ],
-          tms: sublayer.tileFormat === "tms",
-          minZoom: sublayer.minNativeZoom || 1,
-          minNativeZoom: sublayer.minNativeZoom,
-          maxZoom: sublayer.maxZoom,
-          maxNativeZoom: sublayer.maxNativeZoom,
-          opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
-          zIndex: index,
-          filter,
-          // custom class name that we use to control mix-blend-mode
-          className: `leaflet-layer leaflet-blend-${
-            mapSublayerControls[sublayer.uuid].style?.blendMode
-          }`,
-        });
-
-        map.current.addLayer(tileLayer);
-        tileLayer.bringToFront();
-      } else {
-        // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
-        const layer: L.TileLayer = getLayerByName(map, sublayer.name);
-        // set all the options for the layer that are in the mapSublayerControls
-        layer.setOpacity(mapSublayerControls[sublayer.uuid].style?.opacity);
-        layer.updateFilter(filter);
-
-        layer.bringToFront();
-      }
-    } else if (sublayer.type === "vector") {
-      // if layer isn't already on the map, add it
-      if (!isLayerOnMapByName(map, sublayer.name)) {
-        // fetch geojson object from url
-        const geoJsonPath = isExternal
-          ? `${sublayer.path}`
-          : `${layerBaseURL}/${missionId}/Data/${sublayer.path}`;
-        const fetchGeojsonAsync = async () => {
-          const res = await fetch(geoJsonPath, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            tileSize: 256,
+            bounds: [
+              [sublayer.boundingBox[1], sublayer.boundingBox[0]],
+              [sublayer.boundingBox[3], sublayer.boundingBox[2]],
+            ],
+            tms: sublayer.tileFormat === "tms",
+            minZoom: sublayer.minNativeZoom || 1,
+            minNativeZoom: sublayer.minNativeZoom,
+            maxZoom: sublayer.maxZoom,
+            maxNativeZoom: sublayer.maxNativeZoom,
+            opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
+            zIndex: index,
+            filter,
+            // custom class name that we use to control mix-blend-mode
+            className: `leaflet-layer leaflet-blend-${
+              mapSublayerControls[sublayer.uuid].style?.blendMode
+            }`,
+            timeInfo: sublayerTimeInfo,
           });
-          const geojson = await res.json();
 
-          // create a featureGroup for the layer
-          const featureGroup = L.featureGroup();
-          featureGroup.name = sublayer.name;
-          featureGroup.uuid = sublayer.uuid;
+          map.current.addLayer(tileLayer);
+          tileLayer.bringToFront();
+        } else {
+          // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
+          const layer: L.TileLayer = getLayerByName(map, sublayer.name);
+          // set all the options for the layer that are in the mapSublayerControls
+          layer.setOpacity(mapSublayerControls[sublayer.uuid].style?.opacity);
+          layer.updateFilter(filter);
 
-          const newGridLabels: GridLabelItem[] = [];
+          layer.bringToFront();
+        }
+      } else if (sublayer.type === "vector") {
+        // if layer isn't already on the map, add it
+        if (!isLayerOnMapByName(map, sublayer.name)) {
+          // fetch geojson object from url
+          const geoJsonPath = isExternal
+            ? `${sublayer.path}`
+            : `${layerBaseURL}/${missionId}/Data/${sublayer.path}`;
 
-          const gridLayerOnEachFeature = (
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            feature: geojson.Feature<geojson.GeometryObject, any>
-          ) => {
-            if (feature.properties["MGRS_UTM"]) {
-              // if this grid has a MGRS_UTM property, that means it was made via MGRS process (for earth things like JETT 5).
+          const fetchGeojsonAsync = async () => {
+            const res = await fetch(geoJsonPath, {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            });
+            const geojson = await res.json();
 
-              // Look for the MGRS_Corner value to tell us where the bottom left coordinate is.
-              // If it doens't exist, then just use the 2nd coordinate
-              const bottomLeftCoordinate = feature.properties["MGRS_Corner"]
-                ? feature.properties["MGRS_Corner"]
-                : 1;
+            // create a featureGroup for the layer
+            const featureGroup = L.featureGroup();
+            featureGroup.name = sublayer.name;
+            featureGroup.uuid = sublayer.uuid;
+            featureGroup.timeInfo = sublayerTimeInfo;
 
-              if (feature.properties["CELL_ID"]) {
-                const multiPolygon = feature.geometry as geojson.MultiPolygon;
-                const latLng = new L.LatLng(
-                  multiPolygon.coordinates[0][0][bottomLeftCoordinate][1],
-                  multiPolygon.coordinates[0][0][bottomLeftCoordinate][0]
-                );
+            const newGridLabels: GridLabelItem[] = [];
 
-                const cellid = feature.properties["CELL_ID"];
-                newGridLabels.push({
-                  id: cellid,
-                  latLng: { lat: latLng.lat, lng: latLng.lng },
-                });
+            const gridLayerOnEachFeature = (
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              feature: geojson.Feature<geojson.GeometryObject, any>
+            ) => {
+              if (feature.properties["MGRS_UTM"]) {
+                // if this grid has a MGRS_UTM property, that means it was made via MGRS process (for earth things like JETT 5).
+
+                // Look for the MGRS_Corner value to tell us where the bottom left coordinate is.
+                // If it doens't exist, then just use the 2nd coordinate
+                const bottomLeftCoordinate = feature.properties["MGRS_Corner"]
+                  ? feature.properties["MGRS_Corner"]
+                  : 1;
+
+                if (feature.properties["CELL_ID"]) {
+                  const multiPolygon = feature.geometry as geojson.MultiPolygon;
+                  const latLng = new L.LatLng(
+                    multiPolygon.coordinates[0][0][bottomLeftCoordinate][1],
+                    multiPolygon.coordinates[0][0][bottomLeftCoordinate][0]
+                  );
+
+                  const cellid = feature.properties["CELL_ID"];
+                  newGridLabels.push({
+                    id: cellid,
+                    latLng: { lat: latLng.lat, lng: latLng.lng },
+                  });
+                }
+              } else {
+                // No MGRS_UTM property, that means it's a bespoke grid made by the ARES GIS team, this means the 4th coordinate is the bottom left
+                // x y is flipped if it's bespoke made by the ARES GIS team
+                const bottomLeftCoordinate = 3;
+                const cellid = `${feature.properties["CELL_ID"].split(" ")[1]} ${
+                  feature.properties["CELL_ID"].split(" ")[0]
+                } `;
+                if (feature.properties["CELL_ID"]) {
+                  const multiPolygon = feature.geometry as geojson.MultiPolygon;
+                  const latLng = new L.LatLng(
+                    multiPolygon.coordinates[0][0][bottomLeftCoordinate][1],
+                    multiPolygon.coordinates[0][0][bottomLeftCoordinate][0]
+                  );
+                  newGridLabels.push({
+                    id: cellid,
+                    latLng: { lat: latLng.lat, lng: latLng.lng },
+                  });
+                }
               }
-            } else {
-              // No MGRS_UTM property, that means it's a bespoke grid made by the ARES GIS team, this means the 4th coordinate is the bottom left
-              // x y is flipped if it's bespoke made by the ARES GIS team
-              const bottomLeftCoordinate = 3;
-              const cellid = `${feature.properties["CELL_ID"].split(" ")[1]} ${
-                feature.properties["CELL_ID"].split(" ")[0]
-              } `;
-              if (feature.properties["CELL_ID"]) {
-                const multiPolygon = feature.geometry as geojson.MultiPolygon;
-                const latLng = new L.LatLng(
-                  multiPolygon.coordinates[0][0][bottomLeftCoordinate][1],
-                  multiPolygon.coordinates[0][0][bottomLeftCoordinate][0]
-                );
-                newGridLabels.push({
-                  id: cellid,
-                  latLng: { lat: latLng.lat, lng: latLng.lng },
-                });
-              }
+            };
+
+            const vectorLayer = L.geoJSON(geojson, {
+              style: (geoJsonFeature) => {
+                //fill color defaults to color if not defined
+                let fillColor = mapSublayerControls[sublayer.uuid].style?.color;
+                if (mapSublayerControls[sublayer.uuid].style?.fillColor?.startsWith("prop:")) {
+                  const fillPropertyName =
+                    mapSublayerControls[sublayer.uuid].style?.fillColor.slice(5);
+                  fillColor = geoJsonFeature.properties[fillPropertyName];
+                }
+                return {
+                  //manually add uuid and type fields for tracking later on
+                  id: sublayer.name,
+                  uuid: sublayer.uuid,
+                  type: "vector",
+                  //manually define defaults
+                  color: mapSublayerControls[sublayer.uuid].style?.color,
+                  opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
+                  weight: mapSublayerControls[sublayer.uuid].style?.weight,
+                  fillColor: fillColor,
+                  fillOpacity: mapSublayerControls[sublayer.uuid].style?.fillOpacity,
+                };
+              },
+              onEachFeature: sublayer.name.includes("Grid") ? gridLayerOnEachFeature : null, //TODO: this is a hacky way to check if it's a grid layer
+              interactive: false,
+            });
+            featureGroup.addLayer(vectorLayer);
+            map.current.addLayer(featureGroup);
+            if (sublayer.name.includes("Grid") && setGridLabels) {
+              setGridLabels(newGridLabels);
             }
           };
-
-          const vectorLayer = L.geoJSON(geojson, {
-            style: (geoJsonFeature) => {
-              //fill color defaults to color if not defined
-              let fillColor = mapSublayerControls[sublayer.uuid].style?.color;
-              if (mapSublayerControls[sublayer.uuid].style?.fillColor?.startsWith("prop:")) {
-                const fillPropertyName =
-                  mapSublayerControls[sublayer.uuid].style?.fillColor.slice(5);
-                fillColor = geoJsonFeature.properties[fillPropertyName];
-              }
-              return {
-                //manually add uuid and type fields for tracking later on
-                id: sublayer.name,
-                uuid: sublayer.uuid,
-                type: "vector",
-                //manually define defaults
-                color: mapSublayerControls[sublayer.uuid].style?.color,
-                opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
-                weight: mapSublayerControls[sublayer.uuid].style?.weight,
-                fillColor: fillColor,
-                fillOpacity: mapSublayerControls[sublayer.uuid].style?.fillOpacity,
-              };
+          fetchGeojsonAsync();
+        } else {
+          // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
+          const layer = getLayerByName(map, sublayer.name);
+          layer.bringToFront();
+        }
+      } else if (sublayer.type === "vector-tile") {
+        // if layer isn't already on the map, add it
+        if (!isLayerOnMapByName(map, sublayer.name)) {
+          const vectorTilePath = isExternal
+            ? `${sublayer.path}/${sublayer.tilePattern}`
+            : `${layerBaseURL}/${missionId}/Layers/${sublayer.path}/${sublayer.tilePattern}`;
+          const vectorTileLayer = VectorTileLayer(vectorTilePath, {
+            id: sublayer.name,
+            uuid: sublayer.uuid,
+            type: "vector-tile",
+            style: {
+              fill: false,
+              stroke: true,
+              //manually define defaults
+              color: mapSublayerControls[sublayer.uuid].style?.color,
+              opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
+              weight: mapSublayerControls[sublayer.uuid].style?.weight,
             },
-            onEachFeature: sublayer.name.includes("Grid") ? gridLayerOnEachFeature : null, //TODO: this is a hacky way to check if it's a grid layer
-            interactive: false,
+            minDetailZoom: sublayer.minNativeZoom,
+            maxDetailZoom: sublayer.maxNativeZoom,
+            timeInfo: sublayerTimeInfo,
           });
-          featureGroup.addLayer(vectorLayer);
-          map.current.addLayer(featureGroup);
-          if (sublayer.name.includes("Grid") && setGridLabels) {
-            setGridLabels(newGridLabels);
-          }
-        };
-        fetchGeojsonAsync();
-      } else {
-        // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
-        const layer = getLayerByName(map, sublayer.name);
-        layer.bringToFront();
-      }
-    } else if (sublayer.type === "vector-tile") {
-      // if layer isn't already on the map, add it
-      if (!isLayerOnMapByName(map, sublayer.name)) {
-        const vectorTilePath = isExternal
-          ? `${sublayer.path}/${sublayer.tilePattern}`
-          : `${layerBaseURL}/${missionId}/Layers/${sublayer.path}/${sublayer.tilePattern}`;
-        const vectorTileLayer = VectorTileLayer(vectorTilePath, {
-          id: sublayer.name,
-          uuid: sublayer.uuid,
-          type: "vector-tile",
-          style: {
-            fill: false,
-            stroke: true,
-            //manually define defaults
-            color: mapSublayerControls[sublayer.uuid].style?.color,
-            opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
-            weight: mapSublayerControls[sublayer.uuid].style?.weight,
-          },
-          minDetailZoom: sublayer.minNativeZoom,
-          maxDetailZoom: sublayer.maxNativeZoom,
-        });
 
-        map.current.addLayer(vectorTileLayer);
-        vectorTileLayer.bringToFront();
-      } else {
-        // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
-        const layer = getLayerByName(map, sublayer.name);
-        layer.bringToFront();
+          map.current.addLayer(vectorTileLayer);
+          vectorTileLayer.bringToFront();
+        } else {
+          // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
+          const layer = getLayerByName(map, sublayer.name);
+          layer.bringToFront();
+        }
       }
-    }
-  });
+    });
 };
 
 /**
