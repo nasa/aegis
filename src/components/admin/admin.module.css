@@ -946,3 +946,8 @@
   text-align: center;
   width: 100%;
 }
+
+.collapsable {
+  user-select: none;
+  cursor: pointer;
+}

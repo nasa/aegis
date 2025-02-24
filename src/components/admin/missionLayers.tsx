@@ -12,6 +12,8 @@ import {
   faBezierCurve,
   faVectorSquare,
   faClock,
+  faCaretDown,
+  faCaretUp,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
@@ -174,6 +176,8 @@ const LayerList = (props: {
   setEditComponent: Dispatch<JSX.Element>;
   fileList: GISfile[];
 }) => {
+  const [collapsedLayers, setCollapsedLayers] = useState<string[]>([]);
+
   async function delSubLayer(sublayer: Sublayer) {
     if (confirm("Are you sure you want to delete sublayer " + sublayer.name)) {
       const res: WrappedResponse<null> = await deleteSublayers([sublayer.uuid]);
@@ -220,6 +224,20 @@ const LayerList = (props: {
         {props.layers.map((layer) => {
           return (
             <li key={layer.uuid}>
+              <FontAwesomeIcon
+                icon={collapsedLayers.includes(layer.uuid) ? faCaretUp : faCaretDown}
+                onClick={() => {
+                  if (!collapsedLayers.includes(layer.uuid)) {
+                    const newCollapsed = [...collapsedLayers];
+                    newCollapsed.push(layer.uuid);
+                    setCollapsedLayers(newCollapsed);
+                  } else {
+                    setCollapsedLayers(collapsedLayers.filter((uuid) => uuid !== layer.uuid));
+                  }
+                }}
+                className={adminStyles.collapsable}
+              />
+              &nbsp;
               {layer.name}&nbsp;
               <button
                 type="button"
@@ -240,41 +258,44 @@ const LayerList = (props: {
                 Delete Layer
               </button>
               &nbsp; {layer.uuid ? "" : "Missing UUID"}
-              {props.sublayers?.map((sublayer) => {
-                if (sublayer.layerUuid !== layer.uuid) return;
-                return (
-                  <ul key={sublayer.uuid}>
-                    <li>
-                      {sublayer.type === "tile" && <FontAwesomeIcon icon={faLayerGroup} />}
-                      {sublayer.type === "vector-tile" && <FontAwesomeIcon icon={faVectorSquare} />}
-                      {sublayer.type === "vector" && <FontAwesomeIcon icon={faBezierCurve} />}
-                      {sublayer.isTimeBased && <FontAwesomeIcon icon={faClock} />}
-                      &nbsp;
-                      {sublayer.name}
-                      &nbsp;
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEdit("sublayer", sublayer);
-                        }}
-                      >
-                        Edit Sublayer
-                      </button>
-                      &nbsp;
-                      <button
-                        className={adminStyles.deleteButton}
-                        type="button"
-                        onClick={() => {
-                          delSubLayer(sublayer);
-                        }}
-                      >
-                        Delete Sublayer
-                      </button>
-                      &nbsp;{sublayer.uuid ? "" : "Missing UUID"}
-                    </li>
-                  </ul>
-                );
-              })}
+              {!collapsedLayers.includes(layer.uuid) &&
+                props.sublayers?.map((sublayer) => {
+                  if (sublayer.layerUuid !== layer.uuid) return;
+                  return (
+                    <ul key={sublayer.uuid}>
+                      <li>
+                        {sublayer.type === "tile" && <FontAwesomeIcon icon={faLayerGroup} />}
+                        {sublayer.type === "vector-tile" && (
+                          <FontAwesomeIcon icon={faVectorSquare} />
+                        )}
+                        {sublayer.type === "vector" && <FontAwesomeIcon icon={faBezierCurve} />}
+                        {sublayer.isTimeBased && <FontAwesomeIcon icon={faClock} />}
+                        &nbsp;
+                        {sublayer.name}
+                        &nbsp;
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEdit("sublayer", sublayer);
+                          }}
+                        >
+                          Edit Sublayer
+                        </button>
+                        &nbsp;
+                        <button
+                          className={adminStyles.deleteButton}
+                          type="button"
+                          onClick={() => {
+                            delSubLayer(sublayer);
+                          }}
+                        >
+                          Delete Sublayer
+                        </button>
+                        &nbsp;{sublayer.uuid ? "" : "Missing UUID"}
+                      </li>
+                    </ul>
+                  );
+                })}
             </li>
           );
         })}
