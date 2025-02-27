@@ -46,7 +46,10 @@ const config = {
     document: {},
   },
   transform: {
-    "^.+\\.(ts|tsx)$": ["ts-jest", { tsconfig: "tsconfig.jest.json", warnOnly: true }],
+    "^.+\\.(ts|tsx)$": [
+      "ts-jest",
+      { tsconfig: "src/tests/jest/tsconfig.jest.json", warnOnly: true },
+    ],
   },
   testEnvironment: "jest-environment-jsdom",
   testTimeout: 10000, // increase timeout threshold for all tests
