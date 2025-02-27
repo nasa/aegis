@@ -1,8 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
+import path from "path";
+
+const storageStatePath = path.resolve(__dirname, "../../../.local/playwright/auth.json");
 
 export default defineConfig({
   // Look for test files in the "tests" directory, relative to this configuration file.
-  testDir: "./src/tests/playwright",
+  testDir: "./",
 
   // Set the timeout for each test.
   timeout: 40000,
@@ -24,7 +27,7 @@ export default defineConfig({
 
   use: {
     // Base URL to use in actions like `await page.goto('/')`.
-    baseURL: "http://aegis-local.fit.nasa.gov:4000/",
+    baseURL: "http://localhost:4000/",
 
     headless: true, // Ensure headless mode is enabled
     viewport: { width: 1960, height: 1080 }, // Set screen resolution
@@ -40,7 +43,7 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
-        storageState: "../../../.local/playwright/auth.json",
+        storageState: storageStatePath,
       },
       dependencies: ["auth"], // make sure to run the auth project first.
     },
@@ -48,7 +51,7 @@ export default defineConfig({
       name: "firefox",
       use: {
         ...devices["Desktop Firefox"],
-        storageState: "../../../.local/playwright/auth.json",
+        storageState: storageStatePath,
       },
       dependencies: ["auth"], // make sure to run the auth project first.
     },
@@ -56,7 +59,7 @@ export default defineConfig({
       name: "webkit",
       use: {
         ...devices["Desktop Safari"],
-        storageState: "../../../.local/playwright/auth.json",
+        storageState: storageStatePath,
       },
       dependencies: ["auth"], // make sure to run the auth project first.
     },
