@@ -154,7 +154,8 @@ const FileManager: FunctionComponent<{
       <div className={adminStyles.sectionDivHeading}>
         {!hideDirectoryListing ? "Directory Listing " : ""}
         <button
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
             setHideDirectoryListing(!hideDirectoryListing);
           }}
         >
