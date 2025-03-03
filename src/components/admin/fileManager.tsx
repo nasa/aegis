@@ -28,6 +28,7 @@ const FileManager: FunctionComponent<{
   const { path, setFileList, isUsed } = { ...props };
   const [dirListing, setDirListing] = useState<fileState[]>([]);
   const [refreshDirectoryListing, setRefreshDirectoryListing] = useState(false);
+  const [hideDirectoryListing, setHideDirectoryListing] = useState(false);
 
   const navigate = useNavigate();
 
@@ -149,80 +150,93 @@ const FileManager: FunctionComponent<{
         </div>
       </div>
       <br />
-      <div className={adminStyles.sectionDivHeading}>Directory Listing</div>
-      <div>
-        {dirListing.length > 0 ? (
-          <table className={adminStyles.fileTable}>
-            <thead>
-              <tr>
-                <th>Type</th>
-                <th>File Count</th>
-                <th>Size</th>
-                <th>Name</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {dirListing.map((file) => {
-                return (
-                  <tr key={file.key}>
-                    <td>{file.type}</td>
-                    <td>{file.count}</td>
-                    <td>{prettyBytes(file.size)}</td>
-                    <td>{file.name}</td>
-                    <td>
-                      {file.showRename ? (
-                        <>
-                          <input
-                            type="text"
-                            title="New Name"
-                            value={file.newName}
-                            onChange={(e) => {
-                              renameChangeHandler(file.key, e.target.value);
-                            }}
-                          />
-                          &nbsp;
-                          <button
-                            onClick={() => {
-                              saveRename(file.key);
-                            }}
-                          >
-                            Save
-                          </button>
-                          &nbsp;
-                        </>
-                      ) : (
-                        <></>
-                      )}
-                      <button
-                        onClick={() => {
-                          showHideRename(file.key);
-                        }}
-                      >
-                        {file.showRename ? "Cancel" : "Rename"}
-                      </button>
-                      &nbsp; &nbsp;
-                      <button
-                        onClick={() => {
-                          deleteFileToAPI(file.name);
-                        }}
-                        className={adminStyles.deleteButton}
-                      >
-                        Delete
-                      </button>
-                      {isUsed ? !isUsed(file.name) && "Not assigned to a layer" : ""}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        ) : (
-          <div>No files</div>
-        )}
-        <br />
-        <button onClick={getDirListing}>Refresh</button>
+
+      <div className={adminStyles.sectionDivHeading}>
+        {!hideDirectoryListing ? "Directory Listing " : ""}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            setHideDirectoryListing(!hideDirectoryListing);
+          }}
+        >
+          {!hideDirectoryListing ? "Hide" : "Show"} Directory Listing
+        </button>
       </div>
+      {!hideDirectoryListing && (
+        <div>
+          {dirListing.length > 0 ? (
+            <table className={adminStyles.fileTable}>
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>File Count</th>
+                  <th>Size</th>
+                  <th>Name</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {dirListing.map((file) => {
+                  return (
+                    <tr key={file.key}>
+                      <td>{file.type}</td>
+                      <td>{file.count}</td>
+                      <td>{prettyBytes(file.size)}</td>
+                      <td>{file.name}</td>
+                      <td>
+                        {file.showRename ? (
+                          <>
+                            <input
+                              type="text"
+                              title="New Name"
+                              value={file.newName}
+                              onChange={(e) => {
+                                renameChangeHandler(file.key, e.target.value);
+                              }}
+                            />
+                            &nbsp;
+                            <button
+                              onClick={() => {
+                                saveRename(file.key);
+                              }}
+                            >
+                              Save
+                            </button>
+                            &nbsp;
+                          </>
+                        ) : (
+                          <></>
+                        )}
+                        <button
+                          onClick={() => {
+                            showHideRename(file.key);
+                          }}
+                        >
+                          {file.showRename ? "Cancel" : "Rename"}
+                        </button>
+                        &nbsp; &nbsp;
+                        <button
+                          onClick={() => {
+                            deleteFileToAPI(file.name);
+                          }}
+                          className={adminStyles.deleteButton}
+                        >
+                          Delete
+                        </button>
+                        {isUsed ? !isUsed(file.name) && "Not assigned to a layer" : ""}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ) : (
+            <div>No files</div>
+          )}
+          <br />
+          <button onClick={getDirListing}>Refresh</button>
+        </div>
+      )}
     </div>
   );
 };
