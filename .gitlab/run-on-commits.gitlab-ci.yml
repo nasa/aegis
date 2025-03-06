@@ -1,17 +1,10 @@
 stages:
   - stageless
 
-  # This isn't used, but there are some tests within the FIT developer-ecosystem set that
-  # expect to be run in the `test` stage. These tests are not run in this pipeline due to it not
-  # having any of the requirements (e.g. Golang or PHP code). We could call them all out and specify
-  # where they would run, or remove them, but it's easier to just make this unused "test".
-  - test
-
 default:
   timeout: 10 minutes
 
 variables:
-  HOME: "/tmp" # required for openshift for now
   CURRENT_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:20.11.0-alpine"
   # "Future" might be older if waiting on a newer version to come out
   FUTURE_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:21-alpine"
@@ -26,14 +19,7 @@ cache:
   paths:
     - .next/cache/
 
-# also run standard FIT dependency and package checks
-# https://gitlab.fit.nasa.gov/developer-ecosystem/ci-job-templates
 include:
-  # Common jobs that basically all repos should run
-  - project: "developer-ecosystem/ci-job-templates"
-    ref: 5.4.2
-    file: "/rollups/all-projects.gitlab-ci.yml"
-
   # Docker-in-Docker template for building docker images using docker runners
   - project: "developer-ecosystem/ci-job-templates"
     ref: 5.4.2
@@ -42,67 +28,29 @@ include:
   # A11y tests. Disabled for now.
   # - template: "Verify/Accessibility.gitlab-ci.yml"
 
-  # Code quality checks
   - project: "emss/gitlab-templates"
-    ref: 2.2.0
-    file: "/jobs/code-quality.gitlab-ci.yml"
+    ref: 2.5.0
+    file:
+      # Run standard FIT developer-ecosystem/ci-job-templates with emss
+      # stageless overrides.
+      # <https://gitlab.fit.nasa.gov/developer-ecosystem/ci-job-templates>
+      - "/jobs/fit-ecosystem.gitlab-ci.yml"
 
-  # Fitdock deploy template
-  - project: "emss/gitlab-templates"
-    ref: 2.2.0
-    file: "/jobs/fitdock-deploy.gitlab-ci.yml"
+      # Code quality checks
+      - "/jobs/code-quality.gitlab-ci.yml"
 
-  # EMSS shared dev server helpers (carbon, iron, oxygen, etc)
-  - project: "emss/gitlab-templates"
-    ref: 2.2.0
-    file: "/jobs/emss-shared-dev.gitlab-ci.yml"
+      # Fitdock deploy template
+      - "/jobs/fitdock-deploy.gitlab-ci.yml"
 
-  # Kaniko build template
-  - project: "emss/gitlab-templates"
-    ref: 2.2.0
-    file: "/jobs/kaniko-build.gitlab-ci.yml"
+      # EMSS shared dev server helpers (carbon, iron, oxygen, etc)
+      - "/jobs/emss-shared-dev.gitlab-ci.yml"
 
-  # Retag job template
-  - project: "emss/gitlab-templates"
-    ref: 2.2.0
-    file: "/jobs/container-retag.gitlab-ci.yml"
+      # Kaniko build template
+      - "/jobs/kaniko-build.gitlab-ci.yml"
 
-# Overrride some properties on FIT jobs. Unfortunately using a template for these
-# make GitLab angry, so a lot of repetition
-project-check:
-  stage: stageless
-  needs: []
-nodejs-scan-sast:
-  stage: stageless
-  needs: []
-semgrep-sast:
-  stage: stageless
-  needs: []
-sast:
-  stage: stageless
-  needs: []
-secret_detection:
-  stage: stageless
-  needs: []
-code-count:
-  stage: stageless
-  needs: []
-yaml-lint:
-  stage: stageless
-  needs: []
-job-report-visualization:
-  stage: stageless
-  needs: []
-deprecated-keywords:
-  stage: stageless
-  needs: []
-file-count:
-  stage: stageless
-  needs: []
-# accessibility:
-#   stage: stageless
-#   needs: ["some deploy job or a running system in GitLab"]
-#   tags: ["openshift"]
+      # Retag job template
+      - "/jobs/container-retag.gitlab-ci.yml"
+
 dependency-check:
   stage: stageless
   tags: ["docker", "linux"] # can't use openshift (yet?)
