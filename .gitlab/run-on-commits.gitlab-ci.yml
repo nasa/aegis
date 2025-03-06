@@ -51,6 +51,10 @@ include:
       # Retag job template
       - "/jobs/container-retag.gitlab-ci.yml"
 
+project-check:
+  variables:
+    SCAN_FOR_DOCS: "no"
+
 dependency-check:
   stage: stageless
   tags: ["docker", "linux"] # can't use openshift (yet?)
