@@ -54,6 +54,9 @@ include:
 project-check:
   variables:
     SCAN_FOR_DOCS: "no"
+    ALLOWED_FILES: >
+      src/packages
+      src/tests/jest/factories/testZip.zip
 
 dependency-check:
   stage: stageless
