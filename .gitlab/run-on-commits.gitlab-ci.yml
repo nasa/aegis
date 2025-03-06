@@ -22,7 +22,7 @@ cache:
 include:
   # Docker-in-Docker template for building docker images using docker runners
   - project: "developer-ecosystem/ci-job-templates"
-    ref: 5.4.2
+    ref: 6.0.2
     file: "/extends/dind.gitlab-ci.yml"
 
   # A11y tests. Disabled for now.
