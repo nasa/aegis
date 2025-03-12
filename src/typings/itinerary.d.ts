@@ -178,19 +178,19 @@ type Action = {
   uuid: string;
   name: string;
 
-  missionId: number;
-  poiUuid?: string;
-  stationUuid?: string;
+  missionId: number | null;
+  poiUuid?: string | null;
+  stationUuid?: string | null;
 
-  parentActionUuid?: string;
-  parentCopyDate?: string;
+  parentActionUuid?: string | null;
+  parentCopyDate?: string | null;
 
-  priority: number; // 1-10
+  priority: number | null; // 1-10
   /**
    * Allow linkage to any part of the STM hierarchy
    */
-  stmUuidRefs: string[];
-  stmPriorities: StmPriorities;
+  stmUuidRefs: string[] | null; // uuid of the STMs selected for this action
+  stmPriorities: StmPriorities | null; // the priority of each STM selected for this action (L/M/H)
   /**
    * The type of action to be taken
    */
@@ -202,7 +202,7 @@ type Action = {
 
   // Action system v2 types
   stmAction: boolean;
-  actionDefinition: ActionDefinition;
+  actionDefinition: ActionDefinition | null;
   //
 
   /**
@@ -216,14 +216,14 @@ type Action = {
   elevation: number | null;
   durationLower: number; // in minutes
   durationUpper?: number; // in minutes
-  equipmentItemsUsage: EquipmentItemUsage[]; // Equipment needed to perform this action.
-  geographicUnitsUsage: string[]; // uuids of geographic units used in this action
+  equipmentItemsUsage: EquipmentItemUsage[] | null; // Equipment needed to perform this action.
+  geographicUnitsUsage: string[] | null; // uuids of geographic units used in this action
   mass: number; // grams
-  status: ActionStatus;
+  status: ActionStatus | null;
   enabled: boolean;
   crewAssigned: Crew[];
   createdAt?: string;
-  updatedAt?: string;
+  updatedAt?: string | undefined;
 };
 
 type Action_db_type = Omit<

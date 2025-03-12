@@ -66,6 +66,8 @@ export const makeExportActions = (params: {
   mission: Mission;
 }): ExportAction[] => {
   const { actions, mission, stations, pois, stmStore } = params;
+
+  const actionDefinitions: ActionDefinitions = mission.actionDefinitions;
   const exportActions: ExportAction[] = actions.map((action) => {
     const exportAction: ExportAction = {
       ...action,
@@ -73,7 +75,7 @@ export const makeExportActions = (params: {
       descriptionReadable: decodeWsywig(action.description),
       parentStationName: stations.find((s) => s.uuid === action.stationUuid)?.name,
       parentPoiName: pois.find((p) => p.uuid === action.poiUuid)?.name,
-      stmNames: getStmNames({
+      stmUuidRefsReadable: getStmNames({
         stmUuidRefs: action.stmUuidRefs,
         level1s: stmStore.level1s,
         level2s: stmStore.level2s,
@@ -87,6 +89,17 @@ export const makeExportActions = (params: {
       geographicalUnitsReadable: action.geographicUnitsUsage?.map((geographicUnitUsageUuid) => {
         return mission.geographicUnits.find((g) => g.uuid === geographicUnitUsageUuid)?.name;
       }),
+      //Verb of noun in adjective
+      actionDefinitionReadable: makeReadableActionDefinition({
+        action,
+        actionDefinitions,
+      }),
+      stmPrioritiesReadable: action.stmPriorities
+        ? Object.entries(action.stmPriorities).map(([uuid, priority]) => ({
+            uuid,
+            priority,
+          }))
+        : null,
     };
     return exportAction;
   });
@@ -226,4 +239,30 @@ export const makeExportRexes = (params: { rexes: Rex[] }): ExportRex[] => {
     return exportRex;
   });
   return exportRexes;
+};
+
+export const makeReadableActionDefinition = (params: {
+  action: Action;
+  actionDefinitions: ActionDefinitions;
+}): ActionDefinitionReadable => {
+  const { action, actionDefinitions } = params;
+  if (!action.actionDefinition) return null;
+
+  const verb = actionDefinitions.verbs.find(
+    (verb) => verb.uuid === action.actionDefinition.verbUuid
+  );
+  const noun = actionDefinitions.nouns.find(
+    (noun) => noun.uuid === action.actionDefinition.nounUuid
+  );
+  const adjective = actionDefinitions.nouns.find(
+    (noun) => noun.uuid === action.actionDefinition.nounUuid
+  );
+
+  const readableActionDefintion: ActionDefinitionReadable = {
+    displayString: `${verb.name} of ${noun.name} in ${adjective.name}`,
+    verb: verb,
+    noun: noun,
+    adjective: adjective,
+  };
+  return readableActionDefintion;
 };

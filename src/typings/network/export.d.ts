@@ -3,10 +3,24 @@ interface ExportAction extends Action {
   descriptionReadable: string;
   parentPoiName: string;
   parentStationName: string;
-  stmNames: string[];
+  stmUuidRefsReadable: string[];
   iconEmojiDecoded: string;
-  equipmentItemsUsageReadable: EquipmentItemUsageReadable[];
-  geographicalUnitsReadable: string[];
+  equipmentItemsUsageReadable: EquipmentItemUsageReadable[] | null;
+  geographicalUnitsReadable: string[] | null;
+  actionDefinitionReadable: ActionDefinitionReadable | null;
+  stmPrioritiesReadable: StmPriorityReadable[] | null;
+}
+
+interface ActionDefinitionReadable {
+  displayString: string;
+  verb: ActionDefinitionItem;
+  noun: ActionDefinitionItem;
+  adjective: ActionDefinitionItem;
+}
+
+interface StmPriorityReadable {
+  uuid: string;
+  priority: number;
 }
 
 interface ExportPOI extends POI {

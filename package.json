@@ -36,7 +36,9 @@
     "version:patch": "npm version patch && git push",
     "version:minor": "npm version minor && git push",
     "version:major": "npm version major && git push",
-    "make-dotenv": "make-dotenv && npx prettier --write ./env.secret.ts --ignore-path .prettierignore"
+    "make-dotenv": "make-dotenv && npx prettier --write ./env.secret.ts --ignore-path .prettierignore",
+    "schema:create": "npm run schema:create:maestro",
+    "schema:create:maestro": "typescript-json-schema ./src/schema/tsconfig.schema.json ExportAction --required --include ./src/typings/**/*.d.ts --ignoreErrors -o ./src/schema/exportAction.json"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",
@@ -109,6 +111,7 @@
     "socket.io-client": "^4.8.0",
     "string-strip-html": "^13.4.8",
     "ts-node": "^10.9.2",
+    "typescript-json-schema": "^0.65.1",
     "unique-names-generator": "^4.7.1",
     "use-window-size-v2": "^2.2.5",
     "uuid": "^10.0.0"
