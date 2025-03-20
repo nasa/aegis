@@ -98,6 +98,7 @@ const EvaRightEva: FunctionComponent = () => {
           traverses: state.traverse.traverses,
           mission: state.mission.mission,
           evas: state.eva.evas,
+          actions: state.action.actions,
         })
       );
     }

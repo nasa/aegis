@@ -428,6 +428,7 @@ export const thunkMakeExportString = appCreateAsyncThunk<
           traverses: getState().traverse.traverses,
           mission: getState().mission.mission,
           evas: getState().eva.evas,
+          actions: getState().action.actions,
         })
       ),
     });

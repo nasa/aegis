@@ -30,7 +30,10 @@ const Actions_Panel: FunctionComponent<{
   const actionsCalculatedFields = useAppSelector((state) => {
     const calculatedFields = getCalculatedFieldsByTraverse({
       traverseUuid: selectedTraverse.uuid,
-      wholeStoreState: state,
+      traverses: state.traverse.traverses,
+      mission: state.mission.mission,
+      evas: state.eva.evas,
+      actions: state.action.actions,
     });
     const newActionsCalculatedFields: ActionsCalculatedFields = {
       actionCount: calculatedFields.actionCount,

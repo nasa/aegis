@@ -251,14 +251,15 @@ export const getCalculatedFieldsByTraverse = (params: {
   traverses: Traverse[];
   mission: Mission;
   evas: Eva[];
+  actions: Action[];
 }): TraverseCalculatedFields => {
-  const { traverseUuid, traverses, mission, evas } = params;
+  const { traverseUuid, traverses, mission, evas, actions } = params;
   const traverse = traverses.find((storeTraverse) => storeTraverse.uuid === traverseUuid);
   if (!traverse) return;
   const missionTraverseRate = mission?.traverseRate;
 
   //get traverse actions
-  const traverseActions = wholeStoreState.action.actions.filter(
+  const traverseActions = actions.filter(
     (storeAction) => storeAction.traverseUuid === traverse.uuid && storeAction.enabled
   );
 
@@ -420,6 +421,7 @@ export const getCalculatedTimeOfSequenceItem = (params: {
         traverses: traverses,
         mission: mission,
         evas: evas,
+        actions: actions,
       }).durationMinutes;
     }
 
@@ -522,6 +524,7 @@ export const getCalculatedFieldsByEva = (params: {
         traverses: traverses,
         mission: mission,
         evas: evas,
+        actions: actions,
       });
     }
 

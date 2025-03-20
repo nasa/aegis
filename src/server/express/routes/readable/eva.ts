@@ -88,6 +88,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
           traverses: wholeStore.traverses,
           mission: wholeStore.mission,
           evas: evas,
+          actions: wholeStore.actions,
         })
       ),
     });

@@ -63,7 +63,10 @@ const DashTimeline: FunctionComponent = () => {
       allTraverseCalculatedFields.push(
         getCalculatedFieldsByTraverse({
           traverseUuid: traverse.uuid,
-          wholeStoreState: state,
+          traverses: state.traverse.traverses,
+          mission: state.mission.mission,
+          evas: state.eva.evas,
+          actions: state.action.actions,
         })
       );
     }

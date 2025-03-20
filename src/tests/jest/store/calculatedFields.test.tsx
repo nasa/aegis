@@ -241,6 +241,7 @@ describe("Calculated fields", () => {
           mission: wholeStoreState.mission.mission,
           evas: wholeStoreState.eva.evas,
           traverseUuid: traverse.uuid,
+          actions: wholeStoreState.action.actions,
         })
       );
     }

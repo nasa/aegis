@@ -62,6 +62,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
         traverses: state.traverse.traverses,
         mission: state.mission.mission,
         evas: state.eva.evas,
+        actions: state.action.actions,
       }),
     deepEqual
   );
