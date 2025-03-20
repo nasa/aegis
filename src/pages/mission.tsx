@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 
 import styles from "./mission.module.css";
 import { setUserStore } from "store/user";
@@ -18,6 +18,7 @@ import MapBody from "components/interface/map/map-body-leaflet"; // Adjust impor
 import { setAllSliceStores } from "store/crossActions";
 import { getPaneTypes } from "components/interface/_paneTypes";
 import { populateStore } from "store/processing/populateStore";
+import { thunkSelectEvaAction } from "store/thunk/crossThunk";
 
 type RouteParams = {
   id: string;
@@ -33,6 +34,9 @@ const Main = (): JSX.Element => {
   );
 
   const [permissions, setPermissions] = useState<Permission>(null);
+  const [searchParams] = useSearchParams();
+  const evaUuid = searchParams.get("evaUuid");
+  const actionUuid = searchParams.get("actionUuid");
 
   const params = useParams<RouteParams>();
   const slug = params.id;
@@ -57,10 +61,15 @@ const Main = (): JSX.Element => {
        * dispatch a single action to populate the stores across all slices using the wholeStoreState
        */
       dispatch(setAllSliceStores(wholeStoreState));
+
+      // if evaUuid, actionUuid are present in the URL, set the selected action using thunk
+      if (evaUuid && actionUuid) {
+        dispatch(thunkSelectEvaAction({ evaUuid, actionUuid }));
+      }
     };
     populateStoreAsync();
     //eslint-disable-next-line
-  }, [permissions]);
+  }, [permissions, evaUuid, actionUuid]);
 
   useEffect(() => {
     window.sessionStorage.setItem("missionId", intMissionId.toString());

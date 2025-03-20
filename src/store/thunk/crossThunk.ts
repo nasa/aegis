@@ -1,7 +1,12 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import { RootState } from "store";
 import { actionSlice } from "store/action";
-import { evaSlice } from "store/eva";
+import {
+  evaSlice,
+  setExpandedEvaUuids,
+  setSelectedEvaRightNavItem,
+  setSelectedEvaUuid,
+} from "store/eva";
 import { poiSlice } from "store/poi";
 import { presetSlice } from "store/preset";
 import { rexSlice } from "store/rex";
@@ -12,7 +17,11 @@ import { traverseSlice } from "store/traverse";
 import { obliterateState as actionObliterateState } from "store/action";
 import { obliterateState as evaObliterateState } from "store/eva";
 import { obliterateState as hoverObliterateState } from "store/hover";
-import { obliterateState as interfaceObliterateState } from "store/interface";
+import {
+  expandActions,
+  obliterateState as interfaceObliterateState,
+  setSectionSelected,
+} from "store/interface";
 import { obliterateState as mapObliterateState } from "store/map";
 import { obliterateState as missionObliterateState } from "store/mission";
 import { obliterateState as poiObliterateState } from "store/poi";
@@ -147,3 +156,41 @@ export const thunkClearAllMapSelections = appCreateAsyncThunk<void>(
     dispatch(rexSlice.actions.setSelectedPosEntryUuid(null));
   }
 );
+
+export const thunkSelectEvaAction = appCreateAsyncThunk<{
+  evaUuid: string | null;
+  actionUuid: string | null;
+}>("cross/selectEvaAction", async ({ evaUuid, actionUuid }, { dispatch, getState }) => {
+  // Skip if either UUID is not provided
+  if (!evaUuid || !actionUuid) return;
+
+  // Validate UUIDs format (basic validation)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(evaUuid) || !uuidRegex.test(actionUuid)) {
+    console.warn("Invalid UUID format provided for EVA or action");
+    return;
+  }
+
+  const state = getState() as RootState;
+
+  // Validate EVA exists in store
+  const evaExists = state.eva.evas.some((eva) => eva.uuid === evaUuid);
+  if (!evaExists) {
+    console.warn(`EVA with UUID ${evaUuid} not found in store`);
+    return;
+  }
+
+  // Validate action exists in store
+  const actionExists = state.action.actions.some((action) => action.uuid === actionUuid);
+  if (!actionExists) {
+    console.warn(`Action with UUID ${actionUuid} not found in store`);
+    return;
+  }
+
+  // If both EVA and action exist, proceed with selection
+  dispatch(setSectionSelected("evas"));
+  dispatch(setSelectedEvaUuid(evaUuid));
+  dispatch(setExpandedEvaUuids([evaUuid]));
+  dispatch(setSelectedEvaRightNavItem("actions_panel"));
+  dispatch(expandActions([actionUuid]));
+});
