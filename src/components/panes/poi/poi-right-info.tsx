@@ -44,7 +44,7 @@ const Info_Panel: FunctionComponent<{
     (state) =>
       getCalculatedFieldsByPoi({
         poiUuid: selectedPoi.uuid,
-        wholeStoreState: state,
+        actions: state.action.actions,
       }),
     deepEqual
   );

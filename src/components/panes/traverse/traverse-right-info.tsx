@@ -59,7 +59,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     (state) =>
       getCalculatedFieldsByTraverse({
         traverseUuid: selectedTraverse.uuid,
-        wholeStoreState: state,
+        traverses: state.traverse.traverses,
+        mission: state.mission.mission,
+        evas: state.eva.evas,
       }),
     deepEqual
   );

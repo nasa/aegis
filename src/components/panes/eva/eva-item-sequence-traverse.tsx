@@ -37,7 +37,9 @@ const SequenceItemTraverse: FunctionComponent<{
     (state) =>
       getCalculatedFieldsByTraverse({
         traverseUuid,
-        wholeStoreState: state,
+        traverses: state.traverse.traverses,
+        mission: state.mission.mission,
+        evas: state.eva.evas,
       }),
     deepEqual
   );
@@ -56,7 +58,11 @@ const SequenceItemTraverse: FunctionComponent<{
     (state) =>
       getCalculatedFieldsByEva({
         evaUuid,
-        wholeStoreState: state,
+        evas: state.eva.evas,
+        stations: state.station.stations,
+        mission: state.mission.mission,
+        actions: state.action.actions,
+        traverses: state.traverse.traverses,
       })?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === traverseUuid),
     deepEqual
   );

@@ -9,10 +9,10 @@ interface Eva {
    */
   sequence: EvaSequenceItem[];
   description: string;
-  maxDuration: number; // minutes
-  traverseRate: number; // km/h
-  egressDuration: number; // minutes
-  ingressDuration: number; // minutes
+  maxDuration: number | null; // minutes
+  traverseRate: number | null; // km/h
+  egressDuration: number | null; // minutes
+  ingressDuration: number | null; // minutes
   egressLocationUuid: string; // station uuid or "lander"
   ingressLocationUuid: string; // station uuid or "lander"
   traverseColor: string;
@@ -76,20 +76,20 @@ interface Station {
   status: StationStatus;
   description: string;
   radius: number;
-  location: AEGISPoint;
-  elevation: number;
-  walkbackPath: AEGISPoint[];
-  walkbackPathSegmentDistances: number[]; //meters
-  walkbackPathSegmentElevations: number[][]; //meters
-  walkbackTraverseRate: number; // km/h
-  icon: string;
+  location: AEGISPoint | null;
+  elevation: number | null;
+  walkbackPath: AEGISPoint[] | null;
+  walkbackPathSegmentDistances: number[] | null; //meters
+  walkbackPathSegmentElevations: number[][] | null; //meters
+  walkbackTraverseRate: number | null; // km/h
+  icon: string | null;
   mapCircleControls: MapCircleControls;
 
   /**
    * The estimated duration of the action, in minutes.
    */
-  durationLower: number; // in minutes
-  durationUpper?: number; // in minutes
+  durationLower: number | null; // in minutes
+  durationUpper?: number | null; // in minutes
 
   createdAt?: string;
   updatedAt?: string;
@@ -138,8 +138,8 @@ interface POI {
   /**
    * The coordinates or series of coordinates of the POI.
    */
-  location: AEGISPoint;
-  elevation: number;
+  location: AEGISPoint | null;
+  elevation: number | null;
 
   /**
    * The emoji of this POI
@@ -154,7 +154,7 @@ interface POI {
   /**
    * Status of this POI
    */
-  status: POIStatus;
+  status: POIStatus | null;
 
   createdAt?: string;
   updatedAt?: string;

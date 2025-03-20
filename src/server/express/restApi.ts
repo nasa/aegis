@@ -32,8 +32,11 @@ import path from "path";
 import { getUser } from "packages/getUser";
 import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
 import serverLogger from "utils/serverLogger";
-
 import readableActionRoutes from "./routes/readable/action";
+import readableStationRoutes from "./routes/readable/station";
+import readableEvaRoutes from "./routes/readable/eva";
+import readablePoiRoutes from "./routes/readable/poi";
+import readableMissionRoutes from "./routes/readable/mission";
 
 const app: Application = express();
 
@@ -97,4 +100,9 @@ app.use("/api/v1/file/delete", fileDeleteRoute);
 app.use("/api/v1/log/from-client", logFromClient);
 
 app.use("/api/v1/readable/action", readableActionRoutes);
+app.use("/api/v1/readable/station", readableStationRoutes);
+app.use("/api/v1/readable/eva", readableEvaRoutes);
+app.use("/api/v1/readable/poi", readablePoiRoutes);
+app.use("/api/v1/readable/mission", readableMissionRoutes);
+
 export default app;

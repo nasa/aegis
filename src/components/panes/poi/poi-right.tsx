@@ -35,7 +35,8 @@ const PoiEditorRight: FunctionComponent = () => {
   const poisEditing = useAppSelector((state) => state.poi.poisEditing, shallowEqual);
   const calculatedFieldsReportItems = useAppSelector(
     (state) =>
-      getCalculatedFieldsByPoi({ poiUuid: selectedPoiUuid, wholeStoreState: state })?.reportItems,
+      getCalculatedFieldsByPoi({ poiUuid: selectedPoiUuid, actions: state.action.actions })
+        ?.reportItems,
     deepEqual
   );
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);

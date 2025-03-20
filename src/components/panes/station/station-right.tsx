@@ -86,7 +86,9 @@ const StationEditorRight: FunctionComponent = () => {
     (state) =>
       getCalculatedFieldsByStation({
         stationUuid: selectedStationUuid,
-        wholeStoreState: state,
+        stations: state.station.stations,
+        mission: state.mission.mission,
+        actions: state.action.actions,
       })?.reportItems,
     deepEqual
   );

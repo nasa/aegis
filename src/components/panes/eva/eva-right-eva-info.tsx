@@ -47,7 +47,15 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     refEqual
   );
   const evaCalculatedFields = useAppSelector(
-    (state) => getCalculatedFieldsByEva({ evaUuid: selectedEvaUuid, wholeStoreState: state }),
+    (state) =>
+      getCalculatedFieldsByEva({
+        evaUuid: selectedEvaUuid,
+        evas: state.eva.evas,
+        stations: state.station.stations,
+        mission: state.mission.mission,
+        actions: state.action.actions,
+        traverses: state.traverse.traverses,
+      }),
     deepEqual
   );
   const missionEquipItems = useAppSelector(

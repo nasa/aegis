@@ -46,7 +46,9 @@ const DashTimeline: FunctionComponent = () => {
       allStationCalculatedFields.push(
         getCalculatedFieldsByStation({
           stationUuid: station.uuid,
-          wholeStoreState: state,
+          stations: state.station.stations,
+          mission: state.mission.mission,
+          actions: state.action.actions,
         })
       );
     }

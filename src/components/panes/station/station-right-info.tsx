@@ -96,7 +96,9 @@ const Info_Panel: FunctionComponent<{
     (state) =>
       getCalculatedFieldsByStation({
         stationUuid: selectedStation.uuid,
-        wholeStoreState: state,
+        stations: state.station.stations,
+        mission: state.mission.mission,
+        actions: state.action.actions,
       }),
     deepEqual
   );

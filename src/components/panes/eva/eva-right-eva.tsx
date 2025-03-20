@@ -72,7 +72,11 @@ const EvaRightEva: FunctionComponent = () => {
     (state) =>
       getCalculatedFieldsByEva({
         evaUuid: selectedEvaUuid,
-        wholeStoreState: state,
+        evas: state.eva.evas,
+        stations: state.station.stations,
+        mission: state.mission.mission,
+        actions: state.action.actions,
+        traverses: state.traverse.traverses,
       }),
     deepEqual
   );
@@ -91,7 +95,9 @@ const EvaRightEva: FunctionComponent = () => {
       traverseCalculatedFields.push(
         getCalculatedFieldsByTraverse({
           traverseUuid,
-          wholeStoreState: state,
+          traverses: state.traverse.traverses,
+          mission: state.mission.mission,
+          evas: state.eva.evas,
         })
       );
     }
@@ -112,7 +118,9 @@ const EvaRightEva: FunctionComponent = () => {
       stationCalculatedFields.push(
         getCalculatedFieldsByStation({
           stationUuid,
-          wholeStoreState: state,
+          stations: state.station.stations,
+          mission: state.mission.mission,
+          actions: state.action.actions,
         })
       );
     }

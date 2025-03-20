@@ -37,7 +37,11 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   const actionsCalculatedFields = useAppSelector((state) => {
     const evaCalculatedFields = getCalculatedFieldsByEva({
       evaUuid: selectedEvaUuid,
-      wholeStoreState: state,
+      evas: state.eva.evas,
+      stations: state.station.stations,
+      mission: state.mission.mission,
+      actions: state.action.actions,
+      traverses: state.traverse.traverses,
     });
     const newActionsCalculatedFields: ActionsCalculatedFields = {
       actionCount: evaCalculatedFields.actionCount,
