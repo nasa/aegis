@@ -4,37 +4,36 @@ import {
   faCircleInfo,
   faEdit,
   faFloppyDisk,
+  faPersonDigging,
   faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
 import { Button } from "components/interface/form/globalFields";
 import { FunctionComponent } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
-
-import {
-  setSelectedTraverseRightNavItem,
-  setTraverseEditMode,
-  upsertTraverses,
-  upsertTraversesFromDb,
-} from "store/traverse";
+import { setSelectedTraverseRightNavItem, setTraverseEditMode } from "store/traverse";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
-import evaStyles from "./eva.module.css";
-import Info_Panel from "./eva-right-traverse-info";
+import traverseStyles from "./traverse.module.css";
+import Info_Panel from "./traverse-right-info";
 import Report_Panel from "../report";
-import * as httpClient_Traverse from "http-client/traverse";
+import Actions_Panel from "./traverse-right-actions";
 import { getAlertColor, isModified } from "utils/component-helpers";
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { RightTabs } from "components/interface/side-controls";
-import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
 import isNull from "lodash/isNull";
+import { thunkCancelTraverse, thunkSaveTraverse } from "store/thunk/thunkTraverse";
 
-const EvaRightTraverse: FunctionComponent = () => {
+const TraverseEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
+  const selectedRightNavItem = useAppSelector(
+    (state) => state.traverse.selectedTraverseRightNavItem,
+    refEqual
+  );
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
+  const traversesEditing = useAppSelector((state) => state.traverse.traversesEditing, shallowEqual);
   const selectedTraverse = useAppSelector(
     (state) =>
       state.traverse.traverses.find((traverse) => traverse.uuid === selectedEvaSequenceItemUuid),
@@ -47,19 +46,32 @@ const EvaRightTraverse: FunctionComponent = () => {
       ),
     deepEqual
   );
-  const traversesEditing = useAppSelector((state) => state.traverse.traversesEditing, shallowEqual);
-  const selectedRightNavItem = useAppSelector(
-    (state) => state.traverse.selectedTraverseRightNavItem,
-    refEqual
+
+  const traverseActions = useAppSelector(
+    (state) =>
+      state.action.actions
+        .filter((storeAction) => storeAction.traverseUuid === selectedTraverse.uuid)
+        .map((sa) => {
+          return { uuid: sa.uuid, updatedAt: sa.updatedAt };
+        }),
+    deepEqual
   );
+  const traverseActionsFromDb = useAppSelector(
+    (state) =>
+      state.action.actionsFromDb
+        .filter((storeAction) => storeAction.traverseUuid === selectedTraverse.uuid)
+        .map((sa) => {
+          return { uuid: sa.uuid, updatedAt: sa.updatedAt };
+        }),
+    deepEqual
+  );
+
   const elevationPendingIndex = useAppSelector(
     (state) =>
       state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedTraverse.uuid),
     refEqual
   );
 
-  const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
-  const thisMapDirective = mapDirective?.uuid === selectedEvaSequenceItemUuid ? mapDirective : null;
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   const calculatedFields = useAppSelector(
@@ -71,14 +83,18 @@ const EvaRightTraverse: FunctionComponent = () => {
     deepEqual
   );
 
+  //track modified
   let saveButtonState: saveButtonState = "disabled";
   if (elevationPendingIndex > -1) {
     saveButtonState = "pending";
   } else {
-    const modified = isModified([selectedTraverse], [selectedTraverseFromDb]);
+    const traverseModified = isModified([selectedTraverse], [selectedTraverseFromDb]);
+    const actionModified = isModified(traverseActions, traverseActionsFromDb);
+    const modified = traverseModified || actionModified;
     saveButtonState = modified ? "enabled" : "disabled";
   }
 
+  // set reports tab icon color
   const reportsTabIconColor = getAlertColor(calculatedFields?.reportItems) || "white";
 
   const panelTypes: PanelTypes = {
@@ -91,6 +107,15 @@ const EvaRightTraverse: FunctionComponent = () => {
       selectedColor: "white",
       icon: faCircleInfo,
     },
+    actions_panel: {
+      title: "Traverse Actions",
+      panel: Actions_Panel,
+      panelProps: {
+        editMode: traversesEditing.includes(selectedEvaSequenceItemUuid),
+      },
+      selectedColor: "white",
+      icon: faPersonDigging,
+    },
     report_panel: {
       title: "Reports",
       panel: Report_Panel,
@@ -102,54 +127,6 @@ const EvaRightTraverse: FunctionComponent = () => {
       unselectedColor: reportsTabIconColor,
       icon: calculatedFields.reportItems.length > 0 ? faTriangleExclamation : faCheck,
     },
-  };
-
-  const handleSave = async () => {
-    dispatch(setTraverseEditMode({ uuid: selectedEvaSequenceItemUuid, editMode: false }));
-
-    // save to db
-    const persistResponse = await httpClient_Traverse.upsertTraverses([
-      {
-        ...selectedTraverse,
-        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-      },
-    ]);
-    if (persistResponse) {
-      dispatch(upsertTraverses([persistResponse.data[0]], true));
-      dispatch(upsertTraversesFromDb([persistResponse.data[0]]));
-    }
-
-    // if there's an active traverse edit action, cancel it
-    if (thisMapDirective?.mapAction === "editPolyline") {
-      dispatch(
-        thunkUpdateMapDirective({
-          ...thisMapDirective,
-          mapAction: "saveEditPolyline",
-        })
-      );
-    }
-  };
-
-  const handleCancel = async () => {
-    dispatch(setTraverseEditMode({ uuid: selectedEvaSequenceItemUuid, editMode: false }));
-
-    // if there's an active traverse edit action, cancel it
-    if (thisMapDirective?.mapAction === "editPolyline") {
-      dispatch(
-        thunkUpdateMapDirective({
-          ...thisMapDirective,
-          mapAction: "cancelEditPolyline",
-        })
-      );
-    }
-    // revert to db version
-    if (selectedTraverseFromDb) {
-      dispatch(upsertTraverses([selectedTraverseFromDb], true));
-    }
-  };
-
-  const handleEdit = async () => {
-    dispatch(setTraverseEditMode({ uuid: selectedEvaSequenceItemUuid, editMode: true }));
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -174,7 +151,9 @@ const EvaRightTraverse: FunctionComponent = () => {
               <Button
                 icon={faEdit}
                 onClick={() => {
-                  handleEdit();
+                  dispatch(
+                    setTraverseEditMode({ uuid: selectedEvaSequenceItemUuid, editMode: true })
+                  );
                 }}
                 label="Edit"
                 toolTip="Edit Traverse"
@@ -186,14 +165,18 @@ const EvaRightTraverse: FunctionComponent = () => {
             {traversesEditing.includes(selectedEvaSequenceItemUuid) ? (
               saveButtonState === "pending" ? (
                 <>
-                  <span className={evaStyles.statusLoading} />
+                  <span className={traverseStyles.statusLoading} />
                 </>
               ) : (
                 <>
                   <Button
                     onClick={() => {
                       if (saveButtonState === "enabled") {
-                        handleSave();
+                        dispatch(
+                          thunkSaveTraverse({
+                            traverse: selectedTraverse,
+                          })
+                        );
                       }
                     }}
                     icon={faFloppyDisk}
@@ -212,7 +195,7 @@ const EvaRightTraverse: FunctionComponent = () => {
                   />
                   <Button
                     onClick={() => {
-                      handleCancel();
+                      dispatch(thunkCancelTraverse({ traverseUuid: selectedTraverse.uuid }));
                     }}
                     icon={faBan}
                     toolTip="Cancel Edit"
@@ -232,4 +215,4 @@ const EvaRightTraverse: FunctionComponent = () => {
   );
 };
 
-export default EvaRightTraverse;
+export default TraverseEditorRight;

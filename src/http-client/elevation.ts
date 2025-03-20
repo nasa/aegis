@@ -56,6 +56,7 @@ export async function getElevationSinglePoint(
   });
 
   const response: WrappedResponse<number[][]> = await res.json();
-  const convertedResponse = { ...response, data: response.data[0][0] };
+  const data = response.data ? response.data[0][0] : null;
+  const convertedResponse = { ...response, data };
   return convertedResponse;
 }

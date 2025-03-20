@@ -15,6 +15,7 @@ export const processEvaDataFromStore = ({
   missionTraverseRate,
   missionWalkbackRate,
   stationCalculatedFieldsInSelectedEva,
+  traverseCalculatedFieldsInSelectedEva,
   selectedRex,
 }: {
   storeRef: MutableRefObject<EvaCalculated_PaperJS>;
@@ -25,6 +26,7 @@ export const processEvaDataFromStore = ({
   missionTraverseRate: number;
   missionWalkbackRate: number;
   stationCalculatedFieldsInSelectedEva: StationCalculatedFields[];
+  traverseCalculatedFieldsInSelectedEva: TraverseCalculatedFields[];
   selectedRex: Rex;
 }): void => {
   storeRef.current = {
@@ -280,6 +282,16 @@ export const processEvaDataFromStore = ({
           storeRef.current.evaLengthCalculatedMins += duration; //add to sum for total length calculated
         }
       }
+
+      // get calculatedFieldValues for this traverse
+      const calculatedFields = traverseCalculatedFieldsInSelectedEva.find(
+        (calculated) => calculated?.uuid === traverse.uuid
+      );
+      // calculate duration from actions assigned to traverse
+      // note: this is the "dwell time" which is crew member time spent at the traverse actions that is the longest
+      const durationMinutes = calculatedFields?.totalDwellTime.durationUpper;
+      // add traverse action durations onto the total duration for the traverse
+      EVASequenceItemForTimeline.totalDurationMins += durationMinutes;
     }
     storeRef.current.sequenceItems.push(EVASequenceItemForTimeline);
   }

@@ -27,7 +27,10 @@ import { secondsFromhhmmss } from "utils/formatting";
 import { setSelectedPosEntryUuid } from "store/rex";
 import PetInterval from "../../page/petInterval";
 import { getStmUuidRefs } from "store/storeUtils/store";
-import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
+import {
+  getCalculatedFieldsByStation,
+  getCalculatedFieldsByTraverse,
+} from "store/processing/calculatedFields";
 import { processEvaDataFromStore } from "./common-timeline";
 
 /**
@@ -73,6 +76,22 @@ const NavTimeline: FunctionComponent = () => {
       );
     }
     return allStationCalculatedFields;
+  }, deepEqual);
+  const traverseCalculatedFieldsInSelectedEva = useAppSelector((state) => {
+    const eva = state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid);
+    const traversesInEvaSequence = eva?.sequence
+      ? eva.sequence.filter((s) => s.type === "traverse")
+      : [];
+    const allTraverseCalculatedFields: TraverseCalculatedFields[] = [];
+    for (const traverse of traversesInEvaSequence) {
+      allTraverseCalculatedFields.push(
+        getCalculatedFieldsByTraverse({
+          traverseUuid: traverse.uuid,
+          wholeStoreState: state,
+        })
+      );
+    }
+    return allTraverseCalculatedFields;
   }, deepEqual);
 
   const showDistanceFromLander = useAppSelector(
@@ -140,6 +159,7 @@ const NavTimeline: FunctionComponent = () => {
       missionTraverseRate: mission?.traverseRate,
       missionWalkbackRate: mission?.walkbackRate,
       stationCalculatedFieldsInSelectedEva,
+      traverseCalculatedFieldsInSelectedEva,
       selectedRex,
     });
   }, [
@@ -149,6 +169,7 @@ const NavTimeline: FunctionComponent = () => {
     evaStations,
     evaTraverses,
     stationCalculatedFieldsInSelectedEva,
+    traverseCalculatedFieldsInSelectedEva,
     selectedRex,
   ]);
 

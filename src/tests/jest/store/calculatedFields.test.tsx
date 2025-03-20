@@ -238,19 +238,43 @@ describe("Calculated fields", () => {
       uuid: traverse1.uuid,
       reportItems: [
         {
-          message: "Calculated traverse duration is over predicted maximum traverse time",
+          message:
+            "Calculated traverse duration (including actions) is over predicted maximum traverse time",
           type: "error",
         },
       ],
       durationMinutes: 10,
       distanceMeters: 500,
       ascentDescent: { totalMetersClimbed: 2, totalMetersDescended: 0 },
+      actionCount: 0,
+      totalActionTime: {
+        durationLower: 0,
+        durationUpper: 0,
+      },
+      totalDwellTime: {
+        durationLower: 0,
+        durationUpper: 0,
+      },
+      totalEv1Time: {
+        durationLower: 0,
+        durationUpper: 0,
+      },
+      totalEv2Time: {
+        durationLower: 0,
+        durationUpper: 0,
+      },
+      totalMass: 0,
+      totalUnassignedTime: {
+        durationLower: 0,
+        durationUpper: 0,
+      },
     });
     const t2CalcFields = allCalculatedFields.find((c) => c.uuid === traverse2.uuid);
     expect(t2CalcFields.durationMinutes).toEqual(30);
     expect(t2CalcFields.reportItems).toEqual([
       {
-        message: "Calculated traverse duration is under predicted nominal traverse time",
+        message:
+          "Calculated traverse duration (including actions) is under predicted nominal traverse time",
         type: "info",
       },
     ]);

@@ -99,7 +99,9 @@ const SequenceItemTraverse: FunctionComponent<{
   }
 
   const displayTraverseDuration = useCallback(() => {
-    const durationMinutes = thisTraverseCalculatedFields?.durationMinutes || null;
+    const durationMinutes =
+      thisTraverseCalculatedFields?.durationMinutes +
+        thisTraverseCalculatedFields?.totalActionTime?.durationUpper || null;
     return !isNaN(durationMinutes) ? hmmFromMinutes(durationMinutes) : "N/A";
   }, [thisTraverseCalculatedFields]);
 

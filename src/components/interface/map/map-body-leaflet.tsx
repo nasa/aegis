@@ -171,6 +171,12 @@ const MapBody: FunctionComponent = () => {
 
   const selectedPosEntryUuid = useAppSelector((state) => state.rex.selectedPosEntryUuid, refEqual);
   const traverses = useAppSelector((state) => state.traverse.traverses, deepEqual);
+  const selectedTraverse = useAppSelector(
+    (state) =>
+      state.traverse.traverses.find((traverse) => traverse.uuid === selectedEvaSequenceItemUuid),
+    deepEqual
+  );
+
   const measurements = useAppSelector((state) => state.measure.measurements, deepEqual);
   const selectedMeasurementUuid = useAppSelector(
     (state) => state.measure.selectedMeasurementUuid,
@@ -820,6 +826,11 @@ const MapBody: FunctionComponent = () => {
           (action) => action.poiUuid === selectedPoi.uuid && action.enabled
         );
         actionsToShow = actionsInPoi;
+      } else if ((sectionSelected === "evas" || sectionSelected === "rex") && selectedTraverse) {
+        const actionsInTraverse = actions.filter(
+          (action) => action.traverseUuid === selectedTraverse.uuid && action.enabled
+        );
+        actionsToShow = actionsInTraverse;
       }
     }
 
@@ -862,6 +873,7 @@ const MapBody: FunctionComponent = () => {
     actions,
     selectedStation,
     selectedPoi,
+    selectedTraverse,
     mapDisplayActions,
     sectionSelected,
     mapDirective,
@@ -932,9 +944,8 @@ const MapBody: FunctionComponent = () => {
 
     let traversesToShow: Traverse[] = [];
     if (selectedEvaSequenceItemUuid) {
-      const traverse = traverses.find((traverse) => traverse.uuid === selectedEvaSequenceItemUuid);
-      if (traverse) {
-        traversesToShow = [traverse];
+      if (selectedTraverse) {
+        traversesToShow = [selectedTraverse];
       }
     }
     if (selectedEva) {
@@ -989,7 +1000,15 @@ const MapBody: FunctionComponent = () => {
         antPathWeight: 4,
       });
     });
-  }, [traverses, selectedEvaSequenceItemUuid, selectedEva, mapDirective, dispatch, showArrows]);
+  }, [
+    traverses,
+    selectedTraverse,
+    selectedEvaSequenceItemUuid,
+    selectedEva,
+    mapDirective,
+    dispatch,
+    showArrows,
+  ]);
 
   /**
    * Determine measures to show and draw them on map when measures or selections change

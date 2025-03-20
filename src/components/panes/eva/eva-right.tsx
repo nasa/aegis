@@ -2,7 +2,7 @@ import { FunctionComponent } from "react";
 import { refEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
 import StationEditorRight from "../station/station-right";
 import EvaRightEva from "./eva-right-eva";
-import EvaRightTraverse from "./eva-right-traverse";
+import TraverseEditorRight from "../traverse/traverse-right";
 
 const EvaPlannerRight: FunctionComponent = () => {
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
@@ -21,7 +21,7 @@ const EvaPlannerRight: FunctionComponent = () => {
           if (sequenceItem.type === "station") {
             rightPanelSetToDisplay = <StationEditorRight />;
           } else if (sequenceItem.type === "traverse") {
-            rightPanelSetToDisplay = <EvaRightTraverse />;
+            rightPanelSetToDisplay = <TraverseEditorRight />;
           }
         }
       });

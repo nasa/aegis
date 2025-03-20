@@ -251,6 +251,10 @@
   font-size: 18px;
   border-radius: var(--radius);
 }
+.iconCustomSmall {
+  font-size: 0.8rem;
+  width: 20px;
+}
 
 .stationWrapperRight {
   display: flex;
@@ -294,6 +298,17 @@
   border-left: 5px dotted var(--eva);
   overflow-y: visible;
   height: 32px;
+}
+
+.iconTraverseDotsContainerSmall {
+  margin-left: 6px;
+  width: 14px;
+}
+
+.iconTraverseSmall {
+  border-left: 3px dotted var(--eva);
+  overflow-y: visible;
+  height: 0.8rem;
 }
 
 .statusLoading {

@@ -45,7 +45,7 @@ export const thunkGetElevation = appCreateAsyncThunk<
   }
   dispatch(removeElevationPending(uuid));
 
-  if (newElevationProfile.status === "failure") {
+  if (newElevationProfile.status !== "success") {
     throw new Error("API elevation returned failure");
   }
 
