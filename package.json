@@ -37,8 +37,13 @@
     "version:minor": "npm version minor && git push",
     "version:major": "npm version major && git push",
     "make-dotenv": "make-dotenv && npx prettier --write ./env.secret.ts --ignore-path .prettierignore",
-    "schema:create": "npm run schema:create:maestro",
-    "schema:create:maestro": "typescript-json-schema ./src/schema/tsconfig.schema.json ExportAction --required --include ./src/typings/**/*.d.ts --ignoreErrors -o ./src/schema/exportAction.json"
+    "schema:create": "npm run schema:create:action && npm run schema:create:station && npm run schema:create:eva && npm run schema:create:poi && npm run schema:create:mission",
+    "schema:create:action": "typescript-json-schema ./src/schema/tsconfig.schema.json ExportAction --required --include ./src/typings/**/*.d.ts --ignoreErrors -o ./src/schema/exportAction.json",
+    "schema:create:station": "typescript-json-schema ./src/schema/tsconfig.schema.json ExportStation --required --include ./src/typings/**/*.d.ts --ignoreErrors -o ./src/schema/exportStation.json",
+    "schema:create:eva": "typescript-json-schema ./src/schema/tsconfig.schema.json ExportEva --required --include ./src/typings/**/*.d.ts --ignoreErrors -o ./src/schema/exportEva.json",
+    "schema:create:poi": "typescript-json-schema ./src/schema/tsconfig.schema.json ExportPOI --required --include ./src/typings/**/*.d.ts --ignoreErrors -o ./src/schema/exportPoi.json",
+    "schema:create:mission": "typescript-json-schema ./src/schema/tsconfig.schema.json Mission --required --include ./src/typings/**/*.d.ts --ignoreErrors -o ./src/schema/exportMission.json"
+
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",

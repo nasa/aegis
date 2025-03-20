@@ -27,7 +27,11 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
     (state) =>
       getCalculatedFieldsByEva({
         evaUuid: runningRexFromDb?.evaUuid,
-        wholeStoreState: state,
+        evas: state.eva.evas,
+        stations: state.station.stations,
+        mission: state.mission.mission,
+        actions: state.action.actions,
+        traverses: state.traverse.traverses,
       }),
     deepEqual
   );
@@ -38,7 +42,9 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
         calculatedFields.push(
           getCalculatedFieldsByStation({
             stationUuid: sequenceItem.uuid,
-            wholeStoreState: state,
+            stations: state.station.stations,
+            mission: state.mission.mission,
+            actions: state.action.actions,
           })
         );
       }

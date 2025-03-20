@@ -187,7 +187,11 @@ const MapBody: FunctionComponent = () => {
       getCalculatedTimeOfSequenceItem({
         evaUuid: state.eva.selectedEvaUuid,
         sequenceItemUuid: state.eva.selectedEvaSequenceItemUuid,
-        wholeStoreState: state,
+        evas: state.eva.evas,
+        stations: state.station.stations,
+        mission: state.mission.mission,
+        actions: state.action.actions,
+        traverses: state.traverse.traverses,
       }),
     deepEqual
   );

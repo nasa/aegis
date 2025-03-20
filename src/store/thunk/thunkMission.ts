@@ -378,7 +378,9 @@ export const thunkMakeExportString = appCreateAsyncThunk<
       actions: getState().action?.actions,
       stations: getState().station?.stations,
       pois: getState().poi?.pois,
-      stmStore: getState().stm,
+      level1s: getState().stm?.level1s,
+      level2s: getState().stm?.level2s,
+      level3s: getState().stm?.level3s,
       mission: getState().mission?.mission,
     });
 
@@ -386,31 +388,33 @@ export const thunkMakeExportString = appCreateAsyncThunk<
      * POIs
      */
     const pois: ExportPOI[] = makeExportPois({
-      poiStore: getState().poi,
+      pois: getState().poi.pois,
       poiCalculatedFields: getState().poi?.pois.map((poi) =>
         getCalculatedFieldsByPoi({
           poiUuid: poi.uuid,
-          wholeStoreState: getState(),
+          actions: getState().action.actions,
         })
       ),
       actions,
-      missionStore: getState().mission,
+      mission: getState().mission.mission,
     });
 
     /**
      * Stations
      */
     const stations: ExportStation[] = makeExportStations({
-      stationStore: getState().station,
+      stations: getState().station.stations,
       stationCalculatedFields: getState().station?.stations.map((station) =>
         getCalculatedFieldsByStation({
           stationUuid: station.uuid,
-          wholeStoreState: getState(),
+          stations: getState().station.stations,
+          mission: getState().mission.mission,
+          actions: getState().action.actions,
         })
       ),
-      actions,
-      missionStore: getState().mission,
-      pois,
+      actions: actions,
+      mission: getState().mission.mission,
+      pois: getState().poi.pois,
     });
 
     /**
@@ -421,7 +425,10 @@ export const thunkMakeExportString = appCreateAsyncThunk<
       calculatedFields: getState().traverse?.traverses.map((traverse) =>
         getCalculatedFieldsByTraverse({
           traverseUuid: traverse.uuid,
-          wholeStoreState: getState(),
+          traverses: getState().traverse.traverses,
+          mission: getState().mission.mission,
+          evas: getState().eva.evas,
+          actions: getState().action.actions,
         })
       ),
     });
@@ -434,12 +441,16 @@ export const thunkMakeExportString = appCreateAsyncThunk<
       evaCalculatedFields: getState().eva?.evas.map((eva) =>
         getCalculatedFieldsByEva({
           evaUuid: eva.uuid,
-          wholeStoreState: getState(),
+          evas: getState().eva.evas,
+          stations: getState().station.stations,
+          mission: getState().mission.mission,
+          actions: getState().action.actions,
+          traverses: getState().traverse.traverses,
         })
       ),
       stations,
       traverses,
-      missionStore: getState().mission,
+      mission: getState().mission.mission,
     });
 
     /**

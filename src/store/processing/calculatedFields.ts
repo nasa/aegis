@@ -3,12 +3,12 @@ import { mergeEquipmentItems } from "store/storeUtils/store";
 
 export const getCalculatedFieldsByPoi = (params: {
   poiUuid: string;
-  wholeStoreState: WholeStoreState;
+  actions: Action[];
 }): PoiCalculatedFields => {
-  const { poiUuid, wholeStoreState } = params;
+  const { poiUuid, actions } = params;
 
   //get poi actions
-  const poiActions = wholeStoreState.action.actions.filter(
+  const poiActions = actions.filter(
     (storeAction) => storeAction.poiUuid === poiUuid && storeAction.enabled
   );
 
@@ -92,16 +92,16 @@ export const getCalculatedFieldsByPoi = (params: {
 
 export const getCalculatedFieldsByStation = (params: {
   stationUuid: string;
-  wholeStoreState: WholeStoreState;
+  stations: Station[];
+  mission: Mission;
+  actions: Action[];
 }): StationCalculatedFields => {
-  const { stationUuid, wholeStoreState } = params;
-  const station = wholeStoreState.station.stations.find(
-    (storeStation) => storeStation.uuid === stationUuid
-  );
-  const missionWalkbackRate = wholeStoreState.mission.mission?.walkbackRate;
+  const { stationUuid, stations, mission, actions } = params;
+  const station = stations.find((storeStation) => storeStation.uuid === stationUuid);
+  const missionWalkbackRate = mission?.walkbackRate;
 
   //get station actions
-  const stationActions = wholeStoreState.action.actions.filter(
+  const stationActions = actions.filter(
     (storeAction) => storeAction.stationUuid === station?.uuid && storeAction.enabled
   );
 
@@ -248,17 +248,18 @@ export const getCalculatedFieldsByStation = (params: {
 
 export const getCalculatedFieldsByTraverse = (params: {
   traverseUuid: string;
-  wholeStoreState: WholeStoreState;
+  traverses: Traverse[];
+  mission: Mission;
+  evas: Eva[];
+  actions: Action[];
 }): TraverseCalculatedFields => {
-  const { traverseUuid, wholeStoreState } = params;
-  const traverse = wholeStoreState.traverse.traverses.find(
-    (storeTraverse) => storeTraverse.uuid === traverseUuid
-  );
+  const { traverseUuid, traverses, mission, evas, actions } = params;
+  const traverse = traverses.find((storeTraverse) => storeTraverse.uuid === traverseUuid);
   if (!traverse) return;
-  const missionTraverseRate = wholeStoreState.mission.mission?.traverseRate;
+  const missionTraverseRate = mission?.traverseRate;
 
   //get traverse actions
-  const traverseActions = wholeStoreState.action.actions.filter(
+  const traverseActions = actions.filter(
     (storeAction) => storeAction.traverseUuid === traverse.uuid && storeAction.enabled
   );
 
@@ -306,7 +307,7 @@ export const getCalculatedFieldsByTraverse = (params: {
   const newReportItems: ReportItem[] = [];
 
   // find the eva this traverse is used in
-  const eva = wholeStoreState.eva.evas.find((eva) => {
+  const eva = evas.find((eva) => {
     return eva.sequence.find((sequenceItem) => {
       return sequenceItem.uuid === traverse.uuid;
     });
@@ -386,10 +387,14 @@ export const getCalculatedFieldsByTraverse = (params: {
 export const getCalculatedTimeOfSequenceItem = (params: {
   evaUuid: string;
   sequenceItemUuid: string;
-  wholeStoreState: WholeStoreState;
+  evas: Eva[];
+  stations: Station[];
+  mission: Mission;
+  actions: Action[];
+  traverses: Traverse[];
 }): string => {
-  const { evaUuid, sequenceItemUuid, wholeStoreState } = params;
-  const eva = wholeStoreState.eva.evas.find((storeEva) => storeEva.uuid === evaUuid);
+  const { evaUuid, sequenceItemUuid, evas, stations, mission, actions, traverses } = params;
+  const eva = evas.find((storeEva) => storeEva.uuid === evaUuid);
 
   if (!eva || !sequenceItemUuid || !eva.datetime) return;
 
@@ -406,12 +411,17 @@ export const getCalculatedTimeOfSequenceItem = (params: {
     if (seqItem.type === "station") {
       thisStationCalculatedTime = getCalculatedFieldsByStation({
         stationUuid: seqItem.uuid,
-        wholeStoreState,
+        stations: stations,
+        mission: mission,
+        actions: actions,
       }).totalDwellTime.durationUpper;
     } else if (seqItem.type === "traverse") {
       thisTraverseCalculatedTime = getCalculatedFieldsByTraverse({
         traverseUuid: seqItem.uuid,
-        wholeStoreState,
+        traverses: traverses,
+        mission: mission,
+        evas: evas,
+        actions: actions,
       }).durationMinutes;
     }
 
@@ -434,10 +444,14 @@ export const getCalculatedTimeOfSequenceItem = (params: {
 
 export const getCalculatedFieldsByEva = (params: {
   evaUuid: string;
-  wholeStoreState: WholeStoreState;
+  evas: Eva[];
+  stations: Station[];
+  mission: Mission;
+  actions: Action[];
+  traverses: Traverse[];
 }): EvaCalculatedFields => {
-  const { evaUuid, wholeStoreState } = params;
-  const eva = wholeStoreState.eva.evas.find((storeEva) => storeEva.uuid === evaUuid);
+  const { evaUuid, evas, stations, mission, actions, traverses } = params;
+  const eva = evas.find((storeEva) => storeEva.uuid === evaUuid);
 
   if (!eva) return;
   // go through eva sequence and calculate things
@@ -500,12 +514,17 @@ export const getCalculatedFieldsByEva = (params: {
     if (seqItem.type === "station") {
       thisStationCalculatedFields = getCalculatedFieldsByStation({
         stationUuid: seqItem.uuid,
-        wholeStoreState,
+        stations: stations,
+        mission: mission,
+        actions: actions,
       });
     } else if (seqItem.type === "traverse") {
       thisTraverseCalculatedFields = getCalculatedFieldsByTraverse({
         traverseUuid: seqItem.uuid,
-        wholeStoreState,
+        traverses: traverses,
+        mission: mission,
+        evas: evas,
+        actions: actions,
       });
     }
 

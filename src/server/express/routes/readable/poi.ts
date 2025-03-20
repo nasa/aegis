@@ -1,19 +1,18 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
-import export_action_schema from "../../../../schema/exportAction.json";
+import export_poi_schema from "../../../../schema/exportPoi.json";
 import { hasPerms } from "utils/permissions";
-import { makeExportActions } from "utils/export";
+import { makeExportActions, makeExportPois } from "utils/export";
 import { getAll } from "../all";
+import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
 
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { uuid, stationUuid, poiUuid, socketId, missionId } = query;
+  const { uuid, socketId, missionId } = query;
   const queryObj = {
     missionId: missionId ? parseInt(missionId as string) : undefined,
-    actionUuid: uuid ? (uuid as string) : undefined,
-    stationUuid: stationUuid ? (stationUuid as string) : undefined,
-    poiUuid: poiUuid ? (poiUuid as string) : undefined,
+    poiUuid: uuid ? (uuid as string) : undefined,
     socketId: socketId ? (socketId as string) : undefined,
   };
   return queryObj;
@@ -42,36 +41,42 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   try {
     const wholeStore: OneMissionToRuleThemAll = await getAll(queryObj.missionId);
 
-    let actions: Action[] = wholeStore.actions;
-    if (queryObj.actionUuid) {
-      actions = actions.filter((action) => action.uuid === queryObj.actionUuid);
-    }
-    if (queryObj.stationUuid) {
-      actions = actions.filter((action) => action.stationUuid === queryObj.stationUuid);
-    }
+    let pois: POI[] = wholeStore.pois;
     if (queryObj.poiUuid) {
-      actions = actions.filter((action) => action.poiUuid === queryObj.poiUuid);
+      pois = pois.filter((poi) => poi.uuid === queryObj.poiUuid);
     }
 
     const exportActions: ExportAction[] = makeExportActions({
-      actions: actions,
+      actions: wholeStore.actions,
       mission: wholeStore.mission,
       stations: wholeStore.stations,
-      pois: wholeStore.pois,
+      pois: pois,
       level1s: wholeStore.level1s,
       level2s: wholeStore.level2s,
       level3s: wholeStore.level3s,
     });
 
+    const exportPois: ExportPOI[] = makeExportPois({
+      pois: pois,
+      poiCalculatedFields: pois.map((poi) =>
+        getCalculatedFieldsByPoi({
+          poiUuid: poi.uuid,
+          actions: wholeStore.actions,
+        })
+      ),
+      actions: exportActions,
+      mission: wholeStore.mission,
+    });
+
     res.status(200).json({
       status: "success",
-      message: "readable actions retrieved",
-      data: exportActions,
+      message: "readable POIs retrieved",
+      data: exportPois,
     });
     return;
   } catch (e) {
     console.error(e);
-    res.status(500).json({ status: "error", message: `Error getting readable actions ${e}` });
+    res.status(500).json({ status: "error", message: `Error getting readable POIs ${e}` });
     return;
   }
 });
@@ -79,8 +84,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 router.get("/schema", async (req: Request, res: Response): Promise<void> => {
   res.status(200).json({
     status: "success",
-    message: "action schema retrieved",
-    data: export_action_schema,
+    message: "poi schema retrieved",
+    data: export_poi_schema,
   });
   return;
 });

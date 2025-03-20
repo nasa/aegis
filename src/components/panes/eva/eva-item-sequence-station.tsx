@@ -62,7 +62,9 @@ const SequenceItemStation: FunctionComponent<{
     (state) =>
       getCalculatedFieldsByStation({
         stationUuid,
-        wholeStoreState: state,
+        stations: state.station.stations,
+        mission: state.mission.mission,
+        actions: state.action.actions,
       }),
     deepEqual
   );
@@ -82,7 +84,11 @@ const SequenceItemStation: FunctionComponent<{
     (state) =>
       getCalculatedFieldsByEva({
         evaUuid,
-        wholeStoreState: state,
+        evas: state.eva.evas,
+        stations: state.station.stations,
+        mission: state.mission.mission,
+        actions: state.action.actions,
+        traverses: state.traverse.traverses,
       })?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === stationUuid),
     deepEqual
   );

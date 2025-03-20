@@ -24,7 +24,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   const actionsCalculatedFields = useAppSelector((state) => {
     const poiCalculatedFields = getCalculatedFieldsByPoi({
       poiUuid: selectedPoiUuid,
-      wholeStoreState: state,
+      actions: state.action.actions,
     });
     const newActionsCalculatedFields: ActionsCalculatedFields = {
       actionCount: poiCalculatedFields.actionCount,

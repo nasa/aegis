@@ -26,7 +26,9 @@ const Actions_Panel: FunctionComponent<{
   const actionsCalculatedFields = useAppSelector((state) => {
     const calculatedFields = getCalculatedFieldsByStation({
       stationUuid: selectedStation.uuid,
-      wholeStoreState: state,
+      stations: state.station.stations,
+      mission: state.mission.mission,
+      actions: state.action.actions,
     });
     const newActionsCalculatedFields: ActionsCalculatedFields = {
       actionCount: calculatedFields.actionCount,
