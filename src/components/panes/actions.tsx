@@ -22,8 +22,8 @@ const Actions: FunctionComponent<{
   setEditMode: (newEditMode: boolean) => void;
   actionOrderUuids: string[];
   setActionOrderUuids: (actionOrderUuids: string[]) => void;
-  actionParentUuid: Pick<Action, "poiUuid" | "stationUuid">;
-  parentType: "poi" | "station" | "eva";
+  actionParentUuid: Pick<Action, "poiUuid" | "stationUuid" | "traverseUuid">;
+  parentType: ActionParentComponent;
   actionsCalculatedFields: ActionsCalculatedFields;
   rexUuid: string;
 }> = ({
@@ -102,7 +102,7 @@ const Actions: FunctionComponent<{
     <>
       <ActionsTopSection
         actionOrderUuids={actionOrderUuids}
-        parentType={parentType}
+        parentComponent={parentType}
         highlightActions={highlightActions}
         actionsCalculatedFields={actionsCalculatedFields}
         actionIsInRunningRex={actionIsInRunningRex}
@@ -111,7 +111,7 @@ const Actions: FunctionComponent<{
       <div className={actionsStyles.actionListContainer}>
         <ActionsListHeadings
           editMode={editMode}
-          parentType={parentType}
+          parentComponent={parentType}
           editPerms={editPerms}
           actionIsInRunningRex={actionIsInRunningRex}
         />
@@ -120,7 +120,7 @@ const Actions: FunctionComponent<{
             <ActionList
               editMode={editMode}
               rexUuid={rexUuid}
-              parentType={parentType}
+              parentComponent={parentType}
               actionOrderUuids={actionOrderUuids}
               highlightActions={highlightActions}
               isActionHiglighted={isActionHiglighted}
@@ -193,13 +193,13 @@ export default Actions;
 
 export const ActionsTopSection: FunctionComponent<{
   actionOrderUuids: string[];
-  parentType: "poi" | "station" | "eva";
+  parentComponent: ActionParentComponent;
   highlightActions: (level3Uuid: string) => void;
   actionsCalculatedFields: ActionsCalculatedFields;
   actionIsInRunningRex: boolean;
 }> = ({
   actionOrderUuids,
-  parentType,
+  parentComponent,
   highlightActions,
   actionsCalculatedFields,
   actionIsInRunningRex,
@@ -374,7 +374,7 @@ export const ActionsTopSection: FunctionComponent<{
             </div>
 
             <div className={paneStyles.panelColumnTable}>
-              {parentType !== "poi" && (
+              {parentComponent !== "poi" && (
                 <>
                   <CalculatedDwell actionsCalculatedFields={actionsCalculatedFields} />
                 </>
@@ -389,10 +389,10 @@ export const ActionsTopSection: FunctionComponent<{
 
 export const ActionsListHeadings: FunctionComponent<{
   editMode: boolean;
-  parentType: "poi" | "station" | "eva";
+  parentComponent: ActionParentComponent;
   editPerms: boolean;
   actionIsInRunningRex: boolean;
-}> = ({ editMode, parentType, editPerms, actionIsInRunningRex }) => {
+}> = ({ editMode, parentComponent, editPerms, actionIsInRunningRex }) => {
   const actionSystemVersion = useAppSelector(
     (state) => state.mission.mission.actionSystemVersion,
     refEqual
@@ -421,7 +421,7 @@ export const ActionsListHeadings: FunctionComponent<{
       <div className={actionsStyles.actionListHeaderTime}>
         <div className={actionsStyles.actionListHeaderLabel}>Max</div>
       </div>
-      {parentType !== "poi" && (
+      {parentComponent !== "poi" && (
         <div className={actionsStyles.actionListHeaderCrew}>
           <div className={actionsStyles.actionListHeaderLabel}>Crew</div>
         </div>
@@ -433,7 +433,7 @@ export const ActionsListHeadings: FunctionComponent<{
 export const ActionList: FunctionComponent<{
   editMode: boolean;
   actionOrderUuids: string[];
-  parentType: "poi" | "station" | "eva";
+  parentComponent: ActionParentComponent;
   highlightActions: (level3Uuid: string) => void;
   isActionHiglighted: ActionHighlight[];
   stations: Station[];
@@ -443,7 +443,7 @@ export const ActionList: FunctionComponent<{
 }> = ({
   editMode,
   actionOrderUuids,
-  parentType,
+  parentComponent,
   isActionHiglighted,
   stations,
   pois,
@@ -474,7 +474,7 @@ export const ActionList: FunctionComponent<{
               editMode={editMode}
               actionUuid={actionUuid}
               highlight={highlight}
-              parentType={parentType}
+              parentComponent={parentComponent}
               parentLocation={parentLocation}
               parentElevation={parentElevation}
               rexUuid={rexUuid}

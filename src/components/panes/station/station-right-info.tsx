@@ -33,8 +33,7 @@ import { getCalculatedFieldsByStation } from "store/processing/calculatedFields"
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
-  actionCount: number;
-}> = ({ editMode, actionCount }) => {
+}> = ({ editMode }) => {
   const dispatch = useAppDispatch();
   const [projBoundsMinX, projBoundsMaxX] = useAppSelector((state) => {
     return [state.mission.mission.projBoundsMinX, state.mission.mission.projBoundsMaxX];
@@ -345,7 +344,9 @@ const Info_Panel: FunctionComponent<{
                       <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>{actionCount}</div>
+                      <div className={paneStyles.displayFieldValue}>
+                        {calculatedFields?.actionCount}
+                      </div>
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>

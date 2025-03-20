@@ -4,6 +4,9 @@ interface Eva {
 
   name: string;
   status: EVAStatus;
+  /**
+   * Does not include ingress/egress location. Starts/ends with a traverse item
+   */
   sequence: EvaSequenceItem[];
   description: string;
   maxDuration: number; // minutes
@@ -33,6 +36,7 @@ type TraverseStatus = "Archived" | "Candidate" | "In Review" | "Approved";
 interface Traverse {
   uuid: string;
   missionId: number;
+  actionOrderUuids: string[];
 
   name: string;
   status: TraverseStatus;
@@ -181,6 +185,7 @@ type Action = {
   missionId: number | null;
   poiUuid?: string | null;
   stationUuid?: string | null;
+  traverseUuid?: string | null;
 
   parentActionUuid?: string | null;
   parentCopyDate?: string | null;
@@ -240,7 +245,7 @@ type Action_db_type = Omit<
 };
 
 type ActionStatus = "Archived" | "Candidate" | "In Review" | "Approved";
-
+type ActionParentComponent = "station" | "poi" | "traverse" | "eva";
 type Crew = "EV1" | "EV2";
 
 //Filter options when getting actions from the API endpoint
@@ -251,10 +256,11 @@ interface ActionFilterOptions {
   stationUuid?: string;
 }
 
-//Contians both parent uuid types for Action
+//Contians parent uuid types for Action
 type ActionParentUuid = {
   poiUuid?: string;
   stationUuid?: string;
+  traverseUuid?: string;
 };
 
 type ActionHighlight = {

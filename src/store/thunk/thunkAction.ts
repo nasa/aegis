@@ -18,6 +18,7 @@ import { upsertStation } from "store/station";
 import { upsertPoi } from "store/poi";
 import * as httpClient_action from "http-client/action";
 import { generateBlankAction } from "store/storeUtils/action";
+import { upsertTraverseByField } from "store/traverse";
 
 export const thunkCreateAction = appCreateAsyncThunk<
   {
@@ -57,7 +58,7 @@ export const thunkCreateAction = appCreateAsyncThunk<
     dispatch(upsertAction(blankAction));
 
     //upsert action order to the parent. new action goes on the end.
-    const actionOrder = cloneDeep(actionOrderUuids);
+    const actionOrder = cloneDeep(actionOrderUuids || []);
     actionOrder.push(blankAction.uuid);
     setActionOrderUuids(actionOrder);
 
@@ -70,6 +71,7 @@ export const thunkCreateAction = appCreateAsyncThunk<
  * @param actions array of actions to duplicate
  * @param stationUuid the station the duplicated action belongs to
  * @param poiUuid the poi the duplicated action belongs to
+ * @param traverseUuid the traverse the duplicated action belongs to
  * @param promotingFromPoi whether or not this action is duplicated because it's being promoted from a poi to a station
  * @Returns the new action UUID created
  */
@@ -77,16 +79,23 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
   actions: Action[];
   stationUuid?: string;
   poiUuid?: string;
+  traverseUuid?: string;
   promotingFromPoi?: boolean;
 }>(
   "actionsDuplicate",
-  async ({ actions, stationUuid, poiUuid, promotingFromPoi }, { dispatch, getState }) => {
+  async (
+    { actions, stationUuid, traverseUuid, poiUuid, promotingFromPoi },
+    { dispatch, getState }
+  ) => {
     if (!actions || actions.length === 0) return;
     const stationActions = getState().action.actions.filter(
       (storeAction: Action) => storeAction.stationUuid === stationUuid
     );
     const poiActions = getState().action.actions.filter(
       (storeAction: Action) => storeAction.poiUuid === poiUuid
+    );
+    const traverseActions = getState().action.actions.filter(
+      (storeAction: Action) => storeAction.traverseUuid === traverseUuid
     );
 
     const newActions: Action[] = cloneDeep(actions);
@@ -99,6 +108,7 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
       newAction.updatedAt = null;
       newAction.stationUuid = stationUuid;
       newAction.poiUuid = poiUuid;
+      newAction.traverseUuid = traverseUuid;
 
       //set name
       if (stationUuid) {
@@ -110,6 +120,11 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
         newAction.name = makeUniqueStringCopy(
           newAction.name,
           poiActions.map((a) => a.name)
+        );
+      } else if (traverseUuid) {
+        newAction.name = makeUniqueStringCopy(
+          newAction.name,
+          traverseActions.map((a) => a.name)
         );
       }
 
@@ -137,6 +152,13 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
       if (!actionOrderUuids) actionOrderUuids = [];
       actionOrderUuids = actionOrderUuids.concat(newActions.map((a) => a.uuid));
       dispatch(upsertPoi({ ...poi, actionOrderUuids }, true));
+    } else if (traverseUuid) {
+      // append new action to the end of the traverse's action order
+      const traverse = getState().traverse.traverses.find((t) => t.uuid === traverseUuid);
+      let actionOrderUuids = cloneDeep(traverse.actionOrderUuids);
+      if (!actionOrderUuids) actionOrderUuids = [];
+      actionOrderUuids = actionOrderUuids.concat(newActions.map((a) => a.uuid));
+      dispatch(upsertTraverseByField(traverseUuid, "actionOrderUuids", actionOrderUuids, true));
     }
 
     //upsert new actions
@@ -235,8 +257,11 @@ export const thunkGetHighlightedActions = appCreateAsyncThunk<
 export const thunkDeleteActionFromStore = appCreateAsyncThunk<{
   uuid: string;
 }>("deleteActionFromStore", async ({ uuid }, { dispatch, getState }) => {
-  // look for the action in stations and remove it from the station's action order
-  getState().station.stations.forEach((station) => {
+  const action = getState().action.actions.find((a) => a.uuid === uuid);
+
+  if (action.stationUuid) {
+    // look for the action in stations and remove it from the station's action order
+    const station = getState().station.stations.find((s) => s.uuid === action.stationUuid);
     const actionOrderUuids = cloneDeep(station.actionOrderUuids);
     if (actionOrderUuids) {
       const actionIndex = actionOrderUuids.findIndex((actionUuid) => actionUuid === uuid);
@@ -246,10 +271,10 @@ export const thunkDeleteActionFromStore = appCreateAsyncThunk<{
         dispatch(upsertStation({ ...station, actionOrderUuids }, false));
       }
     }
-  });
-
-  // look for the action in pois and remove it from the poi's action order
-  getState().poi.pois.forEach((poi) => {
+  }
+  if (action.poiUuid) {
+    // look for the action in pois and remove it from the poi's action order
+    const poi = getState().poi.pois.find((p) => p.uuid === action.poiUuid);
     const actionOrderUuids = cloneDeep(poi.actionOrderUuids);
     if (actionOrderUuids) {
       const actionIndex = actionOrderUuids.findIndex((actionUuid) => actionUuid === uuid);
@@ -259,7 +284,20 @@ export const thunkDeleteActionFromStore = appCreateAsyncThunk<{
         dispatch(upsertPoi({ ...poi, actionOrderUuids }, false));
       }
     }
-  });
+  }
+  if (action.traverseUuid) {
+    // look for the action in traverses and remove it from the traverse's action order
+    const traverse = getState().traverse.traverses.find((t) => t.uuid === action.traverseUuid);
+    const actionOrderUuids = cloneDeep(traverse.actionOrderUuids);
+    if (actionOrderUuids) {
+      const actionIndex = actionOrderUuids.findIndex((actionUuid) => actionUuid === uuid);
+      if (actionIndex >= 0) {
+        // delete the action from the traverse
+        actionOrderUuids.splice(actionIndex, 1);
+        dispatch(upsertTraverseByField(traverse.uuid, "actionOrderUuids", actionOrderUuids, false));
+      }
+    }
+  }
 
   // delete the action from the store
   dispatch(deleteActionsByUuid([uuid]));

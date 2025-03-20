@@ -6,7 +6,10 @@ import {
   useRef,
   useState,
 } from "react";
-import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
+import {
+  getCalculatedFieldsByStation,
+  getCalculatedFieldsByTraverse,
+} from "store/processing/calculatedFields";
 import { deepEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { processEvaDataFromStore } from "../interface/timeline/common-timeline";
 import { selectEvaStations, selecteEvaTraverses } from "store/selectors";
@@ -48,6 +51,21 @@ const DashTimeline: FunctionComponent = () => {
       );
     }
     return allStationCalculatedFields;
+  }, deepEqual);
+  const traverseCalculatedFieldsInRunningEva = useAppSelector((state) => {
+    const traversesInEvaSequence = runningEvaFromDb?.sequence
+      ? runningEvaFromDb.sequence.filter((s) => s.type === "traverse")
+      : [];
+    const allTraverseCalculatedFields: TraverseCalculatedFields[] = [];
+    for (const traverse of traversesInEvaSequence) {
+      allTraverseCalculatedFields.push(
+        getCalculatedFieldsByTraverse({
+          traverseUuid: traverse.uuid,
+          wholeStoreState: state,
+        })
+      );
+    }
+    return allTraverseCalculatedFields;
   }, deepEqual);
 
   const storeRef: MutableRefObject<EvaCalculated_PaperJS> = useRef({
@@ -107,6 +125,7 @@ const DashTimeline: FunctionComponent = () => {
       missionTraverseRate: missionFromDb?.traverseRate,
       missionWalkbackRate: missionFromDb?.walkbackRate,
       stationCalculatedFieldsInSelectedEva: stationCalculatedFieldsInRunningEva,
+      traverseCalculatedFieldsInSelectedEva: traverseCalculatedFieldsInRunningEva,
       selectedRex: runningRexFromDb,
     });
   }, [
@@ -116,6 +135,7 @@ const DashTimeline: FunctionComponent = () => {
     evaStations,
     evaTraverses,
     stationCalculatedFieldsInRunningEva,
+    traverseCalculatedFieldsInRunningEva,
     runningRexFromDb,
     pixelsPerSecondY,
     timelineDurationMins,

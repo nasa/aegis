@@ -40,7 +40,7 @@ import { thunkAddRexActionMass } from "store/thunk/thunkRex";
 const RightActionBody: FunctionComponent<{
   editMode: boolean;
   action: Action;
-  parentType: "station" | "poi" | "eva";
+  parentType: ActionParentComponent;
   parentLocation: AEGISPoint;
   parentElevation: number;
   rexUuid: string;
@@ -466,18 +466,20 @@ const RightActionBody: FunctionComponent<{
                 ) : (
                   <span className={actionStyles.statusLoading} />
                 )}
-                <Button
-                  onClick={() => {
-                    dispatch(
-                      thunkUpdateActionLocation({
-                        location: parentLocation,
-                        actionUuid: action.uuid,
-                      })
-                    );
-                  }}
-                  label={parentType === "station" ? "Set to Station" : "Set to POI"}
-                  style={{ width: "95px" }}
-                />
+                {(parentType === "station" || parentType === "poi") && (
+                  <Button
+                    onClick={() => {
+                      dispatch(
+                        thunkUpdateActionLocation({
+                          location: parentLocation,
+                          actionUuid: action.uuid,
+                        })
+                      );
+                    }}
+                    label={parentType === "station" ? "Set to Station" : "Set to POI"}
+                    style={{ width: "95px" }}
+                  />
+                )}
                 <Button
                   onClick={() => {
                     dispatch(upsertActionByField(action.uuid, "location", null));
@@ -584,46 +586,48 @@ const RightActionBody: FunctionComponent<{
                 </div>
               </div>
             </div>
-            <div className={paneStyles.panelColumnTable}>
-              <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
-                  <div className={paneStyles.displayFieldLabel}>
-                    Elevation Relative to {parentType === "station" ? "Station" : "POI"} (m):
+            {(parentType === "station" || parentType === "poi") && (
+              <div className={paneStyles.panelColumnTable}>
+                <div className={paneStyles.panelColumnTableRow}>
+                  <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.displayFieldLabel}>
+                      Elevation Relative to {parentType === "station" ? "Station" : "POI"} (m):
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={paneStyles.displayFieldValue}>
+                      {!action.elevation || !parentElevation ? (
+                        <>Not set</>
+                      ) : (
+                        (action.elevation - parentElevation).toFixed(0)
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div className={paneStyles.panelColumnTableCell}>
-                  <div className={paneStyles.displayFieldValue}>
-                    {!action.elevation || !parentElevation ? (
-                      <>Not set</>
-                    ) : (
-                      (action.elevation - parentElevation).toFixed(0)
-                    )}
+                <div className={paneStyles.panelColumnTableRow}>
+                  <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.displayFieldLabel}>
+                      Distance to {parentType === "station" ? "Station" : "POI"} (m):
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={paneStyles.displayFieldValue}>
+                      {!action.location || !parentLocation ? (
+                        <>Not set</>
+                      ) : (
+                        <>
+                          {getDistanceBetweenTwoCoordinates(
+                            action.location,
+                            parentLocation,
+                            planetRadius
+                          ).toFixed(0)}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
-                  <div className={paneStyles.displayFieldLabel}>
-                    Distance to {parentType === "station" ? "Station" : "POI"} (m):
-                  </div>
-                </div>
-                <div className={paneStyles.panelColumnTableCell}>
-                  <div className={paneStyles.displayFieldValue}>
-                    {!action.location || !parentLocation ? (
-                      <>Not set</>
-                    ) : (
-                      <>
-                        {getDistanceBetweenTwoCoordinates(
-                          action.location,
-                          parentLocation,
-                          planetRadius
-                        ).toFixed(0)}
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
         <div className={paneStyles.panelSectionRow}>

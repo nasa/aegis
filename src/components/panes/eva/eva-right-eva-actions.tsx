@@ -1,5 +1,6 @@
 import { FunctionComponent, useCallback, useState } from "react";
 import actionsStyles from "../actions.module.css";
+import evaStyles from "./eva.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import { ActionsTopSection, ActionsListHeadings, ActionList } from "../actions";
@@ -7,6 +8,7 @@ import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselect
 import { thunkGetHighlightedActions } from "store/thunk/thunkAction";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
+import { decodeEmoji } from "utils/formatting";
 
 const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -23,7 +25,14 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     (state) => state.rex.rexes.find((rex) => rex.isRunning)?.uuid,
     refEqual
   );
-  const stations = useAppSelector((state) => state.station.stations, deepEqual);
+  const stations = useAppSelector((state) => {
+    const sequenceUuids = selectedEva?.sequence.map((sequenceItem) => sequenceItem.uuid);
+    return state.station.stations.filter((station) => sequenceUuids.includes(station.uuid));
+  }, deepEqual);
+  const traverses = useAppSelector((state) => {
+    const sequenceUuids = selectedEva?.sequence.map((sequenceItem) => sequenceItem.uuid);
+    return state.traverse.traverses.filter((traverse) => sequenceUuids.includes(traverse.uuid));
+  }, deepEqual);
 
   const actionsCalculatedFields = useAppSelector((state) => {
     const evaCalculatedFields = getCalculatedFieldsByEva({
@@ -74,39 +83,65 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
       <div className={paneStyles.rightBodyBody} style={{ overflowY: "hidden" }}>
         <ActionsTopSection
           actionOrderUuids={evaActionOrderUuids}
-          parentType="eva"
+          parentComponent="eva"
           highlightActions={highlightActions}
           actionsCalculatedFields={actionsCalculatedFields}
           actionIsInRunningRex={isSelectedEvaInARunningRex}
         />
         <ActionsListHeadings
           editMode={editMode}
-          parentType="eva"
+          parentComponent="eva"
           editPerms={editPerms}
           actionIsInRunningRex={isSelectedEvaInARunningRex}
         />
 
         <div className={actionsStyles.actionListContainer}>
           {selectedEva.sequence.map((sequenceItem) => {
-            if (sequenceItem.type !== "station") return null;
-            const actionOrderUuids = stations.find(
-              (station) => station.uuid === sequenceItem.uuid
-            )?.actionOrderUuids;
-            return (
-              <div key={sequenceItem.uuid}>
-                <Actions_Station_Heading stationUuid={sequenceItem.uuid} />
-                <ActionList
-                  editMode={editMode}
-                  actionOrderUuids={actionOrderUuids}
-                  parentType="eva"
-                  highlightActions={highlightActions}
-                  isActionHiglighted={isActionHiglighted}
-                  stations={stations}
-                  pois={null}
-                  rexUuid={isSelectedEvaInARunningRex ? runningRexUuid : null}
-                />
-              </div>
-            );
+            if (sequenceItem.type === "station") {
+              const station = stations.find((station) => station.uuid === sequenceItem.uuid);
+              return (
+                <div key={sequenceItem.uuid}>
+                  <div className={actionsStyles.evaActionsStationTitleContainer}>
+                    <div className={evaStyles.iconCustomSmall}>{decodeEmoji(station.icon)}</div>
+                    <div>{station.name}</div>
+                    <div className={actionsStyles.evaActionsStationTitleLine}></div>
+                  </div>
+                  <ActionList
+                    editMode={editMode}
+                    actionOrderUuids={station.actionOrderUuids}
+                    parentComponent="eva"
+                    highlightActions={highlightActions}
+                    isActionHiglighted={isActionHiglighted}
+                    stations={stations}
+                    pois={null}
+                    rexUuid={isSelectedEvaInARunningRex ? runningRexUuid : null}
+                  />
+                </div>
+              );
+            } else if (sequenceItem.type === "traverse") {
+              const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
+              return (
+                <div key={sequenceItem.uuid}>
+                  <div className={actionsStyles.evaActionsStationTitleContainer}>
+                    <div className={evaStyles.iconTraverseDotsContainerSmall}>
+                      <div className={evaStyles.iconTraverseSmall} />
+                    </div>
+                    <div>{traverse.name}</div>
+                    <div className={actionsStyles.evaActionsStationTitleLine}></div>
+                  </div>
+                  <ActionList
+                    editMode={editMode}
+                    actionOrderUuids={traverse.actionOrderUuids}
+                    parentComponent="eva"
+                    highlightActions={highlightActions}
+                    isActionHiglighted={isActionHiglighted}
+                    stations={stations}
+                    pois={null}
+                    rexUuid={isSelectedEvaInARunningRex ? runningRexUuid : null}
+                  />
+                </div>
+              );
+            }
           })}
         </div>
       </div>
@@ -115,17 +150,3 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
 };
 
 export default Actions_Panel;
-
-const Actions_Station_Heading: FunctionComponent<{ stationUuid: string }> = ({ stationUuid }) => {
-  const stationName = useAppSelector(
-    (state) => state.station.stations.find((station) => station.uuid === stationUuid)?.name,
-    refEqual
-  );
-
-  return (
-    <div className={actionsStyles.evaActionsStationTitleContainer}>
-      <div>{stationName}</div>
-      <div className={actionsStyles.evaActionsStationTitleLine}></div>
-    </div>
-  );
-};

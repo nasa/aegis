@@ -202,11 +202,12 @@ type StationCalculatedFields = CalculatedFields &
     equipmentItems: EquipmentItemUsage[];
   };
 
-type TraverseCalculatedFields = CalculatedFields & {
-  durationMinutes: number;
-  distanceMeters: number;
-  ascentDescent: TotalAscentDescentObj;
-};
+type TraverseCalculatedFields = CalculatedFields &
+  ActionsCalculatedFields & {
+    durationMinutes: number;
+    distanceMeters: number;
+    ascentDescent: TotalAscentDescentObj;
+  };
 
 type EvaReportSequenceItem = EvaSequenceItem & {
   name: string;

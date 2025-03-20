@@ -374,6 +374,11 @@ const MapBody: FunctionComponent<{
     if (followModeOptions["traverses"].follow) {
       for (const traverse of traversesInProgress) {
         objectCoordinates = objectCoordinates.concat(traverse.path);
+        for (const action of actionsFromDb) {
+          if (action.traverseUuid === traverse.uuid && action.location && action.enabled) {
+            objectCoordinates.push(action.location);
+          }
+        }
       }
     }
     for (const posTypeUuid in latestPosEntriesByType) {
@@ -556,7 +561,11 @@ const MapBody: FunctionComponent<{
         (action) =>
           stationsInProgress.map((s) => s.uuid).includes(action.stationUuid) && action.enabled
       );
-      actionsToShow = actionsInStation;
+      const actionsInTraverse = actionsFromDb.filter(
+        (action) =>
+          traversesInProgress.map((s) => s.uuid).includes(action.traverseUuid) && action.enabled
+      );
+      actionsToShow = [...actionsInStation, ...actionsInTraverse];
     }
 
     // delete all actions in leaflet
@@ -585,7 +594,7 @@ const MapBody: FunctionComponent<{
         });
       }
     });
-  }, [actionsFromDb, stationsInProgress, mapDisplayActions, isWin10]);
+  }, [actionsFromDb, stationsInProgress, mapDisplayActions, isWin10, traversesInProgress]);
 
   /**
    * Determine traverses to show and draw them on map when traverses or selections change

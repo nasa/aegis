@@ -1,5 +1,5 @@
 import { Entity, ManyToOne, PrimaryKey, Property } from "@mikro-orm/core";
-import { Poi_db, Station_db, Mission_db } from "./_allModels";
+import { Poi_db, Station_db, Mission_db, Traverse_db } from "./_allModels";
 import { types as MikroTypes } from "@mikro-orm/core";
 
 @Entity()
@@ -9,11 +9,13 @@ export class Action_db implements Action_db_type {
 
   @ManyToOne(() => Mission_db, { unique: false, primary: false })
   mission!: Mission_db;
-  //an action can belong to either a POI or a station. but not both
+  //an action can belong to either a POI, station, or traverse
   @ManyToOne(() => Poi_db, { unique: false, primary: false, nullable: true })
   poi: Poi_db;
   @ManyToOne(() => Station_db, { unique: false, primary: false, nullable: true })
   station: Station_db;
+  @ManyToOne(() => Traverse_db, { unique: false, primary: false, nullable: true })
+  traverse: Traverse_db;
 
   @ManyToOne(() => Action_db, { unique: false, primary: false, nullable: true })
   parentAction: Action_db;

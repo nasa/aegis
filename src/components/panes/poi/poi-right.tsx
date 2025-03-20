@@ -33,8 +33,9 @@ const PoiEditorRight: FunctionComponent = () => {
     deepEqual
   );
   const poisEditing = useAppSelector((state) => state.poi.poisEditing, shallowEqual);
-  const calculatedFields = useAppSelector(
-    (state) => getCalculatedFieldsByPoi({ poiUuid: selectedPoiUuid, wholeStoreState: state }),
+  const calculatedFieldsReportItems = useAppSelector(
+    (state) =>
+      getCalculatedFieldsByPoi({ poiUuid: selectedPoiUuid, wholeStoreState: state })?.reportItems,
     deepEqual
   );
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
@@ -67,7 +68,7 @@ const PoiEditorRight: FunctionComponent = () => {
   const actionModified = isModified(poiActions, poiActionsFromDb);
   const modified = poiModified || actionModified;
 
-  const reportsTabIconColor = getAlertColor(calculatedFields?.reportItems) || "var(--station)";
+  const reportsTabIconColor = getAlertColor(calculatedFieldsReportItems) || "var(--station)";
 
   const panelTypes: PanelTypes = {
     info_panel: {
@@ -75,7 +76,6 @@ const PoiEditorRight: FunctionComponent = () => {
       panel: Info_Panel,
       panelProps: {
         editMode: poisEditing.includes(selectedPoiUuid),
-        actionCount: calculatedFields?.actionCount,
       },
       selectedColor: "white",
       icon: faCircleInfo,
@@ -93,12 +93,12 @@ const PoiEditorRight: FunctionComponent = () => {
       title: "Station Report",
       panel: Report_Panel,
       panelProps: {
-        reportItems: calculatedFields?.reportItems,
+        reportItems: calculatedFieldsReportItems,
         reportTitle: "Station Report",
       },
       selectedColor: !isNull(reportsTabIconColor) ? reportsTabIconColor : "white",
       unselectedColor: reportsTabIconColor,
-      icon: calculatedFields?.reportItems.length > 0 ? faTriangleExclamation : faCheck,
+      icon: calculatedFieldsReportItems.length > 0 ? faTriangleExclamation : faCheck,
     },
   };
 

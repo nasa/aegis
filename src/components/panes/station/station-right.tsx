@@ -82,12 +82,12 @@ const StationEditorRight: FunctionComponent = () => {
   );
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
-  const calculatedFields = useAppSelector(
+  const calculatedFieldsReportItems = useAppSelector(
     (state) =>
       getCalculatedFieldsByStation({
         stationUuid: selectedStationUuid,
         wholeStoreState: state,
-      }),
+      })?.reportItems,
     deepEqual
   );
 
@@ -107,7 +107,7 @@ const StationEditorRight: FunctionComponent = () => {
   }
 
   // set reports tab icon color
-  const reportsTabIconColor = getAlertColor(calculatedFields?.reportItems);
+  const reportsTabIconColor = getAlertColor(calculatedFieldsReportItems);
 
   const panelTypes: PanelTypes = {
     info_panel: {
@@ -115,7 +115,6 @@ const StationEditorRight: FunctionComponent = () => {
       panel: Info_Panel,
       panelProps: {
         editMode: stationsEditing.includes(selectedStationUuid),
-        actionCount: calculatedFields?.actionCount,
       },
       selectedColor: "white",
       icon: faCircleInfo,
@@ -150,12 +149,12 @@ const StationEditorRight: FunctionComponent = () => {
       title: "Station Report",
       panel: Report_Panel,
       panelProps: {
-        reportItems: calculatedFields?.reportItems,
+        reportItems: calculatedFieldsReportItems,
         reportTitle: "Station Report",
       },
       selectedColor: reportsTabIconColor === "var(--alert)" ? "var(--error)" : "white",
       unselectedColor: reportsTabIconColor,
-      icon: calculatedFields?.reportItems.length > 0 ? faTriangleExclamation : faCheck,
+      icon: calculatedFieldsReportItems?.length > 0 ? faTriangleExclamation : faCheck,
     },
   };
 

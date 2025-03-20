@@ -70,7 +70,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     try {
       initResJson = await initRes.json();
       // convert all elevations to numbers
-      initResJson.data = initResJson.data.map((segment) =>
+      initResJson.data = initResJson.data?.map((segment) =>
         segment.map((elevation) => parseFloat(String(elevation)))
       );
     } catch (e) {

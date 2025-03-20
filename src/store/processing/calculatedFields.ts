@@ -257,6 +257,52 @@ export const getCalculatedFieldsByTraverse = (params: {
   if (!traverse) return;
   const missionTraverseRate = wholeStoreState.mission.mission?.traverseRate;
 
+  //get traverse actions
+  const traverseActions = wholeStoreState.action.actions.filter(
+    (storeAction) => storeAction.traverseUuid === traverse.uuid && storeAction.enabled
+  );
+
+  //calculate total traverse action time
+  let totalDurationLower = 0;
+  let totalDurationUpper = 0;
+  let totalEv1DurationLower = 0;
+  let totalEv1DurationUpper = 0;
+  let totalEv2DurationLower = 0;
+  let totalEv2DurationUpper = 0;
+  let totalUnassignedDurationLower = 0;
+  let totalUnassignedDurationUpper = 0;
+  let totalDwellTimeLower = 0;
+  let totalDwellTimeUpper = 0;
+
+  let totalMass = 0;
+  let actionCount = 0;
+  let totalEquipmentItems: EquipmentItemUsage[] = [];
+  traverseActions.forEach((action) => {
+    totalDurationLower += action.durationLower;
+    totalDurationUpper += action.durationUpper;
+    if (action.crewAssigned?.includes("EV1")) {
+      totalEv1DurationLower += action.durationLower;
+      totalEv1DurationUpper += action.durationUpper;
+    }
+    if (action.crewAssigned?.includes("EV2")) {
+      totalEv2DurationLower += action.durationLower;
+      totalEv2DurationUpper += action.durationUpper;
+    }
+    if (!action.crewAssigned || action.crewAssigned.length === 0) {
+      totalUnassignedDurationLower += action.durationLower;
+      totalUnassignedDurationUpper += action.durationUpper;
+    }
+    totalDwellTimeLower =
+      totalEv1DurationLower > totalEv2DurationLower ? totalEv1DurationLower : totalEv2DurationLower;
+
+    totalDwellTimeUpper =
+      totalEv1DurationUpper > totalEv2DurationUpper ? totalEv1DurationUpper : totalEv2DurationUpper;
+
+    totalEquipmentItems = mergeEquipmentItems(action.equipmentItemsUsage, totalEquipmentItems);
+    actionCount++;
+    totalMass += action.mass;
+  });
+
   const newReportItems: ReportItem[] = [];
 
   // find the eva this traverse is used in
@@ -289,7 +335,8 @@ export const getCalculatedFieldsByTraverse = (params: {
   // check if calculated duration is greater than predicted durationLower
   if (traverse.predictedDurationLower > durationMinutes) {
     newReportItems.push({
-      message: "Calculated traverse duration is under predicted nominal traverse time",
+      message:
+        "Calculated traverse duration (including actions) is under predicted nominal traverse time",
       type: "info",
     } as ReportItem);
   }
@@ -297,7 +344,8 @@ export const getCalculatedFieldsByTraverse = (params: {
   // check if calculated duration is greater than predicted durationUpper
   if (traverse.predictedDurationUpper < durationMinutes) {
     newReportItems.push({
-      message: "Calculated traverse duration is over predicted maximum traverse time",
+      message:
+        "Calculated traverse duration (including actions) is over predicted maximum traverse time",
       type: "error",
     } as ReportItem);
   }
@@ -305,6 +353,28 @@ export const getCalculatedFieldsByTraverse = (params: {
   const newCalculatedFields: TraverseCalculatedFields = {
     uuid: traverse.uuid,
     reportItems: newReportItems,
+    totalActionTime: {
+      durationLower: totalDurationLower,
+      durationUpper: totalDurationUpper,
+    },
+    totalEv1Time: {
+      durationLower: totalEv1DurationLower,
+      durationUpper: totalEv1DurationUpper,
+    },
+    totalEv2Time: {
+      durationLower: totalEv2DurationLower,
+      durationUpper: totalEv2DurationUpper,
+    },
+    totalUnassignedTime: {
+      durationLower: totalUnassignedDurationLower,
+      durationUpper: totalUnassignedDurationUpper,
+    },
+    totalDwellTime: {
+      durationLower: totalDwellTimeLower,
+      durationUpper: totalDwellTimeUpper,
+    },
+    actionCount,
+    totalMass,
     durationMinutes,
     distanceMeters,
     ascentDescent,
@@ -474,6 +544,30 @@ export const getCalculatedFieldsByEva = (params: {
       });
       runningEvaSeconds += thisStationCalculatedFields.totalDwellTime.durationUpper * 60;
     } else if (thisTraverseCalculatedFields) {
+      evaCalculatedFields.totalActionTime.durationLower +=
+        thisTraverseCalculatedFields.totalActionTime.durationLower;
+      evaCalculatedFields.totalActionTime.durationUpper +=
+        thisTraverseCalculatedFields.totalActionTime.durationUpper;
+      evaCalculatedFields.totalEv1Time.durationLower +=
+        thisTraverseCalculatedFields.totalEv1Time.durationLower;
+      evaCalculatedFields.totalEv1Time.durationUpper +=
+        thisTraverseCalculatedFields.totalEv1Time.durationUpper;
+      evaCalculatedFields.totalEv2Time.durationLower +=
+        thisTraverseCalculatedFields.totalEv2Time.durationLower;
+      evaCalculatedFields.totalEv2Time.durationUpper +=
+        thisTraverseCalculatedFields.totalEv2Time.durationUpper;
+      evaCalculatedFields.totalUnassignedTime.durationLower +=
+        thisTraverseCalculatedFields.totalUnassignedTime.durationLower;
+      evaCalculatedFields.totalUnassignedTime.durationUpper +=
+        thisTraverseCalculatedFields.totalUnassignedTime.durationUpper;
+      evaCalculatedFields.totalDwellTime.durationLower +=
+        thisTraverseCalculatedFields.totalDwellTime.durationLower;
+      evaCalculatedFields.totalDwellTime.durationUpper +=
+        thisTraverseCalculatedFields.totalDwellTime.durationUpper;
+      evaCalculatedFields.actionCount += thisTraverseCalculatedFields.actionCount;
+      evaCalculatedFields.totalMass += thisTraverseCalculatedFields.totalMass;
+      runningEvaSeconds += thisTraverseCalculatedFields.totalDwellTime.durationUpper * 60;
+
       evaCalculatedFields.totalTraverseTime += thisTraverseCalculatedFields.durationMinutes;
       evaCalculatedFields.totalTraverseDistanceMeters +=
         thisTraverseCalculatedFields.distanceMeters;
@@ -481,12 +575,16 @@ export const getCalculatedFieldsByEva = (params: {
         thisTraverseCalculatedFields.ascentDescent.totalMetersClimbed;
       evaCalculatedFields.totalTraverseAscentDescent.totalMetersDescended +=
         thisTraverseCalculatedFields.ascentDescent.totalMetersDescended;
+      const totalTraverseDuration =
+        (thisTraverseCalculatedFields.totalDwellTime.durationUpper +
+          thisTraverseCalculatedFields.durationMinutes) *
+        60;
       evaCalculatedFields.sequenceItemsCalculatedData.push({
         uuid: seqItem.uuid,
         startSeconds: runningEvaSeconds,
-        endSeconds: runningEvaSeconds + thisTraverseCalculatedFields.durationMinutes * 60,
+        endSeconds: runningEvaSeconds + totalTraverseDuration,
       });
-      runningEvaSeconds += thisTraverseCalculatedFields.durationMinutes * 60;
+      runningEvaSeconds += totalTraverseDuration;
     }
   }
   evaCalculatedFields.totalEvaTime.durationLower =

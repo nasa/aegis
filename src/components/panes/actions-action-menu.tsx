@@ -111,6 +111,7 @@ export const ActionMenu: FunctionComponent<{
                   actions: [action],
                   stationUuid: action.stationUuid,
                   poiUuid: action.poiUuid,
+                  traverseUuid: action.traverseUuid,
                 })
               );
               dialogRef.current?.close();

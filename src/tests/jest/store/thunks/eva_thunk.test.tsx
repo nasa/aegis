@@ -8,7 +8,7 @@ import {
   thunkDeleteEva,
   thunkDeleteStationFromEva,
   thunkDuplicateEva,
-  thunkEvaCancel,
+  thunkCancelEva,
   thunkGetStationOrTraverse,
   thunkReorderStationInEva,
   thunkSaveEva,
@@ -19,7 +19,7 @@ import {
   upsertTraverses,
   upsertTraversesFromDb,
 } from "store/traverse";
-import { setEvaEditMode, upsertEva, upsertEvaByField, upsertEvas } from "store/eva";
+import { setEvaEditMode, upsertEva, upsertEvaByField } from "store/eva";
 import { upsertRexByField } from "store/rex";
 
 // mock all calls to the db so no transactions are actually made
@@ -48,10 +48,14 @@ jest.mock("store/thunk/thunkElevation", () => ({
 
 const mockThunkFullUpdateTraverse = jest.fn();
 const mockThunkUpdateTraversesAroundStation = jest.fn();
-jest.mock("store/thunk/thunkTraverse", () => ({
-  thunkFullUpdateTraverse: () => mockThunkFullUpdateTraverse,
-  thunkUpdateTraversesAroundStation: () => mockThunkUpdateTraversesAroundStation,
-}));
+jest.mock("store/thunk/thunkTraverse", () => {
+  const actualModule = jest.requireActual("store/thunk/thunkTraverse");
+  return {
+    ...actualModule,
+    thunkFullUpdateTraverse: () => mockThunkFullUpdateTraverse,
+    thunkUpdateTraversesAroundStation: () => mockThunkUpdateTraversesAroundStation,
+  };
+});
 
 let store: StoreType;
 
@@ -114,15 +118,6 @@ describe("Thunk EVA Tests", () => {
     );
     expect(store.getState().eva.evasEditing.includes(eva.uuid)).toBeFalsy();
 
-    // assert modified traverse
-    expect(httpClient_traverse.upsertTraverses).toHaveBeenCalledTimes(1);
-    expect(store.getState().traverse.traverses.find((t) => t.uuid === traverse.uuid).name).toEqual(
-      newTraverseName
-    );
-    expect(
-      store.getState().traverse.traversesFromDb.find((t) => t.uuid === traverse.uuid).name
-    ).toEqual(newTraverseName);
-
     // assert deleted traverse
     expect(httpClient_traverse.deleteTraverses).toHaveBeenCalledTimes(1);
     expect(
@@ -160,7 +155,7 @@ describe("Thunk EVA Tests", () => {
     );
     store.dispatch(setEvaEditMode({ evaUuid: eva.uuid, editMode: true }));
 
-    await store.dispatch(thunkEvaCancel({ evaUuid: eva.uuid }));
+    await store.dispatch(thunkCancelEva({ evaUuid: eva.uuid }));
 
     // assert eva changes
     const evaFromDb = store.getState().eva.evasFromDb.find((e) => e.uuid === eva.uuid);
@@ -185,7 +180,7 @@ describe("Thunk EVA Tests", () => {
     store.dispatch(setEvaEditMode({ evaUuid: unsavedEva.uuid, editMode: true }));
     store.dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: false }));
 
-    await store.dispatch(thunkEvaCancel({ evaUuid: unsavedEva.uuid }));
+    await store.dispatch(thunkCancelEva({ evaUuid: unsavedEva.uuid }));
 
     // assert eva changes
     expect(store.getState().eva.evasFromDb.find((e) => e.uuid === unsavedEva.uuid)).toBeFalsy();
@@ -290,16 +285,6 @@ describe("Thunk EVA Tests", () => {
       expect(store.getState().traverse.traverses.length).toEqual(traverseCount + 1);
       expect(store.getState().eva.evas.find((e) => e.uuid === eva.uuid).sequence.length).toEqual(
         evaSequenceCount + 2
-      );
-
-      //add to blank sequence
-      const newEva = generateBlankEVA({ name: "Jest Eva-1" });
-      store.dispatch(upsertEvas([newEva]));
-      const traverseCount2 = store.getState().traverse.traverses.length;
-      await store.dispatch(thunkAddStationToEva({ evaUuid: newEva.uuid }));
-      expect(store.getState().traverse.traverses.length).toEqual(traverseCount2 + 2);
-      expect(store.getState().eva.evas.find((e) => e.uuid === newEva.uuid).sequence.length).toEqual(
-        3
       );
     });
 

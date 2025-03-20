@@ -24,7 +24,7 @@ import { getAlertColor, isModified } from "utils/component-helpers";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
   thunkDeleteEva,
-  thunkEvaCancel,
+  thunkCancelEva,
   thunkGetStationOrTraverse,
   thunkSaveEva,
 } from "store/thunk/thunkEva";
@@ -340,7 +340,7 @@ const EvaRightEva: FunctionComponent = () => {
                 <Button
                   ariaLabel="cancelEva"
                   onClick={() => {
-                    dispatch(thunkEvaCancel({ evaUuid: selectedEva.uuid }));
+                    dispatch(thunkCancelEva({ evaUuid: selectedEva.uuid }));
                   }}
                   icon={faBan}
                   toolTip="Cancel Edit"
