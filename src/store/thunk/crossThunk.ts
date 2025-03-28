@@ -11,7 +11,7 @@ import { poiSlice } from "store/poi";
 import { presetSlice } from "store/preset";
 import { rexSlice } from "store/rex";
 import { selectPoiActions } from "store/selectors";
-import { stationSlice } from "store/station";
+import { setSelectedStationUuid, stationSlice } from "store/station";
 import { traverseSlice } from "store/traverse";
 
 import { obliterateState as actionObliterateState } from "store/action";
@@ -187,10 +187,15 @@ export const thunkSelectEvaAction = appCreateAsyncThunk<{
     return;
   }
 
+  const actionStationUuid = state.action.actions.find(
+    (action) => action.uuid === actionUuid
+  )?.stationUuid;
+
   // If both EVA and action exist, proceed with selection
   dispatch(setSectionSelected("evas"));
   dispatch(setSelectedEvaUuid(evaUuid));
   dispatch(setExpandedEvaUuids([evaUuid]));
   dispatch(setSelectedEvaRightNavItem("actions_panel"));
   dispatch(expandActions([actionUuid]));
+  dispatch(setSelectedStationUuid(actionStationUuid));
 });
