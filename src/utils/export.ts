@@ -261,7 +261,7 @@ export const makeReadableActionDefinition = (params: {
   );
 
   const readableActionDefintion: ActionDefinitionReadable = {
-    displayString: `${verb.name} of ${noun.name} in ${adjective.name}`,
+    displayString: `${verb?.name} of ${noun?.name} in ${adjective?.name}`,
     verb: verb,
     noun: noun,
     adjective: adjective,
