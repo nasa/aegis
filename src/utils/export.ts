@@ -256,7 +256,7 @@ export const makeReadableActionDefinition = (params: {
   const noun = actionDefinitions.nouns.find(
     (noun) => noun.uuid === action.actionDefinition.nounUuid
   );
-  const adjective = actionDefinitions.nouns.find(
+  const adjective = actionDefinitions.adjectives.find(
     (noun) => noun.uuid === action.actionDefinition.nounUuid
   );
 
