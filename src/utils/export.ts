@@ -256,12 +256,12 @@ export const makeReadableActionDefinition = (params: {
   const noun = actionDefinitions.nouns.find(
     (noun) => noun.uuid === action.actionDefinition.nounUuid
   );
-  const adjective = actionDefinitions.nouns.find(
-    (noun) => noun.uuid === action.actionDefinition.nounUuid
+  const adjective = actionDefinitions.adjectives.find(
+    (adjective) => adjective.uuid === action.actionDefinition.adjectiveUuid
   );
 
   const readableActionDefintion: ActionDefinitionReadable = {
-    displayString: `${verb.name} of ${noun.name} in ${adjective.name}`,
+    displayString: `${verb?.name} of ${noun?.name} in ${adjective?.name}`,
     verb: verb,
     noun: noun,
     adjective: adjective,
