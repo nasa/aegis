@@ -49,6 +49,11 @@ const RexRightRex: FunctionComponent = () => {
   }, deepEqual);
   const rexesEditing = useAppSelector((state) => state.rex.rexesEditing, deepEqual);
 
+  const rexNames = useAppSelector(
+    (state) => state.rex.rexes.map(({ name, uuid }) => ({ name, uuid })),
+    deepEqual
+  );
+
   const modified = isModified([selectedRex], [selectedRexFromDb]);
 
   const panelTypes: PanelTypes = {
@@ -149,7 +154,16 @@ const RexRightRex: FunctionComponent = () => {
                   <Button
                     onClick={() => {
                       if (modified) {
-                        dispatch(thunkSaveRex({ rexUuid: selectedRex.uuid }));
+                        if (
+                          !rexNames.some(
+                            (rexName) =>
+                              rexName.name === selectedRex.name && rexName.uuid !== selectedRex.uuid
+                          )
+                        ) {
+                          dispatch(thunkSaveRex({ rexUuid: selectedRex.uuid }));
+                        } else {
+                          alert("Unable to save: REX name already exists");
+                        }
                       }
                     }}
                     icon={faFloppyDisk}

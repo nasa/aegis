@@ -93,6 +93,11 @@ const StationEditorRight: FunctionComponent = () => {
     deepEqual
   );
 
+  const stationNames = useAppSelector(
+    (state) => state.station.stations.map(({ name, uuid }) => ({ name, uuid })),
+    deepEqual
+  );
+
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   useEffect(() => {
@@ -276,11 +281,21 @@ const StationEditorRight: FunctionComponent = () => {
                     ariaLabel="saveStation"
                     onClick={() => {
                       if (saveButtonState === "enabled") {
-                        dispatch(
-                          thunkSaveStation({
-                            station: selectedStation,
-                          })
-                        );
+                        if (
+                          !stationNames.some(
+                            (stationName) =>
+                              stationName.name === selectedStation.name &&
+                              stationName.uuid !== selectedStation.uuid
+                          )
+                        ) {
+                          dispatch(
+                            thunkSaveStation({
+                              station: selectedStation,
+                            })
+                          );
+                        } else {
+                          alert("Unable to save: Station name already exists");
+                        }
                       }
                     }}
                     icon={faFloppyDisk}

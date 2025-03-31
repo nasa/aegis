@@ -130,6 +130,11 @@ const EvaRightEva: FunctionComponent = () => {
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
+  const evaNames = useAppSelector(
+    (state) => state.eva.evas.map(({ name, uuid }) => ({ name, uuid })),
+    deepEqual
+  );
+
   const [evaReportSequenceItems, setEvaReportSequenceItems] = useState<EvaReportSequenceItem[]>([]);
 
   const evaModifieid = isModified([selectedEva], [selectedEvaFromDb]);
@@ -332,7 +337,16 @@ const EvaRightEva: FunctionComponent = () => {
                   ariaLabel="saveEva"
                   onClick={() => {
                     if (modified) {
-                      dispatch(thunkSaveEva({ evaUuid: selectedEva.uuid }));
+                      if (
+                        !evaNames.some(
+                          (evaName) =>
+                            evaName.name === selectedEva.name && evaName.uuid !== selectedEva.uuid
+                        )
+                      ) {
+                        dispatch(thunkSaveEva({ evaUuid: selectedEva.uuid }));
+                      } else {
+                        alert("Unable to save: EVA name already exists");
+                      }
                     }
                   }}
                   icon={faFloppyDisk}

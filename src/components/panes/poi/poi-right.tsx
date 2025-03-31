@@ -64,6 +64,10 @@ const PoiEditorRight: FunctionComponent = () => {
     (state) => state.poi.poisFromDb.find((poi) => poi.uuid === selectedPoiUuid),
     deepEqual
   );
+  const poiNames = useAppSelector(
+    (state) => state.poi.pois.map(({ name, uuid }) => ({ name, uuid })),
+    deepEqual
+  );
 
   const poiModified = isModified([selectedPoi], [selectedPoiFromDb]);
   const actionModified = isModified(poiActions, poiActionsFromDb);
@@ -212,11 +216,20 @@ const PoiEditorRight: FunctionComponent = () => {
                   ariaLabel="savePoi"
                   onClick={() => {
                     if (selectedPoi && modified) {
-                      dispatch(
-                        thunkSavePoi({
-                          poi: selectedPoi,
-                        })
-                      );
+                      if (
+                        !poiNames.some(
+                          (poiName) =>
+                            poiName.name === selectedPoi.name && poiName.uuid !== selectedPoi.uuid
+                        )
+                      ) {
+                        dispatch(
+                          thunkSavePoi({
+                            poi: selectedPoi,
+                          })
+                        );
+                      } else {
+                        alert("Unable to save: POI name already exists");
+                      }
                     }
                   }}
                   icon={faFloppyDisk}
