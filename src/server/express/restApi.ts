@@ -1,4 +1,3 @@
-import packageJSON from "../../../package.json";
 import express, { Application } from "express";
 import cookieSession from "cookie-session";
 import cors from "cors";
@@ -37,6 +36,7 @@ import readableStationRoutes from "./routes/readable/station";
 import readableEvaRoutes from "./routes/readable/eva";
 import readablePoiRoutes from "./routes/readable/poi";
 import readableMissionRoutes from "./routes/readable/mission";
+import { globalValues } from "./global";
 
 const app: Application = express();
 
@@ -50,6 +50,8 @@ app.use(
     maxAge: 24 * 60 * 60 * 1000 * 365, // 1 year
   })
 );
+// static asset passthrough for dev. This path is one level above src (relative from build output folder)
+app.use("/static", express.static(path.join(__dirname, `../../../${process.env.STATIC_DIR}`)));
 
 // get user info from launchpad
 app.get("/api/v1/user/current", (req, res) => {
@@ -66,11 +68,8 @@ app.get("/api/v1/health", (req, res) => {
   res.send({ status: "ok" });
 });
 
-// static asset passthrough for dev. This path is one level above src (relative from build output folder)
-app.use("/static", express.static(path.join(__dirname, `../../../${process.env.STATIC_DIR}`)));
-
 app.get("/api/v1/version", (req, res) => {
-  res.send({ version: packageJSON.version });
+  res.send(globalValues.appVersion);
 });
 app.use("/api/v1/auth/", authRoutes);
 app.use("/api/v1/action", actionRoutes);

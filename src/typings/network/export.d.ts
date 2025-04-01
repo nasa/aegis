@@ -88,3 +88,6 @@ type ExportedData = {
   evas: ExportEva[];
   rexes: ExportRex[];
 };
+
+// fix to avoid circular dependency, if you don't have this, schema:create:mission will fail in building apiv1 container
+interface ExportMission extends Mission {}

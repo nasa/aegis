@@ -397,6 +397,12 @@
                     },
                     "type": "array"
                 },
+                "traverseUuid": {
+                    "type": [
+                        "null",
+                        "string"
+                    ]
+                },
                 "type": {
                     "$ref": "#/definitions/ActionType",
                     "description": "The type of action to be taken"

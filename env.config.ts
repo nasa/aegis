@@ -1,5 +1,4 @@
 import { DotenvConfig } from "@emss/make-dotenv/src/types";
-import packageJSON from "./package.json";
 
 export const environments = ["local", "fit", "test"] as const;
 
@@ -270,15 +269,5 @@ export const config: DotenvConfig<typeof environments> = {
 
     // For FIT, send to host machine's Rsyslog
     default: "udp://127.0.0.1:514",
-  },
-
-  /**
-   * Versioning
-   */
-  APP_VERSION: {
-    default: packageJSON.version,
-  },
-  GIT_COMMIT: {
-    default: process.env.CI_COMMIT_SHA || "DEV",
   },
 };

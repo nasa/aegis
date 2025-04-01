@@ -1,5 +1,5 @@
 {
-  "name": "aegis-zero",
+  "name": "aegis",
   "version": "1.1.4",
   "private": true,
   "scripts": {
@@ -23,7 +23,7 @@
     "vite:dev": "vite",
     "vite:dev:debug": "vite dev --debug",
     "vite:dev:wait": "wait-on http://localhost:4001/api/v1/health && vite",
-    "api:build": "node esbuild.mjs",
+    "api:build": "node esbuild.mjs && npm run schema:create",
     "api:build:watch": "npm run api:build -- --watch",
     "api:dev": "rimraf ./.local/express/dist && concurrently -n build,serve \"npm run api:build:watch\" \"wait-on ./.local/express/dist/api.js && nodemon  --enable-source-maps --inspect=8229 --legacy-watch --watch ./.local/express/dist ./.local/express/dist/api.js ./src/server\"",
     "api:prod": "cross-env NODE_ENV=production node ./.local/express/dist/api.js",
@@ -37,13 +37,12 @@
     "version:minor": "npm version minor && git push",
     "version:major": "npm version major && git push",
     "make-dotenv": "make-dotenv && npx prettier --write ./env.secret.ts --ignore-path .prettierignore",
-    "schema:create": "npm run schema:create:action && npm run schema:create:station && npm run schema:create:eva && npm run schema:create:poi && npm run schema:create:mission",
+    "schema:create": "concurrently -n action,station,poi,eva,mission \"npm run schema:create:action\" \"npm run schema:create:station\" \"npm run schema:create:poi\" \"npm run schema:create:eva\" \"npm run schema:create:mission\"",
     "schema:create:action": "typescript-json-schema ./src/schema/tsconfig.schema.json ExportAction --required --include ./src/typings/**/*.d.ts --ignoreErrors -o ./src/schema/exportAction.json",
     "schema:create:station": "typescript-json-schema ./src/schema/tsconfig.schema.json ExportStation --required --include ./src/typings/**/*.d.ts --ignoreErrors -o ./src/schema/exportStation.json",
     "schema:create:eva": "typescript-json-schema ./src/schema/tsconfig.schema.json ExportEva --required --include ./src/typings/**/*.d.ts --ignoreErrors -o ./src/schema/exportEva.json",
     "schema:create:poi": "typescript-json-schema ./src/schema/tsconfig.schema.json ExportPOI --required --include ./src/typings/**/*.d.ts --ignoreErrors -o ./src/schema/exportPoi.json",
-    "schema:create:mission": "typescript-json-schema ./src/schema/tsconfig.schema.json Mission --required --include ./src/typings/**/*.d.ts --ignoreErrors -o ./src/schema/exportMission.json"
-
+    "schema:create:mission": "typescript-json-schema ./src/schema/tsconfig.schema.json ExportMission --required --include ./src/typings/**/*.d.ts --ignoreErrors -o ./src/schema/exportMission.json"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",

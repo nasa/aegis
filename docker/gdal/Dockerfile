@@ -8,7 +8,7 @@
 # with eegitlab to pull the image on local builds
 ARG GDAL_BASE_IMAGE=jackievu/aegis:gdal
 
-FROM $GDAL_BASE_IMAGE as base
+FROM $GDAL_BASE_IMAGE AS base
 
 WORKDIR /app
 COPY src/server/python ./

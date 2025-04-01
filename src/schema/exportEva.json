@@ -425,6 +425,12 @@
                     },
                     "type": "array"
                 },
+                "traverseUuid": {
+                    "type": [
+                        "null",
+                        "string"
+                    ]
+                },
                 "type": {
                     "$ref": "#/definitions/ActionType",
                     "description": "The type of action to be taken"
@@ -1122,6 +1128,12 @@
                 "_itemType": {
                     "type": "string"
                 },
+                "actionOrderUuids": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
                 "calculatedFields": {
                     "$ref": "#/definitions/TraverseCalculatedFields"
                 },
@@ -1201,6 +1213,7 @@
             },
             "required": [
                 "_itemType",
+                "actionOrderUuids",
                 "calculatedFields",
                 "description",
                 "descriptionReadable",
@@ -1351,6 +1364,101 @@
                 },
                 {
                     "properties": {
+                        "actionCount": {
+                            "type": "number"
+                        },
+                        "totalActionTime": {
+                            "properties": {
+                                "durationLower": {
+                                    "type": "number"
+                                },
+                                "durationUpper": {
+                                    "type": "number"
+                                }
+                            },
+                            "required": [
+                                "durationLower",
+                                "durationUpper"
+                            ],
+                            "type": "object"
+                        },
+                        "totalDwellTime": {
+                            "properties": {
+                                "durationLower": {
+                                    "type": "number"
+                                },
+                                "durationUpper": {
+                                    "type": "number"
+                                }
+                            },
+                            "required": [
+                                "durationLower",
+                                "durationUpper"
+                            ],
+                            "type": "object"
+                        },
+                        "totalEv1Time": {
+                            "properties": {
+                                "durationLower": {
+                                    "type": "number"
+                                },
+                                "durationUpper": {
+                                    "type": "number"
+                                }
+                            },
+                            "required": [
+                                "durationLower",
+                                "durationUpper"
+                            ],
+                            "type": "object"
+                        },
+                        "totalEv2Time": {
+                            "properties": {
+                                "durationLower": {
+                                    "type": "number"
+                                },
+                                "durationUpper": {
+                                    "type": "number"
+                                }
+                            },
+                            "required": [
+                                "durationLower",
+                                "durationUpper"
+                            ],
+                            "type": "object"
+                        },
+                        "totalMass": {
+                            "type": "number"
+                        },
+                        "totalUnassignedTime": {
+                            "properties": {
+                                "durationLower": {
+                                    "type": "number"
+                                },
+                                "durationUpper": {
+                                    "type": "number"
+                                }
+                            },
+                            "required": [
+                                "durationLower",
+                                "durationUpper"
+                            ],
+                            "type": "object"
+                        }
+                    },
+                    "required": [
+                        "actionCount",
+                        "totalActionTime",
+                        "totalDwellTime",
+                        "totalEv1Time",
+                        "totalEv2Time",
+                        "totalMass",
+                        "totalUnassignedTime"
+                    ],
+                    "type": "object"
+                },
+                {
+                    "properties": {
                         "ascentDescent": {
                             "properties": {
                                 "totalMetersClimbed": {
@@ -1445,6 +1553,7 @@
             "type": "number"
         },
         "sequence": {
+            "description": "Does not include ingress/egress location. Starts/ends with a traverse item",
             "items": {
                 "$ref": "#/definitions/EvaSequenceItem"
             },

@@ -2,6 +2,8 @@
 import { UserConfig, defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import packageJSON from "./package.json";
+import _ from "lodash";
 
 export const config: UserConfig = {
   root: "./src",
@@ -85,6 +87,11 @@ export const config: UserConfig = {
       },
       external: ["path", "os", "crypto"],
     },
+  },
+  // variables that are set at build time
+  define: {
+    __APP_VERSION__: JSON.stringify(packageJSON.version),
+    __GIT_COMMIT__: JSON.stringify(process.env.CI_COMMIT_SHA || "LOCAL_DEV"),
   },
 };
 

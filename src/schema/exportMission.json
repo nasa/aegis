@@ -291,6 +291,12 @@
                     ],
                     "description": "Allow linkage to any part of the STM hierarchy"
                 },
+                "traverseUuid": {
+                    "type": [
+                        "null",
+                        "string"
+                    ]
+                },
                 "type": {
                     "description": "The type of action to be taken",
                     "enum": [
@@ -321,7 +327,6 @@
             "type": "object"
         }
     },
-    "description": "The mission object",
     "properties": {
         "_metadata": {
             "type": "string"
