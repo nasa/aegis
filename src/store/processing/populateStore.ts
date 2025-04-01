@@ -44,6 +44,11 @@ export const populateStore = async (params: {
   wholeStoreState.stm.rulesFromDb = allDataRes.data.stmRules;
   wholeStoreState.traverse.traverses = allDataRes.data.traverses;
   wholeStoreState.traverse.traversesFromDb = allDataRes.data.traverses;
+  // these values are from the vite.config.mts file and are set at build time
+  wholeStoreState.interface.appVersion = {
+    version: __APP_VERSION__,
+    gitCommit: __GIT_COMMIT__,
+  };
 
   // Run audits on the data returned, modifying the data as needed. Each audit function will save needed changes to the DB
   if (runAudit) {

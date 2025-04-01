@@ -92,7 +92,6 @@ interface InterfaceState {
   timelineShowDistanceFromLander: boolean;
   timelineShowElevation: boolean;
   actionsExpanded: string[];
-  socketStatus: SocketStatus;
   stmViewExpandedItems: STMViewExpandedItem[];
   stmViewSelectedEvas: string[];
   stmViewSelectedActionTypes: ActionType[];
@@ -101,6 +100,8 @@ interface InterfaceState {
   stmViewHoveredTopItem: string;
   stmViewHoveredLeftItem: string;
   stmRulesSelectedRexes: string[];
+  appVersion: AppVersion;
+  socketStatus: ClientSocketStatus;
 }
 
 interface STMState {

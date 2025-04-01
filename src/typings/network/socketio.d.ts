@@ -4,7 +4,7 @@ interface ServerToClientEvents {
   storeUpsert: (payload: StoreUpsert) => void;
   storeDelete: (payload: StoreDelete) => void;
   statusFromServer: (payload: StatusFromServer) => void;
-  version: (version: string) => void;
+  version: (version: AppVersion) => void;
 }
 
 interface ClientToServerEvents {
@@ -23,13 +23,12 @@ interface SocketData {
 }
 /** */
 
-type ConnectionStatus = "connected" | "disconnected" | "connecting" | "reconnecting";
+type ConnectionStatus = "connected" | "disconnected" | "connecting" | "reconnecting" | "failed";
 
-interface SocketStatus {
+interface ClientSocketStatus {
   connectionStatus: ConnectionStatus;
   lastEditEvent: EditEvent | null;
   lastStatusFromServer: StatusFromServer;
-  AEGISVersion: string;
 }
 
 interface ServerSocketStatus {
@@ -89,6 +88,7 @@ interface VisitorJoin {
   socketId: string;
   missionId: number;
   type: "editor" | "viewer";
+  appVersion: AppVersion;
 }
 
 interface VisitorData {
@@ -109,4 +109,9 @@ interface StatusFromServer {
 
 interface SessionData {
   user?: User;
+}
+
+interface AppVersion {
+  version: string;
+  gitCommit: string;
 }

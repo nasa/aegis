@@ -184,7 +184,7 @@ const NavTimeline: FunctionComponent = () => {
   const processPosEntriesFromStore = useCallback(() => {
     if (!mission || !selectedRex) return;
     const posForPaper: PosEntry_PaperJS[] = [];
-    for (const posEntry of selectedRex.posEntries) {
+    for (const posEntry of selectedRex.posEntries || []) {
       const distFromLander = getDistanceBetweenTwoCoordinates(
         mission.landerLocation,
         posEntry.location,

@@ -86,16 +86,15 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
 
   //Handle socketio events
   useEffect(() => {
-    if (!missionId || !user?.missionPerms) return;
-
+    if (!missionId || !user?.missionPerms || !interfaceStore?.appVersion) return;
     // Create a socket connection
     if (!socket.current || (socket.current && !socket.current.connected)) {
       const socketUrl = window.location.origin;
-
       socket.current = io(socketUrl, {
         transports: ["websocket"],
         upgrade: true,
         path: "/api/v1/socketio",
+        reconnectionAttempts: socketUrl === "aegis.fit.nasa.gov" ? Infinity : 10,
       });
     }
 
@@ -118,6 +117,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
         missionId: missionId,
         socketId: socket.current.id,
         type: permissionType,
+        appVersion: interfaceStoreRef.current.appVersion,
       };
       socket.current.emit("visitorJoin", visitorJoin);
 
@@ -137,7 +137,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
       // if they are different, then alert the user and refresh the page
       const fetchLastEventAsync = async () => {
         const wrappedLastEditResponse = await clientFetchWithTimeout(
-          `${window.location.origin}/api/socketLastEditEvent?missionId=${missionId}`,
+          `${window.location.origin}/api/v1/socketLastEditEvent?missionId=${missionId}`,
           null,
           2000
         );
@@ -157,20 +157,31 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
               Please refresh your browser to get the latest version.`
             );
           }
+        } else {
+          alert("Unable to fetch last event from server. Please refresh your browser");
         }
       };
       fetchLastEventAsync();
     });
 
+    // For non-production environments. In production we will attempt reconnects infinately
+    socket.current.io.on("reconnect_failed", () => {
+      console.error("Socket reconnection failed after maximum attempts.");
+      dispatch(setSocketConnectionStatus("failed"));
+    });
+
     // Incoming AEGIS version number
-    socket.current.on("version", (version: string) => {
-      if (interfaceStoreRef.current.socketStatus.AEGISVersion !== version) {
-        if (interfaceStoreRef.current.socketStatus.AEGISVersion !== null) {
+    socket.current.on("version", (appVersion: AppVersion) => {
+      if (
+        interfaceStoreRef.current.appVersion.version !== appVersion.version ||
+        interfaceStoreRef.current.appVersion.gitCommit !== appVersion.gitCommit
+      ) {
+        if (interfaceStoreRef.current.appVersion?.version) {
           alert(
-            `A new version of AEGIS is available. Please refresh your browser to get the latest version.`
+            `A new version of AEGIS is available. Please refresh your browser to get the latest version. \nCurrent version: ${interfaceStoreRef.current.appVersion.version}/${interfaceStoreRef.current.appVersion.gitCommit}\nNew version: ${appVersion.version}/${appVersion.gitCommit} `
           );
         }
-        dispatch(setAEGISVersion(version));
+        dispatch(setAEGISVersion(appVersion));
       }
     });
 
@@ -212,7 +223,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
       socket.current.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, socket, missionId, user]);
+  }, [dispatch, socket, missionId, user, interfaceStore.appVersion]);
 
   // Keep refs up to date from store
   useEffect(() => {

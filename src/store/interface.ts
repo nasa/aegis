@@ -14,6 +14,15 @@ export const initialState: InterfaceState = {
   timelineShowDistanceFromLander: true,
   timelineShowElevation: true,
   actionsExpanded: [],
+  stmViewExpandedItems: [],
+  stmViewSelectedEvas: [],
+  stmViewSelectedActionTypes: [...actionTypes],
+  stmViewExpandTopTiers: true,
+  stmViewShowCrosshairs: true,
+  stmViewHoveredTopItem: null,
+  stmViewHoveredLeftItem: null,
+  stmRulesSelectedRexes: [],
+  appVersion: null,
   socketStatus: {
     connectionStatus: "disconnected",
     lastEditEvent: null,
@@ -24,16 +33,7 @@ export const initialState: InterfaceState = {
         viewers: 0,
       },
     },
-    AEGISVersion: null,
   },
-  stmViewExpandedItems: [],
-  stmViewSelectedEvas: [],
-  stmViewSelectedActionTypes: [...actionTypes],
-  stmViewExpandTopTiers: true,
-  stmViewShowCrosshairs: true,
-  stmViewHoveredTopItem: null,
-  stmViewHoveredLeftItem: null,
-  stmRulesSelectedRexes: [],
 };
 
 export const interfaceSlice = createSlice({
@@ -88,27 +88,6 @@ export const interfaceSlice = createSlice({
         }
       });
     },
-    setLastStatusFromServer: (state, action: { payload: StatusFromServer }) => {
-      state.socketStatus.lastStatusFromServer = action.payload;
-      // due to a store race condition, sometimes the connectionStatus is not "connected". Update it
-      if (state.socketStatus.connectionStatus !== "connected") {
-        state.socketStatus.connectionStatus = "connected";
-      }
-    },
-    setSocketConnectionStatus: (state, action: { payload: ConnectionStatus }) => {
-      state.socketStatus.connectionStatus = action.payload;
-    },
-    setLastEditEvent: (state, action: { payload: EditEvent }) => {
-      state.socketStatus.lastEditEvent = action.payload;
-    },
-
-    setAEGISVersion: (state, action: { payload: string }) => {
-      state.socketStatus.AEGISVersion = action.payload;
-    },
-    obliterateState: (state) => {
-      //eslint-disable-next-line
-      state = Object.assign(state, initialState);
-    },
     stmViewExpandItem: (state, action: { payload: STMViewExpandedItem }) => {
       state.stmViewExpandedItems.push(action.payload);
     },
@@ -162,6 +141,26 @@ export const interfaceSlice = createSlice({
         state.stmRulesSelectedRexes.push(action.payload);
       }
     },
+    setLastStatusFromServer: (state, action: { payload: StatusFromServer }) => {
+      state.socketStatus.lastStatusFromServer = action.payload;
+      // due to a store race condition, sometimes the connectionStatus is not "connected". Update it
+      if (state.socketStatus.connectionStatus !== "connected") {
+        state.socketStatus.connectionStatus = "connected";
+      }
+    },
+    setSocketConnectionStatus: (state, action: { payload: ConnectionStatus }) => {
+      state.socketStatus.connectionStatus = action.payload;
+    },
+    setLastEditEvent: (state, action: { payload: EditEvent }) => {
+      state.socketStatus.lastEditEvent = action.payload;
+    },
+    setAEGISVersion: (state, action: { payload: AppVersion }) => {
+      state.appVersion = action.payload;
+    },
+    obliterateState: (state) => {
+      //eslint-disable-next-line
+      state = Object.assign(state, initialState);
+    },
   },
   extraReducers: (builder) => {
     // reducer called across slices. This handles this slice's portion of the reducer's state
@@ -185,11 +184,6 @@ export const {
   setShowElevation,
   collapseActions,
   expandActions,
-  setLastStatusFromServer,
-  setSocketConnectionStatus,
-  setLastEditEvent,
-  setAEGISVersion,
-  obliterateState,
   stmViewExpandItem,
   stmViewCollapseItem,
   stmViewSetExpandedItems,
@@ -200,4 +194,9 @@ export const {
   stmViewSetHoveredTopItem,
   stmViewSetHoveredLeftItem,
   stmRulesToggleRex,
+  setLastStatusFromServer,
+  setSocketConnectionStatus,
+  setLastEditEvent,
+  setAEGISVersion,
+  obliterateState,
 } = interfaceSlice.actions;
