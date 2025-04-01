@@ -17,7 +17,7 @@ const EvaItemSequence: FunctionComponent<{
 
   return (
     <div className={evaStyles.evaSequence}>
-      {evaSequence?.map((sequenceItem) => {
+      {evaSequence?.map((sequenceItem, index) => {
         if (sequenceItem.type === "station") {
           return (
             <SequenceItemStation
@@ -26,7 +26,7 @@ const EvaItemSequence: FunctionComponent<{
               editMode={editMode}
               isRexRunning={!!thisEvaInRunningRexFromDb}
               evaSequence={evaSequence}
-              key={sequenceItem.uuid}
+              key={`${sequenceItem.uuid}-${index}`}
             />
           );
         } else if (sequenceItem.type === "traverse") {
@@ -36,7 +36,7 @@ const EvaItemSequence: FunctionComponent<{
               traverseUuid={sequenceItem.uuid}
               editMode={editMode}
               isRexRunning={!!thisEvaInRunningRexFromDb}
-              key={sequenceItem.uuid}
+              key={`${sequenceItem.uuid}-${index}`}
             />
           );
         }

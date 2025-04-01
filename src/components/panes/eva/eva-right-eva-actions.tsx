@@ -100,29 +100,40 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
         />
 
         <div className={actionsStyles.actionListContainer}>
-          {selectedEva.sequence.map((sequenceItem) => {
+          {selectedEva.sequence.map((sequenceItem, index) => {
             if (sequenceItem.type === "station") {
               const station = stations.find((station) => station.uuid === sequenceItem.uuid);
-              if (!station) return null;
-              return (
-                <div key={sequenceItem.uuid}>
-                  <div className={actionsStyles.evaActionsStationTitleContainer}>
-                    <div className={evaStyles.iconCustomSmall}>{decodeEmoji(station.icon)}</div>
-                    <div>{station.name}</div>
-                    <div className={actionsStyles.evaActionsStationTitleLine}></div>
+              if (!station) {
+                return (
+                  <div key={`${sequenceItem.uuid}-${index}`}>
+                    <div className={actionsStyles.evaActionsStationTitleContainer}>
+                      <div className={evaStyles.iconCustomSmall}></div>
+                      <div>No Station Selected</div>
+                      <div className={actionsStyles.evaActionsStationTitleLine}></div>
+                    </div>
                   </div>
-                  <ActionList
-                    editMode={editMode}
-                    actionOrderUuids={station.actionOrderUuids}
-                    parentComponent="eva"
-                    highlightActions={highlightActions}
-                    isActionHiglighted={isActionHiglighted}
-                    stations={stations}
-                    pois={null}
-                    rexUuid={isSelectedEvaInARunningRex ? runningRexUuid : null}
-                  />
-                </div>
-              );
+                );
+              } else {
+                return (
+                  <div key={`${sequenceItem.uuid}-${index}`}>
+                    <div className={actionsStyles.evaActionsStationTitleContainer}>
+                      <div className={evaStyles.iconCustomSmall}>{decodeEmoji(station.icon)}</div>
+                      <div>{station.name}</div>
+                      <div className={actionsStyles.evaActionsStationTitleLine}></div>
+                    </div>
+                    <ActionList
+                      editMode={editMode}
+                      actionOrderUuids={station.actionOrderUuids}
+                      parentComponent="eva"
+                      highlightActions={highlightActions}
+                      isActionHiglighted={isActionHiglighted}
+                      stations={stations}
+                      pois={null}
+                      rexUuid={isSelectedEvaInARunningRex ? runningRexUuid : null}
+                    />
+                  </div>
+                );
+              }
             } else if (sequenceItem.type === "traverse") {
               const traverse = traverses.find((traverse) => traverse.uuid === sequenceItem.uuid);
               return (
