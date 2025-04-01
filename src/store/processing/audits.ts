@@ -6,7 +6,6 @@ import * as httpClient_station from "http-client/station";
 import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
 import clone from "lodash/clone";
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { generateDefaultActionDefinitions } from "store/storeUtils/mission";
 import { v4 as uuidv4 } from "uuid";
 
@@ -307,17 +306,11 @@ export const auditActionDefinitions = async ({
     const newMission = {
       ...wholeStoreState.mission.mission,
       actionDefinitions: generateDefaultActionDefinitions(),
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
 
     // update the store with the new action definitions
-    wholeStoreState = {
-      ...wholeStoreState,
-      mission: {
-        ...wholeStoreState.mission,
-        mission: newMission,
-      },
-    };
+    wholeStoreState.mission.mission = newMission;
+    wholeStoreState.mission.missionFromDb = newMission;
 
     // upsert the changes to the mission table in the db
     //save mission to db
