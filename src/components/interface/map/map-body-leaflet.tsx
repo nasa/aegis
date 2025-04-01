@@ -198,6 +198,20 @@ const MapBody: FunctionComponent = () => {
 
   const mapHoverItemUuid = useAppSelector((state) => state.hover.mapItemUuid, refEqual);
   const mapHoverItemType = useAppSelector((state) => state.hover.mapItemType, refEqual);
+  const egressLocation = useAppSelector(
+    (state) => {
+      if (isEqual(selectedEva?.egressLocationUuid, "lander")) {
+        return state.mission.mission.landerLocation;
+      } else {
+        const foundStation = state.station.stations.find(
+          (station) => station.uuid === selectedEva?.egressLocationUuid
+        );
+        return foundStation ? foundStation.location : null;
+      }
+    },
+
+    deepEqual
+  );
 
   const [layersOnMap, setLayersOnMap] = useState([]);
 
@@ -1431,6 +1445,7 @@ const MapBody: FunctionComponent = () => {
     for (const posEntry of posEntriesToShow) {
       if (!mapDisplayPos.showMarkers) break; //exit for, no markers need to be drawn
       if (!posEntry.location) continue; // go to next pos entry
+      if (isEqual(posEntry.location, egressLocation)) continue; // don't draw pos entries on top of lander
 
       // determine if this is one of the latest entries. If so, determine which latest pos types exist in this entry
       const customPosTypesUuids: string[] = [];
@@ -1601,7 +1616,17 @@ const MapBody: FunctionComponent = () => {
     //set in local state to be used in other use effects. Do this last so markers exist
     setLatestPosEntriesByType(posTypeLatestEntries);
     setPosEntriesShowing(posEntriesToShow);
-  }, [map, dispatch, mapDisplayPos, selectedOrRunningRex, sectionSelected, isWin10, rexPetTime]);
+  }, [
+    map,
+    dispatch,
+    mapDisplayPos,
+    selectedOrRunningRex,
+    sectionSelected,
+    isWin10,
+    rexPetTime,
+    egressLocation,
+    selectedEva?.egressLocationUuid,
+  ]);
 
   /**
    * Update position entry tooltips when rex is ticking

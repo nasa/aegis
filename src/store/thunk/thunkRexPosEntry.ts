@@ -12,13 +12,68 @@ import {
   upsertRexFromDb,
   deletePosEntryByUuid,
   setPosEntryEditingUuid,
-  upsertPosEntry,
   setRexesPosEntryEditMode,
   upsertRexByField,
+  upsertPosEntries,
 } from "store/rex";
 import cloneDeep from "lodash/cloneDeep";
 import * as httpClient_Rex from "http-client/rex";
 import { updateMapDirective } from "store/map";
+
+/*
+ * Create initial crew positions for a running rex if they do not already exist
+ */
+export const thunkCreateInitialPosEntries = appCreateAsyncThunk<void>(
+  "createInitialPosEntries",
+  async (__, { dispatch, getState }) => {
+    const runningRex = getState().rex.rexes.find((r) => r.isRunning);
+    const runningRexEva = getState().eva.evas.find((eva) => eva.uuid === runningRex.evaUuid);
+    const mission = getState().mission.mission;
+    const stationList = getState().station.stations;
+    if (!runningRex) return null;
+
+    const posEntryLocation: AEGISPoint =
+      runningRexEva?.egressLocationUuid === "lander"
+        ? mission.landerLocation
+        : stationList.find((station) => station.uuid === runningRexEva?.egressLocationUuid)
+            ?.location;
+    const seconds = 0;
+
+    const newPosEntries = [];
+
+    for (const posSource of runningRex?.posSources) {
+      // Find all posTypes that are not already in a posEntry for this posSource
+      const entrylessPosTypeUuids = runningRex.posTypes
+        .filter((posType) => {
+          return !runningRex.posEntries?.some(
+            (entry: PosEntry) =>
+              entry.posTypeUuids.includes(posType.uuid) && entry.posSourceUuid === posSource.uuid
+          );
+        })
+        .map((posType) => posType.uuid);
+
+      const newUuid = uuidv4();
+
+      const newPosEntry: PosEntry = {
+        uuid: newUuid,
+        location: posEntryLocation,
+        elevation: null,
+        seconds: seconds,
+        posTypeUuids: entrylessPosTypeUuids,
+        posSourceUuid: posSource.uuid,
+        createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
+        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      };
+      newPosEntries.push(newPosEntry);
+    }
+
+    await dispatch(
+      upsertPosEntries({ rexUuid: getState().rex.selectedRexUuid, posEntries: newPosEntries })
+    );
+
+    thunkPersistRexPosEntries({ rexUuid: runningRex.uuid });
+  }
+);
 
 /*
  * Create an new crew position for an rex but do not save to the db. keep in store only
@@ -33,6 +88,7 @@ export const thunkCreatePosEntry = appCreateAsyncThunk<
 >("createPosEntry", async ({ posTypeUuids }, { dispatch, getState }) => {
   const uuid = uuidv4();
   const runningRex = getState().rex.rexes.find((r) => r.isRunning);
+  const newPosEntries: PosEntry[] = [];
   if (!runningRex) return null;
   const seconds = secondsFromhhmmss(
     runningRex.petRunning ? calculatePetValue(runningRex) : runningRex.petValueAtStartStop
@@ -47,7 +103,10 @@ export const thunkCreatePosEntry = appCreateAsyncThunk<
     createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   };
-  dispatch(upsertPosEntry({ rexUuid: getState().rex.selectedRexUuid, posEntry: newPosEntry }));
+  newPosEntries.push(newPosEntry);
+  dispatch(
+    upsertPosEntries({ rexUuid: getState().rex.selectedRexUuid, posEntries: newPosEntries })
+  );
   dispatch(setPosEntryEditingUuid(uuid));
   dispatch(setRexesPosEntryEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: true }));
   return uuid;

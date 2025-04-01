@@ -163,25 +163,25 @@ export const rexSlice = createSlice({
     setPosEntryEditingUuid: (state, action: { payload: string }) => {
       state.posEntryEditingUuid = action.payload;
     },
-    upsertPosEntry: {
+    upsertPosEntries: {
       prepare: ({
         rexUuid,
-        posEntry: posEntry,
+        posEntries,
         preserveModifiedDate = false,
       }: {
         rexUuid: string;
-        posEntry: PosEntry;
+        posEntries: PosEntry[];
         preserveModifiedDate?: boolean;
       }) => {
         if (preserveModifiedDate) {
           return {
-            payload: { rexUuid, posEntry, updatedAt: null },
+            payload: { rexUuid, posEntries, updatedAt: null },
           };
         } else {
           return {
             payload: {
               rexUuid,
-              posEntry,
+              posEntries,
               updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
             },
           };
@@ -189,18 +189,24 @@ export const rexSlice = createSlice({
       },
       reducer: (
         state,
-        action: { payload: { rexUuid: string; posEntry: PosEntry; updatedAt: string } }
+        action: { payload: { rexUuid: string; posEntries: PosEntry[]; updatedAt: string } }
       ) => {
-        const rex = state.rexes.find((f) => f.uuid === action.payload.rexUuid);
+        const { rexUuid, posEntries, updatedAt } = action.payload;
+        const rex = state.rexes.find((f) => f.uuid === rexUuid);
         if (!rex.posEntries) {
-          rex.posEntries = [{ ...action.payload.posEntry, updatedAt: action.payload.updatedAt }];
+          rex.posEntries = posEntries.map((entry) => ({
+            ...entry,
+            updatedAt,
+          }));
         } else {
-          upsertToArrayByUuid(rex.posEntries, {
-            ...action.payload.posEntry,
-            updatedAt: action.payload.updatedAt,
+          posEntries.forEach((entry) => {
+            upsertToArrayByUuid(rex.posEntries, {
+              ...entry,
+              updatedAt,
+            });
           });
         }
-        if (action.payload.updatedAt) rex.updatedAt = action.payload.updatedAt;
+        if (updatedAt) rex.updatedAt = updatedAt;
       },
     },
     deletePosEntryByUuid: (
@@ -247,7 +253,7 @@ export const {
   setStateForNewRex,
   setSelectedPosEntryUuid,
   setPosEntryEditingUuid,
-  upsertPosEntry,
+  upsertPosEntries,
   deletePosEntryByUuid,
   obliterateState,
   setSelectedPosSourceUuid,
