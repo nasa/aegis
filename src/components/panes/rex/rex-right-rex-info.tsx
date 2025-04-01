@@ -15,6 +15,7 @@ import { thunkRexPetStartStop } from "store/thunk/thunkRex";
 import PetInterval from "components/page/petInterval";
 import sortBy from "lodash/sortBy";
 import map from "lodash/map";
+import { thunkCreateInitialPosEntries } from "store/thunk/thunkRexPosEntry";
 
 type EvaDropdownItem = {
   label: string;
@@ -121,6 +122,8 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                 !selectedRex.isRunning
                               )
                             );
+
+                            dispatch(thunkCreateInitialPosEntries());
                             if (selectedRex.petRunning) {
                               dispatch(
                                 thunkRexPetStartStop({

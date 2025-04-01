@@ -103,6 +103,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
           {selectedEva.sequence.map((sequenceItem) => {
             if (sequenceItem.type === "station") {
               const station = stations.find((station) => station.uuid === sequenceItem.uuid);
+              if (!station) return null;
               return (
                 <div key={sequenceItem.uuid}>
                   <div className={actionsStyles.evaActionsStationTitleContainer}>
