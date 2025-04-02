@@ -97,7 +97,11 @@ const RexRightRex: FunctionComponent = () => {
                     color: "var(--rex)",
                     fontSize: "1em",
                   },
-                  validators: [validators.required, validators.maxLength(255)],
+                  validators: [
+                    validators.required,
+                    validators.maxLength(255),
+                    validators.mustBeUnique(selectedRex.uuid, rexNames),
+                  ],
                 }}
                 styleContainer={{ paddingLeft: 0 }}
                 styleValue={{ padding: 0, height: "auto" }}
@@ -154,16 +158,7 @@ const RexRightRex: FunctionComponent = () => {
                   <Button
                     onClick={() => {
                       if (modified) {
-                        if (
-                          !rexNames.some(
-                            (rexName) =>
-                              rexName.name === selectedRex.name && rexName.uuid !== selectedRex.uuid
-                          )
-                        ) {
-                          dispatch(thunkSaveRex({ rexUuid: selectedRex.uuid }));
-                        } else {
-                          alert("Unable to save: REX name already exists");
-                        }
+                        dispatch(thunkSaveRex({ rexUuid: selectedRex.uuid }));
                       }
                     }}
                     icon={faFloppyDisk}

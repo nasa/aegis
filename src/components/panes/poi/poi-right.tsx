@@ -158,7 +158,11 @@ const PoiEditorRight: FunctionComponent = () => {
                   color: "var(--poi)",
                   fontSize: "1em",
                 },
-                validators: [validators.required, validators.maxLength(255)],
+                validators: [
+                  validators.required,
+                  validators.maxLength(255),
+                  validators.mustBeUnique(selectedPoiUuid, poiNames),
+                ],
               }}
               styleValue={{ padding: 0, height: "auto" }}
               styleContainer={{ paddingRight: "10px" }}
@@ -216,20 +220,11 @@ const PoiEditorRight: FunctionComponent = () => {
                   ariaLabel="savePoi"
                   onClick={() => {
                     if (selectedPoi && modified) {
-                      if (
-                        !poiNames.some(
-                          (poiName) =>
-                            poiName.name === selectedPoi.name && poiName.uuid !== selectedPoi.uuid
-                        )
-                      ) {
-                        dispatch(
-                          thunkSavePoi({
-                            poi: selectedPoi,
-                          })
-                        );
-                      } else {
-                        alert("Unable to save: POI name already exists");
-                      }
+                      dispatch(
+                        thunkSavePoi({
+                          poi: selectedPoi,
+                        })
+                      );
                     }
                   }}
                   icon={faFloppyDisk}

@@ -216,7 +216,11 @@ const StationEditorRight: FunctionComponent = () => {
                   color: "var(--station)",
                   fontSize: "1em",
                 },
-                validators: [validators.required, validators.maxLength(255)],
+                validators: [
+                  validators.required,
+                  validators.maxLength(255),
+                  validators.mustBeUnique(selectedStation.uuid, stationNames),
+                ],
               }}
               styleValue={{ padding: 0, height: "auto" }}
               styleContainer={{ paddingLeft: 0 }}
@@ -281,21 +285,11 @@ const StationEditorRight: FunctionComponent = () => {
                     ariaLabel="saveStation"
                     onClick={() => {
                       if (saveButtonState === "enabled") {
-                        if (
-                          !stationNames.some(
-                            (stationName) =>
-                              stationName.name === selectedStation.name &&
-                              stationName.uuid !== selectedStation.uuid
-                          )
-                        ) {
-                          dispatch(
-                            thunkSaveStation({
-                              station: selectedStation,
-                            })
-                          );
-                        } else {
-                          alert("Unable to save: Station name already exists");
-                        }
+                        dispatch(
+                          thunkSaveStation({
+                            station: selectedStation,
+                          })
+                        );
                       }
                     }}
                     icon={faFloppyDisk}

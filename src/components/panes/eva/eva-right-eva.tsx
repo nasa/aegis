@@ -285,7 +285,11 @@ const EvaRightEva: FunctionComponent = () => {
                   color: "var(--eva)",
                   fontSize: "1em",
                 },
-                validators: [validators.required, validators.maxLength(255)],
+                validators: [
+                  validators.required,
+                  validators.maxLength(255),
+                  validators.mustBeUnique(selectedEva.uuid, evaNames),
+                ],
               }}
               styleValue={{ padding: 0, height: "auto" }}
               styleContainer={{ paddingLeft: 0 }}
@@ -337,16 +341,7 @@ const EvaRightEva: FunctionComponent = () => {
                   ariaLabel="saveEva"
                   onClick={() => {
                     if (modified) {
-                      if (
-                        !evaNames.some(
-                          (evaName) =>
-                            evaName.name === selectedEva.name && evaName.uuid !== selectedEva.uuid
-                        )
-                      ) {
-                        dispatch(thunkSaveEva({ evaUuid: selectedEva.uuid }));
-                      } else {
-                        alert("Unable to save: EVA name already exists");
-                      }
+                      dispatch(thunkSaveEva({ evaUuid: selectedEva.uuid }));
                     }
                   }}
                   icon={faFloppyDisk}
