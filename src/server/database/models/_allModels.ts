@@ -16,6 +16,7 @@ import { Sublayer_db } from "./sublayer.model";
 import { Traverse_db } from "./traverse.model";
 import { Grid_db } from "./grid.model";
 import { STM_Rule_db } from "./stm_rules.model";
+import { Folder_db } from "./folder.model";
 
 export {
   User_db,
@@ -27,11 +28,12 @@ export {
   Layer_db,
   Preset_db,
   Rex_db,
-  Grid_db,
   STM_Level1_db,
   STM_Level2_db,
   STM_Level3_db,
-  STM_Rule_db,
   Sublayer_db,
   Traverse_db,
+  Grid_db,
+  STM_Rule_db,
+  Folder_db,
 };

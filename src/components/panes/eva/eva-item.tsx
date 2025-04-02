@@ -35,7 +35,7 @@ import last from "lodash/last";
 import PetInterval from "components/page/petInterval";
 import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
 
-const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
+const EvaItem: FunctionComponent<{ eva: Eva; first?: boolean }> = ({ eva, first = false }) => {
   const dispatch = useAppDispatch();
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
 
@@ -91,7 +91,10 @@ const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
   }
 
   return (
-    <div className={evaStyles.evaContainer}>
+    <div
+      className={evaStyles.evaContainer}
+      style={{ borderTop: first ? null : "1px var(--grey3) solid" }}
+    >
       <div className={evaStyles.nameitem} key={eva.uuid}>
         <div
           className={evaStyles.nameCaret}

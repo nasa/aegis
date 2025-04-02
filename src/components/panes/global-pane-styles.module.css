@@ -79,8 +79,7 @@
   display: flex;
   gap: 6px;
   flex-direction: row;
-  padding: 0 0 5px 0;
-  margin-left: 6px;
+  margin: 0 0 5px 0;
 }
 
 .rightActiveWindow {
@@ -204,10 +203,21 @@
 }
 
 .leftPanelContainer {
-  background-color: var(--grey2);
-  margin: 8px;
-  border-radius: var(--panelRadius);
+  display: flex;
+  flex-direction: column;
   height: 100%;
+  margin: 5px 5px 0 5px;
+  border-radius: var(--panelRadius);
+  overflow-y: hidden;
+}
+
+.leftPanelContainerTop {
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+.leftPanelContainerBottom {
+  flex: 0 0 auto;
+  padding-top: 5px;
 }
 
 .panelContainer {

@@ -146,6 +146,7 @@ type OneMissionToRuleThemAll = {
   stmRules: STMRule[];
   sublayers: Sublayer[];
   traverses: Traverse[];
+  folders: Folder[];
 };
 
 type MissionGrid = {

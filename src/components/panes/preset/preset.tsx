@@ -1,151 +1,108 @@
 import styles from "./preset.module.css";
 import paneStyles from "../global-pane-styles.module.css";
-import { faClone, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
+import { faClone, faFolderPlus, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent, useState } from "react";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
-import { setSelectedPresetUuid, setSelectedPresetRightNavItem } from "store/preset";
-import { ModifiedIndicator } from "components/interface/_global-elements";
 import { Button } from "components/interface/form/globalFields";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreatePreset, thunkDuplicatePreset } from "store/thunk/thunkPreset";
-import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
+import PresetItem from "./preset-item";
+import { FolderOrganizer } from "components/interface/folders";
+import { thunkAddRemoveFolderItem, thunkCreateFolder } from "store/thunk/thunkFolder";
+import sortBy from "lodash/sortBy";
 
 const PresetEditorLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const presets = useAppSelector((state) => state.preset.presets, deepEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
-
-  let selectedPreset: Preset;
-  if (presets !== null) {
-    selectedPreset = presets.find((preset: Preset) => preset.uuid === selectedPresetUuid);
-  }
-
-  const missionPresets = presets
-    .filter((preset) => preset.missionPreset === true)
-    .sort((a, b) => (a.name > b.name ? 1 : -1));
-
-  const userPresets = presets
-    .filter((preset) => preset.missionPreset === false)
-    .sort((a, b) => (a.name > b.name ? 1 : -1));
-
-  return (
-    <>
-      <div className={paneStyles.panelContainer}>
-        <div className={paneStyles.panelSection}>
-          {missionPresets ? (
-            <PresetList
-              presets={missionPresets}
-              selectedPresetUuid={selectedPresetUuid}
-              isPrimary={true}
-            />
-          ) : (
-            <div>No Mission Presets</div>
-          )}
-        </div>
-        <div className={paneStyles.panelSection}>
-          {userPresets ? (
-            <PresetList
-              presets={userPresets}
-              selectedPresetUuid={selectedPresetUuid}
-              isPrimary={false}
-            />
-          ) : (
-            <div>No User Presets</div>
-          )}
-        </div>
-      </div>
-      {editPerms && (
-        <div className={paneStyles.iconButtons}>
-          <Button
-            onClick={() => {
-              dispatch(thunkCreatePreset());
-            }}
-            label="Add"
-            icon={faPlusCircle}
-            style={{ width: "65px" }}
-          />
-          <Button
-            onClick={() => {
-              if (selectedPresetUuid !== null) {
-                dispatch(thunkDuplicatePreset({ preset: selectedPreset }));
-              }
-            }}
-            label="Duplicate"
-            icon={faClone}
-            enabled={selectedPresetUuid !== null}
-            style={{ width: "95px" }}
-          />
-        </div>
-      )}
-    </>
-  );
-};
-
-const PresetList: FunctionComponent<{
-  presets: Preset[];
-  selectedPresetUuid: string;
-  isPrimary: boolean;
-}> = ({ presets, selectedPresetUuid, isPrimary }) => {
-  const dispatch = useAppDispatch();
   const presetsFromDb = useAppSelector((state) => state.preset.presetsFromDb, deepEqual);
-  const selectedRightNavItem = useAppSelector(
-    (state) => state.preset.selectedRightNavItem,
-    refEqual
+
+  const selectedPreset = presets?.find((preset: Preset) => preset.uuid === selectedPresetUuid);
+
+  const folderRecords = useAppSelector(
+    (state) => state.interface.folders.filter((f) => f.type === "preset"),
+    deepEqual
   );
+  const foldersInterface = useAppSelector((state) => {
+    const allFoldersInterface = state.interface.foldersInterface;
+    return allFoldersInterface.filter((folderInterface) =>
+      folderRecords.some((folder) => folder.uuid === folderInterface.uuid)
+    );
+  }, deepEqual);
 
-  const [presetHoverUuid, setPresetHoverUuid] = useState(null);
+  const [hoverUuid, setHoverUuid] = useState<string | null>(null);
 
-  const handleSelectPresetClick = async (currentPreset: Preset) => {
-    if (currentPreset.uuid === selectedPresetUuid) {
-      return;
-    }
+  const itemsToFolders = folderRecords.reduce<Record<string, string>>((map, folder) => {
+    folder.items?.forEach((itemUuid) => {
+      map[itemUuid] = folder.uuid;
+    });
+    return map;
+  }, {});
 
-    dispatch(setSelectedPresetUuid(currentPreset.uuid));
-    if (!selectedRightNavItem) dispatch(setSelectedPresetRightNavItem("info_panel"));
-    dispatch(thunkSetRightPanelIsOpenIfAuto(true));
+  const setItemFolder = ({ folderUuid, uuid }: { folderUuid: string | null; uuid: string }) => {
+    dispatch(thunkAddRemoveFolderItem({ folderUuid, itemUuid: uuid }));
+  };
+
+  const renderPresetItem = ({ item: preset }: FolderItemProps<Preset>) => {
+    const presetFromDb = presetsFromDb.find((p) => p.uuid === preset.uuid);
+    return (
+      <PresetItem
+        selectedPresetUuid={selectedPresetUuid}
+        preset={preset}
+        presetFromDb={presetFromDb}
+        hoverUuid={hoverUuid}
+        onHover={setHoverUuid}
+      />
+    );
   };
 
   return (
-    <div className={styles.layerGroup}>
-      {presets.map((currentPreset, index) => {
-        let isSelectedOrHoveredStyle = null;
-        let isSelectedLabel = "";
-        if (currentPreset.uuid === selectedPresetUuid) {
-          isSelectedOrHoveredStyle = styles.presetItemSelected;
-          isSelectedLabel = "selectedPreset";
-        } else if (currentPreset.uuid === presetHoverUuid) {
-          isSelectedOrHoveredStyle = styles.presetItemHovered;
-        }
-
-        const presetFromDb = presetsFromDb.find((preset) => preset.uuid === currentPreset.uuid);
-        return (
-          <div
-            key={`sub_${currentPreset.name}_${index}`}
-            className={`${styles.presetItem} ${isSelectedOrHoveredStyle}`}
-            onMouseEnter={() => {
-              setPresetHoverUuid(currentPreset.uuid);
-            }}
-            onMouseLeave={() => {
-              setPresetHoverUuid(null);
-            }}
-            aria-label={`mapPreset-${isPrimary ? "primary" : "secondary"}`}
-          >
-            <div
-              className={styles.presetTitle}
-              onClick={() => handleSelectPresetClick(currentPreset)}
-              aria-label={isSelectedLabel}
-            >
-              <span aria-label="leftPresetName">{currentPreset.name}</span>
-              <span className={styles.defaultText} aria-label="leftPresetIsDefault">
-                {currentPreset.missionPresetDefault ? "(Default)" : ""}
-              </span>
-              <ModifiedIndicator obj1={[currentPreset]} obj2={[presetFromDb]} />
-            </div>
+    <>
+      <div className={paneStyles.leftPanelContainer}>
+        <div className={paneStyles.leftPanelContainerTop} aria-label="presetList">
+          <div className={styles.container}>
+            <FolderOrganizer
+              items={sortBy(presets, [(preset) => preset.name.toLowerCase()])}
+              getItemId={(preset) => preset.uuid}
+              renderItem={renderPresetItem}
+              folders={folderRecords}
+              foldersInterface={foldersInterface}
+              itemsToFolders={itemsToFolders}
+              setItemFolder={setItemFolder}
+              hideMenu={!editPerms}
+            />
           </div>
-        );
-      })}
-    </div>
+        </div>
+        <div className={paneStyles.leftPanelContainerBottom}>
+          {editPerms && (
+            <div className={paneStyles.iconButtons}>
+              <Button
+                onClick={() => dispatch(thunkCreatePreset())}
+                label="Add"
+                icon={faPlusCircle}
+                style={{ width: "65px" }}
+              />
+              <Button
+                onClick={() =>
+                  selectedPresetUuid && dispatch(thunkDuplicatePreset({ preset: selectedPreset }))
+                }
+                label="Duplicate"
+                icon={faClone}
+                enabled={selectedPresetUuid !== null}
+                style={{ width: "95px" }}
+              />
+              <Button
+                onClick={() => dispatch(thunkCreateFolder({ type: "preset" }))}
+                label="Folder"
+                icon={faFolderPlus}
+                style={{ width: "80px" }}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 };
 

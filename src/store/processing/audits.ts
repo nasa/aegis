@@ -3,11 +3,13 @@ import * as httpClient_action from "http-client/action";
 import * as httpClient_mission from "http-client/mission";
 import * as httpClient_rex from "http-client/rex";
 import * as httpClient_station from "http-client/station";
+import * as httpClient_folder from "http-client/folder";
 import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
 import clone from "lodash/clone";
 import { generateDefaultActionDefinitions } from "store/storeUtils/mission";
 import { v4 as uuidv4 } from "uuid";
+import { generateBlankFolder } from "store/storeUtils/folder";
 
 export const auditPresetsAgainstLayers = async ({
   wholeStoreState,
@@ -362,6 +364,65 @@ export const auditPosSources = async ({
     const upsertResponse = await httpClient_rex.upsertRexes(newRexes);
     if (upsertResponse.status !== "success") {
       // handle the error
+    }
+  }
+};
+
+export const auditPresetFolders = async ({
+  wholeStoreState,
+}: {
+  wholeStoreState: WholeStoreState;
+}): Promise<void> => {
+  const secondaryFolderName = "Secondary";
+
+  // Check if Secondary folder already exists
+  let secondaryFolder = wholeStoreState.interface.folders.find(
+    (f) => f.type === "preset" && f.name === secondaryFolderName
+  );
+
+  if (secondaryFolder) return;
+
+  // If the Secondary folder doesn't exist, create it
+  secondaryFolder = generateBlankFolder({
+    name: secondaryFolderName,
+    type: "preset",
+    missionId: wholeStoreState.mission.mission?.id,
+  });
+
+  // Save the new folder
+  const upsertResponse = await httpClient_folder.upsertFolders([secondaryFolder]);
+  if (upsertResponse.status !== "success") {
+    // handle the error
+    return;
+  }
+
+  // Add folder to store
+  wholeStoreState.interface.folders = [...wholeStoreState.interface.folders, secondaryFolder];
+
+  // Add folder interface state
+  wholeStoreState.interface.foldersInterface = [
+    ...wholeStoreState.interface.foldersInterface,
+    {
+      uuid: secondaryFolder.uuid,
+      isOpen: true,
+      visible: true,
+      editing: false,
+      editingNameValue: null,
+    },
+  ];
+
+  // Get all mission presets
+  const missionPresets = wholeStoreState.preset.presets.filter((p) => !p.missionPreset);
+
+  // Update folder items to include mission presets
+  if (secondaryFolder && missionPresets.length > 0) {
+    secondaryFolder.items = missionPresets.map((p) => p.uuid);
+
+    // Save the updated folder
+    const upsertResponse = await httpClient_folder.upsertFolders([secondaryFolder]);
+    if (upsertResponse.status !== "success") {
+      // handle the error
+      return;
     }
   }
 };

@@ -76,7 +76,7 @@ export const thunkSavePoi = appCreateAsyncThunk<{
   if (poiUpsertResponse.status === "success") {
     // upsert the changed POI to the store
     dispatch(upsertPoi(poiUpsertResponse.data[0], true));
-    // update the POI in the store with a  fresh copy of POIs from DB
+    // update the POI in the store with a fresh copy of POIs from DB
     dispatch(upsertPoiFromDb(poiUpsertResponse.data[0]));
   } else {
     throw new Error("Error upserting POI: " + poiUpsertResponse.message);

@@ -1,6 +1,6 @@
 {
   "name": "aegis",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "private": true,
   "scripts": {
     "dev": "concurrently -n vite,api \"npm run vite:dev:wait\" \"npm run api:dev\"",
@@ -45,6 +45,7 @@
     "schema:create:mission": "typescript-json-schema ./src/schema/tsconfig.schema.json ExportMission --required --include ./src/typings/**/*.d.ts --ignoreErrors -o ./src/schema/exportMission.json"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
     "@emss/logger": "^0.7.0",
@@ -82,6 +83,7 @@
     "final-form": "^4.20.10",
     "fontfaceobserver": "^2.3.0",
     "is-hotkey": "^0.2.0",
+    "js-cookie": "^3.0.5",
     "json-keys-sort": "^2.1.0",
     "json-logic-js": "^2.0.5",
     "leaflet": "^1.9.4",
@@ -135,6 +137,7 @@
     "@types/geojson": "^7946.0.14",
     "@types/is-hotkey": "^0.1.10",
     "@types/jest": "^29.5.13",
+    "@types/js-cookie": "^3.0.6",
     "@types/leaflet": "^1.9.12",
     "@types/leaflet-polylinedecorator": "^1.6.4",
     "@types/leo-profanity": "^1.5.4",

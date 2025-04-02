@@ -9,6 +9,7 @@ import {
   faCaretRight,
   faPlusCircle,
   faSliders,
+  faFolderPlus,
 } from "@fortawesome/free-solid-svg-icons";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
@@ -26,40 +27,76 @@ import { EvaEgressIngressListing } from "../eva/eva-item";
 import { getRexStatusDisplayProperties } from "utils/rex";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import sortBy from "lodash/sortBy";
+import { FolderOrganizer } from "components/interface/folders";
+import { thunkAddRemoveFolderItem, thunkCreateFolder } from "store/thunk/thunkFolder";
 
 const EvaRexLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const rexes = useAppSelector((state) => state.rex.rexes, deepEqual);
-  // sort the rexes by name
-  const rexesSorted = sortBy(rexes, [(rex) => rex.name.toLowerCase()]);
-
   const isRexRunningFromDb = useAppSelector(
     (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
     refEqual
   );
-
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+
+  const folderRecords = useAppSelector(
+    (state) => state.interface.folders.filter((f) => f.type === "rex"),
+    deepEqual
+  );
+  const foldersInterface = useAppSelector((state) => {
+    const allFoldersInterface = state.interface.foldersInterface;
+    return allFoldersInterface.filter((folderInterface) =>
+      folderRecords.some((folder) => folder.uuid === folderInterface.uuid)
+    );
+  }, deepEqual);
+
+  const itemsToFolders = folderRecords.reduce<Record<string, string>>((map, folder) => {
+    folder.items?.forEach((itemUuid) => {
+      map[itemUuid] = folder.uuid;
+    });
+    return map;
+  }, {});
+
+  const setItemFolder = ({ folderUuid, uuid }: { folderUuid: string | null; uuid: string }) => {
+    dispatch(
+      thunkAddRemoveFolderItem({
+        folderUuid,
+        itemUuid: uuid,
+      })
+    );
+  };
+
+  const renderRexItem = ({ item: rex, first }: FolderItemProps<Rex>) => {
+    return (
+      <div className={styles.panelContainer} key={rex.uuid} aria-label="rex-item">
+        <EvaRexItem rexUuid={rex.uuid} first={first} />
+      </div>
+    );
+  };
+
   return (
     <>
-      <div className={styles.leftContainer}>
-        <div className={styles.leftBody}>
+      <div className={paneStyles.leftPanelContainer}>
+        <div className={paneStyles.leftPanelContainerTop}>
           {isRexRunningFromDb ? (
             <div className={styles.panelContainer}>
-              <EvaRexItem rexUuid={isRexRunningFromDb.uuid} />
+              <EvaRexItem rexUuid={isRexRunningFromDb.uuid} first={true} />
             </div>
           ) : (
-            <>
-              {sortBy(rexesSorted, [(rex) => rex.name.toLowerCase()]).map((rex) => (
-                <div className={styles.panelContainer} key={rex.uuid} aria-label="rex-item">
-                  <EvaRexItem rexUuid={rex.uuid} key={rex.uuid} />
-                </div>
-              ))}
-            </>
+            <FolderOrganizer
+              items={sortBy(rexes, [(rex) => rex.name.toLowerCase()])}
+              getItemId={(rex) => rex.uuid}
+              renderItem={renderRexItem}
+              folders={folderRecords}
+              foldersInterface={foldersInterface}
+              itemsToFolders={itemsToFolders}
+              setItemFolder={setItemFolder}
+              hideMenu={!editPerms}
+            />
           )}
         </div>
-
-        {editPerms && !isRexRunningFromDb && (
-          <div className={styles.evasLeftFooter}>
+        <div className={paneStyles.leftPanelContainerBottom}>
+          {editPerms && !isRexRunningFromDb && (
             <div className={paneStyles.iconButtons}>
               <Button
                 onClick={() => {
@@ -69,20 +106,19 @@ const EvaRexLeft: FunctionComponent = () => {
                 icon={faPlusCircle}
                 style={{ width: "65px" }}
               />
-              {/* <Button
+              <Button
+                ariaLabel="addFolder"
                 onClick={() => {
-                  if (selectedRexUuid) {
-                    dispatch(thunkDuplicateRex({ rexUuid: selectedRexUuid }));
-                  }
+                  dispatch(thunkCreateFolder({ type: "rex" }));
                 }}
-                label="Duplicate"
-                icon={faClone}
-                enabled={!isNull(selectedRexUuid)}
-                style={{ width: "95px" }}
-              /> */}
+                label="Folder"
+                icon={faFolderPlus}
+                style={{ width: "80px" }}
+                toolTip="Create a new folder"
+              />
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </>
   );
@@ -90,7 +126,10 @@ const EvaRexLeft: FunctionComponent = () => {
 
 export default EvaRexLeft;
 
-const EvaRexItem: FunctionComponent<{ rexUuid: string }> = ({ rexUuid }) => {
+const EvaRexItem: FunctionComponent<{ rexUuid: string; first?: boolean }> = ({
+  rexUuid,
+  first = false,
+}) => {
   const dispatch = useAppDispatch();
   const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
   const expandedRexUuids = useAppSelector((state) => state.rex.expandedRexUuids, shallowEqual);
@@ -150,6 +189,7 @@ const EvaRexItem: FunctionComponent<{ rexUuid: string }> = ({ rexUuid }) => {
     <>
       <div
         className={styles.rexContainer}
+        style={{ borderTop: first ? null : "1px var(--grey3) solid" }}
         aria-label={rex.uuid === selectedRexUuid ? "selectedRex" : ""}
       >
         <div className={styles.nameitem} key={rex.uuid}>

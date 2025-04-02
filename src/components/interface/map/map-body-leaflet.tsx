@@ -213,6 +213,21 @@ const MapBody: FunctionComponent = () => {
     deepEqual
   );
 
+  const folders = useAppSelector(
+    (state) =>
+      state.interface.folders.filter(
+        (folder) => folder.type === "poi" || folder.type === "station"
+      ),
+    deepEqual
+  );
+  const foldersInterface = useAppSelector(
+    (state) =>
+      state.interface.foldersInterface.filter((folderInterface) =>
+        folders.some((folder) => folder.uuid === folderInterface.uuid)
+      ),
+    deepEqual
+  );
+
   const [layersOnMap, setLayersOnMap] = useState([]);
 
   const [posEntriesShowing, setPosEntriesShowing] = useState<PosEntry[]>([]);
@@ -298,6 +313,7 @@ const MapBody: FunctionComponent = () => {
     setShowArrows(eyeballMenuSettings.showArrows);
     setShowGridLabels(eyeballMenuSettings.showGridLabels);
     setShowGridLines(eyeballMenuSettings.showGridLines);
+    setShowSunEarth(eyeballMenuSettings.showSunEarth || false); // default to false if not in cookie
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -316,6 +332,7 @@ const MapBody: FunctionComponent = () => {
         showArrows,
         showGridLabels,
         showGridLines,
+        showSunEarth,
       }),
       { path: "/" }
     );
@@ -328,6 +345,7 @@ const MapBody: FunctionComponent = () => {
     showArrows,
     showGridLabels,
     showGridLines,
+    showSunEarth,
   ]);
 
   /**
@@ -644,6 +662,31 @@ const MapBody: FunctionComponent = () => {
     let stationsToShow: Station[] = [];
     if (mapDisplayStations.show) {
       stationsToShow = stations;
+
+      // Get all station folders and their interfaces
+      const stationFolders = folders.filter((folder) => folder.type === "station");
+
+      // Filter out stations that are in hidden folders
+      stationsToShow = stationsToShow.filter((station) => {
+        // Always show selected station regardless of folder visibility
+        if (selectedStation && station.uuid === selectedStation.uuid) {
+          return true;
+        }
+
+        // Find which folder contains this station
+        const containingFolder = stationFolders.find((folder) =>
+          folder.items.includes(station.uuid)
+        );
+
+        if (!containingFolder) {
+          return true; // Keep stations not in any folder
+        }
+
+        // Check if the folder is visible in the interface
+        const folderInterface = foldersInterface.find((fi) => fi.uuid === containingFolder.uuid);
+
+        return !folderInterface || folderInterface.visible;
+      });
     } else {
       if (selectedEva) {
         const stationSequenceItems = selectedEva.sequence.filter((item) => item.type === "station");
@@ -710,7 +753,7 @@ const MapBody: FunctionComponent = () => {
           const circleDefinitions = mission.circleDefinitions;
 
           // draw circle around station for each mapCircleControl.
-          circleDefinitions.forEach((circleDefinition) => {
+          circleDefinitions?.forEach((circleDefinition) => {
             /*
              * Map does NOT think in terms of planets for coordinates,
              * and currently acts as if coordinates correspond to earth.
@@ -763,6 +806,8 @@ const MapBody: FunctionComponent = () => {
     mapDirective,
     dispatch,
     isWin10,
+    foldersInterface,
+    folders,
   ]);
 
   /**
@@ -908,10 +953,32 @@ const MapBody: FunctionComponent = () => {
 
     if (mapDisplayPois.show) {
       poisToShow = pois;
-    } else {
-      if (selectedPoi && sectionSelected === "poi") {
-        poisToShow = [selectedPoi];
-      }
+
+      // Get all POI folders and their interfaces
+      const poiFolders = folders.filter((folder) => folder.type === "poi");
+
+      // Filter out POIs that are in hidden folders
+      poisToShow = poisToShow.filter((poi) => {
+        // Always show selected POI regardless of folder visibility
+        if (selectedPoi && poi.uuid === selectedPoi.uuid) {
+          return true;
+        }
+
+        // Find which folder contains this POI
+        const containingFolder = poiFolders.find((folder) => folder.items.includes(poi.uuid));
+
+        if (!containingFolder) {
+          return true; // Keep POIs not in any folder
+        }
+
+        // Check if the folder is visible in the interface
+        const folderInterface = foldersInterface.find((fi) => fi.uuid === containingFolder.uuid);
+
+        return !folderInterface || folderInterface.visible;
+      });
+    } else if (selectedPoi && sectionSelected === "poi") {
+      // If map display is off but we're in POI section, show selected POI
+      poisToShow = [selectedPoi];
     }
 
     // delete all pois in leaflet
@@ -952,7 +1019,17 @@ const MapBody: FunctionComponent = () => {
         });
       }
     });
-  }, [pois, selectedPoi, mapDisplayPois, sectionSelected, mapDirective, isWin10, dispatch]);
+  }, [
+    pois,
+    selectedPoi,
+    mapDisplayPois,
+    sectionSelected,
+    mapDirective,
+    isWin10,
+    dispatch,
+    foldersInterface,
+    folders,
+  ]);
 
   /**
    * Determine traverses to show and draw them on map when traverses or selections change

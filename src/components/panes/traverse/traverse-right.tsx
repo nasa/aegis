@@ -202,7 +202,7 @@ const TraverseEditorRight: FunctionComponent = () => {
                     }}
                     icon={faBan}
                     toolTip="Cancel Edit"
-                    style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                    style={{ width: "30px", fontSize: "0.9em", paddingLeft: "9px" }}
                   />
                 </>
               )

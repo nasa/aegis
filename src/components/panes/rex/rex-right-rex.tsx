@@ -127,7 +127,7 @@ const RexRightRex: FunctionComponent = () => {
                     }
                   }}
                   toolTip="Delete Rex Item"
-                  style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                  style={{ width: "30px", fontSize: "0.9em", paddingLeft: "9px" }}
                   ariaLabel="deleteButton"
                 />
               )}
@@ -160,7 +160,7 @@ const RexRightRex: FunctionComponent = () => {
                       backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
                       color: modified ? "white" : "var(--grey4)",
                       fontSize: "0.9em",
-                      paddingLeft: "10px",
+                      paddingLeft: "9px",
                     }}
                     ariaLabel="saveButton"
                   />
@@ -170,7 +170,7 @@ const RexRightRex: FunctionComponent = () => {
                     }}
                     icon={faBan}
                     toolTip="Cancel Edit"
-                    style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                    style={{ width: "30px", fontSize: "0.9em", paddingLeft: "8px" }}
                     ariaLabel="cancelButton"
                   />
                 </>
