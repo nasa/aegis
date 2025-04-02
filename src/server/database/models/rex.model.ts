@@ -37,6 +37,8 @@ export class Rex_db implements Rex_db_type {
   traverseEntries: TraverseEntries;
   @Property({ type: MikroTypes.json, nullable: true })
   actionEntries: ActionEntries;
+  @Property({ type: MikroTypes.json, nullable: true })
+  xgressEntries: XgressEntries;
   @Property({ type: MikroTypes.integer, nullable: true })
   ownerId: number;
 

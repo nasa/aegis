@@ -180,7 +180,7 @@ export const thunkRexPetStartStop = appCreateAsyncThunk<{
 });
 
 export const thunkAddRexStatusEntry = appCreateAsyncThunk<{
-  entryType: "station" | "traverse" | "action";
+  entryType: "station" | "traverse" | "action" | "xgress";
   uuid: string; //uuid of the station, traverse, or action to add a status to
   rexStatus: RexStatus;
 }>("addRexStatusEntry", async ({ entryType, uuid, rexStatus }, { dispatch, getState }) => {
@@ -226,6 +226,17 @@ export const thunkAddRexStatusEntry = appCreateAsyncThunk<{
     }
     runningRexFromDb.actionEntries = newEntries;
     dispatch(upsertRexByField(runningRexFromDb.uuid, "actionEntries", newEntries, true));
+    dispatch(upsertRexFromDb(runningRexFromDb));
+  } else if (entryType === "xgress") {
+    const newEntry: XgressEntry = {
+      uuid: uuidv4(),
+      rexStatus,
+      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    };
+    const newEntries = cloneDeep(runningRexFromDb.xgressEntries) || {};
+    (newEntries[uuid] ||= []).push(newEntry); //logical or assignment. will either return newEntries[uuid] or assign it to []
+    runningRexFromDb.xgressEntries = newEntries;
+    dispatch(upsertRexByField(runningRexFromDb.uuid, "xgressEntries", newEntries, true));
     dispatch(upsertRexFromDb(runningRexFromDb));
   }
 

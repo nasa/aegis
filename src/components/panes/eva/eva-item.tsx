@@ -1,6 +1,6 @@
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import { Button } from "components/interface/form/globalFields";
-import { FunctionComponent } from "react";
+import { FunctionComponent, useCallback, useState } from "react";
 import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
 import {
   setSelectedEvaRightNavItem,
@@ -22,9 +22,18 @@ import EvaItemSequence from "./eva-item-sequence";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkAddStationToEva } from "store/thunk/thunkEva";
-import { decodeEmoji, hmmFromMinutes } from "utils/formatting";
+import {
+  decodeEmoji,
+  hhmmssFromSeconds,
+  hmmFromMinutes,
+  secondsFromhhmmss,
+} from "utils/formatting";
 import { setHoverUuidsForSequence } from "store/hover";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
+import { RexStatusMenu } from "../rex/rex";
+import last from "lodash/last";
+import PetInterval from "components/page/petInterval";
+import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
 
 const EvaItem: FunctionComponent<{ eva: Eva }> = ({ eva }) => {
   const dispatch = useAppDispatch();
@@ -174,14 +183,69 @@ export const EvaEgressIngressListing: FunctionComponent<{
     );
   }, deepEqual);
 
-  const icon = station ? station.icon : "1f680"; //rocket
-  const name = `${isEgress ? "Egress" : "Ingress"} at ${station ? station.name : "Lander"}`;
+  const runningRexFromDb = useAppSelector(
+    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
+    deepEqual
+  );
+
+  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
 
-  let showHover: boolean = false;
-  if (isEgress && hoverItemUuid === "egress") showHover = true;
-  if (!isEgress && hoverItemUuid === "ingress") showHover = true;
+  const xgressIdentifier = isEgress ? "egress" : "ingress";
+
+  const xgressRexStatus = useAppSelector((state) => {
+    const rex = state.rex.rexesFromDb.find((rex) => rex.isRunning);
+    if (!rex || !rex.xgressEntries) return null;
+    return last(rex.xgressEntries[xgressIdentifier])?.rexStatus;
+  }, shallowEqual);
+
+  const [rexPetTime, setRexPetTime] = useState("");
+
+  const evaCalculatedFields: EvaCalculatedFields = useAppSelector(
+    (state) =>
+      getCalculatedFieldsByEva({
+        evaUuid: eva.uuid,
+        evas: state.eva.evas,
+        stations: state.station.stations,
+        mission: state.mission.mission,
+        actions: state.action.actions,
+        traverses: state.traverse.traverses,
+      }),
+    deepEqual
+  );
+
+  const displayInProgressItemTimeRemaining = useCallback(
+    (rexPetSeconds: number) => {
+      if (!evaCalculatedFields) return null;
+      const totalEvaTime = evaCalculatedFields.totalEvaTime.durationUpper;
+      let secondsRemaining = 0;
+      if (xgressIdentifier === "egress") {
+        secondsRemaining = (eva.egressDuration * 60 - rexPetSeconds) * -1;
+      } else {
+        secondsRemaining = (totalEvaTime * 60 - eva.ingressDuration * 60 - rexPetSeconds) * -1;
+      }
+      return hhmmssFromSeconds(secondsRemaining);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [evaCalculatedFields, eva]
+  );
+
+  let xgressStyle = null;
+  if (xgressIdentifier === hoverItemUuid) {
+    xgressStyle = evaStyles.evaItemNameHoverMode;
+  }
+
+  if (xgressRexStatus === "in-progress") {
+    xgressStyle = evaStyles.evaItemNameRexInProgress;
+  } else if (xgressRexStatus === "complete") {
+    xgressStyle = evaStyles.evaItemNameRexComplete;
+  } else if (xgressRexStatus === "skipped") {
+    xgressStyle = evaStyles.evaItemNameRexSkipped;
+  }
+
+  const icon = station ? station.icon : "1f680"; //rocket
+  const name = `${isEgress ? "Egress" : "Ingress"} at ${station ? station.name : "Lander"}`;
 
   return (
     <div
@@ -192,9 +256,23 @@ export const EvaEgressIngressListing: FunctionComponent<{
           : { borderTop: "1px var(--grey3) solid" }
       }
     >
+      <PetInterval
+        runningRex={runningRexFromDb}
+        rexPetTime={rexPetTime}
+        setRexPetTime={setRexPetTime}
+      />
       <div className={evaStyles.iconCustom}>{decodeEmoji(icon)}</div>
+      {runningRexFromDb && (
+        <RexStatusMenu
+          rexStatus={xgressRexStatus}
+          divClassName={evaStyles.rexStatusWrapper}
+          entryType="xgress"
+          uuid={xgressIdentifier}
+          editPerms={editPerms}
+        />
+      )}
       <div
-        className={`${evaStyles.evaItemName} ${showHover ? evaStyles.evaItemNameHoverMode : ""}`}
+        className={`${evaStyles.evaItemName} ${xgressStyle}`}
         style={{ cursor: "pointer" }}
         onClick={() => {
           dispatch(setSelectedEvaUuid(eva.uuid));
@@ -225,6 +303,16 @@ export const EvaEgressIngressListing: FunctionComponent<{
           >
             {hmmFromMinutes(isEgress ? eva.egressDuration : eva.ingressDuration)}
           </div>
+          {runningRexFromDb && xgressRexStatus === "in-progress" && (
+            <div
+              className={evaStyles.evaItemRightItem}
+              data-tooltip-id="aegis-tooltip"
+              data-tooltip-html={"Time remaining (hh:mm:ss)"}
+              data-tooltip-place="right"
+            >
+              {displayInProgressItemTimeRemaining(secondsFromhhmmss(rexPetTime))}
+            </div>
+          )}
         </div>
       </div>
     </div>

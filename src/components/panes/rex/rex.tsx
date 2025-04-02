@@ -262,7 +262,7 @@ export const RexStatusMenu: FunctionComponent<{
   rexStatus: RexStatus;
   divClassName: string;
   divStyle?: CSSProperties;
-  entryType: "action" | "station" | "traverse";
+  entryType: "action" | "station" | "traverse" | "xgress";
   uuid: string;
   editPerms: boolean;
 }> = ({ rexStatus, divClassName, divStyle = {}, entryType, uuid, editPerms }): JSX.Element => {

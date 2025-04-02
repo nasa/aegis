@@ -23,6 +23,7 @@ export default class RexFactory extends Factory<Rex_db> {
       stationEntries: null,
       traverseEntries: null,
       actionEntries: null,
+      xgressEntries: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

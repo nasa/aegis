@@ -17,6 +17,7 @@ type Rex = {
   stationEntries: StationEntries;
   traverseEntries: TraverseEntries;
   actionEntries: ActionEntries;
+  xgressEntries: XgressEntries | null;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -81,4 +82,14 @@ interface ActionEntry {
   rexStatus: RexStatus;
   mass: number;
   createdAt: string;
+}
+
+interface XgressEntry {
+  uuid: string;
+  rexStatus: RexStatus;
+  createdAt: string;
+}
+
+interface XgressEntries {
+  [xgressUuid: string]: XgressEntry[];
 }

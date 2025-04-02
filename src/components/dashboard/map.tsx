@@ -387,6 +387,29 @@ const MapBody: FunctionComponent<{
         objectCoordinates.push(lastPosEntry.location);
       }
     }
+    // egress and ingress
+    if (last(runningRexFromDb.xgressEntries?.["egress"])?.rexStatus === "in-progress") {
+      let egressCoordinates: AEGISPoint;
+      if (runningEvaFromDb.egressLocationUuid === "lander") {
+        egressCoordinates = mission.landerLocation;
+      } else {
+        egressCoordinates = stationsFromDb.find(
+          (station) => station.uuid === runningEvaFromDb.egressLocationUuid
+        )?.location;
+      }
+      objectCoordinates.push(egressCoordinates);
+    }
+    if (last(runningRexFromDb.xgressEntries?.["ingress"])?.rexStatus === "in-progress") {
+      let ingressCoordinates: AEGISPoint;
+      if (runningEvaFromDb.ingressLocationUuid === "lander") {
+        ingressCoordinates = mission.landerLocation;
+      } else {
+        ingressCoordinates = stationsFromDb.find(
+          (station) => station.uuid === runningEvaFromDb.ingressLocationUuid
+        )?.location;
+      }
+      objectCoordinates.push(ingressCoordinates);
+    }
 
     // get max and min coordinate bounds of all objects
     let maxLat: number = null;
@@ -423,6 +446,9 @@ const MapBody: FunctionComponent<{
     traversesInProgress,
     latestPosEntriesByType,
     followMode,
+    runningEvaFromDb,
+    stationsFromDb,
+    runningRexFromDb,
   ]);
 
   /**

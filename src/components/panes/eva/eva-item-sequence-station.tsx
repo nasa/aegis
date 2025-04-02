@@ -80,7 +80,7 @@ const SequenceItemStation: FunctionComponent<{
     refEqual
   );
 
-  const sequenceItemMetadata = useAppSelector(
+  const sequenceItemCalculatedData = useAppSelector(
     (state) =>
       getCalculatedFieldsByEva({
         evaUuid,
@@ -160,11 +160,11 @@ const SequenceItemStation: FunctionComponent<{
 
   const displayInProgressItemTimeRemaining = useCallback(
     (rexPetSeconds: number) => {
-      if (!sequenceItemMetadata) return "N/A";
-      const secondsRemaining = (sequenceItemMetadata.endSeconds - rexPetSeconds) * -1;
+      if (!sequenceItemCalculatedData) return "N/A";
+      const secondsRemaining = (sequenceItemCalculatedData.endSeconds - rexPetSeconds) * -1;
       return hhmmssFromSeconds(secondsRemaining);
     },
-    [sequenceItemMetadata]
+    [sequenceItemCalculatedData]
   );
 
   const handleSequenceItemClick = useCallback(
