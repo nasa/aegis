@@ -1,12 +1,14 @@
 import { initialState as wholeStoreInitialState } from "store/index";
 import { getAll } from "http-client/all";
 import cloneDeep from "lodash/cloneDeep";
+import Cookies from "js-cookie";
 import {
   auditActionDefinitions,
   auditActions,
   auditPosSources,
   auditPresetsAgainstLayers,
   auditStationCircles,
+  auditPresetFolders,
 } from "./audits";
 
 export const populateStore = async (params: {
@@ -44,6 +46,10 @@ export const populateStore = async (params: {
   wholeStoreState.stm.rulesFromDb = allDataRes.data.stmRules;
   wholeStoreState.traverse.traverses = allDataRes.data.traverses;
   wholeStoreState.traverse.traversesFromDb = allDataRes.data.traverses;
+  wholeStoreState.interface.folders = allDataRes.data.folders;
+
+  // Generate folders interface states for the store (using cookies if available)
+  generateFoldersInterfaceStates({ wholeStoreState });
   // these values are from the vite.config.mts file and are set at build time
   wholeStoreState.interface.appVersion = {
     version: __APP_VERSION__,
@@ -56,6 +62,7 @@ export const populateStore = async (params: {
     await auditStationCircles({ wholeStoreState });
     await auditActionDefinitions({ wholeStoreState });
     await auditPosSources({ wholeStoreState });
+    await auditPresetFolders({ wholeStoreState });
   }
 
   // Set the default preset
@@ -176,4 +183,37 @@ const generateStationsCirclesUIStates = async (params: {
 
     wholeStoreState.station.stationCirclesUIStates[stationUuid] = stationCircleUIStates;
   });
+};
+
+const generateFoldersInterfaceStates = (params: { wholeStoreState: WholeStoreState }): void => {
+  const { wholeStoreState } = params;
+  try {
+    const foldersInterfaceCookie: FoldersInterfaceCookie = JSON.parse(
+      Cookies.get("AEGIS_Folders_Interface") || "{}"
+    );
+
+    wholeStoreState.interface.foldersInterface = wholeStoreState.interface.folders.map((folder) => {
+      const savedState = foldersInterfaceCookie[folder.uuid];
+      return {
+        uuid: folder.uuid,
+        isOpen: savedState?.isOpen ?? true,
+        visible: savedState?.visible ?? true,
+        editing: false,
+        editingNameValue: null,
+      } as FolderInterface;
+    });
+  } catch (error) {
+    console.error("Error parsing folder interfaces from cookie:", error);
+    // Create default folder interfaces if there's an error with the cookie
+    wholeStoreState.interface.foldersInterface = wholeStoreState.interface.folders.map(
+      (folder) =>
+        ({
+          uuid: folder.uuid,
+          isOpen: true,
+          visible: true,
+          editing: false,
+          editingNameValue: null,
+        }) as FolderInterface
+    );
+  }
 };

@@ -34,6 +34,8 @@ export const initialState: InterfaceState = {
       },
     },
   },
+  folders: [],
+  foldersInterface: [],
 };
 
 export const interfaceSlice = createSlice({
@@ -141,6 +143,77 @@ export const interfaceSlice = createSlice({
         state.stmRulesSelectedRexes.push(action.payload);
       }
     },
+    setFolders: (state, action: { payload: Folder[] }) => {
+      state.folders = action.payload;
+
+      // Automatically handle folder interfaces when folders are set
+      const existingInterfaces = state.foldersInterface || [];
+      const newFolderInterfaces: FolderInterface[] = [];
+
+      // Check for new folders that need interfaces
+      for (const folder of action.payload) {
+        const existingInterface = existingInterfaces.find((f) => f.uuid === folder.uuid);
+        if (!existingInterface) {
+          newFolderInterfaces.push({
+            uuid: folder.uuid,
+            isOpen: true,
+            visible: true,
+            editing: false,
+            editingNameValue: null,
+          });
+        }
+      }
+
+      // Update interfaces array with new interfaces if any were created
+      if (newFolderInterfaces.length > 0) {
+        state.foldersInterface = [...existingInterfaces, ...newFolderInterfaces];
+      }
+
+      // Remove interfaces for folders that no longer exist
+      const folderUuids = action.payload.map((f) => f.uuid);
+      state.foldersInterface = state.foldersInterface.filter((fi) => folderUuids.includes(fi.uuid));
+    },
+
+    folderToggleOpenClose: (state, action: { payload: { uuid: string } }) => {
+      const folder = state.foldersInterface.find((folder) => folder.uuid === action.payload.uuid);
+      if (folder) {
+        folder.isOpen = !folder.isOpen;
+      }
+    },
+    folderToggleVisible: (state, action: { payload: { uuid: string } }) => {
+      const folder = state.foldersInterface.find((folder) => folder.uuid === action.payload.uuid);
+      if (folder) {
+        folder.visible = !folder.visible;
+      }
+    },
+    setFolderInterfaceEditing: (
+      state,
+      action: { payload: { folderUuid: string; editing: boolean } }
+    ) => {
+      const folder = state.foldersInterface.find((f) => f.uuid === action.payload.folderUuid);
+      if (folder) {
+        folder.editing = action.payload.editing;
+        if (action.payload.editing) {
+          // When setting to editing mode, set the editingNameValue to the current folder name
+          const actualFolder = state.folders.find((f) => f.uuid === action.payload.folderUuid);
+          if (actualFolder) {
+            folder.editingNameValue = actualFolder.name;
+          }
+        } else {
+          // When exiting editing mode, clear the editingNameValue
+          folder.editingNameValue = null;
+        }
+      }
+    },
+    setFolderInterfaceNameValue: (
+      state,
+      action: { payload: { folderUuid: string; editingNameValue: string } }
+    ) => {
+      const folder = state.foldersInterface.find((f) => f.uuid === action.payload.folderUuid);
+      if (folder) {
+        folder.editingNameValue = action.payload.editingNameValue;
+      }
+    },
     setLastStatusFromServer: (state, action: { payload: StatusFromServer }) => {
       state.socketStatus.lastStatusFromServer = action.payload;
       // due to a store race condition, sometimes the connectionStatus is not "connected". Update it
@@ -194,6 +267,11 @@ export const {
   stmViewSetHoveredTopItem,
   stmViewSetHoveredLeftItem,
   stmRulesToggleRex,
+  setFolders,
+  folderToggleOpenClose,
+  folderToggleVisible,
+  setFolderInterfaceEditing,
+  setFolderInterfaceNameValue,
   setLastStatusFromServer,
   setSocketConnectionStatus,
   setLastEditEvent,

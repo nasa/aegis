@@ -152,3 +152,15 @@ type UserUpsertRequest = {
 type UserDeleteRequest = {
   userIds: number[];
 };
+
+type FolderUpsertRequest = {
+  missionId: number;
+  socketId?: string;
+  folders: Folder[];
+};
+
+type FolderDeleteRequest = {
+  missionId: number;
+  socketId?: string;
+  folderUuids: string[];
+};

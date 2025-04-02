@@ -331,7 +331,7 @@ export const InLineEditInput: FunctionComponent<{
               <form onSubmit={handleSubmit}>
                 <FFInput
                   {...fieldProps}
-                  className={styles.inLineEditInput}
+                  className={styles.inLineEditInput + " " + fieldProps.className}
                   classNameError={styles.inLineEditInputError}
                   onChange={() => {
                     form.submit();

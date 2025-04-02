@@ -187,14 +187,18 @@
 .kabobContainer {
   position: relative;
   padding: 0;
-  border: none;
-  background-color: rgb(0, 0, 0, 0);
+  background-color: transparent;
 }
+.kabobContainer::backdrop {
+  background: transparent;
+}
+
 .kabobMenu {
   position: fixed;
   z-index: 100;
   background-color: var(--grey3);
   color: var(--grey5);
+  border: 1px solid var(--grey4);
   border-radius: var(--radius);
   display: flex;
   flex-direction: column;

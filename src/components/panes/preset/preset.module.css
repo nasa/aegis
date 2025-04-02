@@ -1,41 +1,41 @@
-.layersContainer {
+.container {
   display: flex;
   flex-direction: column;
-}
-
-.layersHeader {
-  display: flex;
-  flex-direction: row;
-  font-weight: 700;
-  margin-top: 5px;
-  margin-left: 5px;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-.layersBody {
-  margin-top: 0;
-  margin-left: 5px;
-  padding-top: 6px;
-  padding-bottom: 6px;
-  margin-right: 5px;
-  -webkit-user-select: none;
-  user-select: none;
+  height: 100%;
+  background-color: var(--grey1);
 }
 
 .presetItem {
   display: flex;
-  flex-direction: row;
-  padding-left: 6px;
-  margin-top: 1px;
-  margin-bottom: 2px;
-  padding-top: 4px;
-  padding-bottom: 4px;
+  padding: 2px 5px 2px 5px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.itemIcon {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+
+  align-items: center;
+
+  font-size: 16px;
+  margin: 0 2px 0 2px;
+
+  border-radius: 5px;
+  padding: 0 1px 1px 1px;
+  width: 28px;
+  height: 28px;
+}
+
+.presetTitle {
+  display: flex;
+  align-items: center;
+  width: 100%;
   border-radius: var(--radius);
   font-size: 0.9em;
-  height: max-content;
+  padding: 3px 2px 3px 5px;
   cursor: pointer;
-  user-select: none;
 }
 
 .presetItemSelected {
@@ -49,6 +49,12 @@
   background-color: var(--grey1);
 }
 
+.defaultText {
+  font-size: 0.8em;
+  font-weight: 400;
+  margin-left: 5px;
+}
+
 .presetIcon {
   width: 20px;
   margin-left: 1px;
@@ -60,20 +66,6 @@
 
 .presetIconSelected {
   color: black !important;
-}
-
-.presetTitle {
-  font-size: 0.95em;
-  flex: 1 1 auto;
-  overflow-x: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.defaultText {
-  font-size: 0.8em;
-  font-weight: 400;
-  margin-left: 5px;
 }
 
 .expandoCaret {
@@ -145,11 +137,6 @@
   background: #66def9;
   border-radius: 5px;
   color: black;
-}
-
-.checkboxRow {
-  display: flex;
-  margin-left: 13px;
 }
 
 .toggleMenuItemRow {

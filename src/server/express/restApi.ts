@@ -31,6 +31,7 @@ import path from "path";
 import { getUser } from "packages/getUser";
 import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
 import serverLogger from "utils/serverLogger";
+import folderRoutes from "./routes/folder";
 import readableActionRoutes from "./routes/readable/action";
 import readableStationRoutes from "./routes/readable/station";
 import readableEvaRoutes from "./routes/readable/eva";
@@ -97,6 +98,7 @@ app.use("/api/v1/file/list", fileListRoute);
 app.use("/api/v1/file/rename", fileRenameRoute);
 app.use("/api/v1/file/delete", fileDeleteRoute);
 app.use("/api/v1/log/from-client", logFromClient);
+app.use("/api/v1/folder", folderRoutes);
 
 app.use("/api/v1/readable/action", readableActionRoutes);
 app.use("/api/v1/readable/station", readableStationRoutes);

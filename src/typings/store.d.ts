@@ -100,6 +100,8 @@ interface InterfaceState {
   stmViewHoveredTopItem: string;
   stmViewHoveredLeftItem: string;
   stmRulesSelectedRexes: string[];
+  folders: Folder[];
+  foldersInterface: FolderInterface[];
   appVersion: AppVersion;
   socketStatus: ClientSocketStatus;
 }

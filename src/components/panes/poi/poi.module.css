@@ -2,14 +2,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-}
-
-.body {
-  margin-top: 5px;
-  margin-left: 5px;
-  height: 0;
-  overflow-y: auto;
-  flex: 1 1 auto;
+  background-color: var(--grey1);
 }
 
 .poiItem {
@@ -76,4 +69,33 @@
 
 .poiRightSpacer {
   flex: 1;
+}
+
+.folderContainer {
+  margin-bottom: 8px;
+  border-radius: var(--radius);
+  background-color: var(--grey2);
+}
+
+.folder {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: var(--radius);
+}
+
+.folder:hover {
+  background-color: var(--grey3);
+}
+
+.folderName {
+  margin-left: 8px;
+  font-weight: 500;
+}
+
+.folderContents {
+  padding-left: 20px;
+  padding-top: 4px;
+  padding-bottom: 4px;
 }

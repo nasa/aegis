@@ -55,7 +55,8 @@ type StoreType =
   | "traverse"
   | "mission"
   | "rex"
-  | "stmRule";
+  | "stmRule"
+  | "folder";
 
 type StoreUpsertDataTypes =
   | POI
@@ -66,7 +67,8 @@ type StoreUpsertDataTypes =
   | Traverse
   | Mission
   | Rex
-  | STMRule;
+  | STMRule
+  | Folder;
 
 interface StoreUpsert {
   socketId: string;

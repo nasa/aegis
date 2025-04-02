@@ -64,6 +64,12 @@ import {
   upsertSTMRules,
   upsertSTMRulesFromDb,
 } from "store/stm";
+import {
+  setFolders,
+  setFolderInterfaceEditing,
+  setFolderInterfaceNameValue,
+} from "store/interface";
+import cloneDeep from "lodash/cloneDeep";
 
 /**
  * Handles the storeUpsert socket event
@@ -220,6 +226,40 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     }
     dispatch(upsertSTMRules(changedStmRules, true));
     dispatch(upsertSTMRulesFromDb(changedStmRules));
+  } else if (storeUpsert.type === "folder") {
+    const changedFolders = storeUpsert.data as Folder[];
+    for (const changedFolder of changedFolders) {
+      if (
+        getState().interface.foldersInterface.find((f) => f.uuid === changedFolder.uuid)?.editing
+      ) {
+        upsertMessages.push(getConflictMessage("folder", changedFolder.name, "upsert"));
+        dispatch(setFolderInterfaceEditing({ folderUuid: changedFolder.uuid, editing: false }));
+        dispatch(
+          setFolderInterfaceNameValue({
+            folderUuid: changedFolder.uuid,
+            editingNameValue: null,
+          })
+        );
+      }
+    }
+
+    const allFolders = cloneDeep(getState().interface.folders) as Folder[];
+    // update existing folders with the new data
+    allFolders.forEach((folder, index) => {
+      const changedFolder = changedFolders.find((f) => f.uuid === folder.uuid);
+      if (changedFolder) {
+        allFolders[index] = changedFolder;
+      }
+    });
+
+    // add new folders
+    changedFolders.forEach((changedFolder) => {
+      if (!allFolders.find((f) => f.uuid === changedFolder.uuid)) {
+        allFolders.push(changedFolder);
+      }
+    });
+
+    dispatch(setFolders(allFolders));
   }
   return upsertMessages;
 });
@@ -329,6 +369,26 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
     }
     dispatch(deleteSTMRules(storeDelete.uuids));
     dispatch(deleteSTMRulesFromDb(storeDelete.uuids));
+  } else if (storeDelete.type === "folder") {
+    const allFolders = cloneDeep(getState().interface.folders) as Folder[];
+    for (const deletedUuid of storeDelete.uuids) {
+      const deletedFolder = allFolders.find((f) => f.uuid === deletedUuid);
+      if (deletedFolder) {
+        if (getState().interface.foldersInterface.find((f) => f.uuid === deletedUuid)?.editing) {
+          deletedMessages.push(getConflictMessage("folder", deletedFolder.name, "delete"));
+          dispatch(setFolderInterfaceEditing({ folderUuid: deletedFolder.uuid, editing: false }));
+          dispatch(
+            setFolderInterfaceNameValue({
+              folderUuid: deletedFolder.uuid,
+              editingNameValue: null,
+            })
+          );
+        }
+      }
+    }
+
+    // The enhanced setFolders action will handle interfaces automatically
+    dispatch(setFolders(allFolders.filter((f) => !storeDelete.uuids.includes(f.uuid))));
   }
   return deletedMessages;
 });

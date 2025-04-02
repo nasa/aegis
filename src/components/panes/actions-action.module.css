@@ -230,15 +230,20 @@
   padding: 0;
   border: none;
   /* border-radius: var(--radius); */
-  background-color: rgb(0, 0, 0, 0);
+  background: transparent;
+}
+
+.menuContainer::backdrop {
+  background: transparent;
 }
 
 .menu {
   position: fixed;
-  width: 130px;
+  width: 140px;
   z-index: 100;
   background-color: var(--grey3);
   color: var(--grey5);
+  border: 1px solid var(--grey4);
   border-radius: var(--radius);
   font-size: 0.8em;
   display: flex;
@@ -251,6 +256,7 @@
   z-index: 100;
   background-color: var(--grey3);
   color: var(--grey5);
+  border: 1px solid var(--grey4);
   border-radius: var(--radius);
   font-size: 0.8em;
   display: flex;

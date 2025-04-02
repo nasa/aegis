@@ -26,6 +26,7 @@ import {
   Traverse_db,
   Grid_db,
   STM_Rule_db,
+  Folder_db,
 } from "./models/_allModels";
 import path from "path";
 
@@ -59,6 +60,7 @@ export default defineConfig({
     Traverse_db,
     Grid_db,
     STM_Rule_db,
+    Folder_db,
   ],
   entities: [
     User_db,
@@ -77,6 +79,7 @@ export default defineConfig({
     Traverse_db,
     Grid_db,
     STM_Rule_db,
+    Folder_db,
   ],
   debug: process.env.DEBUG === "true" || process.env.DEBUG?.includes("db"),
   allowGlobalContext: true,

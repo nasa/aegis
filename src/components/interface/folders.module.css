@@ -1,0 +1,179 @@
+.folderContainer {
+  margin-bottom: 5px;
+  border-radius: var(--radius);
+  background-color: var(--grey2);
+}
+
+.folder {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  margin: 0 0 2px 0;
+  user-select: none;
+  justify-content: space-between;
+}
+
+.folderLeft {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.folderIcon {
+  width: 20px;
+}
+
+.folderName {
+  margin-left: 8px;
+  margin-right: 8px;
+  font-weight: 500;
+  width: 100%;
+}
+
+.folderNameInput {
+  font-size: 1em;
+  width: 100%;
+}
+
+.folderContents {
+  padding-left: 20px;
+  padding-bottom: 4px;
+}
+
+.draggableItem {
+  cursor: grab;
+  position: relative;
+}
+
+.draggableItem:active {
+  cursor: grabbing;
+}
+
+.isDragging {
+  opacity: 0.6;
+}
+
+.droppable {
+  background-color: var(--grey3);
+  outline: 2px solid var(--primary);
+}
+
+.dragOverlay {
+  opacity: 0.8;
+  cursor: grabbing;
+  width: 100%;
+  transform: rotate(3deg);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  z-index: 999;
+}
+
+.rootArea {
+  min-height: 100px;
+}
+
+.rootDroppableArea {
+  padding: 2px;
+  border-radius: var(--radius);
+  min-height: 35px;
+  background-color: var(--grey2);
+}
+
+.rootDroppableArea.droppable {
+  background-color: var(--grey3);
+  border-color: var(--primary);
+  outline: none;
+}
+
+.dropHint {
+  padding: 10px;
+  text-align: center;
+  font-style: italic;
+  color: var(--grey3);
+}
+
+.menuContainer {
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+}
+
+.menuContainer::backdrop {
+  background: transparent;
+}
+
+.menu {
+  position: fixed;
+  z-index: 100;
+  width: 210px;
+  background-color: var(--grey3);
+  color: var(--grey5);
+  border: 1px solid var(--grey4);
+  border-radius: var(--radius);
+  font-size: 0.8em;
+  display: flex;
+  flex-direction: column;
+}
+
+.menuItem {
+  display: flex;
+  flex-direction: row;
+  padding: 5px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.menuItem:hover {
+  background-color: var(--grey2);
+}
+
+.menuItem:not(:last-child) {
+  border-bottom: 1px solid var(--grey4);
+}
+
+.menuItemIcon {
+  flex: 0 0 18px;
+}
+
+.menuItemText {
+  flex: 1 1 auto;
+}
+
+.folderMenu {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.saveButton {
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  border: none;
+}
+
+.saveButton {
+  background-color: var(--alert);
+  color: white;
+}
+
+.cancelButton {
+  background-color: var(--grey3);
+  color: var(--grey7);
+}
+
+.folderHidden {
+  opacity: 0.6;
+}
+
+.folderHidden .folderLeft,
+.folderHidden .folderMenu {
+  opacity: 0.6;
+}
+
+.folderHidden .folderContents {
+  opacity: 0.6;
+}
