@@ -229,7 +229,7 @@ export const ActionsTopSection: FunctionComponent<{
       //    the case in which actions were statused, and then deleted.
       if (
         last(runningRex.actionEntries[actionUuid])?.rexStatus === "complete" &&
-        actionOrderUuids.includes(actionUuid)
+        actionOrderUuids?.includes(actionUuid)
       ) {
         const action = state.action.actions.find((a) => a.uuid === actionUuid);
         if (action.enabled === false) return null;
@@ -248,7 +248,7 @@ export const ActionsTopSection: FunctionComponent<{
       //    the case in which actions were statused, and then deleted.
       if (
         last(runningRex.actionEntries[actionUuid])?.rexStatus === "in-progress" &&
-        actionOrderUuids.includes(actionUuid)
+        actionOrderUuids?.includes(actionUuid)
       ) {
         const action = state.action.actions.find((a) => a.uuid === actionUuid);
         if (action.enabled === false) return null;
@@ -261,7 +261,7 @@ export const ActionsTopSection: FunctionComponent<{
   // there's a difference between null and 0. Only calculate rex mass if it's 0. Null means it hasn't been executed yet.
 
   const rexMass = useAppSelector((state) => {
-    if (!actionIsInRunningRex) return null;
+    if (!actionIsInRunningRex || !actionOrderUuids) return null;
     const runningRex = state.rex.rexes.find((r) => r.isRunning);
     let mass = null;
     // loop through all actions

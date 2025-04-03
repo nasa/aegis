@@ -289,9 +289,12 @@ export const processEvaDataFromStore = ({
       );
       // calculate duration from actions assigned to traverse
       // note: this is the "dwell time" which is crew member time spent at the traverse actions that is the longest
-      const durationMinutes = calculatedFields?.totalDwellTime.durationUpper;
+      const actionDurationMins = calculatedFields?.totalDwellTime.durationUpper;
       // add traverse action durations onto the total duration for the traverse
-      EVASequenceItemForTimeline.totalDurationMins += durationMinutes;
+      EVASequenceItemForTimeline.totalDurationMins += actionDurationMins;
+
+      // add action durations to the sum for total length calculated
+      storeRef.current.evaLengthCalculatedMins += actionDurationMins;
     }
     storeRef.current.sequenceItems.push(EVASequenceItemForTimeline);
   }
