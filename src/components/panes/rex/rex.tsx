@@ -68,7 +68,7 @@ const EvaRexLeft: FunctionComponent = () => {
 
   const renderRexItem = ({ item: rex, first }: FolderItemProps<Rex>) => {
     return (
-      <div className={styles.panelContainer} key={rex.uuid} aria-label="rex-item">
+      <div aria-label="rex-item">
         <EvaRexItem rexUuid={rex.uuid} first={first} />
       </div>
     );
@@ -79,7 +79,7 @@ const EvaRexLeft: FunctionComponent = () => {
       <div className={paneStyles.leftPanelContainer}>
         <div className={paneStyles.leftPanelContainerTop}>
           {isRexRunningFromDb ? (
-            <div className={styles.panelContainer}>
+            <div className={styles.panelContainer} style={{ margin: "0px" }}>
               <EvaRexItem rexUuid={isRexRunningFromDb.uuid} first={true} />
             </div>
           ) : (
